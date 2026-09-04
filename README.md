@@ -5,11 +5,15 @@
 _Klopt_ is what a Dutch bookkeeper says when the reconciliation lands: it adds
 up. It is also the pass/fail condition for this software.
 
-> **Status: M0 in progress.** The ledger works: immutable journal with a hash
-> chain, gapless numbering, n-dimensional analytics, period control, foreign
-> currency, reversals, trial balance, and a versioned REST API over all of it.
-> Still to come in M0: RGS reference data, year close, and the XAF 3.2 export
-> and import. See [Roadmap](#roadmap).
+> **Status: M0 complete.** An accountant can use this as a shadow ledger today.
+> Immutable journal with a hash chain, gapless numbering, n-dimensional
+> analytics, period control, foreign currency, reversals, the real RGS 3.7
+> scheme with coverage reporting, year close, trial balance, balance sheet and
+> P&L, and **XAF 3.2 export and import** — validated against the published
+> Belastingdienst schema. All of it over a versioned REST API.
+>
+> There is no UI yet beyond a placeholder page. The API came first by
+> construction. Next: M1, Sales.
 
 ---
 
@@ -92,6 +96,18 @@ Amounts are integer minor units **as strings**. A JSON number in the money path
 is rejected, because by the time it reached us it would already have been
 rounded.
 
+Then leave with your data:
+
+```bash
+curl -O -J "localhost:3000/api/v1/exports/audit-file?fiscalYear=2026" \
+  -H "authorization: Bearer $KLOPT_TOKEN"
+
+xmllint --noout --schema reference-data/xaf/XmlAuditfileFinancieel3.2.xsd xaf-*.xml
+```
+
+That is a complete XAF 3.2 auditfile with RGS lead codes, validated against the
+published schema. Principle 2, in one request.
+
 Check everything the way CI does:
 
 ```bash
@@ -145,6 +161,20 @@ M0 through M3 is the credible minimum. Anything less is another invoicing tool.
 
 The REST API is not a milestone: it exists from M0 by construction, enforced by
 the contract test.
+
+## What M0 gives you
+
+|                |                                                                                                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ledger**     | Immutable journal, hash chain per entity, gapless numbering, n-dimensional analytics, period control, multi-currency, reversals           |
+| **RGS 3.7**    | The real published scheme — 3691 MKB codes — as versioned reference data, with coverage reporting, mapping validation and an upgrade diff |
+| **Reports**    | Trial balance, balance sheet, profit and loss, all derived from the same figures and asserted to agree                                    |
+| **Year close** | Result appropriation and opening balance, as two ordinary reversible entries                                                              |
+| **XAF 3.2**    | Export with RGS lead codes, validated against the published XSD; import with a reconciliation dry run                                     |
+| **API**        | 15 operations under `/api/v1`, scoped bearer tokens, idempotency keys, cursor pagination, problem+json errors                             |
+
+Round-tripping is tested, not claimed: an export from one administration
+imports into another and produces an identical balance sheet.
 
 ## Compliance surface
 

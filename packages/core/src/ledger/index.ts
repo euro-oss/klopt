@@ -74,3 +74,17 @@ export {
   type BalanceRow,
   buildTrialBalance,
 } from './reports.js'
+
+export {
+  type BalanceSheet,
+  type ProfitAndLoss,
+  type RgsStatementLine,
+  type StatementLine,
+  type StatementRequest,
+  type StatementSection,
+  buildBalanceSheet,
+  buildProfitAndLoss,
+  rollUpToRgs,
+} from './statements.js'
+
+export { type YearClosePlan, type YearCloseRequest, planYearClose } from './year-close.js'

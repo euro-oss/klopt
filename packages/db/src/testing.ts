@@ -25,6 +25,11 @@ import {
 
 export interface SeedOptions {
   readonly fiscalYearCode?: string
+  /**
+   * Extra fiscal years. A year close posts its opening balance into the next
+   * one, so anything exercising a close needs at least two.
+   */
+  readonly alsoFiscalYears?: readonly string[]
   readonly functionalCurrency?: string
 }
 
@@ -44,31 +49,33 @@ export async function seedEntity(database: Database, options: SeedOptions = {}):
     rgsVersion: '3.7',
   })
 
-  const fiscalYearId = uuidv7()
-  await database.insert(fiscalYears).values({
-    id: fiscalYearId,
-    entityId,
-    code: fiscalYearCode,
-    startsOn: `${fiscalYearCode}-01-01`,
-    endsOn: `${fiscalYearCode}-12-31`,
-  })
+  for (const code of [fiscalYearCode, ...(options.alsoFiscalYears ?? [])]) {
+    const fiscalYearId = uuidv7()
+    await database.insert(fiscalYears).values({
+      id: fiscalYearId,
+      entityId,
+      code,
+      startsOn: `${code}-01-01`,
+      endsOn: `${code}-12-31`,
+    })
 
-  const year = Number(fiscalYearCode)
-  await database.insert(periods).values(
-    Array.from({ length: 12 }, (_, index) => {
-      const month = index + 1
-      const start = new Date(Date.UTC(year, index, 1))
-      const end = new Date(Date.UTC(year, month, 0))
-      return {
-        id: uuidv7(),
-        entityId,
-        fiscalYearId,
-        sequence: month,
-        startsOn: start.toISOString().slice(0, 10),
-        endsOn: end.toISOString().slice(0, 10),
-      }
-    }),
-  )
+    const year = Number(code)
+    await database.insert(periods).values(
+      Array.from({ length: 12 }, (_, index) => {
+        const month = index + 1
+        const start = new Date(Date.UTC(year, index, 1))
+        const end = new Date(Date.UTC(year, month, 0))
+        return {
+          id: uuidv7(),
+          entityId,
+          fiscalYearId,
+          sequence: month,
+          startsOn: start.toISOString().slice(0, 10),
+          endsOn: end.toISOString().slice(0, 10),
+        }
+      }),
+    )
+  }
 
   await database.insert(journals).values([
     { id: uuidv7(), entityId, code: 'MEM', name: 'Memoriaal', type: 'memoriaal' },
@@ -79,15 +86,15 @@ export async function seedEntity(database: Database, options: SeedOptions = {}):
 
   // A minimal chart, RGS-coded, in the Dutch numbering everyone recognises.
   const chart = [
-    { number: '0100', name: 'Inventaris', type: 'asset', dc: 'debit', rgs: 'BIvaBeg' },
+    { number: '0100', name: 'Inventaris', type: 'asset', dc: 'debit', rgs: 'BMvaBeiVvp' },
     { number: '1000', name: 'Kas', type: 'asset', dc: 'debit', rgs: 'BLimKasKas' },
     { number: '1100', name: 'Bank', type: 'asset', dc: 'debit', rgs: 'BLimBanRba' },
     { number: '1300', name: 'Debiteuren', type: 'asset', dc: 'debit', rgs: 'BVorDeb' },
     { number: '1600', name: 'Crediteuren', type: 'liability', dc: 'credit', rgs: 'BSchCre' },
     { number: '1500', name: 'Te betalen BTW', type: 'liability', dc: 'credit', rgs: 'BSchBepBtw' },
-    { number: '0500', name: 'Eigen vermogen', type: 'equity', dc: 'credit', rgs: 'BEivGok' },
+    { number: '0500', name: 'Eigen vermogen', type: 'equity', dc: 'credit', rgs: 'BEivGokCva' },
     { number: '8000', name: 'Omzet', type: 'revenue', dc: 'credit', rgs: 'WOmzNoo' },
-    { number: '4000', name: 'Inkoopwaarde', type: 'expense', dc: 'debit', rgs: 'WKprInk' },
+    { number: '4000', name: 'Inkoopwaarde', type: 'expense', dc: 'debit', rgs: 'WKprGrpGr1' },
     { number: '4300', name: 'Brandstofkosten', type: 'expense', dc: 'debit', rgs: 'WBedAutBra' },
     { number: '9999', name: 'Geblokkeerd', type: 'expense', dc: 'debit', rgs: null },
   ] as const

@@ -33,4 +33,7 @@ export { type LedgerErrorCode, type LedgerViolation, LedgerError, violation } fr
 export { isUuid, uuidv7, uuidv7Timestamp } from './ids.js'
 
 export * from './ledger/index.js'
-export { ledgerOperations } from './operations.js'
+export * from './rgs/index.js'
+export * from './xaf/index.js'
+export * from './reference/index.js'
+export { complianceOperations, ledgerOperations } from './operations.js'

@@ -31,6 +31,13 @@ ruleTester.run('no-number-money', rule, {
     'interface Line { totalAmount: string }',
     'const schema = z.object({ totalAmount: z.string() })',
 
+    // A count of things, a ratio, a rate: money-shaped word, not money.
+    'interface Report { balanceSheetAccountCount: number }',
+    'interface Report { mappableBalanceBasisPoints: number }',
+    'interface Report { creditNotePercentage: number }',
+    'interface Report { vatRate: number }',
+    'const s = z.object({ totalCount: z.number() })',
+
     // Explicitly excused.
     {
       code: 'interface Row { balance: number }',
@@ -49,6 +56,9 @@ ruleTester.run('no-number-money', rule, {
     { code: 'interface Line { VATAmount: number }', errors },
     { code: 'interface Row { vat_amount: number }', errors },
     { code: 'interface Row { "total-price": number }', errors },
+
+    // ...but a money word in the middle is still money.
+    { code: 'interface Line { countedAmount: number }', errors },
 
     // Bare and plural.
     { code: 'interface Line { amount: number }', errors },

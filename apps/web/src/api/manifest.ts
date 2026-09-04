@@ -67,6 +67,57 @@ export const routeManifest: readonly RouteBinding[] = [
     path: '/accounts',
     module: 'api/v1/accounts.ts',
   },
+  {
+    operationId: 'ledger.getBalanceSheet',
+    method: 'GET',
+    path: '/reports/balance-sheet',
+    module: 'api/v1/reports.balance-sheet.ts',
+  },
+  {
+    operationId: 'ledger.getProfitAndLoss',
+    method: 'GET',
+    path: '/reports/profit-and-loss',
+    module: 'api/v1/reports.profit-and-loss.ts',
+  },
+  {
+    // Not "reopen": a close is two ordinary entries, and undoing it is a
+    // reversal like any other.
+    operationId: 'ledger.closeYear',
+    method: 'POST',
+    path: '/fiscal-years/close',
+    module: 'api/v1/fiscal-years.close.ts',
+  },
+  {
+    operationId: 'rgs.getCoverage',
+    method: 'GET',
+    path: '/rgs/coverage',
+    module: 'api/v1/rgs.coverage.ts',
+  },
+  {
+    operationId: 'rgs.setMappings',
+    method: 'PUT',
+    path: '/rgs/mappings',
+    module: 'api/v1/rgs.mappings.ts',
+  },
+  {
+    operationId: 'rgs.previewUpgrade',
+    method: 'GET',
+    path: '/rgs/upgrade-preview',
+    module: 'api/v1/rgs.upgrade-preview.ts',
+  },
+  {
+    // Returns XML, not JSON. Leaving is one request (principle 2).
+    operationId: 'export.auditFile',
+    method: 'GET',
+    path: '/exports/audit-file',
+    module: 'api/v1/exports.audit-file.ts',
+  },
+  {
+    operationId: 'import.auditFile',
+    method: 'POST',
+    path: '/imports/audit-file',
+    module: 'api/v1/imports.audit-file.ts',
+  },
 ]
 
 export interface ContractViolation {

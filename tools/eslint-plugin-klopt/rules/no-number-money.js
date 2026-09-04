@@ -37,6 +37,27 @@ const DEFAULT_WORDS = [
   'vat',
 ]
 
+/**
+ * Words that turn a money-shaped name into something that is not money.
+ * `balanceSheetAccountCount` counts accounts; `mappableBalanceBasisPoints` is a
+ * ratio. Both legitimately are `number`, and flagging them would train people
+ * to reach for eslint-disable, which is worse than the rule not firing.
+ *
+ * Matched on the **last** word only: `countedAmount` is still an amount.
+ */
+const NOT_MONEY_SUFFIXES = new Set([
+  'count',
+  'days',
+  'index',
+  'number',
+  'percent',
+  'percentage',
+  'points',
+  'rate',
+  'ratio',
+  'share',
+])
+
 const MESSAGE =
   'Money must not be typed as `number`. Use `Money` (bigint minor units + currency) in the domain, or `MoneyWire` (decimal string + currency) at the boundary.'
 
@@ -115,9 +136,12 @@ export default {
     /** @param {string | null} name */
     function isMoneyName(name) {
       if (name === null || ignored.has(name)) return false
-      return words(name).some(
-        (word) => moneyWords.has(word) || moneyWords.has(word.replace(/s$/, '')),
-      )
+
+      const parts = words(name)
+      const last = parts[parts.length - 1]
+      if (last !== undefined && NOT_MONEY_SUFFIXES.has(last)) return false
+
+      return parts.some((word) => moneyWords.has(word) || moneyWords.has(word.replace(/s$/, '')))
     }
 
     function checkTyped(node) {

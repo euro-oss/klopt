@@ -92,3 +92,51 @@ export const listEntriesQuery = z.object({
 
 export type PostJournalEntryBody = z.infer<typeof postJournalEntryBody>
 export type ReverseJournalEntryBody = z.infer<typeof reverseJournalEntryBody>
+
+export const statementQuery = z.object({
+  fiscalYear: z.string().min(1),
+  fromPeriod: z.coerce.number().int().min(1).max(13).default(1),
+  toPeriod: z.coerce.number().int().min(1).max(13).default(13),
+  currency: currencyCode.default('EUR'),
+})
+
+export const rgsCoverageQuery = z.object({
+  currency: currencyCode.default('EUR'),
+  /** Narrows "unused codes" to the profile the entity is, e.g. `ZZP` or `BV`. */
+  applicableFlag: z.string().min(1).nullable().default(null),
+})
+
+export const rgsMappingsBody = z.object({
+  mappings: z
+    .array(
+      z.object({
+        accountNumber: z.string().min(1),
+        rgsCode: z.string().min(1).nullable(),
+      }),
+    )
+    .min(1),
+  dryRun: z.boolean().default(false),
+})
+
+export const rgsUpgradeQuery = z.object({
+  toVersion: z.string().min(1),
+})
+
+export const auditFileQuery = z.object({
+  fiscalYear: z.string().min(1),
+  fromPeriod: z.coerce.number().int().min(1).max(13).nullable().default(null),
+  toPeriod: z.coerce.number().int().min(1).max(13).nullable().default(null),
+})
+
+export const auditFileImportBody = z.object({
+  xml: z.string().min(1),
+  dryRun: z.boolean().default(true),
+})
+
+export const closeYearBody = z.object({
+  fiscalYear: z.string().min(1),
+  resultAccountNumber: z.string().min(1),
+  journalCode: z.string().min(1).default('MEM'),
+  carryForward: z.boolean().default(true),
+  dryRun: z.boolean().default(false),
+})

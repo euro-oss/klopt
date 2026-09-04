@@ -84,6 +84,7 @@ export const entities = klopt.table(
     /** A boekjaar need not be a calendar year (spec 6.4). */
     fiscalYearStartMonth: smallint('fiscal_year_start_month').notNull().default(1),
     rgsVersion: text('rgs_version'),
+    rgsVariant: text('rgs_variant').notNull().default('mkb'),
     vatRounding: vatRoundingPolicy('vat_rounding').notNull().default('per_invoice'),
     ...timestamps,
   },
@@ -527,4 +528,33 @@ export const apiTokens = klopt.table(
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
   },
   (table) => [index('api_tokens_entity').on(table.entityId)],
+)
+
+/**
+ * A year close (spec 6.4). Two ordinary journal entries plus the record that
+ * they were a close, so it can be shown, audited and reversed.
+ */
+export const yearCloses = klopt.table(
+  'year_closes',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    fiscalYearId: uuid('fiscal_year_id')
+      .notNull()
+      .references(() => fiscalYears.id),
+    appropriationEntryId: uuid('appropriation_entry_id').references(() => journalEntries.id),
+    openingEntryId: uuid('opening_entry_id').references(() => journalEntries.id),
+    resultMinorUnits: bigint('result_minor_units', { mode: 'bigint' }).notNull(),
+    resultCurrency: char('result_currency', { length: 3 }).notNull(),
+    closedAt: timestamp('closed_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+    closedBy: text('closed_by').notNull(),
+    reversedAt: timestamp('reversed_at', { withTimezone: true, mode: 'date' }),
+  },
+  (table) => [
+    uniqueIndex('year_closes_one_open_per_year')
+      .on(table.fiscalYearId)
+      .where(sql`reversed_at is null`),
+  ],
 )

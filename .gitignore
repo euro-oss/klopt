@@ -19,3 +19,6 @@ blob-report/
 .DS_Store
 *.log
 .context/
+
+# Scratch files the XAF schema validator writes next to the golden files.
+**/__golden__/.*.tmp.xml

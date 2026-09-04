@@ -19,5 +19,7 @@ export {
   revokeToken,
   touchToken,
 } from './repositories/tokens.js'
-export { withLedger, withReporting } from './unit-of-work.js'
+export { XafExportRepository, type XafExportRequest } from './repositories/xaf.js'
+export { RgsRepository } from './repositories/rgs.js'
+export { withLedger, withReporting, withRgs, withXafExport, withYearClose } from './unit-of-work.js'
 export * as schema from './schema/index.js'

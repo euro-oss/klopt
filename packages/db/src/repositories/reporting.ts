@@ -4,9 +4,11 @@ import type { Transaction } from '../client.js'
 import {
   accountPeriodBalances,
   accounts,
+  entities,
   fiscalYears,
   journalEntries,
   journalLines,
+  journals,
   periods,
 } from '../schema/index.js'
 
@@ -147,6 +149,78 @@ export class ReportingRepository {
     return new Map(
       rows.map((row) => [row.accountId, { debit: BigInt(row.debit), credit: BigInt(row.credit) }]),
     )
+  }
+
+  async entity(entityId: string) {
+    const [row] = await this.tx
+      .select({
+        id: entities.id,
+        name: entities.name,
+        legalName: entities.legalName,
+        functionalCurrency: entities.functionalCurrency,
+        rgsVersion: entities.rgsVersion,
+        rgsVariant: entities.rgsVariant,
+      })
+      .from(entities)
+      .where(eq(entities.id, entityId))
+      .limit(1)
+    return row ?? null
+  }
+
+  async fiscalYear(entityId: string, code: string) {
+    const [row] = await this.tx
+      .select()
+      .from(fiscalYears)
+      .where(and(eq(fiscalYears.entityId, entityId), eq(fiscalYears.code, code)))
+      .limit(1)
+    return row ?? null
+  }
+
+  /** The calendar dates a period range spans, for the statement headings. */
+  async periodRange(
+    entityId: string,
+    fiscalYearCode: string,
+    fromPeriod: number,
+    toPeriod: number,
+  ): Promise<{ fromDate: string; toDate: string } | null> {
+    const rows = await this.tx
+      .select({ startsOn: periods.startsOn, endsOn: periods.endsOn })
+      .from(periods)
+      .innerJoin(fiscalYears, eq(fiscalYears.id, periods.fiscalYearId))
+      .where(
+        and(
+          eq(periods.entityId, entityId),
+          eq(fiscalYears.code, fiscalYearCode),
+          gte(periods.sequence, fromPeriod),
+          lte(periods.sequence, toPeriod),
+        ),
+      )
+      .orderBy(asc(periods.sequence))
+
+    const first = rows[0]
+    const last = rows.at(-1)
+    if (first === undefined || last === undefined) return null
+    return { fromDate: first.startsOn, toDate: last.endsOn }
+  }
+
+  /** Whether any period covers this date. Used to check a close can land. */
+  async periodContaining(entityId: string, date: string): Promise<boolean> {
+    const rows = await this.tx
+      .select({ id: periods.id })
+      .from(periods)
+      .where(
+        and(eq(periods.entityId, entityId), lte(periods.startsOn, date), gte(periods.endsOn, date)),
+      )
+      .limit(1)
+    return rows.length > 0
+  }
+
+  async listJournals(entityId: string) {
+    return this.tx
+      .select({ id: journals.id, code: journals.code, name: journals.name, type: journals.type })
+      .from(journals)
+      .where(eq(journals.entityId, entityId))
+      .orderBy(asc(journals.code))
   }
 
   async listAccounts(entityId: string) {

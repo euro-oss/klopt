@@ -13,9 +13,17 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiV1AccountsRouteImport } from './routes/api/v1/accounts'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1JournalEntriesRouteImport } from './routes/api/v1/journal-entries'
+import { Route as ApiV1ExportsAuditFileRouteImport } from './routes/api/v1/exports.audit-file'
+import { Route as ApiV1FiscalYearsCloseRouteImport } from './routes/api/v1/fiscal-years.close'
+import { Route as ApiV1ImportsAuditFileRouteImport } from './routes/api/v1/imports.audit-file'
 import { Route as ApiV1JournalEntriesEntryIdRouteImport } from './routes/api/v1/journal-entries.$entryId'
 import { Route as ApiV1LedgerChainVerificationRouteImport } from './routes/api/v1/ledger.chain-verification'
+import { Route as ApiV1ReportsBalanceSheetRouteImport } from './routes/api/v1/reports.balance-sheet'
+import { Route as ApiV1ReportsProfitAndLossRouteImport } from './routes/api/v1/reports.profit-and-loss'
 import { Route as ApiV1ReportsTrialBalanceRouteImport } from './routes/api/v1/reports.trial-balance'
+import { Route as ApiV1RgsCoverageRouteImport } from './routes/api/v1/rgs.coverage'
+import { Route as ApiV1RgsMappingsRouteImport } from './routes/api/v1/rgs.mappings'
+import { Route as ApiV1RgsUpgradePreviewRouteImport } from './routes/api/v1/rgs.upgrade-preview'
 import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes/api/v1/journal-entries.$entryId.reversal'
 
 const IndexRoute = IndexRouteImport.update({
@@ -38,6 +46,21 @@ const ApiV1JournalEntriesRoute = ApiV1JournalEntriesRouteImport.update({
   path: '/api/v1/journal-entries',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1ExportsAuditFileRoute = ApiV1ExportsAuditFileRouteImport.update({
+  id: '/api/v1/exports/audit-file',
+  path: '/api/v1/exports/audit-file',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1FiscalYearsCloseRoute = ApiV1FiscalYearsCloseRouteImport.update({
+  id: '/api/v1/fiscal-years/close',
+  path: '/api/v1/fiscal-years/close',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ImportsAuditFileRoute = ApiV1ImportsAuditFileRouteImport.update({
+  id: '/api/v1/imports/audit-file',
+  path: '/api/v1/imports/audit-file',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1JournalEntriesEntryIdRoute =
   ApiV1JournalEntriesEntryIdRouteImport.update({
     id: '/$entryId',
@@ -50,12 +73,39 @@ const ApiV1LedgerChainVerificationRoute =
     path: '/api/v1/ledger/chain-verification',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1ReportsBalanceSheetRoute =
+  ApiV1ReportsBalanceSheetRouteImport.update({
+    id: '/api/v1/reports/balance-sheet',
+    path: '/api/v1/reports/balance-sheet',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1ReportsProfitAndLossRoute =
+  ApiV1ReportsProfitAndLossRouteImport.update({
+    id: '/api/v1/reports/profit-and-loss',
+    path: '/api/v1/reports/profit-and-loss',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1ReportsTrialBalanceRoute =
   ApiV1ReportsTrialBalanceRouteImport.update({
     id: '/api/v1/reports/trial-balance',
     path: '/api/v1/reports/trial-balance',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1RgsCoverageRoute = ApiV1RgsCoverageRouteImport.update({
+  id: '/api/v1/rgs/coverage',
+  path: '/api/v1/rgs/coverage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RgsMappingsRoute = ApiV1RgsMappingsRouteImport.update({
+  id: '/api/v1/rgs/mappings',
+  path: '/api/v1/rgs/mappings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RgsUpgradePreviewRoute = ApiV1RgsUpgradePreviewRouteImport.update({
+  id: '/api/v1/rgs/upgrade-preview',
+  path: '/api/v1/rgs/upgrade-preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1JournalEntriesEntryIdReversalRoute =
   ApiV1JournalEntriesEntryIdReversalRouteImport.update({
     id: '/reversal',
@@ -68,9 +118,17 @@ export interface FileRoutesByFullPath {
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
+  '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
+  '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
+  '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
+  '/api/v1/rgs/coverage': typeof ApiV1RgsCoverageRoute
+  '/api/v1/rgs/mappings': typeof ApiV1RgsMappingsRoute
+  '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
 }
 export interface FileRoutesByTo {
@@ -78,9 +136,17 @@ export interface FileRoutesByTo {
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
+  '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
+  '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
+  '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
+  '/api/v1/rgs/coverage': typeof ApiV1RgsCoverageRoute
+  '/api/v1/rgs/mappings': typeof ApiV1RgsMappingsRoute
+  '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
 }
 export interface FileRoutesById {
@@ -89,9 +155,17 @@ export interface FileRoutesById {
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
+  '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
+  '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
+  '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
+  '/api/v1/rgs/coverage': typeof ApiV1RgsCoverageRoute
+  '/api/v1/rgs/mappings': typeof ApiV1RgsMappingsRoute
+  '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
 }
 export interface FileRouteTypes {
@@ -101,9 +175,17 @@ export interface FileRouteTypes {
     | '/api/v1/accounts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
+    | '/api/v1/exports/audit-file'
+    | '/api/v1/fiscal-years/close'
+    | '/api/v1/imports/audit-file'
     | '/api/v1/journal-entries/$entryId'
     | '/api/v1/ledger/chain-verification'
+    | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
+    | '/api/v1/rgs/coverage'
+    | '/api/v1/rgs/mappings'
+    | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/journal-entries/$entryId/reversal'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -111,9 +193,17 @@ export interface FileRouteTypes {
     | '/api/v1/accounts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
+    | '/api/v1/exports/audit-file'
+    | '/api/v1/fiscal-years/close'
+    | '/api/v1/imports/audit-file'
     | '/api/v1/journal-entries/$entryId'
     | '/api/v1/ledger/chain-verification'
+    | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
+    | '/api/v1/rgs/coverage'
+    | '/api/v1/rgs/mappings'
+    | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/journal-entries/$entryId/reversal'
   id:
     | '__root__'
@@ -121,9 +211,17 @@ export interface FileRouteTypes {
     | '/api/v1/accounts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
+    | '/api/v1/exports/audit-file'
+    | '/api/v1/fiscal-years/close'
+    | '/api/v1/imports/audit-file'
     | '/api/v1/journal-entries/$entryId'
     | '/api/v1/ledger/chain-verification'
+    | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
+    | '/api/v1/rgs/coverage'
+    | '/api/v1/rgs/mappings'
+    | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/journal-entries/$entryId/reversal'
   fileRoutesById: FileRoutesById
 }
@@ -132,8 +230,16 @@ export interface RootRouteChildren {
   ApiV1AccountsRoute: typeof ApiV1AccountsRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1JournalEntriesRoute: typeof ApiV1JournalEntriesRouteWithChildren
+  ApiV1ExportsAuditFileRoute: typeof ApiV1ExportsAuditFileRoute
+  ApiV1FiscalYearsCloseRoute: typeof ApiV1FiscalYearsCloseRoute
+  ApiV1ImportsAuditFileRoute: typeof ApiV1ImportsAuditFileRoute
   ApiV1LedgerChainVerificationRoute: typeof ApiV1LedgerChainVerificationRoute
+  ApiV1ReportsBalanceSheetRoute: typeof ApiV1ReportsBalanceSheetRoute
+  ApiV1ReportsProfitAndLossRoute: typeof ApiV1ReportsProfitAndLossRoute
   ApiV1ReportsTrialBalanceRoute: typeof ApiV1ReportsTrialBalanceRoute
+  ApiV1RgsCoverageRoute: typeof ApiV1RgsCoverageRoute
+  ApiV1RgsMappingsRoute: typeof ApiV1RgsMappingsRoute
+  ApiV1RgsUpgradePreviewRoute: typeof ApiV1RgsUpgradePreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -166,6 +272,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1JournalEntriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/exports/audit-file': {
+      id: '/api/v1/exports/audit-file'
+      path: '/api/v1/exports/audit-file'
+      fullPath: '/api/v1/exports/audit-file'
+      preLoaderRoute: typeof ApiV1ExportsAuditFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/fiscal-years/close': {
+      id: '/api/v1/fiscal-years/close'
+      path: '/api/v1/fiscal-years/close'
+      fullPath: '/api/v1/fiscal-years/close'
+      preLoaderRoute: typeof ApiV1FiscalYearsCloseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/imports/audit-file': {
+      id: '/api/v1/imports/audit-file'
+      path: '/api/v1/imports/audit-file'
+      fullPath: '/api/v1/imports/audit-file'
+      preLoaderRoute: typeof ApiV1ImportsAuditFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/journal-entries/$entryId': {
       id: '/api/v1/journal-entries/$entryId'
       path: '/$entryId'
@@ -180,11 +307,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1LedgerChainVerificationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/reports/balance-sheet': {
+      id: '/api/v1/reports/balance-sheet'
+      path: '/api/v1/reports/balance-sheet'
+      fullPath: '/api/v1/reports/balance-sheet'
+      preLoaderRoute: typeof ApiV1ReportsBalanceSheetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/reports/profit-and-loss': {
+      id: '/api/v1/reports/profit-and-loss'
+      path: '/api/v1/reports/profit-and-loss'
+      fullPath: '/api/v1/reports/profit-and-loss'
+      preLoaderRoute: typeof ApiV1ReportsProfitAndLossRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/reports/trial-balance': {
       id: '/api/v1/reports/trial-balance'
       path: '/api/v1/reports/trial-balance'
       fullPath: '/api/v1/reports/trial-balance'
       preLoaderRoute: typeof ApiV1ReportsTrialBalanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/rgs/coverage': {
+      id: '/api/v1/rgs/coverage'
+      path: '/api/v1/rgs/coverage'
+      fullPath: '/api/v1/rgs/coverage'
+      preLoaderRoute: typeof ApiV1RgsCoverageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/rgs/mappings': {
+      id: '/api/v1/rgs/mappings'
+      path: '/api/v1/rgs/mappings'
+      fullPath: '/api/v1/rgs/mappings'
+      preLoaderRoute: typeof ApiV1RgsMappingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/rgs/upgrade-preview': {
+      id: '/api/v1/rgs/upgrade-preview'
+      path: '/api/v1/rgs/upgrade-preview'
+      fullPath: '/api/v1/rgs/upgrade-preview'
+      preLoaderRoute: typeof ApiV1RgsUpgradePreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/journal-entries/$entryId/reversal': {
@@ -228,8 +390,16 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AccountsRoute: ApiV1AccountsRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1JournalEntriesRoute: ApiV1JournalEntriesRouteWithChildren,
+  ApiV1ExportsAuditFileRoute: ApiV1ExportsAuditFileRoute,
+  ApiV1FiscalYearsCloseRoute: ApiV1FiscalYearsCloseRoute,
+  ApiV1ImportsAuditFileRoute: ApiV1ImportsAuditFileRoute,
   ApiV1LedgerChainVerificationRoute: ApiV1LedgerChainVerificationRoute,
+  ApiV1ReportsBalanceSheetRoute: ApiV1ReportsBalanceSheetRoute,
+  ApiV1ReportsProfitAndLossRoute: ApiV1ReportsProfitAndLossRoute,
   ApiV1ReportsTrialBalanceRoute: ApiV1ReportsTrialBalanceRoute,
+  ApiV1RgsCoverageRoute: ApiV1RgsCoverageRoute,
+  ApiV1RgsMappingsRoute: ApiV1RgsMappingsRoute,
+  ApiV1RgsUpgradePreviewRoute: ApiV1RgsUpgradePreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
