@@ -9,15 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AccountsRouteImport } from './routes/accounts'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as EntriesIndexRouteImport } from './routes/entries.index'
-import { Route as EntriesEntryIdRouteImport } from './routes/entries.$entryId'
-import { Route as EntriesNewRouteImport } from './routes/entries.new'
-import { Route as ReportsBalanceSheetRouteImport } from './routes/reports.balance-sheet'
-import { Route as ReportsProfitAndLossRouteImport } from './routes/reports.profit-and-loss'
-import { Route as ReportsTrialBalanceRouteImport } from './routes/reports.trial-balance'
+import { Route as SignOutRouteImport } from './routes/sign-out'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
+import { Route as AppEntriesIndexRouteImport } from './routes/_app/entries.index'
+import { Route as AppEntriesEntryIdRouteImport } from './routes/_app/entries.$entryId'
+import { Route as AppEntriesNewRouteImport } from './routes/_app/entries.new'
+import { Route as AppReportsBalanceSheetRouteImport } from './routes/_app/reports.balance-sheet'
+import { Route as AppReportsProfitAndLossRouteImport } from './routes/_app/reports.profit-and-loss'
+import { Route as AppReportsTrialBalanceRouteImport } from './routes/_app/reports.trial-balance'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as ApiV1AccountsRouteImport } from './routes/api/v1/accounts'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
@@ -35,14 +37,8 @@ import { Route as ApiV1RgsMappingsRouteImport } from './routes/api/v1/rgs.mappin
 import { Route as ApiV1RgsUpgradePreviewRouteImport } from './routes/api/v1/rgs.upgrade-preview'
 import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes/api/v1/journal-entries.$entryId.reversal'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountsRoute = AccountsRouteImport.update({
-  id: '/accounts',
-  path: '/accounts',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignInRoute = SignInRouteImport.update({
@@ -50,35 +46,50 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EntriesIndexRoute = EntriesIndexRouteImport.update({
+const SignOutRoute = SignOutRouteImport.update({
+  id: '/sign-out',
+  path: '/sign-out',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAccountsRoute = AppAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEntriesIndexRoute = AppEntriesIndexRouteImport.update({
   id: '/entries/',
   path: '/entries/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const EntriesEntryIdRoute = EntriesEntryIdRouteImport.update({
+const AppEntriesEntryIdRoute = AppEntriesEntryIdRouteImport.update({
   id: '/entries/$entryId',
   path: '/entries/$entryId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const EntriesNewRoute = EntriesNewRouteImport.update({
+const AppEntriesNewRoute = AppEntriesNewRouteImport.update({
   id: '/entries/new',
   path: '/entries/new',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const ReportsBalanceSheetRoute = ReportsBalanceSheetRouteImport.update({
+const AppReportsBalanceSheetRoute = AppReportsBalanceSheetRouteImport.update({
   id: '/reports/balance-sheet',
   path: '/reports/balance-sheet',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const ReportsProfitAndLossRoute = ReportsProfitAndLossRouteImport.update({
+const AppReportsProfitAndLossRoute = AppReportsProfitAndLossRouteImport.update({
   id: '/reports/profit-and-loss',
   path: '/reports/profit-and-loss',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const ReportsTrialBalanceRoute = ReportsTrialBalanceRouteImport.update({
+const AppReportsTrialBalanceRoute = AppReportsTrialBalanceRouteImport.update({
   id: '/reports/trial-balance',
   path: '/reports/trial-balance',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -168,19 +179,20 @@ const ApiV1JournalEntriesEntryIdReversalRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/accounts': typeof AccountsRoute
+  '/': typeof AppIndexRoute
   '/sign-in': typeof SignInRoute
-  '/entries/$entryId': typeof EntriesEntryIdRoute
-  '/entries/new': typeof EntriesNewRoute
-  '/reports/balance-sheet': typeof ReportsBalanceSheetRoute
-  '/reports/profit-and-loss': typeof ReportsProfitAndLossRoute
-  '/reports/trial-balance': typeof ReportsTrialBalanceRoute
-  '/entries/': typeof EntriesIndexRoute
+  '/sign-out': typeof SignOutRoute
+  '/accounts': typeof AppAccountsRoute
+  '/entries/$entryId': typeof AppEntriesEntryIdRoute
+  '/entries/new': typeof AppEntriesNewRoute
+  '/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
+  '/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
+  '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/entries/': typeof AppEntriesIndexRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
@@ -195,19 +207,20 @@ export interface FileRoutesByFullPath {
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/accounts': typeof AccountsRoute
   '/sign-in': typeof SignInRoute
-  '/entries/$entryId': typeof EntriesEntryIdRoute
-  '/entries/new': typeof EntriesNewRoute
-  '/reports/balance-sheet': typeof ReportsBalanceSheetRoute
-  '/reports/profit-and-loss': typeof ReportsProfitAndLossRoute
-  '/reports/trial-balance': typeof ReportsTrialBalanceRoute
-  '/entries': typeof EntriesIndexRoute
+  '/sign-out': typeof SignOutRoute
+  '/accounts': typeof AppAccountsRoute
+  '/': typeof AppIndexRoute
+  '/entries/$entryId': typeof AppEntriesEntryIdRoute
+  '/entries/new': typeof AppEntriesNewRoute
+  '/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
+  '/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
+  '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/entries': typeof AppEntriesIndexRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
@@ -223,19 +236,21 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/accounts': typeof AccountsRoute
+  '/_app': typeof AppRouteWithChildren
   '/sign-in': typeof SignInRoute
-  '/entries/$entryId': typeof EntriesEntryIdRoute
-  '/entries/new': typeof EntriesNewRoute
-  '/reports/balance-sheet': typeof ReportsBalanceSheetRoute
-  '/reports/profit-and-loss': typeof ReportsProfitAndLossRoute
-  '/reports/trial-balance': typeof ReportsTrialBalanceRoute
-  '/entries/': typeof EntriesIndexRoute
+  '/sign-out': typeof SignOutRoute
+  '/_app/accounts': typeof AppAccountsRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/entries/$entryId': typeof AppEntriesEntryIdRoute
+  '/_app/entries/new': typeof AppEntriesNewRoute
+  '/_app/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
+  '/_app/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
+  '/_app/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/_app/entries/': typeof AppEntriesIndexRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
@@ -253,18 +268,19 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/accounts'
     | '/sign-in'
+    | '/sign-out'
+    | '/accounts'
     | '/entries/$entryId'
     | '/entries/new'
     | '/reports/balance-sheet'
     | '/reports/profit-and-loss'
     | '/reports/trial-balance'
-    | '/entries/'
     | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
+    | '/entries/'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
     | '/api/v1/imports/audit-file'
@@ -279,19 +295,20 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/$entryId/reversal'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/accounts'
     | '/sign-in'
+    | '/sign-out'
+    | '/accounts'
+    | '/'
     | '/entries/$entryId'
     | '/entries/new'
     | '/reports/balance-sheet'
     | '/reports/profit-and-loss'
     | '/reports/trial-balance'
-    | '/entries'
     | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
+    | '/entries'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
     | '/api/v1/imports/audit-file'
@@ -306,19 +323,21 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/$entryId/reversal'
   id:
     | '__root__'
-    | '/'
-    | '/accounts'
+    | '/_app'
     | '/sign-in'
-    | '/entries/$entryId'
-    | '/entries/new'
-    | '/reports/balance-sheet'
-    | '/reports/profit-and-loss'
-    | '/reports/trial-balance'
-    | '/entries/'
+    | '/sign-out'
+    | '/_app/accounts'
+    | '/_app/'
+    | '/_app/entries/$entryId'
+    | '/_app/entries/new'
+    | '/_app/reports/balance-sheet'
+    | '/_app/reports/profit-and-loss'
+    | '/_app/reports/trial-balance'
     | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
+    | '/_app/entries/'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
     | '/api/v1/imports/audit-file'
@@ -334,15 +353,9 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AccountsRoute: typeof AccountsRoute
+  AppRoute: typeof AppRouteWithChildren
   SignInRoute: typeof SignInRoute
-  EntriesEntryIdRoute: typeof EntriesEntryIdRoute
-  EntriesNewRoute: typeof EntriesNewRoute
-  ReportsBalanceSheetRoute: typeof ReportsBalanceSheetRoute
-  ReportsProfitAndLossRoute: typeof ReportsProfitAndLossRoute
-  ReportsTrialBalanceRoute: typeof ReportsTrialBalanceRoute
-  EntriesIndexRoute: typeof EntriesIndexRoute
+  SignOutRoute: typeof SignOutRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1AccountsRoute: typeof ApiV1AccountsRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
@@ -361,18 +374,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/accounts': {
-      id: '/accounts'
-      path: '/accounts'
-      fullPath: '/accounts'
-      preLoaderRoute: typeof AccountsRouteImport
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sign-in': {
@@ -382,47 +388,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/entries/': {
-      id: '/entries/'
+    '/sign-out': {
+      id: '/sign-out'
+      path: '/sign-out'
+      fullPath: '/sign-out'
+      preLoaderRoute: typeof SignOutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/accounts': {
+      id: '/_app/accounts'
+      path: '/accounts'
+      fullPath: '/accounts'
+      preLoaderRoute: typeof AppAccountsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/entries/': {
+      id: '/_app/entries/'
       path: '/entries'
       fullPath: '/entries/'
-      preLoaderRoute: typeof EntriesIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppEntriesIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/entries/$entryId': {
-      id: '/entries/$entryId'
+    '/_app/entries/$entryId': {
+      id: '/_app/entries/$entryId'
       path: '/entries/$entryId'
       fullPath: '/entries/$entryId'
-      preLoaderRoute: typeof EntriesEntryIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppEntriesEntryIdRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/entries/new': {
-      id: '/entries/new'
+    '/_app/entries/new': {
+      id: '/_app/entries/new'
       path: '/entries/new'
       fullPath: '/entries/new'
-      preLoaderRoute: typeof EntriesNewRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppEntriesNewRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/reports/balance-sheet': {
-      id: '/reports/balance-sheet'
+    '/_app/reports/balance-sheet': {
+      id: '/_app/reports/balance-sheet'
       path: '/reports/balance-sheet'
       fullPath: '/reports/balance-sheet'
-      preLoaderRoute: typeof ReportsBalanceSheetRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppReportsBalanceSheetRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/reports/profit-and-loss': {
-      id: '/reports/profit-and-loss'
+    '/_app/reports/profit-and-loss': {
+      id: '/_app/reports/profit-and-loss'
       path: '/reports/profit-and-loss'
       fullPath: '/reports/profit-and-loss'
-      preLoaderRoute: typeof ReportsProfitAndLossRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppReportsProfitAndLossRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/reports/trial-balance': {
-      id: '/reports/trial-balance'
+    '/_app/reports/trial-balance': {
+      id: '/_app/reports/trial-balance'
       path: '/reports/trial-balance'
       fullPath: '/reports/trial-balance'
-      preLoaderRoute: typeof ReportsTrialBalanceRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppReportsTrialBalanceRouteImport
+      parentRoute: typeof AppRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -539,6 +566,30 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppRouteChildren {
+  AppAccountsRoute: typeof AppAccountsRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppEntriesEntryIdRoute: typeof AppEntriesEntryIdRoute
+  AppEntriesNewRoute: typeof AppEntriesNewRoute
+  AppReportsBalanceSheetRoute: typeof AppReportsBalanceSheetRoute
+  AppReportsProfitAndLossRoute: typeof AppReportsProfitAndLossRoute
+  AppReportsTrialBalanceRoute: typeof AppReportsTrialBalanceRoute
+  AppEntriesIndexRoute: typeof AppEntriesIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAccountsRoute: AppAccountsRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppEntriesEntryIdRoute: AppEntriesEntryIdRoute,
+  AppEntriesNewRoute: AppEntriesNewRoute,
+  AppReportsBalanceSheetRoute: AppReportsBalanceSheetRoute,
+  AppReportsProfitAndLossRoute: AppReportsProfitAndLossRoute,
+  AppReportsTrialBalanceRoute: AppReportsTrialBalanceRoute,
+  AppEntriesIndexRoute: AppEntriesIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 interface ApiV1JournalEntriesEntryIdRouteChildren {
   ApiV1JournalEntriesEntryIdReversalRoute: typeof ApiV1JournalEntriesEntryIdReversalRoute
 }
@@ -566,15 +617,9 @@ const ApiV1JournalEntriesRouteWithChildren =
   ApiV1JournalEntriesRoute._addFileChildren(ApiV1JournalEntriesRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AccountsRoute: AccountsRoute,
+  AppRoute: AppRouteWithChildren,
   SignInRoute: SignInRoute,
-  EntriesEntryIdRoute: EntriesEntryIdRoute,
-  EntriesNewRoute: EntriesNewRoute,
-  ReportsBalanceSheetRoute: ReportsBalanceSheetRoute,
-  ReportsProfitAndLossRoute: ReportsProfitAndLossRoute,
-  ReportsTrialBalanceRoute: ReportsTrialBalanceRoute,
-  EntriesIndexRoute: EntriesIndexRoute,
+  SignOutRoute: SignOutRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1AccountsRoute: ApiV1AccountsRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,

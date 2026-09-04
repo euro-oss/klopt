@@ -4,7 +4,7 @@ import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { formatDate } from '~/lib/format'
 import { listEntries } from '~/server/ledger'
 
-export const Route = createFileRoute('/entries/')({
+export const Route = createFileRoute('/_app/entries/')({
   loader: async () => listEntries({ data: { limit: 100 } }),
   component: Entries,
 })

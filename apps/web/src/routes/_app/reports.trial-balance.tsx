@@ -6,7 +6,7 @@ import { getTrialBalance } from '~/server/ledger'
 
 const YEAR = String(new Date().getFullYear())
 
-export const Route = createFileRoute('/reports/trial-balance')({
+export const Route = createFileRoute('/_app/reports/trial-balance')({
   loader: async () => getTrialBalance({ data: { fiscalYear: YEAR } }),
   component: TrialBalance,
 })

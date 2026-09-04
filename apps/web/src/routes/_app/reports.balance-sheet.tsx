@@ -5,7 +5,7 @@ import { getBalanceSheet } from '~/server/ledger'
 
 const YEAR = String(new Date().getFullYear())
 
-export const Route = createFileRoute('/reports/balance-sheet')({
+export const Route = createFileRoute('/_app/reports/balance-sheet')({
   loader: async () => getBalanceSheet({ data: { fiscalYear: YEAR } }),
   component: BalanceSheet,
 })

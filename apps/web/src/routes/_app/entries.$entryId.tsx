@@ -4,7 +4,7 @@ import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
 import { getEntry } from '~/server/ledger'
 
-export const Route = createFileRoute('/entries/$entryId')({
+export const Route = createFileRoute('/_app/entries/$entryId')({
   loader: async ({ params }) => getEntry({ data: { entryId: params.entryId } }),
   component: EntryDetail,
 })

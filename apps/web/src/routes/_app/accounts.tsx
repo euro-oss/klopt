@@ -3,7 +3,7 @@ import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { getRgsCoverage, listAccounts } from '~/server/ledger'
 
-export const Route = createFileRoute('/accounts')({
+export const Route = createFileRoute('/_app/accounts')({
   loader: async () => {
     const [accounts, coverage] = await Promise.all([listAccounts(), getRgsCoverage({ data: {} })])
     return { accounts, coverage }

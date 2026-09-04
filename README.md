@@ -74,8 +74,11 @@ pnpm --filter @klopt/db run migrate
 pnpm run dev                               # http://localhost:3000
 ```
 
-Open it, create the first account, and you are looking at a ledger. Or skip the
-browser entirely — the UI is a client of the same API:
+Open it and enter your email address. With no SMTP configured the sign-in code
+is written to the container log, so a fresh install works with no mail server —
+find the code, type it in, and you are looking at a ledger.
+
+Or skip the browser entirely; the UI is a client of the same API:
 
 Then post something. Issue a token, and:
 

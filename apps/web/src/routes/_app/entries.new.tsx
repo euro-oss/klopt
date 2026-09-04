@@ -20,7 +20,7 @@ import { listAccounts, postEntry } from '~/server/ledger'
  * line of almost every manual entry and the place transposition errors get in.
  */
 
-export const Route = createFileRoute('/entries/new')({
+export const Route = createFileRoute('/_app/entries/new')({
   loader: async () => listAccounts(),
   component: NewEntry,
 })

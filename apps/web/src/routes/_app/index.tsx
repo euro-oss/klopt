@@ -14,7 +14,7 @@ import { getRgsCoverage, getTrialBalance, verifyChain } from '~/server/ledger'
 
 const YEAR = String(new Date().getFullYear())
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/_app/')({
   loader: async () => {
     const [coverage, trial, chain] = await Promise.all([
       getRgsCoverage({ data: {} }),

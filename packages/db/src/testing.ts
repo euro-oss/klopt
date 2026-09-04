@@ -1,4 +1,5 @@
 import { uuidv7 } from '@klopt/core'
+import { eq } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
   accountDimensionRequirements,
@@ -9,6 +10,7 @@ import {
   fiscalYears,
   journals,
   periods,
+  users,
 } from './schema/index.js'
 
 /**
@@ -149,4 +151,20 @@ export async function seedEntity(database: Database, options: SeedOptions = {}):
   })
 
   return entityId
+}
+
+/**
+ * Look a user up by email.
+ *
+ * Exposed here rather than leaving callers to reach for Drizzle: a browser test
+ * that imports the ORM has to depend on it, and then `apps/web` depends on a
+ * database driver it should never touch directly.
+ */
+export async function findUserIdByEmail(database: Database, email: string): Promise<string | null> {
+  const [row] = await database
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1)
+  return row?.id ?? null
 }

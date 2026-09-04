@@ -1,5 +1,7 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { emailOTP } from 'better-auth/plugins'
+import type { EmailTransport } from '@klopt/core'
 import { uuidv7, type Role } from '@klopt/core'
 import { and, eq } from 'drizzle-orm'
 import type { Database } from './client.js'
@@ -10,9 +12,24 @@ import { entities } from './schema/ledger.js'
  * Authentication (spec 11: "better-auth, local accounts plus optional OIDC.
  * Self-hosters want their own IdP. Do not build a bespoke session system.").
  *
- * Local email and password is what a fresh install gets. OIDC is configuration,
- * not code: a self-hoster points `KLOPT_OIDC_*` at their own provider and both
- * paths land in the same `users` table.
+ * **A one-time code by email, not a password.** Three reasons, in the order
+ * they matter for this product:
+ *
+ *   1. There is no password to store, reset, leak or get wrong. For software
+ *    that holds seven years of somebody's statutory records, the credential you
+ *    do not have is the one that cannot be stolen from you.
+ *   2. A self-hoster needs SMTP for invoices and dunning in M1 anyway. Sign-in
+ *      reuses that, so there is one thing to configure rather than two.
+ *   3. It removes the entire password surface — strength rules, hashing
+ *      parameters, reset tokens, credential stuffing — from a codebase whose
+ *      hard parts should be VAT and auditfiles.
+ *
+ * The trade is real: sign-in is only as available as email is. That is why the
+ * transport falls back to writing the code to the log, so a fresh install and a
+ * broken relay both still let the operator in.
+ *
+ * OIDC remains configuration, not code: a self-hoster points at their own
+ * provider and both paths land in the same `users` table.
  */
 
 export interface AuthConfig {
@@ -20,10 +37,41 @@ export interface AuthConfig {
   /** Signs session cookies. From the environment or a KMS, never the repo. */
   readonly secret: string
   readonly baseUrl: string
+  /** Delivers the code. Falls back to the log when SMTP is not configured. */
+  readonly email: EmailTransport
+  /** Product name in the message. */
+  readonly productName?: string
   readonly oidc?: {
     readonly issuer: string
     readonly clientId: string
     readonly clientSecret: string
+  }
+}
+
+/** How long a code is worth typing. Long enough to switch to a mail client. */
+const OTP_MINUTES = 10
+const OTP_LENGTH = 6
+
+function otpMessage(product: string, otp: string, type: string): { subject: string; text: string } {
+  const purpose =
+    type === 'sign-in'
+      ? 'om aan te melden'
+      : type === 'email-verification'
+        ? 'om je e-mailadres te bevestigen'
+        : 'om je aanmelding te bevestigen'
+
+  return {
+    subject: `${otp} is je ${product}-code`,
+    text: [
+      `Je code ${purpose}:`,
+      '',
+      `    ${otp}`,
+      '',
+      `De code verloopt over ${String(OTP_MINUTES)} minuten en werkt één keer.`,
+      '',
+      'Heb je hier niet om gevraagd? Dan kun je dit bericht negeren — zonder de',
+      'code kan niemand met dit e-mailadres aanmelden.',
+    ].join('\n'),
   }
 }
 
@@ -45,14 +93,31 @@ export function createAuth(config: AuthConfig) {
       },
     }),
 
-    emailAndPassword: {
-      enabled: true,
-      // Verification needs an email transport, which arrives with Sales in M1.
-      // Until then a self-hoster creating their own first user has nothing to
-      // verify against, and blocking sign-in on it would just be a lockout.
-      requireEmailVerification: false,
-      minPasswordLength: 12,
-    },
+    // No password path at all, rather than one left switched off: a disabled
+    // feature is a feature somebody re-enables.
+    emailAndPassword: { enabled: false },
+
+    plugins: [
+      emailOTP({
+        otpLength: OTP_LENGTH,
+        expiresIn: OTP_MINUTES * 60,
+        // Hashed, not plain. The code is now the *only* credential, so a
+        // database dump must not contain a working one — the same reasoning
+        // that makes api_tokens store only a hash.
+        storeOTP: 'hashed',
+        // Three guesses. Enough for a typo, not enough to brute-force six
+        // digits.
+        allowedAttempts: 3,
+        // A first-time address gets an account. There is nothing to protect by
+        // refusing — the code still has to arrive in that mailbox — and the
+        // alternative is a self-hoster with no way to create the first user.
+        disableSignUp: false,
+        sendVerificationOTP: async ({ email, otp, type }) => {
+          const { subject, text } = otpMessage(config.productName ?? 'Klopt', otp, type)
+          await config.email.send({ to: email, subject, text })
+        },
+      }),
+    ],
 
     ...(config.oidc === undefined
       ? {}

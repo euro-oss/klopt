@@ -1,3 +1,4 @@
+import { resolveEmailTransport } from '@klopt/adapters'
 import { createAuth, type Auth } from '@klopt/db'
 import { getDatabase } from './database.js'
 
@@ -23,6 +24,9 @@ export function getAuth(): Auth {
     database: getDatabase(),
     secret,
     baseUrl: process.env['KLOPT_BASE_URL'] ?? 'http://localhost:3000',
+    // SMTP when configured, otherwise the code goes to the log — so a fresh
+    // install with no mail server can still be signed into.
+    email: resolveEmailTransport(),
   })
   return auth
 }

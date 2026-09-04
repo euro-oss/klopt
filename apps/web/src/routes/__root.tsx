@@ -1,11 +1,19 @@
 /// <reference types="vite/client" />
-import { HeadContent, Outlet, Scripts, createRootRoute, useRouter } from '@tanstack/react-router'
+import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { AppShell } from '~/components/app-shell'
-import { getSession } from '~/server/context'
-import { switchEntity } from '~/server/ledger'
 import appCss from '~/styles/app.css?url'
 
+/**
+ * The document, and nothing else.
+ *
+ * No authentication here. An earlier version put the signed-out placeholder in
+ * this component and returned it *instead of* `<Outlet />`, which meant every
+ * route rendered the placeholder while signed out — including `/sign-in`. The
+ * URL changed and the page did not, so the sign-in link appeared to do nothing.
+ *
+ * Guarding belongs in `_app`, the layout the authenticated routes live under.
+ * `/sign-in` sits outside it and renders itself.
+ */
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -15,10 +23,7 @@ export const Route = createRootRoute({
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
-  // Loaded once for the shell. Screens get their own data.
-  loader: async () => ({ session: await getSession() }),
   shellComponent: RootDocument,
-  component: RootLayout,
 })
 
 function RootDocument({ children }: { children: ReactNode }) {
@@ -34,40 +39,5 @@ function RootDocument({ children }: { children: ReactNode }) {
         <Scripts />
       </body>
     </html>
-  )
-}
-
-function RootLayout() {
-  const { session } = Route.useLoaderData()
-  const router = useRouter()
-
-  if (session === null) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-8">
-        <h1 className="text-2xl font-semibold">Klopt</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Meld je aan om deze administratie te openen.
-        </p>
-        <a
-          href="/sign-in"
-          className="bg-primary text-primary-foreground mt-6 rounded-md px-4 py-2 text-center text-sm font-medium"
-        >
-          Aanmelden
-        </a>
-      </main>
-    )
-  }
-
-  return (
-    <AppShell
-      entities={session.memberships}
-      activeEntityId={session.memberships[0]?.entityId ?? null}
-      userName={session.user.name}
-      onSwitchEntity={(entityId) => {
-        void switchEntity({ data: { entityId } }).then(() => router.invalidate())
-      }}
-    >
-      <Outlet />
-    </AppShell>
   )
 }

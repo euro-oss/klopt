@@ -38,7 +38,8 @@
     "@klopt/core": "workspace:*",
     "better-auth": "1.7.2",
     "drizzle-orm": "0.45.2",
-    "postgres": "3.4.9"
+    "postgres": "3.4.9",
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@types/node": "24.13.3",

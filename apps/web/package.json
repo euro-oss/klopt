@@ -7,13 +7,15 @@
   "description": "TanStack Start app. Two surfaces over one core: server functions for the UI, versioned REST for everyone else.",
   "license": "Apache-2.0",
   "scripts": {
-    "dev": "vite dev",
     "build": "vite build",
-    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .output dist .nitro .tanstack",
+    "dev": "vite dev",
     "start": "node .output/server/index.mjs",
-    "clean": "rm -rf .output dist .nitro .tanstack"
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@klopt/adapters": "workspace:*",
     "@klopt/core": "workspace:*",
     "@klopt/db": "workspace:*",
     "@tanstack/react-query": "5.102.8",
@@ -29,6 +31,7 @@
     "zod": "4.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "24.13.3",
     "@types/react": "19.2.7",

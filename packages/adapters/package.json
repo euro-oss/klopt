@@ -20,9 +20,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@klopt/core": "workspace:*"
+    "@klopt/core": "workspace:*",
+    "nodemailer": "10.0.0"
   },
   "devDependencies": {
+    "@types/node": "24.13.3",
+    "@types/nodemailer": "8.0.1",
     "typescript": "5.9.3",
     "vitest": "5.0.0"
   }

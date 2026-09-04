@@ -13,6 +13,7 @@ import {
   type Database,
 } from '@klopt/db'
 import { seedEntity } from '@klopt/db/testing'
+import { createMemoryEmailTransport } from '@klopt/adapters'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setAuthForTest } from '../src/api/auth-instance.js'
 import { setDatabaseForTest } from '../src/api/database.js'
@@ -37,13 +38,28 @@ const DATABASE_URL =
 let database: Database
 let auth: Auth
 
+/** Collects the sign-in codes so a test can read one back. */
+const mailbox = createMemoryEmailTransport()
+
+/**
+ * Sign a brand-new address in with a one-time code.
+ *
+ * The code is read from the transport rather than the database, because it is
+ * stored hashed — deliberately, since it is now the only credential.
+ */
 async function signUp(): Promise<{ userId: string; cookie: string }> {
   const email = `user-${randomUUID()}@example.test`
-  const response = await auth.api.signUpEmail({
-    body: { email, password: 'een-heel-lang-wachtwoord', name: 'Test Gebruiker' },
-    asResponse: true,
-  })
 
+  await auth.api.sendVerificationOTP({ body: { email, type: 'sign-in' } })
+
+  const delivered = mailbox.sent.at(-1)
+  if (delivered === undefined || delivered.to !== email) {
+    throw new Error(`No sign-in code was sent to ${email}.`)
+  }
+  const otp = /\b(\d{6})\b/.exec(delivered.text)?.[1]
+  if (otp === undefined) throw new Error('The message contained no six-digit code.')
+
+  const response = await auth.api.signInEmailOTP({ body: { email, otp }, asResponse: true })
   const setCookie = response.headers.get('set-cookie')
   if (setCookie === null) throw new Error('No session cookie was issued.')
 
@@ -78,6 +94,7 @@ beforeAll(async () => {
     database,
     secret: 'test-secret-not-for-production-0123456789',
     baseUrl: 'https://klopt.test',
+    email: mailbox,
   })
   setAuthForTest(auth)
 }, 60_000)

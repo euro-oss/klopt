@@ -121,7 +121,7 @@ export function AppShell({
 
           <div className="text-muted-foreground mt-8 text-xs">
             <p>{userName}</p>
-            <form method="post" action="/api/auth/sign-out">
+            <form method="post" action="/sign-out">
               <button type="submit" className="hover:text-foreground mt-1 underline">
                 Afmelden
               </button>

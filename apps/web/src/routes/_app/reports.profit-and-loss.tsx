@@ -5,7 +5,7 @@ import { getProfitAndLoss } from '~/server/ledger'
 
 const YEAR = String(new Date().getFullYear())
 
-export const Route = createFileRoute('/reports/profit-and-loss')({
+export const Route = createFileRoute('/_app/reports/profit-and-loss')({
   loader: async () => getProfitAndLoss({ data: { fiscalYear: YEAR } }),
   component: ProfitAndLoss,
 })
