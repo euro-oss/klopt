@@ -1,0 +1,112 @@
+@import 'tailwindcss';
+
+/**
+ * Design tokens (spec 11.3). Light and dark are defined together, and every
+ * component reads a token — never a literal colour, spacing or radius. shadcn/ui
+ * components copied in with the CLI read these same variables.
+ */
+@layer base {
+  :root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.21 0.006 285.9);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.21 0.006 285.9);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.21 0.006 285.9);
+    --primary: oklch(0.21 0.006 285.9);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.967 0.001 286.4);
+    --secondary-foreground: oklch(0.21 0.006 285.9);
+    --muted: oklch(0.967 0.001 286.4);
+    --muted-foreground: oklch(0.552 0.016 285.9);
+    --accent: oklch(0.967 0.001 286.4);
+    --accent-foreground: oklch(0.21 0.006 285.9);
+    --destructive: oklch(0.577 0.245 27.3);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(0.92 0.004 286.3);
+    --input: oklch(0.92 0.004 286.3);
+    --ring: oklch(0.705 0.015 286.1);
+    --radius: 0.5rem;
+
+    /* Ledger semantics. Debit and credit are not "good" and "bad", so they are
+       not green and red; negative amounts are what gets the destructive tone. */
+    --debit: oklch(0.21 0.006 285.9);
+    --credit: oklch(0.21 0.006 285.9);
+    --amount-negative: oklch(0.577 0.245 27.3);
+    --unreconciled: oklch(0.75 0.15 85);
+  }
+
+  .dark {
+    --background: oklch(0.141 0.005 285.8);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.21 0.006 285.9);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.21 0.006 285.9);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.92 0.004 286.3);
+    --primary-foreground: oklch(0.21 0.006 285.9);
+    --secondary: oklch(0.274 0.006 286);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.274 0.006 286);
+    --muted-foreground: oklch(0.705 0.015 286.1);
+    --accent: oklch(0.274 0.006 286);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.2);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.552 0.016 285.9);
+
+    --debit: oklch(0.985 0 0);
+    --credit: oklch(0.985 0 0);
+    --amount-negative: oklch(0.704 0.191 22.2);
+    --unreconciled: oklch(0.8 0.15 85);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-debit: var(--debit);
+  --color-credit: var(--credit);
+  --color-amount-negative: var(--amount-negative);
+  --color-unreconciled: var(--unreconciled);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+
+  /* Every figure in this application is tabular. Non-negotiable (spec 11.3). */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+}

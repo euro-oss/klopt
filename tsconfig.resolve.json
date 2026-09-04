@@ -1,0 +1,13 @@
+{
+  // Resolver config for dependency-cruiser only. It is not part of any build.
+  //
+  // dependency-cruiser resolves a tsconfig's path relative to the working
+  // directory, which breaks `extends`, so this file is deliberately standalone
+  // and contains nothing but the module aliases used across the workspace.
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./apps/web/src/*"]
+    }
+  }
+}

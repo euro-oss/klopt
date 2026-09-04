@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.output/
+coverage/
+pnpm-lock.yaml
+packages/db/migrations/
+docs/reference-data/
