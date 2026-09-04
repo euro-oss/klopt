@@ -27,14 +27,16 @@
     "build": "tsc -b tsconfig.build.json",
     "typecheck": "tsc -b tsconfig.build.json && tsc -p tsconfig.json",
     "clean": "rm -rf dist",
-    "generate": "drizzle-kit generate",
+    "generate": "node dist/bin/generate.js",
     "migrate": "node dist/bin/migrate.js",
     "studio": "drizzle-kit studio",
     "migrate:dev": "node --experimental-strip-types src/bin/migrate.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate:dev": "node --experimental-strip-types src/bin/generate.ts"
   },
   "dependencies": {
     "@klopt/core": "workspace:*",
+    "better-auth": "1.7.2",
     "drizzle-orm": "0.45.2",
     "postgres": "3.4.9"
   },

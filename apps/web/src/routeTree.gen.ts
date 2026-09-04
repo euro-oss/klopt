@@ -10,6 +10,15 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountsRouteImport } from './routes/accounts'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as EntriesIndexRouteImport } from './routes/entries.index'
+import { Route as EntriesEntryIdRouteImport } from './routes/entries.$entryId'
+import { Route as EntriesNewRouteImport } from './routes/entries.new'
+import { Route as ReportsBalanceSheetRouteImport } from './routes/reports.balance-sheet'
+import { Route as ReportsProfitAndLossRouteImport } from './routes/reports.profit-and-loss'
+import { Route as ReportsTrialBalanceRouteImport } from './routes/reports.trial-balance'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as ApiV1AccountsRouteImport } from './routes/api/v1/accounts'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1JournalEntriesRouteImport } from './routes/api/v1/journal-entries'
@@ -29,6 +38,51 @@ import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountsRoute = AccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntriesIndexRoute = EntriesIndexRouteImport.update({
+  id: '/entries/',
+  path: '/entries/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntriesEntryIdRoute = EntriesEntryIdRouteImport.update({
+  id: '/entries/$entryId',
+  path: '/entries/$entryId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntriesNewRoute = EntriesNewRouteImport.update({
+  id: '/entries/new',
+  path: '/entries/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsBalanceSheetRoute = ReportsBalanceSheetRouteImport.update({
+  id: '/reports/balance-sheet',
+  path: '/reports/balance-sheet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsProfitAndLossRoute = ReportsProfitAndLossRouteImport.update({
+  id: '/reports/profit-and-loss',
+  path: '/reports/profit-and-loss',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsTrialBalanceRoute = ReportsTrialBalanceRouteImport.update({
+  id: '/reports/trial-balance',
+  path: '/reports/trial-balance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1AccountsRoute = ApiV1AccountsRouteImport.update({
@@ -115,6 +169,15 @@ const ApiV1JournalEntriesEntryIdReversalRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/accounts': typeof AccountsRoute
+  '/sign-in': typeof SignInRoute
+  '/entries/$entryId': typeof EntriesEntryIdRoute
+  '/entries/new': typeof EntriesNewRoute
+  '/reports/balance-sheet': typeof ReportsBalanceSheetRoute
+  '/reports/profit-and-loss': typeof ReportsProfitAndLossRoute
+  '/reports/trial-balance': typeof ReportsTrialBalanceRoute
+  '/entries/': typeof EntriesIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
@@ -133,6 +196,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/accounts': typeof AccountsRoute
+  '/sign-in': typeof SignInRoute
+  '/entries/$entryId': typeof EntriesEntryIdRoute
+  '/entries/new': typeof EntriesNewRoute
+  '/reports/balance-sheet': typeof ReportsBalanceSheetRoute
+  '/reports/profit-and-loss': typeof ReportsProfitAndLossRoute
+  '/reports/trial-balance': typeof ReportsTrialBalanceRoute
+  '/entries': typeof EntriesIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
@@ -152,6 +224,15 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/accounts': typeof AccountsRoute
+  '/sign-in': typeof SignInRoute
+  '/entries/$entryId': typeof EntriesEntryIdRoute
+  '/entries/new': typeof EntriesNewRoute
+  '/reports/balance-sheet': typeof ReportsBalanceSheetRoute
+  '/reports/profit-and-loss': typeof ReportsProfitAndLossRoute
+  '/reports/trial-balance': typeof ReportsTrialBalanceRoute
+  '/entries/': typeof EntriesIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
@@ -172,6 +253,15 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/accounts'
+    | '/sign-in'
+    | '/entries/$entryId'
+    | '/entries/new'
+    | '/reports/balance-sheet'
+    | '/reports/profit-and-loss'
+    | '/reports/trial-balance'
+    | '/entries/'
+    | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
@@ -190,6 +280,15 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/accounts'
+    | '/sign-in'
+    | '/entries/$entryId'
+    | '/entries/new'
+    | '/reports/balance-sheet'
+    | '/reports/profit-and-loss'
+    | '/reports/trial-balance'
+    | '/entries'
+    | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
@@ -208,6 +307,15 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/accounts'
+    | '/sign-in'
+    | '/entries/$entryId'
+    | '/entries/new'
+    | '/reports/balance-sheet'
+    | '/reports/profit-and-loss'
+    | '/reports/trial-balance'
+    | '/entries/'
+    | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
@@ -227,6 +335,15 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountsRoute: typeof AccountsRoute
+  SignInRoute: typeof SignInRoute
+  EntriesEntryIdRoute: typeof EntriesEntryIdRoute
+  EntriesNewRoute: typeof EntriesNewRoute
+  ReportsBalanceSheetRoute: typeof ReportsBalanceSheetRoute
+  ReportsProfitAndLossRoute: typeof ReportsProfitAndLossRoute
+  ReportsTrialBalanceRoute: typeof ReportsTrialBalanceRoute
+  EntriesIndexRoute: typeof EntriesIndexRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1AccountsRoute: typeof ApiV1AccountsRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1JournalEntriesRoute: typeof ApiV1JournalEntriesRouteWithChildren
@@ -249,6 +366,69 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/accounts': {
+      id: '/accounts'
+      path: '/accounts'
+      fullPath: '/accounts'
+      preLoaderRoute: typeof AccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entries/': {
+      id: '/entries/'
+      path: '/entries'
+      fullPath: '/entries/'
+      preLoaderRoute: typeof EntriesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entries/$entryId': {
+      id: '/entries/$entryId'
+      path: '/entries/$entryId'
+      fullPath: '/entries/$entryId'
+      preLoaderRoute: typeof EntriesEntryIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entries/new': {
+      id: '/entries/new'
+      path: '/entries/new'
+      fullPath: '/entries/new'
+      preLoaderRoute: typeof EntriesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/balance-sheet': {
+      id: '/reports/balance-sheet'
+      path: '/reports/balance-sheet'
+      fullPath: '/reports/balance-sheet'
+      preLoaderRoute: typeof ReportsBalanceSheetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/profit-and-loss': {
+      id: '/reports/profit-and-loss'
+      path: '/reports/profit-and-loss'
+      fullPath: '/reports/profit-and-loss'
+      preLoaderRoute: typeof ReportsProfitAndLossRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/trial-balance': {
+      id: '/reports/trial-balance'
+      path: '/reports/trial-balance'
+      fullPath: '/reports/trial-balance'
+      preLoaderRoute: typeof ReportsTrialBalanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/accounts': {
@@ -387,6 +567,15 @@ const ApiV1JournalEntriesRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountsRoute: AccountsRoute,
+  SignInRoute: SignInRoute,
+  EntriesEntryIdRoute: EntriesEntryIdRoute,
+  EntriesNewRoute: EntriesNewRoute,
+  ReportsBalanceSheetRoute: ReportsBalanceSheetRoute,
+  ReportsProfitAndLossRoute: ReportsProfitAndLossRoute,
+  ReportsTrialBalanceRoute: ReportsTrialBalanceRoute,
+  EntriesIndexRoute: EntriesIndexRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1AccountsRoute: ApiV1AccountsRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1JournalEntriesRoute: ApiV1JournalEntriesRouteWithChildren,

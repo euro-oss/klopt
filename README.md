@@ -12,8 +12,10 @@ up. It is also the pass/fail condition for this software.
 > P&L, and **XAF 3.2 export and import** — validated against the published
 > Belastingdienst schema. All of it over a versioned REST API.
 >
-> There is no UI yet beyond a placeholder page. The API came first by
-> construction. Next: M1, Sales.
+> There is a UI: sign in, switch between administrations, browse and post
+> journal entries, read the statements, watch RGS coverage and the hash chain.
+> Roles from section 4 map onto the same permissions API tokens carry, so the
+> screens have no privileged path. Next: M1, Sales.
 
 ---
 
@@ -65,12 +67,15 @@ local stack.
 
 ```bash
 pnpm install
-cp .env.example .env
+cp .env.example .env                       # set KLOPT_AUTH_SECRET
 docker compose up -d                       # Postgres + MinIO with object lock
 pnpm run build
 pnpm --filter @klopt/db run migrate
 pnpm run dev                               # http://localhost:3000
 ```
+
+Open it, create the first account, and you are looking at a ledger. Or skip the
+browser entirely — the UI is a client of the same API:
 
 Then post something. Issue a token, and:
 
@@ -175,6 +180,9 @@ the contract test.
 
 Round-tripping is tested, not claimed: an export from one administration
 imports into another and produces an identical balance sheet.
+
+Keyboard-first is a contract, not a nice-to-have — see
+[`docs/keyboard-map.md`](docs/keyboard-map.md), written before the screens were.
 
 ## Compliance surface
 

@@ -1,6 +1,6 @@
-import { createDatabase, type Database } from '@klopt/db'
 import type { z } from 'zod'
 import { resolveRequestContext } from './auth.js'
+import { getDatabase } from './database.js'
 import { ApiError, problemResponse } from './errors.js'
 import type { RequestContext } from './context.js'
 
@@ -11,22 +11,6 @@ import type { RequestContext } from './context.js'
  * more than that belongs in the handler, and anything resembling a rule belongs
  * in @klopt/core.
  */
-
-let database: Database | null = null
-
-export function getDatabase(): Database {
-  if (database === null) {
-    const url = process.env['DATABASE_URL']
-    if (url === undefined || url === '') throw new Error('DATABASE_URL is not set.')
-    database = createDatabase({ url })
-  }
-  return database
-}
-
-/** Test seam, so a suite can supply its own pool. */
-export function setDatabaseForTest(value: Database | null): void {
-  database = value
-}
 
 export async function handle(
   request: Request,

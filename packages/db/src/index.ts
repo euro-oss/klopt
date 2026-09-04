@@ -5,6 +5,17 @@ export {
   closeDatabase,
   createDatabase,
 } from './client.js'
+export {
+  type Auth,
+  type AuthConfig,
+  type EntityMembership,
+  activeEntityFor,
+  addMember,
+  createAuth,
+  membershipFor,
+  membershipsFor,
+  setActiveEntity,
+} from './auth.js'
 export { type MigrationResult, runMigrations } from './migrate.js'
 export { DrizzleLedgerRepository } from './repositories/ledger.js'
 export { ReportingRepository, type TrialBalanceQuery } from './repositories/reporting.js'

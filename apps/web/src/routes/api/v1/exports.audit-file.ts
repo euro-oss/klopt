@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { handleExportAuditFile } from '~/api/handlers/compliance'
 import { auditFileQuery } from '~/api/schemas'
-import { getDatabase, parse, searchParams } from '~/api/runtime'
+import { parse, searchParams } from '~/api/runtime'
+import { getDatabase } from '~/api/database'
 import { resolveRequestContext } from '~/api/auth'
 import { problemResponse } from '~/api/errors'
 

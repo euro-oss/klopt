@@ -124,7 +124,35 @@ An RGS release is: download the workbook, `pnpm rgs:generate`, review the diff,
 commit. No deploy, no code change. See
 [0011](decisions/0011-rgs-as-reference-data.md).
 
+## Two ways in, one shape out
+
+A **bearer token** is a machine, scoped to one entity with an explicit
+permission list. A **session cookie** is a human, whose role in the active
+entity expands to the same permission strings.
+
+```
+Authorization: Bearer …  ─┐
+                          ├─► RequestContext ─► handler ─► @klopt/core
+Cookie: session …  ───────┘     { actor, entityId, permissions, … }
+```
+
+Handlers, the domain and the audit log cannot tell which it was. That is what
+makes principle 3 hold: the UI has no privileged path because there is no
+privileged path to have. A test asserts both contexts have the same shape.
+
+### One rule for the web app
+
+**A module a route imports must export nothing but server functions and plain
+data.** TanStack Start strips `createServerFn` handler bodies from the client
+bundle and drops the imports only they used. An exported top-level helper cannot
+be stripped, so its server-only imports follow it into the browser — and Start's
+import protection then fails the build, which is the right outcome and a
+baffling one if you do not know the rule.
+
+Helpers live in `apps/web/src/server/internal.ts`, which no route imports.
+
 ## Not built yet
 
-The web UI is a placeholder page — the API is the product, and it came first by
-construction. Sales, banking, VAT and purchase are M1 to M4.
+Sales, banking, VAT and purchase are M1 to M4. In the UI: the command palette
+and `g`-prefix navigation are in the keyboard map and the binding registry but
+not yet wired to a listener.

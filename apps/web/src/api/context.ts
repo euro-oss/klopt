@@ -1,4 +1,4 @@
-import type { Actor } from '@klopt/core'
+import { PERMISSIONS, grants, type Actor } from '@klopt/core'
 import type { Database } from '@klopt/db'
 
 /**
@@ -21,14 +21,7 @@ export interface RequestContext {
 }
 
 export function hasPermission(context: RequestContext, permission: string): boolean {
-  if (context.permissions.has('*')) return true
-  if (context.permissions.has(permission)) return true
-
-  // `ledger:*` grants `ledger:post`. One level, no deeper wildcards: a
-  // permission language nobody can reason about is a permission language that
-  // grants too much.
-  const [scope] = permission.split(':')
-  return scope !== undefined && context.permissions.has(`${scope}:*`)
+  return grants(context.permissions, permission)
 }
 
 /**
@@ -36,5 +29,5 @@ export function hasPermission(context: RequestContext, permission: string): bool
  * what an accountant is, so the answer is resolved here and passed in.
  */
 export function mayPostToSoftClosedPeriod(context: RequestContext): boolean {
-  return hasPermission(context, 'ledger:post-closed')
+  return hasPermission(context, PERMISSIONS.postClosed)
 }
