@@ -39,4 +39,10 @@ export * from './reference/index.js'
 export * from './auth/index.js'
 export * from './ports/index.js'
 export * from './sales/index.js'
-export { complianceOperations, ledgerOperations, salesOperations } from './operations.js'
+export * from './setup/index.js'
+export {
+  complianceOperations,
+  ledgerOperations,
+  provisioningOperations,
+  salesOperations,
+} from './operations.js'

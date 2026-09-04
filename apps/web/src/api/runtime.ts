@@ -1,8 +1,8 @@
 import type { z } from 'zod'
-import { resolveRequestContext } from './auth.js'
+import { resolveRequestContext, resolveSetupContext } from './auth.js'
 import { getDatabase } from './database.js'
 import { ApiError, problemResponse } from './errors.js'
-import type { RequestContext } from './context.js'
+import type { RequestContext, SetupContext } from './context.js'
 
 /**
  * The glue between a `Request` and a handler.
@@ -29,6 +29,31 @@ export async function handle(
         'content-type': 'application/json',
         'x-request-id': context.requestId,
       },
+    })
+  } catch (error: unknown) {
+    return problemResponse(error, requestId)
+  }
+}
+
+/**
+ * The same glue for the operations that have no entity yet. Separate function
+ * rather than an option, so that a route which forgot to scope itself to an
+ * entity does not compile.
+ */
+export async function handleUnscoped(
+  request: Request,
+  work: (context: SetupContext) => Promise<{ status: number; body: unknown }>,
+): Promise<Response> {
+  let requestId: string | null = request.headers.get('x-request-id')
+
+  try {
+    const context = await resolveSetupContext({ database: getDatabase(), request })
+    requestId = context.requestId
+
+    const result = await work(context)
+    return new Response(JSON.stringify(result.body), {
+      status: result.status,
+      headers: { 'content-type': 'application/json', 'x-request-id': context.requestId },
     })
   } catch (error: unknown) {
     return problemResponse(error, requestId)

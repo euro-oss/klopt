@@ -33,6 +33,13 @@ export type LedgerErrorCode =
   | 'reversal_target_not_found'
   | 'reversal_target_already_reversed'
   | 'idempotency_key_reused'
+  | 'invalid_name'
+  | 'invalid_currency'
+  | 'invalid_kvk_number'
+  | 'invalid_vat_number'
+  | 'unknown_chart'
+  | 'duplicate_entity_name'
+  | 'duplicate_fiscal_year'
   | 'chain_broken'
 
 export interface LedgerViolation {

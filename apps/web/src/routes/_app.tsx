@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute, redirect, useRouter } from '@tanstack/react-router'
+import { Link, Outlet, createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { AppShell } from '~/components/app-shell'
 import { getSession } from '~/server/context'
 import { switchEntity } from '~/server/ledger'
@@ -28,17 +28,24 @@ function AppLayout() {
   const router = useRouter()
 
   if (session.memberships.length === 0) {
-    // Signed in, but invited to nothing. A dead end rather than an error page:
-    // the account is fine, it just cannot see any books yet.
+    // Signed in and a member of nothing. This used to be a dead end, which
+    // made principle 4 false in the most literal way available: a fresh
+    // install had no route to a first set of books that did not involve SQL.
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-8">
         <h1 className="text-2xl font-semibold">Nog geen administratie</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          Je bent aangemeld als {session.user.email}, maar je hebt nog geen toegang tot een
-          administratie. Vraag een eigenaar om je uit te nodigen.
+          Je bent aangemeld als {session.user.email}. Zet een administratie op, of vraag een
+          eigenaar om je uit te nodigen voor een bestaande.
         </p>
-        <form method="post" action="/sign-out" className="mt-6">
-          <button type="submit" className="border-input rounded-md border px-4 py-2 text-sm">
+        <Link
+          to="/setup"
+          className="bg-primary text-primary-foreground mt-6 rounded-md px-4 py-2 text-center text-sm font-medium"
+        >
+          Administratie opzetten
+        </Link>
+        <form method="post" action="/sign-out" className="mt-3">
+          <button type="submit" className="border-input w-full rounded-md border px-4 py-2 text-sm">
             Afmelden
           </button>
         </form>

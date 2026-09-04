@@ -3,6 +3,7 @@ import { DrizzleLedgerRepository } from './repositories/ledger.js'
 import { ReportingRepository } from './repositories/reporting.js'
 import { RgsRepository } from './repositories/rgs.js'
 import { SalesRepository } from './repositories/sales.js'
+import { SetupRepository } from './repositories/setup.js'
 import { XafExportRepository } from './repositories/xaf.js'
 
 /**
@@ -105,4 +106,19 @@ export async function withSalesRead<T>(
   return database.transaction(async (tx) => work(new SalesRepository(tx)), {
     accessMode: 'read only',
   })
+}
+
+/**
+ * Provisioning, in one transaction.
+ *
+ * A half-created administration — journals but no periods, accounts but no
+ * owner — is worse than none at all, because it is reachable and broken. So the
+ * entity, its owner, its chart, its journals, its tax codes and its first book
+ * year all commit together or not at all.
+ */
+export async function withSetup<T>(
+  database: Database,
+  work: (repository: SetupRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new SetupRepository(tx)))
 }

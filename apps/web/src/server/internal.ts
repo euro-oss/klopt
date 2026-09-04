@@ -1,8 +1,8 @@
 import { getRequest } from '@tanstack/react-start/server'
-import { resolveRequestContext } from '~/api/auth'
+import { resolveRequestContext, resolveSetupContext } from '~/api/auth'
 import { getDatabase } from '~/api/database'
 import { toProblem } from '~/api/errors'
-import type { RequestContext } from '~/api/context'
+import type { RequestContext, SetupContext } from '~/api/context'
 
 /**
  * Helpers used **inside** server function handlers, never exported to a route.
@@ -25,6 +25,11 @@ export async function contextFromRequest(entityId?: string): Promise<RequestCont
     request: getRequest(),
     ...(entityId === undefined ? {} : { entityId }),
   })
+}
+
+/** The same, for the operations that exist because there is no entity yet. */
+export async function setupContextFromRequest(): Promise<SetupContext> {
+  return resolveSetupContext({ database: getDatabase(), request: getRequest() })
 }
 
 /**

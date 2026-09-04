@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { loadRgsScheme, type RgsScheme } from '../rgs/scheme.js'
+import { loadChartsFromDirectory, type Chart } from '../setup/chart.js'
 
 /**
  * Versioned compliance artefacts, loaded at runtime (principle 6).
@@ -30,10 +31,14 @@ export interface ReferenceDataStore {
   rgs(version: string): RgsScheme
   hasRgs(version: string): boolean
   readonly rgsVersions: readonly string[]
+  /** Default charts of accounts, for provisioning a new entity (spec 6.3). */
+  chart(code: string): Chart
+  readonly charts: readonly Chart[]
 }
 
 export interface ReferenceDataContents {
   readonly rgs: ReadonlyMap<string, RgsScheme>
+  readonly charts?: ReadonlyMap<string, Chart>
 }
 
 export function createReferenceDataStore(contents: ReferenceDataContents): ReferenceDataStore {
@@ -55,8 +60,21 @@ export function createReferenceDataStore(contents: ReferenceDataContents): Refer
     return alias === undefined || alias === '' ? undefined : byKey.get(alias)
   }
 
+  const charts = new Map(contents.charts ?? [])
+
   return {
     rgsVersions: [...byKey.keys()].sort((a, b) => a.localeCompare(b)),
+
+    charts: [...charts.values()].sort((a, b) => a.code.localeCompare(b.code)),
+
+    chart(code) {
+      const chart = charts.get(code)
+      if (chart === undefined) {
+        const available = [...charts.keys()].join(', ') || '(none)'
+        throw new ReferenceDataError(`No chart of accounts "${code}". Available: ${available}.`)
+      }
+      return chart
+    },
 
     hasRgs: (version) => resolve(version) !== undefined,
 
@@ -112,5 +130,5 @@ export function loadReferenceDataFromDirectory(directory: string): ReferenceData
     rgs.set(key, scheme)
   }
 
-  return createReferenceDataStore({ rgs })
+  return createReferenceDataStore({ rgs, charts: loadChartsFromDirectory(directory) })
 }

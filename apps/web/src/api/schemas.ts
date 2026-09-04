@@ -205,3 +205,32 @@ export const overdueQuery = z.object({
 export type CreateContactBody = z.infer<typeof createContactBody>
 export type DraftInvoiceBody = z.infer<typeof draftInvoiceBody>
 export type IssueInvoiceBody = z.infer<typeof issueInvoiceBody>
+
+/**
+ * Provisioning (principle 4). Everything optional here has a defensible default
+ * so that the shortest possible setup — a name — produces working books.
+ */
+export const createEntityBody = z.object({
+  name: z.string().min(1, 'An administration needs a name.').max(200),
+  legalName: z.string().nullable().default(null),
+  kvkNumber: z.string().nullable().default(null),
+  vatNumber: z.string().nullable().default(null),
+  chartCode: z.string().min(1).default('nl-mkb'),
+  functionalCurrency: z
+    .string()
+    .regex(/^[A-Za-z]{3}$/, 'Use a three-letter ISO 4217 code.')
+    .default('EUR'),
+  fiscalYearStartMonth: z.coerce.number().int().min(1).max(12).default(1),
+  firstFiscalYear: z
+    .string()
+    .regex(/^\d{4}$/, 'A book year is labelled by its four-digit start year.')
+    .default(() => String(new Date().getUTCFullYear())),
+  vatRounding: z.enum(['per_invoice', 'per_line']).default('per_invoice'),
+})
+
+export const createFiscalYearBody = z.object({
+  code: z.string().regex(/^\d{4}$/, 'A book year is labelled by its four-digit start year.'),
+})
+
+export type CreateEntityBody = z.infer<typeof createEntityBody>
+export type CreateFiscalYearBody = z.infer<typeof createFiscalYearBody>

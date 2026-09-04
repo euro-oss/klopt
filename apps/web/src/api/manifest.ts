@@ -62,6 +62,32 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/ledger.chain-verification.ts',
   },
   {
+    operationId: 'setup.listCharts',
+    method: 'GET',
+    path: '/setup/charts',
+    module: 'api/v1/setup.charts.ts',
+  },
+  {
+    // PUT with a client-chosen id: the one write that cannot use the
+    // idempotency table, because that table is keyed by entity.
+    operationId: 'setup.createEntity',
+    method: 'PUT',
+    path: '/entities/{entityId}',
+    module: 'api/v1/entities.$entityId.ts',
+  },
+  {
+    operationId: 'ledger.listFiscalYears',
+    method: 'GET',
+    path: '/fiscal-years',
+    module: 'api/v1/fiscal-years.ts',
+  },
+  {
+    operationId: 'ledger.createFiscalYear',
+    method: 'POST',
+    path: '/fiscal-years',
+    module: 'api/v1/fiscal-years.ts',
+  },
+  {
     operationId: 'ledger.listAccounts',
     method: 'GET',
     path: '/accounts',

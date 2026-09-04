@@ -20,6 +20,27 @@ export interface RequestContext {
   readonly idempotencyKey: string | null
 }
 
+/**
+ * The context for an operation that has no entity yet (spec 10.1).
+ *
+ * Creating an administration cannot carry an `entityId`, and it cannot be
+ * authorised by an API token either: a token is issued by one administration,
+ * and letting it create another would put a second tenant behind the first
+ * one's credential. So this resolves from a session and nothing else, and the
+ * only permission it can ever hold is `entity:create`.
+ */
+export interface SetupContext {
+  readonly database: Database
+  readonly user: { readonly id: string; readonly email: string }
+  readonly permissions: ReadonlySet<string>
+  readonly requestId: string
+  readonly ip: string | null
+}
+
+export function hasSetupPermission(context: SetupContext, permission: string): boolean {
+  return grants(context.permissions, permission)
+}
+
 export function hasPermission(context: RequestContext, permission: string): boolean {
   return grants(context.permissions, permission)
 }

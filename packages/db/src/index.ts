@@ -33,6 +33,13 @@ export {
 export { XafExportRepository, type XafExportRequest } from './repositories/xaf.js'
 export { RgsRepository } from './repositories/rgs.js'
 export {
+  type FiscalYearSummary,
+  type PeriodSummary,
+  type ProvisionEntityRequest,
+  type ProvisionedEntity,
+  SetupRepository,
+} from './repositories/setup.js'
+export {
   type DraftInvoiceRequest,
   type InvoiceContext,
   SalesRepository,
@@ -45,6 +52,7 @@ export {
   withRgs,
   withSales,
   withSalesRead,
+  withSetup,
   withXafExport,
   withYearClose,
 } from './unit-of-work.js'

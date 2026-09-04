@@ -1,4 +1,4 @@
-import { grants, permissionsForRole, uuidv7, isRole } from '@klopt/core'
+import { PERMISSIONS, grants, permissionsForRole, uuidv7, isRole } from '@klopt/core'
 import {
   activeEntityFor,
   membershipFor,
@@ -8,7 +8,7 @@ import {
   type Database,
 } from '@klopt/db'
 import { ApiError } from './errors.js'
-import type { RequestContext } from './context.js'
+import type { RequestContext, SetupContext } from './context.js'
 import { getAuth } from './auth-instance.js'
 
 /**
@@ -121,6 +121,40 @@ export async function resolveRequestContext(options: ResolveOptions): Promise<Re
   if (session !== null) return session
 
   throw new ApiError('unauthenticated', 'Sign in, or present a bearer token.')
+}
+
+/**
+ * The caller, without an entity.
+ *
+ * Used only by the provisioning operations. A bearer token is refused outright
+ * rather than ignored: silently falling back to the session cookie of whoever
+ * happens to be signed in, when a token was presented, is how a machine call
+ * ends up attributed to a human.
+ */
+export async function resolveSetupContext(options: ResolveOptions): Promise<SetupContext> {
+  const requestId = options.request.headers.get('x-request-id') ?? uuidv7()
+
+  if (bearer(options.request) !== null) {
+    throw new ApiError(
+      'forbidden',
+      'An API token belongs to one administration and cannot create another. Sign in.',
+    )
+  }
+
+  const session =
+    options.request.headers.get('cookie') === null
+      ? null
+      : await getAuth().api.getSession({ headers: options.request.headers })
+
+  if (session === null) throw new ApiError('unauthenticated', 'Sign in first.')
+
+  return {
+    database: options.database,
+    user: { id: session.user.id, email: session.user.email },
+    permissions: new Set<string>([PERMISSIONS.createEntity]),
+    requestId,
+    ip: options.ip ?? options.request.headers.get('x-forwarded-for'),
+  }
 }
 
 /** The entities this session may switch between, for the entity picker. */

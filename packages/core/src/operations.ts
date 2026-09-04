@@ -93,6 +93,26 @@ export const ledgerOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  listFiscalYears: defineOperation({
+    id: 'ledger.listFiscalYears',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Fiscal years with their periods and status.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  createFiscalYear: defineOperation({
+    id: 'ledger.createFiscalYear',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Open the next book year and its twelve periods.',
+    agentExposure: 'proposal',
+    // Naturally so: a year code is unique per entity, and asking twice for
+    // 2027 returns the 2027 that already exists.
+    idempotent: true,
+  }),
+
   listAccounts: defineOperation({
     id: 'ledger.listAccounts',
     kind: 'read',
@@ -235,6 +255,39 @@ export const salesOperations: Readonly<Record<string, OperationDefinition>> = {
     permission: 'ledger:read',
     summary: 'Issued invoices past their due date, for dunning.',
     agentExposure: 'read',
+    idempotent: true,
+  }),
+}
+
+/**
+ * Provisioning (principle 4: "self-hosted is complete, not crippled").
+ *
+ * These are the only operations that are not scoped to an entity — they are how
+ * an entity comes to exist. That makes their permission unusual: `entity:create`
+ * is held by a signed-in human and by no API token, because a token is issued
+ * *by* an administration and must not be able to create another one.
+ *
+ * `agentExposure: 'none'` for the same reason it is `proposal` elsewhere and
+ * more so. Creating a legal entity's books is not a thing an agent does.
+ */
+export const provisioningOperations: Readonly<Record<string, OperationDefinition>> = {
+  listCharts: defineOperation({
+    id: 'setup.listCharts',
+    kind: 'read',
+    permission: 'entity:create',
+    summary: 'The charts of accounts a new administration can be provisioned from.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  createEntity: defineOperation({
+    id: 'setup.createEntity',
+    kind: 'write',
+    permission: 'entity:create',
+    summary: 'Create an administration from a chart, with its first book year, and own it.',
+    agentExposure: 'none',
+    // The client chooses the id, so a retry lands on the same administration
+    // rather than a second one. See the handler.
     idempotent: true,
   }),
 }

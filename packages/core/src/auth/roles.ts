@@ -29,6 +29,12 @@ export const PERMISSIONS = {
   import: 'ledger:import',
   /** Issue and revoke API tokens. */
   manageTokens: 'tokens:manage',
+  /**
+   * Create a new administration. Instance-scoped, not entity-scoped: it is held
+   * by a signed-in human and by no role and no API token, because a token is
+   * issued by one administration and must not be able to create another.
+   */
+  createEntity: 'entity:create',
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]

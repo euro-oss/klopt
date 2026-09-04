@@ -14,6 +14,12 @@ journal follows, for the same reason.
 | [0006](0006-tenancy-and-schema-layout.md)     | Named Postgres schema from the first table, RLS-ready               | Accepted |
 | [0007](0007-postgres-only-infrastructure.md)  | Postgres is the queue, the search index and the cache               | Accepted |
 | [0008](0008-adapter-ports-deferred.md)        | Adapter port signatures wait for the domain types                   | Accepted |
+| [0009](0009-balance-per-currency.md)          | Balance per currency, qualified                                     | Accepted |
+| [0010](0010-hand-written-migrations.md)       | One migration runner for generated and hand-written SQL             | Accepted |
+| [0011](0011-rgs-as-reference-data.md)         | RGS ships as generated reference data, not as code                  | Accepted |
+| [0012](0012-xaf-two-layer-validation.md)      | XAF is validated twice, by two different things                     | Accepted |
+| [0013](0013-ui-comes-in-now.md)               | The UI arrives with M0's screens, then per milestone                | Accepted |
+| [0014](0014-entity-provisioning.md)           | An administration is created by a human, under an id they bring     | Accepted |
 
 ## Template
 

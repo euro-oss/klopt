@@ -1,8 +1,8 @@
-import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'
-import { join } from 'node:path'
-import { expect, test, type Page } from '@playwright/test'
+import { rmSync } from 'node:fs'
+import { expect, test } from '@playwright/test'
 import { addMember, closeDatabase, createDatabase, runMigrations } from '@klopt/db'
 import { findUserIdByEmail, seedEntity } from '@klopt/db/testing'
+import { DATABASE_URL, OUTBOX, codeFor, signIn, uniqueEmail } from './support'
 
 /**
  * The signed-out journey, in a real browser.
@@ -18,57 +18,6 @@ import { findUserIdByEmail, seedEntity } from '@klopt/db/testing'
  * screen did not change"**. Navigation, redirects, the two-step sign-in.
  * Business rules are tested against the domain, not through a browser.
  */
-
-const DATABASE_URL =
-  process.env['TEST_DATABASE_URL'] ??
-  process.env['DATABASE_URL'] ??
-  'postgres://klopt:klopt@localhost:5432/klopt'
-
-/** Where the file email transport drops messages. See playwright.config.ts. */
-const OUTBOX = join(import.meta.dirname, '.outbox')
-
-function uniqueEmail(): string {
-  return `e2e-${Date.now().toString()}-${Math.random().toString(36).slice(2, 8)}@example.test`
-}
-
-/**
- * Read the code out of the delivered message.
- *
- * Not out of the database: the codes are hashed there deliberately, so that a
- * dump contains nothing usable. The transport is the only honest place to
- * observe one, which is also true of a real mailbox.
- */
-async function codeFor(email: string): Promise<string> {
-  const deadline = Date.now() + 10_000
-
-  while (Date.now() < deadline) {
-    // The directory may not exist yet: nothing has been delivered.
-    const files = existsSync(OUTBOX)
-      ? readdirSync(OUTBOX).filter((name) => name.endsWith('.txt'))
-      : []
-
-    for (const name of files.sort().reverse()) {
-      const message = readFileSync(join(OUTBOX, name), 'utf8')
-      if (!message.includes(`To: ${email}`)) continue
-      const match = /^\s{4}(\d{6})\s*$/m.exec(message)
-      if (match?.[1] !== undefined) return match[1]
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-
-  throw new Error(`No sign-in code was delivered to ${email}.`)
-}
-
-/** Take a brand-new address all the way to a signed-in session. */
-async function signIn(page: Page, email: string): Promise<void> {
-  await page.getByLabel('E-mail').fill(email)
-  await page.getByRole('button', { name: 'Stuur me een code' }).click()
-
-  await expect(page.getByLabel('Code')).toBeVisible()
-  await page.getByLabel('Code').fill(await codeFor(email))
-  await page.getByRole('button', { name: 'Aanmelden' }).click()
-}
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
@@ -118,11 +67,15 @@ test('a wrong code says so instead of doing nothing', async ({ page }) => {
   await expect(page).toHaveURL(/\/sign-in/)
 })
 
-test('a first sign-in with no invitation is a dead end, not an error', async ({ page }) => {
+test('a first sign-in offers a way to set an administration up', async ({ page }) => {
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
 
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+  // This used to be a dead end with nothing but a sign-out button on it, which
+  // made "self-hosted is complete, not crippled" false on the very first
+  // screen a new install shows.
+  await expect(page.getByRole('link', { name: 'Administratie opzetten' })).toBeVisible()
 })
 
 test('a deep link survives the round trip through sign-in', async ({ page }) => {

@@ -76,7 +76,14 @@ pnpm run dev                               # http://localhost:3000
 
 Open it and enter your email address. With no SMTP configured the sign-in code
 is written to the container log, so a fresh install works with no mail server —
-find the code, type it in, and you are looking at a ledger.
+find the code and type it in.
+
+The first account to sign in has no books yet, so it is offered a way to make
+some: a name, and optionally a KvK number and a book year that need not be a
+calendar year. That provisions a Dutch MKB chart of accounts — 31 accounts,
+five dagboeken and eight BTW-codes, every account already mapped to RGS 3.7 —
+and lands you in it as owner. The chart is reference data under
+`reference-data/charts/`, so shipping your own is a file, not a fork.
 
 Or skip the browser entirely; the UI is a client of the same API:
 
