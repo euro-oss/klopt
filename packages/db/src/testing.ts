@@ -1,5 +1,5 @@
 import { uuidv7 } from '@klopt/core'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
   accountDimensionRequirements,
@@ -10,6 +10,7 @@ import {
   fiscalYears,
   journals,
   periods,
+  taxCodes,
   users,
 } from './schema/index.js'
 
@@ -33,6 +34,8 @@ export interface SeedOptions {
    */
   readonly alsoFiscalYears?: readonly string[]
   readonly functionalCurrency?: string
+  /** Spec 6.1: per-entity, default per invoice. Both need exercising. */
+  readonly vatRounding?: 'per_invoice' | 'per_line'
 }
 
 export async function seedEntity(database: Database, options: SeedOptions = {}): Promise<string> {
@@ -49,6 +52,7 @@ export async function seedEntity(database: Database, options: SeedOptions = {}):
     functionalCurrency: currency,
     fiscalYearStartMonth: 1,
     rgsVersion: '3.7',
+    vatRounding: options.vatRounding ?? 'per_invoice',
   })
 
   for (const code of [fiscalYearCode, ...(options.alsoFiscalYears ?? [])]) {
@@ -167,4 +171,56 @@ export async function findUserIdByEmail(database: Database, email: string): Prom
     .where(eq(users.email, email))
     .limit(1)
   return row?.id ?? null
+}
+
+/**
+ * Tax codes and revenue accounts, so the fixture can invoice.
+ *
+ * Separate from `seedEntity` because the ledger tests do not need it and a
+ * fixture that seeds everything hides which parts a feature actually depends
+ * on.
+ */
+export async function seedSalesConfiguration(database: Database, entityId: string): Promise<void> {
+  const [vatAccount] = await database
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(eq(accounts.entityId, entityId), eq(accounts.number, '1500')))
+    .limit(1)
+
+  await database.insert(taxCodes).values([
+    {
+      id: uuidv7(),
+      entityId,
+      code: 'H21',
+      description: 'BTW hoog 21%',
+      rateBasisPoints: 2100,
+      direction: 'output',
+      accountId: vatAccount?.id ?? null,
+      ublCategory: 'S',
+      validFrom: '2020-01-01',
+    },
+    {
+      id: uuidv7(),
+      entityId,
+      code: 'L9',
+      description: 'BTW laag 9%',
+      rateBasisPoints: 900,
+      direction: 'output',
+      accountId: vatAccount?.id ?? null,
+      ublCategory: 'S',
+      validFrom: '2020-01-01',
+    },
+    {
+      id: uuidv7(),
+      entityId,
+      code: 'VERL',
+      description: 'BTW verlegd',
+      rateBasisPoints: 0,
+      direction: 'output',
+      accountId: vatAccount?.id ?? null,
+      isReverseCharge: true,
+      ublCategory: 'AE',
+      validFrom: '2020-01-01',
+    },
+  ])
 }

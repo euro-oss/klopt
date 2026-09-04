@@ -140,3 +140,68 @@ export const closeYearBody = z.object({
   carryForward: z.boolean().default(true),
   dryRun: z.boolean().default(false),
 })
+
+/** Sales (M1). */
+
+export const contactsQuery = z.object({
+  customersOnly: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+})
+
+export const createContactBody = z.object({
+  number: z.string().min(1).max(35),
+  name: z.string().min(1),
+  isCustomer: z.boolean().default(true),
+  isSupplier: z.boolean().default(false),
+  email: z.email().nullable().default(null),
+  vatNumber: z.string().nullable().default(null),
+  countryCode: z
+    .string()
+    .regex(/^[A-Z]{2}$/, 'Two-letter ISO 3166.')
+    .default('NL'),
+  paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
+})
+
+/** A decimal string. Quantity is not money, but it is not a float either. */
+const quantity = z.string().regex(/^\d+(\.\d{1,6})?$/, 'A positive decimal, up to six places.')
+
+export const invoiceLineInput = z.object({
+  description: z.string().min(1),
+  quantity: quantity.default('1'),
+  unitCode: z.string().min(1).default('EA'),
+  unitPrice: minorUnits,
+  revenueAccountNumber: z.string().min(1),
+  taxCode: z.string().min(1),
+})
+
+export const draftInvoiceBody = z.object({
+  contactNumber: z.string().min(1),
+  kind: z.enum(['invoice', 'credit_note']).default('invoice'),
+  issueDate: isoDate,
+  reference: z.string().nullable().default(null),
+  buyerReference: z.string().nullable().default(null),
+  notes: z.string().nullable().default(null),
+  creditsInvoiceId: z.uuid().nullable().default(null),
+  lines: z.array(invoiceLineInput).min(1, 'An invoice needs a line.'),
+})
+
+export const issueInvoiceBody = z.object({
+  journalCode: z.string().min(1).default('VRK'),
+  /** Debiteuren. The control account the invoice total lands on. */
+  receivableAccountNumber: z.string().min(1).default('1300'),
+})
+
+export const invoicesQuery = z.object({
+  status: z.enum(['draft', 'issued', 'cancelled']).nullable().default(null),
+  limit: z.coerce.number().int().min(1).max(500).default(100),
+})
+
+export const overdueQuery = z.object({
+  asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+})
+
+export type CreateContactBody = z.infer<typeof createContactBody>
+export type DraftInvoiceBody = z.infer<typeof draftInvoiceBody>
+export type IssueInvoiceBody = z.infer<typeof issueInvoiceBody>

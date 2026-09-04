@@ -156,3 +156,85 @@ export const complianceOperations: Readonly<Record<string, OperationDefinition>>
     idempotent: true,
   }),
 }
+
+/**
+ * Sales (M1).
+ *
+ * Issuing is a `proposal` for an agent: it allocates a legally gapless invoice
+ * number and posts to the ledger, which is not something an agent does
+ * unsupervised (spec 10.3). Drafting is too — a draft invoice with the wrong
+ * customer on it still ends up in front of a human.
+ */
+export const salesOperations: Readonly<Record<string, OperationDefinition>> = {
+  listContacts: defineOperation({
+    id: 'sales.listContacts',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Contacts, filterable to customers.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  createContact: defineOperation({
+    id: 'sales.createContact',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Create a contact.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  listTaxCodes: defineOperation({
+    id: 'sales.listTaxCodes',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Tax codes with their rates and ledger accounts.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  draftInvoice: defineOperation({
+    id: 'sales.draftInvoice',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary: 'Create a draft sales invoice or credit note, priced but unposted.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  issueInvoice: defineOperation({
+    id: 'sales.issueInvoice',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary: 'Number a draft, post it to the ledger, and make it final.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  getInvoice: defineOperation({
+    id: 'sales.getInvoice',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'One invoice with its lines and tax summary.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  listInvoices: defineOperation({
+    id: 'sales.listInvoices',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Sales invoices, filterable by status.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  listOverdueInvoices: defineOperation({
+    id: 'sales.listOverdueInvoices',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Issued invoices past their due date, for dunning.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+}

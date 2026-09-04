@@ -118,6 +118,56 @@ export const routeManifest: readonly RouteBinding[] = [
     path: '/imports/audit-file',
     module: 'api/v1/imports.audit-file.ts',
   },
+
+  // Sales (M1).
+  {
+    operationId: 'sales.listContacts',
+    method: 'GET',
+    path: '/contacts',
+    module: 'api/v1/contacts.ts',
+  },
+  {
+    operationId: 'sales.createContact',
+    method: 'POST',
+    path: '/contacts',
+    module: 'api/v1/contacts.ts',
+  },
+  {
+    operationId: 'sales.listTaxCodes',
+    method: 'GET',
+    path: '/tax-codes',
+    module: 'api/v1/tax-codes.ts',
+  },
+  {
+    operationId: 'sales.listInvoices',
+    method: 'GET',
+    path: '/sales-invoices',
+    module: 'api/v1/sales-invoices.ts',
+  },
+  {
+    operationId: 'sales.draftInvoice',
+    method: 'POST',
+    path: '/sales-invoices',
+    module: 'api/v1/sales-invoices.ts',
+  },
+  {
+    operationId: 'sales.getInvoice',
+    method: 'GET',
+    path: '/sales-invoices/{invoiceId}',
+    module: 'api/v1/sales-invoices.$invoiceId.ts',
+  },
+  {
+    operationId: 'sales.issueInvoice',
+    method: 'POST',
+    path: '/sales-invoices/{invoiceId}/issue',
+    module: 'api/v1/sales-invoices.$invoiceId.issue.ts',
+  },
+  {
+    operationId: 'sales.listOverdueInvoices',
+    method: 'GET',
+    path: '/reports/overdue-invoices',
+    module: 'api/v1/reports.overdue-invoices.ts',
+  },
 ]
 
 export interface ContractViolation {

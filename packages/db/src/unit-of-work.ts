@@ -2,6 +2,7 @@ import type { Database } from './client.js'
 import { DrizzleLedgerRepository } from './repositories/ledger.js'
 import { ReportingRepository } from './repositories/reporting.js'
 import { RgsRepository } from './repositories/rgs.js'
+import { SalesRepository } from './repositories/sales.js'
 import { XafExportRepository } from './repositories/xaf.js'
 
 /**
@@ -77,4 +78,31 @@ export async function withYearClose<T>(
       rgs: new RgsRepository(tx),
     }),
   )
+}
+
+/**
+ * Sales work that touches the ledger.
+ *
+ * Issuing an invoice allocates a number, posts a journal entry and marks the
+ * invoice issued. Any two of those without the third is a broken
+ * administration: a number with no entry is a gap the Belastingdienst asks
+ * about, an entry with no invoice is unexplained revenue.
+ */
+export async function withSales<T>(
+  database: Database,
+  work: (repositories: { sales: SalesRepository; ledger: DrizzleLedgerRepository }) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) =>
+    work({ sales: new SalesRepository(tx), ledger: new DrizzleLedgerRepository(tx) }),
+  )
+}
+
+/** Read-only sales queries. */
+export async function withSalesRead<T>(
+  database: Database,
+  work: (repository: SalesRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new SalesRepository(tx)), {
+    accessMode: 'read only',
+  })
 }

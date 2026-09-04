@@ -22,20 +22,26 @@ import { Route as AppReportsProfitAndLossRouteImport } from './routes/_app/repor
 import { Route as AppReportsTrialBalanceRouteImport } from './routes/_app/reports.trial-balance'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as ApiV1AccountsRouteImport } from './routes/api/v1/accounts'
+import { Route as ApiV1ContactsRouteImport } from './routes/api/v1/contacts'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1JournalEntriesRouteImport } from './routes/api/v1/journal-entries'
+import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-invoices'
+import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
 import { Route as ApiV1ExportsAuditFileRouteImport } from './routes/api/v1/exports.audit-file'
 import { Route as ApiV1FiscalYearsCloseRouteImport } from './routes/api/v1/fiscal-years.close'
 import { Route as ApiV1ImportsAuditFileRouteImport } from './routes/api/v1/imports.audit-file'
 import { Route as ApiV1JournalEntriesEntryIdRouteImport } from './routes/api/v1/journal-entries.$entryId'
 import { Route as ApiV1LedgerChainVerificationRouteImport } from './routes/api/v1/ledger.chain-verification'
 import { Route as ApiV1ReportsBalanceSheetRouteImport } from './routes/api/v1/reports.balance-sheet'
+import { Route as ApiV1ReportsOverdueInvoicesRouteImport } from './routes/api/v1/reports.overdue-invoices'
 import { Route as ApiV1ReportsProfitAndLossRouteImport } from './routes/api/v1/reports.profit-and-loss'
 import { Route as ApiV1ReportsTrialBalanceRouteImport } from './routes/api/v1/reports.trial-balance'
 import { Route as ApiV1RgsCoverageRouteImport } from './routes/api/v1/rgs.coverage'
 import { Route as ApiV1RgsMappingsRouteImport } from './routes/api/v1/rgs.mappings'
 import { Route as ApiV1RgsUpgradePreviewRouteImport } from './routes/api/v1/rgs.upgrade-preview'
+import { Route as ApiV1SalesInvoicesInvoiceIdRouteImport } from './routes/api/v1/sales-invoices.$invoiceId'
 import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes/api/v1/journal-entries.$entryId.reversal'
+import { Route as ApiV1SalesInvoicesInvoiceIdIssueRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.issue'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -101,6 +107,11 @@ const ApiV1AccountsRoute = ApiV1AccountsRouteImport.update({
   path: '/api/v1/accounts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1ContactsRoute = ApiV1ContactsRouteImport.update({
+  id: '/api/v1/contacts',
+  path: '/api/v1/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   id: '/api/v1/health',
   path: '/api/v1/health',
@@ -109,6 +120,16 @@ const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
 const ApiV1JournalEntriesRoute = ApiV1JournalEntriesRouteImport.update({
   id: '/api/v1/journal-entries',
   path: '/api/v1/journal-entries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1SalesInvoicesRoute = ApiV1SalesInvoicesRouteImport.update({
+  id: '/api/v1/sales-invoices',
+  path: '/api/v1/sales-invoices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1TaxCodesRoute = ApiV1TaxCodesRouteImport.update({
+  id: '/api/v1/tax-codes',
+  path: '/api/v1/tax-codes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ExportsAuditFileRoute = ApiV1ExportsAuditFileRouteImport.update({
@@ -144,6 +165,12 @@ const ApiV1ReportsBalanceSheetRoute =
     path: '/api/v1/reports/balance-sheet',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1ReportsOverdueInvoicesRoute =
+  ApiV1ReportsOverdueInvoicesRouteImport.update({
+    id: '/api/v1/reports/overdue-invoices',
+    path: '/api/v1/reports/overdue-invoices',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1ReportsProfitAndLossRoute =
   ApiV1ReportsProfitAndLossRouteImport.update({
     id: '/api/v1/reports/profit-and-loss',
@@ -171,11 +198,23 @@ const ApiV1RgsUpgradePreviewRoute = ApiV1RgsUpgradePreviewRouteImport.update({
   path: '/api/v1/rgs/upgrade-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1SalesInvoicesInvoiceIdRoute =
+  ApiV1SalesInvoicesInvoiceIdRouteImport.update({
+    id: '/$invoiceId',
+    path: '/$invoiceId',
+    getParentRoute: () => ApiV1SalesInvoicesRoute,
+  } as any)
 const ApiV1JournalEntriesEntryIdReversalRoute =
   ApiV1JournalEntriesEntryIdReversalRouteImport.update({
     id: '/reversal',
     path: '/reversal',
     getParentRoute: () => ApiV1JournalEntriesEntryIdRoute,
+  } as any)
+const ApiV1SalesInvoicesInvoiceIdIssueRoute =
+  ApiV1SalesInvoicesInvoiceIdIssueRouteImport.update({
+    id: '/issue',
+    path: '/issue',
+    getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -190,8 +229,11 @@ export interface FileRoutesByFullPath {
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
+  '/api/v1/contacts': typeof ApiV1ContactsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
+  '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/entries/': typeof AppEntriesIndexRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -199,12 +241,15 @@ export interface FileRoutesByFullPath {
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
   '/api/v1/rgs/coverage': typeof ApiV1RgsCoverageRoute
   '/api/v1/rgs/mappings': typeof ApiV1RgsMappingsRoute
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
+  '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
+  '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
@@ -218,8 +263,11 @@ export interface FileRoutesByTo {
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
+  '/api/v1/contacts': typeof ApiV1ContactsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
+  '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/entries': typeof AppEntriesIndexRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -227,12 +275,15 @@ export interface FileRoutesByTo {
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
   '/api/v1/rgs/coverage': typeof ApiV1RgsCoverageRoute
   '/api/v1/rgs/mappings': typeof ApiV1RgsMappingsRoute
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
+  '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
+  '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -248,8 +299,11 @@ export interface FileRoutesById {
   '/_app/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
+  '/api/v1/contacts': typeof ApiV1ContactsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
+  '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/_app/entries/': typeof AppEntriesIndexRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -257,12 +311,15 @@ export interface FileRoutesById {
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
   '/api/v1/rgs/coverage': typeof ApiV1RgsCoverageRoute
   '/api/v1/rgs/mappings': typeof ApiV1RgsMappingsRoute
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
+  '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
+  '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -278,8 +335,11 @@ export interface FileRouteTypes {
     | '/reports/trial-balance'
     | '/api/auth/$'
     | '/api/v1/accounts'
+    | '/api/v1/contacts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
+    | '/api/v1/sales-invoices'
+    | '/api/v1/tax-codes'
     | '/entries/'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -287,12 +347,15 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/$entryId'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
     | '/api/v1/rgs/coverage'
     | '/api/v1/rgs/mappings'
     | '/api/v1/rgs/upgrade-preview'
+    | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/journal-entries/$entryId/reversal'
+    | '/api/v1/sales-invoices/$invoiceId/issue'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sign-in'
@@ -306,8 +369,11 @@ export interface FileRouteTypes {
     | '/reports/trial-balance'
     | '/api/auth/$'
     | '/api/v1/accounts'
+    | '/api/v1/contacts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
+    | '/api/v1/sales-invoices'
+    | '/api/v1/tax-codes'
     | '/entries'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -315,12 +381,15 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/$entryId'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
     | '/api/v1/rgs/coverage'
     | '/api/v1/rgs/mappings'
     | '/api/v1/rgs/upgrade-preview'
+    | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/journal-entries/$entryId/reversal'
+    | '/api/v1/sales-invoices/$invoiceId/issue'
   id:
     | '__root__'
     | '/_app'
@@ -335,8 +404,11 @@ export interface FileRouteTypes {
     | '/_app/reports/trial-balance'
     | '/api/auth/$'
     | '/api/v1/accounts'
+    | '/api/v1/contacts'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
+    | '/api/v1/sales-invoices'
+    | '/api/v1/tax-codes'
     | '/_app/entries/'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -344,12 +416,15 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/$entryId'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
     | '/api/v1/rgs/coverage'
     | '/api/v1/rgs/mappings'
     | '/api/v1/rgs/upgrade-preview'
+    | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/journal-entries/$entryId/reversal'
+    | '/api/v1/sales-invoices/$invoiceId/issue'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -358,13 +433,17 @@ export interface RootRouteChildren {
   SignOutRoute: typeof SignOutRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1AccountsRoute: typeof ApiV1AccountsRoute
+  ApiV1ContactsRoute: typeof ApiV1ContactsRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1JournalEntriesRoute: typeof ApiV1JournalEntriesRouteWithChildren
+  ApiV1SalesInvoicesRoute: typeof ApiV1SalesInvoicesRouteWithChildren
+  ApiV1TaxCodesRoute: typeof ApiV1TaxCodesRoute
   ApiV1ExportsAuditFileRoute: typeof ApiV1ExportsAuditFileRoute
   ApiV1FiscalYearsCloseRoute: typeof ApiV1FiscalYearsCloseRoute
   ApiV1ImportsAuditFileRoute: typeof ApiV1ImportsAuditFileRoute
   ApiV1LedgerChainVerificationRoute: typeof ApiV1LedgerChainVerificationRoute
   ApiV1ReportsBalanceSheetRoute: typeof ApiV1ReportsBalanceSheetRoute
+  ApiV1ReportsOverdueInvoicesRoute: typeof ApiV1ReportsOverdueInvoicesRoute
   ApiV1ReportsProfitAndLossRoute: typeof ApiV1ReportsProfitAndLossRoute
   ApiV1ReportsTrialBalanceRoute: typeof ApiV1ReportsTrialBalanceRoute
   ApiV1RgsCoverageRoute: typeof ApiV1RgsCoverageRoute
@@ -465,6 +544,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AccountsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/contacts': {
+      id: '/api/v1/contacts'
+      path: '/api/v1/contacts'
+      fullPath: '/api/v1/contacts'
+      preLoaderRoute: typeof ApiV1ContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/health': {
       id: '/api/v1/health'
       path: '/api/v1/health'
@@ -477,6 +563,20 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/journal-entries'
       fullPath: '/api/v1/journal-entries'
       preLoaderRoute: typeof ApiV1JournalEntriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/sales-invoices': {
+      id: '/api/v1/sales-invoices'
+      path: '/api/v1/sales-invoices'
+      fullPath: '/api/v1/sales-invoices'
+      preLoaderRoute: typeof ApiV1SalesInvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/tax-codes': {
+      id: '/api/v1/tax-codes'
+      path: '/api/v1/tax-codes'
+      fullPath: '/api/v1/tax-codes'
+      preLoaderRoute: typeof ApiV1TaxCodesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/exports/audit-file': {
@@ -521,6 +621,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1ReportsBalanceSheetRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/reports/overdue-invoices': {
+      id: '/api/v1/reports/overdue-invoices'
+      path: '/api/v1/reports/overdue-invoices'
+      fullPath: '/api/v1/reports/overdue-invoices'
+      preLoaderRoute: typeof ApiV1ReportsOverdueInvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/reports/profit-and-loss': {
       id: '/api/v1/reports/profit-and-loss'
       path: '/api/v1/reports/profit-and-loss'
@@ -556,12 +663,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1RgsUpgradePreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/sales-invoices/$invoiceId': {
+      id: '/api/v1/sales-invoices/$invoiceId'
+      path: '/$invoiceId'
+      fullPath: '/api/v1/sales-invoices/$invoiceId'
+      preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdRouteImport
+      parentRoute: typeof ApiV1SalesInvoicesRoute
+    }
     '/api/v1/journal-entries/$entryId/reversal': {
       id: '/api/v1/journal-entries/$entryId/reversal'
       path: '/reversal'
       fullPath: '/api/v1/journal-entries/$entryId/reversal'
       preLoaderRoute: typeof ApiV1JournalEntriesEntryIdReversalRouteImport
       parentRoute: typeof ApiV1JournalEntriesEntryIdRoute
+    }
+    '/api/v1/sales-invoices/$invoiceId/issue': {
+      id: '/api/v1/sales-invoices/$invoiceId/issue'
+      path: '/issue'
+      fullPath: '/api/v1/sales-invoices/$invoiceId/issue'
+      preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdIssueRouteImport
+      parentRoute: typeof ApiV1SalesInvoicesInvoiceIdRoute
     }
   }
 }
@@ -616,19 +737,50 @@ const ApiV1JournalEntriesRouteChildren: ApiV1JournalEntriesRouteChildren = {
 const ApiV1JournalEntriesRouteWithChildren =
   ApiV1JournalEntriesRoute._addFileChildren(ApiV1JournalEntriesRouteChildren)
 
+interface ApiV1SalesInvoicesInvoiceIdRouteChildren {
+  ApiV1SalesInvoicesInvoiceIdIssueRoute: typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
+}
+
+const ApiV1SalesInvoicesInvoiceIdRouteChildren: ApiV1SalesInvoicesInvoiceIdRouteChildren =
+  {
+    ApiV1SalesInvoicesInvoiceIdIssueRoute:
+      ApiV1SalesInvoicesInvoiceIdIssueRoute,
+  }
+
+const ApiV1SalesInvoicesInvoiceIdRouteWithChildren =
+  ApiV1SalesInvoicesInvoiceIdRoute._addFileChildren(
+    ApiV1SalesInvoicesInvoiceIdRouteChildren,
+  )
+
+interface ApiV1SalesInvoicesRouteChildren {
+  ApiV1SalesInvoicesInvoiceIdRoute: typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
+}
+
+const ApiV1SalesInvoicesRouteChildren: ApiV1SalesInvoicesRouteChildren = {
+  ApiV1SalesInvoicesInvoiceIdRoute:
+    ApiV1SalesInvoicesInvoiceIdRouteWithChildren,
+}
+
+const ApiV1SalesInvoicesRouteWithChildren =
+  ApiV1SalesInvoicesRoute._addFileChildren(ApiV1SalesInvoicesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   SignInRoute: SignInRoute,
   SignOutRoute: SignOutRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1AccountsRoute: ApiV1AccountsRoute,
+  ApiV1ContactsRoute: ApiV1ContactsRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1JournalEntriesRoute: ApiV1JournalEntriesRouteWithChildren,
+  ApiV1SalesInvoicesRoute: ApiV1SalesInvoicesRouteWithChildren,
+  ApiV1TaxCodesRoute: ApiV1TaxCodesRoute,
   ApiV1ExportsAuditFileRoute: ApiV1ExportsAuditFileRoute,
   ApiV1FiscalYearsCloseRoute: ApiV1FiscalYearsCloseRoute,
   ApiV1ImportsAuditFileRoute: ApiV1ImportsAuditFileRoute,
   ApiV1LedgerChainVerificationRoute: ApiV1LedgerChainVerificationRoute,
   ApiV1ReportsBalanceSheetRoute: ApiV1ReportsBalanceSheetRoute,
+  ApiV1ReportsOverdueInvoicesRoute: ApiV1ReportsOverdueInvoicesRoute,
   ApiV1ReportsProfitAndLossRoute: ApiV1ReportsProfitAndLossRoute,
   ApiV1ReportsTrialBalanceRoute: ApiV1ReportsTrialBalanceRoute,
   ApiV1RgsCoverageRoute: ApiV1RgsCoverageRoute,
