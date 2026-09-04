@@ -35,13 +35,15 @@ jobs:
       - name: Format
         run: pnpm run format:check
 
-      - name: Lint
-        run: pnpm run lint
-
-      # Must precede typecheck and boundaries: the build emits dist/ for the
-      # workspace packages and generates apps/web/src/routeTree.gen.ts.
+      # Must come first among the code checks. Type-aware linting resolves
+      # cross-package imports through each package's `exports`, which point at
+      # dist/, so on a clean checkout there is nothing there to resolve until
+      # this step has run.
       - name: Build
         run: pnpm run build
+
+      - name: Lint
+        run: pnpm run lint
 
       - name: Typecheck
         run: pnpm run typecheck

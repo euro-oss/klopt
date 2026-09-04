@@ -67,7 +67,7 @@ pnpm run dev                  # http://localhost:3000
 Check everything the way CI does:
 
 ```bash
-pnpm run verify               # format, lint, typecheck, test, boundaries
+pnpm run verify               # format, build, lint, typecheck, test, boundaries
 ```
 
 ## Layout

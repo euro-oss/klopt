@@ -17,7 +17,7 @@ Read the certificate you are signing at <https://developercertificate.org>.
 
 ```
 pnpm install
-pnpm run verify     # format, lint, typecheck, test, boundaries
+pnpm run verify     # format, build, lint, typecheck, test, boundaries
 ```
 
 CI runs the same command. If `verify` is green locally it will be green there.

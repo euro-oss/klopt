@@ -22,7 +22,7 @@
     "format:check": "prettier --check .",
     "db:generate": "pnpm --filter @klopt/db run generate",
     "db:migrate": "pnpm --filter @klopt/db run migrate",
-    "verify": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run lint:boundaries"
+    "verify": "pnpm run format:check && pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run lint:boundaries"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
