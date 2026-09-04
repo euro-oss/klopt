@@ -27,3 +27,10 @@ export {
   getOperation,
   listOperations,
 } from './operation.js'
+
+export { type LedgerErrorCode, type LedgerViolation, LedgerError, violation } from './errors.js'
+
+export { isUuid, uuidv7, uuidv7Timestamp } from './ids.js'
+
+export * from './ledger/index.js'
+export { ledgerOperations } from './operations.js'

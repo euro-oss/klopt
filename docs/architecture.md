@@ -69,9 +69,43 @@ exist. Without it, principle 3 quietly stops being true around month six.
 Anything on that list that is only a convention is one refactor away from being
 false.
 
+## The posting path
+
+Everything that writes to the journal goes through one function,
+`postJournalEntry` in `@klopt/core`. There is no second way in, and the database
+would refuse one if there were.
+
+```
+POST /api/v1/journal-entries
+  │
+  ├─ resolveRequestContext     bearer token -> actor, entity, permissions
+  ├─ zod schema                money arrives as a string, never a number
+  │
+  └─ withLedger(db)            ONE transaction for everything below
+       │
+       └─ postJournalEntry     @klopt/core, framework-free
+            ├─ idempotency replay check      a retry never double-posts
+            ├─ loadPostingContext            entity, journal, period, accounts, dimensions
+            ├─ validateCommandShape          balance, dates, line sanity
+            ├─ resolve accounts + dimensions required-dimension rules
+            ├─ convertToFunctional           FX, allocated on the entry total
+            ├─ allocateChainPosition         row lock: serialises the entity's chain
+            ├─ allocateEntryNumber           gapless, returns on rollback
+            ├─ hashEntry                     sha256 over the canonical form
+            ├─ insertEntry
+            ├─ applyPeriodBalances           incremental, for sub-second reports
+            ├─ recordIdempotency
+            ├─ appendAudit
+            └─ enqueueEvent                  outbox, same transaction
+```
+
+The database independently enforces the same invariants, because the
+application's version is a good error message and the database's version is a
+guarantee. See `packages/db/migrations/0001_ledger_guards.sql`: append-only,
+balance, period control, chain linkage, gapless allocation.
+
 ## Not built yet
 
-The ledger, and therefore almost everything. This is scaffolding: the workspace,
-the boundaries, the money wire format and the contract-test machinery. M0 —
-entities, chart of accounts, RGS mapping, the immutable journal with its hash
-chain, and XAF 3.2 export and import — is the next milestone.
+RGS reference data and the mapping UI, year close, balance sheet and P&L, and
+XAF 3.2 export and import. The web UI is a placeholder page — the API is the
+product, and it came first by construction.

@@ -5,9 +5,11 @@
 _Klopt_ is what a Dutch bookkeeper says when the reconciliation lands: it adds
 up. It is also the pass/fail condition for this software.
 
-> **Status: scaffold.** The workspace, the architectural boundaries and the
-> machinery that enforces them exist. The ledger does not. See
-> [Roadmap](#roadmap).
+> **Status: M0 in progress.** The ledger works: immutable journal with a hash
+> chain, gapless numbering, n-dimensional analytics, period control, foreign
+> currency, reversals, trial balance, and a versioned REST API over all of it.
+> Still to come in M0: RGS reference data, year close, and the XAF 3.2 export
+> and import. See [Roadmap](#roadmap).
 
 ---
 
@@ -60,9 +62,35 @@ local stack.
 ```bash
 pnpm install
 cp .env.example .env
-docker compose up -d          # Postgres + MinIO with object lock
-pnpm run dev                  # http://localhost:3000
+docker compose up -d                       # Postgres + MinIO with object lock
+pnpm run build
+pnpm --filter @klopt/db run migrate
+pnpm run dev                               # http://localhost:3000
 ```
+
+Then post something. Issue a token, and:
+
+```bash
+curl -X POST localhost:3000/api/v1/journal-entries \
+  -H "authorization: Bearer $KLOPT_TOKEN" \
+  -H "idempotency-key: $(uuidgen)" \
+  -H 'content-type: application/json' \
+  -d '{
+        "journalCode": "VRK",
+        "bookingDate": "2026-03-15",
+        "documentDate": "2026-03-15",
+        "description": "Factuur 2026-001",
+        "lines": [
+          { "accountNumber": "1300", "debit":  "121000" },
+          { "accountNumber": "8000", "credit": "100000" },
+          { "accountNumber": "1500", "credit":  "21000" }
+        ]
+      }'
+```
+
+Amounts are integer minor units **as strings**. A JSON number in the money path
+is rejected, because by the time it reached us it would already have been
+rounded.
 
 Check everything the way CI does:
 

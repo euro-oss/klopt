@@ -10,11 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiV1AccountsRouteImport } from './routes/api/v1/accounts'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
+import { Route as ApiV1JournalEntriesRouteImport } from './routes/api/v1/journal-entries'
+import { Route as ApiV1JournalEntriesEntryIdRouteImport } from './routes/api/v1/journal-entries.$entryId'
+import { Route as ApiV1LedgerChainVerificationRouteImport } from './routes/api/v1/ledger.chain-verification'
+import { Route as ApiV1ReportsTrialBalanceRouteImport } from './routes/api/v1/reports.trial-balance'
+import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes/api/v1/journal-entries.$entryId.reversal'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AccountsRoute = ApiV1AccountsRouteImport.update({
+  id: '/api/v1/accounts',
+  path: '/api/v1/accounts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
@@ -22,31 +33,107 @@ const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   path: '/api/v1/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1JournalEntriesRoute = ApiV1JournalEntriesRouteImport.update({
+  id: '/api/v1/journal-entries',
+  path: '/api/v1/journal-entries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1JournalEntriesEntryIdRoute =
+  ApiV1JournalEntriesEntryIdRouteImport.update({
+    id: '/$entryId',
+    path: '/$entryId',
+    getParentRoute: () => ApiV1JournalEntriesRoute,
+  } as any)
+const ApiV1LedgerChainVerificationRoute =
+  ApiV1LedgerChainVerificationRouteImport.update({
+    id: '/api/v1/ledger/chain-verification',
+    path: '/api/v1/ledger/chain-verification',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1ReportsTrialBalanceRoute =
+  ApiV1ReportsTrialBalanceRouteImport.update({
+    id: '/api/v1/reports/trial-balance',
+    path: '/api/v1/reports/trial-balance',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1JournalEntriesEntryIdReversalRoute =
+  ApiV1JournalEntriesEntryIdReversalRouteImport.update({
+    id: '/reversal',
+    path: '/reversal',
+    getParentRoute: () => ApiV1JournalEntriesEntryIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
+  '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
+  '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
+  '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
+  '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
+  '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
+  '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
+  '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
+  '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
+  '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/v1/health'
+  fullPaths:
+    | '/'
+    | '/api/v1/accounts'
+    | '/api/v1/health'
+    | '/api/v1/journal-entries'
+    | '/api/v1/journal-entries/$entryId'
+    | '/api/v1/ledger/chain-verification'
+    | '/api/v1/reports/trial-balance'
+    | '/api/v1/journal-entries/$entryId/reversal'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/v1/health'
-  id: '__root__' | '/' | '/api/v1/health'
+  to:
+    | '/'
+    | '/api/v1/accounts'
+    | '/api/v1/health'
+    | '/api/v1/journal-entries'
+    | '/api/v1/journal-entries/$entryId'
+    | '/api/v1/ledger/chain-verification'
+    | '/api/v1/reports/trial-balance'
+    | '/api/v1/journal-entries/$entryId/reversal'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/v1/accounts'
+    | '/api/v1/health'
+    | '/api/v1/journal-entries'
+    | '/api/v1/journal-entries/$entryId'
+    | '/api/v1/ledger/chain-verification'
+    | '/api/v1/reports/trial-balance'
+    | '/api/v1/journal-entries/$entryId/reversal'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiV1AccountsRoute: typeof ApiV1AccountsRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
+  ApiV1JournalEntriesRoute: typeof ApiV1JournalEntriesRouteWithChildren
+  ApiV1LedgerChainVerificationRoute: typeof ApiV1LedgerChainVerificationRoute
+  ApiV1ReportsTrialBalanceRoute: typeof ApiV1ReportsTrialBalanceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/accounts': {
+      id: '/api/v1/accounts'
+      path: '/api/v1/accounts'
+      fullPath: '/api/v1/accounts'
+      preLoaderRoute: typeof ApiV1AccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/health': {
       id: '/api/v1/health'
       path: '/api/v1/health'
@@ -65,12 +159,77 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/journal-entries': {
+      id: '/api/v1/journal-entries'
+      path: '/api/v1/journal-entries'
+      fullPath: '/api/v1/journal-entries'
+      preLoaderRoute: typeof ApiV1JournalEntriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/journal-entries/$entryId': {
+      id: '/api/v1/journal-entries/$entryId'
+      path: '/$entryId'
+      fullPath: '/api/v1/journal-entries/$entryId'
+      preLoaderRoute: typeof ApiV1JournalEntriesEntryIdRouteImport
+      parentRoute: typeof ApiV1JournalEntriesRoute
+    }
+    '/api/v1/ledger/chain-verification': {
+      id: '/api/v1/ledger/chain-verification'
+      path: '/api/v1/ledger/chain-verification'
+      fullPath: '/api/v1/ledger/chain-verification'
+      preLoaderRoute: typeof ApiV1LedgerChainVerificationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/reports/trial-balance': {
+      id: '/api/v1/reports/trial-balance'
+      path: '/api/v1/reports/trial-balance'
+      fullPath: '/api/v1/reports/trial-balance'
+      preLoaderRoute: typeof ApiV1ReportsTrialBalanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/journal-entries/$entryId/reversal': {
+      id: '/api/v1/journal-entries/$entryId/reversal'
+      path: '/reversal'
+      fullPath: '/api/v1/journal-entries/$entryId/reversal'
+      preLoaderRoute: typeof ApiV1JournalEntriesEntryIdReversalRouteImport
+      parentRoute: typeof ApiV1JournalEntriesEntryIdRoute
+    }
   }
 }
 
+interface ApiV1JournalEntriesEntryIdRouteChildren {
+  ApiV1JournalEntriesEntryIdReversalRoute: typeof ApiV1JournalEntriesEntryIdReversalRoute
+}
+
+const ApiV1JournalEntriesEntryIdRouteChildren: ApiV1JournalEntriesEntryIdRouteChildren =
+  {
+    ApiV1JournalEntriesEntryIdReversalRoute:
+      ApiV1JournalEntriesEntryIdReversalRoute,
+  }
+
+const ApiV1JournalEntriesEntryIdRouteWithChildren =
+  ApiV1JournalEntriesEntryIdRoute._addFileChildren(
+    ApiV1JournalEntriesEntryIdRouteChildren,
+  )
+
+interface ApiV1JournalEntriesRouteChildren {
+  ApiV1JournalEntriesEntryIdRoute: typeof ApiV1JournalEntriesEntryIdRouteWithChildren
+}
+
+const ApiV1JournalEntriesRouteChildren: ApiV1JournalEntriesRouteChildren = {
+  ApiV1JournalEntriesEntryIdRoute: ApiV1JournalEntriesEntryIdRouteWithChildren,
+}
+
+const ApiV1JournalEntriesRouteWithChildren =
+  ApiV1JournalEntriesRoute._addFileChildren(ApiV1JournalEntriesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiV1AccountsRoute: ApiV1AccountsRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
+  ApiV1JournalEntriesRoute: ApiV1JournalEntriesRouteWithChildren,
+  ApiV1LedgerChainVerificationRoute: ApiV1LedgerChainVerificationRoute,
+  ApiV1ReportsTrialBalanceRoute: ApiV1ReportsTrialBalanceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

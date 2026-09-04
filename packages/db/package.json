@@ -13,6 +13,10 @@
     "./schema": {
       "types": "./dist/schema/index.d.ts",
       "default": "./dist/schema/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
     }
   },
   "files": [
@@ -24,8 +28,10 @@
     "typecheck": "tsc -b tsconfig.build.json && tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "generate": "drizzle-kit generate",
-    "migrate": "drizzle-kit migrate",
-    "studio": "drizzle-kit studio"
+    "migrate": "node dist/bin/migrate.js",
+    "studio": "drizzle-kit studio",
+    "migrate:dev": "node --experimental-strip-types src/bin/migrate.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@klopt/core": "workspace:*",

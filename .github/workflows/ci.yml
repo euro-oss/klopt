@@ -12,6 +12,7 @@ concurrency:
 env:
   # Correctness beats availability (spec 12). CI is not allowed to be flaky-green.
   CI: true
+  DATABASE_URL: postgres://klopt:klopt@localhost:5432/klopt
 
 jobs:
   verify:
@@ -20,6 +21,21 @@ jobs:
       fail-fast: false
       matrix:
         node: ['24', '26']
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: klopt
+          POSTGRES_PASSWORD: klopt
+          POSTGRES_DB: klopt
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U klopt -d klopt"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -48,6 +64,11 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
+      - name: Migrate
+        run: pnpm --filter @klopt/db run migrate
+
+      # The ledger tests run against a real Postgres on purpose. The triggers
+      # are half the guarantee, and a mocked database proves nothing about them.
       - name: Test
         run: pnpm run test
 
