@@ -153,15 +153,41 @@ export const contactsQuery = z.object({
 export const createContactBody = z.object({
   number: z.string().min(1).max(35),
   name: z.string().min(1),
+  /** BT-44, the registered name. Defaults to `name`, which is usually right. */
+  legalName: z.string().nullable().default(null),
   isCustomer: z.boolean().default(true),
   isSupplier: z.boolean().default(false),
   email: z.email().nullable().default(null),
+  phone: z.string().nullable().default(null),
   vatNumber: z.string().nullable().default(null),
+  kvkNumber: z.string().nullable().default(null),
   countryCode: z
     .string()
     .regex(/^[A-Z]{2}$/, 'Two-letter ISO 3166.')
     .default('NL'),
   paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
+  /** BT-49. Defaults to the KvK number in scheme 0106 when it is not given. */
+  electronicAddress: z.string().nullable().default(null),
+  electronicAddressScheme: z.string().nullable().default(null),
+  /**
+   * The postal address. Optional, because a contact is worth recording before
+   * you know it — but EN 16931 makes it mandatory on an invoice, so an invoice
+   * to a customer without one is refused with BR-10 rather than sent.
+   */
+  address: z
+    .object({
+      street: z.string().nullable().default(null),
+      houseNumber: z.string().nullable().default(null),
+      postalCode: z.string().nullable().default(null),
+      city: z.string().nullable().default(null),
+      countryCode: z
+        .string()
+        .regex(/^[A-Za-z]{2}$/, 'Two-letter ISO 3166.')
+        .transform((value) => value.toUpperCase())
+        .default('NL'),
+    })
+    .nullable()
+    .default(null),
 })
 
 /** A decimal string. Quantity is not money, but it is not a float either. */
@@ -251,3 +277,44 @@ export const setMemberRoleBody = z.object({
 
 export type InviteMemberBody = z.infer<typeof inviteMemberBody>
 export type SetMemberRoleBody = z.infer<typeof setMemberRoleBody>
+
+/**
+ * The administration's own details (spec 7.5).
+ *
+ * Everything optional, and everything nullable: these are the fields a UBL
+ * invoice needs and the setup form was right not to ask for. `undefined` means
+ * "leave it alone" and `null` means "clear it", which is the distinction a
+ * PATCH exists to make.
+ */
+const nullableText = z
+  .string()
+  .trim()
+  .nullable()
+  .transform((value) => (value === null || value === '' ? null : value))
+
+export const updateEntityBody = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  legalName: z.string().trim().min(1).max(200).optional(),
+  kvkNumber: nullableText.optional(),
+  vatNumber: nullableText.optional(),
+  street: nullableText.optional(),
+  houseNumber: nullableText.optional(),
+  postalCode: nullableText.optional(),
+  city: nullableText.optional(),
+  countryCode: z
+    .string()
+    .regex(/^[A-Za-z]{2}$/, 'Use a two-letter ISO 3166-1 country code.')
+    .transform((value) => value.toUpperCase())
+    .optional(),
+  email: nullableText.optional(),
+  phone: nullableText.optional(),
+  website: nullableText.optional(),
+  iban: nullableText.optional(),
+  bic: nullableText.optional(),
+  electronicAddress: nullableText.optional(),
+  /** 0106 is a KvK number, 0190 an OIN, 9944 a Dutch VAT number. */
+  electronicAddressScheme: nullableText.optional(),
+  vatRounding: z.enum(['per_invoice', 'per_line']).optional(),
+})
+
+export type UpdateEntityBody = z.infer<typeof updateEntityBody>

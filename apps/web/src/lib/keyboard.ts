@@ -46,6 +46,7 @@ export const BINDINGS: readonly Binding[] = [
     to: '/reports/trial-balance',
   },
   { id: 'go.members', label: 'Toegang', group: 'Go to', keys: 'g t', to: '/members' },
+  { id: 'go.settings', label: 'Instellingen', group: 'Go to', keys: 'g i', to: '/settings' },
 
   {
     id: 'new.entry',

@@ -7,12 +7,14 @@ import {
   type PostJournalEntryCommand,
   type PricedInvoice,
   type TaxCodeSnapshot,
+  type UblInvoiceSource,
   type VatRounding,
 } from '@klopt/core'
 import { and, asc, desc, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import {
   accounts,
+  contactAddresses,
   contacts,
   entities,
   salesInvoiceLines,
@@ -294,6 +296,181 @@ export class SalesRepository {
     return { ...invoice, lines }
   }
 
+  /**
+   * Everything a UBL invoice needs, in one read.
+   *
+   * Separate from `findInvoice` because it is a different question: that one
+   * answers "show me this invoice", this one answers "who are the two parties
+   * and what are their statutory identifiers". Half the columns here appear on
+   * no screen.
+   */
+  async loadUblSource(entityId: string, invoiceId: string): Promise<UblInvoiceSource | null> {
+    const [row] = await this.tx
+      .select({
+        kind: salesInvoices.kind,
+        status: salesInvoices.status,
+        number: salesInvoices.number,
+        issueDate: salesInvoices.issueDate,
+        dueDate: salesInvoices.dueDate,
+        currency: salesInvoices.currency,
+        net: salesInvoices.netMinorUnits,
+        tax: salesInvoices.taxMinorUnits,
+        total: salesInvoices.totalMinorUnits,
+        reference: salesInvoices.reference,
+        buyerReference: salesInvoices.buyerReference,
+        notes: salesInvoices.notes,
+        creditsInvoiceId: salesInvoices.creditsInvoiceId,
+
+        sellerName: entities.name,
+        sellerLegalName: entities.legalName,
+        sellerStreet: entities.street,
+        sellerHouseNumber: entities.houseNumber,
+        sellerPostalCode: entities.postalCode,
+        sellerCity: entities.city,
+        sellerCountry: entities.countryCode,
+        sellerVatNumber: entities.vatNumber,
+        sellerKvkNumber: entities.kvkNumber,
+        sellerEndpoint: entities.electronicAddress,
+        sellerEndpointScheme: entities.electronicAddressScheme,
+        sellerEmail: entities.email,
+        sellerPhone: entities.phone,
+        sellerIban: entities.iban,
+        sellerBic: entities.bic,
+
+        buyerName: contacts.name,
+        buyerLegalName: contacts.legalName,
+        buyerCountry: contacts.countryCode,
+        buyerVatNumber: contacts.vatNumber,
+        buyerKvkNumber: contacts.kvkNumber,
+        buyerEndpoint: contacts.electronicAddress,
+        buyerEndpointScheme: contacts.electronicAddressScheme,
+        buyerEmail: contacts.email,
+        buyerPhone: contacts.phone,
+        contactId: contacts.id,
+      })
+      .from(salesInvoices)
+      .innerJoin(entities, eq(entities.id, salesInvoices.entityId))
+      .innerJoin(contacts, eq(contacts.id, salesInvoices.contactId))
+      .where(and(eq(salesInvoices.entityId, entityId), eq(salesInvoices.id, invoiceId)))
+      .limit(1)
+
+    if (row === undefined || row.number === null) return null
+
+    const [address] = await this.tx
+      .select({
+        street: contactAddresses.street,
+        houseNumber: contactAddresses.houseNumber,
+        postalCode: contactAddresses.postalCode,
+        city: contactAddresses.city,
+        countryCode: contactAddresses.countryCode,
+      })
+      .from(contactAddresses)
+      .where(
+        and(eq(contactAddresses.contactId, row.contactId), eq(contactAddresses.kind, 'street')),
+      )
+      .limit(1)
+
+    // BT-25 and BT-26. A credit note that does not name the invoice it corrects
+    // is refused outright by NL-R-001, so this is not decoration.
+    let precedingNumber: string | null = null
+    let precedingDate: string | null = null
+    if (row.creditsInvoiceId !== null) {
+      const [credited] = await this.tx
+        .select({ number: salesInvoices.number, issueDate: salesInvoices.issueDate })
+        .from(salesInvoices)
+        .where(eq(salesInvoices.id, row.creditsInvoiceId))
+        .limit(1)
+      precedingNumber = credited?.number ?? null
+      precedingDate = credited?.issueDate ?? null
+    }
+
+    const lines = await this.tx
+      .select({
+        lineNumber: salesInvoiceLines.lineNumber,
+        description: salesInvoiceLines.description,
+        quantity: salesInvoiceLines.quantity,
+        unitCode: salesInvoiceLines.unitCode,
+        unitPrice: salesInvoiceLines.unitPriceMinorUnits,
+        net: salesInvoiceLines.netMinorUnits,
+        tax: salesInvoiceLines.taxMinorUnits,
+        ublCategory: taxCodes.ublCategory,
+        rateBasisPoints: taxCodes.rateBasisPoints,
+        taxDescription: taxCodes.description,
+      })
+      .from(salesInvoiceLines)
+      .innerJoin(taxCodes, eq(taxCodes.id, salesInvoiceLines.taxCodeId))
+      .where(eq(salesInvoiceLines.invoiceId, invoiceId))
+      .orderBy(asc(salesInvoiceLines.lineNumber))
+
+    return {
+      profile: 'peppol-bis-3',
+      kind: row.kind,
+      number: row.number,
+      issueDate: row.issueDate,
+      dueDate: row.dueDate,
+      currency: row.currency,
+      buyerReference: row.buyerReference,
+      orderReference: row.reference,
+      note: row.notes,
+      precedingInvoiceNumber: precedingNumber,
+      precedingInvoiceIssueDate: precedingDate,
+      seller: {
+        legalName: row.sellerLegalName,
+        tradingName: row.sellerName,
+        street: row.sellerStreet,
+        houseNumber: row.sellerHouseNumber,
+        postalCode: row.sellerPostalCode,
+        city: row.sellerCity,
+        countryCode: row.sellerCountry,
+        vatNumber: row.sellerVatNumber,
+        kvkNumber: row.sellerKvkNumber,
+        // BT-34 defaults to the KvK number in scheme 0106 when nothing else is
+        // configured: it is the identifier a Dutch business already has, and
+        // NL-R-003 accepts it.
+        electronicAddress: row.sellerEndpoint ?? row.sellerKvkNumber,
+        electronicAddressScheme:
+          row.sellerEndpointScheme ?? (row.sellerKvkNumber === null ? null : '0106'),
+        contactName: null,
+        phone: row.sellerPhone,
+        email: row.sellerEmail,
+      },
+      buyer: {
+        legalName: row.buyerLegalName ?? row.buyerName,
+        tradingName: row.buyerName,
+        street: address?.street ?? null,
+        houseNumber: address?.houseNumber ?? null,
+        postalCode: address?.postalCode ?? null,
+        city: address?.city ?? null,
+        countryCode: address?.countryCode ?? row.buyerCountry,
+        vatNumber: row.buyerVatNumber,
+        kvkNumber: row.buyerKvkNumber,
+        electronicAddress: row.buyerEndpoint ?? row.buyerKvkNumber,
+        electronicAddressScheme:
+          row.buyerEndpointScheme ?? (row.buyerKvkNumber === null ? null : '0106'),
+        contactName: null,
+        phone: row.buyerPhone,
+        email: row.buyerEmail,
+      },
+      iban: row.sellerIban,
+      bic: row.sellerBic,
+      net: row.net,
+      tax: row.tax,
+      total: row.total,
+      lines: lines.map((line) => ({
+        lineNumber: line.lineNumber,
+        description: line.description,
+        quantity: line.quantity,
+        unitCode: line.unitCode,
+        unitPrice: line.unitPrice,
+        net: line.net,
+        tax: line.tax,
+        ublCategory: line.ublCategory,
+        rateBasisPoints: line.rateBasisPoints,
+        taxDescription: line.taxDescription,
+      })),
+    }
+  }
+
   async listInvoices(request: {
     readonly entityId: string
     readonly status: 'draft' | 'issued' | 'cancelled' | null
@@ -369,15 +546,42 @@ export class SalesRepository {
     readonly entityId: string
     readonly number: string
     readonly name: string
+    readonly legalName?: string | null
     readonly isCustomer: boolean
     readonly isSupplier: boolean
     readonly email: string | null
+    readonly phone?: string | null
     readonly vatNumber: string | null
+    readonly kvkNumber?: string | null
     readonly countryCode: string
     readonly paymentTermsDays: number
+    readonly electronicAddress?: string | null
+    readonly electronicAddressScheme?: string | null
+    readonly address?: {
+      readonly street: string | null
+      readonly houseNumber: string | null
+      readonly postalCode: string | null
+      readonly city: string | null
+      readonly countryCode: string
+    } | null
   }): Promise<string> {
     const id = uuidv7()
-    await this.tx.insert(contacts).values({ id, ...request })
+    const { address, ...contact } = request
+
+    await this.tx.insert(contacts).values({ id, ...contact })
+
+    // A separate table because UBL and XAF both distinguish a street address
+    // from a postal one, and a contact may have both.
+    if (address !== null && address !== undefined) {
+      await this.tx.insert(contactAddresses).values({
+        id: uuidv7(),
+        entityId: request.entityId,
+        contactId: id,
+        kind: 'street',
+        ...address,
+      })
+    }
+
     return id
   }
 

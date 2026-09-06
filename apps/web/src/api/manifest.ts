@@ -100,6 +100,24 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/entities.$entityId.ts',
   },
   {
+    operationId: 'ledger.getEntity',
+    method: 'GET',
+    path: '/entity',
+    module: 'api/v1/entity.ts',
+  },
+  {
+    operationId: 'ledger.updateEntity',
+    method: 'PATCH',
+    path: '/entity',
+    module: 'api/v1/entity.ts',
+  },
+  {
+    operationId: 'sales.getInvoiceUbl',
+    method: 'GET',
+    path: '/sales-invoices/{invoiceId}/ubl',
+    module: 'api/v1/sales-invoices.$invoiceId.ubl.ts',
+  },
+  {
     operationId: 'ledger.listFiscalYears',
     method: 'GET',
     path: '/fiscal-years',

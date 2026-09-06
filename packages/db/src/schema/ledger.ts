@@ -86,6 +86,34 @@ export const entities = klopt.table(
     rgsVersion: text('rgs_version'),
     rgsVariant: text('rgs_variant').notNull().default('mkb'),
     vatRounding: vatRoundingPolicy('vat_rounding').notNull().default('per_invoice'),
+
+    /**
+     * Who the seller is, on paper (spec 7.5).
+     *
+     * Nullable, because an administration is usable as a shadow ledger long
+     * before anybody invoices out of it — and refusing to create one until an
+     * address is typed would put a form in front of the thing people came for.
+     * The UBL generator refuses instead, naming the BT number of each field it
+     * is missing, which is the moment they actually matter.
+     */
+    street: text('street'),
+    houseNumber: text('house_number'),
+    postalCode: text('postal_code'),
+    city: text('city'),
+    countryCode: char('country_code', { length: 2 }).notNull().default('NL'),
+    email: text('email'),
+    phone: text('phone'),
+    website: text('website'),
+    iban: text('iban'),
+    bic: text('bic'),
+    /**
+     * BT-34, the seller's electronic address, and the scheme it is in: `0106`
+     * for a KvK number, `0190` for an OIN, `9944` for a VAT number. Peppol
+     * requires it even when the transport is email, because the identifier is
+     * what makes the invoice addressable at all.
+     */
+    electronicAddress: text('electronic_address'),
+    electronicAddressScheme: text('electronic_address_scheme'),
     ...timestamps,
   },
   (table) => [

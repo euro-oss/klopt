@@ -8,7 +8,7 @@ import {
 } from '../context.js'
 import { ApiError } from '../errors.js'
 import { referenceData } from '../reference-data.js'
-import type { CreateEntityBody, CreateFiscalYearBody } from '../schemas.js'
+import type { CreateEntityBody, CreateFiscalYearBody, UpdateEntityBody } from '../schemas.js'
 
 /**
  * Creating an administration, and opening its book years.
@@ -159,4 +159,34 @@ export async function rememberEntity(
 /** A fresh id for the setup form, so the client can retry safely. */
 export function newEntityId(): string {
   return uuidv7()
+}
+
+export async function handleGetEntity(context: RequestContext) {
+  requirePermission(context, PERMISSIONS.read)
+
+  const entity = await withSetup(context.database, (repository) =>
+    repository.findEntity(context.entityId),
+  )
+  if (entity === null) throw new ApiError('not_found', 'No such administration.')
+
+  return { status: 200, body: entity }
+}
+
+/**
+ * Change the administration's own details.
+ *
+ * Not the chart, the journals or the book years — each of those has its own
+ * operation, because changing them has consequences that a settings form
+ * should not quietly imply.
+ */
+export async function handleUpdateEntity(context: RequestContext, body: UpdateEntityBody) {
+  requirePermission(context, PERMISSIONS.configure)
+
+  await withSetup(context.database, (repository) => repository.updateEntity(context.entityId, body))
+
+  const entity = await withSetup(context.database, (repository) =>
+    repository.findEntity(context.entityId),
+  )
+
+  return { status: 200, body: entity }
 }

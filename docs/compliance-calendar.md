@@ -13,7 +13,8 @@ landing before it is mandatory, not for noticing afterwards.
 | -------------------------- | ---------------------------- | ----------------------------------------- | ------------------------------------------------------------------------- |
 | Nederlandse Taxonomie (NT) | SBR / Belastingdienst        | Annual, through alpha → beta → definitive | Filing selects the taxonomy by **reporting period**, never "latest"       |
 | Peppol BIS Billing 3.0     | OpenPeppol                   | Roughly twice a year                      | Two versions must be runnable simultaneously during a transition window   |
-| NLCIUS / SI-UBL            | Nederlandse Peppolautoriteit | Follows BIS                               |                                                                           |
+| NLCIUS / SI-UBL            | Nederlandse Peppolautoriteit | Follows BIS                               | The NL-R rules ship inside the BIS schematron, not separately             |
+| UBL 2.1 schemas            | OASIS                        | Frozen; 2.1 is what BIS 3.0 profiles      | Committed verbatim under `reference-data/ubl/`                            |
 | RGS scheme                 | referentiegrootboekschema.nl | Irregular, roughly annual                 | A version upgrade is a migration with a diff report, never a silent remap |
 | XAF                        | Belastingdienst ODB          | Rare; 3.2 is current                      | RGS lead codes are the part under active push                             |
 | PSD2 → PSD3 / PSR          | EU                           | Multi-year                                | Affects the bank feed adapter, not the file import path                   |

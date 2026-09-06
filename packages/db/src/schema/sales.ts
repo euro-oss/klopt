@@ -63,6 +63,9 @@ export const contacts = klopt.table(
     iban: text('iban'),
     /** Betalingstermijn. Drives the due date and therefore the dunning clock. */
     paymentTermsDays: smallint('payment_terms_days').notNull().default(30),
+    /** BT-49, the buyer's electronic address. See the seller's, on `entities`. */
+    electronicAddress: text('electronic_address'),
+    electronicAddressScheme: text('electronic_address_scheme'),
     notes: text('notes'),
     isBlocked: boolean('is_blocked').notNull().default(false),
     ...timestamps,

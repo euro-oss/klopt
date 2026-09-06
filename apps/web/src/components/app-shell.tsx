@@ -19,8 +19,20 @@ const NAVIGATION = [
   { to: '/reports/profit-and-loss', label: 'Winst & verlies', binding: 'go.profit' },
 ] as const
 
-/** Owner-only, so the nav does not offer a screen that answers 403. */
-const OWNER_NAVIGATION = [{ to: '/members', label: 'Toegang', binding: 'go.members' }] as const
+/**
+ * Screens not everybody may open, so the nav does not offer one that answers
+ * 403. The role list mirrors the permission the operation behind it requires —
+ * settings needs `ledger:configure`, membership needs `members:manage`.
+ */
+const RESTRICTED_NAVIGATION = [
+  {
+    to: '/settings',
+    label: 'Instellingen',
+    binding: 'go.settings',
+    roles: ['owner', 'accountant', 'bookkeeper'],
+  },
+  { to: '/members', label: 'Toegang', binding: 'go.members', roles: ['owner'] },
+] as const
 
 export interface ShellEntity {
   readonly entityId: string
@@ -43,7 +55,12 @@ export function AppShell({
 }) {
   const path = useRouterState({ select: (state) => state.location.pathname })
   const active = entities.find((entity) => entity.entityId === activeEntityId) ?? entities[0]
-  const navigation = [...NAVIGATION, ...(active?.role === 'owner' ? OWNER_NAVIGATION : [])]
+  const navigation = [
+    ...NAVIGATION,
+    ...RESTRICTED_NAVIGATION.filter((item) =>
+      (item.roles as readonly string[]).includes(active?.role ?? ''),
+    ),
+  ]
 
   return (
     <div className="bg-background text-foreground min-h-screen">

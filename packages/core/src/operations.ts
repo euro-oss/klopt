@@ -93,6 +93,26 @@ export const ledgerOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  getEntity: defineOperation({
+    id: 'ledger.getEntity',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: "The administration's own details: address, KvK, BTW, IBAN, book year.",
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  updateEntity: defineOperation({
+    id: 'ledger.updateEntity',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: "Change the administration's own details. Not its chart or its book years.",
+    agentExposure: 'proposal',
+    // Idempotent by nature: it is a whole-field update, so applying it twice
+    // leaves the same state.
+    idempotent: true,
+  }),
+
   listFiscalYears: defineOperation({
     id: 'ledger.listFiscalYears',
     kind: 'read',
@@ -245,6 +265,15 @@ export const salesOperations: Readonly<Record<string, OperationDefinition>> = {
     kind: 'read',
     permission: 'ledger:read',
     summary: 'Sales invoices, filterable by status.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  getInvoiceUbl: defineOperation({
+    id: 'sales.getInvoiceUbl',
+    kind: 'read',
+    permission: 'ledger:export',
+    summary: 'The invoice as UBL 2.1 in the Peppol BIS Billing 3.0 shape, rule-checked first.',
     agentExposure: 'read',
     idempotent: true,
   }),

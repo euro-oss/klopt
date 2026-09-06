@@ -16,6 +16,7 @@ import { Route as SignOutRouteImport } from './routes/sign-out'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppEntriesIndexRouteImport } from './routes/_app/entries.index'
 import { Route as AppEntriesEntryIdRouteImport } from './routes/_app/entries.$entryId'
 import { Route as AppEntriesNewRouteImport } from './routes/_app/entries.new'
@@ -25,6 +26,7 @@ import { Route as AppReportsTrialBalanceRouteImport } from './routes/_app/report
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as ApiV1AccountsRouteImport } from './routes/api/v1/accounts'
 import { Route as ApiV1ContactsRouteImport } from './routes/api/v1/contacts'
+import { Route as ApiV1EntityRouteImport } from './routes/api/v1/entity'
 import { Route as ApiV1FiscalYearsRouteImport } from './routes/api/v1/fiscal-years'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1JournalEntriesRouteImport } from './routes/api/v1/journal-entries'
@@ -49,6 +51,7 @@ import { Route as ApiV1SalesInvoicesInvoiceIdRouteImport } from './routes/api/v1
 import { Route as ApiV1SetupChartsRouteImport } from './routes/api/v1/setup.charts'
 import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes/api/v1/journal-entries.$entryId.reversal'
 import { Route as ApiV1SalesInvoicesInvoiceIdIssueRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.issue'
+import { Route as ApiV1SalesInvoicesInvoiceIdUblRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.ubl'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -82,6 +85,11 @@ const AppAccountsRoute = AppAccountsRouteImport.update({
 const AppMembersRoute = AppMembersRouteImport.update({
   id: '/members',
   path: '/members',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEntriesIndexRoute = AppEntriesIndexRouteImport.update({
@@ -127,6 +135,11 @@ const ApiV1AccountsRoute = ApiV1AccountsRouteImport.update({
 const ApiV1ContactsRoute = ApiV1ContactsRouteImport.update({
   id: '/api/v1/contacts',
   path: '/api/v1/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1EntityRoute = ApiV1EntityRouteImport.update({
+  id: '/api/v1/entity',
+  path: '/api/v1/entity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1FiscalYearsRoute = ApiV1FiscalYearsRouteImport.update({
@@ -258,6 +271,12 @@ const ApiV1SalesInvoicesInvoiceIdIssueRoute =
     path: '/issue',
     getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
   } as any)
+const ApiV1SalesInvoicesInvoiceIdUblRoute =
+  ApiV1SalesInvoicesInvoiceIdUblRouteImport.update({
+    id: '/ubl',
+    path: '/ubl',
+    getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -266,6 +285,7 @@ export interface FileRoutesByFullPath {
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
   '/members': typeof AppMembersRoute
+  '/settings': typeof AppSettingsRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/entries/new': typeof AppEntriesNewRoute
   '/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
@@ -274,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/contacts': typeof ApiV1ContactsRoute
+  '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
@@ -299,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
+  '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
@@ -306,6 +328,7 @@ export interface FileRoutesByTo {
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
   '/members': typeof AppMembersRoute
+  '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/entries/new': typeof AppEntriesNewRoute
@@ -315,6 +338,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/contacts': typeof ApiV1ContactsRoute
+  '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
@@ -340,6 +364,7 @@ export interface FileRoutesByTo {
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
+  '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -349,6 +374,7 @@ export interface FileRoutesById {
   '/sign-out': typeof SignOutRoute
   '/_app/accounts': typeof AppAccountsRoute
   '/_app/members': typeof AppMembersRoute
+  '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/_app/entries/new': typeof AppEntriesNewRoute
@@ -358,6 +384,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/contacts': typeof ApiV1ContactsRoute
+  '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
@@ -383,6 +410,7 @@ export interface FileRoutesById {
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
+  '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -393,6 +421,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/accounts'
     | '/members'
+    | '/settings'
     | '/entries/$entryId'
     | '/entries/new'
     | '/reports/balance-sheet'
@@ -401,6 +430,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/contacts'
+    | '/api/v1/entity'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
@@ -426,6 +456,7 @@ export interface FileRouteTypes {
     | '/api/v1/setup/charts'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/sales-invoices/$invoiceId/issue'
+    | '/api/v1/sales-invoices/$invoiceId/ubl'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/setup'
@@ -433,6 +464,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/accounts'
     | '/members'
+    | '/settings'
     | '/'
     | '/entries/$entryId'
     | '/entries/new'
@@ -442,6 +474,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/contacts'
+    | '/api/v1/entity'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
@@ -467,6 +500,7 @@ export interface FileRouteTypes {
     | '/api/v1/setup/charts'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/sales-invoices/$invoiceId/issue'
+    | '/api/v1/sales-invoices/$invoiceId/ubl'
   id:
     | '__root__'
     | '/_app'
@@ -475,6 +509,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/_app/accounts'
     | '/_app/members'
+    | '/_app/settings'
     | '/_app/'
     | '/_app/entries/$entryId'
     | '/_app/entries/new'
@@ -484,6 +519,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/contacts'
+    | '/api/v1/entity'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
     | '/api/v1/journal-entries'
@@ -509,6 +545,7 @@ export interface FileRouteTypes {
     | '/api/v1/setup/charts'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/sales-invoices/$invoiceId/issue'
+    | '/api/v1/sales-invoices/$invoiceId/ubl'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -519,6 +556,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1AccountsRoute: typeof ApiV1AccountsRoute
   ApiV1ContactsRoute: typeof ApiV1ContactsRoute
+  ApiV1EntityRoute: typeof ApiV1EntityRoute
   ApiV1FiscalYearsRoute: typeof ApiV1FiscalYearsRouteWithChildren
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1JournalEntriesRoute: typeof ApiV1JournalEntriesRouteWithChildren
@@ -590,6 +628,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMembersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/entries/': {
       id: '/_app/entries/'
       path: '/entries'
@@ -651,6 +696,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/contacts'
       fullPath: '/api/v1/contacts'
       preLoaderRoute: typeof ApiV1ContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/entity': {
+      id: '/api/v1/entity'
+      path: '/api/v1/entity'
+      fullPath: '/api/v1/entity'
+      preLoaderRoute: typeof ApiV1EntityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/fiscal-years': {
@@ -821,12 +873,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdIssueRouteImport
       parentRoute: typeof ApiV1SalesInvoicesInvoiceIdRoute
     }
+    '/api/v1/sales-invoices/$invoiceId/ubl': {
+      id: '/api/v1/sales-invoices/$invoiceId/ubl'
+      path: '/ubl'
+      fullPath: '/api/v1/sales-invoices/$invoiceId/ubl'
+      preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdUblRouteImport
+      parentRoute: typeof ApiV1SalesInvoicesInvoiceIdRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppAccountsRoute: typeof AppAccountsRoute
   AppMembersRoute: typeof AppMembersRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppEntriesEntryIdRoute: typeof AppEntriesEntryIdRoute
   AppEntriesNewRoute: typeof AppEntriesNewRoute
@@ -839,6 +899,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAccountsRoute: AppAccountsRoute,
   AppMembersRoute: AppMembersRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppEntriesEntryIdRoute: AppEntriesEntryIdRoute,
   AppEntriesNewRoute: AppEntriesNewRoute,
@@ -901,12 +962,14 @@ const ApiV1MembersRouteWithChildren = ApiV1MembersRoute._addFileChildren(
 
 interface ApiV1SalesInvoicesInvoiceIdRouteChildren {
   ApiV1SalesInvoicesInvoiceIdIssueRoute: typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
+  ApiV1SalesInvoicesInvoiceIdUblRoute: typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 
 const ApiV1SalesInvoicesInvoiceIdRouteChildren: ApiV1SalesInvoicesInvoiceIdRouteChildren =
   {
     ApiV1SalesInvoicesInvoiceIdIssueRoute:
       ApiV1SalesInvoicesInvoiceIdIssueRoute,
+    ApiV1SalesInvoicesInvoiceIdUblRoute: ApiV1SalesInvoicesInvoiceIdUblRoute,
   }
 
 const ApiV1SalesInvoicesInvoiceIdRouteWithChildren =
@@ -934,6 +997,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1AccountsRoute: ApiV1AccountsRoute,
   ApiV1ContactsRoute: ApiV1ContactsRoute,
+  ApiV1EntityRoute: ApiV1EntityRoute,
   ApiV1FiscalYearsRoute: ApiV1FiscalYearsRouteWithChildren,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1JournalEntriesRoute: ApiV1JournalEntriesRouteWithChildren,

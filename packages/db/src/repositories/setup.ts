@@ -50,6 +50,31 @@ export interface FiscalYearSummary {
   readonly periods: readonly PeriodSummary[]
 }
 
+/**
+ * A partial update. Every field is spelled `?: T | undefined` rather than
+ * written through `Partial<>`, because under `exactOptionalPropertyTypes` those
+ * are different types and a Zod-parsed body produces the former.
+ */
+export interface EntityPatch {
+  readonly name?: string | undefined
+  readonly legalName?: string | undefined
+  readonly kvkNumber?: string | null | undefined
+  readonly vatNumber?: string | null | undefined
+  readonly street?: string | null | undefined
+  readonly houseNumber?: string | null | undefined
+  readonly postalCode?: string | null | undefined
+  readonly city?: string | null | undefined
+  readonly countryCode?: string | undefined
+  readonly email?: string | null | undefined
+  readonly phone?: string | null | undefined
+  readonly website?: string | null | undefined
+  readonly iban?: string | null | undefined
+  readonly bic?: string | null | undefined
+  readonly electronicAddress?: string | null | undefined
+  readonly electronicAddressScheme?: string | null | undefined
+  readonly vatRounding?: 'per_invoice' | 'per_line' | undefined
+}
+
 export interface ProvisionedEntity {
   readonly entityId: string
   readonly name: string
@@ -173,6 +198,57 @@ export class SetupRepository {
         endsOn: period.endsOn,
       })),
     )
+  }
+
+  /** The administration's own details, as the settings screen and UBL need them. */
+  async findEntity(entityId: string) {
+    const [row] = await this.database
+      .select({
+        id: entities.id,
+        name: entities.name,
+        legalName: entities.legalName,
+        kvkNumber: entities.kvkNumber,
+        vatNumber: entities.vatNumber,
+        functionalCurrency: entities.functionalCurrency,
+        fiscalYearStartMonth: entities.fiscalYearStartMonth,
+        rgsVersion: entities.rgsVersion,
+        rgsVariant: entities.rgsVariant,
+        vatRounding: entities.vatRounding,
+        street: entities.street,
+        houseNumber: entities.houseNumber,
+        postalCode: entities.postalCode,
+        city: entities.city,
+        countryCode: entities.countryCode,
+        email: entities.email,
+        phone: entities.phone,
+        website: entities.website,
+        iban: entities.iban,
+        bic: entities.bic,
+        electronicAddress: entities.electronicAddress,
+        electronicAddressScheme: entities.electronicAddressScheme,
+      })
+      .from(entities)
+      .where(eq(entities.id, entityId))
+      .limit(1)
+
+    return row ?? null
+  }
+
+  /**
+   * Change the administration's own details.
+   *
+   * Deliberately not the chart, the journals or the book years: those have
+   * their own operations because changing them has consequences a settings form
+   * should not imply. This is the name, the address and the identifiers — the
+   * things a UBL invoice needs and a setup form was right not to ask for.
+   */
+  async updateEntity(entityId: string, patch: EntityPatch): Promise<void> {
+    if (Object.keys(patch).length === 0) return
+
+    await this.database
+      .update(entities)
+      .set({ ...patch, updatedAt: new Date().toISOString() })
+      .where(eq(entities.id, entityId))
   }
 
   /**

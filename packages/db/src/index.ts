@@ -41,6 +41,7 @@ export {
   claimInvitations,
 } from './repositories/members.js'
 export {
+  type EntityPatch,
   type FiscalYearSummary,
   type PeriodSummary,
   type ProvisionEntityRequest,

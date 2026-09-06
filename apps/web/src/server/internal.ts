@@ -1,7 +1,9 @@
+import type { z } from 'zod'
 import { getRequest } from '@tanstack/react-start/server'
 import { resolveRequestContext, resolveSetupContext } from '~/api/auth'
 import { getDatabase } from '~/api/database'
 import { toProblem } from '~/api/errors'
+import { parse } from '~/api/runtime'
 import type { RequestContext, SetupContext } from '~/api/context'
 
 /**
@@ -47,4 +49,23 @@ export async function run<T>(
   } catch (error: unknown) {
     return { ok: false, problem: toProblem(error, null) }
   }
+}
+
+/**
+ * Parse, then run — both inside the same `try`.
+ *
+ * A `createServerFn().validator()` that throws does **not** go through `run`:
+ * the rejection escapes the server function entirely and the screen sees
+ * nothing at all, which is the worst of the available failure modes. So the
+ * validator passes the input through untouched and the parse happens here,
+ * where a bad field comes back as a problem document with the path on it and
+ * the form can point at the input that is wrong.
+ */
+export async function runWith<TSchema extends z.ZodType, T>(
+  schema: TSchema,
+  input: unknown,
+  work: (data: z.output<TSchema>) => Promise<T>,
+  what = 'The request body',
+): Promise<{ ok: true; data: T } | { ok: false; problem: ReturnType<typeof toProblem> }> {
+  return run(async () => work(parse(schema, input, what)))
 }

@@ -1,4 +1,11 @@
-import { postJournalEntry, systemClock, type PricedInvoice } from '@klopt/core'
+import {
+  checkUblRules,
+  generateUbl,
+  postJournalEntry,
+  systemClock,
+  toUblDocument,
+  type PricedInvoice,
+} from '@klopt/core'
 import {
   invoiceEntryFor,
   priceDraft,
@@ -364,5 +371,50 @@ export async function handleListOverdueInvoices(
       })),
       totalOutstanding: rows.reduce((sum, invoice) => sum + invoice.total, 0n).toString(),
     },
+  }
+}
+
+/**
+ * The invoice as UBL 2.1, in the Peppol BIS Billing 3.0 shape (spec 7.5).
+ *
+ * "The XML is the legal invoice, the PDF is a rendering." So this is the
+ * document, and it is refused rather than degraded: an invoice that breaks a
+ * BIS or NLCIUS rule comes back as a 422 listing every rule it breaks, by its
+ * official identifier. Handing somebody an invalid UBL that their customer's
+ * system silently rejects is worse than handing them nothing.
+ *
+ * Drafts have no number, and a document with no BT-1 is not an invoice, so a
+ * draft is a 404 here rather than a rule violation.
+ */
+export async function handleGetInvoiceUbl(context: RequestContext, invoiceId: string) {
+  requirePermission(context, 'ledger:export')
+
+  const source = await withSalesRead(context.database, (repository) =>
+    repository.loadUblSource(context.entityId, invoiceId),
+  )
+
+  if (source === null) {
+    throw new ApiError('not_found', 'No such issued invoice. A draft has no number yet.')
+  }
+
+  const document = toUblDocument(source)
+  const violations = checkUblRules(document)
+
+  if (violations.length > 0) {
+    throw new ApiError(
+      'validation_failed',
+      `This invoice breaks ${String(violations.length)} e-invoicing rule${violations.length === 1 ? '' : 's'}.`,
+      violations.map((item) => ({
+        code: item.rule,
+        path: item.path,
+        message: item.message,
+      })),
+    )
+  }
+
+  return {
+    xml: generateUbl(document),
+    filename: `${source.number}.ubl.xml`,
+    profile: document.profile,
   }
 }

@@ -7,7 +7,7 @@ import {
   handleListFiscalYears,
 } from '~/api/handlers/setup'
 import { createEntityBody, createFiscalYearBody } from '~/api/schemas'
-import { contextFromRequest, run, setupContextFromRequest } from './internal'
+import { contextFromRequest, run, runWith, setupContextFromRequest } from './internal'
 
 /**
  * Setting up an administration, from the UI.
@@ -37,17 +37,17 @@ export const beginSetup = createServerFn({ method: 'GET' }).handler(async () =>
 export const createAdministration = createServerFn({ method: 'POST' })
   .validator((input: unknown) => {
     const raw = (input ?? {}) as Record<string, unknown>
+    // Parsing happens in the handler, not here: a validator that throws bypasses
+    // `run` and the form sees nothing at all. See ./internal.
     return {
-      // The client picks the id so a double submit produces one administration
-      // rather than two. See the route file.
       entityId: typeof raw['entityId'] === 'string' ? raw['entityId'] : uuidv7(),
-      body: createEntityBody.parse(raw),
+      body: raw,
     }
   })
   .handler(async ({ data }) =>
-    run(async () => {
+    runWith(createEntityBody, data.body, async (body) => {
       const context = await setupContextFromRequest()
-      const result = await handleCreateEntity(context, data.entityId, data.body)
+      const result = await handleCreateEntity(context, data.entityId, body)
 
       // Land the session on the books it just created rather than on whichever
       // administration sorts first.
@@ -68,7 +68,11 @@ export const listFiscalYears = createServerFn({ method: 'GET' }).handler(async (
 )
 
 export const createFiscalYear = createServerFn({ method: 'POST' })
-  .validator((input: unknown) => createFiscalYearBody.parse(input))
+  .validator((input: unknown) => input)
   .handler(async ({ data }) =>
-    run(async () => (await handleCreateFiscalYear(await contextFromRequest(), data)).body),
+    runWith(
+      createFiscalYearBody,
+      data,
+      async (body) => (await handleCreateFiscalYear(await contextFromRequest(), body)).body,
+    ),
   )

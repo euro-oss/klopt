@@ -28,7 +28,7 @@ import {
 } from '~/api/schemas'
 import { getDatabase } from '~/api/database'
 import { resolveMemberships } from '~/api/auth'
-import { contextFromRequest, run } from './internal'
+import { contextFromRequest, run, runWith } from './internal'
 
 /**
  * The UI's RPC surface. Every one of these is three lines: resolve context,
@@ -54,33 +54,53 @@ export const getRgsCoverage = createServerFn({ method: 'GET' })
   )
 
 export const setRgsMappings = createServerFn({ method: 'POST' })
-  .validator((input: unknown) => rgsMappingsBody.parse(input))
+  .validator((input: unknown) => input)
   .handler(async ({ data }) =>
-    run(async () => (await handleSetRgsMappings(await contextFromRequest(), data)).body),
+    runWith(
+      rgsMappingsBody,
+      data,
+      async (body) => (await handleSetRgsMappings(await contextFromRequest(), body)).body,
+    ),
   )
 
 export const getTrialBalance = createServerFn({ method: 'GET' })
-  .validator((input: unknown) => trialBalanceQuery.parse(input))
+  .validator((input: unknown) => input)
   .handler(async ({ data }) =>
-    run(async () => (await handleGetTrialBalance(await contextFromRequest(), data)).body),
+    runWith(
+      trialBalanceQuery,
+      data,
+      async (body) => (await handleGetTrialBalance(await contextFromRequest(), body)).body,
+    ),
   )
 
 export const getBalanceSheet = createServerFn({ method: 'GET' })
-  .validator((input: unknown) => statementQuery.parse(input))
+  .validator((input: unknown) => input)
   .handler(async ({ data }) =>
-    run(async () => (await handleGetBalanceSheet(await contextFromRequest(), data)).body),
+    runWith(
+      statementQuery,
+      data,
+      async (body) => (await handleGetBalanceSheet(await contextFromRequest(), body)).body,
+    ),
   )
 
 export const getProfitAndLoss = createServerFn({ method: 'GET' })
-  .validator((input: unknown) => statementQuery.parse(input))
+  .validator((input: unknown) => input)
   .handler(async ({ data }) =>
-    run(async () => (await handleGetProfitAndLoss(await contextFromRequest(), data)).body),
+    runWith(
+      statementQuery,
+      data,
+      async (body) => (await handleGetProfitAndLoss(await contextFromRequest(), body)).body,
+    ),
   )
 
 export const listEntries = createServerFn({ method: 'GET' })
-  .validator((input: unknown) => listEntriesQuery.parse(input))
+  .validator((input: unknown) => input)
   .handler(async ({ data }) =>
-    run(async () => (await handleListJournalEntries(await contextFromRequest(), data)).body),
+    runWith(
+      listEntriesQuery,
+      data,
+      async (body) => (await handleListJournalEntries(await contextFromRequest(), body)).body,
+    ),
   )
 
 export const getEntry = createServerFn({ method: 'GET' })
@@ -94,30 +114,36 @@ export const verifyChain = createServerFn({ method: 'GET' }).handler(async () =>
 )
 
 export const postEntry = createServerFn({ method: 'POST' })
-  .validator((input: unknown) => postJournalEntryBody.parse(input))
+  .validator((input: unknown) => input)
   .handler(async ({ data }) =>
-    run(async () => (await handlePostJournalEntry(await contextFromRequest(), data)).body),
+    runWith(
+      postJournalEntryBody,
+      data,
+      async (body) => (await handlePostJournalEntry(await contextFromRequest(), body)).body,
+    ),
   )
 
 export const reverseEntry = createServerFn({ method: 'POST' })
-  .validator((input: { entryId: string; bookingDate: string; description?: string | null }) => ({
-    entryId: input.entryId,
-    body: reverseJournalEntryBody.parse({
-      bookingDate: input.bookingDate,
-      description: input.description ?? null,
-    }),
-  }))
+  .validator(
+    (input: { entryId: string; bookingDate: string; description?: string | null }) => input,
+  )
   .handler(async ({ data }) =>
-    run(
-      async () =>
-        (await handleReverseJournalEntry(await contextFromRequest(), data.entryId, data.body)).body,
+    runWith(
+      reverseJournalEntryBody,
+      { bookingDate: data.bookingDate, description: data.description ?? null },
+      async (body) =>
+        (await handleReverseJournalEntry(await contextFromRequest(), data.entryId, body)).body,
     ),
   )
 
 export const closeYear = createServerFn({ method: 'POST' })
-  .validator((input: unknown) => closeYearBody.parse(input))
+  .validator((input: unknown) => input)
   .handler(async ({ data }) =>
-    run(async () => (await handleCloseYear(await contextFromRequest(), data)).body),
+    runWith(
+      closeYearBody,
+      data,
+      async (body) => (await handleCloseYear(await contextFromRequest(), body)).body,
+    ),
   )
 
 /** Switch which entity's books this session is looking at. */
