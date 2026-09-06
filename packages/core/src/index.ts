@@ -43,6 +43,7 @@ export * from './setup/index.js'
 export {
   complianceOperations,
   ledgerOperations,
+  membershipOperations,
   provisioningOperations,
   salesOperations,
 } from './operations.js'

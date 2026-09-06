@@ -146,6 +146,12 @@ Handlers, the domain and the audit log cannot tell which it was. That is what
 makes principle 3 hold: the UI has no privileged path because there is no
 privileged path to have. A test asserts both contexts have the same shape.
 
+Access is granted by inviting an email address, not by issuing a link. Klopt's
+only credential is a code sent to an address, so control of the mailbox already
+is the identity, and a token in a link would be a second and weaker credential
+for the same fact. Signing in claims any invitation for that address. See
+[0015](decisions/0015-invitations-are-addresses.md).
+
 There is exactly one exception, and it is deliberate. **Creating an
 administration** has no entity to scope to and resolves a `SetupContext`
 instead: a session, and the single permission `entity:create`. A bearer token is
@@ -166,8 +172,6 @@ Helpers live in `apps/web/src/server/internal.ts`, which no route imports.
 
 ## Not built yet
 
-Sales, banking, VAT and purchase are M1 to M4. Inviting a second user to an
-administration is still a database write: provisioning creates the owner, and
-the membership screen that grants anyone else a role is not built. In the UI: the command palette
+Sales, banking, VAT and purchase are M1 to M4. In the UI: the command palette
 and `g`-prefix navigation are in the keyboard map and the binding registry but
 not yet wired to a listener.

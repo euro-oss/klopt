@@ -234,3 +234,20 @@ export const createFiscalYearBody = z.object({
 
 export type CreateEntityBody = z.infer<typeof createEntityBody>
 export type CreateFiscalYearBody = z.infer<typeof createFiscalYearBody>
+
+/**
+ * Membership (spec 4). The role is validated in the domain rather than here, so
+ * that a bad role comes back as `unknown_role` with the list of real ones
+ * rather than as a schema enum mismatch.
+ */
+export const inviteMemberBody = z.object({
+  email: z.string().min(3),
+  role: z.string().min(1),
+})
+
+export const setMemberRoleBody = z.object({
+  role: z.string().min(1),
+})
+
+export type InviteMemberBody = z.infer<typeof inviteMemberBody>
+export type SetMemberRoleBody = z.infer<typeof setMemberRoleBody>

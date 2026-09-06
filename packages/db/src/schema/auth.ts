@@ -1,4 +1,5 @@
-import { boolean, index, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { boolean, index, text, timestamp, unique, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { klopt } from './schema.js'
 import { entities } from './ledger.js'
 
@@ -112,5 +113,48 @@ export const entityMembers = klopt.table(
   (table) => [
     unique('entity_members_unique').on(table.entityId, table.userId),
     index('entity_members_user').on(table.userId),
+  ],
+)
+
+/**
+ * An invitation, which is a membership waiting for an account to attach to.
+ *
+ * Invitations are keyed by **email**, not by user id, because the person being
+ * invited usually has no account yet — and in a system whose only credential is
+ * a code sent to an address, an address is the whole of an identity. There is
+ * no accept-link and no invitation token: the address in the row is the same
+ * address the one-time code goes to, so proving control of the mailbox is
+ * already the whole of accepting. A separate token would be a second, weaker
+ * credential for the same fact. See docs/decisions/0015.
+ *
+ * The row is kept after it is claimed rather than deleted, so that "who let
+ * this accountant in, and when" survives them being removed again.
+ */
+export const entityInvitations = klopt.table(
+  'entity_invitations',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    /** Lower-cased on write. Matching an invitation must not turn on case. */
+    email: text('email').notNull(),
+    role: text('role').notNull(),
+    invitedByUserId: text('invited_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true, mode: 'date' }),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true, mode: 'date' }),
+    acceptedUserId: text('accepted_user_id').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  },
+  (table) => [
+    // One live invitation per address per entity. Partial, so a second one can
+    // be issued after the first is claimed or revoked.
+    uniqueIndex('entity_invitations_pending')
+      .on(table.entityId, table.email)
+      .where(sql`accepted_at is null and revoked_at is null`),
+    index('entity_invitations_email').on(table.email),
   ],
 )

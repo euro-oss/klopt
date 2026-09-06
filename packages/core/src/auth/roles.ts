@@ -30,6 +30,11 @@ export const PERMISSIONS = {
   /** Issue and revoke API tokens. */
   manageTokens: 'tokens:manage',
   /**
+   * Invite, re-role and remove the people who can see these books. Owner only:
+   * membership is the one thing that can lock everybody else out.
+   */
+  manageMembers: 'members:manage',
+  /**
    * Create a new administration. Instance-scoped, not entity-scoped: it is held
    * by a signed-in human and by no role and no API token, because a token is
    * issued by one administration and must not be able to create another.
@@ -62,6 +67,7 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     PERMISSIONS.export,
     PERMISSIONS.import,
     PERMISSIONS.manageTokens,
+    PERMISSIONS.manageMembers,
   ],
   accountant: [
     PERMISSIONS.read,

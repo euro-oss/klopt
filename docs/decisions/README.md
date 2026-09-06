@@ -20,6 +20,7 @@ journal follows, for the same reason.
 | [0012](0012-xaf-two-layer-validation.md)      | XAF is validated twice, by two different things                     | Accepted |
 | [0013](0013-ui-comes-in-now.md)               | The UI arrives with M0's screens, then per milestone                | Accepted |
 | [0014](0014-entity-provisioning.md)           | An administration is created by a human, under an id they bring     | Accepted |
+| [0015](0015-invitations-are-addresses.md)     | An invitation is an address, not a token                            | Accepted |
 
 ## Template
 

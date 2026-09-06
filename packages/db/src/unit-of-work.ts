@@ -2,6 +2,7 @@ import type { Database } from './client.js'
 import { DrizzleLedgerRepository } from './repositories/ledger.js'
 import { ReportingRepository } from './repositories/reporting.js'
 import { RgsRepository } from './repositories/rgs.js'
+import { MembersRepository } from './repositories/members.js'
 import { SalesRepository } from './repositories/sales.js'
 import { SetupRepository } from './repositories/setup.js'
 import { XafExportRepository } from './repositories/xaf.js'
@@ -121,4 +122,20 @@ export async function withSetup<T>(
   work: (repository: SetupRepository) => Promise<T>,
 ): Promise<T> {
   return database.transaction(async (tx) => work(new SetupRepository(tx)))
+}
+
+/**
+ * Membership changes, in one transaction.
+ *
+ * The last-owner check reads the member list and then writes against what it
+ * read. Outside a transaction, two owners resigning at the same moment each see
+ * the other and both succeed, leaving an administration nobody can administer.
+ */
+export async function withMembers<T>(
+  database: Database,
+  work: (repository: MembersRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new MembersRepository(tx)), {
+    isolationLevel: 'serializable',
+  })
 }

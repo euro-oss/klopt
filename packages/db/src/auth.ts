@@ -6,6 +6,7 @@ import { uuidv7, type Role } from '@klopt/core'
 import { and, eq } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { accounts_, entityMembers, sessions, users, verifications } from './schema/auth.js'
+import { claimInvitations } from './repositories/members.js'
 import { entities } from './schema/ledger.js'
 
 /**
@@ -126,6 +127,35 @@ export function createAuth(config: AuthConfig) {
           // Placeholder for the generic OIDC plugin; wiring a real provider is
           // deployment configuration and is documented rather than hard-coded.
         }),
+
+    /**
+     * An invitation is claimed at sign-in, and only at sign-in.
+     *
+     * It is a write, and the only moment its answer can change is when an
+     * account first attaches to an address — so doing it on every request
+     * would be a write on the read path to learn nothing new. A failure here
+     * must not block the sign-in: the person still has an account, they just
+     * arrive with no books, which the next sign-in fixes.
+     */
+    databaseHooks: {
+      session: {
+        create: {
+          after: async (session) => {
+            try {
+              const [user] = await config.database
+                .select({ email: users.email })
+                .from(users)
+                .where(eq(users.id, session.userId))
+                .limit(1)
+              if (user === undefined) return
+              await claimInvitations(config.database, session.userId, user.email)
+            } catch (error: unknown) {
+              console.error('[auth] could not claim invitations', error)
+            }
+          },
+        },
+      },
+    },
 
     session: {
       expiresIn: 60 * 60 * 24 * 7,

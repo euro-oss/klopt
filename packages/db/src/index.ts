@@ -33,6 +33,14 @@ export {
 export { XafExportRepository, type XafExportRequest } from './repositories/xaf.js'
 export { RgsRepository } from './repositories/rgs.js'
 export {
+  type InvitationRow,
+  type InviteRequest,
+  type InviteResult,
+  type MemberRow,
+  MembersRepository,
+  claimInvitations,
+} from './repositories/members.js'
+export {
   type FiscalYearSummary,
   type PeriodSummary,
   type ProvisionEntityRequest,
@@ -52,6 +60,7 @@ export {
   withRgs,
   withSales,
   withSalesRead,
+  withMembers,
   withSetup,
   withXafExport,
   withYearClose,

@@ -40,6 +40,13 @@ export type LedgerErrorCode =
   | 'unknown_chart'
   | 'duplicate_entity_name'
   | 'duplicate_fiscal_year'
+  | 'invalid_email'
+  | 'unknown_role'
+  | 'unknown_member'
+  | 'already_member'
+  | 'last_owner'
+  | 'unknown_invitation'
+  | 'invitation_expired'
   | 'chain_broken'
 
 export interface LedgerViolation {

@@ -85,6 +85,11 @@ five dagboeken and eight BTW-codes, every account already mapped to RGS 3.7 —
 and lands you in it as owner. The chart is reference data under
 `reference-data/charts/`, so shipping your own is a file, not a fork.
 
+Bring in your bookkeeper or your accountant from **Toegang**: type an address,
+pick a role, and they are in as soon as they sign in with it. There is no
+invitation link to lose — the code that proves the mailbox is the same code that
+signs them in.
+
 Or skip the browser entirely; the UI is a client of the same API:
 
 Then post something. Issue a token, and:

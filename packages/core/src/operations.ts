@@ -291,3 +291,51 @@ export const provisioningOperations: Readonly<Record<string, OperationDefinition
     idempotent: true,
   }),
 }
+
+/**
+ * Membership (spec 4).
+ *
+ * All four take `members:manage`, which only an owner has: membership is the
+ * one thing that can lock everybody else out, including the person doing it.
+ * `agentExposure: 'none'` throughout — granting access to somebody's books is
+ * not a thing an agent proposes, let alone does.
+ */
+export const membershipOperations: Readonly<Record<string, OperationDefinition>> = {
+  listMembers: defineOperation({
+    id: 'members.list',
+    kind: 'read',
+    permission: 'members:manage',
+    summary: 'Who can see these books, as what, and who has been invited but not signed in.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  inviteMember: defineOperation({
+    id: 'members.invite',
+    kind: 'write',
+    permission: 'members:manage',
+    summary: 'Invite an email address to these books in a role, and send them a message.',
+    agentExposure: 'none',
+    // Naturally so: one live invitation per address per entity, enforced by a
+    // partial unique index. Inviting twice re-sends rather than duplicating.
+    idempotent: true,
+  }),
+
+  setMemberRole: defineOperation({
+    id: 'members.setRole',
+    kind: 'write',
+    permission: 'members:manage',
+    summary: "Change a member's role. Refused if it would leave no owner.",
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  removeMember: defineOperation({
+    id: 'members.remove',
+    kind: 'write',
+    permission: 'members:manage',
+    summary: 'Revoke access, or withdraw an invitation that has not been used.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+}

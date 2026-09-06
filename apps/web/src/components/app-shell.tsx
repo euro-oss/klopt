@@ -19,6 +19,9 @@ const NAVIGATION = [
   { to: '/reports/profit-and-loss', label: 'Winst & verlies', binding: 'go.profit' },
 ] as const
 
+/** Owner-only, so the nav does not offer a screen that answers 403. */
+const OWNER_NAVIGATION = [{ to: '/members', label: 'Toegang', binding: 'go.members' }] as const
+
 export interface ShellEntity {
   readonly entityId: string
   readonly entityName: string
@@ -40,6 +43,7 @@ export function AppShell({
 }) {
   const path = useRouterState({ select: (state) => state.location.pathname })
   const active = entities.find((entity) => entity.entityId === activeEntityId) ?? entities[0]
+  const navigation = [...NAVIGATION, ...(active?.role === 'owner' ? OWNER_NAVIGATION : [])]
 
   return (
     <div className="bg-background text-foreground min-h-screen">
@@ -60,31 +64,36 @@ export function AppShell({
           </div>
 
           {entities.length > 0 && (
-            <label className="mb-6 block">
-              <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                Administratie
-              </span>
-              <select
-                value={active?.entityId ?? ''}
-                onChange={(event) => {
-                  onSwitchEntity(event.target.value)
-                }}
-                className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
-              >
-                {entities.map((entity) => (
-                  <option key={entity.entityId} value={entity.entityId}>
-                    {entity.entityName}
-                  </option>
-                ))}
-              </select>
+            <div className="mb-6">
+              <label className="block">
+                <span className="text-muted-foreground mb-1 block text-xs font-medium">
+                  Administratie
+                </span>
+                <select
+                  value={active?.entityId ?? ''}
+                  onChange={(event) => {
+                    onSwitchEntity(event.target.value)
+                  }}
+                  className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
+                >
+                  {entities.map((entity) => (
+                    <option key={entity.entityId} value={entity.entityId}>
+                      {entity.entityName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {/* Outside the label on purpose: anything inside it becomes part
+                  of the select's accessible name, so "Administratie" would read
+                  as "Administratie … rol: owner" to a screen reader. */}
               {active !== undefined && (
-                <span className="text-muted-foreground mt-1 block text-xs">rol: {active.role}</span>
+                <p className="text-muted-foreground mt-1 text-xs">rol: {active.role}</p>
               )}
-            </label>
+            </div>
           )}
 
           <ul className="space-y-0.5">
-            {NAVIGATION.map((item) => {
+            {navigation.map((item) => {
               const binding = BINDINGS_BY_ID.get(item.binding)
               const isActive = item.to === '/' ? path === '/' : path.startsWith(item.to)
               return (

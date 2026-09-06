@@ -1,7 +1,8 @@
 import { uuidv7 } from '@klopt/core'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
+  auditLog,
   accountDimensionRequirements,
   accounts,
   dimensionTypes,
@@ -223,4 +224,39 @@ export async function seedSalesConfiguration(database: Database, entityId: strin
       validFrom: '2020-01-01',
     },
   ])
+}
+
+export interface AuditEntry {
+  readonly action: string
+  readonly actorId: string
+  readonly resourceId: string
+  readonly before: unknown
+  readonly after: unknown
+}
+
+/**
+ * The audit trail for one kind of resource.
+ *
+ * Here rather than in a test file because apps/web must not import an ORM —
+ * a browser test that reaches for Drizzle drags a database driver into an app
+ * that should never touch one, and the boundary check fails the build.
+ */
+export async function readAuditLog(
+  database: Database,
+  entityId: string,
+  resourceType: string,
+): Promise<AuditEntry[]> {
+  const rows = await database
+    .select({
+      action: auditLog.action,
+      actorId: auditLog.actorId,
+      resourceId: auditLog.resourceId,
+      before: auditLog.before,
+      after: auditLog.after,
+    })
+    .from(auditLog)
+    .where(and(eq(auditLog.entityId, entityId), eq(auditLog.resourceType, resourceType)))
+    .orderBy(asc(auditLog.occurredAt))
+
+  return rows
 }

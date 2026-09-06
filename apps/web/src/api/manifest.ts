@@ -62,6 +62,30 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/ledger.chain-verification.ts',
   },
   {
+    operationId: 'members.list',
+    method: 'GET',
+    path: '/members',
+    module: 'api/v1/members.ts',
+  },
+  {
+    operationId: 'members.invite',
+    method: 'POST',
+    path: '/members',
+    module: 'api/v1/members.ts',
+  },
+  {
+    operationId: 'members.setRole',
+    method: 'PATCH',
+    path: '/members/{memberId}',
+    module: 'api/v1/members.$memberId.ts',
+  },
+  {
+    operationId: 'members.remove',
+    method: 'DELETE',
+    path: '/members/{memberId}',
+    module: 'api/v1/members.$memberId.ts',
+  },
+  {
     operationId: 'setup.listCharts',
     method: 'GET',
     path: '/setup/charts',

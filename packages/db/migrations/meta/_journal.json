@@ -15,6 +15,13 @@
       "when": 1788531096594,
       "tag": "0001_sales",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788686080292,
+      "tag": "0002_entity_invitations",
+      "breakpoints": true
     }
   ]
 }
