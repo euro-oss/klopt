@@ -116,7 +116,12 @@ Amounts are integer minor units **as strings**. A JSON number in the money path
 is rejected, because by the time it reached us it would already have been
 rounded.
 
-Invoice somebody, and take the XML:
+Invoice somebody from **Verkoopfacturen** — record the customer, draft, then
+issue, which is the deliberate second click that allocates a gapless number and
+posts the entry. Corrections are credit notes; there is no edit and no delete,
+for the same reason the journal has neither.
+
+Or take the XML:
 
 ```bash
 curl -O -J "localhost:3000/api/v1/sales-invoices/$INVOICE_ID/ubl" \

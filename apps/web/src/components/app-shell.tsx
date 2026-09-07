@@ -14,6 +14,8 @@ const NAVIGATION = [
   { to: '/', label: 'Dashboard', binding: 'go.dashboard' },
   { to: '/entries', label: 'Journaalposten', binding: 'go.journal' },
   { to: '/accounts', label: 'Grootboek', binding: 'go.accounts' },
+  { to: '/invoices', label: 'Verkoopfacturen', binding: 'go.invoices' },
+  { to: '/contacts', label: 'Relaties', binding: 'go.contacts' },
   { to: '/reports/trial-balance', label: 'Proefbalans', binding: 'go.trial' },
   { to: '/reports/balance-sheet', label: 'Balans', binding: 'go.balance' },
   { to: '/reports/profit-and-loss', label: 'Winst & verlies', binding: 'go.profit' },

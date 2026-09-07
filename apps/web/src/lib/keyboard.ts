@@ -45,6 +45,8 @@ export const BINDINGS: readonly Binding[] = [
     keys: 'g p',
     to: '/reports/trial-balance',
   },
+  { id: 'go.invoices', label: 'Verkoopfacturen', group: 'Go to', keys: 'g f', to: '/invoices' },
+  { id: 'go.contacts', label: 'Relaties', group: 'Go to', keys: 'g r', to: '/contacts' },
   { id: 'go.members', label: 'Toegang', group: 'Go to', keys: 'g t', to: '/members' },
   { id: 'go.settings', label: 'Instellingen', group: 'Go to', keys: 'g i', to: '/settings' },
 
@@ -55,6 +57,7 @@ export const BINDINGS: readonly Binding[] = [
     keys: 'n j',
     to: '/entries/new',
   },
+  { id: 'new.invoice', label: 'Nieuwe factuur', group: 'Nieuw', keys: 'n f', to: '/invoices/new' },
 
   {
     id: 'entry.post',

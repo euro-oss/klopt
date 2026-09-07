@@ -15,11 +15,15 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignOutRouteImport } from './routes/sign-out'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
+import { Route as AppContactsRouteImport } from './routes/_app/contacts'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppEntriesIndexRouteImport } from './routes/_app/entries.index'
 import { Route as AppEntriesEntryIdRouteImport } from './routes/_app/entries.$entryId'
 import { Route as AppEntriesNewRouteImport } from './routes/_app/entries.new'
+import { Route as AppInvoicesIndexRouteImport } from './routes/_app/invoices.index'
+import { Route as AppInvoicesInvoiceIdRouteImport } from './routes/_app/invoices.$invoiceId'
+import { Route as AppInvoicesNewRouteImport } from './routes/_app/invoices.new'
 import { Route as AppReportsBalanceSheetRouteImport } from './routes/_app/reports.balance-sheet'
 import { Route as AppReportsProfitAndLossRouteImport } from './routes/_app/reports.profit-and-loss'
 import { Route as AppReportsTrialBalanceRouteImport } from './routes/_app/reports.trial-balance'
@@ -82,6 +86,11 @@ const AppAccountsRoute = AppAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => AppRoute,
 } as any)
+const AppContactsRoute = AppContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMembersRoute = AppMembersRouteImport.update({
   id: '/members',
   path: '/members',
@@ -105,6 +114,21 @@ const AppEntriesEntryIdRoute = AppEntriesEntryIdRouteImport.update({
 const AppEntriesNewRoute = AppEntriesNewRouteImport.update({
   id: '/entries/new',
   path: '/entries/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvoicesIndexRoute = AppInvoicesIndexRouteImport.update({
+  id: '/invoices/',
+  path: '/invoices/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvoicesInvoiceIdRoute = AppInvoicesInvoiceIdRouteImport.update({
+  id: '/invoices/$invoiceId',
+  path: '/invoices/$invoiceId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvoicesNewRoute = AppInvoicesNewRouteImport.update({
+  id: '/invoices/new',
+  path: '/invoices/new',
   getParentRoute: () => AppRoute,
 } as any)
 const AppReportsBalanceSheetRoute = AppReportsBalanceSheetRouteImport.update({
@@ -284,10 +308,13 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
+  '/contacts': typeof AppContactsRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/entries/new': typeof AppEntriesNewRoute
+  '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
+  '/invoices/new': typeof AppInvoicesNewRoute
   '/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
   '/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
@@ -302,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/entries/': typeof AppEntriesIndexRoute
+  '/invoices/': typeof AppInvoicesIndexRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -327,11 +355,14 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
+  '/contacts': typeof AppContactsRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/entries/new': typeof AppEntriesNewRoute
+  '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
+  '/invoices/new': typeof AppInvoicesNewRoute
   '/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
   '/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
@@ -346,6 +377,7 @@ export interface FileRoutesByTo {
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/entries': typeof AppEntriesIndexRoute
+  '/invoices': typeof AppInvoicesIndexRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -373,11 +405,14 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/_app/accounts': typeof AppAccountsRoute
+  '/_app/contacts': typeof AppContactsRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/_app/entries/new': typeof AppEntriesNewRoute
+  '/_app/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
+  '/_app/invoices/new': typeof AppInvoicesNewRoute
   '/_app/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
   '/_app/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/_app/reports/trial-balance': typeof AppReportsTrialBalanceRoute
@@ -392,6 +427,7 @@ export interface FileRoutesById {
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/_app/entries/': typeof AppEntriesIndexRoute
+  '/_app/invoices/': typeof AppInvoicesIndexRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -420,10 +456,13 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/accounts'
+    | '/contacts'
     | '/members'
     | '/settings'
     | '/entries/$entryId'
     | '/entries/new'
+    | '/invoices/$invoiceId'
+    | '/invoices/new'
     | '/reports/balance-sheet'
     | '/reports/profit-and-loss'
     | '/reports/trial-balance'
@@ -438,6 +477,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
     | '/entries/'
+    | '/invoices/'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -463,11 +503,14 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/accounts'
+    | '/contacts'
     | '/members'
     | '/settings'
     | '/'
     | '/entries/$entryId'
     | '/entries/new'
+    | '/invoices/$invoiceId'
+    | '/invoices/new'
     | '/reports/balance-sheet'
     | '/reports/profit-and-loss'
     | '/reports/trial-balance'
@@ -482,6 +525,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
     | '/entries'
+    | '/invoices'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -508,11 +552,14 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/_app/accounts'
+    | '/_app/contacts'
     | '/_app/members'
     | '/_app/settings'
     | '/_app/'
     | '/_app/entries/$entryId'
     | '/_app/entries/new'
+    | '/_app/invoices/$invoiceId'
+    | '/_app/invoices/new'
     | '/_app/reports/balance-sheet'
     | '/_app/reports/profit-and-loss'
     | '/_app/reports/trial-balance'
@@ -527,6 +574,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
     | '/_app/entries/'
+    | '/_app/invoices/'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -621,6 +669,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/contacts': {
+      id: '/_app/contacts'
+      path: '/contacts'
+      fullPath: '/contacts'
+      preLoaderRoute: typeof AppContactsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/members': {
       id: '/_app/members'
       path: '/members'
@@ -654,6 +709,27 @@ declare module '@tanstack/react-router' {
       path: '/entries/new'
       fullPath: '/entries/new'
       preLoaderRoute: typeof AppEntriesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/invoices/': {
+      id: '/_app/invoices/'
+      path: '/invoices'
+      fullPath: '/invoices/'
+      preLoaderRoute: typeof AppInvoicesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/invoices/$invoiceId': {
+      id: '/_app/invoices/$invoiceId'
+      path: '/invoices/$invoiceId'
+      fullPath: '/invoices/$invoiceId'
+      preLoaderRoute: typeof AppInvoicesInvoiceIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/invoices/new': {
+      id: '/_app/invoices/new'
+      path: '/invoices/new'
+      fullPath: '/invoices/new'
+      preLoaderRoute: typeof AppInvoicesNewRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/reports/balance-sheet': {
@@ -885,28 +961,36 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAccountsRoute: typeof AppAccountsRoute
+  AppContactsRoute: typeof AppContactsRoute
   AppMembersRoute: typeof AppMembersRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppEntriesEntryIdRoute: typeof AppEntriesEntryIdRoute
   AppEntriesNewRoute: typeof AppEntriesNewRoute
+  AppInvoicesInvoiceIdRoute: typeof AppInvoicesInvoiceIdRoute
+  AppInvoicesNewRoute: typeof AppInvoicesNewRoute
   AppReportsBalanceSheetRoute: typeof AppReportsBalanceSheetRoute
   AppReportsProfitAndLossRoute: typeof AppReportsProfitAndLossRoute
   AppReportsTrialBalanceRoute: typeof AppReportsTrialBalanceRoute
   AppEntriesIndexRoute: typeof AppEntriesIndexRoute
+  AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAccountsRoute: AppAccountsRoute,
+  AppContactsRoute: AppContactsRoute,
   AppMembersRoute: AppMembersRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppEntriesEntryIdRoute: AppEntriesEntryIdRoute,
   AppEntriesNewRoute: AppEntriesNewRoute,
+  AppInvoicesInvoiceIdRoute: AppInvoicesInvoiceIdRoute,
+  AppInvoicesNewRoute: AppInvoicesNewRoute,
   AppReportsBalanceSheetRoute: AppReportsBalanceSheetRoute,
   AppReportsProfitAndLossRoute: AppReportsProfitAndLossRoute,
   AppReportsTrialBalanceRoute: AppReportsTrialBalanceRoute,
   AppEntriesIndexRoute: AppEntriesIndexRoute,
+  AppInvoicesIndexRoute: AppInvoicesIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

@@ -93,12 +93,23 @@ function NewEntry() {
     [lines],
   )
 
+  /**
+   * One key per attempt at posting, held until that attempt succeeds.
+   *
+   * This is what makes a double click, or an impatient second `Cmd`+`Enter`,
+   * post once rather than twice. It is regenerated after a successful post and
+   * kept across a failed one, because a retry of a rejected entry is the same
+   * intent — see spec 10.2.
+   */
+  const idempotencyKey = useRef<string>(crypto.randomUUID())
+
   async function submit(startAnother: boolean) {
     setPosting(true)
     setProblems([])
 
     const result = await postEntry({
       data: {
+        idempotencyKey: idempotencyKey.current,
         journalCode,
         bookingDate,
         documentDate: bookingDate,
@@ -127,6 +138,8 @@ function NewEntry() {
       )
       return
     }
+
+    idempotencyKey.current = crypto.randomUUID()
 
     if (startAnother) {
       // Flow is the whole point: same journal, same date, empty lines, focus

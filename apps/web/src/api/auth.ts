@@ -30,6 +30,16 @@ export interface ResolveOptions {
   readonly ip?: string | null
   /** Overrides the session's remembered entity, for an explicit switch. */
   readonly entityId?: string | null
+  /**
+   * Overrides the `Idempotency-Key` header.
+   *
+   * A browser cannot set that header on a server-function call, and every
+   * write in this system requires one (spec 10.2). So the UI passes the key it
+   * generated as part of the payload and it arrives here instead. Same value,
+   * same guarantee, different envelope — and a screen that retries reuses its
+   * key, which is the whole point.
+   */
+  readonly idempotencyKey?: string | null
 }
 
 function bearer(request: Request): string | null {
@@ -62,7 +72,7 @@ async function fromToken(
     permissions: new Set(resolved.permissions),
     requestId,
     ip: options.ip ?? options.request.headers.get('x-forwarded-for'),
-    idempotencyKey: options.request.headers.get('idempotency-key'),
+    idempotencyKey: options.idempotencyKey ?? options.request.headers.get('idempotency-key'),
   }
 }
 
@@ -107,7 +117,7 @@ async function fromSession(
     permissions: new Set<string>(permissionsForRole(membership.role)),
     requestId,
     ip: options.ip ?? options.request.headers.get('x-forwarded-for'),
-    idempotencyKey: options.request.headers.get('idempotency-key'),
+    idempotencyKey: options.idempotencyKey ?? options.request.headers.get('idempotency-key'),
   }
 }
 

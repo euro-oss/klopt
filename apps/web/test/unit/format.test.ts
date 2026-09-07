@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { formatMinorUnits, parseMinorUnits, formatDate } from '../../src/lib/format.js'
+import {
+  formatDate,
+  formatMinorUnits,
+  multiplyByDecimal,
+  parseMinorUnits,
+  percentOf,
+} from '../../src/lib/format.js'
 
 describe('formatting money', () => {
   it('renders Dutch grouping and decimals', () => {
@@ -77,5 +83,40 @@ describe('parsing what a bookkeeper types', () => {
 describe('dates', () => {
   it('renders the way a Dutch invoice does', () => {
     expect(formatDate('2026-03-15')).toBe('15-03-2026')
+  })
+})
+
+describe('the invoice preview arithmetic', () => {
+  it('multiplies minor units by a decimal quantity without a float', () => {
+    // 10 × 100.00
+    expect(multiplyByDecimal(10_000n, '10')).toBe(100_000n)
+    // 2.5 hours at 95.00
+    expect(multiplyByDecimal(9_500n, '2.5')).toBe(23_750n)
+    // A quarter of a cent rounds half up, not toward whatever a float does.
+    expect(multiplyByDecimal(1n, '0.5')).toBe(1n)
+    expect(multiplyByDecimal(1n, '0.4')).toBe(0n)
+    expect(multiplyByDecimal(0n, '10')).toBe(0n)
+  })
+
+  it('is exact where a float is not', () => {
+    // 1.15 × 100 is 114.99999999999999 in IEEE 754. An invoice line is not.
+    expect(multiplyByDecimal(11_500n, '1')).toBe(11_500n)
+    expect(multiplyByDecimal(100n, '1.15')).toBe(115n)
+    // Beyond Number.MAX_SAFE_INTEGER, where a float has stopped counting.
+    expect(multiplyByDecimal(9_007_199_254_740_993n, '2')).toBe(18_014_398_509_481_986n)
+  })
+
+  it('takes a percentage the way the ledger does', () => {
+    expect(percentOf(100_000n, '21.00')).toBe(21_000n)
+    expect(percentOf(100_000n, '9')).toBe(9_000n)
+    expect(percentOf(3_333n, '21.00')).toBe(700n)
+    expect(percentOf(100_000n, '0')).toBe(0n)
+  })
+
+  it('reads a signed decimal, and refuses what is not one', () => {
+    expect(multiplyByDecimal(10_000n, '-2')).toBe(-20_000n)
+    for (const bad of ['', 'x', '1.2.3', '1,5', ' ']) {
+      expect(multiplyByDecimal(10_000n, bad), bad).toBe(0n)
+    }
   })
 })

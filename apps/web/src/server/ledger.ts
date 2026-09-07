@@ -33,7 +33,19 @@ import { contextFromRequest, run, runWith } from './internal'
 /**
  * The UI's RPC surface. Every one of these is three lines: resolve context,
  * parse, call the handler that `/api/v1` calls.
+ *
+ * **Writes carry an idempotency key in the payload**, not in a header. A
+ * browser cannot set `Idempotency-Key` on a server-function call, and spec 10.2
+ * makes one mandatory on every write — so the screen generates a key per
+ * attempt, reuses it across retries, and it arrives here. Without this a double
+ * click posts twice, which in a ledger is not a cosmetic problem.
  */
+
+/** Pull the key out of a payload, leaving the body for the schema to parse. */
+function keyOf(input: unknown): string | undefined {
+  const value = (input as { idempotencyKey?: unknown } | null)?.idempotencyKey
+  return typeof value === 'string' && value !== '' ? value : undefined
+}
 
 export const listAccounts = createServerFn({ method: 'GET' }).handler(async () =>
   run(async () => (await handleListAccounts(await contextFromRequest())).body),
@@ -119,20 +131,37 @@ export const postEntry = createServerFn({ method: 'POST' })
     runWith(
       postJournalEntryBody,
       data,
-      async (body) => (await handlePostJournalEntry(await contextFromRequest(), body)).body,
+      async (body) =>
+        (
+          await handlePostJournalEntry(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            body,
+          )
+        ).body,
     ),
   )
 
 export const reverseEntry = createServerFn({ method: 'POST' })
   .validator(
-    (input: { entryId: string; bookingDate: string; description?: string | null }) => input,
+    (input: {
+      entryId: string
+      bookingDate: string
+      description?: string | null
+      idempotencyKey: string
+    }) => input,
   )
   .handler(async ({ data }) =>
     runWith(
       reverseJournalEntryBody,
       { bookingDate: data.bookingDate, description: data.description ?? null },
       async (body) =>
-        (await handleReverseJournalEntry(await contextFromRequest(), data.entryId, body)).body,
+        (
+          await handleReverseJournalEntry(
+            await contextFromRequest({ idempotencyKey: data.idempotencyKey }),
+            data.entryId,
+            body,
+          )
+        ).body,
     ),
   )
 
@@ -142,7 +171,9 @@ export const closeYear = createServerFn({ method: 'POST' })
     runWith(
       closeYearBody,
       data,
-      async (body) => (await handleCloseYear(await contextFromRequest(), body)).body,
+      async (body) =>
+        (await handleCloseYear(await contextFromRequest({ idempotencyKey: keyOf(data) }), body))
+          .body,
     ),
   )
 

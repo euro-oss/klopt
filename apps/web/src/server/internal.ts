@@ -21,11 +21,22 @@ import type { RequestContext, SetupContext } from '~/api/context'
  * plain data.** Helpers live here.
  */
 
-export async function contextFromRequest(entityId?: string): Promise<RequestContext> {
+export interface ContextOptions {
+  readonly entityId?: string | undefined
+  /**
+   * The key the screen generated for this attempt. Required for every write:
+   * a browser cannot set an `Idempotency-Key` header on a server-function
+   * call, so the key travels in the payload instead.
+   */
+  readonly idempotencyKey?: string | undefined
+}
+
+export async function contextFromRequest(options: ContextOptions = {}): Promise<RequestContext> {
   return resolveRequestContext({
     database: getDatabase(),
     request: getRequest(),
-    ...(entityId === undefined ? {} : { entityId }),
+    ...(options.entityId === undefined ? {} : { entityId: options.entityId }),
+    ...(options.idempotencyKey === undefined ? {} : { idempotencyKey: options.idempotencyKey }),
   })
 }
 

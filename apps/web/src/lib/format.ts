@@ -105,3 +105,43 @@ export function formatDate(iso: string): string {
   if (year === undefined || month === undefined || day === undefined) return iso
   return `${day}-${month}-${year}`
 }
+
+/** Half-up division of integers, sign-aware. The only rounding in this file. */
+function divideRound(numerator: bigint, denominator: bigint): bigint {
+  const negative = numerator < 0n !== denominator < 0n
+  const a = numerator < 0n ? -numerator : numerator
+  const b = denominator < 0n ? -denominator : denominator
+  const rounded = (a * 2n + b) / (b * 2n)
+  return negative ? -rounded : rounded
+}
+
+/**
+ * A decimal string times minor units, as minor units.
+ *
+ * The same arithmetic `priceInvoice` does in `@klopt/core`, repeated here
+ * because the browser cannot import that package — it is built on `node:fs`
+ * and `node:crypto`. Repeated rather than approximated: a preview total that
+ * disagrees with the posted one by a cent is worse than no preview, and
+ * `Number(price) * quantity` disagrees for exactly the amounts people invoice.
+ *
+ * The server's answer is still the authoritative one, because it applies the
+ * entity's per-invoice or per-line rounding policy and this cannot.
+ */
+export function multiplyByDecimal(minorUnits: bigint, decimal: string): bigint {
+  const trimmed = decimal.trim()
+  if (!/^-?\d+(\.\d+)?$/.test(trimmed)) return 0n
+
+  const negative = trimmed.startsWith('-')
+  const unsigned = negative ? trimmed.slice(1) : trimmed
+  const [whole = '0', fraction = ''] = unsigned.split('.')
+  const scaled = BigInt(whole + fraction)
+  const scale = 10n ** BigInt(fraction.length)
+
+  const product = divideRound(minorUnits * scaled, scale)
+  return negative ? -product : product
+}
+
+/** Minor units times a percentage given as a decimal string like `21.00`. */
+export function percentOf(minorUnits: bigint, percent: string): bigint {
+  return divideRound(multiplyByDecimal(minorUnits, percent), 100n)
+}

@@ -161,7 +161,14 @@ refused outright rather than ignored, because a token is issued _by_ an
 administration and must not be able to create another. See
 [0014](decisions/0014-entity-provisioning.md).
 
-### One rule for the web app
+### Two rules for the web app
+
+**Every write carries an idempotency key in its payload.** A browser cannot set
+an `Idempotency-Key` header on a server-function call, and spec 10.2 makes one
+mandatory on every write, so the screen generates a key per attempt and reuses
+it across retries. That is what makes a double click post once. Without it no
+screen can write at all — which is exactly what was true until a browser test
+tried to post an entry.
 
 **A module a route imports must export nothing but server functions and plain
 data.** TanStack Start strips `createServerFn` handler bodies from the client
@@ -172,11 +179,19 @@ baffling one if you do not know the rule.
 
 Helpers live in `apps/web/src/server/internal.ts`, which no route imports.
 
+**Parsing happens in the handler, not in `validator`.** A `createServerFn`
+validator that throws does not go through `run`, so the rejection escapes the
+server function and the screen sees nothing at all. `runWith` parses inside the
+same `try`, and a bad field comes back as a problem document with its path.
+
 ## Not built yet
 
 Banking, VAT and purchase are M2 to M4. Within M1: the schematron pass over the
 generated UBL ([0016](decisions/0016-ubl-generation-before-schematron.md)), PDF
-rendering, sending, dunning, and the sales screens — the sales API is complete
-and has no UI in front of it. In the UI: the command palette
+rendering, sending and dunning.
+
+In the UI: the command palette and `g`-prefix navigation are in the keyboard map
+and the binding registry but not yet wired to a listener. Contacts can be
+created but not edited. In the UI: the command palette
 and `g`-prefix navigation are in the keyboard map and the binding registry but
 not yet wired to a listener.
