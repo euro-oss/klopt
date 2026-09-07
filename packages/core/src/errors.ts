@@ -62,6 +62,7 @@ export type LedgerErrorCode =
   | 'approval_by_script'
   | 'invoice_not_bookable'
   | 'unknown_invoice'
+  | 'invalid_document'
   | 'chain_broken'
 
 export interface LedgerViolation {

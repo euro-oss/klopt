@@ -25,3 +25,14 @@ export {
   type TaxAccountResolver as PurchaseTaxAccountResolver,
   buildPurchaseEntry,
 } from './posting.js'
+export {
+  type InboundFinding,
+  type InboundFindingCode,
+  type InboundInvoice,
+  type InboundSupplier,
+  type InboundTaxLine,
+  type ParseUblInvoiceOptions,
+  inboundBlockers,
+  parseUblInvoice,
+  suggestTaxCode,
+} from './from-ubl.js'

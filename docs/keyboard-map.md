@@ -42,6 +42,7 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `g` then `p`   | Go to proefbalans (trial balance)                       |
 | `g` then `g`   | Go to BTW-aangifte (aan**g**ifte)                       |
 | `g` then `n`   | Go to inkoopfacturen (i**n**koop)                       |
+| `g` then `e`   | Go to postvak (**e**erste opvang)                       |
 | `n` then `i`   | New inkoopfactuur                                       |
 | `n` then `j`   | New journal entry                                       |
 | `/`            | Focus search                                            |

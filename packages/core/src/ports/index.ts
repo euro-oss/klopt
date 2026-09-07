@@ -44,3 +44,10 @@ export type {
   FilingTransport,
   FilingTransportKind,
 } from './filing.js'
+export {
+  type DocumentStore,
+  type StoredDocument,
+  contentTypeFor,
+  looksLikeXml,
+  sha256Hex,
+} from './document-store.js'

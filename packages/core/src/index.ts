@@ -51,6 +51,7 @@ export * from './vat/index.js'
 export {
   bankingOperations,
   complianceOperations,
+  inboxOperations,
   ledgerOperations,
   membershipOperations,
   paymentOperations,

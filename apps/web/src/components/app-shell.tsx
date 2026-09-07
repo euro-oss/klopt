@@ -15,6 +15,7 @@ const NAVIGATION = [
   { to: '/entries', label: 'Journaalposten', binding: 'go.journal' },
   { to: '/accounts', label: 'Grootboek', binding: 'go.accounts' },
   { to: '/invoices', label: 'Verkoopfacturen', binding: 'go.invoices' },
+  { to: '/inbox', label: 'Postvak', binding: 'go.inbox' },
   { to: '/purchases', label: 'Inkoopfacturen', binding: 'go.purchases' },
   { to: '/contacts', label: 'Relaties', binding: 'go.contacts' },
   { to: '/bank', label: 'Bank', binding: 'go.bank' },

@@ -32,6 +32,7 @@ export {
 } from './repositories/tokens.js'
 export { XafExportRepository, type XafExportRequest } from './repositories/xaf.js'
 export { RgsRepository } from './repositories/rgs.js'
+export { type InboxItemRow, InboxRepository } from './repositories/inbox.js'
 export {
   type PurchaseContext,
   type PurchaseInvoiceRow,
@@ -86,6 +87,8 @@ export {
   withSetup,
   withXafExport,
   withYearClose,
+  withInbox,
+  withInboxRead,
   withPurchase,
   withPurchaseRead,
   withVat,

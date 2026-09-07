@@ -751,3 +751,58 @@ export const purchaseOperations: Readonly<Record<string, OperationDefinition>> =
     idempotent: true,
   }),
 }
+
+/**
+ * The purchase inbox (spec 6, 7.5).
+ *
+ * `receiveDocument` is how everything gets in — an upload, an email body, a
+ * Peppol delivery — and it is one operation rather than three because the queue
+ * is one queue. What differs between the sources is who calls it.
+ */
+export const inboxOperations: Readonly<Record<string, OperationDefinition>> = {
+  receiveDocument: defineOperation({
+    id: 'inbox.receiveDocument',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary:
+      'Take a document into the purchase inbox. Stored content-addressed, read if it can be read, matched to a supplier if it identifies one.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  listItems: defineOperation({
+    id: 'inbox.listItems',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'What has arrived and not yet been dealt with.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  draftFromItem: defineOperation({
+    id: 'inbox.draftFromItem',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary: 'Turn an arrival into a purchase draft, with the original document attached to it.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  discardItem: defineOperation({
+    id: 'inbox.discardItem',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary: 'Set an arrival aside, with a reason. The document itself is kept.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  getDocument: defineOperation({
+    id: 'inbox.getDocument',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'The stored bytes of a source document.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+}

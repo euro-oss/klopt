@@ -452,6 +452,36 @@ export const routeManifest: readonly RouteBinding[] = [
     path: '/reports/creditor-ageing',
     module: 'api/v1/reports.creditor-ageing.ts',
   },
+  {
+    operationId: 'inbox.receiveDocument',
+    method: 'POST',
+    path: '/inbox',
+    module: 'api/v1/inbox.ts',
+  },
+  {
+    operationId: 'inbox.listItems',
+    method: 'GET',
+    path: '/inbox',
+    module: 'api/v1/inbox.ts',
+  },
+  {
+    operationId: 'inbox.draftFromItem',
+    method: 'POST',
+    path: '/inbox/{itemId}/draft',
+    module: 'api/v1/inbox.$itemId.draft.ts',
+  },
+  {
+    operationId: 'inbox.discardItem',
+    method: 'POST',
+    path: '/inbox/{itemId}/discard',
+    module: 'api/v1/inbox.$itemId.discard.ts',
+  },
+  {
+    operationId: 'inbox.getDocument',
+    method: 'GET',
+    path: '/documents/{documentId}',
+    module: 'api/v1/documents.$documentId.ts',
+  },
 ]
 
 export interface ContractViolation {

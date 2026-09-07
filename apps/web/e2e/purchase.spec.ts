@@ -43,6 +43,36 @@ async function aSupplier(page: Page): Promise<void> {
   await expect(page.getByRole('cell', { name: 'Leverancier B.V.' })).toBeVisible()
 }
 
+/** A UBL invoice from the supplier the tests create. */
+const UBL = `<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:ID>F-2026-0042</cbc:ID>
+  <cbc:IssueDate>2026-02-10</cbc:IssueDate>
+  <cbc:DueDate>2026-03-12</cbc:DueDate>
+  <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyName><cbc:Name>Leverancier B.V.</cbc:Name></cac:PartyName>
+      <cac:PartyTaxScheme><cbc:CompanyID>NL987654321B01</cbc:CompanyID></cac:PartyTaxScheme>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:TaxTotal><cbc:TaxAmount currencyID="EUR">210.00</cbc:TaxAmount></cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:TaxExclusiveAmount currencyID="EUR">1000.00</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="EUR">1210.00</cbc:TaxInclusiveAmount>
+  </cac:LegalMonetaryTotal>
+  <cac:InvoiceLine>
+    <cbc:ID>1</cbc:ID>
+    <cbc:LineExtensionAmount currencyID="EUR">1000.00</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Name>Kantoorartikelen</cbc:Name>
+      <cac:ClassifiedTaxCategory><cbc:ID>S</cbc:ID><cbc:Percent>21</cbc:Percent></cac:ClassifiedTaxCategory>
+    </cac:Item>
+  </cac:InvoiceLine>
+</Invoice>`
+
 /**
  * Waits for the entry form to be interactive.
  *
@@ -179,4 +209,90 @@ test('the same invoice number from the same supplier is refused', async ({ page 
   // second arrival of the same number is refused rather than saved.
   await enter('F-2026-0100')
   await expect(page.getByText(/has already sent invoice F-2026-0100/)).toBeVisible()
+})
+
+test('a UBL invoice arrives in the postvak and becomes a booked liability', async ({ page }) => {
+  await anAdministration(page, 'Postvak BV')
+  await aSupplier(page)
+
+  await page
+    .getByRole('link', { name: /Postvak/ })
+    .first()
+    .click()
+  await expect(page.getByRole('heading', { name: 'Postvak' })).toBeVisible()
+  await expect(page.getByText('Niets in het postvak.')).toBeVisible()
+
+  // The file input is hidden behind a label, which is what `setInputFiles`
+  // wants anyway — it sets the input, not the label.
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'inkomende-factuur.xml',
+    mimeType: 'application/xml',
+    buffer: Buffer.from(UBL, 'utf8'),
+  })
+
+  // Read on arrival: the number, the amount, and the supplier it was matched
+  // to by VAT number.
+  await expect(page.getByText('F-2026-0042 · Leverancier B.V.')).toBeVisible()
+  await expect(page.getByText('1.210,00', { exact: false }).first()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Verwerken' }).click()
+
+  // The parse parked the line on the tussenrekening and suggested a code. A
+  // human confirms both; the amounts are not editable at all.
+  await expect(page.getByLabel('Leverancier')).toHaveValue('CRE-0001')
+  await page.getByLabel('Grootboek regel 1').selectOption('4400')
+  await expect(page.getByLabel('Btw-code regel 1')).toHaveValue('VH21')
+
+  await page.getByRole('button', { name: 'Concept maken' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Inkoopfactuur F-2026-0042' })).toBeVisible()
+  await page.getByRole('button', { name: 'Boeken', exact: true }).click()
+  await expect(page.getByRole('link', { name: /^journaalpost \d/ })).toBeVisible()
+
+  // And the queue is empty again.
+  await page.goto('/inbox')
+  await expect(page.getByText('Niets in het postvak.')).toBeVisible()
+})
+
+test('the same document arriving twice is one document and two arrivals', async ({ page }) => {
+  await anAdministration(page, 'Dubbel postvak BV')
+  await aSupplier(page)
+
+  const file = {
+    name: 'inkomende-factuur.xml',
+    mimeType: 'application/xml',
+    buffer: Buffer.from(UBL, 'utf8'),
+  }
+
+  await page.goto('/inbox')
+  await page.locator('input[type="file"]').setInputFiles(file)
+  await expect(page.getByText('F-2026-0042 · Leverancier B.V.')).toBeVisible()
+
+  await page.locator('input[type="file"]').setInputFiles(file)
+  // Content addressing is what makes this knowable: same bytes, same document.
+  await expect(page.getByText(/Dit bestand was er al/)).toBeVisible()
+  await expect(page.getByText(/dit bestand was er al/).first()).toBeVisible()
+})
+
+test('a document nothing can be read out of is kept, not lost', async ({ page }) => {
+  await anAdministration(page, 'PDF postvak BV')
+
+  await page.goto('/inbox')
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'reclamefolder.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.7 dit is geen factuur', 'utf8'),
+  })
+
+  await expect(page.getByText('reclamefolder.pdf')).toBeVisible()
+  await expect(page.getByText(/kan niets gelezen worden/)).toBeVisible()
+
+  // It can still be opened and set aside with a reason.
+  await page.getByRole('button', { name: 'Verwerken' }).click()
+  await page.getByLabel('Waarom terzijde?').fill('Reclamefolder, geen factuur.')
+  await page.getByRole('button', { name: 'Terzijde leggen' }).click()
+
+  await expect(page.getByText('Niets in het postvak.')).toBeVisible()
+  await page.goto('/inbox?state=discarded')
+  await expect(page.getByText(/Terzijde gelegd: Reclamefolder/)).toBeVisible()
 })

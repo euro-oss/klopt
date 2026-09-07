@@ -5,6 +5,7 @@ import { RgsRepository } from './repositories/rgs.js'
 import { BankRepository } from './repositories/bank.js'
 import { MembersRepository } from './repositories/members.js'
 import { PaymentsRepository } from './repositories/payments.js'
+import { InboxRepository } from './repositories/inbox.js'
 import { PurchaseRepository } from './repositories/purchase.js'
 import { SalesRepository } from './repositories/sales.js'
 import { SetupRepository } from './repositories/setup.js'
@@ -283,5 +284,33 @@ export async function withPurchase<T>(
 ): Promise<T> {
   return database.transaction(async (tx) =>
     work({ purchase: new PurchaseRepository(tx), ledger: new DrizzleLedgerRepository(tx) }),
+  )
+}
+
+/** The inbox, read-only. */
+export async function withInboxRead<T>(
+  database: Database,
+  work: (repository: InboxRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new InboxRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
+  })
+}
+
+/**
+ * Taking something out of the inbox, in one transaction.
+ *
+ * Turning an arrival into a draft writes the invoice, the link from the
+ * document to it, and the item's own state. An item marked handled whose draft
+ * did not commit would be a document nobody will look at again, which is the
+ * one thing an inbox must never do.
+ */
+export async function withInbox<T>(
+  database: Database,
+  work: (repositories: { inbox: InboxRepository; purchase: PurchaseRepository }) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) =>
+    work({ inbox: new InboxRepository(tx), purchase: new PurchaseRepository(tx) }),
   )
 }

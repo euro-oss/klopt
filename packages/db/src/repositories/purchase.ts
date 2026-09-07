@@ -176,6 +176,84 @@ export class PurchaseRepository {
     return payable?.number ?? null
   }
 
+  async functionalCurrency(entityId: string): Promise<string> {
+    const [row] = await this.tx
+      .select({ currency: entities.functionalCurrency })
+      .from(entities)
+      .where(eq(entities.id, entityId))
+      .limit(1)
+
+    return row?.currency ?? 'EUR'
+  }
+
+  /**
+   * Where an inbound document's lines are parked until somebody codes them.
+   *
+   * The tussenrekening, by its RGS code. An arrival cannot know which cost
+   * account it belongs on — that is a judgement about what was bought — so it
+   * lands somewhere visible and wrong rather than somewhere invisible and
+   * plausible.
+   */
+  async suspenseAccountNumber(entityId: string): Promise<string | null> {
+    const chart = await this.tx
+      .select({ number: accounts.number, rgsCode: accounts.rgsCode })
+      .from(accounts)
+      .where(eq(accounts.entityId, entityId))
+
+    const suspense =
+      chart.find((account) => account.rgsCode === 'BVorTusTin') ??
+      chart.find((account) => account.rgsCode?.startsWith('BVorTus') === true) ??
+      chart.find((account) => account.number === '2000')
+
+    return suspense?.number ?? null
+  }
+
+  /** The input codes, in the shape `suggestTaxCode` reads. */
+  async taxCodeSuggestions(entityId: string): Promise<
+    readonly {
+      readonly code: string
+      readonly rateBasisPoints: number
+      readonly direction: 'output' | 'input'
+      readonly ublCategory: string
+      readonly scope: string
+      readonly reverseCharge: string
+      readonly deductibility: string
+      readonly isDeductionHalf: boolean
+    }[]
+  > {
+    const rows = await this.tx
+      .select({
+        code: taxCodes.code,
+        rateBasisPoints: taxCodes.rateBasisPoints,
+        direction: taxCodes.direction,
+        ublCategory: taxCodes.ublCategory,
+        scope: taxCodes.scope,
+        reverseCharge: taxCodes.reverseCharge,
+        deductibility: taxCodes.deductibility,
+        deductionCode: taxCodes.deductionCode,
+      })
+      .from(taxCodes)
+      .where(eq(taxCodes.entityId, entityId))
+      .orderBy(asc(taxCodes.code))
+
+    // A code another code points at as its deduction half is not a
+    // free-standing purchase code, however ordinary it looks.
+    const halves = new Set(
+      rows.map((row) => row.deductionCode).filter((code): code is string => code !== null),
+    )
+
+    return rows.map((row) => ({
+      code: row.code,
+      rateBasisPoints: row.rateBasisPoints,
+      direction: row.direction,
+      ublCategory: row.ublCategory,
+      scope: row.scope,
+      reverseCharge: row.reverseCharge,
+      deductibility: row.deductibility,
+      isDeductionHalf: halves.has(row.code),
+    }))
+  }
+
   /** Whether this supplier has already sent an invoice with this number. */
   async isDuplicate(
     entityId: string,

@@ -17,6 +17,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
 import { Route as AppContactsRouteImport } from './routes/_app/contacts'
 import { Route as AppDunningRouteImport } from './routes/_app/dunning'
+import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppBankIndexRouteImport } from './routes/_app/bank.index'
@@ -48,6 +49,7 @@ import { Route as ApiV1ContactsRouteImport } from './routes/api/v1/contacts'
 import { Route as ApiV1EntityRouteImport } from './routes/api/v1/entity'
 import { Route as ApiV1FiscalYearsRouteImport } from './routes/api/v1/fiscal-years'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
+import { Route as ApiV1InboxRouteImport } from './routes/api/v1/inbox'
 import { Route as ApiV1JournalEntriesRouteImport } from './routes/api/v1/journal-entries'
 import { Route as ApiV1MembersRouteImport } from './routes/api/v1/members'
 import { Route as ApiV1PaymentBatchesRouteImport } from './routes/api/v1/payment-batches'
@@ -56,6 +58,7 @@ import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-in
 import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
 import { Route as AppVatIcpPeriodRouteImport } from './routes/_app/vat.icp.$period'
 import { Route as ApiV1BankMatchRulesRuleIdRouteImport } from './routes/api/v1/bank-match-rules.$ruleId'
+import { Route as ApiV1DocumentsDocumentIdRouteImport } from './routes/api/v1/documents.$documentId'
 import { Route as ApiV1EntitiesEntityIdRouteImport } from './routes/api/v1/entities.$entityId'
 import { Route as ApiV1ExportsAuditFileRouteImport } from './routes/api/v1/exports.audit-file'
 import { Route as ApiV1FiscalYearsCloseRouteImport } from './routes/api/v1/fiscal-years.close'
@@ -82,6 +85,8 @@ import { Route as ApiV1VatPeriodsRouteImport } from './routes/api/v1/vat.periods
 import { Route as ApiV1BankTransactionsTransactionIdIgnoreRouteImport } from './routes/api/v1/bank-transactions.$transactionId.ignore'
 import { Route as ApiV1BankTransactionsTransactionIdMatchRouteImport } from './routes/api/v1/bank-transactions.$transactionId.match'
 import { Route as ApiV1BankTransactionsTransactionIdSuggestionsRouteImport } from './routes/api/v1/bank-transactions.$transactionId.suggestions'
+import { Route as ApiV1InboxItemIdDiscardRouteImport } from './routes/api/v1/inbox.$itemId.discard'
+import { Route as ApiV1InboxItemIdDraftRouteImport } from './routes/api/v1/inbox.$itemId.draft'
 import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes/api/v1/journal-entries.$entryId.reversal'
 import { Route as ApiV1PaymentBatchesBatchIdInstructionsRouteImport } from './routes/api/v1/payment-batches.$batchId.instructions'
 import { Route as ApiV1PaymentBatchesBatchIdPain001RouteImport } from './routes/api/v1/payment-batches.$batchId.pain001'
@@ -138,6 +143,11 @@ const AppContactsRoute = AppContactsRouteImport.update({
 const AppDunningRoute = AppDunningRouteImport.update({
   id: '/dunning',
   path: '/dunning',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInboxRoute = AppInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMembersRoute = AppMembersRouteImport.update({
@@ -296,6 +306,11 @@ const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   path: '/api/v1/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1InboxRoute = ApiV1InboxRouteImport.update({
+  id: '/api/v1/inbox',
+  path: '/api/v1/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1JournalEntriesRoute = ApiV1JournalEntriesRouteImport.update({
   id: '/api/v1/journal-entries',
   path: '/api/v1/journal-entries',
@@ -336,6 +351,12 @@ const ApiV1BankMatchRulesRuleIdRoute =
     id: '/$ruleId',
     path: '/$ruleId',
     getParentRoute: () => ApiV1BankMatchRulesRoute,
+  } as any)
+const ApiV1DocumentsDocumentIdRoute =
+  ApiV1DocumentsDocumentIdRouteImport.update({
+    id: '/api/v1/documents/$documentId',
+    path: '/api/v1/documents/$documentId',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiV1EntitiesEntityIdRoute = ApiV1EntitiesEntityIdRouteImport.update({
   id: '/api/v1/entities/$entityId',
@@ -480,6 +501,16 @@ const ApiV1BankTransactionsTransactionIdSuggestionsRoute =
     path: '/$transactionId/suggestions',
     getParentRoute: () => ApiV1BankTransactionsRoute,
   } as any)
+const ApiV1InboxItemIdDiscardRoute = ApiV1InboxItemIdDiscardRouteImport.update({
+  id: '/$itemId/discard',
+  path: '/$itemId/discard',
+  getParentRoute: () => ApiV1InboxRoute,
+} as any)
+const ApiV1InboxItemIdDraftRoute = ApiV1InboxItemIdDraftRouteImport.update({
+  id: '/$itemId/draft',
+  path: '/$itemId/draft',
+  getParentRoute: () => ApiV1InboxRoute,
+} as any)
 const ApiV1JournalEntriesEntryIdReversalRoute =
   ApiV1JournalEntriesEntryIdReversalRouteImport.update({
     id: '/reversal',
@@ -595,6 +626,7 @@ export interface FileRoutesByFullPath {
   '/accounts': typeof AppAccountsRoute
   '/contacts': typeof AppContactsRoute
   '/dunning': typeof AppDunningRoute
+  '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
   '/bank/match': typeof AppBankMatchRoute
@@ -620,6 +652,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
@@ -634,6 +667,7 @@ export interface FileRoutesByFullPath {
   '/vat/': typeof AppVatIndexRoute
   '/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
+  '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -660,6 +694,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
+  '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
+  '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
@@ -686,6 +722,7 @@ export interface FileRoutesByTo {
   '/accounts': typeof AppAccountsRoute
   '/contacts': typeof AppContactsRoute
   '/dunning': typeof AppDunningRoute
+  '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
@@ -712,6 +749,7 @@ export interface FileRoutesByTo {
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
@@ -726,6 +764,7 @@ export interface FileRoutesByTo {
   '/vat': typeof AppVatIndexRoute
   '/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
+  '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -752,6 +791,8 @@ export interface FileRoutesByTo {
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
+  '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
+  '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
@@ -780,6 +821,7 @@ export interface FileRoutesById {
   '/_app/accounts': typeof AppAccountsRoute
   '/_app/contacts': typeof AppContactsRoute
   '/_app/dunning': typeof AppDunningRoute
+  '/_app/inbox': typeof AppInboxRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
@@ -806,6 +848,7 @@ export interface FileRoutesById {
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
@@ -820,6 +863,7 @@ export interface FileRoutesById {
   '/_app/vat/': typeof AppVatIndexRoute
   '/_app/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
+  '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -846,6 +890,8 @@ export interface FileRoutesById {
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
+  '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
+  '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
@@ -875,6 +921,7 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/contacts'
     | '/dunning'
+    | '/inbox'
     | '/members'
     | '/settings'
     | '/bank/match'
@@ -900,6 +947,7 @@ export interface FileRouteTypes {
     | '/api/v1/entity'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
+    | '/api/v1/inbox'
     | '/api/v1/journal-entries'
     | '/api/v1/members'
     | '/api/v1/payment-batches'
@@ -914,6 +962,7 @@ export interface FileRouteTypes {
     | '/vat/'
     | '/vat/icp/$period'
     | '/api/v1/bank-match-rules/$ruleId'
+    | '/api/v1/documents/$documentId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -940,6 +989,8 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
+    | '/api/v1/inbox/$itemId/discard'
+    | '/api/v1/inbox/$itemId/draft'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
@@ -966,6 +1017,7 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/contacts'
     | '/dunning'
+    | '/inbox'
     | '/members'
     | '/settings'
     | '/'
@@ -992,6 +1044,7 @@ export interface FileRouteTypes {
     | '/api/v1/entity'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
+    | '/api/v1/inbox'
     | '/api/v1/journal-entries'
     | '/api/v1/members'
     | '/api/v1/payment-batches'
@@ -1006,6 +1059,7 @@ export interface FileRouteTypes {
     | '/vat'
     | '/vat/icp/$period'
     | '/api/v1/bank-match-rules/$ruleId'
+    | '/api/v1/documents/$documentId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -1032,6 +1086,8 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
+    | '/api/v1/inbox/$itemId/discard'
+    | '/api/v1/inbox/$itemId/draft'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
@@ -1059,6 +1115,7 @@ export interface FileRouteTypes {
     | '/_app/accounts'
     | '/_app/contacts'
     | '/_app/dunning'
+    | '/_app/inbox'
     | '/_app/members'
     | '/_app/settings'
     | '/_app/'
@@ -1085,6 +1142,7 @@ export interface FileRouteTypes {
     | '/api/v1/entity'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
+    | '/api/v1/inbox'
     | '/api/v1/journal-entries'
     | '/api/v1/members'
     | '/api/v1/payment-batches'
@@ -1099,6 +1157,7 @@ export interface FileRouteTypes {
     | '/_app/vat/'
     | '/_app/vat/icp/$period'
     | '/api/v1/bank-match-rules/$ruleId'
+    | '/api/v1/documents/$documentId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -1125,6 +1184,8 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
+    | '/api/v1/inbox/$itemId/discard'
+    | '/api/v1/inbox/$itemId/draft'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
@@ -1160,12 +1221,14 @@ export interface RootRouteChildren {
   ApiV1EntityRoute: typeof ApiV1EntityRoute
   ApiV1FiscalYearsRoute: typeof ApiV1FiscalYearsRouteWithChildren
   ApiV1HealthRoute: typeof ApiV1HealthRoute
+  ApiV1InboxRoute: typeof ApiV1InboxRouteWithChildren
   ApiV1JournalEntriesRoute: typeof ApiV1JournalEntriesRouteWithChildren
   ApiV1MembersRoute: typeof ApiV1MembersRouteWithChildren
   ApiV1PaymentBatchesRoute: typeof ApiV1PaymentBatchesRouteWithChildren
   ApiV1PurchaseInvoicesRoute: typeof ApiV1PurchaseInvoicesRouteWithChildren
   ApiV1SalesInvoicesRoute: typeof ApiV1SalesInvoicesRouteWithChildren
   ApiV1TaxCodesRoute: typeof ApiV1TaxCodesRoute
+  ApiV1DocumentsDocumentIdRoute: typeof ApiV1DocumentsDocumentIdRoute
   ApiV1EntitiesEntityIdRoute: typeof ApiV1EntitiesEntityIdRoute
   ApiV1ExportsAuditFileRoute: typeof ApiV1ExportsAuditFileRoute
   ApiV1ImportsAuditFileRoute: typeof ApiV1ImportsAuditFileRoute
@@ -1244,6 +1307,13 @@ declare module '@tanstack/react-router' {
       path: '/dunning'
       fullPath: '/dunning'
       preLoaderRoute: typeof AppDunningRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/inbox': {
+      id: '/_app/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AppInboxRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/members': {
@@ -1463,6 +1533,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/inbox': {
+      id: '/api/v1/inbox'
+      path: '/api/v1/inbox'
+      fullPath: '/api/v1/inbox'
+      preLoaderRoute: typeof ApiV1InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/journal-entries': {
       id: '/api/v1/journal-entries'
       path: '/api/v1/journal-entries'
@@ -1518,6 +1595,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/bank-match-rules/$ruleId'
       preLoaderRoute: typeof ApiV1BankMatchRulesRuleIdRouteImport
       parentRoute: typeof ApiV1BankMatchRulesRoute
+    }
+    '/api/v1/documents/$documentId': {
+      id: '/api/v1/documents/$documentId'
+      path: '/api/v1/documents/$documentId'
+      fullPath: '/api/v1/documents/$documentId'
+      preLoaderRoute: typeof ApiV1DocumentsDocumentIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/v1/entities/$entityId': {
       id: '/api/v1/entities/$entityId'
@@ -1701,6 +1785,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1BankTransactionsTransactionIdSuggestionsRouteImport
       parentRoute: typeof ApiV1BankTransactionsRoute
     }
+    '/api/v1/inbox/$itemId/discard': {
+      id: '/api/v1/inbox/$itemId/discard'
+      path: '/$itemId/discard'
+      fullPath: '/api/v1/inbox/$itemId/discard'
+      preLoaderRoute: typeof ApiV1InboxItemIdDiscardRouteImport
+      parentRoute: typeof ApiV1InboxRoute
+    }
+    '/api/v1/inbox/$itemId/draft': {
+      id: '/api/v1/inbox/$itemId/draft'
+      path: '/$itemId/draft'
+      fullPath: '/api/v1/inbox/$itemId/draft'
+      preLoaderRoute: typeof ApiV1InboxItemIdDraftRouteImport
+      parentRoute: typeof ApiV1InboxRoute
+    }
     '/api/v1/journal-entries/$entryId/reversal': {
       id: '/api/v1/journal-entries/$entryId/reversal'
       path: '/reversal'
@@ -1834,6 +1932,7 @@ interface AppRouteChildren {
   AppAccountsRoute: typeof AppAccountsRoute
   AppContactsRoute: typeof AppContactsRoute
   AppDunningRoute: typeof AppDunningRoute
+  AppInboxRoute: typeof AppInboxRoute
   AppMembersRoute: typeof AppMembersRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -1863,6 +1962,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAccountsRoute: AppAccountsRoute,
   AppContactsRoute: AppContactsRoute,
   AppDunningRoute: AppDunningRoute,
+  AppInboxRoute: AppInboxRoute,
   AppMembersRoute: AppMembersRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
@@ -1931,6 +2031,20 @@ const ApiV1FiscalYearsRouteChildren: ApiV1FiscalYearsRouteChildren = {
 
 const ApiV1FiscalYearsRouteWithChildren =
   ApiV1FiscalYearsRoute._addFileChildren(ApiV1FiscalYearsRouteChildren)
+
+interface ApiV1InboxRouteChildren {
+  ApiV1InboxItemIdDiscardRoute: typeof ApiV1InboxItemIdDiscardRoute
+  ApiV1InboxItemIdDraftRoute: typeof ApiV1InboxItemIdDraftRoute
+}
+
+const ApiV1InboxRouteChildren: ApiV1InboxRouteChildren = {
+  ApiV1InboxItemIdDiscardRoute: ApiV1InboxItemIdDiscardRoute,
+  ApiV1InboxItemIdDraftRoute: ApiV1InboxItemIdDraftRoute,
+}
+
+const ApiV1InboxRouteWithChildren = ApiV1InboxRoute._addFileChildren(
+  ApiV1InboxRouteChildren,
+)
 
 interface ApiV1JournalEntriesEntryIdRouteChildren {
   ApiV1JournalEntriesEntryIdReversalRoute: typeof ApiV1JournalEntriesEntryIdReversalRoute
@@ -2118,12 +2232,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1EntityRoute: ApiV1EntityRoute,
   ApiV1FiscalYearsRoute: ApiV1FiscalYearsRouteWithChildren,
   ApiV1HealthRoute: ApiV1HealthRoute,
+  ApiV1InboxRoute: ApiV1InboxRouteWithChildren,
   ApiV1JournalEntriesRoute: ApiV1JournalEntriesRouteWithChildren,
   ApiV1MembersRoute: ApiV1MembersRouteWithChildren,
   ApiV1PaymentBatchesRoute: ApiV1PaymentBatchesRouteWithChildren,
   ApiV1PurchaseInvoicesRoute: ApiV1PurchaseInvoicesRouteWithChildren,
   ApiV1SalesInvoicesRoute: ApiV1SalesInvoicesRouteWithChildren,
   ApiV1TaxCodesRoute: ApiV1TaxCodesRoute,
+  ApiV1DocumentsDocumentIdRoute: ApiV1DocumentsDocumentIdRoute,
   ApiV1EntitiesEntityIdRoute: ApiV1EntitiesEntityIdRoute,
   ApiV1ExportsAuditFileRoute: ApiV1ExportsAuditFileRoute,
   ApiV1ImportsAuditFileRoute: ApiV1ImportsAuditFileRoute,

@@ -616,3 +616,35 @@ export type BookPurchaseInvoiceBody = z.infer<typeof bookPurchaseInvoiceBody>
 export type CapturePurchaseInvoiceBody = z.infer<typeof capturePurchaseInvoiceBody>
 export type TransitionPurchaseInvoiceBody = z.infer<typeof transitionPurchaseInvoiceBody>
 export type CreditorAgeingQuery = z.infer<typeof creditorAgeingQuery>
+
+/**
+ * Turning an inbox arrival into a draft.
+ *
+ * The supplier and the coding can be overridden, because the parse suggests and
+ * a human decides. The *amounts* cannot: those are the document's, and a field
+ * that let somebody change them here would be a field for making the books
+ * disagree with the paper.
+ */
+export const draftFromInboxBody = z.object({
+  contactNumber: z.string().min(1).nullable().default(null),
+  lines: z
+    .array(
+      z.object({
+        accountNumber: z.string().min(1).optional(),
+        taxCode: z.string().min(1).optional(),
+      }),
+    )
+    .optional(),
+})
+
+export const discardInboxItemBody = z.object({
+  reason: z.string().min(1, 'Say why. The next person has to know.'),
+})
+
+export const inboxQuery = z.object({
+  state: z.enum(['new', 'drafted', 'discarded']).optional(),
+})
+
+export type DraftFromInboxBody = z.infer<typeof draftFromInboxBody>
+export type DiscardInboxItemBody = z.infer<typeof discardInboxItemBody>
+export type InboxQuery = z.infer<typeof inboxQuery>
