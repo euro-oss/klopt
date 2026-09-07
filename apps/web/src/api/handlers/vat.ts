@@ -5,14 +5,16 @@ import {
   suppletieNeeded,
   vatDeadline,
   vatPeriodsIn,
+  type IcpFinding,
   type VatFinding,
   type VatPeriod,
   type VatReturn,
 } from '@klopt/core'
-import { withVatFiling, withVatRead } from '@klopt/db'
+import { withVat, withVatFiling, withVatRead } from '@klopt/db'
 import { hasPermission, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
-import type { FileVatReturnBody, ListVatPeriodsQuery } from '../schemas.js'
+import type { CheckVatNumbersBody, FileVatReturnBody, ListVatPeriodsQuery } from '../schemas.js'
+import { vatNumberValidator } from '../vat-number.js'
 
 /**
  * The BTW-aangifte over HTTP.
@@ -312,4 +314,158 @@ export async function handleFileVatReturn(context: RequestContext, body: FileVat
       },
     }
   })
+}
+
+function serialiseIcpFinding(finding: IcpFinding) {
+  return {
+    code: finding.code,
+    severity: finding.severity,
+    message: finding.message,
+    amount: finding.amountMinorUnits.toString(),
+    lines: finding.lines.map((line) => ({
+      entryId: line.entryId,
+      entryNumber: line.entryNumber,
+      journalCode: line.journalCode,
+      bookingDate: line.bookingDate,
+      lineNumber: line.lineNumber,
+      accountNumber: line.accountNumber,
+      accountName: line.accountName,
+      description: line.description,
+      taxCode: line.taxCode,
+      amount: line.amountMinorUnits.toString(),
+    })),
+  }
+}
+
+export async function handleGetIcp(context: RequestContext, periodCode: string) {
+  requirePermission(context, 'ledger:read')
+  const period = parseVatPeriodCode(periodCode)
+
+  return withVatRead(context.database, async (repository) => {
+    const icp = await repository.buildIcp({
+      entityId: context.entityId,
+      from: period.from,
+      to: period.to,
+    })
+
+    return {
+      status: 200,
+      body: {
+        period: {
+          code: period.code,
+          label: period.label,
+          kind: period.kind,
+          from: period.from,
+          to: period.to,
+          deadline: vatDeadline(period),
+        },
+        entries: icp.entries.map((entry) => ({
+          vatNumber: entry.vatNumber,
+          countryCode: entry.countryCode,
+          contactNumber: entry.contactNumber,
+          contactName: entry.contactName,
+          goods: entry.goodsMinorUnits.toString(),
+          services: entry.servicesMinorUnits.toString(),
+          total: entry.totalMinorUnits.toString(),
+          proof: entry.proof,
+          lineCount: entry.lines.length,
+        })),
+        goods: icp.goodsMinorUnits.toString(),
+        services: icp.servicesMinorUnits.toString(),
+        total: icp.totalMinorUnits.toString(),
+        rubriek3b: icp.rubriek3bMinorUnits.toString(),
+        difference: icp.differenceMinorUnits.toString(),
+        findings: icp.findings.map(serialiseIcpFinding),
+        blocked: icp.blocked,
+      },
+    }
+  })
+}
+
+/**
+ * Ask VIES and keep the answer.
+ *
+ * A write, even though it reads somebody else's register: the answer and the
+ * moment it was given become this entity's evidence for a zero rate. The
+ * validator never throws — an unreachable register is recorded as
+ * `unavailable`, which is a different fact from "we did not ask" and only one
+ * of the two is anybody's fault.
+ */
+export async function handleCheckVatNumbers(context: RequestContext, body: CheckVatNumbersBody) {
+  requirePermission(context, 'ledger:configure')
+  const idempotencyKey = requireIdempotencyKey(context)
+
+  const { requesterVatNumber, replay } = await withVatRead(
+    context.database,
+    async (repository) => ({
+      requesterVatNumber: await repository.ownVatNumber(context.entityId),
+      replay: await repository.checksForKey(context.entityId, idempotencyKey),
+    }),
+  )
+
+  // A retry replays what was already recorded. VIES is a shared public
+  // register and a client retrying a timeout should not become two
+  // consultations, nor two rows in the evidence history.
+  if (replay.length > 0) {
+    return {
+      status: 200,
+      body: {
+        source: replay[0]?.source ?? 'replay',
+        replayed: true,
+        provenByConsultationNumber: replay.every((check) => check.requestIdentifier !== null),
+        checks: replay.map((check) => ({
+          vatNumber: check.vatNumber,
+          countryCode: check.countryCode,
+          outcome: check.outcome,
+          name: check.name,
+          address: check.address,
+          requestDate: check.requestDate,
+          requestIdentifier: check.requestIdentifier,
+          checkedAt: check.checkedAt,
+          source: check.source,
+          error: check.error,
+        })),
+      },
+    }
+  }
+
+  const validator = vatNumberValidator()
+  const checks = await Promise.all(
+    body.vatNumbers.map((vatNumber) => validator.check({ vatNumber, requesterVatNumber })),
+  )
+
+  await withVat(context.database, async (repository) => {
+    for (const check of checks) {
+      await repository.recordVatNumberCheck({
+        entityId: context.entityId,
+        check,
+        requestedBy: context.actor.id,
+        idempotencyKey,
+      })
+    }
+  })
+
+  return {
+    status: 200,
+    body: {
+      source: validator.name,
+      replayed: false,
+      // Said out loud rather than buried: without the entity's own VAT number
+      // VIES returns no consultation number, and the consultation number is
+      // the only part of the answer that proves anything to anybody.
+      provenByConsultationNumber: checks.every((check) => check.requestIdentifier !== null),
+      checks: checks.map((check) => ({
+        vatNumber: check.vatNumber,
+        countryCode: check.countryCode,
+        outcome: check.outcome,
+        name: check.name,
+        address: check.address,
+        requestDate: check.requestDate,
+        requestIdentifier: check.requestIdentifier,
+        checkedAt: check.checkedAt,
+        source: check.source,
+        error: check.error,
+      })),
+    },
+  }
 }

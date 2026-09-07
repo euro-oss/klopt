@@ -36,6 +36,7 @@ export {
   type FilingSummary,
   type RecordFilingRequest,
   type StoredFiling,
+  type VatNumberCheckRow,
   type VatPeriodQuery,
   VatRepository,
 } from './repositories/vat.js'
@@ -78,6 +79,7 @@ export {
   withSetup,
   withXafExport,
   withYearClose,
+  withVat,
   withVatRead,
   withVatFiling,
 } from './unit-of-work.js'

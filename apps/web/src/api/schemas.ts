@@ -538,3 +538,14 @@ export const fileVatReturnBody = z
 
 export type ListVatPeriodsQuery = z.infer<typeof listVatPeriodsQuery>
 export type FileVatReturnBody = z.infer<typeof fileVatReturnBody>
+
+/**
+ * VAT numbers to check. A list rather than one, because the ICP screen's whole
+ * job is "check all of these", and a hundred sequential round trips to VIES is
+ * a worse idea than one request that fans out.
+ */
+export const checkVatNumbersBody = z.object({
+  vatNumbers: z.array(z.string().min(4)).min(1).max(50),
+})
+
+export type CheckVatNumbersBody = z.infer<typeof checkVatNumbersBody>

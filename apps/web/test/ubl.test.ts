@@ -183,6 +183,23 @@ describe('an administration that has been', () => {
     expect(result.xml).toContain('<cbc:PayableAmount currencyID="EUR">1210.00<')
   })
 
+  it('writes the tax category code exactly, with no padding', async () => {
+    // The regression test for a bug every UBL generated from the database
+    // carried since M1: `ubl_category` was `char(2)`, Postgres blank-pads
+    // `character(n)`, and so a one-letter code came back over the wire as
+    // `'S '`. `<cbc:ID>S </cbc:ID>` is not a code in UNCL5305, which is what
+    // BR-CL-18 checks. The golden UBL tests build their fixture by hand and so
+    // never saw it, and both `length()` and `::text` strip the padding, so psql
+    // showed `S` and only the driver knew.
+    const invoiceId = await anIssuedInvoice(await aCustomer())
+    const result = await handleGetInvoiceUbl(await contextFor(), invoiceId)
+
+    expect(result.xml).toContain('<cbc:ID>S</cbc:ID>')
+    expect(result.xml).not.toMatch(/<cbc:ID>[A-Z]+ +<\/cbc:ID>/)
+    // No element anywhere ends in whitespace before its closing tag.
+    expect(result.xml).not.toMatch(/ <\/cbc:/)
+  })
+
   it('defaults the electronic address to the KvK number in scheme 0106', async () => {
     const invoiceId = await anIssuedInvoice(await aCustomer())
     const result = await handleGetInvoiceUbl(await contextFor(), invoiceId)

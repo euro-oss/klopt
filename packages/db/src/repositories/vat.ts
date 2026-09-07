@@ -1,8 +1,16 @@
 import {
+  buildIcpReturn,
   buildVatReturn,
+  feedsIcp,
+  parseVatNumber,
+  ruleInForce,
   uuidv7,
+  type IcpJournalLine,
+  type IcpProof,
+  type IcpReturn,
   type TaxCodeRule,
   type VatJournalLine,
+  type VatNumberCheck,
   type VatReturn,
 } from '@klopt/core'
 import { and, asc, desc, eq, gte, inArray, isNotNull, lte, or } from 'drizzle-orm'
@@ -17,6 +25,8 @@ import {
 } from '../schema/ledger.js'
 import { taxCodes } from '../schema/sales.js'
 import { vatFilings } from '../schema/vat.js'
+import { vatNumberChecks } from '../schema/icp.js'
+import { contacts } from '../schema/sales.js'
 
 /**
  * Reading the journal for the BTW-aangifte.
@@ -112,6 +122,10 @@ export class VatRepository {
         accountNumber: accounts.number,
         accountName: accounts.name,
         description: journalLines.description,
+        // A line need not have its own description, and a reconciliation
+        // report that names a line as '' names nothing. The entry's
+        // description is what a bookkeeper would have called it.
+        entryDescription: journalEntries.description,
         taxCode: journalLines.taxCode,
         taxRole: journalLines.taxRole,
         debit: journalLines.functionalDebitMinorUnits,
@@ -145,7 +159,7 @@ export class VatRepository {
       lineNumber: row.lineNumber,
       accountNumber: row.accountNumber,
       accountName: row.accountName,
-      description: row.description ?? '',
+      description: row.description ?? row.entryDescription,
       taxCode: row.taxCode,
       taxRole: row.taxRole,
       // The functional amounts, because the return is in euro whatever the
@@ -168,6 +182,313 @@ export class VatRepository {
       rules,
       controlAccountNumbers,
     })
+  }
+
+  /**
+   * The customer of each entry, where there is exactly one.
+   *
+   * The subledger link lives on the *receivable* line, not on the revenue line
+   * — which is correct, because the debtors ledger sums by subledger and
+   * tagging both would double every balance. But the ICP opgaaf needs the
+   * customer of the *supply*, and the supply is the revenue line. So the
+   * counterparty is a property of the entry, resolved once and attached to
+   * every line of it. A bookkeeper reads it the same way: the invoice is the
+   * entry, and the entry has one customer.
+   *
+   * Exactly one: an entry touching two debtors — a memoriaal moving a balance
+   * between them — cannot say which one an intra-community supply belongs to,
+   * so it resolves to nothing and blocks. Guessing would put somebody else's
+   * turnover under somebody else's VAT number in a filing the Belastingdienst
+   * cross-checks against what that customer declared.
+   */
+  private async customersByEntry(
+    query: VatPeriodQuery,
+  ): Promise<
+    Map<string, { number: string; name: string; vatNumber: string | null; countryCode: string }>
+  > {
+    const rows = await this.tx
+      .select({
+        entryId: journalLines.entryId,
+        contactId: contacts.id,
+        number: contacts.number,
+        name: contacts.name,
+        vatNumber: contacts.vatNumber,
+        countryCode: contacts.countryCode,
+      })
+      .from(journalLines)
+      .innerJoin(journalEntries, eq(journalEntries.id, journalLines.entryId))
+      .innerJoin(contacts, eq(contacts.id, journalLines.subledgerId))
+      .where(
+        and(
+          eq(journalEntries.entityId, query.entityId),
+          gte(journalEntries.bookingDate, query.from),
+          lte(journalEntries.bookingDate, query.to),
+          eq(journalLines.subledgerKind, 'customer'),
+        ),
+      )
+
+    const byEntry = new Map<
+      string,
+      { number: string; name: string; vatNumber: string | null; countryCode: string } | null
+    >()
+    const contactIds = new Map<string, string>()
+
+    for (const row of rows) {
+      const seen = contactIds.get(row.entryId)
+      if (seen === undefined) {
+        contactIds.set(row.entryId, row.contactId)
+        byEntry.set(row.entryId, {
+          number: row.number,
+          name: row.name,
+          vatNumber: row.vatNumber,
+          countryCode: row.countryCode,
+        })
+      } else if (seen !== row.contactId) {
+        // Two customers in one entry. Ambiguous, so it resolves to nothing.
+        byEntry.set(row.entryId, null)
+      }
+    }
+
+    const resolved = new Map<
+      string,
+      { number: string; name: string; vatNumber: string | null; countryCode: string }
+    >()
+    for (const [entryId, contact] of byEntry) {
+      if (contact !== null) resolved.set(entryId, contact)
+    }
+    return resolved
+  }
+
+  /**
+   * The period's tax-coded lines with the entry's counterparty attached.
+   *
+   * A supply whose entry has no customer comes back with nulls rather than
+   * being filtered out: that is the case that makes the opgaaf disagree with
+   * rubriek 3b, and it has to be reportable.
+   */
+  async icpLines(query: VatPeriodQuery): Promise<IcpJournalLine[]> {
+    const rows = await this.tx
+      .select({
+        entryId: journalEntries.id,
+        entryNumber: journalEntries.entryNumber,
+        journalCode: journals.code,
+        bookingDate: journalEntries.bookingDate,
+        lineNumber: journalLines.lineNumber,
+        accountNumber: accounts.number,
+        accountName: accounts.name,
+        description: journalLines.description,
+        // A line need not have its own description, and a reconciliation
+        // report that names a line as '' names nothing. The entry's
+        // description is what a bookkeeper would have called it.
+        entryDescription: journalEntries.description,
+        taxCode: journalLines.taxCode,
+        taxRole: journalLines.taxRole,
+        debit: journalLines.functionalDebitMinorUnits,
+        credit: journalLines.functionalCreditMinorUnits,
+      })
+      .from(journalLines)
+      .innerJoin(journalEntries, eq(journalEntries.id, journalLines.entryId))
+      .innerJoin(accounts, eq(accounts.id, journalLines.accountId))
+      .innerJoin(journals, eq(journals.id, journalEntries.journalId))
+      .where(
+        and(
+          eq(journalEntries.entityId, query.entityId),
+          gte(journalEntries.bookingDate, query.from),
+          lte(journalEntries.bookingDate, query.to),
+          isNotNull(journalLines.taxCode),
+        ),
+      )
+      .orderBy(
+        asc(journalEntries.bookingDate),
+        asc(journalEntries.entryNumber),
+        asc(journalLines.lineNumber),
+      )
+
+    const customers = await this.customersByEntry(query)
+
+    return rows.map((row) => {
+      const customer = customers.get(row.entryId)
+      return {
+        entryId: row.entryId,
+        entryNumber: String(row.entryNumber),
+        journalCode: row.journalCode,
+        bookingDate: row.bookingDate,
+        lineNumber: row.lineNumber,
+        accountNumber: row.accountNumber,
+        accountName: row.accountName,
+        description: row.description ?? row.entryDescription,
+        taxCode: row.taxCode,
+        taxRole: row.taxRole,
+        signedMinorUnits: row.debit - row.credit,
+        counterpartyNumber: customer?.number ?? null,
+        counterpartyName: customer?.name ?? null,
+        counterpartyVatNumber: customer?.vatNumber ?? null,
+        counterpartyCountryCode: customer?.countryCode ?? null,
+      }
+    })
+  }
+
+  /**
+   * The newest VIES answer per VAT number.
+   *
+   * `DISTINCT ON` rather than a window function or a group-by: the table is
+   * append-only and the index is ordered to answer exactly this.
+   */
+  async latestProofs(entityId: string): Promise<Map<string, IcpProof>> {
+    const rows = await this.tx
+      .selectDistinctOn([vatNumberChecks.vatNumber], {
+        vatNumber: vatNumberChecks.vatNumber,
+        outcome: vatNumberChecks.outcome,
+        checkedAt: vatNumberChecks.checkedAt,
+        requestIdentifier: vatNumberChecks.requestIdentifier,
+        source: vatNumberChecks.source,
+      })
+      .from(vatNumberChecks)
+      .where(eq(vatNumberChecks.entityId, entityId))
+      .orderBy(asc(vatNumberChecks.vatNumber), desc(vatNumberChecks.checkedAt))
+
+    return new Map(
+      rows.map((row) => [
+        row.vatNumber,
+        {
+          outcome: row.outcome,
+          checkedAt: row.checkedAt.toISOString(),
+          requestIdentifier: row.requestIdentifier,
+          source: row.source,
+        },
+      ]),
+    )
+  }
+
+  /** Every check for a number, newest first. The history, not the answer. */
+  async proofHistory(entityId: string, vatNumber: string): Promise<VatNumberCheckRow[]> {
+    const rows = await this.tx
+      .select()
+      .from(vatNumberChecks)
+      .where(and(eq(vatNumberChecks.entityId, entityId), eq(vatNumberChecks.vatNumber, vatNumber)))
+      .orderBy(desc(vatNumberChecks.checkedAt))
+      .limit(50)
+
+    return rows.map((row) => ({
+      id: row.id,
+      vatNumber: row.vatNumber,
+      countryCode: row.countryCode,
+      outcome: row.outcome,
+      name: row.name,
+      address: row.address,
+      requestDate: row.requestDate,
+      requestIdentifier: row.requestIdentifier,
+      checkedAt: row.checkedAt.toISOString(),
+      source: row.source,
+      error: row.error,
+      requestedBy: row.requestedBy,
+    }))
+  }
+
+  /**
+   * The answers already recorded under an idempotency key.
+   *
+   * A retried request replays these rather than asking VIES again — which is
+   * the idempotency a write owes its caller, and basic manners towards a
+   * public register.
+   */
+  async checksForKey(entityId: string, idempotencyKey: string): Promise<VatNumberCheckRow[]> {
+    const rows = await this.tx
+      .select()
+      .from(vatNumberChecks)
+      .where(
+        and(
+          eq(vatNumberChecks.entityId, entityId),
+          eq(vatNumberChecks.idempotencyKey, idempotencyKey),
+        ),
+      )
+      .orderBy(asc(vatNumberChecks.vatNumber))
+
+    return rows.map((row) => ({
+      id: row.id,
+      vatNumber: row.vatNumber,
+      countryCode: row.countryCode,
+      outcome: row.outcome,
+      name: row.name,
+      address: row.address,
+      requestDate: row.requestDate,
+      requestIdentifier: row.requestIdentifier,
+      checkedAt: row.checkedAt.toISOString(),
+      source: row.source,
+      error: row.error,
+      requestedBy: row.requestedBy,
+    }))
+  }
+
+  async recordVatNumberCheck(request: {
+    readonly entityId: string
+    readonly check: VatNumberCheck
+    readonly requestedBy: string
+    readonly idempotencyKey: string
+  }): Promise<void> {
+    await this.tx.insert(vatNumberChecks).values({
+      id: uuidv7(),
+      entityId: request.entityId,
+      idempotencyKey: request.idempotencyKey,
+      vatNumber: request.check.vatNumber,
+      countryCode: request.check.countryCode,
+      outcome: request.check.outcome,
+      name: request.check.name,
+      address: request.check.address,
+      requestDate: request.check.requestDate,
+      requestIdentifier: request.check.requestIdentifier,
+      checkedAt: new Date(request.check.checkedAt),
+      source: request.check.source,
+      raw: request.check.raw,
+      error: request.check.error,
+      requestedBy: request.requestedBy,
+    })
+  }
+
+  /** Counterparties with an intra-community supply in the period. */
+  async icpCounterpartyNumbers(query: VatPeriodQuery): Promise<string[]> {
+    const [lines, rules] = await Promise.all([this.icpLines(query), this.rules(query.entityId)])
+    const numbers = new Set<string>()
+
+    for (const line of lines) {
+      if (line.taxCode === null || line.taxRole !== 'base') continue
+      const rule = ruleInForce(rules, line.taxCode, line.bookingDate)
+      if (rule === undefined || !feedsIcp(rule)) continue
+      const parsed =
+        line.counterpartyVatNumber === null ? null : parseVatNumber(line.counterpartyVatNumber)
+      if (parsed !== null) numbers.add(parsed.normalised)
+    }
+
+    return [...numbers].sort((a, b) => a.localeCompare(b))
+  }
+
+  async buildIcp(query: VatPeriodQuery): Promise<IcpReturn> {
+    const [lines, rules, vatReturn, proofs] = await Promise.all([
+      this.icpLines(query),
+      this.rules(query.entityId),
+      this.buildReturn(query),
+      this.latestProofs(query.entityId),
+    ])
+
+    return buildIcpReturn({
+      periodFrom: query.from,
+      periodTo: query.to,
+      lines,
+      rules,
+      vatReturn,
+      proofs,
+    })
+  }
+
+  /** The entity's own VAT number. Without it VIES returns no proof. */
+  async ownVatNumber(entityId: string): Promise<string | null> {
+    const [row] = await this.tx
+      .select({ vatNumber: entities.vatNumber })
+      .from(entities)
+      .where(eq(entities.id, entityId))
+      .limit(1)
+
+    return row?.vatNumber ?? null
   }
 
   async periodKind(entityId: string): Promise<'monthly' | 'quarterly' | 'annual'> {
@@ -334,6 +655,21 @@ function jsonWithMinorUnits(value: unknown): unknown {
       typeof entry === 'bigint' ? entry.toString() : entry,
     ),
   ) as unknown
+}
+
+export interface VatNumberCheckRow {
+  readonly id: string
+  readonly vatNumber: string
+  readonly countryCode: string
+  readonly outcome: 'valid' | 'invalid' | 'unavailable'
+  readonly name: string | null
+  readonly address: string | null
+  readonly requestDate: string | null
+  readonly requestIdentifier: string | null
+  readonly checkedAt: string
+  readonly source: string
+  readonly error: string | null
+  readonly requestedBy: string | null
 }
 
 export interface FilingSummary {

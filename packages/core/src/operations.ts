@@ -620,6 +620,29 @@ export const vatOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  getIcp: defineOperation({
+    id: 'vat.getIcp',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary:
+      'The ICP opgaaf for a period, per counterparty, cross-checked against rubriek 3b with the VIES proof for each number.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  checkVatNumber: defineOperation({
+    id: 'vat.checkVatNumber',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary:
+      'Ask VIES about a counterparty VAT number and store what it said, which is the evidence for the zero rate.',
+    // A read of somebody else's register, but a write here: the answer and when
+    // it was given become part of the entity's evidence. Idempotent by the
+    // key, which replays the stored answers rather than asking VIES twice.
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
   fileReturn: defineOperation({
     id: 'vat.fileReturn',
     kind: 'write',

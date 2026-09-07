@@ -49,6 +49,7 @@ import { Route as ApiV1MembersRouteImport } from './routes/api/v1/members'
 import { Route as ApiV1PaymentBatchesRouteImport } from './routes/api/v1/payment-batches'
 import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-invoices'
 import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
+import { Route as AppVatIcpPeriodRouteImport } from './routes/_app/vat.icp.$period'
 import { Route as ApiV1BankMatchRulesRuleIdRouteImport } from './routes/api/v1/bank-match-rules.$ruleId'
 import { Route as ApiV1EntitiesEntityIdRouteImport } from './routes/api/v1/entities.$entityId'
 import { Route as ApiV1ExportsAuditFileRouteImport } from './routes/api/v1/exports.audit-file'
@@ -69,6 +70,7 @@ import { Route as ApiV1RgsUpgradePreviewRouteImport } from './routes/api/v1/rgs.
 import { Route as ApiV1SalesInvoicesInvoiceIdRouteImport } from './routes/api/v1/sales-invoices.$invoiceId'
 import { Route as ApiV1SetupChartsRouteImport } from './routes/api/v1/setup.charts'
 import { Route as ApiV1VatFilingsRouteImport } from './routes/api/v1/vat.filings'
+import { Route as ApiV1VatNumberChecksRouteImport } from './routes/api/v1/vat.number-checks'
 import { Route as ApiV1VatPeriodsRouteImport } from './routes/api/v1/vat.periods'
 import { Route as ApiV1BankTransactionsTransactionIdIgnoreRouteImport } from './routes/api/v1/bank-transactions.$transactionId.ignore'
 import { Route as ApiV1BankTransactionsTransactionIdMatchRouteImport } from './routes/api/v1/bank-transactions.$transactionId.match'
@@ -83,6 +85,7 @@ import { Route as ApiV1SalesInvoicesInvoiceIdPdfRouteImport } from './routes/api
 import { Route as ApiV1SalesInvoicesInvoiceIdRemindersRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.reminders'
 import { Route as ApiV1SalesInvoicesInvoiceIdSendRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.send'
 import { Route as ApiV1SalesInvoicesInvoiceIdUblRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.ubl'
+import { Route as ApiV1VatIcpPeriodRouteImport } from './routes/api/v1/vat.icp.$period'
 import { Route as ApiV1VatReturnsPeriodRouteImport } from './routes/api/v1/vat.returns.$period'
 import { Route as ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRouteImport } from './routes/api/v1/payment-batches.$batchId.instructions.$instructionId'
 
@@ -285,6 +288,11 @@ const ApiV1TaxCodesRoute = ApiV1TaxCodesRouteImport.update({
   path: '/api/v1/tax-codes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppVatIcpPeriodRoute = AppVatIcpPeriodRouteImport.update({
+  id: '/vat/icp/$period',
+  path: '/vat/icp/$period',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiV1BankMatchRulesRuleIdRoute =
   ApiV1BankMatchRulesRuleIdRouteImport.update({
     id: '/$ruleId',
@@ -394,6 +402,11 @@ const ApiV1VatFilingsRoute = ApiV1VatFilingsRouteImport.update({
   path: '/api/v1/vat/filings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1VatNumberChecksRoute = ApiV1VatNumberChecksRouteImport.update({
+  id: '/api/v1/vat/number-checks',
+  path: '/api/v1/vat/number-checks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1VatPeriodsRoute = ApiV1VatPeriodsRouteImport.update({
   id: '/api/v1/vat/periods',
   path: '/api/v1/vat/periods',
@@ -477,6 +490,11 @@ const ApiV1SalesInvoicesInvoiceIdUblRoute =
     path: '/ubl',
     getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
   } as any)
+const ApiV1VatIcpPeriodRoute = ApiV1VatIcpPeriodRouteImport.update({
+  id: '/api/v1/vat/icp/$period',
+  path: '/api/v1/vat/icp/$period',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1VatReturnsPeriodRoute = ApiV1VatReturnsPeriodRouteImport.update({
   id: '/api/v1/vat/returns/$period',
   path: '/api/v1/vat/returns/$period',
@@ -529,6 +547,7 @@ export interface FileRoutesByFullPath {
   '/invoices/': typeof AppInvoicesIndexRoute
   '/payments/': typeof AppPaymentsIndexRoute
   '/vat/': typeof AppVatIndexRoute
+  '/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
@@ -549,6 +568,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRoute
+  '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
@@ -563,6 +583,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/sales-invoices/$invoiceId/reminders': typeof ApiV1SalesInvoicesInvoiceIdRemindersRoute
   '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
+  '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
   '/api/v1/payment-batches/$batchId/instructions/$instructionId': typeof ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute
 }
@@ -606,6 +627,7 @@ export interface FileRoutesByTo {
   '/invoices': typeof AppInvoicesIndexRoute
   '/payments': typeof AppPaymentsIndexRoute
   '/vat': typeof AppVatIndexRoute
+  '/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
@@ -626,6 +648,7 @@ export interface FileRoutesByTo {
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRoute
+  '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
@@ -640,6 +663,7 @@ export interface FileRoutesByTo {
   '/api/v1/sales-invoices/$invoiceId/reminders': typeof ApiV1SalesInvoicesInvoiceIdRemindersRoute
   '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
+  '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
   '/api/v1/payment-batches/$batchId/instructions/$instructionId': typeof ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute
 }
@@ -685,6 +709,7 @@ export interface FileRoutesById {
   '/_app/invoices/': typeof AppInvoicesIndexRoute
   '/_app/payments/': typeof AppPaymentsIndexRoute
   '/_app/vat/': typeof AppVatIndexRoute
+  '/_app/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
@@ -705,6 +730,7 @@ export interface FileRoutesById {
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRoute
+  '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
@@ -719,6 +745,7 @@ export interface FileRoutesById {
   '/api/v1/sales-invoices/$invoiceId/reminders': typeof ApiV1SalesInvoicesInvoiceIdRemindersRoute
   '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
+  '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
   '/api/v1/payment-batches/$batchId/instructions/$instructionId': typeof ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute
 }
@@ -764,6 +791,7 @@ export interface FileRouteTypes {
     | '/invoices/'
     | '/payments/'
     | '/vat/'
+    | '/vat/icp/$period'
     | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
@@ -784,6 +812,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
     | '/api/v1/vat/filings'
+    | '/api/v1/vat/number-checks'
     | '/api/v1/vat/periods'
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
@@ -798,6 +827,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId/reminders'
     | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
+    | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
     | '/api/v1/payment-batches/$batchId/instructions/$instructionId'
   fileRoutesByTo: FileRoutesByTo
@@ -841,6 +871,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/payments'
     | '/vat'
+    | '/vat/icp/$period'
     | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
@@ -861,6 +892,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
     | '/api/v1/vat/filings'
+    | '/api/v1/vat/number-checks'
     | '/api/v1/vat/periods'
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
@@ -875,6 +907,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId/reminders'
     | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
+    | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
     | '/api/v1/payment-batches/$batchId/instructions/$instructionId'
   id:
@@ -919,6 +952,7 @@ export interface FileRouteTypes {
     | '/_app/invoices/'
     | '/_app/payments/'
     | '/_app/vat/'
+    | '/_app/vat/icp/$period'
     | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
@@ -939,6 +973,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
     | '/api/v1/vat/filings'
+    | '/api/v1/vat/number-checks'
     | '/api/v1/vat/periods'
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
@@ -953,6 +988,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId/reminders'
     | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
+    | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
     | '/api/v1/payment-batches/$batchId/instructions/$instructionId'
   fileRoutesById: FileRoutesById
@@ -991,7 +1027,9 @@ export interface RootRouteChildren {
   ApiV1RgsUpgradePreviewRoute: typeof ApiV1RgsUpgradePreviewRoute
   ApiV1SetupChartsRoute: typeof ApiV1SetupChartsRoute
   ApiV1VatFilingsRoute: typeof ApiV1VatFilingsRoute
+  ApiV1VatNumberChecksRoute: typeof ApiV1VatNumberChecksRoute
   ApiV1VatPeriodsRoute: typeof ApiV1VatPeriodsRoute
+  ApiV1VatIcpPeriodRoute: typeof ApiV1VatIcpPeriodRoute
   ApiV1VatReturnsPeriodRoute: typeof ApiV1VatReturnsPeriodRoute
 }
 
@@ -1277,6 +1315,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1TaxCodesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/vat/icp/$period': {
+      id: '/_app/vat/icp/$period'
+      path: '/vat/icp/$period'
+      fullPath: '/vat/icp/$period'
+      preLoaderRoute: typeof AppVatIcpPeriodRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/v1/bank-match-rules/$ruleId': {
       id: '/api/v1/bank-match-rules/$ruleId'
       path: '/$ruleId'
@@ -1417,6 +1462,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1VatFilingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/vat/number-checks': {
+      id: '/api/v1/vat/number-checks'
+      path: '/api/v1/vat/number-checks'
+      fullPath: '/api/v1/vat/number-checks'
+      preLoaderRoute: typeof ApiV1VatNumberChecksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/vat/periods': {
       id: '/api/v1/vat/periods'
       path: '/api/v1/vat/periods'
@@ -1515,6 +1567,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdUblRouteImport
       parentRoute: typeof ApiV1SalesInvoicesInvoiceIdRoute
     }
+    '/api/v1/vat/icp/$period': {
+      id: '/api/v1/vat/icp/$period'
+      path: '/api/v1/vat/icp/$period'
+      fullPath: '/api/v1/vat/icp/$period'
+      preLoaderRoute: typeof ApiV1VatIcpPeriodRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/vat/returns/$period': {
       id: '/api/v1/vat/returns/$period'
       path: '/api/v1/vat/returns/$period'
@@ -1554,6 +1613,7 @@ interface AppRouteChildren {
   AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
   AppPaymentsIndexRoute: typeof AppPaymentsIndexRoute
   AppVatIndexRoute: typeof AppVatIndexRoute
+  AppVatIcpPeriodRoute: typeof AppVatIcpPeriodRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1578,6 +1638,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInvoicesIndexRoute: AppInvoicesIndexRoute,
   AppPaymentsIndexRoute: AppPaymentsIndexRoute,
   AppVatIndexRoute: AppVatIndexRoute,
+  AppVatIcpPeriodRoute: AppVatIcpPeriodRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -1782,7 +1843,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RgsUpgradePreviewRoute: ApiV1RgsUpgradePreviewRoute,
   ApiV1SetupChartsRoute: ApiV1SetupChartsRoute,
   ApiV1VatFilingsRoute: ApiV1VatFilingsRoute,
+  ApiV1VatNumberChecksRoute: ApiV1VatNumberChecksRoute,
   ApiV1VatPeriodsRoute: ApiV1VatPeriodsRoute,
+  ApiV1VatIcpPeriodRoute: ApiV1VatIcpPeriodRoute,
   ApiV1VatReturnsPeriodRoute: ApiV1VatReturnsPeriodRoute,
 }
 export const routeTree = rootRouteImport

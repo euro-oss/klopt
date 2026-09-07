@@ -124,9 +124,18 @@ function VatReturnScreen() {
         title={`BTW-aangifte ${data.period.label}`}
         description={`${formatDate(data.period.from)} tot en met ${formatDate(data.period.to)}. Uiterlijk indienen op ${formatDate(data.period.deadline)}.`}
         actions={
-          <Link to="/vat" className="text-sm underline">
-            Alle periodes
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/vat/icp/$period"
+              params={{ period: data.period.code }}
+              className="text-sm underline"
+            >
+              ICP-opgaaf
+            </Link>
+            <Link to="/vat" className="text-sm underline">
+              Alle periodes
+            </Link>
+          </div>
         }
       />
 

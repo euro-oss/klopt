@@ -221,6 +221,19 @@ export async function withVatRead<T>(
 }
 
 /**
+ * Recording a VIES answer.
+ *
+ * A write, so its own unit of work: the check happened whatever else does, and
+ * an outage that loses the record loses the evidence rather than the answer.
+ */
+export async function withVat<T>(
+  database: Database,
+  work: (repository: VatRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new VatRepository(tx)))
+}
+
+/**
  * Filing, in one transaction.
  *
  * The snapshot, the supersede of the filing it corrects and the period lock go

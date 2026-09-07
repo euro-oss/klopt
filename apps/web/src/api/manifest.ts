@@ -386,6 +386,18 @@ export const routeManifest: readonly RouteBinding[] = [
     path: '/vat/filings',
     module: 'api/v1/vat.filings.ts',
   },
+  {
+    operationId: 'vat.getIcp',
+    method: 'GET',
+    path: '/vat/icp/{period}',
+    module: 'api/v1/vat.icp.$period.ts',
+  },
+  {
+    operationId: 'vat.checkVatNumber',
+    method: 'POST',
+    path: '/vat/number-checks',
+    module: 'api/v1/vat.number-checks.ts',
+  },
 ]
 
 export interface ContractViolation {

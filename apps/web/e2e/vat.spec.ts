@@ -142,3 +142,61 @@ test('a hand-typed movement on a BTW account has to be accepted, with a reason',
 
   await expect(page.getByText(/Ingediend op/)).toBeVisible()
 })
+
+test('the ICP opgaaf cross-checks 3b and refuses an unproven VAT number', async ({ page }) => {
+  await anAdministration(page, 'ICP BV')
+
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('DEB-EU-1')
+  await page.getByLabel('Naam', { exact: true }).fill('Kunde GmbH')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('DE123456789')
+  await page.getByLabel('E-mail').fill('einkauf@kunde.de')
+  await page.getByLabel('Straat').fill('Hauptstrasse')
+  await page.getByLabel('Huisnr.').fill('1')
+  await page.getByLabel('Postcode').fill('10115')
+  await page.getByLabel('Plaats').fill('Berlin')
+  await page.getByLabel('Land').fill('DE')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('cell', { name: 'Kunde GmbH' })).toBeVisible()
+
+  await page.goto('/invoices/new')
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
+  await page.getByLabel('Klant', { exact: true }).selectOption('DEB-EU-1')
+  await page.getByLabel('Factuurdatum').fill('2026-02-20')
+  await page.getByLabel('Omschrijving regel 1').fill('Levering naar Duitsland')
+  await page.getByLabel('Aantal regel 1').fill('1')
+  await page.getByLabel('Prijs regel 1').fill('1000,00')
+  await page.getByLabel('Btw regel 1').selectOption('ICP')
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+
+  // The aangifte declares it in 3b with no VAT.
+  await page.goto('/vat/2026-Q1')
+  const aangifte = page.getByRole('table', { name: 'Rubrieken van de BTW-aangifte' })
+  await expect(aangifte.getByRole('row').filter({ hasText: 'binnen de EU' }).first()).toContainText(
+    '1.000,00',
+  )
+
+  await page.getByRole('link', { name: 'ICP-opgaaf' }).click()
+  await expect(page.getByRole('heading', { name: 'ICP-opgaaf 1e kwartaal 2026' })).toBeVisible()
+
+  // The opgaaf and 3b agree — same lines, two angles.
+  await expect(page.getByText('sluit aan')).toBeVisible()
+  const row = page.getByRole('row').filter({ hasText: 'DE123456789' })
+  await expect(row).toContainText('Kunde GmbH')
+  await expect(row).toContainText('1.000,00')
+
+  // And it is still not fileable, because nothing has confirmed the number.
+  await expect(row).toContainText('nooit gecontroleerd')
+  await expect(page.getByText('Btw-nummer niet bij VIES gecontroleerd')).toBeVisible()
+
+  // A fresh install has no VIES connection, and says so rather than pretending.
+  // This is spec 8's rule 1: the default needs no third party, and it is honest
+  // about what it therefore cannot prove.
+  await page.getByRole('button', { name: /bij VIES controleren/ }).click()
+  await expect(page.getByText(/geen VIES-verbinding geconfigureerd/)).toBeVisible()
+  await expect(page.getByText('Btw-nummer niet bij VIES gecontroleerd')).toBeVisible()
+})

@@ -145,9 +145,14 @@ export const taxCodes = klopt.table(
     isReverseCharge: boolean('is_reverse_charge').notNull().default(false),
     /**
      * The UBL/Peppol category: S standard, Z zero, E exempt, AE reverse charge,
-     * K intra-community, G export. Needed by NLCIUS from the first invoice.
+     * K intra-community, G export, O out of scope.
+     *
+     * `text`, not `char(2)`: the codes are one *or* two characters, and
+     * `character(n)` blank-pads, so `S` came back as `'S '` and every UBL
+     * generated from the database carried an invalid category code. See
+     * migration 0014.
      */
-    ublCategory: char('ubl_category', { length: 2 }).notNull().default('S'),
+    ublCategory: text('ubl_category').notNull().default('S'),
     /**
      * Which box on the BTW-aangifte the base and the VAT are declared in. Null
      * where the form has no box: a domestic purchase declares VAT in 5b and no
@@ -172,6 +177,7 @@ export const taxCodes = klopt.table(
     // reporting at the old rate. So a code is unique per validity window.
     unique('tax_codes_entity_code_from').on(table.entityId, table.code, table.validFrom),
     check('tax_codes_rate_range', sql`${table.rateBasisPoints} between 0 and 10000`),
+    check('tax_codes_ubl_category_shape', sql`${table.ublCategory} ~ '^[A-Z]{1,2}$'`),
     check(
       'tax_codes_pro_rata_share',
       sql`(${table.deductibility} = 'pro_rata') = (${table.proRataBasisPoints} is not null)`,

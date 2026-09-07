@@ -27,3 +27,13 @@ export {
   CONSENT_WARNING_DAYS,
   consentStateFor,
 } from './bank-feed.js'
+export {
+  type ParsedVatNumber,
+  type VatNumberCheck,
+  type VatNumberCheckRequest,
+  type VatNumberOutcome,
+  type VatNumberValidator,
+  isEuVatCountry,
+  normaliseVatNumber,
+  parseVatNumber,
+} from './vat-number.js'
