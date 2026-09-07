@@ -91,8 +91,14 @@ export interface MatchSuggestion {
   /**
    * Bank charges deducted from the payment: the invoice is settled in full and
    * the difference is a cost. Zero unless a charge was detected.
+   *
+   * Its account is a field of its own rather than reusing `accountNumber`. The
+   * two mean different things — one is "the rest of this line", the other is
+   * "the bit the bank kept" — and overloading one field would make every caller
+   * work out which case it was in.
    */
   readonly chargesAmount: bigint
+  readonly chargesAccountNumber: string | null
   readonly ruleId: string | null
 }
 
@@ -339,6 +345,7 @@ export function suggestMatches(
         accountNumber: null,
         contactId: candidate.contactId,
         chargesAmount: 0n,
+        chargesAccountNumber: null,
         ruleId: null,
       })
     } else if (charges !== null) {
@@ -355,9 +362,12 @@ export function suggestMatches(
             amount: candidate.outstanding * (incoming ? 1n : -1n),
           },
         ],
-        accountNumber: options.chargesAccountNumber,
+        // The invoice is settled in full, so nothing is left over and there is
+        // no remainder account. What the bank kept goes to the charges one.
+        accountNumber: null,
         contactId: candidate.contactId,
         chargesAmount: charges,
+        chargesAccountNumber: options.chargesAccountNumber,
         ruleId: null,
       })
     } else {
@@ -380,6 +390,7 @@ export function suggestMatches(
         accountNumber: null,
         contactId: candidate.contactId,
         chargesAmount: 0n,
+        chargesAccountNumber: null,
         ruleId: null,
       })
     }
@@ -404,6 +415,7 @@ export function suggestMatches(
       accountNumber: null,
       contactId: named[0]!.contactId,
       chargesAmount: 0n,
+      chargesAccountNumber: null,
       ruleId: null,
     })
   }
@@ -430,6 +442,7 @@ export function suggestMatches(
         accountNumber: null,
         contactId: candidate.contactId,
         chargesAmount: 0n,
+        chargesAccountNumber: null,
         ruleId: null,
       })
     } else if (exact.length > 1) {
@@ -445,6 +458,7 @@ export function suggestMatches(
         accountNumber: null,
         contactId: exact[0]!.contactId,
         chargesAmount: 0n,
+        chargesAccountNumber: null,
         ruleId: null,
       })
     } else if (byIban.length > 0) {
@@ -467,6 +481,7 @@ export function suggestMatches(
           accountNumber: null,
           contactId: byIban[0]!.contactId,
           chargesAmount: 0n,
+          chargesAccountNumber: null,
           ruleId: null,
         })
       }
@@ -494,6 +509,7 @@ export function suggestMatches(
       accountNumber: rule.accountNumber,
       contactId: rule.contactId,
       chargesAmount: 0n,
+      chargesAccountNumber: null,
       ruleId: rule.id,
     })
   }
@@ -542,6 +558,7 @@ export function suggestMatches(
         accountNumber: null,
         contactId: best.candidate.contactId,
         chargesAmount: 0n,
+        chargesAccountNumber: null,
         ruleId: null,
       })
     }

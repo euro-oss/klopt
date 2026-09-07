@@ -248,10 +248,11 @@ VAT and purchase are M3 and M4. M1 is complete: invoices go out by email with
 their UBL and PDF attached, and overdue ones are chased on a derived schedule
 ([0018](decisions/0018-dunning-stage-is-derived.md)).
 
-M2: CAMT.053 and MT940 import, deduplicated per entry, and a matching engine
-with learned rules ([0019](decisions/0019-matching-suggests.md)). Not built: a
-CSV mapper for the stragglers, `pain.001` outbound payments, and the matching
-UI beyond the transaction list — suggestions and confirmation are API-only.
+M2: CAMT.053 and MT940 import, deduplicated per entry, a matching engine with
+learned rules ([0019](decisions/0019-matching-suggests.md)), and a keyboard
+queue to work through — `↑↓` moves, `↵` books the best suggestion, `1`–`9` pick
+one, `x` skips. Not built: a CSV mapper for the banks that export neither
+format, and `pain.001` outbound payments with two-person approval.
 
 A Peppol access point is not built. It sits behind `EInvoiceTransport` and
 cannot be built without a service provider agreement and issued certificates

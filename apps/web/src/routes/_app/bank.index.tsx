@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
@@ -10,6 +10,8 @@ import {
   importStatement,
   listBankAccounts,
   listBankTransactions,
+  listMatchRules,
+  setMatchRuleActive,
 } from '~/server/bank'
 
 /**
@@ -21,10 +23,11 @@ import {
  * adds 3 and 39 are already there" is worth seeing before it happens rather
  * than after.
  */
-export const Route = createFileRoute('/_app/bank')({
+export const Route = createFileRoute('/_app/bank/')({
   loader: async () => ({
     accounts: await listBankAccounts(),
     transactions: await listBankTransactions({ data: { limit: 200 } }),
+    rules: await listMatchRules(),
   }),
   component: Bank,
 })
@@ -61,7 +64,7 @@ const CONSENT_LABEL: Record<string, string> = {
 }
 
 function Bank() {
-  const { accounts, transactions } = Route.useLoaderData()
+  const { accounts, transactions, rules } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
 
@@ -94,6 +97,19 @@ function Bank() {
     (total, account) => total + account.reconciliation.unmatchedCount,
     0,
   )
+  const learnedRules = rules.ok ? rules.data.rules : []
+
+  async function toggleRule(ruleId: string, isActive: boolean) {
+    setBusy(true)
+    setError(null)
+    const result = await setMatchRuleActive({ data: { ruleId, isActive } })
+    setBusy(false)
+    if (!result.ok) {
+      setError(result.problem.detail)
+      return
+    }
+    await router.invalidate()
+  }
 
   async function chooseFile(accountId: string, file: File) {
     setBusy(true)
@@ -227,16 +243,26 @@ function Bank() {
         title="Bank"
         description="Rekeningen, afschriften en wat er binnenkwam."
         actions={
-          <button
-            type="button"
-            disabled={!hydrated}
-            onClick={() => {
-              setShowAccountForm((value) => !value)
-            }}
-            className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
-          >
-            {showAccountForm ? 'Annuleren' : 'Rekening toevoegen'}
-          </button>
+          <>
+            {unmatched > 0 && (
+              <Link
+                to="/bank/match"
+                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
+              >
+                {unmatched} koppelen
+              </Link>
+            )}
+            <button
+              type="button"
+              disabled={!hydrated}
+              onClick={() => {
+                setShowAccountForm((value) => !value)
+              }}
+              className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+            >
+              {showAccountForm ? 'Annuleren' : 'Rekening toevoegen'}
+            </button>
+          </>
         }
       />
 
@@ -410,6 +436,58 @@ function Bank() {
         </div>
       )}
 
+      {learnedRules.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-1 text-base font-medium">Onthouden regels</h2>
+          {/* Spec 7.4: "visible and editable, never a black box". A rule you
+              cannot read is one you cannot disagree with. */}
+          <p className="text-muted-foreground mb-3 text-sm">
+            Wat er is onthouden van eerdere koppelingen, en hoe vaak het klopte.
+          </p>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-border text-muted-foreground border-b text-left text-xs">
+                <th className="py-2 font-medium">Als</th>
+                <th className="py-2 font-medium">Dan</th>
+                <th className="py-2 text-right font-medium">Toegepast</th>
+                <th className="py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {learnedRules.map((rule) => (
+                <tr key={rule.id} className="border-border border-b">
+                  <td className="py-2">
+                    {[
+                      rule.counterpartyIban === null ? null : `rekening ${rule.counterpartyIban}`,
+                      rule.counterpartyName === null ? null : `naam "${rule.counterpartyName}"`,
+                      rule.descriptionContains === null
+                        ? null
+                        : `omschrijving bevat "${rule.descriptionContains}"`,
+                    ]
+                      .filter((part) => part !== null)
+                      .join(' en ')}
+                  </td>
+                  <td className="tabular py-2">{rule.accountNumber ?? '—'}</td>
+                  <td className="tabular py-2 text-right">{rule.timesApplied}×</td>
+                  <td className="py-2 text-right">
+                    <button
+                      type="button"
+                      disabled={busy || !hydrated}
+                      onClick={() => {
+                        void toggleRule(rule.id, !rule.isActive)
+                      }}
+                      className="text-muted-foreground hover:text-foreground text-xs underline disabled:opacity-50"
+                    >
+                      {rule.isActive ? 'Uitzetten' : 'Aanzetten'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
       {bankAccounts.length > 0 && (
         <>
           <div className="mb-4 grid grid-cols-3 gap-4">
@@ -432,8 +510,11 @@ function Bank() {
           />
 
           <p className="text-muted-foreground mt-6 max-w-2xl text-xs">
-            Koppelen aan boekingen komt hierna. Voor nu staat er wat de bank zei, precies zoals de
-            bank het zei.
+            Wat de bank zei, precies zoals de bank het zei. Koppelen aan boekingen gaat via{' '}
+            <Link to="/bank/match" className="underline">
+              de koppelwachtrij
+            </Link>
+            .
           </p>
         </>
       )}

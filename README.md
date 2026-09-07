@@ -203,6 +203,10 @@ invoice behind it teaches a rule for next time
 journal entry through the same API a manual entry uses, so period control and
 the hash chain apply without banking knowing they exist.
 
+In the browser that queue is keyboard-first: `↑↓` moves, `↵` books the best
+suggestion, `1`–`9` pick one, `x` skips. A hundred lines should be a hundred
+keystrokes.
+
 Then leave with your data:
 
 ```bash

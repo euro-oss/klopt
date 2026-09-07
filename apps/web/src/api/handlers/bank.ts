@@ -269,6 +269,7 @@ export async function handleSuggestMatches(context: RequestContext, transactionI
           accountNumber: suggestion.accountNumber,
           contactId: suggestion.contactId,
           chargesAmount: suggestion.chargesAmount.toString(),
+          chargesAccountNumber: suggestion.chargesAccountNumber,
           ruleId: suggestion.ruleId,
           allocations: suggestion.allocations.map((allocation) => ({
             invoiceId: allocation.invoiceId,

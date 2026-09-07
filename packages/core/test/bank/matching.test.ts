@@ -167,7 +167,9 @@ describe('bank charges deducted from a payment', () => {
     )
 
     expect(best?.chargesAmount).toBe(350n)
-    expect(best?.accountNumber).toBe('4900')
+    expect(best?.chargesAccountNumber).toBe('4900')
+    // Nothing is left over, so there is no remainder to place.
+    expect(best?.accountNumber).toBeNull()
     expect(best?.allocations[0]?.amount).toBe(121_000n)
     expect(best?.reason).toContain('bankkosten')
   })

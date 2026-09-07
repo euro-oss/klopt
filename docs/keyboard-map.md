@@ -130,3 +130,21 @@ session. Accepting only one is a papercut a hundred times a day.
   roving tabindex and screen-reader behaviour. Do not reimplement them; the
   WCAG 2.2 AA target in section 12 depends on them.
 - `Cmd` on macOS, `Ctrl` elsewhere, resolved in one place.
+
+## Koppelen
+
+The bank matching queue is keyboard-first, because the work is repetitive and
+the whole value is rhythm: a hundred lines should be a hundred keystrokes, not a
+hundred round trips through a mouse.
+
+| Key     | Does                          |
+| ------- | ----------------------------- |
+| `↑` `k` | Previous line                 |
+| `↓` `j` | Next line                     |
+| `↵`     | Book the best suggestion      |
+| `1`–`9` | Book that suggestion          |
+| `x`     | Skip: deliberately not booked |
+
+The handler is bound on the window rather than on a focused element — the hands
+never leave the keys, so there is nothing to focus first — and it stands down
+whenever the event came from an input, a select or a textarea.

@@ -48,6 +48,7 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'go.invoices', label: 'Verkoopfacturen', group: 'Go to', keys: 'g f', to: '/invoices' },
   { id: 'go.contacts', label: 'Relaties', group: 'Go to', keys: 'g r', to: '/contacts' },
   { id: 'go.bank', label: 'Bank', group: 'Go to', keys: 'g k', to: '/bank' },
+  { id: 'go.match', label: 'Koppelen', group: 'Go to', keys: 'g o', to: '/bank/match' },
   { id: 'go.dunning', label: 'Aanmaningen', group: 'Go to', keys: 'g m', to: '/dunning' },
   { id: 'go.members', label: 'Toegang', group: 'Go to', keys: 'g t', to: '/members' },
   { id: 'go.settings', label: 'Instellingen', group: 'Go to', keys: 'g i', to: '/settings' },
@@ -60,6 +61,11 @@ export const BINDINGS: readonly Binding[] = [
     to: '/entries/new',
   },
   { id: 'new.invoice', label: 'Nieuwe factuur', group: 'Nieuw', keys: 'n f', to: '/invoices/new' },
+
+  { id: 'match.confirm', label: 'Beste voorstel boeken', group: 'Koppelen', keys: 'enter' },
+  { id: 'match.skip', label: 'Regel overslaan', group: 'Koppelen', keys: 'x' },
+  { id: 'match.next', label: 'Volgende regel', group: 'Koppelen', keys: 'j' },
+  { id: 'match.previous', label: 'Vorige regel', group: 'Koppelen', keys: 'k' },
 
   {
     id: 'entry.post',

@@ -15,11 +15,12 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignOutRouteImport } from './routes/sign-out'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
-import { Route as AppBankRouteImport } from './routes/_app/bank'
 import { Route as AppContactsRouteImport } from './routes/_app/contacts'
 import { Route as AppDunningRouteImport } from './routes/_app/dunning'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppBankIndexRouteImport } from './routes/_app/bank.index'
+import { Route as AppBankMatchRouteImport } from './routes/_app/bank.match'
 import { Route as AppEntriesIndexRouteImport } from './routes/_app/entries.index'
 import { Route as AppEntriesEntryIdRouteImport } from './routes/_app/entries.$entryId'
 import { Route as AppEntriesNewRouteImport } from './routes/_app/entries.new'
@@ -101,11 +102,6 @@ const AppAccountsRoute = AppAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => AppRoute,
 } as any)
-const AppBankRoute = AppBankRouteImport.update({
-  id: '/bank',
-  path: '/bank',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppContactsRoute = AppContactsRouteImport.update({
   id: '/contacts',
   path: '/contacts',
@@ -124,6 +120,16 @@ const AppMembersRoute = AppMembersRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBankIndexRoute = AppBankIndexRouteImport.update({
+  id: '/bank/',
+  path: '/bank/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBankMatchRoute = AppBankMatchRouteImport.update({
+  id: '/bank/match',
+  path: '/bank/match',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEntriesIndexRoute = AppEntriesIndexRouteImport.update({
@@ -406,11 +412,11 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
-  '/bank': typeof AppBankRoute
   '/contacts': typeof AppContactsRoute
   '/dunning': typeof AppDunningRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
+  '/bank/match': typeof AppBankMatchRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/entries/new': typeof AppEntriesNewRoute
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
@@ -432,6 +438,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
+  '/bank/': typeof AppBankIndexRoute
   '/entries/': typeof AppEntriesIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
@@ -468,12 +475,12 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
-  '/bank': typeof AppBankRoute
   '/contacts': typeof AppContactsRoute
   '/dunning': typeof AppDunningRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
+  '/bank/match': typeof AppBankMatchRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/entries/new': typeof AppEntriesNewRoute
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
@@ -495,6 +502,7 @@ export interface FileRoutesByTo {
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
+  '/bank': typeof AppBankIndexRoute
   '/entries': typeof AppEntriesIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
@@ -533,12 +541,12 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/_app/accounts': typeof AppAccountsRoute
-  '/_app/bank': typeof AppBankRoute
   '/_app/contacts': typeof AppContactsRoute
   '/_app/dunning': typeof AppDunningRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/bank/match': typeof AppBankMatchRoute
   '/_app/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/_app/entries/new': typeof AppEntriesNewRoute
   '/_app/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
@@ -560,6 +568,7 @@ export interface FileRoutesById {
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
+  '/_app/bank/': typeof AppBankIndexRoute
   '/_app/entries/': typeof AppEntriesIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
@@ -599,11 +608,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/accounts'
-    | '/bank'
     | '/contacts'
     | '/dunning'
     | '/members'
     | '/settings'
+    | '/bank/match'
     | '/entries/$entryId'
     | '/entries/new'
     | '/invoices/$invoiceId'
@@ -625,6 +634,7 @@ export interface FileRouteTypes {
     | '/api/v1/members'
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
+    | '/bank/'
     | '/entries/'
     | '/invoices/'
     | '/api/v1/bank-match-rules/$ruleId'
@@ -661,12 +671,12 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/accounts'
-    | '/bank'
     | '/contacts'
     | '/dunning'
     | '/members'
     | '/settings'
     | '/'
+    | '/bank/match'
     | '/entries/$entryId'
     | '/entries/new'
     | '/invoices/$invoiceId'
@@ -688,6 +698,7 @@ export interface FileRouteTypes {
     | '/api/v1/members'
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
+    | '/bank'
     | '/entries'
     | '/invoices'
     | '/api/v1/bank-match-rules/$ruleId'
@@ -725,12 +736,12 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/_app/accounts'
-    | '/_app/bank'
     | '/_app/contacts'
     | '/_app/dunning'
     | '/_app/members'
     | '/_app/settings'
     | '/_app/'
+    | '/_app/bank/match'
     | '/_app/entries/$entryId'
     | '/_app/entries/new'
     | '/_app/invoices/$invoiceId'
@@ -752,6 +763,7 @@ export interface FileRouteTypes {
     | '/api/v1/members'
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
+    | '/_app/bank/'
     | '/_app/entries/'
     | '/_app/invoices/'
     | '/api/v1/bank-match-rules/$ruleId'
@@ -862,13 +874,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/bank': {
-      id: '/_app/bank'
-      path: '/bank'
-      fullPath: '/bank'
-      preLoaderRoute: typeof AppBankRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/contacts': {
       id: '/_app/contacts'
       path: '/contacts'
@@ -895,6 +900,20 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bank/': {
+      id: '/_app/bank/'
+      path: '/bank'
+      fullPath: '/bank/'
+      preLoaderRoute: typeof AppBankIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bank/match': {
+      id: '/_app/bank/match'
+      path: '/bank/match'
+      fullPath: '/bank/match'
+      preLoaderRoute: typeof AppBankMatchRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/entries/': {
@@ -1259,12 +1278,12 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAccountsRoute: typeof AppAccountsRoute
-  AppBankRoute: typeof AppBankRoute
   AppContactsRoute: typeof AppContactsRoute
   AppDunningRoute: typeof AppDunningRoute
   AppMembersRoute: typeof AppMembersRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppBankMatchRoute: typeof AppBankMatchRoute
   AppEntriesEntryIdRoute: typeof AppEntriesEntryIdRoute
   AppEntriesNewRoute: typeof AppEntriesNewRoute
   AppInvoicesInvoiceIdRoute: typeof AppInvoicesInvoiceIdRoute
@@ -1272,18 +1291,19 @@ interface AppRouteChildren {
   AppReportsBalanceSheetRoute: typeof AppReportsBalanceSheetRoute
   AppReportsProfitAndLossRoute: typeof AppReportsProfitAndLossRoute
   AppReportsTrialBalanceRoute: typeof AppReportsTrialBalanceRoute
+  AppBankIndexRoute: typeof AppBankIndexRoute
   AppEntriesIndexRoute: typeof AppEntriesIndexRoute
   AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAccountsRoute: AppAccountsRoute,
-  AppBankRoute: AppBankRoute,
   AppContactsRoute: AppContactsRoute,
   AppDunningRoute: AppDunningRoute,
   AppMembersRoute: AppMembersRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppBankMatchRoute: AppBankMatchRoute,
   AppEntriesEntryIdRoute: AppEntriesEntryIdRoute,
   AppEntriesNewRoute: AppEntriesNewRoute,
   AppInvoicesInvoiceIdRoute: AppInvoicesInvoiceIdRoute,
@@ -1291,6 +1311,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppReportsBalanceSheetRoute: AppReportsBalanceSheetRoute,
   AppReportsProfitAndLossRoute: AppReportsProfitAndLossRoute,
   AppReportsTrialBalanceRoute: AppReportsTrialBalanceRoute,
+  AppBankIndexRoute: AppBankIndexRoute,
   AppEntriesIndexRoute: AppEntriesIndexRoute,
   AppInvoicesIndexRoute: AppInvoicesIndexRoute,
 }
