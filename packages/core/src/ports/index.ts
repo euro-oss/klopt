@@ -37,3 +37,10 @@ export {
   normaliseVatNumber,
   parseVatNumber,
 } from './vat-number.js'
+export type {
+  FilingPayload,
+  FilingReceipt,
+  FilingStatus,
+  FilingTransport,
+  FilingTransportKind,
+} from './filing.js'

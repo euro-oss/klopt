@@ -88,6 +88,9 @@ import { Route as ApiV1SalesInvoicesInvoiceIdUblRouteImport } from './routes/api
 import { Route as ApiV1VatIcpPeriodRouteImport } from './routes/api/v1/vat.icp.$period'
 import { Route as ApiV1VatReturnsPeriodRouteImport } from './routes/api/v1/vat.returns.$period'
 import { Route as ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRouteImport } from './routes/api/v1/payment-batches.$batchId.instructions.$instructionId'
+import { Route as ApiV1VatFilingsFilingIdStatusRouteImport } from './routes/api/v1/vat.filings.$filingId.status'
+import { Route as ApiV1VatFilingsFilingIdSubmissionsRouteImport } from './routes/api/v1/vat.filings.$filingId.submissions'
+import { Route as ApiV1VatSubmissionsSubmissionIdInstanceRouteImport } from './routes/api/v1/vat.submissions.$submissionId.instance'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -506,6 +509,24 @@ const ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute =
     path: '/$instructionId',
     getParentRoute: () => ApiV1PaymentBatchesBatchIdInstructionsRoute,
   } as any)
+const ApiV1VatFilingsFilingIdStatusRoute =
+  ApiV1VatFilingsFilingIdStatusRouteImport.update({
+    id: '/$filingId/status',
+    path: '/$filingId/status',
+    getParentRoute: () => ApiV1VatFilingsRoute,
+  } as any)
+const ApiV1VatFilingsFilingIdSubmissionsRoute =
+  ApiV1VatFilingsFilingIdSubmissionsRouteImport.update({
+    id: '/$filingId/submissions',
+    path: '/$filingId/submissions',
+    getParentRoute: () => ApiV1VatFilingsRoute,
+  } as any)
+const ApiV1VatSubmissionsSubmissionIdInstanceRoute =
+  ApiV1VatSubmissionsSubmissionIdInstanceRouteImport.update({
+    id: '/api/v1/vat/submissions/$submissionId/instance',
+    path: '/api/v1/vat/submissions/$submissionId/instance',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -567,7 +588,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
-  '/api/v1/vat/filings': typeof ApiV1VatFilingsRoute
+  '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
@@ -586,6 +607,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
   '/api/v1/payment-batches/$batchId/instructions/$instructionId': typeof ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute
+  '/api/v1/vat/filings/$filingId/status': typeof ApiV1VatFilingsFilingIdStatusRoute
+  '/api/v1/vat/filings/$filingId/submissions': typeof ApiV1VatFilingsFilingIdSubmissionsRoute
+  '/api/v1/vat/submissions/$submissionId/instance': typeof ApiV1VatSubmissionsSubmissionIdInstanceRoute
 }
 export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
@@ -647,7 +671,7 @@ export interface FileRoutesByTo {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
-  '/api/v1/vat/filings': typeof ApiV1VatFilingsRoute
+  '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
@@ -666,6 +690,9 @@ export interface FileRoutesByTo {
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
   '/api/v1/payment-batches/$batchId/instructions/$instructionId': typeof ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute
+  '/api/v1/vat/filings/$filingId/status': typeof ApiV1VatFilingsFilingIdStatusRoute
+  '/api/v1/vat/filings/$filingId/submissions': typeof ApiV1VatFilingsFilingIdSubmissionsRoute
+  '/api/v1/vat/submissions/$submissionId/instance': typeof ApiV1VatSubmissionsSubmissionIdInstanceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -729,7 +756,7 @@ export interface FileRoutesById {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
-  '/api/v1/vat/filings': typeof ApiV1VatFilingsRoute
+  '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
@@ -748,6 +775,9 @@ export interface FileRoutesById {
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
   '/api/v1/payment-batches/$batchId/instructions/$instructionId': typeof ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute
+  '/api/v1/vat/filings/$filingId/status': typeof ApiV1VatFilingsFilingIdStatusRoute
+  '/api/v1/vat/filings/$filingId/submissions': typeof ApiV1VatFilingsFilingIdSubmissionsRoute
+  '/api/v1/vat/submissions/$submissionId/instance': typeof ApiV1VatSubmissionsSubmissionIdInstanceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -830,6 +860,9 @@ export interface FileRouteTypes {
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
     | '/api/v1/payment-batches/$batchId/instructions/$instructionId'
+    | '/api/v1/vat/filings/$filingId/status'
+    | '/api/v1/vat/filings/$filingId/submissions'
+    | '/api/v1/vat/submissions/$submissionId/instance'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/setup'
@@ -910,6 +943,9 @@ export interface FileRouteTypes {
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
     | '/api/v1/payment-batches/$batchId/instructions/$instructionId'
+    | '/api/v1/vat/filings/$filingId/status'
+    | '/api/v1/vat/filings/$filingId/submissions'
+    | '/api/v1/vat/submissions/$submissionId/instance'
   id:
     | '__root__'
     | '/_app'
@@ -991,6 +1027,9 @@ export interface FileRouteTypes {
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
     | '/api/v1/payment-batches/$batchId/instructions/$instructionId'
+    | '/api/v1/vat/filings/$filingId/status'
+    | '/api/v1/vat/filings/$filingId/submissions'
+    | '/api/v1/vat/submissions/$submissionId/instance'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1026,11 +1065,12 @@ export interface RootRouteChildren {
   ApiV1RgsMappingsRoute: typeof ApiV1RgsMappingsRoute
   ApiV1RgsUpgradePreviewRoute: typeof ApiV1RgsUpgradePreviewRoute
   ApiV1SetupChartsRoute: typeof ApiV1SetupChartsRoute
-  ApiV1VatFilingsRoute: typeof ApiV1VatFilingsRoute
+  ApiV1VatFilingsRoute: typeof ApiV1VatFilingsRouteWithChildren
   ApiV1VatNumberChecksRoute: typeof ApiV1VatNumberChecksRoute
   ApiV1VatPeriodsRoute: typeof ApiV1VatPeriodsRoute
   ApiV1VatIcpPeriodRoute: typeof ApiV1VatIcpPeriodRoute
   ApiV1VatReturnsPeriodRoute: typeof ApiV1VatReturnsPeriodRoute
+  ApiV1VatSubmissionsSubmissionIdInstanceRoute: typeof ApiV1VatSubmissionsSubmissionIdInstanceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1588,6 +1628,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRouteImport
       parentRoute: typeof ApiV1PaymentBatchesBatchIdInstructionsRoute
     }
+    '/api/v1/vat/filings/$filingId/status': {
+      id: '/api/v1/vat/filings/$filingId/status'
+      path: '/$filingId/status'
+      fullPath: '/api/v1/vat/filings/$filingId/status'
+      preLoaderRoute: typeof ApiV1VatFilingsFilingIdStatusRouteImport
+      parentRoute: typeof ApiV1VatFilingsRoute
+    }
+    '/api/v1/vat/filings/$filingId/submissions': {
+      id: '/api/v1/vat/filings/$filingId/submissions'
+      path: '/$filingId/submissions'
+      fullPath: '/api/v1/vat/filings/$filingId/submissions'
+      preLoaderRoute: typeof ApiV1VatFilingsFilingIdSubmissionsRouteImport
+      parentRoute: typeof ApiV1VatFilingsRoute
+    }
+    '/api/v1/vat/submissions/$submissionId/instance': {
+      id: '/api/v1/vat/submissions/$submissionId/instance'
+      path: '/api/v1/vat/submissions/$submissionId/instance'
+      fullPath: '/api/v1/vat/submissions/$submissionId/instance'
+      preLoaderRoute: typeof ApiV1VatSubmissionsSubmissionIdInstanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1809,6 +1870,21 @@ const ApiV1SalesInvoicesRouteChildren: ApiV1SalesInvoicesRouteChildren = {
 const ApiV1SalesInvoicesRouteWithChildren =
   ApiV1SalesInvoicesRoute._addFileChildren(ApiV1SalesInvoicesRouteChildren)
 
+interface ApiV1VatFilingsRouteChildren {
+  ApiV1VatFilingsFilingIdStatusRoute: typeof ApiV1VatFilingsFilingIdStatusRoute
+  ApiV1VatFilingsFilingIdSubmissionsRoute: typeof ApiV1VatFilingsFilingIdSubmissionsRoute
+}
+
+const ApiV1VatFilingsRouteChildren: ApiV1VatFilingsRouteChildren = {
+  ApiV1VatFilingsFilingIdStatusRoute: ApiV1VatFilingsFilingIdStatusRoute,
+  ApiV1VatFilingsFilingIdSubmissionsRoute:
+    ApiV1VatFilingsFilingIdSubmissionsRoute,
+}
+
+const ApiV1VatFilingsRouteWithChildren = ApiV1VatFilingsRoute._addFileChildren(
+  ApiV1VatFilingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   SetupRoute: SetupRoute,
@@ -1842,11 +1918,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1RgsMappingsRoute: ApiV1RgsMappingsRoute,
   ApiV1RgsUpgradePreviewRoute: ApiV1RgsUpgradePreviewRoute,
   ApiV1SetupChartsRoute: ApiV1SetupChartsRoute,
-  ApiV1VatFilingsRoute: ApiV1VatFilingsRoute,
+  ApiV1VatFilingsRoute: ApiV1VatFilingsRouteWithChildren,
   ApiV1VatNumberChecksRoute: ApiV1VatNumberChecksRoute,
   ApiV1VatPeriodsRoute: ApiV1VatPeriodsRoute,
   ApiV1VatIcpPeriodRoute: ApiV1VatIcpPeriodRoute,
   ApiV1VatReturnsPeriodRoute: ApiV1VatReturnsPeriodRoute,
+  ApiV1VatSubmissionsSubmissionIdInstanceRoute:
+    ApiV1VatSubmissionsSubmissionIdInstanceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

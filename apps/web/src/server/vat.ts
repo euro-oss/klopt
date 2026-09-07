@@ -2,10 +2,12 @@ import { createServerFn } from '@tanstack/react-start'
 import {
   handleCheckVatNumbers,
   handleFileVatReturn,
+  handleGetFilingSubmissions,
   handleGetIcp,
   handleGetVatReturn,
   handleListVatFilings,
   handleListVatPeriods,
+  handlePollFilingStatus,
 } from '~/api/handlers/vat'
 import { checkVatNumbersBody, fileVatReturnBody, listVatPeriodsQuery } from '~/api/schemas'
 import { contextFromRequest, run, runWith } from './internal'
@@ -69,6 +71,29 @@ export const checkVatNumbers = createServerFn({ method: 'POST' })
           await handleCheckVatNumbers(
             await contextFromRequest({ idempotencyKey: data.idempotencyKey }),
             body,
+          )
+        ).body,
+    ),
+  )
+
+export const listFilingSubmissions = createServerFn({ method: 'GET' })
+  .validator((input: { filingId: string }) => input)
+  .handler(async ({ data }) =>
+    run(
+      async () =>
+        (await handleGetFilingSubmissions(await contextFromRequest(), data.filingId)).body,
+    ),
+  )
+
+export const pollFilingStatus = createServerFn({ method: 'POST' })
+  .validator((input: { filingId: string; idempotencyKey: string }) => input)
+  .handler(async ({ data }) =>
+    run(
+      async () =>
+        (
+          await handlePollFilingStatus(
+            await contextFromRequest({ idempotencyKey: data.idempotencyKey }),
+            data.filingId,
           )
         ).body,
     ),

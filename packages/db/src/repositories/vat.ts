@@ -8,12 +8,13 @@ import {
   type IcpJournalLine,
   type IcpProof,
   type IcpReturn,
+  type FilingReceipt,
   type TaxCodeRule,
   type VatJournalLine,
   type VatNumberCheck,
   type VatReturn,
 } from '@klopt/core'
-import { and, asc, desc, eq, gte, inArray, isNotNull, lte, or } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNotNull, lte, or, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import {
   accounts,
@@ -26,6 +27,7 @@ import {
 import { taxCodes } from '../schema/sales.js'
 import { vatFilings } from '../schema/vat.js'
 import { vatNumberChecks } from '../schema/icp.js'
+import { filingSubmissions } from '../schema/filing.js'
 import { contacts } from '../schema/sales.js'
 
 /**
@@ -480,6 +482,17 @@ export class VatRepository {
     })
   }
 
+  /** Who the filing is for. The instance is identified by the VAT number. */
+  async filingIdentity(entityId: string): Promise<{ legalName: string; vatNumber: string | null }> {
+    const [row] = await this.tx
+      .select({ legalName: entities.legalName, vatNumber: entities.vatNumber })
+      .from(entities)
+      .where(eq(entities.id, entityId))
+      .limit(1)
+
+    return row ?? { legalName: '', vatNumber: null }
+  }
+
   /** The entity's own VAT number. Without it VIES returns no proof. */
   async ownVatNumber(entityId: string): Promise<string | null> {
     const [row] = await this.tx
@@ -550,6 +563,8 @@ export class VatRepository {
       filedAt: row.filedAt,
       transport: row.transport,
       transportReference: row.transportReference,
+      taxonomyVersion: row.taxonomyVersion,
+      deliveryStatus: row.deliveryStatus,
       acceptedWarningsBy: row.acceptedWarningsBy,
       acceptedWarningsReason: row.acceptedWarningsReason,
       supersedesId: row.supersedesId,
@@ -606,6 +621,92 @@ export class VatRepository {
       .returning({ startsOn: periods.startsOn, endsOn: periods.endsOn })
 
     return locked.map((period) => `${period.startsOn}..${period.endsOn}`)
+  }
+
+  /**
+   * One interaction with whoever carries the filing.
+   *
+   * Append-only, and written whether the interaction succeeded or not: a
+   * refused delivery is evidence too, and "we tried and they would not take
+   * it" is a different fact from "we did not file".
+   */
+  async recordSubmission(request: RecordSubmissionRequest): Promise<string> {
+    const id = uuidv7()
+    await this.tx.insert(filingSubmissions).values({
+      id,
+      entityId: request.entityId,
+      filingId: request.filingId,
+      interaction: request.interaction,
+      transport: request.receipt.transport,
+      status: request.receipt.status,
+      reference: request.receipt.reference,
+      taxonomyVersion: request.taxonomyVersion,
+      instanceXml: request.instanceXml,
+      summary: request.summary,
+      requestBody: request.receipt.request,
+      responseBody: request.receipt.response,
+      error: request.receipt.error,
+      instructions: request.receipt.instructions,
+      actorId: request.actorId,
+      at: new Date(request.receipt.at),
+    })
+
+    // The filing carries the latest state so a list of periods needs no join.
+    // The history above remains the truth.
+    await this.tx
+      .update(vatFilings)
+      .set({
+        deliveryStatus: request.receipt.status,
+        transport: request.receipt.transport,
+        transportReference: request.receipt.reference ?? undefined,
+        taxonomyVersion: request.taxonomyVersion ?? undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(vatFilings.id, request.filingId))
+
+    return id
+  }
+
+  /** A filing's whole delivery history, oldest first. */
+  async submissions(entityId: string, filingId: string): Promise<SubmissionRow[]> {
+    const rows = await this.tx
+      .select({
+        id: filingSubmissions.id,
+        interaction: filingSubmissions.interaction,
+        transport: filingSubmissions.transport,
+        status: filingSubmissions.status,
+        reference: filingSubmissions.reference,
+        taxonomyVersion: filingSubmissions.taxonomyVersion,
+        error: filingSubmissions.error,
+        instructions: filingSubmissions.instructions,
+        actorId: filingSubmissions.actorId,
+        at: filingSubmissions.at,
+        hasInstance: sql<boolean>`${filingSubmissions.instanceXml} is not null`,
+      })
+      .from(filingSubmissions)
+      .where(
+        and(eq(filingSubmissions.entityId, entityId), eq(filingSubmissions.filingId, filingId)),
+      )
+      .orderBy(asc(filingSubmissions.at), asc(filingSubmissions.id))
+
+    return rows.map((row) => ({ ...row, at: row.at.toISOString() }))
+  }
+
+  /** The instance that was filed, for download. */
+  async submittedInstance(
+    entityId: string,
+    submissionId: string,
+  ): Promise<{ instanceXml: string | null; summary: string | null } | null> {
+    const [row] = await this.tx
+      .select({
+        instanceXml: filingSubmissions.instanceXml,
+        summary: filingSubmissions.summary,
+      })
+      .from(filingSubmissions)
+      .where(and(eq(filingSubmissions.entityId, entityId), eq(filingSubmissions.id, submissionId)))
+      .limit(1)
+
+    return row ?? null
   }
 
   async recordFiling(request: RecordFilingRequest): Promise<string> {
@@ -705,9 +806,36 @@ export interface StoredFiling {
   readonly filedAt: Date | null
   readonly transport: string | null
   readonly transportReference: string | null
+  readonly taxonomyVersion: string | null
+  readonly deliveryStatus: string | null
   readonly acceptedWarningsBy: string | null
   readonly acceptedWarningsReason: string | null
   readonly supersedesId: string | null
+}
+
+export interface SubmissionRow {
+  readonly id: string
+  readonly interaction: 'deliver' | 'status' | 'confirmation'
+  readonly transport: 'manual' | 'sbr_provider' | 'digipoort'
+  readonly status: 'prepared' | 'delivered' | 'accepted' | 'rejected' | 'failed'
+  readonly reference: string | null
+  readonly taxonomyVersion: string | null
+  readonly error: string | null
+  readonly instructions: string | null
+  readonly actorId: string | null
+  readonly at: string
+  readonly hasInstance: boolean
+}
+
+export interface RecordSubmissionRequest {
+  readonly entityId: string
+  readonly filingId: string
+  readonly interaction: 'deliver' | 'status' | 'confirmation'
+  readonly receipt: FilingReceipt
+  readonly taxonomyVersion: string | null
+  readonly instanceXml: string | null
+  readonly summary: string | null
+  readonly actorId: string
 }
 
 export interface RecordFilingRequest {

@@ -28,6 +28,21 @@ async function anAdministration(page: Page, name: string): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
 }
 
+/**
+ * The omzetbelastingnummer, which an aangifte is identified by.
+ *
+ * Setting up an administration does not ask for it — deliberately, so nothing
+ * stands between somebody and their first entry — so filing is the moment it
+ * becomes necessary, and the screen says so before the button rather than
+ * after it.
+ */
+async function withVatNumber(page: Page, vatNumber = 'NL123456789B01'): Promise<void> {
+  await page.goto('/settings')
+  await page.getByLabel('Btw-nummer').fill(vatNumber)
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+}
+
 test('an aangifte is derived from the journal, and every rubriek opens to its lines', async ({
   page,
 }) => {
@@ -95,10 +110,62 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
   await expect(detail).toContainText('1500')
   await expect(detail).toContainText('(btw)')
 
+  // An administration set up with only a name cannot be identified on a
+  // filing, and that is said before the button rather than on submit.
+  await expect(
+    page.getByText(/omzetbelastingnummer, en dat staat nog niet in deze administratie/),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /Aangifte indienen en periode vastzetten/ }),
+  ).toHaveCount(0)
+
+  await withVatNumber(page)
+  await page.goto('/vat/2026-Q1')
+
+  // The taxonomy is chosen by the period, and a fresh install says out loud
+  // that its mapping has not been checked against the published NT.
+  await expect(page.getByText(/Taxonomie NT20/)).toBeVisible()
+  await expect(page.getByText(/nog niet gecontroleerd tegen de gepubliceerde/)).toBeVisible()
+
+  // Digipoort is offered as unavailable with the reason, not hidden. Spec 8:
+  // a self-hoster should not have to buy a certificate to be compliant.
+  await expect(page.getByText(/Digipoort .* is niet beschikbaar/)).toBeVisible()
+  await expect(page.getByText(/WS-Security/)).toBeVisible()
+
   // Filing. A clean return needs no acceptance, and it locks the quarter.
+  await page.getByRole('textbox', { name: 'Kenmerk van de indiening' }).fill('MBZ-2026-04-02-7781')
   await page.getByRole('button', { name: /Aangifte indienen en periode vastzetten/ }).click()
   await expect(page.getByText(/Ingediend op/)).toBeVisible()
   await expect(page.getByText(/Deze periode is ingediend/)).toBeVisible()
+
+  // The instance and the summary come back from what was stored.
+  await expect(page.getByText(/klaargezet om zelf in te dienen/).first()).toBeVisible()
+  await expect(page.getByText(/kenmerk MBZ-2026-04-02-7781/)).toBeVisible()
+
+  const instance = page.getByRole('link', { name: 'XBRL-instance downloaden' })
+  await expect(instance).toBeVisible()
+  const instanceUrl = await instance.getAttribute('href')
+  const xbrl = await page.request.get(instanceUrl ?? '')
+  expect(xbrl.status()).toBe(200)
+  const xml = await xbrl.text()
+  expect(xml).toContain('<xbrli:xbrl')
+  // Whole euros, and the omzetbelastingnummer without its country prefix.
+  expect(xml).toContain('>210<')
+  expect(xml).not.toContain('NL123456789B01')
+
+  const summary = await page.request.get(`${instanceUrl ?? ''}?format=summary`)
+  expect(summary.status()).toBe(200)
+  const text = await summary.text()
+  expect(text).toContain('AANGIFTE OMZETBELASTING')
+  expect(text).toContain('Te betalen: 210 euro')
+
+  // And the evidence chain: what we prepared, and what the operator was told.
+  // `<summary>` is a disclosure triangle, not a button.
+  await page.getByText(/Bewijslast \(/).click()
+  const chain = page.getByRole('table', { name: 'Alles wat er met deze aangifte is gebeurd' })
+  await expect(chain).toContainText('aangeboden')
+  await expect(chain).toContainText('ontvangstbewijs vastgelegd')
+  await expect(chain).toContainText('MBZ-2026-04-02-7781')
 
   // The period list now says so.
   await page.goto('/vat')
@@ -126,6 +193,7 @@ test('a hand-typed movement on a BTW account has to be accepted, with a reason',
   await page.getByRole('button', { name: 'Boeken', exact: true }).click()
   await expect(page.getByRole('heading', { name: /BNK 1/ })).toBeVisible()
 
+  await withVatNumber(page)
   await page.goto('/vat/2026-Q1')
   await expect(page.getByRole('heading', { name: 'BTW-aangifte 1e kwartaal 2026' })).toBeVisible()
 

@@ -1,10 +1,14 @@
 import {
+  generateVatInstance,
   parseVatPeriodCode,
   planFiling,
+  presentFilingSummary,
+  selectTaxonomyMapping,
   presentVatReturn,
   suppletieNeeded,
   vatDeadline,
   vatPeriodsIn,
+  type FilingTransportKind,
   type IcpFinding,
   type VatFinding,
   type VatPeriod,
@@ -15,6 +19,11 @@ import { hasPermission, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
 import type { CheckVatNumbersBody, FileVatReturnBody, ListVatPeriodsQuery } from '../schemas.js'
 import { vatNumberValidator } from '../vat-number.js'
+import { filingTransport, filingTransports } from '../filing.js'
+import { taxonomyMappings } from '../taxonomy.js'
+
+/** Named in the instance and in the evidence chain, so a bug is traceable. */
+const SOFTWARE_VERSION = '0.0.0'
 
 /**
  * The BTW-aangifte over HTTP.
@@ -172,11 +181,69 @@ export async function handleGetVatReturn(context: RequestContext, periodCode: st
     const existing = await repository.filingForPeriod(context.entityId, period.from, period.to)
     const filed = existing === null ? null : await repository.filing(context.entityId, existing.id)
 
+    // What this installation can actually file with, asked before anything is
+    // generated so the screen shows a greyed-out option that explains itself
+    // rather than an error after the fact.
+    const transports = [...filingTransports().values()].map((transport) => {
+      const ready = transport.available()
+      return {
+        kind: transport.kind,
+        name: transport.name,
+        available: ready.ok,
+        reason: ready.reason,
+      }
+    })
+
+    // The taxonomy is selected by period, never by newest, so a period with
+    // none loaded is a fact the screen has to show rather than a crash on the
+    // way to filing.
+    let taxonomy:
+      | { version: string; verified: boolean; problem: null }
+      | {
+          version: null
+          verified: false
+          problem: string
+        }
+    try {
+      const mapping = selectTaxonomyMapping(taxonomyMappings(), {
+        report: 'ob-aangifte',
+        periodFrom: period.from,
+        periodTo: period.to,
+      })
+      taxonomy = { version: mapping.version, verified: mapping.verified, problem: null }
+    } catch (error: unknown) {
+      // The violation's own message, not the LedgerError's — the latter is
+      // prefixed with the machine-readable code, which is noise on a screen.
+      const violations =
+        error instanceof Error && 'violations' in error
+          ? (error as { violations: readonly { message: string }[] }).violations
+          : []
+      taxonomy = {
+        version: null,
+        verified: false,
+        problem: violations[0]?.message ?? (error instanceof Error ? error.message : String(error)),
+      }
+    }
+
+    // Whether this entity can be identified on a filing at all. Asked here
+    // rather than discovered on submit: the aangifte is identified by the
+    // omzetbelastingnummer, and an administration set up with just a name has
+    // not got one yet.
+    const entity = await repository.filingIdentity(context.entityId)
+    const identity = {
+      legalName: entity.legalName,
+      vatNumber: entity.vatNumber,
+      ready: /^(NL)?\d{9}B\d{2}$/.test((entity.vatNumber ?? '').toUpperCase().replace(/\s/g, '')),
+    }
+
     return {
       status: 200,
       body: {
         ...serialiseReturn(vatReturn, period),
         detail: serialiseLines(vatReturn),
+        transports,
+        taxonomy,
+        identity,
         filing:
           filed === null
             ? null
@@ -187,6 +254,9 @@ export async function handleGetVatReturn(context: RequestContext, periodCode: st
                 filedAt: filed.filedAt?.toISOString() ?? null,
                 filedBy: filed.filedBy,
                 transport: filed.transport,
+                transportReference: filed.transportReference,
+                taxonomyVersion: filed.taxonomyVersion,
+                deliveryStatus: filed.deliveryStatus,
                 owed: filed.owedMinorUnits.toString(),
                 deductible: filed.deductibleMinorUnits.toString(),
                 payable: filed.payableMinorUnits.toString(),
@@ -274,6 +344,43 @@ export async function handleFileVatReturn(context: RequestContext, body: FileVat
       transport: body.transport,
     })
 
+    // The instance, before anything is written: generation refuses on a
+    // mapping that has no element for a box the return has a figure in, and a
+    // filing recorded against an instance that could not be built would be a
+    // filing nobody can show.
+    const entity = await vat.filingIdentity(context.entityId)
+    const mapping = selectTaxonomyMapping(taxonomyMappings(), {
+      report: 'ob-aangifte',
+      periodFrom: period.from,
+      periodTo: period.to,
+    })
+    const instance = generateVatInstance({
+      vatReturn,
+      period,
+      mapping,
+      vatNumber: entity.vatNumber ?? '',
+      legalName: entity.legalName,
+      isSuppletie: plan.isSuppletie,
+      softwareDesc: 'Klopt',
+      softwareVersion: SOFTWARE_VERSION,
+    })
+    const summary = presentFilingSummary(instance, {
+      period,
+      legalName: entity.legalName,
+      vatNumber: entity.vatNumber ?? '',
+      isSuppletie: plan.isSuppletie,
+      generatedOn: new Date().toISOString().slice(0, 10),
+    })
+
+    const transport = filingTransport(body.transport)
+    const ready = transport.available()
+    if (!ready.ok) {
+      throw new ApiError(
+        'validation_failed',
+        ready.reason ?? `${transport.name} is not configured.`,
+      )
+    }
+
     const id = await vat.recordFiling({
       entityId: context.entityId,
       vatReturn,
@@ -286,6 +393,50 @@ export async function handleFileVatReturn(context: RequestContext, body: FileVat
       acceptedWarningsBy: plan.acceptedWarnings.length > 0 ? context.actor.id : null,
       acceptedWarningsReason: plan.acceptedWarnings.length > 0 ? body.acceptedReason : null,
     })
+
+    // Hand it over, and record the attempt whichever way it goes. A refused
+    // delivery is evidence: "we tried and they would not take it" is a
+    // different fact from "we did not file", and only one is a penalty.
+    const receipt = await transport.deliver({
+      instanceXml: instance.xml,
+      summary,
+      periodCode: period.code,
+      periodFrom: period.from,
+      periodTo: period.to,
+      isSuppletie: plan.isSuppletie,
+      taxonomyVersion: mapping.version,
+      taxonomyVerified: mapping.verified,
+      vatNumber: entity.vatNumber ?? '',
+      legalName: entity.legalName,
+      payableEuros: instance.payableEuros,
+    })
+
+    await vat.recordSubmission({
+      entityId: context.entityId,
+      filingId: id,
+      interaction: 'deliver',
+      receipt,
+      taxonomyVersion: mapping.version,
+      instanceXml: instance.xml,
+      summary,
+      actorId: context.actor.id,
+    })
+
+    // The operator's own reference, on the manual path, is a second
+    // interaction: it is what they were told by Mijn Belastingdienst, not what
+    // a transport returned.
+    if (body.transportReference !== null && receipt.reference === null) {
+      await vat.recordSubmission({
+        entityId: context.entityId,
+        filingId: id,
+        interaction: 'confirmation',
+        receipt: { ...receipt, reference: body.transportReference, request: null },
+        taxonomyVersion: mapping.version,
+        instanceXml: null,
+        summary: null,
+        actorId: context.actor.id,
+      })
+    }
 
     // Spec 7.2: lock the period on filing. A soft close rather than a hard one,
     // because a suppletie needs somebody to be able to post the correction —
@@ -311,6 +462,116 @@ export async function handleFileVatReturn(context: RequestContext, body: FileVat
         owed: vatReturn.owedMinorUnits.toString(),
         deductible: vatReturn.deductibleMinorUnits.toString(),
         payable: vatReturn.payableMinorUnits.toString(),
+        taxonomyVersion: mapping.version,
+        taxonomyVerified: mapping.verified,
+        deliveryStatus: receipt.status,
+        deliveryReference: receipt.reference ?? body.transportReference,
+        deliveryError: receipt.error,
+        instructions: receipt.instructions,
+        // Whole euros, as filed. Different from `payable` above by design: see
+        // the note on rounding in packages/core/src/vat/xbrl.ts.
+        payableEuros: instance.payableEuros.toString(),
+        roundingDifference: instance.roundingDifferenceMinorUnits.toString(),
+        warnings: instance.warnings,
+      },
+    }
+  })
+}
+
+/** Everything filed so far for a period, and how each delivery went. */
+export async function handleGetFilingSubmissions(context: RequestContext, filingId: string) {
+  requirePermission(context, 'ledger:read')
+
+  return withVatRead(context.database, async (repository) => {
+    const filing = await repository.filing(context.entityId, filingId)
+    if (filing === null) throw new ApiError('not_found', `No filing ${filingId}.`)
+
+    return {
+      status: 200,
+      body: {
+        filing: {
+          id: filing.id,
+          periodFrom: filing.periodFrom,
+          periodTo: filing.periodTo,
+          sequence: filing.sequence,
+          state: filing.state,
+          transport: filing.transport,
+          transportReference: filing.transportReference,
+          taxonomyVersion: filing.taxonomyVersion,
+          deliveryStatus: filing.deliveryStatus,
+        },
+        submissions: await repository.submissions(context.entityId, filingId),
+      },
+    }
+  })
+}
+
+/**
+ * The instance and the summary that were filed.
+ *
+ * Served from what was stored rather than regenerated. The whole point of
+ * keeping the bytes is that regenerating them later may give something
+ * different — and if it does, a suppletie is owed.
+ */
+export async function handleGetFiledInstance(
+  context: RequestContext,
+  submissionId: string,
+): Promise<{ xml: string; summary: string | null }> {
+  requirePermission(context, 'ledger:read')
+
+  const found = await withVatRead(context.database, (repository) =>
+    repository.submittedInstance(context.entityId, submissionId),
+  )
+  if (found === null || found.instanceXml === null) {
+    throw new ApiError('not_found', `Submission ${submissionId} carries no instance.`)
+  }
+
+  return { xml: found.instanceXml, summary: found.summary }
+}
+
+/**
+ * Ask the transport where the filing has got to.
+ *
+ * Delivered is not accepted, and the gap between them is where every real
+ * problem lives. Each poll is another row in the evidence chain, because spec
+ * 7.2 asks for "all status responses", plural.
+ */
+export async function handlePollFilingStatus(context: RequestContext, filingId: string) {
+  requirePermission(context, 'vat:file')
+  requireIdempotencyKey(context)
+
+  return withVatFiling(context.database, async ({ vat }) => {
+    const filing = await vat.filing(context.entityId, filingId)
+    if (filing === null) throw new ApiError('not_found', `No filing ${filingId}.`)
+    if (filing.transport === null || filing.transportReference === null) {
+      throw new ApiError(
+        'validation_failed',
+        'This filing has no transport reference, so there is nothing to ask about.',
+      )
+    }
+
+    const transport = filingTransport(filing.transport as FilingTransportKind)
+    const receipt = await transport.status(filing.transportReference)
+
+    await vat.recordSubmission({
+      entityId: context.entityId,
+      filingId,
+      interaction: 'status',
+      receipt,
+      taxonomyVersion: filing.taxonomyVersion,
+      instanceXml: null,
+      summary: null,
+      actorId: context.actor.id,
+    })
+
+    return {
+      status: 200,
+      body: {
+        status: receipt.status,
+        reference: receipt.reference,
+        at: receipt.at,
+        error: receipt.error,
+        instructions: receipt.instructions,
       },
     }
   })

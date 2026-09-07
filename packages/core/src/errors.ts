@@ -56,6 +56,8 @@ export type LedgerErrorCode =
   | 'period_already_filed'
   | 'unknown_vat_period'
   | 'icp_mismatch'
+  | 'unknown_taxonomy'
+  | 'instance_invalid'
   | 'chain_broken'
 
 export interface LedgerViolation {

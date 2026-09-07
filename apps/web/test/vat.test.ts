@@ -13,9 +13,13 @@ import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
 import { setVatNumberValidatorForTest } from '../src/api/vat-number.js'
+import { setFilingTransportsForTest } from '../src/api/filing.js'
 import {
   handleCheckVatNumbers,
   handleFileVatReturn,
+  handleGetFiledInstance,
+  handleGetFilingSubmissions,
+  handlePollFilingStatus,
   handleGetIcp,
   handleGetVatReturn,
   handleListVatFilings,
@@ -937,5 +941,239 @@ describe('the ICP opgaaf', () => {
 
     const icp = await handleGetIcp(await context(token), '2026-Q1')
     expect(icp.status).toBe(200)
+  })
+})
+
+describe('the instance and the evidence chain', () => {
+  afterEach(() => {
+    setFilingTransportsForTest(null)
+  })
+
+  it('generates an instance when filing, and keeps the bytes that were filed', async () => {
+    const { token } = await newEntity()
+    await invoice(token, { unitPrice: '100000', taxCode: 'H21' })
+
+    const filed = await handleFileVatReturn(
+      await context(token, uuidv7()),
+      fileVatReturnBody.parse({ period: '2026-Q1', transport: 'manual' }),
+    )
+
+    expect(filed.body.taxonomyVersion).toBe('NT20')
+    // Whole euros, and the ledger's cents alongside them.
+    expect(filed.body.payable).toBe('21000')
+    expect(filed.body.payableEuros).toBe('210')
+    expect(filed.body.deliveryStatus).toBe('prepared')
+    expect(filed.body.instructions).toContain('Mijn Belastingdienst')
+
+    // The shipped mapping is unverified, and the filing says so rather than
+    // implying the element names have been checked.
+    expect(filed.body.taxonomyVerified).toBe(false)
+    expect(filed.body.warnings.some((warning) => warning.includes('unverified'))).toBe(true)
+
+    const chain = await handleGetFilingSubmissions(await context(token), filed.body.id)
+    expect(chain.body.submissions).toHaveLength(1)
+    expect(chain.body.submissions[0]).toMatchObject({
+      interaction: 'deliver',
+      transport: 'manual',
+      status: 'prepared',
+      hasInstance: true,
+    })
+
+    // And the bytes come back, from storage rather than regenerated.
+    const instance = await handleGetFiledInstance(
+      await context(token),
+      chain.body.submissions[0]!.id,
+    )
+    expect(instance.xml).toContain('<xbrli:xbrl')
+    expect(instance.xml).toContain('>123456789B01<')
+    expect(instance.xml).toContain('<xbrli:startDate>2026-01-01</xbrli:startDate>')
+    expect(instance.summary).toContain('AANGIFTE OMZETBELASTING')
+    expect(instance.summary).toContain('Te betalen: 210 euro')
+  })
+
+  it('records the operator’s own receipt number as its own event', async () => {
+    const { token } = await newEntity()
+    await invoice(token, { unitPrice: '100000', taxCode: 'H21' })
+
+    const filed = await handleFileVatReturn(
+      await context(token, uuidv7()),
+      fileVatReturnBody.parse({
+        period: '2026-Q1',
+        transport: 'manual',
+        transportReference: 'MBZ-2026-04-02-7781',
+      }),
+    )
+
+    const chain = await handleGetFilingSubmissions(await context(token), filed.body.id)
+    // Two events: what we prepared, and what the operator was told by the
+    // Belastingdienst. They are different facts.
+    expect(chain.body.submissions.map((entry) => entry.interaction)).toEqual([
+      'deliver',
+      'confirmation',
+    ])
+    expect(chain.body.submissions[1]?.reference).toBe('MBZ-2026-04-02-7781')
+    expect(chain.body.filing.transportReference).toBe('MBZ-2026-04-02-7781')
+  })
+
+  it('records a refused delivery, because trying and failing is not the same as not filing', async () => {
+    const { token } = await newEntity()
+    await invoice(token, { unitPrice: '100000', taxCode: 'H21' })
+
+    setFilingTransportsForTest(
+      new Map([
+        [
+          'manual',
+          {
+            kind: 'manual' as const,
+            name: 'manual',
+            available: () => ({ ok: true, reason: null }),
+            deliver: () =>
+              Promise.resolve({
+                transport: 'manual' as const,
+                status: 'failed' as const,
+                reference: null,
+                at: '2026-04-02T09:00:00.000Z',
+                request: '<instance/>',
+                response: 'nope',
+                error: 'De dienst weigerde de aangifte.',
+                instructions: null,
+              }),
+            status: () =>
+              Promise.resolve({
+                transport: 'manual' as const,
+                status: 'failed' as const,
+                reference: null,
+                at: '2026-04-02T09:00:00.000Z',
+                request: null,
+                response: null,
+                error: null,
+                instructions: null,
+              }),
+          },
+        ],
+      ]),
+    )
+
+    const filed = await handleFileVatReturn(
+      await context(token, uuidv7()),
+      fileVatReturnBody.parse({ period: '2026-Q1', transport: 'manual' }),
+    )
+
+    // The filing exists — the period was declared and locked — and the failed
+    // delivery is on the record next to it.
+    expect(filed.body.deliveryStatus).toBe('failed')
+    expect(filed.body.deliveryError).toContain('weigerde')
+
+    const chain = await handleGetFilingSubmissions(await context(token), filed.body.id)
+    expect(chain.body.submissions[0]?.status).toBe('failed')
+    expect(chain.body.submissions[0]?.error).toContain('weigerde')
+  })
+
+  it('polls the transport and adds each answer to the chain', async () => {
+    const { token } = await newEntity()
+    await invoice(token, { unitPrice: '100000', taxCode: 'H21' })
+
+    let polls = 0
+    setFilingTransportsForTest(
+      new Map([
+        [
+          'sbr_provider',
+          {
+            kind: 'sbr_provider' as const,
+            name: 'Testdienstverlener',
+            available: () => ({ ok: true, reason: null }),
+            deliver: () =>
+              Promise.resolve({
+                transport: 'sbr_provider' as const,
+                status: 'delivered' as const,
+                reference: 'JOB-1',
+                at: '2026-04-02T09:00:00.000Z',
+                request: '<instance/>',
+                response: '{"reference":"JOB-1"}',
+                error: null,
+                instructions: null,
+              }),
+            status: () => {
+              polls += 1
+              return Promise.resolve({
+                transport: 'sbr_provider' as const,
+                status: polls === 1 ? ('delivered' as const) : ('accepted' as const),
+                reference: 'JOB-1',
+                at: `2026-04-0${String(2 + polls)}T09:00:00.000Z`,
+                request: null,
+                response: '{"status":"geaccepteerd"}',
+                error: null,
+                instructions: null,
+              })
+            },
+          },
+        ],
+      ]),
+    )
+
+    const filed = await handleFileVatReturn(
+      await context(token, uuidv7()),
+      fileVatReturnBody.parse({ period: '2026-Q1', transport: 'sbr_provider' }),
+    )
+    expect(filed.body.deliveryStatus).toBe('delivered')
+
+    const first = await handlePollFilingStatus(await context(token, uuidv7()), filed.body.id)
+    expect(first.body.status).toBe('delivered')
+    const second = await handlePollFilingStatus(await context(token, uuidv7()), filed.body.id)
+    expect(second.body.status).toBe('accepted')
+
+    const chain = await handleGetFilingSubmissions(await context(token), filed.body.id)
+    // Spec 7.2 wants "all status responses", plural. Here they are.
+    expect(chain.body.submissions.map((entry) => entry.interaction)).toEqual([
+      'deliver',
+      'status',
+      'status',
+    ])
+    expect(chain.body.filing.deliveryStatus).toBe('accepted')
+  })
+
+  it('refuses to file through a transport that is not configured', async () => {
+    const { token } = await newEntity()
+    await invoice(token, { unitPrice: '100000', taxCode: 'H21' })
+
+    // Digipoort with no certificate and no signer, which is a fresh install.
+    await expect(
+      handleFileVatReturn(
+        await context(token, uuidv7()),
+        fileVatReturnBody.parse({ period: '2026-Q1', transport: 'digipoort' }),
+      ),
+    ).rejects.toMatchObject({ code: 'validation_failed' })
+  })
+
+  it('offers only the transports that work, with a reason for the rest', async () => {
+    const { token } = await newEntity()
+    const { body } = await q1(token)
+
+    const manual = body.transports.find((transport) => transport.kind === 'manual')
+    expect(manual?.available).toBe(true)
+
+    const digipoort = body.transports.find((transport) => transport.kind === 'digipoort')
+    expect(digipoort?.available).toBe(false)
+    expect(digipoort?.reason).toContain('WS-Security')
+
+    // And the taxonomy is chosen by the period.
+    expect(body.taxonomy.version).toBe('NT20')
+    expect(body.taxonomy.verified).toBe(false)
+    expect(body.taxonomy.problem).toBeNull()
+  })
+
+  it('says so, rather than crashing, when no taxonomy covers the period', async () => {
+    const { token } = await newEntity()
+    const far = await handleGetVatReturn(await context(token), '2019-Q1')
+
+    expect(far.body.taxonomy.version).toBeNull()
+    expect(far.body.taxonomy.problem).toContain('taxonomy mapping covers')
+
+    await expect(
+      handleFileVatReturn(
+        await context(token, uuidv7()),
+        fileVatReturnBody.parse({ period: '2019-Q1', transport: 'manual' }),
+      ),
+    ).rejects.toMatchObject({ code: 'unknown_taxonomy' })
   })
 })

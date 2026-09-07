@@ -4,7 +4,7 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
-import { fileVatReturn, getVatReturn } from '~/server/vat'
+import { fileVatReturn, getVatReturn, listFilingSubmissions, pollFilingStatus } from '~/server/vat'
 
 /**
  * The BTW-aangifte for one period.
@@ -21,10 +21,19 @@ import { fileVatReturn, getVatReturn } from '~/server/vat'
  * the findings name the lines it consists of.
  */
 export const Route = createFileRoute('/_app/vat/$period')({
-  loader: async ({ params }) => ({
-    period: params.period,
-    aangifte: await getVatReturn({ data: { period: params.period } }),
-  }),
+  loader: async ({ params }) => {
+    const aangifte = await getVatReturn({ data: { period: params.period } })
+    // The delivery history, once there is something to have a history. Two
+    // sequential calls rather than one: the filing's id is not knowable before
+    // the return has been read.
+    const filingId = aangifte.ok ? aangifte.data.filing?.id : undefined
+    return {
+      period: params.period,
+      aangifte,
+      submissions:
+        filingId === undefined ? null : await listFilingSubmissions({ data: { filingId } }),
+    }
+  },
   component: VatReturnScreen,
 })
 
@@ -32,6 +41,20 @@ const TRANSPORT_LABEL: Record<string, string> = {
   manual: 'Zelf indienen via Mijn Belastingdienst Zakelijk',
   digipoort: 'Digipoort (eigen certificaat)',
   sbr_provider: 'Via een SBR-dienstverlener',
+}
+
+const DELIVERY_LABEL: Record<string, string> = {
+  prepared: 'klaargezet om zelf in te dienen',
+  delivered: 'ontvangen, nog niet verwerkt',
+  accepted: 'verwerkt door de Belastingdienst',
+  rejected: 'afgekeurd',
+  failed: 'niet verstuurd',
+}
+
+const INTERACTION_LABEL: Record<string, string> = {
+  deliver: 'aangeboden',
+  status: 'status opgevraagd',
+  confirmation: 'ontvangstbewijs vastgelegd',
 }
 
 const FINDING_LABEL: Record<string, string> = {
@@ -45,7 +68,7 @@ const FINDING_LABEL: Record<string, string> = {
 }
 
 function VatReturnScreen() {
-  const { aangifte } = Route.useLoaderData()
+  const { aangifte, submissions } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
 
@@ -54,6 +77,7 @@ function VatReturnScreen() {
   const [error, setError] = useState<string[] | null>(null)
   const [accept, setAccept] = useState(false)
   const key = useRef<string>(crypto.randomUUID())
+  const pollKey = useRef<string>(crypto.randomUUID())
 
   if (!aangifte.ok) {
     return (
@@ -71,7 +95,30 @@ function VatReturnScreen() {
   const blocking = data.findings.filter((finding) => finding.severity === 'blocking')
   const filing = data.filing
   const needsSuppletie = (filing?.suppletieNeeded ?? []).length > 0
-  const canFile = !data.blocked && (filing === null || needsSuppletie)
+  const canFile =
+    !data.blocked &&
+    data.taxonomy.problem === null &&
+    data.identity.ready &&
+    (filing === null || needsSuppletie)
+  const usable = data.transports.filter((transport) => transport.available)
+  const history = submissions !== null && submissions.ok ? submissions.data.submissions : []
+  const lastInstance = [...history].reverse().find((entry) => entry.hasInstance) ?? null
+
+  async function poll() {
+    if (filing === null) return
+    setBusy(true)
+    setError(null)
+    const result = await pollFilingStatus({
+      data: { filingId: filing.id, idempotencyKey: pollKey.current },
+    })
+    setBusy(false)
+    pollKey.current = crypto.randomUUID()
+    if (!result.ok) {
+      setError([result.problem.detail])
+      return
+    }
+    await router.invalidate()
+  }
 
   const detailFor = (rubriek: string) =>
     data.detail.find((entry) => entry.rubriek === rubriek)?.lines ?? []
@@ -159,6 +206,97 @@ function VatReturnScreen() {
               ` — ${TRANSPORT_LABEL[filing.transport] ?? filing.transport}`}
             .
           </p>
+          {/* Ontvangen is niet geaccepteerd, en dat gat is waar de problemen
+              zitten. Dus staat de bezorgstatus los van "ingediend". */}
+          {filing.deliveryStatus !== null && (
+            <p className="mt-2">
+              Status van de aanlevering:{' '}
+              <span
+                className={
+                  filing.deliveryStatus === 'rejected' || filing.deliveryStatus === 'failed'
+                    ? 'text-destructive'
+                    : filing.deliveryStatus === 'accepted'
+                      ? undefined
+                      : 'text-unreconciled'
+                }
+              >
+                {DELIVERY_LABEL[filing.deliveryStatus] ?? filing.deliveryStatus}
+              </span>
+              {filing.transportReference !== null && (
+                <span className="text-muted-foreground">
+                  {' '}
+                  · kenmerk {filing.transportReference}
+                </span>
+              )}
+            </p>
+          )}
+
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            {lastInstance !== null && (
+              <>
+                <a
+                  href={`/api/v1/vat/submissions/${lastInstance.id}/instance`}
+                  className="underline"
+                >
+                  XBRL-instance downloaden
+                </a>
+                <a
+                  href={`/api/v1/vat/submissions/${lastInstance.id}/instance?format=summary`}
+                  className="underline"
+                >
+                  Samenvatting om zelf in te dienen
+                </a>
+              </>
+            )}
+            {filing.transport !== null &&
+              filing.transport !== 'manual' &&
+              filing.transportReference !== null && (
+                <button
+                  type="button"
+                  disabled={!hydrated || busy}
+                  onClick={() => {
+                    void poll()
+                  }}
+                  className="border-input rounded-md border px-3 py-1.5 text-sm disabled:opacity-50"
+                >
+                  {busy ? 'Bezig…' : 'Status opvragen'}
+                </button>
+              )}
+          </div>
+
+          {history.length > 0 && (
+            <details className="mt-4">
+              <summary className="cursor-pointer text-xs underline">
+                Bewijslast ({history.length}{' '}
+                {history.length === 1 ? 'gebeurtenis' : 'gebeurtenissen'})
+              </summary>
+              <table className="mt-2 w-full max-w-3xl text-xs">
+                <caption className="sr-only">Alles wat er met deze aangifte is gebeurd</caption>
+                <thead>
+                  <tr className="text-muted-foreground text-left">
+                    <th scope="col">Wanneer</th>
+                    <th scope="col">Wat</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Kenmerk</th>
+                    <th scope="col">Toelichting</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((entry) => (
+                    <tr key={entry.id}>
+                      <td className="tabular py-1">{entry.at.slice(0, 19).replace('T', ' ')}</td>
+                      <td className="py-1">
+                        {INTERACTION_LABEL[entry.interaction] ?? entry.interaction}
+                      </td>
+                      <td className="py-1">{DELIVERY_LABEL[entry.status] ?? entry.status}</td>
+                      <td className="py-1">{entry.reference ?? '—'}</td>
+                      <td className="py-1">{entry.error ?? entry.instructions ?? ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          )}
           {needsSuppletie && (
             <div className="mt-3">
               <p className="text-unreconciled font-medium">
@@ -442,6 +580,38 @@ function VatReturnScreen() {
         </p>
       )}
 
+      {!data.identity.ready && (
+        <p role="alert" className="text-destructive mb-4 max-w-2xl text-sm">
+          Een aangifte wordt geïdentificeerd door het omzetbelastingnummer, en dat staat nog niet in
+          deze administratie. Vul het in onder{' '}
+          <Link to="/settings" className="underline">
+            Instellingen
+          </Link>
+          .
+        </p>
+      )}
+
+      {data.taxonomy.problem !== null && (
+        <p role="alert" className="text-destructive mb-4 max-w-2xl text-sm">
+          {data.taxonomy.problem}
+        </p>
+      )}
+
+      {data.taxonomy.version !== null && (
+        <p className="text-muted-foreground mb-4 max-w-2xl text-sm">
+          Taxonomie {data.taxonomy.version}, gekozen op basis van de periode — niet op basis van
+          welke versie de nieuwste is.
+          {!data.taxonomy.verified && (
+            <span className="text-unreconciled">
+              {' '}
+              Deze mapping is nog niet gecontroleerd tegen de gepubliceerde Nederlandse Taxonomie,
+              dus de bedragen zijn goed maar de XBRL-elementnamen misschien niet. Zelf indienen kan;
+              elektronisch versturen wordt geweigerd.
+            </span>
+          )}
+        </p>
+      )}
+
       {filing !== null && !needsSuppletie && (
         <p className="text-muted-foreground mb-4 max-w-2xl text-sm">
           Deze periode is ingediend en er is daarna niets meer gewijzigd. Er is dus niets te
@@ -464,13 +634,27 @@ function VatReturnScreen() {
               defaultValue="manual"
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             >
-              {Object.entries(TRANSPORT_LABEL).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
+              {usable.map((transport) => (
+                <option key={transport.kind} value={transport.kind}>
+                  {TRANSPORT_LABEL[transport.kind] ?? transport.name}
                 </option>
               ))}
             </select>
           </label>
+          {data.transports.some((transport) => !transport.available) && (
+            <ul className="text-muted-foreground -mt-2 space-y-1 text-xs">
+              {data.transports
+                .filter((transport) => !transport.available)
+                .map((transport) => (
+                  <li key={transport.kind}>
+                    <strong className="font-medium">
+                      {TRANSPORT_LABEL[transport.kind] ?? transport.name}
+                    </strong>{' '}
+                    is niet beschikbaar: {transport.reason}
+                  </li>
+                ))}
+            </ul>
+          )}
 
           <div>
             <label className="block">

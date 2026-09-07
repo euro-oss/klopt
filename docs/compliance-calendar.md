@@ -50,6 +50,39 @@ guessed date is worse than a blank one.
 If an update ever requires changing code in `packages/core`, that is a signal
 the artefact was hard-coded somewhere it should not have been. Fix that instead.
 
+## The NT mapping in this repository is unverified
+
+`reference-data/nt/nt20-ob-aangifte.json` maps each rubriek of the BTW-aangifte
+to the XBRL element that carries it. It was written from public documentation
+and **has not been checked against the published Nederlandse Taxonomie**. The
+element names are plausible; the date segments in the `schemaRef` and the
+dictionary namespace are certainly wrong.
+
+The file therefore carries `verified: false`, and that flag has consequences
+(ADR 0024):
+
+- The instance is still generated and the summary still shows the figures. They
+  come from the journal and are correct whatever the elements are called, so
+  filing by hand works today.
+- Both electronic transports **refuse** to send an unverified mapping. A
+  well-formed instance that declares the wrong box is worse than no instance.
+- The screen and the printed summary say so, in Dutch, above the figures.
+
+### What verifying it takes
+
+1. Download the NT entrypoint for the omzetbelasting aangifte from SBR
+   Nederland.
+2. Replace `schemaRef`, the `bd-i` namespace URI, and every `element` with the
+   published names.
+3. Set `verified: true`.
+4. Add the version's own file when the next NT lands, with its own
+   `appliesFrom`/`appliesTo`. Do **not** edit last year's: a Q4 filed in January
+   goes out against last year's taxonomy, and that only works if last year's
+   mapping still exists.
+
+Until step 3, `docs/decisions/0024-the-manual-path-is-the-default.md` is the
+statement of what is and is not true here.
+
 ## If the RGS data cannot be redistributed
 
 [ADR 0011](decisions/0011-rgs-as-reference-data.md) commits the generated

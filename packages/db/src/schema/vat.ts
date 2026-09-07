@@ -57,6 +57,12 @@ export const vatFilings = klopt.table(
     /** Which FilingTransport carried it: digipoort, sbr_provider or manual. */
     transport: text('transport'),
     transportReference: text('transport_reference'),
+    /**
+     * The delivery's current state, denormalised from `filing_submissions` so a
+     * list of periods needs no history join. The history remains the truth.
+     */
+    deliveryStatus: text('delivery_status'),
+    taxonomyVersion: text('taxonomy_version'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

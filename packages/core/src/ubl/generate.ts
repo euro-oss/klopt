@@ -1,4 +1,4 @@
-import { escapeXml } from '../xaf/generate.js'
+import { XmlWriter } from '../xml/writer.js'
 import {
   CAC_NAMESPACE,
   CBC_NAMESPACE,
@@ -27,41 +27,6 @@ import {
  * "The XML is the legal invoice, the PDF is a rendering" (spec 7.5). Treat this
  * file accordingly: the output is the document, not a report about it.
  */
-
-const INDENT = '  '
-
-class XmlWriter {
-  private readonly parts: string[] = []
-  private depth = 0
-
-  open(name: string, attributes: Record<string, string | null> = {}): void {
-    const attrs = Object.entries(attributes)
-      .filter((pair): pair is [string, string] => pair[1] !== null)
-      .map(([key, value]) => ` ${key}="${escapeXml(value)}"`)
-      .join('')
-    this.parts.push(`${INDENT.repeat(this.depth)}<${name}${attrs}>\n`)
-    this.depth += 1
-  }
-
-  close(name: string): void {
-    this.depth -= 1
-    this.parts.push(`${INDENT.repeat(this.depth)}</${name}>\n`)
-  }
-
-  /** Writes nothing when the value is null. UBL marks absence by omission. */
-  leaf(name: string, value: string | null, attributes: Record<string, string | null> = {}): void {
-    if (value === null) return
-    const attrs = Object.entries(attributes)
-      .filter((pair): pair is [string, string] => pair[1] !== null)
-      .map(([key, attribute]) => ` ${key}="${escapeXml(attribute)}"`)
-      .join('')
-    this.parts.push(`${INDENT.repeat(this.depth)}<${name}${attrs}>${escapeXml(value)}</${name}>\n`)
-  }
-
-  toString(): string {
-    return this.parts.join('')
-  }
-}
 
 /**
  * Minor units to a decimal string, through integers only.

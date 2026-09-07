@@ -398,6 +398,24 @@ export const routeManifest: readonly RouteBinding[] = [
     path: '/vat/number-checks',
     module: 'api/v1/vat.number-checks.ts',
   },
+  {
+    operationId: 'vat.listSubmissions',
+    method: 'GET',
+    path: '/vat/filings/{filingId}/submissions',
+    module: 'api/v1/vat.filings.$filingId.submissions.ts',
+  },
+  {
+    operationId: 'vat.getFiledInstance',
+    method: 'GET',
+    path: '/vat/submissions/{submissionId}/instance',
+    module: 'api/v1/vat.submissions.$submissionId.instance.ts',
+  },
+  {
+    operationId: 'vat.pollStatus',
+    method: 'POST',
+    path: '/vat/filings/{filingId}/status',
+    module: 'api/v1/vat.filings.$filingId.status.ts',
+  },
 ]
 
 export interface ContractViolation {

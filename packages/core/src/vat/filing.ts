@@ -1,4 +1,5 @@
 import { violation, LedgerError } from '../errors.js'
+import type { FilingTransportKind } from '../ports/filing.js'
 import type { VatPeriodKind } from './period.js'
 import type { VatFinding, VatReturn } from './return.js'
 
@@ -12,14 +13,10 @@ import type { VatFinding, VatReturn } from './return.js'
  */
 
 /**
- * How the instance reaches the Belastingdienst.
- *
- * `manual` is not a fallback. A self-hoster should not have to buy a
- * PKIoverheid certificate to be compliant, so producing the instance and a
- * human-readable summary to file in Mijn Belastingdienst Zakelijk is a
- * first-class path (spec 7.2, explicitly).
+ * How the instance reaches the Belastingdienst. Defined by the port, because
+ * the transports are adapters — see `ports/filing.ts`.
  */
-export type FilingTransportKind = 'digipoort' | 'sbr_provider' | 'manual'
+export type { FilingTransportKind }
 
 export interface FiledSnapshot {
   readonly id: string

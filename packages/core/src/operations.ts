@@ -643,6 +643,35 @@ export const vatOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  listSubmissions: defineOperation({
+    id: 'vat.listSubmissions',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary:
+      'A filing’s whole delivery history: what was sent, when, and every status response. The evidence chain.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  getFiledInstance: defineOperation({
+    id: 'vat.getFiledInstance',
+    kind: 'read',
+    permission: 'ledger:export',
+    summary: 'The XBRL instance as filed, served from what was stored rather than regenerated.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  pollStatus: defineOperation({
+    id: 'vat.pollStatus',
+    kind: 'write',
+    permission: 'vat:file',
+    summary:
+      'Ask the transport where a filing has got to. Delivered is not accepted, and each answer is another row in the evidence chain.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
   fileReturn: defineOperation({
     id: 'vat.fileReturn',
     kind: 'write',

@@ -36,6 +36,8 @@ export {
   type FilingSummary,
   type RecordFilingRequest,
   type StoredFiling,
+  type RecordSubmissionRequest,
+  type SubmissionRow,
   type VatNumberCheckRow,
   type VatPeriodQuery,
   VatRepository,

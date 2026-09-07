@@ -10,3 +10,4 @@ export {
   textAt,
   textOf,
 } from './parse.js'
+export { type XmlAttributes, XmlWriter, decimalString, escapeXml } from './writer.js'

@@ -1,3 +1,4 @@
+import { XmlWriter, escapeXml } from '../xml/writer.js'
 import {
   XAF_NAMESPACE,
   type XafDocument,
@@ -21,32 +22,16 @@ import {
  * and a golden file that diffs cleanly is worth the extra bytes.
  */
 
-const INDENT = '  '
-
-/**
- * XML 1.0 forbids most control characters outright — they cannot be escaped,
- * only dropped. Tab, newline and carriage return are the exceptions.
- */
-// The control characters are the point of this rule, so the lint rule that
-// objects to them in a regex has nothing useful to say here.
-// eslint-disable-next-line no-control-regex
-const FORBIDDEN_CONTROL_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g
-
-export function escapeXml(value: string): string {
-  return value
-    .replace(FORBIDDEN_CONTROL_CHARACTERS, '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
+/** Re-exported from its old home: several callers and tests import it here. */
+export { escapeXml }
 
 /**
  * Minor units to the two-decimal string XAF wants, via integers only.
  *
  * XAF amounts are unsigned; the sign lives in the accompanying `amntTp`. A
  * negative here means the caller has not separated sign from magnitude, which
- * is a bug worth failing on rather than papering over with Math.abs.
+ * is a bug worth failing on rather than papering over with Math.abs. That is
+ * why this is not `decimalString` from the shared writer.
  */
 export function xafAmount(minorUnits: bigint): string {
   if (minorUnits < 0n) {
@@ -56,35 +41,6 @@ export function xafAmount(minorUnits: bigint): string {
   }
   const digits = minorUnits.toString().padStart(3, '0')
   return `${digits.slice(0, -2)}.${digits.slice(-2)}`
-}
-
-class XmlWriter {
-  private readonly parts: string[] = []
-  private depth = 0
-
-  open(name: string, attributes: Record<string, string> = {}): void {
-    const attrs = Object.entries(attributes)
-      .map(([key, value]) => ` ${key}="${escapeXml(value)}"`)
-      .join('')
-    this.parts.push(`${INDENT.repeat(this.depth)}<${name}${attrs}>\n`)
-    this.depth += 1
-  }
-
-  close(name: string): void {
-    this.depth -= 1
-    this.parts.push(`${INDENT.repeat(this.depth)}</${name}>\n`)
-  }
-
-  /** Writes nothing when the value is null: XAF marks absence by omission. */
-  leaf(name: string, value: string | number | null): void {
-    if (value === null) return
-    const text = typeof value === 'number' ? String(value) : value
-    this.parts.push(`${INDENT.repeat(this.depth)}<${name}>${escapeXml(text)}</${name}>\n`)
-  }
-
-  toString(): string {
-    return this.parts.join('')
-  }
 }
 
 interface Totals {
