@@ -342,6 +342,55 @@ export const updateEntityBody = z.object({
 
 export type UpdateEntityBody = z.infer<typeof updateEntityBody>
 
+/**
+ * Correcting a contact.
+ *
+ * Every field optional, because a patch says what changed and a screen that had
+ * to send all fifteen back would overwrite whatever somebody else fixed in the
+ * meantime. `null` clears a field; absent leaves it.
+ *
+ * The address is a whole or nothing: it is one thing on a document, and a
+ * half-updated address is worse than either version of it.
+ */
+export const updateContactBody = z.object({
+  number: z.string().trim().min(1).max(40).optional(),
+  name: z.string().trim().min(1).max(200).optional(),
+  legalName: nullableText.optional(),
+  isCustomer: z.boolean().optional(),
+  isSupplier: z.boolean().optional(),
+  isBlocked: z.boolean().optional(),
+  email: nullableText.optional(),
+  phone: nullableText.optional(),
+  vatNumber: nullableText.optional(),
+  kvkNumber: nullableText.optional(),
+  countryCode: z
+    .string()
+    .regex(/^[A-Za-z]{2}$/, 'Two-letter ISO 3166.')
+    .transform((value) => value.toUpperCase())
+    .optional(),
+  paymentTermsDays: z.coerce.number().int().min(0).max(365).optional(),
+  electronicAddress: nullableText.optional(),
+  electronicAddressScheme: nullableText.optional(),
+  iban: nullableText.optional(),
+  notes: nullableText.optional(),
+  address: z
+    .object({
+      street: nullableText,
+      houseNumber: nullableText,
+      postalCode: nullableText,
+      city: nullableText,
+      countryCode: z
+        .string()
+        .regex(/^[A-Za-z]{2}$/, 'Two-letter ISO 3166.')
+        .transform((value) => value.toUpperCase())
+        .default('NL'),
+    })
+    .nullable()
+    .optional(),
+})
+
+export type UpdateContactBody = z.infer<typeof updateContactBody>
+
 export const invoicePdfQuery = z.object({
   /**
    * Attach the UBL to the PDF (spec 7.5's fallback transport). Off by default:

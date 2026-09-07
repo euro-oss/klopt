@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import {
   handleCreateContact,
   handleDraftInvoice,
+  handleGetContact,
   handleGetDunningQueue,
   handleGetInvoice,
   handleIssueInvoice,
@@ -12,6 +13,7 @@ import {
   handleListTaxCodes,
   handleSendDunningReminder,
   handleSendInvoice,
+  handleUpdateContact,
 } from '~/api/handlers/sales'
 import {
   createContactBody,
@@ -19,6 +21,7 @@ import {
   issueInvoiceBody,
   sendInvoiceBody,
   sendReminderBody,
+  updateContactBody,
 } from '~/api/schemas'
 import { contextFromRequest, run, runWith } from './internal'
 
@@ -179,6 +182,35 @@ export const sendReminder = createServerFn({ method: 'POST' })
           await handleSendDunningReminder(
             await contextFromRequest({ idempotencyKey: data.idempotencyKey }),
             data.invoiceId,
+            body,
+          )
+        ).body,
+    ),
+  )
+
+/**
+ * Reading and correcting one contact.
+ *
+ * A correction is master data changed in place — there is no journal here to
+ * keep honest, and what was already issued keeps what it said.
+ */
+export const getContact = createServerFn({ method: 'GET' })
+  .validator((input: { contactId: string }) => input)
+  .handler(async ({ data }) =>
+    run(async () => (await handleGetContact(await contextFromRequest(), data.contactId)).body),
+  )
+
+export const updateContact = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      updateContactBody,
+      data,
+      async (body) =>
+        (
+          await handleUpdateContact(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            (data as { contactId: string }).contactId,
             body,
           )
         ).body,

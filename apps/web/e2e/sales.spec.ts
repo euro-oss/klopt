@@ -243,3 +243,36 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
     0,
   )
 })
+
+test('a mistyped IBAN can be corrected, which is what makes a supplier payable', async ({
+  page,
+}) => {
+  // The gap this closes: a contact could be created and never fixed, so one
+  // wrong character meant a supplier who could never be paid.
+  await anAdministration(page, 'Correctie BV')
+
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('CRE-0001')
+  await page.getByLabel('Naam', { exact: true }).fill('Leverancier B.V.')
+  await page.getByLabel('IBAN').fill('NL02ABNA012345678')
+  await page.getByRole('checkbox', { name: /Leverancier/ }).check()
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+
+  await page.getByRole('link', { name: 'Leverancier B.V.' }).click()
+  await expect(page.getByRole('heading', { name: /CRE-0001 · Leverancier B.V./ })).toBeVisible()
+
+  // The form opens on what is stored, not on an empty form.
+  await expect(page.getByLabel('IBAN')).toHaveValue('NL02ABNA012345678')
+
+  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('Naam', { exact: true }).fill('Leverancier Nederland B.V.')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.goto('/contacts')
+  await expect(page.getByRole('link', { name: 'Leverancier Nederland B.V.' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Leverancier Nederland B.V.' }).click()
+  await expect(page.getByLabel('IBAN')).toHaveValue('NL02ABNA0123456789')
+})

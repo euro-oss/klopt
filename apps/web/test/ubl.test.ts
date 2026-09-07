@@ -5,6 +5,7 @@ import { closeDatabase, createDatabase, issueToken, runMigrations, type Database
 import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
+import { createHash } from 'node:crypto'
 import { ApiError } from '../src/api/errors.js'
 import {
   handleCreateContact,
@@ -12,9 +13,18 @@ import {
   handleGetInvoicePdf,
   handleGetInvoiceUbl,
   handleIssueInvoice,
+  handleListContacts,
+  handleUpdateContact,
 } from '../src/api/handlers/sales.js'
 import { handleUpdateEntity } from '../src/api/handlers/setup.js'
-import { createContactBody, draftInvoiceBody, issueInvoiceBody } from '../src/api/schemas.js'
+import {
+  createContactBody,
+  draftInvoiceBody,
+  issueInvoiceBody,
+  updateContactBody,
+} from '../src/api/schemas.js'
+
+const hashOf = (xml: string): string => createHash('sha256').update(xml, 'utf8').digest('hex')
 
 /**
  * An invoice, out of the database and into UBL (spec 7.5).
@@ -171,6 +181,33 @@ describe('an administration that has been', () => {
     expect(result.xml).toContain('<cbc:RegistrationName>Grote Klant N.V.</cbc:RegistrationName>')
     expect(result.xml).toContain('<cbc:ID>NL02ABNA0123456789</cbc:ID>')
     expect(result.xml).toContain('<cbc:BuyerReference>KOSTENPLAATS-42</cbc:BuyerReference>')
+  })
+
+  it('is the same bytes every time, even after the customer is renamed', async () => {
+    // The document is what was issued, not a re-derivation of it. This used to
+    // regenerate from the current database on every request, which meant
+    // correcting a customer's name rewrote the invoice sent to them last month
+    // and left `invoice_deliveries.document_hash` pointing at bytes nobody
+    // could reproduce.
+    const number = await aCustomer()
+    const invoiceId = await anIssuedInvoice(number)
+
+    const first = await handleGetInvoiceUbl(await contextFor(), invoiceId)
+    expect(first.xml).toContain('Grote Klant N.V.')
+
+    const contacts = await handleListContacts(await contextFor(), { customersOnly: false })
+    const customer = contacts.body.contacts.find((row) => row.number === number)!
+    await handleUpdateContact(
+      await contextFor(uuidv7()),
+      customer.id,
+      updateContactBody.parse({ name: 'Hele Andere Naam N.V.' }),
+    )
+
+    const second = await handleGetInvoiceUbl(await contextFor(), invoiceId)
+    expect(second.xml).toBe(first.xml)
+    expect(second.xml).not.toContain('Hele Andere Naam N.V.')
+    // Byte-identical, which is what a recorded document hash is worth.
+    expect(hashOf(second.xml)).toBe(hashOf(first.xml))
   })
 
   it('carries the amounts the ledger posted, to the cent', async () => {

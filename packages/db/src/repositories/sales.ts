@@ -20,6 +20,7 @@ import {
   contacts,
   entities,
   invoiceDeliveries,
+  purchaseInvoices,
   salesInvoiceLines,
   salesInvoices,
   taxCodes,
@@ -764,6 +765,167 @@ export class SalesRepository {
     }
 
     return id
+  }
+
+  /** One contact with its street address, for an edit screen. */
+  async findContact(entityId: string, contactId: string) {
+    const [contact] = await this.tx
+      .select()
+      .from(contacts)
+      .where(and(eq(contacts.entityId, entityId), eq(contacts.id, contactId)))
+      .limit(1)
+
+    if (contact === undefined) return null
+
+    const [address] = await this.tx
+      .select()
+      .from(contactAddresses)
+      .where(and(eq(contactAddresses.contactId, contactId), eq(contactAddresses.kind, 'street')))
+      .limit(1)
+
+    return { contact, address: address ?? null }
+  }
+
+  /**
+   * Correct a contact.
+   *
+   * A contact is master data, not a posting: it is corrected in place rather
+   * than reversed, because there is no journal here to keep honest. What is
+   * already booked keeps pointing at the same row by id, so fixing a mistyped
+   * IBAN fixes it for the next payment run without touching a cent of what
+   * happened before.
+   *
+   * The document a contact appears on is a different matter and is not
+   * retrospectively changed: an issued invoice's UBL and PDF are stored
+   * artefacts, and a name corrected today does not rewrite what was sent last
+   * month. That is the same rule as everywhere else — the record of what
+   * happened does not move.
+   *
+   * Only the fields that were sent are written. `undefined` means "leave it",
+   * which is what makes a screen able to edit one field without shipping the
+   * other fifteen back.
+   */
+  async updateContact(request: {
+    readonly entityId: string
+    readonly contactId: string
+    readonly patch: {
+      readonly number?: string | undefined
+      readonly name?: string | undefined
+      readonly legalName?: string | null | undefined
+      readonly isCustomer?: boolean | undefined
+      readonly isSupplier?: boolean | undefined
+      readonly isBlocked?: boolean | undefined
+      readonly email?: string | null | undefined
+      readonly phone?: string | null | undefined
+      readonly vatNumber?: string | null | undefined
+      readonly kvkNumber?: string | null | undefined
+      readonly countryCode?: string | undefined
+      readonly paymentTermsDays?: number | undefined
+      readonly electronicAddress?: string | null | undefined
+      readonly electronicAddressScheme?: string | null | undefined
+      readonly iban?: string | null | undefined
+      readonly notes?: string | null | undefined
+    }
+    readonly address?: {
+      readonly street: string | null
+      readonly houseNumber: string | null
+      readonly postalCode: string | null
+      readonly city: string | null
+      readonly countryCode: string
+    } | null
+  }): Promise<void> {
+    // Only the keys that were actually sent. A `set` with `field: undefined`
+    // in it is a `set` that writes nothing at all in Drizzle, so filtering here
+    // is what keeps "patch one field" from silently becoming "patch nothing".
+    const fields = Object.fromEntries(
+      Object.entries(request.patch).filter(([, value]) => value !== undefined),
+    )
+
+    if (Object.keys(fields).length > 0) {
+      await this.tx
+        .update(contacts)
+        .set({ ...fields, updatedAt: new Date().toISOString() })
+        .where(and(eq(contacts.entityId, request.entityId), eq(contacts.id, request.contactId)))
+    }
+
+    if (request.address === undefined) return
+
+    const [existing] = await this.tx
+      .select({ id: contactAddresses.id })
+      .from(contactAddresses)
+      .where(
+        and(eq(contactAddresses.contactId, request.contactId), eq(contactAddresses.kind, 'street')),
+      )
+      .limit(1)
+
+    if (request.address === null) {
+      if (existing !== undefined) {
+        await this.tx.delete(contactAddresses).where(eq(contactAddresses.id, existing.id))
+      }
+      return
+    }
+
+    if (existing === undefined) {
+      await this.tx.insert(contactAddresses).values({
+        id: uuidv7(),
+        entityId: request.entityId,
+        contactId: request.contactId,
+        kind: 'street',
+        ...request.address,
+      })
+      return
+    }
+
+    await this.tx
+      .update(contactAddresses)
+      .set({ ...request.address, updatedAt: new Date().toISOString() })
+      .where(eq(contactAddresses.id, existing.id))
+  }
+
+  /**
+   * What would be left dangling if this contact stopped being a customer or a
+   * supplier.
+   *
+   * Not a count of everything they ever had: a contact with a paid history is
+   * fine to reclassify. What matters is what is still *open*, because an
+   * invoice whose counterparty is no longer a customer disappears from the
+   * screens that chase it while staying in the ledger that counts it.
+   */
+  async openDocumentCounts(
+    entityId: string,
+    contactId: string,
+  ): Promise<{ readonly sales: number; readonly purchase: number }> {
+    // Issued and not fully paid, or still a draft. `status` alone does not say
+    // it — an issued invoice stays `issued` until it is credited — so this is
+    // the same allocation join every other "what is still owed" question uses.
+    const allocated = this.allocatedPerInvoice(entityId)
+    const salesRows = await this.tx
+      .select({ total: salesInvoices.totalMinorUnits, allocated: allocated.total })
+      .from(salesInvoices)
+      .leftJoin(allocated, eq(allocated.invoiceId, salesInvoices.id))
+      .where(
+        and(
+          eq(salesInvoices.entityId, entityId),
+          eq(salesInvoices.contactId, contactId),
+          inArray(salesInvoices.status, ['draft', 'issued']),
+          isNull(salesInvoices.creditsInvoiceId),
+        ),
+      )
+
+    const sales = salesRows.filter((row) => row.total - BigInt(row.allocated ?? '0') !== 0n).length
+
+    const [purchase] = await this.tx
+      .select({ count: sql<string>`count(*)` })
+      .from(purchaseInvoices)
+      .where(
+        and(
+          eq(purchaseInvoices.entityId, entityId),
+          eq(purchaseInvoices.contactId, contactId),
+          inArray(purchaseInvoices.status, ['draft', 'booked', 'approved', 'disputed']),
+        ),
+      )
+
+    return { sales, purchase: Number(purchase?.count ?? '0') }
   }
 
   async listTaxCodes(entityId: string) {

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import {
+  CUSTOMIZATION_ID,
   DEFAULT_DUNNING_SCHEDULE,
   checkUblRules,
   formatMinorUnits,
@@ -12,10 +13,13 @@ import {
   toUblDocument,
   type EInvoiceDocument,
   type PricedInvoice,
+  type UblProfile,
 } from '@klopt/core'
 import {
   invoiceEntryFor,
   priceDraft,
+  withInbox,
+  withInboxRead,
   withSales,
   withSalesRead,
   type DraftInvoiceRequest,
@@ -23,6 +27,7 @@ import {
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
 import { invoiceRenderer } from '../documents.js'
+import { documentStore } from '../document-store.js'
 import { eInvoiceTransport } from '../e-invoice.js'
 import { schematron } from '../schematron.js'
 import type {
@@ -31,6 +36,7 @@ import type {
   IssueInvoiceBody,
   SendInvoiceBody,
   SendReminderBody,
+  UpdateContactBody,
 } from '../schemas.js'
 
 /**
@@ -120,6 +126,121 @@ export async function handleCreateContact(context: RequestContext, body: CreateC
   )
 
   return { status: 201, body: { id, number: body.number } }
+}
+
+/**
+ * One contact, for correcting it.
+ *
+ * Includes what is still open against them, because that is what makes
+ * "no longer a supplier" a decision rather than a checkbox.
+ */
+export async function handleGetContact(context: RequestContext, contactId: string) {
+  requirePermission(context, 'ledger:read')
+
+  return withSalesRead(context.database, async (repository) => {
+    const found = await repository.findContact(context.entityId, contactId)
+    if (found === null) throw new ApiError('not_found', 'No such contact.')
+
+    const open = await repository.openDocumentCounts(context.entityId, contactId)
+    const { contact, address } = found
+
+    return {
+      status: 200,
+      body: {
+        contact: {
+          id: contact.id,
+          number: contact.number,
+          name: contact.name,
+          legalName: contact.legalName,
+          isCustomer: contact.isCustomer,
+          isSupplier: contact.isSupplier,
+          isBlocked: contact.isBlocked,
+          email: contact.email,
+          phone: contact.phone,
+          vatNumber: contact.vatNumber,
+          kvkNumber: contact.kvkNumber,
+          countryCode: contact.countryCode,
+          paymentTermsDays: contact.paymentTermsDays,
+          electronicAddress: contact.electronicAddress,
+          electronicAddressScheme: contact.electronicAddressScheme,
+          iban: contact.iban,
+          notes: contact.notes,
+          address:
+            address === null
+              ? null
+              : {
+                  street: address.street,
+                  houseNumber: address.houseNumber,
+                  postalCode: address.postalCode,
+                  city: address.city,
+                  countryCode: address.countryCode,
+                },
+        },
+        openDocuments: open,
+      },
+    }
+  })
+}
+
+/**
+ * Correct a contact.
+ *
+ * Master data is corrected in place. There is no journal here to keep honest,
+ * and everything already booked points at the same row by id — so fixing a
+ * mistyped IBAN fixes the next payment run without touching a cent of what
+ * happened before. What was *sent* does not move: an issued invoice's UBL and
+ * PDF are stored artefacts, and a name corrected today does not rewrite them.
+ *
+ * The one refusal is unclassifying somebody who still has open documents.
+ * Turning off "is supplier" on a creditor with three unpaid invoices takes them
+ * out of the payment run and the ageing while the ledger still carries the
+ * liability — the subledger and its control account would part company, exactly
+ * as they did in ADR 0027. Blocking them is the thing that was actually meant,
+ * and it is offered instead.
+ */
+export async function handleUpdateContact(
+  context: RequestContext,
+  contactId: string,
+  body: UpdateContactBody,
+) {
+  requirePermission(context, 'ledger:configure')
+
+  return withSales(context.database, async ({ sales }) => {
+    const found = await sales.findContact(context.entityId, contactId)
+    if (found === null) throw new ApiError('not_found', 'No such contact.')
+
+    const open = await sales.openDocumentCounts(context.entityId, contactId)
+    const problems: { code: string; path: string; message: string }[] = []
+
+    if (body.isCustomer === false && found.contact.isCustomer && open.sales > 0) {
+      problems.push({
+        code: 'open_documents',
+        path: 'isCustomer',
+        message: `${found.contact.name} still has ${String(open.sales)} open sales invoice(s). Unmarking them as a customer would take those off the debtors ageing while the ledger still counts them. Block the contact instead.`,
+      })
+    }
+    if (body.isSupplier === false && found.contact.isSupplier && open.purchase > 0) {
+      problems.push({
+        code: 'open_documents',
+        path: 'isSupplier',
+        message: `${found.contact.name} still has ${String(open.purchase)} open purchase invoice(s). Unmarking them as a supplier would take those out of the payment run while the ledger still owes them. Block the contact instead.`,
+      })
+    }
+
+    if (problems.length > 0) {
+      throw new ApiError('validation_failed', problems[0]!.message, problems)
+    }
+
+    const { address, ...patch } = body
+    await sales.updateContact({
+      entityId: context.entityId,
+      contactId,
+      patch,
+      ...(address === undefined ? {} : { address }),
+    })
+
+    return { status: 200, body: { id: contactId, number: body.number ?? found.contact.number } }
+  })
 }
 
 export async function handleListTaxCodes(context: RequestContext) {
@@ -402,6 +523,37 @@ export async function handleListOverdueInvoices(
  * Drafts have no number, and a document with no BT-1 is not an invoice, so a
  * draft is a 404 here rather than a rule violation.
  */
+/**
+ * The invoice as UBL.
+ *
+ * ## The document is the bytes that were issued, not a re-derivation of them
+ *
+ * This used to regenerate the XML from the current database on every request,
+ * which meant an invoice was whatever its inputs happened to say today. That is
+ * fine while nothing can change, and contact editing is exactly the thing that
+ * makes it not fine: correcting a customer's name would rewrite the invoice
+ * sent to them last month, and `invoice_deliveries.document_hash` — the sha256
+ * of what actually went out — would stop matching a document nobody could
+ * reproduce.
+ *
+ * So the XML is generated once, when it is first asked for, and stored in the
+ * content-addressed document store with a link to the invoice. Every later
+ * request returns those bytes. Same doctrine as the pain.001, whose CreDtTm
+ * comes from the approval rather than the clock (ADR 0027), and as the inbox
+ * parse, which is stored rather than recomputed (ADR 0026): a record of what
+ * happened does not move.
+ *
+ * Generation is still lazy rather than at issue time, because the schematron
+ * gate below belongs to *sending* rather than to *issuing* — an invoice whose
+ * seller address is missing is an invoice that has been correctly issued and
+ * cannot yet be sent, and failing the issue would allocate no number and leave
+ * a gap where the law wants none.
+ */
+/** Which CIUS a stored document declares. Its own `CustomizationID` is the answer. */
+function profileOf(xml: string): UblProfile {
+  return xml.includes(CUSTOMIZATION_ID.nlcius) ? 'nlcius' : 'peppol-bis-3'
+}
+
 export async function handleGetInvoiceUbl(context: RequestContext, invoiceId: string) {
   requirePermission(context, 'ledger:export')
 
@@ -411,6 +563,33 @@ export async function handleGetInvoiceUbl(context: RequestContext, invoiceId: st
 
   if (source === null) {
     throw new ApiError('not_found', 'No such issued invoice. A draft has no number yet.')
+  }
+
+  const stored = await withInboxRead(context.database, (repository) =>
+    repository.documentsFor(context.entityId, 'sales_invoice', invoiceId),
+  )
+  const held = stored.find((entry) => entry.role === 'ubl')
+
+  if (held !== undefined) {
+    // Already issued and already written down. Nothing is regenerated, so
+    // nothing can drift.
+    const bytes = await documentStore().get(held.sha256)
+    if (bytes !== null) {
+      const xml = new TextDecoder().decode(bytes)
+      const validation = schematron().validate(xml)
+      return {
+        xml,
+        filename: `${source.number}.ubl.xml`,
+        // Read out of the bytes rather than re-derived from today's settings,
+        // for the same reason the bytes themselves are not re-derived.
+        profile: profileOf(xml),
+        warnings: validation.warnings.map((warning) => ({
+          rule: warning.rule,
+          message: warning.message,
+        })),
+        assertionsEvaluated: validation.assertionsEvaluated,
+      }
+    }
   }
 
   const document = toUblDocument(source)
@@ -461,6 +640,28 @@ export async function handleGetInvoiceUbl(context: RequestContext, invoiceId: st
       })),
     )
   }
+
+  // Written down now that it is known to be a document somebody could send.
+  // The first request settles what this invoice is; every later one reads it.
+  const put = await documentStore().put(new TextEncoder().encode(xml), {
+    contentType: 'application/xml',
+  })
+  await withInbox(context.database, async ({ inbox }) => {
+    const document = await inbox.recordDocument({
+      entityId: context.entityId,
+      sha256: put.sha256,
+      sizeBytes: put.sizeBytes,
+      contentType: 'application/xml',
+      filename: `${source.number}.ubl.xml`,
+    })
+    await inbox.link({
+      entityId: context.entityId,
+      documentId: document.id,
+      subjectKind: 'sales_invoice',
+      subjectId: invoiceId,
+      role: 'ubl',
+    })
+  })
 
   return {
     xml,

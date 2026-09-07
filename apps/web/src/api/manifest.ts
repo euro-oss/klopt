@@ -327,6 +327,18 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/contacts.ts',
   },
   {
+    operationId: 'sales.getContact',
+    method: 'GET',
+    path: '/contacts/{contactId}',
+    module: 'api/v1/contacts.$contactId.ts',
+  },
+  {
+    operationId: 'sales.updateContact',
+    method: 'PATCH',
+    path: '/contacts/{contactId}',
+    module: 'api/v1/contacts.$contactId.ts',
+  },
+  {
     operationId: 'sales.listTaxCodes',
     method: 'GET',
     path: '/tax-codes',

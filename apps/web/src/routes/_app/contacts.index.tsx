@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
@@ -13,7 +13,7 @@ import { createContact, listContacts } from '~/server/sales'
  * on an invoice, so a customer recorded without one produces an invoice that is
  * refused at the point it matters most. Better to ask once, now.
  */
-export const Route = createFileRoute('/_app/contacts')({
+export const Route = createFileRoute('/_app/contacts/')({
   loader: async () => ({ contacts: await listContacts({ data: {} }) }),
   component: Contacts,
 })
@@ -123,10 +123,17 @@ function Contacts() {
     {
       key: 'name',
       header: 'Naam',
+      // A link rather than a row click, because "open this to correct it" is
+      // navigation and a link is what a keyboard, a middle click and a screen
+      // reader all already understand.
       cell: (row) => (
-        <span className={row.isBlocked ? 'text-muted-foreground line-through' : undefined}>
+        <Link
+          to="/contacts/$contactId"
+          params={{ contactId: row.id }}
+          className={row.isBlocked ? 'text-muted-foreground underline line-through' : 'underline'}
+        >
           {row.name}
-        </span>
+        </Link>
       ),
     },
     {

@@ -13,10 +13,23 @@ import {
   handleListInvoices,
   handleListOverdueInvoices,
   handleListTaxCodes,
+  handleGetContact,
+  handleUpdateContact,
 } from '../src/api/handlers/sales.js'
+import {
+  handleBookPurchaseInvoice,
+  handleCapturePurchaseInvoice,
+} from '../src/api/handlers/purchase.js'
 import { handleGetProfitAndLoss, handleGetBalanceSheet } from '../src/api/handlers/compliance.js'
 import { handleGetJournalEntry } from '../src/api/handlers/ledger.js'
-import { createContactBody, draftInvoiceBody, issueInvoiceBody } from '../src/api/schemas.js'
+import {
+  bookPurchaseInvoiceBody,
+  capturePurchaseInvoiceBody,
+  createContactBody,
+  draftInvoiceBody,
+  issueInvoiceBody,
+  updateContactBody,
+} from '../src/api/schemas.js'
 
 /**
  * Invoicing, end to end.
@@ -463,5 +476,232 @@ describe('listing and ageing', () => {
     const overdue = await handleListOverdueInvoices(await context(token), { asOf: '2026-02-01' })
     expect(overdue.body.invoices).toEqual([])
     expect(overdue.body.totalOutstanding).toBe('0')
+  })
+})
+
+describe('correcting a relatie', () => {
+  /** The contact id, which `createContact` returns and the list confirms. */
+  async function aContact(token: string, overrides: Record<string, unknown> = {}) {
+    const created = await handleCreateContact(
+      await context(token, uuidv7()),
+      createContactBody.parse({
+        number: 'DEB-0009',
+        name: 'Typfout B.V.',
+        email: 'info@typfout.test',
+        isCustomer: true,
+        isSupplier: true,
+        ...overrides,
+      }),
+    )
+    return (created.body as { id: string }).id
+  }
+
+  it('fixes a mistyped IBAN, which is the whole reason this exists', async () => {
+    // A supplier whose IBAN cannot be corrected is a supplier who can never be
+    // paid. There is no journal here to keep honest — this is master data.
+    const { token } = await newEntity()
+    const id = await aContact(token, { number: 'CRE-0009', iban: 'NL02ABNA012345678' })
+
+    await handleUpdateContact(
+      await context(token, uuidv7()),
+      id,
+      updateContactBody.parse({ iban: 'NL02ABNA0123456789' }),
+    )
+
+    const after = await handleGetContact(await context(token), id)
+    expect(after.body.contact.iban).toBe('NL02ABNA0123456789')
+    // And nothing else moved.
+    expect(after.body.contact.name).toBe('Typfout B.V.')
+    expect(after.body.contact.email).toBe('info@typfout.test')
+  })
+
+  it('writes only what was sent', async () => {
+    const { token } = await newEntity()
+    const id = await aContact(token, { vatNumber: 'NL987654321B01', paymentTermsDays: 14 })
+
+    await handleUpdateContact(
+      await context(token, uuidv7()),
+      id,
+      updateContactBody.parse({ name: 'Correcte Naam B.V.' }),
+    )
+
+    const after = await handleGetContact(await context(token), id)
+    expect(after.body.contact.name).toBe('Correcte Naam B.V.')
+    expect(after.body.contact.vatNumber).toBe('NL987654321B01')
+    expect(after.body.contact.paymentTermsDays).toBe(14)
+  })
+
+  it('clears a field that is sent as null', async () => {
+    const { token } = await newEntity()
+    const id = await aContact(token, { kvkNumber: '12345678' })
+
+    await handleUpdateContact(
+      await context(token, uuidv7()),
+      id,
+      updateContactBody.parse({ kvkNumber: null }),
+    )
+
+    expect((await handleGetContact(await context(token), id)).body.contact.kvkNumber).toBeNull()
+  })
+
+  it('adds an address to a contact that had none, and then changes it', async () => {
+    const { token } = await newEntity()
+    const id = await aContact(token)
+
+    expect((await handleGetContact(await context(token), id)).body.contact.address).toBeNull()
+
+    await handleUpdateContact(
+      await context(token, uuidv7()),
+      id,
+      updateContactBody.parse({
+        address: {
+          street: 'Keizersgracht',
+          houseNumber: '1',
+          postalCode: '1015 CJ',
+          city: 'Amsterdam',
+        },
+      }),
+    )
+
+    await handleUpdateContact(
+      await context(token, uuidv7()),
+      id,
+      updateContactBody.parse({
+        address: {
+          street: 'Herengracht',
+          houseNumber: '2',
+          postalCode: '1015 BR',
+          city: 'Amsterdam',
+        },
+      }),
+    )
+
+    const after = await handleGetContact(await context(token), id)
+    expect(after.body.contact.address).toMatchObject({
+      street: 'Herengracht',
+      houseNumber: '2',
+      city: 'Amsterdam',
+    })
+  })
+
+  it('refuses to unmark a supplier who still has open invoices', async () => {
+    // Taking the role away would take them out of the payment run and the
+    // ageing while the ledger still owes them — the subledger and its control
+    // account would part company. Blocking is the thing that was meant.
+    const { token } = await newEntity()
+    await handleCreateContact(
+      await context(token, uuidv7()),
+      createContactBody.parse({
+        number: 'CRE-0100',
+        name: 'Leverancier B.V.',
+        isCustomer: false,
+        isSupplier: true,
+      }),
+    )
+
+    const captured = await handleCapturePurchaseInvoice(
+      await context(token, uuidv7()),
+      capturePurchaseInvoiceBody.parse({
+        contactNumber: 'CRE-0100',
+        supplierInvoiceNumber: 'F-1',
+        invoiceDate: '2026-02-10',
+        dueDate: '2026-03-12',
+        net: '100000',
+        tax: '21000',
+        total: '121000',
+        lines: [
+          {
+            description: 'Kantoorartikelen',
+            accountNumber: '4000',
+            taxCode: 'VH21',
+            net: '100000',
+            tax: '21000',
+          },
+        ],
+      }),
+    )
+    await handleBookPurchaseInvoice(
+      await context(token, uuidv7()),
+      captured.body.id,
+      bookPurchaseInvoiceBody.parse({}),
+    )
+
+    const contacts = await handleListContacts(await context(token), { customersOnly: false })
+    const supplier = contacts.body.contacts.find((row) => row.number === 'CRE-0100')!
+
+    await expect(
+      handleUpdateContact(
+        await context(token, uuidv7()),
+        supplier.id,
+        updateContactBody.parse({ isSupplier: false }),
+      ),
+    ).rejects.toMatchObject({ code: 'validation_failed' })
+
+    // Blocking is allowed, and is what was meant.
+    await handleUpdateContact(
+      await context(token, uuidv7()),
+      supplier.id,
+      updateContactBody.parse({ isBlocked: true }),
+    )
+    expect((await handleGetContact(await context(token), supplier.id)).body.contact.isBlocked).toBe(
+      true,
+    )
+  })
+
+  it('allows unmarking a supplier whose invoices are all paid', async () => {
+    const { token } = await newEntity()
+    const id = await aContact(token, { number: 'CRE-0101', isCustomer: false, isSupplier: true })
+
+    await handleUpdateContact(
+      await context(token, uuidv7()),
+      id,
+      updateContactBody.parse({ isSupplier: false }),
+    )
+
+    expect((await handleGetContact(await context(token), id)).body.contact.isSupplier).toBe(false)
+  })
+
+  it('refuses a number that another contact already has', async () => {
+    const { token } = await newEntity()
+    await withCustomer(token, 'DEB-0001')
+    const second = await aContact(token, { number: 'DEB-0002' })
+
+    await expect(
+      handleUpdateContact(
+        await context(token, uuidv7()),
+        second,
+        updateContactBody.parse({ number: 'DEB-0001' }),
+      ),
+    ).rejects.toThrow()
+  })
+
+  it('will not read another administration’s contact', async () => {
+    const { token } = await newEntity()
+    const other = await newEntity()
+    const id = await aContact(other.token)
+
+    await expect(handleGetContact(await context(token), id)).rejects.toMatchObject({
+      code: 'not_found',
+    })
+  })
+
+  it('needs ledger:configure', async () => {
+    const { entityId, token } = await newEntity()
+    const id = await aContact(token)
+    const { token: reader } = await issueToken(database, {
+      entityId,
+      name: 'reader',
+      permissions: ['ledger:read'],
+      actorKind: 'human',
+      actorId: 'reader',
+    })
+
+    await expect(
+      handleUpdateContact(
+        await context(reader, uuidv7()),
+        id,
+        updateContactBody.parse({ name: 'Nope' }),
+      ),
+    ).rejects.toMatchObject({ code: 'forbidden' })
   })
 })

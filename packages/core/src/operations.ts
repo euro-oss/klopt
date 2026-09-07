@@ -224,6 +224,25 @@ export const salesOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  getContact: defineOperation({
+    id: 'sales.getContact',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'One contact with its address, for correcting it.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  updateContact: defineOperation({
+    id: 'sales.updateContact',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary:
+      'Correct a contact. Master data, so it is changed in place; documents already issued keep what they said.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
   listTaxCodes: defineOperation({
     id: 'sales.listTaxCodes',
     kind: 'read',
