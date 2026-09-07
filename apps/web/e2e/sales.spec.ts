@@ -55,6 +55,7 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   await page.getByRole('link', { name: /Verkoopfacturen/ }).click()
   await page.getByRole('link', { name: 'Nieuwe factuur' }).click()
 
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
   await page.getByLabel('Referentie klant').fill('KOSTENPLAATS-42')
   await page.getByLabel('Omschrijving regel 1').fill('Advieswerk maart')
   await page.getByLabel('Aantal regel 1').fill('10')
@@ -149,6 +150,7 @@ test('crediting an issued invoice drafts a credit note against it', async ({ pag
   await expect(page.getByRole('cell', { name: 'Spijtige Klant B.V.' })).toBeVisible()
 
   await page.goto('/invoices/new')
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
   await page.getByLabel('Referentie klant').fill('X')
   await page.getByLabel('Omschrijving regel 1').fill('Te veel gefactureerd')
   await page.getByLabel('Prijs regel 1').fill('500,00')
@@ -166,6 +168,7 @@ test('a posted journal entry goes through, which it could not before', async ({ 
   await anAdministration(page, 'Memoriaal BV')
 
   await page.getByRole('link', { name: /Nieuwe journaalpost/ }).click()
+  await expect(page.getByRole('button', { name: /Boeken/ }).first()).toBeEnabled()
   await page.getByLabel('Omschrijving', { exact: true }).fill('Openingsbalans')
 
   await page.getByLabel('Rekening regel 1').fill('1100')
@@ -213,6 +216,9 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
 
   // Dated well in the past, so it is already long overdue.
   await page.goto('/invoices/new')
+  // Wait for the form to be live before typing into it: these are controlled
+  // inputs, and a value set before hydration is state React never learns about.
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
   await page.getByLabel('Factuurdatum').fill('2026-01-05')
   await page.getByLabel('Referentie klant').fill('KP-1')
   await page.getByLabel('Omschrijving regel 1').fill('Werk uit januari')

@@ -63,6 +63,7 @@ export {
   withSales,
   withSalesRead,
   withBank,
+  withBankMatch,
   withBankRead,
   withMembers,
   withSetup,

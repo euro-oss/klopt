@@ -167,3 +167,21 @@ export async function withBankRead<T>(
     isolationLevel: 'repeatable read',
   })
 }
+
+/**
+ * Booking a bank line, in one transaction.
+ *
+ * The journal entry, the link on the transaction, the allocations and the
+ * learned rule commit together. A match whose entry posted and whose allocation
+ * did not would leave an invoice the books say is paid and the dunning list
+ * says is not — two answers to one question, which is the failure mode the
+ * allocation table exists to prevent.
+ */
+export async function withBankMatch<T>(
+  database: Database,
+  work: (repositories: { bank: BankRepository; ledger: DrizzleLedgerRepository }) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) =>
+    work({ bank: new BankRepository(tx), ledger: new DrizzleLedgerRepository(tx) }),
+  )
+}

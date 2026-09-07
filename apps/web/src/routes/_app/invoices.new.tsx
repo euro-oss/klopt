@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { multiplyByDecimal, parseMinorUnits, percentOf } from '~/lib/format'
+import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
 import { draftInvoice, listContacts, listTaxCodes } from '~/server/sales'
 import { listAccounts } from '~/server/ledger'
@@ -53,6 +54,13 @@ const today = (): string => new Date().toISOString().slice(0, 10)
 function NewInvoice() {
   const { contacts, taxCodes, accounts } = Route.useLoaderData()
   const navigate = useNavigate()
+  /**
+   * Every control on this form is React-controlled, so before hydration the
+   * fields accept typing that is then discarded and the submit falls back to a
+   * native form POST that reloads the page. Gating the button is what makes the
+   * form either work or visibly not work, rather than half-work.
+   */
+  const hydrated = useHydrated()
 
   const customers = contacts.ok ? contacts.data.contacts.filter((row) => !row.isBlocked) : []
   const codes = taxCodes.ok
@@ -378,7 +386,7 @@ function NewInvoice() {
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={busy || contactNumber === ''}
+          disabled={busy || !hydrated || contactNumber === ''}
           className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
           {busy ? 'Bezig…' : 'Concept opslaan'}

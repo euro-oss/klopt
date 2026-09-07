@@ -15,6 +15,7 @@ import { and, asc, desc, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import {
   accounts,
+  bankTransactionAllocations,
   contactAddresses,
   contacts,
   entities,
@@ -533,6 +534,8 @@ export class SalesRepository {
    * this system currently knows.
    */
   async dunnable(entityId: string, asOf: string): Promise<readonly DunnableInvoice[]> {
+    const allocated = this.allocatedPerInvoice(entityId)
+
     const rows = await this.tx
       .select({
         invoiceId: salesInvoices.id,
@@ -544,9 +547,11 @@ export class SalesRepository {
         currency: salesInvoices.currency,
         contactName: contacts.name,
         contactEmail: contacts.email,
+        allocated: allocated.total,
       })
       .from(salesInvoices)
       .innerJoin(contacts, eq(contacts.id, salesInvoices.contactId))
+      .leftJoin(allocated, eq(allocated.invoiceId, salesInvoices.id))
       .where(
         and(
           eq(salesInvoices.entityId, entityId),
@@ -584,20 +589,30 @@ export class SalesRepository {
       sentByInvoice.set(reminder.invoiceId, existing)
     }
 
-    return rows.map((row) => ({
-      invoiceId: row.invoiceId,
-      // An issued invoice always has a number; the column is nullable because a
-      // draft does not.
-      number: row.number ?? '',
-      kind: row.kind,
-      status: row.status,
-      dueDate: row.dueDate,
-      total: row.total,
-      currency: row.currency,
-      contactName: row.contactName,
-      contactEmail: row.contactEmail,
-      remindersSent: sentByInvoice.get(row.invoiceId) ?? [],
-    }))
+    return rows
+      .map((row) => ({
+        invoiceId: row.invoiceId,
+        // An issued invoice always has a number; the column is nullable because
+        // a draft does not.
+        number: row.number ?? '',
+        kind: row.kind,
+        status: row.status,
+        dueDate: row.dueDate,
+        /**
+         * What is still owed, not what was invoiced.
+         *
+         * Before bank matching existed this was the total, and the dunning
+         * screen said so in as many words. Now that allocations exist, an
+         * invoice that has been paid is not overdue and a partly paid one is
+         * overdue for the remainder — which is the number to put in a reminder.
+         */
+        total: row.total - BigInt(row.allocated ?? '0'),
+        currency: row.currency,
+        contactName: row.contactName,
+        contactEmail: row.contactEmail,
+        remindersSent: sentByInvoice.get(row.invoiceId) ?? [],
+      }))
+      .filter((invoice) => invoice.total > 0n)
   }
 
   async listInvoices(request: {
@@ -635,8 +650,31 @@ export class SalesRepository {
    * bank matching exists this reads the debtors subledger instead, and the
    * dunning rules on top of it do not change.
    */
-  async overdueInvoices(entityId: string, asOf: string) {
+  /**
+   * How much has been allocated to each invoice, as a subquery.
+   *
+   * The reason "outstanding" finally means something. Every report that asks
+   * what is still owed joins this, and the ones that do not are wrong — which
+   * is why it lives here rather than being written out twice.
+   */
+  private allocatedPerInvoice(entityId: string) {
     return this.tx
+      .select({
+        invoiceId: bankTransactionAllocations.invoiceId,
+        total: sql<string>`sum(${bankTransactionAllocations.amountMinorUnits})::text`.as(
+          'allocated',
+        ),
+      })
+      .from(bankTransactionAllocations)
+      .where(eq(bankTransactionAllocations.entityId, entityId))
+      .groupBy(bankTransactionAllocations.invoiceId)
+      .as('allocated')
+  }
+
+  async overdueInvoices(entityId: string, asOf: string) {
+    const allocated = this.allocatedPerInvoice(entityId)
+
+    const rows = await this.tx
       .select({
         id: salesInvoices.id,
         number: salesInvoices.number,
@@ -645,9 +683,11 @@ export class SalesRepository {
         currency: salesInvoices.currency,
         contactName: contacts.name,
         contactEmail: contacts.email,
+        allocated: allocated.total,
       })
       .from(salesInvoices)
       .innerJoin(contacts, eq(contacts.id, salesInvoices.contactId))
+      .leftJoin(allocated, eq(allocated.invoiceId, salesInvoices.id))
       .where(
         and(
           eq(salesInvoices.entityId, entityId),
@@ -658,6 +698,11 @@ export class SalesRepository {
         ),
       )
       .orderBy(asc(salesInvoices.dueDate))
+
+    // Outstanding, not invoiced. A paid invoice is not overdue.
+    return rows
+      .map((row) => ({ ...row, total: row.total - BigInt(row.allocated ?? '0') }))
+      .filter((row) => row.total > 0n)
   }
 
   async listContacts(entityId: string, onlyCustomers: boolean) {

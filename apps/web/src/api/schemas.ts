@@ -385,3 +385,37 @@ export const transactionsQuery = z.object({
 
 export type CreateBankAccountBody = z.infer<typeof createBankAccountBody>
 export type ImportStatementBody = z.infer<typeof importStatementBody>
+
+/** Confirming a match (spec 7.4). */
+export const confirmMatchBody = z.object({
+  allocations: z
+    .array(
+      z.object({
+        invoiceId: z.uuid(),
+        /** Unsigned minor units. The direction is the transaction's. */
+        amount: minorUnits,
+      }),
+    )
+    .default([]),
+  /** Where anything not allocated goes. */
+  accountNumber: z.string().nullable().default(null),
+  chargesAmount: minorUnitsWithDefault,
+  chargesAccountNumber: z.string().nullable().default(null),
+  /** The control account the allocations clear. Debiteuren in the shipped chart. */
+  receivableAccountNumber: z.string().min(1).default('1300'),
+  journalCode: z.string().min(1).default('BNK'),
+  /**
+   * Remember this choice for next time (spec 7.4). Off for a line that quoted
+   * its invoice number: the next payment will quote its own, so there is
+   * nothing to learn.
+   */
+  learn: z.boolean().default(true),
+  /** The rule that was applied, so its confidence grows when it was right. */
+  ruleId: z.uuid().nullable().default(null),
+})
+
+export const setRuleActiveBody = z.object({
+  isActive: z.boolean(),
+})
+
+export type ConfirmMatchBody = z.infer<typeof confirmMatchBody>

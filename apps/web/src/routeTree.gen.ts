@@ -32,6 +32,7 @@ import { Route as AppReportsTrialBalanceRouteImport } from './routes/_app/report
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as ApiV1AccountsRouteImport } from './routes/api/v1/accounts'
 import { Route as ApiV1BankAccountsRouteImport } from './routes/api/v1/bank-accounts'
+import { Route as ApiV1BankMatchRulesRouteImport } from './routes/api/v1/bank-match-rules'
 import { Route as ApiV1BankStatementsRouteImport } from './routes/api/v1/bank-statements'
 import { Route as ApiV1BankTransactionsRouteImport } from './routes/api/v1/bank-transactions'
 import { Route as ApiV1ContactsRouteImport } from './routes/api/v1/contacts'
@@ -42,6 +43,7 @@ import { Route as ApiV1JournalEntriesRouteImport } from './routes/api/v1/journal
 import { Route as ApiV1MembersRouteImport } from './routes/api/v1/members'
 import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-invoices'
 import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
+import { Route as ApiV1BankMatchRulesRuleIdRouteImport } from './routes/api/v1/bank-match-rules.$ruleId'
 import { Route as ApiV1EntitiesEntityIdRouteImport } from './routes/api/v1/entities.$entityId'
 import { Route as ApiV1ExportsAuditFileRouteImport } from './routes/api/v1/exports.audit-file'
 import { Route as ApiV1FiscalYearsCloseRouteImport } from './routes/api/v1/fiscal-years.close'
@@ -59,6 +61,9 @@ import { Route as ApiV1RgsMappingsRouteImport } from './routes/api/v1/rgs.mappin
 import { Route as ApiV1RgsUpgradePreviewRouteImport } from './routes/api/v1/rgs.upgrade-preview'
 import { Route as ApiV1SalesInvoicesInvoiceIdRouteImport } from './routes/api/v1/sales-invoices.$invoiceId'
 import { Route as ApiV1SetupChartsRouteImport } from './routes/api/v1/setup.charts'
+import { Route as ApiV1BankTransactionsTransactionIdIgnoreRouteImport } from './routes/api/v1/bank-transactions.$transactionId.ignore'
+import { Route as ApiV1BankTransactionsTransactionIdMatchRouteImport } from './routes/api/v1/bank-transactions.$transactionId.match'
+import { Route as ApiV1BankTransactionsTransactionIdSuggestionsRouteImport } from './routes/api/v1/bank-transactions.$transactionId.suggestions'
 import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes/api/v1/journal-entries.$entryId.reversal'
 import { Route as ApiV1SalesInvoicesInvoiceIdDeliveriesRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.deliveries'
 import { Route as ApiV1SalesInvoicesInvoiceIdIssueRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.issue'
@@ -181,6 +186,11 @@ const ApiV1BankAccountsRoute = ApiV1BankAccountsRouteImport.update({
   path: '/api/v1/bank-accounts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1BankMatchRulesRoute = ApiV1BankMatchRulesRouteImport.update({
+  id: '/api/v1/bank-match-rules',
+  path: '/api/v1/bank-match-rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1BankStatementsRoute = ApiV1BankStatementsRouteImport.update({
   id: '/api/v1/bank-statements',
   path: '/api/v1/bank-statements',
@@ -231,6 +241,12 @@ const ApiV1TaxCodesRoute = ApiV1TaxCodesRouteImport.update({
   path: '/api/v1/tax-codes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1BankMatchRulesRuleIdRoute =
+  ApiV1BankMatchRulesRuleIdRouteImport.update({
+    id: '/$ruleId',
+    path: '/$ruleId',
+    getParentRoute: () => ApiV1BankMatchRulesRoute,
+  } as any)
 const ApiV1EntitiesEntityIdRoute = ApiV1EntitiesEntityIdRouteImport.update({
   id: '/api/v1/entities/$entityId',
   path: '/api/v1/entities/$entityId',
@@ -323,6 +339,24 @@ const ApiV1SetupChartsRoute = ApiV1SetupChartsRouteImport.update({
   path: '/api/v1/setup/charts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1BankTransactionsTransactionIdIgnoreRoute =
+  ApiV1BankTransactionsTransactionIdIgnoreRouteImport.update({
+    id: '/$transactionId/ignore',
+    path: '/$transactionId/ignore',
+    getParentRoute: () => ApiV1BankTransactionsRoute,
+  } as any)
+const ApiV1BankTransactionsTransactionIdMatchRoute =
+  ApiV1BankTransactionsTransactionIdMatchRouteImport.update({
+    id: '/$transactionId/match',
+    path: '/$transactionId/match',
+    getParentRoute: () => ApiV1BankTransactionsRoute,
+  } as any)
+const ApiV1BankTransactionsTransactionIdSuggestionsRoute =
+  ApiV1BankTransactionsTransactionIdSuggestionsRouteImport.update({
+    id: '/$transactionId/suggestions',
+    path: '/$transactionId/suggestions',
+    getParentRoute: () => ApiV1BankTransactionsRoute,
+  } as any)
 const ApiV1JournalEntriesEntryIdReversalRoute =
   ApiV1JournalEntriesEntryIdReversalRouteImport.update({
     id: '/reversal',
@@ -387,8 +421,9 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/bank-accounts': typeof ApiV1BankAccountsRoute
+  '/api/v1/bank-match-rules': typeof ApiV1BankMatchRulesRouteWithChildren
   '/api/v1/bank-statements': typeof ApiV1BankStatementsRoute
-  '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRoute
+  '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRouteWithChildren
   '/api/v1/contacts': typeof ApiV1ContactsRoute
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
@@ -399,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/entries/': typeof AppEntriesIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
+  '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -416,6 +452,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
+  '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
+  '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
+  '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/sales-invoices/$invoiceId/deliveries': typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
@@ -445,8 +484,9 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/bank-accounts': typeof ApiV1BankAccountsRoute
+  '/api/v1/bank-match-rules': typeof ApiV1BankMatchRulesRouteWithChildren
   '/api/v1/bank-statements': typeof ApiV1BankStatementsRoute
-  '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRoute
+  '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRouteWithChildren
   '/api/v1/contacts': typeof ApiV1ContactsRoute
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
@@ -457,6 +497,7 @@ export interface FileRoutesByTo {
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/entries': typeof AppEntriesIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
+  '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -474,6 +515,9 @@ export interface FileRoutesByTo {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
+  '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
+  '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
+  '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/sales-invoices/$invoiceId/deliveries': typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
@@ -505,8 +549,9 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
   '/api/v1/bank-accounts': typeof ApiV1BankAccountsRoute
+  '/api/v1/bank-match-rules': typeof ApiV1BankMatchRulesRouteWithChildren
   '/api/v1/bank-statements': typeof ApiV1BankStatementsRoute
-  '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRoute
+  '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRouteWithChildren
   '/api/v1/contacts': typeof ApiV1ContactsRoute
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
@@ -517,6 +562,7 @@ export interface FileRoutesById {
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/_app/entries/': typeof AppEntriesIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
+  '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -534,6 +580,9 @@ export interface FileRoutesById {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
+  '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
+  '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
+  '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/sales-invoices/$invoiceId/deliveries': typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
@@ -565,6 +614,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/bank-accounts'
+    | '/api/v1/bank-match-rules'
     | '/api/v1/bank-statements'
     | '/api/v1/bank-transactions'
     | '/api/v1/contacts'
@@ -577,6 +627,7 @@ export interface FileRouteTypes {
     | '/api/v1/tax-codes'
     | '/entries/'
     | '/invoices/'
+    | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -594,6 +645,9 @@ export interface FileRouteTypes {
     | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
+    | '/api/v1/bank-transactions/$transactionId/ignore'
+    | '/api/v1/bank-transactions/$transactionId/match'
+    | '/api/v1/bank-transactions/$transactionId/suggestions'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/sales-invoices/$invoiceId/deliveries'
     | '/api/v1/sales-invoices/$invoiceId/issue'
@@ -623,6 +677,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/bank-accounts'
+    | '/api/v1/bank-match-rules'
     | '/api/v1/bank-statements'
     | '/api/v1/bank-transactions'
     | '/api/v1/contacts'
@@ -635,6 +690,7 @@ export interface FileRouteTypes {
     | '/api/v1/tax-codes'
     | '/entries'
     | '/invoices'
+    | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -652,6 +708,9 @@ export interface FileRouteTypes {
     | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
+    | '/api/v1/bank-transactions/$transactionId/ignore'
+    | '/api/v1/bank-transactions/$transactionId/match'
+    | '/api/v1/bank-transactions/$transactionId/suggestions'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/sales-invoices/$invoiceId/deliveries'
     | '/api/v1/sales-invoices/$invoiceId/issue'
@@ -682,6 +741,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/accounts'
     | '/api/v1/bank-accounts'
+    | '/api/v1/bank-match-rules'
     | '/api/v1/bank-statements'
     | '/api/v1/bank-transactions'
     | '/api/v1/contacts'
@@ -694,6 +754,7 @@ export interface FileRouteTypes {
     | '/api/v1/tax-codes'
     | '/_app/entries/'
     | '/_app/invoices/'
+    | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -711,6 +772,9 @@ export interface FileRouteTypes {
     | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
+    | '/api/v1/bank-transactions/$transactionId/ignore'
+    | '/api/v1/bank-transactions/$transactionId/match'
+    | '/api/v1/bank-transactions/$transactionId/suggestions'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/sales-invoices/$invoiceId/deliveries'
     | '/api/v1/sales-invoices/$invoiceId/issue'
@@ -728,8 +792,9 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1AccountsRoute: typeof ApiV1AccountsRoute
   ApiV1BankAccountsRoute: typeof ApiV1BankAccountsRoute
+  ApiV1BankMatchRulesRoute: typeof ApiV1BankMatchRulesRouteWithChildren
   ApiV1BankStatementsRoute: typeof ApiV1BankStatementsRoute
-  ApiV1BankTransactionsRoute: typeof ApiV1BankTransactionsRoute
+  ApiV1BankTransactionsRoute: typeof ApiV1BankTransactionsRouteWithChildren
   ApiV1ContactsRoute: typeof ApiV1ContactsRoute
   ApiV1EntityRoute: typeof ApiV1EntityRoute
   ApiV1FiscalYearsRoute: typeof ApiV1FiscalYearsRouteWithChildren
@@ -916,6 +981,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1BankAccountsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/bank-match-rules': {
+      id: '/api/v1/bank-match-rules'
+      path: '/api/v1/bank-match-rules'
+      fullPath: '/api/v1/bank-match-rules'
+      preLoaderRoute: typeof ApiV1BankMatchRulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/bank-statements': {
       id: '/api/v1/bank-statements'
       path: '/api/v1/bank-statements'
@@ -985,6 +1057,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/tax-codes'
       preLoaderRoute: typeof ApiV1TaxCodesRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/bank-match-rules/$ruleId': {
+      id: '/api/v1/bank-match-rules/$ruleId'
+      path: '/$ruleId'
+      fullPath: '/api/v1/bank-match-rules/$ruleId'
+      preLoaderRoute: typeof ApiV1BankMatchRulesRuleIdRouteImport
+      parentRoute: typeof ApiV1BankMatchRulesRoute
     }
     '/api/v1/entities/$entityId': {
       id: '/api/v1/entities/$entityId'
@@ -1105,6 +1184,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SetupChartsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/bank-transactions/$transactionId/ignore': {
+      id: '/api/v1/bank-transactions/$transactionId/ignore'
+      path: '/$transactionId/ignore'
+      fullPath: '/api/v1/bank-transactions/$transactionId/ignore'
+      preLoaderRoute: typeof ApiV1BankTransactionsTransactionIdIgnoreRouteImport
+      parentRoute: typeof ApiV1BankTransactionsRoute
+    }
+    '/api/v1/bank-transactions/$transactionId/match': {
+      id: '/api/v1/bank-transactions/$transactionId/match'
+      path: '/$transactionId/match'
+      fullPath: '/api/v1/bank-transactions/$transactionId/match'
+      preLoaderRoute: typeof ApiV1BankTransactionsTransactionIdMatchRouteImport
+      parentRoute: typeof ApiV1BankTransactionsRoute
+    }
+    '/api/v1/bank-transactions/$transactionId/suggestions': {
+      id: '/api/v1/bank-transactions/$transactionId/suggestions'
+      path: '/$transactionId/suggestions'
+      fullPath: '/api/v1/bank-transactions/$transactionId/suggestions'
+      preLoaderRoute: typeof ApiV1BankTransactionsTransactionIdSuggestionsRouteImport
+      parentRoute: typeof ApiV1BankTransactionsRoute
+    }
     '/api/v1/journal-entries/$entryId/reversal': {
       id: '/api/v1/journal-entries/$entryId/reversal'
       path: '/reversal'
@@ -1196,6 +1296,37 @@ const AppRouteChildren: AppRouteChildren = {
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface ApiV1BankMatchRulesRouteChildren {
+  ApiV1BankMatchRulesRuleIdRoute: typeof ApiV1BankMatchRulesRuleIdRoute
+}
+
+const ApiV1BankMatchRulesRouteChildren: ApiV1BankMatchRulesRouteChildren = {
+  ApiV1BankMatchRulesRuleIdRoute: ApiV1BankMatchRulesRuleIdRoute,
+}
+
+const ApiV1BankMatchRulesRouteWithChildren =
+  ApiV1BankMatchRulesRoute._addFileChildren(ApiV1BankMatchRulesRouteChildren)
+
+interface ApiV1BankTransactionsRouteChildren {
+  ApiV1BankTransactionsTransactionIdIgnoreRoute: typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
+  ApiV1BankTransactionsTransactionIdMatchRoute: typeof ApiV1BankTransactionsTransactionIdMatchRoute
+  ApiV1BankTransactionsTransactionIdSuggestionsRoute: typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
+}
+
+const ApiV1BankTransactionsRouteChildren: ApiV1BankTransactionsRouteChildren = {
+  ApiV1BankTransactionsTransactionIdIgnoreRoute:
+    ApiV1BankTransactionsTransactionIdIgnoreRoute,
+  ApiV1BankTransactionsTransactionIdMatchRoute:
+    ApiV1BankTransactionsTransactionIdMatchRoute,
+  ApiV1BankTransactionsTransactionIdSuggestionsRoute:
+    ApiV1BankTransactionsTransactionIdSuggestionsRoute,
+}
+
+const ApiV1BankTransactionsRouteWithChildren =
+  ApiV1BankTransactionsRoute._addFileChildren(
+    ApiV1BankTransactionsRouteChildren,
+  )
 
 interface ApiV1FiscalYearsRouteChildren {
   ApiV1FiscalYearsCloseRoute: typeof ApiV1FiscalYearsCloseRoute
@@ -1293,8 +1424,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1AccountsRoute: ApiV1AccountsRoute,
   ApiV1BankAccountsRoute: ApiV1BankAccountsRoute,
+  ApiV1BankMatchRulesRoute: ApiV1BankMatchRulesRouteWithChildren,
   ApiV1BankStatementsRoute: ApiV1BankStatementsRoute,
-  ApiV1BankTransactionsRoute: ApiV1BankTransactionsRoute,
+  ApiV1BankTransactionsRoute: ApiV1BankTransactionsRouteWithChildren,
   ApiV1ContactsRoute: ApiV1ContactsRoute,
   ApiV1EntityRoute: ApiV1EntityRoute,
   ApiV1FiscalYearsRoute: ApiV1FiscalYearsRouteWithChildren,

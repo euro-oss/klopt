@@ -136,6 +136,36 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/bank-statements.ts',
   },
   {
+    operationId: 'bank.suggestMatches',
+    method: 'GET',
+    path: '/bank-transactions/{transactionId}/suggestions',
+    module: 'api/v1/bank-transactions.$transactionId.suggestions.ts',
+  },
+  {
+    operationId: 'bank.confirmMatch',
+    method: 'POST',
+    path: '/bank-transactions/{transactionId}/match',
+    module: 'api/v1/bank-transactions.$transactionId.match.ts',
+  },
+  {
+    operationId: 'bank.ignoreTransaction',
+    method: 'POST',
+    path: '/bank-transactions/{transactionId}/ignore',
+    module: 'api/v1/bank-transactions.$transactionId.ignore.ts',
+  },
+  {
+    operationId: 'bank.listMatchRules',
+    method: 'GET',
+    path: '/bank-match-rules',
+    module: 'api/v1/bank-match-rules.ts',
+  },
+  {
+    operationId: 'bank.setMatchRuleActive',
+    method: 'PATCH',
+    path: '/bank-match-rules/{ruleId}',
+    module: 'api/v1/bank-match-rules.$ruleId.ts',
+  },
+  {
     operationId: 'bank.listTransactions',
     method: 'GET',
     path: '/bank-transactions',

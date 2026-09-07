@@ -15,9 +15,10 @@ import { dunningQueue, sendReminder } from '~/server/sales'
  * computed on the server — the button only says "send the one you told me
  * about", and a mismatch is refused rather than sending the wrong thing.
  *
- * Until payments land in M2, "overdue" means issued and not cancelled. That
- * overstates the list for anyone who has been paid, and it is the honest
- * reading of what this system currently knows.
+ * "Overdue" means outstanding: an invoice's total less whatever has been
+ * allocated to it from a bank line. Until bank matching existed this could only
+ * mean "issued and not cancelled", and the screen said so — that disclaimer is
+ * gone because the number is now right.
  */
 export const Route = createFileRoute('/_app/dunning')({
   loader: async () => ({ queue: await dunningQueue({ data: {} }) }),

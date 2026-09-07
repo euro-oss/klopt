@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatMinorUnits, parseMinorUnits } from '~/lib/format'
+import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
 import { cn } from '~/lib/utils'
 import { listAccounts, postEntry } from '~/server/ledger'
@@ -55,6 +56,12 @@ function NewEntry() {
   const [posting, setPosting] = useState(false)
 
   const formRef = useRef<HTMLFormElement>(null)
+  /**
+   * The amount fields are controlled and parsed as they are typed, so before
+   * hydration anything entered is discarded and the submit reloads the page.
+   * Same reasoning as the sign-in screen: half-working is the worst state.
+   */
+  const hydrated = useHydrated()
 
   const accounts = accountsResult.ok ? accountsResult.data.accounts : []
 
@@ -343,14 +350,14 @@ function NewEntry() {
       <div className="mt-6 flex gap-2">
         <button
           type="submit"
-          disabled={posting}
+          disabled={posting || !hydrated}
           className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
           Boeken
         </button>
         <button
           type="button"
-          disabled={posting}
+          disabled={posting || !hydrated}
           onClick={() => {
             void submit(true)
           }}

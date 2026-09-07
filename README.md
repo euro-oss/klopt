@@ -188,7 +188,20 @@ curl -X POST localhost:3000/api/v1/bank-statements \
 many are already there, and whether a statement is missing from the sequence. A
 file whose entries do not add up to its closing balance is refused outright,
 because a truncated statement becomes a wrong balance that everybody trusts.
-Matching those lines to invoices is next.
+Then ask what a line might be:
+
+```bash
+curl "localhost:3000/api/v1/bank-transactions/$TX_ID/suggestions" \
+  -H "authorization: Bearer $KLOPT_TOKEN"
+```
+
+Each suggestion comes with a confidence and a reason in Dutch you can check at
+a glance — "Factuurnummer 2026-0001 staat in de omschrijving en het bedrag
+klopt precies". Nothing is posted until you confirm, and a confirmation with no
+invoice behind it teaches a rule for next time
+([ADR 0019](docs/decisions/0019-matching-suggests.md)). Confirming posts a
+journal entry through the same API a manual entry uses, so period control and
+the hash chain apply without banking knowing they exist.
 
 Then leave with your data:
 

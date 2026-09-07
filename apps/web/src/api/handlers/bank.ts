@@ -1,9 +1,20 @@
 import { createHash } from 'node:crypto'
-import { normaliseIban, parseBankFile, planImport } from '@klopt/core'
-import { withBank, withBankRead } from '@klopt/db'
-import { hasPermission, type RequestContext } from '../context.js'
+import {
+  DEFAULT_MATCH_OPTIONS,
+  buildBankMatchEntry,
+  normaliseIban,
+  parseBankFile,
+  planImport,
+  postJournalEntry,
+  ruleToLearn,
+  suggestMatches,
+  systemClock,
+  type BankMatchAllocation,
+} from '@klopt/core'
+import { withBank, withBankMatch, withBankRead } from '@klopt/db'
+import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
-import type { CreateBankAccountBody, ImportStatementBody } from '../schemas.js'
+import type { ConfirmMatchBody, CreateBankAccountBody, ImportStatementBody } from '../schemas.js'
 
 /**
  * Banking (spec 7.4).
@@ -198,6 +209,289 @@ export async function handleListBankTransactions(
       transactions: rows.map((row) => ({ ...row, amount: row.amount.toString() })),
     },
   }
+}
+
+/**
+ * What this bank line might be.
+ *
+ * Suggestions, never decisions. `@klopt/core` scores them and writes the
+ * reason; this reads the candidates and the rules it needs and gets out of the
+ * way. Nothing is posted until `confirmMatch`.
+ */
+export async function handleSuggestMatches(context: RequestContext, transactionId: string) {
+  requirePermission(context, 'ledger:read')
+
+  return withBankRead(context.database, async (repository) => {
+    const transaction = await repository.findTransaction(context.entityId, transactionId)
+    if (transaction === null) throw new ApiError('not_found', 'No such bank transaction.')
+
+    const [candidates, rules] = await Promise.all([
+      repository.matchCandidates(context.entityId),
+      repository.listRules(context.entityId),
+    ])
+
+    /**
+     * Bank charges need an account before they can be split off.
+     *
+     * `4900` is Algemene kosten in the shipped Dutch chart, and it is looked up
+     * rather than assumed: a firm that brings its own chart is exactly the case
+     * `reference-data/charts/` exists for, and a hard-coded account number
+     * would produce a suggestion that cannot be posted. When it is absent,
+     * charge splitting is simply not offered.
+     *
+     * This wants to be a per-entity setting. Until it is, this is the honest
+     * version of the guess.
+     */
+    const chargesAccount = await repository.ledgerAccountIdFor(context.entityId, '4900')
+
+    const suggestions = suggestMatches(transaction.entry, candidates, rules, {
+      ...DEFAULT_MATCH_OPTIONS,
+      chargesAccountNumber: chargesAccount === null ? null : '4900',
+    })
+
+    return {
+      status: 200,
+      body: {
+        transaction: {
+          id: transaction.id,
+          amount: transaction.amount.toString(),
+          currency: transaction.currency,
+          bookingDate: transaction.bookingDate,
+          counterpartyName: transaction.counterpartyName,
+          counterpartyIban: transaction.counterpartyIban,
+          description: transaction.description,
+          status: transaction.status,
+        },
+        suggestions: suggestions.map((suggestion) => ({
+          strategy: suggestion.strategy,
+          confidence: suggestion.confidence,
+          reason: suggestion.reason,
+          accountNumber: suggestion.accountNumber,
+          contactId: suggestion.contactId,
+          chargesAmount: suggestion.chargesAmount.toString(),
+          ruleId: suggestion.ruleId,
+          allocations: suggestion.allocations.map((allocation) => ({
+            invoiceId: allocation.invoiceId,
+            number: allocation.number,
+            amount: (allocation.amount < 0n ? -allocation.amount : allocation.amount).toString(),
+          })),
+        })),
+      },
+    }
+  })
+}
+
+/**
+ * Book it.
+ *
+ * One transaction: the journal entry, the link, the allocations and the learned
+ * rule. All of it or none — a match whose entry posted and whose allocation did
+ * not would leave an invoice that the books say is paid and the dunning list
+ * says is not.
+ *
+ * The entry goes through `postJournalEntry` like everything else, so period
+ * control, the hash chain, the audit row and the outbox event all apply
+ * (spec 9.1).
+ */
+export async function handleConfirmMatch(
+  context: RequestContext,
+  transactionId: string,
+  body: ConfirmMatchBody,
+) {
+  requirePermission(context, 'ledger:post')
+  const idempotencyKey = requireIdempotencyKey(context)
+
+  return withBankMatch(context.database, async ({ bank: repository, ledger }) => {
+    const transaction = await repository.findTransaction(context.entityId, transactionId)
+    if (transaction === null) throw new ApiError('not_found', 'No such bank transaction.')
+    if (transaction.status === 'matched') {
+      throw new ApiError('conflict', 'This line is already booked. Reverse the entry to redo it.')
+    }
+    if (transaction.bankLedgerAccountNumber === null) {
+      throw new ApiError(
+        'validation_failed',
+        'This bank account has no ledger account. Set one before booking.',
+        [
+          {
+            code: 'unknown_account',
+            path: 'bankAccountId',
+            message: 'No ledger account is linked to this bank account.',
+          },
+        ],
+      )
+    }
+
+    // Allocations are given as invoice ids; the entry needs the contact and the
+    // invoice number on each line, which is what makes the debtors ledger read.
+    const candidates = await repository.matchCandidates(context.entityId)
+    const byId = new Map(candidates.map((candidate) => [candidate.invoiceId, candidate]))
+    const incoming = transaction.amount > 0n
+
+    const allocations: BankMatchAllocation[] = body.allocations.map((allocation) => {
+      const candidate = byId.get(allocation.invoiceId)
+      if (candidate === undefined) {
+        throw new ApiError('validation_failed', 'That invoice is not open.', [
+          {
+            code: 'unknown_entry',
+            path: 'allocations',
+            message: `Invoice ${allocation.invoiceId} is not an open invoice of this administration.`,
+          },
+        ])
+      }
+      if (allocation.amount > candidate.outstanding) {
+        throw new ApiError(
+          'validation_failed',
+          `More allocated to ${candidate.number} than is open.`,
+          [
+            {
+              code: 'entry_unbalanced',
+              path: 'allocations',
+              message:
+                `${candidate.number} has ${candidate.outstanding.toString()} open, ` +
+                `${allocation.amount.toString()} was allocated.`,
+            },
+          ],
+        )
+      }
+
+      return {
+        invoiceId: candidate.invoiceId,
+        invoiceNumber: candidate.number,
+        amount: allocation.amount * (incoming ? 1n : -1n),
+        contactNumber: candidate.contactId.slice(0, 8),
+        contactName: candidate.contactName,
+        contactId: candidate.contactId,
+      }
+    })
+
+    const command = buildBankMatchEntry({
+      entityId: context.entityId,
+      journalCode: body.journalCode,
+      bookingDate: transaction.bookingDate,
+      valueDate: transaction.valueDate,
+      bankAccountNumber: transaction.bankLedgerAccountNumber,
+      amount: transaction.amount,
+      currency: transaction.currency,
+      counterpartyName: transaction.counterpartyName,
+      description: transaction.description,
+      receivableAccountNumber: body.receivableAccountNumber,
+      allocations,
+      remainderAccountNumber: body.accountNumber,
+      chargesAmount: body.chargesAmount,
+      chargesAccountNumber: body.chargesAccountNumber,
+    })
+
+    const posted = await postJournalEntry(
+      command,
+      context.actor,
+      {
+        dryRun: false,
+        idempotencyKey: `${idempotencyKey}:bank-match`,
+        requestId: context.requestId,
+        ip: context.ip,
+        mayPostToSoftClosedPeriod: mayPostToSoftClosedPeriod(context),
+      },
+      { repository: ledger, clock: systemClock },
+    )
+
+    await repository.recordMatch({
+      entityId: context.entityId,
+      transactionId,
+      journalEntryId: posted.entry.id,
+      allocations: allocations.map((allocation) => ({
+        invoiceId: allocation.invoiceId,
+        amount: allocation.amount,
+      })),
+    })
+
+    if (body.ruleId !== null) await repository.bumpRule(context.entityId, body.ruleId)
+
+    /**
+     * Learn, but only from a line that had nothing to go on.
+     *
+     * A payment quoting its invoice number teaches nothing: the next one will
+     * quote its own. What is worth remembering is "money from this account,
+     * described like this, goes to that account" — a subscription, a bank
+     * charge, a utility bill.
+     */
+    let learned = false
+    if (body.learn && body.ruleId === null && allocations.length === 0) {
+      const rule = ruleToLearn(transaction.entry, {
+        accountNumber: body.accountNumber,
+        contactId: null,
+      })
+
+      if (rule !== null) {
+        const accountId =
+          rule.accountNumber === null
+            ? null
+            : await repository.ledgerAccountIdFor(context.entityId, rule.accountNumber)
+
+        if (accountId !== null || rule.contactId !== null) {
+          await repository.learnRule({
+            entityId: context.entityId,
+            counterpartyIban: rule.counterpartyIban,
+            counterpartyName: rule.counterpartyName,
+            descriptionContains: rule.descriptionContains,
+            accountId,
+            contactId: rule.contactId,
+          })
+          learned = true
+        }
+      }
+    }
+
+    return {
+      status: 200,
+      body: {
+        transactionId,
+        journalEntryId: posted.entry.id,
+        entryNumber: posted.entry.entryNumber,
+        allocated: allocations.length,
+        learned,
+      },
+    }
+  })
+}
+
+export async function handleIgnoreTransaction(context: RequestContext, transactionId: string) {
+  requirePermission(context, 'ledger:post')
+  requireIdempotencyKey(context)
+
+  const ignored = await withBank(context.database, (repository) =>
+    repository.ignoreTransaction(context.entityId, transactionId),
+  )
+
+  if (!ignored) {
+    throw new ApiError('conflict', 'That line is not waiting to be booked.')
+  }
+
+  return { status: 200, body: { transactionId, status: 'ignored' } }
+}
+
+export async function handleListMatchRules(context: RequestContext) {
+  requirePermission(context, 'ledger:read')
+
+  const rules = await withBankRead(context.database, (repository) =>
+    repository.listRules(context.entityId),
+  )
+
+  return { status: 200, body: { rules } }
+}
+
+export async function handleSetMatchRuleActive(
+  context: RequestContext,
+  ruleId: string,
+  body: { readonly isActive: boolean },
+) {
+  requirePermission(context, 'ledger:configure')
+
+  const updated = await withBank(context.database, (repository) =>
+    repository.setRuleActive(context.entityId, ruleId, body.isActive),
+  )
+  if (!updated) throw new ApiError('not_found', 'No such rule.')
+
+  return { status: 200, body: { ruleId, isActive: body.isActive } }
 }
 
 export { normaliseIban }

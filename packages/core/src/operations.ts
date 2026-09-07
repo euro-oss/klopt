@@ -450,6 +450,52 @@ export const bankingOperations: Readonly<Record<string, OperationDefinition>> = 
     idempotent: true,
   }),
 
+  suggestMatches: defineOperation({
+    id: 'bank.suggestMatches',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'What a bank line might be, with a confidence and a reason in words.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  confirmMatch: defineOperation({
+    id: 'bank.confirmMatch',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary: 'Book a bank line: post the entry, allocate to invoices, learn the rule.',
+    // It posts to the ledger, so the same rule as every other posting applies.
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  ignoreTransaction: defineOperation({
+    id: 'bank.ignoreTransaction',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary: 'Mark a bank line as deliberately not booked. Reversible.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  listMatchRules: defineOperation({
+    id: 'bank.listMatchRules',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'The learned and manual matching rules, with how often each has fired.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  setMatchRuleActive: defineOperation({
+    id: 'bank.setMatchRuleActive',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Switch a matching rule off, or back on. Learned rules are editable.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
   listTransactions: defineOperation({
     id: 'bank.listTransactions',
     kind: 'read',

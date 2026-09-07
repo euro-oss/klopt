@@ -170,6 +170,14 @@ administration and must not be able to create another. See
 
 ### Two rules for the web app
 
+**A React-controlled form gates its submit on hydration.** Before hydration a
+controlled input accepts typing that React then discards, and the submit falls
+back to a native form POST that reloads the page — so the form half-works,
+which is the worst of the three states. `useHydrated` and a disabled button are
+what make it either work or visibly not yet work. The sign-in screen learned
+this first; the entry and invoice forms had the same bug until a browser test
+set a date that never reached React's state.
+
 **Every write carries an idempotency key in its payload.** A browser cannot set
 an `Idempotency-Key` header on a server-function call, and spec 10.2 makes one
 mandatory on every write, so the screen generates a key per attempt and reuses
@@ -240,20 +248,20 @@ VAT and purchase are M3 and M4. M1 is complete: invoices go out by email with
 their UBL and PDF attached, and overdue ones are chased on a derived schedule
 ([0018](decisions/0018-dunning-stage-is-derived.md)).
 
-M2 has its foundation: CAMT.053 and MT940 import, deduplicated per entry, with
-gap detection and a refusal for any file whose entries do not add up to its
-closing balance. **The matching engine is not built** — every imported line
-sits at `unmatched`, and the screen says so. A CSV mapper for the stragglers
-is not built either.
+M2: CAMT.053 and MT940 import, deduplicated per entry, and a matching engine
+with learned rules ([0019](decisions/0019-matching-suggests.md)). Not built: a
+CSV mapper for the stragglers, `pain.001` outbound payments, and the matching
+UI beyond the transaction list — suggestions and confirmation are API-only.
 
 A Peppol access point is not built. It sits behind `EInvoiceTransport` and
 cannot be built without a service provider agreement and issued certificates
 (spec 8) — the port's `reachable()` exists so that choosing the email fallback
 is a decision made before sending rather than a recovery afterwards.
 
-**Payments are not tracked**, so "overdue" means issued and not cancelled. The
-dunning list overstates itself for anyone who has paid, and says so on the
-screen. It is the one number in the product that is knowingly wrong.
+**Outstanding means outstanding.** An invoice's outstanding amount is its total
+less the bank allocations against it, and every report that asks what is owed
+joins the same subquery. Before matching existed the dunning list could only say
+"issued and not cancelled" and said so on the screen; that disclaimer is gone.
 
 The PDF is not Factur-X or PDF/A-3: those additionally want an ICC profile, an
 output intent and XMP metadata. The attachment relationship is `Alternative`,

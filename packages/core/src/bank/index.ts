@@ -22,3 +22,22 @@ export {
   parseBankFile,
   planImport,
 } from './import.js'
+
+export {
+  type Allocation,
+  type MatchCandidate,
+  type MatchOptions,
+  type MatchRule,
+  type MatchStrategy,
+  type MatchSuggestion,
+  DEFAULT_MATCH_OPTIONS,
+  allocateOldestFirst,
+  mentionsNumber,
+  nameSimilarity,
+  normaliseIbanForMatch,
+  normaliseName,
+  ruleToLearn,
+  suggestMatches,
+} from './matching.js'
+
+export { type BankMatchAllocation, type BankMatchRequest, buildBankMatchEntry } from './posting.js'

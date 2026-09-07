@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   bigint,
+  boolean,
   char,
   check,
   date,
@@ -14,6 +15,7 @@ import {
 import { klopt } from './schema.js'
 import { timestamps } from './columns.js'
 import { accounts, entities, journalEntries } from './ledger.js'
+import { contacts, salesInvoices } from './sales.js'
 
 /**
  * Banking (spec 7.4).
@@ -151,5 +153,91 @@ export const bankTransactions = klopt.table(
     // The matching queue: unmatched, oldest first, per account.
     index('bank_transactions_queue').on(table.entityId, table.status, table.bookingDate),
     index('bank_transactions_counterparty').on(table.entityId, table.counterpartyIban),
+  ],
+)
+
+/**
+ * What a human chose last time (spec 7.4).
+ *
+ * "Learn from confirmations: store counterparty, description pattern, and the
+ * account or contact the human chose, and use it as a rule next time. Learned
+ * rules are visible and editable, never a black box."
+ *
+ * Visible and editable is why this is a table with a `source` column rather
+ * than a statistical model: every rule can be listed, explained, switched off
+ * and deleted. `times_applied` is what a confidence is built from, and it is
+ * also the honest answer to "why did it suggest that".
+ *
+ * A rule never points at an invoice. An invoice is paid once, so a rule that
+ * fired twice on the same one would be a bug rather than a convenience.
+ */
+export const bankMatchRules = klopt.table(
+  'bank_match_rules',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    /** `learned` from a confirmation, or `manual` because somebody wrote it. */
+    source: text('source').notNull().default('learned'),
+    counterpartyIban: text('counterparty_iban'),
+    counterpartyName: text('counterparty_name'),
+    descriptionContains: text('description_contains'),
+    accountId: uuid('account_id').references(() => accounts.id),
+    contactId: uuid('contact_id').references(() => contacts.id),
+    timesApplied: integer('times_applied').notNull().default(0),
+    lastAppliedAt: timestamp('last_applied_at', { withTimezone: true, mode: 'date' }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...timestamps,
+  },
+  (table) => [
+    index('bank_match_rules_entity').on(table.entityId, table.isActive),
+    /**
+     * One rule per condition set, so learning the same thing twice bumps the
+     * counter instead of growing a pile of duplicates nobody can read.
+     *
+     * `NULLS NOT DISTINCT` is load-bearing: a rule normally has one condition
+     * and two nulls, and under the default `NULLS DISTINCT` two such rows never
+     * conflict — so every confirmation would insert a new rule and
+     * `times_applied` would never leave 1. Which is exactly what it did.
+     */
+    unique('bank_match_rules_conditions')
+      .on(table.entityId, table.counterpartyIban, table.counterpartyName, table.descriptionContains)
+      .nullsNotDistinct(),
+  ],
+)
+
+/**
+ * What a bank line paid for.
+ *
+ * A separate table rather than a column, because one payment settles several
+ * invoices and one invoice is settled by several payments — spec 7.4 asks for
+ * both, and the allocation is the only place that can be true.
+ *
+ * This is also what finally makes "outstanding" mean something: an invoice's
+ * outstanding amount is its total less the allocations against it. Until this
+ * table existed, the dunning list could only say "issued and not cancelled".
+ */
+export const bankTransactionAllocations = klopt.table(
+  'bank_transaction_allocations',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    transactionId: uuid('transaction_id')
+      .notNull()
+      .references(() => bankTransactions.id, { onDelete: 'cascade' }),
+    invoiceId: uuid('invoice_id')
+      .notNull()
+      .references(() => salesInvoices.id),
+    /** Unsigned: the direction is the transaction's. */
+    amountMinorUnits: bigint('amount_minor_units', { mode: 'bigint' }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  },
+  (table) => [
+    unique('bank_allocations_unique').on(table.transactionId, table.invoiceId),
+    index('bank_allocations_invoice').on(table.invoiceId),
+    check('bank_allocations_positive', sql`${table.amountMinorUnits} > 0`),
   ],
 )
