@@ -191,12 +191,34 @@ validator that throws does not go through `run`, so the rejection escapes the
 server function and the screen sees nothing at all. `runWith` parses inside the
 same `try`, and a bad field comes back as a problem document with its path.
 
+## One invoice, two documents
+
+`presentInvoice` in `@klopt/core` lays an invoice out for a human and
+`@klopt/adapters/pdf` draws it, from **the same source the XML is built from**.
+That is the property worth protecting: a document that says 1.755,00 to the
+customer and 1750.00 to their software is worse than either being wrong alone.
+
+The layout decisions — the wording, the VAT grouping, the notice that Wet OB
+art. 35a requires when no VAT is charged — are made in core. The renderer
+places text and draws lines and decides nothing, which is why a reverse-charge
+invoice saying "btw verlegd" is a domain test rather than a screenshot.
+
+Money and date formatting live in `@klopt/core/format`, a **browser-safe
+subpath**: the package's main entry reads reference data with `node:fs`, so a
+bundler that follows it into the client produces a module that throws on first
+use. One formatter, because the screens and the PDF must agree.
+
 ## Not built yet
 
-Banking, VAT and purchase are M2 to M4. Within M1: PDF rendering, sending and
-dunning. Nothing sends yet — but what would be sent has now passed the
-published Peppol BIS 3.0 and NLCIUS schematron
-([0017](decisions/0017-schematron-in-process.md)).
+Banking, VAT and purchase are M2 to M4. Within M1: sending and dunning. Nothing
+sends yet — but what would be sent has passed the published Peppol BIS 3.0 and
+NLCIUS schematron ([0017](decisions/0017-schematron-in-process.md)), and both
+documents the fallback transport needs (the UBL, and a PDF with the UBL
+attached) already come out of `/api/v1`.
+
+The PDF is not Factur-X or PDF/A-3: those additionally want an ICC profile, an
+output intent and XMP metadata. The attachment relationship is `Alternative`,
+which is the truthful part of it.
 
 In the UI: the command palette and `g`-prefix navigation are in the keyboard map
 and the binding registry but not yet wired to a listener. Contacts can be

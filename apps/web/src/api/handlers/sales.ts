@@ -2,6 +2,7 @@ import {
   checkUblRules,
   generateUbl,
   postJournalEntry,
+  presentInvoice,
   systemClock,
   toUblDocument,
   type PricedInvoice,
@@ -15,6 +16,7 @@ import {
 } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
+import { invoiceRenderer } from '../documents.js'
 import { schematron } from '../schematron.js'
 import type { CreateContactBody, DraftInvoiceBody, IssueInvoiceBody } from '../schemas.js'
 
@@ -457,5 +459,53 @@ export async function handleGetInvoiceUbl(context: RequestContext, invoiceId: st
       message: warning.message,
     })),
     assertionsEvaluated: validation.assertionsEvaluated,
+  }
+}
+
+/**
+ * The invoice as a PDF (spec 7.5).
+ *
+ * A rendering, not the invoice — the XML is that. So this is deliberately not
+ * gated on the schematron: a bookkeeper printing a copy for a customer who
+ * wants paper should not be stopped by a Peppol code-list rule.
+ *
+ * **Unless the UBL rides along.** `embedUbl` attaches the XML to the PDF, which
+ * is spec 7.5's fallback transport — "email the UBL plus a PDF rendering, and
+ * optionally a PDF with the XML embedded". At that point a machine will read
+ * what is inside, so it has to be valid, and the same rules apply as to the
+ * bare download.
+ *
+ * Not Factur-X or PDF/A-3: those want an ICC profile, an output intent and XMP
+ * metadata as well, and claiming conformance without them would be a lie. The
+ * attachment relationship is `Alternative`, which is the truthful part.
+ */
+export async function handleGetInvoicePdf(
+  context: RequestContext,
+  invoiceId: string,
+  options: { readonly embedUbl: boolean },
+) {
+  requirePermission(context, 'ledger:export')
+
+  const source = await withSalesRead(context.database, (repository) =>
+    repository.loadUblSource(context.entityId, invoiceId),
+  )
+
+  if (source === null) {
+    throw new ApiError('not_found', 'No such issued invoice. A draft has no number yet.')
+  }
+
+  let attachUbl: { filename: string; xml: string } | undefined
+  if (options.embedUbl) {
+    const ubl = await handleGetInvoiceUbl(context, invoiceId)
+    attachUbl = { filename: ubl.filename, xml: ubl.xml }
+  }
+
+  const rendered = await invoiceRenderer().renderInvoice(presentInvoice(source), { attachUbl })
+
+  return {
+    bytes: rendered.bytes,
+    contentType: rendered.contentType,
+    filename: rendered.filename,
+    embeddedUbl: attachUbl !== undefined,
   }
 }

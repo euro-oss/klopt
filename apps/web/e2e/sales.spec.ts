@@ -77,6 +77,50 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   ).toBeVisible()
   await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: 'UBL downloaden' })).toBeVisible()
+
+  const invoiceId = page.url().split('/').pop() ?? ''
+
+  /**
+   * The two documents, fetched rather than clicked — the assertion is about
+   * bytes, not about whether the browser opened a viewer.
+   *
+   * And they behave differently on purpose. This administration was set up with
+   * nothing but a name, so it has no address and no IBAN: the PDF renders
+   * anyway, because somebody printing a copy for a customer who wants paper
+   * should not be stopped by a Peppol rule, and the UBL is refused because a
+   * machine is going to read it.
+   */
+  const bare = await page.request.get(`/api/v1/sales-invoices/${invoiceId}/pdf`)
+  expect(bare.status()).toBe(200)
+  expect((await bare.text()).slice(0, 5)).toBe('%PDF-')
+
+  const premature = await page.request.get(`/api/v1/sales-invoices/${invoiceId}/ubl`)
+  expect(premature.status()).toBe(422)
+  expect(await premature.text()).toContain('NL-R-002')
+
+  // Fill the administration in, and the same invoice becomes sendable.
+  await page.goto('/settings')
+  await page.getByLabel('Straat').fill('Keizersgracht')
+  await page.getByLabel('Huisnummer').fill('123-B')
+  await page.getByLabel('Postcode').fill('1015 CJ')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  // By role: the e-invoicing scheme select mentions "KvK-nummer" in its options.
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  for (const [path, magic] of [
+    [`/api/v1/sales-invoices/${invoiceId}/ubl`, '<?xml'],
+    [`/api/v1/sales-invoices/${invoiceId}/pdf?embedUbl=true`, '%PDF-'],
+  ] as const) {
+    const response = await page.request.get(path)
+    expect(response.status(), path).toBe(200)
+    expect((await response.text()).slice(0, 5)).toBe(magic)
+  }
+
+  await page.goto(`/invoices/${invoiceId}`)
   await expect(page.getByRole('button', { name: 'Versturen en boeken' })).toHaveCount(0)
 
   // And it really did reach the ledger.

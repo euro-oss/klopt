@@ -55,6 +55,7 @@ import { Route as ApiV1SalesInvoicesInvoiceIdRouteImport } from './routes/api/v1
 import { Route as ApiV1SetupChartsRouteImport } from './routes/api/v1/setup.charts'
 import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes/api/v1/journal-entries.$entryId.reversal'
 import { Route as ApiV1SalesInvoicesInvoiceIdIssueRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.issue'
+import { Route as ApiV1SalesInvoicesInvoiceIdPdfRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.pdf'
 import { Route as ApiV1SalesInvoicesInvoiceIdUblRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.ubl'
 
 const AppRoute = AppRouteImport.update({
@@ -295,6 +296,12 @@ const ApiV1SalesInvoicesInvoiceIdIssueRoute =
     path: '/issue',
     getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
   } as any)
+const ApiV1SalesInvoicesInvoiceIdPdfRoute =
+  ApiV1SalesInvoicesInvoiceIdPdfRouteImport.update({
+    id: '/pdf',
+    path: '/pdf',
+    getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
+  } as any)
 const ApiV1SalesInvoicesInvoiceIdUblRoute =
   ApiV1SalesInvoicesInvoiceIdUblRouteImport.update({
     id: '/ubl',
@@ -348,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
+  '/api/v1/sales-invoices/$invoiceId/pdf': typeof ApiV1SalesInvoicesInvoiceIdPdfRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 export interface FileRoutesByTo {
@@ -396,6 +404,7 @@ export interface FileRoutesByTo {
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
+  '/api/v1/sales-invoices/$invoiceId/pdf': typeof ApiV1SalesInvoicesInvoiceIdPdfRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 export interface FileRoutesById {
@@ -446,6 +455,7 @@ export interface FileRoutesById {
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
+  '/api/v1/sales-invoices/$invoiceId/pdf': typeof ApiV1SalesInvoicesInvoiceIdPdfRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 export interface FileRouteTypes {
@@ -496,6 +506,7 @@ export interface FileRouteTypes {
     | '/api/v1/setup/charts'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/sales-invoices/$invoiceId/issue'
+    | '/api/v1/sales-invoices/$invoiceId/pdf'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -544,6 +555,7 @@ export interface FileRouteTypes {
     | '/api/v1/setup/charts'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/sales-invoices/$invoiceId/issue'
+    | '/api/v1/sales-invoices/$invoiceId/pdf'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
   id:
     | '__root__'
@@ -593,6 +605,7 @@ export interface FileRouteTypes {
     | '/api/v1/setup/charts'
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/sales-invoices/$invoiceId/issue'
+    | '/api/v1/sales-invoices/$invoiceId/pdf'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
   fileRoutesById: FileRoutesById
 }
@@ -949,6 +962,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdIssueRouteImport
       parentRoute: typeof ApiV1SalesInvoicesInvoiceIdRoute
     }
+    '/api/v1/sales-invoices/$invoiceId/pdf': {
+      id: '/api/v1/sales-invoices/$invoiceId/pdf'
+      path: '/pdf'
+      fullPath: '/api/v1/sales-invoices/$invoiceId/pdf'
+      preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdPdfRouteImport
+      parentRoute: typeof ApiV1SalesInvoicesInvoiceIdRoute
+    }
     '/api/v1/sales-invoices/$invoiceId/ubl': {
       id: '/api/v1/sales-invoices/$invoiceId/ubl'
       path: '/ubl'
@@ -1046,6 +1066,7 @@ const ApiV1MembersRouteWithChildren = ApiV1MembersRoute._addFileChildren(
 
 interface ApiV1SalesInvoicesInvoiceIdRouteChildren {
   ApiV1SalesInvoicesInvoiceIdIssueRoute: typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
+  ApiV1SalesInvoicesInvoiceIdPdfRoute: typeof ApiV1SalesInvoicesInvoiceIdPdfRoute
   ApiV1SalesInvoicesInvoiceIdUblRoute: typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 
@@ -1053,6 +1074,7 @@ const ApiV1SalesInvoicesInvoiceIdRouteChildren: ApiV1SalesInvoicesInvoiceIdRoute
   {
     ApiV1SalesInvoicesInvoiceIdIssueRoute:
       ApiV1SalesInvoicesInvoiceIdIssueRoute,
+    ApiV1SalesInvoicesInvoiceIdPdfRoute: ApiV1SalesInvoicesInvoiceIdPdfRoute,
     ApiV1SalesInvoicesInvoiceIdUblRoute: ApiV1SalesInvoicesInvoiceIdUblRoute,
   }
 

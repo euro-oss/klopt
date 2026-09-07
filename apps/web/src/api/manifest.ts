@@ -118,6 +118,12 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/sales-invoices.$invoiceId.ubl.ts',
   },
   {
+    operationId: 'sales.getInvoicePdf',
+    method: 'GET',
+    path: '/sales-invoices/{invoiceId}/pdf',
+    module: 'api/v1/sales-invoices.$invoiceId.pdf.ts',
+  },
+  {
     operationId: 'ledger.listFiscalYears',
     method: 'GET',
     path: '/fiscal-years',

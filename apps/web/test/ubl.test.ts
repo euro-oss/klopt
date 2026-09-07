@@ -9,6 +9,7 @@ import { ApiError } from '../src/api/errors.js'
 import {
   handleCreateContact,
   handleDraftInvoice,
+  handleGetInvoicePdf,
   handleGetInvoiceUbl,
   handleIssueInvoice,
 } from '../src/api/handlers/sales.js'
@@ -248,6 +249,47 @@ describe('an administration that has been', () => {
     // also return a document, and this is the difference.
     expect(result.assertionsEvaluated).toBeGreaterThan(500)
     expect(result.warnings).toEqual([])
+  })
+
+  it('renders a PDF of it, with the UBL inside when asked', async () => {
+    const invoiceId = await anIssuedInvoice(await aCustomer())
+
+    const bare = await handleGetInvoicePdf(await contextFor(), invoiceId, { embedUbl: false })
+    expect(bare.contentType).toBe('application/pdf')
+    expect(bare.filename).toMatch(/\.pdf$/)
+    expect(Buffer.from(bare.bytes).toString('latin1').startsWith('%PDF-')).toBe(true)
+    expect(bare.embeddedUbl).toBe(false)
+
+    const hybrid = await handleGetInvoicePdf(await contextFor(), invoiceId, { embedUbl: true })
+    expect(hybrid.embeddedUbl).toBe(true)
+    expect(Buffer.from(hybrid.bytes).toString('latin1')).toContain('EmbeddedFiles')
+    // Bigger, because a whole invoice went in with it.
+    expect(hybrid.bytes.length).toBeGreaterThan(bare.bytes.length)
+  })
+
+  it('will render a PDF the schematron would reject, but will not embed the UBL', async () => {
+    // A PDF is a rendering. Somebody printing a copy for a customer who wants
+    // paper should not be stopped by a code-list rule — but the moment the
+    // machine-readable payload rides along, it has to be valid.
+    const number = `DEB-${randomUUID().slice(0, 8)}`
+    await handleCreateContact(
+      await contextFor(uuidv7()),
+      createContactBody.parse({
+        number,
+        name: 'Klant Zonder Adres B.V.',
+        isCustomer: true,
+        kvkNumber: '11223344',
+        countryCode: 'NL',
+      }),
+    )
+    const invoiceId = await anIssuedInvoice(number)
+
+    const pdf = await handleGetInvoicePdf(await contextFor(), invoiceId, { embedUbl: false })
+    expect(pdf.contentType).toBe('application/pdf')
+
+    await expect(
+      handleGetInvoicePdf(await contextFor(), invoiceId, { embedUbl: true }),
+    ).rejects.toThrow(ApiError)
   })
 
   it('refuses an invoice from another administration', async () => {

@@ -140,6 +140,19 @@ breaks a rule comes back as a 422 naming each one by its official identifier
 (`NL-R-002`, `BR-S-09`, `BR-CL-14`) rather than as a document your customer's
 system rejects next week.
 
+And the rendering, with the XML inside it:
+
+```bash
+curl -O -J "localhost:3000/api/v1/sales-invoices/$INVOICE_ID/pdf?embedUbl=true" \
+  -H "authorization: Bearer $KLOPT_TOKEN"
+```
+
+One file with both invoices in it — the one a person reads and the one their
+software parses, built from the same source so they cannot disagree. The bare
+PDF is available whatever the schematron thinks, because somebody printing a
+copy for a customer who wants paper should not be stopped by a code-list rule;
+attach the XML and the rules apply again.
+
 Sending is not built yet.
 
 Then leave with your data:

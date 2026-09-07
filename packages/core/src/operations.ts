@@ -278,6 +278,15 @@ export const salesOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  getInvoicePdf: defineOperation({
+    id: 'sales.getInvoicePdf',
+    kind: 'read',
+    permission: 'ledger:export',
+    summary: 'The invoice as a PDF, optionally with the validated UBL attached.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
   listOverdueInvoices: defineOperation({
     id: 'sales.listOverdueInvoices',
     kind: 'read',

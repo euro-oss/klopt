@@ -318,3 +318,15 @@ export const updateEntityBody = z.object({
 })
 
 export type UpdateEntityBody = z.infer<typeof updateEntityBody>
+
+export const invoicePdfQuery = z.object({
+  /**
+   * Attach the UBL to the PDF (spec 7.5's fallback transport). Off by default:
+   * a PDF for a customer who wants paper should not be refused because of a
+   * Peppol code-list rule, and attaching the XML is what makes the rules apply.
+   */
+  embedUbl: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+})

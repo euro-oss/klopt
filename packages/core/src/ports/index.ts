@@ -5,3 +5,8 @@ export type {
   SchematronSeverity,
   SchematronValidator,
 } from './schematron.js'
+export type {
+  InvoiceDocumentRenderer,
+  InvoiceRenderOptions,
+  RenderedDocument,
+} from './documents.js'

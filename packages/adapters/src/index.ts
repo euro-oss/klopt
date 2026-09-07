@@ -35,3 +35,4 @@ export const ADAPTER_FAMILIES = ['filing', 'bank-feed', 'e-invoice', 'payment'] 
 export type AdapterFamily = (typeof ADAPTER_FAMILIES)[number]
 
 export * from './schematron/index.js'
+export * from './pdf/index.js'

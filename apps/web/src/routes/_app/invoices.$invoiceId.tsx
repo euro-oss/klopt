@@ -208,12 +208,22 @@ function Invoice() {
               </button>
             )}
             {!isDraft && (
-              <a
-                href={`/api/v1/sales-invoices/${invoice.id}/ubl`}
-                className="border-input rounded-md border px-4 py-2 text-sm"
-              >
-                UBL downloaden
-              </a>
+              <>
+                {/* The rendering first: it is what most people want. The XML
+                    is the legal document and the one a machine reads. */}
+                <a
+                  href={`/api/v1/sales-invoices/${invoice.id}/pdf?embedUbl=true`}
+                  className="border-input rounded-md border px-4 py-2 text-sm"
+                >
+                  PDF downloaden
+                </a>
+                <a
+                  href={`/api/v1/sales-invoices/${invoice.id}/ubl`}
+                  className="border-input rounded-md border px-4 py-2 text-sm"
+                >
+                  UBL downloaden
+                </a>
+              </>
             )}
           </>
         }
