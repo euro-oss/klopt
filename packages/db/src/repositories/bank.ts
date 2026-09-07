@@ -45,6 +45,7 @@ export interface BankAccountRow {
   readonly feedProvider: string
   readonly consentExpiresAt: string | null
   readonly consentState: string
+  readonly hasCsvMapping: boolean
 }
 
 export interface ImportOutcome {
@@ -52,8 +53,8 @@ export interface ImportOutcome {
   readonly imported: number
   readonly duplicates: number
   readonly problems: readonly StatementProblem[]
-  readonly openingBalance: string
-  readonly closingBalance: string
+  readonly openingBalance: string | null
+  readonly closingBalance: string | null
 }
 
 export class BankRepository {
@@ -70,14 +71,18 @@ export class BankRepository {
         lastSequenceNumber: bankAccounts.lastSequenceNumber,
         feedProvider: bankAccounts.feedProvider,
         consentExpiresAt: bankAccounts.consentExpiresAt,
+        csvMapping: bankAccounts.csvMapping,
       })
       .from(bankAccounts)
       .leftJoin(accounts, eq(accounts.id, bankAccounts.ledgerAccountId))
       .where(eq(bankAccounts.entityId, entityId))
       .orderBy(asc(bankAccounts.iban))
 
-    return rows.map((row) => ({
+    return rows.map(({ csvMapping, ...row }) => ({
       ...row,
+      // The mapping itself is configuration, not something a list needs to
+      // carry — but whether one exists decides what the import form asks for.
+      hasCsvMapping: csvMapping !== null,
       consentExpiresAt: row.consentExpiresAt?.toISOString() ?? null,
       // Derived, never stored: a stored state is wrong the moment the clock
       // moves past it, which for a consent is exactly what happens.
@@ -94,12 +99,21 @@ export class BankRepository {
         name: bankAccounts.name,
         ledgerAccountId: bankAccounts.ledgerAccountId,
         lastSequenceNumber: bankAccounts.lastSequenceNumber,
+        csvMapping: bankAccounts.csvMapping,
       })
       .from(bankAccounts)
       .where(and(eq(bankAccounts.entityId, entityId), eq(bankAccounts.id, bankAccountId)))
       .limit(1)
 
     return row ?? null
+  }
+
+  /** Remember how this bank writes its CSV, so the next import does not ask. */
+  async saveCsvMapping(entityId: string, bankAccountId: string, mapping: unknown): Promise<void> {
+    await this.tx
+      .update(bankAccounts)
+      .set({ csvMapping: mapping, updatedAt: new Date().toISOString() })
+      .where(and(eq(bankAccounts.entityId, entityId), eq(bankAccounts.id, bankAccountId)))
   }
 
   async createAccount(request: {
@@ -140,8 +154,10 @@ export class BankRepository {
     let imported = 0
     let attempted = 0
     let highestSequence: number | null = null
-    let openingBalance = 0n
-    let closingBalance = 0n
+    // Null all the way through when the source declared none, rather than
+    // collapsing to zero — see the note on `BankStatement`.
+    let openingBalance: bigint | null = null
+    let closingBalance: bigint | null = null
     let first = true
 
     for (const planned of request.plan.statements) {
@@ -224,8 +240,8 @@ export class BankRepository {
       imported,
       duplicates: attempted - imported,
       problems: request.plan.problems,
-      openingBalance: openingBalance.toString(),
-      closingBalance: closingBalance.toString(),
+      openingBalance: openingBalance?.toString() ?? null,
+      closingBalance: closingBalance?.toString() ?? null,
     }
   }
 

@@ -189,6 +189,7 @@ function NewInvoice() {
         <label className="block">
           <span className="text-muted-foreground mb-1 block text-xs font-medium">Klant</span>
           <select
+            aria-label="Klant"
             value={contactNumber}
             onChange={(event) => {
               setContactNumber(event.target.value)
@@ -206,6 +207,7 @@ function NewInvoice() {
         <label className="block">
           <span className="text-muted-foreground mb-1 block text-xs font-medium">Soort</span>
           <select
+            aria-label="Soort"
             value={kind}
             onChange={(event) => {
               setKind(event.target.value === 'credit_note' ? 'credit_note' : 'invoice')

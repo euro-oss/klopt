@@ -91,6 +91,7 @@ export function AppShell({
                   Administratie
                 </span>
                 <select
+                  aria-label="Administratie"
                   value={active?.entityId ?? ''}
                   onChange={(event) => {
                     onSwitchEntity(event.target.value)

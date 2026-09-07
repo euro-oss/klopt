@@ -204,10 +204,17 @@ describe('the two formats agree', () => {
 })
 
 describe('sniffing the format', () => {
-  it('recognises both, and refuses what it does not know', () => {
+  it('recognises all three, and refuses what it does not know', () => {
     expect(detectBankFormat(read('statement.camt.xml'))).toBe('camt.053')
     expect(detectBankFormat(read('statement.mt940'))).toBe('mt940')
-    expect(() => detectBankFormat('date,amount\n2026-01-01,10')).toThrow(BankStatementError)
+    // Not a guess about *which* CSV, only that a mapping will be needed.
+    expect(detectBankFormat('date,amount\n2026-01-01,10')).toBe('csv')
+    expect(() => detectBankFormat('just some prose with no separators')).toThrow(BankStatementError)
+  })
+
+  it('refuses to parse a delimited file without a mapping', () => {
+    // Returning nothing would be worse than saying what is missing.
+    expect(() => parseBankFile('date,amount\n2026-01-01,10')).toThrow(/needs a column mapping/)
   })
 
   it('parses either through one entry point', () => {

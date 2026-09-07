@@ -59,8 +59,17 @@ export interface BankStatement {
    * is a reason to warn in itself.
    */
   readonly sequenceNumber: number | null
-  readonly openingBalance: bigint
-  readonly closingBalance: bigint
+  /**
+   * Null when the source does not say.
+   *
+   * CAMT and MT940 always declare their balances, and a statement whose entries
+   * do not walk from one to the other is truncated. A CSV export often carries
+   * no balance at all — so the choice is between a nullable field and a
+   * fabricated zero, and a fabricated zero would appear on the bank screen as
+   * this account's balance.
+   */
+  readonly openingBalance: bigint | null
+  readonly closingBalance: bigint | null
   readonly openingDate: string
   readonly closingDate: string
   readonly entries: readonly BankEntry[]
@@ -84,13 +93,14 @@ export class BankStatementError extends Error {
  * hundred in a way nobody notices until a reconciliation fails.
  */
 export function parseBankAmount(value: string, where: string): bigint {
+  // An explicit `+` is accepted because Rabobank writes one: `+1210,00`.
   const cleaned = value.trim().replace(',', '.')
-  if (!/^-?\d+(\.\d{1,2})?$/.test(cleaned)) {
+  if (!/^[-+]?\d+(\.\d{1,2})?$/.test(cleaned)) {
     throw new BankStatementError(`"${value}" is not an amount.`, where)
   }
 
   const negative = cleaned.startsWith('-')
-  const unsigned = negative ? cleaned.slice(1) : cleaned
+  const unsigned = /^[-+]/.test(cleaned) ? cleaned.slice(1) : cleaned
   const [whole = '0', fraction = ''] = unsigned.split('.')
   const minorUnits = BigInt(whole + fraction.padEnd(2, '0'))
   return negative ? -minorUnits : minorUnits

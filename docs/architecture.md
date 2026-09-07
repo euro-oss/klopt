@@ -170,6 +170,14 @@ administration and must not be able to create another. See
 
 ### Two rules for the web app
 
+**A `<select>` inside a `<label>` needs an explicit `aria-label`.** When a
+label wraps a control, the accessible name is computed from the label's text
+content — which for a select includes every option, so "Datum" is announced as
+"Datum, Datum, Naam, Rekening, …". Thirteen selects had this, and it broke a
+browser test three separate times before it was recognised as one bug rather
+than three locators. The same applies to a hint or an error message inside a
+label: put them outside and attach them with `aria-describedby`.
+
 **A React-controlled form gates its submit on hydration.** Before hydration a
 controlled input accepts typing that React then discards, and the submit falls
 back to a native form POST that reloads the page — so the form half-works,
@@ -213,6 +221,17 @@ db-backed test does it again at the far end of the pipeline. If the two ever
 diverge, the matching engine is matching on whichever format happened to be
 imported.
 
+**A CSV mapping is configuration, not code.** There is no CSV standard and
+every bank invents its own columns, so the layout is a `CsvMapping` stored per
+account. The first import of a new bank comes back with a _guess_ from the
+header row rather than an error — eleven empty dropdowns is a mapper nobody
+configures — and once corrected it is remembered.
+
+A CSV usually declares no balance, so `BankStatement.openingBalance` and
+`closingBalance` are nullable and `planImport` warns that the strongest check
+there is cannot run. The alternative was a fabricated zero, which would appear
+on the bank screen as the account's balance.
+
 **Amounts are signed at the edge**, positive meaning money in. MT940 and CAMT
 both carry a magnitude plus a debit/credit marker, and both invert its meaning
 depending on whose statement it is. Resolving it once is the difference between
@@ -248,11 +267,11 @@ VAT and purchase are M3 and M4. M1 is complete: invoices go out by email with
 their UBL and PDF attached, and overdue ones are chased on a derived schedule
 ([0018](decisions/0018-dunning-stage-is-derived.md)).
 
-M2: CAMT.053 and MT940 import, deduplicated per entry, a matching engine with
-learned rules ([0019](decisions/0019-matching-suggests.md)), and a keyboard
-queue to work through — `↑↓` moves, `↵` books the best suggestion, `1`–`9` pick
-one, `x` skips. Not built: a CSV mapper for the banks that export neither
-format, and `pain.001` outbound payments with two-person approval.
+M2: CAMT.053, MT940 and a configurable CSV mapper, deduplicated per entry, a
+matching engine with learned rules
+([0019](decisions/0019-matching-suggests.md)), and a keyboard queue to work
+through — `↑↓` moves, `↵` books the best suggestion, `1`–`9` pick one, `x`
+skips. Not built: `pain.001` outbound payments with two-person approval.
 
 A Peppol access point is not built. It sits behind `EInvoiceTransport` and
 cannot be built without a service provider agreement and issued certificates

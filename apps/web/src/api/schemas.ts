@@ -368,11 +368,48 @@ export const createBankAccountBody = z.object({
   ledgerAccountNumber: z.string().nullable().default(null),
 })
 
+/**
+ * How to read a bank's CSV (spec 7.4).
+ *
+ * A column is named by its header, or by a zero-based index when the file has
+ * no header. Nullable everywhere a bank might not have the column at all,
+ * because most of them do not have most of them.
+ */
+export const csvMappingSchema = z.object({
+  delimiter: z.string().min(1).max(1).nullable().default(null),
+  hasHeader: z.boolean().default(true),
+  bookingDate: z.string().min(1),
+  valueDate: z.string().nullable().default(null),
+  amount: z.string().min(1),
+  amountStyle: z.enum(['signed', 'debit_credit_columns', 'indicator']).default('signed'),
+  creditAmount: z.string().nullable().default(null),
+  indicator: z.string().nullable().default(null),
+  creditIndicator: z.string().nullable().default(null),
+  counterpartyName: z.string().nullable().default(null),
+  counterpartyIban: z.string().nullable().default(null),
+  description: z.string().nullable().default(null),
+  reference: z.string().nullable().default(null),
+  balanceAfter: z.string().nullable().default(null),
+  dateFormat: z
+    .enum(['yyyy-MM-dd', 'yyyy/MM/dd', 'yyyyMMdd', 'dd-MM-yyyy', 'dd/MM/yyyy', 'dd.MM.yyyy'])
+    .default('yyyy-MM-dd'),
+  decimalSeparator: z.enum([',', '.']).default(','),
+  currency: currencyCode.default('EUR'),
+})
+
 export const importStatementBody = z.object({
   bankAccountId: z.uuid(),
-  /** The file, as text. CAMT is XML and MT940 is a telex dump; both are text. */
+  /** The file, as text. CAMT is XML, MT940 a telex dump, CSV is CSV. */
   content: z.string().min(1, 'The file is empty.'),
-  format: z.enum(['camt.053', 'mt940']).nullable().default(null),
+  format: z.enum(['camt.053', 'mt940', 'csv']).nullable().default(null),
+  /**
+   * How to read it, for a CSV. Omitted on the first import of a new bank, in
+   * which case a dry run comes back with a guess to check rather than an error.
+   * The account's stored mapping is used when there is one.
+   */
+  mapping: csvMappingSchema.nullable().default(null),
+  /** Remember the mapping on the account, so the next import does not ask. */
+  saveMapping: z.boolean().default(true),
   /** A dry run reports what would happen and writes nothing. */
   dryRun: z.boolean().default(false),
 })
@@ -419,3 +456,5 @@ export const setRuleActiveBody = z.object({
 })
 
 export type ConfirmMatchBody = z.infer<typeof confirmMatchBody>
+
+export type CsvMappingBody = z.infer<typeof csvMappingSchema>

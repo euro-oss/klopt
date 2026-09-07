@@ -228,6 +228,7 @@ function Settings() {
             <label className="block">
               <span className="text-muted-foreground mb-1 block text-xs font-medium">Schema</span>
               <select
+                aria-label="Schema"
                 name="electronicAddressScheme"
                 defaultValue={current.electronicAddressScheme ?? ''}
                 className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
@@ -251,6 +252,7 @@ function Settings() {
           <label className="block max-w-xs">
             <span className="sr-only">Btw-afronding</span>
             <select
+              aria-label="Btw-afronding"
               name="vatRounding"
               defaultValue={current.vatRounding}
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"

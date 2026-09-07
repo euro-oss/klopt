@@ -2,7 +2,10 @@ import { createHash } from 'node:crypto'
 import {
   DEFAULT_MATCH_OPTIONS,
   buildBankMatchEntry,
+  detectBankFormat,
+  guessCsvMapping,
   normaliseIban,
+  parseBankCsv,
   parseBankFile,
   planImport,
   postJournalEntry,
@@ -10,6 +13,8 @@ import {
   suggestMatches,
   systemClock,
   type BankMatchAllocation,
+  type CsvMapping,
+  type StatementProblem,
 } from '@klopt/core'
 import { withBank, withBankMatch, withBankRead } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
@@ -99,6 +104,13 @@ export async function handleCreateBankAccount(
  * download is often the wrong month, and the difference between "this adds 42
  * transactions" and "this adds 3 and 39 are already there" is worth seeing
  * before it happens.
+ *
+ * A CSV additionally needs a **mapping**, because there is no CSV standard and
+ * every bank invents its own columns (spec 7.4). The order is: what the caller
+ * passed, then what the account remembers, then a guess. A dry run with only a
+ * guess imports nothing and returns the guess — which turns "fill in eleven
+ * fields" into "check eight and correct three", and is the difference between a
+ * configurable mapper and a form nobody completes.
  */
 export async function handleImportStatement(context: RequestContext, body: ImportStatementBody) {
   requirePermission(context, 'ledger:import')
@@ -110,7 +122,58 @@ export async function handleImportStatement(context: RequestContext, body: Impor
     const account = await repository.findAccount(context.entityId, body.bankAccountId)
     if (account === null) throw new ApiError('not_found', 'No such bank account.')
 
-    const statements = parseBankFile(body.content, body.format ?? undefined)
+    const format = body.format ?? detectBankFormat(body.content)
+    const stored = account.csvMapping as CsvMapping | null
+    const mapping = format === 'csv' ? (body.mapping ?? stored) : null
+
+    if (format === 'csv' && mapping === null) {
+      const guess = guessCsvMapping(body.content)
+
+      if (!body.dryRun) {
+        throw new ApiError(
+          'validation_failed',
+          'This CSV has no mapping yet. Ask for a dry run first, check the guess, and send it back.',
+          [
+            {
+              code: 'csv_mapping_required',
+              path: 'mapping',
+              message: 'No mapping is stored for this account and none was supplied.',
+            },
+          ],
+        )
+      }
+
+      return {
+        status: 200,
+        body: {
+          dryRun: true,
+          needsMapping: true,
+          format,
+          guess: guess.mapping,
+          header: guess.header,
+          unmatched: guess.unmatched,
+          period: null,
+          statements: 0,
+          entries: 0,
+          newEntries: 0,
+          duplicates: 0,
+          imported: 0,
+          problems: [] as readonly StatementProblem[],
+          openingBalance: null,
+          closingBalance: null,
+        },
+      }
+    }
+
+    const statements =
+      mapping === null
+        ? parseBankFile(body.content, format)
+        : parseBankCsv(body.content, {
+            accountIban: account.iban,
+            mapping,
+            statementId: null,
+          })
+
     const plan = planImport(statements, {
       accountIban: account.iban,
       currency: account.currency,
@@ -121,21 +184,18 @@ export async function handleImportStatement(context: RequestContext, body: Impor
     if (errors.length > 0) {
       throw new ApiError(
         'validation_failed',
-        `This file cannot be imported: ${errors.length === 1 ? errors[0]!.message : `${String(errors.length)} problems.`}`,
-        errors.map((problem) => ({
-          code: problem.code,
-          path: null,
-          message: problem.message,
-        })),
+        `This file cannot be imported: ${
+          errors.length === 1 ? errors[0]!.message : `${String(errors.length)} problems.`
+        }`,
+        errors.map((problem) => ({ code: problem.code, path: null, message: problem.message })),
       )
     }
 
     /**
-     * One body shape for both, with `dryRun` saying which it was.
-     *
-     * A dry run and a real import differing in *shape* pushes the difference
-     * into every caller, and the interesting fields — how many are new, how
-     * many were already there — are the same question either way.
+     * One body shape for a dry run and a real import, with `dryRun` saying
+     * which it was. Differing in shape pushes the difference into every caller,
+     * and the interesting fields — how many are new, how many were already
+     * there — are the same question either way.
      */
     const existing = await repository.existingKeys(body.bankAccountId, plan.dedupeKeys)
     const duplicates = plan.dedupeKeys.filter((key) => existing.has(key)).length
@@ -149,7 +209,11 @@ export async function handleImportStatement(context: RequestContext, body: Impor
         status: 200,
         body: {
           dryRun: true,
-          format: statements[0]?.format ?? null,
+          needsMapping: false,
+          format,
+          guess: null,
+          header: [] as readonly string[],
+          unmatched: [] as readonly string[],
           period,
           statements: plan.statements.length,
           entries: plan.dedupeKeys.length,
@@ -157,8 +221,8 @@ export async function handleImportStatement(context: RequestContext, body: Impor
           duplicates,
           imported: 0,
           problems: plan.problems,
-          openingBalance: statements[0]?.openingBalance.toString() ?? '0',
-          closingBalance: statements.at(-1)?.closingBalance.toString() ?? '0',
+          openingBalance: statements[0]?.openingBalance?.toString() ?? null,
+          closingBalance: statements.at(-1)?.closingBalance?.toString() ?? null,
         },
       }
     }
@@ -170,11 +234,20 @@ export async function handleImportStatement(context: RequestContext, body: Impor
       sourceHash,
     })
 
+    // Remember how to read this bank's CSV, so the next import does not ask.
+    if (mapping !== null && body.saveMapping) {
+      await repository.saveCsvMapping(context.entityId, body.bankAccountId, mapping)
+    }
+
     return {
       status: 201,
       body: {
         dryRun: false,
-        format: statements[0]?.format ?? null,
+        needsMapping: false,
+        format,
+        guess: null,
+        header: [] as readonly string[],
+        unmatched: [] as readonly string[],
         period,
         statements: outcome.statementIds.length,
         entries: plan.dedupeKeys.length,

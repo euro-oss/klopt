@@ -188,6 +188,7 @@ function NewEntry() {
         <label className="block">
           <span className="text-muted-foreground mb-1 block text-xs font-medium">Dagboek</span>
           <select
+            aria-label="Dagboek"
             value={journalCode}
             onChange={(event) => {
               setJournalCode(event.target.value)

@@ -98,3 +98,43 @@ test('a file for the wrong account is refused, in words', async ({ page }) => {
   // And no preview to confirm, because there is nothing safe to do with it.
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toHaveCount(0)
 })
+
+test('a CSV is mapped once and remembered', async ({ page }) => {
+  await anAdministration(page, 'CSV BV')
+
+  await page.goto('/bank')
+  await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
+  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+
+  await page.setInputFiles('input[type="file"]', join(FIXTURES, 'ing.csv'))
+
+  // A CSV has no self-describing layout, so the first import asks — with a
+  // guess to correct rather than eleven empty fields.
+  await expect(page.getByRole('heading', { name: 'Kolommen van dit bestand' })).toBeVisible()
+  await expect(page.getByLabel('Datum', { exact: true })).toHaveValue('Datum')
+  await expect(page.getByLabel('Bedrag', { exact: true })).toHaveValue('Bedrag (EUR)')
+  await expect(page.getByLabel('Af/bij-kolom', { exact: true })).toHaveValue('Af Bij')
+  await expect(page.getByLabel('Datumnotatie')).toHaveValue('yyyyMMdd')
+  await expect(page.getByText(/Niet toegewezen/)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Bestand lezen' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
+  await expect(page.getByText('csv', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
+
+  await expect(page.getByText('3 transacties ingelezen.')).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
+  // The indicator column decided the signs, not a minus that was never there.
+  await expect(page.getByText('1.210,00').first()).toBeVisible()
+  await expect(page.getByText('-45,50')).toBeVisible()
+
+  // The second file needs no mapping at all: the account remembers.
+  await page.setInputFiles('input[type="file"]', join(FIXTURES, 'ing.csv'))
+  await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Kolommen van dit bestand' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Inlezen', exact: true })).toBeDisabled()
+})

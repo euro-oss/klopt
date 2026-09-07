@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
+import type { CsvMapping } from '@klopt/core'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import {
@@ -46,6 +47,11 @@ interface Row {
 /** What the import handler reports, dry run or not. One shape, deliberately. */
 interface ImportReport {
   dryRun: boolean
+  /** A CSV whose layout is not yet known. `guess` is the starting point. */
+  needsMapping: boolean
+  guess: CsvMapping | null
+  header: readonly string[]
+  unmatched: readonly string[]
   statements: number
   entries: number
   newEntries: number
@@ -55,6 +61,33 @@ interface ImportReport {
   period: { from: string; to: string } | null
   problems: readonly { severity: string; code: string; message: string }[]
 }
+
+/**
+ * Which fields of a mapping the form offers, and what to call them.
+ *
+ * Deliberately not all of them: `creditAmount` and `creditIndicator` only apply
+ * to layouts the guesser recognises, and offering eleven dropdowns when eight
+ * are already right is how a configuration form goes unfinished.
+ */
+const MAPPING_FIELDS = [
+  { key: 'bookingDate', label: 'Datum', required: true },
+  { key: 'amount', label: 'Bedrag', required: true },
+  { key: 'indicator', label: 'Af/bij-kolom', required: false },
+  { key: 'counterpartyName', label: 'Naam tegenpartij', required: false },
+  { key: 'counterpartyIban', label: 'Tegenrekening', required: false },
+  { key: 'description', label: 'Omschrijving', required: false },
+  { key: 'reference', label: 'Kenmerk', required: false },
+  { key: 'balanceAfter', label: 'Saldo na mutatie', required: false },
+] as const
+
+const DATE_FORMATS = [
+  'yyyy-MM-dd',
+  'yyyy/MM/dd',
+  'yyyyMMdd',
+  'dd-MM-yyyy',
+  'dd/MM/yyyy',
+  'dd.MM.yyyy',
+] as const
 
 const CONSENT_LABEL: Record<string, string> = {
   not_required: 'bestandsimport',
@@ -77,6 +110,7 @@ function Bank() {
     report: ImportReport
   } | null>(null)
   const [showAccountForm, setShowAccountForm] = useState(false)
+  const [mapping, setMapping] = useState<CsvMapping | null>(null)
   const importKey = useRef<string>(crypto.randomUUID())
   const accountKey = useRef<string>(crypto.randomUUID())
 
@@ -132,7 +166,39 @@ function Bank() {
       return
     }
 
-    setPreview({ content, accountId, report: result.data })
+    const report = result.data
+    setPreview({ content, accountId, report })
+    setMapping(report.needsMapping ? report.guess : null)
+  }
+
+  /** Re-run the dry run with the mapping the operator has corrected. */
+  async function applyMapping() {
+    if (preview === null || mapping === null) return
+
+    setBusy(true)
+    setError(null)
+
+    const result = await importStatement({
+      data: {
+        bankAccountId: preview.accountId,
+        content: preview.content,
+        format: 'csv',
+        mapping,
+        dryRun: true,
+      },
+    })
+    setBusy(false)
+
+    if (!result.ok) {
+      setError(
+        result.problem.violations.length > 0
+          ? result.problem.violations.map((item) => item.message).join(' ')
+          : result.problem.detail,
+      )
+      return
+    }
+
+    setPreview({ ...preview, report: result.data })
   }
 
   async function confirm() {
@@ -145,6 +211,7 @@ function Bank() {
         bankAccountId: preview.accountId,
         content: preview.content,
         idempotencyKey: importKey.current,
+        ...(mapping === null ? {} : { format: 'csv', mapping }),
       },
     })
     setBusy(false)
@@ -157,6 +224,7 @@ function Bank() {
     importKey.current = crypto.randomUUID()
     const body = result.data
     setPreview(null)
+    setMapping(null)
     setNotice(
       `${String(body.imported)} transacties ingelezen` +
         (body.duplicates > 0 ? `, ${String(body.duplicates)} stonden er al.` : '.'),
@@ -371,7 +439,140 @@ function Bank() {
         </p>
       )}
 
-      {preview !== null && (
+      {preview !== null && preview.report.needsMapping && mapping !== null && (
+        <div className="border-border mb-8 rounded-md border p-4">
+          <h2 className="text-base font-medium">Kolommen van dit bestand</h2>
+          {/* A guess to correct, not a form to fill in: spec 7.4 asks for a
+              configurable mapper, and eleven empty dropdowns is a mapper
+              nobody configures. */}
+          <p className="text-muted-foreground mt-1 text-sm">
+            Dit is een CSV, en elke bank verzint zijn eigen kolommen. Dit is een gok — controleer
+            hem. Hij wordt onthouden, dus dit hoeft één keer.
+          </p>
+
+          <div className="mt-4 grid grid-cols-4 gap-4">
+            {MAPPING_FIELDS.map((field) => (
+              <label key={field.key} className="block">
+                <span className="text-muted-foreground mb-1 block text-xs font-medium">
+                  {field.label}
+                  {field.required ? '' : ' (optioneel)'}
+                </span>
+                <select
+                  aria-label={field.label}
+                  value={mapping[field.key] ?? ''}
+                  onChange={(event) => {
+                    const value = event.target.value === '' ? null : event.target.value
+                    setMapping({
+                      ...mapping,
+                      [field.key]: value,
+                      // An af/bij column is what decides the style; without one
+                      // the sign has to be in the amount itself.
+                      ...(field.key === 'indicator'
+                        ? { amountStyle: value === null ? 'signed' : 'indicator' }
+                        : {}),
+                    })
+                  }}
+                  className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
+                >
+                  <option value="">—</option>
+                  {preview.report.header.map((column) => (
+                    <option key={column} value={column}>
+                      {column}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+
+            <label className="block">
+              <span className="text-muted-foreground mb-1 block text-xs font-medium">
+                Datumnotatie
+              </span>
+              <select
+                aria-label="Datumnotatie"
+                value={mapping.dateFormat}
+                onChange={(event) => {
+                  setMapping({ ...mapping, dateFormat: event.target.value })
+                }}
+                className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
+              >
+                {DATE_FORMATS.map((format) => (
+                  <option key={format} value={format}>
+                    {format}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-muted-foreground mb-1 block text-xs font-medium">
+                Decimaalteken
+              </span>
+              <select
+                aria-label="Decimaalteken"
+                value={mapping.decimalSeparator}
+                onChange={(event) => {
+                  setMapping({
+                    ...mapping,
+                    decimalSeparator: event.target.value === '.' ? '.' : ',',
+                  })
+                }}
+                className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
+              >
+                <option value=",">1.234,56</option>
+                <option value=".">1,234.56</option>
+              </select>
+            </label>
+
+            {mapping.amountStyle === 'indicator' && (
+              <label className="block">
+                <span className="text-muted-foreground mb-1 block text-xs font-medium">
+                  Waarde voor &ldquo;bij&rdquo;
+                </span>
+                <input
+                  value={mapping.creditIndicator ?? ''}
+                  onChange={(event) => {
+                    setMapping({ ...mapping, creditIndicator: event.target.value })
+                  }}
+                  className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
+                />
+              </label>
+            )}
+          </div>
+
+          {preview.report.unmatched.length > 0 && (
+            <p className="text-muted-foreground mt-4 text-xs">
+              Niet toegewezen: {preview.report.unmatched.join(', ')}. Die kolommen worden
+              overgeslagen.
+            </p>
+          )}
+
+          <div className="mt-4 flex gap-3">
+            <button
+              type="button"
+              disabled={busy || !hydrated}
+              onClick={() => {
+                void applyMapping()
+              }}
+              className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {busy ? 'Bezig…' : 'Bestand lezen'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPreview(null)
+                setMapping(null)
+              }}
+              className="border-input rounded-md border px-4 py-2 text-sm"
+            >
+              Annuleren
+            </button>
+          </div>
+        </div>
+      )}
+
+      {preview !== null && !preview.report.needsMapping && (
         <div className="border-border mb-8 rounded-md border p-4">
           <h2 className="text-base font-medium">Wat dit bestand zou doen</h2>
           <dl className="mt-3 grid grid-cols-4 gap-4 text-sm">

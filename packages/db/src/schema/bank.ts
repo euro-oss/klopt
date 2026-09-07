@@ -7,6 +7,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   text,
   timestamp,
   unique,
@@ -74,6 +75,15 @@ export const bankAccounts = klopt.table(
      * nothing to expire.
      */
     consentExpiresAt: timestamp('consent_expires_at', { withTimezone: true, mode: 'date' }),
+    /**
+     * How to read this bank's CSV export, once somebody has worked it out.
+     *
+     * There is no CSV standard and every bank invents its own columns, so the
+     * layout is configuration rather than code (spec 7.4). Stored per account
+     * because that is the grain at which it differs, and stored at all so the
+     * second import does not ask again.
+     */
+    csvMapping: jsonb('csv_mapping'),
     ...timestamps,
   },
   (table) => [unique('bank_accounts_entity_iban').on(table.entityId, table.iban)],
@@ -94,8 +104,9 @@ export const bankStatements = klopt.table(
     /** The bank's own identifier for the statement. */
     externalId: text('external_id'),
     sequenceNumber: integer('sequence_number'),
-    openingBalanceMinorUnits: bigint('opening_balance_minor_units', { mode: 'bigint' }).notNull(),
-    closingBalanceMinorUnits: bigint('closing_balance_minor_units', { mode: 'bigint' }).notNull(),
+    /** Null for a CSV with no balance column. See `BankStatement`. */
+    openingBalanceMinorUnits: bigint('opening_balance_minor_units', { mode: 'bigint' }),
+    closingBalanceMinorUnits: bigint('closing_balance_minor_units', { mode: 'bigint' }),
     openingDate: date('opening_date').notNull(),
     closingDate: date('closing_date').notNull(),
     /** sha256 of the file, so re-importing the identical file is visible. */

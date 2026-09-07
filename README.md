@@ -184,6 +184,10 @@ curl -X POST localhost:3000/api/v1/bank-statements \
         '{bankAccountId: $ENV.ACCOUNT_ID, content: $c, dryRun: true}')"
 ```
 
+A CSV works the same way, except the first one comes back with a guessed column
+mapping to check rather than an error — every bank invents its own columns, so
+the layout is configuration, and once corrected the account remembers it.
+
 `dryRun` says what it would do and writes nothing: how many lines are new, how
 many are already there, and whether a statement is missing from the sequence. A
 file whose entries do not add up to its closing balance is refused outright,

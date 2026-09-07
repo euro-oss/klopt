@@ -26,22 +26,46 @@ import { parseMt940 } from './mt940.js'
  * a wrong balance in front of somebody who will trust it.
  */
 
-export type BankFileFormat = 'camt.053' | 'mt940'
+export type BankFileFormat = 'camt.053' | 'mt940' | 'csv'
 
-/** Sniff the format. A bank names its downloads whatever it likes. */
+/**
+ * Sniff the format. A bank names its downloads whatever it likes.
+ *
+ * CAMT and MT940 are recognisable from their first bytes. Everything else that
+ * looks like delimited text is reported as `csv` — which is not a guess about
+ * *which* CSV, only that a mapping will be needed. Making the caller declare
+ * the obvious would be a form field that is wrong as often as it is right.
+ */
 export function detectBankFormat(source: string): BankFileFormat {
   const head = source.slice(0, 4096)
   if (/^\s*<\?xml|<Document|BkToCstmrStmt/i.test(head)) return 'camt.053'
   if (/^\s*(\{1:|:20:|:25:|:940:)/m.test(head) || /^:\d{2}[A-Z]?:/m.test(head)) return 'mt940'
 
+  const firstLine = head.split(/\r?\n/)[0] ?? ''
+  if (/[;,\t|]/.test(firstLine) && firstLine.trim() !== '') return 'csv'
+
   throw new BankStatementError(
-    'Not recognisable as CAMT.053 or MT940. A CSV needs a column mapping.',
+    'Not recognisable as CAMT.053, MT940 or a delimited file.',
     'document',
   )
 }
 
+/**
+ * Parse one of the two self-describing formats.
+ *
+ * A CSV is refused here on purpose: it needs a mapping, which this function has
+ * no way to accept, and silently returning nothing would be worse.
+ */
 export function parseBankFile(source: string, format?: BankFileFormat): readonly BankStatement[] {
   const chosen = format ?? detectBankFormat(source)
+
+  if (chosen === 'csv') {
+    throw new BankStatementError(
+      'A delimited file needs a column mapping. Use parseBankCsv.',
+      'document',
+    )
+  }
+
   return chosen === 'camt.053' ? parseCamt053(source) : parseMt940(source)
 }
 
@@ -82,6 +106,7 @@ export interface StatementProblem {
   readonly severity: 'error' | 'warning'
   readonly code:
     | 'balance_walk_mismatch'
+    | 'no_balance_declared'
     | 'sequence_gap'
     | 'no_sequence_number'
     | 'account_mismatch'
@@ -160,19 +185,37 @@ export function planImport(
       })
     }
 
-    const walked = statement.entries.reduce(
-      (sum, entry) => sum + entry.amount,
-      statement.openingBalance,
-    )
-    if (walked !== statement.closingBalance) {
+    if (statement.openingBalance === null || statement.closingBalance === null) {
+      /**
+       * No balances, so the strongest check there is cannot run.
+       *
+       * A warning rather than a refusal: a CSV with no balance column is still
+       * worth importing, and refusing it would leave the operator with nothing.
+       * But it is worth saying out loud, because from here on a missing line is
+       * undetectable.
+       */
       own.push({
-        severity: 'error',
-        code: 'balance_walk_mismatch',
+        severity: 'warning',
+        code: 'no_balance_declared',
         message:
-          `Statement ${where} does not add up: opening plus entries is ` +
-          `${walked.toString()}, the file says ${statement.closingBalance.toString()}. ` +
-          'The file is truncated or was misread.',
+          `Statement ${where} declares no balances, so it cannot be checked against its ` +
+          'entries. A missing line in this file would go unnoticed.',
       })
+    } else {
+      const walked = statement.entries.reduce(
+        (sum, entry) => sum + entry.amount,
+        statement.openingBalance,
+      )
+      if (walked !== statement.closingBalance) {
+        own.push({
+          severity: 'error',
+          code: 'balance_walk_mismatch',
+          message:
+            `Statement ${where} does not add up: opening plus entries is ` +
+            `${walked.toString()}, the file says ${statement.closingBalance.toString()}. ` +
+            'The file is truncated or was misread.',
+        })
+      }
     }
 
     if (statement.sequenceNumber === null) {

@@ -251,6 +251,7 @@ function Members() {
           <label>
             <span className="text-muted-foreground mb-1 block text-xs font-medium">Rol</span>
             <select
+              aria-label="Rol"
               name="role"
               defaultValue="bookkeeper"
               className="border-input bg-background rounded-md border px-3 py-2 text-sm"

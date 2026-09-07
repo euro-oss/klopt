@@ -391,6 +391,7 @@ function MatchQueue() {
                   Zelf kiezen
                 </span>
                 <select
+                  aria-label="Zelf kiezen"
                   value={manualAccount}
                   onChange={(event) => {
                     setManualAccount(event.target.value)

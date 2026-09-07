@@ -291,12 +291,22 @@ describe('importing a statement', () => {
     expect(gap?.message).toContain('43 to 59')
   })
 
-  it('refuses a file that is neither format', async () => {
+  it('treats a delimited file as a CSV, and asks for a mapping', async () => {
     const bankAccountId = await anAccount('NL02ABNA0000000009')
     await expect(
       handleImportStatement(
         await contextFor(uuidv7()),
         importStatementBody.parse({ bankAccountId, content: 'datum;bedrag\n2026-01-01;10' }),
+      ),
+    ).rejects.toThrow(/no mapping yet/)
+  })
+
+  it('refuses something that is no kind of statement at all', async () => {
+    const bankAccountId = await anAccount('NL02ABNA0000000019')
+    await expect(
+      handleImportStatement(
+        await contextFor(uuidv7()),
+        importStatementBody.parse({ bankAccountId, content: 'beste boekhouder wij schrijven u' }),
       ),
     ).rejects.toThrow(/Not recognisable/)
   })
@@ -318,6 +328,130 @@ describe('importing a statement', () => {
       importStatementBody.parse({ bankAccountId, content, dryRun: true }),
     )
     expect(dry.body).toMatchObject({ dryRun: true })
+  })
+})
+
+describe('a CSV, for the banks that export neither format', () => {
+  const ing = [
+    '"Datum";"Naam / Omschrijving";"Rekening";"Tegenrekening";"Code";"Af Bij";"Bedrag (EUR)";"Mutatiesoort";"Mededelingen";"Saldo na mutatie"',
+    '"20260302";"Grote Klant N.V.";"NL02ABNA0000000020";"NL91RABO0315273637";"GT";"Bij";"1210,00";"Online bankieren";"Factuur 2026-0001";"1210,00"',
+    '"20260303";"Telecom B.V.";"NL02ABNA0000000020";"NL20INGB0001234567";"IC";"Af";"45,50";"Incasso";"Abonnement maart";"1164,50"',
+    '',
+  ].join('\n')
+
+  it('asks for a mapping first, and hands one over to check', async () => {
+    const bankAccountId = await anAccount('NL02ABNA0000000020')
+
+    const dry = await handleImportStatement(
+      await contextFor(),
+      importStatementBody.parse({ bankAccountId, content: ing, dryRun: true }),
+    )
+
+    expect(dry.body).toMatchObject({ needsMapping: true, format: 'csv' })
+    // A guess to correct, not a form to fill in.
+    expect(dry.body.guess).toMatchObject({
+      delimiter: ';',
+      bookingDate: 'Datum',
+      amount: 'Bedrag (EUR)',
+      amountStyle: 'indicator',
+      indicator: 'Af Bij',
+      dateFormat: 'yyyyMMdd',
+      balanceAfter: 'Saldo na mutatie',
+    })
+    // And it says what it could not place, so nothing is silently ignored.
+    expect(dry.body.unmatched).toContain('Mutatiesoort')
+  })
+
+  it('refuses to import without one rather than guessing behind your back', async () => {
+    const bankAccountId = await anAccount('NL02ABNA0000000021')
+    await expect(
+      handleImportStatement(
+        await contextFor(uuidv7()),
+        importStatementBody.parse({
+          bankAccountId,
+          content: ing.replace(/NL02ABNA0000000020/g, 'NL02ABNA0000000021'),
+        }),
+      ),
+    ).rejects.toThrow(/no mapping yet/)
+  })
+
+  it('imports with the mapping, and remembers it for next time', async () => {
+    const bankAccountId = await anAccount('NL02ABNA0000000022')
+    const content = ing.replace(/NL02ABNA0000000020/g, 'NL02ABNA0000000022')
+
+    const dry = await handleImportStatement(
+      await contextFor(),
+      importStatementBody.parse({ bankAccountId, content, dryRun: true }),
+    )
+
+    const imported = await handleImportStatement(
+      await contextFor(uuidv7()),
+      importStatementBody.parse({ bankAccountId, content, mapping: dry.body.guess }),
+    )
+
+    expect(imported.body).toMatchObject({ imported: 2, duplicates: 0, format: 'csv' })
+
+    const list = await handleListBankTransactions(
+      await contextFor(),
+      transactionsQuery.parse({ bankAccountId }),
+    )
+    expect(list.body.transactions.map((item) => item.amount)).toEqual(['-4550', '121000'])
+    expect(list.body.transactions[1]?.counterpartyName).toBe('Grote Klant N.V.')
+
+    // The second file needs no mapping, because the account remembers.
+    const accounts = await handleListBankAccounts(await contextFor())
+    expect(accounts.body.accounts.find((item) => item.id === bankAccountId)?.hasCsvMapping).toBe(
+      true,
+    )
+
+    const again = await handleImportStatement(
+      await contextFor(),
+      importStatementBody.parse({ bankAccountId, content, dryRun: true }),
+    )
+    expect(again.body).toMatchObject({ needsMapping: false, entries: 2, duplicates: 2 })
+  })
+
+  it('recovers the balances from the running column', async () => {
+    const bankAccountId = await anAccount('NL02ABNA0000000023')
+    const content = ing.replace(/NL02ABNA0000000020/g, 'NL02ABNA0000000023')
+    const dry = await handleImportStatement(
+      await contextFor(),
+      importStatementBody.parse({ bankAccountId, content, dryRun: true }),
+    )
+    await handleImportStatement(
+      await contextFor(uuidv7()),
+      importStatementBody.parse({ bankAccountId, content, mapping: dry.body.guess }),
+    )
+
+    const accounts = await handleListBankAccounts(await contextFor())
+    const account = accounts.body.accounts.find((item) => item.id === bankAccountId)
+    expect(account?.reconciliation.statementBalance).toBe('116450')
+  })
+
+  it('warns rather than refuses when a CSV declares no balance at all', async () => {
+    const bankAccountId = await anAccount('NL02ABNA0000000024')
+    const bare = 'Datum;Bedrag;Omschrijving\n02-03-2026;1210,00;Factuur 2026-0001\n'
+
+    const imported = await handleImportStatement(
+      await contextFor(uuidv7()),
+      importStatementBody.parse({
+        bankAccountId,
+        content: bare,
+        format: 'csv',
+        mapping: {
+          bookingDate: 'Datum',
+          amount: 'Bedrag',
+          description: 'Omschrijving',
+          dateFormat: 'dd-MM-yyyy',
+          delimiter: ';',
+        },
+      }),
+    )
+
+    expect(imported.body.imported).toBe(1)
+    // From here on a missing line in this file is undetectable, and it says so.
+    expect(imported.body.problems.map((problem) => problem.code)).toContain('no_balance_declared')
+    expect(imported.body.closingBalance).toBeNull()
   })
 })
 

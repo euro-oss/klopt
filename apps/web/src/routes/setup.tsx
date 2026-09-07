@@ -213,6 +213,7 @@ function Setup() {
             Rekeningschema
           </span>
           <select
+            aria-label="Rekeningschema"
             name="chartCode"
             defaultValue={available[0]?.code ?? 'nl-mkb'}
             className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
@@ -259,6 +260,7 @@ function Setup() {
           <label className="block">
             <span className="text-muted-foreground mb-1 block text-xs font-medium">Begint in</span>
             <select
+              aria-label="Begint in"
               name="fiscalYearStartMonth"
               defaultValue="1"
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"

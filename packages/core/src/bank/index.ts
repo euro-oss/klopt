@@ -41,3 +41,15 @@ export {
 } from './matching.js'
 
 export { type BankMatchAllocation, type BankMatchRequest, buildBankMatchEntry } from './posting.js'
+
+export {
+  type CsvAmountStyle,
+  type CsvMapping,
+  type CsvStatementOptions,
+  type MappingGuess,
+  DEFAULT_CSV_MAPPING,
+  guessCsvMapping,
+  parseBankCsv,
+  parseCsv,
+  sniffDelimiter,
+} from './csv.js'
