@@ -358,15 +358,25 @@ export async function handleImportAuditFile(
   requirePermission(context, 'ledger:import')
   const idempotencyKey = requireIdempotencyKey(context)
 
-  const [accounts, journals] = await withReporting(context.database, async (repository) => [
-    await repository.listAccounts(context.entityId),
-    await repository.listJournals(context.entityId),
-  ])
+  const { accounts, journals, resolutions } = await withReporting(
+    context.database,
+    async (repository) => ({
+      accounts: await repository.listAccounts(context.entityId),
+      journals: await repository.listJournals(context.entityId),
+      // What the plan needs to keep a line's VAT code, its cost centre and its
+      // subledger link. Without them every imported line arrived untagged, so a
+      // migrated year contributed nothing to any rubriek.
+      resolutions: await repository.importResolutions(context.entityId),
+    }),
+  )
 
   const plan = planXafImport(body.xml, {
     entityId: context.entityId,
     existingAccountNumbers: accounts.map((account) => account.number),
     existingJournalCodes: journals.map((journal) => journal.code),
+    existingTaxCodes: resolutions.taxCodes,
+    existingDimensionValues: resolutions.dimensionValues,
+    contactIdsByNumber: resolutions.contactIdsByNumber,
     acceptFrom: null,
     acceptTo: null,
   })
@@ -391,6 +401,14 @@ export async function handleImportAuditFile(
     journals: {
       total: plan.journals.length,
       new: plan.journals.filter((journal) => !journal.exists).length,
+    },
+    // Reported so a dry run answers "what will I lose" before anything is
+    // posted, which is the whole point of having one.
+    vatCodes: plan.vatCodes,
+    dimensions: plan.dimensions,
+    contacts: {
+      total: plan.contacts.length,
+      unmatched: plan.contacts.filter((contact) => !contact.exists).length,
     },
     entryCount: plan.entries.length,
     warnings: plan.warnings,

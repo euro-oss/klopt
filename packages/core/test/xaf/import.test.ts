@@ -8,6 +8,14 @@ const options = {
   entityId: 'entity-1',
   existingAccountNumbers: ['1100', '1300'],
   existingJournalCodes: ['VRK'],
+  // The fixture's only tax code. Without it the plan refuses, which is the
+  // point — see 'what the file uses' below.
+  existingTaxCodes: ['H21'],
+  existingDimensionValues: ['COSTCENTRE|ALG', 'PROJECT|PRJ-01'],
+  contactIdsByNumber: new Map([
+    ['DEB-0001', '11111111-1111-4111-8111-111111111111'],
+    ['CRE-0001', '22222222-2222-4222-8222-222222222222'],
+  ]),
   acceptFrom: null,
   acceptTo: null,
 }
@@ -250,5 +258,180 @@ describe('parse rejects a structurally broken file', () => {
 
   it('needs a header', () => {
     expect(() => parseXaf('<auditfile><company/></auditfile>')).toThrow(/<header> is missing/)
+  })
+})
+
+describe('what the file uses', () => {
+  const xml = generateXaf(referenceDocument())
+
+  /** Only the columns the plan is asked about, so a case reads in one line. */
+  const planWith = (overrides: Partial<typeof options>) =>
+    planXafImport(xml, { ...options, ...overrides })
+
+  it('tags the base from the file and finds the VAT line itself', () => {
+    // XAF marks only the taxable base: `<vat>` sits on the revenue line and the
+    // VAT ledger line beside it carries nothing, correctly — marking both would
+    // declare the same tax twice.
+    //
+    // But the aangifte needs both (vat/return.ts): the base fills rubriek 1a's
+    // omzet and the tax line fills its btw. So the tax line is found by its
+    // amount and side, which is what stops an imported year declaring turnover
+    // and no tax.
+    const plan = planWith({})
+    const sale = plan.entries.find((entry) => entry.sourceDocumentRef === 'VRK-2026-001')
+
+    const base = sale?.lines.find((line) => line.accountNumber === '8000')
+    expect(base?.taxCode).toBe('H21')
+    expect(base?.taxRole).toBe('base')
+    expect(base?.taxAmount).toBe(210_00n)
+
+    const vatLine = sale?.lines.find((line) => line.accountNumber === '1500')
+    expect(vatLine?.taxCode).toBe('H21')
+    expect(vatLine?.taxRole).toBe('tax')
+    expect(vatLine?.taxAmount).toBe(210_00n)
+
+    // And nothing else is tagged. The receivable is neither base nor tax.
+    const receivable = sale?.lines.find((line) => line.accountNumber === '1300')
+    expect(receivable?.taxCode).toBeNull()
+    expect(receivable?.taxRole).toBeNull()
+  })
+
+  it('says so when it cannot find the VAT line, rather than guessing', () => {
+    // A guess would put a number in a rubriek that nothing in the journal
+    // supports, which is the one thing the reconciliation exists to prevent.
+    const withoutVatLine = generateXaf(
+      (() => {
+        const document = referenceDocument()
+        const sales = document.journals.find((journal) => journal.jrnID === 'VRK')!
+        const transaction = sales.transactions[0]!
+        return {
+          ...document,
+          journals: document.journals.map((journal) =>
+            journal.jrnID !== 'VRK'
+              ? journal
+              : {
+                  ...journal,
+                  transactions: [
+                    {
+                      ...transaction,
+                      // The VAT line's amount changed, so nothing matches the
+                      // 210,00 the base line declares.
+                      lines: transaction.lines.map((line) =>
+                        line.accID === '1500' ? { ...line, amount: 209_00n } : line,
+                      ),
+                    },
+                    ...sales.transactions.slice(1),
+                  ],
+                },
+          ),
+        }
+      })(),
+    )
+
+    const plan = planXafImport(withoutVatLine, options)
+    expect(plan.warnings.join(' ')).toContain('H21 21000')
+
+    const sale = plan.entries.find((entry) => entry.sourceDocumentRef === 'VRK-2026-001')
+    expect(sale?.lines.find((line) => line.accountNumber === '8000')?.taxRole).toBe('base')
+    expect(sale?.lines.find((line) => line.accountNumber === '1500')?.taxRole).toBeNull()
+  })
+
+  it('refuses a file whose tax codes this administration does not have', () => {
+    // Not a warning. The entries would post, the trial balance would
+    // reconcile, and the aangifte would quietly declare nothing for a whole
+    // migrated year — discovered at the next filing, when the file is gone.
+    const plan = planWith({ existingTaxCodes: [] })
+
+    expect(plan.problems.map((problem) => problem.code)).toContain('unknown_tax_code')
+    expect(plan.problems[0]?.message).toContain('H21')
+    // And it says what it is for, so somebody can map it.
+    expect(plan.vatCodes).toEqual([{ code: 'H21', description: 'BTW hoog 21%', exists: false }])
+  })
+
+  it('lists the cost centres and projects the file uses', () => {
+    const plan = planWith({})
+    expect(plan.dimensions).toEqual(
+      expect.arrayContaining([
+        { typeCode: 'COSTCENTRE', valueCode: 'ALG', exists: true },
+        { typeCode: 'PROJECT', valueCode: 'PRJ-01', exists: true },
+      ]),
+    )
+
+    const sale = plan.entries.find((entry) => entry.sourceDocumentRef === 'VRK-2026-001')
+    const base = sale?.lines.find((line) => line.accountNumber === '8000')
+    expect(base?.dimensions).toEqual([
+      { typeCode: 'COSTCENTRE', valueCode: 'ALG' },
+      { typeCode: 'PROJECT', valueCode: 'PRJ-01' },
+    ])
+  })
+
+  it('imports without a dimension we do not have, and says so', () => {
+    // A warning rather than a refusal: losing a cost centre costs analysis, not
+    // correctness, and refusing every file whose dimensions do not exist yet
+    // would make the first run impossible.
+    const plan = planWith({ existingDimensionValues: [] })
+
+    expect(plan.problems).toEqual([])
+    expect(plan.warnings.join(' ')).toContain('COSTCENTRE ALG')
+
+    const sale = plan.entries.find((entry) => entry.sourceDocumentRef === 'VRK-2026-001')
+    expect(sale?.lines.find((line) => line.accountNumber === '8000')?.dimensions).toEqual([])
+  })
+
+  it('links a line to the contact it names, on the right subledger', () => {
+    const plan = planWith({})
+
+    const sale = plan.entries.find((entry) => entry.sourceDocumentRef === 'VRK-2026-001')
+    const receivable = sale?.lines.find((line) => line.accountNumber === '1300')
+    expect(receivable?.subledgerKind).toBe('customer')
+    expect(receivable?.subledgerId).toBe('11111111-1111-4111-8111-111111111111')
+
+    // The journal decides, not the party record: a line in an inkoopboek is a
+    // creditor whatever `custSupTp` says.
+    const purchase = plan.entries.find((entry) => entry.sourceDocumentRef === 'INK-2026-0001')
+    const cost = purchase?.lines.find((line) => line.accountNumber === '4000')
+    expect(cost?.subledgerKind).toBe('supplier')
+    expect(cost?.subledgerId).toBe('22222222-2222-4222-8222-222222222222')
+  })
+
+  it('lists contacts it could not link, and imports the entries anyway', () => {
+    const plan = planWith({ contactIdsByNumber: new Map() })
+
+    expect(plan.problems).toEqual([])
+    expect(plan.warnings.join(' ')).toContain('DEB-0001')
+    expect(plan.contacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ number: 'DEB-0001', name: 'Klant B.V.', exists: false }),
+      ]),
+    )
+
+    const sale = plan.entries.find((entry) => entry.sourceDocumentRef === 'VRK-2026-001')
+    expect(sale?.lines.find((line) => line.accountNumber === '1300')?.subledgerId).toBeNull()
+    // The entry itself is untouched: a missing contact is not a missing amount.
+    expect(sale?.lines.reduce((sum, line) => sum + line.debit - line.credit, 0n)).toBe(0n)
+  })
+
+  it('survives a round trip through our own exporter', () => {
+    // The claim this whole change makes good: export, import, and the tags are
+    // still there. Before it, a migrated year came back untagged and an XAF
+    // generated from it declared no VAT at all.
+    const plan = planWith({})
+    const sale = plan.entries.find((entry) => entry.sourceDocumentRef === 'VRK-2026-001')
+    const base = sale?.lines.find((line) => line.accountNumber === '8000')
+
+    expect({
+      taxCode: base?.taxCode,
+      taxRole: base?.taxRole,
+      taxAmount: base?.taxAmount,
+      dimensions: base?.dimensions,
+    }).toEqual({
+      taxCode: 'H21',
+      taxRole: 'base',
+      taxAmount: 210_00n,
+      dimensions: [
+        { typeCode: 'COSTCENTRE', valueCode: 'ALG' },
+        { typeCode: 'PROJECT', valueCode: 'PRJ-01' },
+      ],
+    })
   })
 })

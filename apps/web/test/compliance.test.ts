@@ -18,6 +18,7 @@ import {
   handlePreviewRgsUpgrade,
   handleSetRgsMappings,
 } from '../src/api/handlers/compliance.js'
+import { handleGetVatReturn } from '../src/api/handlers/vat.js'
 import { postJournalEntryBody } from '../src/api/schemas.js'
 
 /**
@@ -607,6 +608,59 @@ describe('export then import: the round trip that makes the migration claim true
     expect(copy.body.totalAssets).toBe(original.body.totalAssets)
     expect(copy.body.resultForPeriod).toBe(original.body.resultForPeriod)
     expect(copy.body.difference).toBe('0')
+  })
+
+  it('carries the VAT through, so the copy files the same aangifte', async () => {
+    // The claim the whole importer rests on. Every imported line used to arrive
+    // untagged, so a migrated year reconciled perfectly on the balance sheet
+    // and declared nothing on the BTW-aangifte — discovered at the next filing,
+    // when the file is long gone.
+    const source = await newEntity()
+    await postTradingYear(source.token)
+
+    const exported = await handleExportAuditFile(await context(source.token), {
+      fiscalYear: '2026',
+      fromPeriod: null,
+      toPeriod: null,
+    })
+
+    const target = await newEntity()
+    await handleImportAuditFile(await context(target.token, uuidv7()), {
+      xml: exported.xml,
+      dryRun: false,
+    })
+
+    const original = await handleGetVatReturn(await context(source.token), '2026-Q1')
+    const copy = await handleGetVatReturn(await context(target.token), '2026-Q1')
+
+    expect(copy.body.owed).toBe(original.body.owed)
+    expect(copy.body.deductible).toBe(original.body.deductible)
+    expect(copy.body.payable).toBe(original.body.payable)
+    // And it is not zero, or the assertion above would pass on an empty return.
+    expect(original.body.owed).not.toBe('0')
+  })
+
+  it('refuses a file whose tax codes the target does not have', async () => {
+    // Not a warning: the entries would post, the trial balance would
+    // reconcile, and the aangifte would quietly declare nothing.
+    const source = await newEntity()
+    await postTradingYear(source.token)
+
+    const exported = await handleExportAuditFile(await context(source.token), {
+      fiscalYear: '2026',
+      fromPeriod: null,
+      toPeriod: null,
+    })
+    // A code the target cannot know: same file, unknown vatID.
+    const foreign = exported.xml.replace(/H21/g, 'MWST19')
+
+    const target = await newEntity()
+    await expect(
+      handleImportAuditFile(await context(target.token, uuidv7()), {
+        xml: foreign,
+        dryRun: true,
+      }),
+    ).rejects.toMatchObject({ code: 'validation_failed' })
   })
 
   it('refuses a file whose control totals lie', async () => {

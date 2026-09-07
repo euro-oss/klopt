@@ -45,9 +45,12 @@ export {
 
 export {
   type XafAccountPlan,
+  type XafContactPlan,
+  type XafDimensionPlan,
   type XafImportOptions,
   type XafImportPlan,
   type XafJournalPlan,
   type XafReconciliation,
+  type XafVatCodePlan,
   planXafImport,
 } from './import.js'

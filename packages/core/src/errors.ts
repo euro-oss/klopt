@@ -51,6 +51,7 @@ export type LedgerErrorCode =
   | 'approval_by_submitter'
   | 'wrong_batch_state'
   | 'invalid_tax_code'
+  | 'unknown_tax_code'
   | 'unknown_rubriek'
   | 'vat_out_of_balance'
   | 'period_already_filed'

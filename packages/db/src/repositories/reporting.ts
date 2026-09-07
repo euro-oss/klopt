@@ -4,12 +4,16 @@ import type { Transaction } from '../client.js'
 import {
   accountPeriodBalances,
   accounts,
+  contacts,
+  dimensionTypes,
+  dimensionValues,
   entities,
   fiscalYears,
   journalEntries,
   journalLines,
   journals,
   periods,
+  taxCodes,
 } from '../schema/index.js'
 
 /**
@@ -238,6 +242,39 @@ export class ReportingRepository {
       .from(accounts)
       .where(eq(accounts.entityId, entityId))
       .orderBy(asc(accounts.number))
+  }
+
+  /**
+   * What an import has to resolve against: tax codes, dimension values and
+   * contact numbers.
+   *
+   * One round trip rather than three, because they are read together or not at
+   * all — an XAF plan needs every one of them before it can say what it would
+   * drop.
+   */
+  async importResolutions(entityId: string): Promise<{
+    readonly taxCodes: readonly string[]
+    readonly dimensionValues: readonly string[]
+    readonly contactIdsByNumber: ReadonlyMap<string, string>
+  }> {
+    const [codes, values, parties] = await Promise.all([
+      this.tx.select({ code: taxCodes.code }).from(taxCodes).where(eq(taxCodes.entityId, entityId)),
+      this.tx
+        .select({ typeCode: dimensionTypes.code, valueCode: dimensionValues.code })
+        .from(dimensionValues)
+        .innerJoin(dimensionTypes, eq(dimensionTypes.id, dimensionValues.dimensionTypeId))
+        .where(eq(dimensionValues.entityId, entityId)),
+      this.tx
+        .select({ id: contacts.id, number: contacts.number })
+        .from(contacts)
+        .where(eq(contacts.entityId, entityId)),
+    ])
+
+    return {
+      taxCodes: codes.map((row) => row.code),
+      dimensionValues: values.map((row) => `${row.typeCode}|${row.valueCode}`),
+      contactIdsByNumber: new Map(parties.map((row) => [row.number, row.id])),
+    }
   }
 
   /** Cursor-paginated by chain sequence, which is dense and monotonic per entity. */
