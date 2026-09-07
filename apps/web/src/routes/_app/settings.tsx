@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { useHydrated } from '~/lib/hydration'
+import { listAccounts } from '~/server/ledger'
 import { getEntity, updateEntity } from '~/server/entity'
 
 /**
@@ -17,7 +18,7 @@ import { getEntity, updateEntity } from '~/server/entity'
  * is kept here.
  */
 export const Route = createFileRoute('/_app/settings')({
-  loader: async () => ({ entity: await getEntity() }),
+  loader: async () => ({ entity: await getEntity(), accounts: await listAccounts() }),
   component: Settings,
 })
 
@@ -29,7 +30,12 @@ const SCHEMES = [
 ] as const
 
 function Settings() {
-  const { entity } = Route.useLoaderData()
+  const { entity, accounts } = Route.useLoaderData()
+  // Costs only: bank charges are a cost, and offering the whole chart here is
+  // offering ninety wrong answers alongside the right one.
+  const expenseAccounts = accounts.ok
+    ? accounts.data.accounts.filter((account) => account.type === 'expense')
+    : []
   const router = useRouter()
   const hydrated = useHydrated()
 
@@ -84,6 +90,7 @@ function Settings() {
         electronicAddress: orNull('electronicAddress'),
         electronicAddressScheme: orNull('electronicAddressScheme'),
         vatRounding: text('vatRounding') === 'per_line' ? 'per_line' : 'per_invoice',
+        bankChargesAccountNumber: orNull('bankChargesAccountNumber'),
       },
     })
 
@@ -259,6 +266,31 @@ function Settings() {
             >
               <option value="per_invoice">Per factuur</option>
               <option value="per_line">Per regel</option>
+            </select>
+          </label>
+        </fieldset>
+
+        <fieldset className="space-y-4">
+          <legend className="text-base font-medium">Bankkosten</legend>
+          <p className="text-muted-foreground text-sm">
+            Waar bankkosten heen gaan als een betaling net te laag binnenkomt. Zonder rekening wordt
+            het afsplitsen niet aangeboden — dan is het handmatig boeken, wat beter is dan een
+            voorstel dat niet geboekt kan worden.
+          </p>
+          <label className="block max-w-md">
+            <span className="sr-only">Rekening voor bankkosten</span>
+            <select
+              aria-label="Rekening voor bankkosten"
+              name="bankChargesAccountNumber"
+              defaultValue={current.bankChargesAccountNumber ?? ''}
+              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+            >
+              <option value="">Niet afsplitsen</option>
+              {expenseAccounts.map((account) => (
+                <option key={account.number} value={account.number}>
+                  {account.number} · {account.name}
+                </option>
+              ))}
             </select>
           </label>
         </fieldset>

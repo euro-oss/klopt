@@ -54,6 +54,10 @@ export async function seedEntity(database: Database, options: SeedOptions = {}):
     fiscalYearStartMonth: 1,
     rgsVersion: '3.7',
     vatRounding: options.vatRounding ?? 'per_invoice',
+    // The fixture chart has 4900, so the fixture is configured like a fresh
+    // install on the shipped chart. Without this the charge-splitting path was
+    // never exercised by anything.
+    bankChargesAccountNumber: '4900',
   })
 
   for (const code of [fiscalYearCode, ...(options.alsoFiscalYears ?? [])]) {
@@ -106,6 +110,8 @@ export async function seedEntity(database: Database, options: SeedOptions = {}):
     { number: '8000', name: 'Omzet', type: 'revenue', dc: 'credit', rgs: 'WOmzNoo' },
     { number: '4000', name: 'Inkoopwaarde', type: 'expense', dc: 'debit', rgs: 'WKprGrpGr1' },
     { number: '4300', name: 'Brandstofkosten', type: 'expense', dc: 'debit', rgs: 'WBedAutBra' },
+    { number: '4900', name: 'Algemene kosten', type: 'expense', dc: 'debit', rgs: 'WBedAlgAnk' },
+    { number: '4910', name: 'Bankkosten', type: 'expense', dc: 'debit', rgs: 'WBedAlgBan' },
     { number: '9999', name: 'Geblokkeerd', type: 'expense', dc: 'debit', rgs: null },
   ] as const
 

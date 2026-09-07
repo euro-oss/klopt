@@ -96,6 +96,16 @@ export const entities = klopt.table(
     vatPeriodKind: vatPeriodKind('vat_period_kind').notNull().default('quarterly'),
     /** The recoverable share for pro rata input VAT, revised annually. */
     vatProRataBasisPoints: integer('vat_pro_rata_basis_points'),
+    /**
+     * Where bank charges are split off to when a payment arrives short (spec
+     * 7.4).
+     *
+     * A setting rather than a constant: `4900` is Algemene kosten in the chart
+     * we ship and means nothing in a chart somebody brought with them. Null
+     * means charge splitting is not offered, which is honest — the alternative
+     * is a suggestion that cannot be posted.
+     */
+    bankChargesAccountNumber: text('bank_charges_account_number'),
 
     /**
      * Who the seller is, on paper (spec 7.5).

@@ -26,7 +26,9 @@ import {
   handleIssueInvoice,
 } from '../src/api/handlers/sales.js'
 import { handleGetJournalEntry } from '../src/api/handlers/ledger.js'
+import { handleUpdateEntity } from '../src/api/handlers/setup.js'
 import {
+  updateEntityBody,
   confirmMatchBody,
   createBankAccountBody,
   createContactBody,
@@ -562,5 +564,79 @@ describe('ignoring a line', () => {
     await expect(
       handleIgnoreTransaction(await contextFor(uuidv7()), transactionId),
     ).rejects.toThrow(ApiError)
+  })
+})
+
+describe('where bank charges go', () => {
+  /** A transaction that is short by 3,50 — the classic foreign-bank deduction. */
+  async function aShortPayment(sequence: number) {
+    // 1.000,00 plus 21% is 1.210,00, and 1.206,50 arrives.
+    const invoice = await anInvoice({ amount: '100000' })
+    const transactionId = await aTransaction({
+      amount: '1206,50',
+      description: `betaling ${invoice.number}`,
+      sequence,
+    })
+    return { invoice, transactionId }
+  }
+
+  it('splits the shortfall to the account the administration chose', async () => {
+    // `4900` used to be hard-coded here with a comment saying it wanted to be a
+    // setting. A firm on its own chart got no split offered at all, silently.
+    const { transactionId } = await aShortPayment(400)
+
+    const suggestions = await handleSuggestMatches(await contextFor(), transactionId)
+    const withCharges = suggestions.body.suggestions.find(
+      (suggestion) => suggestion.chargesAmount !== '0',
+    )
+
+    expect(withCharges?.chargesAmount).toBe('350')
+    expect(withCharges?.chargesAccountNumber).toBe('4900')
+  })
+
+  it('follows the setting when it is changed', async () => {
+    await handleUpdateEntity(
+      await contextFor(uuidv7()),
+      updateEntityBody.parse({ bankChargesAccountNumber: '4910' }),
+    )
+
+    const { transactionId } = await aShortPayment(401)
+    const suggestions = await handleSuggestMatches(await contextFor(), transactionId)
+    const withCharges = suggestions.body.suggestions.find(
+      (suggestion) => suggestion.chargesAmount !== '0',
+    )
+
+    expect(withCharges?.chargesAccountNumber).toBe('4910')
+  })
+
+  it('offers no split at all when there is no account for it', async () => {
+    // The honest answer for a chart with nowhere to put them: no suggestion
+    // beats a suggestion that cannot be posted.
+    await handleUpdateEntity(
+      await contextFor(uuidv7()),
+      updateEntityBody.parse({ bankChargesAccountNumber: null }),
+    )
+
+    const { transactionId } = await aShortPayment(402)
+    const suggestions = await handleSuggestMatches(await contextFor(), transactionId)
+
+    expect(
+      suggestions.body.suggestions.every((suggestion) => suggestion.chargesAmount === '0'),
+    ).toBe(true)
+
+    await handleUpdateEntity(
+      await contextFor(uuidv7()),
+      updateEntityBody.parse({ bankChargesAccountNumber: '4900' }),
+    )
+  })
+
+  it('refuses an account that is not in the chart, when it is set', async () => {
+    // Caught here rather than in a matching screen a week later.
+    await expect(
+      handleUpdateEntity(
+        await contextFor(uuidv7()),
+        updateEntityBody.parse({ bankChargesAccountNumber: '4999' }),
+      ),
+    ).rejects.toMatchObject({ code: 'validation_failed' })
   })
 })

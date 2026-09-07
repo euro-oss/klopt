@@ -229,7 +229,7 @@ describe('RGS coverage', () => {
     })
 
     expect(coverage.body.version).toBe('3.7')
-    expect(coverage.body.accountCount).toBe(12)
+    expect(coverage.body.accountCount).toBe(14)
     // Only 9999 is unmapped in the seeded chart, and it has no balance.
     expect(coverage.body.unmappedAccounts).toEqual(['9999'])
     expect(coverage.body.mappedPercentage).toBe(100)

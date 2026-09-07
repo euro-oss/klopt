@@ -18,6 +18,7 @@ import {
   bankTransactionAllocations,
   bankTransactions,
   contacts,
+  entities,
   salesInvoices,
 } from '../schema/index.js'
 
@@ -126,6 +127,22 @@ export class BankRepository {
     const id = uuidv7()
     await this.tx.insert(bankAccounts).values({ id, ...request })
     return id
+  }
+
+  /**
+   * Where this administration puts bank charges (spec 7.4).
+   *
+   * Null means charge splitting is not offered, which is the honest answer for
+   * a chart that has no such account: a suggestion that cannot be posted is
+   * worse than no suggestion.
+   */
+  async bankChargesAccountNumber(entityId: string): Promise<string | null> {
+    const [row] = await this.tx
+      .select({ number: entities.bankChargesAccountNumber })
+      .from(entities)
+      .where(eq(entities.id, entityId))
+      .limit(1)
+    return row?.number ?? null
   }
 
   async ledgerAccountIdFor(entityId: string, number: string): Promise<string | null> {

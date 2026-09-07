@@ -1,5 +1,5 @@
 import { PERMISSIONS, isUuid, planEntitySetup, uuidv7 } from '@klopt/core'
-import { setActiveEntity, withSetup } from '@klopt/db'
+import { setActiveEntity, withBankRead, withSetup } from '@klopt/db'
 import {
   hasPermission,
   hasSetupPermission,
@@ -181,6 +181,28 @@ export async function handleGetEntity(context: RequestContext) {
  */
 export async function handleUpdateEntity(context: RequestContext, body: UpdateEntityBody) {
   requirePermission(context, PERMISSIONS.configure)
+
+  // Checked against the chart, because "is 4901 an account you have" is a
+  // question about the database and a setting pointing at nothing would go
+  // wrong later, quietly, in a matching screen.
+  if (body.bankChargesAccountNumber !== undefined && body.bankChargesAccountNumber !== null) {
+    const exists = await withBankRead(context.database, (repository) =>
+      repository.ledgerAccountIdFor(context.entityId, body.bankChargesAccountNumber!),
+    )
+    if (exists === null) {
+      throw new ApiError(
+        'validation_failed',
+        `There is no account ${body.bankChargesAccountNumber} in this chart.`,
+        [
+          {
+            code: 'unknown_account',
+            path: 'bankChargesAccountNumber',
+            message: `There is no account ${body.bankChargesAccountNumber} in this chart.`,
+          },
+        ],
+      )
+    }
+  }
 
   await withSetup(context.database, (repository) => repository.updateEntity(context.entityId, body))
 

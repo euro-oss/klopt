@@ -73,6 +73,8 @@ export interface EntityPatch {
   readonly electronicAddress?: string | null | undefined
   readonly electronicAddressScheme?: string | null | undefined
   readonly vatRounding?: 'per_invoice' | 'per_line' | undefined
+  /** Null turns charge splitting off rather than falling back to a guess. */
+  readonly bankChargesAccountNumber?: string | null | undefined
 }
 
 export interface ProvisionedEntity {
@@ -118,6 +120,12 @@ export class SetupRepository {
       rgsVersion: plan.entity.rgsVersion,
       rgsVariant: plan.entity.rgsVariant,
       vatRounding: plan.entity.vatRounding,
+      // The chart being installed is ours, so the account for bank charges is
+      // knowable now rather than guessed at on every match. Somebody bringing
+      // their own chart sets it in Instellingen.
+      bankChargesAccountNumber: plan.accounts.some((account) => account.number === '4900')
+        ? '4900'
+        : null,
     })
 
     // The creator owns it. Without this row the entity exists and nobody can
@@ -222,6 +230,7 @@ export class SetupRepository {
         rgsVersion: entities.rgsVersion,
         rgsVariant: entities.rgsVariant,
         vatRounding: entities.vatRounding,
+        bankChargesAccountNumber: entities.bankChargesAccountNumber,
         street: entities.street,
         houseNumber: entities.houseNumber,
         postalCode: entities.postalCode,

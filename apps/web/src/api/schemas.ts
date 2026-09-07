@@ -338,6 +338,13 @@ export const updateEntityBody = z.object({
   /** 0106 is a KvK number, 0190 an OIN, 9944 a Dutch VAT number. */
   electronicAddressScheme: nullableText.optional(),
   vatRounding: z.enum(['per_invoice', 'per_line']).optional(),
+  /**
+   * Where bank charges are split off to (spec 7.4).
+   *
+   * Validated against the chart in the handler rather than here, because "is
+   * 4901 an account you have" is a question about the database.
+   */
+  bankChargesAccountNumber: nullableText.optional(),
 })
 
 export type UpdateEntityBody = z.infer<typeof updateEntityBody>

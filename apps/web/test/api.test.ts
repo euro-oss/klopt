@@ -355,8 +355,10 @@ describe('reporting', () => {
 
   it('reports RGS coverage as a health metric', async () => {
     const result = await handleListAccounts(await contextFor(readToken))
-    expect(result.body.rgsCoverage.total).toBe(12)
-    expect(result.body.rgsCoverage.mapped).toBe(11)
+    expect(result.body.rgsCoverage.total).toBe(14)
+    // Every account in the fixture chart but 9999, which is deliberately
+    // unmapped so coverage has something to report.
+    expect(result.body.rgsCoverage.mapped).toBe(13)
   })
 
   it('paginates entries by cursor', async () => {

@@ -306,20 +306,24 @@ export async function handleSuggestMatches(context: RequestContext, transactionI
     /**
      * Bank charges need an account before they can be split off.
      *
-     * `4900` is Algemene kosten in the shipped Dutch chart, and it is looked up
-     * rather than assumed: a firm that brings its own chart is exactly the case
-     * `reference-data/charts/` exists for, and a hard-coded account number
-     * would produce a suggestion that cannot be posted. When it is absent,
-     * charge splitting is simply not offered.
+     * The entity's own setting, not `4900`. That number is Algemene kosten in
+     * the chart we ship and means nothing in a chart somebody brought with
+     * them — which is exactly the case `reference-data/charts/` exists for, and
+     * for whom charge splitting was silently never offered. Setup writes the
+     * default when it installs our chart, so the guess happens once, where it
+     * is defensible, rather than on every request.
      *
-     * This wants to be a per-entity setting. Until it is, this is the honest
-     * version of the guess.
+     * Still looked up: a setting pointing at an account that has since been
+     * removed would produce a suggestion that cannot be posted, and not
+     * offering the split is better than offering one that fails.
      */
-    const chargesAccount = await repository.ledgerAccountIdFor(context.entityId, '4900')
+    const configured = await repository.bankChargesAccountNumber(context.entityId)
+    const chargesAccount =
+      configured === null ? null : await repository.ledgerAccountIdFor(context.entityId, configured)
 
     const suggestions = suggestMatches(transaction.entry, candidates, rules, {
       ...DEFAULT_MATCH_OPTIONS,
-      chargesAccountNumber: chargesAccount === null ? null : '4900',
+      chargesAccountNumber: chargesAccount === null ? null : configured,
     })
 
     return {
