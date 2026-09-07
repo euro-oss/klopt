@@ -170,6 +170,11 @@ administration and must not be able to create another. See
 
 ### Two rules for the web app
 
+**Capture the form element before the first `await`.** React nulls a synthetic
+event's `currentTarget` once the handler returns, so `event.currentTarget.reset()`
+after an `await` throws — silently, leaving the form looking as though the
+submit did nothing. Read `FormData` and keep the element in a local first.
+
 **A `<select>` inside a `<label>` needs an explicit `aria-label`.** When a
 label wraps a control, the accessible name is computed from the label's text
 content — which for a select includes every option, so "Datum" is announced as
@@ -274,8 +279,7 @@ through — `↑↓` moves, `↵` books the best suggestion, `1`–`9` pick one,
 skips, and SEPA `pain.001` with a two-person approval flow
 ([0020](decisions/0020-payments-need-two-people.md)).
 
-Not built: a screen for the payment flow. It is API-only, which for a control
-this deliberate is the wrong way round.
+M2 is complete.
 
 A Peppol access point is not built. It sits behind `EInvoiceTransport` and
 cannot be built without a service provider agreement and issued certificates

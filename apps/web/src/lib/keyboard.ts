@@ -49,6 +49,7 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'go.contacts', label: 'Relaties', group: 'Go to', keys: 'g r', to: '/contacts' },
   { id: 'go.bank', label: 'Bank', group: 'Go to', keys: 'g k', to: '/bank' },
   { id: 'go.match', label: 'Koppelen', group: 'Go to', keys: 'g o', to: '/bank/match' },
+  { id: 'go.payments', label: 'Betalingen', group: 'Go to', keys: 'g y', to: '/payments' },
   { id: 'go.dunning', label: 'Aanmaningen', group: 'Go to', keys: 'g m', to: '/dunning' },
   { id: 'go.members', label: 'Toegang', group: 'Go to', keys: 'g t', to: '/members' },
   { id: 'go.settings', label: 'Instellingen', group: 'Go to', keys: 'g i', to: '/settings' },

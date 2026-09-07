@@ -17,6 +17,7 @@ const NAVIGATION = [
   { to: '/invoices', label: 'Verkoopfacturen', binding: 'go.invoices' },
   { to: '/contacts', label: 'Relaties', binding: 'go.contacts' },
   { to: '/bank', label: 'Bank', binding: 'go.bank' },
+  { to: '/payments', label: 'Betalingen', binding: 'go.payments' },
   { to: '/dunning', label: 'Aanmaningen', binding: 'go.dunning' },
   { to: '/reports/trial-balance', label: 'Proefbalans', binding: 'go.trial' },
   { to: '/reports/balance-sheet', label: 'Balans', binding: 'go.balance' },

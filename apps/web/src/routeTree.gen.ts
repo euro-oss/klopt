@@ -27,6 +27,8 @@ import { Route as AppEntriesNewRouteImport } from './routes/_app/entries.new'
 import { Route as AppInvoicesIndexRouteImport } from './routes/_app/invoices.index'
 import { Route as AppInvoicesInvoiceIdRouteImport } from './routes/_app/invoices.$invoiceId'
 import { Route as AppInvoicesNewRouteImport } from './routes/_app/invoices.new'
+import { Route as AppPaymentsIndexRouteImport } from './routes/_app/payments.index'
+import { Route as AppPaymentsBatchIdRouteImport } from './routes/_app/payments.$batchId'
 import { Route as AppReportsBalanceSheetRouteImport } from './routes/_app/reports.balance-sheet'
 import { Route as AppReportsProfitAndLossRouteImport } from './routes/_app/reports.profit-and-loss'
 import { Route as AppReportsTrialBalanceRouteImport } from './routes/_app/reports.trial-balance'
@@ -166,6 +168,16 @@ const AppInvoicesInvoiceIdRoute = AppInvoicesInvoiceIdRouteImport.update({
 const AppInvoicesNewRoute = AppInvoicesNewRouteImport.update({
   id: '/invoices/new',
   path: '/invoices/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPaymentsIndexRoute = AppPaymentsIndexRouteImport.update({
+  id: '/payments/',
+  path: '/payments/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPaymentsBatchIdRoute = AppPaymentsBatchIdRouteImport.update({
+  id: '/payments/$batchId',
+  path: '/payments/$batchId',
   getParentRoute: () => AppRoute,
 } as any)
 const AppReportsBalanceSheetRoute = AppReportsBalanceSheetRouteImport.update({
@@ -462,6 +474,7 @@ export interface FileRoutesByFullPath {
   '/entries/new': typeof AppEntriesNewRoute
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
+  '/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
   '/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
@@ -483,6 +496,7 @@ export interface FileRoutesByFullPath {
   '/bank/': typeof AppBankIndexRoute
   '/entries/': typeof AppEntriesIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
+  '/payments/': typeof AppPaymentsIndexRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
@@ -532,6 +546,7 @@ export interface FileRoutesByTo {
   '/entries/new': typeof AppEntriesNewRoute
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
+  '/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
   '/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
@@ -553,6 +568,7 @@ export interface FileRoutesByTo {
   '/bank': typeof AppBankIndexRoute
   '/entries': typeof AppEntriesIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
+  '/payments': typeof AppPaymentsIndexRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
@@ -604,6 +620,7 @@ export interface FileRoutesById {
   '/_app/entries/new': typeof AppEntriesNewRoute
   '/_app/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/_app/invoices/new': typeof AppInvoicesNewRoute
+  '/_app/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/_app/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
   '/_app/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/_app/reports/trial-balance': typeof AppReportsTrialBalanceRoute
@@ -625,6 +642,7 @@ export interface FileRoutesById {
   '/_app/bank/': typeof AppBankIndexRoute
   '/_app/entries/': typeof AppEntriesIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
+  '/_app/payments/': typeof AppPaymentsIndexRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
@@ -676,6 +694,7 @@ export interface FileRouteTypes {
     | '/entries/new'
     | '/invoices/$invoiceId'
     | '/invoices/new'
+    | '/payments/$batchId'
     | '/reports/balance-sheet'
     | '/reports/profit-and-loss'
     | '/reports/trial-balance'
@@ -697,6 +716,7 @@ export interface FileRouteTypes {
     | '/bank/'
     | '/entries/'
     | '/invoices/'
+    | '/payments/'
     | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
@@ -746,6 +766,7 @@ export interface FileRouteTypes {
     | '/entries/new'
     | '/invoices/$invoiceId'
     | '/invoices/new'
+    | '/payments/$batchId'
     | '/reports/balance-sheet'
     | '/reports/profit-and-loss'
     | '/reports/trial-balance'
@@ -767,6 +788,7 @@ export interface FileRouteTypes {
     | '/bank'
     | '/entries'
     | '/invoices'
+    | '/payments'
     | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
@@ -817,6 +839,7 @@ export interface FileRouteTypes {
     | '/_app/entries/new'
     | '/_app/invoices/$invoiceId'
     | '/_app/invoices/new'
+    | '/_app/payments/$batchId'
     | '/_app/reports/balance-sheet'
     | '/_app/reports/profit-and-loss'
     | '/_app/reports/trial-balance'
@@ -838,6 +861,7 @@ export interface FileRouteTypes {
     | '/_app/bank/'
     | '/_app/entries/'
     | '/_app/invoices/'
+    | '/_app/payments/'
     | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/entities/$entityId'
     | '/api/v1/exports/audit-file'
@@ -1034,6 +1058,20 @@ declare module '@tanstack/react-router' {
       path: '/invoices/new'
       fullPath: '/invoices/new'
       preLoaderRoute: typeof AppInvoicesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/payments/': {
+      id: '/_app/payments/'
+      path: '/payments'
+      fullPath: '/payments/'
+      preLoaderRoute: typeof AppPaymentsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/payments/$batchId': {
+      id: '/_app/payments/$batchId'
+      path: '/payments/$batchId'
+      fullPath: '/payments/$batchId'
+      preLoaderRoute: typeof AppPaymentsBatchIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/reports/balance-sheet': {
@@ -1408,12 +1446,14 @@ interface AppRouteChildren {
   AppEntriesNewRoute: typeof AppEntriesNewRoute
   AppInvoicesInvoiceIdRoute: typeof AppInvoicesInvoiceIdRoute
   AppInvoicesNewRoute: typeof AppInvoicesNewRoute
+  AppPaymentsBatchIdRoute: typeof AppPaymentsBatchIdRoute
   AppReportsBalanceSheetRoute: typeof AppReportsBalanceSheetRoute
   AppReportsProfitAndLossRoute: typeof AppReportsProfitAndLossRoute
   AppReportsTrialBalanceRoute: typeof AppReportsTrialBalanceRoute
   AppBankIndexRoute: typeof AppBankIndexRoute
   AppEntriesIndexRoute: typeof AppEntriesIndexRoute
   AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
+  AppPaymentsIndexRoute: typeof AppPaymentsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1428,12 +1468,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppEntriesNewRoute: AppEntriesNewRoute,
   AppInvoicesInvoiceIdRoute: AppInvoicesInvoiceIdRoute,
   AppInvoicesNewRoute: AppInvoicesNewRoute,
+  AppPaymentsBatchIdRoute: AppPaymentsBatchIdRoute,
   AppReportsBalanceSheetRoute: AppReportsBalanceSheetRoute,
   AppReportsProfitAndLossRoute: AppReportsProfitAndLossRoute,
   AppReportsTrialBalanceRoute: AppReportsTrialBalanceRoute,
   AppBankIndexRoute: AppBankIndexRoute,
   AppEntriesIndexRoute: AppEntriesIndexRoute,
   AppInvoicesIndexRoute: AppInvoicesIndexRoute,
+  AppPaymentsIndexRoute: AppPaymentsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
