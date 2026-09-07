@@ -45,11 +45,27 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `g` then `e`   | Go to postvak (**e**erste opvang)                       |
 | `n` then `i`   | New inkoopfactuur                                       |
 | `n` then `j`   | New journal entry                                       |
-| `/`            | Focus search                                            |
 | `Escape`       | Close overlay, cancel edit, clear focus — in that order |
 
 `g` and `n` are prefixes, following the convention people already know from
 GitHub and Linear. A prefix times out after 1.5 seconds.
+
+Everything in this table is wired to `apps/web/src/lib/keyboard.ts`, which is
+the registry the palette and the `?` sheet are generated from. That is what
+principle 5 means in practice: a binding that is not in the registry does not
+appear anywhere, and one that is appears everywhere.
+
+`/` for "focus search" was in this table for two milestones with nothing behind
+it, and is out until there is a global search to focus. A keyboard map that
+documents keys nobody implemented is the thing this document exists to prevent.
+
+## Not yet built
+
+The tables below are the design, not the state of the code. They were written
+before the screens on purpose (section 11.3), and the screens have caught up
+unevenly: the journal-entry keys are real, the list cursor and the pickers are
+partly there, and type-ahead is not. Where the two disagree the registry wins,
+because the registry is what runs.
 
 ## Lists and tables
 

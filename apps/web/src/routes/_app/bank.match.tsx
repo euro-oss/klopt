@@ -209,6 +209,11 @@ function MatchQueue() {
     if (!hydrated) return
 
     const onKeyDown = (event: KeyboardEvent) => {
+      // Somebody already took it — a global shortcut, usually. Without this,
+      // pressing `g` and then a digit would arm the navigation prefix and book
+      // suggestion one at the same time.
+      if (event.defaultPrevented) return
+
       const target = event.target as HTMLElement | null
       // Never steal a key from something being typed into.
       if (target !== null && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return

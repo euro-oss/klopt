@@ -1,13 +1,19 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
+import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
 import { BINDINGS_BY_ID, formatBinding } from '~/lib/keyboard'
+import { CommandPalette } from './command-palette'
 
 /**
  * The frame every screen sits in.
  *
  * Navigation shows its shortcut next to each item, because a shortcut nobody
- * can see is a shortcut nobody uses (docs/keyboard-map.md).
+ * can see is a shortcut nobody uses (docs/keyboard-map.md) — and the palette
+ * mounted here is what makes those keys do something. They were printed in this
+ * sidebar from M0 and listened for by nothing until now, which is the worse
+ * half of the same problem: a shortcut shown and not implemented is a promise
+ * the application breaks the first time somebody believes it.
  */
 
 const NAVIGATION = [
@@ -62,6 +68,11 @@ export function AppShell({
   onSwitchEntity: (entityId: string) => void
 }) {
   const path = useRouterState({ select: (state) => state.location.pathname })
+  // The keys are listened for in an effect, so they do nothing until React has
+  // taken over. Advertising them before then is the same broken promise as
+  // advertising them with no listener at all, only shorter — so the hint
+  // appears exactly when the key starts working.
+  const shortcutsLive = useHydrated()
   const active = entities.find((entity) => entity.entityId === activeEntityId) ?? entities[0]
   const navigation = [
     ...NAVIGATION,
@@ -72,6 +83,7 @@ export function AppShell({
 
   return (
     <div className="bg-background text-foreground min-h-screen">
+      <CommandPalette />
       <a
         href="#main"
         className="focus:bg-primary focus:text-primary-foreground sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded focus:px-3 focus:py-2"
@@ -134,7 +146,7 @@ export function AppShell({
                     )}
                   >
                     {item.label}
-                    {binding !== undefined && (
+                    {binding !== undefined && shortcutsLive && (
                       <kbd className="text-muted-foreground font-mono text-[10px] opacity-0 group-hover:opacity-100">
                         {formatBinding(binding)}
                       </kbd>
