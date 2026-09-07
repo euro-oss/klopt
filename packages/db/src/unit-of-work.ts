@@ -4,6 +4,7 @@ import { ReportingRepository } from './repositories/reporting.js'
 import { RgsRepository } from './repositories/rgs.js'
 import { BankRepository } from './repositories/bank.js'
 import { MembersRepository } from './repositories/members.js'
+import { PaymentsRepository } from './repositories/payments.js'
 import { SalesRepository } from './repositories/sales.js'
 import { SetupRepository } from './repositories/setup.js'
 import { XafExportRepository } from './repositories/xaf.js'
@@ -184,4 +185,18 @@ export async function withBankMatch<T>(
   return database.transaction(async (tx) =>
     work({ bank: new BankRepository(tx), ledger: new DrizzleLedgerRepository(tx) }),
   )
+}
+
+/**
+ * Payment batches, in one transaction.
+ *
+ * A transition and the columns that record who made it commit together: a
+ * batch that says `approved` with no `approved_by` is a batch nobody can be
+ * asked about, which defeats the point of a two-person flow.
+ */
+export async function withPayments<T>(
+  database: Database,
+  work: (repository: PaymentsRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new PaymentsRepository(tx)))
 }

@@ -118,6 +118,48 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/sales-invoices.$invoiceId.ubl.ts',
   },
   {
+    operationId: 'payments.listBatches',
+    method: 'GET',
+    path: '/payment-batches',
+    module: 'api/v1/payment-batches.ts',
+  },
+  {
+    operationId: 'payments.createBatch',
+    method: 'POST',
+    path: '/payment-batches',
+    module: 'api/v1/payment-batches.ts',
+  },
+  {
+    operationId: 'payments.getBatch',
+    method: 'GET',
+    path: '/payment-batches/{batchId}',
+    module: 'api/v1/payment-batches.$batchId.ts',
+  },
+  {
+    operationId: 'payments.addInstruction',
+    method: 'POST',
+    path: '/payment-batches/{batchId}/instructions',
+    module: 'api/v1/payment-batches.$batchId.instructions.ts',
+  },
+  {
+    operationId: 'payments.removeInstruction',
+    method: 'DELETE',
+    path: '/payment-batches/{batchId}/instructions/{instructionId}',
+    module: 'api/v1/payment-batches.$batchId.instructions.$instructionId.ts',
+  },
+  {
+    operationId: 'payments.transitionBatch',
+    method: 'POST',
+    path: '/payment-batches/{batchId}/transitions',
+    module: 'api/v1/payment-batches.$batchId.transitions.ts',
+  },
+  {
+    operationId: 'payments.getBatchPain001',
+    method: 'GET',
+    path: '/payment-batches/{batchId}/pain001',
+    module: 'api/v1/payment-batches.$batchId.pain001.ts',
+  },
+  {
     operationId: 'bank.listAccounts',
     method: 'GET',
     path: '/bank-accounts',

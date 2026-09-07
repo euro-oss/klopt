@@ -458,3 +458,39 @@ export const setRuleActiveBody = z.object({
 export type ConfirmMatchBody = z.infer<typeof confirmMatchBody>
 
 export type CsvMappingBody = z.infer<typeof csvMappingSchema>
+
+/** Outbound payments (spec 7.4). */
+export const createBatchBody = z.object({
+  reference: z.string().trim().min(1).max(35, 'A bank message id is at most 35 characters.'),
+  bankAccountId: z.uuid(),
+  requestedExecutionDate: isoDate,
+})
+
+export const addInstructionBody = z.object({
+  endToEndId: z.string().trim().min(1).max(35),
+  contactNumber: z.string().nullable().default(null),
+  creditorName: z.string().trim().min(1).max(70),
+  creditorIban: z
+    .string()
+    .trim()
+    .transform((value) => value.replace(/\s/g, '').toUpperCase()),
+  creditorBic: z
+    .string()
+    .trim()
+    .nullable()
+    .default(null)
+    .transform((value) => (value === null || value === '' ? null : value.toUpperCase())),
+  amount: minorUnits,
+  currency: currencyCode.default('EUR'),
+  remittanceInformation: z.string().trim().max(140).default(''),
+  remittanceReference: z.string().trim().max(35).nullable().default(null),
+})
+
+export const transitionBatchBody = z.object({
+  action: z.enum(['submit', 'approve', 'reject', 'reopen', 'export']),
+  reason: z.string().trim().max(500).nullable().default(null),
+})
+
+export type CreateBatchBody = z.infer<typeof createBatchBody>
+export type AddInstructionBody = z.infer<typeof addInstructionBody>
+export type TransitionBatchBody = z.infer<typeof transitionBatchBody>

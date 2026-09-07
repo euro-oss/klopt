@@ -211,6 +211,23 @@ In the browser that queue is keyboard-first: `↑↓` moves, `↵` books the bes
 suggestion, `1`–`9` pick one, `x` skips. A hundred lines should be a hundred
 keystrokes.
 
+Pay your suppliers, if somebody else agrees:
+
+```bash
+curl -X POST "localhost:3000/api/v1/payment-batches/$BATCH/transitions" \
+  -H "authorization: Bearer $ALICE" -H "idempotency-key: $(uuidgen)" \
+  -H 'content-type: application/json' -d '{"action":"submit"}'
+
+# The same person approving their own batch is refused, and so is a script.
+curl -O -J "localhost:3000/api/v1/payment-batches/$BATCH/pain001" \
+  -H "authorization: Bearer $BOB"
+```
+
+A SEPA `pain.001` needs two people and neither of them can be a machine
+([ADR 0020](docs/decisions/0020-payments-need-two-people.md)). The IBANs are
+check-digit validated before anybody is asked to approve, because a bank
+rejects the whole batch for one bad account.
+
 Then leave with your data:
 
 ```bash

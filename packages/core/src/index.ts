@@ -40,6 +40,7 @@ export * from './format/index.js'
 export * from './invoice/index.js'
 export * from './xml/index.js'
 export * from './bank/index.js'
+export * from './payments/index.js'
 export * from './reference/index.js'
 export * from './auth/index.js'
 export * from './ports/index.js'
@@ -50,6 +51,7 @@ export {
   complianceOperations,
   ledgerOperations,
   membershipOperations,
+  paymentOperations,
   provisioningOperations,
   salesOperations,
 } from './operations.js'

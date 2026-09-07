@@ -47,6 +47,9 @@ export type LedgerErrorCode =
   | 'last_owner'
   | 'unknown_invitation'
   | 'invitation_expired'
+  | 'invalid_payment'
+  | 'approval_by_submitter'
+  | 'wrong_batch_state'
   | 'chain_broken'
 
 export interface LedgerViolation {

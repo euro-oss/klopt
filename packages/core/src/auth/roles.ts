@@ -34,6 +34,17 @@ export const PERMISSIONS = {
    * membership is the one thing that can lock everybody else out.
    */
   manageMembers: 'members:manage',
+  /** Prepare a payment batch, and submit it for approval. */
+  preparePayments: 'payments:prepare',
+  /**
+   * Approve a payment batch, which releases real money.
+   *
+   * Separate from preparing on purpose: spec 7.4 asks for a two-person flow,
+   * and the permission is only half of it — the other half is that the approver
+   * must not be the submitter, which is a rule about *this* payment rather than
+   * about a person, and lives in the domain.
+   */
+  approvePayments: 'payments:approve',
   /**
    * Create a new administration. Instance-scoped, not entity-scoped: it is held
    * by a signed-in human and by no role and no API token, because a token is
@@ -68,6 +79,8 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     PERMISSIONS.import,
     PERMISSIONS.manageTokens,
     PERMISSIONS.manageMembers,
+    PERMISSIONS.preparePayments,
+    PERMISSIONS.approvePayments,
   ],
   accountant: [
     PERMISSIONS.read,
@@ -77,8 +90,21 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     PERMISSIONS.configure,
     PERMISSIONS.export,
     PERMISSIONS.import,
+    PERMISSIONS.preparePayments,
+    PERMISSIONS.approvePayments,
   ],
-  bookkeeper: [PERMISSIONS.read, PERMISSIONS.post, PERMISSIONS.configure, PERMISSIONS.export],
+  /**
+   * A bookkeeper prepares payments and cannot approve them. That is the
+   * two-person flow's first half: the heaviest user of the system is not the
+   * one who releases the money.
+   */
+  bookkeeper: [
+    PERMISSIONS.read,
+    PERMISSIONS.post,
+    PERMISSIONS.configure,
+    PERMISSIONS.export,
+    PERMISSIONS.preparePayments,
+  ],
   auditor: [PERMISSIONS.read, PERMISSIONS.export],
 }
 

@@ -505,3 +505,80 @@ export const bankingOperations: Readonly<Record<string, OperationDefinition>> = 
     idempotent: true,
   }),
 }
+
+/**
+ * Outbound payments (M2, spec 7.4).
+ *
+ * `agentExposure: 'none'` throughout, and not as a default. A payment batch is
+ * the one artefact this system produces that moves real money out of the
+ * building, and spec 10.3's proposal model is not enough for it: a proposal a
+ * human approves is exactly what the two-person flow already is, and an agent
+ * standing in for one of the two people defeats it.
+ */
+export const paymentOperations: Readonly<Record<string, OperationDefinition>> = {
+  listBatches: defineOperation({
+    id: 'payments.listBatches',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Payment batches, with their state and who submitted and approved each.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  getBatch: defineOperation({
+    id: 'payments.getBatch',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'One batch with its instructions and everything wrong with them.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  createBatch: defineOperation({
+    id: 'payments.createBatch',
+    kind: 'write',
+    permission: 'payments:prepare',
+    summary: 'Start a payment batch against a bank account and an execution date.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  addInstruction: defineOperation({
+    id: 'payments.addInstruction',
+    kind: 'write',
+    permission: 'payments:prepare',
+    summary: 'Add a payment to a draft batch. Refused once it has been submitted.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  removeInstruction: defineOperation({
+    id: 'payments.removeInstruction',
+    kind: 'write',
+    permission: 'payments:prepare',
+    summary: 'Take a payment out of a draft batch.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  transitionBatch: defineOperation({
+    id: 'payments.transitionBatch',
+    kind: 'write',
+    // The narrower `payments:approve` is checked inside, per action: submitting
+    // and approving are different permissions and must be, or the two-person
+    // flow is one person with two clicks.
+    permission: 'payments:prepare',
+    summary: 'Submit, approve, reject, reopen or export a batch. Two people, or nobody.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  getBatchPain001: defineOperation({
+    id: 'payments.getBatchPain001',
+    kind: 'read',
+    permission: 'ledger:export',
+    summary: 'The approved batch as SEPA pain.001. A read: exporting is a separate transition.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+}

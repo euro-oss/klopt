@@ -271,7 +271,11 @@ M2: CAMT.053, MT940 and a configurable CSV mapper, deduplicated per entry, a
 matching engine with learned rules
 ([0019](decisions/0019-matching-suggests.md)), and a keyboard queue to work
 through — `↑↓` moves, `↵` books the best suggestion, `1`–`9` pick one, `x`
-skips. Not built: `pain.001` outbound payments with two-person approval.
+skips, and SEPA `pain.001` with a two-person approval flow
+([0020](decisions/0020-payments-need-two-people.md)).
+
+Not built: a screen for the payment flow. It is API-only, which for a control
+this deliberate is the wrong way round.
 
 A Peppol access point is not built. It sits behind `EInvoiceTransport` and
 cannot be built without a service provider agreement and issued certificates

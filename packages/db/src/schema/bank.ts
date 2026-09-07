@@ -252,3 +252,111 @@ export const bankTransactionAllocations = klopt.table(
     check('bank_allocations_positive', sql`${table.amountMinorUnits} > 0`),
   ],
 )
+
+/**
+ * A payment batch, and the two people it takes (spec 7.4).
+ *
+ * "SEPA pain.001 batch export for supplier payments, with a two-person approval
+ * flow." The state and the two user columns are that flow: who submitted it and
+ * who approved it are recorded, and the domain refuses when they are the same
+ * person.
+ *
+ * Instructions are editable only while the batch is a draft. Once submitted
+ * they are frozen, because an approval has to mean the approver saw what will
+ * be sent — an approver who approves a batch that then changes has approved
+ * nothing.
+ */
+export const paymentBatchState = klopt.enum('payment_batch_state', [
+  'draft',
+  'submitted',
+  'approved',
+  'exported',
+  'rejected',
+])
+
+export const paymentBatches = klopt.table(
+  'payment_batches',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    /** What the bank will see as the message id. Unique per entity. */
+    reference: text('reference').notNull(),
+    state: paymentBatchState('state').notNull().default('draft'),
+    /** The account the money leaves from. */
+    bankAccountId: uuid('bank_account_id')
+      .notNull()
+      .references(() => bankAccounts.id),
+    requestedExecutionDate: date('requested_execution_date').notNull(),
+    /**
+     * Who, as an **actor id** rather than a user id.
+     *
+     * No foreign key, for the same reason `audit_log.actor_id` has none: an
+     * actor is not always a row in `users`. A scoped API token carries its own
+     * actor id, and a human working through the API is a legitimate caller — so
+     * a foreign key here turns "submit this batch with a token" into a 500,
+     * which is exactly what it did until an HTTP walk-through found it.
+     *
+     * The two-person rule compares these values, which is right whatever kind
+     * of actor they name.
+     */
+    submittedBy: text('submitted_by'),
+    submittedAt: timestamp('submitted_at', { withTimezone: true, mode: 'date' }),
+    approvedBy: text('approved_by'),
+    approvedAt: timestamp('approved_at', { withTimezone: true, mode: 'date' }),
+    rejectedBy: text('rejected_by'),
+    rejectedAt: timestamp('rejected_at', { withTimezone: true, mode: 'date' }),
+    rejectionReason: text('rejection_reason'),
+    exportedAt: timestamp('exported_at', { withTimezone: true, mode: 'date' }),
+    /** sha256 of the file that was handed over. The evidence chain (spec 8). */
+    exportedHash: char('exported_hash', { length: 64 }),
+    ...timestamps,
+  },
+  (table) => [
+    unique('payment_batches_entity_reference').on(table.entityId, table.reference),
+    index('payment_batches_state').on(table.entityId, table.state),
+    /**
+     * The two-person rule, at the storage layer as well as in the domain.
+     *
+     * Belt and braces on purpose: this is the one table whose contents move
+     * money out of the building, and a check constraint survives a refactor
+     * that loses a call to `nextState`.
+     */
+    check(
+      'payment_batches_two_person',
+      sql`${table.approvedBy} is null or ${table.submittedBy} is null or ${table.approvedBy} <> ${table.submittedBy}`,
+    ),
+  ],
+)
+
+export const paymentInstructions = klopt.table(
+  'payment_instructions',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    batchId: uuid('batch_id')
+      .notNull()
+      .references(() => paymentBatches.id, { onDelete: 'cascade' }),
+    /** The reference the payee sees, and what a returned payment quotes. */
+    endToEndId: text('end_to_end_id').notNull(),
+    /** Who is being paid, when they are a known contact. */
+    contactId: uuid('contact_id').references(() => contacts.id),
+    creditorName: text('creditor_name').notNull(),
+    creditorIban: text('creditor_iban').notNull(),
+    creditorBic: text('creditor_bic'),
+    amountMinorUnits: bigint('amount_minor_units', { mode: 'bigint' }).notNull(),
+    currency: char('currency', { length: 3 }).notNull().default('EUR'),
+    remittanceInformation: text('remittance_information').notNull().default(''),
+    remittanceReference: text('remittance_reference'),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  },
+  (table) => [
+    // A bank may read two identical end-to-end ids as a duplicate payment.
+    unique('payment_instructions_end_to_end').on(table.batchId, table.endToEndId),
+    index('payment_instructions_batch').on(table.batchId),
+    check('payment_instructions_positive', sql`${table.amountMinorUnits} > 0`),
+  ],
+)

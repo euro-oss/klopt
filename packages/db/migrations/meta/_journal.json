@@ -64,6 +64,20 @@
       "when": 1788775350630,
       "tag": "0008_csv_mapping",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788776587959,
+      "tag": "0009_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788777183618,
+      "tag": "0010_payment_actors",
+      "breakpoints": true
     }
   ]
 }
