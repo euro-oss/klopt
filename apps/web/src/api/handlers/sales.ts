@@ -15,6 +15,7 @@ import {
 } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
+import { schematron } from '../schematron.js'
 import type { CreateContactBody, DraftInvoiceBody, IssueInvoiceBody } from '../schemas.js'
 
 /**
@@ -398,6 +399,22 @@ export async function handleGetInvoiceUbl(context: RequestContext, invoiceId: st
   }
 
   const document = toUblDocument(source)
+
+  /**
+   * Two layers, and they catch different things (the pattern from ADR 0012).
+   *
+   * The pre-flight runs on the document *before* it is generated and names the
+   * field — `seller.address` — which is what a settings form can point at. The
+   * schematron runs on the bytes afterwards and is the authority: it knows
+   * about code lists, cross-field arithmetic and country profiles that no
+   * hand-written subset would, and it is what the recipient's access point
+   * will run.
+   *
+   * Doing only the first would ship documents that fail at the far end. Doing
+   * only the second would tell a bookkeeper their invoice violates
+   * `/Invoice/cac:AccountingSupplierParty/cac:Party` and leave them to work
+   * out which box to type in.
+   */
   const violations = checkUblRules(document)
 
   if (violations.length > 0) {
@@ -412,9 +429,33 @@ export async function handleGetInvoiceUbl(context: RequestContext, invoiceId: st
     )
   }
 
+  const xml = generateUbl(document)
+  const validation = schematron().validate(xml)
+
+  if (!validation.valid) {
+    throw new ApiError(
+      'validation_failed',
+      `The schematron rejected this invoice: ${String(validation.failures.length)} rule${
+        validation.failures.length === 1 ? '' : 's'
+      } from ${validation.artefacts.join(' and ')}.`,
+      validation.failures.map((failure) => ({
+        code: failure.rule,
+        path: failure.location,
+        message: failure.message,
+        detail: { artefact: failure.artefact, test: failure.test },
+      })),
+    )
+  }
+
   return {
-    xml: generateUbl(document),
+    xml,
     filename: `${source.number}.ubl.xml`,
     profile: document.profile,
+    /** Reported, not fatal. A warning is the artefact's own judgement call. */
+    warnings: validation.warnings.map((warning) => ({
+      rule: warning.rule,
+      message: warning.message,
+    })),
+    assertionsEvaluated: validation.assertionsEvaluated,
   }
 }

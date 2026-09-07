@@ -148,9 +148,18 @@ importers:
       '@klopt/core':
         specifier: workspace:*
         version: link:../core
+      fontoxpath:
+        specifier: 3.34.0
+        version: 3.34.0
       nodemailer:
         specifier: 10.0.0
         version: 10.0.0
+      slimdom:
+        specifier: 4.3.5
+        version: 4.3.5
+      slimdom-sax-parser:
+        specifier: 1.5.3
+        version: 1.5.3
     devDependencies:
       '@types/node':
         specifier: 24.13.3
@@ -1890,6 +1899,9 @@ packages:
   flatted@3.4.4:
     resolution: {integrity: sha512-5+ybhBZANEJxaH3X5evAFatUxLfEHSr7n6kYJ+1Qd0mUqr4eu9gIf6GDbWHf8RJijHrjjO8G+la14SlL2SeS1Q==}
 
+  fontoxpath@3.34.0:
+    resolution: {integrity: sha512-7FgBQRohn4WR/2eVdYqZtKBFZkJNaiP4kGdfqS6bAg465og05ixGA2OgfMdxsO1mnX67+64JX/8JKclVqS+bzA==}
+
   fsevents@2.3.2:
     resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -2396,6 +2408,9 @@ packages:
     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
     engines: {node: '>= 6'}
 
+  prsc@4.0.0:
+    resolution: {integrity: sha512-OmXQ2v76RlXNx/gqv7+oB6jyKnudJ/rsMfAIVexhbDFxXAJPoWKMxJkZU2ohlu4miCiSQCG+horf2DV4/kNc1Q==}
+
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
@@ -2443,6 +2458,10 @@ packages:
   safe-regex@2.1.1:
     resolution: {integrity: sha512-rx+x8AMzKb5Q5lQ95Zoi6ZbJqwCLkqi3XuJXp5P3rT8OEc6sZCJG5AE5dU3lsgRr/F4Bs31jSlVN+j5KrsGu9A==}
 
+  saxes@6.0.0:
+    resolution: {integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==}
+    engines: {node: '>=v12.22.7'}
+
   scheduler@0.27.0:
     resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
 
@@ -2485,6 +2504,15 @@ packages:
 
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
+
+  slimdom-sax-parser@1.5.3:
+    resolution: {integrity: sha512-h47aSAas1l8tFew1bY/Af/IVyOy4jcHzj+MoJU/cf+/ZSqKrAe8TspMlbBVaKc6FsSffJqhSJRmvyeOketI4Tg==}
+
+  slimdom@3.0.1:
+    resolution: {integrity: sha512-20Ql+QmLrZOonYMLSsSJz20RwipzqAJ64DkN7UiV0QP/enyyV+MpQJU7Ucb3N9F4dKDO26FsTsP5QWK4Mbqn1A==}
+
+  slimdom@4.3.5:
+    resolution: {integrity: sha512-MoxdfngDk7nf8Vun0xB2AYBiHv3Qlua3Frf12n8ZLmXtfZoapfAQOKLSMCsemSyEU1UIyd503LJfYKJE+dxDTg==}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -2767,6 +2795,9 @@ packages:
     engines: {node: '>=8'}
     hasBin: true
 
+  whynot@5.0.0:
+    resolution: {integrity: sha512-cGGfDPYYqoHoMWqXVc3G+N74u1FhFhrBa+pOO906b9ktRc/JFUdwroTkfPqjKzyoCLVcKr6yy6bYIcWT7jTg2A==}
+
   word-wrap@1.2.5:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
@@ -2774,6 +2805,12 @@ packages:
   xmlbuilder2@4.0.3:
     resolution: {integrity: sha512-bx8Q1STctnNaaDymWnkfQLKofs0mGNN7rLLapJlGuV3VlvegD7Ls4ggMjE3aUSWItCCzU0PEv45lI87iSigiCA==}
     engines: {node: '>=20.0'}
+
+  xmlchars@2.2.0:
+    resolution: {integrity: sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==}
+
+  xspattern@3.1.0:
+    resolution: {integrity: sha512-rxtOX8ORJizRqswIdZ72G3thKrHd0Q+TvyUCMByc5VdjDz1nkuZKfPXM3xGdrGi0fwEy+DDJN7DqtAZ06Re4bA==}
 
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
@@ -4213,6 +4250,11 @@ snapshots:
 
   flatted@3.4.4: {}
 
+  fontoxpath@3.34.0:
+    dependencies:
+      prsc: 4.0.0
+      xspattern: 3.1.0
+
   fsevents@2.3.2:
     optional: true
 
@@ -4603,6 +4645,8 @@ snapshots:
       kleur: 3.0.3
       sisteransi: 1.0.5
 
+  prsc@4.0.0: {}
+
   punycode@2.3.1: {}
 
   react-dom@19.2.8(react@19.2.8):
@@ -4658,6 +4702,10 @@ snapshots:
     dependencies:
       regexp-tree: 0.1.27
 
+  saxes@6.0.0:
+    dependencies:
+      xmlchars: 2.2.0
+
   scheduler@0.27.0: {}
 
   semver@6.3.1: {}
@@ -4686,6 +4734,15 @@ snapshots:
   siginfo@2.0.0: {}
 
   sisteransi@1.0.5: {}
+
+  slimdom-sax-parser@1.5.3:
+    dependencies:
+      saxes: 6.0.0
+      slimdom: 3.0.1
+
+  slimdom@3.0.1: {}
+
+  slimdom@4.3.5: {}
 
   source-map-js@1.2.1: {}
 
@@ -4863,6 +4920,8 @@ snapshots:
       siginfo: 2.0.0
       stackback: 0.0.2
 
+  whynot@5.0.0: {}
+
   word-wrap@1.2.5: {}
 
   xmlbuilder2@4.0.3:
@@ -4871,6 +4930,12 @@ snapshots:
       '@oozcitak/infra': 2.0.2
       '@oozcitak/util': 10.0.0
       js-yaml: 4.3.2
+
+  xmlchars@2.2.0: {}
+
+  xspattern@3.1.0:
+    dependencies:
+      whynot: 5.0.0
 
   xtend@4.0.2: {}
 

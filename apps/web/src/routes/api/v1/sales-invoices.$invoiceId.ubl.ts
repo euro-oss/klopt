@@ -8,6 +8,10 @@ import { problemResponse } from '~/api/errors'
  * The legal invoice, as XML (spec 7.5). Returns UBL rather than JSON for the
  * same reason the auditfile does: `curl -O` should do the obvious thing, and
  * what comes out has to be the exact bytes that would be sent.
+ *
+ * Nothing comes out of here that has not passed the published Peppol BIS 3.0
+ * and NLCIUS schematron. That is the guarantee, and it is why this endpoint can
+ * exist before a transport does.
  */
 export const Route = createFileRoute('/api/v1/sales-invoices/$invoiceId/ubl')({
   server: {
@@ -26,6 +30,10 @@ export const Route = createFileRoute('/api/v1/sales-invoices/$invoiceId/ubl')({
               'content-type': 'application/xml; charset=utf-8',
               'content-disposition': `attachment; filename="${result.filename}"`,
               'x-klopt-ubl-profile': result.profile,
+              // What it was judged against, and by how much. An integrator
+              // should be able to see that the schematron actually ran.
+              'x-klopt-schematron-assertions': String(result.assertionsEvaluated),
+              'x-klopt-schematron-warnings': String(result.warnings.length),
               'x-request-id': context.requestId,
             },
           })

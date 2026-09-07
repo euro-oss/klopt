@@ -239,6 +239,17 @@ describe('an administration that has been', () => {
     expect(codes).toContain('NL-R-004')
   })
 
+  it('has really been through the published schematron, not only our own rules', async () => {
+    const invoiceId = await anIssuedInvoice(await aCustomer())
+    const result = await handleGetInvoiceUbl(await contextFor(), invoiceId)
+
+    // Several hundred assertions from CEN-EN16931-UBL.sch and
+    // PEPPOL-EN16931-UBL.sch. A validator that quietly evaluated nothing would
+    // also return a document, and this is the difference.
+    expect(result.assertionsEvaluated).toBeGreaterThan(500)
+    expect(result.warnings).toEqual([])
+  })
+
   it('refuses an invoice from another administration', async () => {
     const other = await seedEntity(database)
     await seedSalesConfiguration(database, other)

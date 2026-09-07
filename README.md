@@ -131,11 +131,16 @@ xmllint --noout --schema reference-data/ubl/2.1/maindoc/UBL-Invoice-2.1.xsd *.ub
 ```
 
 That is UBL 2.1 in the Peppol BIS Billing 3.0 shape with the NLCIUS rules
-applied — the legal invoice, of which a PDF would be a rendering. An invoice
-that breaks a rule comes back as a 422 naming each one by its official
-identifier (`NL-R-002`, `BR-S-09`) rather than as a document your customer's
-system rejects next week. Sending is not built yet, deliberately: see
-[ADR 0016](docs/decisions/0016-ubl-generation-before-schematron.md).
+applied — the legal invoice, of which a PDF would be a rendering. Nothing comes
+out of that endpoint that has not passed the **published** BIS and NLCIUS
+schematron, run as data by an evaluator in the box: no JVM, no proprietary
+runtime, nothing compiled ahead of time
+([ADR 0017](docs/decisions/0017-schematron-in-process.md)). An invoice that
+breaks a rule comes back as a 422 naming each one by its official identifier
+(`NL-R-002`, `BR-S-09`, `BR-CL-14`) rather than as a document your customer's
+system rejects next week.
+
+Sending is not built yet.
 
 Then leave with your data:
 

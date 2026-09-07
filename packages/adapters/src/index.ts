@@ -33,3 +33,5 @@ export * from './email/index.js'
 export const ADAPTER_FAMILIES = ['filing', 'bank-feed', 'e-invoice', 'payment'] as const
 
 export type AdapterFamily = (typeof ADAPTER_FAMILIES)[number]
+
+export * from './schematron/index.js'
