@@ -8,7 +8,7 @@ import {
 } from '@klopt/core'
 import { and, asc, desc, eq } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
-import { bankAccounts, paymentBatches, paymentInstructions } from '../schema/index.js'
+import { bankAccounts, entities, paymentBatches, paymentInstructions } from '../schema/index.js'
 
 /**
  * Payment batches.
@@ -117,10 +117,15 @@ export class PaymentsRepository {
         approvedAt: paymentBatches.approvedAt,
         exportedHash: paymentBatches.exportedHash,
         debtorIban: bankAccounts.iban,
-        debtorName: bankAccounts.name,
+        // The entity, not the account's nickname. A bank checks the payer name
+        // against the account holder, and "Rekening-courant" is not who holds
+        // the account — the file gets flagged, and the supplier's statement
+        // says nothing about who paid them.
+        debtorName: entities.legalName,
       })
       .from(paymentBatches)
       .innerJoin(bankAccounts, eq(bankAccounts.id, paymentBatches.bankAccountId))
+      .innerJoin(entities, eq(entities.id, paymentBatches.entityId))
       .where(and(eq(paymentBatches.entityId, entityId), eq(paymentBatches.id, batchId)))
       .limit(1)
 

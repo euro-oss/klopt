@@ -731,9 +731,13 @@ export class SalesRepository {
     readonly paymentTermsDays: number
     readonly electronicAddress?: string | null
     readonly electronicAddressScheme?: string | null
-    /** Where a payment run sends the money. Without it a supplier cannot be paid. */
+    /**
+     * Where a payment run sends the money. Without it a supplier cannot be paid.
+     *
+     * No BIC alongside it: SEPA has been IBAN-only within the EEA since 2016,
+     * and a field with nowhere to go is worse than no field.
+     */
     readonly iban?: string | null
-    readonly bic?: string | null
     readonly address?: {
       readonly street: string | null
       readonly houseNumber: string | null

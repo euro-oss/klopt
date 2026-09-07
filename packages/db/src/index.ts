@@ -90,6 +90,7 @@ export {
   withInbox,
   withInboxRead,
   withPurchase,
+  withPurchasePayments,
   withPurchaseRead,
   withVat,
   withVatRead,

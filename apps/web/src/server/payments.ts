@@ -1,9 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
 import {
+  handleAddApprovedInvoices,
   handleAddInstruction,
   handleCreateBatch,
   handleGetBatch,
   handleListBatches,
+  handlePreviewPaymentRun,
   handleRemoveInstruction,
   handleTransitionBatch,
 } from '~/api/handlers/payments'
@@ -90,6 +92,26 @@ export const transitionPaymentBatch = createServerFn({ method: 'POST' })
             await contextFromRequest({ idempotencyKey: data.idempotencyKey }),
             data.batchId,
             body,
+          )
+        ).body,
+    ),
+  )
+
+export const previewPaymentRun = createServerFn({ method: 'GET' })
+  .validator((input: { batchId: string }) => input)
+  .handler(async ({ data }) =>
+    run(async () => (await handlePreviewPaymentRun(await contextFromRequest(), data.batchId)).body),
+  )
+
+export const addApprovedInvoices = createServerFn({ method: 'POST' })
+  .validator((input: { batchId: string; idempotencyKey: string }) => input)
+  .handler(async ({ data }) =>
+    run(
+      async () =>
+        (
+          await handleAddApprovedInvoices(
+            await contextFromRequest({ idempotencyKey: data.idempotencyKey }),
+            data.batchId,
           )
         ).body,
     ),

@@ -552,6 +552,26 @@ export const paymentOperations: Readonly<Record<string, OperationDefinition>> = 
     idempotent: true,
   }),
 
+  previewRun: defineOperation({
+    id: 'payments.previewRun',
+    kind: 'read',
+    permission: 'payments:prepare',
+    summary:
+      'What a payment run would pay: one instruction per supplier, netted for credit notes, with what each settles.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  addApprovedInvoices: defineOperation({
+    id: 'payments.addApprovedInvoices',
+    kind: 'write',
+    permission: 'payments:prepare',
+    summary:
+      'Put every approved, unpaid purchase invoice into a draft batch, recording which invoices each instruction settles.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
   removeInstruction: defineOperation({
     id: 'payments.removeInstruction',
     kind: 'write',

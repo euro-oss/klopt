@@ -81,6 +81,10 @@ function Contacts() {
         vatNumber: orNull('vatNumber'),
         kvkNumber: orNull('kvkNumber'),
         countryCode: text('countryCode') === '' ? 'NL' : text('countryCode').toUpperCase(),
+        // Where a payment run sends the money. It was on the screen and not in
+        // the payload, so every IBAN typed here was quietly thrown away and no
+        // supplier could be paid.
+        iban: orNull('iban'),
         paymentTermsDays: text('paymentTermsDays') === '' ? 30 : Number(text('paymentTermsDays')),
         address: {
           street: orNull('street'),

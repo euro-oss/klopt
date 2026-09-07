@@ -7,8 +7,10 @@ import { formatDate, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { getSession } from '~/server/context'
 import {
+  addApprovedInvoices,
   addPaymentInstruction,
   getPaymentBatch,
+  previewPaymentRun,
   removePaymentInstruction,
   transitionPaymentBatch,
 } from '~/server/payments'
@@ -30,6 +32,8 @@ export const Route = createFileRoute('/_app/payments/$batchId')({
   loader: async ({ params }) => ({
     batch: await getPaymentBatch({ data: { batchId: params.batchId } }),
     session: await getSession(),
+    // What a run would pay, shown before anybody commits to it.
+    run: await previewPaymentRun({ data: { batchId: params.batchId } }),
   }),
   component: PaymentBatch,
 })
@@ -47,7 +51,7 @@ interface Instruction {
 }
 
 function PaymentBatch() {
-  const { batch: loaded, session } = Route.useLoaderData()
+  const { batch: loaded, session, run } = Route.useLoaderData()
   const { batchId } = Route.useParams()
   const router = useRouter()
   const hydrated = useHydrated()
@@ -102,6 +106,37 @@ function PaymentBatch() {
     }
 
     setNotice(`Status is nu: ${STATE_LABEL[result.data.state]}.`)
+    await router.invalidate()
+  }
+
+  /**
+   * Take the whole run into the batch.
+   *
+   * All of it or none: a run that silently leaves somebody out is a run whose
+   * total nobody can check against the ageing.
+   */
+  async function addApproved(): Promise<void> {
+    setBusy(true)
+    setError(null)
+
+    const result = await addApprovedInvoices({
+      data: { batchId, idempotencyKey: addKey.current },
+    })
+    setBusy(false)
+    addKey.current = crypto.randomUUID()
+
+    if (!result.ok) {
+      setError(
+        result.problem.violations.length > 0
+          ? result.problem.violations.map((item) => item.message).join(' ')
+          : result.problem.detail,
+      )
+      return
+    }
+
+    setNotice(
+      `${String(result.data.added)} ${result.data.added === 1 ? 'betaling' : 'betalingen'} toegevoegd.`,
+    )
     await router.invalidate()
   }
 
@@ -358,6 +393,107 @@ function PaymentBatch() {
 
       {batch.editable && (
         <>
+          {run.ok && run.data.instructions.length + run.data.findings.length > 0 && (
+            <section className="border-border mt-6 max-w-4xl rounded-md border p-4">
+              <h2 className="mb-1 text-sm font-semibold">
+                Goedgekeurde inkoopfacturen ({run.data.instructions.length}{' '}
+                {run.data.instructions.length === 1 ? 'begunstigde' : 'begunstigden'})
+              </h2>
+              <p className="text-muted-foreground mb-3 text-sm">
+                Eén betaling per leverancier, met hun creditnota’s er al afgehaald — een betaling
+                van min tweehonderd euro bestaat niet, dus moet een creditnota eerst ergens tegen
+                weggestreept worden.
+              </p>
+
+              {run.data.instructions.length > 0 && (
+                <table className="mb-3 w-full text-sm">
+                  <caption className="sr-only">Wat deze betaalrun zou betalen</caption>
+                  <thead>
+                    <tr className="text-muted-foreground text-left text-xs">
+                      <th scope="col">Leverancier</th>
+                      <th scope="col">Wat het afrekent</th>
+                      <th scope="col" className="text-right">
+                        Bedrag
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {run.data.instructions.map((instruction) => (
+                      <tr key={instruction.contactNumber} className="border-border/50 border-t">
+                        <td className="py-1.5 pr-2">
+                          {instruction.creditorName}
+                          <span className="text-muted-foreground tabular text-xs">
+                            {' '}
+                            {instruction.contactNumber}
+                          </span>
+                        </td>
+                        <td className="text-muted-foreground py-1.5 pr-2 text-xs">
+                          {instruction.settles.map((settled, index) => (
+                            <span key={settled.invoiceId}>
+                              {index > 0 && ', '}
+                              {settled.supplierInvoiceNumber}
+                              {settled.kind === 'credit_note' && (
+                                // Named, because a supplier who sees a short
+                                // payment and no reason phones about it.
+                                <span className="text-muted-foreground"> (credit)</span>
+                              )}
+                            </span>
+                          ))}
+                        </td>
+                        <td className="py-1.5 text-right">
+                          <Money amount={instruction.amount} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-border border-t font-medium">
+                      <td colSpan={2} className="py-2">
+                        Totaal
+                      </td>
+                      <td className="py-2 text-right">
+                        <Money amount={run.data.total} />
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+
+              {run.data.findings.length > 0 && (
+                <ul className="mb-3 space-y-1 text-sm">
+                  {run.data.findings.map((finding) => (
+                    <li
+                      key={`${finding.code}-${finding.contactNumber}`}
+                      className={
+                        finding.severity === 'blocking'
+                          ? 'text-destructive'
+                          : 'text-muted-foreground'
+                      }
+                    >
+                      {finding.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <button
+                type="button"
+                disabled={
+                  !hydrated ||
+                  busy ||
+                  run.data.instructions.length === 0 ||
+                  run.data.findings.some((finding) => finding.severity === 'blocking')
+                }
+                onClick={() => {
+                  void addApproved()
+                }}
+                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+              >
+                {busy ? 'Bezig…' : 'Deze betalingen overnemen'}
+              </button>
+            </section>
+          )}
+
           <button
             type="button"
             disabled={!hydrated}

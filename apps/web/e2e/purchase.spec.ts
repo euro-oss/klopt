@@ -296,3 +296,69 @@ test('a document nothing can be read out of is kept, not lost', async ({ page })
   await page.goto('/inbox?state=discarded')
   await expect(page.getByText(/Terzijde gelegd: Reclamefolder/)).toBeVisible()
 })
+
+test('an approved invoice becomes a payment instruction', async ({ page }) => {
+  // The claim only a browser can check: somebody can see what the run would pay
+  // before it is written, and the numbers on that screen are the ones that end
+  // up in the batch.
+  await anAdministration(page, 'Betaalrun BV')
+  await aSupplier(page)
+
+  await page.goto('/bank')
+  await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
+  await page.getByLabel('IBAN').fill('NL20INGB0001234567')
+  await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('NL20INGB0001234567')).toBeVisible()
+
+  await page.goto('/purchases/new')
+  await anInteractiveForm(page)
+  await page.getByLabel('Factuurnummer leverancier').fill('F-2026-0042')
+  await page.getByLabel('Factuurdatum').fill('2026-02-10')
+  await page.getByLabel('Vervaldatum').fill('2026-03-12')
+  await page.getByLabel('Bedrag excl. btw', { exact: true }).fill('1000,00')
+  await page.getByLabel('Btw', { exact: true }).fill('210,00')
+  await page.getByLabel('Totaal', { exact: true }).fill('1210,00')
+  await page.getByLabel('Omschrijving regel 1').fill('Kantoorartikelen')
+  await page.getByLabel('Grootboek regel 1').selectOption('4400')
+  await page.getByLabel('Btw-code regel 1').selectOption('VH21')
+  await page.getByLabel('Excl. btw regel 1').fill('1000,00')
+  await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Inkoopfactuur F-2026-0042' })).toBeVisible()
+  await page.getByRole('button', { name: 'Boeken', exact: true }).click()
+  await page.getByRole('button', { name: 'Goedkeuren voor betaling' }).click()
+  await expect(page.getByText('goedgekeurd voor betaling')).toBeVisible()
+
+  await page.goto('/payments')
+  await page.getByRole('button', { name: 'Nieuwe batch' }).click()
+  await page.getByLabel('Kenmerk').fill('BETAAL-0002')
+  await page.getByRole('button', { name: 'Aanmaken' }).click()
+  await expect(page.getByRole('heading', { name: /Betaalbatch BETAAL-0002/ })).toBeVisible()
+
+  // The preview: one beneficiary, the invoice it settles, the amount.
+  const preview = page.getByRole('table', { name: 'Wat deze betaalrun zou betalen' })
+  await expect(preview).toContainText('Leverancier B.V.')
+  await expect(preview).toContainText('F-2026-0042')
+  await expect(preview).toContainText('1.210,00')
+
+  await page.getByRole('button', { name: 'Deze betalingen overnemen' }).click()
+
+  // And what the preview said is what the batch holds.
+  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeEnabled()
+
+  // Scheduling is not paying: the invoice is still owed and still reconciles.
+  await page.goto('/reports/creditor-ageing')
+  await expect(page.getByText('1.210,00').first()).toBeVisible()
+  await expect(page.getByText(/sluit aan|Sluit aan/).first()).toBeVisible()
+
+  // But it is out of the next run.
+  await page.goto('/payments')
+  await page.getByRole('button', { name: 'Nieuwe batch' }).click()
+  await page.getByLabel('Kenmerk').fill('BETAAL-0003')
+  await page.getByRole('button', { name: 'Aanmaken' }).click()
+  await expect(page.getByRole('heading', { name: /Betaalbatch BETAAL-0003/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Deze betalingen overnemen' })).toHaveCount(0)
+})

@@ -90,6 +90,7 @@ import { Route as ApiV1InboxItemIdDraftRouteImport } from './routes/api/v1/inbox
 import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes/api/v1/journal-entries.$entryId.reversal'
 import { Route as ApiV1PaymentBatchesBatchIdInstructionsRouteImport } from './routes/api/v1/payment-batches.$batchId.instructions'
 import { Route as ApiV1PaymentBatchesBatchIdPain001RouteImport } from './routes/api/v1/payment-batches.$batchId.pain001'
+import { Route as ApiV1PaymentBatchesBatchIdRunRouteImport } from './routes/api/v1/payment-batches.$batchId.run'
 import { Route as ApiV1PaymentBatchesBatchIdTransitionsRouteImport } from './routes/api/v1/payment-batches.$batchId.transitions'
 import { Route as ApiV1PurchaseInvoicesInvoiceIdBookingRouteImport } from './routes/api/v1/purchase-invoices.$invoiceId.booking'
 import { Route as ApiV1PurchaseInvoicesInvoiceIdTransitionsRouteImport } from './routes/api/v1/purchase-invoices.$invoiceId.transitions'
@@ -529,6 +530,12 @@ const ApiV1PaymentBatchesBatchIdPain001Route =
     path: '/pain001',
     getParentRoute: () => ApiV1PaymentBatchesBatchIdRoute,
   } as any)
+const ApiV1PaymentBatchesBatchIdRunRoute =
+  ApiV1PaymentBatchesBatchIdRunRouteImport.update({
+    id: '/run',
+    path: '/run',
+    getParentRoute: () => ApiV1PaymentBatchesBatchIdRoute,
+  } as any)
 const ApiV1PaymentBatchesBatchIdTransitionsRoute =
   ApiV1PaymentBatchesBatchIdTransitionsRouteImport.update({
     id: '/transitions',
@@ -699,6 +706,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
+  '/api/v1/payment-batches/$batchId/run': typeof ApiV1PaymentBatchesBatchIdRunRoute
   '/api/v1/payment-batches/$batchId/transitions': typeof ApiV1PaymentBatchesBatchIdTransitionsRoute
   '/api/v1/purchase-invoices/$invoiceId/booking': typeof ApiV1PurchaseInvoicesInvoiceIdBookingRoute
   '/api/v1/purchase-invoices/$invoiceId/transitions': typeof ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute
@@ -796,6 +804,7 @@ export interface FileRoutesByTo {
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
+  '/api/v1/payment-batches/$batchId/run': typeof ApiV1PaymentBatchesBatchIdRunRoute
   '/api/v1/payment-batches/$batchId/transitions': typeof ApiV1PaymentBatchesBatchIdTransitionsRoute
   '/api/v1/purchase-invoices/$invoiceId/booking': typeof ApiV1PurchaseInvoicesInvoiceIdBookingRoute
   '/api/v1/purchase-invoices/$invoiceId/transitions': typeof ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute
@@ -895,6 +904,7 @@ export interface FileRoutesById {
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
+  '/api/v1/payment-batches/$batchId/run': typeof ApiV1PaymentBatchesBatchIdRunRoute
   '/api/v1/payment-batches/$batchId/transitions': typeof ApiV1PaymentBatchesBatchIdTransitionsRoute
   '/api/v1/purchase-invoices/$invoiceId/booking': typeof ApiV1PurchaseInvoicesInvoiceIdBookingRoute
   '/api/v1/purchase-invoices/$invoiceId/transitions': typeof ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute
@@ -994,6 +1004,7 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
+    | '/api/v1/payment-batches/$batchId/run'
     | '/api/v1/payment-batches/$batchId/transitions'
     | '/api/v1/purchase-invoices/$invoiceId/booking'
     | '/api/v1/purchase-invoices/$invoiceId/transitions'
@@ -1091,6 +1102,7 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
+    | '/api/v1/payment-batches/$batchId/run'
     | '/api/v1/payment-batches/$batchId/transitions'
     | '/api/v1/purchase-invoices/$invoiceId/booking'
     | '/api/v1/purchase-invoices/$invoiceId/transitions'
@@ -1189,6 +1201,7 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/$entryId/reversal'
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
+    | '/api/v1/payment-batches/$batchId/run'
     | '/api/v1/payment-batches/$batchId/transitions'
     | '/api/v1/purchase-invoices/$invoiceId/booking'
     | '/api/v1/purchase-invoices/$invoiceId/transitions'
@@ -1820,6 +1833,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PaymentBatchesBatchIdPain001RouteImport
       parentRoute: typeof ApiV1PaymentBatchesBatchIdRoute
     }
+    '/api/v1/payment-batches/$batchId/run': {
+      id: '/api/v1/payment-batches/$batchId/run'
+      path: '/run'
+      fullPath: '/api/v1/payment-batches/$batchId/run'
+      preLoaderRoute: typeof ApiV1PaymentBatchesBatchIdRunRouteImport
+      parentRoute: typeof ApiV1PaymentBatchesBatchIdRoute
+    }
     '/api/v1/payment-batches/$batchId/transitions': {
       id: '/api/v1/payment-batches/$batchId/transitions'
       path: '/transitions'
@@ -2102,6 +2122,7 @@ const ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren =
 interface ApiV1PaymentBatchesBatchIdRouteChildren {
   ApiV1PaymentBatchesBatchIdInstructionsRoute: typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   ApiV1PaymentBatchesBatchIdPain001Route: typeof ApiV1PaymentBatchesBatchIdPain001Route
+  ApiV1PaymentBatchesBatchIdRunRoute: typeof ApiV1PaymentBatchesBatchIdRunRoute
   ApiV1PaymentBatchesBatchIdTransitionsRoute: typeof ApiV1PaymentBatchesBatchIdTransitionsRoute
 }
 
@@ -2111,6 +2132,7 @@ const ApiV1PaymentBatchesBatchIdRouteChildren: ApiV1PaymentBatchesBatchIdRouteCh
       ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren,
     ApiV1PaymentBatchesBatchIdPain001Route:
       ApiV1PaymentBatchesBatchIdPain001Route,
+    ApiV1PaymentBatchesBatchIdRunRoute: ApiV1PaymentBatchesBatchIdRunRoute,
     ApiV1PaymentBatchesBatchIdTransitionsRoute:
       ApiV1PaymentBatchesBatchIdTransitionsRoute,
   }

@@ -1,6 +1,13 @@
 import { createHash } from 'node:crypto'
-import { PERMISSIONS, generatePain001, isEditable, validatePaymentBatch } from '@klopt/core'
-import { withBankRead, withPayments } from '@klopt/db'
+import {
+  PERMISSIONS,
+  assertRunnable,
+  generatePain001,
+  isEditable,
+  planPaymentRun,
+  validatePaymentBatch,
+} from '@klopt/core'
+import { withBankRead, withPayments, withPurchasePayments } from '@klopt/db'
 import { hasPermission, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
 import type { AddInstructionBody, CreateBatchBody, TransitionBatchBody } from '../schemas.js'
@@ -146,6 +153,151 @@ export async function handleAddInstruction(
     })
 
     return { status: 201, body: { id, batchId } }
+  })
+}
+
+/**
+ * What is waiting to be paid, before anybody commits to a batch.
+ *
+ * A preview: the same plan `handleAddApprovedInvoices` would write, shown
+ * first. A payment run somebody cannot look at before pressing the button is a
+ * payment run they press the button on twice.
+ */
+export async function handlePreviewPaymentRun(context: RequestContext, batchId: string) {
+  requirePermission(context, PERMISSIONS.preparePayments)
+
+  return withPurchasePayments(context.database, async ({ payments, purchase }) => {
+    const found = await payments.findBatch(context.entityId, batchId)
+    if (found === null) throw new ApiError('not_found', 'No such payment batch.')
+
+    const plan = planPaymentRun({
+      suppliers: await purchase.payableSuppliers(context.entityId),
+      currency: 'EUR',
+      batchReference: found.batch.reference,
+    })
+
+    return {
+      status: 200,
+      body: {
+        batchId,
+        editable: isEditable(found.batch.state),
+        instructions: plan.instructions.map((instruction) => ({
+          contactNumber: instruction.contactNumber,
+          creditorName: instruction.creditorName,
+          creditorIban: instruction.creditorIban,
+          amount: instruction.amountMinorUnits.toString(),
+          remittanceInformation: instruction.remittanceInformation,
+          remittanceReference: instruction.remittanceReference,
+          dueDate: instruction.dueDate,
+          settles: instruction.allocations.map((allocation) => ({
+            invoiceId: allocation.invoiceId,
+            supplierInvoiceNumber: allocation.supplierInvoiceNumber,
+            kind: allocation.kind,
+            amount: allocation.amountMinorUnits.toString(),
+          })),
+        })),
+        findings: plan.findings.map((finding) => ({
+          code: finding.code,
+          severity: finding.severity,
+          contactNumber: finding.contactNumber,
+          message: finding.message,
+          amount: finding.amountMinorUnits.toString(),
+        })),
+        total: plan.totalMinorUnits.toString(),
+      },
+    }
+  })
+}
+
+/**
+ * Put every approved, unpaid invoice into this batch.
+ *
+ * The step that closes the cycle. One instruction per supplier, because a credit
+ * note has to be netted against something before money moves and there is no
+ * such thing as a payment of minus anything — see `payments/run.ts`.
+ *
+ * Blocking findings refuse the whole thing rather than paying the suppliers who
+ * happen to be fine: a run that silently leaves somebody out is a run whose
+ * total nobody can check against the ageing.
+ */
+export async function handleAddApprovedInvoices(context: RequestContext, batchId: string) {
+  requirePermission(context, PERMISSIONS.preparePayments)
+  requireIdempotencyKey(context)
+
+  return withPurchasePayments(context.database, async ({ payments, purchase }) => {
+    const found = await payments.findBatch(context.entityId, batchId)
+    if (found === null) throw new ApiError('not_found', 'No such payment batch.')
+
+    if (!isEditable(found.batch.state)) {
+      throw new ApiError(
+        'conflict',
+        `A ${found.batch.state} batch cannot be changed. Reject it first, or start another.`,
+      )
+    }
+
+    const plan = planPaymentRun({
+      suppliers: await purchase.payableSuppliers(context.entityId),
+      currency: 'EUR',
+      batchReference: found.batch.reference,
+    })
+
+    // Every blocked supplier at once, as a 422 naming each. Nothing is written
+    // until it returns.
+    assertRunnable(plan)
+
+    if (plan.instructions.length === 0) {
+      throw new ApiError(
+        'validation_failed',
+        'There is nothing approved and unpaid to put in this batch. An invoice has to be booked and approved before it can be paid.',
+      )
+    }
+
+    const added: string[] = []
+    for (const instruction of plan.instructions) {
+      const id = await payments.addInstruction({
+        entityId: context.entityId,
+        batchId,
+        endToEndId: instruction.endToEndId,
+        contactId: instruction.contactId,
+        creditorName: instruction.creditorName,
+        creditorIban: instruction.creditorIban,
+        creditorBic: instruction.creditorBic,
+        amount: instruction.amountMinorUnits,
+        currency: instruction.currency,
+        remittanceInformation: instruction.remittanceInformation,
+        remittanceReference: instruction.remittanceReference,
+      })
+
+      // What this payment settles. Recorded in the same transaction, because an
+      // instruction whose allocations did not commit would put the invoices
+      // back in the next run and pay them twice.
+      await purchase.allocateToInstruction({
+        entityId: context.entityId,
+        instructionId: id,
+        allocations: instruction.allocations.map((allocation) => ({
+          invoiceId: allocation.invoiceId,
+          amountMinorUnits: allocation.amountMinorUnits,
+        })),
+      })
+
+      added.push(id)
+    }
+
+    return {
+      status: 201,
+      body: {
+        batchId,
+        added: added.length,
+        total: plan.totalMinorUnits.toString(),
+        // Not blocking, and worth showing: a supplier who owes us is a refund
+        // to ask for rather than a payment that failed.
+        notes: plan.findings.map((finding) => ({
+          code: finding.code,
+          contactNumber: finding.contactNumber,
+          message: finding.message,
+        })),
+      },
+    }
   })
 }
 

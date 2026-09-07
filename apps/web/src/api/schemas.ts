@@ -192,7 +192,6 @@ export const createContactBody = z.object({
    * wrong reason.
    */
   iban: z.string().nullable().default(null),
-  bic: z.string().nullable().default(null),
   /**
    * The postal address. Optional, because a contact is worth recording before
    * you know it — but EN 16931 makes it mandatory on an invoice, so an invoice

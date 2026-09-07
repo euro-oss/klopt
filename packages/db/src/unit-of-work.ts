@@ -314,3 +314,23 @@ export async function withInbox<T>(
     work({ inbox: new InboxRepository(tx), purchase: new PurchaseRepository(tx) }),
   )
 }
+
+/**
+ * A payment run, in one transaction.
+ *
+ * The instructions and the record of which invoices each settles commit
+ * together. An instruction whose allocations did not commit would put those
+ * invoices back in the next run — and paying an invoice twice is the failure
+ * this whole subledger exists to prevent.
+ */
+export async function withPurchasePayments<T>(
+  database: Database,
+  work: (repositories: {
+    payments: PaymentsRepository
+    purchase: PurchaseRepository
+  }) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) =>
+    work({ payments: new PaymentsRepository(tx), purchase: new PurchaseRepository(tx) }),
+  )
+}

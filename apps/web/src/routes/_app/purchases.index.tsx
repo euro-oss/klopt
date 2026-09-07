@@ -44,6 +44,7 @@ interface Row {
   dueDate: string
   total: string
   outstanding: string
+  scheduled: string
   payable: boolean
   disputedReason: string | null
 }
@@ -152,9 +153,19 @@ function PurchaseInvoices() {
     {
       key: 'outstanding',
       header: 'Openstaand',
-      width: '9rem',
+      width: '11rem',
       align: 'right',
-      cell: (row) => <Money amount={row.outstanding} />,
+      // Still openstaand, and already in a batch: the money has not moved, so
+      // the ageing is right to keep counting it, but nobody should wonder why
+      // it stopped turning up in the betaalrun.
+      cell: (row) => (
+        <>
+          <Money amount={row.outstanding} />
+          {row.scheduled !== '0' && (
+            <span className="text-muted-foreground block text-xs">ingepland</span>
+          )}
+        </>
+      ),
     },
   ]
 

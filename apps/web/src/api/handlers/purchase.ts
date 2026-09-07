@@ -103,6 +103,9 @@ export async function handleListPurchaseInvoices(
           tax: row.tax.toString(),
           total: row.total.toString(),
           outstanding: row.outstanding.toString(),
+          // Committed to a payment instruction but not yet paid. Still owed —
+          // it is only out of the *next* run, not out of the ageing.
+          scheduled: row.scheduled.toString(),
           payable: isPayable(row.status),
           payableRefusal: payableRefusal(row.status),
           journalEntryId: row.journalEntryId,
@@ -164,6 +167,7 @@ export async function handleGetPurchaseInvoice(context: RequestContext, invoiceI
         total: found.row.total.toString(),
         allocated: found.row.allocated.toString(),
         outstanding: found.row.outstanding.toString(),
+        scheduled: found.row.scheduled.toString(),
         paymentReference: found.row.paymentReference,
         journalEntryId: found.row.journalEntryId,
         journalEntryNumber: entryNumber,

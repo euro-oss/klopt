@@ -13,13 +13,25 @@ import {
   handleTransitionPurchaseInvoice,
 } from '../src/api/handlers/purchase.js'
 import { handleCreateContact } from '../src/api/handlers/sales.js'
+import { handleCreateBankAccount } from '../src/api/handlers/bank.js'
 import { handleGetVatReturn } from '../src/api/handlers/vat.js'
+import {
+  handleAddApprovedInvoices,
+  handleCreateBatch,
+  handleGetBatch,
+  handleGetBatchPain001,
+  handlePreviewPaymentRun,
+  handleTransitionBatch,
+} from '../src/api/handlers/payments.js'
 import { handleGetJournalEntry } from '../src/api/handlers/ledger.js'
 import {
   bookPurchaseInvoiceBody,
   capturePurchaseInvoiceBody,
+  createBankAccountBody,
+  createBatchBody,
   createContactBody,
   creditorAgeingQuery,
+  transitionBatchBody,
   transitionPurchaseInvoiceBody,
 } from '../src/api/schemas.js'
 
@@ -594,5 +606,335 @@ describe('the list', () => {
     const open = await handleListPurchaseInvoices(await context(token), { openOnly: true })
     expect(open.body.invoices).toHaveLength(1)
     expect(open.body.invoices[0]?.outstanding).toBe('121000')
+  })
+})
+
+describe('the payment run — where the cycle closes', () => {
+  /** A supplier with an approved, unpaid invoice. */
+  async function anApprovedInvoice(
+    token: string,
+    overrides: Record<string, unknown> = {},
+    supplierNumber = 'CRE-0001',
+  ) {
+    const captured = await handleCapturePurchaseInvoice(
+      await context(token, uuidv7()),
+      capture({ contactNumber: supplierNumber, ...overrides }),
+    )
+    await handleBookPurchaseInvoice(
+      await context(token, uuidv7()),
+      captured.body.id,
+      bookPurchaseInvoiceBody.parse({}),
+    )
+    await handleTransitionPurchaseInvoice(
+      await context(token, uuidv7()),
+      captured.body.id,
+      transitionPurchaseInvoiceBody.parse({ action: 'approve' }),
+    )
+    return captured.body.id
+  }
+
+  /** One own account per entity; a second batch draws on the same one. */
+  const accounts = new Map<string, string>()
+
+  async function aBatch(token: string) {
+    let accountId = accounts.get(token)
+    if (accountId === undefined) {
+      const account = await handleCreateBankAccount(
+        await context(token, uuidv7()),
+        createBankAccountBody.parse({
+          iban: 'NL20INGB0001234567',
+          name: 'Rekening-courant',
+          ledgerAccountNumber: '1100',
+        }),
+      )
+      accountId = (account.body as { id: string }).id
+      accounts.set(token, accountId)
+    }
+
+    const created = await handleCreateBatch(
+      await context(token, uuidv7()),
+      createBatchBody.parse({
+        reference: `BETAAL-${uuidv7().slice(-8)}`,
+        bankAccountId: accountId,
+        requestedExecutionDate: '2026-05-01',
+      }),
+    )
+    return (created.body as { id: string }).id
+  }
+
+  it('pays every approved invoice, one instruction per supplier', async () => {
+    const { token } = await newEntity()
+    await aSupplier(token)
+    await anApprovedInvoice(token)
+    await anApprovedInvoice(token, { supplierInvoiceNumber: 'F-2026-0043' })
+
+    const batchId = await aBatch(token)
+
+    const preview = await handlePreviewPaymentRun(await context(token), batchId)
+    expect(preview.body.instructions).toHaveLength(1)
+    expect(preview.body.instructions[0]?.amount).toBe('242000')
+    expect(preview.body.instructions[0]?.settles).toHaveLength(2)
+    expect(preview.body.total).toBe('242000')
+
+    const added = await handleAddApprovedInvoices(await context(token, uuidv7()), batchId)
+    expect(added.body.added).toBe(1)
+    expect(added.body.total).toBe('242000')
+
+    const batch = await handleGetBatch(await context(token), batchId)
+    expect(batch.body.batch.instructions).toHaveLength(1)
+    expect(batch.body.batch.instructions[0]?.amount).toBe('242000')
+  })
+
+  it('takes those invoices out of the next run', async () => {
+    // The whole point of recording what an instruction settles: an invoice that
+    // is in a batch must not be in the next one too.
+    const { token } = await newEntity()
+    await aSupplier(token)
+    await anApprovedInvoice(token)
+
+    const first = await aBatch(token)
+    await handleAddApprovedInvoices(await context(token, uuidv7()), first)
+
+    const second = await aBatch(token)
+    const preview = await handlePreviewPaymentRun(await context(token), second)
+    expect(preview.body.instructions).toEqual([])
+
+    await expect(
+      handleAddApprovedInvoices(await context(token, uuidv7()), second),
+    ).rejects.toMatchObject({ code: 'validation_failed' })
+  })
+
+  it('nets a credit note before the money moves', async () => {
+    const { token } = await newEntity()
+    await aSupplier(token)
+    await anApprovedInvoice(token)
+    await anApprovedInvoice(token, {
+      kind: 'credit_note',
+      supplierInvoiceNumber: 'CN-2026-0001',
+      net: '20000',
+      tax: '4200',
+      total: '24200',
+      lines: [
+        {
+          description: 'Retour',
+          accountNumber: '4000',
+          taxCode: 'VH21',
+          net: '20000',
+          tax: '4200',
+        },
+      ],
+    })
+
+    const batchId = await aBatch(token)
+    const preview = await handlePreviewPaymentRun(await context(token), batchId)
+
+    // 1.210,00 owed less 242,00 credited is one payment of 968,00. There is no
+    // such thing as a payment of minus 242,00.
+    expect(preview.body.instructions).toHaveLength(1)
+    expect(preview.body.instructions[0]?.amount).toBe('96800')
+    expect(preview.body.instructions[0]?.remittanceInformation).toContain('CN-2026-0001')
+
+    // And once netted, it is spent. A credit note that came back would be
+    // subtracted again next week, on money that was already short-paid.
+    await handleAddApprovedInvoices(await context(token, uuidv7()), batchId)
+    const next = await aBatch(token)
+    expect((await handlePreviewPaymentRun(await context(token), next)).body.instructions).toEqual(
+      [],
+    )
+  })
+
+  it('leaves a scheduled invoice in the ageing, and reconciling', async () => {
+    // Scheduling is not paying. The money is still in the account and the
+    // supplier is still a creditor, so account 1600 still carries it — and the
+    // subledger has to agree, or the first thing a batch does is break the
+    // reconciliation that proves the books.
+    const { token } = await newEntity()
+    await aSupplier(token)
+    await anApprovedInvoice(token)
+
+    const before = await handleGetCreditorAgeing(
+      await context(token),
+      creditorAgeingQuery.parse({ asOf: '2026-03-12' }),
+    )
+    expect(before.body.total).toBe('121000')
+
+    const batchId = await aBatch(token)
+    await handleAddApprovedInvoices(await context(token, uuidv7()), batchId)
+
+    const after = await handleGetCreditorAgeing(
+      await context(token),
+      creditorAgeingQuery.parse({ asOf: '2026-03-12' }),
+    )
+    expect(after.body.total).toBe('121000')
+    expect(after.body.reconciliation.reconciles).toBe(true)
+  })
+
+  it('takes a credit note off the ageing rather than adding it on', async () => {
+    // The amounts are stored unsigned and the journal flips the sides, so the
+    // subledger has to flip them back. Adding a credit note to what is owed
+    // would overstate creditors by twice its value.
+    const { token } = await newEntity()
+    await aSupplier(token)
+    await anApprovedInvoice(token)
+    await anApprovedInvoice(token, {
+      kind: 'credit_note',
+      supplierInvoiceNumber: 'CN-2026-0002',
+      net: '20000',
+      tax: '4200',
+      total: '24200',
+      lines: [
+        {
+          description: 'Retour',
+          accountNumber: '4000',
+          taxCode: 'VH21',
+          net: '20000',
+          tax: '4200',
+        },
+      ],
+    })
+
+    const ageing = await handleGetCreditorAgeing(
+      await context(token),
+      creditorAgeingQuery.parse({ asOf: '2026-03-12' }),
+    )
+    expect(ageing.body.total).toBe('96800')
+    expect(ageing.body.reconciliation.reconciles).toBe(true)
+  })
+
+  it('leaves an unapproved invoice out of the run', async () => {
+    const { token } = await newEntity()
+    await aSupplier(token)
+
+    // Booked but not approved: a liability nobody has authorised.
+    const captured = await handleCapturePurchaseInvoice(await context(token, uuidv7()), capture())
+    await handleBookPurchaseInvoice(
+      await context(token, uuidv7()),
+      captured.body.id,
+      bookPurchaseInvoiceBody.parse({}),
+    )
+
+    const batchId = await aBatch(token)
+    const preview = await handlePreviewPaymentRun(await context(token), batchId)
+    expect(preview.body.instructions).toEqual([])
+  })
+
+  it('leaves a disputed invoice out, even after approval', async () => {
+    const { token } = await newEntity()
+    await aSupplier(token)
+    const invoiceId = await anApprovedInvoice(token)
+    await handleTransitionPurchaseInvoice(
+      await context(token, uuidv7()),
+      invoiceId,
+      transitionPurchaseInvoiceBody.parse({ action: 'dispute', reason: 'Niet geleverd.' }),
+    )
+
+    const batchId = await aBatch(token)
+    expect(
+      (await handlePreviewPaymentRun(await context(token), batchId)).body.instructions,
+    ).toEqual([])
+  })
+
+  it('refuses the whole run when a supplier has no IBAN', async () => {
+    // Not "pay the ones that are fine": a run that silently leaves somebody out
+    // is a run whose total nobody can check against the ageing.
+    const { token } = await newEntity()
+    await handleCreateContact(
+      await context(token, uuidv7()),
+      createContactBody.parse({
+        number: 'CRE-0002',
+        name: 'Zonder Rekening B.V.',
+        isCustomer: false,
+        isSupplier: true,
+      }),
+    )
+    await anApprovedInvoice(token, {}, 'CRE-0002')
+
+    const batchId = await aBatch(token)
+    const preview = await handlePreviewPaymentRun(await context(token), batchId)
+    expect(preview.body.findings[0]?.code).toBe('no_iban')
+    expect(preview.body.findings[0]?.severity).toBe('blocking')
+
+    await expect(
+      handleAddApprovedInvoices(await context(token, uuidv7()), batchId),
+    ).rejects.toMatchObject({ code: 'invalid_payment' })
+  })
+
+  it('refuses to add to a batch that is no longer a draft', async () => {
+    const { token } = await newEntity()
+    await aSupplier(token)
+    await anApprovedInvoice(token)
+    const batchId = await aBatch(token)
+    await handleAddApprovedInvoices(await context(token, uuidv7()), batchId)
+
+    await handleTransitionBatch(
+      await context(token, uuidv7()),
+      batchId,
+      transitionBatchBody.parse({ action: 'submit' }),
+    )
+
+    await expect(
+      handleAddApprovedInvoices(await context(token, uuidv7()), batchId),
+    ).rejects.toMatchObject({ code: 'conflict' })
+  })
+
+  it('becomes a pain.001 whose control sum is the ageing', async () => {
+    // The point of the whole slice: what the creditors report says is owed is
+    // what the file tells the bank to pay, to the cent.
+    const { entityId, token } = await newEntity()
+    await aSupplier(token)
+    await anApprovedInvoice(token)
+
+    const batchId = await aBatch(token)
+    await handleAddApprovedInvoices(await context(token, uuidv7()), batchId)
+    await handleTransitionBatch(
+      await context(token, uuidv7()),
+      batchId,
+      transitionBatchBody.parse({ action: 'submit' }),
+    )
+
+    // Approval is a second pair of eyes, so it needs a second actor.
+    const { token: approver } = await issueToken(database, {
+      entityId,
+      name: 'approver',
+      permissions: ['*'],
+      actorKind: 'human',
+      actorId: `human-approver-${entityId.slice(0, 8)}`,
+    })
+    await handleTransitionBatch(
+      await context(approver, uuidv7()),
+      batchId,
+      transitionBatchBody.parse({ action: 'approve' }),
+    )
+
+    const { xml } = await handleGetBatchPain001(await context(token), batchId)
+    expect(xml).toContain('<CtrlSum>1210.00</CtrlSum>')
+    expect(xml).toContain('<IBAN>NL02ABNA0123456789</IBAN>')
+    // The payer is the entity, not the account's nickname: a bank checks the
+    // name against the account holder.
+    expect(xml).not.toContain('<Nm>Rekening-courant</Nm>')
+    expect(xml).toContain('F-2026-0042')
+
+    const ageing = await handleGetCreditorAgeing(
+      await context(token),
+      creditorAgeingQuery.parse({ asOf: '2026-03-12' }),
+    )
+    expect(ageing.body.total).toBe('121000')
+  })
+
+  it('needs payments:prepare', async () => {
+    const { entityId, token } = await newEntity()
+    const batchId = await aBatch(token)
+
+    const { token: reader } = await issueToken(database, {
+      entityId,
+      name: 'reader',
+      permissions: ['ledger:read'],
+      actorKind: 'human',
+      actorId: 'reader',
+    })
+
+    await expect(
+      handleAddApprovedInvoices(await context(reader, uuidv7()), batchId),
+    ).rejects.toMatchObject({ code: 'forbidden' })
   })
 })

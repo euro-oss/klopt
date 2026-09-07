@@ -105,6 +105,20 @@ export interface PurchaseTransition {
  * that somebody looked, and a scheduled job that approves whatever arrives is
  * not somebody looking.
  */
+/**
+ * The past tense of each action, spelled out.
+ *
+ * `${action}ed` looks like it works and produces "approveed" and "disputeed".
+ * A message a user reads has to be written, not assembled.
+ */
+const ACTION_PAST: Readonly<Record<PurchaseAction, string>> = {
+  book: 'booked',
+  approve: 'approved',
+  dispute: 'disputed',
+  resolve: 'resolved',
+  cancel: 'cancelled',
+}
+
 export function nextPurchaseStatus(
   action: PurchaseAction,
   current: PurchaseInvoiceStatus,
@@ -115,7 +129,7 @@ export function nextPurchaseStatus(
       violation(
         'wrong_invoice_state',
         'status',
-        `An invoice that is ${purchaseStatusLabel(current)} cannot be ${action}ed. That is allowed from: ${ALLOWED[action].map(purchaseStatusLabel).join(', ')}.`,
+        `An invoice that is ${purchaseStatusLabel(current)} cannot be ${ACTION_PAST[action]}. That is allowed from: ${ALLOWED[action].map(purchaseStatusLabel).join(', ')}.`,
         { status: current, action },
       ),
     ])

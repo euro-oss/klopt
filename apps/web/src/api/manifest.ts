@@ -482,6 +482,18 @@ export const routeManifest: readonly RouteBinding[] = [
     path: '/documents/{documentId}',
     module: 'api/v1/documents.$documentId.ts',
   },
+  {
+    operationId: 'payments.previewRun',
+    method: 'GET',
+    path: '/payment-batches/{batchId}/run',
+    module: 'api/v1/payment-batches.$batchId.run.ts',
+  },
+  {
+    operationId: 'payments.addApprovedInvoices',
+    method: 'POST',
+    path: '/payment-batches/{batchId}/run',
+    module: 'api/v1/payment-batches.$batchId.run.ts',
+  },
 ]
 
 export interface ContractViolation {

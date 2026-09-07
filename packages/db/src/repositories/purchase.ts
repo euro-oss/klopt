@@ -1,4 +1,10 @@
-import { uuidv7, type PurchaseInvoiceInput, type TaxCodeRule } from '@klopt/core'
+import {
+  uuidv7,
+  type PayableItem,
+  type PayableSupplier,
+  type PurchaseInvoiceInput,
+  type TaxCodeRule,
+} from '@klopt/core'
 import { and, asc, desc, eq, inArray, isNotNull, ne, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import { accounts, entities, journalEntries } from '../schema/ledger.js'
@@ -54,13 +60,49 @@ export interface PurchaseInvoiceRow {
   readonly net: bigint
   readonly tax: bigint
   readonly total: bigint
+  /** Paid by a matched bank transaction. */
   readonly allocated: bigint
+  /** Still owed: what the control account holds. Bank payments only. */
   readonly outstanding: bigint
+  /** Committed to a payment instruction, but not yet paid. */
+  readonly scheduled: bigint
+  /** What a payment run may still pick up. */
+  readonly unscheduled: bigint
+  /**
+   * `outstanding` as the ledger sees it: a credit note reduces what is owed.
+   * The amounts are stored unsigned and the journal flips the sides, so the
+   * subledger has to flip them back or it will not equal its control account.
+   */
+  readonly signedOutstanding: bigint
   readonly journalEntryId: string | null
   readonly approvedBy: string | null
   readonly bookedBy: string | null
   readonly disputedReason: string | null
   readonly paymentReference: string | null
+}
+
+/** The four amounts every caller wants, from one row and its allocations. */
+function settlement(
+  row: { readonly total: bigint; readonly kind: 'invoice' | 'credit_note' },
+  allocated: { paid: bigint; scheduled: bigint } | undefined,
+): {
+  allocated: bigint
+  outstanding: bigint
+  scheduled: bigint
+  unscheduled: bigint
+  signedOutstanding: bigint
+} {
+  const paid = allocated?.paid ?? 0n
+  const scheduled = allocated?.scheduled ?? 0n
+  const outstanding = row.total - paid
+  const unscheduled = outstanding - scheduled
+  return {
+    allocated: paid,
+    outstanding,
+    scheduled,
+    unscheduled,
+    signedOutstanding: row.kind === 'credit_note' ? -outstanding : outstanding,
+  }
 }
 
 export class PurchaseRepository {
@@ -398,25 +440,28 @@ export class PurchaseRepository {
           taxMinorUnits: line.tax,
         })),
       },
-      row: {
-        ...row,
-        allocated: allocated.get(invoiceId) ?? 0n,
-        outstanding: row.total - (allocated.get(invoiceId) ?? 0n),
-      },
+      row: { ...row, ...settlement(row, allocated.get(invoiceId)) },
     }
   }
 
   /**
-   * What has been paid against each invoice.
+   * What has been settled against each invoice, and how far along it is.
    *
-   * Two sources: a bank transaction matched to the invoice, and a payment
-   * instruction that settled it. Counting only one would put a paid invoice
-   * back in the next payment run.
+   * The two sources answer different questions and must not be added together.
+   * A matched bank transaction means the money is gone: the invoice is no
+   * longer owed, and the control account has moved with it. A payment
+   * instruction means somebody has scheduled it: the money is still there, the
+   * supplier is still a creditor, and the ageing must still show it — but the
+   * next payment run must not pick it up a second time.
+   *
+   * Collapsing the two was a bug: scheduling a payment silently emptied the
+   * creditors ageing while account 1600 still carried the liability, so the
+   * subledger stopped reconciling the moment anybody prepared a batch.
    */
   private async allocatedFor(
     entityId: string,
     invoiceIds: readonly string[],
-  ): Promise<Map<string, bigint>> {
+  ): Promise<Map<string, { paid: bigint; scheduled: bigint }>> {
     if (invoiceIds.length === 0) return new Map()
 
     const [fromBank, fromInstructions] = await Promise.all([
@@ -448,10 +493,13 @@ export class PurchaseRepository {
         .groupBy(paymentInstructionInvoices.invoiceId),
     ])
 
-    const totals = new Map<string, bigint>()
-    for (const row of [...fromBank, ...fromInstructions]) {
-      totals.set(row.invoiceId, (totals.get(row.invoiceId) ?? 0n) + BigInt(row.amount))
+    const totals = new Map<string, { paid: bigint; scheduled: bigint }>()
+    const add = (invoiceId: string, field: 'paid' | 'scheduled', amount: bigint): void => {
+      const seat = totals.get(invoiceId) ?? { paid: 0n, scheduled: 0n }
+      totals.set(invoiceId, { ...seat, [field]: seat[field] + amount })
     }
+    for (const row of fromBank) add(row.invoiceId, 'paid', BigInt(row.amount))
+    for (const row of fromInstructions) add(row.invoiceId, 'scheduled', BigInt(row.amount))
     return totals
   }
 
@@ -499,11 +547,7 @@ export class PurchaseRepository {
       rows.map((row) => row.id),
     )
 
-    const enriched = rows.map((row) => ({
-      ...row,
-      allocated: allocated.get(row.id) ?? 0n,
-      outstanding: row.total - (allocated.get(row.id) ?? 0n),
-    }))
+    const enriched = rows.map((row) => ({ ...row, ...settlement(row, allocated.get(row.id)) }))
 
     return filter.openOnly === true
       ? enriched.filter(
@@ -569,17 +613,113 @@ export class PurchaseRepository {
         total: 0n,
       }
 
-      if (overdueDays <= 0) seat.current += row.outstanding
-      else if (overdueDays <= 30) seat.upTo30 += row.outstanding
-      else if (overdueDays <= 60) seat.upTo60 += row.outstanding
-      else if (overdueDays <= 90) seat.upTo90 += row.outstanding
-      else seat.over90 += row.outstanding
+      // Signed, so a credit note reduces the bucket it falls in rather than
+      // inflating it. An ageing that adds credit notes to what is owed is an
+      // ageing nobody can compare to the control account.
+      const amount = row.signedOutstanding
+      if (overdueDays <= 0) seat.current += amount
+      else if (overdueDays <= 30) seat.upTo30 += amount
+      else if (overdueDays <= 60) seat.upTo60 += amount
+      else if (overdueDays <= 90) seat.upTo90 += amount
+      else seat.over90 += amount
 
-      seat.total += row.outstanding
+      seat.total += amount
       buckets.set(row.contactNumber, seat)
     }
 
     return [...buckets.values()].sort((a, b) => a.contactNumber.localeCompare(b.contactNumber))
+  }
+
+  /**
+   * Everything approved and still outstanding, grouped by supplier.
+   *
+   * Approved only: `booked` is a liability nobody has authorised and `disputed`
+   * is one somebody is arguing about, and neither belongs in a payment run.
+   * Credit notes come along too — they are what a supplier's net position is
+   * made of, and leaving them out would overpay.
+   */
+  async payableSuppliers(entityId: string): Promise<PayableSupplier[]> {
+    const open = (await this.list(entityId, { openOnly: true })).filter(
+      // Approved, and not already committed to an instruction: a document in a
+      // batch is spoken for, and netting it twice underpays by its amount.
+      (row) => row.status === 'approved' && row.unscheduled !== 0n,
+    )
+    if (open.length === 0) return []
+
+    const rows = await this.tx
+      .select({
+        id: contacts.id,
+        number: contacts.number,
+        name: contacts.name,
+        iban: contacts.iban,
+        invoiceId: purchaseInvoices.id,
+      })
+      .from(purchaseInvoices)
+      .innerJoin(contacts, eq(contacts.id, purchaseInvoices.contactId))
+      .where(
+        and(
+          eq(purchaseInvoices.entityId, entityId),
+          inArray(
+            purchaseInvoices.id,
+            open.map((row) => row.id),
+          ),
+        ),
+      )
+
+    const contactByInvoice = new Map(rows.map((row) => [row.invoiceId, row]))
+    const suppliers = new Map<string, PayableSupplier & { items: PayableItem[] }>()
+
+    for (const row of open) {
+      const contact = contactByInvoice.get(row.id)
+      if (contact === undefined) continue
+
+      let seat = suppliers.get(contact.id)
+      if (seat === undefined) {
+        seat = {
+          contactId: contact.id,
+          contactNumber: contact.number,
+          contactName: contact.name,
+          iban: contact.iban,
+          // SEPA within the EEA is IBAN-only, and the pain.001 writes
+          // `NOTPROVIDED` when there is none.
+          bic: null,
+          items: [],
+        }
+        suppliers.set(contact.id, seat)
+      }
+
+      seat.items.push({
+        invoiceId: row.id,
+        supplierInvoiceNumber: row.supplierInvoiceNumber,
+        kind: row.kind,
+        dueDate: row.dueDate,
+        // Unsigned. Which direction it pulls is the document kind's business.
+        outstandingMinorUnits: row.unscheduled < 0n ? -row.unscheduled : row.unscheduled,
+        paymentReference: row.paymentReference,
+        currency: row.currency,
+      })
+    }
+
+    return [...suppliers.values()].sort((a, b) => a.contactNumber.localeCompare(b.contactNumber))
+  }
+
+  /** Record which invoices an instruction settles, and for how much. */
+  async allocateToInstruction(request: {
+    readonly entityId: string
+    readonly instructionId: string
+    readonly allocations: readonly { invoiceId: string; amountMinorUnits: bigint }[]
+  }): Promise<void> {
+    if (request.allocations.length === 0) return
+
+    await this.tx.insert(paymentInstructionInvoices).values(
+      request.allocations.map((allocation) => ({
+        id: uuidv7(),
+        entityId: request.entityId,
+        instructionId: request.instructionId,
+        invoiceId: allocation.invoiceId,
+        amountMinorUnits: allocation.amountMinorUnits,
+      })),
+    )
   }
 
   async markBooked(request: {
@@ -647,7 +787,7 @@ export class PurchaseRepository {
     readonly difference: bigint
   }> {
     const open = await this.list(entityId, { openOnly: true })
-    const subledger = open.reduce((sum, row) => sum + row.outstanding, 0n)
+    const subledger = open.reduce((sum, row) => sum + row.signedOutstanding, 0n)
 
     const [control] = await this.tx
       .select({
