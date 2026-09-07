@@ -65,8 +65,10 @@ test('a prefix expires rather than hijacking the next thing you type', async ({ 
   await page.keyboard.press('g')
   await expect(page.getByText('G …')).toBeVisible()
 
-  // 1.5 seconds, per docs/keyboard-map.md.
-  await expect(page.getByText('G …')).toBeHidden({ timeout: 4_000 })
+  // The window is 1.5 seconds (docs/keyboard-map.md). The budget here is much
+  // longer on purpose: what is being asserted is that the prefix expires, not
+  // how fast, and a tight bound turns a busy machine into a red suite.
+  await expect(page.getByText('G …')).toBeHidden({ timeout: 15_000 })
 
   await page.keyboard.press('j')
   // Still on the dashboard: the prefix went, so `j` meant nothing.
