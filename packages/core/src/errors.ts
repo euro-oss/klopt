@@ -58,6 +58,10 @@ export type LedgerErrorCode =
   | 'icp_mismatch'
   | 'unknown_taxonomy'
   | 'instance_invalid'
+  | 'wrong_invoice_state'
+  | 'approval_by_script'
+  | 'invoice_not_bookable'
+  | 'unknown_invoice'
   | 'chain_broken'
 
 export interface LedgerViolation {

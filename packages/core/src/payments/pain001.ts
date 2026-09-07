@@ -151,7 +151,17 @@ export interface Pain001Options {
 
 export function generatePain001(batch: PaymentBatch, options: Pain001Options = {}): string {
   const version = options.version ?? 'pain.001.001.03'
-  const createdAt = options.createdAt ?? new Date().toISOString().slice(0, 19)
+  /**
+   * The batch's approval, not the clock.
+   *
+   * A payment file has to be reproducible: the hash recorded in the evidence
+   * chain is the hash of the bytes that went to the bank, and a `CreDtTm` read
+   * from the clock makes a second download a different file. The approval is
+   * the moment the batch became final, which is exactly what this element
+   * means. The explicit option remains for the golden test.
+   */
+  const createdAt =
+    options.createdAt ?? batch.approvedAt?.slice(0, 19) ?? new Date().toISOString().slice(0, 19)
   const total = batchTotal(batch)
   const count = String(batch.instructions.length)
 

@@ -184,6 +184,16 @@ export const createContactBody = z.object({
   electronicAddress: z.string().nullable().default(null),
   electronicAddressScheme: z.string().nullable().default(null),
   /**
+   * Where a payment run sends the money.
+   *
+   * Not validated here beyond emptiness: `isValidIban` in @klopt/core checks
+   * the mod-97 when a payment batch is built, and refusing a contact because
+   * somebody typed the IBAN from memory would be refusing the contact for the
+   * wrong reason.
+   */
+  iban: z.string().nullable().default(null),
+  bic: z.string().nullable().default(null),
+  /**
    * The postal address. Optional, because a contact is worth recording before
    * you know it — but EN 16931 makes it mandatory on an invoice, so an invoice
    * to a customer without one is refused with BR-10 rather than sent.
@@ -549,3 +559,60 @@ export const checkVatNumbersBody = z.object({
 })
 
 export type CheckVatNumbersBody = z.infer<typeof checkVatNumbersBody>
+
+/**
+ * A supplier's invoice, as captured.
+ *
+ * The totals are required rather than derived, and that is the point: on a
+ * purchase invoice the supplier is the authority on every figure, so the
+ * document's own net, VAT and total are what get recorded. The checks in
+ * `@klopt/core`'s purchase module then verify them against the lines and
+ * against our tax codes, and say what disagrees — see ADR 0025.
+ */
+export const purchaseInvoiceLineInput = z.object({
+  description: z.string().min(1),
+  accountNumber: z.string().min(1),
+  taxCode: z.string().min(1),
+  net: minorUnits,
+  tax: minorUnitsWithDefault,
+})
+
+export const capturePurchaseInvoiceBody = z.object({
+  contactNumber: z.string().min(1),
+  supplierInvoiceNumber: z.string().min(1).max(64),
+  kind: z.enum(['invoice', 'credit_note']).default('invoice'),
+  invoiceDate: isoDate,
+  dueDate: isoDate,
+  currency: currencyCode.default('EUR'),
+  net: minorUnits,
+  tax: minorUnitsWithDefault,
+  total: minorUnits,
+  paymentReference: z.string().nullable().default(null),
+  notes: z.string().nullable().default(null),
+  lines: z.array(purchaseInvoiceLineInput).min(1, 'An invoice needs at least one line.'),
+})
+
+/**
+ * Booking a captured invoice.
+ *
+ * `bookingDate` is optional and defaults to the invoice's own date, which is
+ * where the liability and the deductible VAT belong. An override exists for the
+ * January invoice that arrives in April, after the period has been declared.
+ */
+export const bookPurchaseInvoiceBody = z.object({
+  bookingDate: isoDate.nullable().default(null),
+})
+
+export const transitionPurchaseInvoiceBody = z.object({
+  action: z.enum(['approve', 'dispute', 'resolve', 'cancel']),
+  reason: z.string().nullable().default(null),
+})
+
+export const creditorAgeingQuery = z.object({
+  asOf: isoDate,
+})
+
+export type BookPurchaseInvoiceBody = z.infer<typeof bookPurchaseInvoiceBody>
+export type CapturePurchaseInvoiceBody = z.infer<typeof capturePurchaseInvoiceBody>
+export type TransitionPurchaseInvoiceBody = z.infer<typeof transitionPurchaseInvoiceBody>
+export type CreditorAgeingQuery = z.infer<typeof creditorAgeingQuery>

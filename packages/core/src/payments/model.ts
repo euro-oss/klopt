@@ -39,6 +39,15 @@ export interface PaymentBatch {
   readonly debtorIban: string
   readonly debtorBic: string | null
   readonly requestedExecutionDate: string
+  /**
+   * When the approval was given, ISO 8601, or null while unapproved.
+   *
+   * This is what `CreDtTm` in the pain.001 is stamped with, so the file is
+   * byte-identical however often it is downloaded. Taking the clock instead
+   * would mean the recorded hash did not reproduce — and "store the exact bytes
+   * sent" (spec 8, rule 3) is not a claim you can make about bytes that change.
+   */
+  readonly approvedAt: string | null
   readonly instructions: readonly PaymentInstruction[]
 }
 

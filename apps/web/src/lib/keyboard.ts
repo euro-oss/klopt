@@ -46,6 +46,7 @@ export const BINDINGS: readonly Binding[] = [
     to: '/reports/trial-balance',
   },
   { id: 'go.invoices', label: 'Verkoopfacturen', group: 'Go to', keys: 'g f', to: '/invoices' },
+  { id: 'go.purchases', label: 'Inkoopfacturen', group: 'Go to', keys: 'g n', to: '/purchases' },
   { id: 'go.contacts', label: 'Relaties', group: 'Go to', keys: 'g r', to: '/contacts' },
   { id: 'go.bank', label: 'Bank', group: 'Go to', keys: 'g k', to: '/bank' },
   { id: 'go.match', label: 'Koppelen', group: 'Go to', keys: 'g o', to: '/bank/match' },
@@ -65,6 +66,13 @@ export const BINDINGS: readonly Binding[] = [
     to: '/entries/new',
   },
   { id: 'new.invoice', label: 'Nieuwe factuur', group: 'Nieuw', keys: 'n f', to: '/invoices/new' },
+  {
+    id: 'new.purchase',
+    label: 'Inkoopfactuur invoeren',
+    group: 'Nieuw',
+    keys: 'n i',
+    to: '/purchases/new',
+  },
 
   { id: 'match.confirm', label: 'Beste voorstel boeken', group: 'Koppelen', keys: 'enter' },
   { id: 'match.skip', label: 'Regel overslaan', group: 'Koppelen', keys: 'x' },

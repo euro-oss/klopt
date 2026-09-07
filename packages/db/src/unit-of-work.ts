@@ -5,6 +5,7 @@ import { RgsRepository } from './repositories/rgs.js'
 import { BankRepository } from './repositories/bank.js'
 import { MembersRepository } from './repositories/members.js'
 import { PaymentsRepository } from './repositories/payments.js'
+import { PurchaseRepository } from './repositories/purchase.js'
 import { SalesRepository } from './repositories/sales.js'
 import { SetupRepository } from './repositories/setup.js'
 import { VatRepository } from './repositories/vat.js'
@@ -246,5 +247,41 @@ export async function withVatFiling<T>(
 ): Promise<T> {
   return database.transaction(async (tx) =>
     work({ vat: new VatRepository(tx), ledger: new DrizzleLedgerRepository(tx) }),
+  )
+}
+
+/**
+ * Purchase invoices, read-only, in a snapshot.
+ *
+ * The open-items query reads two allocation tables and the invoices; a payment
+ * landing between them would show an invoice as both outstanding and settled.
+ */
+export async function withPurchaseRead<T>(
+  database: Database,
+  work: (repository: PurchaseRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new PurchaseRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
+  })
+}
+
+/**
+ * Booking a purchase invoice, in one transaction.
+ *
+ * The journal entry and the invoice's link to it commit together. An entry
+ * whose invoice never recorded it would be a cost in the books that the
+ * creditors ledger does not know about — the drift the control-account
+ * reconciliation exists to catch, created deliberately.
+ */
+export async function withPurchase<T>(
+  database: Database,
+  work: (repositories: {
+    purchase: PurchaseRepository
+    ledger: DrizzleLedgerRepository
+  }) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) =>
+    work({ purchase: new PurchaseRepository(tx), ledger: new DrizzleLedgerRepository(tx) }),
   )
 }

@@ -683,3 +683,71 @@ export const vatOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 }
+
+/**
+ * Purchase invoices (spec 15, M4).
+ *
+ * `book` is the write that puts the invoice in the books, and `transition`
+ * carries approval, dispute and resolution. Approval is not an agent's call:
+ * the point of an authorisation is that somebody looked, so it is `none` rather
+ * than `proposal`.
+ */
+export const purchaseOperations: Readonly<Record<string, OperationDefinition>> = {
+  listInvoices: defineOperation({
+    id: 'purchase.listInvoices',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Purchase invoices with what is still outstanding on each.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  getInvoice: defineOperation({
+    id: 'purchase.getInvoice',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'One purchase invoice, its lines, and everything wrong with it.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  captureInvoice: defineOperation({
+    id: 'purchase.captureInvoice',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary:
+      'Capture a supplier invoice as a draft. Its stated totals are recorded as given and verified, never recomputed.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  bookInvoice: defineOperation({
+    id: 'purchase.bookInvoice',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary:
+      'Post a captured invoice to the ledger. The liability and the deductible VAT are recognised at the invoice date.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  transitionInvoice: defineOperation({
+    id: 'purchase.transitionInvoice',
+    kind: 'write',
+    permission: 'purchase:approve',
+    summary: 'Approve, dispute or resolve a purchase invoice. Approval gates payment.',
+    // An authorisation is somebody looking. A scheduled job is not.
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  getCreditorAgeing: defineOperation({
+    id: 'purchase.getCreditorAgeing',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary:
+      'Aged creditors, bucketed by how overdue each invoice is, with the subledger reconciled to its control account.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+}

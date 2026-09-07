@@ -33,6 +33,11 @@ export {
 export { XafExportRepository, type XafExportRequest } from './repositories/xaf.js'
 export { RgsRepository } from './repositories/rgs.js'
 export {
+  type PurchaseContext,
+  type PurchaseInvoiceRow,
+  PurchaseRepository,
+} from './repositories/purchase.js'
+export {
   type FilingSummary,
   type RecordFilingRequest,
   type StoredFiling,
@@ -81,6 +86,8 @@ export {
   withSetup,
   withXafExport,
   withYearClose,
+  withPurchase,
+  withPurchaseRead,
   withVat,
   withVatRead,
   withVatFiling,

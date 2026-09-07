@@ -29,7 +29,11 @@ import { Route as AppInvoicesInvoiceIdRouteImport } from './routes/_app/invoices
 import { Route as AppInvoicesNewRouteImport } from './routes/_app/invoices.new'
 import { Route as AppPaymentsIndexRouteImport } from './routes/_app/payments.index'
 import { Route as AppPaymentsBatchIdRouteImport } from './routes/_app/payments.$batchId'
+import { Route as AppPurchasesIndexRouteImport } from './routes/_app/purchases.index'
+import { Route as AppPurchasesInvoiceIdRouteImport } from './routes/_app/purchases.$invoiceId'
+import { Route as AppPurchasesNewRouteImport } from './routes/_app/purchases.new'
 import { Route as AppReportsBalanceSheetRouteImport } from './routes/_app/reports.balance-sheet'
+import { Route as AppReportsCreditorAgeingRouteImport } from './routes/_app/reports.creditor-ageing'
 import { Route as AppReportsProfitAndLossRouteImport } from './routes/_app/reports.profit-and-loss'
 import { Route as AppReportsTrialBalanceRouteImport } from './routes/_app/reports.trial-balance'
 import { Route as AppVatIndexRouteImport } from './routes/_app/vat.index'
@@ -47,6 +51,7 @@ import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1JournalEntriesRouteImport } from './routes/api/v1/journal-entries'
 import { Route as ApiV1MembersRouteImport } from './routes/api/v1/members'
 import { Route as ApiV1PaymentBatchesRouteImport } from './routes/api/v1/payment-batches'
+import { Route as ApiV1PurchaseInvoicesRouteImport } from './routes/api/v1/purchase-invoices'
 import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-invoices'
 import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
 import { Route as AppVatIcpPeriodRouteImport } from './routes/_app/vat.icp.$period'
@@ -59,7 +64,9 @@ import { Route as ApiV1JournalEntriesEntryIdRouteImport } from './routes/api/v1/
 import { Route as ApiV1LedgerChainVerificationRouteImport } from './routes/api/v1/ledger.chain-verification'
 import { Route as ApiV1MembersMemberIdRouteImport } from './routes/api/v1/members.$memberId'
 import { Route as ApiV1PaymentBatchesBatchIdRouteImport } from './routes/api/v1/payment-batches.$batchId'
+import { Route as ApiV1PurchaseInvoicesInvoiceIdRouteImport } from './routes/api/v1/purchase-invoices.$invoiceId'
 import { Route as ApiV1ReportsBalanceSheetRouteImport } from './routes/api/v1/reports.balance-sheet'
+import { Route as ApiV1ReportsCreditorAgeingRouteImport } from './routes/api/v1/reports.creditor-ageing'
 import { Route as ApiV1ReportsDunningRouteImport } from './routes/api/v1/reports.dunning'
 import { Route as ApiV1ReportsOverdueInvoicesRouteImport } from './routes/api/v1/reports.overdue-invoices'
 import { Route as ApiV1ReportsProfitAndLossRouteImport } from './routes/api/v1/reports.profit-and-loss'
@@ -79,6 +86,8 @@ import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes
 import { Route as ApiV1PaymentBatchesBatchIdInstructionsRouteImport } from './routes/api/v1/payment-batches.$batchId.instructions'
 import { Route as ApiV1PaymentBatchesBatchIdPain001RouteImport } from './routes/api/v1/payment-batches.$batchId.pain001'
 import { Route as ApiV1PaymentBatchesBatchIdTransitionsRouteImport } from './routes/api/v1/payment-batches.$batchId.transitions'
+import { Route as ApiV1PurchaseInvoicesInvoiceIdBookingRouteImport } from './routes/api/v1/purchase-invoices.$invoiceId.booking'
+import { Route as ApiV1PurchaseInvoicesInvoiceIdTransitionsRouteImport } from './routes/api/v1/purchase-invoices.$invoiceId.transitions'
 import { Route as ApiV1SalesInvoicesInvoiceIdDeliveriesRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.deliveries'
 import { Route as ApiV1SalesInvoicesInvoiceIdIssueRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.issue'
 import { Route as ApiV1SalesInvoicesInvoiceIdPdfRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.pdf'
@@ -191,11 +200,32 @@ const AppPaymentsBatchIdRoute = AppPaymentsBatchIdRouteImport.update({
   path: '/payments/$batchId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPurchasesIndexRoute = AppPurchasesIndexRouteImport.update({
+  id: '/purchases/',
+  path: '/purchases/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPurchasesInvoiceIdRoute = AppPurchasesInvoiceIdRouteImport.update({
+  id: '/purchases/$invoiceId',
+  path: '/purchases/$invoiceId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPurchasesNewRoute = AppPurchasesNewRouteImport.update({
+  id: '/purchases/new',
+  path: '/purchases/new',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppReportsBalanceSheetRoute = AppReportsBalanceSheetRouteImport.update({
   id: '/reports/balance-sheet',
   path: '/reports/balance-sheet',
   getParentRoute: () => AppRoute,
 } as any)
+const AppReportsCreditorAgeingRoute =
+  AppReportsCreditorAgeingRouteImport.update({
+    id: '/reports/creditor-ageing',
+    path: '/reports/creditor-ageing',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppReportsProfitAndLossRoute = AppReportsProfitAndLossRouteImport.update({
   id: '/reports/profit-and-loss',
   path: '/reports/profit-and-loss',
@@ -281,6 +311,11 @@ const ApiV1PaymentBatchesRoute = ApiV1PaymentBatchesRouteImport.update({
   path: '/api/v1/payment-batches',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1PurchaseInvoicesRoute = ApiV1PurchaseInvoicesRouteImport.update({
+  id: '/api/v1/purchase-invoices',
+  path: '/api/v1/purchase-invoices',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1SalesInvoicesRoute = ApiV1SalesInvoicesRouteImport.update({
   id: '/api/v1/sales-invoices',
   path: '/api/v1/sales-invoices',
@@ -345,10 +380,22 @@ const ApiV1PaymentBatchesBatchIdRoute =
     path: '/$batchId',
     getParentRoute: () => ApiV1PaymentBatchesRoute,
   } as any)
+const ApiV1PurchaseInvoicesInvoiceIdRoute =
+  ApiV1PurchaseInvoicesInvoiceIdRouteImport.update({
+    id: '/$invoiceId',
+    path: '/$invoiceId',
+    getParentRoute: () => ApiV1PurchaseInvoicesRoute,
+  } as any)
 const ApiV1ReportsBalanceSheetRoute =
   ApiV1ReportsBalanceSheetRouteImport.update({
     id: '/api/v1/reports/balance-sheet',
     path: '/api/v1/reports/balance-sheet',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1ReportsCreditorAgeingRoute =
+  ApiV1ReportsCreditorAgeingRouteImport.update({
+    id: '/api/v1/reports/creditor-ageing',
+    path: '/api/v1/reports/creditor-ageing',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiV1ReportsDunningRoute = ApiV1ReportsDunningRouteImport.update({
@@ -457,6 +504,18 @@ const ApiV1PaymentBatchesBatchIdTransitionsRoute =
     path: '/transitions',
     getParentRoute: () => ApiV1PaymentBatchesBatchIdRoute,
   } as any)
+const ApiV1PurchaseInvoicesInvoiceIdBookingRoute =
+  ApiV1PurchaseInvoicesInvoiceIdBookingRouteImport.update({
+    id: '/booking',
+    path: '/booking',
+    getParentRoute: () => ApiV1PurchaseInvoicesInvoiceIdRoute,
+  } as any)
+const ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute =
+  ApiV1PurchaseInvoicesInvoiceIdTransitionsRouteImport.update({
+    id: '/transitions',
+    path: '/transitions',
+    getParentRoute: () => ApiV1PurchaseInvoicesInvoiceIdRoute,
+  } as any)
 const ApiV1SalesInvoicesInvoiceIdDeliveriesRoute =
   ApiV1SalesInvoicesInvoiceIdDeliveriesRouteImport.update({
     id: '/deliveries',
@@ -544,7 +603,10 @@ export interface FileRoutesByFullPath {
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
   '/payments/$batchId': typeof AppPaymentsBatchIdRoute
+  '/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
+  '/purchases/new': typeof AppPurchasesNewRoute
   '/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
+  '/reports/creditor-ageing': typeof AppReportsCreditorAgeingRoute
   '/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/vat/$period': typeof AppVatPeriodRoute
@@ -561,12 +623,14 @@ export interface FileRoutesByFullPath {
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
+  '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/bank/': typeof AppBankIndexRoute
   '/entries/': typeof AppEntriesIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
   '/payments/': typeof AppPaymentsIndexRoute
+  '/purchases/': typeof AppPurchasesIndexRoute
   '/vat/': typeof AppVatIndexRoute
   '/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
@@ -578,7 +642,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
   '/api/v1/payment-batches/$batchId': typeof ApiV1PaymentBatchesBatchIdRouteWithChildren
+  '/api/v1/purchase-invoices/$invoiceId': typeof ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/creditor-ageing': typeof ApiV1ReportsCreditorAgeingRoute
   '/api/v1/reports/dunning': typeof ApiV1ReportsDunningRoute
   '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
@@ -598,6 +664,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
   '/api/v1/payment-batches/$batchId/transitions': typeof ApiV1PaymentBatchesBatchIdTransitionsRoute
+  '/api/v1/purchase-invoices/$invoiceId/booking': typeof ApiV1PurchaseInvoicesInvoiceIdBookingRoute
+  '/api/v1/purchase-invoices/$invoiceId/transitions': typeof ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute
   '/api/v1/sales-invoices/$invoiceId/deliveries': typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
   '/api/v1/sales-invoices/$invoiceId/pdf': typeof ApiV1SalesInvoicesInvoiceIdPdfRoute
@@ -627,7 +695,10 @@ export interface FileRoutesByTo {
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
   '/payments/$batchId': typeof AppPaymentsBatchIdRoute
+  '/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
+  '/purchases/new': typeof AppPurchasesNewRoute
   '/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
+  '/reports/creditor-ageing': typeof AppReportsCreditorAgeingRoute
   '/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/vat/$period': typeof AppVatPeriodRoute
@@ -644,12 +715,14 @@ export interface FileRoutesByTo {
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
+  '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/bank': typeof AppBankIndexRoute
   '/entries': typeof AppEntriesIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
   '/payments': typeof AppPaymentsIndexRoute
+  '/purchases': typeof AppPurchasesIndexRoute
   '/vat': typeof AppVatIndexRoute
   '/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
@@ -661,7 +734,9 @@ export interface FileRoutesByTo {
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
   '/api/v1/payment-batches/$batchId': typeof ApiV1PaymentBatchesBatchIdRouteWithChildren
+  '/api/v1/purchase-invoices/$invoiceId': typeof ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/creditor-ageing': typeof ApiV1ReportsCreditorAgeingRoute
   '/api/v1/reports/dunning': typeof ApiV1ReportsDunningRoute
   '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
@@ -681,6 +756,8 @@ export interface FileRoutesByTo {
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
   '/api/v1/payment-batches/$batchId/transitions': typeof ApiV1PaymentBatchesBatchIdTransitionsRoute
+  '/api/v1/purchase-invoices/$invoiceId/booking': typeof ApiV1PurchaseInvoicesInvoiceIdBookingRoute
+  '/api/v1/purchase-invoices/$invoiceId/transitions': typeof ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute
   '/api/v1/sales-invoices/$invoiceId/deliveries': typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
   '/api/v1/sales-invoices/$invoiceId/pdf': typeof ApiV1SalesInvoicesInvoiceIdPdfRoute
@@ -712,7 +789,10 @@ export interface FileRoutesById {
   '/_app/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/_app/invoices/new': typeof AppInvoicesNewRoute
   '/_app/payments/$batchId': typeof AppPaymentsBatchIdRoute
+  '/_app/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
+  '/_app/purchases/new': typeof AppPurchasesNewRoute
   '/_app/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
+  '/_app/reports/creditor-ageing': typeof AppReportsCreditorAgeingRoute
   '/_app/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/_app/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/_app/vat/$period': typeof AppVatPeriodRoute
@@ -729,12 +809,14 @@ export interface FileRoutesById {
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
+  '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/_app/bank/': typeof AppBankIndexRoute
   '/_app/entries/': typeof AppEntriesIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
   '/_app/payments/': typeof AppPaymentsIndexRoute
+  '/_app/purchases/': typeof AppPurchasesIndexRoute
   '/_app/vat/': typeof AppVatIndexRoute
   '/_app/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
@@ -746,7 +828,9 @@ export interface FileRoutesById {
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
   '/api/v1/payment-batches/$batchId': typeof ApiV1PaymentBatchesBatchIdRouteWithChildren
+  '/api/v1/purchase-invoices/$invoiceId': typeof ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/creditor-ageing': typeof ApiV1ReportsCreditorAgeingRoute
   '/api/v1/reports/dunning': typeof ApiV1ReportsDunningRoute
   '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
@@ -766,6 +850,8 @@ export interface FileRoutesById {
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
   '/api/v1/payment-batches/$batchId/transitions': typeof ApiV1PaymentBatchesBatchIdTransitionsRoute
+  '/api/v1/purchase-invoices/$invoiceId/booking': typeof ApiV1PurchaseInvoicesInvoiceIdBookingRoute
+  '/api/v1/purchase-invoices/$invoiceId/transitions': typeof ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute
   '/api/v1/sales-invoices/$invoiceId/deliveries': typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
   '/api/v1/sales-invoices/$invoiceId/pdf': typeof ApiV1SalesInvoicesInvoiceIdPdfRoute
@@ -797,7 +883,10 @@ export interface FileRouteTypes {
     | '/invoices/$invoiceId'
     | '/invoices/new'
     | '/payments/$batchId'
+    | '/purchases/$invoiceId'
+    | '/purchases/new'
     | '/reports/balance-sheet'
+    | '/reports/creditor-ageing'
     | '/reports/profit-and-loss'
     | '/reports/trial-balance'
     | '/vat/$period'
@@ -814,12 +903,14 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries'
     | '/api/v1/members'
     | '/api/v1/payment-batches'
+    | '/api/v1/purchase-invoices'
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
     | '/bank/'
     | '/entries/'
     | '/invoices/'
     | '/payments/'
+    | '/purchases/'
     | '/vat/'
     | '/vat/icp/$period'
     | '/api/v1/bank-match-rules/$ruleId'
@@ -831,7 +922,9 @@ export interface FileRouteTypes {
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
     | '/api/v1/payment-batches/$batchId'
+    | '/api/v1/purchase-invoices/$invoiceId'
     | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/creditor-ageing'
     | '/api/v1/reports/dunning'
     | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
@@ -851,6 +944,8 @@ export interface FileRouteTypes {
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
     | '/api/v1/payment-batches/$batchId/transitions'
+    | '/api/v1/purchase-invoices/$invoiceId/booking'
+    | '/api/v1/purchase-invoices/$invoiceId/transitions'
     | '/api/v1/sales-invoices/$invoiceId/deliveries'
     | '/api/v1/sales-invoices/$invoiceId/issue'
     | '/api/v1/sales-invoices/$invoiceId/pdf'
@@ -880,7 +975,10 @@ export interface FileRouteTypes {
     | '/invoices/$invoiceId'
     | '/invoices/new'
     | '/payments/$batchId'
+    | '/purchases/$invoiceId'
+    | '/purchases/new'
     | '/reports/balance-sheet'
+    | '/reports/creditor-ageing'
     | '/reports/profit-and-loss'
     | '/reports/trial-balance'
     | '/vat/$period'
@@ -897,12 +995,14 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries'
     | '/api/v1/members'
     | '/api/v1/payment-batches'
+    | '/api/v1/purchase-invoices'
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
     | '/bank'
     | '/entries'
     | '/invoices'
     | '/payments'
+    | '/purchases'
     | '/vat'
     | '/vat/icp/$period'
     | '/api/v1/bank-match-rules/$ruleId'
@@ -914,7 +1014,9 @@ export interface FileRouteTypes {
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
     | '/api/v1/payment-batches/$batchId'
+    | '/api/v1/purchase-invoices/$invoiceId'
     | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/creditor-ageing'
     | '/api/v1/reports/dunning'
     | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
@@ -934,6 +1036,8 @@ export interface FileRouteTypes {
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
     | '/api/v1/payment-batches/$batchId/transitions'
+    | '/api/v1/purchase-invoices/$invoiceId/booking'
+    | '/api/v1/purchase-invoices/$invoiceId/transitions'
     | '/api/v1/sales-invoices/$invoiceId/deliveries'
     | '/api/v1/sales-invoices/$invoiceId/issue'
     | '/api/v1/sales-invoices/$invoiceId/pdf'
@@ -964,7 +1068,10 @@ export interface FileRouteTypes {
     | '/_app/invoices/$invoiceId'
     | '/_app/invoices/new'
     | '/_app/payments/$batchId'
+    | '/_app/purchases/$invoiceId'
+    | '/_app/purchases/new'
     | '/_app/reports/balance-sheet'
+    | '/_app/reports/creditor-ageing'
     | '/_app/reports/profit-and-loss'
     | '/_app/reports/trial-balance'
     | '/_app/vat/$period'
@@ -981,12 +1088,14 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries'
     | '/api/v1/members'
     | '/api/v1/payment-batches'
+    | '/api/v1/purchase-invoices'
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
     | '/_app/bank/'
     | '/_app/entries/'
     | '/_app/invoices/'
     | '/_app/payments/'
+    | '/_app/purchases/'
     | '/_app/vat/'
     | '/_app/vat/icp/$period'
     | '/api/v1/bank-match-rules/$ruleId'
@@ -998,7 +1107,9 @@ export interface FileRouteTypes {
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
     | '/api/v1/payment-batches/$batchId'
+    | '/api/v1/purchase-invoices/$invoiceId'
     | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/creditor-ageing'
     | '/api/v1/reports/dunning'
     | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
@@ -1018,6 +1129,8 @@ export interface FileRouteTypes {
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
     | '/api/v1/payment-batches/$batchId/transitions'
+    | '/api/v1/purchase-invoices/$invoiceId/booking'
+    | '/api/v1/purchase-invoices/$invoiceId/transitions'
     | '/api/v1/sales-invoices/$invoiceId/deliveries'
     | '/api/v1/sales-invoices/$invoiceId/issue'
     | '/api/v1/sales-invoices/$invoiceId/pdf'
@@ -1050,6 +1163,7 @@ export interface RootRouteChildren {
   ApiV1JournalEntriesRoute: typeof ApiV1JournalEntriesRouteWithChildren
   ApiV1MembersRoute: typeof ApiV1MembersRouteWithChildren
   ApiV1PaymentBatchesRoute: typeof ApiV1PaymentBatchesRouteWithChildren
+  ApiV1PurchaseInvoicesRoute: typeof ApiV1PurchaseInvoicesRouteWithChildren
   ApiV1SalesInvoicesRoute: typeof ApiV1SalesInvoicesRouteWithChildren
   ApiV1TaxCodesRoute: typeof ApiV1TaxCodesRoute
   ApiV1EntitiesEntityIdRoute: typeof ApiV1EntitiesEntityIdRoute
@@ -1057,6 +1171,7 @@ export interface RootRouteChildren {
   ApiV1ImportsAuditFileRoute: typeof ApiV1ImportsAuditFileRoute
   ApiV1LedgerChainVerificationRoute: typeof ApiV1LedgerChainVerificationRoute
   ApiV1ReportsBalanceSheetRoute: typeof ApiV1ReportsBalanceSheetRoute
+  ApiV1ReportsCreditorAgeingRoute: typeof ApiV1ReportsCreditorAgeingRoute
   ApiV1ReportsDunningRoute: typeof ApiV1ReportsDunningRoute
   ApiV1ReportsOverdueInvoicesRoute: typeof ApiV1ReportsOverdueInvoicesRoute
   ApiV1ReportsProfitAndLossRoute: typeof ApiV1ReportsProfitAndLossRoute
@@ -1215,11 +1330,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPaymentsBatchIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/purchases/': {
+      id: '/_app/purchases/'
+      path: '/purchases'
+      fullPath: '/purchases/'
+      preLoaderRoute: typeof AppPurchasesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/purchases/$invoiceId': {
+      id: '/_app/purchases/$invoiceId'
+      path: '/purchases/$invoiceId'
+      fullPath: '/purchases/$invoiceId'
+      preLoaderRoute: typeof AppPurchasesInvoiceIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/purchases/new': {
+      id: '/_app/purchases/new'
+      path: '/purchases/new'
+      fullPath: '/purchases/new'
+      preLoaderRoute: typeof AppPurchasesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/reports/balance-sheet': {
       id: '/_app/reports/balance-sheet'
       path: '/reports/balance-sheet'
       fullPath: '/reports/balance-sheet'
       preLoaderRoute: typeof AppReportsBalanceSheetRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports/creditor-ageing': {
+      id: '/_app/reports/creditor-ageing'
+      path: '/reports/creditor-ageing'
+      fullPath: '/reports/creditor-ageing'
+      preLoaderRoute: typeof AppReportsCreditorAgeingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/reports/profit-and-loss': {
@@ -1341,6 +1484,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PaymentBatchesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/purchase-invoices': {
+      id: '/api/v1/purchase-invoices'
+      path: '/api/v1/purchase-invoices'
+      fullPath: '/api/v1/purchase-invoices'
+      preLoaderRoute: typeof ApiV1PurchaseInvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/sales-invoices': {
       id: '/api/v1/sales-invoices'
       path: '/api/v1/sales-invoices'
@@ -1425,11 +1575,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PaymentBatchesBatchIdRouteImport
       parentRoute: typeof ApiV1PaymentBatchesRoute
     }
+    '/api/v1/purchase-invoices/$invoiceId': {
+      id: '/api/v1/purchase-invoices/$invoiceId'
+      path: '/$invoiceId'
+      fullPath: '/api/v1/purchase-invoices/$invoiceId'
+      preLoaderRoute: typeof ApiV1PurchaseInvoicesInvoiceIdRouteImport
+      parentRoute: typeof ApiV1PurchaseInvoicesRoute
+    }
     '/api/v1/reports/balance-sheet': {
       id: '/api/v1/reports/balance-sheet'
       path: '/api/v1/reports/balance-sheet'
       fullPath: '/api/v1/reports/balance-sheet'
       preLoaderRoute: typeof ApiV1ReportsBalanceSheetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/reports/creditor-ageing': {
+      id: '/api/v1/reports/creditor-ageing'
+      path: '/api/v1/reports/creditor-ageing'
+      fullPath: '/api/v1/reports/creditor-ageing'
+      preLoaderRoute: typeof ApiV1ReportsCreditorAgeingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/reports/dunning': {
@@ -1565,6 +1729,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PaymentBatchesBatchIdTransitionsRouteImport
       parentRoute: typeof ApiV1PaymentBatchesBatchIdRoute
     }
+    '/api/v1/purchase-invoices/$invoiceId/booking': {
+      id: '/api/v1/purchase-invoices/$invoiceId/booking'
+      path: '/booking'
+      fullPath: '/api/v1/purchase-invoices/$invoiceId/booking'
+      preLoaderRoute: typeof ApiV1PurchaseInvoicesInvoiceIdBookingRouteImport
+      parentRoute: typeof ApiV1PurchaseInvoicesInvoiceIdRoute
+    }
+    '/api/v1/purchase-invoices/$invoiceId/transitions': {
+      id: '/api/v1/purchase-invoices/$invoiceId/transitions'
+      path: '/transitions'
+      fullPath: '/api/v1/purchase-invoices/$invoiceId/transitions'
+      preLoaderRoute: typeof ApiV1PurchaseInvoicesInvoiceIdTransitionsRouteImport
+      parentRoute: typeof ApiV1PurchaseInvoicesInvoiceIdRoute
+    }
     '/api/v1/sales-invoices/$invoiceId/deliveries': {
       id: '/api/v1/sales-invoices/$invoiceId/deliveries'
       path: '/deliveries'
@@ -1665,7 +1843,10 @@ interface AppRouteChildren {
   AppInvoicesInvoiceIdRoute: typeof AppInvoicesInvoiceIdRoute
   AppInvoicesNewRoute: typeof AppInvoicesNewRoute
   AppPaymentsBatchIdRoute: typeof AppPaymentsBatchIdRoute
+  AppPurchasesInvoiceIdRoute: typeof AppPurchasesInvoiceIdRoute
+  AppPurchasesNewRoute: typeof AppPurchasesNewRoute
   AppReportsBalanceSheetRoute: typeof AppReportsBalanceSheetRoute
+  AppReportsCreditorAgeingRoute: typeof AppReportsCreditorAgeingRoute
   AppReportsProfitAndLossRoute: typeof AppReportsProfitAndLossRoute
   AppReportsTrialBalanceRoute: typeof AppReportsTrialBalanceRoute
   AppVatPeriodRoute: typeof AppVatPeriodRoute
@@ -1673,6 +1854,7 @@ interface AppRouteChildren {
   AppEntriesIndexRoute: typeof AppEntriesIndexRoute
   AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
   AppPaymentsIndexRoute: typeof AppPaymentsIndexRoute
+  AppPurchasesIndexRoute: typeof AppPurchasesIndexRoute
   AppVatIndexRoute: typeof AppVatIndexRoute
   AppVatIcpPeriodRoute: typeof AppVatIcpPeriodRoute
 }
@@ -1690,7 +1872,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppInvoicesInvoiceIdRoute: AppInvoicesInvoiceIdRoute,
   AppInvoicesNewRoute: AppInvoicesNewRoute,
   AppPaymentsBatchIdRoute: AppPaymentsBatchIdRoute,
+  AppPurchasesInvoiceIdRoute: AppPurchasesInvoiceIdRoute,
+  AppPurchasesNewRoute: AppPurchasesNewRoute,
   AppReportsBalanceSheetRoute: AppReportsBalanceSheetRoute,
+  AppReportsCreditorAgeingRoute: AppReportsCreditorAgeingRoute,
   AppReportsProfitAndLossRoute: AppReportsProfitAndLossRoute,
   AppReportsTrialBalanceRoute: AppReportsTrialBalanceRoute,
   AppVatPeriodRoute: AppVatPeriodRoute,
@@ -1698,6 +1883,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEntriesIndexRoute: AppEntriesIndexRoute,
   AppInvoicesIndexRoute: AppInvoicesIndexRoute,
   AppPaymentsIndexRoute: AppPaymentsIndexRoute,
+  AppPurchasesIndexRoute: AppPurchasesIndexRoute,
   AppVatIndexRoute: AppVatIndexRoute,
   AppVatIcpPeriodRoute: AppVatIcpPeriodRoute,
 }
@@ -1831,6 +2017,38 @@ const ApiV1PaymentBatchesRouteChildren: ApiV1PaymentBatchesRouteChildren = {
 const ApiV1PaymentBatchesRouteWithChildren =
   ApiV1PaymentBatchesRoute._addFileChildren(ApiV1PaymentBatchesRouteChildren)
 
+interface ApiV1PurchaseInvoicesInvoiceIdRouteChildren {
+  ApiV1PurchaseInvoicesInvoiceIdBookingRoute: typeof ApiV1PurchaseInvoicesInvoiceIdBookingRoute
+  ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute: typeof ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute
+}
+
+const ApiV1PurchaseInvoicesInvoiceIdRouteChildren: ApiV1PurchaseInvoicesInvoiceIdRouteChildren =
+  {
+    ApiV1PurchaseInvoicesInvoiceIdBookingRoute:
+      ApiV1PurchaseInvoicesInvoiceIdBookingRoute,
+    ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute:
+      ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute,
+  }
+
+const ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren =
+  ApiV1PurchaseInvoicesInvoiceIdRoute._addFileChildren(
+    ApiV1PurchaseInvoicesInvoiceIdRouteChildren,
+  )
+
+interface ApiV1PurchaseInvoicesRouteChildren {
+  ApiV1PurchaseInvoicesInvoiceIdRoute: typeof ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren
+}
+
+const ApiV1PurchaseInvoicesRouteChildren: ApiV1PurchaseInvoicesRouteChildren = {
+  ApiV1PurchaseInvoicesInvoiceIdRoute:
+    ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren,
+}
+
+const ApiV1PurchaseInvoicesRouteWithChildren =
+  ApiV1PurchaseInvoicesRoute._addFileChildren(
+    ApiV1PurchaseInvoicesRouteChildren,
+  )
+
 interface ApiV1SalesInvoicesInvoiceIdRouteChildren {
   ApiV1SalesInvoicesInvoiceIdDeliveriesRoute: typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   ApiV1SalesInvoicesInvoiceIdIssueRoute: typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
@@ -1903,6 +2121,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1JournalEntriesRoute: ApiV1JournalEntriesRouteWithChildren,
   ApiV1MembersRoute: ApiV1MembersRouteWithChildren,
   ApiV1PaymentBatchesRoute: ApiV1PaymentBatchesRouteWithChildren,
+  ApiV1PurchaseInvoicesRoute: ApiV1PurchaseInvoicesRouteWithChildren,
   ApiV1SalesInvoicesRoute: ApiV1SalesInvoicesRouteWithChildren,
   ApiV1TaxCodesRoute: ApiV1TaxCodesRoute,
   ApiV1EntitiesEntityIdRoute: ApiV1EntitiesEntityIdRoute,
@@ -1910,6 +2129,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ImportsAuditFileRoute: ApiV1ImportsAuditFileRoute,
   ApiV1LedgerChainVerificationRoute: ApiV1LedgerChainVerificationRoute,
   ApiV1ReportsBalanceSheetRoute: ApiV1ReportsBalanceSheetRoute,
+  ApiV1ReportsCreditorAgeingRoute: ApiV1ReportsCreditorAgeingRoute,
   ApiV1ReportsDunningRoute: ApiV1ReportsDunningRoute,
   ApiV1ReportsOverdueInvoicesRoute: ApiV1ReportsOverdueInvoicesRoute,
   ApiV1ReportsProfitAndLossRoute: ApiV1ReportsProfitAndLossRoute,

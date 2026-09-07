@@ -416,6 +416,42 @@ export const routeManifest: readonly RouteBinding[] = [
     path: '/vat/filings/{filingId}/status',
     module: 'api/v1/vat.filings.$filingId.status.ts',
   },
+  {
+    operationId: 'purchase.listInvoices',
+    method: 'GET',
+    path: '/purchase-invoices',
+    module: 'api/v1/purchase-invoices.ts',
+  },
+  {
+    operationId: 'purchase.captureInvoice',
+    method: 'POST',
+    path: '/purchase-invoices',
+    module: 'api/v1/purchase-invoices.ts',
+  },
+  {
+    operationId: 'purchase.getInvoice',
+    method: 'GET',
+    path: '/purchase-invoices/{invoiceId}',
+    module: 'api/v1/purchase-invoices.$invoiceId.ts',
+  },
+  {
+    operationId: 'purchase.bookInvoice',
+    method: 'POST',
+    path: '/purchase-invoices/{invoiceId}/booking',
+    module: 'api/v1/purchase-invoices.$invoiceId.booking.ts',
+  },
+  {
+    operationId: 'purchase.transitionInvoice',
+    method: 'POST',
+    path: '/purchase-invoices/{invoiceId}/transitions',
+    module: 'api/v1/purchase-invoices.$invoiceId.transitions.ts',
+  },
+  {
+    operationId: 'purchase.getCreditorAgeing',
+    method: 'GET',
+    path: '/reports/creditor-ageing',
+    module: 'api/v1/reports.creditor-ageing.ts',
+  },
 ]
 
 export interface ContractViolation {

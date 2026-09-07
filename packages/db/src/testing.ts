@@ -269,6 +269,55 @@ export async function seedSalesConfiguration(database: Database, entityId: strin
       deductibility: 'full',
       validFrom: '2020-01-01',
     },
+    // Representation costs, half deductible. A real Dutch rule shape, and the
+    // only way a test can exercise the pro rata split in a purchase posting.
+    {
+      id: uuidv7(),
+      entityId,
+      code: 'VH21-PRO',
+      description: 'Voorbelasting hoog 21%, 50% aftrekbaar',
+      rateBasisPoints: 2100,
+      direction: 'input',
+      accountId: receivable,
+      ublCategory: 'S',
+      vatRubriek: '5b',
+      scope: 'domestic',
+      deductibility: 'pro_rata',
+      proRataBasisPoints: 5_000,
+      validFrom: '2020-01-01',
+    },
+    // The two halves of an intra-community acquisition. Where M3 and M4
+    // interlock: one purchase, two tax codes, rubriek 4b and rubriek 5b.
+    {
+      id: uuidv7(),
+      entityId,
+      code: 'ICV21',
+      description: 'Intracommunautaire verwerving 21%, verschuldigd',
+      rateBasisPoints: 2100,
+      direction: 'input',
+      accountId: payable,
+      ublCategory: 'K',
+      baseRubriek: '4b',
+      vatRubriek: '4b',
+      scope: 'intra_community_acquisition',
+      supplyKind: 'goods',
+      deductionCode: 'ICV21-VOOR',
+      validFrom: '2020-01-01',
+    },
+    {
+      id: uuidv7(),
+      entityId,
+      code: 'ICV21-VOOR',
+      description: 'Intracommunautaire verwerving 21%, voorbelasting',
+      rateBasisPoints: 2100,
+      direction: 'input',
+      accountId: receivable,
+      ublCategory: 'K',
+      vatRubriek: '5b',
+      scope: 'intra_community_acquisition',
+      deductibility: 'full',
+      validFrom: '2020-01-01',
+    },
   ])
 }
 

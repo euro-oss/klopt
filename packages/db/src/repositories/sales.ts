@@ -731,6 +731,9 @@ export class SalesRepository {
     readonly paymentTermsDays: number
     readonly electronicAddress?: string | null
     readonly electronicAddressScheme?: string | null
+    /** Where a payment run sends the money. Without it a supplier cannot be paid. */
+    readonly iban?: string | null
+    readonly bic?: string | null
     readonly address?: {
       readonly street: string | null
       readonly houseNumber: string | null

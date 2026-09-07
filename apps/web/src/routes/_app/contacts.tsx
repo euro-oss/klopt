@@ -214,6 +214,7 @@ function Contacts() {
             {field('postalCode', 'Postcode')}
             {field('city', 'Plaats')}
             {field('countryCode', 'Land', { defaultValue: 'NL', maxLength: 2 })}
+            {field('iban', 'IBAN', { placeholder: 'NL02ABNA0123456789' })}
           </div>
 
           <div className="flex items-end gap-6">

@@ -42,6 +42,7 @@ const batch = (overrides: Partial<PaymentBatch> = {}): PaymentBatch => ({
   debtorIban: 'NL02ABNA0123456789',
   debtorBic: 'ABNANL2A',
   requestedExecutionDate: '2026-04-03',
+  approvedAt: '2026-04-01T09:30:00.000Z',
   instructions: [
     {
       id: 'i1',
@@ -201,6 +202,26 @@ describe('validating a batch', () => {
 
   it('adds up to the control sum', () => {
     expect(batchTotal(batch())).toBe(125_550n)
+  })
+})
+
+describe('reproducibility', () => {
+  it('stamps CreDtTm from the approval, so two downloads are the same bytes', () => {
+    // The evidence chain records the hash of what went to the bank. A
+    // `CreDtTm` read from the clock makes a second download a different file,
+    // which used to make the handler test pass or fail depending on whether
+    // the two calls happened to straddle a second.
+    const approved = batch({ approvedAt: '2026-04-01T09:30:00.000Z' })
+    expect(generatePain001(approved)).toBe(generatePain001(approved))
+    expect(generatePain001(approved)).toContain('<CreDtTm>2026-04-01T09:30:00</CreDtTm>')
+  })
+
+  it('falls back to the clock only when there is no approval', () => {
+    // An unapproved batch has no payment file, so this is unreachable in
+    // practice — but a generator that produced nothing for a missing timestamp
+    // would be worse than one that produced something.
+    const xml = generatePain001(batch({ approvedAt: null }))
+    expect(xml).toMatch(/<CreDtTm>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}<\/CreDtTm>/)
   })
 })
 

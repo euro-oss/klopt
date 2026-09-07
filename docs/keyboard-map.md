@@ -41,6 +41,8 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `g` then `w`   | Go to winst- en verliesrekening                         |
 | `g` then `p`   | Go to proefbalans (trial balance)                       |
 | `g` then `g`   | Go to BTW-aangifte (aan**g**ifte)                       |
+| `g` then `n`   | Go to inkoopfacturen (i**n**koop)                       |
+| `n` then `i`   | New inkoopfactuur                                       |
 | `n` then `j`   | New journal entry                                       |
 | `/`            | Focus search                                            |
 | `Escape`       | Close overlay, cancel edit, clear focus — in that order |

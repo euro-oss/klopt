@@ -55,6 +55,16 @@ export const PERMISSIONS = {
    */
   fileVat: 'vat:file',
   /**
+   * Authorise a purchase invoice for payment.
+   *
+   * Separate from `ledger:post` because entering a cost and authorising it are
+   * different acts, and the person doing a hundred of the first should not be
+   * the only check on the second. Unlike a payment file this does allow
+   * self-approval: the two-person control stands between the books and the
+   * bank, and a one-person BV has to be able to run.
+   */
+  approvePurchase: 'purchase:approve',
+  /**
    * Create a new administration. Instance-scoped, not entity-scoped: it is held
    * by a signed-in human and by no role and no API token, because a token is
    * issued by one administration and must not be able to create another.
@@ -91,6 +101,7 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     PERMISSIONS.preparePayments,
     PERMISSIONS.approvePayments,
     PERMISSIONS.fileVat,
+    PERMISSIONS.approvePurchase,
   ],
   accountant: [
     PERMISSIONS.read,
@@ -103,6 +114,7 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     PERMISSIONS.preparePayments,
     PERMISSIONS.approvePayments,
     PERMISSIONS.fileVat,
+    PERMISSIONS.approvePurchase,
   ],
   /**
    * A bookkeeper prepares payments and cannot approve them. That is the

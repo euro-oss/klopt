@@ -114,6 +114,7 @@ export class PaymentsRepository {
         requestedExecutionDate: paymentBatches.requestedExecutionDate,
         submittedBy: paymentBatches.submittedBy,
         approvedBy: paymentBatches.approvedBy,
+        approvedAt: paymentBatches.approvedAt,
         exportedHash: paymentBatches.exportedHash,
         debtorIban: bankAccounts.iban,
         debtorName: bankAccounts.name,
@@ -146,6 +147,9 @@ export class PaymentsRepository {
         // table does not carry one. `NOTPROVIDED` is written instead.
         debtorBic: null,
         requestedExecutionDate: row.requestedExecutionDate,
+        // Stamped into `CreDtTm`, so the file is byte-identical however often
+        // it is downloaded. See the note in `pain001.ts`.
+        approvedAt: row.approvedAt?.toISOString() ?? null,
         instructions: instructions.map((instruction) => ({
           id: instruction.id,
           endToEndId: instruction.endToEndId,
