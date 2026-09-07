@@ -62,6 +62,14 @@ probably yes — but "probably" is not what belongs under a public repository.
 blocker. Ask them: may the RGS workbook be converted to another format and that
 derived file redistributed under Apache-2.0, with attribution?
 
+> **Status, 2026-09-07.** The maintainer has decided to proceed on the
+> assumption that this is allowed, and the generated file stays in the
+> repository. That is a **provisional call, not a confirmation** — nobody has
+> asked the RGS Beheergroep yet, and this note is here so the distinction does
+> not quietly evaporate. The question is still open and still worth asking
+> before any wider announcement; the fallback below is still the answer if it
+> comes back no.
+
 The fallback is deliberately cheap, so the answer does not need to arrive before
 anything else can be built:
 

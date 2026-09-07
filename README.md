@@ -174,6 +174,22 @@ turn up under **Aanmaningen** with the reminder each one is due: one per stage,
 ever, and never a courtesy after a final demand
 ([ADR 0018](docs/decisions/0018-dunning-stage-is-derived.md)).
 
+Read a bank statement in — CAMT.053 or MT940, whichever your bank gives you:
+
+```bash
+curl -X POST localhost:3000/api/v1/bank-statements \
+  -H "authorization: Bearer $KLOPT_TOKEN" \
+  -H 'content-type: application/json' \
+  -d "$(jq -n --arg c "$(cat statement.940)" \
+        '{bankAccountId: $ENV.ACCOUNT_ID, content: $c, dryRun: true}')"
+```
+
+`dryRun` says what it would do and writes nothing: how many lines are new, how
+many are already there, and whether a statement is missing from the sequence. A
+file whose entries do not add up to its closing balance is refused outright,
+because a truncated statement becomes a wrong balance that everybody trusts.
+Matching those lines to invoices is next.
+
 Then leave with your data:
 
 ```bash

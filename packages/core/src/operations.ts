@@ -414,3 +414,48 @@ export const membershipOperations: Readonly<Record<string, OperationDefinition>>
     idempotent: true,
   }),
 }
+
+/**
+ * Banking (M2, spec 7.4).
+ *
+ * Importing a statement is a write and `proposal` for an agent: it can create
+ * hundreds of transactions, and an agent that imports the wrong file into the
+ * wrong account has produced a wrong balance in a place people trust.
+ */
+export const bankingOperations: Readonly<Record<string, OperationDefinition>> = {
+  listBankAccounts: defineOperation({
+    id: 'bank.listAccounts',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Bank accounts, with their consent state and reconciliation position.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  createBankAccount: defineOperation({
+    id: 'bank.createAccount',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Record a bank account and the ledger account it posts to.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  importStatement: defineOperation({
+    id: 'bank.importStatement',
+    kind: 'write',
+    permission: 'ledger:import',
+    summary: 'Import a CAMT.053 or MT940 file. Supports dry run. Deduplicates per entry.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  listTransactions: defineOperation({
+    id: 'bank.listTransactions',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Bank transactions, filterable by account and match status.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+}

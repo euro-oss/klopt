@@ -15,6 +15,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignOutRouteImport } from './routes/sign-out'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
+import { Route as AppBankRouteImport } from './routes/_app/bank'
 import { Route as AppContactsRouteImport } from './routes/_app/contacts'
 import { Route as AppDunningRouteImport } from './routes/_app/dunning'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
@@ -30,6 +31,9 @@ import { Route as AppReportsProfitAndLossRouteImport } from './routes/_app/repor
 import { Route as AppReportsTrialBalanceRouteImport } from './routes/_app/reports.trial-balance'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as ApiV1AccountsRouteImport } from './routes/api/v1/accounts'
+import { Route as ApiV1BankAccountsRouteImport } from './routes/api/v1/bank-accounts'
+import { Route as ApiV1BankStatementsRouteImport } from './routes/api/v1/bank-statements'
+import { Route as ApiV1BankTransactionsRouteImport } from './routes/api/v1/bank-transactions'
 import { Route as ApiV1ContactsRouteImport } from './routes/api/v1/contacts'
 import { Route as ApiV1EntityRouteImport } from './routes/api/v1/entity'
 import { Route as ApiV1FiscalYearsRouteImport } from './routes/api/v1/fiscal-years'
@@ -90,6 +94,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppAccountsRoute = AppAccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBankRoute = AppBankRouteImport.update({
+  id: '/bank',
+  path: '/bank',
   getParentRoute: () => AppRoute,
 } as any)
 const AppContactsRoute = AppContactsRouteImport.update({
@@ -165,6 +174,21 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 const ApiV1AccountsRoute = ApiV1AccountsRouteImport.update({
   id: '/api/v1/accounts',
   path: '/api/v1/accounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1BankAccountsRoute = ApiV1BankAccountsRouteImport.update({
+  id: '/api/v1/bank-accounts',
+  path: '/api/v1/bank-accounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1BankStatementsRoute = ApiV1BankStatementsRouteImport.update({
+  id: '/api/v1/bank-statements',
+  path: '/api/v1/bank-statements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1BankTransactionsRoute = ApiV1BankTransactionsRouteImport.update({
+  id: '/api/v1/bank-transactions',
+  path: '/api/v1/bank-transactions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ContactsRoute = ApiV1ContactsRouteImport.update({
@@ -348,6 +372,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
+  '/bank': typeof AppBankRoute
   '/contacts': typeof AppContactsRoute
   '/dunning': typeof AppDunningRoute
   '/members': typeof AppMembersRoute
@@ -361,6 +386,9 @@ export interface FileRoutesByFullPath {
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
+  '/api/v1/bank-accounts': typeof ApiV1BankAccountsRoute
+  '/api/v1/bank-statements': typeof ApiV1BankStatementsRoute
+  '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRoute
   '/api/v1/contacts': typeof ApiV1ContactsRoute
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
@@ -401,6 +429,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
+  '/bank': typeof AppBankRoute
   '/contacts': typeof AppContactsRoute
   '/dunning': typeof AppDunningRoute
   '/members': typeof AppMembersRoute
@@ -415,6 +444,9 @@ export interface FileRoutesByTo {
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
+  '/api/v1/bank-accounts': typeof ApiV1BankAccountsRoute
+  '/api/v1/bank-statements': typeof ApiV1BankStatementsRoute
+  '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRoute
   '/api/v1/contacts': typeof ApiV1ContactsRoute
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
@@ -457,6 +489,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/_app/accounts': typeof AppAccountsRoute
+  '/_app/bank': typeof AppBankRoute
   '/_app/contacts': typeof AppContactsRoute
   '/_app/dunning': typeof AppDunningRoute
   '/_app/members': typeof AppMembersRoute
@@ -471,6 +504,9 @@ export interface FileRoutesById {
   '/_app/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
+  '/api/v1/bank-accounts': typeof ApiV1BankAccountsRoute
+  '/api/v1/bank-statements': typeof ApiV1BankStatementsRoute
+  '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRoute
   '/api/v1/contacts': typeof ApiV1ContactsRoute
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
@@ -514,6 +550,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/accounts'
+    | '/bank'
     | '/contacts'
     | '/dunning'
     | '/members'
@@ -527,6 +564,9 @@ export interface FileRouteTypes {
     | '/reports/trial-balance'
     | '/api/auth/$'
     | '/api/v1/accounts'
+    | '/api/v1/bank-accounts'
+    | '/api/v1/bank-statements'
+    | '/api/v1/bank-transactions'
     | '/api/v1/contacts'
     | '/api/v1/entity'
     | '/api/v1/fiscal-years'
@@ -567,6 +607,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/accounts'
+    | '/bank'
     | '/contacts'
     | '/dunning'
     | '/members'
@@ -581,6 +622,9 @@ export interface FileRouteTypes {
     | '/reports/trial-balance'
     | '/api/auth/$'
     | '/api/v1/accounts'
+    | '/api/v1/bank-accounts'
+    | '/api/v1/bank-statements'
+    | '/api/v1/bank-transactions'
     | '/api/v1/contacts'
     | '/api/v1/entity'
     | '/api/v1/fiscal-years'
@@ -622,6 +666,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/_app/accounts'
+    | '/_app/bank'
     | '/_app/contacts'
     | '/_app/dunning'
     | '/_app/members'
@@ -636,6 +681,9 @@ export interface FileRouteTypes {
     | '/_app/reports/trial-balance'
     | '/api/auth/$'
     | '/api/v1/accounts'
+    | '/api/v1/bank-accounts'
+    | '/api/v1/bank-statements'
+    | '/api/v1/bank-transactions'
     | '/api/v1/contacts'
     | '/api/v1/entity'
     | '/api/v1/fiscal-years'
@@ -679,6 +727,9 @@ export interface RootRouteChildren {
   SignOutRoute: typeof SignOutRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1AccountsRoute: typeof ApiV1AccountsRoute
+  ApiV1BankAccountsRoute: typeof ApiV1BankAccountsRoute
+  ApiV1BankStatementsRoute: typeof ApiV1BankStatementsRoute
+  ApiV1BankTransactionsRoute: typeof ApiV1BankTransactionsRoute
   ApiV1ContactsRoute: typeof ApiV1ContactsRoute
   ApiV1EntityRoute: typeof ApiV1EntityRoute
   ApiV1FiscalYearsRoute: typeof ApiV1FiscalYearsRouteWithChildren
@@ -744,6 +795,13 @@ declare module '@tanstack/react-router' {
       path: '/accounts'
       fullPath: '/accounts'
       preLoaderRoute: typeof AppAccountsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bank': {
+      id: '/_app/bank'
+      path: '/bank'
+      fullPath: '/bank'
+      preLoaderRoute: typeof AppBankRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/contacts': {
@@ -849,6 +907,27 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/accounts'
       fullPath: '/api/v1/accounts'
       preLoaderRoute: typeof ApiV1AccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/bank-accounts': {
+      id: '/api/v1/bank-accounts'
+      path: '/api/v1/bank-accounts'
+      fullPath: '/api/v1/bank-accounts'
+      preLoaderRoute: typeof ApiV1BankAccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/bank-statements': {
+      id: '/api/v1/bank-statements'
+      path: '/api/v1/bank-statements'
+      fullPath: '/api/v1/bank-statements'
+      preLoaderRoute: typeof ApiV1BankStatementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/bank-transactions': {
+      id: '/api/v1/bank-transactions'
+      path: '/api/v1/bank-transactions'
+      fullPath: '/api/v1/bank-transactions'
+      preLoaderRoute: typeof ApiV1BankTransactionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/contacts': {
@@ -1080,6 +1159,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAccountsRoute: typeof AppAccountsRoute
+  AppBankRoute: typeof AppBankRoute
   AppContactsRoute: typeof AppContactsRoute
   AppDunningRoute: typeof AppDunningRoute
   AppMembersRoute: typeof AppMembersRoute
@@ -1098,6 +1178,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAccountsRoute: AppAccountsRoute,
+  AppBankRoute: AppBankRoute,
   AppContactsRoute: AppContactsRoute,
   AppDunningRoute: AppDunningRoute,
   AppMembersRoute: AppMembersRoute,
@@ -1211,6 +1292,9 @@ const rootRouteChildren: RootRouteChildren = {
   SignOutRoute: SignOutRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1AccountsRoute: ApiV1AccountsRoute,
+  ApiV1BankAccountsRoute: ApiV1BankAccountsRoute,
+  ApiV1BankStatementsRoute: ApiV1BankStatementsRoute,
+  ApiV1BankTransactionsRoute: ApiV1BankTransactionsRoute,
   ApiV1ContactsRoute: ApiV1ContactsRoute,
   ApiV1EntityRoute: ApiV1EntityRoute,
   ApiV1FiscalYearsRoute: ApiV1FiscalYearsRouteWithChildren,

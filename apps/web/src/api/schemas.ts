@@ -354,3 +354,34 @@ export const sendReminderBody = z.object({
 
 export type SendInvoiceBody = z.infer<typeof sendInvoiceBody>
 export type SendReminderBody = z.infer<typeof sendReminderBody>
+
+/** Banking (spec 7.4). */
+export const createBankAccountBody = z.object({
+  iban: z
+    .string()
+    .trim()
+    .min(5)
+    .transform((value) => value.replace(/\s/g, '').toUpperCase()),
+  name: z.string().trim().min(1),
+  currency: currencyCode.default('EUR'),
+  /** The ledger account this posts to. 1100 in the shipped chart. */
+  ledgerAccountNumber: z.string().nullable().default(null),
+})
+
+export const importStatementBody = z.object({
+  bankAccountId: z.uuid(),
+  /** The file, as text. CAMT is XML and MT940 is a telex dump; both are text. */
+  content: z.string().min(1, 'The file is empty.'),
+  format: z.enum(['camt.053', 'mt940']).nullable().default(null),
+  /** A dry run reports what would happen and writes nothing. */
+  dryRun: z.boolean().default(false),
+})
+
+export const transactionsQuery = z.object({
+  bankAccountId: z.uuid().nullable().default(null),
+  status: z.enum(['unmatched', 'matched', 'ignored']).nullable().default(null),
+  limit: z.coerce.number().int().min(1).max(1000).default(200),
+})
+
+export type CreateBankAccountBody = z.infer<typeof createBankAccountBody>
+export type ImportStatementBody = z.infer<typeof importStatementBody>

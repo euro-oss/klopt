@@ -2,6 +2,7 @@ import type { Database } from './client.js'
 import { DrizzleLedgerRepository } from './repositories/ledger.js'
 import { ReportingRepository } from './repositories/reporting.js'
 import { RgsRepository } from './repositories/rgs.js'
+import { BankRepository } from './repositories/bank.js'
 import { MembersRepository } from './repositories/members.js'
 import { SalesRepository } from './repositories/sales.js'
 import { SetupRepository } from './repositories/setup.js'
@@ -137,5 +138,32 @@ export async function withMembers<T>(
 ): Promise<T> {
   return database.transaction(async (tx) => work(new MembersRepository(tx)), {
     isolationLevel: 'serializable',
+  })
+}
+
+/**
+ * A statement import, in one transaction.
+ *
+ * All of it or none: a half-imported statement leaves an account whose
+ * sequence number says it has seen statement 42 and whose transactions stop
+ * halfway through it, and the next import's gap check then reports nothing
+ * wrong. That is the failure mode this whole subsystem exists to catch, so it
+ * must not be able to cause it.
+ */
+export async function withBank<T>(
+  database: Database,
+  work: (repository: BankRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new BankRepository(tx)))
+}
+
+/** Reads, in a snapshot: a reconciliation assembled from a moving table lies. */
+export async function withBankRead<T>(
+  database: Database,
+  work: (repository: BankRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new BankRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
   })
 }

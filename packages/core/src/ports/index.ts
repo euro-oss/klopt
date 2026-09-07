@@ -18,3 +18,12 @@ export type {
   EInvoiceReceipt,
   EInvoiceTransport,
 } from './e-invoice.js'
+export {
+  type BankFeedAccount,
+  type BankFeedConsent,
+  type BankFeedFetch,
+  type BankFeedProvider,
+  type ConsentState,
+  CONSENT_WARNING_DAYS,
+  consentStateFor,
+} from './bank-feed.js'

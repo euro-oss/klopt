@@ -118,6 +118,30 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/sales-invoices.$invoiceId.ubl.ts',
   },
   {
+    operationId: 'bank.listAccounts',
+    method: 'GET',
+    path: '/bank-accounts',
+    module: 'api/v1/bank-accounts.ts',
+  },
+  {
+    operationId: 'bank.createAccount',
+    method: 'POST',
+    path: '/bank-accounts',
+    module: 'api/v1/bank-accounts.ts',
+  },
+  {
+    operationId: 'bank.importStatement',
+    method: 'POST',
+    path: '/bank-statements',
+    module: 'api/v1/bank-statements.ts',
+  },
+  {
+    operationId: 'bank.listTransactions',
+    method: 'GET',
+    path: '/bank-transactions',
+    module: 'api/v1/bank-transactions.ts',
+  },
+  {
     operationId: 'sales.sendInvoice',
     method: 'POST',
     path: '/sales-invoices/{invoiceId}/send',

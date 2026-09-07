@@ -1,3 +1,11 @@
+import {
+  XmlParseError,
+  child as childOf,
+  childrenNamed,
+  parseXmlDocument,
+  textOf,
+  type XmlElement,
+} from '../xml/index.js'
 import type {
   XafAccountType,
   XafCustomerSupplier,
@@ -42,118 +50,26 @@ export class XafParseError extends Error {
   }
 }
 
-interface Element {
-  readonly name: string
-  readonly children: readonly Element[]
-  readonly text: string
-}
-
-const TAG = /<(\/?)([A-Za-z_][\w.:-]*)((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>/g
-
-const ENTITIES: Record<string, string> = {
-  amp: '&',
-  lt: '<',
-  gt: '>',
-  quot: '"',
-  apos: "'",
-}
-
-function decodeText(value: string): string {
-  return value
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex: string) =>
-      String.fromCodePoint(Number.parseInt(hex, 16)),
-    )
-    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number(dec)))
-    .replace(/&(amp|lt|gt|quot|apos);/g, (_, name: string) => ENTITIES[name] ?? _)
-}
-
 /**
- * A small XML reader. No DTDs, no entity definitions, no external references —
- * which is deliberate: an auditfile arrives from outside and an XML parser that
- * resolves external entities is a file-disclosure vulnerability.
+ * The XML reader lives in `../xml/` now, because a bank statement needs the
+ * same one and two hand-written XML parsers in one codebase is one too many.
+ * `parseXml` stays exported from here, throwing `XafParseError`, because that
+ * is the contract this module has always had.
  */
+type Element = XmlElement
+
 export function parseXml(source: string): Element {
-  const withoutProlog = source
-    .replace(/<\?[\s\S]*?\?>/g, '')
-    .replace(/<!--[\s\S]*?-->/g, '')
-    // CDATA is escaped rather than inlined. Inlining it raw would let
-    // <![CDATA[<b>]]> tokenise as a real element.
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, (_, content: string) =>
-      content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
-    )
-
-  if (/<!DOCTYPE/i.test(withoutProlog)) {
-    throw new XafParseError('A DOCTYPE declaration is not accepted.', 'document')
+  try {
+    return parseXmlDocument(source)
+  } catch (error: unknown) {
+    if (error instanceof XmlParseError) throw new XafParseError(error.detail, error.path)
+    throw error
   }
-
-  interface Frame {
-    name: string
-    children: Element[]
-    text: string
-  }
-
-  const stack: Frame[] = []
-  let root: Element | null = null
-  let lastIndex = 0
-  let match: RegExpExecArray | null
-
-  TAG.lastIndex = 0
-  while ((match = TAG.exec(withoutProlog)) !== null) {
-    const [, closing, rawName, , selfClosing] = match
-    const name = (rawName ?? '').split(':').pop() ?? ''
-
-    const between = withoutProlog.slice(lastIndex, match.index)
-    if (stack.length > 0 && between.trim() !== '') {
-      stack[stack.length - 1]!.text += between
-    }
-    lastIndex = TAG.lastIndex
-
-    if (closing === '/') {
-      const frame = stack.pop()
-      if (frame === undefined) throw new XafParseError(`Unexpected </${name}>.`, 'document')
-      if (frame.name !== name) {
-        throw new XafParseError(`Expected </${frame.name}>, found </${name}>.`, frame.name)
-      }
-      const element: Element = {
-        name: frame.name,
-        children: frame.children,
-        text: decodeText(frame.text).trim(),
-      }
-      if (stack.length === 0) root = element
-      else stack[stack.length - 1]!.children.push(element)
-      continue
-    }
-
-    if (selfClosing === '/') {
-      const element: Element = { name, children: [], text: '' }
-      if (stack.length === 0) root = element
-      else stack[stack.length - 1]!.children.push(element)
-      continue
-    }
-
-    stack.push({ name, children: [], text: '' })
-  }
-
-  if (stack.length > 0) {
-    throw new XafParseError(`Unclosed <${stack[stack.length - 1]!.name}>.`, 'document')
-  }
-  if (root === null) throw new XafParseError('No root element.', 'document')
-  return root
 }
 
-function child(element: Element, name: string): Element | undefined {
-  return element.children.find((candidate) => candidate.name === name)
-}
-
-function children(element: Element, name: string): readonly Element[] {
-  return element.children.filter((candidate) => candidate.name === name)
-}
-
-function text(element: Element, name: string): string | null {
-  const found = child(element, name)
-  if (found === undefined) return null
-  return found.text === '' ? null : found.text
-}
+const child = childOf
+const children = childrenNamed
+const text = textOf
 
 function requiredText(element: Element, name: string, path: string): string {
   const value = text(element, name)

@@ -38,12 +38,15 @@ export * from './xaf/index.js'
 export * from './ubl/index.js'
 export * from './format/index.js'
 export * from './invoice/index.js'
+export * from './xml/index.js'
+export * from './bank/index.js'
 export * from './reference/index.js'
 export * from './auth/index.js'
 export * from './ports/index.js'
 export * from './sales/index.js'
 export * from './setup/index.js'
 export {
+  bankingOperations,
   complianceOperations,
   ledgerOperations,
   membershipOperations,

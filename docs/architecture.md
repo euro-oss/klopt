@@ -191,6 +191,32 @@ validator that throws does not go through `run`, so the rejection escapes the
 server function and the screen sees nothing at all. `runWith` parses inside the
 same `try`, and a bad field comes back as a problem document with its path.
 
+## One transaction stream
+
+`BankFeedProvider` has one implementation, the file one, and that is not a
+placeholder: every Dutch bank exports CAMT.053 and MT940, with no licence, no
+fee and no consent to renew (spec 8, rule 1).
+
+Spec 7.4's requirement is that "API and file import must produce an identical
+transaction stream so nothing downstream cares which one is in use". Both
+parsers produce the same `BankStatement`, and a test gives the _same_ statement
+in both formats and compares the parsed entries field by field — then the
+db-backed test does it again at the far end of the pipeline. If the two ever
+diverge, the matching engine is matching on whichever format happened to be
+imported.
+
+**Amounts are signed at the edge**, positive meaning money in. MT940 and CAMT
+both carry a magnitude plus a debit/credit marker, and both invert its meaning
+depending on whose statement it is. Resolving it once is the difference between
+one confusing bug and twenty.
+
+**Deduplication is a unique index**, on `(bank_account_id, dedupe_key)`, with an
+`onConflictDoNothing` rather than a lookup — two imports racing both pass a
+lookup and only one can win an index. The key is the bank's own reference when
+there is one and a content hash otherwise, and the hash includes the entry's
+position in its statement: two identical card payments on the same day are an
+ordinary Tuesday, and hashing them together would drop one.
+
 ## One invoice, two documents
 
 `presentInvoice` in `@klopt/core` lays an invoice out for a human and
@@ -210,9 +236,15 @@ use. One formatter, because the screens and the PDF must agree.
 
 ## Not built yet
 
-Banking, VAT and purchase are M2 to M4. M1 is complete: invoices go out by
-email with their UBL and PDF attached, and overdue ones are chased on a derived
-schedule ([0018](decisions/0018-dunning-stage-is-derived.md)).
+VAT and purchase are M3 and M4. M1 is complete: invoices go out by email with
+their UBL and PDF attached, and overdue ones are chased on a derived schedule
+([0018](decisions/0018-dunning-stage-is-derived.md)).
+
+M2 has its foundation: CAMT.053 and MT940 import, deduplicated per entry, with
+gap detection and a refusal for any file whose entries do not add up to its
+closing balance. **The matching engine is not built** — every imported line
+sits at `unmatched`, and the screen says so. A CSV mapper for the stragglers
+is not built either.
 
 A Peppol access point is not built. It sits behind `EInvoiceTransport` and
 cannot be built without a service provider agreement and issued certificates

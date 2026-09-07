@@ -32,6 +32,7 @@ export {
 } from './repositories/tokens.js'
 export { XafExportRepository, type XafExportRequest } from './repositories/xaf.js'
 export { RgsRepository } from './repositories/rgs.js'
+export { type BankAccountRow, type ImportOutcome, BankRepository } from './repositories/bank.js'
 export {
   type InvitationRow,
   type InviteRequest,
@@ -61,6 +62,8 @@ export {
   withRgs,
   withSales,
   withSalesRead,
+  withBank,
+  withBankRead,
   withMembers,
   withSetup,
   withXafExport,
