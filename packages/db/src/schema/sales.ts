@@ -241,6 +241,15 @@ export const invoiceDeliveries = klopt.table(
     /** `email`, and later `peppol`. */
     channel: text('channel').notNull(),
     recipient: text('recipient').notNull(),
+    /**
+     * `invoice` or `reminder`. The same table carries both because they are the
+     * same act — a document going to a customer — and because the dunning stage
+     * an invoice has reached is a fact about its delivery history, not a column
+     * on the invoice that has to be kept in step with it.
+     */
+    purpose: text('purpose').notNull().default('invoice'),
+    /** 1, 2, 3… for a reminder. Null for the invoice itself. */
+    dunningStage: smallint('dunning_stage'),
     /** sha256 of the UBL that was sent. The document's identity. */
     documentHash: char('document_hash', { length: 64 }),
     transport: text('transport').notNull(),

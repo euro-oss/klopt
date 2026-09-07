@@ -118,6 +118,30 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/sales-invoices.$invoiceId.ubl.ts',
   },
   {
+    operationId: 'sales.sendInvoice',
+    method: 'POST',
+    path: '/sales-invoices/{invoiceId}/send',
+    module: 'api/v1/sales-invoices.$invoiceId.send.ts',
+  },
+  {
+    operationId: 'sales.listDeliveries',
+    method: 'GET',
+    path: '/sales-invoices/{invoiceId}/deliveries',
+    module: 'api/v1/sales-invoices.$invoiceId.deliveries.ts',
+  },
+  {
+    operationId: 'sales.sendDunningReminder',
+    method: 'POST',
+    path: '/sales-invoices/{invoiceId}/reminders',
+    module: 'api/v1/sales-invoices.$invoiceId.reminders.ts',
+  },
+  {
+    operationId: 'sales.getDunningQueue',
+    method: 'GET',
+    path: '/reports/dunning',
+    module: 'api/v1/reports.dunning.ts',
+  },
+  {
     operationId: 'sales.getInvoicePdf',
     method: 'GET',
     path: '/sales-invoices/{invoiceId}/pdf',

@@ -5,7 +5,7 @@ import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
-import { draftInvoice, getInvoice, issueInvoice } from '~/server/sales'
+import { draftInvoice, getInvoice, issueInvoice, listDeliveries, sendInvoice } from '~/server/sales'
 
 /**
  * One invoice.
@@ -17,7 +17,10 @@ import { draftInvoice, getInvoice, issueInvoice } from '~/server/sales'
  * no delete, for the same reason the journal has none.
  */
 export const Route = createFileRoute('/_app/invoices/$invoiceId')({
-  loader: async ({ params }) => getInvoice({ data: { invoiceId: params.invoiceId } }),
+  loader: async ({ params }) => ({
+    invoice: await getInvoice({ data: { invoiceId: params.invoiceId } }),
+    deliveries: await listDeliveries({ data: { invoiceId: params.invoiceId } }),
+  }),
   component: Invoice,
 })
 
@@ -35,7 +38,7 @@ interface Line {
 }
 
 function Invoice() {
-  const result = Route.useLoaderData()
+  const { invoice: result, deliveries } = Route.useLoaderData()
   const { invoiceId } = Route.useParams()
   const router = useRouter()
   const navigate = useNavigate()
@@ -45,6 +48,7 @@ function Invoice() {
   const [problems, setProblems] = useState<{ path: string | null; message: string }[]>([])
   const issueKey = useRef<string>(crypto.randomUUID())
   const creditKey = useRef<string>(crypto.randomUUID())
+  const sendKey = useRef<string>(crypto.randomUUID())
 
   if (!result.ok) {
     return (
@@ -88,6 +92,34 @@ function Invoice() {
     }
 
     issueKey.current = crypto.randomUUID()
+    await router.invalidate()
+  }
+
+  /**
+   * Send it.
+   *
+   * A failure is reported and the invoice is left exactly as it was (spec 8,
+   * rule 4) — and the delivery list below gains a row saying what happened,
+   * which is the answer to a customer who says they never got it.
+   */
+  async function send() {
+    setBusy(true)
+    setProblems([])
+
+    const outcome = await sendInvoice({
+      data: { invoiceId, idempotencyKey: sendKey.current },
+    })
+
+    setBusy(false)
+    if (!outcome.ok) {
+      report(outcome.problem)
+      return
+    }
+
+    sendKey.current = crypto.randomUUID()
+    if (outcome.data.failure !== null) {
+      setProblems([{ path: null, message: `Versturen mislukt: ${outcome.data.failure}` }])
+    }
     await router.invalidate()
   }
 
@@ -175,6 +207,8 @@ function Invoice() {
 
   const isDraft = invoice.status === 'draft'
   const title = invoice.number ?? 'Concept'
+  const sentDocuments = deliveries.ok ? deliveries.data.deliveries : []
+  const sentAlready = sentDocuments.some((item) => item.purpose === 'invoice' && item.delivered)
 
   return (
     <>
@@ -193,6 +227,18 @@ function Invoice() {
                 className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
                 {busy ? 'Bezig…' : 'Versturen en boeken'}
+              </button>
+            )}
+            {!isDraft && (
+              <button
+                type="button"
+                disabled={busy || !hydrated}
+                onClick={() => {
+                  void send()
+                }}
+                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+              >
+                {busy ? 'Bezig…' : sentAlready ? 'Opnieuw versturen' : 'Versturen'}
               </button>
             )}
             {!isDraft && invoice.kind === 'invoice' && (
@@ -269,6 +315,47 @@ function Invoice() {
           {!isDraft && <p className="tabular">{formatDate(invoice.dueDate)}</p>}
         </div>
       </div>
+
+      {sentDocuments.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-2 text-base font-medium">Verzonden</h2>
+          {/* The evidence chain, on the screen. "Store the exact bytes sent"
+              (spec 7.5) — the hash is how a reproduction is checked against
+              what actually went out. */}
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-border text-muted-foreground border-b text-left text-xs">
+                <th className="py-2 font-medium">Wanneer</th>
+                <th className="py-2 font-medium">Wat</th>
+                <th className="py-2 font-medium">Naar</th>
+                <th className="py-2 font-medium">Via</th>
+                <th className="py-2 font-medium">Resultaat</th>
+                <th className="py-2 font-medium">Document</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sentDocuments.map((item) => (
+                <tr key={item.id} className="border-border border-b">
+                  <td className="tabular py-2">{item.sentAt.slice(0, 16).replace('T', ' ')}</td>
+                  <td className="py-2">{item.stageLabel ?? 'Factuur'}</td>
+                  <td className="py-2">{item.recipient}</td>
+                  <td className="text-muted-foreground py-2">{item.transport}</td>
+                  <td className="py-2">
+                    {item.delivered ? (
+                      'verzonden'
+                    ) : (
+                      <span className="text-unreconciled">{item.failure ?? 'niet verzonden'}</span>
+                    )}
+                  </td>
+                  <td className="text-muted-foreground py-2 font-mono text-xs">
+                    {item.documentHash === null ? '' : `${item.documentHash.slice(0, 12)}…`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       {invoice.journalEntryId !== null && (
         <p className="text-muted-foreground mt-6 text-sm">

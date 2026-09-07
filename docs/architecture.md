@@ -210,11 +210,18 @@ use. One formatter, because the screens and the PDF must agree.
 
 ## Not built yet
 
-Banking, VAT and purchase are M2 to M4. Within M1: sending and dunning. Nothing
-sends yet — but what would be sent has passed the published Peppol BIS 3.0 and
-NLCIUS schematron ([0017](decisions/0017-schematron-in-process.md)), and both
-documents the fallback transport needs (the UBL, and a PDF with the UBL
-attached) already come out of `/api/v1`.
+Banking, VAT and purchase are M2 to M4. M1 is complete: invoices go out by
+email with their UBL and PDF attached, and overdue ones are chased on a derived
+schedule ([0018](decisions/0018-dunning-stage-is-derived.md)).
+
+A Peppol access point is not built. It sits behind `EInvoiceTransport` and
+cannot be built without a service provider agreement and issued certificates
+(spec 8) — the port's `reachable()` exists so that choosing the email fallback
+is a decision made before sending rather than a recovery afterwards.
+
+**Payments are not tracked**, so "overdue" means issued and not cancelled. The
+dunning list overstates itself for anyone who has paid, and says so on the
+screen. It is the one number in the product that is knowingly wrong.
 
 The PDF is not Factur-X or PDF/A-3: those additionally want an ICC profile, an
 output intent and XMP metadata. The attachment relationship is `Alternative`,
@@ -222,6 +229,9 @@ which is the truthful part of it.
 
 In the UI: the command palette and `g`-prefix navigation are in the keyboard map
 and the binding registry but not yet wired to a listener. Contacts can be
-created but not edited. In the UI: the command palette
+created but not edited.
+
+Reminders are sent by hand from the Aanmaningen screen. Scheduling them is a
+worker job, which is why `apps/worker` exists and is empty. In the UI: the command palette
 and `g`-prefix navigation are in the keyboard map and the binding registry but
 not yet wired to a listener.

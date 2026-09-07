@@ -16,3 +16,12 @@ export {
   type TaxAccountResolver,
   buildInvoiceEntry,
 } from './posting.js'
+
+export {
+  type DunnableInvoice,
+  type DunningAction,
+  type DunningStage,
+  DEFAULT_DUNNING_SCHEDULE,
+  planDunning,
+  stageOf,
+} from './dunning.js'

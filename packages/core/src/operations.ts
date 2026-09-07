@@ -287,6 +287,43 @@ export const salesOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  sendInvoice: defineOperation({
+    id: 'sales.sendInvoice',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary: 'Send an issued invoice to the customer, with its UBL and its PDF.',
+    // Spec 10.3 puts "send an invoice" behind the proposal model explicitly.
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  listDeliveries: defineOperation({
+    id: 'sales.listDeliveries',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'What was sent for this invoice, to whom, when, and whether it arrived.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  getDunningQueue: defineOperation({
+    id: 'sales.getDunningQueue',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Overdue invoices with the reminder each one is due, and its ageing.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  sendDunningReminder: defineOperation({
+    id: 'sales.sendDunningReminder',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary: 'Send the next reminder for an overdue invoice. One per stage, ever.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
   listOverdueInvoices: defineOperation({
     id: 'sales.listOverdueInvoices',
     kind: 'read',

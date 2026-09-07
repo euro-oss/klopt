@@ -153,7 +153,26 @@ PDF is available whatever the schematron thinks, because somebody printing a
 copy for a customer who wants paper should not be stopped by a code-list rule;
 attach the XML and the rules apply again.
 
-Sending is not built yet.
+Then send it:
+
+```bash
+curl -X POST "localhost:3000/api/v1/sales-invoices/$INVOICE_ID/send" \
+  -H "authorization: Bearer $KLOPT_TOKEN" \
+  -H "idempotency-key: $(uuidgen)" \
+  -H 'content-type: application/json' -d '{}'
+```
+
+Email, with the UBL and the PDF attached — spec 7.5's fallback transport, and
+the one that needs no third party. With no SMTP configured the message goes to a
+directory or the log, and the receipt says so rather than pretending. A Peppol
+access point slots in behind the same interface; it needs a service provider
+agreement, which is the part you cannot install.
+
+Nothing is sent that has not passed the schematron, and every attempt — sent or
+bounced — leaves a row with the hash of the exact document. Overdue invoices
+turn up under **Aanmaningen** with the reminder each one is due: one per stage,
+ever, and never a courtesy after a final demand
+([ADR 0018](docs/decisions/0018-dunning-stage-is-derived.md)).
 
 Then leave with your data:
 

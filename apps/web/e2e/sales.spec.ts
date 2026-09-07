@@ -40,8 +40,9 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Grote Klant N.V.')
-  await page.getByLabel('Btw-nummer').fill('NL987654321B01')
-  await page.getByLabel('KvK-nummer').fill('87654321')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('87654321')
+  await page.getByLabel('E-mail').fill('inkoop@groteklant.nl')
   await page.getByLabel('Straat').fill('Coolsingel')
   await page.getByLabel('Huisnr.').fill('42')
   await page.getByLabel('Postcode').fill('3011 AD')
@@ -120,7 +121,16 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
     expect((await response.text()).slice(0, 5)).toBe(magic)
   }
 
+  // Send it. With no SMTP in the test environment the message lands in the
+  // outbox directory, and the delivery row says which transport handled it.
   await page.goto(`/invoices/${invoiceId}`)
+  await page.getByRole('button', { name: 'Versturen', exact: true }).click()
+
+  await expect(page.getByRole('heading', { name: 'Verzonden' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Factuur', exact: true })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'verzonden', exact: true })).toBeVisible()
+  // A second send is offered, not hidden: a customer who lost it asks again.
+  await expect(page.getByRole('button', { name: 'Opnieuw versturen' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Versturen en boeken' })).toHaveCount(0)
 
   // And it really did reach the ledger.
@@ -172,4 +182,58 @@ test('a posted journal entry goes through, which it could not before', async ({ 
   // before the key was threaded through the payload.
   await expect(page.getByText(/Idempotency/)).toHaveCount(0)
   await expect(page).toHaveURL(/\/entries\/[0-9a-f-]+$/)
+})
+
+test('an overdue invoice turns up in the dunning list and can be chased', async ({ page }) => {
+  await anAdministration(page, 'Aanmaning BV')
+
+  await page.goto('/settings')
+  await page.getByLabel('Straat').fill('Keizersgracht')
+  await page.getByLabel('Huisnummer').fill('1')
+  await page.getByLabel('Postcode').fill('1015 CJ')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('DEB-LATE')
+  await page.getByLabel('Naam', { exact: true }).fill('Trage Betaler B.V.')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('99887766')
+  await page.getByLabel('E-mail').fill('crediteuren@tragebetaler.nl')
+  await page.getByLabel('Straat').fill('Coolsingel')
+  await page.getByLabel('Huisnr.').fill('42')
+  await page.getByLabel('Postcode').fill('3011 AD')
+  await page.getByLabel('Plaats').fill('Rotterdam')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('cell', { name: 'Trage Betaler B.V.' })).toBeVisible()
+
+  // Dated well in the past, so it is already long overdue.
+  await page.goto('/invoices/new')
+  await page.getByLabel('Factuurdatum').fill('2026-01-05')
+  await page.getByLabel('Referentie klant').fill('KP-1')
+  await page.getByLabel('Omschrijving regel 1').fill('Werk uit januari')
+  await page.getByLabel('Prijs regel 1').fill('1000,00')
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+
+  await page.getByRole('link', { name: /Aanmaningen/ }).click()
+  await expect(page.getByRole('heading', { name: 'Aanmaningen' })).toBeVisible()
+
+  const row = page.locator('tbody tr', { has: page.getByText('Trage Betaler B.V.') })
+  await expect(row).toBeVisible()
+  // Months late, so the schedule says final demand rather than a courtesy.
+  await expect(row).toContainText('Laatste aanmaning')
+
+  await row.getByRole('button', { name: 'Versturen' }).click()
+  await expect(page.getByText(/verstuurd naar Trage Betaler B.V./)).toBeVisible()
+
+  // Gone from the list: the stage is closed, and it does not come round again.
+  await expect(page.locator('tbody tr', { has: page.getByText('Trage Betaler B.V.') })).toHaveCount(
+    0,
+  )
 })

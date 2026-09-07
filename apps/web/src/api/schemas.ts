@@ -330,3 +330,27 @@ export const invoicePdfQuery = z.object({
     .default('false')
     .transform((value) => value === 'true'),
 })
+
+/**
+ * Sending. `embedUbl` decides whether the attached PDF carries the XML inside
+ * it as well; the XML is attached separately regardless, because that is the
+ * file a recipient's software looks for.
+ */
+export const sendInvoiceBody = z.object({
+  /** Overrides the contact's address for this send only. */
+  to: z.string().nullable().default(null),
+  embedUbl: z.boolean().default(true),
+})
+
+export const dunningQuery = z.object({
+  asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+})
+
+export const sendReminderBody = z.object({
+  /** Refuse unless the caller expected this stage. Guards a stale screen. */
+  expectedStage: z.coerce.number().int().min(1).max(9).nullable().default(null),
+  asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+})
+
+export type SendInvoiceBody = z.infer<typeof sendInvoiceBody>
+export type SendReminderBody = z.infer<typeof sendReminderBody>

@@ -2,14 +2,24 @@ import { createServerFn } from '@tanstack/react-start'
 import {
   handleCreateContact,
   handleDraftInvoice,
+  handleGetDunningQueue,
   handleGetInvoice,
   handleIssueInvoice,
   handleListContacts,
+  handleListDeliveries,
   handleListInvoices,
   handleListOverdueInvoices,
   handleListTaxCodes,
+  handleSendDunningReminder,
+  handleSendInvoice,
 } from '~/api/handlers/sales'
-import { createContactBody, draftInvoiceBody, issueInvoiceBody } from '~/api/schemas'
+import {
+  createContactBody,
+  draftInvoiceBody,
+  issueInvoiceBody,
+  sendInvoiceBody,
+  sendReminderBody,
+} from '~/api/schemas'
 import { contextFromRequest, run, runWith } from './internal'
 
 /**
@@ -112,6 +122,65 @@ export const listOverdueInvoices = createServerFn({ method: 'GET' })
           await handleListOverdueInvoices(await contextFromRequest(), {
             asOf: data.asOf ?? new Date().toISOString().slice(0, 10),
           })
+        ).body,
+    ),
+  )
+
+export const sendInvoice = createServerFn({ method: 'POST' })
+  .validator((input: { invoiceId: string; idempotencyKey: string; to?: string | null }) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      sendInvoiceBody,
+      { to: data.to ?? null, embedUbl: true },
+      async (body) =>
+        (
+          await handleSendInvoice(
+            await contextFromRequest({ idempotencyKey: data.idempotencyKey }),
+            data.invoiceId,
+            body,
+          )
+        ).body,
+    ),
+  )
+
+export const listDeliveries = createServerFn({ method: 'GET' })
+  .validator((input: { invoiceId: string }) => input)
+  .handler(async ({ data }) =>
+    run(async () => (await handleListDeliveries(await contextFromRequest(), data.invoiceId)).body),
+  )
+
+export const dunningQueue = createServerFn({ method: 'GET' })
+  .validator((input: { asOf?: string }) => input)
+  .handler(async ({ data }) =>
+    run(
+      async () =>
+        (
+          await handleGetDunningQueue(await contextFromRequest(), {
+            asOf: data.asOf ?? new Date().toISOString().slice(0, 10),
+          })
+        ).body,
+    ),
+  )
+
+export const sendReminder = createServerFn({ method: 'POST' })
+  .validator(
+    (input: { invoiceId: string; idempotencyKey: string; expectedStage: number; asOf?: string }) =>
+      input,
+  )
+  .handler(async ({ data }) =>
+    runWith(
+      sendReminderBody,
+      {
+        expectedStage: data.expectedStage,
+        asOf: data.asOf ?? new Date().toISOString().slice(0, 10),
+      },
+      async (body) =>
+        (
+          await handleSendDunningReminder(
+            await contextFromRequest({ idempotencyKey: data.idempotencyKey }),
+            data.invoiceId,
+            body,
+          )
         ).body,
     ),
   )

@@ -6,6 +6,7 @@ import {
   type InvoiceLineInput,
   type PostJournalEntryCommand,
   type PricedInvoice,
+  type DunnableInvoice,
   type TaxCodeSnapshot,
   type UblInvoiceSource,
   type VatRounding,
@@ -17,6 +18,7 @@ import {
   contactAddresses,
   contacts,
   entities,
+  invoiceDeliveries,
   salesInvoiceLines,
   salesInvoices,
   taxCodes,
@@ -469,6 +471,133 @@ export class SalesRepository {
         taxDescription: line.taxDescription,
       })),
     }
+  }
+
+  /**
+   * Record what was sent, whether or not it arrived.
+   *
+   * "Store the exact bytes sent" (spec 7.5) — the hash of the UBL rather than
+   * the UBL itself: the document is reproducible from the invoice, and the hash
+   * is what proves the reproduction matches what went out. A failed attempt is
+   * recorded too, because "we tried and it bounced" is the answer to a customer
+   * who says they never got it.
+   */
+  async recordDelivery(request: {
+    readonly entityId: string
+    readonly invoiceId: string
+    readonly channel: string
+    readonly recipient: string
+    readonly documentHash: string | null
+    readonly transport: string
+    readonly transportMessageId: string | null
+    readonly delivered: boolean
+    readonly failure: string | null
+    readonly purpose: 'invoice' | 'reminder'
+    readonly dunningStage: number | null
+  }): Promise<string> {
+    const id = uuidv7()
+    await this.tx.insert(invoiceDeliveries).values({ id, ...request })
+    return id
+  }
+
+  async deliveriesFor(entityId: string, invoiceId: string) {
+    return this.tx
+      .select({
+        id: invoiceDeliveries.id,
+        channel: invoiceDeliveries.channel,
+        recipient: invoiceDeliveries.recipient,
+        transport: invoiceDeliveries.transport,
+        transportMessageId: invoiceDeliveries.transportMessageId,
+        documentHash: invoiceDeliveries.documentHash,
+        delivered: invoiceDeliveries.delivered,
+        failure: invoiceDeliveries.failure,
+        purpose: invoiceDeliveries.purpose,
+        dunningStage: invoiceDeliveries.dunningStage,
+        sentAt: invoiceDeliveries.sentAt,
+      })
+      .from(invoiceDeliveries)
+      .where(
+        and(eq(invoiceDeliveries.entityId, entityId), eq(invoiceDeliveries.invoiceId, invoiceId)),
+      )
+      .orderBy(asc(invoiceDeliveries.sentAt))
+  }
+
+  /**
+   * Every issued invoice that is past its due date, with the reminders already
+   * sent for it.
+   *
+   * Which reminder is *next* is not decided here — `planDunning` in
+   * `@klopt/core` does that, from this and today's date. "Outstanding" still
+   * means issued and not cancelled until payments land in M2, which overstates
+   * the queue for anyone who has been paid and is the honest reading of what
+   * this system currently knows.
+   */
+  async dunnable(entityId: string, asOf: string): Promise<readonly DunnableInvoice[]> {
+    const rows = await this.tx
+      .select({
+        invoiceId: salesInvoices.id,
+        number: salesInvoices.number,
+        kind: salesInvoices.kind,
+        status: salesInvoices.status,
+        dueDate: salesInvoices.dueDate,
+        total: salesInvoices.totalMinorUnits,
+        currency: salesInvoices.currency,
+        contactName: contacts.name,
+        contactEmail: contacts.email,
+      })
+      .from(salesInvoices)
+      .innerJoin(contacts, eq(contacts.id, salesInvoices.contactId))
+      .where(
+        and(
+          eq(salesInvoices.entityId, entityId),
+          eq(salesInvoices.status, 'issued'),
+          eq(salesInvoices.kind, 'invoice'),
+          lte(salesInvoices.dueDate, asOf),
+        ),
+      )
+      .orderBy(asc(salesInvoices.dueDate))
+
+    if (rows.length === 0) return []
+
+    const reminders = await this.tx
+      .select({
+        invoiceId: invoiceDeliveries.invoiceId,
+        dunningStage: invoiceDeliveries.dunningStage,
+      })
+      .from(invoiceDeliveries)
+      .where(
+        and(
+          eq(invoiceDeliveries.entityId, entityId),
+          eq(invoiceDeliveries.purpose, 'reminder'),
+          inArray(
+            invoiceDeliveries.invoiceId,
+            rows.map((row) => row.invoiceId),
+          ),
+        ),
+      )
+
+    const sentByInvoice = new Map<string, number[]>()
+    for (const reminder of reminders) {
+      if (reminder.dunningStage === null) continue
+      const existing = sentByInvoice.get(reminder.invoiceId) ?? []
+      existing.push(reminder.dunningStage)
+      sentByInvoice.set(reminder.invoiceId, existing)
+    }
+
+    return rows.map((row) => ({
+      invoiceId: row.invoiceId,
+      // An issued invoice always has a number; the column is nullable because a
+      // draft does not.
+      number: row.number ?? '',
+      kind: row.kind,
+      status: row.status,
+      dueDate: row.dueDate,
+      total: row.total,
+      currency: row.currency,
+      contactName: row.contactName,
+      contactEmail: row.contactEmail,
+      remindersSent: sentByInvoice.get(row.invoiceId) ?? [],
+    }))
   }
 
   async listInvoices(request: {

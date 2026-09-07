@@ -49,3 +49,30 @@ guessed date is worse than a blank one.
 
 If an update ever requires changing code in `packages/core`, that is a signal
 the artefact was hard-coded somewhere it should not have been. Fix that instead.
+
+## If the RGS data cannot be redistributed
+
+[ADR 0011](decisions/0011-rgs-as-reference-data.md) commits the generated
+`reference-data/rgs/rgs-3.7-mkb.json` to the repository and flags that nobody
+has confirmed the RGS Beheergroep's terms allow it. The site publishes no
+licence or terms page, and RGS is stewarded through SBR-NL, so the answer is
+probably yes — but "probably" is not what belongs under a public repository.
+
+**It is one question to the RGS Beheergroep**, and it is not a technical
+blocker. Ask them: may the RGS workbook be converted to another format and that
+derived file redistributed under Apache-2.0, with attribution?
+
+The fallback is deliberately cheap, so the answer does not need to arrive before
+anything else can be built:
+
+1. `git rm reference-data/rgs/*.json` and add the path to `.gitignore`.
+2. A self-hoster runs `pnpm rgs:generate` once, against a workbook they
+   downloaded themselves. The importer already exists and is the supported path.
+3. Nothing else changes. `@klopt/core/reference` fails at boot with a message
+   that names the command, and `KLOPT_REFERENCE_DATA_DIR` already lets an
+   installation point at its own copy.
+
+The same question will arise for anything else derived from a published
+artefact. The Peppol schematron and the UBL schemas are redistributed under
+their own terms — CEN grants permission in the schematron header, and OASIS
+publishes UBL under a policy that allows it.

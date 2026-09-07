@@ -10,3 +10,11 @@ export type {
   InvoiceRenderOptions,
   RenderedDocument,
 } from './documents.js'
+export type {
+  EInvoiceAttachment,
+  EInvoiceChannel,
+  EInvoiceDocument,
+  EInvoiceRecipient,
+  EInvoiceReceipt,
+  EInvoiceTransport,
+} from './e-invoice.js'

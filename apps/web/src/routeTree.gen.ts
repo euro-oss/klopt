@@ -16,6 +16,7 @@ import { Route as SignOutRouteImport } from './routes/sign-out'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
 import { Route as AppContactsRouteImport } from './routes/_app/contacts'
+import { Route as AppDunningRouteImport } from './routes/_app/dunning'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppEntriesIndexRouteImport } from './routes/_app/entries.index'
@@ -45,6 +46,7 @@ import { Route as ApiV1JournalEntriesEntryIdRouteImport } from './routes/api/v1/
 import { Route as ApiV1LedgerChainVerificationRouteImport } from './routes/api/v1/ledger.chain-verification'
 import { Route as ApiV1MembersMemberIdRouteImport } from './routes/api/v1/members.$memberId'
 import { Route as ApiV1ReportsBalanceSheetRouteImport } from './routes/api/v1/reports.balance-sheet'
+import { Route as ApiV1ReportsDunningRouteImport } from './routes/api/v1/reports.dunning'
 import { Route as ApiV1ReportsOverdueInvoicesRouteImport } from './routes/api/v1/reports.overdue-invoices'
 import { Route as ApiV1ReportsProfitAndLossRouteImport } from './routes/api/v1/reports.profit-and-loss'
 import { Route as ApiV1ReportsTrialBalanceRouteImport } from './routes/api/v1/reports.trial-balance'
@@ -54,8 +56,11 @@ import { Route as ApiV1RgsUpgradePreviewRouteImport } from './routes/api/v1/rgs.
 import { Route as ApiV1SalesInvoicesInvoiceIdRouteImport } from './routes/api/v1/sales-invoices.$invoiceId'
 import { Route as ApiV1SetupChartsRouteImport } from './routes/api/v1/setup.charts'
 import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes/api/v1/journal-entries.$entryId.reversal'
+import { Route as ApiV1SalesInvoicesInvoiceIdDeliveriesRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.deliveries'
 import { Route as ApiV1SalesInvoicesInvoiceIdIssueRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.issue'
 import { Route as ApiV1SalesInvoicesInvoiceIdPdfRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.pdf'
+import { Route as ApiV1SalesInvoicesInvoiceIdRemindersRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.reminders'
+import { Route as ApiV1SalesInvoicesInvoiceIdSendRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.send'
 import { Route as ApiV1SalesInvoicesInvoiceIdUblRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.ubl'
 
 const AppRoute = AppRouteImport.update({
@@ -90,6 +95,11 @@ const AppAccountsRoute = AppAccountsRouteImport.update({
 const AppContactsRoute = AppContactsRouteImport.update({
   id: '/contacts',
   path: '/contacts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDunningRoute = AppDunningRouteImport.update({
+  id: '/dunning',
+  path: '/dunning',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMembersRoute = AppMembersRouteImport.update({
@@ -240,6 +250,11 @@ const ApiV1ReportsBalanceSheetRoute =
     path: '/api/v1/reports/balance-sheet',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1ReportsDunningRoute = ApiV1ReportsDunningRouteImport.update({
+  id: '/api/v1/reports/dunning',
+  path: '/api/v1/reports/dunning',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1ReportsOverdueInvoicesRoute =
   ApiV1ReportsOverdueInvoicesRouteImport.update({
     id: '/api/v1/reports/overdue-invoices',
@@ -290,6 +305,12 @@ const ApiV1JournalEntriesEntryIdReversalRoute =
     path: '/reversal',
     getParentRoute: () => ApiV1JournalEntriesEntryIdRoute,
   } as any)
+const ApiV1SalesInvoicesInvoiceIdDeliveriesRoute =
+  ApiV1SalesInvoicesInvoiceIdDeliveriesRouteImport.update({
+    id: '/deliveries',
+    path: '/deliveries',
+    getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
+  } as any)
 const ApiV1SalesInvoicesInvoiceIdIssueRoute =
   ApiV1SalesInvoicesInvoiceIdIssueRouteImport.update({
     id: '/issue',
@@ -300,6 +321,18 @@ const ApiV1SalesInvoicesInvoiceIdPdfRoute =
   ApiV1SalesInvoicesInvoiceIdPdfRouteImport.update({
     id: '/pdf',
     path: '/pdf',
+    getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
+  } as any)
+const ApiV1SalesInvoicesInvoiceIdRemindersRoute =
+  ApiV1SalesInvoicesInvoiceIdRemindersRouteImport.update({
+    id: '/reminders',
+    path: '/reminders',
+    getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
+  } as any)
+const ApiV1SalesInvoicesInvoiceIdSendRoute =
+  ApiV1SalesInvoicesInvoiceIdSendRouteImport.update({
+    id: '/send',
+    path: '/send',
     getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
   } as any)
 const ApiV1SalesInvoicesInvoiceIdUblRoute =
@@ -316,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
   '/contacts': typeof AppContactsRoute
+  '/dunning': typeof AppDunningRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
@@ -345,6 +379,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/dunning': typeof ApiV1ReportsDunningRoute
   '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
@@ -354,8 +389,11 @@ export interface FileRoutesByFullPath {
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
+  '/api/v1/sales-invoices/$invoiceId/deliveries': typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
   '/api/v1/sales-invoices/$invoiceId/pdf': typeof ApiV1SalesInvoicesInvoiceIdPdfRoute
+  '/api/v1/sales-invoices/$invoiceId/reminders': typeof ApiV1SalesInvoicesInvoiceIdRemindersRoute
+  '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 export interface FileRoutesByTo {
@@ -364,6 +402,7 @@ export interface FileRoutesByTo {
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
   '/contacts': typeof AppContactsRoute
+  '/dunning': typeof AppDunningRoute
   '/members': typeof AppMembersRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
@@ -394,6 +433,7 @@ export interface FileRoutesByTo {
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/dunning': typeof ApiV1ReportsDunningRoute
   '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
@@ -403,8 +443,11 @@ export interface FileRoutesByTo {
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
+  '/api/v1/sales-invoices/$invoiceId/deliveries': typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
   '/api/v1/sales-invoices/$invoiceId/pdf': typeof ApiV1SalesInvoicesInvoiceIdPdfRoute
+  '/api/v1/sales-invoices/$invoiceId/reminders': typeof ApiV1SalesInvoicesInvoiceIdRemindersRoute
+  '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 export interface FileRoutesById {
@@ -415,6 +458,7 @@ export interface FileRoutesById {
   '/sign-out': typeof SignOutRoute
   '/_app/accounts': typeof AppAccountsRoute
   '/_app/contacts': typeof AppContactsRoute
+  '/_app/dunning': typeof AppDunningRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
@@ -445,6 +489,7 @@ export interface FileRoutesById {
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
+  '/api/v1/reports/dunning': typeof ApiV1ReportsDunningRoute
   '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
@@ -454,8 +499,11 @@ export interface FileRoutesById {
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
+  '/api/v1/sales-invoices/$invoiceId/deliveries': typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   '/api/v1/sales-invoices/$invoiceId/issue': typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
   '/api/v1/sales-invoices/$invoiceId/pdf': typeof ApiV1SalesInvoicesInvoiceIdPdfRoute
+  '/api/v1/sales-invoices/$invoiceId/reminders': typeof ApiV1SalesInvoicesInvoiceIdRemindersRoute
+  '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 export interface FileRouteTypes {
@@ -467,6 +515,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/accounts'
     | '/contacts'
+    | '/dunning'
     | '/members'
     | '/settings'
     | '/entries/$entryId'
@@ -496,6 +545,7 @@ export interface FileRouteTypes {
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
     | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/dunning'
     | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
@@ -505,8 +555,11 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
     | '/api/v1/journal-entries/$entryId/reversal'
+    | '/api/v1/sales-invoices/$invoiceId/deliveries'
     | '/api/v1/sales-invoices/$invoiceId/issue'
     | '/api/v1/sales-invoices/$invoiceId/pdf'
+    | '/api/v1/sales-invoices/$invoiceId/reminders'
+    | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -515,6 +568,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/accounts'
     | '/contacts'
+    | '/dunning'
     | '/members'
     | '/settings'
     | '/'
@@ -545,6 +599,7 @@ export interface FileRouteTypes {
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
     | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/dunning'
     | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
@@ -554,8 +609,11 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
     | '/api/v1/journal-entries/$entryId/reversal'
+    | '/api/v1/sales-invoices/$invoiceId/deliveries'
     | '/api/v1/sales-invoices/$invoiceId/issue'
     | '/api/v1/sales-invoices/$invoiceId/pdf'
+    | '/api/v1/sales-invoices/$invoiceId/reminders'
+    | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
   id:
     | '__root__'
@@ -565,6 +623,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/_app/accounts'
     | '/_app/contacts'
+    | '/_app/dunning'
     | '/_app/members'
     | '/_app/settings'
     | '/_app/'
@@ -595,6 +654,7 @@ export interface FileRouteTypes {
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
     | '/api/v1/reports/balance-sheet'
+    | '/api/v1/reports/dunning'
     | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
@@ -604,8 +664,11 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
     | '/api/v1/journal-entries/$entryId/reversal'
+    | '/api/v1/sales-invoices/$invoiceId/deliveries'
     | '/api/v1/sales-invoices/$invoiceId/issue'
     | '/api/v1/sales-invoices/$invoiceId/pdf'
+    | '/api/v1/sales-invoices/$invoiceId/reminders'
+    | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
   fileRoutesById: FileRoutesById
 }
@@ -629,6 +692,7 @@ export interface RootRouteChildren {
   ApiV1ImportsAuditFileRoute: typeof ApiV1ImportsAuditFileRoute
   ApiV1LedgerChainVerificationRoute: typeof ApiV1LedgerChainVerificationRoute
   ApiV1ReportsBalanceSheetRoute: typeof ApiV1ReportsBalanceSheetRoute
+  ApiV1ReportsDunningRoute: typeof ApiV1ReportsDunningRoute
   ApiV1ReportsOverdueInvoicesRoute: typeof ApiV1ReportsOverdueInvoicesRoute
   ApiV1ReportsProfitAndLossRoute: typeof ApiV1ReportsProfitAndLossRoute
   ApiV1ReportsTrialBalanceRoute: typeof ApiV1ReportsTrialBalanceRoute
@@ -687,6 +751,13 @@ declare module '@tanstack/react-router' {
       path: '/contacts'
       fullPath: '/contacts'
       preLoaderRoute: typeof AppContactsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dunning': {
+      id: '/_app/dunning'
+      path: '/dunning'
+      fullPath: '/dunning'
+      preLoaderRoute: typeof AppDunningRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/members': {
@@ -892,6 +963,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1ReportsBalanceSheetRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/reports/dunning': {
+      id: '/api/v1/reports/dunning'
+      path: '/api/v1/reports/dunning'
+      fullPath: '/api/v1/reports/dunning'
+      preLoaderRoute: typeof ApiV1ReportsDunningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/reports/overdue-invoices': {
       id: '/api/v1/reports/overdue-invoices'
       path: '/api/v1/reports/overdue-invoices'
@@ -955,6 +1033,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1JournalEntriesEntryIdReversalRouteImport
       parentRoute: typeof ApiV1JournalEntriesEntryIdRoute
     }
+    '/api/v1/sales-invoices/$invoiceId/deliveries': {
+      id: '/api/v1/sales-invoices/$invoiceId/deliveries'
+      path: '/deliveries'
+      fullPath: '/api/v1/sales-invoices/$invoiceId/deliveries'
+      preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRouteImport
+      parentRoute: typeof ApiV1SalesInvoicesInvoiceIdRoute
+    }
     '/api/v1/sales-invoices/$invoiceId/issue': {
       id: '/api/v1/sales-invoices/$invoiceId/issue'
       path: '/issue'
@@ -967,6 +1052,20 @@ declare module '@tanstack/react-router' {
       path: '/pdf'
       fullPath: '/api/v1/sales-invoices/$invoiceId/pdf'
       preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdPdfRouteImport
+      parentRoute: typeof ApiV1SalesInvoicesInvoiceIdRoute
+    }
+    '/api/v1/sales-invoices/$invoiceId/reminders': {
+      id: '/api/v1/sales-invoices/$invoiceId/reminders'
+      path: '/reminders'
+      fullPath: '/api/v1/sales-invoices/$invoiceId/reminders'
+      preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdRemindersRouteImport
+      parentRoute: typeof ApiV1SalesInvoicesInvoiceIdRoute
+    }
+    '/api/v1/sales-invoices/$invoiceId/send': {
+      id: '/api/v1/sales-invoices/$invoiceId/send'
+      path: '/send'
+      fullPath: '/api/v1/sales-invoices/$invoiceId/send'
+      preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdSendRouteImport
       parentRoute: typeof ApiV1SalesInvoicesInvoiceIdRoute
     }
     '/api/v1/sales-invoices/$invoiceId/ubl': {
@@ -982,6 +1081,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAccountsRoute: typeof AppAccountsRoute
   AppContactsRoute: typeof AppContactsRoute
+  AppDunningRoute: typeof AppDunningRoute
   AppMembersRoute: typeof AppMembersRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -999,6 +1099,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAccountsRoute: AppAccountsRoute,
   AppContactsRoute: AppContactsRoute,
+  AppDunningRoute: AppDunningRoute,
   AppMembersRoute: AppMembersRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
@@ -1065,16 +1166,24 @@ const ApiV1MembersRouteWithChildren = ApiV1MembersRoute._addFileChildren(
 )
 
 interface ApiV1SalesInvoicesInvoiceIdRouteChildren {
+  ApiV1SalesInvoicesInvoiceIdDeliveriesRoute: typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   ApiV1SalesInvoicesInvoiceIdIssueRoute: typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
   ApiV1SalesInvoicesInvoiceIdPdfRoute: typeof ApiV1SalesInvoicesInvoiceIdPdfRoute
+  ApiV1SalesInvoicesInvoiceIdRemindersRoute: typeof ApiV1SalesInvoicesInvoiceIdRemindersRoute
+  ApiV1SalesInvoicesInvoiceIdSendRoute: typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   ApiV1SalesInvoicesInvoiceIdUblRoute: typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 
 const ApiV1SalesInvoicesInvoiceIdRouteChildren: ApiV1SalesInvoicesInvoiceIdRouteChildren =
   {
+    ApiV1SalesInvoicesInvoiceIdDeliveriesRoute:
+      ApiV1SalesInvoicesInvoiceIdDeliveriesRoute,
     ApiV1SalesInvoicesInvoiceIdIssueRoute:
       ApiV1SalesInvoicesInvoiceIdIssueRoute,
     ApiV1SalesInvoicesInvoiceIdPdfRoute: ApiV1SalesInvoicesInvoiceIdPdfRoute,
+    ApiV1SalesInvoicesInvoiceIdRemindersRoute:
+      ApiV1SalesInvoicesInvoiceIdRemindersRoute,
+    ApiV1SalesInvoicesInvoiceIdSendRoute: ApiV1SalesInvoicesInvoiceIdSendRoute,
     ApiV1SalesInvoicesInvoiceIdUblRoute: ApiV1SalesInvoicesInvoiceIdUblRoute,
   }
 
@@ -1115,6 +1224,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ImportsAuditFileRoute: ApiV1ImportsAuditFileRoute,
   ApiV1LedgerChainVerificationRoute: ApiV1LedgerChainVerificationRoute,
   ApiV1ReportsBalanceSheetRoute: ApiV1ReportsBalanceSheetRoute,
+  ApiV1ReportsDunningRoute: ApiV1ReportsDunningRoute,
   ApiV1ReportsOverdueInvoicesRoute: ApiV1ReportsOverdueInvoicesRoute,
   ApiV1ReportsProfitAndLossRoute: ApiV1ReportsProfitAndLossRoute,
   ApiV1ReportsTrialBalanceRoute: ApiV1ReportsTrialBalanceRoute,

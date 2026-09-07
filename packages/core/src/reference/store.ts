@@ -109,7 +109,9 @@ export function loadReferenceDataFromDirectory(directory: string): ReferenceData
   } catch (error: unknown) {
     throw new ReferenceDataError(
       `Cannot read ${rgsDirectory}: ${error instanceof Error ? error.message : String(error)}. ` +
-        'Set KLOPT_REFERENCE_DATA_DIR, or ship the reference-data directory with the image.',
+        'Generate it with `pnpm rgs:generate` (see docs/compliance-calendar.md), ' +
+        'point KLOPT_REFERENCE_DATA_DIR somewhere that has it, or ship the ' +
+        'reference-data directory with the image.',
     )
   }
 

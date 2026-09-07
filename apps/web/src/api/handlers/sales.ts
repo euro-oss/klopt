@@ -1,10 +1,16 @@
+import { createHash } from 'node:crypto'
 import {
+  DEFAULT_DUNNING_SCHEDULE,
   checkUblRules,
+  formatMinorUnits,
   generateUbl,
+  planDunning,
   postJournalEntry,
   presentInvoice,
+  stageOf,
   systemClock,
   toUblDocument,
+  type EInvoiceDocument,
   type PricedInvoice,
 } from '@klopt/core'
 import {
@@ -17,8 +23,15 @@ import {
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
 import { invoiceRenderer } from '../documents.js'
+import { eInvoiceTransport } from '../e-invoice.js'
 import { schematron } from '../schematron.js'
-import type { CreateContactBody, DraftInvoiceBody, IssueInvoiceBody } from '../schemas.js'
+import type {
+  CreateContactBody,
+  DraftInvoiceBody,
+  IssueInvoiceBody,
+  SendInvoiceBody,
+  SendReminderBody,
+} from '../schemas.js'
 
 /**
  * Sales handlers.
@@ -507,5 +520,279 @@ export async function handleGetInvoicePdf(
     contentType: rendered.contentType,
     filename: rendered.filename,
     embeddedUbl: attachUbl !== undefined,
+  }
+}
+
+/**
+ * Build the package that leaves the building: validated UBL, and a PDF.
+ *
+ * The UBL goes through the full pre-flight and schematron path — nothing is
+ * sent that has not passed the published rules, which is the guarantee ADR 0017
+ * exists to make good on. The PDF carries the XML inside it as well when asked,
+ * so a recipient who saves only the attachment they recognise still has both.
+ */
+async function packageFor(
+  context: RequestContext,
+  invoiceId: string,
+  options: { embedUbl: boolean; reminder?: { stage: number; daysOverdue: number } | undefined },
+): Promise<{ document: EInvoiceDocument; hash: string }> {
+  const source = await withSalesRead(context.database, (repository) =>
+    repository.loadUblSource(context.entityId, invoiceId),
+  )
+  if (source === null) {
+    throw new ApiError('not_found', 'No such issued invoice. A draft cannot be sent.')
+  }
+
+  const ubl = await handleGetInvoiceUbl(context, invoiceId)
+  const pdf = await handleGetInvoicePdf(context, invoiceId, { embedUbl: options.embedUbl })
+
+  return {
+    hash: createHash('sha256').update(ubl.xml, 'utf8').digest('hex'),
+    document: {
+      invoiceNumber: source.number,
+      kind: source.kind,
+      xml: ubl.xml,
+      xmlFilename: ubl.filename,
+      pdf: { filename: pdf.filename, contentType: pdf.contentType, content: pdf.bytes },
+      total: formatMinorUnits(source.total),
+      currency: source.currency,
+      dueDate: source.dueDate,
+      sellerName: source.seller.tradingName ?? source.seller.legalName,
+      ...(options.reminder === undefined ? {} : { reminder: options.reminder }),
+    },
+  }
+}
+
+function recipientFrom(
+  source: {
+    buyer: {
+      legalName: string
+      tradingName: string | null
+      email: string | null
+      electronicAddress: string | null
+      electronicAddressScheme: string | null
+      countryCode: string
+    }
+  },
+  override: string | null,
+) {
+  return {
+    name: source.buyer.tradingName ?? source.buyer.legalName,
+    email: override ?? source.buyer.email,
+    electronicAddress: source.buyer.electronicAddress,
+    electronicAddressScheme: source.buyer.electronicAddressScheme,
+    countryCode: source.buyer.countryCode,
+  }
+}
+
+/**
+ * Send an issued invoice (spec 7.5, 8).
+ *
+ * A send that fails is **recorded and reported, not thrown away**. Spec 8's
+ * rule 4 — an adapter failing never blocks bookkeeping — means a bounced
+ * message leaves the invoice exactly as it was and leaves a row saying what
+ * happened, which is the answer to a customer who says they never got it.
+ * The status code says which: 200 sent, 502 attempted and failed.
+ */
+export async function handleSendInvoice(
+  context: RequestContext,
+  invoiceId: string,
+  body: SendInvoiceBody,
+) {
+  requirePermission(context, 'ledger:post')
+  requireIdempotencyKey(context)
+
+  const source = await withSalesRead(context.database, (repository) =>
+    repository.loadUblSource(context.entityId, invoiceId),
+  )
+  if (source === null) {
+    throw new ApiError('not_found', 'No such issued invoice. A draft cannot be sent.')
+  }
+
+  const { document, hash } = await packageFor(context, invoiceId, {
+    embedUbl: body.embedUbl,
+    reminder: undefined,
+  })
+
+  const transport = eInvoiceTransport()
+  const recipient = recipientFrom(source, body.to)
+
+  if (!(await transport.reachable(recipient))) {
+    throw new ApiError(
+      'validation_failed',
+      `${recipient.name} has no email address. Add one to the contact, or pass "to".`,
+      [{ code: 'unreachable_recipient', path: 'to', message: 'No address to send to.' }],
+    )
+  }
+
+  const receipt = await transport.send(document, recipient)
+
+  await withSales(context.database, ({ sales }) =>
+    sales.recordDelivery({
+      entityId: context.entityId,
+      invoiceId,
+      channel: receipt.channel,
+      recipient: receipt.recipient,
+      documentHash: hash,
+      transport: receipt.transport,
+      transportMessageId: receipt.messageId,
+      delivered: receipt.delivered,
+      failure: receipt.failure,
+      purpose: 'invoice',
+      dunningStage: null,
+    }),
+  )
+
+  return {
+    status: receipt.failure === null ? 200 : 502,
+    body: {
+      invoiceId,
+      number: document.invoiceNumber,
+      channel: receipt.channel,
+      transport: receipt.transport,
+      recipient: receipt.recipient,
+      delivered: receipt.delivered,
+      messageId: receipt.messageId,
+      failure: receipt.failure,
+      documentHash: hash,
+    },
+  }
+}
+
+export async function handleListDeliveries(context: RequestContext, invoiceId: string) {
+  requirePermission(context, 'ledger:read')
+
+  const rows = await withSalesRead(context.database, (repository) =>
+    repository.deliveriesFor(context.entityId, invoiceId),
+  )
+
+  return {
+    status: 200,
+    body: {
+      deliveries: rows.map((row) => ({
+        ...row,
+        sentAt: row.sentAt.toISOString(),
+        stageLabel: row.dunningStage === null ? null : (stageOf(row.dunningStage)?.label ?? null),
+      })),
+    },
+  }
+}
+
+export async function handleGetDunningQueue(
+  context: RequestContext,
+  query: { readonly asOf: string },
+) {
+  requirePermission(context, 'ledger:read')
+
+  const invoices = await withSalesRead(context.database, (repository) =>
+    repository.dunnable(context.entityId, query.asOf),
+  )
+  const actions = planDunning(invoices, query.asOf)
+
+  return {
+    status: 200,
+    body: {
+      asOf: query.asOf,
+      schedule: DEFAULT_DUNNING_SCHEDULE,
+      actions: actions.map((action) => ({
+        invoiceId: action.invoiceId,
+        number: action.number,
+        contactName: action.contactName,
+        contactEmail: action.contactEmail,
+        total: action.total.toString(),
+        currency: action.currency,
+        dueDate: action.dueDate,
+        daysOverdue: action.daysOverdue,
+        stage: action.stage.stage,
+        stageLabel: action.stage.label,
+        tone: action.stage.tone,
+        sendable: action.sendable,
+      })),
+      totalOverdue: actions.reduce((sum, action) => sum + action.total, 0n).toString(),
+    },
+  }
+}
+
+/**
+ * Send the reminder this invoice is due.
+ *
+ * The stage is **derived here, not chosen by the caller** — a screen that has
+ * been open for an hour would otherwise send stage 1 to an invoice that has
+ * moved on to stage 2. `expectedStage` lets the caller say what it thought, and
+ * a mismatch is a 409 rather than the wrong letter going out.
+ *
+ * One reminder per stage, ever, enforced by `planDunning`: an invoice with
+ * nothing due has no action, and asking again is a 409 rather than a duplicate.
+ */
+export async function handleSendDunningReminder(
+  context: RequestContext,
+  invoiceId: string,
+  body: SendReminderBody,
+) {
+  requirePermission(context, 'ledger:post')
+  requireIdempotencyKey(context)
+
+  const invoices = await withSalesRead(context.database, (repository) =>
+    repository.dunnable(context.entityId, body.asOf),
+  )
+  const action = planDunning(invoices, body.asOf).find((item) => item.invoiceId === invoiceId)
+
+  if (action === undefined) {
+    throw new ApiError(
+      'conflict',
+      'This invoice has no reminder due: it is not overdue far enough, or the reminder has already been sent.',
+    )
+  }
+  if (body.expectedStage !== null && body.expectedStage !== action.stage.stage) {
+    throw new ApiError(
+      'conflict',
+      `This invoice is now due a stage ${String(action.stage.stage)} reminder, not stage ${String(body.expectedStage)}. Reload and try again.`,
+    )
+  }
+
+  const source = await withSalesRead(context.database, (repository) =>
+    repository.loadUblSource(context.entityId, invoiceId),
+  )
+  if (source === null) throw new ApiError('not_found', 'The invoice has gone.')
+
+  const { document, hash } = await packageFor(context, invoiceId, {
+    embedUbl: true,
+    reminder: { stage: action.stage.stage, daysOverdue: action.daysOverdue },
+  })
+
+  const transport = eInvoiceTransport()
+  const recipient = recipientFrom(source, null)
+  const receipt = await transport.send(document, recipient)
+
+  await withSales(context.database, ({ sales }) =>
+    sales.recordDelivery({
+      entityId: context.entityId,
+      invoiceId,
+      channel: receipt.channel,
+      recipient: receipt.recipient,
+      documentHash: hash,
+      transport: receipt.transport,
+      transportMessageId: receipt.messageId,
+      delivered: receipt.delivered,
+      failure: receipt.failure,
+      purpose: 'reminder',
+      dunningStage: action.stage.stage,
+    }),
+  )
+
+  return {
+    status: receipt.failure === null ? 200 : 502,
+    body: {
+      invoiceId,
+      number: action.number,
+      stage: action.stage.stage,
+      stageLabel: action.stage.label,
+      daysOverdue: action.daysOverdue,
+      recipient: receipt.recipient,
+      delivered: receipt.delivered,
+      transport: receipt.transport,
+      messageId: receipt.messageId,
+      failure: receipt.failure,
+    },
   }
 }

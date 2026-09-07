@@ -36,3 +36,4 @@ export type AdapterFamily = (typeof ADAPTER_FAMILIES)[number]
 
 export * from './schematron/index.js'
 export * from './pdf/index.js'
+export * from './e-invoice/index.js'
