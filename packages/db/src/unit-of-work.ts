@@ -6,6 +6,7 @@ import { BankRepository } from './repositories/bank.js'
 import { MembersRepository } from './repositories/members.js'
 import { PaymentsRepository } from './repositories/payments.js'
 import { InboxRepository } from './repositories/inbox.js'
+import { InboundSourceRepository } from './repositories/inbound-sources.js'
 import { PurchaseRepository } from './repositories/purchase.js'
 import { SalesRepository } from './repositories/sales.js'
 import { SetupRepository } from './repositories/setup.js'
@@ -333,4 +334,28 @@ export async function withPurchasePayments<T>(
   return database.transaction(async (tx) =>
     work({ payments: new PaymentsRepository(tx), purchase: new PurchaseRepository(tx) }),
   )
+}
+
+/**
+ * The mailboxes an administration receives on.
+ *
+ * Read-only variant on purpose for the settings screen: a source is edited by
+ * somebody with `ledger:configure`, and read by a status page that has no
+ * business writing anything.
+ */
+export async function withInboundSourcesRead<T>(
+  database: Database,
+  work: (repository: InboundSourceRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new InboundSourceRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
+  })
+}
+
+export async function withInboundSources<T>(
+  database: Database,
+  work: (repository: InboundSourceRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new InboundSourceRepository(tx)))
 }

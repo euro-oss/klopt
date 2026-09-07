@@ -4,7 +4,16 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
-import { discardInboxItem, draftFromInbox, listInbox, receiveDocument } from '~/server/inbox'
+import {
+  addInboundSource,
+  discardInboxItem,
+  draftFromInbox,
+  listInbox,
+  listInboundSources,
+  pollInboundSource,
+  receiveDocument,
+  removeInboundSource,
+} from '~/server/inbox'
 import { listContacts, listTaxCodes } from '~/server/sales'
 import { listAccounts } from '~/server/ledger'
 
@@ -32,6 +41,7 @@ export const Route = createFileRoute('/_app/inbox')({
     inbox: await listInbox({
       data: deps.state === undefined ? { state: 'new' as const } : {},
     }),
+    sources: await listInboundSources(),
     contacts: await listContacts({ data: { customersOnly: false } }),
     accounts: await listAccounts(),
     taxCodes: await listTaxCodes(),
@@ -532,6 +542,332 @@ function Inbox() {
           )
         })}
       </ul>
+
+      <InboundSources />
     </>
+  )
+}
+
+const KIND_LABEL: Record<string, string> = {
+  maildir: 'map',
+  imap: 'mailbox',
+  peppol: 'Peppol',
+}
+
+/**
+ * Where post comes from.
+ *
+ * On this screen rather than in Instellingen because it answers the question
+ * this screen raises: the queue is empty, is that because nothing arrived or
+ * because the mailbox has been refusing a password since Tuesday? A poller
+ * whose failures are only in a log is a poller nobody knows has stopped.
+ */
+function InboundSources() {
+  const { sources } = Route.useLoaderData()
+  const router = useRouter()
+  const hydrated = useHydrated()
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [kind, setKind] = useState<'maildir' | 'imap'>('maildir')
+  const [error, setError] = useState<string | null>(null)
+  const [note, setNote] = useState<string | null>(null)
+  const key = useRef(crypto.randomUUID())
+
+  if (!sources.ok) return null
+  const rows = sources.data.sources
+
+  async function add(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    const text = (name: string): string => {
+      const value = form.get(name)
+      return typeof value === 'string' ? value.trim() : ''
+    }
+
+    setBusy(true)
+    setError(null)
+    const result = await addInboundSource({
+      data: {
+        idempotencyKey: key.current,
+        kind,
+        name: text('name'),
+        ...(kind === 'maildir'
+          ? { directory: text('directory') }
+          : {
+              host: text('host'),
+              user: text('user'),
+              password: text('password'),
+              mailbox: text('mailbox') === '' ? 'INBOX' : text('mailbox'),
+              processedMailbox: text('processedMailbox') === '' ? null : text('processedMailbox'),
+            }),
+      },
+    })
+    setBusy(false)
+
+    if (!result.ok) {
+      setError(result.problem.detail)
+      return
+    }
+    key.current = crypto.randomUUID()
+    setOpen(false)
+    await router.invalidate()
+  }
+
+  async function poll(sourceId: string) {
+    setBusy(true)
+    setNote(null)
+    setError(null)
+    const result = await pollInboundSource({ data: { sourceId } })
+    setBusy(false)
+
+    if (!result.ok) {
+      setError(result.problem.detail)
+      return
+    }
+    setNote(
+      result.data.ok
+        ? `${String(result.data.filed)} nieuw bericht(en), ${String(result.data.documents)} document(en).`
+        : (result.data.failure ?? 'Ophalen is niet gelukt.'),
+    )
+    await router.invalidate()
+  }
+
+  async function remove(sourceId: string) {
+    setBusy(true)
+    await removeInboundSource({ data: { sourceId } })
+    setBusy(false)
+    await router.invalidate()
+  }
+
+  return (
+    <section className="border-border mt-10 max-w-3xl rounded-md border p-4">
+      <h2 className="mb-1 text-sm font-semibold">Waar post vandaan komt</h2>
+      <p className="text-muted-foreground mb-3 text-sm">
+        Een map waar bestanden in gezet worden vraagt geen wachtwoord en is de gewone keuze; een
+        mailbox wordt elke vijf minuten geleegd. Wat via Peppol binnenkomt wordt bezorgd en hoeft
+        niet opgehaald te worden.
+      </p>
+
+      {!sources.data.canStoreSecrets && (
+        <p className="text-muted-foreground mb-3 text-xs">
+          Er is geen KLOPT_ENCRYPTION_KEY ingesteld, dus een wachtwoord kan niet veilig bewaard
+          worden. Een map werkt wel — die heeft er geen nodig.
+        </p>
+      )}
+
+      {rows.length === 0 ? (
+        <p className="text-muted-foreground mb-3 text-sm">
+          Nog geen bronnen. Alles komt nu binnen doordat iemand het hierboven toevoegt.
+        </p>
+      ) : (
+        <table className="mb-3 w-full text-sm">
+          <caption className="sr-only">Bronnen waar post vandaan komt</caption>
+          <thead>
+            <tr className="text-muted-foreground text-left text-xs">
+              <th scope="col">Naam</th>
+              <th scope="col">Waar</th>
+              <th scope="col">Laatst opgehaald</th>
+              <th scope="col" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id} className="border-border/50 border-t align-top">
+                <td className="py-1.5 pr-2">
+                  {row.name}
+                  <span className="text-muted-foreground text-xs"> {KIND_LABEL[row.kind]}</span>
+                </td>
+                <td className="text-muted-foreground py-1.5 pr-2 text-xs">{row.where}</td>
+                <td className="py-1.5 pr-2 text-xs">
+                  {row.lastPolledAt === null ? (
+                    <span className="text-muted-foreground">nog nooit</span>
+                  ) : (
+                    <span className="tabular">{formatDate(row.lastPolledAt.slice(0, 10))}</span>
+                  )}
+                  {row.lastError !== null && (
+                    <span className="text-destructive block">{row.lastError}</span>
+                  )}
+                </td>
+                <td className="py-1.5 text-right whitespace-nowrap">
+                  {row.kind !== 'peppol' && (
+                    <button
+                      type="button"
+                      disabled={!hydrated || busy}
+                      onClick={() => {
+                        void poll(row.id)
+                      }}
+                      className="text-primary mr-3 text-xs underline disabled:opacity-50"
+                    >
+                      Nu ophalen
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={!hydrated || busy}
+                    onClick={() => {
+                      void remove(row.id)
+                    }}
+                    className="text-muted-foreground text-xs underline disabled:opacity-50"
+                  >
+                    Verwijderen
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {note !== null && <p className="mb-3 text-sm">{note}</p>}
+      {error !== null && (
+        <p role="alert" className="text-destructive mb-3 text-sm">
+          {error}
+        </p>
+      )}
+
+      <button
+        type="button"
+        disabled={!hydrated}
+        onClick={() => {
+          setOpen(!open)
+        }}
+        className="border-border rounded-md border px-3 py-1.5 text-sm disabled:opacity-50"
+      >
+        {open ? 'Annuleren' : 'Bron toevoegen'}
+      </button>
+
+      {open && (
+        <form
+          className="mt-3 grid max-w-xl gap-3 sm:grid-cols-2"
+          onSubmit={(event) => {
+            void add(event)
+          }}
+        >
+          <div>
+            <label
+              htmlFor="source-kind"
+              className="text-muted-foreground mb-1 block text-xs font-medium"
+            >
+              Soort
+            </label>
+            <select
+              id="source-kind"
+              value={kind}
+              onChange={(event) => {
+                setKind(event.currentTarget.value === 'imap' ? 'imap' : 'maildir')
+              }}
+              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+            >
+              <option value="maildir">Map met bestanden</option>
+              <option value="imap">Mailbox (IMAP)</option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="source-name"
+              className="text-muted-foreground mb-1 block text-xs font-medium"
+            >
+              Naam
+            </label>
+            <input
+              id="source-name"
+              name="name"
+              required
+              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+            />
+          </div>
+
+          {kind === 'maildir' ? (
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="source-directory"
+                className="text-muted-foreground mb-1 block text-xs font-medium"
+              >
+                Map
+              </label>
+              <input
+                id="source-directory"
+                name="directory"
+                required
+                placeholder="/var/klopt/postvak"
+                className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+              />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label
+                  htmlFor="source-host"
+                  className="text-muted-foreground mb-1 block text-xs font-medium"
+                >
+                  Server
+                </label>
+                <input
+                  id="source-host"
+                  name="host"
+                  required
+                  placeholder="imap.example.nl"
+                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="source-user"
+                  className="text-muted-foreground mb-1 block text-xs font-medium"
+                >
+                  Gebruiker
+                </label>
+                <input
+                  id="source-user"
+                  name="user"
+                  required
+                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="source-password"
+                  className="text-muted-foreground mb-1 block text-xs font-medium"
+                >
+                  Wachtwoord
+                </label>
+                <input
+                  id="source-password"
+                  name="password"
+                  type="password"
+                  required
+                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="source-processed"
+                  className="text-muted-foreground mb-1 block text-xs font-medium"
+                >
+                  Map voor verwerkte post
+                </label>
+                <input
+                  id="source-processed"
+                  name="processedMailbox"
+                  placeholder="Verwerkt"
+                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                />
+              </div>
+            </>
+          )}
+
+          <div className="sm:col-span-2">
+            <button
+              type="submit"
+              disabled={!hydrated || busy}
+              className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {busy ? 'Bezig…' : 'Opslaan'}
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
   )
 }

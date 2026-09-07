@@ -5,7 +5,13 @@ import {
   handleListInbox,
   handleReceiveDocument,
 } from '~/api/handlers/inbox'
-import { discardInboxItemBody, draftFromInboxBody } from '~/api/schemas'
+import {
+  handleAddInboundSource,
+  handleListInboundSources,
+  handlePollInboundSource,
+  handleRemoveInboundSource,
+} from '~/api/handlers/inbound-sources'
+import { addInboundSourceBody, discardInboxItemBody, draftFromInboxBody } from '~/api/schemas'
 import { contextFromRequest, run, runWith } from './internal'
 
 /** The inbox screen's RPC surface. Same handlers as `/api/v1/inbox`. */
@@ -86,5 +92,42 @@ export const discardInboxItem = createServerFn({ method: 'POST' })
             body,
           )
         ).body,
+    ),
+  )
+
+/**
+ * The mailboxes this administration receives on, and adding one.
+ *
+ * `pollInboundSource` runs the same code the worker's schedule runs, which is
+ * the point of the button: it proves the schedule works rather than proving
+ * something else does.
+ */
+export const listInboundSources = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handleListInboundSources(await contextFromRequest())).body),
+)
+
+export const addInboundSource = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      addInboundSourceBody,
+      data,
+      async (body) => (await handleAddInboundSource(await contextFromRequest(), body)).body,
+    ),
+  )
+
+export const removeInboundSource = createServerFn({ method: 'POST' })
+  .validator((input: { sourceId: string }) => input)
+  .handler(async ({ data }) =>
+    run(
+      async () => (await handleRemoveInboundSource(await contextFromRequest(), data.sourceId)).body,
+    ),
+  )
+
+export const pollInboundSource = createServerFn({ method: 'POST' })
+  .validator((input: { sourceId: string }) => input)
+  .handler(async ({ data }) =>
+    run(
+      async () => (await handlePollInboundSource(await contextFromRequest(), data.sourceId)).body,
     ),
   )

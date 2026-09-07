@@ -10,6 +10,12 @@ import { handle, parse, searchParams } from '~/api/runtime'
  * JSON would inflate every invoice by a third for no benefit. A mail gateway or
  * a Peppol access point posts here with `source` set accordingly; the browser
  * posts the same shape from a file input.
+ *
+ * `externalId` is what the sender calls this arrival — a Peppol transmission
+ * id, a gateway's message id. Sending it makes the post safe to retry: the
+ * second one answers 200 with `alreadyTaken` rather than filing the invoice a
+ * second time. An access point that retries on a timeout, which they all do,
+ * needs that.
  */
 export const Route = createFileRoute('/api/v1/inbox')({
   server: {
@@ -39,6 +45,7 @@ export const Route = createFileRoute('/api/v1/inbox')({
             source: source === 'email' || source === 'peppol' ? source : 'upload',
             receivedFrom: text('receivedFrom'),
             subject: text('subject'),
+            externalId: text('externalId'),
           })
         }),
     },

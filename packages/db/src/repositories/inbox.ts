@@ -1,5 +1,5 @@
 import { uuidv7 } from '@klopt/core'
-import { and, asc, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import { documentLinks, documents, inboxItems } from '../schema/documents.js'
 import { contacts } from '../schema/sales.js'
@@ -42,6 +42,7 @@ export interface InboxItemRow {
   readonly contactName: string | null
   readonly purchaseInvoiceId: string | null
   readonly discardedReason: string | null
+  readonly externalId: string | null
   readonly receivedAt: string
   /** True when these exact bytes were already in the inbox before. */
   readonly duplicateOfCount: number
@@ -83,6 +84,15 @@ export class InboxRepository {
     return { id, existed: false }
   }
 
+  /**
+   * Record an arrival.
+   *
+   * Returns the existing row when this arrival has been taken before, which is
+   * what makes polling safe to repeat. A source is acknowledged only *after*
+   * the documents are committed — at-least-once is the correct failure
+   * direction, because the alternative loses invoices — so the same message
+   * coming round twice is expected rather than exceptional.
+   */
   async addItem(request: {
     readonly entityId: string
     readonly documentId: string
@@ -92,20 +102,50 @@ export class InboxRepository {
     readonly parsed: unknown
     readonly parseError: string | null
     readonly contactId: string | null
-  }): Promise<string> {
+    readonly externalId?: string | null
+    readonly externalPart?: string | null
+    readonly discardedReason?: string | null
+  }): Promise<{ readonly id: string; readonly existed: boolean }> {
+    const externalId = request.externalId ?? null
+    const externalPart = request.externalPart ?? null
+
+    if (externalId !== null) {
+      const [existing] = await this.tx
+        .select({ id: inboxItems.id })
+        .from(inboxItems)
+        .where(
+          and(
+            eq(inboxItems.entityId, request.entityId),
+            eq(inboxItems.source, request.source),
+            eq(inboxItems.externalId, externalId),
+            externalPart === null
+              ? isNull(inboxItems.externalPart)
+              : eq(inboxItems.externalPart, externalPart),
+          ),
+        )
+        .limit(1)
+
+      if (existing !== undefined) return { id: existing.id, existed: true }
+    }
+
+    const discardedReason = request.discardedReason ?? null
     const id = uuidv7()
     await this.tx.insert(inboxItems).values({
       id,
       entityId: request.entityId,
       documentId: request.documentId,
       source: request.source,
+      state: discardedReason === null ? 'new' : 'discarded',
       receivedFrom: request.receivedFrom,
       subject: request.subject,
       parsed: request.parsed,
       parseError: request.parseError,
       contactId: request.contactId,
+      externalId,
+      externalPart,
+      discardedReason,
     })
-    return id
+    return { id, existed: false }
   }
 
   async list(entityId: string, state?: 'new' | 'drafted' | 'discarded'): Promise<InboxItemRow[]> {
@@ -121,6 +161,7 @@ export class InboxRepository {
         contactId: inboxItems.contactId,
         purchaseInvoiceId: inboxItems.purchaseInvoiceId,
         discardedReason: inboxItems.discardedReason,
+        externalId: inboxItems.externalId,
         receivedAt: inboxItems.receivedAt,
         documentId: documents.id,
         sha256: documents.sha256,

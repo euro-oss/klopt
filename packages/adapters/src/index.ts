@@ -4,7 +4,7 @@
  *
  *   filing      BTW-aangifte and ICP to the Belastingdienst
  *   bank-feed   account information
- *   e-invoice   Peppol and its fallbacks
+ *   e-invoice   Peppol and its fallbacks, outbound and inbound
  *   payment     outbound payment initiation
  *
  * Three rules hold for all four, and they are what makes a self-hosted install
@@ -40,3 +40,4 @@ export * from './e-invoice/index.js'
 export * from './vat-number/index.js'
 export * from './filing/index.js'
 export * from './documents/index.js'
+export * from './inbound/index.js'

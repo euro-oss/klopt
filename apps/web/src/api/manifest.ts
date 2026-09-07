@@ -483,6 +483,30 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/documents.$documentId.ts',
   },
   {
+    operationId: 'inbox.listSources',
+    method: 'GET',
+    path: '/inbox/sources',
+    module: 'api/v1/inbox.sources.ts',
+  },
+  {
+    operationId: 'inbox.addSource',
+    method: 'POST',
+    path: '/inbox/sources',
+    module: 'api/v1/inbox.sources.ts',
+  },
+  {
+    operationId: 'inbox.removeSource',
+    method: 'DELETE',
+    path: '/inbox/sources/{sourceId}',
+    module: 'api/v1/inbox.sources.$sourceId.ts',
+  },
+  {
+    operationId: 'inbox.pollSource',
+    method: 'POST',
+    path: '/inbox/sources/{sourceId}/poll',
+    module: 'api/v1/inbox.sources.$sourceId.poll.ts',
+  },
+  {
     operationId: 'payments.previewRun',
     method: 'GET',
     path: '/payment-batches/{batchId}/run',

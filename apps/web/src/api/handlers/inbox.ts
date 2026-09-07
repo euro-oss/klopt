@@ -1,12 +1,11 @@
+import { checkPurchaseInvoice, type PurchaseInvoiceInput } from '@klopt/core'
 import {
-  checkPurchaseInvoice,
-  contentTypeFor,
-  looksLikeXml,
-  parseUblInvoice,
-  type InboundInvoice,
-  type PurchaseInvoiceInput,
-} from '@klopt/core'
-import { withInbox, withInboxRead, withPurchaseRead } from '@klopt/db'
+  receiveDocument,
+  withInbox,
+  withInboxRead,
+  type ReceiveDocumentRequest as ReceiveRequest,
+  type StoredParse,
+} from '@klopt/db'
 import { hasPermission, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
 import { documentStore } from '../document-store.js'
@@ -40,44 +39,6 @@ function requireIdempotencyKey(context: RequestContext): string {
   return context.idempotencyKey
 }
 
-/** The parse, as it is stored and shown. Amounts as strings, like the wire. */
-function serialiseParsed(parsed: InboundInvoice) {
-  return {
-    supplier: parsed.supplier,
-    invoice: {
-      supplierInvoiceNumber: parsed.invoice.supplierInvoiceNumber,
-      kind: parsed.invoice.kind,
-      invoiceDate: parsed.invoice.invoiceDate,
-      dueDate: parsed.invoice.dueDate,
-      currency: parsed.invoice.currency,
-      net: parsed.invoice.netMinorUnits.toString(),
-      tax: parsed.invoice.taxMinorUnits.toString(),
-      total: parsed.invoice.totalMinorUnits.toString(),
-      lines: parsed.invoice.lines.map((line, index) => ({
-        lineNumber: index + 1,
-        description: line.description,
-        accountNumber: line.accountNumber,
-        taxCode: line.taxCode,
-        net: line.netMinorUnits.toString(),
-        tax: line.taxMinorUnits.toString(),
-      })),
-    },
-    buyerReference: parsed.buyerReference,
-    paymentReference: parsed.paymentReference,
-    findings: parsed.findings,
-  }
-}
-
-/**
- * What was read out of a document at the moment it arrived.
- *
- * Stored rather than recomputed, so a reader that improves next month does not
- * silently change what somebody was shown last week — which means it comes back
- * out of `jsonb` as whatever shape it went in as. The cast at the boundary is
- * the honest one: this is our own writing, read back.
- */
-export type StoredParse = ReturnType<typeof serialiseParsed>
-
 /** Back to the domain shape, from what was stored at arrival. */
 function toInput(stored: StoredParse['invoice']): PurchaseInvoiceInput {
   return {
@@ -99,15 +60,16 @@ function toInput(stored: StoredParse['invoice']): PurchaseInvoiceInput {
   }
 }
 
-export interface ReceiveDocumentRequest {
-  readonly bytes: Uint8Array
-  readonly filename: string | null
-  readonly contentType: string | null
-  readonly source: 'upload' | 'email' | 'peppol'
-  readonly receivedFrom: string | null
-  readonly subject: string | null
-}
+export type ReceiveDocumentRequest = Omit<ReceiveRequest, 'entityId'>
 
+/**
+ * Put something in the inbox.
+ *
+ * The work itself lives in `@klopt/db`, because the worker's mailbox poller
+ * goes through exactly the same path. Two doorways into one queue that parsed,
+ * matched or deduplicated differently would make an invoice behave differently
+ * depending on how it arrived, which is what "one queue" was meant to rule out.
+ */
 export async function handleReceiveDocument(
   context: RequestContext,
   request: ReceiveDocumentRequest,
@@ -119,91 +81,26 @@ export async function handleReceiveDocument(
     throw new ApiError('validation_failed', 'There is nothing in this file.')
   }
 
-  const contentType =
-    request.contentType ??
-    (request.filename === null ? 'application/octet-stream' : contentTypeFor(request.filename))
-
-  // Stored before anything is understood. A document we cannot read is still a
-  // document somebody can open, and losing it because the parser did not like
-  // it would be the worst thing an inbox could do.
-  const stored = await documentStore().put(request.bytes, { contentType })
-
-  // Read only what can be read. The result is *stored*, so a reader that
-  // improves next month does not silently change what somebody was shown.
-  let parsed: StoredParse | null = null
-  let parseError: string | null = null
-  let identifiers = {
-    vatNumber: null as string | null,
-    kvkNumber: null as string | null,
-    iban: null as string | null,
-  }
-
-  if (looksLikeXml(contentType, request.bytes)) {
-    const chart = await withPurchaseRead(context.database, async (repository) => ({
-      suspense: await repository.suspenseAccountNumber(context.entityId),
-      codes: await repository.taxCodeSuggestions(context.entityId),
-      currency: await repository.functionalCurrency(context.entityId),
-    }))
-
-    try {
-      const read = parseUblInvoice(new TextDecoder().decode(request.bytes), {
-        functionalCurrency: chart.currency,
-        suspenseAccountNumber: chart.suspense ?? '',
-        taxCodes: chart.codes,
-      })
-      parsed = serialiseParsed(read)
-      identifiers = {
-        vatNumber: read.supplier.vatNumber,
-        kvkNumber: read.supplier.kvkNumber,
-        iban: read.supplier.iban,
-      }
-    } catch (error: unknown) {
-      // Not a refusal. An XML file that is not a UBL invoice is still a file
-      // somebody sent us, and it belongs in the queue with a note saying why
-      // nothing could be read out of it.
-      parseError = error instanceof Error ? error.message : String(error)
-    }
-  }
-
-  return withInbox(context.database, async ({ inbox }) => {
-    const document = await inbox.recordDocument({
-      entityId: context.entityId,
-      sha256: stored.sha256,
-      sizeBytes: stored.sizeBytes,
-      contentType,
-      filename: request.filename,
-    })
-
-    const contact =
-      identifiers.vatNumber === null && identifiers.kvkNumber === null && identifiers.iban === null
-        ? null
-        : await inbox.matchSupplier(context.entityId, identifiers)
-
-    const id = await inbox.addItem({
-      entityId: context.entityId,
-      documentId: document.id,
-      source: request.source,
-      receivedFrom: request.receivedFrom,
-      subject: request.subject,
-      parsed,
-      parseError,
-      contactId: contact?.id ?? null,
-    })
-
-    return {
-      status: 201,
-      body: {
-        id,
-        documentId: document.id,
-        sha256: stored.sha256,
-        // "You already had this one." The point of content addressing.
-        alreadyHeld: document.existed,
-        parsed,
-        parseError,
-        matchedSupplier: contact,
-      },
-    }
+  const received = await receiveDocument(context.database, documentStore(), {
+    ...request,
+    entityId: context.entityId,
   })
+
+  return {
+    status: received.alreadyTaken ? 200 : 201,
+    body: {
+      id: received.id,
+      documentId: received.documentId,
+      sha256: received.sha256,
+      // "You already had this one." The point of content addressing.
+      alreadyHeld: received.alreadyHeld,
+      // "You already sent me this one." The point of the external id.
+      alreadyTaken: received.alreadyTaken,
+      parsed: received.parsed,
+      parseError: received.parseError,
+      matchedSupplier: received.matchedSupplier,
+    },
+  }
 }
 
 export async function handleListInbox(

@@ -1,4 +1,5 @@
 import type { Job, PgBoss } from 'pg-boss'
+import { pollInboundSourcesJob } from './inbound.js'
 
 /**
  * A scheduled or queued job. Registration is data so that the worker's job list
@@ -16,7 +17,29 @@ export interface JobDefinition<TPayload = unknown> {
   readonly handler: (payload: TPayload) => Promise<void>
 }
 
-export const jobs: readonly JobDefinition[] = []
+/**
+ * Emptying the configured mailboxes into the purchase inbox.
+ *
+ * Every five minutes, which is the right order of magnitude for something a
+ * person is waiting on but nobody is watching: fast enough that an invoice
+ * forwarded before a meeting is there after it, slow enough that a mailbox is
+ * not being asked six hundred times a day for nothing.
+ *
+ * The job body records its own outcome per source and never throws, so a
+ * mailbox that is down is a line on a settings screen rather than a failed job
+ * and a retry storm.
+ */
+function inboundPollJob(databaseUrl: string): JobDefinition {
+  return {
+    name: 'inbound.poll',
+    schedule: '*/5 * * * *',
+    handler: () => pollInboundSourcesJob(databaseUrl),
+  }
+}
+
+export function jobsFor(databaseUrl: string): readonly JobDefinition[] {
+  return [inboundPollJob(databaseUrl)]
+}
 
 export async function registerJobs(boss: PgBoss, list: readonly JobDefinition[]): Promise<void> {
   for (const job of list) {

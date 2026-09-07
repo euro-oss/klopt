@@ -1,6 +1,6 @@
 import { PgBoss } from 'pg-boss'
 import { loadConfig } from './config.js'
-import { jobs, registerJobs } from './jobs.js'
+import { jobsFor, registerJobs } from './jobs.js'
 
 async function main(): Promise<void> {
   const config = loadConfig()
@@ -13,6 +13,7 @@ async function main(): Promise<void> {
   })
 
   await boss.start()
+  const jobs = jobsFor(config.databaseUrl)
   await registerJobs(boss, jobs)
   console.info(`[worker] started with ${String(jobs.length)} job(s)`)
 

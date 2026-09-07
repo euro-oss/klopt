@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  boolean,
   char,
   check,
   index,
@@ -8,6 +9,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 import { klopt } from './schema.js'
@@ -23,6 +25,8 @@ export const documentSource = klopt.enum('document_source', [
 ])
 
 export const inboxState = klopt.enum('inbox_state', ['new', 'drafted', 'discarded'])
+
+export const inboundSourceKind = klopt.enum('inbound_source_kind', ['maildir', 'imap', 'peppol'])
 
 /**
  * A source document, addressed by the hash of its bytes (spec 7.6).
@@ -115,6 +119,16 @@ export const inboxItems = klopt.table(
       .references(() => documents.id),
     source: documentSource('source').notNull(),
     state: inboxState('state').notNull().default('new'),
+    /**
+     * What the transport called this arrival, and which part of it this is.
+     *
+     * The bytes are deduplicated by their hash, but two arrivals of the same
+     * document are two arrivals. "Have I already taken this message" is only
+     * answerable by the transport's own name for it — without which a poll that
+     * failed to acknowledge would file the same invoice again.
+     */
+    externalId: text('external_id'),
+    externalPart: text('external_part'),
     /** An email address, a Peppol participant id, or whoever uploaded it. */
     receivedFrom: text('received_from'),
     subject: text('subject'),
@@ -131,6 +145,9 @@ export const inboxItems = klopt.table(
   },
   (table) => [
     index('inbox_items_state').on(table.entityId, table.state, table.receivedAt),
+    uniqueIndex('inbox_items_external')
+      .on(table.entityId, table.source, table.externalId, table.externalPart)
+      .where(sql`${table.externalId} is not null`),
     index('inbox_items_document').on(table.entityId, table.documentId),
     check(
       'inbox_items_drafted_has_invoice',
@@ -140,5 +157,41 @@ export const inboxItems = klopt.table(
       'inbox_items_discarded_has_reason',
       sql`(${table.state} <> 'discarded') or (${table.discardedReason} is not null)`,
     ),
+  ],
+)
+
+/**
+ * A mailbox or an access point an administration receives documents on.
+ *
+ * Per entity rather than per instance, because `facturen@ditbedrijf.nl` belongs
+ * to an administration in a way a signing certificate nearly does not (spec 8,
+ * rule 2). The secret is a column of its own so that showing somebody their
+ * settings never has to load it.
+ */
+export const inboundSources = klopt.table(
+  'inbound_sources',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    kind: inboundSourceKind('kind').notNull(),
+    name: text('name').notNull(),
+    enabled: boolean('enabled').notNull().default(true),
+    /** Host, port, mailbox, directory. Nothing secret. */
+    config: jsonb('config').notNull().default({}),
+    /** Encrypted at rest. Null for a drop directory, which authenticates to nothing. */
+    secret: text('secret'),
+    /** Where the last poll got to. Opaque to everything but its own adapter. */
+    cursor: text('cursor'),
+    lastPolledAt: timestamp('last_polled_at', { withTimezone: true }),
+    lastError: text('last_error'),
+    lastMessageCount: integer('last_message_count').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('inbound_sources_entity_name').on(table.entityId, table.name),
+    index('inbound_sources_due').on(table.enabled, table.lastPolledAt),
   ],
 )

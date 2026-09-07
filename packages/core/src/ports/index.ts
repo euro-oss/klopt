@@ -37,6 +37,7 @@ export {
   normaliseVatNumber,
   parseVatNumber,
 } from './vat-number.js'
+export type { InboundAttachment, InboundMessage, InboundPoll, InboundSource } from './inbound.js'
 export type {
   FilingPayload,
   FilingReceipt,

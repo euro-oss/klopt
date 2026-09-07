@@ -647,3 +647,55 @@ export const inboxQuery = z.object({
 export type DraftFromInboxBody = z.infer<typeof draftFromInboxBody>
 export type DiscardInboxItemBody = z.infer<typeof discardInboxItemBody>
 export type InboxQuery = z.infer<typeof inboxQuery>
+
+/**
+ * Configuring somewhere documents arrive from (spec 6).
+ *
+ * The secret is separate from the rest of the configuration, in the body as it
+ * is in the table, so that "show me my settings" and "give me the password"
+ * stay two different requests.
+ */
+export const addInboundSourceBody = z
+  .object({
+    kind: z.enum(['maildir', 'imap', 'peppol']),
+    name: z.string().trim().min(1).max(80),
+    /** A drop directory. */
+    directory: nullableText.optional(),
+    /** A mailbox. */
+    host: nullableText.optional(),
+    port: z.coerce.number().int().min(1).max(65535).nullable().optional(),
+    secure: z.boolean().optional(),
+    user: nullableText.optional(),
+    mailbox: nullableText.optional(),
+    processedMailbox: nullableText.optional(),
+    /** Stored encrypted, never returned. */
+    password: nullableText.optional(),
+  })
+  .superRefine((value, context) => {
+    // Checked here rather than at the first poll, because a mailbox that
+    // silently never runs is the failure nobody notices for a month.
+    if (value.kind === 'maildir' && (value.directory ?? '') === '') {
+      context.addIssue({
+        code: 'custom',
+        path: ['directory'],
+        message: 'A drop directory needs a path.',
+      })
+    }
+    if (value.kind === 'imap') {
+      if ((value.host ?? '') === '') {
+        context.addIssue({ code: 'custom', path: ['host'], message: 'A mailbox needs a server.' })
+      }
+      if ((value.user ?? '') === '') {
+        context.addIssue({ code: 'custom', path: ['user'], message: 'A mailbox needs a user.' })
+      }
+      if ((value.password ?? '') === '') {
+        context.addIssue({
+          code: 'custom',
+          path: ['password'],
+          message: 'A mailbox needs a password.',
+        })
+      }
+    }
+  })
+
+export type AddInboundSourceBody = z.infer<typeof addInboundSourceBody>

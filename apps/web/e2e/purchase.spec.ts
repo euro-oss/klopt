@@ -1,4 +1,7 @@
 import { rmSync } from 'node:fs'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
@@ -361,4 +364,41 @@ test('an approved invoice becomes a payment instruction', async ({ page }) => {
   await page.getByRole('button', { name: 'Aanmaken' }).click()
   await expect(page.getByRole('heading', { name: /Betaalbatch BETAAL-0003/ })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Deze betalingen overnemen' })).toHaveCount(0)
+})
+
+test('a directory is configured as a source and emptied into the postvak', async ({ page }) => {
+  // The claim only a browser can check: somebody can set up a doorway and see
+  // whether it is working, without reading a log.
+  const drop = await mkdtemp(join(tmpdir(), 'klopt-e2e-postvak-'))
+  await writeFile(join(drop, 'factuur.xml'), UBL, 'utf8')
+
+  await anAdministration(page, 'Postvak BV')
+  await aSupplier(page)
+
+  await page.goto('/inbox')
+  await expect(page.getByText('Nog geen bronnen.')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Bron toevoegen' }).click()
+  await page.getByLabel('Naam').fill('Scanmap')
+  await page.getByLabel('Map', { exact: true }).fill(drop)
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+
+  const sources = page.getByRole('table', { name: 'Bronnen waar post vandaan komt' })
+  await expect(sources).toContainText('Scanmap')
+  await expect(sources).toContainText('nog nooit')
+
+  await page.getByRole('button', { name: 'Nu ophalen' }).click()
+  await expect(page.getByText(/1 nieuw bericht/)).toBeVisible()
+
+  // And the invoice is in the queue, read, with the supplier matched from its
+  // VAT number rather than from who sent it.
+  await expect(page.getByText('F-2026-0042 · Leverancier B.V.')).toBeVisible()
+
+  // Taking it again takes nothing: the file was moved aside, and the arrival
+  // was recorded either way.
+  await page.getByRole('button', { name: 'Nu ophalen' }).click()
+  await expect(page.getByText(/0 nieuw bericht/)).toBeVisible()
+  await expect(page.getByText('F-2026-0042 · Leverancier B.V.')).toHaveCount(1)
+
+  await rm(drop, { recursive: true, force: true })
 })

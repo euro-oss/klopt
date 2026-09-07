@@ -825,4 +825,46 @@ export const inboxOperations: Readonly<Record<string, OperationDefinition>> = {
     agentExposure: 'read',
     idempotent: true,
   }),
+
+  listSources: defineOperation({
+    id: 'inbox.listSources',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'The mailboxes and access points this administration receives documents on.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  addSource: defineOperation({
+    id: 'inbox.addSource',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Configure a mailbox or a drop directory to take documents from.',
+    // Not exposed to an agent at all: this holds a credential, and an agent
+    // proposing "connect this mailbox with this password" is not a proposal
+    // anybody can meaningfully review.
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  removeSource: defineOperation({
+    id: 'inbox.removeSource',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Stop taking documents from a source. What already arrived is untouched.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  pollSource: defineOperation({
+    id: 'inbox.pollSource',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary: 'Take whatever is waiting at a source now, rather than at the next scheduled run.',
+    agentExposure: 'none',
+    // Idempotent without needing a key: the arrival's external id is what makes
+    // it so. Polling twice files nothing the first poll already took, which is
+    // the same property the worker's schedule relies on every five minutes.
+    idempotent: true,
+  }),
 }

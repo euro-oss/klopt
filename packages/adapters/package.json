@@ -22,12 +22,15 @@
   "dependencies": {
     "@klopt/core": "workspace:*",
     "fontoxpath": "3.34.0",
+    "imapflow": "2.0.0",
+    "mailparser": "3.9.23",
     "nodemailer": "10.0.0",
     "pdfkit": "0.20.2",
     "slimdom": "4.3.5",
     "slimdom-sax-parser": "1.5.3"
   },
   "devDependencies": {
+    "@types/mailparser": "^3.4.6",
     "@types/node": "24.13.3",
     "@types/nodemailer": "8.0.1",
     "@types/pdfkit": "0.17.6",

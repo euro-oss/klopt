@@ -25,3 +25,7 @@ blob-report/
 
 # Playwright
 apps/web/e2e/.outbox/
+
+# The default document store. Content-addressed source documents, which are the
+# administration's own records and never the repository's.
+.klopt/

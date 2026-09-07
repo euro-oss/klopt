@@ -33,6 +33,17 @@ export {
 export { XafExportRepository, type XafExportRequest } from './repositories/xaf.js'
 export { RgsRepository } from './repositories/rgs.js'
 export { type InboxItemRow, InboxRepository } from './repositories/inbox.js'
+export { SecretKeyMissingError, decryptSecret, encryptSecret, secretsAvailable } from './secrets.js'
+export { type InboundSourceRow, InboundSourceRepository } from './repositories/inbound-sources.js'
+export {
+  type IngestedMessage,
+  type ReceiveDocumentRequest,
+  type ReceivedDocument,
+  type StoredParse,
+  ingestInboundMessage,
+  receiveDocument,
+} from './inbound/receive.js'
+export { type InboundPollResult, runInboundPoll } from './inbound/poll.js'
 export {
   type PurchaseContext,
   type PurchaseInvoiceRow,
@@ -87,6 +98,8 @@ export {
   withSetup,
   withXafExport,
   withYearClose,
+  withInboundSources,
+  withInboundSourcesRead,
   withInbox,
   withInboxRead,
   withPurchase,
