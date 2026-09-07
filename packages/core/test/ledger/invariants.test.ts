@@ -47,6 +47,7 @@ function line(overrides: Partial<JournalLineInput> & { accountNumber: string }):
     exchangeRate: null,
     exchangeRateSource: null,
     taxCode: null,
+    taxRole: null,
     taxAmount: null,
     dimensions: [],
     subledgerKind: null,

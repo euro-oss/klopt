@@ -582,3 +582,52 @@ export const paymentOperations: Readonly<Record<string, OperationDefinition>> = 
     idempotent: true,
   }),
 }
+
+/**
+ * The BTW-aangifte (spec 7.2).
+ *
+ * `getReturn` is a read even though it computes the whole thing: the return is
+ * a pure function of the journal, so asking for it changes nothing and can be
+ * asked as often as anybody likes. Only `file` writes, and what it writes is
+ * the evidence that it was filed.
+ */
+export const vatOperations: Readonly<Record<string, OperationDefinition>> = {
+  listPeriods: defineOperation({
+    id: 'vat.listPeriods',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Declaration periods for a year, with their deadline and filing state.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  getReturn: defineOperation({
+    id: 'vat.getReturn',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary:
+      'The BTW-aangifte for a period, derived from the journal, with the reconciliation and every line behind every rubriek.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  listFilings: defineOperation({
+    id: 'vat.listFilings',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Everything filed, including suppleties, and whether each still matches the journal.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  fileReturn: defineOperation({
+    id: 'vat.fileReturn',
+    kind: 'write',
+    permission: 'vat:file',
+    summary:
+      'File a return, storing what was declared and locking the period. A filed period files again as a suppletie.',
+    // Never an agent's call: this is a statement to the tax authority.
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+}

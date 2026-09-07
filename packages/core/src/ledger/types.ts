@@ -39,6 +39,9 @@ export interface Actor {
   readonly principalId: string | null
 }
 
+/** A tax-coded line is either the base or the tax. See `vat/return.ts`. */
+export type TaxRole = 'base' | 'tax'
+
 export interface DimensionAssignment {
   readonly typeCode: string
   readonly valueCode: string
@@ -56,6 +59,13 @@ export interface JournalLineInput {
   readonly exchangeRate: string | null
   readonly exchangeRateSource: string | null
   readonly taxCode: string | null
+  /**
+   * Whether this line *is* the taxable base or the tax on it (spec 7.2).
+   *
+   * Required alongside a tax code, because the BTW-aangifte is derived from the
+   * journal and a half-tagged line would be dropped from it silently.
+   */
+  readonly taxRole: TaxRole | null
   readonly taxAmount: bigint | null
   readonly dimensions: readonly DimensionAssignment[]
   readonly subledgerKind: SubledgerKind | null
@@ -88,6 +98,7 @@ export interface PostedJournalLine {
   readonly exchangeRate: string | null
   readonly exchangeRateSource: string | null
   readonly taxCode: string | null
+  readonly taxRole: TaxRole | null
   readonly taxAmount: bigint | null
   readonly dimensions: readonly ResolvedDimension[]
   readonly subledgerKind: SubledgerKind | null

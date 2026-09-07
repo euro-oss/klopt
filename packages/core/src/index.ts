@@ -46,6 +46,7 @@ export * from './auth/index.js'
 export * from './ports/index.js'
 export * from './sales/index.js'
 export * from './setup/index.js'
+export * from './vat/index.js'
 export {
   bankingOperations,
   complianceOperations,
@@ -54,4 +55,5 @@ export {
   paymentOperations,
   provisioningOperations,
   salesOperations,
+  vatOperations,
 } from './operations.js'

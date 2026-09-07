@@ -62,6 +62,7 @@ function line(
     exchangeRate: null,
     exchangeRateSource: null,
     taxCode: null,
+    taxRole: null,
     taxAmount: null,
     dimensions: [],
     subledgerKind: null,
@@ -100,20 +101,50 @@ export function buildInvoiceEntry(
     ),
   ]
 
-  // Revenue, collapsed per account: an invoice with ten lines on one account is
-  // one journal line, which is what a bookkeeper expects to see.
-  const revenue = new Map<string, bigint>()
+  // Revenue, collapsed per account *and tax code*: an invoice with ten lines on
+  // one account is one journal line, which is what a bookkeeper expects to see
+  // — but two lines at different rates on the same account stay two, because
+  // the BTW-aangifte is derived from the journal and rubriek 1a needs the base
+  // that produced it. Collapsing them together would make 21% and 9% turnover
+  // indistinguishable, and nothing downstream could recover the split.
+  const revenue = new Map<
+    string,
+    { accountNumber: string; taxCode: string; net: bigint; tax: bigint }
+  >()
   for (const item of priced.lines) {
-    revenue.set(
-      item.revenueAccountNumber,
-      (revenue.get(item.revenueAccountNumber) ?? 0n) + item.net,
-    )
+    const key = `${item.revenueAccountNumber}\u0000${item.tax.code}`
+    const found = revenue.get(key)
+    if (found === undefined) {
+      revenue.set(key, {
+        accountNumber: item.revenueAccountNumber,
+        taxCode: item.tax.code,
+        net: item.net,
+        tax: item.tax_,
+      })
+    } else {
+      found.net += item.net
+      found.tax += item.tax_
+    }
   }
 
-  for (const [accountNumber, amount] of [...revenue].sort(([a], [b]) => a.localeCompare(b))) {
-    if (amount === 0n) continue
+  for (const group of [...revenue.values()].sort(
+    (a, b) => a.accountNumber.localeCompare(b.accountNumber) || a.taxCode.localeCompare(b.taxCode),
+  )) {
+    if (group.net === 0n) continue
     lines.push(
-      line(accountNumber, amount, !receivableIsDebit, `Omzet factuur ${request.invoiceNumber}`),
+      line(
+        group.accountNumber,
+        group.net,
+        !receivableIsDebit,
+        `Omzet factuur ${request.invoiceNumber}`,
+        {
+          // This is the taxable base. Tagged so the return can find it, with
+          // the VAT it attracts alongside for XAF and for cross-checking.
+          taxCode: group.taxCode,
+          taxRole: 'base',
+          taxAmount: receivableIsDebit ? group.tax : -group.tax,
+        },
+      ),
     )
   }
 
@@ -140,7 +171,11 @@ export function buildInvoiceEntry(
         // Through the money codec, not `Number(x) / 100`: a float has no
         // business in a description that ends up in an auditfile either.
         `${group.tax.code} over ${toWire({ minorUnits: group.net, currency: request.currency }).amount}`,
-        { taxCode: group.tax.code, taxAmount: receivableIsDebit ? group.amount : -group.amount },
+        {
+          taxCode: group.tax.code,
+          taxRole: 'tax',
+          taxAmount: receivableIsDebit ? group.amount : -group.amount,
+        },
       ),
     )
   }

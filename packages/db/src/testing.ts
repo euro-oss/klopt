@@ -1,5 +1,5 @@
 import { uuidv7 } from '@klopt/core'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
   auditLog,
@@ -99,6 +99,9 @@ export async function seedEntity(database: Database, options: SeedOptions = {}):
     { number: '1300', name: 'Debiteuren', type: 'asset', dc: 'debit', rgs: 'BVorDeb' },
     { number: '1600', name: 'Crediteuren', type: 'liability', dc: 'credit', rgs: 'BSchCre' },
     { number: '1500', name: 'Te betalen BTW', type: 'liability', dc: 'credit', rgs: 'BSchBepBtw' },
+    // Voorbelasting. Needed from M3 on: without it there is nowhere for input
+    // VAT to land, so no return could ever have a 5b.
+    { number: '1510', name: 'Te vorderen BTW', type: 'asset', dc: 'debit', rgs: 'BVorVbkTvo' },
     { number: '0500', name: 'Eigen vermogen', type: 'equity', dc: 'credit', rgs: 'BEivGokCva' },
     { number: '8000', name: 'Omzet', type: 'revenue', dc: 'credit', rgs: 'WOmzNoo' },
     { number: '4000', name: 'Inkoopwaarde', type: 'expense', dc: 'debit', rgs: 'WKprGrpGr1' },
@@ -182,12 +185,18 @@ export async function findUserIdByEmail(database: Database, email: string): Prom
  * on.
  */
 export async function seedSalesConfiguration(database: Database, entityId: string): Promise<void> {
-  const [vatAccount] = await database
-    .select({ id: accounts.id })
+  const rows = await database
+    .select({ id: accounts.id, number: accounts.number })
     .from(accounts)
-    .where(and(eq(accounts.entityId, entityId), eq(accounts.number, '1500')))
-    .limit(1)
+    .where(and(eq(accounts.entityId, entityId), inArray(accounts.number, ['1500', '1510'])))
 
+  const accountFor = (number: string) => rows.find((row) => row.number === number)?.id ?? null
+  const payable = accountFor('1500')
+  const receivable = accountFor('1510')
+
+  // Full rules, not just rates (spec 7.2): every db-backed test posts through
+  // these, so a code that could not produce a BTW-aangifte would let the whole
+  // suite pass with a return that declares nothing.
   await database.insert(taxCodes).values([
     {
       id: uuidv7(),
@@ -196,8 +205,11 @@ export async function seedSalesConfiguration(database: Database, entityId: strin
       description: 'BTW hoog 21%',
       rateBasisPoints: 2100,
       direction: 'output',
-      accountId: vatAccount?.id ?? null,
+      accountId: payable,
       ublCategory: 'S',
+      baseRubriek: '1a',
+      vatRubriek: '1a',
+      scope: 'domestic',
       validFrom: '2020-01-01',
     },
     {
@@ -207,8 +219,11 @@ export async function seedSalesConfiguration(database: Database, entityId: strin
       description: 'BTW laag 9%',
       rateBasisPoints: 900,
       direction: 'output',
-      accountId: vatAccount?.id ?? null,
+      accountId: payable,
       ublCategory: 'S',
+      baseRubriek: '1b',
+      vatRubriek: '1b',
+      scope: 'domestic',
       validFrom: '2020-01-01',
     },
     {
@@ -218,9 +233,40 @@ export async function seedSalesConfiguration(database: Database, entityId: strin
       description: 'BTW verlegd',
       rateBasisPoints: 0,
       direction: 'output',
-      accountId: vatAccount?.id ?? null,
+      accountId: payable,
       isReverseCharge: true,
+      reverseCharge: 'domestic',
       ublCategory: 'AE',
+      baseRubriek: '1e',
+      scope: 'domestic',
+      validFrom: '2020-01-01',
+    },
+    {
+      id: uuidv7(),
+      entityId,
+      code: 'ICP',
+      description: 'Intracommunautaire levering goederen 0%',
+      rateBasisPoints: 0,
+      direction: 'output',
+      accountId: payable,
+      ublCategory: 'K',
+      baseRubriek: '3b',
+      scope: 'intra_community_supply',
+      supplyKind: 'goods',
+      validFrom: '2020-01-01',
+    },
+    {
+      id: uuidv7(),
+      entityId,
+      code: 'VH21',
+      description: 'Voorbelasting hoog 21%',
+      rateBasisPoints: 2100,
+      direction: 'input',
+      accountId: receivable,
+      ublCategory: 'S',
+      vatRubriek: '5b',
+      scope: 'domestic',
+      deductibility: 'full',
       validFrom: '2020-01-01',
     },
   ])

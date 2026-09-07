@@ -51,6 +51,9 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'go.match', label: 'Koppelen', group: 'Go to', keys: 'g o', to: '/bank/match' },
   { id: 'go.payments', label: 'Betalingen', group: 'Go to', keys: 'g y', to: '/payments' },
   { id: 'go.dunning', label: 'Aanmaningen', group: 'Go to', keys: 'g m', to: '/dunning' },
+  // `g g` for aan**g**ifte. `g b`, `g t` and `g w` were all taken by the time
+  // BTW arrived, which is what happens when a keyboard map is real.
+  { id: 'go.vat', label: 'BTW-aangifte', group: 'Go to', keys: 'g g', to: '/vat' },
   { id: 'go.members', label: 'Toegang', group: 'Go to', keys: 'g t', to: '/members' },
   { id: 'go.settings', label: 'Instellingen', group: 'Go to', keys: 'g i', to: '/settings' },
 

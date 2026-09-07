@@ -12,6 +12,7 @@ export {
   type PostedJournalLine,
   type ResolvedDimension,
   type SubledgerKind,
+  type TaxRole,
 } from './types.js'
 
 export {

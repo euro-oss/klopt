@@ -769,11 +769,23 @@ export class SalesRepository {
         ublCategory: taxCodes.ublCategory,
         isReverseCharge: taxCodes.isReverseCharge,
         accountNumber: accounts.number,
+        // Spec 7.2's rule, not just the rate: a client picking a tax code
+        // should be able to see which box on the aangifte it feeds.
+        baseRubriek: taxCodes.baseRubriek,
+        vatRubriek: taxCodes.vatRubriek,
+        scope: taxCodes.scope,
+        reverseCharge: taxCodes.reverseCharge,
+        deductibility: taxCodes.deductibility,
+        proRataBasisPoints: taxCodes.proRataBasisPoints,
+        supplyKind: taxCodes.supplyKind,
+        deductionCode: taxCodes.deductionCode,
+        validFrom: taxCodes.validFrom,
+        validTo: taxCodes.validTo,
       })
       .from(taxCodes)
       .leftJoin(accounts, eq(accounts.id, taxCodes.accountId))
       .where(eq(taxCodes.entityId, entityId))
-      .orderBy(asc(taxCodes.code))
+      .orderBy(asc(taxCodes.code), asc(taxCodes.validFrom))
   }
 }
 

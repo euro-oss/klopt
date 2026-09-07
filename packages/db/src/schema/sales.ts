@@ -40,6 +40,21 @@ export const invoiceStatus = klopt.enum('invoice_status', ['draft', 'issued', 'c
 
 export const taxDirection = klopt.enum('tax_direction', ['output', 'input'])
 
+/** Spec 7.2's tax code rule. See packages/core/src/vat/tax-code.ts. */
+export const taxScope = klopt.enum('tax_scope', [
+  'domestic',
+  'intra_community_supply',
+  'intra_community_acquisition',
+  'import',
+  'export',
+  'private_use',
+  'exempt',
+  'out_of_scope',
+])
+export const reverseCharge = klopt.enum('reverse_charge', ['none', 'domestic', 'import_article_23'])
+export const deductibility = klopt.enum('deductibility', ['full', 'pro_rata', 'none'])
+export const supplyKind = klopt.enum('supply_kind', ['goods', 'services', 'not_applicable'])
+
 export const contacts = klopt.table(
   'contacts',
   {
@@ -133,13 +148,34 @@ export const taxCodes = klopt.table(
      * K intra-community, G export. Needed by NLCIUS from the first invoice.
      */
     ublCategory: char('ubl_category', { length: 2 }).notNull().default('S'),
+    /**
+     * Which box on the BTW-aangifte the base and the VAT are declared in. Null
+     * where the form has no box: a domestic purchase declares VAT in 5b and no
+     * base anywhere.
+     */
+    baseRubriek: text('base_rubriek'),
+    vatRubriek: text('vat_rubriek'),
+    scope: taxScope('scope').notNull().default('domestic'),
+    reverseCharge: reverseCharge('reverse_charge').notNull().default('none'),
+    deductibility: deductibility('deductibility').notNull().default('full'),
+    proRataBasisPoints: integer('pro_rata_basis_points'),
+    /** The ICP opgaaf reports goods and services separately. */
+    supplyKind: supplyKind('supply_kind').notNull().default('not_applicable'),
+    /** The input code carrying the deduction half of a reverse charge. */
+    deductionCode: text('deduction_code'),
     validFrom: date('valid_from').notNull(),
     validTo: date('valid_to'),
     ...timestamps,
   },
   (table) => [
-    unique('tax_codes_entity_code').on(table.entityId, table.code),
+    // A rate change is a new row, never an update: old periods must keep
+    // reporting at the old rate. So a code is unique per validity window.
+    unique('tax_codes_entity_code_from').on(table.entityId, table.code, table.validFrom),
     check('tax_codes_rate_range', sql`${table.rateBasisPoints} between 0 and 10000`),
+    check(
+      'tax_codes_pro_rata_share',
+      sql`(${table.deductibility} = 'pro_rata') = (${table.proRataBasisPoints} is not null)`,
+    ),
   ],
 )
 

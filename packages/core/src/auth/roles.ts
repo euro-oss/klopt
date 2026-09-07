@@ -46,6 +46,15 @@ export const PERMISSIONS = {
    */
   approvePayments: 'payments:approve',
   /**
+   * File a BTW-aangifte, which locks the period behind it.
+   *
+   * Not folded into `ledger:post`: filing is a statement to the tax authority
+   * in the entity's name, and a bookkeeper posting a hundred entries a day is
+   * not the person who should be making it. A bookkeeper prepares the return
+   * and reads its reconciliation with `ledger:read`.
+   */
+  fileVat: 'vat:file',
+  /**
    * Create a new administration. Instance-scoped, not entity-scoped: it is held
    * by a signed-in human and by no role and no API token, because a token is
    * issued by one administration and must not be able to create another.
@@ -81,6 +90,7 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     PERMISSIONS.manageMembers,
     PERMISSIONS.preparePayments,
     PERMISSIONS.approvePayments,
+    PERMISSIONS.fileVat,
   ],
   accountant: [
     PERMISSIONS.read,
@@ -92,6 +102,7 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     PERMISSIONS.import,
     PERMISSIONS.preparePayments,
     PERMISSIONS.approvePayments,
+    PERMISSIONS.fileVat,
   ],
   /**
    * A bookkeeper prepares payments and cannot approve them. That is the

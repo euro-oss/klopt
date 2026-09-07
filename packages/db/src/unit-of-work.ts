@@ -7,6 +7,7 @@ import { MembersRepository } from './repositories/members.js'
 import { PaymentsRepository } from './repositories/payments.js'
 import { SalesRepository } from './repositories/sales.js'
 import { SetupRepository } from './repositories/setup.js'
+import { VatRepository } from './repositories/vat.js'
 import { XafExportRepository } from './repositories/xaf.js'
 
 /**
@@ -199,4 +200,38 @@ export async function withPayments<T>(
   work: (repository: PaymentsRepository) => Promise<T>,
 ): Promise<T> {
   return database.transaction(async (tx) => work(new PaymentsRepository(tx)))
+}
+
+/**
+ * The BTW-aangifte, in a snapshot.
+ *
+ * A return is derived from the journal across three queries — the lines, the
+ * tax codes, the control accounts — and its whole promise is that the
+ * reconciliation adds up. A posting landing between the second and third query
+ * would produce a difference that exists nowhere in the books.
+ */
+export async function withVatRead<T>(
+  database: Database,
+  work: (repository: VatRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new VatRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
+  })
+}
+
+/**
+ * Filing, in one transaction.
+ *
+ * The snapshot, the supersede of the filing it corrects and the period lock go
+ * together. Filing is the moment a period stops being editable, so a filing
+ * row that committed without its lock would leave a declared period open.
+ */
+export async function withVatFiling<T>(
+  database: Database,
+  work: (repositories: { vat: VatRepository; ledger: DrizzleLedgerRepository }) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) =>
+    work({ vat: new VatRepository(tx), ledger: new DrizzleLedgerRepository(tx) }),
+  )
 }

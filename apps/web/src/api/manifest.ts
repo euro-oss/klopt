@@ -362,6 +362,30 @@ export const routeManifest: readonly RouteBinding[] = [
     path: '/reports/overdue-invoices',
     module: 'api/v1/reports.overdue-invoices.ts',
   },
+  {
+    operationId: 'vat.listPeriods',
+    method: 'GET',
+    path: '/vat/periods',
+    module: 'api/v1/vat.periods.ts',
+  },
+  {
+    operationId: 'vat.getReturn',
+    method: 'GET',
+    path: '/vat/returns/{period}',
+    module: 'api/v1/vat.returns.$period.ts',
+  },
+  {
+    operationId: 'vat.listFilings',
+    method: 'GET',
+    path: '/vat/filings',
+    module: 'api/v1/vat.filings.ts',
+  },
+  {
+    operationId: 'vat.fileReturn',
+    method: 'POST',
+    path: '/vat/filings',
+    module: 'api/v1/vat.filings.ts',
+  },
 ]
 
 export interface ContractViolation {

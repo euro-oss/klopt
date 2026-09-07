@@ -26,8 +26,19 @@ import type { PostedJournalEntry, PostedJournalLine } from './types.js'
  * The format is versioned by its first line. Changing the canonical form
  * invalidates every stored hash, so it is a new version plus a documented
  * rehash-and-attest migration, never an edit to this function.
+ *
+ * ## v2
+ *
+ * Added `line.taxRole` (migration 0012). Before 1.0 the format is not yet
+ * frozen, so migration 0012 refuses to run on a database that already has
+ * journal entries rather than shipping a rehash procedure: rehashing means
+ * rewriting `journal_entries.hash`, and the append-only trigger that forbids
+ * that is worth more than the convenience of an in-place upgrade. After 1.0 a
+ * further version needs the rehash-and-attest procedure, which must verify the
+ * existing chain before it rewrites anything -- otherwise it launders a chain
+ * that was already broken.
  */
-export const CANONICAL_FORMAT_VERSION = 'klopt.journal-entry.v1'
+export const CANONICAL_FORMAT_VERSION = 'klopt.journal-entry.v2'
 
 function text(value: string | null): string {
   return value === null ? 'null' : JSON.stringify(value)
@@ -55,6 +66,11 @@ function canonicalLine(line: PostedJournalLine, index: number): string[] {
     `${prefix}.exchangeRate=${text(line.exchangeRate)}`,
     `${prefix}.exchangeRateSource=${text(line.exchangeRateSource)}`,
     `${prefix}.taxCode=${text(line.taxCode)}`,
+    // v2. Without this, flipping a line from base to tax leaves the chain
+    // verifying while the BTW-aangifte changes -- and the return is derived
+    // from the journal, so that is a hole in exactly the guarantee the chain
+    // exists to give.
+    `${prefix}.taxRole=${text(line.taxRole)}`,
     `${prefix}.taxAmount=${amount(line.taxAmount)}`,
     `${prefix}.subledgerKind=${text(line.subledgerKind)}`,
     `${prefix}.subledgerId=${text(line.subledgerId)}`,

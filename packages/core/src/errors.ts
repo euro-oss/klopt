@@ -50,6 +50,12 @@ export type LedgerErrorCode =
   | 'invalid_payment'
   | 'approval_by_submitter'
   | 'wrong_batch_state'
+  | 'invalid_tax_code'
+  | 'unknown_rubriek'
+  | 'vat_out_of_balance'
+  | 'period_already_filed'
+  | 'unknown_vat_period'
+  | 'icp_mismatch'
   | 'chain_broken'
 
 export interface LedgerViolation {

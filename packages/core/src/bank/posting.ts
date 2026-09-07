@@ -75,6 +75,7 @@ function line(
     exchangeRate: null,
     exchangeRateSource: null,
     taxCode: null,
+    taxRole: null,
     taxAmount: null,
     dimensions: [],
     subledgerKind: null,

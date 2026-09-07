@@ -2,6 +2,7 @@ import { violation, LedgerError, type LedgerViolation } from '../errors.js'
 import type { AccountType, JournalType, NormalBalance } from '../ledger/types.js'
 import type { Chart, ChartRoles } from './chart.js'
 import { planFiscalYear, type FiscalYearLayout } from './fiscal-year.js'
+import type { Deductibility, ReverseCharge, SupplyKind, TaxScope } from '../vat/tax-code.js'
 
 /**
  * Setting up a new administration.
@@ -52,6 +53,14 @@ export interface PlannedTaxCode {
   readonly direction: 'output' | 'input'
   readonly isReverseCharge: boolean
   readonly ublCategory: string
+  readonly baseRubriek: string | null
+  readonly vatRubriek: string | null
+  readonly scope: TaxScope
+  readonly reverseCharge: ReverseCharge
+  readonly deductibility: Deductibility
+  readonly proRataBasisPoints: number | null
+  readonly supplyKind: SupplyKind
+  readonly deductionCode: string | null
   /** Resolved from the chart's role, so a custom chart need not use 1500. */
   readonly accountNumber: string
   readonly validFrom: string
@@ -156,6 +165,14 @@ export function planEntitySetup(command: EntitySetupCommand, chart: Chart): Enti
     direction: code.direction,
     isReverseCharge: code.isReverseCharge,
     ublCategory: code.ublCategory,
+    baseRubriek: code.baseRubriek,
+    vatRubriek: code.vatRubriek,
+    scope: code.scope,
+    reverseCharge: code.reverseCharge,
+    deductibility: code.deductibility,
+    proRataBasisPoints: code.proRataBasisPoints,
+    supplyKind: code.supplyKind,
+    deductionCode: code.deductionCode,
     // `loadChart` already proved every role points at an account this chart has.
     accountNumber: chart.roles[code.accountRole],
     // Valid from the day the books open: a tax code that predates the entity

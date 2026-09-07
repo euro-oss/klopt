@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { parseXaf, uuidv7, validateXafDocument } from '@klopt/core'
 import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
-import { seedEntity } from '@klopt/db/testing'
+import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { handlePostJournalEntry } from '../src/api/handlers/ledger.js'
 import {
@@ -68,6 +68,10 @@ async function newEntity(
   options: { alsoFiscalYears?: readonly string[] } = {},
 ) {
   const entityId = await seedEntity(database, options)
+  // The tax codes, so the trading year below can tag its VAT. Without them the
+  // auditfile's `vatCodes` block is empty and every `vatID` on a line refers to
+  // nothing — which is exactly how the export stayed invalid unnoticed.
+  await seedSalesConfiguration(database, entityId)
   const { token } = await issueToken(database, {
     entityId,
     name: 'test',
@@ -101,14 +105,28 @@ async function postTradingYear(token: string) {
       description: 'Verkoopfactuur 2026-001',
       lines: [
         { accountNumber: '1300', debit: '1210000' },
-        { accountNumber: '8000', credit: '1000000' },
-        { accountNumber: '1500', credit: '210000' },
+        {
+          accountNumber: '8000',
+          credit: '1000000',
+          taxCode: 'H21',
+          taxRole: 'base',
+          taxAmount: '210000',
+        },
+        {
+          accountNumber: '1500',
+          credit: '210000',
+          taxCode: 'H21',
+          taxRole: 'tax',
+          taxAmount: '210000',
+        },
       ],
     },
     {
       journalCode: 'INK',
       bookingDate: '2026-03-10',
       documentDate: '2026-03-08',
+      // Deliberately untagged: this fixture's arithmetic is quoted in the
+      // assertions below, and input VAT has its own tests in vat.test.ts.
       description: 'Inkoopfactuur Leverancier',
       lines: [
         { accountNumber: '4000', debit: '400000' },
@@ -211,7 +229,7 @@ describe('RGS coverage', () => {
     })
 
     expect(coverage.body.version).toBe('3.7')
-    expect(coverage.body.accountCount).toBe(11)
+    expect(coverage.body.accountCount).toBe(12)
     // Only 9999 is unmapped in the seeded chart, and it has no balance.
     expect(coverage.body.unmappedAccounts).toEqual(['9999'])
     expect(coverage.body.mappedPercentage).toBe(100)
@@ -430,6 +448,44 @@ describe('the XAF export', () => {
       // Throws, with the schema's own message, if the file is not valid.
       execFileSync('xmllint', ['--noout', '--schema', SCHEMA, path], { stdio: 'pipe' })
     }
+  })
+
+  it('declares the VAT codes its lines reference, and puts the tax on the base line', async () => {
+    // The regression test for a bug that made the auditfile unexportable for
+    // any entity that had ever posted an invoice: `vatCodes` was left empty
+    // with a note saying the tax code engine was M3, so every `vatID` on a
+    // line referred to nothing and the schema check refused the file. Nothing
+    // noticed, because the fixture above used to post its "invoice with BTW"
+    // without a tax code on it.
+    const { token } = await newEntity()
+    await postTradingYear(token)
+
+    const result = await handleExportAuditFile(await context(token), {
+      fiscalYear: '2026',
+      fromPeriod: null,
+      toPeriod: null,
+    })
+
+    expect(result.xml).toContain('<vatID>H21</vatID>')
+    expect(result.xml).toContain('<vatDesc>BTW hoog 21%</vatDesc>')
+    expect(result.xml).toContain('<vatToPayAccID>1500</vatToPayAccID>')
+    // The rate, from the code. It used to be hardcoded to zero.
+    expect(result.xml).toContain('<vatPerc>21.00</vatPerc>')
+    expect(result.xml).not.toContain('<vatPerc>0</vatPerc>')
+
+    // XAF puts the `vat` block on the line whose `amnt` is the taxable base.
+    // Two of them for one invoice declares the same tax twice.
+    expect([...result.xml.matchAll(/<vatID>H21<\/vatID>/g)]).toHaveLength(2)
+
+    // Every vatID a line references is declared.
+    const declared = new Set(
+      [...result.xml.matchAll(/<vatCode>\s*<vatID>([^<]+)<\/vatID>/g)].map((match) => match[1]),
+    )
+    const referenced = [...result.xml.matchAll(/<vat>\s*<vatID>([^<]+)<\/vatID>/g)].map(
+      (match) => match[1],
+    )
+    expect(referenced.length).toBeGreaterThan(0)
+    for (const code of referenced) expect(declared).toContain(code)
   })
 
   it('carries the RGS lead codes, which is the point of the exercise', async () => {

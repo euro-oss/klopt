@@ -68,6 +68,9 @@ export const subledgerKind = klopt.enum('subledger_kind', [
   'project',
 ])
 
+export const taxRole = klopt.enum('tax_role', ['base', 'tax'])
+export const vatPeriodKind = klopt.enum('vat_period_kind', ['monthly', 'quarterly', 'annual'])
+
 export const actorKind = klopt.enum('actor_kind', ['human', 'script', 'agent'])
 
 export const vatRoundingPolicy = klopt.enum('vat_rounding_policy', ['per_invoice', 'per_line'])
@@ -86,6 +89,13 @@ export const entities = klopt.table(
     rgsVersion: text('rgs_version'),
     rgsVariant: text('rgs_variant').notNull().default('mkb'),
     vatRounding: vatRoundingPolicy('vat_rounding').notNull().default('per_invoice'),
+    /**
+     * How often this entity files (spec 7.2). Quarterly by default: it is what
+     * the Belastingdienst assigns to almost every new MKB registration.
+     */
+    vatPeriodKind: vatPeriodKind('vat_period_kind').notNull().default('quarterly'),
+    /** The recoverable share for pro rata input VAT, revised annually. */
+    vatProRataBasisPoints: integer('vat_pro_rata_basis_points'),
 
     /**
      * Who the seller is, on paper (spec 7.5).
@@ -362,6 +372,17 @@ export const journalLines = klopt.table(
     exchangeRateSource: text('exchange_rate_source'),
     taxCode: text('tax_code'),
     taxMinorUnits: bigint('tax_minor_units', { mode: 'bigint' }),
+    /**
+     * Whether this line *is* the taxable base or the tax on it.
+     *
+     * The BTW-aangifte is derived from the journal, and rubriek 1a wants the
+     * omzet as well as the VAT. Inferring which is which from the accounts
+     * breaks on the first invoice putting 21% and 9% on one revenue account, so
+     * the line says so. Set together with the tax code or not at all -- a
+     * half-tagged line would be silently dropped from the return, which a check
+     * constraint refuses.
+     */
+    taxRole: taxRole('tax_role'),
     subledgerKind: subledgerKind('subledger_kind'),
     subledgerId: uuid('subledger_id'),
     periodId: uuid('period_id')
@@ -370,6 +391,10 @@ export const journalLines = klopt.table(
   },
   (table) => [
     unique('journal_lines_entry_line').on(table.entryId, table.lineNumber),
+    check(
+      'journal_lines_tax_role_needs_code',
+      sql`(${table.taxCode} is null) = (${table.taxRole} is null)`,
+    ),
     check(
       'journal_lines_single_side',
       sql`(${table.debitMinorUnits} = 0) <> (${table.creditMinorUnits} = 0)`,

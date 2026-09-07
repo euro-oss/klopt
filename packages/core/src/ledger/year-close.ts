@@ -63,6 +63,7 @@ function line(accountNumber: string, signed: bigint, description: string): Journ
     exchangeRate: null,
     exchangeRateSource: null,
     taxCode: null,
+    taxRole: null,
     taxAmount: null,
     dimensions: [],
     subledgerKind: null,

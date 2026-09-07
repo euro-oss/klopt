@@ -1,6 +1,7 @@
 import {
   xafAccountType,
   xafJournalType,
+  type XafCustomerSupplier,
   type XafDocument,
   type XafJournal,
   type XafLedgerAccount,
@@ -8,6 +9,7 @@ import {
   type XafPeriod,
   type XafTransaction,
   type XafTransactionLine,
+  type XafVatCode,
 } from '@klopt/core'
 import type { RgsScheme } from '@klopt/core'
 import { and, asc, eq, gte, inArray, lt, lte } from 'drizzle-orm'
@@ -24,6 +26,8 @@ import {
   journalLines,
   journals,
   periods,
+  contacts,
+  taxCodes,
 } from '../schema/index.js'
 
 /**
@@ -116,6 +120,88 @@ export class XafExportRepository {
       }
     })
 
+    /**
+     * The VAT codes the transaction lines reference.
+     *
+     * Not optional in practice: a `vatID` on a line that the `vatCodes` block
+     * does not declare makes the file invalid, and the validator says so. This
+     * was empty until M3 with a note that the tax code engine had not arrived
+     * yet — which meant an entity that had ever posted an invoice could not
+     * export an auditfile at all. Nothing caught it, because the export tests
+     * post entries without tax codes.
+     *
+     * One entry per code, taking the widest validity window: XAF declares a
+     * code, not a rate history, and a rate change is a new row here.
+     */
+    const taxCodeRows = await this.tx
+      .select({
+        code: taxCodes.code,
+        description: taxCodes.description,
+        rateBasisPoints: taxCodes.rateBasisPoints,
+        direction: taxCodes.direction,
+        accountNumber: accounts.number,
+        validFrom: taxCodes.validFrom,
+      })
+      .from(taxCodes)
+      .leftJoin(accounts, eq(accounts.id, taxCodes.accountId))
+      .where(eq(taxCodes.entityId, request.entityId))
+      .orderBy(asc(taxCodes.code), asc(taxCodes.validFrom))
+
+    const byCode = new Map<string, XafVatCode>()
+    for (const row of taxCodeRows) {
+      const existing = byCode.get(row.code)
+      byCode.set(row.code, {
+        vatID: row.code,
+        vatDesc: existing?.vatDesc ?? row.description,
+        vatToPayAccID:
+          row.direction === 'output' ? row.accountNumber : (existing?.vatToPayAccID ?? null),
+        vatToClaimAccID:
+          row.direction === 'input' ? row.accountNumber : (existing?.vatToClaimAccID ?? null),
+      })
+    }
+    const vatCodes: XafVatCode[] = [...byCode.values()]
+
+    // `vatPerc` was hardcoded to `0` because the line does not carry a rate.
+    // It carries a code, and the code has one.
+    const percentages = new Map(
+      taxCodeRows.map((row) => [row.code, (row.rateBasisPoints / 100).toFixed(2)]),
+    )
+
+    /**
+     * Debtors and creditors. Spec 7.3 lists them among the required blocks, and
+     * they are what makes the subledger links on the lines resolvable.
+     */
+    const contactRows = await this.tx
+      .select({
+        id: contacts.id,
+        number: contacts.number,
+        name: contacts.name,
+        vatNumber: contacts.vatNumber,
+        countryCode: contacts.countryCode,
+        isCustomer: contacts.isCustomer,
+        isSupplier: contacts.isSupplier,
+      })
+      .from(contacts)
+      .where(eq(contacts.entityId, request.entityId))
+      .orderBy(asc(contacts.number))
+
+    const customersSuppliers: XafCustomerSupplier[] = contactRows.map((contact) => ({
+      custSupID: contact.number,
+      custSupName: contact.name,
+      taxRegistrationCountry: contact.vatNumber === null ? null : contact.countryCode,
+      taxRegIdent: contact.vatNumber,
+      custSupTp:
+        contact.isCustomer && contact.isSupplier
+          ? 'B'
+          : contact.isCustomer
+            ? 'C'
+            : contact.isSupplier
+              ? 'S'
+              : 'O',
+    }))
+
+    const contactNumbers = new Map(contactRows.map((contact) => [contact.id, contact.number]))
+
     const openingBalance = await this.buildOpeningBalance(
       request.entityId,
       periodRows[0]?.startsOn ?? fiscalYear.startsOn,
@@ -154,6 +240,7 @@ export class XafExportRepository {
               functionalDebit: journalLines.functionalDebitMinorUnits,
               functionalCredit: journalLines.functionalCreditMinorUnits,
               taxCode: journalLines.taxCode,
+              taxRole: journalLines.taxRole,
               taxAmount: journalLines.taxMinorUnits,
               subledgerKind: journalLines.subledgerKind,
               subledgerId: journalLines.subledgerId,
@@ -233,18 +320,28 @@ export class XafExportRepository {
         desc: row.lineDescription,
         amount: isDebit ? signedDebit : signedCredit,
         amountType: isDebit ? 'D' : 'C',
-        custSupID: row.subledgerId,
+        // The contact *number*, which is what the customersSuppliers block
+        // declares. The subledger link is a uuid, and a uuid here is a
+        // reference to nothing.
+        custSupID: row.subledgerId === null ? null : (contactNumbers.get(row.subledgerId) ?? null),
         invRef: null,
         costID: dimensions?.get('COSTCENTRE') ?? dimensions?.get('KOSTENPLAATS') ?? null,
         projID: dimensions?.get('PROJECT') ?? null,
+        // XAF puts the `vat` block on the line carrying the *taxable base*: its
+        // `amnt` is the base and `vatAmnt` the tax on it. Emitting one on the
+        // VAT ledger line as well declares the same tax twice, which is what
+        // this did before `tax_role` existed to tell them apart.
+        //
+        // `vatAmntTp` follows the line's own side, which is right for a sale
+        // (base and VAT both credited) and a purchase (both debited).
         vat:
-          row.taxCode === null || row.taxAmount === null
+          row.taxCode === null || row.taxAmount === null || row.taxRole !== 'base'
             ? null
             : {
                 vatID: row.taxCode,
-                vatPerc: '0',
+                vatPerc: percentages.get(row.taxCode) ?? '0',
                 vatAmnt: row.taxAmount < 0n ? -row.taxAmount : row.taxAmount,
-                vatAmntTp: row.taxAmount < 0n ? 'C' : 'D',
+                vatAmntTp: isDebit ? 'D' : 'C',
               },
         currency:
           row.currency === entity.functionalCurrency
@@ -312,13 +409,9 @@ export class XafExportRepository {
         taxRegIdent: entity.vatNumber ?? '',
         streetAddress: null,
       },
-      // Debtors and creditors arrive with Sales in M1. The element is optional
-      // and an empty one would be worse than none.
-      customersSuppliers: [],
+      customersSuppliers,
       ledgerAccounts,
-      // The tax code engine is M3. Emitting invented codes would make the file
-      // wrong in a way that is hard to notice.
-      vatCodes: [],
+      vatCodes,
       periods: xafPeriods,
       openingBalance,
       journals: xafJournals,

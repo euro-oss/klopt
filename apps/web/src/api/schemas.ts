@@ -41,20 +41,34 @@ export const dimensionAssignment = z.object({
   valueCode: z.string().min(1),
 })
 
-export const journalLineInput = z.object({
-  accountNumber: z.string().min(1),
-  description: z.string().nullable().default(null),
-  debit: minorUnitsWithDefault,
-  credit: minorUnitsWithDefault,
-  currency: currencyCode.nullable().default(null),
-  exchangeRate: decimalString.nullable().default(null),
-  exchangeRateSource: z.string().nullable().default(null),
-  taxCode: z.string().nullable().default(null),
-  taxAmount: nullableMinorUnits,
-  dimensions: z.array(dimensionAssignment).default([]),
-  subledgerKind: z.enum(['customer', 'supplier', 'asset', 'project']).nullable().default(null),
-  subledgerId: z.uuid().nullable().default(null),
-})
+export const journalLineInput = z
+  .object({
+    accountNumber: z.string().min(1),
+    description: z.string().nullable().default(null),
+    debit: minorUnitsWithDefault,
+    credit: minorUnitsWithDefault,
+    currency: currencyCode.nullable().default(null),
+    exchangeRate: decimalString.nullable().default(null),
+    exchangeRateSource: z.string().nullable().default(null),
+    taxCode: z.string().nullable().default(null),
+    /**
+     * Whether this line is the taxable base or the tax on it (spec 7.2).
+     *
+     * Required alongside a tax code rather than defaulted, because the
+     * BTW-aangifte is derived from the journal: a default would put somebody
+     * else's turnover in rubriek 1a's VAT box and the mistake would surface as
+     * a reconciliation finding a quarter later instead of a 422 now.
+     */
+    taxRole: z.enum(['base', 'tax']).nullable().default(null),
+    taxAmount: nullableMinorUnits,
+    dimensions: z.array(dimensionAssignment).default([]),
+    subledgerKind: z.enum(['customer', 'supplier', 'asset', 'project']).nullable().default(null),
+    subledgerId: z.uuid().nullable().default(null),
+  })
+  .refine((line) => (line.taxCode === null) === (line.taxRole === null), {
+    error: 'A tax code needs a tax role, and a tax role needs a tax code: set both or neither.',
+    path: ['taxRole'],
+  })
 
 export const postJournalEntryBody = z.object({
   journalCode: z.string().min(1),
@@ -494,3 +508,33 @@ export const transitionBatchBody = z.object({
 export type CreateBatchBody = z.infer<typeof createBatchBody>
 export type AddInstructionBody = z.infer<typeof addInstructionBody>
 export type TransitionBatchBody = z.infer<typeof transitionBatchBody>
+
+/**
+ * The BTW-aangifte (spec 7.2).
+ *
+ * `acceptWarnings` is a deliberate speed bump. A return with warnings can be
+ * filed, because a hand-typed correction is legitimate, but only by somebody
+ * who says so and says why — and the reason is stored with the filing, because
+ * it is part of the evidence for the period.
+ */
+export const listVatPeriodsQuery = z.object({
+  year: z.coerce.number().int().min(1900).max(2999),
+})
+
+export const fileVatReturnBody = z
+  .object({
+    /** `2026-Q1`, `2026-03` or `2026`. */
+    period: z.string().min(4),
+    transport: z.enum(['digipoort', 'sbr_provider', 'manual']),
+    /** Digipoort's message id, or the reference from Mijn Belastingdienst. */
+    transportReference: z.string().nullable().default(null),
+    acceptWarnings: z.boolean().default(false),
+    acceptedReason: z.string().nullable().default(null),
+  })
+  .refine((body) => !body.acceptWarnings || (body.acceptedReason ?? '').trim() !== '', {
+    error: 'Accepting a warning needs a reason: it is stored as part of the filing.',
+    path: ['acceptedReason'],
+  })
+
+export type ListVatPeriodsQuery = z.infer<typeof listVatPeriodsQuery>
+export type FileVatReturnBody = z.infer<typeof fileVatReturnBody>

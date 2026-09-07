@@ -195,6 +195,7 @@ function resolveLine(
     exchangeRate: rate,
     exchangeRateSource: rate === null ? null : line.exchangeRateSource,
     taxCode: line.taxCode,
+    taxRole: line.taxRole,
     taxAmount: line.taxAmount,
     dimensions,
     subledgerKind: line.subledgerKind,
@@ -471,6 +472,7 @@ export function buildReversal(
       exchangeRate: line.exchangeRate,
       exchangeRateSource: line.exchangeRateSource,
       taxCode: line.taxCode,
+      taxRole: line.taxRole,
       taxAmount: line.taxAmount === null ? null : -line.taxAmount,
       dimensions: line.dimensions.map((dimension) => ({
         typeCode: dimension.typeCode,

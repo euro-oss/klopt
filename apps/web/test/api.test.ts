@@ -355,8 +355,8 @@ describe('reporting', () => {
 
   it('reports RGS coverage as a health metric', async () => {
     const result = await handleListAccounts(await contextFor(readToken))
-    expect(result.body.rgsCoverage.total).toBe(11)
-    expect(result.body.rgsCoverage.mapped).toBe(10)
+    expect(result.body.rgsCoverage.total).toBe(12)
+    expect(result.body.rgsCoverage.mapped).toBe(11)
   })
 
   it('paginates entries by cursor', async () => {

@@ -1,6 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import type { AccountType, JournalType, NormalBalance } from '../ledger/types.js'
+import { isAssignableRubriek } from '../vat/rubrieken.js'
+import type { Deductibility, ReverseCharge, SupplyKind, TaxScope } from '../vat/tax-code.js'
 
 /**
  * The default chart of accounts, as reference data.
@@ -64,6 +66,15 @@ export interface ChartTaxCode {
   readonly accountRole: keyof ChartRoles
   readonly isReverseCharge: boolean
   readonly ublCategory: string
+  /** The rest of spec 7.2's rule. See `vat/tax-code.ts` for what each means. */
+  readonly baseRubriek: string | null
+  readonly vatRubriek: string | null
+  readonly scope: TaxScope
+  readonly reverseCharge: ReverseCharge
+  readonly deductibility: Deductibility
+  readonly proRataBasisPoints: number | null
+  readonly supplyKind: SupplyKind
+  readonly deductionCode: string | null
 }
 
 export interface Chart {
@@ -197,14 +208,69 @@ export function loadChart(raw: unknown): Chart {
           `taxCodes[${String(index)}]: unknown accountRole ${String(accountRole)}.`,
         )
       }
+      const rubriek = (field: string): string | null => {
+        const value = code[field]
+        if (value === undefined || value === null) return null
+        if (typeof value !== 'string' || !isAssignableRubriek(value)) {
+          throw new ChartError(
+            `taxCodes[${String(index)}]: ${field} ${JSON.stringify(value)} is not a rubriek a tax code can write to.`,
+          )
+        }
+        return value
+      }
+      const oneOf = <T extends string>(field: string, allowed: readonly T[], fallback: T): T => {
+        const value = code[field]
+        if (value === undefined) return fallback
+        if (typeof value !== 'string' || !allowed.includes(value as T)) {
+          throw new ChartError(
+            `taxCodes[${String(index)}]: ${field} must be one of ${allowed.join(', ')}.`,
+          )
+        }
+        return value as T
+      }
+      const proRata = code['proRataBasisPoints']
+      if (proRata !== undefined && proRata !== null && typeof proRata !== 'number') {
+        throw new ChartError(`taxCodes[${String(index)}]: proRataBasisPoints must be a number.`)
+      }
+      const reverseCharge = oneOf<ReverseCharge>(
+        'reverseCharge',
+        ['none', 'domestic', 'import_article_23'],
+        code['isReverseCharge'] === true ? 'domestic' : 'none',
+      )
+
       return {
         code: requireString(code, 'code', `taxCodes[${String(index)}]`),
         description: requireString(code, 'description', `taxCodes[${String(index)}]`),
         rateBasisPoints: rate,
         direction,
         accountRole: accountRole as keyof ChartRoles,
-        isReverseCharge: code['isReverseCharge'] === true,
+        isReverseCharge: reverseCharge !== 'none',
         ublCategory: typeof code['ublCategory'] === 'string' ? code['ublCategory'] : 'S',
+        baseRubriek: rubriek('baseRubriek'),
+        vatRubriek: rubriek('vatRubriek'),
+        scope: oneOf<TaxScope>(
+          'scope',
+          [
+            'domestic',
+            'intra_community_supply',
+            'intra_community_acquisition',
+            'import',
+            'export',
+            'private_use',
+            'exempt',
+            'out_of_scope',
+          ],
+          'domestic',
+        ),
+        reverseCharge,
+        deductibility: oneOf<Deductibility>('deductibility', ['full', 'pro_rata', 'none'], 'full'),
+        proRataBasisPoints: typeof proRata === 'number' ? proRata : null,
+        supplyKind: oneOf<SupplyKind>(
+          'supplyKind',
+          ['goods', 'services', 'not_applicable'],
+          'not_applicable',
+        ),
+        deductionCode: typeof code['deductionCode'] === 'string' ? code['deductionCode'] : null,
       }
     },
   )

@@ -74,6 +74,7 @@ function serialiseEntry(entry: PostedJournalEntry) {
       exchangeRate: line.exchangeRate,
       exchangeRateSource: line.exchangeRateSource,
       taxCode: line.taxCode,
+      taxRole: line.taxRole,
       taxAmount: line.taxAmount === null ? null : line.taxAmount.toString(),
       dimensions: line.dimensions.map((dimension) => ({
         type: dimension.typeCode,

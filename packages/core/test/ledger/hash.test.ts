@@ -22,6 +22,7 @@ function line(overrides: Partial<PostedJournalLine> = {}): PostedJournalLine {
     exchangeRate: null,
     exchangeRateSource: null,
     taxCode: null,
+    taxRole: null,
     taxAmount: null,
     dimensions: [],
     subledgerKind: null,

@@ -18,11 +18,31 @@
     "revenue": "8000"
   },
   "journals": [
-    { "code": "VRK", "name": "Verkoopboek", "type": "verkoop" },
-    { "code": "INK", "name": "Inkoopboek", "type": "inkoop" },
-    { "code": "BNK", "name": "Bank", "type": "bank" },
-    { "code": "KAS", "name": "Kas", "type": "kas" },
-    { "code": "MEM", "name": "Memoriaal", "type": "memoriaal" }
+    {
+      "code": "VRK",
+      "name": "Verkoopboek",
+      "type": "verkoop"
+    },
+    {
+      "code": "INK",
+      "name": "Inkoopboek",
+      "type": "inkoop"
+    },
+    {
+      "code": "BNK",
+      "name": "Bank",
+      "type": "bank"
+    },
+    {
+      "code": "KAS",
+      "name": "Kas",
+      "type": "kas"
+    },
+    {
+      "code": "MEM",
+      "name": "Memoriaal",
+      "type": "memoriaal"
+    }
   ],
   "taxCodes": [
     {
@@ -31,7 +51,10 @@
       "rateBasisPoints": 2100,
       "direction": "output",
       "accountRole": "vatPayable",
-      "ublCategory": "S"
+      "ublCategory": "S",
+      "baseRubriek": "1a",
+      "vatRubriek": "1a",
+      "scope": "domestic"
     },
     {
       "code": "L9",
@@ -39,7 +62,42 @@
       "rateBasisPoints": 900,
       "direction": "output",
       "accountRole": "vatPayable",
-      "ublCategory": "S"
+      "ublCategory": "S",
+      "baseRubriek": "1b",
+      "vatRubriek": "1b",
+      "scope": "domestic"
+    },
+    {
+      "code": "PRIV21",
+      "description": "Privégebruik 21%",
+      "rateBasisPoints": 2100,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "S",
+      "baseRubriek": "1d",
+      "vatRubriek": "1d",
+      "scope": "private_use"
+    },
+    {
+      "code": "VERL",
+      "description": "BTW verlegd naar afnemer",
+      "rateBasisPoints": 0,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "AE",
+      "baseRubriek": "1e",
+      "scope": "domestic",
+      "reverseCharge": "domestic"
+    },
+    {
+      "code": "GEEN",
+      "description": "Vrijgesteld van BTW",
+      "rateBasisPoints": 0,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "E",
+      "baseRubriek": "1e",
+      "scope": "exempt"
     },
     {
       "code": "NUL",
@@ -47,32 +105,31 @@
       "rateBasisPoints": 0,
       "direction": "output",
       "accountRole": "vatPayable",
-      "ublCategory": "G"
+      "ublCategory": "G",
+      "baseRubriek": "3a",
+      "scope": "export"
     },
     {
       "code": "ICP",
-      "description": "Intracommunautaire levering 0%",
+      "description": "Intracommunautaire levering goederen 0%",
       "rateBasisPoints": 0,
       "direction": "output",
       "accountRole": "vatPayable",
-      "ublCategory": "K"
+      "ublCategory": "K",
+      "baseRubriek": "3b",
+      "scope": "intra_community_supply",
+      "supplyKind": "goods"
     },
     {
-      "code": "VERL",
-      "description": "BTW verlegd",
+      "code": "ICPD",
+      "description": "Intracommunautaire dienst 0%",
       "rateBasisPoints": 0,
       "direction": "output",
       "accountRole": "vatPayable",
-      "isReverseCharge": true,
-      "ublCategory": "AE"
-    },
-    {
-      "code": "GEEN",
-      "description": "Geen BTW / vrijgesteld",
-      "rateBasisPoints": 0,
-      "direction": "output",
-      "accountRole": "vatPayable",
-      "ublCategory": "E"
+      "ublCategory": "K",
+      "baseRubriek": "3b",
+      "scope": "intra_community_supply",
+      "supplyKind": "services"
     },
     {
       "code": "VH21",
@@ -80,7 +137,10 @@
       "rateBasisPoints": 2100,
       "direction": "input",
       "accountRole": "vatReceivable",
-      "ublCategory": "S"
+      "ublCategory": "S",
+      "vatRubriek": "5b",
+      "scope": "domestic",
+      "deductibility": "full"
     },
     {
       "code": "VL9",
@@ -88,7 +148,83 @@
       "rateBasisPoints": 900,
       "direction": "input",
       "accountRole": "vatReceivable",
-      "ublCategory": "S"
+      "ublCategory": "S",
+      "vatRubriek": "5b",
+      "scope": "domestic",
+      "deductibility": "full"
+    },
+    {
+      "code": "VERL-ONTV",
+      "description": "BTW verlegd naar u, verschuldigd",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatPayable",
+      "ublCategory": "AE",
+      "baseRubriek": "2a",
+      "vatRubriek": "2a",
+      "scope": "domestic",
+      "reverseCharge": "domestic",
+      "deductionCode": "VERL-VOOR"
+    },
+    {
+      "code": "VERL-VOOR",
+      "description": "BTW verlegd naar u, voorbelasting",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "AE",
+      "vatRubriek": "5b",
+      "scope": "domestic",
+      "deductibility": "full"
+    },
+    {
+      "code": "ICV21",
+      "description": "Intracommunautaire verwerving 21%, verschuldigd",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatPayable",
+      "ublCategory": "K",
+      "baseRubriek": "4b",
+      "vatRubriek": "4b",
+      "scope": "intra_community_acquisition",
+      "supplyKind": "goods",
+      "deductionCode": "ICV21-VOOR"
+    },
+    {
+      "code": "ICV21-VOOR",
+      "description": "Intracommunautaire verwerving 21%, voorbelasting",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "K",
+      "vatRubriek": "5b",
+      "scope": "intra_community_acquisition",
+      "deductibility": "full"
+    },
+    {
+      "code": "INV23",
+      "description": "Invoer met artikel 23-verlegging, verschuldigd",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatPayable",
+      "ublCategory": "S",
+      "baseRubriek": "4a",
+      "vatRubriek": "4a",
+      "scope": "import",
+      "reverseCharge": "import_article_23",
+      "supplyKind": "goods",
+      "deductionCode": "INV23-VOOR"
+    },
+    {
+      "code": "INV23-VOOR",
+      "description": "Invoer met artikel 23-verlegging, voorbelasting",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "S",
+      "vatRubriek": "5b",
+      "scope": "import",
+      "deductibility": "full"
     }
   ],
   "accounts": [

@@ -19,6 +19,7 @@ const NAVIGATION = [
   { to: '/bank', label: 'Bank', binding: 'go.bank' },
   { to: '/payments', label: 'Betalingen', binding: 'go.payments' },
   { to: '/dunning', label: 'Aanmaningen', binding: 'go.dunning' },
+  { to: '/vat', label: 'BTW', binding: 'go.vat' },
   { to: '/reports/trial-balance', label: 'Proefbalans', binding: 'go.trial' },
   { to: '/reports/balance-sheet', label: 'Balans', binding: 'go.balance' },
   { to: '/reports/profit-and-loss', label: 'Winst & verlies', binding: 'go.profit' },
