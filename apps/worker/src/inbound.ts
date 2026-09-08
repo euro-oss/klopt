@@ -66,7 +66,7 @@ export async function pollInboundSources(
 
   for (const row of rows) {
     const withSecret = await withInboundSources(database, (repository) =>
-      repository.withSecret(row.id),
+      repository.withSecret(row.entityId, row.id),
     )
     if (withSecret === null) continue
 

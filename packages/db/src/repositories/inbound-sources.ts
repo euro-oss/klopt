@@ -94,14 +94,21 @@ export class InboundSourceRepository {
    *
    * Its own method so that the ordinary reads cannot leak it by accident, and
    * so that a grep for where secrets are read has one answer.
+   *
+   * Scoped by entity here rather than by the caller comparing afterwards. It
+   * was the second way round, and it worked — but a method that returns a
+   * password and trusts every future caller to remember a check is the wrong
+   * shape for the one query in this file that must not leak. The scope belongs
+   * in the `where`.
    */
   async withSecret(
+    entityId: string,
     sourceId: string,
   ): Promise<(InboundSourceRow & { secret: string | null }) | null> {
     const [row] = await this.tx
       .select({ ...COLUMNS, secret: inboundSources.secret })
       .from(inboundSources)
-      .where(eq(inboundSources.id, sourceId))
+      .where(and(eq(inboundSources.entityId, entityId), eq(inboundSources.id, sourceId)))
       .limit(1)
 
     return row === undefined ? null : { ...toRow(row), secret: row.secret }

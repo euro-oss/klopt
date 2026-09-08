@@ -167,11 +167,9 @@ export async function handlePollInboundSource(context: RequestContext, sourceId:
   requirePermission(context, 'ledger:post')
 
   const row = await withInboundSourcesRead(context.database, (repository) =>
-    repository.withSecret(sourceId),
+    repository.withSecret(context.entityId, sourceId),
   )
-  if (row === null || row.entityId !== context.entityId) {
-    throw new ApiError('not_found', 'No such source.')
-  }
+  if (row === null) throw new ApiError('not_found', 'No such source.')
 
   const adapter = createInboundSource({
     kind: row.kind,
