@@ -90,6 +90,31 @@ pick a role, and they are in as soon as they sign in with it. There is no
 invitation link to lose — the code that proves the mailbox is the same code that
 signs them in.
 
+### Serving it over https
+
+Only needed to connect **Exact Online**, whose OAuth redirect URI must be
+https — plain `http://localhost` is refused at their end. [portless][portless]
+fronts the dev server with a locally-trusted certificate on a stable
+`.localhost` name:
+
+```bash
+npm install -g portless
+portless proxy start                       # once; sudo, to bind 443
+pnpm run dev:https                         # https://klopt.localhost
+```
+
+Then set `KLOPT_BASE_URL=https://klopt.localhost` so the session cookie is
+issued `secure` and sign-in links point at the right host, and register
+`https://klopt.localhost/exact/callback` as the redirect URI of your Exact app.
+`portless service install` starts the proxy at boot so the sudo prompt happens
+once.
+
+The name is pinned to `klopt` in the script. A bare `portless` prefixes the git
+branch onto the host, which would move the URL every time the branch changed —
+and Exact compares its redirect URI literally.
+
+[portless]: https://portless.sh
+
 Or skip the browser entirely; the UI is a client of the same API:
 
 Then post something. Issue a token, and:

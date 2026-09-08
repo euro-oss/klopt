@@ -434,6 +434,18 @@ afterAll(async () => {
 })
 
 describe('connecting', () => {
+  it('refuses a plain-http redirect, because Exact will not register one', () => {
+    // Refused here rather than at Exact's App Center, where the error is
+    // somebody else's and does not name the fix.
+    const refused = connectExactBody.safeParse({
+      ...APP,
+      redirectUri: 'http://localhost:3000/exact/callback',
+    })
+
+    expect(refused.success).toBe(false)
+    expect(JSON.stringify(refused.error?.issues)).toContain('pnpm dev:https')
+  })
+
   it('refuses a client secret it cannot encrypt, rather than storing it as typed', async () => {
     // A client secret in a database dump is discovered by somebody else, later.
     // Spec 14: never in the database in plaintext.

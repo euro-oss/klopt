@@ -10,6 +10,7 @@
     "build": "vite build",
     "clean": "rm -rf .output dist .nitro .tanstack",
     "dev": "vite dev",
+    "dev:https": "portless klopt pnpm exec vite dev",
     "start": "node .output/server/index.mjs",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"

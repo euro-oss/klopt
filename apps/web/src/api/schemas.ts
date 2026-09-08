@@ -892,7 +892,19 @@ export const connectExactBody = z.object({
     ),
   clientId: z.string().trim().min(1).max(200),
   clientSecret: z.string().trim().min(1).max(400),
-  redirectUri: z.string().trim().url(),
+  // https, with no loopback exception — unlike `baseUrl` above.
+  //
+  // Exact refuses to register a plain-http redirect URI, and the refusal
+  // happens in their App Center rather than here, where it is somebody else's
+  // error message. Refusing it at this end costs nothing and can name the fix.
+  redirectUri: z
+    .string()
+    .trim()
+    .url()
+    .refine(
+      (value) => value.startsWith('https://'),
+      'Exact only accepts an https redirect. Serve the app over https — `pnpm dev:https` does it locally — and use that origin.',
+    ),
 })
 
 export type ConnectExactBody = z.infer<typeof connectExactBody>

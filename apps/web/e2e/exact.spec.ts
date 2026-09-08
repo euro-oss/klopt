@@ -53,6 +53,8 @@ test('the redirect URI is filled in with this instance’s own origin', async ({
   await anAdministration(page)
   await page.goto('/exact')
 
+  // Prefilled only after hydration: the server has no `window` to read an
+  // origin from, and rendering one anyway is a hydration mismatch.
   const redirect = page.getByLabel('Redirect-URI')
   await expect(redirect).toHaveValue(`${new URL(page.url()).origin}/exact/callback`)
 })
@@ -60,6 +62,10 @@ test('the redirect URI is filled in with this instance’s own origin', async ({
 test('signing in at Exact is refused until there is an app to sign in with', async ({ page }) => {
   await anAdministration(page)
   await page.goto('/exact')
+
+  // The fields are disabled until React has taken over, and a value typed
+  // before then is discarded — so wait, the same way the upload tests do.
+  await expect(page.getByLabel('Client ID')).toBeEnabled()
 
   const button = page.getByRole('button', { name: 'Aanmelden bij Exact' })
   await expect(button).toBeDisabled()
@@ -69,7 +75,27 @@ test('signing in at Exact is refused until there is an app to sign in with', asy
   await expect(button).toBeDisabled()
 
   await page.getByLabel('Client secret').fill('some-client-secret')
+  // And still disabled here, because this test server is plain http. That is
+  // the next test's subject.
+  await page.getByLabel('Redirect-URI').fill('https://klopt.example/exact/callback')
   await expect(button).toBeEnabled()
+})
+
+test('a plain-http origin says so, rather than failing at Exact', async ({ page }) => {
+  // The e2e server is http://localhost:3399, which is exactly the situation a
+  // developer is in before they front the app with https. Exact refuses to
+  // register a plain-http redirect, and their App Center does not explain why —
+  // so this page has to.
+  await anAdministration(page)
+  await page.goto('/exact')
+
+  await expect(page.getByRole('alert')).toContainText('alleen een https-redirect')
+  await expect(page.getByRole('alert')).toContainText('pnpm dev:https')
+
+  await expect(page.getByLabel('Client ID')).toBeEnabled()
+  await page.getByLabel('Client ID').fill('some-client-id')
+  await page.getByLabel('Client secret').fill('some-client-secret')
+  await expect(page.getByRole('button', { name: 'Aanmelden bij Exact' })).toBeDisabled()
 })
 
 test('the callback screen says when Exact sent it nothing', async ({ page }) => {

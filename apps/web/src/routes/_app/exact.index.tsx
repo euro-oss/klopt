@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { formatDate } from '~/lib/format'
+import { useHydrated } from '~/lib/hydration'
 import {
   chooseExactDivision,
   connectExact,
@@ -54,6 +55,7 @@ const CAUTION_TEXT: Record<string, string> = {
 function Exact() {
   const { connection } = Route.useLoaderData()
   const router = useRouter()
+  const hydrated = useHydrated()
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,9 +67,26 @@ function Exact() {
   const [baseUrl, setBaseUrl] = useState('https://start.exactonline.nl')
   const [clientId, setClientId] = useState('')
   const [clientSecret, setClientSecret] = useState('')
-  const [redirectUri, setRedirectUri] = useState(
-    typeof window === 'undefined' ? '' : `${window.location.origin}/exact/callback`,
-  )
+  /**
+   * The redirect URI, defaulted to this instance's own origin.
+   *
+   * `null` means nobody has edited it, so it follows the origin. Derived rather
+   * than seeded into state from `window`, because the server has no `window`
+   * and a value that appears only on the client is a hydration mismatch — the
+   * markup differs, React throws the tree away and rebuilds it.
+   */
+  const [editedRedirect, setEditedRedirect] = useState<string | null>(null)
+  const redirectUri = editedRedirect ?? (hydrated ? `${window.location.origin}/exact/callback` : '')
+
+  // Exact will not register a plain-http redirect, and this page is where that
+  // is discoverable — rather than in their App Center, where the error is
+  // somebody else's. Read from the field rather than from the origin, because
+  // the field is what gets sent and somebody may have edited it.
+  //
+  // Before hydration the field is empty and nothing is claimed either way: a
+  // warning rendered on the server about an origin the server cannot see would
+  // be the same mismatch in a different place.
+  const redirectIsSecure = redirectUri.startsWith('https://')
 
   if (!connection.ok) {
     return (
@@ -196,12 +215,25 @@ function Exact() {
             </p>
           )}
 
+          {hydrated && !redirectIsSecure && (
+            <p role="alert" className="text-destructive mb-4 text-sm">
+              Exact accepteert alleen een https-redirect. Start de app met{' '}
+              <code>pnpm dev:https</code> en open die URL, of zet er een https-proxy voor.
+            </p>
+          )}
+
+          {/*
+            The fields are disabled until React has taken over. A value typed
+            before hydration is discarded when the controlled input takes over,
+            and a client secret is the worst thing in here to lose silently.
+          */}
           <div className="grid max-w-2xl gap-3">
             <label className="text-sm">
               Exact-omgeving
               <input
                 value={baseUrl}
                 onChange={(event) => setBaseUrl(event.target.value)}
+                disabled={!hydrated}
                 className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
               />
             </label>
@@ -210,6 +242,7 @@ function Exact() {
               <input
                 value={clientId}
                 onChange={(event) => setClientId(event.target.value)}
+                disabled={!hydrated}
                 className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
               />
             </label>
@@ -219,6 +252,7 @@ function Exact() {
                 type="password"
                 value={clientSecret}
                 onChange={(event) => setClientSecret(event.target.value)}
+                disabled={!hydrated}
                 className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
               />
             </label>
@@ -226,14 +260,22 @@ function Exact() {
               Redirect-URI
               <input
                 value={redirectUri}
-                onChange={(event) => setRedirectUri(event.target.value)}
+                onChange={(event) => setEditedRedirect(event.target.value)}
+                disabled={!hydrated}
                 className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
               />
             </label>
             <div>
               <button
                 type="button"
-                disabled={busy || !canStoreSecrets || clientId === '' || clientSecret === ''}
+                disabled={
+                  busy ||
+                  !hydrated ||
+                  !canStoreSecrets ||
+                  !redirectIsSecure ||
+                  clientId === '' ||
+                  clientSecret === ''
+                }
                 onClick={() => void connect()}
                 className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
               >

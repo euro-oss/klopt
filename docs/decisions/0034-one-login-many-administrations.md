@@ -161,9 +161,22 @@ is simultaneously the documentation and the request.
   bring-your-own-credential rule and spec 14's no-plaintext rule. With no
   `KLOPT_ENCRYPTION_KEY` the connection is **refused** rather than stored as
   typed, and the screen says so before anybody pastes a secret in.
-- **`redirectUri` is asked for rather than derived.** Exact compares it
-  literally, and a mismatch fails at their end with an error that does not say
-  why. Guessing it right some of the time is worse than asking.
+- **`redirectUri` is asked for rather than derived, and must be https.** Exact
+  compares it literally, and a mismatch fails at their end with an error that
+  does not say why. Guessing it right some of the time is worse than asking.
+
+  The https requirement is theirs, not ours, and it is why `pnpm dev:https`
+  exists: portless fronts the dev server with a locally-trusted certificate on
+  a stable `https://klopt.localhost`. The name is pinned in the script rather
+  than inferred, because a bare `portless` prefixes the git branch onto the
+  host — and a literally-compared redirect URI cannot follow a URL that moves
+  every time somebody switches branch.
+
+  The refusal lives in the schema as well as on the screen. Exact rejects a
+  plain-http redirect in their App Center, where the error is somebody else's
+  and does not mention what to do about it; refusing it here costs nothing and
+  can name the fix.
+
 - **The OAuth redirect lands on a screen, not on `/api/v1`.** The API surface
   stays methods and bodies; the screen posts the code and state to
   `POST /exact/callback`. A GET doorway that only makes sense to a redirect

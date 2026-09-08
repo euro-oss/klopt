@@ -14,6 +14,7 @@
     "db:generate": "pnpm --filter @klopt/db run generate",
     "db:migrate": "pnpm --filter @klopt/db run migrate",
     "dev": "pnpm --filter @klopt/web run dev",
+    "dev:https": "pnpm --filter @klopt/web run dev:https",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
