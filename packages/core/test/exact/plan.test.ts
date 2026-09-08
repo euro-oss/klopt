@@ -202,14 +202,14 @@ describe('the reconciliation', () => {
       ledger: 302_500n,
       openItems: 302_500n,
       difference: 0n,
-      matches: true,
+      outcome: 'matches',
       itemCount: 2,
     })
     expect(reconciliation.payable).toMatchObject({
       accountCodes: ['1600'],
       ledger: 60_500n,
       openItems: 60_500n,
-      matches: true,
+      outcome: 'matches',
     })
     expect(plan.problems).toEqual([])
   })
@@ -223,7 +223,7 @@ describe('the reconciliation', () => {
   })
 
   it('refuses to import when Exact’s own trial balance does not balance', () => {
-    const broken = snapshot().trialBalance.filter((row) => row.accountCode !== '8000')
+    const broken = (snapshot().trialBalance ?? []).filter((row) => row.accountCode !== '8000')
     const plan = planExactImport(snapshot({ trialBalance: broken }), options())
 
     expect(plan.reconciliation.balanced).toBe(false)
@@ -260,7 +260,7 @@ describe('the reconciliation', () => {
     })
 
     const plan = planExactImport(
-      snapshot({ trialBalance: [...snapshot().trialBalance, extra, balancing] }),
+      snapshot({ trialBalance: [...(snapshot().trialBalance ?? []), extra, balancing] }),
       options(),
     )
 
@@ -269,7 +269,7 @@ describe('the reconciliation', () => {
       ledger: 327_500n,
       openItems: 302_500n,
       difference: -25_000n,
-      matches: false,
+      outcome: 'differs',
     })
     // A warning rather than a refusal: a twelve-year-old administration often
     // has a known and explicable difference, and refusing would make the tool
@@ -312,7 +312,7 @@ describe('the reconciliation', () => {
     })
 
     const plan = planExactImport(
-      snapshot({ trialBalance: [...snapshot().trialBalance, orphan, balancing] }),
+      snapshot({ trialBalance: [...(snapshot().trialBalance ?? []), orphan, balancing] }),
       options(),
     )
 
@@ -335,7 +335,7 @@ describe('the reconciliation', () => {
       snapshot(),
       options({ receivableAccountCodes: ['1300'], payableAccountCodes: ['1600'] }),
     )
-    expect(plan.reconciliation.receivable.matches).toBe(true)
+    expect(plan.reconciliation.receivable.outcome).toBe('matches')
   })
 })
 
@@ -392,5 +392,114 @@ describe('the whole administration', () => {
   it('reads a /Date(ms)/ document date', () => {
     const plan = planExactImport(snapshot(), options())
     expect(plan.documents[0]?.documentDate).toBe('2026-01-31')
+  })
+})
+
+describe('a resource Exact refuses', () => {
+  // The case a real connection hit: `financial/ReportingBalance` answered 403
+  // while `vat/VATCodes` — the same documented scope — answered 200. Exact
+  // grants rights per resource, so this is not an all-or-nothing failure and
+  // must not be treated as one.
+  const refused = (resource: string, status = 403) => ({
+    unreadable: [{ resource, status, message: `Exact Online answered ${String(status)}` }],
+  })
+
+  it('does not report an unread trial balance as a balanced one', () => {
+    // The trap this whole shape exists for. An empty trial balance has debit
+    // equal to credit, so a naive degradation reports a division as reconciled
+    // without having looked at it.
+    const plan = planExactImport(
+      snapshot({ trialBalance: null, ...refused('financial/ReportingBalance') }),
+      options(),
+    )
+
+    expect(plan.reconciliation.available).toBe(false)
+    expect(plan.reconciliation.balanced).toBeNull()
+    expect(plan.reconciliation.totalDebit).toBeNull()
+    expect(plan.problems.map((problem) => problem.code)).not.toContain('trial_balance_unbalanced')
+  })
+
+  it('does not report the open items as a difference against a control account of zero', () => {
+    // The second half of the same trap, and the more damaging one: it would
+    // accuse somebody's administration of having postings on 1300 with no open
+    // item behind them, when all that happened is that we could not read it.
+    const plan = planExactImport(
+      snapshot({ trialBalance: null, ...refused('financial/ReportingBalance') }),
+      options(),
+    )
+
+    expect(plan.reconciliation.receivable.outcome).toBe('not_reconciled')
+    expect(plan.reconciliation.receivable.ledger).toBeNull()
+    expect(plan.reconciliation.receivable.difference).toBeNull()
+    // The open items are still counted: they came from a resource that answered.
+    expect(plan.reconciliation.receivable.openItems).toBe(302_500n)
+    expect(plan.warnings.map((warning) => warning.code)).not.toContain(
+      'open_items_do_not_reconcile',
+    )
+  })
+
+  it('still imports everything else, and says what the missing report cost', () => {
+    const plan = planExactImport(
+      snapshot({ trialBalance: null, ...refused('financial/ReportingBalance') }),
+      options(),
+    )
+
+    // The import itself is unaffected — the trial balance was never a source of
+    // rows, only of proof.
+    expect(plan.accounts.length).toBeGreaterThan(0)
+    expect(plan.contacts.length).toBeGreaterThan(0)
+    expect(plan.openItems.length).toBeGreaterThan(0)
+    expect(plan.problems).toEqual([])
+
+    const warning = plan.warnings.find((candidate) => candidate.code === 'resource_unreadable')
+    expect(warning?.message).toContain('financial/ReportingBalance')
+    expect(warning?.message).toContain('403')
+    // A 403 is a rights problem, and the report has to say whose.
+    expect(warning?.message).toContain('rights')
+    expect(warning?.message).toContain('not proved complete')
+  })
+
+  it('refuses when a resource the import actually needs is missing', () => {
+    // Losing the chart of accounts is not a degradation, it is the import.
+    const plan = planExactImport(
+      snapshot({ glAccounts: [], ...refused('financial/GLAccounts') }),
+      options(),
+    )
+
+    const problem = plan.problems.find((candidate) => candidate.code === 'resource_unreadable')
+    expect(problem?.message).toContain('The import needs it.')
+  })
+
+  it('degrades quietly for reference data, naming what each loss costs', () => {
+    const plan = planExactImport(
+      snapshot({
+        vatCodes: [],
+        paymentConditions: [],
+        unreadable: [
+          { resource: 'vat/VATCodes', status: 403, message: '403' },
+          { resource: 'cashflow/PaymentConditions', status: 403, message: '403' },
+        ],
+      }),
+      options(),
+    )
+
+    expect(plan.problems).toEqual([])
+    const messages = plan.warnings
+      .filter((warning) => warning.code === 'resource_unreadable')
+      .map((warning) => warning.message)
+      .join(' ')
+    expect(messages).toContain('without their default VAT code')
+    expect(messages).toContain('due dates will differ')
+  })
+
+  it('says 404 differently from 403, because it is not about rights', () => {
+    const plan = planExactImport(
+      snapshot({ trialBalance: null, ...refused('financial/ReportingBalance', 404) }),
+      options(),
+    )
+
+    const warning = plan.warnings.find((candidate) => candidate.code === 'resource_unreadable')
+    expect(warning?.message).toContain('404')
+    expect(warning?.message).not.toContain('rights')
   })
 })

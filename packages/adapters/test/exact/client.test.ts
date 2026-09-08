@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ExactTokens } from '@klopt/core'
-import { collectAll, createExactClient, ExactApiError } from '../../src/index.js'
+import { collectAll, createExactClient, ExactApiError, readDivision } from '../../src/index.js'
 
 /**
  * The REST client, and the three ways a real connection breaks.
@@ -422,5 +422,144 @@ describe('divisions', () => {
     expect(fetch.mock.calls[1]?.[0]).toContain('/api/v1/3196493/system/Divisions')
     expect(divisions.map((division) => division.code)).toEqual([3196493, 3196494])
     expect(divisions[1]?.isPracticeDivision).toBe(true)
+  })
+})
+
+describe('reading a division whose rights are uneven', () => {
+  /**
+   * The failure a real connection produced.
+   *
+   * `financial/ReportingBalance` answered 403 while `vat/VATCodes` — documented
+   * under the same "Financial accounting" scope — answered 200. Exact grants
+   * rights per resource, so there is no scope to fix and no retry that helps:
+   * it is the signed-in user's rights on that administration.
+   *
+   * What the read pass must not do is throw away the seven resources that
+   * answered because the eighth did not.
+   */
+  const division = {
+    code: 1000,
+    description: 'Test BV',
+    currency: 'EUR',
+    country: 'NL',
+    vatNumber: null,
+    chamberOfCommerceNumber: null,
+    status: 1,
+    isMainDivision: true,
+    isPracticeDivision: false,
+    isDossierDivision: false,
+    archiveDate: null,
+    current: true,
+  }
+
+  const forbidden = (): Response =>
+    new Response(
+      JSON.stringify({ error: { code: '', message: { lang: '', value: 'Forbidden' } } }),
+      { status: 403, headers: { 'content-type': 'application/json' } },
+    )
+
+  /** Answer 403 for one path and an empty collection for every other. */
+  function refusing(path: string) {
+    return vi.fn((input: string) =>
+      Promise.resolve(String(input).includes(path) ? forbidden() : collection([])),
+    )
+  }
+
+  it('records the refusal and keeps reading', async () => {
+    const fetch = refusing('ReportingBalance')
+
+    const snapshot = await readDivision({
+      client: client(fetch),
+      division,
+      year: 2026,
+    })
+
+    expect(snapshot.unreadable).toEqual([
+      expect.objectContaining({ resource: 'financial/ReportingBalance', status: 403 }),
+    ])
+    // `null`, not `[]`: the planner has to be able to tell an unread year from
+    // an empty one, because an empty one balances.
+    expect(snapshot.trialBalance).toBeNull()
+
+    // Every other resource was still asked for. Seven reads, one of them refused.
+    const asked = fetch.mock.calls.map(([url]) => String(url))
+    expect(asked.some((url) => url.includes('crm/Accounts'))).toBe(true)
+    expect(asked.some((url) => url.includes('ReceivablesList'))).toBe(true)
+    expect(asked.some((url) => url.includes('PayablesList'))).toBe(true)
+  })
+
+  it('reads a clean division with no refusals at all', async () => {
+    const fetch = vi.fn(() => Promise.resolve(collection([])))
+
+    const snapshot = await readDivision({ client: client(fetch), division, year: 2026 })
+
+    expect(snapshot.unreadable).toEqual([])
+    // Read and empty, which is a different fact from not read.
+    expect(snapshot.trialBalance).toEqual([])
+  })
+
+  it('lets a transport failure through, because it is not a fact about rights', async () => {
+    // Swallowing this would turn "the network went away" into "this division
+    // has no customers", and the import would proceed on it.
+    const fetch = vi.fn((input: string) =>
+      String(input).includes('crm/Accounts')
+        ? Promise.reject(new Error('socket hang up'))
+        : Promise.resolve(collection([])),
+    )
+
+    await expect(readDivision({ client: client(fetch), division, year: 2026 })).rejects.toThrow(
+      'socket hang up',
+    )
+  })
+})
+
+describe('which failures a single resource may degrade over', () => {
+  const division = {
+    code: 1000,
+    description: 'Test BV',
+    currency: 'EUR',
+    country: 'NL',
+    vatNumber: null,
+    chamberOfCommerceNumber: null,
+    status: 1,
+    isMainDivision: true,
+    isPracticeDivision: false,
+    isDossierDivision: false,
+    archiveDate: null,
+    current: true,
+  }
+
+  const answering = (path: string, status: number) =>
+    vi.fn((input: string) =>
+      Promise.resolve(
+        String(input).includes(path)
+          ? new Response(JSON.stringify({ error: 'no' }), { status })
+          : collection([]),
+      ),
+    )
+
+  // 404 is "this division has not got that module", which the rest survives.
+  it.each([403, 404])('degrades over %i', async (status) => {
+    const snapshot = await readDivision({
+      client: client(answering('vat/VATCodes', status)),
+      division,
+      year: 2026,
+    })
+
+    expect(snapshot.unreadable).toEqual([
+      expect.objectContaining({ resource: 'vat/VATCodes', status }),
+    ])
+  })
+
+  /**
+   * 400 is our query being wrong and 500 is Exact being broken. Degrading over
+   * either would import an administration with a resource silently missing and
+   * call it a success — which is the failure mode this whole shape exists to
+   * avoid, pointed the other way.
+   */
+  it.each([400, 500, 503])('refuses to degrade over %i', async (status) => {
+    await expect(
+      readDivision({ client: client(answering('vat/VATCodes', status)), division, year: 2026 }),
+    ).rejects.toThrow(ExactApiError)
   })
 })

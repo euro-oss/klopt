@@ -251,7 +251,10 @@ export function Stat({
   label: string
   value: ReactNode
   hint?: string | undefined
-  tone?: 'neutral' | 'good' | 'warn' | undefined
+  // `muted` is for a figure that is absent rather than bad: "not read" is not
+  // "does not balance", and rendering the two the same reports a gap in our
+  // access as a defect in the data.
+  tone?: 'neutral' | 'good' | 'warn' | 'muted' | undefined
 }) {
   return (
     <div className="border-border rounded-md border p-4">
@@ -261,6 +264,7 @@ export function Stat({
           'mt-1 text-2xl font-semibold tabular',
           tone === 'good' && 'text-foreground',
           tone === 'warn' && 'text-unreconciled',
+          tone === 'muted' && 'text-muted-foreground',
         )}
       >
         {value}

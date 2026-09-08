@@ -63,10 +63,12 @@ export {
   type ExactProblem,
   type ExactProblemCode,
   type ExactSnapshot,
+  type UnreadableResource,
   type ExactPlannedAccount,
   type ExactPlannedContact,
   type ExactPlannedDocument,
   type ExactPlannedOpenItem,
   type ExactPlannedTaxCode,
+  type ControlAccountOutcome,
   type TrialBalanceReconciliation,
 } from './plan.js'

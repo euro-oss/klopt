@@ -96,6 +96,13 @@ interface FakeExact {
   divisions: readonly Record<string, unknown>[]
   /** Set to make the next refresh fail the way a revoked app does. */
   revoked: boolean
+  /**
+   * Resources to answer 403 for, by path fragment.
+   *
+   * Exact grants rights per resource, so a division can answer 200 for six
+   * things and 403 for the seventh. This is how that is reproduced.
+   */
+  forbidden: Set<string>
 }
 
 function fakeExact(): FakeExact {
@@ -104,6 +111,7 @@ function fakeExact(): FakeExact {
     issued: [],
     spent: new Set(),
     revoked: false,
+    forbidden: new Set(),
     divisions: [
       {
         Code: 1000,
@@ -191,6 +199,15 @@ function fakeExact(): FakeExact {
       )
     }
     if (url.includes('system/Divisions')) return Promise.resolve(collection(state.divisions))
+
+    // Exact's own 403 body, verbatim.
+    for (const path of state.forbidden) {
+      if (url.includes(path)) {
+        return Promise.resolve(
+          json({ error: { code: '', message: { lang: '', value: 'Forbidden' } } }, 403),
+        )
+      }
+    }
 
     if (url.includes('financial/GLAccounts')) {
       return Promise.resolve(
@@ -713,6 +730,63 @@ describe('the dry run', () => {
     return { exact, token, entityId }
   }
 
+  /**
+   * The failure a real connection produced: 403 on `financial/ReportingBalance`
+   * while `vat/VATCodes` — the same documented scope — answered 200. It used to
+   * end the whole import with a 409 and Exact's raw JSON.
+   */
+  it('imports an administration whose trial balance it may not read', async () => {
+    const { exact, token } = await ready()
+    exact.forbidden.add('financial/ReportingBalance')
+
+    const preview = await handlePreviewExactImport(
+      await context(token),
+      exactPreviewQuery.parse({ year: '2026' }),
+    )
+
+    expect(preview.status).toBe(200)
+
+    // Nothing blocking: the trial balance was never a source of rows.
+    expect(preview.body.problems).toEqual([])
+    expect(preview.body.accounts.count).toBeGreaterThan(0)
+    expect(preview.body.contacts.count).toBeGreaterThan(0)
+
+    // And the report says why it cannot vouch for it, in terms of rights.
+    const refusal = preview.body.warnings.find((warning) => warning.code === 'resource_unreadable')
+    expect(refusal?.message).toContain('financial/ReportingBalance')
+    expect(refusal?.message).toContain('rights')
+  })
+
+  it('reports an unread trial balance as unread, not as balanced', async () => {
+    // The trap: an empty trial balance has debit equal to credit, so degrading
+    // by substituting one would report a division as reconciled without having
+    // looked — and would report every open item as a difference against a
+    // control account of zero, which reads as an accusation about their books.
+    const { exact, token } = await ready()
+    exact.forbidden.add('financial/ReportingBalance')
+
+    const preview = await handlePreviewExactImport(
+      await context(token),
+      exactPreviewQuery.parse({ year: '2026' }),
+    )
+
+    expect(preview.body).toMatchObject({
+      reconciliation: {
+        available: false,
+        balanced: null,
+        totalDebit: null,
+        totalCredit: null,
+        receivable: { outcome: 'not_reconciled', ledger: null, difference: null },
+        payable: { outcome: 'not_reconciled', ledger: null, difference: null },
+      },
+    })
+
+    // The open items are still counted — a different resource answered them.
+    expect(preview.body).toMatchObject({
+      reconciliation: { receivable: { openItems: '1210.00' } },
+    })
+  })
+
   it('reconciles the open items against Exact’s own control accounts', async () => {
     const { token } = await ready()
 
@@ -732,9 +806,14 @@ describe('the dry run', () => {
           accountCodes: ['1300'],
           ledger: '1210.00',
           openItems: '1210.00',
-          matches: true,
+          outcome: 'matches',
         },
-        payable: { accountCodes: ['1600'], ledger: '605.00', openItems: '605.00', matches: true },
+        payable: {
+          accountCodes: ['1600'],
+          ledger: '605.00',
+          openItems: '605.00',
+          outcome: 'matches',
+        },
       },
       problems: [],
     })

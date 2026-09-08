@@ -412,19 +412,21 @@ function Exact() {
 
 interface ControlCheck {
   readonly accountCodes: readonly string[]
-  readonly ledger: string
+  /** Null when the proefbalans could not be read. Not zero. */
+  readonly ledger: string | null
   readonly openItems: string
-  readonly difference: string
-  readonly matches: boolean
+  readonly difference: string | null
+  readonly outcome: 'matches' | 'differs' | 'no_control_account' | 'not_reconciled'
   readonly itemCount: number
 }
 
 interface Reconciliation {
   readonly year: number
-  readonly totalDebit: string
-  readonly totalCredit: string
-  readonly balanced: boolean
-  readonly accountCount: number
+  readonly available: boolean
+  readonly totalDebit: string | null
+  readonly totalCredit: string | null
+  readonly balanced: boolean | null
+  readonly accountCount: number | null
   readonly orphanAccountCodes: readonly string[]
   readonly receivable: ControlCheck
   readonly payable: ControlCheck
@@ -452,11 +454,27 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
   return (
     <div>
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        {/*
+          Three states, not two. "Niet gelezen" is not "sluit niet": Exact
+          refusing to show us the proefbalans says nothing about whether it
+          balances, and a warn tone would report our lack of rights as a defect
+          in somebody's books.
+        */}
         <Stat
           label={`Proefbalans ${String(reconciliation.year)}`}
-          value={reconciliation.balanced ? 'sluit' : 'sluit niet'}
-          tone={reconciliation.balanced ? 'good' : 'warn'}
-          hint={`${reconciliation.totalDebit} debet / ${reconciliation.totalCredit} credit`}
+          value={
+            !reconciliation.available
+              ? 'niet gelezen'
+              : reconciliation.balanced
+                ? 'sluit'
+                : 'sluit niet'
+          }
+          tone={!reconciliation.available ? 'muted' : reconciliation.balanced ? 'good' : 'warn'}
+          hint={
+            reconciliation.available
+              ? `${reconciliation.totalDebit ?? '—'} debet / ${reconciliation.totalCredit ?? '—'} credit`
+              : 'Exact gaf geen toegang tot financial/ReportingBalance'
+          }
         />
         <Stat
           label="Grootboekrekeningen"
@@ -472,6 +490,13 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
       </div>
 
       <h3 className="mb-2 text-sm font-semibold">Aansluiting openstaande posten</h3>
+      {!reconciliation.available && (
+        <p role="status" className="text-muted-foreground mb-2 text-sm">
+          De proefbalans van Exact kon niet gelezen worden, dus de openstaande posten zijn niet
+          tegen de tussenrekeningen aangesloten. Wat er staat is wat de openstaande posten zelf
+          zeggen — niet dat het klopt.
+        </p>
+      )}
       <table className="mb-6 w-full text-sm">
         <thead>
           <tr className="border-border border-b text-left">
@@ -494,10 +519,19 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
               <td className="py-2 font-mono text-xs">
                 {check.accountCodes.length === 0 ? 'geen gevonden' : check.accountCodes.join(', ')}
               </td>
-              <td className="py-2 text-right tabular">{check.ledger}</td>
+              {/*
+                An em dash rather than 0,00 where there is no number. A zero
+                here would read as "the control account is empty", which is a
+                claim about somebody's books that we did not get to look at.
+              */}
+              <td className="py-2 text-right tabular">{check.ledger ?? '—'}</td>
               <td className="py-2 text-right tabular">{check.openItems}</td>
-              <td className={`py-2 text-right tabular ${check.matches ? '' : 'text-unreconciled'}`}>
-                {check.difference}
+              <td
+                className={`py-2 text-right tabular ${
+                  check.outcome === 'differs' ? 'text-unreconciled' : ''
+                }`}
+              >
+                {check.difference ?? '—'}
               </td>
             </tr>
           ))}

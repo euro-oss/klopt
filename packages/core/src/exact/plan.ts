@@ -66,6 +66,7 @@ export type ExactProblemCode =
   | 'payment_term_not_representable'
   | 'attachment_without_url'
   | 'division_caution'
+  | 'resource_unreadable'
 
 export interface ExactProblem {
   readonly code: ExactProblemCode
@@ -95,11 +96,38 @@ export interface ExactSnapshot {
   readonly paymentConditions: readonly ExactPaymentCondition[]
   readonly receivables: readonly ExactOpenItem[]
   readonly payables: readonly ExactOpenItem[]
-  /** `financial/ReportingBalance` for one year, both statuses. */
-  readonly trialBalance: readonly ExactReportingBalance[]
+  /**
+   * `financial/ReportingBalance` for one year, both statuses.
+   *
+   * `null` when it could not be read, which is not the same as empty and must
+   * not be allowed to look like it. An empty trial balance has debit equal to
+   * credit, so it balances; treating an unread one as empty would report a
+   * division as reconciled without having looked, and would report every open
+   * item as a difference against a control account of zero.
+   */
+  readonly trialBalance: readonly ExactReportingBalance[] | null
   readonly year: number
   readonly documents: readonly ExactDocument[]
   readonly attachments: readonly ExactAttachment[]
+  /** Resources the read pass was refused. Empty on a division that read cleanly. */
+  readonly unreadable: readonly UnreadableResource[]
+}
+
+/**
+ * A resource the read pass asked for and did not get.
+ *
+ * Exact's rights are per resource, not per scope: `vat/VATCodes` and
+ * `financial/ReportingBalance` are both "Financial accounting", and a login can
+ * be allowed the first and refused the second. So a division that reads fine
+ * for six resources can answer 403 for the seventh, and that has to be a fact
+ * the report carries rather than an exception that ends it.
+ */
+export interface UnreadableResource {
+  /** The path asked for, e.g. `financial/ReportingBalance`. */
+  readonly resource: string
+  /** Exact's status. 403 is rights; 404 is a resource this division has not got. */
+  readonly status: number
+  readonly message: string
 }
 
 /** What this administration already has, so the plan can say new or existing. */
@@ -205,27 +233,46 @@ export interface ExactPlannedTaxCode {
   readonly mapped: boolean
 }
 
-/** One side of the open-items reconciliation. */
+/**
+ * One side of the open-items reconciliation.
+ *
+ * `outcome` rather than a boolean, because there are four answers and only one
+ * of them is "no". "The control account and the open items disagree" is a
+ * finding about the administration; "there was no trial balance to compare
+ * against" is a finding about our access to it. A boolean would report the
+ * second as the first, which is a diagnosis of somebody else's books that we
+ * have not earned.
+ */
+export type ControlAccountOutcome = 'matches' | 'differs' | 'no_control_account' | 'not_reconciled'
+
 export interface ControlAccountCheck {
   readonly side: 'receivable' | 'payable'
   /** The account codes in Exact this side was measured against. */
   readonly accountCodes: readonly string[]
-  /** What the trial balance says those accounts hold, as a positive amount. */
-  readonly ledger: bigint
-  /** What the open items add up to. */
+  /**
+   * What the trial balance says those accounts hold, as a positive amount.
+   * Null when the trial balance could not be read.
+   */
+  readonly ledger: bigint | null
+  /** What the open items add up to. Known either way — a different resource. */
   readonly openItems: bigint
-  readonly difference: bigint
-  readonly matches: boolean
+  readonly difference: bigint | null
+  readonly outcome: ControlAccountOutcome
   readonly itemCount: number
 }
 
 export interface TrialBalanceReconciliation {
   readonly year: number
-  readonly totalDebit: bigint
-  readonly totalCredit: bigint
-  readonly balanced: boolean
-  readonly accountCount: number
-  readonly transactionCount: number
+  /**
+   * False when `financial/ReportingBalance` could not be read. Every total
+   * below is then null rather than zero: an unread year is not an empty one.
+   */
+  readonly available: boolean
+  readonly totalDebit: bigint | null
+  readonly totalCredit: bigint | null
+  readonly balanced: boolean | null
+  readonly accountCount: number | null
+  readonly transactionCount: number | null
   /** Codes with a balance in Exact and no account in the chart we read. */
   readonly orphanAccountCodes: readonly string[]
   readonly receivable: ControlAccountCheck
@@ -248,6 +295,32 @@ export interface ExactImportPlan {
 // ---------------------------------------------------------------------------
 // Planning
 // ---------------------------------------------------------------------------
+
+/**
+ * The resources without which there is no import.
+ *
+ * Everything else degrades: a division whose VAT codes are refused imports its
+ * accounts without defaults, and one whose trial balance is refused imports
+ * exactly the same data with no reconciliation behind it. These four are the
+ * data itself.
+ */
+const REQUIRED_RESOURCES: ReadonlySet<string> = new Set([
+  'financial/GLAccounts',
+  'crm/Accounts',
+  'read/financial/ReceivablesList',
+  'read/financial/PayablesList',
+])
+
+/** What losing each optional resource actually costs, in the report. */
+const CONSEQUENCE: Readonly<Record<string, string>> = {
+  'financial/ReportingBalance':
+    'The open items cannot be reconciled against the control accounts, so the import is not proved complete — it is still importable, but nothing here confirms the debtor and creditor positions add up.',
+  'vat/VATCodes': 'Accounts are imported without their default VAT code.',
+  'cashflow/PaymentConditions':
+    'Contacts are imported on the default payment term rather than their own, so due dates will differ.',
+  'documents/Documents': 'No documents are imported.',
+  'documents/DocumentAttachments': 'Documents are imported without their files.',
+}
 
 /** Exact's own types for the two control accounts. */
 const RECEIVABLE_TYPES = new Set([20, 21])
@@ -614,13 +687,35 @@ export function planExactImport(
 
   // --- the reconciliation --------------------------------------------------
 
+  // Anything the read pass was refused, before the reconciliation is read —
+  // because what it could not see is why the reconciliation says what it says.
+  for (const missing of snapshot.unreadable) {
+    const required = REQUIRED_RESOURCES.has(missing.resource)
+    const rights =
+      missing.status === 403
+        ? " Exact grants rights per resource rather than per scope, so this is the signed-in user's rights on this administration rather than the app's: give that user the right in Exact, or connect as somebody who has it."
+        : ''
+
+    ;(required ? problems : warnings).push(
+      problem(
+        'resource_unreadable',
+        `resources.${missing.resource}`,
+        `${missing.resource} could not be read (${String(missing.status)}).${rights}${
+          required
+            ? ' The import needs it.'
+            : ` ${CONSEQUENCE[missing.resource] ?? 'It is imported without that data.'}`
+        }`,
+      ),
+    )
+  }
+
   const reconciliation = reconcile(snapshot, accounts, openItems, options)
-  if (!reconciliation.balanced) {
+  if (reconciliation.available && reconciliation.balanced === false) {
     problems.push(
       problem(
         'trial_balance_unbalanced',
         'reconciliation',
-        `Exact's own trial balance for ${String(snapshot.year)} does not balance: ${reconciliation.totalDebit.toString()} debit against ${reconciliation.totalCredit.toString()} credit. Nothing downstream of that is safe to import.`,
+        `Exact's own trial balance for ${String(snapshot.year)} does not balance: ${reconciliation.totalDebit?.toString() ?? '?'} debit against ${reconciliation.totalCredit?.toString() ?? '?'} credit. Nothing downstream of that is safe to import.`,
       ),
     )
   }
@@ -634,7 +729,10 @@ export function planExactImport(
     )
   }
   for (const check of [reconciliation.receivable, reconciliation.payable]) {
-    if (check.accountCodes.length === 0) {
+    // `not_reconciled` is deliberately silent here: the unreadable resource
+    // above already said why, and saying it twice per side is three warnings
+    // for one cause.
+    if (check.outcome === 'no_control_account') {
       warnings.push(
         problem(
           'no_control_account',
@@ -642,12 +740,12 @@ export function planExactImport(
           `No ${check.side === 'receivable' ? 'debtors' : 'creditors'} control account was found in Exact's chart, so the open items could not be reconciled against one.`,
         ),
       )
-    } else if (!check.matches) {
+    } else if (check.outcome === 'differs') {
       warnings.push(
         problem(
           'open_items_do_not_reconcile',
           `reconciliation.${check.side}`,
-          `The ${check.side} open items total ${check.openItems.toString()} against ${check.ledger.toString()} on ${check.accountCodes.join(', ')} — a difference of ${check.difference.toString()}. Something is booked to the control account without an open item behind it.`,
+          `The ${check.side} open items total ${check.openItems.toString()} against ${check.ledger?.toString() ?? '?'} on ${check.accountCodes.join(', ')} — a difference of ${check.difference?.toString() ?? '?'}. Something is booked to the control account without an open item behind it.`,
         ),
       )
     }
@@ -683,6 +781,62 @@ function reconcile(
   openItems: readonly ExactPlannedOpenItem[],
   options: ExactImportOptions,
 ): TrialBalanceReconciliation {
+  const controlCodes = (
+    override: readonly string[] | undefined,
+    types: ReadonlySet<number>,
+  ): readonly string[] =>
+    override ??
+    snapshot.glAccounts
+      .filter((account) => account.type !== null && types.has(account.type))
+      .map((account) => account.code)
+      .sort()
+
+  const receivableCodes = controlCodes(options.receivableAccountCodes, RECEIVABLE_TYPES)
+  const payableCodes = controlCodes(options.payableAccountCodes, PAYABLE_TYPES)
+
+  const totalFor = (side: 'receivable' | 'payable'): { total: bigint; count: number } => {
+    const items = openItems.filter((item) => item.side === side)
+    return {
+      total: items.reduce((sum, item) => sum + item.outstanding, 0n),
+      count: items.length,
+    }
+  }
+
+  // Nothing was read, so nothing is claimed. The open-item totals are still
+  // reported — they come from a different resource and are still true — but
+  // they are not compared against a control account of zero and called a
+  // difference.
+  if (snapshot.trialBalance === null) {
+    const unreconciled = (
+      side: 'receivable' | 'payable',
+      codes: readonly string[],
+    ): ControlAccountCheck => {
+      const { total, count } = totalFor(side)
+      return {
+        side,
+        accountCodes: codes,
+        ledger: null,
+        openItems: total,
+        difference: null,
+        outcome: 'not_reconciled',
+        itemCount: count,
+      }
+    }
+
+    return {
+      year: snapshot.year,
+      available: false,
+      totalDebit: null,
+      totalCredit: null,
+      balanced: null,
+      accountCount: null,
+      transactionCount: null,
+      orphanAccountCodes: [],
+      receivable: unreconciled('receivable', receivableCodes),
+      payable: unreconciled('payable', payableCodes),
+    }
+  }
+
   let totalDebit = 0n
   let totalCredit = 0n
   let transactionCount = 0
@@ -700,16 +854,6 @@ function reconcile(
   const chartCodes = new Set(accounts.map((account) => account.number))
   const orphanAccountCodes = [...perAccount.keys()].filter((code) => !chartCodes.has(code)).sort()
 
-  const controlCodes = (
-    override: readonly string[] | undefined,
-    types: ReadonlySet<number>,
-  ): readonly string[] =>
-    override ??
-    snapshot.glAccounts
-      .filter((account) => account.type !== null && types.has(account.type))
-      .map((account) => account.code)
-      .sort()
-
   const check = (side: 'receivable' | 'payable', codes: readonly string[]): ControlAccountCheck => {
     // Debtors are a debit balance and creditors a credit one, so each side is
     // measured in its own direction and compared as a positive amount. Comparing
@@ -717,9 +861,7 @@ function reconcile(
     // difference of twice its value.
     const signed = codes.reduce((total, code) => total + (perAccount.get(code) ?? 0n), 0n)
     const ledger = side === 'receivable' ? signed : -signed
-
-    const items = openItems.filter((item) => item.side === side)
-    const total = items.reduce((sum, item) => sum + item.outstanding, 0n)
+    const { total, count } = totalFor(side)
 
     return {
       side,
@@ -727,20 +869,21 @@ function reconcile(
       ledger,
       openItems: total,
       difference: total - ledger,
-      matches: codes.length > 0 && total === ledger,
-      itemCount: items.length,
+      outcome: codes.length === 0 ? 'no_control_account' : total === ledger ? 'matches' : 'differs',
+      itemCount: count,
     }
   }
 
   return {
     year: snapshot.year,
+    available: true,
     totalDebit,
     totalCredit,
     balanced: totalDebit === totalCredit,
     accountCount: perAccount.size,
     transactionCount,
     orphanAccountCodes,
-    receivable: check('receivable', controlCodes(options.receivableAccountCodes, RECEIVABLE_TYPES)),
-    payable: check('payable', controlCodes(options.payableAccountCodes, PAYABLE_TYPES)),
+    receivable: check('receivable', receivableCodes),
+    payable: check('payable', payableCodes),
   }
 }

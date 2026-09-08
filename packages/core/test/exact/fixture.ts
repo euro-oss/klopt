@@ -455,6 +455,7 @@ export function snapshot(overrides: Partial<ExactSnapshot> = {}): ExactSnapshot 
     year: 2026,
     documents: DOCUMENTS.map(parseDocument),
     attachments: ATTACHMENTS.map(parseAttachment),
+    unreadable: [],
     ...overrides,
   }
 }

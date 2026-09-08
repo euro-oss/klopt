@@ -414,12 +414,14 @@ function amount(value: bigint): string {
 function serialisePlan(plan: ExactImportPlan) {
   const { reconciliation } = plan
 
+  // Null stays null on the wire rather than becoming "0.00". A control account
+  // that was never read has no balance, and an amount of zero is a claim.
   const control = (check: typeof reconciliation.receivable) => ({
     accountCodes: check.accountCodes,
-    ledger: amount(check.ledger),
+    ledger: check.ledger === null ? null : amount(check.ledger),
     openItems: amount(check.openItems),
-    difference: amount(check.difference),
-    matches: check.matches,
+    difference: check.difference === null ? null : amount(check.difference),
+    outcome: check.outcome,
     itemCount: check.itemCount,
   })
 
@@ -431,8 +433,9 @@ function serialisePlan(plan: ExactImportPlan) {
     },
     reconciliation: {
       year: reconciliation.year,
-      totalDebit: amount(reconciliation.totalDebit),
-      totalCredit: amount(reconciliation.totalCredit),
+      available: reconciliation.available,
+      totalDebit: reconciliation.totalDebit === null ? null : amount(reconciliation.totalDebit),
+      totalCredit: reconciliation.totalCredit === null ? null : amount(reconciliation.totalCredit),
       balanced: reconciliation.balanced,
       accountCount: reconciliation.accountCount,
       transactionCount: reconciliation.transactionCount,

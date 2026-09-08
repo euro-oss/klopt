@@ -207,3 +207,64 @@ is simultaneously the documentation and the request.
   five-thousand-row import wastes the whole minute, and the header said so in
   advance — so the client waits for the window Exact named rather than backing
   off blindly, and refuses to sit out a reset hours away.
+
+## Rights are per resource, so one refusal is not a failed import
+
+A real connection read `financial/GLAccounts`, `vat/VATCodes` and
+`cashflow/PaymentConditions`, then answered **403 Forbidden** for
+`financial/ReportingBalance`. Exact documents `VATCodes` and `ReportingBalance`
+under the same scope — "Financial accounting" — so the scope is not what
+decides it. Rights are granted per resource, per user, per administration.
+
+Nothing in this codebase can grant that right. What it can do is not throw away
+the seven resources that answered because the eighth did not, which is spec 8's
+fourth rule (a failing adapter never blocks bookkeeping) applied to a single
+resource rather than a whole integration.
+
+So `readDivision` attempts each resource on its own and records refusals on the
+snapshot as `unreadable`. The planner decides whether what came back is enough:
+the chart of accounts, the relations and the two open-item lists are the import
+and their absence is a `problem`; the VAT codes, payment conditions, documents
+and trial balance are proof or decoration and their absence is a `warning` that
+names what the loss costs.
+
+### Only 403 and 404 degrade
+
+The narrowness is the point. A 400 means our query is wrong and should be loud.
+A 401 means reauthorise. A 429 that reaches this far means the reset is beyond
+what the client will wait for. A transport failure arrives as an
+`ExactApiError` with `status: 0`, and treating that as "refused" would turn
+"the network went away" into "this division has no customers" — and then import
+on it. Matching on the status rather than on the error class is what separates
+_Exact answered no_ from _we never got an answer_.
+
+### An unread trial balance is not a balanced one
+
+This is the part worth writing down, because the obvious implementation of the
+above is silently wrong twice over.
+
+Degrade by substituting an empty trial balance and:
+
+1. `totalDebit` and `totalCredit` are both zero, so it **balances**. The report
+   would tell somebody their administration reconciles without having looked at
+   it.
+2. Every control account holds zero, so the open items become a **difference**
+   against zero — and the report would accuse their books of having postings on
+   the debtors account with no open item behind them, when all that happened is
+   that we were refused the page that would have shown otherwise.
+
+The second is worse than the first. It is a confident diagnosis of somebody
+else's bookkeeping, derived entirely from our own lack of access.
+
+So `trialBalance` is `readonly ExactReportingBalance[] | null` and every total
+downstream of it is nullable: `balanced` is `true | false | null`, `ledger` and
+`difference` are `bigint | null`, and `ControlAccountCheck.outcome` has four
+values rather than a boolean — `matches`, `differs`, `no_control_account`,
+`not_reconciled`. On the wire and on the screen the missing figures are an em
+dash, not `0,00`, and the tile reads "niet gelezen" in a muted tone rather than
+"sluit niet" in a warning one.
+
+The cost is that a nullable amount now has to be handled at four layers. That
+is the price of not being able to express "we did not look" as a number, and it
+is worth paying: the alternative is a reconciliation report that is most
+confident exactly when it knows least.
