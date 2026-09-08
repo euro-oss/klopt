@@ -195,6 +195,33 @@ export const complianceOperations: Readonly<Record<string, OperationDefinition>>
     agentExposure: 'proposal',
     idempotent: true,
   }),
+
+  /**
+   * The audit log, read and exported (spec 7.6).
+   *
+   * `ledger:export` rather than `ledger:read`, and deliberately: the log holds
+   * who did what and from which address, which is a different question from
+   * what the books say. A bookkeeper reads the books; reading the record of
+   * everybody's actions is an audit, and audits have their own permission.
+   */
+  listAuditLog: defineOperation({
+    id: 'audit.list',
+    kind: 'read',
+    permission: 'ledger:export',
+    summary: 'Who did what, when, from where. Newest first, filterable.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  exportAuditLog: defineOperation({
+    id: 'audit.export',
+    kind: 'read',
+    permission: 'ledger:export',
+    summary:
+      'The audit log for a period as JSON Lines or CSV — the artefact an inspector is handed.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
 }
 
 /**

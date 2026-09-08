@@ -10,6 +10,7 @@ import {
 } from '@klopt/db'
 import { hasPermission, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
+import { recordAudit } from '../audit.js'
 import { documentStore } from '../document-store.js'
 import type { AddInboundSourceBody } from '../schemas.js'
 
@@ -123,6 +124,15 @@ export async function handleAddInboundSource(context: RequestContext, body: AddI
     }),
   )
 
+  // The configuration, never the credential. `config` is whitelisted on the way
+  // in and the secret lives in its own column for exactly this reason.
+  await recordAudit(context, {
+    action: 'inbox.addSource',
+    resourceType: 'inbound_source',
+    resourceId: id,
+    after: { kind: body.kind, name: body.name, config },
+  })
+
   return { status: 201, body: { id, name: body.name, kind: body.kind } }
 }
 
@@ -135,6 +145,14 @@ export async function handleRemoveInboundSource(context: RequestContext, sourceI
 
   // What already arrived is untouched: the documents are the administration's,
   // not the mailbox's.
+  await recordAudit(context, {
+    action: 'inbox.removeSource',
+    resourceType: 'inbound_source',
+    resourceId: sourceId,
+    before: { removed: false },
+    after: { removed: true },
+  })
+
   return { status: 200, body: { id: sourceId, removed: true } }
 }
 

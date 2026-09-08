@@ -19,6 +19,7 @@ import {
 import { withBank, withBankMatch, withBankRead } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
+import { recordAudit } from '../audit.js'
 import type { ConfirmMatchBody, CreateBankAccountBody, ImportStatementBody } from '../schemas.js'
 
 /**
@@ -92,6 +93,13 @@ export async function handleCreateBankAccount(
       name: body.name,
       ledgerAccountId,
     })
+  })
+
+  await recordAudit(context, {
+    action: 'bank.createAccount',
+    resourceType: 'bank_account',
+    resourceId: id,
+    after: { iban: body.iban, name: body.name, currency: body.currency },
   })
 
   return { status: 201, body: { id, iban: body.iban } }
@@ -238,6 +246,22 @@ export async function handleImportStatement(context: RequestContext, body: Impor
     if (mapping !== null && body.saveMapping) {
       await repository.saveCsvMapping(context.entityId, body.bankAccountId, mapping)
     }
+
+    // The hash of the file as it arrived. It is what makes "this statement is
+    // the one the bank sent" checkable, and it is what a duplicate import is
+    // recognised by.
+    await recordAudit(context, {
+      action: 'bank.importStatement',
+      resourceType: 'bank_account',
+      resourceId: body.bankAccountId,
+      after: {
+        sourceHash,
+        format,
+        statements: outcome.statementIds.length,
+        imported: outcome.imported,
+        duplicates: outcome.duplicates,
+      },
+    })
 
     return {
       status: 201,
@@ -519,6 +543,20 @@ export async function handleConfirmMatch(
       }
     }
 
+    // The entry has its own audit row from the posting. This one records the
+    // decision: that this bank line was matched to these invoices, and by whom.
+    await recordAudit(context, {
+      action: 'bank.confirmMatch',
+      resourceType: 'bank_transaction',
+      resourceId: transactionId,
+      after: {
+        journalEntryId: posted.entry.id,
+        entryNumber: posted.entry.entryNumber,
+        allocations: allocations.length,
+        learnedRule: learned,
+      },
+    })
+
     return {
       status: 200,
       body: {
@@ -543,6 +581,15 @@ export async function handleIgnoreTransaction(context: RequestContext, transacti
   if (!ignored) {
     throw new ApiError('conflict', 'That line is not waiting to be booked.')
   }
+
+  // Setting a line aside is a decision about money that arrived and was not
+  // booked, which is exactly the sort of thing somebody asks about later.
+  await recordAudit(context, {
+    action: 'bank.ignoreTransaction',
+    resourceType: 'bank_transaction',
+    resourceId: transactionId,
+    after: { status: 'ignored' },
+  })
 
   return { status: 200, body: { transactionId, status: 'ignored' } }
 }

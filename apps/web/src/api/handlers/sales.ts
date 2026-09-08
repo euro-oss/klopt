@@ -26,6 +26,7 @@ import {
 } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
+import { recordAudit } from '../audit.js'
 import { invoiceRenderer } from '../documents.js'
 import { documentStore } from '../document-store.js'
 import { eInvoiceTransport } from '../e-invoice.js'
@@ -124,6 +125,13 @@ export async function handleCreateContact(context: RequestContext, body: CreateC
   const id = await withSales(context.database, ({ sales }) =>
     sales.createContact({ entityId: context.entityId, ...body }),
   )
+
+  await recordAudit(context, {
+    action: 'sales.createContact',
+    resourceType: 'contact',
+    resourceId: id,
+    after: { number: body.number, name: body.name },
+  })
 
   return { status: 201, body: { id, number: body.number } }
 }
@@ -237,6 +245,22 @@ export async function handleUpdateContact(
       contactId,
       patch,
       ...(address === undefined ? {} : { address }),
+    })
+
+    // Both sides of what was actually sent. A corrected IBAN is the case this
+    // exists for: the payment run reads the new one, and the log says who
+    // changed it and from what.
+    await recordAudit(context, {
+      action: 'sales.updateContact',
+      resourceType: 'contact',
+      resourceId: contactId,
+      before: Object.fromEntries(
+        Object.keys(patch).map((key) => [
+          key,
+          (found.contact as Record<string, unknown>)[key] ?? null,
+        ]),
+      ),
+      after: body,
     })
 
     return { status: 200, body: { id: contactId, number: body.number ?? found.contact.number } }
@@ -391,6 +415,22 @@ export async function handleIssueInvoice(
     )
 
     await sales.markIssued({ invoiceId, number, journalEntryId: posted.entry.id })
+
+    // Issuing allocates a number out of a series the law requires to be
+    // gapless, which makes "who issued 2026-0042, and when" a question with
+    // exactly one right answer.
+    await recordAudit(context, {
+      action: 'sales.issue',
+      resourceType: 'sales_invoice',
+      resourceId: invoiceId,
+      before: { status: 'draft' },
+      after: {
+        status: 'issued',
+        number,
+        journalEntryId: posted.entry.id,
+        total: priced.total.toString(),
+      },
+    })
 
     return {
       status: 200,
@@ -844,6 +884,22 @@ export async function handleSendInvoice(
     }),
   )
 
+  // The hash says which bytes went to the customer. A delivery row records it
+  // too; this records who pressed send, which the delivery row does not.
+  await recordAudit(context, {
+    action: 'sales.send',
+    resourceType: 'sales_invoice',
+    resourceId: invoiceId,
+    after: {
+      channel: receipt.channel,
+      transport: receipt.transport,
+      recipient: receipt.recipient,
+      delivered: receipt.delivered,
+      documentHash: hash,
+      failure: receipt.failure,
+    },
+  })
+
   return {
     status: receipt.failure === null ? 200 : 502,
     body: {
@@ -980,6 +1036,19 @@ export async function handleSendDunningReminder(
       dunningStage: action.stage.stage,
     }),
   )
+
+  await recordAudit(context, {
+    action: 'sales.sendReminder',
+    resourceType: 'sales_invoice',
+    resourceId: invoiceId,
+    after: {
+      stage: action.stage.stage,
+      daysOverdue: action.daysOverdue,
+      recipient: receipt.recipient,
+      delivered: receipt.delivered,
+      failure: receipt.failure,
+    },
+  })
 
   return {
     status: receipt.failure === null ? 200 : 502,

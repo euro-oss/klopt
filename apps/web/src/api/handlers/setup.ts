@@ -7,6 +7,7 @@ import {
   type SetupContext,
 } from '../context.js'
 import { ApiError } from '../errors.js'
+import { recordAudit } from '../audit.js'
 import { referenceData } from '../reference-data.js'
 import type { CreateEntityBody, CreateFiscalYearBody, UpdateEntityBody } from '../schemas.js'
 
@@ -204,11 +205,31 @@ export async function handleUpdateEntity(context: RequestContext, body: UpdateEn
     }
   }
 
+  const before = await withSetup(context.database, (repository) =>
+    repository.findEntity(context.entityId),
+  )
+
   await withSetup(context.database, (repository) => repository.updateEntity(context.entityId, body))
 
   const entity = await withSetup(context.database, (repository) =>
     repository.findEntity(context.entityId),
   )
+
+  // Both sides, and only the fields that were sent. "The VAT rounding went from
+  // per_invoice to per_line" is an audit entry; the whole record twice is a
+  // diff somebody has to do by eye.
+  await recordAudit(context, {
+    action: 'setup.updateEntity',
+    resourceType: 'entity',
+    resourceId: context.entityId,
+    before: Object.fromEntries(
+      Object.keys(body).map((key) => [
+        key,
+        (before as Record<string, unknown> | null)?.[key] ?? null,
+      ]),
+    ),
+    after: body,
+  })
 
   return { status: 200, body: entity }
 }

@@ -8,6 +8,7 @@ import {
 } from '@klopt/db'
 import { hasPermission, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
+import { recordAudit } from '../audit.js'
 import { documentStore } from '../document-store.js'
 import type { DiscardInboxItemBody, DraftFromInboxBody } from '../schemas.js'
 
@@ -268,6 +269,18 @@ export async function handleDraftFromInbox(
       actorId: context.actor.id,
     })
 
+    await recordAudit(context, {
+      action: 'inbox.draft',
+      resourceType: 'inbox_item',
+      resourceId: itemId,
+      before: { state: 'new' },
+      after: {
+        state: 'drafted',
+        purchaseInvoiceId: invoiceId,
+        supplierInvoiceNumber: coded.supplierInvoiceNumber,
+      },
+    })
+
     return {
       status: 201,
       body: {
@@ -316,6 +329,14 @@ export async function handleDiscardInboxItem(
     // The document itself is kept. Discarding says "this is not an invoice for
     // us", not "these bytes never existed" — the bewaarplicht does not care
     // what somebody meant to send.
+    await recordAudit(context, {
+      action: 'inbox.discard',
+      resourceType: 'inbox_item',
+      resourceId: itemId,
+      before: { state: item.state },
+      after: { state: 'discarded', reason: body.reason },
+    })
+
     return { status: 200, body: { id: itemId, state: 'discarded', reason: body.reason } }
   })
 }

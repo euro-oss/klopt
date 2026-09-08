@@ -10,6 +10,7 @@ import {
 import { withBankRead, withPayments, withPurchasePayments } from '@klopt/db'
 import { hasPermission, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
+import { recordAudit } from '../audit.js'
 import type { AddInstructionBody, CreateBatchBody, TransitionBatchBody } from '../schemas.js'
 
 /**
@@ -114,6 +115,13 @@ export async function handleCreateBatch(context: RequestContext, body: CreateBat
     }),
   )
 
+  await recordAudit(context, {
+    action: 'payments.createBatch',
+    resourceType: 'payment_batch',
+    resourceId: id,
+    after: { reference: body.reference, requestedExecutionDate: body.requestedExecutionDate },
+  })
+
   return { status: 201, body: { id, reference: body.reference, state: 'draft' } }
 }
 
@@ -150,6 +158,18 @@ export async function handleAddInstruction(
       currency: body.currency,
       remittanceInformation: body.remittanceInformation,
       remittanceReference: body.remittanceReference,
+    })
+
+    await recordAudit(context, {
+      action: 'payments.addInstruction',
+      resourceType: 'payment_batch',
+      resourceId: batchId,
+      after: {
+        instructionId: id,
+        creditorName: body.creditorName,
+        creditorIban: body.creditorIban,
+        amount: body.amount.toString(),
+      },
     })
 
     return { status: 201, body: { id, batchId } }
@@ -283,6 +303,19 @@ export async function handleAddApprovedInvoices(context: RequestContext, batchId
       added.push(id)
     }
 
+    await recordAudit(context, {
+      action: 'payments.addApprovedInvoices',
+      resourceType: 'payment_batch',
+      resourceId: batchId,
+      after: {
+        instructions: added.length,
+        total: plan.totalMinorUnits.toString(),
+        settles: plan.instructions.flatMap((instruction) =>
+          instruction.allocations.map((allocation) => allocation.supplierInvoiceNumber),
+        ),
+      },
+    })
+
     return {
       status: 201,
       body: {
@@ -318,6 +351,13 @@ export async function handleRemoveInstruction(
 
     const removed = await repository.removeInstruction(context.entityId, batchId, instructionId)
     if (!removed) throw new ApiError('not_found', 'No such payment in this batch.')
+
+    await recordAudit(context, {
+      action: 'payments.removeInstruction',
+      resourceType: 'payment_batch',
+      resourceId: batchId,
+      before: { instructionId },
+    })
 
     return { status: 200, body: { batchId, instructionId, removed: true } }
   })
@@ -374,6 +414,17 @@ export async function handleTransitionBatch(
       reason: body.reason,
     })
 
+    // The row an inspector reads to see that two people were involved. Both
+    // states, because "approved" without "from submitted" does not show the
+    // sequence, and the sequence is the control.
+    await recordAudit(context, {
+      action: `payments.${body.action}`,
+      resourceType: 'payment_batch',
+      resourceId: batchId,
+      before: { state: found.batch.state },
+      after: { state, reason: body.reason ?? null, instructions: found.batch.instructions.length },
+    })
+
     return { status: 200, body: { batchId, state, action: body.action } }
   })
 }
@@ -421,6 +472,16 @@ export async function handleGetBatchPain001(context: RequestContext, batchId: st
     // "Every adapter records every request and response for the evidence
     // chain" (spec 8, rule 3). This is the request.
     await repository.recordExport(context.entityId, batchId, hash)
+
+    // The moment money leaves as far as this system is concerned. The hash is
+    // the point: it says which bytes went, and it is the same hash the batch
+    // carries, so the two can be compared years later.
+    await recordAudit(context, {
+      action: 'payments.export',
+      resourceType: 'payment_batch',
+      resourceId: batchId,
+      after: { hash, instructionCount: found.batch.instructions.length },
+    })
 
     return {
       xml,

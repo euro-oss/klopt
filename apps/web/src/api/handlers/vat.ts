@@ -17,6 +17,7 @@ import {
 import { withVat, withVatFiling, withVatRead } from '@klopt/db'
 import { hasPermission, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
+import { recordAudit } from '../audit.js'
 import type { CheckVatNumbersBody, FileVatReturnBody, ListVatPeriodsQuery } from '../schemas.js'
 import { vatNumberValidator } from '../vat-number.js'
 import { filingTransport, filingTransports } from '../filing.js'
@@ -444,6 +445,26 @@ export async function handleFileVatReturn(context: RequestContext, body: FileVat
     // means here.
     const locked = await vat.lockPeriods(context.entityId, period.from, period.to)
 
+    // A declaration to the Belastingdienst, with the figures as filed and how
+    // the delivery went. A suppletie says what it supersedes, so the sequence
+    // of what was declared for a period is readable off the log alone.
+    await recordAudit(context, {
+      action: 'vat.file',
+      resourceType: 'vat_filing',
+      resourceId: id,
+      after: {
+        period: period.code,
+        sequence: plan.sequence,
+        isSuppletie: plan.isSuppletie,
+        supersedes: plan.supersedesId,
+        transport: plan.transport,
+        payable: vatReturn.payableMinorUnits.toString(),
+        deliveryStatus: receipt.status,
+        deliveryReference: receipt.reference ?? body.transportReference,
+        lockedPeriods: locked,
+      },
+    })
+
     return {
       status: 201,
       body: {
@@ -562,6 +583,15 @@ export async function handlePollFilingStatus(context: RequestContext, filingId: 
       instanceXml: null,
       summary: null,
       actorId: context.actor.id,
+    })
+
+    // What the Belastingdienst said, and when. A filing that was accepted and
+    // later rejected is two rows, which is the shape the story actually has.
+    await recordAudit(context, {
+      action: 'vat.pollStatus',
+      resourceType: 'vat_filing',
+      resourceId: filingId,
+      after: { status: receipt.status, reference: receipt.reference, error: receipt.error },
     })
 
     return {

@@ -17,7 +17,9 @@ import {
   handleGetRgsCoverage,
   handleSetRgsMappings,
 } from '~/api/handlers/compliance'
+import { handleListAuditLog } from '~/api/handlers/audit'
 import {
+  auditLogQuery,
   closeYearBody,
   listEntriesQuery,
   postJournalEntryBody,
@@ -196,4 +198,21 @@ export const switchEntity = createServerFn({ method: 'POST' })
       await setActiveEntity(database, session.sessionToken, data.entityId)
       return { entityId: data.entityId }
     }),
+  )
+
+/**
+ * The audit log, for the screen that shows it.
+ *
+ * The export is deliberately *not* here: it is a stream and a filename, which
+ * is a download rather than an RPC. `/api/v1/audit-log/export` is the doorway,
+ * and a link is the right control for it.
+ */
+export const listAuditLog = createServerFn({ method: 'GET' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      auditLogQuery,
+      data ?? {},
+      async (query) => (await handleListAuditLog(await contextFromRequest(), query)).body,
+    ),
   )

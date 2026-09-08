@@ -14,6 +14,7 @@ import {
 import { withPurchase, withPurchaseRead } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
+import { recordAudit } from '../audit.js'
 import type {
   BookPurchaseInvoiceBody,
   CapturePurchaseInvoiceBody,
@@ -257,6 +258,17 @@ export async function handleCapturePurchaseInvoice(
       accountIdByNumber: invoiceContext.accountIdByNumber,
     })
 
+    await recordAudit(context, {
+      action: 'purchase.capture',
+      resourceType: 'purchase_invoice',
+      resourceId: id,
+      after: {
+        supplierInvoiceNumber: invoice.supplierInvoiceNumber,
+        contactNumber: body.contactNumber,
+        total: invoice.totalMinorUnits.toString(),
+      },
+    })
+
     return {
       status: 201,
       body: {
@@ -360,6 +372,21 @@ export async function handleBookPurchaseInvoice(
       actorId: context.actor.id,
     })
 
+    // The journal entry has its own audit row, written inside the posting
+    // transaction. This one is about the invoice: which document became which
+    // entry, which is the join an inspector follows.
+    await recordAudit(context, {
+      action: 'purchase.book',
+      resourceType: 'purchase_invoice',
+      resourceId: invoiceId,
+      before: { status: found.row.status },
+      after: {
+        status: 'booked',
+        journalEntryId: posted.entry.id,
+        journalEntryNumber: String(posted.entry.entryNumber),
+      },
+    })
+
     return {
       status: 200,
       body: {
@@ -403,6 +430,16 @@ export async function handleTransitionPurchaseInvoice(
       to: transition.to as 'approved' | 'disputed' | 'booked' | 'cancelled',
       actorId: context.actor.id,
       reason: body.reason,
+    })
+
+    // Approving a cost is an authorisation, and an authorisation nobody can
+    // point at afterwards is not one.
+    await recordAudit(context, {
+      action: `purchase.${body.action}`,
+      resourceType: 'purchase_invoice',
+      resourceId: invoiceId,
+      before: { status: transition.from },
+      after: { status: transition.to, reason: body.reason ?? null },
     })
 
     return {

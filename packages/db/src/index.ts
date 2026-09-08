@@ -33,6 +33,7 @@ export {
 export { XafExportRepository, type XafExportRequest } from './repositories/xaf.js'
 export { RgsRepository } from './repositories/rgs.js'
 export { type InboxItemRow, InboxRepository } from './repositories/inbox.js'
+export { type AuditQuery, type AuditRow, AuditRepository } from './repositories/audit.js'
 export { SecretKeyMissingError, decryptSecret, encryptSecret, secretsAvailable } from './secrets.js'
 export { type InboundSourceRow, InboundSourceRepository } from './repositories/inbound-sources.js'
 export {
@@ -98,6 +99,8 @@ export {
   withSetup,
   withXafExport,
   withYearClose,
+  withAudit,
+  withAuditRead,
   withInboundSources,
   withInboundSourcesRead,
   withInbox,

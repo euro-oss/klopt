@@ -755,3 +755,33 @@ export const addInboundSourceBody = z
   })
 
 export type AddInboundSourceBody = z.infer<typeof addInboundSourceBody>
+
+/**
+ * Reading the audit log (spec 7.6).
+ *
+ * `until` is exclusive so a day is `from=2026-03-01&until=2026-03-02` and
+ * nobody has to think about whether 23:59:59.999 is inside it.
+ */
+export const auditLogQuery = z.object({
+  from: z.string().trim().min(4).optional(),
+  until: z.string().trim().min(4).optional(),
+  resourceType: z.string().trim().min(1).optional(),
+  resourceId: z.string().trim().min(1).optional(),
+  actorId: z.string().trim().min(1).optional(),
+  action: z.string().trim().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(1000).default(100),
+})
+
+export const auditLogExportQuery = z.object({
+  from: z.string().trim().min(4).optional(),
+  until: z.string().trim().min(4).optional(),
+  /**
+   * JSON Lines by default: `before` and `after` are arbitrary objects, and CSV
+   * flattens them into a quoted blob nobody can read. CSV exists because an
+   * inspector who asks for a spreadsheet gets one.
+   */
+  format: z.enum(['jsonl', 'csv']).default('jsonl'),
+})
+
+export type AuditLogQuery = z.infer<typeof auditLogQuery>
+export type AuditLogExportQuery = z.infer<typeof auditLogExportQuery>

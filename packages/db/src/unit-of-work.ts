@@ -7,6 +7,7 @@ import { MembersRepository } from './repositories/members.js'
 import { PaymentsRepository } from './repositories/payments.js'
 import { InboxRepository } from './repositories/inbox.js'
 import { InboundSourceRepository } from './repositories/inbound-sources.js'
+import { AuditRepository } from './repositories/audit.js'
 import { PurchaseRepository } from './repositories/purchase.js'
 import { SalesRepository } from './repositories/sales.js'
 import { SetupRepository } from './repositories/setup.js'
@@ -358,4 +359,32 @@ export async function withInboundSources<T>(
   work: (repository: InboundSourceRepository) => Promise<T>,
 ): Promise<T> {
   return database.transaction(async (tx) => work(new InboundSourceRepository(tx)))
+}
+
+/**
+ * Recording that something happened.
+ *
+ * Its own transaction, and deliberately so for the actions that do not have one
+ * of their own to join. A posting writes its audit row inside the posting
+ * transaction — that one has to be atomic, because an entry in the chain with
+ * no audit row is the exact thing an inspector is looking for. Approving a
+ * payment batch or changing a setting is a single statement; a separate
+ * transaction immediately afterwards is honest about what it is and cannot
+ * leave the change half-done.
+ */
+export async function withAudit<T>(
+  database: Database,
+  work: (repository: AuditRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new AuditRepository(tx)))
+}
+
+export async function withAuditRead<T>(
+  database: Database,
+  work: (repository: AuditRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new AuditRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
+  })
 }

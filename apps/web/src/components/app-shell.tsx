@@ -46,6 +46,14 @@ const RESTRICTED_NAVIGATION = [
     roles: ['owner', 'accountant', 'bookkeeper'],
   },
   { to: '/members', label: 'Toegang', binding: 'go.members', roles: ['owner'] },
+  // `ledger:export` is what the operation needs, and the roles that hold it are
+  // the ones who would be asked for the log.
+  {
+    to: '/audit-log',
+    label: 'Wie wat deed',
+    binding: 'go.audit',
+    roles: ['owner', 'accountant', 'auditor'],
+  },
 ] as const
 
 export interface ShellEntity {

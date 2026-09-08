@@ -15,6 +15,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignOutRouteImport } from './routes/sign-out'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
+import { Route as AppAuditLogRouteImport } from './routes/_app/audit-log'
 import { Route as AppDunningRouteImport } from './routes/_app/dunning'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
@@ -42,6 +43,7 @@ import { Route as AppVatIndexRouteImport } from './routes/_app/vat.index'
 import { Route as AppVatPeriodRouteImport } from './routes/_app/vat.$period'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as ApiV1AccountsRouteImport } from './routes/api/v1/accounts'
+import { Route as ApiV1AuditLogRouteImport } from './routes/api/v1/audit-log'
 import { Route as ApiV1BankAccountsRouteImport } from './routes/api/v1/bank-accounts'
 import { Route as ApiV1BankMatchRulesRouteImport } from './routes/api/v1/bank-match-rules'
 import { Route as ApiV1BankStatementsRouteImport } from './routes/api/v1/bank-statements'
@@ -58,6 +60,7 @@ import { Route as ApiV1PurchaseInvoicesRouteImport } from './routes/api/v1/purch
 import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-invoices'
 import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
 import { Route as AppVatIcpPeriodRouteImport } from './routes/_app/vat.icp.$period'
+import { Route as ApiV1AuditLogExportRouteImport } from './routes/api/v1/audit-log.export'
 import { Route as ApiV1BankMatchRulesRuleIdRouteImport } from './routes/api/v1/bank-match-rules.$ruleId'
 import { Route as ApiV1ContactsContactIdRouteImport } from './routes/api/v1/contacts.$contactId'
 import { Route as ApiV1DocumentsDocumentIdRouteImport } from './routes/api/v1/documents.$documentId'
@@ -139,6 +142,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppAccountsRoute = AppAccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAuditLogRoute = AppAuditLogRouteImport.update({
+  id: '/audit-log',
+  path: '/audit-log',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDunningRoute = AppDunningRouteImport.update({
@@ -277,6 +285,11 @@ const ApiV1AccountsRoute = ApiV1AccountsRouteImport.update({
   path: '/api/v1/accounts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AuditLogRoute = ApiV1AuditLogRouteImport.update({
+  id: '/api/v1/audit-log',
+  path: '/api/v1/audit-log',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1BankAccountsRoute = ApiV1BankAccountsRouteImport.update({
   id: '/api/v1/bank-accounts',
   path: '/api/v1/bank-accounts',
@@ -356,6 +369,11 @@ const AppVatIcpPeriodRoute = AppVatIcpPeriodRouteImport.update({
   id: '/vat/icp/$period',
   path: '/vat/icp/$period',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiV1AuditLogExportRoute = ApiV1AuditLogExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => ApiV1AuditLogRoute,
 } as any)
 const ApiV1BankMatchRulesRuleIdRoute =
   ApiV1BankMatchRulesRuleIdRouteImport.update({
@@ -663,6 +681,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
+  '/audit-log': typeof AppAuditLogRoute
   '/dunning': typeof AppDunningRoute
   '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
@@ -683,6 +702,7 @@ export interface FileRoutesByFullPath {
   '/vat/$period': typeof AppVatPeriodRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
+  '/api/v1/audit-log': typeof ApiV1AuditLogRouteWithChildren
   '/api/v1/bank-accounts': typeof ApiV1BankAccountsRoute
   '/api/v1/bank-match-rules': typeof ApiV1BankMatchRulesRouteWithChildren
   '/api/v1/bank-statements': typeof ApiV1BankStatementsRoute
@@ -706,6 +726,7 @@ export interface FileRoutesByFullPath {
   '/purchases/': typeof AppPurchasesIndexRoute
   '/vat/': typeof AppVatIndexRoute
   '/vat/icp/$period': typeof AppVatIcpPeriodRoute
+  '/api/v1/audit-log/export': typeof ApiV1AuditLogExportRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
@@ -765,6 +786,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/accounts': typeof AppAccountsRoute
+  '/audit-log': typeof AppAuditLogRoute
   '/dunning': typeof AppDunningRoute
   '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
@@ -786,6 +808,7 @@ export interface FileRoutesByTo {
   '/vat/$period': typeof AppVatPeriodRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
+  '/api/v1/audit-log': typeof ApiV1AuditLogRouteWithChildren
   '/api/v1/bank-accounts': typeof ApiV1BankAccountsRoute
   '/api/v1/bank-match-rules': typeof ApiV1BankMatchRulesRouteWithChildren
   '/api/v1/bank-statements': typeof ApiV1BankStatementsRoute
@@ -809,6 +832,7 @@ export interface FileRoutesByTo {
   '/purchases': typeof AppPurchasesIndexRoute
   '/vat': typeof AppVatIndexRoute
   '/vat/icp/$period': typeof AppVatIcpPeriodRoute
+  '/api/v1/audit-log/export': typeof ApiV1AuditLogExportRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
@@ -870,6 +894,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/_app/accounts': typeof AppAccountsRoute
+  '/_app/audit-log': typeof AppAuditLogRoute
   '/_app/dunning': typeof AppDunningRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/members': typeof AppMembersRoute
@@ -891,6 +916,7 @@ export interface FileRoutesById {
   '/_app/vat/$period': typeof AppVatPeriodRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/accounts': typeof ApiV1AccountsRoute
+  '/api/v1/audit-log': typeof ApiV1AuditLogRouteWithChildren
   '/api/v1/bank-accounts': typeof ApiV1BankAccountsRoute
   '/api/v1/bank-match-rules': typeof ApiV1BankMatchRulesRouteWithChildren
   '/api/v1/bank-statements': typeof ApiV1BankStatementsRoute
@@ -914,6 +940,7 @@ export interface FileRoutesById {
   '/_app/purchases/': typeof AppPurchasesIndexRoute
   '/_app/vat/': typeof AppVatIndexRoute
   '/_app/vat/icp/$period': typeof AppVatIcpPeriodRoute
+  '/api/v1/audit-log/export': typeof ApiV1AuditLogExportRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
@@ -976,6 +1003,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/accounts'
+    | '/audit-log'
     | '/dunning'
     | '/inbox'
     | '/members'
@@ -996,6 +1024,7 @@ export interface FileRouteTypes {
     | '/vat/$period'
     | '/api/auth/$'
     | '/api/v1/accounts'
+    | '/api/v1/audit-log'
     | '/api/v1/bank-accounts'
     | '/api/v1/bank-match-rules'
     | '/api/v1/bank-statements'
@@ -1019,6 +1048,7 @@ export interface FileRouteTypes {
     | '/purchases/'
     | '/vat/'
     | '/vat/icp/$period'
+    | '/api/v1/audit-log/export'
     | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/documents/$documentId'
@@ -1078,6 +1108,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/accounts'
+    | '/audit-log'
     | '/dunning'
     | '/inbox'
     | '/members'
@@ -1099,6 +1130,7 @@ export interface FileRouteTypes {
     | '/vat/$period'
     | '/api/auth/$'
     | '/api/v1/accounts'
+    | '/api/v1/audit-log'
     | '/api/v1/bank-accounts'
     | '/api/v1/bank-match-rules'
     | '/api/v1/bank-statements'
@@ -1122,6 +1154,7 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/vat'
     | '/vat/icp/$period'
+    | '/api/v1/audit-log/export'
     | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/documents/$documentId'
@@ -1182,6 +1215,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/_app/accounts'
+    | '/_app/audit-log'
     | '/_app/dunning'
     | '/_app/inbox'
     | '/_app/members'
@@ -1203,6 +1237,7 @@ export interface FileRouteTypes {
     | '/_app/vat/$period'
     | '/api/auth/$'
     | '/api/v1/accounts'
+    | '/api/v1/audit-log'
     | '/api/v1/bank-accounts'
     | '/api/v1/bank-match-rules'
     | '/api/v1/bank-statements'
@@ -1226,6 +1261,7 @@ export interface FileRouteTypes {
     | '/_app/purchases/'
     | '/_app/vat/'
     | '/_app/vat/icp/$period'
+    | '/api/v1/audit-log/export'
     | '/api/v1/bank-match-rules/$ruleId'
     | '/api/v1/contacts/$contactId'
     | '/api/v1/documents/$documentId'
@@ -1288,6 +1324,7 @@ export interface RootRouteChildren {
   SignOutRoute: typeof SignOutRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1AccountsRoute: typeof ApiV1AccountsRoute
+  ApiV1AuditLogRoute: typeof ApiV1AuditLogRouteWithChildren
   ApiV1BankAccountsRoute: typeof ApiV1BankAccountsRoute
   ApiV1BankMatchRulesRoute: typeof ApiV1BankMatchRulesRouteWithChildren
   ApiV1BankStatementsRoute: typeof ApiV1BankStatementsRoute
@@ -1368,6 +1405,13 @@ declare module '@tanstack/react-router' {
       path: '/accounts'
       fullPath: '/accounts'
       preLoaderRoute: typeof AppAccountsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/audit-log': {
+      id: '/_app/audit-log'
+      path: '/audit-log'
+      fullPath: '/audit-log'
+      preLoaderRoute: typeof AppAuditLogRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/dunning': {
@@ -1559,6 +1603,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AccountsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/audit-log': {
+      id: '/api/v1/audit-log'
+      path: '/api/v1/audit-log'
+      fullPath: '/api/v1/audit-log'
+      preLoaderRoute: typeof ApiV1AuditLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/bank-accounts': {
       id: '/api/v1/bank-accounts'
       path: '/api/v1/bank-accounts'
@@ -1670,6 +1721,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/vat/icp/$period'
       preLoaderRoute: typeof AppVatIcpPeriodRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/v1/audit-log/export': {
+      id: '/api/v1/audit-log/export'
+      path: '/export'
+      fullPath: '/api/v1/audit-log/export'
+      preLoaderRoute: typeof ApiV1AuditLogExportRouteImport
+      parentRoute: typeof ApiV1AuditLogRoute
     }
     '/api/v1/bank-match-rules/$ruleId': {
       id: '/api/v1/bank-match-rules/$ruleId'
@@ -2047,6 +2105,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAccountsRoute: typeof AppAccountsRoute
+  AppAuditLogRoute: typeof AppAuditLogRoute
   AppDunningRoute: typeof AppDunningRoute
   AppInboxRoute: typeof AppInboxRoute
   AppMembersRoute: typeof AppMembersRoute
@@ -2078,6 +2137,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAccountsRoute: AppAccountsRoute,
+  AppAuditLogRoute: AppAuditLogRoute,
   AppDunningRoute: AppDunningRoute,
   AppInboxRoute: AppInboxRoute,
   AppMembersRoute: AppMembersRoute,
@@ -2108,6 +2168,18 @@ const AppRouteChildren: AppRouteChildren = {
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface ApiV1AuditLogRouteChildren {
+  ApiV1AuditLogExportRoute: typeof ApiV1AuditLogExportRoute
+}
+
+const ApiV1AuditLogRouteChildren: ApiV1AuditLogRouteChildren = {
+  ApiV1AuditLogExportRoute: ApiV1AuditLogExportRoute,
+}
+
+const ApiV1AuditLogRouteWithChildren = ApiV1AuditLogRoute._addFileChildren(
+  ApiV1AuditLogRouteChildren,
+)
 
 interface ApiV1BankMatchRulesRouteChildren {
   ApiV1BankMatchRulesRuleIdRoute: typeof ApiV1BankMatchRulesRuleIdRoute
@@ -2384,6 +2456,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignOutRoute: SignOutRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1AccountsRoute: ApiV1AccountsRoute,
+  ApiV1AuditLogRoute: ApiV1AuditLogRouteWithChildren,
   ApiV1BankAccountsRoute: ApiV1BankAccountsRoute,
   ApiV1BankMatchRulesRoute: ApiV1BankMatchRulesRouteWithChildren,
   ApiV1BankStatementsRoute: ApiV1BankStatementsRoute,

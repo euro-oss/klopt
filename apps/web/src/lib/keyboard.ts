@@ -58,6 +58,8 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'go.vat', label: 'BTW-aangifte', group: 'Go to', keys: 'g g', to: '/vat' },
   { id: 'go.members', label: 'Toegang', group: 'Go to', keys: 'g t', to: '/members' },
   { id: 'go.settings', label: 'Instellingen', group: 'Go to', keys: 'g i', to: '/settings' },
+  // `g l` for **l**og. `g a` is the grootboek and `g w` the winst-en-verlies.
+  { id: 'go.audit', label: 'Wie wat deed', group: 'Go to', keys: 'g l', to: '/audit-log' },
 
   {
     id: 'new.entry',

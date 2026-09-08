@@ -495,6 +495,18 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/documents.$documentId.ts',
   },
   {
+    operationId: 'audit.list',
+    method: 'GET',
+    path: '/audit-log',
+    module: 'api/v1/audit-log.ts',
+  },
+  {
+    operationId: 'audit.export',
+    method: 'GET',
+    path: '/audit-log/export',
+    module: 'api/v1/audit-log.export.ts',
+  },
+  {
     operationId: 'inbox.listSources',
     method: 'GET',
     path: '/inbox/sources',
