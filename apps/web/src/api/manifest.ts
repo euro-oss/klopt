@@ -495,6 +495,30 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/documents.$documentId.ts',
   },
   {
+    operationId: 'retention.get',
+    method: 'GET',
+    path: '/retention',
+    module: 'api/v1/retention.ts',
+  },
+  {
+    operationId: 'retention.setLegalHold',
+    method: 'POST',
+    path: '/retention/legal-hold',
+    module: 'api/v1/retention.legal-hold.ts',
+  },
+  {
+    operationId: 'retention.setClass',
+    method: 'POST',
+    path: '/retention/class',
+    module: 'api/v1/retention.class.ts',
+  },
+  {
+    operationId: 'retention.deleteDocuments',
+    method: 'POST',
+    path: '/retention/deletions',
+    module: 'api/v1/retention.deletions.ts',
+  },
+  {
     operationId: 'audit.list',
     method: 'GET',
     path: '/audit-log',

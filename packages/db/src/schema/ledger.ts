@@ -134,6 +134,15 @@ export const entities = klopt.table(
      */
     electronicAddress: text('electronic_address'),
     electronicAddressScheme: text('electronic_address_scheme'),
+    /**
+     * A hold over the whole administration (spec 7.6).
+     *
+     * Separate from the per-document flag and checked first: a firm under
+     * investigation should not have to set a flag on forty thousand rows, and
+     * lifting it should be one deliberate act rather than forty thousand.
+     */
+    legalHold: boolean('legal_hold').notNull().default(false),
+    legalHoldReason: text('legal_hold_reason'),
     ...timestamps,
   },
   (table) => [

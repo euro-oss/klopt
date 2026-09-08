@@ -19,6 +19,7 @@ import { Route as AppAuditLogRouteImport } from './routes/_app/audit-log'
 import { Route as AppDunningRouteImport } from './routes/_app/dunning'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
+import { Route as AppRetentionRouteImport } from './routes/_app/retention'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppBankIndexRouteImport } from './routes/_app/bank.index'
 import { Route as AppBankMatchRouteImport } from './routes/_app/bank.match'
@@ -57,6 +58,7 @@ import { Route as ApiV1JournalEntriesRouteImport } from './routes/api/v1/journal
 import { Route as ApiV1MembersRouteImport } from './routes/api/v1/members'
 import { Route as ApiV1PaymentBatchesRouteImport } from './routes/api/v1/payment-batches'
 import { Route as ApiV1PurchaseInvoicesRouteImport } from './routes/api/v1/purchase-invoices'
+import { Route as ApiV1RetentionRouteImport } from './routes/api/v1/retention'
 import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-invoices'
 import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
 import { Route as AppVatIcpPeriodRouteImport } from './routes/_app/vat.icp.$period'
@@ -80,6 +82,9 @@ import { Route as ApiV1ReportsDunningRouteImport } from './routes/api/v1/reports
 import { Route as ApiV1ReportsOverdueInvoicesRouteImport } from './routes/api/v1/reports.overdue-invoices'
 import { Route as ApiV1ReportsProfitAndLossRouteImport } from './routes/api/v1/reports.profit-and-loss'
 import { Route as ApiV1ReportsTrialBalanceRouteImport } from './routes/api/v1/reports.trial-balance'
+import { Route as ApiV1RetentionClassRouteImport } from './routes/api/v1/retention.class'
+import { Route as ApiV1RetentionDeletionsRouteImport } from './routes/api/v1/retention.deletions'
+import { Route as ApiV1RetentionLegalHoldRouteImport } from './routes/api/v1/retention.legal-hold'
 import { Route as ApiV1RgsCoverageRouteImport } from './routes/api/v1/rgs.coverage'
 import { Route as ApiV1RgsMappingsRouteImport } from './routes/api/v1/rgs.mappings'
 import { Route as ApiV1RgsUpgradePreviewRouteImport } from './routes/api/v1/rgs.upgrade-preview'
@@ -162,6 +167,11 @@ const AppInboxRoute = AppInboxRouteImport.update({
 const AppMembersRoute = AppMembersRouteImport.update({
   id: '/members',
   path: '/members',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRetentionRoute = AppRetentionRouteImport.update({
+  id: '/retention',
+  path: '/retention',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -355,6 +365,11 @@ const ApiV1PurchaseInvoicesRoute = ApiV1PurchaseInvoicesRouteImport.update({
   path: '/api/v1/purchase-invoices',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1RetentionRoute = ApiV1RetentionRouteImport.update({
+  id: '/api/v1/retention',
+  path: '/api/v1/retention',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1SalesInvoicesRoute = ApiV1SalesInvoicesRouteImport.update({
   id: '/api/v1/sales-invoices',
   path: '/api/v1/sales-invoices',
@@ -481,6 +496,21 @@ const ApiV1ReportsTrialBalanceRoute =
     path: '/api/v1/reports/trial-balance',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1RetentionClassRoute = ApiV1RetentionClassRouteImport.update({
+  id: '/class',
+  path: '/class',
+  getParentRoute: () => ApiV1RetentionRoute,
+} as any)
+const ApiV1RetentionDeletionsRoute = ApiV1RetentionDeletionsRouteImport.update({
+  id: '/deletions',
+  path: '/deletions',
+  getParentRoute: () => ApiV1RetentionRoute,
+} as any)
+const ApiV1RetentionLegalHoldRoute = ApiV1RetentionLegalHoldRouteImport.update({
+  id: '/legal-hold',
+  path: '/legal-hold',
+  getParentRoute: () => ApiV1RetentionRoute,
+} as any)
 const ApiV1RgsCoverageRoute = ApiV1RgsCoverageRouteImport.update({
   id: '/api/v1/rgs/coverage',
   path: '/api/v1/rgs/coverage',
@@ -685,6 +715,7 @@ export interface FileRoutesByFullPath {
   '/dunning': typeof AppDunningRoute
   '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
+  '/retention': typeof AppRetentionRoute
   '/settings': typeof AppSettingsRoute
   '/bank/match': typeof AppBankMatchRoute
   '/contacts/$contactId': typeof AppContactsContactIdRoute
@@ -716,6 +747,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
+  '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/bank/': typeof AppBankIndexRoute
@@ -746,6 +778,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
+  '/api/v1/retention/class': typeof ApiV1RetentionClassRoute
+  '/api/v1/retention/deletions': typeof ApiV1RetentionDeletionsRoute
+  '/api/v1/retention/legal-hold': typeof ApiV1RetentionLegalHoldRoute
   '/api/v1/rgs/coverage': typeof ApiV1RgsCoverageRoute
   '/api/v1/rgs/mappings': typeof ApiV1RgsMappingsRoute
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
@@ -790,6 +825,7 @@ export interface FileRoutesByTo {
   '/dunning': typeof AppDunningRoute
   '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
+  '/retention': typeof AppRetentionRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
   '/bank/match': typeof AppBankMatchRoute
@@ -822,6 +858,7 @@ export interface FileRoutesByTo {
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
+  '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/bank': typeof AppBankIndexRoute
@@ -852,6 +889,9 @@ export interface FileRoutesByTo {
   '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
+  '/api/v1/retention/class': typeof ApiV1RetentionClassRoute
+  '/api/v1/retention/deletions': typeof ApiV1RetentionDeletionsRoute
+  '/api/v1/retention/legal-hold': typeof ApiV1RetentionLegalHoldRoute
   '/api/v1/rgs/coverage': typeof ApiV1RgsCoverageRoute
   '/api/v1/rgs/mappings': typeof ApiV1RgsMappingsRoute
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
@@ -898,6 +938,7 @@ export interface FileRoutesById {
   '/_app/dunning': typeof AppDunningRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/members': typeof AppMembersRoute
+  '/_app/retention': typeof AppRetentionRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/bank/match': typeof AppBankMatchRoute
@@ -930,6 +971,7 @@ export interface FileRoutesById {
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
+  '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/_app/bank/': typeof AppBankIndexRoute
@@ -960,6 +1002,9 @@ export interface FileRoutesById {
   '/api/v1/reports/overdue-invoices': typeof ApiV1ReportsOverdueInvoicesRoute
   '/api/v1/reports/profit-and-loss': typeof ApiV1ReportsProfitAndLossRoute
   '/api/v1/reports/trial-balance': typeof ApiV1ReportsTrialBalanceRoute
+  '/api/v1/retention/class': typeof ApiV1RetentionClassRoute
+  '/api/v1/retention/deletions': typeof ApiV1RetentionDeletionsRoute
+  '/api/v1/retention/legal-hold': typeof ApiV1RetentionLegalHoldRoute
   '/api/v1/rgs/coverage': typeof ApiV1RgsCoverageRoute
   '/api/v1/rgs/mappings': typeof ApiV1RgsMappingsRoute
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
@@ -1007,6 +1052,7 @@ export interface FileRouteTypes {
     | '/dunning'
     | '/inbox'
     | '/members'
+    | '/retention'
     | '/settings'
     | '/bank/match'
     | '/contacts/$contactId'
@@ -1038,6 +1084,7 @@ export interface FileRouteTypes {
     | '/api/v1/members'
     | '/api/v1/payment-batches'
     | '/api/v1/purchase-invoices'
+    | '/api/v1/retention'
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
     | '/bank/'
@@ -1068,6 +1115,9 @@ export interface FileRouteTypes {
     | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
+    | '/api/v1/retention/class'
+    | '/api/v1/retention/deletions'
+    | '/api/v1/retention/legal-hold'
     | '/api/v1/rgs/coverage'
     | '/api/v1/rgs/mappings'
     | '/api/v1/rgs/upgrade-preview'
@@ -1112,6 +1162,7 @@ export interface FileRouteTypes {
     | '/dunning'
     | '/inbox'
     | '/members'
+    | '/retention'
     | '/settings'
     | '/'
     | '/bank/match'
@@ -1144,6 +1195,7 @@ export interface FileRouteTypes {
     | '/api/v1/members'
     | '/api/v1/payment-batches'
     | '/api/v1/purchase-invoices'
+    | '/api/v1/retention'
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
     | '/bank'
@@ -1174,6 +1226,9 @@ export interface FileRouteTypes {
     | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
+    | '/api/v1/retention/class'
+    | '/api/v1/retention/deletions'
+    | '/api/v1/retention/legal-hold'
     | '/api/v1/rgs/coverage'
     | '/api/v1/rgs/mappings'
     | '/api/v1/rgs/upgrade-preview'
@@ -1219,6 +1274,7 @@ export interface FileRouteTypes {
     | '/_app/dunning'
     | '/_app/inbox'
     | '/_app/members'
+    | '/_app/retention'
     | '/_app/settings'
     | '/_app/'
     | '/_app/bank/match'
@@ -1251,6 +1307,7 @@ export interface FileRouteTypes {
     | '/api/v1/members'
     | '/api/v1/payment-batches'
     | '/api/v1/purchase-invoices'
+    | '/api/v1/retention'
     | '/api/v1/sales-invoices'
     | '/api/v1/tax-codes'
     | '/_app/bank/'
@@ -1281,6 +1338,9 @@ export interface FileRouteTypes {
     | '/api/v1/reports/overdue-invoices'
     | '/api/v1/reports/profit-and-loss'
     | '/api/v1/reports/trial-balance'
+    | '/api/v1/retention/class'
+    | '/api/v1/retention/deletions'
+    | '/api/v1/retention/legal-hold'
     | '/api/v1/rgs/coverage'
     | '/api/v1/rgs/mappings'
     | '/api/v1/rgs/upgrade-preview'
@@ -1338,6 +1398,7 @@ export interface RootRouteChildren {
   ApiV1MembersRoute: typeof ApiV1MembersRouteWithChildren
   ApiV1PaymentBatchesRoute: typeof ApiV1PaymentBatchesRouteWithChildren
   ApiV1PurchaseInvoicesRoute: typeof ApiV1PurchaseInvoicesRouteWithChildren
+  ApiV1RetentionRoute: typeof ApiV1RetentionRouteWithChildren
   ApiV1SalesInvoicesRoute: typeof ApiV1SalesInvoicesRouteWithChildren
   ApiV1TaxCodesRoute: typeof ApiV1TaxCodesRoute
   ApiV1DocumentsDocumentIdRoute: typeof ApiV1DocumentsDocumentIdRoute
@@ -1433,6 +1494,13 @@ declare module '@tanstack/react-router' {
       path: '/members'
       fullPath: '/members'
       preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/retention': {
+      id: '/_app/retention'
+      path: '/retention'
+      fullPath: '/retention'
+      preLoaderRoute: typeof AppRetentionRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings': {
@@ -1701,6 +1769,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PurchaseInvoicesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/retention': {
+      id: '/api/v1/retention'
+      path: '/api/v1/retention'
+      fullPath: '/api/v1/retention'
+      preLoaderRoute: typeof ApiV1RetentionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/sales-invoices': {
       id: '/api/v1/sales-invoices'
       path: '/api/v1/sales-invoices'
@@ -1861,6 +1936,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/reports/trial-balance'
       preLoaderRoute: typeof ApiV1ReportsTrialBalanceRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/retention/class': {
+      id: '/api/v1/retention/class'
+      path: '/class'
+      fullPath: '/api/v1/retention/class'
+      preLoaderRoute: typeof ApiV1RetentionClassRouteImport
+      parentRoute: typeof ApiV1RetentionRoute
+    }
+    '/api/v1/retention/deletions': {
+      id: '/api/v1/retention/deletions'
+      path: '/deletions'
+      fullPath: '/api/v1/retention/deletions'
+      preLoaderRoute: typeof ApiV1RetentionDeletionsRouteImport
+      parentRoute: typeof ApiV1RetentionRoute
+    }
+    '/api/v1/retention/legal-hold': {
+      id: '/api/v1/retention/legal-hold'
+      path: '/legal-hold'
+      fullPath: '/api/v1/retention/legal-hold'
+      preLoaderRoute: typeof ApiV1RetentionLegalHoldRouteImport
+      parentRoute: typeof ApiV1RetentionRoute
     }
     '/api/v1/rgs/coverage': {
       id: '/api/v1/rgs/coverage'
@@ -2109,6 +2205,7 @@ interface AppRouteChildren {
   AppDunningRoute: typeof AppDunningRoute
   AppInboxRoute: typeof AppInboxRoute
   AppMembersRoute: typeof AppMembersRoute
+  AppRetentionRoute: typeof AppRetentionRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppBankMatchRoute: typeof AppBankMatchRoute
@@ -2141,6 +2238,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDunningRoute: AppDunningRoute,
   AppInboxRoute: AppInboxRoute,
   AppMembersRoute: AppMembersRoute,
+  AppRetentionRoute: AppRetentionRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppBankMatchRoute: AppBankMatchRoute,
@@ -2395,6 +2493,22 @@ const ApiV1PurchaseInvoicesRouteWithChildren =
     ApiV1PurchaseInvoicesRouteChildren,
   )
 
+interface ApiV1RetentionRouteChildren {
+  ApiV1RetentionClassRoute: typeof ApiV1RetentionClassRoute
+  ApiV1RetentionDeletionsRoute: typeof ApiV1RetentionDeletionsRoute
+  ApiV1RetentionLegalHoldRoute: typeof ApiV1RetentionLegalHoldRoute
+}
+
+const ApiV1RetentionRouteChildren: ApiV1RetentionRouteChildren = {
+  ApiV1RetentionClassRoute: ApiV1RetentionClassRoute,
+  ApiV1RetentionDeletionsRoute: ApiV1RetentionDeletionsRoute,
+  ApiV1RetentionLegalHoldRoute: ApiV1RetentionLegalHoldRoute,
+}
+
+const ApiV1RetentionRouteWithChildren = ApiV1RetentionRoute._addFileChildren(
+  ApiV1RetentionRouteChildren,
+)
+
 interface ApiV1SalesInvoicesInvoiceIdRouteChildren {
   ApiV1SalesInvoicesInvoiceIdDeliveriesRoute: typeof ApiV1SalesInvoicesInvoiceIdDeliveriesRoute
   ApiV1SalesInvoicesInvoiceIdIssueRoute: typeof ApiV1SalesInvoicesInvoiceIdIssueRoute
@@ -2470,6 +2584,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1MembersRoute: ApiV1MembersRouteWithChildren,
   ApiV1PaymentBatchesRoute: ApiV1PaymentBatchesRouteWithChildren,
   ApiV1PurchaseInvoicesRoute: ApiV1PurchaseInvoicesRouteWithChildren,
+  ApiV1RetentionRoute: ApiV1RetentionRouteWithChildren,
   ApiV1SalesInvoicesRoute: ApiV1SalesInvoicesRouteWithChildren,
   ApiV1TaxCodesRoute: ApiV1TaxCodesRoute,
   ApiV1DocumentsDocumentIdRoute: ApiV1DocumentsDocumentIdRoute,

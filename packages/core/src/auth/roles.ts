@@ -65,6 +65,18 @@ export const PERMISSIONS = {
    */
   approvePurchase: 'purchase:approve',
   /**
+   * Set or lift a legal hold, and delete documents whose bewaarplicht has run
+   * out (spec 7.6).
+   *
+   * Its own permission, held by the owner alone. Deleting statutory records is
+   * the one action in this system that destroys evidence — every other
+   * destructive act is a reversal that leaves both sides in the journal. A
+   * bookkeeper with `ledger:configure` should not be able to reach it by
+   * accident, and an accountant advising on a retention question is not the
+   * person who presses it.
+   */
+  manageRetention: 'retention:manage',
+  /**
    * Create a new administration. Instance-scoped, not entity-scoped: it is held
    * by a signed-in human and by no role and no API token, because a token is
    * issued by one administration and must not be able to create another.
@@ -102,6 +114,7 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     PERMISSIONS.approvePayments,
     PERMISSIONS.fileVat,
     PERMISSIONS.approvePurchase,
+    PERMISSIONS.manageRetention,
   ],
   accountant: [
     PERMISSIONS.read,

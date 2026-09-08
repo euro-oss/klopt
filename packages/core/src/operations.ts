@@ -213,6 +213,57 @@ export const complianceOperations: Readonly<Record<string, OperationDefinition>>
     idempotent: true,
   }),
 
+  /**
+   * The bewaarplicht (spec 7.6).
+   *
+   * Reading is an export-level question and changing it is its own permission,
+   * because deleting statutory records is the only action here that destroys
+   * evidence rather than reversing an entry.
+   *
+   * `agentExposure: 'none'` throughout, including the read. An agent that can
+   * see which documents are deletable is an agent that can propose deleting
+   * them, and there is no version of that proposal anybody wants in a queue.
+   */
+  getRetention: defineOperation({
+    id: 'retention.get',
+    kind: 'read',
+    permission: 'ledger:export',
+    summary: 'What is kept how long, what is held, and what could be deleted.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  setLegalHold: defineOperation({
+    id: 'retention.setLegalHold',
+    kind: 'write',
+    permission: 'retention:manage',
+    summary: 'Suspend deletion for the administration or for named documents, with a reason.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  setRetentionClass: defineOperation({
+    id: 'retention.setClass',
+    kind: 'write',
+    permission: 'retention:manage',
+    summary: 'Ten years rather than seven, for documents about onroerend goed.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  deleteDocuments: defineOperation({
+    id: 'retention.deleteDocuments',
+    kind: 'write',
+    permission: 'retention:manage',
+    summary:
+      'Delete documents whose bewaarplicht has run out. Deliberate, audited, and refused for anything held.',
+    agentExposure: 'none',
+    // Idempotent because the second run finds them already deleted and refuses
+    // rather than deleting something else. Which is what makes a half-finished
+    // run safe to repeat.
+    idempotent: true,
+  }),
+
   exportAuditLog: defineOperation({
     id: 'audit.export',
     kind: 'read',

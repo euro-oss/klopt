@@ -19,7 +19,17 @@ import {
 } from '~/api/handlers/compliance'
 import { handleListAuditLog } from '~/api/handlers/audit'
 import {
+  handleDeleteDocuments,
+  handleGetRetention,
+  handleSetLegalHold,
+  handleSetRetentionClass,
+} from '~/api/handlers/retention'
+import {
   auditLogQuery,
+  deleteDocumentsBody,
+  retentionQuery,
+  setLegalHoldBody,
+  setRetentionClassBody,
   closeYearBody,
   listEntriesQuery,
   postJournalEntryBody,
@@ -214,5 +224,65 @@ export const listAuditLog = createServerFn({ method: 'GET' })
       auditLogQuery,
       data ?? {},
       async (query) => (await handleListAuditLog(await contextFromRequest(), query)).body,
+    ),
+  )
+
+/**
+ * The bewaarplicht (spec 7.6).
+ *
+ * The preview is a read; the three writes each carry a reason, because the one
+ * that deletes cannot be undone and the ones that hold outlive the term.
+ */
+export const getRetention = createServerFn({ method: 'GET' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      retentionQuery,
+      data ?? {},
+      async (query) => (await handleGetRetention(await contextFromRequest(), query)).body,
+    ),
+  )
+
+export const setLegalHold = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      setLegalHoldBody,
+      data,
+      async (body) =>
+        (await handleSetLegalHold(await contextFromRequest({ idempotencyKey: keyOf(data) }), body))
+          .body,
+    ),
+  )
+
+export const setRetentionClass = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      setRetentionClassBody,
+      data,
+      async (body) =>
+        (
+          await handleSetRetentionClass(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            body,
+          )
+        ).body,
+    ),
+  )
+
+export const deleteDocuments = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      deleteDocumentsBody,
+      data,
+      async (body) =>
+        (
+          await handleDeleteDocuments(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            body,
+          )
+        ).body,
     ),
   )

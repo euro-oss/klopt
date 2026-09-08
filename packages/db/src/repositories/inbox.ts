@@ -374,12 +374,17 @@ export class InboxRepository {
     readonly sha256: string
     readonly filename: string | null
     readonly contentType: string
+    /** Set when the bytes were deliberately removed after their term. */
+    readonly deletedAt: Date | null
+    readonly deletedReason: string | null
   } | null> {
     const [row] = await this.tx
       .select({
         sha256: documents.sha256,
         filename: documents.filename,
         contentType: documents.contentType,
+        deletedAt: documents.deletedAt,
+        deletedReason: documents.deletedReason,
       })
       .from(documents)
       .where(and(eq(documents.entityId, entityId), eq(documents.id, documentId)))

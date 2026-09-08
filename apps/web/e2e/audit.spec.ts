@@ -56,8 +56,16 @@ test('a correction leaves a trail with both sides on it', async ({ page }) => {
   await page.getByRole('button', { name: 'Opslaan' }).click()
 
   await page.getByRole('link', { name: 'Leverancier B.V.' }).click()
+
+  // Every field on the edit form is React-controlled, so filling one before
+  // hydration is discarded — and the save would then record no change at all,
+  // which is a passing-looking test asserting nothing.
+  const save = page.getByRole('button', { name: 'Opslaan' })
+  await expect(save).toBeEnabled()
+  await expect(page.getByLabel('IBAN')).toHaveValue('NL02ABNA012345678')
+
   await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
-  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await save.click()
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 
   await page.goto('/audit-log')

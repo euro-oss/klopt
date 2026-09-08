@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   boolean,
   char,
+  date,
   check,
   index,
   integer,
@@ -27,6 +28,9 @@ export const documentSource = klopt.enum('document_source', [
 export const inboxState = klopt.enum('inbox_state', ['new', 'drafted', 'discarded'])
 
 export const inboundSourceKind = klopt.enum('inbound_source_kind', ['maildir', 'imap', 'peppol'])
+
+/** Seven years, and ten for onroerend goed (spec 7.6). */
+export const retentionClass = klopt.enum('retention_class', ['standard', 'immovable_property'])
 
 /**
  * A source document, addressed by the hash of its bytes (spec 7.6).
@@ -56,11 +60,38 @@ export const documents = klopt.table(
     /** Metadata on the arrival, not on the bytes. */
     filename: text('filename'),
     firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
+
+    /**
+     * The bewaarplicht (spec 7.6), as three facts and a tombstone.
+     *
+     * `retainUntil` is null until the book year is known, which makes the
+     * document undeletable rather than deletable — not knowing how long to keep
+     * something is not a licence to throw it away. `legalHold` suspends the
+     * whole thing, because a dispute outlives the term. And a deleted document
+     * keeps its row and its hash: an inspector asking what used to be here gets
+     * an answer, and erasing the row would make the deletion unauditable.
+     */
+    retentionClass: retentionClass('retention_class').notNull().default('standard'),
+    retainUntil: date('retain_until'),
+    retentionFiscalYear: text('retention_fiscal_year'),
+    legalHold: boolean('legal_hold').notNull().default(false),
+    legalHoldReason: text('legal_hold_reason'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deletedBy: text('deleted_by'),
+    deletedReason: text('deleted_reason'),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     unique('documents_entity_hash').on(table.entityId, table.sha256),
     check('documents_hash_shape', sql`${table.sha256} ~ '^[0-9a-f]{64}$'`),
+    check(
+      'documents_deleted_has_reason',
+      sql`(${table.deletedAt} is null) = (${table.deletedReason} is null)`,
+    ),
+    index('documents_retention')
+      .on(table.entityId, table.retainUntil)
+      .where(sql`${table.deletedAt} is null`),
   ],
 )
 

@@ -34,6 +34,7 @@ export { XafExportRepository, type XafExportRequest } from './repositories/xaf.j
 export { RgsRepository } from './repositories/rgs.js'
 export { type InboxItemRow, InboxRepository } from './repositories/inbox.js'
 export { type AuditQuery, type AuditRow, AuditRepository } from './repositories/audit.js'
+export { type RetentionDocumentRow, RetentionRepository } from './repositories/retention.js'
 export { SecretKeyMissingError, decryptSecret, encryptSecret, secretsAvailable } from './secrets.js'
 export { type InboundSourceRow, InboundSourceRepository } from './repositories/inbound-sources.js'
 export {
@@ -101,6 +102,8 @@ export {
   withYearClose,
   withAudit,
   withAuditRead,
+  withRetention,
+  withRetentionRead,
   withInboundSources,
   withInboundSourcesRead,
   withInbox,

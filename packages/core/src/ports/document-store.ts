@@ -53,6 +53,27 @@ export interface DocumentStore {
   get(sha256: string): Promise<Uint8Array | null>
 
   has(sha256: string): Promise<boolean>
+
+  /**
+   * Remove the bytes, after their bewaarplicht has run out (spec 7.6).
+   *
+   * The only destructive operation in this port, and it exists because the
+   * alternative — never deleting — is not what the law asks for either. What
+   * the law asks for is that deletion is deliberate: "a deliberate, audited,
+   * permissioned batch action with a preview. Never automatic." So there is no
+   * expiry sweep behind this and no lifecycle rule; something calls it because
+   * somebody pressed a button.
+   *
+   * Returns false when the hash was not there, which is not an error: a store
+   * that already lost the bytes and a store that just dropped them are the same
+   * state, and a retry of a half-finished run has to be able to say so.
+   *
+   * An implementation over WORM storage may refuse until the object's own lock
+   * expires, and should — that is the point of the lock, and a store that
+   * quietly obeyed the application instead of its retention date would be
+   * offering no guarantee at all.
+   */
+  delete(sha256: string): Promise<boolean>
 }
 
 /** Lowercase hex SHA-256, computed the same way everywhere. */

@@ -8,6 +8,7 @@ import { PaymentsRepository } from './repositories/payments.js'
 import { InboxRepository } from './repositories/inbox.js'
 import { InboundSourceRepository } from './repositories/inbound-sources.js'
 import { AuditRepository } from './repositories/audit.js'
+import { RetentionRepository } from './repositories/retention.js'
 import { PurchaseRepository } from './repositories/purchase.js'
 import { SalesRepository } from './repositories/sales.js'
 import { SetupRepository } from './repositories/setup.js'
@@ -387,4 +388,27 @@ export async function withAuditRead<T>(
     accessMode: 'read only',
     isolationLevel: 'repeatable read',
   })
+}
+
+/**
+ * The bewaarplicht.
+ *
+ * Read and write are separate because the read is what a preview does — and a
+ * preview that could write is not a preview.
+ */
+export async function withRetentionRead<T>(
+  database: Database,
+  work: (repository: RetentionRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new RetentionRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
+  })
+}
+
+export async function withRetention<T>(
+  database: Database,
+  work: (repository: RetentionRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new RetentionRepository(tx)))
 }

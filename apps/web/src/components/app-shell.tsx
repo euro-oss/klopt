@@ -54,6 +54,15 @@ const RESTRICTED_NAVIGATION = [
     binding: 'go.audit',
     roles: ['owner', 'accountant', 'auditor'],
   },
+  // The preview needs `ledger:export`; changing anything needs
+  // `retention:manage`, which only the owner holds. Both are on this screen and
+  // the screen says which is which.
+  {
+    to: '/retention',
+    label: 'Bewaarplicht',
+    binding: 'go.retention',
+    roles: ['owner', 'accountant', 'auditor'],
+  },
 ] as const
 
 export interface ShellEntity {

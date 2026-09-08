@@ -785,3 +785,52 @@ export const auditLogExportQuery = z.object({
 
 export type AuditLogQuery = z.infer<typeof auditLogQuery>
 export type AuditLogExportQuery = z.infer<typeof auditLogExportQuery>
+
+/** The bewaarplicht (spec 7.6). */
+export const retentionQuery = z.object({
+  /** Defaults to today. Settable so a preview can be run against a future date. */
+  asOf: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use yyyy-mm-dd.')
+    .optional(),
+})
+
+export const setLegalHoldBody = z
+  .object({
+    /** The whole administration, or named documents. */
+    scope: z.enum(['entity', 'documents']),
+    held: z.boolean(),
+    documentIds: z.array(z.uuid()).default([]),
+    reason: nullableText.optional().default(null),
+  })
+  .superRefine((value, context) => {
+    if (value.scope === 'documents' && value.documentIds.length === 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['documentIds'],
+        message: 'Say which documents.',
+      })
+    }
+  })
+
+export const setRetentionClassBody = z.object({
+  documentIds: z.array(z.uuid()).min(1),
+  retentionClass: z.enum(['standard', 'immovable_property']),
+})
+
+/**
+ * Deleting documents whose term has run out.
+ *
+ * A reason is required, not optional. This is the one action in the system that
+ * destroys evidence rather than reversing an entry, and "who deleted forty
+ * thousand documents and why" is a question that gets asked.
+ */
+export const deleteDocumentsBody = z.object({
+  documentIds: z.array(z.uuid()).min(1),
+  reason: z.string().trim().min(1, 'Say why. This is the one act that cannot be reversed.'),
+})
+
+export type RetentionQuery = z.infer<typeof retentionQuery>
+export type SetLegalHoldBody = z.infer<typeof setLegalHoldBody>
+export type SetRetentionClassBody = z.infer<typeof setRetentionClassBody>
+export type DeleteDocumentsBody = z.infer<typeof deleteDocumentsBody>

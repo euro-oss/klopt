@@ -25,6 +25,15 @@ export type ApiErrorCode =
   | 'unauthenticated'
   | 'forbidden'
   | 'not_found'
+  /**
+   * It was here and is deliberately not any more.
+   *
+   * Distinct from `not_found` because the difference is the whole point: a
+   * document deleted after its bewaarplicht ran out has a hash, a date and a
+   * reason on record, and 404 would make that indistinguishable from a lost
+   * file. 410 is what HTTP has for exactly this.
+   */
+  | 'gone'
   | 'validation_failed'
   | 'idempotency_key_required'
   | 'conflict'
@@ -34,6 +43,7 @@ const STATUS: Record<ApiErrorCode, number> = {
   unauthenticated: 401,
   forbidden: 403,
   not_found: 404,
+  gone: 410,
   validation_failed: 422,
   idempotency_key_required: 400,
   conflict: 409,

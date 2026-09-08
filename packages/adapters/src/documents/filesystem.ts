@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { sha256Hex, type DocumentStore, type StoredDocument } from '@klopt/core'
 
@@ -69,6 +69,29 @@ export function createFilesystemDocumentStore(
 
     async has(sha256) {
       return (await stat(pathFor(options.directory, sha256)).catch(() => null)) !== null
+    },
+
+    /**
+     * Remove the bytes.
+     *
+     * A filesystem has no object lock, so this obeys the caller — which is
+     * worth being plain about, because it means the retention guarantee here is
+     * the application's and not the storage's. A `chattr +i`, a read-only mount
+     * or an S3 bucket with object lock is what turns "we do not delete this"
+     * into "this cannot be deleted", and only the last of those is something
+     * this repository can ship.
+     *
+     * False rather than an error when the hash is not there: a store that
+     * already lost the bytes and one that just dropped them are the same state,
+     * and a retry of a half-finished run has to be able to say so.
+     */
+    async delete(sha256) {
+      try {
+        await rm(pathFor(options.directory, sha256))
+        return true
+      } catch {
+        return false
+      }
     },
   }
 }

@@ -353,6 +353,21 @@ export async function handleGetDocument(
   )
   if (found === null) throw new ApiError('not_found', `No document ${documentId}.`)
 
+  /**
+   * A document deleted after its term says so, rather than answering 404.
+   *
+   * The row survives a deletion precisely so this question has an answer: the
+   * hash, the date and the reason are what an inspector asking "what used to be
+   * here" is entitled to. A bare 404 would make a deliberate, audited deletion
+   * indistinguishable from a lost file.
+   */
+  if (found.deletedAt !== null) {
+    throw new ApiError(
+      'gone',
+      `Document ${documentId} was deleted on ${found.deletedAt.toISOString().slice(0, 10)} after its bewaarplicht ran out: ${found.deletedReason ?? 'no reason recorded'}. Its hash is ${found.sha256}.`,
+    )
+  }
+
   const bytes = await documentStore().get(found.sha256)
   if (bytes === null) {
     throw new ApiError(

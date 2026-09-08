@@ -473,3 +473,74 @@ describe('period control', () => {
     }
   })
 })
+
+describe('a document may change its retention and nothing else', () => {
+  /**
+   * `documents` was flat append-only until retention arrived, and retention
+   * needs three of its columns to move: a hold being set, a computed term being
+   * stored, the bytes being marked gone. The guard was loosened by exactly that
+   * much, which is only safe if it still refuses everything else — so this
+   * proves both halves.
+   */
+  async function aDocument(): Promise<{ id: string; sha256: string }> {
+    const id = uuidv7()
+    const sha256 = 'ab'.repeat(32)
+
+    await fixture.database.execute(
+      sql`insert into klopt.documents (id, entity_id, sha256, size_bytes, content_type, filename)
+          values (${id}::uuid, ${fixture.entityId}::uuid, ${sha256}, 11, 'application/pdf', 'bon.pdf')
+          on conflict (entity_id, sha256) do nothing`,
+    )
+
+    const [row] = await fixture.database.execute<{ id: string }>(
+      sql`select id::text from klopt.documents
+          where entity_id = ${fixture.entityId}::uuid and sha256 = ${sha256}`,
+    )
+
+    return { id: row?.id ?? id, sha256 }
+  }
+
+  it('allows a legal hold to be set', async () => {
+    const document = await aDocument()
+
+    await fixture.database.execute(
+      sql`update klopt.documents set legal_hold = true, legal_hold_reason = 'Geschil'
+          where id = ${document.id}::uuid`,
+    )
+
+    const [row] = await fixture.database.execute<{ legal_hold: boolean }>(
+      sql`select legal_hold from klopt.documents where id = ${document.id}::uuid`,
+    )
+    expect(row?.legal_hold).toBe(true)
+  })
+
+  it('refuses to change what the document is', async () => {
+    // The hash is the identity. A store where the address can be repointed at
+    // other bytes fails the "accessible, readable and controllable" test
+    // whatever else it does.
+    const document = await aDocument()
+
+    await expectDatabaseError(
+      fixture.database.execute(
+        sql`update klopt.documents set sha256 = ${'cd'.repeat(32)} where id = ${document.id}::uuid`,
+      ),
+      /cannot change/,
+    )
+
+    await expectDatabaseError(
+      fixture.database.execute(
+        sql`update klopt.documents set size_bytes = 99 where id = ${document.id}::uuid`,
+      ),
+      /cannot change/,
+    )
+  })
+
+  it('refuses to delete the row, because that is what makes a deletion auditable', async () => {
+    const document = await aDocument()
+
+    await expectDatabaseError(
+      fixture.database.execute(sql`delete from klopt.documents where id = ${document.id}::uuid`),
+      /append-only/,
+    )
+  })
+})
