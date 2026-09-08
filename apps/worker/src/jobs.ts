@@ -1,5 +1,6 @@
 import type { Job, PgBoss } from 'pg-boss'
 import { pollInboundSourcesJob } from './inbound.js'
+import { sealPendingYearsJob } from './snapshots.js'
 
 /**
  * A scheduled or queued job. Registration is data so that the worker's job list
@@ -37,8 +38,28 @@ function inboundPollJob(databaseUrl: string): JobDefinition {
   }
 }
 
+/**
+ * Sealing book years that have postings and no snapshot (spec 7.6).
+ *
+ * Nightly, at four, which is the point of "periodic": a snapshot somebody has
+ * to remember to take is one that exists for the year somebody was paying
+ * attention, and the years an inspector asks about are the other ones.
+ *
+ * Not hourly and not on every posting. A year already sealed is not resealed by
+ * this job — three hundred and sixty-five near-identical artefacts would bury
+ * the one that mattered — and resealing is a deliberate act with its own
+ * button.
+ */
+function snapshotJob(databaseUrl: string): JobDefinition {
+  return {
+    name: 'snapshot.sealPendingYears',
+    schedule: '0 4 * * *',
+    handler: () => sealPendingYearsJob(databaseUrl),
+  }
+}
+
 export function jobsFor(databaseUrl: string): readonly JobDefinition[] {
-  return [inboundPollJob(databaseUrl)]
+  return [inboundPollJob(databaseUrl), snapshotJob(databaseUrl)]
 }
 
 export async function registerJobs(boss: PgBoss, list: readonly JobDefinition[]): Promise<void> {

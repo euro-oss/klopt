@@ -25,9 +25,15 @@ import {
   handleSetRetentionClass,
 } from '~/api/handlers/retention'
 import {
+  handleListSnapshots,
+  handleSealSnapshot,
+  handleVerifySnapshot,
+} from '~/api/handlers/snapshots'
+import {
   auditLogQuery,
   deleteDocumentsBody,
   retentionQuery,
+  sealSnapshotBody,
   setLegalHoldBody,
   setRetentionClassBody,
   closeYearBody,
@@ -283,6 +289,42 @@ export const deleteDocuments = createServerFn({ method: 'POST' })
             await contextFromRequest({ idempotencyKey: keyOf(data) }),
             body,
           )
+        ).body,
+    ),
+  )
+
+/**
+ * Sealed snapshots (spec 7.6).
+ *
+ * The manifest download is not here: it is a file, and
+ * `/api/v1/snapshots/{id}/manifest` serves it as plain text so a reader with
+ * `sha256sum` can check the seal without a parser in between.
+ */
+export const listSnapshots = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handleListSnapshots(await contextFromRequest())).body),
+)
+
+export const sealSnapshot = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      sealSnapshotBody,
+      data,
+      async (body) =>
+        (await handleSealSnapshot(await contextFromRequest({ idempotencyKey: keyOf(data) }), body))
+          .body,
+    ),
+  )
+
+export const verifySnapshot = createServerFn({ method: 'POST' })
+  .validator((input: { snapshotId: string; recomputeAuditFile?: boolean }) => input)
+  .handler(async ({ data }) =>
+    run(
+      async () =>
+        (
+          await handleVerifySnapshot(await contextFromRequest(), data.snapshotId, {
+            recomputeAuditFile: data.recomputeAuditFile ?? false,
+          })
         ).body,
     ),
   )

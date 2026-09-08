@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  bigint,
   boolean,
   char,
   date,
@@ -224,5 +225,59 @@ export const inboundSources = klopt.table(
   (table) => [
     uniqueIndex('inbound_sources_entity_name').on(table.entityId, table.name),
     index('inbound_sources_due').on(table.enabled, table.lastPolledAt),
+  ],
+)
+
+/**
+ * A sealed snapshot (spec 7.6).
+ *
+ * The row is the seal and the manifest text; the auditfile and the manifest go
+ * into the content-addressed store like any other document, so they inherit
+ * retention, deduplication and tamper-evidence rather than needing their own.
+ *
+ * Append-only apart from the verification columns: what was sealed cannot
+ * change, and the outcome of somebody checking it is not part of what was
+ * sealed.
+ */
+export const sealedSnapshots = klopt.table(
+  'sealed_snapshots',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    fiscalYear: text('fiscal_year').notNull(),
+    sealedAt: timestamp('sealed_at', { withTimezone: true }).notNull().defaultNow(),
+    sealedBy: text('sealed_by').notNull(),
+
+    /** One value covering every posting, and how many it covers. */
+    chainHead: char('chain_head', { length: 64 }),
+    entryCount: integer('entry_count').notNull(),
+
+    auditFileSha256: char('audit_file_sha256', { length: 64 }).notNull(),
+    auditFileLineCount: integer('audit_file_line_count').notNull(),
+    manifestSha256: char('manifest_sha256', { length: 64 }).notNull(),
+
+    /** Kept here as well as in the store, so a seal stays checkable offline. */
+    manifest: text('manifest').notNull(),
+    seal: char('seal', { length: 64 }).notNull(),
+    /** A chain of seals, so removing one from the middle becomes visible. */
+    previousSeal: char('previous_seal', { length: 64 }),
+
+    documentCount: integer('document_count').notNull(),
+    deletedDocumentCount: integer('deleted_document_count').notNull(),
+    totalBytes: bigint('total_bytes', { mode: 'bigint' }).notNull(),
+
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    verifiedOk: boolean('verified_ok'),
+    drift: jsonb('drift'),
+  },
+  (table) => [
+    index('sealed_snapshots_entity_year').on(table.entityId, table.fiscalYear, table.sealedAt),
+    uniqueIndex('sealed_snapshots_seal').on(table.entityId, table.seal),
+    check(
+      'sealed_snapshots_hash_shape',
+      sql`${table.seal} ~ '^[0-9a-f]{64}$' and ${table.manifestSha256} ~ '^[0-9a-f]{64}$'`,
+    ),
   ],
 )

@@ -264,6 +264,55 @@ export const complianceOperations: Readonly<Record<string, OperationDefinition>>
     idempotent: true,
   }),
 
+  /**
+   * Sealed snapshots (spec 7.6).
+   *
+   * Sealing is a `write` and reads on `ledger:read`, which is deliberately
+   * asymmetric: producing the artefact is a compliance act with a permission
+   * behind it, and *seeing that one exists* is something anybody looking at the
+   * books should be able to do. A seal nobody can see is a seal nobody checks.
+   */
+  sealSnapshot: defineOperation({
+    id: 'snapshot.seal',
+    kind: 'write',
+    permission: 'ledger:export',
+    summary:
+      'Seal a book year: the chain head, a manifest of document hashes and the auditfile, under one hash.',
+    agentExposure: 'none',
+    // The seal covers its own timestamp, so two seals of the same year are two
+    // distinct artefacts rather than a duplicate — which is what makes a
+    // scheduled reseal meaningful and a retry harmless.
+    idempotent: true,
+  }),
+
+  listSnapshots: defineOperation({
+    id: 'snapshot.list',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Every sealed snapshot, its seal and what checking it found.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  getSnapshotManifest: defineOperation({
+    id: 'snapshot.getManifest',
+    kind: 'read',
+    permission: 'ledger:export',
+    summary: 'The manifest text a seal is computed over — the artefact itself.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  verifySnapshot: defineOperation({
+    id: 'snapshot.verify',
+    kind: 'write',
+    permission: 'ledger:export',
+    summary:
+      'Check a snapshot against the administration now, and record what was found. Growth is not drift.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
   exportAuditLog: defineOperation({
     id: 'audit.export',
     kind: 'read',

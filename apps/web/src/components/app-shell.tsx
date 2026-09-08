@@ -63,6 +63,14 @@ const RESTRICTED_NAVIGATION = [
     binding: 'go.retention',
     roles: ['owner', 'accountant', 'auditor'],
   },
+  // `ledger:read` sees them, `ledger:export` makes them. A seal nobody can see
+  // is a seal nobody checks, so the bookkeeper gets the screen too.
+  {
+    to: '/snapshots',
+    label: 'Momentopnames',
+    binding: 'go.snapshots',
+    roles: ['owner', 'accountant', 'auditor', 'bookkeeper'],
+  },
 ] as const
 
 export interface ShellEntity {

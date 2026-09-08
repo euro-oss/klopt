@@ -62,6 +62,9 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'go.audit', label: 'Wie wat deed', group: 'Go to', keys: 'g l', to: '/audit-log' },
   // `g h` for bewaren, since `g b` is the balans and `g w` the winst-en-verlies.
   { id: 'go.retention', label: 'Bewaarplicht', group: 'Go to', keys: 'g h', to: '/retention' },
+  // `g z` for **z**egel. `g s` is unclaimed but reads as "settings" to anybody
+  // who has used another application, and `g i` already is Instellingen.
+  { id: 'go.snapshots', label: 'Momentopnames', group: 'Go to', keys: 'g z', to: '/snapshots' },
 
   {
     id: 'new.entry',

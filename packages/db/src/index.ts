@@ -35,6 +35,13 @@ export { RgsRepository } from './repositories/rgs.js'
 export { type InboxItemRow, InboxRepository } from './repositories/inbox.js'
 export { type AuditQuery, type AuditRow, AuditRepository } from './repositories/audit.js'
 export { type RetentionDocumentRow, RetentionRepository } from './repositories/retention.js'
+export { type SnapshotRow, SnapshotRepository } from './repositories/snapshots.js'
+export {
+  SealRefusedError,
+  sealFiscalYear,
+  type SealOptions,
+  type SealResult,
+} from './snapshot/seal.js'
 export { SecretKeyMissingError, decryptSecret, encryptSecret, secretsAvailable } from './secrets.js'
 export { type InboundSourceRow, InboundSourceRepository } from './repositories/inbound-sources.js'
 export {
@@ -104,6 +111,8 @@ export {
   withAuditRead,
   withRetention,
   withRetentionRead,
+  withSnapshots,
+  withSnapshotsRead,
   withInboundSources,
   withInboundSourcesRead,
   withInbox,

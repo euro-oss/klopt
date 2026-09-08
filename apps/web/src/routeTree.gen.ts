@@ -21,6 +21,7 @@ import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppRetentionRouteImport } from './routes/_app/retention'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppSnapshotsRouteImport } from './routes/_app/snapshots'
 import { Route as AppBankIndexRouteImport } from './routes/_app/bank.index'
 import { Route as AppBankMatchRouteImport } from './routes/_app/bank.match'
 import { Route as AppContactsIndexRouteImport } from './routes/_app/contacts.index'
@@ -60,6 +61,7 @@ import { Route as ApiV1PaymentBatchesRouteImport } from './routes/api/v1/payment
 import { Route as ApiV1PurchaseInvoicesRouteImport } from './routes/api/v1/purchase-invoices'
 import { Route as ApiV1RetentionRouteImport } from './routes/api/v1/retention'
 import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-invoices'
+import { Route as ApiV1SnapshotsRouteImport } from './routes/api/v1/snapshots'
 import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
 import { Route as AppVatIcpPeriodRouteImport } from './routes/_app/vat.icp.$period'
 import { Route as ApiV1AuditLogExportRouteImport } from './routes/api/v1/audit-log.export'
@@ -112,6 +114,8 @@ import { Route as ApiV1SalesInvoicesInvoiceIdPdfRouteImport } from './routes/api
 import { Route as ApiV1SalesInvoicesInvoiceIdRemindersRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.reminders'
 import { Route as ApiV1SalesInvoicesInvoiceIdSendRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.send'
 import { Route as ApiV1SalesInvoicesInvoiceIdUblRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.ubl'
+import { Route as ApiV1SnapshotsSnapshotIdManifestRouteImport } from './routes/api/v1/snapshots.$snapshotId.manifest'
+import { Route as ApiV1SnapshotsSnapshotIdVerificationsRouteImport } from './routes/api/v1/snapshots.$snapshotId.verifications'
 import { Route as ApiV1VatIcpPeriodRouteImport } from './routes/api/v1/vat.icp.$period'
 import { Route as ApiV1VatReturnsPeriodRouteImport } from './routes/api/v1/vat.returns.$period'
 import { Route as ApiV1InboxSourcesSourceIdPollRouteImport } from './routes/api/v1/inbox.sources.$sourceId.poll'
@@ -177,6 +181,11 @@ const AppRetentionRoute = AppRetentionRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSnapshotsRoute = AppSnapshotsRouteImport.update({
+  id: '/snapshots',
+  path: '/snapshots',
   getParentRoute: () => AppRoute,
 } as any)
 const AppBankIndexRoute = AppBankIndexRouteImport.update({
@@ -373,6 +382,11 @@ const ApiV1RetentionRoute = ApiV1RetentionRouteImport.update({
 const ApiV1SalesInvoicesRoute = ApiV1SalesInvoicesRouteImport.update({
   id: '/api/v1/sales-invoices',
   path: '/api/v1/sales-invoices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1SnapshotsRoute = ApiV1SnapshotsRouteImport.update({
+  id: '/api/v1/snapshots',
+  path: '/api/v1/snapshots',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1TaxCodesRoute = ApiV1TaxCodesRouteImport.update({
@@ -664,6 +678,18 @@ const ApiV1SalesInvoicesInvoiceIdUblRoute =
     path: '/ubl',
     getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
   } as any)
+const ApiV1SnapshotsSnapshotIdManifestRoute =
+  ApiV1SnapshotsSnapshotIdManifestRouteImport.update({
+    id: '/$snapshotId/manifest',
+    path: '/$snapshotId/manifest',
+    getParentRoute: () => ApiV1SnapshotsRoute,
+  } as any)
+const ApiV1SnapshotsSnapshotIdVerificationsRoute =
+  ApiV1SnapshotsSnapshotIdVerificationsRouteImport.update({
+    id: '/$snapshotId/verifications',
+    path: '/$snapshotId/verifications',
+    getParentRoute: () => ApiV1SnapshotsRoute,
+  } as any)
 const ApiV1VatIcpPeriodRoute = ApiV1VatIcpPeriodRouteImport.update({
   id: '/api/v1/vat/icp/$period',
   path: '/api/v1/vat/icp/$period',
@@ -717,6 +743,7 @@ export interface FileRoutesByFullPath {
   '/members': typeof AppMembersRoute
   '/retention': typeof AppRetentionRoute
   '/settings': typeof AppSettingsRoute
+  '/snapshots': typeof AppSnapshotsRoute
   '/bank/match': typeof AppBankMatchRoute
   '/contacts/$contactId': typeof AppContactsContactIdRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
@@ -749,6 +776,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
+  '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/bank/': typeof AppBankIndexRoute
   '/contacts/': typeof AppContactsIndexRoute
@@ -808,6 +836,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/sales-invoices/$invoiceId/reminders': typeof ApiV1SalesInvoicesInvoiceIdRemindersRoute
   '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
+  '/api/v1/snapshots/$snapshotId/manifest': typeof ApiV1SnapshotsSnapshotIdManifestRoute
+  '/api/v1/snapshots/$snapshotId/verifications': typeof ApiV1SnapshotsSnapshotIdVerificationsRoute
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
   '/api/v1/inbox/sources/$sourceId/poll': typeof ApiV1InboxSourcesSourceIdPollRoute
@@ -827,6 +857,7 @@ export interface FileRoutesByTo {
   '/members': typeof AppMembersRoute
   '/retention': typeof AppRetentionRoute
   '/settings': typeof AppSettingsRoute
+  '/snapshots': typeof AppSnapshotsRoute
   '/': typeof AppIndexRoute
   '/bank/match': typeof AppBankMatchRoute
   '/contacts/$contactId': typeof AppContactsContactIdRoute
@@ -860,6 +891,7 @@ export interface FileRoutesByTo {
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
+  '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/bank': typeof AppBankIndexRoute
   '/contacts': typeof AppContactsIndexRoute
@@ -919,6 +951,8 @@ export interface FileRoutesByTo {
   '/api/v1/sales-invoices/$invoiceId/reminders': typeof ApiV1SalesInvoicesInvoiceIdRemindersRoute
   '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
+  '/api/v1/snapshots/$snapshotId/manifest': typeof ApiV1SnapshotsSnapshotIdManifestRoute
+  '/api/v1/snapshots/$snapshotId/verifications': typeof ApiV1SnapshotsSnapshotIdVerificationsRoute
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
   '/api/v1/inbox/sources/$sourceId/poll': typeof ApiV1InboxSourcesSourceIdPollRoute
@@ -940,6 +974,7 @@ export interface FileRoutesById {
   '/_app/members': typeof AppMembersRoute
   '/_app/retention': typeof AppRetentionRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/snapshots': typeof AppSnapshotsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/bank/match': typeof AppBankMatchRoute
   '/_app/contacts/$contactId': typeof AppContactsContactIdRoute
@@ -973,6 +1008,7 @@ export interface FileRoutesById {
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
+  '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/_app/bank/': typeof AppBankIndexRoute
   '/_app/contacts/': typeof AppContactsIndexRoute
@@ -1032,6 +1068,8 @@ export interface FileRoutesById {
   '/api/v1/sales-invoices/$invoiceId/reminders': typeof ApiV1SalesInvoicesInvoiceIdRemindersRoute
   '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
+  '/api/v1/snapshots/$snapshotId/manifest': typeof ApiV1SnapshotsSnapshotIdManifestRoute
+  '/api/v1/snapshots/$snapshotId/verifications': typeof ApiV1SnapshotsSnapshotIdVerificationsRoute
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
   '/api/v1/inbox/sources/$sourceId/poll': typeof ApiV1InboxSourcesSourceIdPollRoute
@@ -1054,6 +1092,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/retention'
     | '/settings'
+    | '/snapshots'
     | '/bank/match'
     | '/contacts/$contactId'
     | '/entries/$entryId'
@@ -1086,6 +1125,7 @@ export interface FileRouteTypes {
     | '/api/v1/purchase-invoices'
     | '/api/v1/retention'
     | '/api/v1/sales-invoices'
+    | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
     | '/bank/'
     | '/contacts/'
@@ -1145,6 +1185,8 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId/reminders'
     | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
+    | '/api/v1/snapshots/$snapshotId/manifest'
+    | '/api/v1/snapshots/$snapshotId/verifications'
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
     | '/api/v1/inbox/sources/$sourceId/poll'
@@ -1164,6 +1206,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/retention'
     | '/settings'
+    | '/snapshots'
     | '/'
     | '/bank/match'
     | '/contacts/$contactId'
@@ -1197,6 +1240,7 @@ export interface FileRouteTypes {
     | '/api/v1/purchase-invoices'
     | '/api/v1/retention'
     | '/api/v1/sales-invoices'
+    | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
     | '/bank'
     | '/contacts'
@@ -1256,6 +1300,8 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId/reminders'
     | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
+    | '/api/v1/snapshots/$snapshotId/manifest'
+    | '/api/v1/snapshots/$snapshotId/verifications'
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
     | '/api/v1/inbox/sources/$sourceId/poll'
@@ -1276,6 +1322,7 @@ export interface FileRouteTypes {
     | '/_app/members'
     | '/_app/retention'
     | '/_app/settings'
+    | '/_app/snapshots'
     | '/_app/'
     | '/_app/bank/match'
     | '/_app/contacts/$contactId'
@@ -1309,6 +1356,7 @@ export interface FileRouteTypes {
     | '/api/v1/purchase-invoices'
     | '/api/v1/retention'
     | '/api/v1/sales-invoices'
+    | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
     | '/_app/bank/'
     | '/_app/contacts/'
@@ -1368,6 +1416,8 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId/reminders'
     | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
+    | '/api/v1/snapshots/$snapshotId/manifest'
+    | '/api/v1/snapshots/$snapshotId/verifications'
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
     | '/api/v1/inbox/sources/$sourceId/poll'
@@ -1400,6 +1450,7 @@ export interface RootRouteChildren {
   ApiV1PurchaseInvoicesRoute: typeof ApiV1PurchaseInvoicesRouteWithChildren
   ApiV1RetentionRoute: typeof ApiV1RetentionRouteWithChildren
   ApiV1SalesInvoicesRoute: typeof ApiV1SalesInvoicesRouteWithChildren
+  ApiV1SnapshotsRoute: typeof ApiV1SnapshotsRouteWithChildren
   ApiV1TaxCodesRoute: typeof ApiV1TaxCodesRoute
   ApiV1DocumentsDocumentIdRoute: typeof ApiV1DocumentsDocumentIdRoute
   ApiV1EntitiesEntityIdRoute: typeof ApiV1EntitiesEntityIdRoute
@@ -1508,6 +1559,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/snapshots': {
+      id: '/_app/snapshots'
+      path: '/snapshots'
+      fullPath: '/snapshots'
+      preLoaderRoute: typeof AppSnapshotsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/bank/': {
@@ -1781,6 +1839,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/sales-invoices'
       fullPath: '/api/v1/sales-invoices'
       preLoaderRoute: typeof ApiV1SalesInvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/snapshots': {
+      id: '/api/v1/snapshots'
+      path: '/api/v1/snapshots'
+      fullPath: '/api/v1/snapshots'
+      preLoaderRoute: typeof ApiV1SnapshotsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/tax-codes': {
@@ -2147,6 +2212,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SalesInvoicesInvoiceIdUblRouteImport
       parentRoute: typeof ApiV1SalesInvoicesInvoiceIdRoute
     }
+    '/api/v1/snapshots/$snapshotId/manifest': {
+      id: '/api/v1/snapshots/$snapshotId/manifest'
+      path: '/$snapshotId/manifest'
+      fullPath: '/api/v1/snapshots/$snapshotId/manifest'
+      preLoaderRoute: typeof ApiV1SnapshotsSnapshotIdManifestRouteImport
+      parentRoute: typeof ApiV1SnapshotsRoute
+    }
+    '/api/v1/snapshots/$snapshotId/verifications': {
+      id: '/api/v1/snapshots/$snapshotId/verifications'
+      path: '/$snapshotId/verifications'
+      fullPath: '/api/v1/snapshots/$snapshotId/verifications'
+      preLoaderRoute: typeof ApiV1SnapshotsSnapshotIdVerificationsRouteImport
+      parentRoute: typeof ApiV1SnapshotsRoute
+    }
     '/api/v1/vat/icp/$period': {
       id: '/api/v1/vat/icp/$period'
       path: '/api/v1/vat/icp/$period'
@@ -2207,6 +2286,7 @@ interface AppRouteChildren {
   AppMembersRoute: typeof AppMembersRoute
   AppRetentionRoute: typeof AppRetentionRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppSnapshotsRoute: typeof AppSnapshotsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppBankMatchRoute: typeof AppBankMatchRoute
   AppContactsContactIdRoute: typeof AppContactsContactIdRoute
@@ -2240,6 +2320,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMembersRoute: AppMembersRoute,
   AppRetentionRoute: AppRetentionRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppSnapshotsRoute: AppSnapshotsRoute,
   AppIndexRoute: AppIndexRoute,
   AppBankMatchRoute: AppBankMatchRoute,
   AppContactsContactIdRoute: AppContactsContactIdRoute,
@@ -2548,6 +2629,21 @@ const ApiV1SalesInvoicesRouteChildren: ApiV1SalesInvoicesRouteChildren = {
 const ApiV1SalesInvoicesRouteWithChildren =
   ApiV1SalesInvoicesRoute._addFileChildren(ApiV1SalesInvoicesRouteChildren)
 
+interface ApiV1SnapshotsRouteChildren {
+  ApiV1SnapshotsSnapshotIdManifestRoute: typeof ApiV1SnapshotsSnapshotIdManifestRoute
+  ApiV1SnapshotsSnapshotIdVerificationsRoute: typeof ApiV1SnapshotsSnapshotIdVerificationsRoute
+}
+
+const ApiV1SnapshotsRouteChildren: ApiV1SnapshotsRouteChildren = {
+  ApiV1SnapshotsSnapshotIdManifestRoute: ApiV1SnapshotsSnapshotIdManifestRoute,
+  ApiV1SnapshotsSnapshotIdVerificationsRoute:
+    ApiV1SnapshotsSnapshotIdVerificationsRoute,
+}
+
+const ApiV1SnapshotsRouteWithChildren = ApiV1SnapshotsRoute._addFileChildren(
+  ApiV1SnapshotsRouteChildren,
+)
+
 interface ApiV1VatFilingsRouteChildren {
   ApiV1VatFilingsFilingIdStatusRoute: typeof ApiV1VatFilingsFilingIdStatusRoute
   ApiV1VatFilingsFilingIdSubmissionsRoute: typeof ApiV1VatFilingsFilingIdSubmissionsRoute
@@ -2586,6 +2682,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1PurchaseInvoicesRoute: ApiV1PurchaseInvoicesRouteWithChildren,
   ApiV1RetentionRoute: ApiV1RetentionRouteWithChildren,
   ApiV1SalesInvoicesRoute: ApiV1SalesInvoicesRouteWithChildren,
+  ApiV1SnapshotsRoute: ApiV1SnapshotsRouteWithChildren,
   ApiV1TaxCodesRoute: ApiV1TaxCodesRoute,
   ApiV1DocumentsDocumentIdRoute: ApiV1DocumentsDocumentIdRoute,
   ApiV1EntitiesEntityIdRoute: ApiV1EntitiesEntityIdRoute,

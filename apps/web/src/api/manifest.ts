@@ -495,6 +495,30 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/documents.$documentId.ts',
   },
   {
+    operationId: 'snapshot.seal',
+    method: 'POST',
+    path: '/snapshots',
+    module: 'api/v1/snapshots.ts',
+  },
+  {
+    operationId: 'snapshot.list',
+    method: 'GET',
+    path: '/snapshots',
+    module: 'api/v1/snapshots.ts',
+  },
+  {
+    operationId: 'snapshot.getManifest',
+    method: 'GET',
+    path: '/snapshots/{snapshotId}/manifest',
+    module: 'api/v1/snapshots.$snapshotId.manifest.ts',
+  },
+  {
+    operationId: 'snapshot.verify',
+    method: 'POST',
+    path: '/snapshots/{snapshotId}/verifications',
+    module: 'api/v1/snapshots.$snapshotId.verifications.ts',
+  },
+  {
     operationId: 'retention.get',
     method: 'GET',
     path: '/retention',

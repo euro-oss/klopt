@@ -834,3 +834,25 @@ export type RetentionQuery = z.infer<typeof retentionQuery>
 export type SetLegalHoldBody = z.infer<typeof setLegalHoldBody>
 export type SetRetentionClassBody = z.infer<typeof setRetentionClassBody>
 export type DeleteDocumentsBody = z.infer<typeof deleteDocumentsBody>
+
+/** Sealing a snapshot (spec 7.6). */
+export const sealSnapshotBody = z.object({
+  fiscalYear: z.string().regex(/^\d{4}$/, 'A book year is four digits.'),
+})
+
+export const verifySnapshotQuery = z.object({
+  /**
+   * Re-export the auditfile and compare its bytes.
+   *
+   * Off by default: it is the slow half and the one that fires benignly when
+   * the exporter improves. When it is off the result says so, because
+   * "verified" with a check skipped is a lie by omission.
+   */
+  recomputeAuditFile: z
+    .union([z.boolean(), z.enum(['true', 'false'])])
+    .default(false)
+    .transform((value) => value === true || value === 'true'),
+})
+
+export type SealSnapshotBody = z.infer<typeof sealSnapshotBody>
+export type VerifySnapshotQuery = z.infer<typeof verifySnapshotQuery>

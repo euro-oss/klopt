@@ -45,6 +45,7 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `g` then `e`   | Go to postvak (**e**erste opvang)                       |
 | `g` then `l`   | Go to wie wat deed (het **l**og)                        |
 | `g` then `h`   | Go to bewaarplicht (be**h**ouden)                       |
+| `g` then `z`   | Go to momentopnames (het **z**egel)                     |
 | `n` then `i`   | New inkoopfactuur                                       |
 | `n` then `j`   | New journal entry                                       |
 | `Escape`       | Close overlay, cancel edit, clear focus — in that order |

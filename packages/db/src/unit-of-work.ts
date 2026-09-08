@@ -9,6 +9,7 @@ import { InboxRepository } from './repositories/inbox.js'
 import { InboundSourceRepository } from './repositories/inbound-sources.js'
 import { AuditRepository } from './repositories/audit.js'
 import { RetentionRepository } from './repositories/retention.js'
+import { SnapshotRepository } from './repositories/snapshots.js'
 import { PurchaseRepository } from './repositories/purchase.js'
 import { SalesRepository } from './repositories/sales.js'
 import { SetupRepository } from './repositories/setup.js'
@@ -411,4 +412,33 @@ export async function withRetention<T>(
   work: (repository: RetentionRepository) => Promise<T>,
 ): Promise<T> {
   return database.transaction(async (tx) => work(new RetentionRepository(tx)))
+}
+
+/**
+ * Sealing a snapshot, in one transaction.
+ *
+ * The previous seal is read and the new row written together, so two concurrent
+ * seals cannot both claim the same predecessor and leave a fork in a chain
+ * whose whole purpose is to have none.
+ */
+export async function withSnapshots<T>(
+  database: Database,
+  work: (repositories: {
+    snapshots: SnapshotRepository
+    retention: RetentionRepository
+  }) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) =>
+    work({ snapshots: new SnapshotRepository(tx), retention: new RetentionRepository(tx) }),
+  )
+}
+
+export async function withSnapshotsRead<T>(
+  database: Database,
+  work: (repository: SnapshotRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new SnapshotRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
+  })
 }
