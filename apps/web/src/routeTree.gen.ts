@@ -29,6 +29,8 @@ import { Route as AppContactsContactIdRouteImport } from './routes/_app/contacts
 import { Route as AppEntriesIndexRouteImport } from './routes/_app/entries.index'
 import { Route as AppEntriesEntryIdRouteImport } from './routes/_app/entries.$entryId'
 import { Route as AppEntriesNewRouteImport } from './routes/_app/entries.new'
+import { Route as AppExactIndexRouteImport } from './routes/_app/exact.index'
+import { Route as AppExactCallbackRouteImport } from './routes/_app/exact.callback'
 import { Route as AppInvoicesIndexRouteImport } from './routes/_app/invoices.index'
 import { Route as AppInvoicesInvoiceIdRouteImport } from './routes/_app/invoices.$invoiceId'
 import { Route as AppInvoicesNewRouteImport } from './routes/_app/invoices.new'
@@ -69,6 +71,10 @@ import { Route as ApiV1BankMatchRulesRuleIdRouteImport } from './routes/api/v1/b
 import { Route as ApiV1ContactsContactIdRouteImport } from './routes/api/v1/contacts.$contactId'
 import { Route as ApiV1DocumentsDocumentIdRouteImport } from './routes/api/v1/documents.$documentId'
 import { Route as ApiV1EntitiesEntityIdRouteImport } from './routes/api/v1/entities.$entityId'
+import { Route as ApiV1ExactCallbackRouteImport } from './routes/api/v1/exact.callback'
+import { Route as ApiV1ExactConnectionRouteImport } from './routes/api/v1/exact.connection'
+import { Route as ApiV1ExactDivisionRouteImport } from './routes/api/v1/exact.division'
+import { Route as ApiV1ExactDivisionsRouteImport } from './routes/api/v1/exact.divisions'
 import { Route as ApiV1ExportsAuditFileRouteImport } from './routes/api/v1/exports.audit-file'
 import { Route as ApiV1FiscalYearsCloseRouteImport } from './routes/api/v1/fiscal-years.close'
 import { Route as ApiV1ImportsAuditFileRouteImport } from './routes/api/v1/imports.audit-file'
@@ -98,6 +104,7 @@ import { Route as ApiV1VatPeriodsRouteImport } from './routes/api/v1/vat.periods
 import { Route as ApiV1BankTransactionsTransactionIdIgnoreRouteImport } from './routes/api/v1/bank-transactions.$transactionId.ignore'
 import { Route as ApiV1BankTransactionsTransactionIdMatchRouteImport } from './routes/api/v1/bank-transactions.$transactionId.match'
 import { Route as ApiV1BankTransactionsTransactionIdSuggestionsRouteImport } from './routes/api/v1/bank-transactions.$transactionId.suggestions'
+import { Route as ApiV1ExactImportPreviewRouteImport } from './routes/api/v1/exact.import.preview'
 import { Route as ApiV1InboxItemIdDiscardRouteImport } from './routes/api/v1/inbox.$itemId.discard'
 import { Route as ApiV1InboxItemIdDraftRouteImport } from './routes/api/v1/inbox.$itemId.draft'
 import { Route as ApiV1InboxSourcesSourceIdRouteImport } from './routes/api/v1/inbox.sources.$sourceId'
@@ -221,6 +228,16 @@ const AppEntriesEntryIdRoute = AppEntriesEntryIdRouteImport.update({
 const AppEntriesNewRoute = AppEntriesNewRouteImport.update({
   id: '/entries/new',
   path: '/entries/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExactIndexRoute = AppExactIndexRouteImport.update({
+  id: '/exact/',
+  path: '/exact/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExactCallbackRoute = AppExactCallbackRouteImport.update({
+  id: '/exact/callback',
+  path: '/exact/callback',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInvoicesIndexRoute = AppInvoicesIndexRouteImport.update({
@@ -426,6 +443,26 @@ const ApiV1EntitiesEntityIdRoute = ApiV1EntitiesEntityIdRouteImport.update({
   path: '/api/v1/entities/$entityId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1ExactCallbackRoute = ApiV1ExactCallbackRouteImport.update({
+  id: '/api/v1/exact/callback',
+  path: '/api/v1/exact/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ExactConnectionRoute = ApiV1ExactConnectionRouteImport.update({
+  id: '/api/v1/exact/connection',
+  path: '/api/v1/exact/connection',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ExactDivisionRoute = ApiV1ExactDivisionRouteImport.update({
+  id: '/api/v1/exact/division',
+  path: '/api/v1/exact/division',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ExactDivisionsRoute = ApiV1ExactDivisionsRouteImport.update({
+  id: '/api/v1/exact/divisions',
+  path: '/api/v1/exact/divisions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1ExportsAuditFileRoute = ApiV1ExportsAuditFileRouteImport.update({
   id: '/api/v1/exports/audit-file',
   path: '/api/v1/exports/audit-file',
@@ -584,6 +621,11 @@ const ApiV1BankTransactionsTransactionIdSuggestionsRoute =
     path: '/$transactionId/suggestions',
     getParentRoute: () => ApiV1BankTransactionsRoute,
   } as any)
+const ApiV1ExactImportPreviewRoute = ApiV1ExactImportPreviewRouteImport.update({
+  id: '/api/v1/exact/import/preview',
+  path: '/api/v1/exact/import/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1InboxItemIdDiscardRoute = ApiV1InboxItemIdDiscardRouteImport.update({
   id: '/$itemId/discard',
   path: '/$itemId/discard',
@@ -748,6 +790,7 @@ export interface FileRoutesByFullPath {
   '/contacts/$contactId': typeof AppContactsContactIdRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/entries/new': typeof AppEntriesNewRoute
+  '/exact/callback': typeof AppExactCallbackRoute
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
   '/payments/$batchId': typeof AppPaymentsBatchIdRoute
@@ -781,6 +824,7 @@ export interface FileRoutesByFullPath {
   '/bank/': typeof AppBankIndexRoute
   '/contacts/': typeof AppContactsIndexRoute
   '/entries/': typeof AppEntriesIndexRoute
+  '/exact/': typeof AppExactIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
   '/payments/': typeof AppPaymentsIndexRoute
   '/purchases/': typeof AppPurchasesIndexRoute
@@ -791,6 +835,10 @@ export interface FileRoutesByFullPath {
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
+  '/api/v1/exact/callback': typeof ApiV1ExactCallbackRoute
+  '/api/v1/exact/connection': typeof ApiV1ExactConnectionRoute
+  '/api/v1/exact/division': typeof ApiV1ExactDivisionRoute
+  '/api/v1/exact/divisions': typeof ApiV1ExactDivisionsRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
@@ -820,6 +868,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
+  '/api/v1/exact/import/preview': typeof ApiV1ExactImportPreviewRoute
   '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
   '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
   '/api/v1/inbox/sources/$sourceId': typeof ApiV1InboxSourcesSourceIdRouteWithChildren
@@ -863,6 +912,7 @@ export interface FileRoutesByTo {
   '/contacts/$contactId': typeof AppContactsContactIdRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/entries/new': typeof AppEntriesNewRoute
+  '/exact/callback': typeof AppExactCallbackRoute
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
   '/payments/$batchId': typeof AppPaymentsBatchIdRoute
@@ -896,6 +946,7 @@ export interface FileRoutesByTo {
   '/bank': typeof AppBankIndexRoute
   '/contacts': typeof AppContactsIndexRoute
   '/entries': typeof AppEntriesIndexRoute
+  '/exact': typeof AppExactIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
   '/payments': typeof AppPaymentsIndexRoute
   '/purchases': typeof AppPurchasesIndexRoute
@@ -906,6 +957,10 @@ export interface FileRoutesByTo {
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
+  '/api/v1/exact/callback': typeof ApiV1ExactCallbackRoute
+  '/api/v1/exact/connection': typeof ApiV1ExactConnectionRoute
+  '/api/v1/exact/division': typeof ApiV1ExactDivisionRoute
+  '/api/v1/exact/divisions': typeof ApiV1ExactDivisionsRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
@@ -935,6 +990,7 @@ export interface FileRoutesByTo {
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
+  '/api/v1/exact/import/preview': typeof ApiV1ExactImportPreviewRoute
   '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
   '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
   '/api/v1/inbox/sources/$sourceId': typeof ApiV1InboxSourcesSourceIdRouteWithChildren
@@ -980,6 +1036,7 @@ export interface FileRoutesById {
   '/_app/contacts/$contactId': typeof AppContactsContactIdRoute
   '/_app/entries/$entryId': typeof AppEntriesEntryIdRoute
   '/_app/entries/new': typeof AppEntriesNewRoute
+  '/_app/exact/callback': typeof AppExactCallbackRoute
   '/_app/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/_app/invoices/new': typeof AppInvoicesNewRoute
   '/_app/payments/$batchId': typeof AppPaymentsBatchIdRoute
@@ -1013,6 +1070,7 @@ export interface FileRoutesById {
   '/_app/bank/': typeof AppBankIndexRoute
   '/_app/contacts/': typeof AppContactsIndexRoute
   '/_app/entries/': typeof AppEntriesIndexRoute
+  '/_app/exact/': typeof AppExactIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
   '/_app/payments/': typeof AppPaymentsIndexRoute
   '/_app/purchases/': typeof AppPurchasesIndexRoute
@@ -1023,6 +1081,10 @@ export interface FileRoutesById {
   '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
   '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
+  '/api/v1/exact/callback': typeof ApiV1ExactCallbackRoute
+  '/api/v1/exact/connection': typeof ApiV1ExactConnectionRoute
+  '/api/v1/exact/division': typeof ApiV1ExactDivisionRoute
+  '/api/v1/exact/divisions': typeof ApiV1ExactDivisionsRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
@@ -1052,6 +1114,7 @@ export interface FileRoutesById {
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
+  '/api/v1/exact/import/preview': typeof ApiV1ExactImportPreviewRoute
   '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
   '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
   '/api/v1/inbox/sources/$sourceId': typeof ApiV1InboxSourcesSourceIdRouteWithChildren
@@ -1097,6 +1160,7 @@ export interface FileRouteTypes {
     | '/contacts/$contactId'
     | '/entries/$entryId'
     | '/entries/new'
+    | '/exact/callback'
     | '/invoices/$invoiceId'
     | '/invoices/new'
     | '/payments/$batchId'
@@ -1130,6 +1194,7 @@ export interface FileRouteTypes {
     | '/bank/'
     | '/contacts/'
     | '/entries/'
+    | '/exact/'
     | '/invoices/'
     | '/payments/'
     | '/purchases/'
@@ -1140,6 +1205,10 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/$contactId'
     | '/api/v1/documents/$documentId'
     | '/api/v1/entities/$entityId'
+    | '/api/v1/exact/callback'
+    | '/api/v1/exact/connection'
+    | '/api/v1/exact/division'
+    | '/api/v1/exact/divisions'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
     | '/api/v1/imports/audit-file'
@@ -1169,6 +1238,7 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
+    | '/api/v1/exact/import/preview'
     | '/api/v1/inbox/$itemId/discard'
     | '/api/v1/inbox/$itemId/draft'
     | '/api/v1/inbox/sources/$sourceId'
@@ -1212,6 +1282,7 @@ export interface FileRouteTypes {
     | '/contacts/$contactId'
     | '/entries/$entryId'
     | '/entries/new'
+    | '/exact/callback'
     | '/invoices/$invoiceId'
     | '/invoices/new'
     | '/payments/$batchId'
@@ -1245,6 +1316,7 @@ export interface FileRouteTypes {
     | '/bank'
     | '/contacts'
     | '/entries'
+    | '/exact'
     | '/invoices'
     | '/payments'
     | '/purchases'
@@ -1255,6 +1327,10 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/$contactId'
     | '/api/v1/documents/$documentId'
     | '/api/v1/entities/$entityId'
+    | '/api/v1/exact/callback'
+    | '/api/v1/exact/connection'
+    | '/api/v1/exact/division'
+    | '/api/v1/exact/divisions'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
     | '/api/v1/imports/audit-file'
@@ -1284,6 +1360,7 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
+    | '/api/v1/exact/import/preview'
     | '/api/v1/inbox/$itemId/discard'
     | '/api/v1/inbox/$itemId/draft'
     | '/api/v1/inbox/sources/$sourceId'
@@ -1328,6 +1405,7 @@ export interface FileRouteTypes {
     | '/_app/contacts/$contactId'
     | '/_app/entries/$entryId'
     | '/_app/entries/new'
+    | '/_app/exact/callback'
     | '/_app/invoices/$invoiceId'
     | '/_app/invoices/new'
     | '/_app/payments/$batchId'
@@ -1361,6 +1439,7 @@ export interface FileRouteTypes {
     | '/_app/bank/'
     | '/_app/contacts/'
     | '/_app/entries/'
+    | '/_app/exact/'
     | '/_app/invoices/'
     | '/_app/payments/'
     | '/_app/purchases/'
@@ -1371,6 +1450,10 @@ export interface FileRouteTypes {
     | '/api/v1/contacts/$contactId'
     | '/api/v1/documents/$documentId'
     | '/api/v1/entities/$entityId'
+    | '/api/v1/exact/callback'
+    | '/api/v1/exact/connection'
+    | '/api/v1/exact/division'
+    | '/api/v1/exact/divisions'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
     | '/api/v1/imports/audit-file'
@@ -1400,6 +1483,7 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
+    | '/api/v1/exact/import/preview'
     | '/api/v1/inbox/$itemId/discard'
     | '/api/v1/inbox/$itemId/draft'
     | '/api/v1/inbox/sources/$sourceId'
@@ -1454,6 +1538,10 @@ export interface RootRouteChildren {
   ApiV1TaxCodesRoute: typeof ApiV1TaxCodesRoute
   ApiV1DocumentsDocumentIdRoute: typeof ApiV1DocumentsDocumentIdRoute
   ApiV1EntitiesEntityIdRoute: typeof ApiV1EntitiesEntityIdRoute
+  ApiV1ExactCallbackRoute: typeof ApiV1ExactCallbackRoute
+  ApiV1ExactConnectionRoute: typeof ApiV1ExactConnectionRoute
+  ApiV1ExactDivisionRoute: typeof ApiV1ExactDivisionRoute
+  ApiV1ExactDivisionsRoute: typeof ApiV1ExactDivisionsRoute
   ApiV1ExportsAuditFileRoute: typeof ApiV1ExportsAuditFileRoute
   ApiV1ImportsAuditFileRoute: typeof ApiV1ImportsAuditFileRoute
   ApiV1LedgerChainVerificationRoute: typeof ApiV1LedgerChainVerificationRoute
@@ -1470,6 +1558,7 @@ export interface RootRouteChildren {
   ApiV1VatFilingsRoute: typeof ApiV1VatFilingsRouteWithChildren
   ApiV1VatNumberChecksRoute: typeof ApiV1VatNumberChecksRoute
   ApiV1VatPeriodsRoute: typeof ApiV1VatPeriodsRoute
+  ApiV1ExactImportPreviewRoute: typeof ApiV1ExactImportPreviewRoute
   ApiV1VatIcpPeriodRoute: typeof ApiV1VatIcpPeriodRoute
   ApiV1VatReturnsPeriodRoute: typeof ApiV1VatReturnsPeriodRoute
   ApiV1VatSubmissionsSubmissionIdInstanceRoute: typeof ApiV1VatSubmissionsSubmissionIdInstanceRoute
@@ -1615,6 +1704,20 @@ declare module '@tanstack/react-router' {
       path: '/entries/new'
       fullPath: '/entries/new'
       preLoaderRoute: typeof AppEntriesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/exact/': {
+      id: '/_app/exact/'
+      path: '/exact'
+      fullPath: '/exact/'
+      preLoaderRoute: typeof AppExactIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/exact/callback': {
+      id: '/_app/exact/callback'
+      path: '/exact/callback'
+      fullPath: '/exact/callback'
+      preLoaderRoute: typeof AppExactCallbackRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/invoices/': {
@@ -1897,6 +2000,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1EntitiesEntityIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/exact/callback': {
+      id: '/api/v1/exact/callback'
+      path: '/api/v1/exact/callback'
+      fullPath: '/api/v1/exact/callback'
+      preLoaderRoute: typeof ApiV1ExactCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/exact/connection': {
+      id: '/api/v1/exact/connection'
+      path: '/api/v1/exact/connection'
+      fullPath: '/api/v1/exact/connection'
+      preLoaderRoute: typeof ApiV1ExactConnectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/exact/division': {
+      id: '/api/v1/exact/division'
+      path: '/api/v1/exact/division'
+      fullPath: '/api/v1/exact/division'
+      preLoaderRoute: typeof ApiV1ExactDivisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/exact/divisions': {
+      id: '/api/v1/exact/divisions'
+      path: '/api/v1/exact/divisions'
+      fullPath: '/api/v1/exact/divisions'
+      preLoaderRoute: typeof ApiV1ExactDivisionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/exports/audit-file': {
       id: '/api/v1/exports/audit-file'
       path: '/api/v1/exports/audit-file'
@@ -2100,6 +2231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1BankTransactionsTransactionIdSuggestionsRouteImport
       parentRoute: typeof ApiV1BankTransactionsRoute
     }
+    '/api/v1/exact/import/preview': {
+      id: '/api/v1/exact/import/preview'
+      path: '/api/v1/exact/import/preview'
+      fullPath: '/api/v1/exact/import/preview'
+      preLoaderRoute: typeof ApiV1ExactImportPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/inbox/$itemId/discard': {
       id: '/api/v1/inbox/$itemId/discard'
       path: '/$itemId/discard'
@@ -2292,6 +2430,7 @@ interface AppRouteChildren {
   AppContactsContactIdRoute: typeof AppContactsContactIdRoute
   AppEntriesEntryIdRoute: typeof AppEntriesEntryIdRoute
   AppEntriesNewRoute: typeof AppEntriesNewRoute
+  AppExactCallbackRoute: typeof AppExactCallbackRoute
   AppInvoicesInvoiceIdRoute: typeof AppInvoicesInvoiceIdRoute
   AppInvoicesNewRoute: typeof AppInvoicesNewRoute
   AppPaymentsBatchIdRoute: typeof AppPaymentsBatchIdRoute
@@ -2305,6 +2444,7 @@ interface AppRouteChildren {
   AppBankIndexRoute: typeof AppBankIndexRoute
   AppContactsIndexRoute: typeof AppContactsIndexRoute
   AppEntriesIndexRoute: typeof AppEntriesIndexRoute
+  AppExactIndexRoute: typeof AppExactIndexRoute
   AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
   AppPaymentsIndexRoute: typeof AppPaymentsIndexRoute
   AppPurchasesIndexRoute: typeof AppPurchasesIndexRoute
@@ -2326,6 +2466,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppContactsContactIdRoute: AppContactsContactIdRoute,
   AppEntriesEntryIdRoute: AppEntriesEntryIdRoute,
   AppEntriesNewRoute: AppEntriesNewRoute,
+  AppExactCallbackRoute: AppExactCallbackRoute,
   AppInvoicesInvoiceIdRoute: AppInvoicesInvoiceIdRoute,
   AppInvoicesNewRoute: AppInvoicesNewRoute,
   AppPaymentsBatchIdRoute: AppPaymentsBatchIdRoute,
@@ -2339,6 +2480,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBankIndexRoute: AppBankIndexRoute,
   AppContactsIndexRoute: AppContactsIndexRoute,
   AppEntriesIndexRoute: AppEntriesIndexRoute,
+  AppExactIndexRoute: AppExactIndexRoute,
   AppInvoicesIndexRoute: AppInvoicesIndexRoute,
   AppPaymentsIndexRoute: AppPaymentsIndexRoute,
   AppPurchasesIndexRoute: AppPurchasesIndexRoute,
@@ -2686,6 +2828,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1TaxCodesRoute: ApiV1TaxCodesRoute,
   ApiV1DocumentsDocumentIdRoute: ApiV1DocumentsDocumentIdRoute,
   ApiV1EntitiesEntityIdRoute: ApiV1EntitiesEntityIdRoute,
+  ApiV1ExactCallbackRoute: ApiV1ExactCallbackRoute,
+  ApiV1ExactConnectionRoute: ApiV1ExactConnectionRoute,
+  ApiV1ExactDivisionRoute: ApiV1ExactDivisionRoute,
+  ApiV1ExactDivisionsRoute: ApiV1ExactDivisionsRoute,
   ApiV1ExportsAuditFileRoute: ApiV1ExportsAuditFileRoute,
   ApiV1ImportsAuditFileRoute: ApiV1ImportsAuditFileRoute,
   ApiV1LedgerChainVerificationRoute: ApiV1LedgerChainVerificationRoute,
@@ -2702,6 +2848,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1VatFilingsRoute: ApiV1VatFilingsRouteWithChildren,
   ApiV1VatNumberChecksRoute: ApiV1VatNumberChecksRoute,
   ApiV1VatPeriodsRoute: ApiV1VatPeriodsRoute,
+  ApiV1ExactImportPreviewRoute: ApiV1ExactImportPreviewRoute,
   ApiV1VatIcpPeriodRoute: ApiV1VatIcpPeriodRoute,
   ApiV1VatReturnsPeriodRoute: ApiV1VatReturnsPeriodRoute,
   ApiV1VatSubmissionsSubmissionIdInstanceRoute:

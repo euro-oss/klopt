@@ -25,13 +25,26 @@ import {
   handleSetRetentionClass,
 } from '~/api/handlers/retention'
 import {
+  handleChooseExactDivision,
+  handleCompleteExactConnection,
+  handleConnectExact,
+  handleDisconnectExact,
+  handleGetExactConnection,
+  handleListExactDivisions,
+  handlePreviewExactImport,
+} from '~/api/handlers/exact'
+import {
   handleListSnapshots,
   handleSealSnapshot,
   handleVerifySnapshot,
 } from '~/api/handlers/snapshots'
 import {
   auditLogQuery,
+  chooseExactDivisionBody,
+  completeExactBody,
+  connectExactBody,
   deleteDocumentsBody,
+  exactPreviewQuery,
   retentionQuery,
   sealSnapshotBody,
   setLegalHoldBody,
@@ -328,3 +341,77 @@ export const verifySnapshot = createServerFn({ method: 'POST' })
         ).body,
     ),
   )
+
+/**
+ * Exact Online (spec 13).
+ *
+ * Five calls, and the shape of them is the design: connecting and choosing an
+ * administration are separate acts, because one Exact login reaches every
+ * administration the user has rights to — including the practice and test ones
+ * — and importing the wrong one is not obvious afterwards.
+ */
+export const getExactConnection = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handleGetExactConnection(await contextFromRequest())).body),
+)
+
+export const connectExact = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      connectExactBody,
+      data,
+      async (body) =>
+        (await handleConnectExact(await contextFromRequest({ idempotencyKey: keyOf(data) }), body))
+          .body,
+    ),
+  )
+
+export const completeExactConnection = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      completeExactBody,
+      data,
+      async (body) =>
+        (
+          await handleCompleteExactConnection(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            body,
+          )
+        ).body,
+    ),
+  )
+
+export const listExactDivisions = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handleListExactDivisions(await contextFromRequest())).body),
+)
+
+export const chooseExactDivision = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      chooseExactDivisionBody,
+      data,
+      async (body) =>
+        (
+          await handleChooseExactDivision(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            body,
+          )
+        ).body,
+    ),
+  )
+
+export const previewExactImport = createServerFn({ method: 'GET' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      exactPreviewQuery,
+      data ?? {},
+      async (query) => (await handlePreviewExactImport(await contextFromRequest(), query)).body,
+    ),
+  )
+
+export const disconnectExact = createServerFn({ method: 'POST' }).handler(async () =>
+  run(async () => (await handleDisconnectExact(await contextFromRequest())).body),
+)

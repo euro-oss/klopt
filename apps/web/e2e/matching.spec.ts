@@ -48,6 +48,10 @@ async function withStatement(page: Page, name: string): Promise<void> {
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
 
+  // Enabled first: the input is `disabled` until React has taken over, and
+  // setting files on a disabled input silently does nothing.
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
+
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   await page.getByRole('button', { name: 'Inlezen', exact: true }).click()

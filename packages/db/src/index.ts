@@ -50,6 +50,11 @@ export {
 export { SecretKeyMissingError, decryptSecret, encryptSecret, secretsAvailable } from './secrets.js'
 export { type InboundSourceRow, InboundSourceRepository } from './repositories/inbound-sources.js'
 export {
+  type ExactConnectionCredentials,
+  type ExactConnectionRow,
+  ExactConnectionRepository,
+} from './repositories/exact.js'
+export {
   type IngestedMessage,
   type ReceiveDocumentRequest,
   type ReceivedDocument,
@@ -118,6 +123,8 @@ export {
   withRetentionRead,
   withSnapshots,
   withSnapshotsRead,
+  withExactConnection,
+  withExactConnectionRead,
   withInboundSources,
   withInboundSourcesRead,
   withInbox,

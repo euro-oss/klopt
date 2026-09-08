@@ -4,7 +4,14 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
 import { createFilesystemDocumentStore } from '@klopt/adapters'
-import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
+import {
+  closeDatabase,
+  createDatabase,
+  issueToken,
+  runMigrations,
+  withExactConnection,
+  type Database,
+} from '@klopt/db'
 import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
@@ -64,6 +71,7 @@ import {
 import { handleGetRetention } from '../src/api/handlers/retention.js'
 import { handleListAuditLog } from '../src/api/handlers/audit.js'
 import { handleGetEntity, handleUpdateEntity } from '../src/api/handlers/setup.js'
+import { handleGetExactConnection } from '../src/api/handlers/exact.js'
 import {
   addInboundSourceBody,
   auditLogQuery,
@@ -325,6 +333,31 @@ async function anAdministration(label: string): Promise<Administration> {
     sealSnapshotBody.parse({ fiscalYear: '2026' }),
   )
 
+  // An Exact connection, built through the repository rather than through the
+  // handlers: the handlers talk to Exact, and this file is about scoping rather
+  // than about OAuth. What matters is that the row exists and holds a secret.
+  await withExactConnection(database, async (repository) => {
+    await repository.upsertApp({
+      entityId,
+      baseUrl: 'https://start.exactonline.nl',
+      clientId: `client-${label}`,
+      clientSecret: `secret-of-${label}`,
+      redirectUri: 'https://klopt.test/exact/callback',
+    })
+    await repository.storeTokens({
+      entityId,
+      accessToken: `access-of-${label}`,
+      refreshToken: `refresh-of-${label}`,
+      expiresAt: '2099-01-01T00:00:00.000Z',
+    })
+    await repository.chooseDivision({
+      entityId,
+      code: label === 'a' ? 1000 : 2000,
+      name: `Administratie ${label}`,
+      cautions: [],
+    })
+  })
+
   return {
     entityId,
     token,
@@ -346,6 +379,8 @@ let a: Administration
 let b: Administration
 
 beforeAll(async () => {
+  // The Exact connection in each fixture holds an encrypted client secret.
+  process.env['KLOPT_ENCRYPTION_KEY'] ??= 'test-key-not-for-production-0123456789'
   await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
@@ -604,6 +639,28 @@ describe('a write refuses the other administration’s id', () => {
 })
 
 describe('the credential path', () => {
+  it('will not hand over another administration’s Exact credentials', async () => {
+    // The second query in the codebase that returns a secret. Scoped in the
+    // `where`, like the first, so no caller has to remember a check.
+    const forA = await withExactConnection(database, (repository) =>
+      repository.withCredentials(a.entityId),
+    )
+    const forB = await withExactConnection(database, (repository) =>
+      repository.withCredentials(b.entityId),
+    )
+
+    expect(forA?.clientSecret).toBe('secret-of-a')
+    expect(forB?.clientSecret).toBe('secret-of-b')
+
+    // And what a screen reads shows one administration its own division only.
+    const seenByA = await handleGetExactConnection(await context(a.token))
+    const seenByB = await handleGetExactConnection(await context(b.token))
+
+    expect(seenByA.body.connection?.divisionCode).toBe(1000)
+    expect(seenByB.body.connection?.divisionCode).toBe(2000)
+    expect(JSON.stringify(seenByA.body)).not.toContain('secret-of-')
+  })
+
   it('will not hand over another administration’s mailbox password', async () => {
     // The one query in the codebase that returns a secret. It used to be scoped
     // by the caller comparing afterwards, which worked and was the wrong shape:

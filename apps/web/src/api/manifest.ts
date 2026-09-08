@@ -313,6 +313,60 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/imports.audit-file.ts',
   },
 
+  // Exact Online (M5, spec 13). Connecting, choosing a division and previewing
+  // are three requests rather than one, because the middle one is the one that
+  // goes wrong: a login reaches every administration the user has rights to,
+  // and nothing about the data says which was the test one afterwards.
+  {
+    operationId: 'exact.getConnection',
+    method: 'GET',
+    path: '/exact/connection',
+    module: 'api/v1/exact.connection.ts',
+  },
+  {
+    operationId: 'exact.connect',
+    method: 'POST',
+    path: '/exact/connection',
+    module: 'api/v1/exact.connection.ts',
+  },
+  {
+    operationId: 'exact.disconnect',
+    method: 'DELETE',
+    path: '/exact/connection',
+    module: 'api/v1/exact.connection.ts',
+  },
+  {
+    // The browser lands on the /exact/callback page, which posts here. The
+    // OAuth redirect target is a screen rather than an API route so that the
+    // API surface stays methods-and-bodies rather than growing a doorway that
+    // only makes sense to a redirect.
+    operationId: 'exact.completeConnection',
+    method: 'POST',
+    path: '/exact/callback',
+    module: 'api/v1/exact.callback.ts',
+  },
+  {
+    operationId: 'exact.listDivisions',
+    method: 'GET',
+    path: '/exact/divisions',
+    module: 'api/v1/exact.divisions.ts',
+  },
+  {
+    operationId: 'exact.chooseDivision',
+    method: 'POST',
+    path: '/exact/division',
+    module: 'api/v1/exact.division.ts',
+  },
+  {
+    // A GET, because it is a read: nothing here changes. The one thing it does
+    // write is a rotated refresh token, which is plumbing rather than a
+    // domain effect — and not writing it would break the connection.
+    operationId: 'exact.previewImport',
+    method: 'GET',
+    path: '/exact/import/preview',
+    module: 'api/v1/exact.import.preview.ts',
+  },
+
   // Sales (M1).
   {
     operationId: 'sales.listContacts',

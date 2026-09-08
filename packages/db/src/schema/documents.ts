@@ -281,3 +281,65 @@ export const sealedSnapshots = klopt.table(
     ),
   ],
 )
+
+/**
+ * A connection to an Exact Online administration (spec 13).
+ *
+ * One row per entity, and the division is on it rather than being a parameter
+ * somebody passes: a login reaches every administration the user has rights to,
+ * including the test and practice ones, and "which division" is a decision made
+ * once and recorded, not a number retyped at each import.
+ *
+ * Three things live here that are not configuration:
+ *
+ * - **The client secret**, encrypted. It is an OAuth app registered by whoever
+ *   runs this instance, so it is theirs and it belongs with their data rather
+ *   than in an environment variable (spec 8, rule 2 — bring your own
+ *   credential).
+ * - **The refresh token**, encrypted, and rotated on every use. Exact
+ *   invalidates the old one the instant it issues a new one, so this column is
+ *   written more often than anything else on the row.
+ * - **`state`**, the handshake nonce, which is the only thing tying an OAuth
+ *   callback to the request that started it. Cleared once it has been spent, so
+ *   a replayed callback finds nothing to match.
+ */
+export const exactConnections = klopt.table(
+  'exact_connections',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    /** `https://start.exactonline.nl` and its siblings. A token is host-specific. */
+    baseUrl: text('base_url').notNull(),
+    clientId: text('client_id').notNull(),
+    /** Encrypted at rest. Refused rather than stored plainly when there is no key. */
+    clientSecret: text('client_secret').notNull(),
+    redirectUri: text('redirect_uri').notNull(),
+    /** Encrypted. Rotated on every refresh, so this is the hot column. */
+    refreshToken: text('refresh_token'),
+    /** When the access token stops working. Ten minutes after it was issued. */
+    accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
+    /** Cached so a screen need not ask Exact to render a heading. */
+    accessToken: text('access_token'),
+    /** The pending handshake nonce. Null once spent. */
+    state: text('state'),
+    stateCreatedAt: timestamp('state_created_at', { withTimezone: true }),
+    /** Who Exact says this is, for the audit trail and the screen. */
+    userName: text('user_name'),
+    /** The chosen administration. Null until somebody has chosen one. */
+    divisionCode: integer('division_code'),
+    divisionName: text('division_name'),
+    /** What was true about it when it was chosen: archived, practice, and so on. */
+    divisionCautions: jsonb('division_cautions').notNull().default([]),
+    lastImportAt: timestamp('last_import_at', { withTimezone: true }),
+    lastError: text('last_error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // One connection per administration. Two would make "which Exact division
+    // is this entity" a question with two answers.
+    uniqueIndex('exact_connections_entity').on(table.entityId),
+  ],
+)

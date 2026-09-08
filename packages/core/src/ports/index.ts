@@ -55,3 +55,12 @@ export {
   sha256Hex,
   supportsWorm,
 } from './document-store.js'
+export type {
+  ExactApp,
+  ExactClient,
+  ExactDivision,
+  ExactPage,
+  ExactRequestLog,
+  ExactTokens,
+  ExactUser,
+} from './exact.js'

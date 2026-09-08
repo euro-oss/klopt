@@ -65,6 +65,8 @@ export const BINDINGS: readonly Binding[] = [
   // `g z` for **z**egel. `g s` is unclaimed but reads as "settings" to anybody
   // who has used another application, and `g i` already is Instellingen.
   { id: 'go.snapshots', label: 'Momentopnames', group: 'Go to', keys: 'g z', to: '/snapshots' },
+  // `g x` for E**x**act. `g e` is the postvak and `g o` the koppelscherm.
+  { id: 'go.exact', label: 'Exact Online', group: 'Go to', keys: 'g x', to: '/exact' },
 
   {
     id: 'new.entry',

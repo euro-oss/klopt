@@ -71,6 +71,14 @@ const RESTRICTED_NAVIGATION = [
     binding: 'go.snapshots',
     roles: ['owner', 'accountant', 'auditor', 'bookkeeper'],
   },
+  // Connecting needs `ledger:configure`; the dry run needs `ledger:import`.
+  // An auditor holds neither, so the nav does not offer them a 403.
+  {
+    to: '/exact',
+    label: 'Exact Online',
+    binding: 'go.exact',
+    roles: ['owner', 'accountant', 'bookkeeper'],
+  },
 ] as const
 
 export interface ShellEntity {

@@ -6,6 +6,7 @@ import { BankRepository } from './repositories/bank.js'
 import { MembersRepository } from './repositories/members.js'
 import { PaymentsRepository } from './repositories/payments.js'
 import { InboxRepository } from './repositories/inbox.js'
+import { ExactConnectionRepository } from './repositories/exact.js'
 import { InboundSourceRepository } from './repositories/inbound-sources.js'
 import { AuditRepository } from './repositories/audit.js'
 import { RetentionRepository } from './repositories/retention.js'
@@ -361,6 +362,29 @@ export async function withInboundSources<T>(
   work: (repository: InboundSourceRepository) => Promise<T>,
 ): Promise<T> {
   return database.transaction(async (tx) => work(new InboundSourceRepository(tx)))
+}
+
+/**
+ * The Exact Online connection (spec 13).
+ *
+ * Read-only variant for the screen, which shows which administration is
+ * connected and needs no write to answer that.
+ */
+export async function withExactConnectionRead<T>(
+  database: Database,
+  work: (repository: ExactConnectionRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new ExactConnectionRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
+  })
+}
+
+export async function withExactConnection<T>(
+  database: Database,
+  work: (repository: ExactConnectionRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new ExactConnectionRepository(tx)))
 }
 
 /**

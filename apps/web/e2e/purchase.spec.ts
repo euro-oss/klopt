@@ -225,6 +225,10 @@ test('a UBL invoice arrives in the postvak and becomes a booked liability', asyn
   await expect(page.getByRole('heading', { name: 'Postvak' })).toBeVisible()
   await expect(page.getByText('Niets in het postvak.')).toBeVisible()
 
+  // Enabled first: the input is `disabled` until React has taken over, and
+  // setting files on a disabled input silently does nothing — the upload never
+  // happens and the assertion after it fails for the wrong reason.
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
   // The file input is hidden behind a label, which is what `setInputFiles`
   // wants anyway — it sets the input, not the label.
   await page.locator('input[type="file"]').setInputFiles({
@@ -268,9 +272,11 @@ test('the same document arriving twice is one document and two arrivals', async 
   }
 
   await page.goto('/inbox')
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.locator('input[type="file"]').setInputFiles(file)
   await expect(page.getByText('F-2026-0042 · Leverancier B.V.')).toBeVisible()
 
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.locator('input[type="file"]').setInputFiles(file)
   // Content addressing is what makes this knowable: same bytes, same document.
   await expect(page.getByText(/Dit bestand was er al/)).toBeVisible()
@@ -281,6 +287,7 @@ test('a document nothing can be read out of is kept, not lost', async ({ page })
   await anAdministration(page, 'PDF postvak BV')
 
   await page.goto('/inbox')
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.locator('input[type="file"]').setInputFiles({
     name: 'reclamefolder.pdf',
     mimeType: 'application/pdf',

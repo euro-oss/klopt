@@ -1014,3 +1014,91 @@ export const inboxOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 }
+
+/**
+ * Migrating out of Exact Online (spec 13).
+ *
+ * "Adoption is gated by getting out of the incumbent. Treat migration as a
+ * product feature, not a services engagement."
+ *
+ * Five operations, and the shape of them is the design. Connecting, choosing a
+ * division and importing are three separate acts rather than one wizard, because
+ * the middle one is the one that goes wrong: a single Exact login reaches every
+ * administration the user has rights to, including the practice and test ones,
+ * and there is nothing about a division's data that reveals which is which
+ * after the fact.
+ *
+ * `previewImport` is a `read` by kind even though it reaches out to Exact,
+ * because it changes nothing here — and it holds `ledger:import` rather than
+ * `ledger:read` because it spends somebody's API budget and reads their whole
+ * administration, which is not something an auditor's token should do.
+ */
+export const exactOperations: Readonly<Record<string, OperationDefinition>> = {
+  getConnection: defineOperation({
+    id: 'exact.getConnection',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Whether this administration is connected to Exact Online, and to which division.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  connect: defineOperation({
+    id: 'exact.connect',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Register an Exact Online OAuth app and start the handshake.',
+    // Holds a client secret. An agent proposing "connect with this secret" is
+    // not a proposal anybody can review — the same reasoning as inbox.addSource.
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  completeConnection: defineOperation({
+    id: 'exact.completeConnection',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Trade the authorisation code from Exact’s callback for a token pair.',
+    agentExposure: 'none',
+    // The code is single-use at Exact's end, which is what makes replaying this
+    // safe rather than merely harmless: the second attempt gets `invalid_grant`.
+    idempotent: true,
+  }),
+
+  listDivisions: defineOperation({
+    id: 'exact.listDivisions',
+    kind: 'read',
+    permission: 'ledger:configure',
+    summary: 'Every Exact administration this login can reach, with what is odd about each.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  chooseDivision: defineOperation({
+    id: 'exact.chooseDivision',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Record which Exact administration this entity imports from.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  previewImport: defineOperation({
+    id: 'exact.previewImport',
+    kind: 'read',
+    permission: 'ledger:import',
+    summary:
+      'What importing the chosen division would bring across, reconciled against Exact’s own trial balance.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  disconnect: defineOperation({
+    id: 'exact.disconnect',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Forget the Exact connection. What was already imported is untouched.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+}

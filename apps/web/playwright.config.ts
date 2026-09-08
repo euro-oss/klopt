@@ -75,6 +75,10 @@ export default defineConfig({
             // inherited environment for the keys it names, and leaving this out
             // would let a developer's own S3 settings through.
             KLOPT_S3_ENDPOINT: '',
+            // An Exact Online client secret is encrypted at rest, so the screen
+            // refuses to take one without a key. An instance that has Exact
+            // configured has a key, so the browser test runs with one.
+            KLOPT_ENCRYPTION_KEY: 'e2e-encryption-key-not-for-production-01234',
           },
         },
       }

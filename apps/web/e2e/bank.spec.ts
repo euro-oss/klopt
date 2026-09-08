@@ -57,6 +57,9 @@ test('a bookkeeper adds an account, previews a statement and reads it in', async
   await expect(page.getByText('nog geen afschrift')).toBeVisible()
 
   // Pick the file. Nothing is written yet — this is the preview.
+  // Enabled first: the input is `disabled` until React has taken over, and
+  // setting files on a disabled input silently does nothing.
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
 
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
@@ -74,6 +77,9 @@ test('a bookkeeper adds an account, previews a statement and reads it in', async
   await expect(page.getByText('-45,50')).toBeVisible()
 
   // The same file again adds nothing, and says so.
+  // Enabled first: the input is `disabled` until React has taken over, and
+  // setting files on a disabled input silently does nothing.
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   const report = page.locator('dl', { has: page.getByText('Al ingelezen') })
@@ -92,6 +98,10 @@ test('a file for the wrong account is refused, in words', async ({ page }) => {
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByText('NL91RABO0315273637')).toBeVisible()
 
+  // Enabled first: the input is `disabled` until React has taken over, and
+  // setting files on a disabled input silently does nothing.
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
+
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
 
   await expect(page.getByRole('alert')).toContainText('NL02ABNA0123456789')
@@ -108,6 +118,10 @@ test('a CSV is mapped once and remembered', async ({ page }) => {
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+
+  // Enabled first: the input is `disabled` until React has taken over, and
+  // setting files on a disabled input silently does nothing.
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
 
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'ing.csv'))
 
@@ -133,6 +147,9 @@ test('a CSV is mapped once and remembered', async ({ page }) => {
   await expect(page.getByText('-45,50')).toBeVisible()
 
   // The second file needs no mapping at all: the account remembers.
+  // Enabled first: the input is `disabled` until React has taken over, and
+  // setting files on a disabled input silently does nothing.
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'ing.csv'))
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Kolommen van dit bestand' })).toHaveCount(0)

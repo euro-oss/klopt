@@ -856,3 +856,78 @@ export const verifySnapshotQuery = z.object({
 
 export type SealSnapshotBody = z.infer<typeof sealSnapshotBody>
 export type VerifySnapshotQuery = z.infer<typeof verifySnapshotQuery>
+
+/**
+ * Connecting to Exact Online (spec 13).
+ *
+ * The OAuth app belongs to whoever runs this instance — spec 8's
+ * bring-your-own-credential rule — so the client id and secret arrive here
+ * rather than out of the environment. The secret is stored encrypted and never
+ * returned, the same way a mailbox password is.
+ *
+ * `redirectUri` has to match what was registered with Exact exactly, including
+ * the scheme and any trailing path, or the handshake fails at Exact's end with
+ * an error that does not say why. So it is required rather than derived from
+ * the request's own host: guessing it right some of the time is worse than
+ * asking.
+ */
+export const connectExactBody = z.object({
+  baseUrl: z
+    .string()
+    .trim()
+    .url()
+    // A token issued at start.exactonline.nl is not valid at .be, so the host
+    // is part of the connection rather than a display preference.
+    //
+    // https, with loopback carved out. Every Exact host is https and a client
+    // secret over plain http is a credential on the wire — but refusing
+    // loopback outright means the flow cannot be walked against a stand-in,
+    // which is how the parts of it that only show up over real HTTP get found.
+    .refine(
+      (value) =>
+        value.startsWith('https://') ||
+        value.startsWith('http://localhost') ||
+        value.startsWith('http://127.0.0.1'),
+      'The Exact host must be https, or localhost for a stand-in.',
+    ),
+  clientId: z.string().trim().min(1).max(200),
+  clientSecret: z.string().trim().min(1).max(400),
+  redirectUri: z.string().trim().url(),
+})
+
+export type ConnectExactBody = z.infer<typeof connectExactBody>
+
+/** The callback's query, posted by the screen Exact redirects to. */
+export const completeExactBody = z.object({
+  code: z.string().trim().min(1).max(2000),
+  state: z.string().trim().min(1).max(200),
+})
+
+export type CompleteExactBody = z.infer<typeof completeExactBody>
+
+/**
+ * Choosing the administration to import from.
+ *
+ * The code is checked against what Exact actually offers rather than trusted:
+ * a number in a request body is not evidence that this login can reach that
+ * division.
+ */
+export const chooseExactDivisionBody = z.object({
+  divisionCode: z.coerce.number().int().min(1),
+})
+
+export type ChooseExactDivisionBody = z.infer<typeof chooseExactDivisionBody>
+
+/**
+ * What a dry run reads.
+ *
+ * `year` because `financial/ReportingBalance` is per book year and there is no
+ * "all of it" — a trial balance without a year is not a trial balance.
+ */
+export const exactPreviewQuery = z.object({
+  year: z.coerce.number().int().min(1990).max(2200),
+  /** Read the document archive too. Slow, and not needed to reconcile. */
+  documents: z.coerce.boolean().optional(),
+})
+
+export type ExactPreviewQuery = z.infer<typeof exactPreviewQuery>
