@@ -92,12 +92,20 @@ test('a hold over the administration needs a reason, and shows it', async ({ pag
   await expect(page.getByRole('button', { name: 'Instellen' })).toBeVisible()
 })
 
-test('the screen says what the storage guarantees', async ({ page }) => {
-  // Spec 7.6 asks for object lock. A directory has none, and claiming
-  // otherwise on a compliance screen would be the worst kind of wrong.
+test('the screen admits that a directory guarantees nothing', async ({ page }) => {
+  // The browser suite runs against a directory on purpose (see
+  // playwright.config.ts), so this asserts the honest half: spec 7.6 asks for
+  // object lock, a directory has none, and a compliance screen that implied
+  // otherwise would be worse than no screen because somebody would rely on it.
+  //
+  // The other half — a bucket that really does hold bytes down — is asserted
+  // against a real bucket in apps/web/test/retention-worm.test.ts.
   await anAdministration(page)
   await page.goto('/retention')
 
-  await expect(page.getByText(/Opslag: filesystem/)).toBeVisible()
-  await expect(page.getByText(/geen object lock/)).toBeVisible()
+  // The paragraph, not the inner span: the span holds only "Opslag: filesystem"
+  // and the sentence saying what that means is its sibling.
+  const storage = page.locator('p', { has: page.getByText(/^Opslag: /) }).first()
+  await expect(storage).toContainText('filesystem')
+  await expect(storage).toContainText('geen object lock')
 })

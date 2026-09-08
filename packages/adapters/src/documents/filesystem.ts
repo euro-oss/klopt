@@ -81,16 +81,18 @@ export function createFilesystemDocumentStore(
      * into "this cannot be deleted", and only the last of those is something
      * this repository can ship.
      *
-     * False rather than an error when the hash is not there: a store that
-     * already lost the bytes and one that just dropped them are the same state,
-     * and a retry of a half-finished run has to be able to say so.
+     * There is no `locked` outcome here, and that is the honest answer rather
+     * than a gap: this store cannot refuse, so it never does.
      */
     async delete(sha256) {
       try {
         await rm(pathFor(options.directory, sha256))
-        return true
+        return { outcome: 'deleted' }
       } catch {
-        return false
+        // `absent` rather than a failure: a store that already lost the bytes
+        // and one that just dropped them are the same state, and a retry of a
+        // half-finished run has to be able to say so.
+        return { outcome: 'absent' }
       }
     },
   }

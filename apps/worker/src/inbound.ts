@@ -1,5 +1,4 @@
-import { join } from 'node:path'
-import { createFilesystemDocumentStore, createInboundSource } from '@klopt/adapters'
+import { createInboundSource, resolveDocumentStore } from '@klopt/adapters'
 import {
   closeDatabase,
   createDatabase,
@@ -42,10 +41,9 @@ export interface InboundPollSummary {
   readonly failed: readonly { readonly name: string; readonly failure: string }[]
 }
 
+/** The same choice the web app makes, from the same environment. */
 function storeFor(): DocumentStore {
-  return createFilesystemDocumentStore({
-    directory: process.env['KLOPT_DOCUMENT_DIR'] ?? join(process.cwd(), '.klopt', 'documents'),
-  })
+  return resolveDocumentStore(process.env)
 }
 
 /**

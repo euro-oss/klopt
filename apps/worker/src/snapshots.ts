@@ -1,7 +1,7 @@
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadReferenceDataFromDirectory, type ReferenceDataStore } from '@klopt/core'
-import { createFilesystemDocumentStore } from '@klopt/adapters'
+import { resolveDocumentStore } from '@klopt/adapters'
 import {
   SealRefusedError,
   closeDatabase,
@@ -53,10 +53,9 @@ function referenceDataStore(): ReferenceDataStore {
   return loadReferenceDataFromDirectory(directory)
 }
 
+/** The same choice the web app makes, from the same environment. */
 function storeFor(): DocumentStore {
-  return createFilesystemDocumentStore({
-    directory: process.env['KLOPT_DOCUMENT_DIR'] ?? join(process.cwd(), '.klopt', 'documents'),
-  })
+  return resolveDocumentStore(process.env)
 }
 
 export interface SnapshotSweepSummary {

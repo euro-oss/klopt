@@ -22,6 +22,13 @@ import { salesInvoices } from '../schema/sales.js'
  * shorter one would throw away the evidence for the later.
  */
 
+/** A document whose term is now known, and therefore lockable in the store. */
+export interface DatedDocument {
+  readonly documentId: string
+  readonly sha256: string
+  readonly retainUntil: string
+}
+
 export interface RetentionDocumentRow {
   readonly id: string
   readonly sha256: string
@@ -114,11 +121,11 @@ export class RetentionRepository {
    * for several: keeping it for the earliest would throw away the evidence for
    * the later one while it still mattered.
    *
-   * Returns how many documents were dated, so a caller can say what it did.
+   * Returns the terms it wrote, so a caller can push them at the storage.
    * Idempotent by construction: it writes the term it computes, and computing
    * it again from the same links produces the same answer.
    */
-  async dateDocuments(entityId: string): Promise<number> {
+  async dateDocuments(entityId: string): Promise<readonly DatedDocument[]> {
     const dated = await this.tx
       .select({
         documentId: documentLinks.documentId,
@@ -163,19 +170,20 @@ export class RetentionRepository {
       .where(and(eq(documentLinks.entityId, entityId), isNull(documents.deletedAt)))
       .groupBy(documentLinks.documentId, documents.retentionClass)
 
-    let written = 0
+    const written: DatedDocument[] = []
     for (const row of dated) {
       if (row.endsOn === null || row.code === null) continue
 
-      await this.tx
+      const until = retainUntil(row.endsOn, row.retentionClass)
+      const [updated] = await this.tx
         .update(documents)
-        .set({
-          retainUntil: retainUntil(row.endsOn, row.retentionClass),
-          retentionFiscalYear: row.code,
-        })
+        .set({ retainUntil: until, retentionFiscalYear: row.code })
         .where(and(eq(documents.entityId, entityId), eq(documents.id, row.documentId)))
+        .returning({ sha256: documents.sha256 })
 
-      written += 1
+      if (updated !== undefined) {
+        written.push({ documentId: row.documentId, sha256: updated.sha256, retainUntil: until })
+      }
     }
 
     return written

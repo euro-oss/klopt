@@ -64,16 +64,87 @@ export interface DocumentStore {
    * expiry sweep behind this and no lifecycle rule; something calls it because
    * somebody pressed a button.
    *
-   * Returns false when the hash was not there, which is not an error: a store
-   * that already lost the bytes and a store that just dropped them are the same
-   * state, and a retry of a half-finished run has to be able to say so.
+   * The three outcomes are three different facts and the caller has to be able
+   * to tell them apart:
    *
-   * An implementation over WORM storage may refuse until the object's own lock
-   * expires, and should — that is the point of the lock, and a store that
-   * quietly obeyed the application instead of its retention date would be
-   * offering no guarantee at all.
+   *   - `deleted` — the bytes are gone.
+   *   - `absent` — there were none. Not an error: a store that already lost
+   *     them and one that just dropped them are the same state, and a retry of
+   *     a half-finished run has to be able to say so.
+   *   - `locked` — the store refused, because its own retention has not
+   *     expired. **That is the point of a WORM store**, and it must not be
+   *     reported as success. A run that said "deleted" about bytes still on
+   *     disk would be the worst answer available.
    */
-  delete(sha256: string): Promise<boolean>
+  delete(sha256: string): Promise<DocumentDeletion>
+}
+
+export type DocumentDeletion =
+  | { readonly outcome: 'deleted' }
+  | { readonly outcome: 'absent' }
+  | { readonly outcome: 'locked'; readonly until: string | null }
+
+/**
+ * A store that can hold bytes down itself (spec 7.6).
+ *
+ * > "Object storage with object lock or WORM mode, with a retention date
+ * > computed per document from its fiscal year."
+ *
+ * Separate from `DocumentStore` rather than optional methods on it, because the
+ * difference is not a detail: a store with this can *refuse* the application,
+ * and one without it cannot. `supportsWorm` is the type guard, and the
+ * retention screen prints the answer rather than implying one.
+ *
+ * ## The lock is applied when the term is known, not when the bytes arrive
+ *
+ * This is the part that shapes everything. Object lock is set per object and
+ * can be extended but never shortened — and at the moment bytes arrive, their
+ * retention term is *unknown*, because it is counted from the book year of
+ * whatever the document turns out to be evidence for (ADR 0030). Guessing at
+ * PUT time would lock a 2018 receipt until 2033.
+ *
+ * So bytes are stored unlocked and `retain` is called when the term is derived.
+ * The window between is real and worth being honest about: an object with no
+ * lock yet is protected by the application and not by the storage, which is
+ * exactly what `unlockedCount` on the retention screen is for.
+ */
+export interface WormDocumentStore extends DocumentStore {
+  readonly worm: {
+    /** `compliance` cannot be bypassed by anybody; `governance` can, with a permission. */
+    readonly mode: 'compliance' | 'governance'
+  }
+
+  /**
+   * Hold these bytes until this date.
+   *
+   * Idempotent, and monotonic: setting a later date extends, setting an earlier
+   * one is refused by the store in compliance mode. Both are correct — a
+   * retention term in this system only ever grows (seven years becomes ten for
+   * onroerend goed), and a term that could shrink would make the lock worthless.
+   */
+  retain(sha256: string, until: string): Promise<void>
+
+  /** The date the store is holding these bytes until, if any. */
+  retentionOf(sha256: string): Promise<{ readonly until: string; readonly mode: string } | null>
+
+  /**
+   * Whether the bucket really has object lock turned on.
+   *
+   * Asked rather than assumed, and that distinction is the whole point of this
+   * port. "This is an S3 store" and "this bucket holds bytes down" are
+   * different claims: object lock can only be enabled when a bucket is created,
+   * and a stack that came up against a bucket made before anybody wanted one
+   * works perfectly while guaranteeing nothing.
+   *
+   * A compliance screen reporting `objectLock: true` because of the store's
+   * *class* rather than the bucket's *configuration* would be exactly the kind
+   * of unverified claim this whole file exists to avoid.
+   */
+  verifyLock(): Promise<{ readonly enabled: boolean; readonly reason: string | null }>
+}
+
+export function supportsWorm(store: DocumentStore): store is WormDocumentStore {
+  return 'worm' in store && typeof (store as WormDocumentStore).retain === 'function'
 }
 
 /** Lowercase hex SHA-256, computed the same way everywhere. */

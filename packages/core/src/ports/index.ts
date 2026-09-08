@@ -46,9 +46,12 @@ export type {
   FilingTransportKind,
 } from './filing.js'
 export {
+  type DocumentDeletion,
   type DocumentStore,
   type StoredDocument,
+  type WormDocumentStore,
   contentTypeFor,
   looksLikeXml,
   sha256Hex,
+  supportsWorm,
 } from './document-store.js'

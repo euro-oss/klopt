@@ -25,6 +25,7 @@ blob-report/
 
 # Playwright
 apps/web/e2e/.outbox/
+apps/web/e2e/.documents/
 
 # The default document store. Content-addressed source documents, which are the
 # administration's own records and never the repository's.

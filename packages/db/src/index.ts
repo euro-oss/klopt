@@ -34,8 +34,13 @@ export { XafExportRepository, type XafExportRequest } from './repositories/xaf.j
 export { RgsRepository } from './repositories/rgs.js'
 export { type InboxItemRow, InboxRepository } from './repositories/inbox.js'
 export { type AuditQuery, type AuditRow, AuditRepository } from './repositories/audit.js'
-export { type RetentionDocumentRow, RetentionRepository } from './repositories/retention.js'
+export {
+  type DatedDocument,
+  type RetentionDocumentRow,
+  RetentionRepository,
+} from './repositories/retention.js'
 export { type SnapshotRow, SnapshotRepository } from './repositories/snapshots.js'
+export { applyRetention, type RetentionApplication } from './retention/apply.js'
 export {
   SealRefusedError,
   sealFiscalYear,

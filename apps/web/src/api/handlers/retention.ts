@@ -1,5 +1,16 @@
-import { PERMISSIONS, RETENTION_CLASS_LABEL, retentionState, summariseRetention } from '@klopt/core'
-import { withRetention, withRetentionRead, type RetentionDocumentRow } from '@klopt/db'
+import {
+  PERMISSIONS,
+  RETENTION_CLASS_LABEL,
+  retentionState,
+  summariseRetention,
+  supportsWorm,
+} from '@klopt/core'
+import {
+  applyRetention,
+  withRetention,
+  withRetentionRead,
+  type RetentionDocumentRow,
+} from '@klopt/db'
 import { hasPermission, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
 import { recordAudit } from '../audit.js'
@@ -78,8 +89,10 @@ export async function handleGetRetention(context: RequestContext, query: Retenti
 
   // A read that writes, and the one place it is right to: deriving a term from
   // links that already exist changes no decision, and a preview computed from a
-  // stale term would be a preview of the wrong thing.
-  await withRetention(context.database, (repository) => repository.dateDocuments(context.entityId))
+  // stale term would be a preview of the wrong thing. It also pushes the terms
+  // at the storage, because a term in a column that the store was never told
+  // about is the application promising something nobody is keeping.
+  const applied = await applyRetention(context.database, documentStore(), context.entityId)
 
   return withRetentionRead(context.database, async (repository) => {
     const [hold, rows] = await Promise.all([
@@ -89,6 +102,11 @@ export async function handleGetRetention(context: RequestContext, query: Retenti
 
     const summary = summariseRetention(rows, { asOf, entityLegalHold: hold.held })
     const store = documentStore()
+
+    // Asked, not assumed. "This is an S3 store" and "this bucket holds bytes
+    // down" are different claims, and only one of them is worth printing on a
+    // compliance screen.
+    const lock = supportsWorm(store) ? await store.verifyLock() : { enabled: false, reason: null }
 
     return {
       status: 200,
@@ -103,17 +121,25 @@ export async function handleGetRetention(context: RequestContext, query: Retenti
         /**
          * What the storage itself guarantees, said plainly.
          *
-         * Spec 7.6 asks for object lock or WORM mode. The default store is a
-         * directory and has neither, so the retention promise there is the
-         * application's rather than the storage's. Claiming otherwise on a
-         * compliance screen would be the worst kind of wrong.
+         * Spec 7.6 asks for object lock or WORM mode. A directory has neither,
+         * so the retention promise there is the application's rather than the
+         * storage's — and claiming otherwise on a compliance screen would be
+         * the worst kind of wrong. `locked` versus `dated` is the honest middle
+         * state: a document whose term is known but which the store has not
+         * been told about yet.
          */
         storage: {
           name: store.name,
-          objectLock: false,
-          note:
-            store.name === 'filesystem'
-              ? 'Deze opslag heeft geen object lock: de bewaartermijn wordt door de applicatie afgedwongen, niet door de opslag. Een read-only mount of een bucket met object lock maakt er een echte garantie van.'
+          objectLock: lock.enabled,
+          mode: lock.enabled && supportsWorm(store) ? store.worm.mode : null,
+          dated: applied.dated,
+          locked: applied.locked,
+          refused: applied.refused.length,
+          note: !lock.enabled
+            ? (lock.reason ??
+              'Deze opslag heeft geen object lock: de bewaartermijn wordt door de applicatie afgedwongen, niet door de opslag. Een bucket met object lock maakt er een echte garantie van.')
+            : applied.refused.length > 0
+              ? `${String(applied.refused.length)} document(en) kon de opslag niet vasthouden. De applicatie weigert verwijderen nog steeds, maar de opslag garandeert het niet.`
               : null,
         },
         documents: rows.map((row) => serialise(row, asOf, hold.held)),
@@ -178,6 +204,42 @@ export async function handleSetRetentionClass(
   requirePermission(context, PERMISSIONS.manageRetention)
 
   return withRetention(context.database, async (repository) => {
+    /**
+     * A term may be extended and not shortened.
+     *
+     * This mirrors object lock exactly, and that is the reason for it. Going
+     * from ten years back to seven would drop the database's term below the
+     * one the storage is holding, and the store — correctly — would refuse the
+     * deletion the application had started offering. The two would disagree
+     * about a statutory obligation, which is the one thing this pair must never
+     * do.
+     *
+     * The disagreement is unreachable any other way: a term derived from a book
+     * year only ever grows, because a document linked to several subjects takes
+     * the latest year. Reclassifying downwards was the only path to it, and it
+     * bought nothing — under a compliance lock the storage would not have
+     * honoured it anyway.
+     */
+    if (body.retentionClass === 'standard') {
+      const rows = await repository.list(context.entityId)
+      const wanted = new Set(body.documentIds)
+      const longer = rows.filter(
+        (row) => wanted.has(row.id) && row.retentionClass === 'immovable_property',
+      )
+
+      if (longer.length > 0) {
+        throw new ApiError(
+          'validation_failed',
+          `${String(longer.length)} of these are kept for ten years as onroerend goed, and a retention term cannot be shortened. Storage under an object lock would refuse it too, leaving the books and the bytes disagreeing about the law.`,
+          longer.map((row) => ({
+            code: 'term_cannot_shorten',
+            path: `documents.${row.id}`,
+            message: `${row.filename ?? row.sha256} is kept until ${row.retainUntil ?? 'a date not yet known'}.`,
+          })),
+        )
+      }
+    }
+
     const affected = await repository.setRetentionClass({
       entityId: context.entityId,
       documentIds: body.documentIds,
@@ -277,13 +339,31 @@ export async function handleDeleteDocuments(context: RequestContext, body: Delet
   const store = documentStore()
   let bytesRemoved = 0
   let keptForOthers = 0
+  const refusedByStorage: { sha256: string; until: string | null }[] = []
 
   for (const row of outcome.deleted) {
     if (outcome.stillHeld.has(row.sha256)) {
       keptForOthers += 1
       continue
     }
-    if (await store.delete(row.sha256)) bytesRemoved += 1
+
+    const removal = await store.delete(row.sha256)
+
+    /**
+     * A store that refuses is the store working, not failing.
+     *
+     * This is the case a WORM bucket exists for, and it is reported rather than
+     * counted as a success: telling a compliance screen that statutory records
+     * were destroyed while they are still sitting there under their lock would
+     * be the worst answer available. It happens when the application's term and
+     * the storage's disagree — usually a document whose book year was learnt
+     * later than its lock was set.
+     */
+    if (removal.outcome === 'locked') {
+      refusedByStorage.push({ sha256: row.sha256, until: removal.until })
+      continue
+    }
+    if (removal.outcome === 'deleted') bytesRemoved += 1
   }
 
   await recordAudit(context, {
@@ -297,6 +377,10 @@ export async function handleDeleteDocuments(context: RequestContext, body: Delet
       // Rows marked deleted whose bytes another administration still keeps.
       // Content addressing means the file outlives our copy of it.
       keptForOthers,
+      // And the ones the storage itself would not let go. Recorded, because
+      // "we deleted the row and the bytes are still there" is exactly the fact
+      // somebody will need later.
+      refusedByStorage,
       hashes: outcome.deleted.map((row) => row.sha256),
     },
   })
@@ -307,6 +391,7 @@ export async function handleDeleteDocuments(context: RequestContext, body: Delet
       deleted: outcome.deleted.length,
       bytesRemoved,
       keptForOthers,
+      refusedByStorage,
       reason: body.reason,
     },
   }

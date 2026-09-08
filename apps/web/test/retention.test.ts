@@ -12,9 +12,10 @@ import {
   type Database,
 } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
+import { createFilesystemDocumentStore } from '@klopt/adapters'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
-import { documentStore } from '../src/api/document-store.js'
+import { documentStore, setDocumentStoreForTest } from '../src/api/document-store.js'
 import {
   handleDeleteDocuments,
   handleGetRetention,
@@ -224,11 +225,17 @@ beforeAll(async () => {
 
   // Its own directory, so a deletion test cannot take another test's bytes.
   documentDirectory = await mkdtemp(join(tmpdir(), 'klopt-retention-'))
-  process.env['KLOPT_DOCUMENT_DIR'] = documentDirectory
+
+  // Explicitly the filesystem store, rather than whatever the developer's shell
+  // happens to have configured. These tests are about the *application's*
+  // retention policy; that it also holds when the storage enforces nothing is
+  // the point, and `test/retention-worm.test.ts` covers the other case.
+  setDocumentStoreForTest(createFilesystemDocumentStore({ directory: documentDirectory }))
 }, 60_000)
 
 afterAll(async () => {
   setDatabaseForTest(null)
+  setDocumentStoreForTest(null)
   await closeDatabase(database)
   await rm(documentDirectory, { recursive: true, force: true })
 })
@@ -311,6 +318,7 @@ describe('how long each document is kept', () => {
 
     expect(result.storage.name).toBe('filesystem')
     expect(result.storage.objectLock).toBe(false)
+    expect(result.storage.mode).toBeNull()
     expect(result.storage.note).toContain('object lock')
   })
 })
@@ -555,5 +563,54 @@ describe('deleting what the law no longer requires', () => {
         deleteDocumentsBody.parse({ documentIds: [documentId], reason: 'Nog eens.' }),
       ),
     ).rejects.toMatchObject({ code: 'validation_failed' })
+  })
+})
+
+describe('a term that only grows', () => {
+  it('extends to ten years, and refuses to go back to seven', async () => {
+    // The one reachable way the application's term and the storage's could
+    // disagree, and therefore the one worth closing. A term derived from a book
+    // year only ever grows, because a document linked to several subjects takes
+    // the latest year — reclassifying downwards was the only other path, and it
+    // bought nothing: a compliance lock would refuse it anyway.
+    const { token } = await newEntity()
+    await aSupplier(token)
+    const { documentId } = await aBookedDocument(token, 'F-TERM-1')
+
+    await handleSetRetentionClass(
+      await context(token, uuidv7()),
+      setRetentionClassBody.parse({
+        documentIds: [documentId],
+        retentionClass: 'immovable_property',
+      }),
+    )
+    expect(
+      (await retention(token)).documents.find((row) => row.id === documentId)?.retainUntil,
+    ).toBe('2036-12-31')
+
+    await expect(
+      handleSetRetentionClass(
+        await context(token, uuidv7()),
+        setRetentionClassBody.parse({ documentIds: [documentId], retentionClass: 'standard' }),
+      ),
+    ).rejects.toMatchObject({ code: 'validation_failed' })
+
+    // And the term did not move.
+    expect(
+      (await retention(token)).documents.find((row) => row.id === documentId)?.retainUntil,
+    ).toBe('2036-12-31')
+  })
+
+  it('setting standard on a document that already is one is not a change', async () => {
+    // Refusing an idempotent no-op would be friction with no reader.
+    const { token } = await newEntity()
+    await aSupplier(token)
+    const { documentId } = await aBookedDocument(token, 'F-TERM-2')
+
+    const result = await handleSetRetentionClass(
+      await context(token, uuidv7()),
+      setRetentionClassBody.parse({ documentIds: [documentId], retentionClass: 'standard' }),
+    )
+    expect(result.body.documents).toBe(1)
   })
 })

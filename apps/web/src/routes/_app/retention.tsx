@@ -87,6 +87,17 @@ function Retention() {
     key.current = crypto.randomUUID()
     setChosen(new Set())
     setReason('')
+
+    // A store that refused is the store working. Saying nothing would leave
+    // somebody believing bytes were destroyed that are still sitting there.
+    const outcome = result as { data?: { refusedByStorage?: readonly unknown[] } }
+    const refused = outcome.data?.refusedByStorage?.length ?? 0
+    if (refused > 0) {
+      setNote(
+        `${String(refused)} document(en) zijn in de administratie afgevoerd, maar de opslag houdt de bytes nog vast onder een object lock. Dat is de opslag die zijn werk doet, niet een fout.`,
+      )
+    }
+
     await router.invalidate()
     return result as T
   }
@@ -117,12 +128,28 @@ function Retention() {
         What the storage guarantees, not what we would like it to. Spec 7.6 asks
         for object lock; a directory has none, and saying so on a compliance
         screen is the whole difference between a claim and a fact.
+
+        `vastgehouden` versus `met termijn` is the honest middle state: a
+        document whose term is known but which the store has not been told about
+        yet is protected by the application and not by the storage.
       */}
-      {data.storage.note !== null && (
-        <p className="border-border text-muted-foreground mb-6 max-w-3xl rounded-md border border-dashed p-3 text-sm">
-          <span className="font-medium">Opslag: {data.storage.name}.</span> {data.storage.note}
-        </p>
-      )}
+      <p className="border-border text-muted-foreground mb-6 max-w-3xl rounded-md border border-dashed p-3 text-sm">
+        <span className="text-foreground font-medium">Opslag: {data.storage.name}</span>
+        {data.storage.objectLock ? (
+          <>
+            {' '}
+            met object lock ({data.storage.mode}). De opslag houdt{' '}
+            <span className="tabular">{data.storage.locked}</span> van de{' '}
+            <span className="tabular">{data.storage.dated}</span> documenten met een bekende termijn
+            zelf vast — verwijderen kan dan niet, ook niet door ons.
+          </>
+        ) : (
+          <> — {data.storage.note}</>
+        )}
+        {data.storage.refused > 0 && (
+          <span className="text-destructive block">{data.storage.note}</span>
+        )}
+      </p>
 
       <section className="border-border mb-8 max-w-3xl rounded-md border p-4">
         <h2 className="mb-1 text-sm font-semibold">Legal hold op de hele administratie</h2>
