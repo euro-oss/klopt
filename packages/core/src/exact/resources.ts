@@ -3,6 +3,7 @@ import {
   readBoolean,
   readDate,
   readGuid,
+  readKey,
   readMinor,
   readNumber,
   readString,
@@ -333,7 +334,14 @@ export const OPEN_ITEM_SELECT = [
 
 export interface ExactOpenItem {
   readonly hid: string
-  readonly accountId: string
+  /**
+   * Exact's GUID for the relation. Carried, not matched on — the plan pairs an
+   * open item to a contact by `accountCode`, which is the debiteurennummer a
+   * human recognises. Nullable for that reason: a row with no GUID is still a
+   * perfectly good open item, and refusing the import over a field nothing
+   * reads would be a strict check with no benefit behind it.
+   */
+  readonly accountId: string | null
   readonly accountCode: string
   readonly accountName: string
   /** Outstanding, in minor units of `currency`. */
@@ -357,13 +365,23 @@ export interface ExactOpenItem {
 }
 
 export function parseOpenItem(row: Record<string, unknown>): ExactOpenItem {
-  const hid = readNumber(row, 'HID')
+  // `HID` is `Edm.Int64`, which Exact quotes — see `readKey`. Reading it as a
+  // JSON number returned null for every row, and the fallback below used to be
+  // `requireGuid(row, 'Id')`, which failed twice over: `Id` is marked Obsolete
+  // in Exact's own reference and it is not in `OPEN_ITEM_SELECT`, so it was
+  // reading a field that was never asked for. Every open item threw.
+  const hid = readKey(row, 'HID')
   const invoiceNumber = readNumber(row, 'InvoiceNumber')
   const entryNumber = readNumber(row, 'EntryNumber')
 
   return {
-    hid: hid === null ? requireGuid(row, 'Id') : String(hid),
-    accountId: requireGuid(row, 'AccountId'),
+    // A composite of columns that *are* selected, when there is no HID. It has
+    // to be stable across re-imports, so it is built from the entry's own
+    // coordinates rather than from its position in the response.
+    hid:
+      hid ??
+      `${readString(row, 'JournalCode') ?? '?'}-${String(entryNumber ?? '?')}-${String(invoiceNumber ?? '?')}`,
+    accountId: readGuid(row, 'AccountId'),
     accountCode: requireString(row, 'AccountCode'),
     accountName: readString(row, 'AccountName') ?? requireString(row, 'AccountCode'),
     outstanding: requireMinor(row, 'Amount'),

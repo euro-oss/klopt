@@ -268,3 +268,80 @@ The cost is that a nullable amount now has to be handled at four layers. That
 is the price of not being able to express "we did not look" as a number, and it
 is worth paying: the alternative is a reconciliation report that is most
 confident exactly when it knows least.
+
+## Edm.Int64 arrives quoted, and one wrong scalar took out the whole import
+
+A real administration failed with `Id is not a GUID` on every open item.
+
+`HID` on the receivables and payables lists is `Edm.Int64`. A 64-bit integer
+does not fit a JSON number — `Number.MAX_SAFE_INTEGER` is 2^53 — so OData
+quotes it, and Exact's reference documentation does not say which endpoints do.
+`readNumber` requires `typeof value === 'number'`, so it returned null for
+every row, and the fallback read `Id`: a column marked **Obsolete** in Exact's
+own reference and not in `OPEN_ITEM_SELECT`, so never returned either. Two
+mistakes in one line, and the second hid the first — the error named a field
+nobody had asked for.
+
+So there is now a `readKey` that accepts either form and returns a string,
+because these values are keys to match on and never arithmetic. Keeping them as
+text is also the only way a nineteen-digit id survives being read, which is the
+whole reason Exact quoted it. The fallback is a composite of columns that _are_
+selected, so it is stable across a re-import.
+
+The stand-in Exact used for the walk-throughs returned `HID` unquoted, which is
+why every test passed while the real thing failed on its first open item. It
+quotes it now. **A fixture that is easier to satisfy than the real system is a
+fixture that certifies bugs.**
+
+`requireGuid` and `requireKey` also quote what they actually got. "HID is not a
+whole number" sends somebody to look at their data; `HID was not returned`
+sends them to the reader, which is where the bug is.
+
+## Two messages for one failure
+
+The same incident showed a second defect. `ExactReadError` was not mapped in
+`refuse`, so it fell through to the generic 500 — whose message is deliberately
+withheld, because a 500 can carry a connection string. The result was one
+failure appearing as two unrelated problems in two places: the real cause in
+the connection's `lastError` panel, and "The request could not be completed."
+in the banner above it.
+
+It is mapped now. A row we cannot parse is our defect, not Exact's, so it stays
+loud rather than degrading the way a 403 does — it just says which field, what
+was in it, and how far the read got before it stopped.
+
+Every refusal now carries that last part: `Read 3 request(s) before this, last
+of them bulk/Financial/GLAccounts.` A read that dies on the seventh of eight
+resources is indistinguishable from one that never started, and which of those
+happened is the first thing anybody wants to know.
+
+## The bulk endpoints, and not reading pages to throw them away
+
+Exact's ordinary collections page at sixty rows. The `bulk/` variants of the
+same resources page at a thousand, which their documentation states outright.
+Four of the eight resources have one — `bulk/CRM/Accounts`,
+`bulk/Financial/GLAccounts`, `bulk/Documents/Documents`,
+`bulk/Documents/DocumentAttachments` — and all four carry every column we
+select, checked against the reference pages rather than assumed.
+
+For an administration with five thousand relations that is six requests instead
+of eighty-four. It matters beyond speed: every request spends a finite daily
+budget, and a read that takes minutes is a read that outlives whatever timeout
+sits between a browser and this process.
+
+The paths are written out rather than derived, because they are not a prefix
+away from the ordinary ones: it is `bulk/CRM/Accounts`, not `bulk/CRMAccounts`.
+The resource names in `REQUIRED_RESOURCES` and the consequence table had to
+move with them — they are matched as strings, and a rename that missed one
+would have quietly reclassified a blocking failure as a warning.
+
+`collectAll` also takes a `limit` now. The document read asks for the newest
+five hundred, and used to page through the division's entire history before
+slicing — fifty requests to answer a question that needed one.
+
+### What a full read costs
+
+Nine requests for a small administration, and the report shows every one of
+them with its status, row count and duration. That is there because "how many
+requests is this" is the question somebody asks while watching it run, and
+because a resource that quietly pages eighty times is worth being able to see.

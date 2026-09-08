@@ -483,7 +483,7 @@ describe('reading a division whose rights are uneven', () => {
 
     // Every other resource was still asked for. Seven reads, one of them refused.
     const asked = fetch.mock.calls.map(([url]) => String(url))
-    expect(asked.some((url) => url.includes('crm/Accounts'))).toBe(true)
+    expect(asked.some((url) => url.includes('bulk/CRM/Accounts'))).toBe(true)
     expect(asked.some((url) => url.includes('ReceivablesList'))).toBe(true)
     expect(asked.some((url) => url.includes('PayablesList'))).toBe(true)
   })
@@ -502,7 +502,7 @@ describe('reading a division whose rights are uneven', () => {
     // Swallowing this would turn "the network went away" into "this division
     // has no customers", and the import would proceed on it.
     const fetch = vi.fn((input: string) =>
-      String(input).includes('crm/Accounts')
+      String(input).includes('bulk/CRM/Accounts')
         ? Promise.reject(new Error('socket hang up'))
         : Promise.resolve(collection([])),
     )
@@ -561,5 +561,96 @@ describe('which failures a single resource may degrade over', () => {
     await expect(
       readDivision({ client: client(answering('vat/VATCodes', status)), division, year: 2026 }),
     ).rejects.toThrow(ExactApiError)
+  })
+})
+
+describe('how many requests a read costs', () => {
+  const division = {
+    code: 1000,
+    description: 'Test BV',
+    currency: 'EUR',
+    country: 'NL',
+    vatNumber: null,
+    chamberOfCommerceNumber: null,
+    status: 1,
+    isMainDivision: true,
+    isPracticeDivision: false,
+    isDossierDivision: false,
+    archiveDate: null,
+    current: true,
+  }
+
+  /**
+   * Exact's ordinary collections page at sixty rows; the `bulk/` variants of
+   * the same resources page at a thousand. On an administration with thousands
+   * of relations that is the difference between six requests and eighty-four,
+   * and between a read that finishes and one that outlives the timeout in front
+   * of it.
+   */
+  it('asks the bulk endpoints for the resources that have one', async () => {
+    const fetch = vi.fn((_input: string) => Promise.resolve(collection([])))
+
+    await readDivision({ client: client(fetch), division, year: 2026, documents: true })
+
+    const asked = fetch.mock.calls.map(([url]) => String(url))
+    expect(asked.some((url) => url.includes('/bulk/CRM/Accounts'))).toBe(true)
+    expect(asked.some((url) => url.includes('/bulk/Financial/GLAccounts'))).toBe(true)
+
+    // And not the sixty-row versions of the same things.
+    expect(asked.some((url) => url.includes('/crm/Accounts'))).toBe(false)
+    expect(asked.some((url) => url.includes('/financial/GLAccounts'))).toBe(false)
+  })
+
+  it('leaves the resources with no bulk variant alone', async () => {
+    const fetch = vi.fn((_input: string) => Promise.resolve(collection([])))
+
+    await readDivision({ client: client(fetch), division, year: 2026 })
+
+    const asked = fetch.mock.calls.map(([url]) => String(url))
+    // These four have no `bulk/` form, and two of them are already Exact's own
+    // pre-aggregated "read" endpoints.
+    expect(asked.some((url) => url.includes('/vat/VATCodes'))).toBe(true)
+    expect(asked.some((url) => url.includes('/cashflow/PaymentConditions'))).toBe(true)
+    expect(asked.some((url) => url.includes('/financial/ReportingBalance'))).toBe(true)
+    expect(asked.some((url) => url.includes('/read/financial/ReceivablesList'))).toBe(true)
+  })
+
+  it('stops paging documents once it has the limit', async () => {
+    /**
+     * A division with a long document history used to be read in full and then
+     * sliced. Fifty pages fetched to keep one of them, and fifty requests off
+     * the daily budget to answer a question that needed one.
+     */
+    const page = (n: number) =>
+      collection(
+        Array.from({ length: 1000 }, (_, index) => ({
+          ID: `00000000-0000-0000-0000-${String(n * 1000 + index).padStart(12, '0')}`,
+          Subject: 'Bon',
+        })),
+        {
+          next: `https://start.exactonline.nl/api/v1/1000/bulk/Documents/Documents?$skiptoken=${String(n + 1)}`,
+        },
+      )
+
+    let documentPages = 0
+    const fetch = vi.fn((input: string) => {
+      if (String(input).includes('bulk/Documents/Documents')) {
+        documentPages += 1
+        return Promise.resolve(page(documentPages))
+      }
+      return Promise.resolve(collection([]))
+    })
+
+    await readDivision({
+      client: client(fetch),
+      division,
+      year: 2026,
+      documents: true,
+      documentLimit: 500,
+    })
+
+    // One page of a thousand already covers a limit of five hundred. A second
+    // would be a request whose every row is thrown away.
+    expect(documentPages).toBe(1)
   })
 })

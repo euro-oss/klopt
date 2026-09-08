@@ -4,6 +4,7 @@ import {
   parseOpenItem,
   parseReportingBalance,
   planExactImport,
+  requireKey,
   type ExactImportOptions,
 } from '../../src/index.js'
 import { RAW, snapshot } from './fixture.js'
@@ -462,7 +463,7 @@ describe('a resource Exact refuses', () => {
   it('refuses when a resource the import actually needs is missing', () => {
     // Losing the chart of accounts is not a degradation, it is the import.
     const plan = planExactImport(
-      snapshot({ glAccounts: [], ...refused('financial/GLAccounts') }),
+      snapshot({ glAccounts: [], ...refused('bulk/Financial/GLAccounts') }),
       options(),
     )
 
@@ -501,5 +502,74 @@ describe('a resource Exact refuses', () => {
     const warning = plan.warnings.find((candidate) => candidate.code === 'resource_unreadable')
     expect(warning?.message).toContain('404')
     expect(warning?.message).not.toContain('rights')
+  })
+})
+
+describe('reading Exact’s own scalar shapes', () => {
+  /**
+   * The failure a real administration produced: every open item threw
+   * `Id is not a GUID`.
+   *
+   * `HID` is `Edm.Int64`. A 64-bit integer does not survive a JSON number, so
+   * OData quotes it — and Exact's reference documentation does not say which
+   * endpoints do. Reading it with `readNumber` returned null for every row,
+   * which fell through to a fallback that read `Id`: a field marked Obsolete in
+   * Exact's own docs and not in `OPEN_ITEM_SELECT`, so it was never returned
+   * either. One wrong assumption about a scalar took out the whole import.
+   */
+  const row = (overrides: Record<string, unknown> = {}) => ({
+    HID: 12_345,
+    AccountId: '11111111-1111-1111-1111-111111111111',
+    AccountCode: '  1000',
+    AccountName: 'Klant Een BV',
+    Amount: 1210,
+    AmountInTransit: 0,
+    CurrencyCode: 'EUR',
+    Description: 'Factuur',
+    DueDate: '2026-04-30T00:00:00',
+    InvoiceDate: '2026-03-31T00:00:00',
+    InvoiceNumber: 900_001,
+    EntryNumber: 500_001,
+    JournalCode: '70',
+    YourRef: null,
+    ...overrides,
+  })
+
+  it('reads a quoted Edm.Int64 key', () => {
+    expect(parseOpenItem(row({ HID: '9007199254740993' })).hid).toBe('9007199254740993')
+  })
+
+  it('reads an unquoted one the same way', () => {
+    expect(parseOpenItem(row({ HID: 12_345 })).hid).toBe('12345')
+  })
+
+  it('keeps a key too large for a JSON number intact', () => {
+    // The reason Exact quotes it. Parsing this as a number would round it, and
+    // two neighbouring open items would collapse onto one external id.
+    const big = '123456789012345678'
+    expect(parseOpenItem(row({ HID: big })).hid).toBe(big)
+    expect(Number(big).toString()).not.toBe(big)
+  })
+
+  it('falls back to columns it actually asked for when there is no key', () => {
+    // Not to `Id`, which is obsolete and unselected. Built from the entry's own
+    // coordinates so it is the same on a re-import.
+    const item = parseOpenItem(row({ HID: null }))
+    expect(item.hid).toBe('70-500001-900001')
+  })
+
+  it('does not throw over a relation GUID nothing reads', () => {
+    // `accountId` is carried and never matched on — the plan pairs by
+    // `accountCode`. Refusing an import over it would be a strict check with
+    // no benefit behind it.
+    expect(parseOpenItem(row({ AccountId: null })).accountId).toBeNull()
+    expect(parseOpenItem(row({ AccountId: null })).accountCode).toBe('1000')
+  })
+
+  it('says what it got when a key really is unreadable', () => {
+    // "HID is not a whole number" sends somebody looking at their data. Naming
+    // the value sends them to the reader, which is where the bug was.
+    expect(() => requireKey({ HID: 'twelve' }, 'HID')).toThrow(/"twelve"/)
+    expect(() => requireKey({}, 'HID')).toThrow(/was not returned/)
   })
 })

@@ -31,6 +31,24 @@ import { ExactApiError, collectAll } from './client.js'
  * executed. Re-reading between preview and commit would mean approving one
  * administration and importing another.
  *
+ * ## The bulk endpoints, where they exist
+ *
+ * Exact's ordinary collections page at sixty rows. The `bulk/` variants of the
+ * same resources page at a thousand — their documentation says so outright —
+ * which turns five thousand relations from eighty-four requests into six.
+ *
+ * That matters for more than speed. Every request spends the daily budget, and
+ * a read that takes four minutes is a read that outlives whatever timeout sits
+ * between a browser and this process. Four of the eight resources have a bulk
+ * variant and all four carry every column we select; the other four
+ * (`vat/VATCodes`, `cashflow/PaymentConditions`, `financial/ReportingBalance`
+ * and the two `read/financial/*` lists) have none, and are small or
+ * pre-aggregated anyway.
+ *
+ * The paths are not a prefix away from the ordinary ones — it is
+ * `bulk/CRM/Accounts`, not `bulk/CRMAccounts` — so they are written out rather
+ * than derived.
+ *
  * ## The order is not arbitrary
  *
  * The cheap reference data comes first — the chart of accounts, the VAT codes,
@@ -120,7 +138,11 @@ export async function readDivision(request: ReadDivisionRequest): Promise<ExactS
   const read = async (
     path: string,
     select: readonly string[],
-    options: { readonly filter?: string; readonly orderBy?: string } = {},
+    options: {
+      readonly filter?: string
+      readonly orderBy?: string
+      readonly limit?: number
+    } = {},
   ): Promise<readonly Record<string, unknown>[] | null> => {
     try {
       const rows = await collectAll(client, { division: code, path, select, ...options })
@@ -141,7 +163,7 @@ export async function readDivision(request: ReadDivisionRequest): Promise<ExactS
 
   // Reference data first: small, and it fails fast when the rights are wrong.
   const glAccounts = (
-    (await read('financial/GLAccounts', GL_ACCOUNT_SELECT, {
+    (await read('bulk/Financial/GLAccounts', GL_ACCOUNT_SELECT, {
       orderBy: 'Code',
     })) ?? []
   ).map(parseGLAccount)
@@ -166,8 +188,10 @@ export async function readDivision(request: ReadDivisionRequest): Promise<ExactS
   })
   const trialBalance = trialBalanceRows?.map(parseReportingBalance) ?? null
 
+  // The big one: a real administration has thousands of relations, and this is
+  // the read that used to dominate the whole pass at sixty rows a request.
   const accounts = (
-    (await read('crm/Accounts', CRM_ACCOUNT_SELECT, { orderBy: 'Code' })) ?? []
+    (await read('bulk/CRM/Accounts', CRM_ACCOUNT_SELECT, { orderBy: 'Code' })) ?? []
   ).map(parseAccount)
 
   const receivables = ((await read('read/financial/ReceivablesList', OPEN_ITEM_SELECT)) ?? []).map(
@@ -183,8 +207,11 @@ export async function readDivision(request: ReadDivisionRequest): Promise<ExactS
 
   if (request.documents === true) {
     const limit = request.documentLimit ?? DEFAULT_DOCUMENT_LIMIT
-    const rows = await read('documents/Documents', DOCUMENT_SELECT, {
+    // Newest first and stop at the limit, rather than reading the division's
+    // whole document history to keep the front of it.
+    const rows = await read('bulk/Documents/Documents', DOCUMENT_SELECT, {
       orderBy: 'DocumentDate desc',
+      limit,
     })
     documents = (rows ?? []).slice(0, limit).map(parseDocument)
 
@@ -196,7 +223,7 @@ export async function readDivision(request: ReadDivisionRequest): Promise<ExactS
     // second refusal for a resource nobody needed is noise in the report.
     if (documents.length > 0) {
       const wanted = new Set(documents.map((document) => document.id))
-      const attachmentRows = await read('documents/DocumentAttachments', ATTACHMENT_SELECT)
+      const attachmentRows = await read('bulk/Documents/DocumentAttachments', ATTACHMENT_SELECT)
       attachments = (attachmentRows ?? [])
         .map(parseAttachment)
         .filter((attachment) => wanted.has(attachment.documentId))

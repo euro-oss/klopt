@@ -305,8 +305,8 @@ export interface ExactImportPlan {
  * data itself.
  */
 const REQUIRED_RESOURCES: ReadonlySet<string> = new Set([
-  'financial/GLAccounts',
-  'crm/Accounts',
+  'bulk/Financial/GLAccounts',
+  'bulk/CRM/Accounts',
   'read/financial/ReceivablesList',
   'read/financial/PayablesList',
 ])
@@ -318,8 +318,8 @@ const CONSEQUENCE: Readonly<Record<string, string>> = {
   'vat/VATCodes': 'Accounts are imported without their default VAT code.',
   'cashflow/PaymentConditions':
     'Contacts are imported on the default payment term rather than their own, so due dates will differ.',
-  'documents/Documents': 'No documents are imported.',
-  'documents/DocumentAttachments': 'Documents are imported without their files.',
+  'bulk/Documents/Documents': 'No documents are imported.',
+  'bulk/Documents/DocumentAttachments': 'Documents are imported without their files.',
 }
 
 /** Exact's own types for the two control accounts. */

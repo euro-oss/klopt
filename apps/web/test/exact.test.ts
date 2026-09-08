@@ -9,6 +9,7 @@ import {
 } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
+import { ApiError } from '../src/api/errors.js'
 import { setDatabaseForTest } from '../src/api/database.js'
 import {
   handleChooseExactDivision,
@@ -103,6 +104,8 @@ interface FakeExact {
    * things and 403 for the seventh. This is how that is reproduced.
    */
   forbidden: Set<string>
+  /** Return a chart-of-accounts row the reader cannot make sense of. */
+  malformed: boolean
 }
 
 function fakeExact(): FakeExact {
@@ -112,6 +115,7 @@ function fakeExact(): FakeExact {
     spent: new Set(),
     revoked: false,
     forbidden: new Set(),
+    malformed: false,
     divisions: [
       {
         Code: 1000,
@@ -209,7 +213,10 @@ function fakeExact(): FakeExact {
       }
     }
 
-    if (url.includes('financial/GLAccounts')) {
+    if (url.includes('bulk/Financial/GLAccounts')) {
+      if (state.malformed) {
+        return Promise.resolve(collection([{ ID: 'nonsense', Code: '1300' }]))
+      }
       return Promise.resolve(
         collection([
           {
@@ -327,7 +334,7 @@ function fakeExact(): FakeExact {
         ]),
       )
     }
-    if (url.includes('crm/Accounts')) {
+    if (url.includes('bulk/CRM/Accounts')) {
       return Promise.resolve(
         collection([
           {
@@ -787,6 +794,38 @@ describe('the dry run', () => {
     })
   })
 
+  it('names the row it could not read, rather than answering “could not be completed”', async () => {
+    /**
+     * The reported symptom was two unrelated-looking messages for one failure:
+     * "Id is not a GUID" recorded on the connection, and a bare
+     * "The request could not be completed." on the screen. `ExactReadError`
+     * was not mapped, so it fell through to the generic 500 — which
+     * deliberately hides its message, because a 500's message can carry a
+     * connection string.
+     *
+     * It is our defect either way, so it stays loud; it just has to say which
+     * field, what was there, and how far the read got.
+     */
+    const { exact, token } = await ready()
+    exact.malformed = true
+
+    const failure = await handlePreviewExactImport(
+      await context(token),
+      exactPreviewQuery.parse({ year: '2026' }),
+    ).catch((error: unknown) => error)
+
+    expect(failure).toBeInstanceOf(ApiError)
+    const error = failure as ApiError
+    expect(error.code).toBe('conflict')
+    expect(error.message).toContain('could not read')
+    // Which field, and what was in it.
+    expect(error.message).toContain('ID is not a GUID')
+    expect(error.message).toContain('nonsense')
+    // And which resource it died on, so a reader is not left guessing whether
+    // it started at all.
+    expect(error.message).toContain('bulk/Financial/GLAccounts')
+  })
+
   it('reconciles the open items against Exact’s own control accounts', async () => {
     const { token } = await ready()
 
@@ -867,7 +906,7 @@ describe('the dry run', () => {
     const { exact, token } = await ready()
     await handlePreviewExactImport(await context(token), exactPreviewQuery.parse({ year: '2026' }))
 
-    expect(exact.asked.some((url) => url.includes('documents/Documents'))).toBe(false)
+    expect(exact.asked.some((url) => url.includes('bulk/Documents/Documents'))).toBe(false)
   })
 
   it('writes nothing to the ledger', async () => {

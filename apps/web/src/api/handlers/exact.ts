@@ -1,10 +1,12 @@
 import { randomBytes } from 'node:crypto'
 import {
+  ExactReadError,
   findDivision,
   planExactImport,
   selectableDivisions,
   type ExactDivision,
   type ExactImportPlan,
+  type ExactRequestLog,
 } from '@klopt/core'
 import {
   ExactApiError,
@@ -288,9 +290,25 @@ async function clientFor(context: RequestContext): Promise<{
   return { client, connection }
 }
 
-/** Turn an adapter failure into something a screen can act on. */
-async function refuse(context: RequestContext, error: unknown): Promise<never> {
+/**
+ * Turn an adapter failure into something a screen can act on.
+ *
+ * `log` is how far it got. A read that dies on the seventh of eight resources
+ * looks identical from the outside to one that never started, and the
+ * difference is the first thing anybody wants to know — so the count of
+ * requests and the resource it died on go into the message rather than into a
+ * server log nobody is tailing.
+ */
+async function refuse(
+  context: RequestContext,
+  error: unknown,
+  log: readonly ExactRequestLog[] = [],
+): Promise<never> {
   const message = error instanceof Error ? error.message : String(error)
+  const progress =
+    log.length === 0
+      ? ''
+      : ` Read ${String(log.length)} request(s) before this, last of them ${log[log.length - 1]?.path ?? '?'}.`
 
   await withExactConnection(context.database, (repository) =>
     repository.recordFailure(context.entityId, message),
@@ -301,12 +319,32 @@ async function refuse(context: RequestContext, error: unknown): Promise<never> {
     // a spinner would be a lie.
     throw new ApiError(
       'conflict',
-      `Exact Online no longer accepts this connection: ${message}. Authorise it again.`,
+      `Exact Online no longer accepts this connection: ${message}. Authorise it again.${progress}`,
     )
   }
   if (error instanceof ExactApiError || error instanceof ExactAuthError) {
-    throw new ApiError('conflict', `Exact Online could not be read: ${message}`)
+    throw new ApiError('conflict', `Exact Online could not be read: ${message}${progress}`)
   }
+
+  /**
+   * A row we could not make sense of.
+   *
+   * This is our bug, not theirs — a column typed differently from how the
+   * reader expects it — so it stays loud rather than degrading like a 403.
+   * What it must not do is arrive as a bare 500 reading "The request could not
+   * be completed.", which is what it did: the actual cause ("Id is not a
+   * GUID") went to the connection's `lastError` and the screen showed the
+   * generic message, so the two halves of one failure appeared as two
+   * unrelated problems in two places.
+   */
+  if (error instanceof ExactReadError) {
+    throw new ApiError(
+      'conflict',
+      `Exact Online returned a row this importer could not read: ${message} This is a defect in the importer rather than something to retry.${progress}`,
+      [{ code: 'unreadable_row', path: error.field, message }],
+    )
+  }
+
   throw error
 }
 
@@ -319,7 +357,7 @@ export async function handleListExactDivisions(context: RequestContext) {
   try {
     divisions = await client.divisions()
   } catch (error: unknown) {
-    return refuse(context, error)
+    return refuse(context, error, client.log)
   }
 
   return {
@@ -356,7 +394,7 @@ export async function handleChooseExactDivision(
   try {
     divisions = await client.divisions()
   } catch (error: unknown) {
-    return refuse(context, error)
+    return refuse(context, error, client.log)
   }
 
   // Checked against what Exact actually offers. A number in a request body is
@@ -543,7 +581,7 @@ export async function handlePreviewExactImport(context: RequestContext, query: E
   try {
     divisions = await client.divisions()
   } catch (error: unknown) {
-    return refuse(context, error)
+    return refuse(context, error, client.log)
   }
 
   const division = findDivision(divisions, connection.divisionCode)
@@ -584,7 +622,7 @@ export async function handlePreviewExactImport(context: RequestContext, query: E
       },
     }
   } catch (error: unknown) {
-    return refuse(context, error)
+    return refuse(context, error, client.log)
   }
 }
 

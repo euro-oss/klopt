@@ -450,6 +450,12 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
   }
   const warnings = report['warnings'] as readonly { code: string; message: string }[]
   const problems = report['problems'] as readonly { code: string; message: string }[]
+  const requests = (report['requests'] ?? []) as readonly {
+    path: string
+    status: number
+    rows: number
+    durationMs: number
+  }[]
 
   return (
     <div>
@@ -549,6 +555,51 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
             ))}
           </ul>
         </>
+      )}
+
+      {/*
+        What the read actually cost. Shown rather than logged because "how many
+        requests is this" is the question somebody asks while watching it run —
+        and because Exact's daily budget is finite, so a resource that quietly
+        pages eighty times is worth seeing.
+      */}
+      {requests.length > 0 && (
+        <details className="mb-6">
+          <summary className="cursor-pointer text-sm font-semibold">
+            Verzoeken aan Exact ({String(requests.length)}) —{' '}
+            {String(requests.reduce((sum, entry) => sum + entry.rows, 0))} rijen in{' '}
+            {String(
+              Math.round(requests.reduce((sum, entry) => sum + entry.durationMs, 0) / 100) / 10,
+            )}
+            s
+          </summary>
+          <table className="mt-2 w-full text-sm">
+            <thead>
+              <tr className="border-border border-b text-left">
+                <th className="py-2">Resource</th>
+                <th className="py-2 text-right">Status</th>
+                <th className="py-2 text-right">Rijen</th>
+                <th className="py-2 text-right">Duur</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((entry, index) => (
+                <tr key={`${entry.path}-${String(index)}`} className="border-border border-b">
+                  <td className="py-1 font-mono text-xs">{entry.path}</td>
+                  <td
+                    className={`py-1 text-right tabular ${
+                      entry.status >= 400 ? 'text-destructive' : ''
+                    }`}
+                  >
+                    {String(entry.status)}
+                  </td>
+                  <td className="py-1 text-right tabular">{String(entry.rows)}</td>
+                  <td className="py-1 text-right tabular">{String(entry.durationMs)} ms</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
       )}
 
       {warnings.length > 0 && (

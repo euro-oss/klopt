@@ -48,6 +48,68 @@ export function requireNumber(row: Record<string, unknown>, field: string): numb
 }
 
 /**
+ * An identifier that is a whole number, as a string.
+ *
+ * `Edm.Int64` is the awkward one. A 64-bit integer does not survive a JSON
+ * number — `Number.MAX_SAFE_INTEGER` is 2^53 — so OData serialises it as a
+ * quoted string, and whether any given Exact endpoint does that is not
+ * something their reference documentation says. `HID` on the receivables list
+ * is exactly this case, and reading it with `readNumber` returned null for
+ * every row.
+ *
+ * So both forms are accepted and the result is a string either way: these
+ * values are keys to match on, never arithmetic. Keeping them as text also
+ * means a 19-digit id survives being read, which is the whole reason Exact
+ * quoted it.
+ */
+export function readKey(row: Record<string, unknown>, field: string): string | null {
+  const value = row[field]
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && Number.isInteger(value) ? String(value) : null
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return /^-?\d+$/.test(trimmed) ? trimmed : null
+  }
+  return null
+}
+
+export function requireKey(row: Record<string, unknown>, field: string): string {
+  const value = readKey(row, field)
+  if (value === null) {
+    // The value is quoted in the message rather than described: "HID is not a
+    // whole number" sends somebody looking for a bug in their data, and
+    // `HID was null` sends them to the right place in one step.
+    throw new ExactReadError(`${field} is not a whole number: ${describe(row[field])}.`, field)
+  }
+  return value
+}
+
+/**
+ * What a value was, for an error message. Short, and never the whole row.
+ *
+ * The `unknown` cases are spelled out rather than run through `String`, which
+ * turns an object into `[object Object]` — the least useful thing a diagnostic
+ * can say about the value that broke it.
+ */
+function describe(value: unknown): string {
+  if (value === undefined) return 'the field was not returned'
+  if (value === null) return 'null'
+  if (typeof value === 'string') return JSON.stringify(value.slice(0, 40))
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return `${typeof value} ${value.toString()}`
+  }
+  // An object or an array: Exact sometimes nests a `{ __deferred: … }` here for
+  // a navigation property, and seeing that is the answer rather than noise.
+  try {
+    return `${typeof value} ${JSON.stringify(value).slice(0, 60)}`
+  } catch {
+    return typeof value
+  }
+}
+
+/**
  * A boolean. Missing counts as false.
  *
  * Exact also uses `Edm.Byte` as a boolean in places (`ExcludeVATListing`,
@@ -117,7 +179,9 @@ export function readGuid(row: Record<string, unknown>, field: string): string | 
 
 export function requireGuid(row: Record<string, unknown>, field: string): string {
   const value = readGuid(row, field)
-  if (value === null) throw new ExactReadError(`${field} is not a GUID.`, field)
+  if (value === null) {
+    throw new ExactReadError(`${field} is not a GUID: ${describe(row[field])}.`, field)
+  }
   return value
 }
 

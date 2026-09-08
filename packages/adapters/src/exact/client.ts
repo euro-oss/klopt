@@ -439,6 +439,13 @@ export function createExactClient(options: ExactClientOptions): ExactClient & {
  * Paged rather than `$top`-ed to a large number, because Exact caps page size
  * server-side and silently returns fewer rows than asked for — a client that
  * trusted `$top` would import part of a chart of accounts and report success.
+ *
+ * `limit` stops the walk once there are enough rows. Without it, a caller that
+ * wanted the most recent five hundred documents from a division holding fifty
+ * thousand read all fifty pages and then threw forty-nine of them away — fifty
+ * requests against the daily budget to answer a question that needed one.
+ * Rounded up to the page boundary, because a page is the smallest thing Exact
+ * will sell.
  */
 export async function collectAll(
   client: ExactClient,
@@ -448,13 +455,15 @@ export async function collectAll(
     readonly select: readonly string[]
     readonly filter?: string
     readonly orderBy?: string
+    readonly limit?: number
   },
 ): Promise<readonly Record<string, unknown>[]> {
+  const limit = query.limit ?? Number.POSITIVE_INFINITY
   const rows: Record<string, unknown>[] = []
   let page = await client.page(query)
   rows.push(...page.rows)
 
-  while (page.next !== null) {
+  while (page.next !== null && rows.length < limit) {
     page = await client.nextPage(page.next)
     rows.push(...page.rows)
   }
