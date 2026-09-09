@@ -2,13 +2,22 @@ import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { formatDate } from '~/lib/format'
+import {
+  balanceSheetAccounts,
+  defaultJournal,
+  openingJournals,
+  type AccountOption,
+  type JournalOption,
+} from '~/lib/account-options'
 import { useHydrated } from '~/lib/hydration'
 import {
   chooseExactDivision,
   connectExact,
   disconnectExact,
   getExactConnection,
+  listAccounts,
   listExactDivisions,
+  listJournals,
   previewExactImport,
   runExactImport,
 } from '~/server/ledger'
@@ -31,9 +40,75 @@ import {
  * vóórdat er iets wordt overgezet.
  */
 export const Route = createFileRoute('/_app/exact/')({
-  loader: async () => ({ connection: await getExactConnection() }),
+  // The chart comes along so the account fields can be pickers rather than
+  // free text. See `AccountSelect`.
+  loader: async () => ({
+    connection: await getExactConnection(),
+    accounts: await listAccounts(),
+    journals: await listJournals(),
+  }),
   component: Exact,
 })
+
+/**
+ * Pick a grootboekrekening.
+ *
+ * A `select`, not the `datalist` the journaalpost screen uses, and the
+ * difference is who is typing. A bookkeeper entering lines knows the chart and
+ * types `4300` faster than any menu; a datalist helps them and stays out of the
+ * way. This form is filled in once, by somebody migrating out of another system
+ * who has no reason to know these numbers yet — and a datalist still accepts
+ * whatever you type, so it guides without constraining.
+ *
+ * Only balance-sheet accounts are offered. That is not a convenience: the
+ * debtors position, the creditors position and the counter to them are all
+ * balance-sheet positions by definition. Booking an opening balance against a
+ * cost or revenue account would restate this year's result by the whole
+ * imported position, and nothing on any screen would look wrong afterwards.
+ *
+ * Blocked accounts are offered too, marked. The ledger refuses to post to one,
+ * so hiding it would turn a clear refusal into "my account is missing".
+ */
+function AccountSelect({
+  label,
+  hint,
+  value,
+  onChange,
+  accounts,
+  disabled,
+}: {
+  label: string
+  hint?: string | undefined
+  value: string
+  onChange: (value: string) => void
+  accounts: readonly AccountOption[]
+  disabled: boolean
+}) {
+  const offered = balanceSheetAccounts(accounts)
+
+  return (
+    <label className="text-sm">
+      {label}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
+      >
+        <option value="">— kies een rekening —</option>
+        {offered.map((account) => (
+          <option key={account.number} value={account.number}>
+            {account.number} — {account.name}
+            {account.isBlocked ? ' (geblokkeerd)' : ''}
+          </option>
+        ))}
+      </select>
+      {hint !== undefined && (
+        <span className="text-muted-foreground mt-1 block text-xs">{hint}</span>
+      )}
+    </label>
+  )
+}
 
 interface DivisionOption {
   readonly code: number
@@ -54,7 +129,17 @@ const CAUTION_TEXT: Record<string, string> = {
 }
 
 function Exact() {
-  const { connection } = Route.useLoaderData()
+  const { connection, accounts: accountsResult, journals: journalsResult } = Route.useLoaderData()
+
+  // The pickers are only as good as the chart behind them. A failed load leaves
+  // them empty rather than falling back to free text, because a field that
+  // silently becomes typeable is worse than one that is visibly unavailable.
+  const accounts: readonly AccountOption[] = accountsResult.ok ? accountsResult.data.accounts : []
+  // Only a memoriaal: an opening balance is a memoriaalpost, and offering the
+  // verkoopboek would let somebody file a migration as sales.
+  const journals: readonly JournalOption[] = journalsResult.ok
+    ? openingJournals(journalsResult.data.journals)
+    : []
   const router = useRouter()
   const hydrated = useHydrated()
 
@@ -64,7 +149,7 @@ function Exact() {
   // one field to fill in rather than five. The counter-account is not one of
   // them, on purpose.
   const [openingDate, setOpeningDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [journalCode, setJournalCode] = useState('MEM')
+  const [journalCode, setJournalCode] = useState('')
   const [receivableAccount, setReceivableAccount] = useState('1300')
   const [payableAccount, setPayableAccount] = useState('1600')
   const [openingBalanceAccount, setOpeningBalanceAccount] = useState('')
@@ -182,6 +267,9 @@ function Exact() {
       },
     )
 
+  // What the journal select actually shows: a single memoriaal needs no choice.
+  const effectiveJournal = journalCode === '' ? defaultJournal(journals) : journalCode
+
   const runImport = () =>
     run(
       () =>
@@ -189,7 +277,7 @@ function Exact() {
           data: {
             year: Number(year),
             openingDate,
-            journalCode,
+            journalCode: effectiveJournal,
             receivableAccount,
             payableAccount,
             openingBalanceAccount,
@@ -461,6 +549,7 @@ function Exact() {
                 <label className="text-sm">
                   Datum beginbalans
                   <input
+                    type="date"
                     value={openingDate}
                     onChange={(event) => setOpeningDate(event.target.value)}
                     disabled={!hydrated}
@@ -469,45 +558,44 @@ function Exact() {
                 </label>
                 <label className="text-sm">
                   Dagboek
-                  <input
-                    value={journalCode}
+                  <select
+                    value={effectiveJournal}
                     onChange={(event) => setJournalCode(event.target.value)}
                     disabled={!hydrated}
-                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
-                  />
+                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
+                  >
+                    {journals.length === 1 ? null : <option value="">— kies een dagboek —</option>}
+                    {journals.map((journal) => (
+                      <option key={journal.code} value={journal.code}>
+                        {journal.code} — {journal.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-                <label className="text-sm">
-                  Debiteurenrekening
-                  <input
-                    value={receivableAccount}
-                    onChange={(event) => setReceivableAccount(event.target.value)}
-                    disabled={!hydrated}
-                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
-                  />
-                </label>
-                <label className="text-sm">
-                  Crediteurenrekening
-                  <input
-                    value={payableAccount}
-                    onChange={(event) => setPayableAccount(event.target.value)}
-                    disabled={!hydrated}
-                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
-                  />
-                </label>
-                <label className="text-sm md:col-span-2">
-                  Tegenrekening beginbalans
-                  <input
+                <AccountSelect
+                  label="Debiteurenrekening"
+                  value={receivableAccount}
+                  onChange={setReceivableAccount}
+                  accounts={accounts}
+                  disabled={!hydrated}
+                />
+                <AccountSelect
+                  label="Crediteurenrekening"
+                  value={payableAccount}
+                  onChange={setPayableAccount}
+                  accounts={accounts}
+                  disabled={!hydrated}
+                />
+                <div className="md:col-span-2">
+                  <AccountSelect
+                    label="Tegenrekening beginbalans"
                     value={openingBalanceAccount}
-                    onChange={(event) => setOpeningBalanceAccount(event.target.value)}
+                    onChange={setOpeningBalanceAccount}
+                    accounts={accounts}
                     disabled={!hydrated}
-                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
+                    hint="Hier komt de andere kant van elke openstaande post terecht. Een tussenrekening is hiervoor het veiligst: die staat pas op nul als de rest van de balans óók is overgezet, dus een restsaldo is het signaal dat er nog iets mist. Er is met opzet geen standaard — een verkeerde keuze is achteraf aan de cijfers niet te zien."
                   />
-                  <span className="text-muted-foreground mt-1 block text-xs">
-                    Hier komt de andere kant van elke openstaande post terecht — meestal een
-                    eigen-vermogen- of tussenrekening. Er is met opzet geen standaard: een verkeerde
-                    keuze is achteraf aan de cijfers niet te zien.
-                  </span>
-                </label>
+                </div>
               </div>
 
               <button

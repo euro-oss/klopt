@@ -58,6 +58,7 @@ import { Route as ApiV1FiscalYearsRouteImport } from './routes/api/v1/fiscal-yea
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1InboxRouteImport } from './routes/api/v1/inbox'
 import { Route as ApiV1JournalEntriesRouteImport } from './routes/api/v1/journal-entries'
+import { Route as ApiV1JournalsRouteImport } from './routes/api/v1/journals'
 import { Route as ApiV1MembersRouteImport } from './routes/api/v1/members'
 import { Route as ApiV1PaymentBatchesRouteImport } from './routes/api/v1/payment-batches'
 import { Route as ApiV1PurchaseInvoicesRouteImport } from './routes/api/v1/purchase-invoices'
@@ -375,6 +376,11 @@ const ApiV1InboxRoute = ApiV1InboxRouteImport.update({
 const ApiV1JournalEntriesRoute = ApiV1JournalEntriesRouteImport.update({
   id: '/api/v1/journal-entries',
   path: '/api/v1/journal-entries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1JournalsRoute = ApiV1JournalsRouteImport.update({
+  id: '/api/v1/journals',
+  path: '/api/v1/journals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1MembersRoute = ApiV1MembersRouteImport.update({
@@ -820,6 +826,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/journals': typeof ApiV1JournalsRoute
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
@@ -943,6 +950,7 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/journals': typeof ApiV1JournalsRoute
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
@@ -1068,6 +1076,7 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
+  '/api/v1/journals': typeof ApiV1JournalsRoute
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
@@ -1193,6 +1202,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/inbox'
     | '/api/v1/journal-entries'
+    | '/api/v1/journals'
     | '/api/v1/members'
     | '/api/v1/payment-batches'
     | '/api/v1/purchase-invoices'
@@ -1316,6 +1326,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/inbox'
     | '/api/v1/journal-entries'
+    | '/api/v1/journals'
     | '/api/v1/members'
     | '/api/v1/payment-batches'
     | '/api/v1/purchase-invoices'
@@ -1440,6 +1451,7 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/inbox'
     | '/api/v1/journal-entries'
+    | '/api/v1/journals'
     | '/api/v1/members'
     | '/api/v1/payment-batches'
     | '/api/v1/purchase-invoices'
@@ -1541,6 +1553,7 @@ export interface RootRouteChildren {
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1InboxRoute: typeof ApiV1InboxRouteWithChildren
   ApiV1JournalEntriesRoute: typeof ApiV1JournalEntriesRouteWithChildren
+  ApiV1JournalsRoute: typeof ApiV1JournalsRoute
   ApiV1MembersRoute: typeof ApiV1MembersRouteWithChildren
   ApiV1PaymentBatchesRoute: typeof ApiV1PaymentBatchesRouteWithChildren
   ApiV1PurchaseInvoicesRoute: typeof ApiV1PurchaseInvoicesRouteWithChildren
@@ -1919,6 +1932,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/journal-entries'
       fullPath: '/api/v1/journal-entries'
       preLoaderRoute: typeof ApiV1JournalEntriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/journals': {
+      id: '/api/v1/journals'
+      path: '/api/v1/journals'
+      fullPath: '/api/v1/journals'
+      preLoaderRoute: typeof ApiV1JournalsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/members': {
@@ -2849,6 +2869,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1InboxRoute: ApiV1InboxRouteWithChildren,
   ApiV1JournalEntriesRoute: ApiV1JournalEntriesRouteWithChildren,
+  ApiV1JournalsRoute: ApiV1JournalsRoute,
   ApiV1MembersRoute: ApiV1MembersRouteWithChildren,
   ApiV1PaymentBatchesRoute: ApiV1PaymentBatchesRouteWithChildren,
   ApiV1PurchaseInvoicesRoute: ApiV1PurchaseInvoicesRouteWithChildren,

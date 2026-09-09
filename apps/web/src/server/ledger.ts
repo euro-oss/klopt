@@ -4,6 +4,7 @@ import { getRequest } from '@tanstack/react-start/server'
 import {
   handleGetJournalEntry,
   handleListAccounts,
+  handleListJournals,
   handleListJournalEntries,
   handleGetTrialBalance,
   handlePostJournalEntry,
@@ -82,6 +83,10 @@ function keyOf(input: unknown): string | undefined {
 
 export const listAccounts = createServerFn({ method: 'GET' }).handler(async () =>
   run(async () => (await handleListAccounts(await contextFromRequest())).body),
+)
+
+export const listJournals = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handleListJournals(await contextFromRequest())).body),
 )
 
 export const getRgsCoverage = createServerFn({ method: 'GET' })

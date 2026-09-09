@@ -141,6 +141,15 @@ export const ledgerOperations: Readonly<Record<string, OperationDefinition>> = {
     agentExposure: 'read',
     idempotent: true,
   }),
+
+  listJournals: defineOperation({
+    id: 'ledger.listJournals',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'The dagboeken this administration posts through.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
 }
 
 /**

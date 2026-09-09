@@ -300,6 +300,27 @@ export async function handleVerifyChain(context: RequestContext) {
   }
 }
 
+/**
+ * The dagboeken this administration has.
+ *
+ * Its own operation rather than a field on `listAccounts`, because a journal is
+ * not an account and an endpoint that quietly returns both is one nobody can
+ * predict from its name.
+ *
+ * It exists because screens were guessing. The manual journal-entry screen has
+ * `const JOURNALS = ['MEM', 'VRK', 'INK', 'BNK']` hardcoded in it — which omits
+ * KAS, and would not show a dagboek somebody added.
+ */
+export async function handleListJournals(context: RequestContext) {
+  requirePermission(context, 'ledger:read')
+
+  const rows = await withReporting(context.database, (repository) =>
+    repository.listJournals(context.entityId),
+  )
+
+  return { status: 200, body: { journals: rows } }
+}
+
 export async function handleListAccounts(context: RequestContext) {
   requirePermission(context, 'ledger:read')
 

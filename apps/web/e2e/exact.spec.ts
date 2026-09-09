@@ -130,3 +130,36 @@ test('g x reaches the Exact screen', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Exact Online' })).toBeVisible()
 })
+
+test('the pickers have real data behind them', async ({ page }) => {
+  /**
+   * The account fields on the Exact screen were free text, and the cost showed
+   * up as a question: "what account would that usually be? My corporate
+   * IBAN?" They are selects now, filtered by `balanceSheetAccounts` and
+   * `openingJournals` — which are unit-tested.
+   *
+   * What those unit tests cannot check is that the endpoints behind them
+   * actually carry the fields the filters read. A select silently offering
+   * nothing is worse than the text field it replaced.
+   */
+  await anAdministration(page)
+
+  const accounts = await page.request.get('/api/v1/accounts')
+  expect(accounts.ok()).toBeTruthy()
+  const chart = (await accounts.json()) as {
+    accounts: { number: string; type: string; isBlocked: boolean }[]
+  }
+  expect(chart.accounts.length).toBeGreaterThan(0)
+  // `type` is what decides whether an account may carry an opening balance.
+  expect(chart.accounts.every((account) => typeof account.type === 'string')).toBe(true)
+  expect(chart.accounts.some((account) => account.type === 'asset')).toBe(true)
+  expect(chart.accounts.some((account) => account.type === 'revenue')).toBe(true)
+
+  const journals = await page.request.get('/api/v1/journals')
+  expect(journals.ok()).toBeTruthy()
+  const dagboeken = (await journals.json()) as { journals: { code: string; type: string }[] }
+  // Read from the entity rather than hardcoded, which is the point of adding
+  // the endpoint: KAS exists here and the old hardcoded list omitted it.
+  expect(dagboeken.journals.map((journal) => journal.code)).toContain('KAS')
+  expect(dagboeken.journals.filter((journal) => journal.type === 'memoriaal')).toHaveLength(1)
+})

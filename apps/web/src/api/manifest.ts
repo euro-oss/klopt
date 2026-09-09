@@ -262,6 +262,12 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/accounts.ts',
   },
   {
+    operationId: 'ledger.listJournals',
+    method: 'GET',
+    path: '/journals',
+    module: 'api/v1/journals.ts',
+  },
+  {
     operationId: 'ledger.getBalanceSheet',
     method: 'GET',
     path: '/reports/balance-sheet',
