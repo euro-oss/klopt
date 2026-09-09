@@ -115,6 +115,37 @@ and Exact compares its redirect URI literally.
 
 [portless]: https://portless.sh
 
+### Driving it from an agent
+
+Klopt ships an MCP server, so an assistant can read the books without anybody
+pasting figures into a chat window. Build it, issue a **read-only** token under
+**Toegang**, and point a client at it:
+
+```json
+{
+  "mcpServers": {
+    "klopt": {
+      "command": "node",
+      "args": ["/path/to/klopt/apps/mcp/dist/main.js"],
+      "env": {
+        "KLOPT_API_URL": "http://localhost:3000",
+        "KLOPT_TOKEN": "klopt_…"
+      }
+    }
+  }
+}
+```
+
+Six tools, all read-only: `describe_schema`, `get_balance`, `list_open_items`,
+`vat_return_preview`, `list_pending_approvals`, `export_xaf`. There is no
+generic query tool and nothing that files, sends, posts or pays — writes arrive
+later as drafts a human releases.
+
+The server is a client of the same REST API as everything else, so an agent has
+exactly the permissions its token has, and its actions land in the same audit
+log under a distinct actor kind. See
+[ADR 0035](docs/decisions/0035-an-agent-is-a-client-not-a-shortcut.md).
+
 Or skip the browser entirely; the UI is a client of the same API:
 
 Then post something. Issue a token, and:

@@ -98,6 +98,23 @@ export default tseslint.config(
   },
 
   {
+    files: ['apps/mcp/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': forbid(
+        [
+          ...FRAMEWORK,
+          ...DATABASE,
+          '@klopt/db',
+          '@klopt/db/*',
+          '@klopt/adapters',
+          '@klopt/adapters/*',
+        ],
+        'The MCP server is a client of the public API, not a privileged path into the domain (spec 10.3). Anything an agent can do, a script can do — over HTTP, under the same token and the same audit trail. Reaching for the database here would create the second path the rule exists to prevent.',
+      ),
+    },
+  },
+
+  {
     files: ['apps/worker/**/*.ts'],
     rules: {
       '@typescript-eslint/no-restricted-imports': forbid(
