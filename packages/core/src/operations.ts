@@ -1093,6 +1093,24 @@ export const exactOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  /**
+   * The commit.
+   *
+   * `agentExposure: 'proposal'` rather than `'write'`: this creates accounts,
+   * relations and an opening entry in one transaction, and an agent deciding on
+   * its own which counter-account thirty thousand euro of debtors lands on is
+   * not a thing this system should make easy.
+   */
+  runImport: defineOperation({
+    id: 'exact.runImport',
+    kind: 'write',
+    permission: 'ledger:import',
+    summary:
+      'Import the chosen division: chart of accounts, relations and open items, with one opening entry.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
   disconnect: defineOperation({
     id: 'exact.disconnect',
     kind: 'write',

@@ -64,6 +64,11 @@ export {
 } from './inbound/receive.js'
 export { type InboundPollResult, runInboundPoll } from './inbound/poll.js'
 export {
+  commitExactImport,
+  type ExactCommitRequest,
+  type ExactCommitResult,
+} from './exact/import.js'
+export {
   type PurchaseContext,
   type PurchaseInvoiceRow,
   PurchaseRepository,

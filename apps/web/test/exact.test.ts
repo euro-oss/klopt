@@ -7,6 +7,7 @@ import {
   withExactConnection,
   type Database,
 } from '@klopt/db'
+import { withLedger, withReporting, withSales, withSalesRead } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { ApiError } from '../src/api/errors.js'
@@ -17,6 +18,7 @@ import {
   handleConnectExact,
   handleDisconnectExact,
   handleGetExactConnection,
+  handleRunExactImport,
   handleListExactDivisions,
   handlePreviewExactImport,
 } from '../src/api/handlers/exact.js'
@@ -27,6 +29,7 @@ import {
   completeExactBody,
   connectExactBody,
   exactPreviewQuery,
+  runExactImportBody,
 } from '../src/api/schemas.js'
 
 /**
@@ -106,6 +109,8 @@ interface FakeExact {
   forbidden: Set<string>
   /** Return a chart-of-accounts row the reader cannot make sense of. */
   malformed: boolean
+  /** Answer with a division kept in another currency, which blocks an import. */
+  otherCurrency: boolean
 }
 
 function fakeExact(): FakeExact {
@@ -116,6 +121,7 @@ function fakeExact(): FakeExact {
     revoked: false,
     forbidden: new Set(),
     malformed: false,
+    otherCurrency: false,
     divisions: [
       {
         Code: 1000,
@@ -202,7 +208,15 @@ function fakeExact(): FakeExact {
         collection([{ UserID: guid(9), FullName: 'H. Stokvis', CurrentDivision: 1000 }]),
       )
     }
-    if (url.includes('system/Divisions')) return Promise.resolve(collection(state.divisions))
+    if (url.includes('system/Divisions')) {
+      return Promise.resolve(
+        collection(
+          state.otherCurrency
+            ? state.divisions.map((division) => ({ ...division, Currency: 'GBP' }))
+            : state.divisions,
+        ),
+      )
+    }
 
     // Exact's own 403 body, verbatim.
     for (const path of state.forbidden) {
@@ -979,5 +993,147 @@ describe('disconnecting', () => {
     await expect(
       handlePreviewExactImport(await context(token), exactPreviewQuery.parse({ year: '2026' })),
     ).rejects.toThrow(/not connected to Exact Online/)
+  })
+})
+
+describe('the import itself', () => {
+  async function ready() {
+    const exact = fakeExact()
+    const { token, entityId } = await newEntity()
+    await connect(token, exact)
+    await handleChooseExactDivision(
+      await context(token, `choose-${crypto.randomUUID()}`),
+      chooseExactDivisionBody.parse({ divisionCode: 1000 }),
+    )
+    return { exact, token, entityId }
+  }
+
+  const request = (overrides: Record<string, unknown> = {}) =>
+    runExactImportBody.parse({
+      year: 2026,
+      openingDate: '2026-01-01',
+      journalCode: 'MEM',
+      receivableAccount: '1300',
+      payableAccount: '1600',
+      openingBalanceAccount: '0500',
+      ...overrides,
+    })
+
+  it('brings the chart, the relations and the open items across', async () => {
+    const { token, entityId } = await ready()
+
+    const result = await handleRunExactImport(
+      await context(token, `import-${crypto.randomUUID()}`),
+      request(),
+    )
+
+    expect(result.status).toBe(201)
+    expect(result.body.contactsCreated).toBeGreaterThan(0)
+    expect(result.body.openItemsImported).toBe(2)
+    expect(result.body.receivableCount).toBe(1)
+    expect(result.body.payableCount).toBe(1)
+    expect(result.body.openingEntryId).not.toBeNull()
+
+    // The open items are documents as well as a balance: the ageing reads the
+    // invoice tables, and dunning quotes the number the customer knows.
+    const invoices = await withSalesRead(database, (repository) =>
+      repository.listInvoices({ entityId, status: 'issued', limit: 50 }),
+    )
+    expect(invoices.map((invoice) => invoice.number)).toEqual(['20260001'])
+  })
+
+  it('keeps Exact’s own invoice numbers rather than allocating ours', async () => {
+    /**
+     * Our number series is a legal claim about invoices *we* issued, and it has
+     * to be gapless. Running an import through the issuing path would spend
+     * numbers out of it on another system's history — so the imported invoice
+     * keeps Exact's number and the counter is untouched.
+     */
+    const { token, entityId } = await ready()
+
+    await handleRunExactImport(await context(token, `import-${crypto.randomUUID()}`), request())
+
+    const next = await withSales(database, ({ sales }) =>
+      sales.allocateInvoiceNumber(entityId, '2026', ''),
+    )
+    // The first number of the year, not the fourth: nothing was taken.
+    expect(next).toBe('2026-0001')
+  })
+
+  it('posts one opening entry that balances, with a line per open item', async () => {
+    const { token, entityId } = await ready()
+
+    const result = await handleRunExactImport(
+      await context(token, `import-${crypto.randomUUID()}`),
+      request(),
+    )
+
+    const entry = await withLedger(database, (repository) =>
+      repository.findEntryById(entityId, String(result.body.openingEntryId)),
+    )
+
+    // Two open items plus the counter-line.
+    expect(entry?.lines).toHaveLength(3)
+
+    const debit = (entry?.lines ?? []).reduce((sum, line) => sum + line.debit, 0n)
+    const credit = (entry?.lines ?? []).reduce((sum, line) => sum + line.credit, 0n)
+    expect(debit).toBe(credit)
+
+    // Debtors on 1300, creditors on 1600, and the difference on the account the
+    // caller chose — never one this code picked.
+    const on = (number: string) =>
+      (entry?.lines ?? []).filter((line) => line.accountNumber === number)
+    expect(on('1300')).toHaveLength(1)
+    expect(on('1600')).toHaveLength(1)
+    expect(on('0500')).toHaveLength(1)
+  })
+
+  it('lands the open items on the control accounts the ageing reads', async () => {
+    // The point of importing both a document and a balance: if these disagree,
+    // the ageing is empty while 1300 says three thousand, or the reverse.
+    const { token, entityId } = await ready()
+
+    await handleRunExactImport(await context(token, `import-${crypto.randomUUID()}`), request())
+
+    const rows = await withReporting(database, (repository) =>
+      repository.trialBalanceRows({
+        entityId,
+        fiscalYearCode: '2026',
+        fromPeriod: 1,
+        toPeriod: 12,
+        currency: 'EUR',
+      }),
+    )
+    const debtors = rows.find((row) => row.accountNumber === '1300')
+    expect(debtors?.periodDebit).toBe(121_000n)
+  })
+
+  it('refuses an account it was told to use and cannot find', async () => {
+    const { token } = await ready()
+
+    await expect(
+      handleRunExactImport(
+        await context(token, `import-${crypto.randomUUID()}`),
+        request({ openingBalanceAccount: '4242' }),
+      ),
+    ).rejects.toMatchObject({ code: 'validation_failed' })
+  })
+
+  it('refuses to import an administration the dry run calls blocked', async () => {
+    // The same refusal the preview makes, applied where it costs something.
+    const { exact, token } = await ready()
+    exact.otherCurrency = true
+
+    await expect(
+      handleRunExactImport(await context(token, `import-${crypto.randomUUID()}`), request()),
+    ).rejects.toMatchObject({ code: 'validation_failed' })
+  })
+
+  it('needs an idempotency key, because it writes', async () => {
+    const { token } = await ready()
+
+    await expect(handleRunExactImport(await context(token), request())).rejects.toMatchObject({
+      code: 'idempotency_key_required',
+    })
   })
 })

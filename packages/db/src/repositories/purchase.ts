@@ -722,6 +722,62 @@ export class PurchaseRepository {
     )
   }
 
+  /**
+   * An outstanding payable brought across from another system (spec 13).
+   *
+   * Easier than its sales counterpart, because a purchase invoice's number is
+   * already somebody else's: "the supplier's number is the number", so an
+   * import preserving it is the ordinary case rather than an exception. What is
+   * imported is the supplier's own reference where Exact has one (`YourRef`)
+   * and Exact's entry number where it does not.
+   *
+   * Booked rather than draft: an open item is a liability that has already been
+   * accepted, and leaving a migrated creditor position sitting in the inbox
+   * would hide it from the ageing and from every payment run.
+   *
+   * No lines, for the same reason as the sales side: the payables list carries
+   * an outstanding amount, not a document with a VAT split.
+   */
+  async createImportedInvoice(request: {
+    readonly entityId: string
+    readonly contactId: string
+    readonly supplierInvoiceNumber: string
+    readonly invoiceDate: string
+    readonly dueDate: string
+    readonly currency: string
+    /** Positive. The sign lives in `kind`. */
+    readonly outstanding: bigint
+    readonly kind: 'invoice' | 'credit_note'
+    readonly notes: string
+    readonly journalEntryId: string
+    /** Who ran the import. A booked invoice has to say who booked it. */
+    readonly bookedBy: string
+  }): Promise<string> {
+    const id = uuidv7()
+
+    await this.tx.insert(purchaseInvoices).values({
+      id,
+      entityId: request.entityId,
+      contactId: request.contactId,
+      kind: request.kind,
+      status: 'booked',
+      bookedBy: request.bookedBy,
+      bookedAt: new Date(),
+      supplierInvoiceNumber: request.supplierInvoiceNumber,
+      invoiceDate: request.invoiceDate,
+      dueDate: request.dueDate < request.invoiceDate ? request.invoiceDate : request.dueDate,
+      currency: request.currency,
+      netMinorUnits: request.outstanding,
+      taxMinorUnits: 0n,
+      totalMinorUnits: request.outstanding,
+      paymentReference: null,
+      notes: request.notes,
+      journalEntryId: request.journalEntryId,
+    })
+
+    return id
+  }
+
   async markBooked(request: {
     readonly entityId: string
     readonly invoiceId: string

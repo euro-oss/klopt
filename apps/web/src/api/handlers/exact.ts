@@ -18,13 +18,14 @@ import {
 } from '@klopt/adapters'
 import {
   SecretKeyMissingError,
+  commitExactImport,
   secretsAvailable,
   withExactConnection,
   withExactConnectionRead,
   withReporting,
   type ExactConnectionCredentials,
 } from '@klopt/db'
-import { hasPermission, type RequestContext } from '../context.js'
+import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
 import { recordAudit } from '../audit.js'
 import type {
@@ -32,6 +33,7 @@ import type {
   CompleteExactBody,
   ConnectExactBody,
   ExactPreviewQuery,
+  RunExactImportBody,
 } from '../schemas.js'
 
 /**
@@ -62,6 +64,13 @@ import type {
  * the database and a connection that fails at the next request for no
  * discoverable reason.
  */
+
+function requireIdempotencyKey(context: RequestContext): string {
+  if (context.idempotencyKey === null || context.idempotencyKey === '') {
+    throw new ApiError('idempotency_key_required', 'Every write needs an Idempotency-Key header.')
+  }
+  return context.idempotencyKey
+}
 
 function requirePermission(context: RequestContext, permission: string): void {
   if (!hasPermission(context, permission)) {
@@ -636,6 +645,157 @@ export async function handlePreviewExactImport(context: RequestContext, query: E
     }
   } catch (error: unknown) {
     return refuse(context, error, client.log)
+  }
+}
+
+/**
+ * Running the import (spec 13).
+ *
+ * The division is read again rather than the preview being replayed: a plan
+ * held between two requests is a plan that can be committed against an
+ * administration it no longer describes. Reading again costs the same nine
+ * requests and means the thing that gets written is the thing that was there.
+ *
+ * What comes back is the reconciliation as it was **at commit time**, alongside
+ * what was written, so the report in the audit trail is the one that was true
+ * when the rows landed.
+ */
+export async function handleRunExactImport(context: RequestContext, body: RunExactImportBody) {
+  requirePermission(context, 'ledger:import')
+  const idempotencyKey = requireIdempotencyKey(context)
+
+  const { client, connection } = await clientFor(context)
+
+  if (connection.divisionCode === null) {
+    throw new ApiError(
+      'conflict',
+      'No Exact administration has been chosen yet. There is more than one, so this cannot be guessed.',
+    )
+  }
+
+  const here = await withReporting(context.database, async (repository) => {
+    const [entity, resolutions, accounts] = await Promise.all([
+      repository.entity(context.entityId),
+      repository.importResolutions(context.entityId),
+      repository.listAccounts(context.entityId),
+    ])
+    return { entity, resolutions, accounts }
+  })
+
+  if (here.entity === null) throw new ApiError('not_found', 'No such administration.')
+
+  // Every account named in the request has to exist here before anything is
+  // read, because discovering a typo after five thousand relations have been
+  // fetched wastes the read and tells nobody anything sooner.
+  const known = new Set(here.accounts.map((account) => account.number))
+  const missing = [
+    ['receivableAccount', body.receivableAccount],
+    ['payableAccount', body.payableAccount],
+    ['openingBalanceAccount', body.openingBalanceAccount],
+  ].filter(([, number]) => !known.has(number ?? ''))
+
+  if (missing.length > 0) {
+    throw new ApiError(
+      'validation_failed',
+      'The import names accounts this administration does not have.',
+      missing.map(([field, number]) => ({
+        code: 'unknown_account',
+        path: field ?? null,
+        message: `${number ?? ''} does not exist here.`,
+      })),
+    )
+  }
+
+  let divisions: readonly ExactDivision[]
+  try {
+    divisions = await client.divisions()
+  } catch (error: unknown) {
+    return refuse(context, error, client.log)
+  }
+
+  const division = findDivision(divisions, connection.divisionCode)
+  if (division === null) {
+    throw new ApiError(
+      'conflict',
+      `This Exact login can no longer reach administration ${String(connection.divisionCode)}. Choose one again.`,
+    )
+  }
+
+  let plan: ExactImportPlan
+  try {
+    const snapshot = await readDivision({ client, division, year: body.year, documents: false })
+
+    plan = planExactImport(snapshot, {
+      entityId: context.entityId,
+      currency: here.entity.functionalCurrency,
+      existingAccountNumbers: here.accounts.map((account) => account.number),
+      existingContactNumbers: [...here.resolutions.contactIdsByNumber.keys()],
+      existingTaxCodes: here.resolutions.taxCodes,
+    })
+  } catch (error: unknown) {
+    return refuse(context, error, client.log)
+  }
+
+  // The same refusal the dry run makes, applied where it actually matters. A
+  // problem is something the import cannot be correct in the presence of.
+  if (plan.problems.length > 0) {
+    throw new ApiError(
+      'validation_failed',
+      'This administration cannot be imported as it stands. Run the dry run to see why.',
+      plan.problems.map((problem) => ({
+        code: problem.code,
+        path: problem.path,
+        message: problem.message,
+      })),
+    )
+  }
+
+  const result = await commitExactImport(context.database, {
+    entityId: context.entityId,
+    plan,
+    actor: context.actor,
+    idempotencyKey,
+    requestId: context.requestId,
+    ip: context.ip,
+    mayPostToSoftClosedPeriod: mayPostToSoftClosedPeriod(context),
+    openingBalanceAccount: body.openingBalanceAccount,
+    openingDate: body.openingDate,
+    journalCode: body.journalCode,
+    receivableAccount: body.receivableAccount,
+    payableAccount: body.payableAccount,
+  })
+
+  await withExactConnection(context.database, (repository) =>
+    repository.recordImport(context.entityId),
+  )
+
+  // The whole migration under one action, with the division it came from and
+  // the entry that carries the balance — which is what somebody needs to undo
+  // it, and the first question an accountant asks about imported numbers.
+  await recordAudit(context, {
+    action: 'exact.runImport',
+    resourceType: 'exact_connection',
+    resourceId: context.entityId,
+    after: {
+      division: division.code,
+      divisionName: division.description,
+      openingEntryId: result.openingEntryId,
+      openingDate: body.openingDate,
+      openingBalanceAccount: body.openingBalanceAccount,
+      accountsCreated: result.accountsCreated,
+      contactsCreated: result.contactsCreated,
+      openItemsImported: result.openItemsImported,
+    },
+  })
+
+  return {
+    status: 201,
+    body: {
+      dryRun: false,
+      ...result,
+      ...serialisePlan(plan),
+      requests: client.log,
+    },
   }
 }
 

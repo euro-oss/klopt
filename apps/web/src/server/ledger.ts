@@ -32,6 +32,7 @@ import {
   handleGetExactConnection,
   handleListExactDivisions,
   handlePreviewExactImport,
+  handleRunExactImport,
 } from '~/api/handlers/exact'
 import {
   handleListSnapshots,
@@ -46,6 +47,7 @@ import {
   deleteDocumentsBody,
   exactPreviewQuery,
   retentionQuery,
+  runExactImportBody,
   sealSnapshotBody,
   setLegalHoldBody,
   setRetentionClassBody,
@@ -409,6 +411,22 @@ export const previewExactImport = createServerFn({ method: 'GET' })
       exactPreviewQuery,
       data ?? {},
       async (query) => (await handlePreviewExactImport(await contextFromRequest(), query)).body,
+    ),
+  )
+
+export const runExactImport = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      runExactImportBody,
+      data,
+      async (body) =>
+        (
+          await handleRunExactImport(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            body,
+          )
+        ).body,
     ),
   )
 

@@ -345,3 +345,82 @@ Nine requests for a small administration, and the report shows every one of
 them with its status, row count and duration. That is there because "how many
 requests is this" is the question somebody asks while watching it run, and
 because a resource that quietly pages eighty times is worth being able to see.
+
+## An open item is two facts, and importing one of them is worse than neither
+
+An outstanding invoice is a **document** somebody owes on — which dunning and
+bank matching read out of `sales_invoices` and `purchase_invoices` — and a
+**balance** on the debtors or creditors account, which the trial balance reads
+out of the journal. Import the first without the second and the ageing is full
+while account 1300 says nothing; import the second without the first and 1300
+says thirty thousand with nobody to chase for it.
+
+So `commitExactImport` writes both, from the same list, in one transaction. The
+creditor ageing's own reconciliation is the check that they agree, and it reads
+`subledger 60500, controlAccount 60500` on a walked-through import.
+
+### One transaction
+
+The chart, the relations, the opening entry and every invoice, or none of them.
+A half-imported administration is worse than one that failed, because the
+failure is visible and the half is not.
+
+### One opening entry, not one per invoice
+
+Every open item is a line on a single entry — a line per invoice on its control
+account, and one counter-line for the difference. That is how a bookkeeper
+books an overname, it makes the balance explicable line by line, and it means
+the whole migration reverses as one storno if it turns out to be wrong.
+
+### The counter-account has no default
+
+The other side of every open item is a bookkeeping decision. Defaulting it to
+equity would be right often enough to be dangerous: an import that quietly
+balanced itself against the wrong account understates the result by the entire
+debtor position, and **nothing on any screen would look wrong afterwards** —
+every number is plausible. So it is a required field with no suggested value,
+and the screen says why.
+
+The control accounts and the memoriaal are defaulted, because those are
+identifiable facts about a chart rather than judgements, and being wrong about
+them fails loudly at the first posting.
+
+### Exact's numbers are kept, and our counter is not touched
+
+An imported receivable does not go through the issuing path. Our invoice series
+is a legal claim about invoices _we_ raised and the law requires it to be
+gapless; spending numbers out of it on another system's history is exactly the
+corruption the counter exists to prevent. So the imported invoice carries
+Exact's own number — which is also the number the customer will quote — and
+`allocate_number` still returns `2026-0001` afterwards. There is a test for
+that, because it is the kind of thing that is only noticed a year later.
+
+The purchase side needs no such argument: "the supplier's number is the
+number" was already true, so preserving `YourRef` is the ordinary case.
+
+### Imported open items have no lines, and no VAT
+
+Exact's receivables list carries an outstanding amount, not a document. There
+is no net/VAT split in it, and a line needs a tax code — inventing a zero-rate
+one would put a number in the BTW-aangifte nobody is entitled to. So the
+denormalised totals are all there is and `taxMinorUnits` is zero: the VAT on
+these invoices was declared in the old system, in the period it belonged to.
+
+For the same reason the opening entry carries no tax codes at all. Tagging it
+would claim the VAT a second time.
+
+### The dates
+
+The entry is booked on one `openingDate` the caller chooses. The invoices keep
+their own issue and due dates, because those drive the ageing and the dunning
+clock — an invoice that was late in November should still look late. The
+entry's _document_ date is the opening date too, not the invoice date: a
+document date after its booking date is a ledger violation, and a migration
+necessarily books old documents on a new day.
+
+### What is not imported yet
+
+**Documents.** A division with ten years of scanned purchase invoices has tens
+of thousands of attachments to fetch and store, which is a worker job rather
+than something to do inside an HTTP request. The plan already lists them and
+the dry run counts them; nothing writes them yet.

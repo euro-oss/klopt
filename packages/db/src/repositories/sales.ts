@@ -228,6 +228,104 @@ export class SalesRepository {
     return `${prefix}${year}-${String(value).padStart(4, '0')}`
   }
 
+  /**
+   * An outstanding receivable brought across from another system (spec 13).
+   *
+   * Deliberately not `createDraft` followed by `issue`: an imported open item
+   * is not a document this administration produced, and putting it through the
+   * issuing path would allocate it a number out of our own gapless series. That
+   * series is a legal claim about invoices *we* raised, and filling it with
+   * another system's history is exactly the corruption it exists to prevent.
+   *
+   * So the number is Exact's, kept verbatim because dunning and matching are
+   * conversations with somebody reading the old number (spec 13), and the
+   * counter is left alone.
+   *
+   * **No lines.** Exact's receivables list carries an outstanding amount, not a
+   * document — there is no net/VAT split in it to import, and a line needs a
+   * tax code. Inventing a zero-rate line would put a number in the BTW-aangifte
+   * that nobody is entitled to. The denormalised totals are all there is, and
+   * `taxMinorUnits` is zero because the tax was declared in the old system, in
+   * the period it belonged to.
+   */
+  async createImportedInvoice(request: {
+    readonly entityId: string
+    readonly contactId: string
+    readonly number: string
+    readonly issueDate: string
+    readonly dueDate: string
+    readonly currency: string
+    /** Positive. The sign lives in `kind`, as everywhere else. */
+    readonly outstanding: bigint
+    readonly kind: 'invoice' | 'credit_note'
+    readonly reference: string | null
+    readonly notes: string
+    readonly journalEntryId: string
+  }): Promise<string> {
+    const id = uuidv7()
+
+    await this.tx.insert(salesInvoices).values({
+      id,
+      entityId: request.entityId,
+      contactId: request.contactId,
+      kind: request.kind,
+      status: 'issued',
+      number: request.number,
+      issueDate: request.issueDate,
+      // An import can carry a due date before its issue date if the source did;
+      // the check constraint would refuse it, and the invoice matters more than
+      // the discrepancy.
+      dueDate: request.dueDate < request.issueDate ? request.issueDate : request.dueDate,
+      currency: request.currency,
+      netMinorUnits: request.outstanding,
+      taxMinorUnits: 0n,
+      totalMinorUnits: request.outstanding,
+      reference: request.reference,
+      buyerReference: null,
+      notes: request.notes,
+      journalEntryId: request.journalEntryId,
+      creditsInvoiceId: null,
+      issuedAt: new Date(),
+    })
+
+    return id
+  }
+
+  /**
+   * Contact ids for the numbers given, for the ones that exist.
+   *
+   * Read inside the import's own transaction rather than passed in, because
+   * the import creates contacts as it goes and has to see its own writes.
+   */
+  async contactIdsByNumber(
+    entityId: string,
+    numbers: readonly string[],
+  ): Promise<ReadonlyMap<string, string>> {
+    if (numbers.length === 0) return new Map()
+
+    const rows = await this.tx
+      .select({ id: contacts.id, number: contacts.number })
+      .from(contacts)
+      .where(and(eq(contacts.entityId, entityId), inArray(contacts.number, [...new Set(numbers)])))
+
+    return new Map(rows.map((row) => [row.number, row.id]))
+  }
+
+  /** Numbers already used, so an import can refuse to collide rather than fail. */
+  async invoiceNumbersInUse(
+    entityId: string,
+    numbers: readonly string[],
+  ): Promise<ReadonlySet<string>> {
+    if (numbers.length === 0) return new Set()
+
+    const rows = await this.tx
+      .select({ number: salesInvoices.number })
+      .from(salesInvoices)
+      .where(and(eq(salesInvoices.entityId, entityId), inArray(salesInvoices.number, [...numbers])))
+
+    return new Set(rows.flatMap((row) => (row.number === null ? [] : [row.number])))
+  }
+
   async markIssued(request: {
     readonly invoiceId: string
     readonly number: string

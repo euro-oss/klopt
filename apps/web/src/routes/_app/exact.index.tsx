@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { formatDate } from '~/lib/format'
@@ -10,6 +10,7 @@ import {
   getExactConnection,
   listExactDivisions,
   previewExactImport,
+  runExactImport,
 } from '~/server/ledger'
 
 /**
@@ -58,6 +59,15 @@ function Exact() {
   const hydrated = useHydrated()
 
   const [busy, setBusy] = useState(false)
+  const [imported, setImported] = useState<Record<string, unknown> | null>(null)
+  // Defaults that match the chart this system ships, so the ordinary case is
+  // one field to fill in rather than five. The counter-account is not one of
+  // them, on purpose.
+  const [openingDate, setOpeningDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [journalCode, setJournalCode] = useState('MEM')
+  const [receivableAccount, setReceivableAccount] = useState('1300')
+  const [payableAccount, setPayableAccount] = useState('1600')
+  const [openingBalanceAccount, setOpeningBalanceAccount] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [divisions, setDivisions] = useState<readonly DivisionOption[] | null>(null)
@@ -166,6 +176,30 @@ function Exact() {
       () => previewExactImport({ data: { year: Number(year) } }),
       (data) => {
         setPreview(data as Record<string, unknown>)
+        // A fresh report supersedes whatever the last import said, so the two
+        // are never on the screen describing different runs.
+        setImported(null)
+      },
+    )
+
+  const runImport = () =>
+    run(
+      () =>
+        runExactImport({
+          data: {
+            year: Number(year),
+            openingDate,
+            journalCode,
+            receivableAccount,
+            payableAccount,
+            openingBalanceAccount,
+            idempotencyKey: crypto.randomUUID(),
+          },
+        }),
+      (data) => {
+        setImported(data as Record<string, unknown>)
+        // The chart, the relations and the ledger all moved.
+        void router.invalidate()
       },
     )
 
@@ -406,7 +440,125 @@ function Exact() {
           {preview !== null && <PreviewReport report={preview} />}
         </section>
       )}
+
+      {/*
+        Step four exists only once a dry run has been read. The import writes a
+        chart of accounts, every relation and an opening entry carrying the
+        whole debtor and creditor position — committing that from a screen
+        nobody has seen a report on is how a migration goes wrong quietly.
+      */}
+      {state?.ready === true && preview !== null && (
+        <section className="border-border mt-6 rounded-md border p-4">
+          <h2 className="text-lg font-semibold">4. Overzetten</h2>
+          <p className="text-muted-foreground mt-1 mb-4 text-sm">
+            Zet het grootboekschema, de relaties en de openstaande posten over. De openstaande
+            posten komen als één beginbalanspost in het grootboek.
+          </p>
+
+          {imported === null ? (
+            <>
+              <div className="mb-4 grid max-w-2xl gap-3 md:grid-cols-2">
+                <label className="text-sm">
+                  Datum beginbalans
+                  <input
+                    value={openingDate}
+                    onChange={(event) => setOpeningDate(event.target.value)}
+                    disabled={!hydrated}
+                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
+                  />
+                </label>
+                <label className="text-sm">
+                  Dagboek
+                  <input
+                    value={journalCode}
+                    onChange={(event) => setJournalCode(event.target.value)}
+                    disabled={!hydrated}
+                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
+                  />
+                </label>
+                <label className="text-sm">
+                  Debiteurenrekening
+                  <input
+                    value={receivableAccount}
+                    onChange={(event) => setReceivableAccount(event.target.value)}
+                    disabled={!hydrated}
+                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
+                  />
+                </label>
+                <label className="text-sm">
+                  Crediteurenrekening
+                  <input
+                    value={payableAccount}
+                    onChange={(event) => setPayableAccount(event.target.value)}
+                    disabled={!hydrated}
+                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
+                  />
+                </label>
+                <label className="text-sm md:col-span-2">
+                  Tegenrekening beginbalans
+                  <input
+                    value={openingBalanceAccount}
+                    onChange={(event) => setOpeningBalanceAccount(event.target.value)}
+                    disabled={!hydrated}
+                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
+                  />
+                  <span className="text-muted-foreground mt-1 block text-xs">
+                    Hier komt de andere kant van elke openstaande post terecht — meestal een
+                    eigen-vermogen- of tussenrekening. Er is met opzet geen standaard: een verkeerde
+                    keuze is achteraf aan de cijfers niet te zien.
+                  </span>
+                </label>
+              </div>
+
+              <button
+                type="button"
+                disabled={
+                  busy ||
+                  !hydrated ||
+                  openingBalanceAccount === '' ||
+                  receivableAccount === '' ||
+                  payableAccount === '' ||
+                  journalCode === ''
+                }
+                onClick={() => void runImport()}
+                className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
+              >
+                {busy ? 'Bezig…' : 'Definitief overzetten'}
+              </button>
+            </>
+          ) : (
+            <ImportResult result={imported} />
+          )}
+        </section>
+      )}
     </>
+  )
+}
+
+function ImportResult({ result }: { result: Record<string, unknown> }) {
+  const number = (key: string): string => String((result[key] as number | undefined) ?? 0)
+
+  return (
+    <div>
+      <p role="status" className="mb-4 text-sm">
+        Overgezet: {number('accountsCreated')} grootboekrekeningen, {number('contactsCreated')}{' '}
+        relaties, {number('openItemsImported')} openstaande posten ({number('receivableCount')}{' '}
+        debiteuren, {number('payableCount')} crediteuren).
+      </p>
+      {typeof result['openingEntryId'] === 'string' && (
+        <p className="text-muted-foreground text-sm">
+          De beginbalans staat in journaalpost{' '}
+          <Link
+            to="/entries/$entryId"
+            params={{ entryId: result['openingEntryId'] }}
+            className="underline"
+          >
+            {result['openingEntryId'].slice(0, 8)}
+          </Link>
+          . Eén post, dus terugdraaien is één storno.
+        </p>
+      )}
+    </div>
   )
 }
 

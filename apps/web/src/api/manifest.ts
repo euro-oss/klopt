@@ -366,6 +366,12 @@ export const routeManifest: readonly RouteBinding[] = [
     path: '/exact/import/preview',
     module: 'api/v1/exact.import.preview.ts',
   },
+  {
+    operationId: 'exact.runImport',
+    method: 'POST',
+    path: '/exact/import',
+    module: 'api/v1/exact.import.ts',
+  },
 
   // Sales (M1).
   {

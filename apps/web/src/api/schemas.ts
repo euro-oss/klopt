@@ -943,3 +943,41 @@ export const exactPreviewQuery = z.object({
 })
 
 export type ExactPreviewQuery = z.infer<typeof exactPreviewQuery>
+
+/**
+ * Running the import for real.
+ *
+ * Every account here is asked for rather than defaulted, and that is the point:
+ * a migration puts somebody's whole debtor position on a control account and
+ * the balancing side somewhere. Picking those on their behalf would be a
+ * bookkeeping decision made by a program, and the wrong one is not visible
+ * afterwards — the numbers are all plausible.
+ */
+export const runExactImportBody = z.object({
+  year: z.number().int().min(1990).max(2200),
+  /**
+   * The date the opening entry is booked on.
+   *
+   * Not the invoice dates: those stay on the invoices, where the ageing and the
+   * dunning clock read them. This is the single date the balance is established
+   * on, which is how an overname is normally booked.
+   */
+  openingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** The memoriaal the opening entry lands in. */
+  journalCode: z.string().trim().min(1).max(20),
+  /** Debiteuren. */
+  receivableAccount: z.string().trim().min(1).max(20),
+  /** Crediteuren. */
+  payableAccount: z.string().trim().min(1).max(20),
+  /**
+   * The other side of every open item — usually equity or a suspense account.
+   *
+   * No default. An import that quietly balanced itself against a cost account
+   * would understate the result by the whole debtor position, and nothing on
+   * any screen would look wrong.
+   */
+  openingBalanceAccount: z.string().trim().min(1).max(20),
+  idempotencyKey: z.string().uuid().optional(),
+})
+
+export type RunExactImportBody = z.infer<typeof runExactImportBody>
