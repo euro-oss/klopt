@@ -360,6 +360,14 @@ export async function handleListExactDivisions(context: RequestContext) {
     return refuse(context, error, client.log)
   }
 
+  // Whatever went wrong last time did not go wrong this time. Without this,
+  // `lastError` is written once and never cleared, so a failure that has
+  // since been fixed stays on the screen and the panel stops meaning
+  // anything.
+  await withExactConnection(context.database, (repository) =>
+    repository.recordSuccess(context.entityId),
+  )
+
   return {
     status: 200,
     body: {
@@ -609,6 +617,11 @@ export async function handlePreviewExactImport(context: RequestContext, query: E
       existingContactNumbers: [...here.resolutions.contactIdsByNumber.keys()],
       existingTaxCodes: here.resolutions.taxCodes,
     })
+
+    // The read worked, whatever the last attempt did.
+    await withExactConnection(context.database, (repository) =>
+      repository.recordSuccess(context.entityId),
+    )
 
     return {
       status: 200,

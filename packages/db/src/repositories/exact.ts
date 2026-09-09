@@ -269,6 +269,28 @@ export class ExactConnectionRepository {
       .where(eq(exactConnections.entityId, request.entityId))
   }
 
+  /**
+   * The connection worked.
+   *
+   * `lastError` is the last thing that went wrong with this connection, so a
+   * read that succeeds has to clear it — otherwise a failure that has since
+   * been fixed sits on the screen for good, and the panel stops meaning
+   * anything because it is always red.
+   *
+   * Separate from `recordImport` because a dry run is not an import: clearing
+   * the error is honest, moving `lastImportAt` would not be.
+   *
+   * A read where Exact refused one resource still counts. The connection is
+   * fine; the refusal belongs in the report's warnings, which is where it says
+   * what it cost.
+   */
+  async recordSuccess(entityId: string): Promise<void> {
+    await this.tx
+      .update(exactConnections)
+      .set({ lastError: null, updatedAt: new Date() })
+      .where(eq(exactConnections.entityId, entityId))
+  }
+
   async recordFailure(entityId: string, failure: string): Promise<void> {
     await this.tx
       .update(exactConnections)

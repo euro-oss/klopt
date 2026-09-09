@@ -826,6 +826,44 @@ describe('the dry run', () => {
     expect(error.message).toContain('bulk/Financial/GLAccounts')
   })
 
+  it('clears the last error once a read works', async () => {
+    /**
+     * `lastError` was written by `recordFailure` and cleared by `recordImport`,
+     * which nothing called. So the first failure a connection ever had stayed
+     * on the screen for good — reported as "it now works although it still
+     * shows Id is not a GUID".
+     *
+     * A panel that is always red is a panel nobody reads.
+     */
+    const { exact, token } = await ready()
+
+    exact.malformed = true
+    await expect(
+      handlePreviewExactImport(await context(token), exactPreviewQuery.parse({ year: '2026' })),
+    ).rejects.toThrow()
+
+    const failed = await handleGetExactConnection(await context(token))
+    expect(failed.body.connection?.lastError).toContain('ID is not a GUID')
+
+    exact.malformed = false
+    await handlePreviewExactImport(await context(token), exactPreviewQuery.parse({ year: '2026' }))
+
+    const recovered = await handleGetExactConnection(await context(token))
+    expect(recovered.body.connection?.lastError).toBeNull()
+  })
+
+  it('keeps the connection green when only one resource is refused', async () => {
+    // The connection is fine; the refusal is a fact about one resource and
+    // belongs in the report's warnings, not in the connection's error panel.
+    const { exact, token } = await ready()
+    exact.forbidden.add('financial/ReportingBalance')
+
+    await handlePreviewExactImport(await context(token), exactPreviewQuery.parse({ year: '2026' }))
+
+    const connection = await handleGetExactConnection(await context(token))
+    expect(connection.body.connection?.lastError).toBeNull()
+  })
+
   it('reconciles the open items against Exact’s own control accounts', async () => {
     const { token } = await ready()
 
