@@ -78,6 +78,23 @@ function problem(code: ExactProblemCode, path: string | null, message: string): 
   return { code, path, message }
 }
 
+/**
+ * What to actually do about a 403, given what Exact was willing to say.
+ *
+ * Three different sentences, because they send somebody to three different
+ * places. Telling a user to check their rights when the rights are fine and
+ * the subscription is the problem wastes an afternoon.
+ */
+function diagnose(missing: UnreadableResource): string {
+  if (missing.userHasRight === false) {
+    return ` Exact confirms this user does not have GET rights on ${missing.resource} in this administration: check the roles on that user under Stamgegevens → Gebruikers, or connect as somebody who has them.`
+  }
+  if (missing.userHasRight === true) {
+    return ` Exact says this user *does* have GET rights on ${missing.resource}, so the refusal is not their role — it is the administration's subscription not including the module, or the app registration's own data scoping.`
+  }
+  return ` Exact grants rights per resource rather than per scope, and would not answer whether this user has this one. It is one of four things: the user's roles on this administration, the subscription's modules, the administration itself, or the app registration's data scoping.`
+}
+
 // ---------------------------------------------------------------------------
 // What was read
 // ---------------------------------------------------------------------------
@@ -128,6 +145,20 @@ export interface UnreadableResource {
   /** Exact's status. 403 is rights; 404 is a resource this division has not got. */
   readonly status: number
   readonly message: string
+  /**
+   * What `users/UserHasRights` said about this endpoint, if it was asked.
+   *
+   * A 403 from Exact has at least four causes and the error body distinguishes
+   * none of them: the signed-in user's rights, the subscription's modules, the
+   * division, and the app's own data scoping. This is the one of those Exact
+   * will answer directly, so the report can say *which* thing to go and change
+   * rather than listing the possibilities.
+   *
+   * `null` means the probe was not asked or could not be answered — it is
+   * scoped `Organization administration`, and a login refused the resource can
+   * be refused the question too. Not knowing is not a "no".
+   */
+  readonly userHasRight?: boolean | null
 }
 
 /** What this administration already has, so the plan can say new or existing. */
@@ -691,10 +722,7 @@ export function planExactImport(
   // because what it could not see is why the reconciliation says what it says.
   for (const missing of snapshot.unreadable) {
     const required = REQUIRED_RESOURCES.has(missing.resource)
-    const rights =
-      missing.status === 403
-        ? " Exact grants rights per resource rather than per scope, so this is the signed-in user's rights on this administration rather than the app's: give that user the right in Exact, or connect as somebody who has it."
-        : ''
+    const rights = missing.status === 403 ? diagnose(missing) : ''
 
     ;(required ? problems : warnings).push(
       problem(

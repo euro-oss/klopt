@@ -465,6 +465,67 @@ describe('reading a division whose rights are uneven', () => {
     )
   }
 
+  it('asks Exact why, and only when it was a 403', async () => {
+    /**
+     * `users/UserHasRights` is Exact's own answer to "may this user read this
+     * endpoint". Their 403 body says `Forbidden` and nothing else, so without
+     * asking, the report can only list the four things it might be.
+     *
+     * Not asked on a 404: that is not a rights question, and the probe costs a
+     * request against a finite daily budget.
+     */
+    const answering = (status: number) =>
+      vi.fn((input: string) => {
+        const url = String(input)
+        if (url.includes('UserHasRights')) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ d: false }), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            }),
+          )
+        }
+        if (url.includes('ReportingBalance')) {
+          return Promise.resolve(new Response('{}', { status }))
+        }
+        return Promise.resolve(collection([]))
+      })
+
+    const forbidden = answering(403)
+    const refusedSnapshot = await readDivision({
+      client: client(forbidden),
+      division,
+      year: 2026,
+    })
+
+    expect(forbidden.mock.calls.some(([url]) => String(url).includes('UserHasRights'))).toBe(true)
+    // `{"d": false}` is a bare scalar, which the unwrapper used to drop — so
+    // "no" arrived as "no answer" and the report hedged.
+    expect(refusedSnapshot.unreadable[0]?.userHasRight).toBe(false)
+
+    const gone = answering(404)
+    const missingSnapshot = await readDivision({ client: client(gone), division, year: 2026 })
+
+    expect(gone.mock.calls.some(([url]) => String(url).includes('UserHasRights'))).toBe(false)
+    expect(missingSnapshot.unreadable[0]?.userHasRight).toBeNull()
+  })
+
+  it('treats an unanswerable probe as unknown rather than as a refusal', async () => {
+    // The probe is scoped `Organization administration`. A login refused the
+    // resource can be refused the question about it, and reporting that as
+    // "this user lacks the right" would send somebody to fix the wrong thing.
+    const fetch = vi.fn((input: string) => {
+      const url = String(input)
+      if (url.includes('UserHasRights')) return Promise.resolve(forbidden())
+      if (url.includes('ReportingBalance')) return Promise.resolve(forbidden())
+      return Promise.resolve(collection([]))
+    })
+
+    const snapshot = await readDivision({ client: client(fetch), division, year: 2026 })
+
+    expect(snapshot.unreadable[0]?.userHasRight).toBeNull()
+  })
+
   it('records the refusal and keeps reading', async () => {
     const fetch = refusing('ReportingBalance')
 

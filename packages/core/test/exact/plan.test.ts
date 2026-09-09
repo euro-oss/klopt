@@ -573,3 +573,55 @@ describe('reading Exact’s own scalar shapes', () => {
     expect(() => requireKey({}, 'HID')).toThrow(/was not returned/)
   })
 })
+
+describe('what a 403 is actually caused by', () => {
+  /**
+   * Exact's 403 body says `Forbidden` and nothing else, and the cause is one of
+   * four unrelated things: the signed-in user's roles on that administration,
+   * the subscription's modules, the administration itself, or the app
+   * registration's data scoping. Each has a different fix in a different place.
+   *
+   * `users/UserHasRights` is the one of those Exact will answer, so the report
+   * says which rather than listing the possibilities.
+   */
+  const refused = (userHasRight: boolean | null) =>
+    snapshot({
+      trialBalance: null,
+      unreadable: [
+        {
+          resource: 'financial/ReportingBalance',
+          status: 403,
+          message: 'Exact Online answered 403',
+          userHasRight,
+        },
+      ],
+    })
+
+  const messageFor = (userHasRight: boolean | null): string =>
+    planExactImport(refused(userHasRight), options()).warnings.find(
+      (warning) => warning.code === 'resource_unreadable',
+    )?.message ?? ''
+
+  it('sends you to the user’s roles when Exact says the right is missing', () => {
+    const message = messageFor(false)
+    expect(message).toContain('does not have GET rights')
+    expect(message).toContain('Stamgegevens')
+  })
+
+  it('sends you somewhere else entirely when the right is there', () => {
+    // The expensive mistake: spending an afternoon on roles that are already
+    // correct, because the report only knew how to suggest roles.
+    const message = messageFor(true)
+    expect(message).toContain('does* have GET rights')
+    expect(message).toContain('subscription')
+    expect(message).not.toContain('Stamgegevens')
+  })
+
+  it('does not pretend to know when Exact would not say', () => {
+    // The probe is scoped `Organization administration`, so a login refused the
+    // resource can be refused the question too. Unknown is not "no".
+    const message = messageFor(null)
+    expect(message).toContain('would not answer')
+    expect(message).not.toContain('does not have GET rights')
+  })
+})

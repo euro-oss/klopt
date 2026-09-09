@@ -76,6 +76,13 @@ import { ExactApiError, collectAll } from './client.js'
  * fourth rule — a failing adapter never blocks bookkeeping — and the same
  * shape `runInboundPoll` uses for a mailbox whose password expired.
  *
+ * A 403 also gets one extra request: `users/UserHasRights`, which is Exact's
+ * own answer to "may this user read this endpoint". Their 403 body says
+ * `Forbidden` and nothing else, and the cause is one of four unrelated things —
+ * the user's roles, the subscription's modules, the administration, or the app
+ * registration's data scoping. Asking narrows it to one, which is the
+ * difference between a setting somebody can change and an afternoon.
+ *
  * Only two statuses degrade, and the narrowness is the point:
  *
  * - **403**, "you may not read this" — the case above.
@@ -155,7 +162,16 @@ export async function readDivision(request: ReadDivisionRequest): Promise<ExactS
       // "Exact answered no" from "we never got an answer".
       if (!(error instanceof ExactApiError) || !DEGRADES.has(error.status)) throw error
 
-      unreadable.push({ resource: path, status: error.status, message: error.message })
+      // Ask Exact which of the four causes it is, but only for a 403 — a 404
+      // is not a rights question and the probe costs a request.
+      const userHasRight = error.status === 403 ? await client.mayRead(code, path) : null
+
+      unreadable.push({
+        resource: path,
+        status: error.status,
+        message: error.message,
+        userHasRight,
+      })
       progress(path, 0)
       return null
     }

@@ -130,6 +130,26 @@ export interface ExactClient {
   }): Promise<ExactPage<Record<string, unknown>>>
   /** Follow a `__next`, which is already a complete URL. */
   nextPage(url: string): Promise<ExactPage<Record<string, unknown>>>
+  /**
+   * Whether this login may call one endpoint, according to Exact.
+   *
+   * `users/UserHasRights` — "check whether the current user has rights for an
+   * action on a specific endpoint". It exists because a 403 from Exact has at
+   * least four possible causes and their error body distinguishes none of
+   * them: the user's rights, the subscription's modules, the division, and the
+   * app's own data scoping.
+   *
+   * Asking turns "you need some permission, work out which" into "your user
+   * does or does not have this one", which is the difference between a support
+   * ticket and a setting.
+   *
+   * `null` when the probe itself could not be answered — it is scoped
+   * `Organization administration`, so a login refused the resource may be
+   * refused the question about it too. An unanswered probe must not read as a
+   * "no".
+   */
+  mayRead(division: number, path: string): Promise<boolean | null>
+
   /** An attachment's bytes, from a `DocumentAttachments.Url`. */
   download(url: string): Promise<Uint8Array>
   /** Everything asked so far, newest last. Spec 8: adapters record their calls. */

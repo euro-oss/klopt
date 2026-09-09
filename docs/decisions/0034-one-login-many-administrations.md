@@ -424,3 +424,42 @@ necessarily books old documents on a new day.
 of thousands of attachments to fetch and store, which is a worker job rather
 than something to do inside an HTTP request. The plan already lists them and
 the dry run counts them; nothing writes them yet.
+
+## Asking Exact why, instead of listing what it might be
+
+"What permission do I need?" turned out to have no answer in Exact's
+documentation. They publish a `Scope` per resource, but scope is demonstrably
+not the discriminator — `vat/VATCodes` and `financial/ReportingBalance` are both
+"Financial accounting" and one answered 200 while the other answered 403 for the
+same token in the same administration. There is no published resource-to-right
+mapping.
+
+There are **four** independent layers that produce an identical `Forbidden`
+body: the signed-in user's roles on that administration, the subscription's
+modules, the administration itself, and the app registration's data scoping.
+Each is fixed in a different place, and guessing wrong costs an afternoon
+spent on roles that were already correct.
+
+Exact will answer one of the four directly. `users/UserHasRights` takes an
+endpoint and an action and returns a boolean: _may this user GET this
+resource_. So a 403 now costs one extra request, and the report says which of
+the three sentences applies rather than listing all four possibilities:
+
+- **Right is missing** — go to the user's roles, and where.
+- **Right is present** — explicitly _not_ the roles; it is the subscription's
+  modules or the app's data scoping.
+- **Probe unanswered** — say so. `UserHasRights` is scoped `Organization
+administration`, so a login refused the resource can be refused the question
+  about it, and reporting that as "this user lacks the right" would send
+  somebody to fix a thing that is not broken. Not knowing is not a "no".
+
+Only on a 403. A 404 is not a rights question and the probe spends a request
+against a finite daily budget.
+
+### The scalar that was being dropped
+
+`UserHasRights` is an OData _function_, so it answers `{"d": true}` rather than
+`{"d": {"results": [...]}}`. The unwrapper returned an empty page for anything
+whose `d` was not an object, which meant a definite "no" arrived as "no
+answer" and the report hedged when it had been told the truth. A primitive `d`
+is now one row under `value`.

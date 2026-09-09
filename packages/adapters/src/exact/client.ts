@@ -131,7 +131,11 @@ function unwrap(body: unknown): ExactPage<Record<string, unknown>> {
     return { rows: payload as Record<string, unknown>[], next: null }
   }
   if (typeof payload !== 'object' || payload === null) {
-    return { rows: [], next: null }
+    // A bare scalar, which is what an OData *function* answers with —
+    // `users/UserHasRights` returns `{"d": true}`. Wrapped as one row under
+    // `value` so callers keep a single shape; dropping it, as this used to,
+    // turned "no" into "no answer".
+    return { rows: payload === null ? [] : [{ value: payload }], next: null }
   }
 
   const wrapper = payload as { results?: unknown; __next?: unknown }
@@ -371,6 +375,32 @@ export function createExactClient(options: ExactClientOptions): ExactClient & {
       }
 
       return rows.map(parseDivision)
+    },
+
+    /**
+     * Ask Exact whether this login may read a resource.
+     *
+     * An OData function, so the arguments go in the query string as quoted
+     * literals: `?endpoint='financial/ReportingBalance'&action='GET'`. The
+     * answer comes back as a bare `Edm.Boolean` rather than a collection,
+     * which is why it does not go through `request`.
+     */
+    async mayRead(division: number, path: string): Promise<boolean | null> {
+      const url = new URL(`${base}/api/v1/${String(division)}/users/UserHasRights`)
+      url.searchParams.set('endpoint', `'${path}'`)
+      url.searchParams.set('action', `'GET'`)
+
+      try {
+        const page = await request(url.href, 'users/UserHasRights')
+        // Exact wraps the scalar the same way it wraps a row: `{ d: { … } }`.
+        const [row] = page.rows
+        const value = row?.['UserHasRights'] ?? row?.['value'] ?? row?.['d']
+        return typeof value === 'boolean' ? value : null
+      } catch {
+        // The probe is scoped `Organization administration`, so a login refused
+        // the resource can be refused the question too. Unknown, not "no".
+        return null
+      }
     },
 
     async page(query): Promise<ExactPage<Record<string, unknown>>> {
