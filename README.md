@@ -118,8 +118,13 @@ and Exact compares its redirect URI literally.
 ### Driving it from an agent
 
 Klopt ships an MCP server, so an assistant can read the books without anybody
-pasting figures into a chat window. Build it, issue a **read-only** token under
-**Toegang**, and point a client at it:
+pasting figures into a chat window.
+
+**Hosted** — the endpoint is wherever Klopt already is, so there is nothing to
+install. Issue a **read-only** token under **Toegang** and point a client at
+`https://your-klopt/api/mcp` with `Authorization: Bearer klopt_…`.
+
+**Local** — over stdio, if the agent runs on the same machine as the books:
 
 ```json
 {

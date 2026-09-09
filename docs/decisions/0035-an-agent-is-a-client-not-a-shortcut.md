@@ -121,11 +121,58 @@ auditfile is megabytes of XML and nobody is going to read a line of it.
 
 ## Consequences
 
-- **Streamable HTTP is not built.** Spec 10.3 wants stdio for local and HTTP for
-  remote; this is stdio only. Remote needs the token story thought through
-  properly — OAuth where the client supports it — and that is not a thing to
-  half-do.
 - **The write tools are the next slice**, and the proposal model is the point of
   them: `draft_journal_entry` and `draft_sales_invoice` create drafts a human
   releases. The operations registry already marks 25 operations `proposal`.
 - **The CLI (spec 10.4) is still missing**, and it is the other headless surface.
+
+## Addendum: HTTP, because stdio is the half a customer cannot use
+
+The first cut shipped stdio only, on the reasoning that remote needed the token
+story thought through. That was the wrong half to ship alone. stdio requires
+the agent and the books to be on the same machine — for anybody using a hosted
+Klopt it means installing a local Node process and keeping a token in a config
+file, which is not a thing a customer will do. The address should just be the
+instance.
+
+So the endpoint is mounted at `POST /api/mcp` in the web app. Wherever Klopt is
+hosted, MCP is there: same TLS, same tokens, nothing extra to deploy.
+
+**Outside `/api/v1`**, because it is a protocol endpoint rather than a REST
+resource. Under `/api/v1` it would look like one of the versioned operations
+the contract test enumerates, and it is not one — it is a second way to reach
+all of them. Its versioning is MCP's own.
+
+**Stateless: one message per request.** No sessions, no SSE, no
+server-initiated messages, so any number of instances can serve the same client
+with no sticky routing and nothing to expire. Every request builds a fresh
+server that has never seen an `initialize`, and there is a test asserting
+`tools/list` works on one — because the day that stops being true is the day
+this needs a session store to be hostable.
+
+**Web-native rather than Node-shaped.** The SDK's own HTTP transport wants
+Node's `req`/`res`; the web app speaks `Request` and `Response`. `Transport` is
+four methods, so it is implemented directly instead of shimming pretend
+streams.
+
+**The loopback is deliberate.** Mounted inside the web app, the endpoint could
+call the handlers directly and save a hop. It forwards the caller's token to a
+client pointed back at its own origin instead, so a tool call is an ordinary
+authenticated request landing on the ordinary handler, checking the ordinary
+permission, writing the ordinary audit entry. Calling handlers directly is
+where the second path starts — the one where an agent reaches something a
+script cannot because nobody noticed the two had drifted. A few milliseconds on
+the same host is a cheap price for there being exactly one way in.
+
+### The bug this found
+
+A notification has no reply. The transport waited for one anyway, so `initialize`
+returned, the client sent `notifications/initialized`, and the connection hung
+until undici gave up on headers that were never coming — **every hosted session
+would have died at the handshake**. Curl never caught it, because curl does not
+send the notification. Only driving the real SDK client against the real
+endpoint did.
+
+JSON-RPC defines a notification as a message with no `id`, so that is now the
+test, and there is a regression test whose only real assertion is that the call
+resolves at all.

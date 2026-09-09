@@ -22,6 +22,7 @@ import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppRetentionRouteImport } from './routes/_app/retention'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSnapshotsRouteImport } from './routes/_app/snapshots'
+import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as AppBankIndexRouteImport } from './routes/_app/bank.index'
 import { Route as AppBankMatchRouteImport } from './routes/_app/bank.match'
 import { Route as AppContactsIndexRouteImport } from './routes/_app/contacts.index'
@@ -196,6 +197,11 @@ const AppSnapshotsRoute = AppSnapshotsRouteImport.update({
   id: '/snapshots',
   path: '/snapshots',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiMcpRoute = ApiMcpRouteImport.update({
+  id: '/api/mcp',
+  path: '/api/mcp',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppBankIndexRoute = AppBankIndexRouteImport.update({
   id: '/bank/',
@@ -798,6 +804,7 @@ export interface FileRoutesByFullPath {
   '/retention': typeof AppRetentionRoute
   '/settings': typeof AppSettingsRoute
   '/snapshots': typeof AppSnapshotsRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/bank/match': typeof AppBankMatchRoute
   '/contacts/$contactId': typeof AppContactsContactIdRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
@@ -921,6 +928,7 @@ export interface FileRoutesByTo {
   '/retention': typeof AppRetentionRoute
   '/settings': typeof AppSettingsRoute
   '/snapshots': typeof AppSnapshotsRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/': typeof AppIndexRoute
   '/bank/match': typeof AppBankMatchRoute
   '/contacts/$contactId': typeof AppContactsContactIdRoute
@@ -1047,6 +1055,7 @@ export interface FileRoutesById {
   '/_app/retention': typeof AppRetentionRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/snapshots': typeof AppSnapshotsRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/_app/': typeof AppIndexRoute
   '/_app/bank/match': typeof AppBankMatchRoute
   '/_app/contacts/$contactId': typeof AppContactsContactIdRoute
@@ -1174,6 +1183,7 @@ export interface FileRouteTypes {
     | '/retention'
     | '/settings'
     | '/snapshots'
+    | '/api/mcp'
     | '/bank/match'
     | '/contacts/$contactId'
     | '/entries/$entryId'
@@ -1297,6 +1307,7 @@ export interface FileRouteTypes {
     | '/retention'
     | '/settings'
     | '/snapshots'
+    | '/api/mcp'
     | '/'
     | '/bank/match'
     | '/contacts/$contactId'
@@ -1422,6 +1433,7 @@ export interface FileRouteTypes {
     | '/_app/retention'
     | '/_app/settings'
     | '/_app/snapshots'
+    | '/api/mcp'
     | '/_app/'
     | '/_app/bank/match'
     | '/_app/contacts/$contactId'
@@ -1540,6 +1552,7 @@ export interface RootRouteChildren {
   SetupRoute: typeof SetupRoute
   SignInRoute: typeof SignInRoute
   SignOutRoute: typeof SignOutRoute
+  ApiMcpRoute: typeof ApiMcpRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1AccountsRoute: typeof ApiV1AccountsRoute
   ApiV1AuditLogRoute: typeof ApiV1AuditLogRouteWithChildren
@@ -1681,6 +1694,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/snapshots'
       preLoaderRoute: typeof AppSnapshotsRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/mcp': {
+      id: '/api/mcp'
+      path: '/api/mcp'
+      fullPath: '/api/mcp'
+      preLoaderRoute: typeof ApiMcpRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/bank/': {
       id: '/_app/bank/'
@@ -2856,6 +2876,7 @@ const rootRouteChildren: RootRouteChildren = {
   SetupRoute: SetupRoute,
   SignInRoute: SignInRoute,
   SignOutRoute: SignOutRoute,
+  ApiMcpRoute: ApiMcpRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1AccountsRoute: ApiV1AccountsRoute,
   ApiV1AuditLogRoute: ApiV1AuditLogRouteWithChildren,
