@@ -463,3 +463,59 @@ against a finite daily budget.
 whose `d` was not an object, which meant a definite "no" arrived as "no
 answer" and the report hedged when it had been told the truth. A primitive `d`
 is now one row under `value`.
+
+## Read and empty is a third state, and it had its own door
+
+The rights were granted, `financial/ReportingBalance` answered **200**, and the
+report was worse than when it had been refused.
+
+The resource came back with **no rows at all**, for every year asked. Taken at
+face value that is not neutral, it is actively false in two directions at once:
+
+- An empty trial balance has debit equal to credit, so it **balanced** — a
+  clean bill of health issued on the strength of no evidence.
+- Every control account therefore held zero, so the entire debtor position
+  became a **difference**: a confident €1,474,259.80 discrepancy in books
+  nothing had actually looked at.
+
+This is the exact failure the `unreadable` state was built to prevent, and it
+walked in through the door next to it. Distinguishing "not read" from "read"
+was not enough; "read" had to be split again into "read with data" and "read
+with nothing".
+
+So `available: boolean` is now `source: 'read' | 'empty' | 'unreadable'`, and
+`read` is the only value under which any total below it is a claim. The
+open-item figures are still reported under all three — they come from a
+different resource and remain true — they are simply not measured against a
+control account of zero.
+
+The two non-`read` states say different things, because they send somebody
+somewhere different: _refused_ is a rights question; _answered with nothing_ is
+a question about whether that year has postings at all, or whether the rights
+that permit the call are still filtering every row out from under it.
+
+### The filter was not the cause, and changed anyway
+
+The first suspicion was the filter — `ReportingYear eq Y and (Status eq 20 or
+Status eq 50)`. It was not: the same division answers with no rows either way.
+
+It is now year-only regardless. Exact's note is "20 = Open, 50 = Processed. To
+get 'after entry' results, both should be included" — and both is all of them,
+so filtering on status was a no-op, while their guidance for this resource is
+explicit: "For optimal filter, only include a reporting year in the filter."
+
+### What is still wrong with this reconciliation
+
+Open items have no year. A receivable raised in 2024 and still open is part of
+today's debtor position, and it is compared here against **one** reporting
+year's movement on the control account. For an administration with history that
+is the wrong comparison even when the trial balance is full, and it will show a
+difference that is an artefact of the question rather than a fact about the
+books.
+
+The right measure is the control account's cumulative balance as at a date,
+which means reading `ReportingBalance` for the control accounts across every
+year rather than one. That is a narrow query — three or four account codes —
+so it is affordable; it is simply not done yet. Until it is, a `differs`
+outcome on an administration with more than one year of history deserves to be
+checked by hand before it is believed.

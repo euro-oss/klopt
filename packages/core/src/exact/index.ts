@@ -73,4 +73,5 @@ export {
   type ExactPlannedTaxCode,
   type ControlAccountOutcome,
   type TrialBalanceReconciliation,
+  type TrialBalanceSource,
 } from './plan.js'

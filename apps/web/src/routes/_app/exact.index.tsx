@@ -574,7 +574,7 @@ interface ControlCheck {
 
 interface Reconciliation {
   readonly year: number
-  readonly available: boolean
+  readonly source: 'read' | 'empty' | 'unreadable'
   readonly totalDebit: string | null
   readonly totalCredit: string | null
   readonly balanced: boolean | null
@@ -621,17 +621,23 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
         <Stat
           label={`Proefbalans ${String(reconciliation.year)}`}
           value={
-            !reconciliation.available
+            reconciliation.source === 'unreadable'
               ? 'niet gelezen'
-              : reconciliation.balanced
-                ? 'sluit'
-                : 'sluit niet'
+              : reconciliation.source === 'empty'
+                ? 'geen saldi'
+                : reconciliation.balanced
+                  ? 'sluit'
+                  : 'sluit niet'
           }
-          tone={!reconciliation.available ? 'muted' : reconciliation.balanced ? 'good' : 'warn'}
+          tone={
+            reconciliation.source !== 'read' ? 'muted' : reconciliation.balanced ? 'good' : 'warn'
+          }
           hint={
-            reconciliation.available
+            reconciliation.source === 'read'
               ? `${reconciliation.totalDebit ?? '—'} debet / ${reconciliation.totalCredit ?? '—'} credit`
-              : 'Exact gaf geen toegang tot financial/ReportingBalance'
+              : reconciliation.source === 'unreadable'
+                ? 'Exact gaf geen toegang tot financial/ReportingBalance'
+                : 'Exact gaf geen enkele regel terug voor dit jaar'
           }
         />
         <Stat
@@ -648,11 +654,12 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
       </div>
 
       <h3 className="mb-2 text-sm font-semibold">Aansluiting openstaande posten</h3>
-      {!reconciliation.available && (
+      {reconciliation.source !== 'read' && (
         <p role="status" className="text-muted-foreground mb-2 text-sm">
-          De proefbalans van Exact kon niet gelezen worden, dus de openstaande posten zijn niet
-          tegen de tussenrekeningen aangesloten. Wat er staat is wat de openstaande posten zelf
-          zeggen — niet dat het klopt.
+          {reconciliation.source === 'unreadable'
+            ? 'De proefbalans van Exact kon niet gelezen worden, dus de openstaande posten zijn niet tegen de tussenrekeningen aangesloten.'
+            : `Exact gaf voor ${String(reconciliation.year)} helemaal geen saldi terug, dus er was niets om tegen aan te sluiten.`}{' '}
+          Wat er staat is wat de openstaande posten zelf zeggen — niet dat het klopt.
         </p>
       )}
       <table className="mb-6 w-full text-sm">

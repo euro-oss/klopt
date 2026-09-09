@@ -67,6 +67,7 @@ export type ExactProblemCode =
   | 'attachment_without_url'
   | 'division_caution'
   | 'resource_unreadable'
+  | 'trial_balance_empty'
 
 export interface ExactProblem {
   readonly code: ExactProblemCode
@@ -292,13 +293,31 @@ export interface ControlAccountCheck {
   readonly itemCount: number
 }
 
+/**
+ * Where the trial balance came from, or why it did not.
+ *
+ * Three states, not two, and the third is the one that caught me out. A real
+ * administration answered `financial/ReportingBalance` with **200 and no
+ * rows** — readable, and empty. Treated as "read", an empty trial balance has
+ * debit equal to credit, so it reported *balanced* on the strength of no
+ * evidence, and then reported the whole debtor position as a difference
+ * against a control account of zero: a confident €1.4M accusation assembled
+ * entirely out of nothing.
+ *
+ * That is the same failure this type already guarded against for `unreadable`,
+ * arriving through the door left open next to it. "Read and empty" makes no
+ * claims either.
+ */
+export type TrialBalanceSource = 'read' | 'empty' | 'unreadable'
+
 export interface TrialBalanceReconciliation {
   readonly year: number
   /**
-   * False when `financial/ReportingBalance` could not be read. Every total
-   * below is then null rather than zero: an unread year is not an empty one.
+   * `read` is the only value under which anything below is a claim. Every
+   * total is null otherwise — an unread year is not an empty one, and an empty
+   * year is not a balanced one.
    */
-  readonly available: boolean
+  readonly source: TrialBalanceSource
   readonly totalDebit: bigint | null
   readonly totalCredit: bigint | null
   readonly balanced: boolean | null
@@ -738,12 +757,21 @@ export function planExactImport(
   }
 
   const reconciliation = reconcile(snapshot, accounts, openItems, options)
-  if (reconciliation.available && reconciliation.balanced === false) {
+  if (reconciliation.source === 'read' && reconciliation.balanced === false) {
     problems.push(
       problem(
         'trial_balance_unbalanced',
         'reconciliation',
         `Exact's own trial balance for ${String(snapshot.year)} does not balance: ${reconciliation.totalDebit?.toString() ?? '?'} debit against ${reconciliation.totalCredit?.toString() ?? '?'} credit. Nothing downstream of that is safe to import.`,
+      ),
+    )
+  }
+  if (reconciliation.source === 'empty') {
+    warnings.push(
+      problem(
+        'trial_balance_empty',
+        'reconciliation',
+        `Exact returned no summarised balances at all for ${String(snapshot.year)}, so there was nothing to reconcile the open items against. The administration may have no postings in that year, or the rights that allow the call may still be filtering every row out of it. The import is unaffected; what is missing is the proof.`,
       ),
     )
   }
@@ -830,11 +858,16 @@ function reconcile(
     }
   }
 
-  // Nothing was read, so nothing is claimed. The open-item totals are still
-  // reported — they come from a different resource and are still true — but
-  // they are not compared against a control account of zero and called a
-  // difference.
-  if (snapshot.trialBalance === null) {
+  // Nothing to compare against, so nothing is claimed. The open-item totals
+  // are still reported — they come from a different resource and are still
+  // true — but they are not measured against a control account of zero and the
+  // shortfall called a difference.
+  //
+  // `length === 0` matters as much as `null`. A division that answers 200 with
+  // no rows is readable and empty, and an empty trial balance balances: taking
+  // it at face value reported a €1.4M discrepancy in books nobody had looked
+  // at.
+  if (snapshot.trialBalance === null || snapshot.trialBalance.length === 0) {
     const unreconciled = (
       side: 'receivable' | 'payable',
       codes: readonly string[],
@@ -853,7 +886,7 @@ function reconcile(
 
     return {
       year: snapshot.year,
-      available: false,
+      source: snapshot.trialBalance === null ? 'unreadable' : 'empty',
       totalDebit: null,
       totalCredit: null,
       balanced: null,
@@ -904,7 +937,7 @@ function reconcile(
 
   return {
     year: snapshot.year,
-    available: true,
+    source: 'read',
     totalDebit,
     totalCredit,
     balanced: totalDebit === totalCredit,

@@ -793,7 +793,7 @@ describe('the dry run', () => {
 
     expect(preview.body).toMatchObject({
       reconciliation: {
-        available: false,
+        source: 'unreadable',
         balanced: null,
         totalDebit: null,
         totalCredit: null,

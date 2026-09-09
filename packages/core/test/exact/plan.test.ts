@@ -414,7 +414,7 @@ describe('a resource Exact refuses', () => {
       options(),
     )
 
-    expect(plan.reconciliation.available).toBe(false)
+    expect(plan.reconciliation.source).toBe('unreadable')
     expect(plan.reconciliation.balanced).toBeNull()
     expect(plan.reconciliation.totalDebit).toBeNull()
     expect(plan.problems.map((problem) => problem.code)).not.toContain('trial_balance_unbalanced')
@@ -623,5 +623,78 @@ describe('what a 403 is actually caused by', () => {
     const message = messageFor(null)
     expect(message).toContain('would not answer')
     expect(message).not.toContain('does not have GET rights')
+  })
+})
+
+describe('a trial balance that is readable and empty', () => {
+  /**
+   * What a real administration did: `financial/ReportingBalance` answered 200
+   * with no rows at all, for every year asked.
+   *
+   * Taken at face value that is catastrophic. An empty trial balance has debit
+   * equal to credit, so it "balances"; every control account holds zero, so the
+   * entire debtor position becomes a difference. The report claimed the books
+   * reconciled *and* that they were €1.4M out, both from no evidence
+   * whatsoever.
+   *
+   * This is the same trap the `unreadable` case was written for. It had a
+   * second entrance.
+   */
+  const empty = () => snapshot({ trialBalance: [] })
+
+  it('does not call an empty year balanced', () => {
+    const plan = planExactImport(empty(), options())
+
+    expect(plan.reconciliation.source).toBe('empty')
+    expect(plan.reconciliation.balanced).toBeNull()
+    expect(plan.reconciliation.totalDebit).toBeNull()
+    expect(plan.problems.map((problem) => problem.code)).not.toContain('trial_balance_unbalanced')
+  })
+
+  it('does not accuse the administration of a difference', () => {
+    const plan = planExactImport(empty(), options())
+
+    expect(plan.reconciliation.receivable.outcome).toBe('not_reconciled')
+    expect(plan.reconciliation.receivable.difference).toBeNull()
+    // Still counted — the open items came from a resource that answered.
+    expect(plan.reconciliation.receivable.openItems).toBe(302_500n)
+    expect(plan.warnings.map((warning) => warning.code)).not.toContain(
+      'open_items_do_not_reconcile',
+    )
+  })
+
+  it('says which of the two it was, because the fixes differ', () => {
+    // "Refused" sends somebody to rights. "Answered with nothing" sends them to
+    // whether the year has postings at all.
+    const emptyPlan = planExactImport(empty(), options())
+    expect(emptyPlan.warnings.map((w) => w.code)).toContain('trial_balance_empty')
+    expect(emptyPlan.warnings.map((w) => w.code)).not.toContain('resource_unreadable')
+
+    const unreadable = planExactImport(
+      snapshot({
+        trialBalance: null,
+        unreadable: [
+          {
+            resource: 'financial/ReportingBalance',
+            status: 403,
+            message: '403',
+            userHasRight: false,
+          },
+        ],
+      }),
+      options(),
+    )
+    expect(unreadable.warnings.map((w) => w.code)).toContain('resource_unreadable')
+    expect(unreadable.warnings.map((w) => w.code)).not.toContain('trial_balance_empty')
+  })
+
+  it('leaves the import itself alone', () => {
+    // Nothing about the chart, the relations or the open items depends on the
+    // trial balance. Only the proof does.
+    const plan = planExactImport(empty(), options())
+
+    expect(plan.problems).toEqual([])
+    expect(plan.accounts.length).toBeGreaterThan(0)
+    expect(plan.openItems.length).toBeGreaterThan(0)
   })
 })

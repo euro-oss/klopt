@@ -447,15 +447,21 @@ export function parseReportingBalance(row: Record<string, unknown>): ExactReport
 }
 
 /**
- * Both statuses, or the totals are wrong.
+ * Everything for one reporting year.
  *
- * Exact's own note on `Status`: "20 = Open, 50 = Processed. To get 'after
- * entry' results, both should be included." An import that asked for only
- * processed rows would reconcile against a trial balance missing everything
- * entered but not yet processed, and the difference would look like our bug.
+ * Deliberately *only* the year. Exact's own note on `Status` is "20 = Open,
+ * 50 = Processed. To get 'after entry' results, both should be included" — and
+ * both is all of them, so filtering on status is a no-op that only adds to the
+ * filter. Their guidance on this resource is explicit: "For optimal filter,
+ * only include a reporting year in the filter."
+ *
+ * This was `and (Status eq 20 or Status eq 50)`, on the theory that it might be
+ * why a real division answered with no rows. It was not — the same division
+ * answers with no rows either way — but the simpler filter is the one their
+ * documentation asks for, so it stays.
  */
 export function trialBalanceFilter(year: number): string {
-  return `ReportingYear eq ${String(year)} and (Status eq 20 or Status eq 50)`
+  return `ReportingYear eq ${String(year)}`
 }
 
 // ---------------------------------------------------------------------------

@@ -488,7 +488,7 @@ function serialisePlan(plan: ExactImportPlan) {
     },
     reconciliation: {
       year: reconciliation.year,
-      available: reconciliation.available,
+      source: reconciliation.source,
       totalDebit: reconciliation.totalDebit === null ? null : amount(reconciliation.totalDebit),
       totalCredit: reconciliation.totalCredit === null ? null : amount(reconciliation.totalCredit),
       balanced: reconciliation.balanced,
