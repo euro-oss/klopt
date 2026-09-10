@@ -196,7 +196,10 @@ export async function handleCapturePurchaseInvoice(
   context: RequestContext,
   body: CapturePurchaseInvoiceBody,
 ) {
-  requirePermission(context, 'ledger:post')
+  // `ledger:draft`, not `ledger:post`. Creating a draft is the half an agent
+  // may do; issuing, booking and sending are the release. `grants` lets
+  // `ledger:post` satisfy this, so nothing that could already draft stopped.
+  requirePermission(context, 'ledger:draft')
   requireIdempotencyKey(context)
 
   return withPurchase(context.database, async ({ purchase }) => {

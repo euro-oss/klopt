@@ -1,5 +1,6 @@
 import type { Job, PgBoss } from 'pg-boss'
 import { pollInboundSourcesJob } from './inbound.js'
+import { purgeExpiredCodesJob } from './oauth.js'
 import { sealPendingYearsJob } from './snapshots.js'
 
 /**
@@ -58,8 +59,24 @@ function snapshotJob(databaseUrl: string): JobDefinition {
   }
 }
 
+/**
+ * Clearing out spent authorization codes.
+ *
+ * Nightly, and an hour after the snapshot sweep so two jobs are not competing
+ * for the same connections at four. Nothing depends on it having run — an
+ * expired code is refused by the check, not by its absence — so a night it
+ * misses costs nothing but rows.
+ */
+function oauthPurgeJob(databaseUrl: string): JobDefinition {
+  return {
+    name: 'oauth.purgeExpiredCodes',
+    schedule: '0 5 * * *',
+    handler: () => purgeExpiredCodesJob(databaseUrl),
+  }
+}
+
 export function jobsFor(databaseUrl: string): readonly JobDefinition[] {
-  return [inboundPollJob(databaseUrl), snapshotJob(databaseUrl)]
+  return [inboundPollJob(databaseUrl), snapshotJob(databaseUrl), oauthPurgeJob(databaseUrl)]
 }
 
 export async function registerJobs(boss: PgBoss, list: readonly JobDefinition[]): Promise<void> {

@@ -391,7 +391,7 @@ export const salesOperations: Readonly<Record<string, OperationDefinition>> = {
   draftInvoice: defineOperation({
     id: 'sales.draftInvoice',
     kind: 'write',
-    permission: 'ledger:post',
+    permission: 'ledger:draft',
     summary: 'Create a draft sales invoice or credit note, priced but unposted.',
     agentExposure: 'proposal',
     idempotent: true,
@@ -938,7 +938,7 @@ export const purchaseOperations: Readonly<Record<string, OperationDefinition>> =
   captureInvoice: defineOperation({
     id: 'purchase.captureInvoice',
     kind: 'write',
-    permission: 'ledger:post',
+    permission: 'ledger:draft',
     summary:
       'Capture a supplier invoice as a draft. Its stated totals are recorded as given and verified, never recomputed.',
     agentExposure: 'proposal',
@@ -1006,7 +1006,7 @@ export const inboxOperations: Readonly<Record<string, OperationDefinition>> = {
   draftFromItem: defineOperation({
     id: 'inbox.draftFromItem',
     kind: 'write',
-    permission: 'ledger:post',
+    permission: 'ledger:draft',
     summary: 'Turn an arrival into a purchase draft, with the original document attached to it.',
     agentExposure: 'proposal',
     idempotent: true,

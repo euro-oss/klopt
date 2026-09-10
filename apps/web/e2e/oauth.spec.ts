@@ -299,3 +299,100 @@ test('MCP will not answer a made-up token, even for tools/list', async ({ page }
     expect(response.headers()['www-authenticate']).toContain('resource_metadata=')
   }
 })
+
+test('an agent drafts an invoice and cannot issue it', async ({ page }) => {
+  /**
+   * The proposal model, end to end (spec 10.3).
+   *
+   * A draft sales invoice has no number and no journal entry — the gapless
+   * series is allocated at issue, which is the moment the invoice legally
+   * exists. So an agent's mistake costs a deletion, not a gap somebody has to
+   * explain.
+   *
+   * The other half is that there is no tool to issue it. That is asserted in
+   * the MCP unit tests against the tool list; here what matters is that the
+   * draft really landed and really is a draft.
+   */
+  await anAdministration(page)
+
+  // A contact to invoice, and a token that may write.
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('DEB-9001')
+  await page.getByLabel('Naam', { exact: true }).fill('Agent Klant BV')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('cell', { name: 'Agent Klant BV' })).toBeVisible()
+
+  await page.goto('/members')
+  await expect(page.getByLabel('Naam')).toBeEnabled()
+  await page.getByLabel('Naam').fill('agent-schrijft')
+  // The proposal tools need more than an OAuth grant gives — but not much
+  // more, and specifically not the ability to issue.
+  await page.getByLabel('Wat het mag').selectOption('draft')
+  await page.getByRole('button', { name: 'Token maken' }).click()
+  const token = ((await page.locator('code', { hasText: /^klopt_/ }).textContent()) ?? '').trim()
+
+  const call = async (name: string, args: unknown) => {
+    const response = await page.request.post('/api/mcp', {
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      data: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } },
+    })
+    const body = (await response.json()) as {
+      result: { isError?: boolean; content: { text: string }[] }
+    }
+    return body.result
+  }
+
+  const drafted = await call('draft_sales_invoice', {
+    contactNumber: 'DEB-9001',
+    issueDate: '2026-09-10',
+    lines: [
+      {
+        description: 'Advieswerk',
+        quantity: '1',
+        unitPrice: '1000.00',
+        revenueAccountNumber: '8000',
+        taxCode: 'H21',
+      },
+    ],
+  })
+
+  expect(drafted.isError).not.toBe(true)
+  const payload = JSON.parse(drafted.content[0]!.text) as {
+    data: { draftId: string; status: string; release: string }
+  }
+  expect(payload.data.status).toBe('draft')
+  expect(payload.data.release).toContain('Not issued')
+
+  // It is really there, and really a draft: no number, no journal entry.
+  const listed = await page.request.get('/api/v1/sales-invoices?status=draft', {
+    headers: { authorization: `Bearer ${token}` },
+  })
+  const invoices = (await listed.json()) as {
+    invoices: { id: string; number: string | null; status: string }[]
+  }
+  const mine = invoices.invoices.find((invoice) => invoice.id === payload.data.draftId)
+  expect(mine?.status).toBe('draft')
+  expect(mine?.number).toBeNull()
+
+  /**
+   * And the half that makes it a property rather than a habit: the same token
+   * is refused when it tries to release.
+   *
+   * Drafting and issuing both required `ledger:post` until now, which meant an
+   * agent holding a drafting token could skip the MCP tools, call REST
+   * directly, and issue the invoice itself. `ledger:draft` is the narrower
+   * grant; `ledger:post` still satisfies it, so nothing that could draft
+   * before stopped.
+   */
+  const issued = await page.request.post(`/api/v1/sales-invoices/${payload.data.draftId}/issue`, {
+    headers: { authorization: `Bearer ${token}`, 'idempotency-key': crypto.randomUUID() },
+    data: {},
+  })
+  expect(issued.status()).toBe(403)
+  expect(await issued.text()).toContain('ledger:post')
+
+  // A human finds it waiting on the screen the answer named, still a draft.
+  await page.goto('/invoices')
+  await expect(page.getByRole('cell', { name: 'Agent Klant BV' })).toBeVisible()
+})

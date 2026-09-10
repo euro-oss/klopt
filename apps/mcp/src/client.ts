@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 /**
  * The one way this server reaches Klopt: an HTTP call to the public API.
  *
@@ -53,13 +54,7 @@ export class ApiClient {
     this.timeoutMs = options.timeoutMs ?? 30_000
   }
 
-  /**
-   * A GET against `/api/v1`.
-   *
-   * Only GET, and deliberately: this server has no write tools yet, so a POST
-   * helper would exist only to make one easy to add without first thinking
-   * about the proposal model (spec 10.3).
-   */
+  /** A GET against `/api/v1`. */
   async get<T>(path: string, query: Record<string, string | number | undefined> = {}): Promise<T> {
     const search = new URLSearchParams()
     for (const [key, value] of Object.entries(query)) {
@@ -79,8 +74,28 @@ export class ApiClient {
     return this.request(path)
   }
 
-  private async request(path: string): Promise<string> {
+  /**
+   * A POST against `/api/v1`, for the proposal tools (spec 10.3).
+   *
+   * Every caller of this creates something a human still has to release — a
+   * draft invoice, a captured purchase, a validated entry that was not posted.
+   * Nothing here issues, books or sends, because those are the release, and
+   * the release is the human's.
+   *
+   * The idempotency key is generated per call rather than taken as an
+   * argument. An agent retrying a tool it thinks failed is the ordinary case,
+   * and a key it chose could be reused across two genuinely different drafts.
+   */
+  async post<T>(path: string, body: unknown): Promise<T> {
+    return JSON.parse(await this.request(path, { method: 'POST', body })) as T
+  }
+
+  private async request(
+    path: string,
+    options: { readonly method?: string; readonly body?: unknown } = {},
+  ): Promise<string> {
     const url = `${this.base}/api/v1${path}`
+    const method = options.method ?? 'GET'
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs)
@@ -88,11 +103,15 @@ export class ApiClient {
     let response: Response
     try {
       response = await this.doFetch(url, {
-        method: 'GET',
+        method,
         headers: {
           authorization: `Bearer ${this.options.token}`,
           accept: 'application/json',
+          ...(options.body === undefined
+            ? {}
+            : { 'content-type': 'application/json', 'idempotency-key': randomUUID() }),
         },
+        ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
         signal: controller.signal,
       })
     } catch (error: unknown) {

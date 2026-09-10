@@ -159,7 +159,10 @@ export async function handleDraftFromInbox(
   itemId: string,
   body: DraftFromInboxBody,
 ) {
-  requirePermission(context, 'ledger:post')
+  // `ledger:draft`, not `ledger:post`. Turning a document into a draft is the
+  // half an agent may do; booking it is the release. `grants` lets
+  // `ledger:post` satisfy this, so nothing that could already draft stopped.
+  requirePermission(context, 'ledger:draft')
   requireIdempotencyKey(context)
 
   return withInbox(context.database, async ({ inbox, purchase }) => {

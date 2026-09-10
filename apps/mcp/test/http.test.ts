@@ -64,7 +64,7 @@ describe('one JSON-RPC message per request', () => {
     const response = await post({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} })
     const body = (await response.json()) as { result: { tools: { name: string }[] } }
 
-    expect(body.result.tools).toHaveLength(6)
+    expect(body.result.tools).toHaveLength(10)
   })
 
   it('returns 202 for a notification instead of hanging forever', async () => {

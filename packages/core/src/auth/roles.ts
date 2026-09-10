@@ -30,6 +30,21 @@ export const PERMISSIONS = {
   /** Issue and revoke API tokens. */
   manageTokens: 'tokens:manage',
   /**
+   * Create drafts, and nothing that releases one.
+   *
+   * A draft sales invoice, a captured purchase invoice, a purchase drafted
+   * from the inbox. Not issuing, not booking, not sending — those allocate a
+   * number from a gapless series, create a liability, claim VAT, or put a
+   * document in front of a customer.
+   *
+   * It exists because "an agent drafts; a human releases" (spec 10.3) was
+   * otherwise only true of the MCP tool list. Drafting and releasing both
+   * required `ledger:post`, so an agent holding a drafting token could issue
+   * an invoice by calling REST directly and skipping the tools entirely. With
+   * this, a token can be given the drafting half alone.
+   */
+  draft: 'ledger:draft',
+  /**
    * Invite, re-role and remove the people who can see these books. Owner only:
    * membership is the one thing that can lock everybody else out.
    */
@@ -103,6 +118,7 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
   owner: [
     PERMISSIONS.read,
     PERMISSIONS.post,
+    PERMISSIONS.draft,
     PERMISSIONS.postClosed,
     PERMISSIONS.close,
     PERMISSIONS.configure,
@@ -119,6 +135,7 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
   accountant: [
     PERMISSIONS.read,
     PERMISSIONS.post,
+    PERMISSIONS.draft,
     PERMISSIONS.postClosed,
     PERMISSIONS.close,
     PERMISSIONS.configure,
@@ -137,6 +154,7 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
   bookkeeper: [
     PERMISSIONS.read,
     PERMISSIONS.post,
+    PERMISSIONS.draft,
     PERMISSIONS.configure,
     PERMISSIONS.export,
     PERMISSIONS.preparePayments,
@@ -164,6 +182,9 @@ export function permissionsForRole(role: Role): readonly Permission[] {
 export function grants(held: ReadonlySet<string>, required: string): boolean {
   if (held.has('*')) return true
   if (held.has(required)) return true
+  // Posting implies drafting. Otherwise adding `ledger:draft` would have made
+  // every token and every role that could already draft stop being able to.
+  if (required === PERMISSIONS.draft && held.has(PERMISSIONS.post)) return true
   const [scope] = required.split(':')
   return scope !== undefined && held.has(`${scope}:*`)
 }

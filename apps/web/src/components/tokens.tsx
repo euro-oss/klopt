@@ -50,7 +50,7 @@ export function TokenSection({ result }: { result: Result }) {
   const [error, setError] = useState<string | null>(null)
   const [issued, setIssued] = useState<{ name: string; token: string } | null>(null)
   const [name, setName] = useState('')
-  const [readOnly, setReadOnly] = useState(true)
+  const [scope, setScope] = useState<'read' | 'draft'>('read')
 
   if (!result.ok) {
     // `tokens:manage` is owner-only, so a bookkeeper simply does not see this.
@@ -89,9 +89,21 @@ export function TokenSection({ result }: { result: Result }) {
       const response = await issueApiToken({
         data: {
           name,
-          // Read and export is what an agent needs. Anything more is a
-          // deliberate act, and deliberate acts get their own screen one day.
-          permissions: readOnly ? ['ledger:read', 'ledger:export'] : ['*'],
+          /**
+           * Two named choices, never `*`.
+           *
+           * `*` was the first attempt and it could not even be issued: a token
+           * cannot exceed the person issuing it, and no human role holds `*` —
+           * so the option was broken for everybody who tried it.
+           *
+           * `ledger:draft` is the interesting one. It creates drafts and
+           * cannot issue, book or send, so "an agent drafts; a human releases"
+           * holds for the token itself rather than only for the MCP tool list.
+           */
+          permissions:
+            scope === 'read'
+              ? ['ledger:read', 'ledger:export']
+              : ['ledger:read', 'ledger:export', 'ledger:draft'],
           expiresInDays: 90,
           idempotencyKey: crypto.randomUUID(),
         },
@@ -107,9 +119,10 @@ export function TokenSection({ result }: { result: Result }) {
     <section className="mt-10">
       <h2 className="text-lg font-semibold">Tokens en gekoppelde apps</h2>
       <p className="text-muted-foreground mt-1 mb-4 max-w-2xl text-sm">
-        Een token laat een script of een assistent deze administratie lezen. Apps die je via
-        &ldquo;Toegang geven&rdquo; hebt gekoppeld staan er ook tussen; die intrekken doet meteen
-        alle tokens vervallen die de app heeft.
+        Een token laat een script of een assistent deze administratie lezen. Met &ldquo;concepten
+        maken&rdquo; mag het ook conceptfacturen aanmaken — versturen, boeken en definitief maken
+        blijft aan een mens. Apps die je via &ldquo;Toegang geven&rdquo; hebt gekoppeld staan er ook
+        tussen; die loskoppelen doet meteen alle tokens vervallen die de app heeft.
       </p>
 
       {error !== null && (
@@ -149,14 +162,17 @@ export function TokenSection({ result }: { result: Result }) {
             className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
           />
         </label>
-        <label className="flex items-center gap-2 pb-2 text-sm">
-          <input
-            type="checkbox"
-            checked={readOnly}
-            onChange={(event) => setReadOnly(event.target.checked)}
+        <label className="text-sm">
+          Wat het mag
+          <select
+            value={scope}
+            onChange={(event) => setScope(event.target.value === 'draft' ? 'draft' : 'read')}
             disabled={!hydrated}
-          />
-          Alleen lezen
+            className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
+          >
+            <option value="read">Alleen lezen</option>
+            <option value="draft">Lezen en concepten maken</option>
+          </select>
         </label>
         <button
           type="button"

@@ -95,7 +95,11 @@ describe('what an agent is allowed to reach for', () => {
     const names = tools.map((tool) => tool.name).sort()
 
     expect(names).toEqual([
+      'capture_purchase_invoice',
+      'check_journal_entry',
       'describe_schema',
+      'draft_from_inbox_item',
+      'draft_sales_invoice',
       'export_xaf',
       'get_balance',
       'list_open_items',
@@ -109,27 +113,94 @@ describe('what an agent is allowed to reach for', () => {
     }
   })
 
-  it('marks every tool read-only, because every tool is', async () => {
+  it('annotates the writes as writes, and nothing as destructive', async () => {
+    /**
+     * This used to assert every tool was read-only, which stopped being true
+     * when the proposal tools arrived. The property worth keeping is not "no
+     * writes" — it is that a write says so, and that nothing here destroys
+     * anything.
+     */
     const client = await connect(fetch)
     const { tools } = await client.listTools()
 
-    expect(tools).toHaveLength(6)
+    const writes = new Set([
+      'draft_sales_invoice',
+      'capture_purchase_invoice',
+      'draft_from_inbox_item',
+    ])
+
     for (const tool of tools) {
-      expect(tool.annotations?.readOnlyHint).toBe(true)
       expect(tool.annotations?.destructiveHint).toBe(false)
+      expect(tool.annotations?.readOnlyHint).toBe(!writes.has(tool.name))
+    }
+
+    // Drafting twice makes two drafts. A client that assumed otherwise would
+    // retry a timeout into a duplicate invoice.
+    for (const name of writes) {
+      const tool = tools.find((candidate) => candidate.name === name)
+      expect(tool?.annotations?.idempotentHint).toBe(false)
     }
   })
 
-  it('exposes nothing that files, sends, posts or pays', async () => {
-    // The operations that must stay human: filing a return, issuing an
-    // invoice, releasing a payment batch, posting to the ledger.
+  it('exposes nothing that files, sends, issues or pays', async () => {
+    /**
+     * The release, which stays human. An agent may draft an invoice; issuing it
+     * allocates a number from a series the law requires to be gapless and makes
+     * it a document somebody is answerable for. Same for booking a purchase
+     * invoice (a liability, and a VAT claim), filing a return, and releasing a
+     * payment batch.
+     *
+     * `post` is not on this list only because `check_journal_entry` contains
+     * it; the assertion below covers what matters, which is that nothing
+     * actually posts.
+     */
     const client = await connect(fetch)
     const { tools } = await client.listTools()
     const names = tools.map((tool) => tool.name).join(' ')
 
-    for (const verb of ['file', 'send', 'post', 'issue', 'pay', 'approve', 'delete', 'seal']) {
+    for (const verb of ['file', 'send', 'issue', 'pay', 'approve', 'delete', 'seal', 'book']) {
       expect(names).not.toContain(verb)
     }
+  })
+
+  it('validates a journal entry without posting it', async () => {
+    // The journal is append-only and hash-chained, so there is no draft state
+    // to release from — an agent posting to it would *be* the release. The tool
+    // therefore forces `dryRun`, and the test is that it cannot be turned off.
+    const posts: { path: string; body: unknown }[] = []
+    const recording = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const href = input instanceof Request ? input.url : input.toString()
+      if ((init?.method ?? 'GET') === 'POST') {
+        const sent = typeof init?.body === 'string' ? init.body : '{}'
+        posts.push({ path: href, body: JSON.parse(sent) })
+        return Promise.resolve(
+          new Response(JSON.stringify({ balanced: true }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }),
+        )
+      }
+      return fetch(input)
+    })
+
+    const client = await connect(recording)
+    await client.callTool({
+      name: 'check_journal_entry',
+      arguments: {
+        journalCode: 'MEM',
+        bookingDate: '2026-09-10',
+        documentDate: '2026-09-10',
+        description: 'Test',
+        lines: [
+          { accountNumber: '1300', debit: '100.00', credit: '0' },
+          { accountNumber: '8000', debit: '0', credit: '100.00' },
+        ],
+      },
+    })
+
+    expect(posts).toHaveLength(1)
+    expect(posts[0]?.path).toContain('/journal-entries')
+    expect((posts[0]?.body as { dryRun: boolean }).dryRun).toBe(true)
   })
 })
 

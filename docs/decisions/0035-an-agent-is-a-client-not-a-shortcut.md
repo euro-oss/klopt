@@ -176,3 +176,52 @@ endpoint did.
 JSON-RPC defines a notification as a message with no `id`, so that is now the
 test, and there is a regression test whose only real assertion is that the call
 resolves at all.
+
+## Addendum: the write tools, and the permission that makes them mean something
+
+Four write tools: `check_journal_entry`, `draft_sales_invoice`,
+`capture_purchase_invoice`, `draft_from_inbox_item`. Every one ends at
+something that exists and has not happened yet.
+
+What is absent is the design. There is no `issue_invoice`, no
+`book_purchase_invoice`, no `send_invoice`, no `approve_payment_batch` and no
+`post_journal_entry`. Those are the release — the moment somebody becomes
+answerable for a number to a customer, a supplier or the Belastingdienst.
+
+### The tool list was not enough
+
+Writing them exposed a hole in the claim. Drafting a sales invoice and
+**issuing** it both required `ledger:post`. So did booking a purchase invoice
+and sending an invoice. An agent holding a token that could draft could
+therefore skip MCP entirely, call the REST API directly, and issue — and "an
+agent drafts; a human releases" would have been a description of the tool
+surface rather than a property of the system.
+
+So there is now a `ledger:draft` permission that the three draft operations
+require. `grants` lets `ledger:post` satisfy it, so every existing token and
+role that could already draft still can; what is new is that a token can be
+issued with the drafting half **alone**. Toegang offers exactly that as
+"Lezen en concepten maken", and a browser test asserts such a token drafts an
+invoice successfully and is refused 403 when it tries to issue the same one.
+
+`check_journal_entry` needs no such treatment. The journal is append-only and
+hash-chained, so there is no draft state to release from — an agent posting to
+it would _be_ the release. The tool forces `dryRun` and there is a test that it
+cannot be turned off.
+
+### The money convention bit, exactly where it was predicted to
+
+`money()` converts minor units to decimals on the way out, because an agent
+shown `"147425980"` beside `"EUR"` reports a hundred and forty-seven million
+euro. The write API takes invoice lines as minor units.
+
+So the first draft tool took the decimal it had just been shown, sent it
+straight back, and got `422 The request body is not valid` — with nothing in
+the message pointing at the unit. `minorUnitsFrom` is the inverse, at the same
+boundary, so one convention faces the agent: the one `provenance.amounts`
+declares. More than two decimal places is refused rather than rounded, because
+a rounding difference invented at the edge of an API is one nobody finds later.
+
+This is the inconsistency flagged several times in this codebase, finally
+costing something. The conversion is in one place on purpose, so the day the
+API settles on a single convention there is one function to delete.

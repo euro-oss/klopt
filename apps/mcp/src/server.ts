@@ -7,21 +7,42 @@ import { listOpenItems, listOpenItemsInput } from './tools/open-items.js'
 import { vatReturnPreview, vatReturnPreviewInput } from './tools/vat.js'
 import { listPendingApprovals, listPendingApprovalsInput } from './tools/approvals.js'
 import { exportXaf, exportXafInput } from './tools/export.js'
+import {
+  capturePurchaseInvoice,
+  capturePurchaseInvoiceInput,
+  checkJournalEntry,
+  checkJournalEntryInput,
+  draftFromInboxItem,
+  draftFromInboxItemInput,
+  draftSalesInvoice,
+  draftSalesInvoiceInput,
+} from './tools/propose.js'
 
 /**
  * Klopt's MCP server (spec 10.3).
  *
- * ## Read is broad, write is narrow — and today there is no write at all
+ * ## Read is broad, write is narrow
  *
  * "Never expose a generic query or SQL tool. Every write tool is a named domain
  * operation with a typed argument set." Six read tools, each one a named
- * question a bookkeeper actually asks. There is no `query`, no `sql`, no
- * `call_endpoint` escape hatch, and adding one later would undo the entire
- * safety model in a single commit — which is why the absence is written down
- * here rather than left as an observation about the current file.
+ * question a bookkeeper actually asks, and four write tools, each one a named
+ * thing an agent may propose. There is no `query`, no `sql`, no `call_endpoint`
+ * escape hatch, and adding one later would undo the entire safety model in a
+ * single commit — which is why the absence is written down here rather than
+ * left as an observation about the current file.
  *
- * The spec has the MCP server shipping read-only first and gaining write tools
- * behind the proposal model afterwards. This is that first half.
+ * ## An agent drafts; a human releases
+ *
+ * Every write tool ends at something that exists and has not happened yet: a
+ * draft invoice with no number, a purchase invoice that is not booked, an entry
+ * that was validated and deliberately not posted.
+ *
+ * There is no `issue_invoice`, no `book_purchase_invoice`, no `send_invoice`
+ * and no `post_journal_entry`, and their absence is the design. Those are the
+ * release — the moment somebody becomes answerable for a number to a customer,
+ * a supplier or the Belastingdienst. An agent that can draft *and* release can
+ * do the whole thing, and then the proposal model is a description of a habit
+ * rather than a property of the system.
  *
  * ## Two tools the spec names and this does not have
  *
@@ -119,6 +140,21 @@ export function createServer(options: ServerOptions): McpServer {
 
   const readOnly = { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
 
+  /**
+   * A write that creates something reversible and unreleased.
+   *
+   * `destructiveHint: false` is accurate rather than reassuring: nothing here
+   * overwrites or removes anything. `idempotentHint: false` is the honest one —
+   * calling `draft_sales_invoice` twice makes two drafts, and a client that
+   * assumed otherwise would retry a timeout into a duplicate.
+   */
+  const proposes = {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: false,
+  }
+
   server.registerTool(
     'describe_schema',
     {
@@ -183,6 +219,50 @@ export function createServer(options: ServerOptions): McpServer {
       annotations: readOnly,
     },
     guard((args) => exportXaf(context, args)),
+  )
+
+  server.registerTool(
+    'check_journal_entry',
+    {
+      description:
+        'Validate a journal entry and post nothing: whether it balances, which period the date falls in, and whether that period is open. Use before asking a human to post. There is no tool that posts — the journal is append-only, so posting would be the release rather than a proposal.',
+      inputSchema: checkJournalEntryInput.shape,
+      annotations: readOnly,
+    },
+    guard((args) => checkJournalEntry(context, args)),
+  )
+
+  server.registerTool(
+    'draft_sales_invoice',
+    {
+      description:
+        'Create a draft sales invoice. It gets no number and no journal entry until a human issues it, so this cannot consume one from the gapless series.',
+      inputSchema: draftSalesInvoiceInput.shape,
+      annotations: proposes,
+    },
+    guard((args) => draftSalesInvoice(context, args)),
+  )
+
+  server.registerTool(
+    'capture_purchase_invoice',
+    {
+      description:
+        "Capture a supplier's invoice as a draft, with their stated totals as given. It is not booked, so it is not yet a liability and its VAT is not yet deductible — a human does that.",
+      inputSchema: capturePurchaseInvoiceInput.shape,
+      annotations: proposes,
+    },
+    guard((args) => capturePurchaseInvoice(context, args)),
+  )
+
+  server.registerTool(
+    'draft_from_inbox_item',
+    {
+      description:
+        'Turn a document that arrived in the Postvak into a draft purchase invoice, with the document still attached to it. Not booked.',
+      inputSchema: draftFromInboxItemInput.shape,
+      annotations: proposes,
+    },
+    guard((args) => draftFromInboxItem(context, args)),
   )
 
   return server

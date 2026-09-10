@@ -38,6 +38,38 @@ export interface Period {
  * `provenance.amounts` then says what unit they are in, so the convention is
  * stated rather than assumed.
  */
+/**
+ * The inverse: a decimal amount, as the minor units the write API expects.
+ *
+ * The two directions do not use the same convention and that is not this
+ * server's choice to make — the REST API answers money as minor units and
+ * accepts invoice lines as minor units, while `money` above converts to
+ * decimals because an agent shown `"147425980"` reports a hundred and
+ * forty-seven million euro.
+ *
+ * So a proposal tool that took the decimal it had just been shown and sent it
+ * straight back got a 422, and the agent's only clue was "the request body is
+ * not valid". Converting here keeps one convention facing the agent — the one
+ * `provenance.amounts` declares — and puts the translation at the single
+ * boundary where it belongs.
+ *
+ * More precision than two places is refused rather than rounded. A rounding
+ * difference invented at the edge of an API is one nobody can find later.
+ */
+export function minorUnitsFrom(decimal: string, field: string): string {
+  const trimmed = decimal.trim()
+  const match = /^(-?)(\d+)(?:[.,](\d{1,2}))?$/.exec(trimmed)
+
+  if (match === null) {
+    throw new Error(
+      `${field} must be an amount like "1210.00", not ${JSON.stringify(decimal)}. Two decimal places at most.`,
+    )
+  }
+
+  const [, sign = '', whole = '0', fraction = ''] = match
+  return `${sign}${whole}${fraction.padEnd(2, '0')}`
+}
+
 export function money(minorUnits: string | number | bigint): string {
   const raw = typeof minorUnits === 'string' ? minorUnits.trim() : String(minorUnits)
   if (!/^-?\d+$/.test(raw)) {
