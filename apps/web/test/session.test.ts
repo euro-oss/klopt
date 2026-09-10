@@ -12,7 +12,7 @@ import {
   type Auth,
   type Database,
 } from '@klopt/db'
-import { seedEntity } from '@klopt/db/testing'
+import { seedEntity, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { createMemoryEmailTransport } from '@klopt/adapters'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setAuthForTest } from '../src/api/auth-instance.js'
@@ -100,6 +100,8 @@ beforeAll(async () => {
 }, 60_000)
 
 afterAll(async () => {
+  // Take away the fixtures that would otherwise keep the worker busy.
+  await cleanupSeededBackgroundWork(database)
   setAuthForTest(null)
   setDatabaseForTest(null)
   await closeDatabase(database)

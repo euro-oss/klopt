@@ -10,7 +10,7 @@ import {
   type DocumentRunRow,
 } from '@klopt/db'
 import { issueToken } from '@klopt/db'
-import { seedEntity } from '@klopt/db/testing'
+import { seedEntity, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
 import { handleExactDocumentStatus } from '../src/api/handlers/exact.js'
@@ -33,10 +33,11 @@ const DATABASE_URL =
 let database: Database
 
 /**
- * Entities this file made, so it can take its litter away.
+ * Entities this file made.
  *
- * Not "delete everything called Test Beheer B.V.": that is every fixture in
- * the repository, and one day somebody's real administration.
+ * `cleanupSeededBackgroundWork` removes their rows in `afterAll`; this list is
+ * for the assertions that need to talk about *these* runs and not whatever
+ * else a shared development database happens to be holding.
  */
 const created: string[] = []
 
@@ -128,6 +129,8 @@ beforeAll(async () => {
 }, 120_000)
 
 afterAll(async () => {
+  // Take away the fixtures that would otherwise keep the worker busy.
+  await cleanupSeededBackgroundWork(database)
   /**
    * Clear up after ourselves.
    *
@@ -138,11 +141,6 @@ afterAll(async () => {
    * about each one in turn. The worker copes with that now; leaving the litter
    * anyway would just be rude to whoever is using the same Postgres.
    */
-  if (created.length > 0) {
-    const ids = created.map((id) => `'${id}'`).join(', ')
-    await database.execute(`delete from klopt.exact_document_runs where entity_id in (${ids})`)
-  }
-
   setDatabaseForTest(null)
   await closeDatabase(database)
 })

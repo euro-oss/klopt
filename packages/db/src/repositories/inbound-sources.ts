@@ -1,5 +1,5 @@
 import { uuidv7 } from '@klopt/core'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, isNull, lte, or, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import { inboundSources } from '../schema/documents.js'
 
@@ -31,6 +31,8 @@ export interface InboundSourceRow {
   readonly lastPolledAt: string | null
   readonly lastError: string | null
   readonly lastMessageCount: number
+  readonly consecutiveFailures: number
+  readonly nextPollAfter: string | null
 }
 
 const COLUMNS = {
@@ -44,6 +46,8 @@ const COLUMNS = {
   lastPolledAt: inboundSources.lastPolledAt,
   lastError: inboundSources.lastError,
   lastMessageCount: inboundSources.lastMessageCount,
+  consecutiveFailures: inboundSources.consecutiveFailures,
+  nextPollAfter: inboundSources.nextPollAfter,
 }
 
 function toRow(row: {
@@ -57,12 +61,33 @@ function toRow(row: {
   lastPolledAt: Date | null
   lastError: string | null
   lastMessageCount: number
+  consecutiveFailures: number
+  nextPollAfter: Date | null
 }): InboundSourceRow {
   return {
     ...row,
     config: (row.config ?? {}) as Record<string, unknown>,
     lastPolledAt: row.lastPolledAt?.toISOString() ?? null,
+    nextPollAfter: row.nextPollAfter?.toISOString() ?? null,
   }
+}
+
+/**
+ * How long to wait after a run of failures.
+ *
+ * Doubling from five minutes to a ceiling of six hours. A mailbox whose
+ * password expired is worth retrying — somebody will fix it — but not
+ * two hundred and eighty-eight times a day, and not while burying the source
+ * that broke this morning.
+ *
+ * The ceiling rather than giving up: a drop directory can reappear, a network
+ * can come back, and a source nobody has disabled is a source somebody still
+ * wants.
+ */
+export function backoffFor(consecutiveFailures: number): number {
+  const base = 5 * 60_000
+  const ceiling = 6 * 60 * 60_000
+  return Math.min(base * 2 ** Math.min(consecutiveFailures, 10), ceiling)
 }
 
 export class InboundSourceRepository {
@@ -78,12 +103,24 @@ export class InboundSourceRepository {
     return rows.map(toRow)
   }
 
-  /** Every enabled source across every administration. What the poller walks. */
-  async due(): Promise<InboundSourceRow[]> {
+  /**
+   * Every enabled source that is worth asking now.
+   *
+   * Not every enabled source: one that has been failing gets a widening gap
+   * (see `backoffFor`), so a mailbox with a wrong password is retried rather
+   * than hammered, and the log stays readable enough that a *new* failure is
+   * visible in it.
+   */
+  async due(now: Date = new Date()): Promise<InboundSourceRow[]> {
     const rows = await this.tx
       .select(COLUMNS)
       .from(inboundSources)
-      .where(eq(inboundSources.enabled, true))
+      .where(
+        and(
+          eq(inboundSources.enabled, true),
+          or(isNull(inboundSources.nextPollAfter), lte(inboundSources.nextPollAfter, now)),
+        ),
+      )
       .orderBy(asc(inboundSources.lastPolledAt), asc(inboundSources.id))
 
     return rows.map(toRow)
@@ -159,15 +196,29 @@ export class InboundSourceRepository {
     readonly cursor: string | null
     readonly messageCount: number
     readonly failure: string | null
+    /** What it was before this poll, so the next gap can widen. */
+    readonly consecutiveFailures?: number
   }): Promise<void> {
+    const now = new Date()
+
     await this.tx
       .update(inboundSources)
       .set({
-        lastPolledAt: new Date(),
+        lastPolledAt: now,
         lastError: request.failure,
         lastMessageCount: request.messageCount,
         ...(request.ok ? { cursor: request.cursor } : {}),
-        updatedAt: new Date(),
+        // A success clears the debt entirely: one working poll means whatever
+        // was wrong has been fixed, and the next failure starts from scratch.
+        ...(request.ok
+          ? { consecutiveFailures: 0, nextPollAfter: null }
+          : {
+              consecutiveFailures: sql`${inboundSources.consecutiveFailures} + 1`,
+              nextPollAfter: sql`now() + make_interval(secs => ${
+                backoffFor(request.consecutiveFailures ?? 0) / 1000
+              })`,
+            }),
+        updatedAt: now,
       })
       .where(eq(inboundSources.id, request.sourceId))
   }

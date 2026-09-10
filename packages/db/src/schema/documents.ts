@@ -219,6 +219,10 @@ export const inboundSources = klopt.table(
     lastPolledAt: timestamp('last_polled_at', { withTimezone: true }),
     lastError: text('last_error'),
     lastMessageCount: integer('last_message_count').notNull().default(0),
+    /** Consecutive failed polls. Resets the moment one works. */
+    consecutiveFailures: integer('consecutive_failures').notNull().default(0),
+    /** When it is worth trying again. Null means the ordinary schedule. */
+    nextPollAfter: timestamp('next_poll_after', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

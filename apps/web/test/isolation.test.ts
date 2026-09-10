@@ -12,7 +12,7 @@ import {
   withExactConnection,
   type Database,
 } from '@klopt/db'
-import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
+import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
 import { setDocumentStoreForTest } from '../src/api/document-store.js'
@@ -393,6 +393,8 @@ beforeAll(async () => {
 }, 120_000)
 
 afterAll(async () => {
+  // Take away the fixtures that would otherwise keep the worker busy.
+  await cleanupSeededBackgroundWork(database)
   setDatabaseForTest(null)
   setDocumentStoreForTest(null)
   await closeDatabase(database)

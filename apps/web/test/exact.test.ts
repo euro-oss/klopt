@@ -8,7 +8,7 @@ import {
   type Database,
 } from '@klopt/db'
 import { withLedger, withReporting, withSales, withSalesRead } from '@klopt/db'
-import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
+import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { ApiError } from '../src/api/errors.js'
 import { setDatabaseForTest } from '../src/api/database.js'
@@ -476,6 +476,8 @@ afterEach(() => {
 })
 
 afterAll(async () => {
+  // Take away the fixtures that would otherwise keep the worker busy.
+  await cleanupSeededBackgroundWork(database)
   globalThis.fetch = realFetch
   delete process.env['KLOPT_ENCRYPTION_KEY']
   await closeDatabase(database)

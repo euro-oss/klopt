@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
 import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
-import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
+import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
 import { documentStore } from '../src/api/document-store.js'
@@ -137,6 +137,8 @@ beforeAll(async () => {
 }, 60_000)
 
 afterAll(async () => {
+  // Take away the fixtures that would otherwise keep the worker busy.
+  await cleanupSeededBackgroundWork(database)
   setDatabaseForTest(null)
   await closeDatabase(database)
   await rm(documentDirectory, { recursive: true, force: true })

@@ -5,14 +5,16 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
 import { createMaildirSource } from '@klopt/adapters'
 import {
+  backoffFor,
   closeDatabase,
   createDatabase,
   issueToken,
   runInboundPoll,
   runMigrations,
+  withInboundSources,
   type Database,
 } from '@klopt/db'
-import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
+import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
 import { documentStore } from '../src/api/document-store.js'
@@ -172,6 +174,8 @@ beforeAll(async () => {
 }, 60_000)
 
 afterAll(async () => {
+  // Take away the fixtures that would otherwise keep the worker busy.
+  await cleanupSeededBackgroundWork(database)
   setDatabaseForTest(null)
   await closeDatabase(database)
   await rm(directory, { recursive: true, force: true })
@@ -459,3 +463,106 @@ async function sourceFor(entityId: string, path: string): Promise<string> {
   )
   return created.body.id
 }
+
+describe('a mailbox that keeps refusing', () => {
+  /**
+   * Every enabled source used to be polled every five minutes regardless of
+   * how it went last time. A mailbox with an expired password therefore
+   * produced two hundred and eighty-eight identical warnings a day, and a drop
+   * directory that had been deleted produced them forever — which is exactly
+   * what a development database full of old fixtures looked like once the
+   * worker actually started running.
+   *
+   * Retrying is right. Retrying at full volume is not.
+   */
+  it('waits longer after each failure, and is not due in the meantime', async () => {
+    const entityId = await seedEntity(database)
+    const sourceId = await withInboundSources(database, (repository) =>
+      repository.create({
+        entityId,
+        kind: 'maildir',
+        name: 'Weg',
+        config: { directory: '/definitely/not/here' },
+        secret: null,
+      }),
+    )
+
+    const due = async () =>
+      (await withInboundSources(database, (repository) => repository.due())).some(
+        (row) => row.id === sourceId,
+      )
+
+    // A brand new source is due immediately.
+    expect(await due()).toBe(true)
+
+    await withInboundSources(database, (repository) =>
+      repository.recordPoll({
+        sourceId,
+        ok: false,
+        cursor: null,
+        messageCount: 0,
+        failure: 'ENOENT',
+        consecutiveFailures: 0,
+      }),
+    )
+
+    // Now it is not, and will not be for five minutes.
+    expect(await due()).toBe(false)
+
+    const [after] = await database.execute(
+      `select consecutive_failures, next_poll_after > now() as waiting
+         from klopt.inbound_sources where id = '${sourceId}'`,
+    )
+    expect((after as { consecutive_failures: number }).consecutive_failures).toBe(1)
+    expect((after as { waiting: boolean }).waiting).toBe(true)
+  })
+
+  it('widens the gap as failures pile up', () => {
+    // Doubling from five minutes, capped at six hours: a source nobody has
+    // disabled is one somebody still wants, so it never stops being retried.
+    expect(backoffFor(0)).toBe(5 * 60_000)
+    expect(backoffFor(1)).toBe(10 * 60_000)
+    expect(backoffFor(3)).toBe(40 * 60_000)
+    expect(backoffFor(20)).toBe(6 * 60 * 60_000)
+  })
+
+  it('forgets the whole debt the moment one poll works', async () => {
+    const entityId = await seedEntity(database)
+    const sourceId = await withInboundSources(database, (repository) =>
+      repository.create({
+        entityId,
+        kind: 'maildir',
+        name: 'Weer terug',
+        config: { directory: '/tmp' },
+        secret: null,
+      }),
+    )
+
+    await withInboundSources(database, (repository) =>
+      repository.recordPoll({
+        sourceId,
+        ok: false,
+        cursor: null,
+        messageCount: 0,
+        failure: 'ENOENT',
+        consecutiveFailures: 4,
+      }),
+    )
+    await withInboundSources(database, (repository) =>
+      repository.recordPoll({
+        sourceId,
+        ok: true,
+        cursor: 'abc',
+        messageCount: 2,
+        failure: null,
+      }),
+    )
+
+    // Due again straight away, and the next failure starts from scratch rather
+    // than resuming a six-hour gap.
+    const rows = await withInboundSources(database, (repository) => repository.due())
+    const row = rows.find((candidate) => candidate.id === sourceId)
+    expect(row?.consecutiveFailures).toBe(0)
+    expect(row?.nextPollAfter).toBeNull()
+  })
+})

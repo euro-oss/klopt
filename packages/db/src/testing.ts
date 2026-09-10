@@ -1,5 +1,5 @@
 import { uuidv7 } from '@klopt/core'
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
   auditLog,
@@ -39,8 +39,46 @@ export interface SeedOptions {
   readonly vatRounding?: 'per_invoice' | 'per_line'
 }
 
+/**
+ * Every entity this process seeded.
+ *
+ * Kept so a test run can take away the rows that make the worker do things.
+ * Six hundred and thirty-six dead mailboxes accumulated in a shared
+ * development database this way, and once the worker actually started running
+ * they produced a wall of warnings every five minutes about temp directories
+ * from test runs weeks earlier.
+ */
+const seeded: string[] = []
+
+/**
+ * Remove the fixtures that would otherwise give a worker work to do.
+ *
+ * Deliberately narrow. Deleting whole entities means unpicking a dozen foreign
+ * keys, and the rest of the rows a test leaves behind are inert — nothing
+ * polls them, nothing schedules them. These two are the ones that turn old
+ * fixtures into background noise.
+ *
+ * Scoped to ids this process created, never to a name: "delete everything
+ * called Test Beheer B.V." is every fixture in the repository and, one day,
+ * somebody's real administration.
+ */
+export async function cleanupSeededBackgroundWork(database: Database): Promise<void> {
+  if (seeded.length === 0) return
+
+  const ids = sql.join(
+    seeded.map((id) => sql`${id}::uuid`),
+    sql`, `,
+  )
+
+  await database.execute(sql`delete from klopt.inbound_sources where entity_id in (${ids})`)
+  await database.execute(sql`delete from klopt.exact_document_runs where entity_id in (${ids})`)
+
+  seeded.length = 0
+}
+
 export async function seedEntity(database: Database, options: SeedOptions = {}): Promise<string> {
   const entityId = uuidv7()
+  seeded.push(entityId)
   const fiscalYearCode = options.fiscalYearCode ?? '2026'
   const currency = options.functionalCurrency ?? 'EUR'
 

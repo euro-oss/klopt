@@ -56,7 +56,11 @@ export {
   type SealResult,
 } from './snapshot/seal.js'
 export { SecretKeyMissingError, decryptSecret, encryptSecret, secretsAvailable } from './secrets.js'
-export { type InboundSourceRow, InboundSourceRepository } from './repositories/inbound-sources.js'
+export {
+  backoffFor,
+  InboundSourceRepository,
+  type InboundSourceRow,
+} from './repositories/inbound-sources.js'
 export {
   type ExactConnectionCredentials,
   type ExactConnectionRow,

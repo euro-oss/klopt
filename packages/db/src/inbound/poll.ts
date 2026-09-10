@@ -42,6 +42,13 @@ export async function runInboundPoll(request: {
   readonly sourceId: string
   readonly source: InboundSource
   readonly cursor: string | null
+  /**
+   * Failures before this attempt, so a repeated one waits longer.
+   *
+   * Passed in rather than read here: the caller already has the row, and a
+   * second read would be a second chance for it to disagree with itself.
+   */
+  readonly consecutiveFailures?: number
 }): Promise<InboundPollResult> {
   const { database, source } = request
 
@@ -52,6 +59,7 @@ export async function runInboundPoll(request: {
       cursor: request.cursor,
       messageCount: 0,
       failure: availability.reason,
+      consecutiveFailures: request.consecutiveFailures ?? 0,
     })
     return {
       source: source.name,
@@ -71,6 +79,7 @@ export async function runInboundPoll(request: {
       cursor: request.cursor,
       messageCount: 0,
       failure: poll.failure,
+      consecutiveFailures: request.consecutiveFailures ?? 0,
     })
     return {
       source: source.name,
@@ -113,6 +122,7 @@ export async function runInboundPoll(request: {
     cursor,
     messageCount: ingested.length,
     failure,
+    consecutiveFailures: request.consecutiveFailures ?? 0,
   })
 
   // Last, and only what committed.
@@ -136,6 +146,7 @@ async function record(
     readonly cursor: string | null
     readonly messageCount: number
     readonly failure: string | null
+    readonly consecutiveFailures?: number
   },
 ): Promise<void> {
   await withInboundSources(database, (repository) =>

@@ -38,7 +38,12 @@ export interface InboundPollSummary {
   readonly polled: number
   readonly filed: number
   readonly documents: number
-  readonly failed: readonly { readonly name: string; readonly failure: string }[]
+  readonly failed: readonly {
+    readonly name: string
+    readonly failure: string
+    /** Already failing before this poll, so the log can stay quiet about it. */
+    readonly repeat: boolean
+  }[]
 }
 
 /** The same choice the web app makes, from the same environment. */
@@ -62,7 +67,7 @@ export async function pollInboundSources(
   let filed = 0
   let documents = 0
   let polled = 0
-  const failed: { name: string; failure: string }[] = []
+  const failed: { name: string; failure: string; repeat: boolean }[] = []
 
   for (const row of rows) {
     const withSecret = await withInboundSources(database, (repository) =>
@@ -90,17 +95,28 @@ export async function pollInboundSources(
         sourceId: withSecret.id,
         source: adapter,
         cursor: withSecret.cursor,
+        consecutiveFailures: withSecret.consecutiveFailures,
       })
 
       filed += result.filed
       documents += result.documents
-      if (!result.ok) failed.push({ name: result.source, failure: result.failure ?? 'unknown' })
+      if (!result.ok) {
+        failed.push({
+          name: result.source,
+          failure: result.failure ?? 'unknown',
+          // Only the first failure of a run is worth a line in the log. After
+          // that the row carries it, the screen shows it, and repeating it
+          // every five minutes buries whatever broke this morning.
+          repeat: withSecret.consecutiveFailures > 0,
+        })
+      }
     } catch (error: unknown) {
       // `runInboundPoll` records its own failures; this is the belt for the
       // braces. One mailbox must not take the run down with it.
       failed.push({
         name: row.name,
         failure: error instanceof Error ? error.message : String(error),
+        repeat: row.consecutiveFailures > 0,
       })
     }
   }
@@ -118,8 +134,18 @@ export async function pollInboundSourcesJob(databaseUrl: string): Promise<void> 
         `[worker] postvak: ${String(summary.polled)} bron(nen), ${String(summary.filed)} nieuwe berichten, ${String(summary.documents)} document(en)`,
       )
     }
-    for (const failure of summary.failed) {
+    // New failures get a line each. Ones that were already failing get a
+    // count, because six hundred repeats of the same message is not a log.
+    const fresh = summary.failed.filter((failure) => !failure.repeat)
+    for (const failure of fresh) {
       console.warn(`[worker] postvak: ${failure.name} — ${failure.failure}`)
+    }
+
+    const repeats = summary.failed.length - fresh.length
+    if (repeats > 0) {
+      console.info(
+        `[worker] postvak: ${String(repeats)} bron(nen) falen nog steeds; zie Instellingen.`,
+      )
     }
   } finally {
     await closeDatabase(database)

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
 import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
-import { seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
+import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { createEmailEInvoiceTransport, createMemoryEmailTransport } from '@klopt/adapters'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
@@ -139,6 +139,8 @@ afterEach(() => {
 })
 
 afterAll(async () => {
+  // Take away the fixtures that would otherwise keep the worker busy.
+  await cleanupSeededBackgroundWork(database)
   setEInvoiceTransportForTest(null)
   setDatabaseForTest(null)
   await closeDatabase(database)
