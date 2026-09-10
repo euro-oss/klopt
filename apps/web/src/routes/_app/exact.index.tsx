@@ -15,6 +15,8 @@ import {
   connectExact,
   disconnectExact,
   getExactConnection,
+  exactDocumentStatus,
+  importExactDocuments,
   listAccounts,
   listExactDivisions,
   listJournals,
@@ -44,6 +46,7 @@ export const Route = createFileRoute('/_app/exact/')({
   // free text. See `AccountSelect`.
   loader: async () => ({
     connection: await getExactConnection(),
+    documents: await exactDocumentStatus(),
     accounts: await listAccounts(),
     journals: await listJournals(),
   }),
@@ -129,7 +132,12 @@ const CAUTION_TEXT: Record<string, string> = {
 }
 
 function Exact() {
-  const { connection, accounts: accountsResult, journals: journalsResult } = Route.useLoaderData()
+  const {
+    connection,
+    accounts: accountsResult,
+    journals: journalsResult,
+    documents: documentsResult,
+  } = Route.useLoaderData()
 
   // The pickers are only as good as the chart behind them. A failed load leaves
   // them empty rather than falling back to free text, because a field that
@@ -535,6 +543,8 @@ function Exact() {
         whole debtor and creditor position — committing that from a screen
         nobody has seen a report on is how a migration goes wrong quietly.
       */}
+      {state?.ready === true && <DocumentArchive result={documentsResult} />}
+
       {state?.ready === true && preview !== null && (
         <section className="border-border mt-6 rounded-md border p-4">
           <h2 className="text-lg font-semibold">4. Overzetten</h2>
@@ -864,5 +874,91 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
         <p className="text-muted-foreground text-sm">Niets om te melden.</p>
       )}
     </div>
+  )
+}
+
+interface DocumentRun {
+  readonly requested: boolean
+  readonly state?: 'pending' | 'running' | 'paused' | 'done' | 'failed'
+  readonly documentsSeen?: number
+  readonly attachmentsStored?: number
+  readonly attachmentsSkipped?: number
+  readonly bytesStored?: string
+  readonly lastError?: string | null
+}
+
+const RUN_TEXT: Record<string, string> = {
+  pending: 'wacht op de worker',
+  running: 'bezig',
+  paused: 'gepauzeerd tot morgen — het dagbudget van Exact was bijna op',
+  done: 'klaar',
+  failed: 'gestopt',
+}
+
+/**
+ * Het documentarchief overhalen.
+ *
+ * Een aparte stap, want het is een ander soort werk: tien jaar gescande
+ * facturen zijn tienduizenden bestanden achter een daglimiet, dus dit draait op
+ * de achtergrond en gaat verder waar het gebleven was.
+ */
+function DocumentArchive({ result }: { result: { ok: boolean; data?: unknown } }) {
+  const router = useRouter()
+  const hydrated = useHydrated()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (!result.ok) return null
+  const run = result.data as DocumentRun
+
+  const start = async () => {
+    setBusy(true)
+    setError(null)
+    const response = await importExactDocuments({ data: { idempotencyKey: crypto.randomUUID() } })
+    setBusy(false)
+    if (response.ok === false) {
+      setError(response.problem?.detail ?? 'Onbekende fout.')
+      return
+    }
+    await router.invalidate()
+  }
+
+  const running = run.requested && run.state !== 'done' && run.state !== 'failed'
+
+  return (
+    <section className="border-border mt-6 rounded-md border p-4">
+      <h2 className="text-lg font-semibold">Documentarchief</h2>
+      <p className="text-muted-foreground mt-1 mb-4 max-w-2xl text-sm">
+        Haalt de bijlagen uit Exact op en bewaart ze hier. Dit draait op de achtergrond en gaat na
+        een herstart verder waar het gebleven was — bij tienduizenden bestanden duurt het uren, en
+        het stopt vanzelf als het dagbudget van Exact bijna op is.
+      </p>
+
+      {error !== null && (
+        <p role="alert" className="text-destructive mb-4 text-sm">
+          {error}
+        </p>
+      )}
+
+      {run.requested && (
+        <p className="mb-4 text-sm">
+          Status: <strong>{RUN_TEXT[run.state ?? ''] ?? run.state}</strong> —{' '}
+          {String(run.attachmentsStored ?? 0)} opgeslagen, {String(run.attachmentsSkipped ?? 0)} al
+          aanwezig.
+          {run.lastError != null && (
+            <span className="text-muted-foreground block text-xs">{run.lastError}</span>
+          )}
+        </p>
+      )}
+
+      <button
+        type="button"
+        disabled={busy || !hydrated}
+        onClick={() => void start()}
+        className="border-border rounded-md border px-3 py-1.5 text-sm disabled:opacity-50"
+      >
+        {busy ? 'Bezig…' : running ? 'Opnieuw bijwerken' : 'Documenten ophalen'}
+      </button>
+    </section>
   )
 }

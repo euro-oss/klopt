@@ -1169,6 +1169,31 @@ export const exactOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  /**
+   * The document archive, which is a job rather than a request.
+   *
+   * Asking is the write; the worker does the work. So the operation returns
+   * the state of a run rather than the documents, and asking twice while one is
+   * going joins it instead of starting a second walk.
+   */
+  importDocuments: defineOperation({
+    id: 'exact.importDocuments',
+    kind: 'write',
+    permission: 'ledger:import',
+    summary: 'Start pulling the Exact document archive across. Runs in the background.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  documentImportStatus: defineOperation({
+    id: 'exact.documentImportStatus',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'How far the document import has got, and whether it is still going.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
   disconnect: defineOperation({
     id: 'exact.disconnect',
     kind: 'write',

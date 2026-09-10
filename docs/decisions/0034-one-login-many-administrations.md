@@ -435,10 +435,7 @@ necessarily books old documents on a new day.
 
 ### What is not imported yet
 
-**Documents.** A division with ten years of scanned purchase invoices has tens
-of thousands of attachments to fetch and store, which is a worker job rather
-than something to do inside an HTTP request. The plan already lists them and
-the dry run counts them; nothing writes them yet.
+~~**Documents.**~~ Done, as a worker job — see below.
 
 ## Asking Exact why, instead of listing what it might be
 
@@ -549,3 +546,54 @@ the open items issued before the reconciliation year and, when there are any,
 says the difference is expected and why. A `differs` outcome on an
 administration with no older items still says it plainly, because there it
 really is a finding.
+
+## The document archive is a different kind of work
+
+The chart, the relations and the open items are a few thousand rows read in
+nine requests and written in one transaction. The archive is ten years of
+scanned invoices: tens of thousands of files, several gigabytes, behind a daily
+rate limit. That is hours of work which has to survive a deploy, so it cannot
+be a request and it cannot be one transaction.
+
+It is a **bounded batch**. Each tick claims a run, does a limited amount of
+work, writes down where it got to and returns; the worker calls it again two
+minutes later. Resumability is then a property of the design rather than a
+recovery path nobody has exercised — every tick _is_ a resume.
+
+### Not the inbox
+
+`receiveDocument` is the purchase inbox's path and it adds an inbox item. Right
+for something that has just arrived, wrong for an archive: nobody wants fifty
+thousand historical invoices queued for triage. These land as documents with
+their provenance and nothing to action.
+
+### `exact_attachments` is the skip list, and it earns its table
+
+Documents are content-addressed, so re-_storing_ one is free. Re-_downloading_
+one is not. Without a record of which Exact attachment ids are already here, a
+resumed run pulls the entire archive over the wire again to discover, by hash,
+that it already had it — which on a large administration is the whole job done
+twice and the daily budget spent for nothing.
+
+A walk-through confirms it: six attachments fetched on the first pass, and a
+second ask reports six skipped and zero downloaded.
+
+### Pausing is not failing
+
+When Exact's remaining daily budget drops below a reserve, the run goes to
+`paused` rather than `failed` and picks itself up tomorrow. The reserve exists
+because the rest of the product still needs to reach Exact today — an import
+that spends the last request breaks the dry run somebody is trying to read.
+
+### One run at a time, across the instance
+
+Not one per administration in parallel. The limit that matters is Exact's and
+it is per app, so three administrations importing at once would spend the
+budget three times as fast and all three would stall. `claim` therefore takes
+the oldest pending run anywhere, which also means a stale run for an
+administration whose connection has since gone gets picked up, fails once, and
+stays failed — visible rather than retried forever.
+
+Asking twice while a run is going **joins** it. The unique index on `entity_id`
+is the guarantee; a finished run is reset instead, so "import the documents
+again" means "pick up anything new" rather than a constraint violation.

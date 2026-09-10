@@ -402,6 +402,18 @@ export const routeManifest: readonly RouteBinding[] = [
     path: '/exact/import',
     module: 'api/v1/exact.import.ts',
   },
+  {
+    operationId: 'exact.importDocuments',
+    method: 'POST',
+    path: '/exact/documents',
+    module: 'api/v1/exact.documents.ts',
+  },
+  {
+    operationId: 'exact.documentImportStatus',
+    method: 'GET',
+    path: '/exact/documents',
+    module: 'api/v1/exact.documents.ts',
+  },
 
   // Sales (M1).
   {

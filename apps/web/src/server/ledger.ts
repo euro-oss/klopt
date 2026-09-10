@@ -38,6 +38,8 @@ import {
   handleDisconnectExact,
   handleGetExactConnection,
   handleListExactDivisions,
+  handleExactDocumentStatus,
+  handleImportExactDocuments,
   handlePreviewExactImport,
   handleRunExactImport,
 } from '~/api/handlers/exact'
@@ -471,6 +473,23 @@ export const runExactImport = createServerFn({ method: 'POST' })
         ).body,
     ),
   )
+
+export const importExactDocuments = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    run(
+      async () =>
+        (
+          await handleImportExactDocuments(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+          )
+        ).body,
+    ),
+  )
+
+export const exactDocumentStatus = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handleExactDocumentStatus(await contextFromRequest())).body),
+)
 
 export const disconnectExact = createServerFn({ method: 'POST' }).handler(async () =>
   run(async () => (await handleDisconnectExact(await contextFromRequest())).body),

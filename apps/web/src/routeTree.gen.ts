@@ -84,6 +84,7 @@ import { Route as ApiV1ExactCallbackRouteImport } from './routes/api/v1/exact.ca
 import { Route as ApiV1ExactConnectionRouteImport } from './routes/api/v1/exact.connection'
 import { Route as ApiV1ExactDivisionRouteImport } from './routes/api/v1/exact.division'
 import { Route as ApiV1ExactDivisionsRouteImport } from './routes/api/v1/exact.divisions'
+import { Route as ApiV1ExactDocumentsRouteImport } from './routes/api/v1/exact.documents'
 import { Route as ApiV1ExactImportRouteImport } from './routes/api/v1/exact.import'
 import { Route as ApiV1ExportsAuditFileRouteImport } from './routes/api/v1/exports.audit-file'
 import { Route as ApiV1FiscalYearsCloseRouteImport } from './routes/api/v1/fiscal-years.close'
@@ -523,6 +524,11 @@ const ApiV1ExactDivisionsRoute = ApiV1ExactDivisionsRouteImport.update({
   path: '/api/v1/exact/divisions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1ExactDocumentsRoute = ApiV1ExactDocumentsRouteImport.update({
+  id: '/api/v1/exact/documents',
+  path: '/api/v1/exact/documents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1ExactImportRoute = ApiV1ExactImportRouteImport.update({
   id: '/api/v1/exact/import',
   path: '/api/v1/exact/import',
@@ -924,6 +930,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/exact/connection': typeof ApiV1ExactConnectionRoute
   '/api/v1/exact/division': typeof ApiV1ExactDivisionRoute
   '/api/v1/exact/divisions': typeof ApiV1ExactDivisionsRoute
+  '/api/v1/exact/documents': typeof ApiV1ExactDocumentsRoute
   '/api/v1/exact/import': typeof ApiV1ExactImportRouteWithChildren
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -1058,6 +1065,7 @@ export interface FileRoutesByTo {
   '/api/v1/exact/connection': typeof ApiV1ExactConnectionRoute
   '/api/v1/exact/division': typeof ApiV1ExactDivisionRoute
   '/api/v1/exact/divisions': typeof ApiV1ExactDivisionsRoute
+  '/api/v1/exact/documents': typeof ApiV1ExactDocumentsRoute
   '/api/v1/exact/import': typeof ApiV1ExactImportRouteWithChildren
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -1194,6 +1202,7 @@ export interface FileRoutesById {
   '/api/v1/exact/connection': typeof ApiV1ExactConnectionRoute
   '/api/v1/exact/division': typeof ApiV1ExactDivisionRoute
   '/api/v1/exact/divisions': typeof ApiV1ExactDivisionsRoute
+  '/api/v1/exact/documents': typeof ApiV1ExactDocumentsRoute
   '/api/v1/exact/import': typeof ApiV1ExactImportRouteWithChildren
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
@@ -1330,6 +1339,7 @@ export interface FileRouteTypes {
     | '/api/v1/exact/connection'
     | '/api/v1/exact/division'
     | '/api/v1/exact/divisions'
+    | '/api/v1/exact/documents'
     | '/api/v1/exact/import'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -1464,6 +1474,7 @@ export interface FileRouteTypes {
     | '/api/v1/exact/connection'
     | '/api/v1/exact/division'
     | '/api/v1/exact/divisions'
+    | '/api/v1/exact/documents'
     | '/api/v1/exact/import'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -1599,6 +1610,7 @@ export interface FileRouteTypes {
     | '/api/v1/exact/connection'
     | '/api/v1/exact/division'
     | '/api/v1/exact/divisions'
+    | '/api/v1/exact/documents'
     | '/api/v1/exact/import'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
@@ -1698,6 +1710,7 @@ export interface RootRouteChildren {
   ApiV1ExactConnectionRoute: typeof ApiV1ExactConnectionRoute
   ApiV1ExactDivisionRoute: typeof ApiV1ExactDivisionRoute
   ApiV1ExactDivisionsRoute: typeof ApiV1ExactDivisionsRoute
+  ApiV1ExactDocumentsRoute: typeof ApiV1ExactDocumentsRoute
   ApiV1ExactImportRoute: typeof ApiV1ExactImportRouteWithChildren
   ApiV1ExportsAuditFileRoute: typeof ApiV1ExportsAuditFileRoute
   ApiV1ImportsAuditFileRoute: typeof ApiV1ImportsAuditFileRoute
@@ -2246,6 +2259,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/exact/divisions'
       fullPath: '/api/v1/exact/divisions'
       preLoaderRoute: typeof ApiV1ExactDivisionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/exact/documents': {
+      id: '/api/v1/exact/documents'
+      path: '/api/v1/exact/documents'
+      fullPath: '/api/v1/exact/documents'
+      preLoaderRoute: typeof ApiV1ExactDocumentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/exact/import': {
@@ -3121,6 +3141,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ExactConnectionRoute: ApiV1ExactConnectionRoute,
   ApiV1ExactDivisionRoute: ApiV1ExactDivisionRoute,
   ApiV1ExactDivisionsRoute: ApiV1ExactDivisionsRoute,
+  ApiV1ExactDocumentsRoute: ApiV1ExactDocumentsRoute,
   ApiV1ExactImportRoute: ApiV1ExactImportRouteWithChildren,
   ApiV1ExportsAuditFileRoute: ApiV1ExportsAuditFileRoute,
   ApiV1ImportsAuditFileRoute: ApiV1ImportsAuditFileRoute,

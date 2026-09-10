@@ -22,7 +22,9 @@ import {
   secretsAvailable,
   withExactConnection,
   withExactConnectionRead,
+  withExactDocuments,
   withReporting,
+  type DocumentRunRow,
   type ExactConnectionCredentials,
 } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
@@ -811,6 +813,76 @@ export async function handleRunExactImport(context: RequestContext, body: RunExa
       ...serialisePlan(plan),
       requests: client.log,
     },
+  }
+}
+
+/**
+ * Ask for the document archive (spec 13).
+ *
+ * The write is the asking. Ten years of scanned invoices behind a daily rate
+ * limit is hours of work, so this records a request and the worker does it a
+ * batch at a time — which is also why asking twice joins the run in flight
+ * rather than starting a second walk over the same archive.
+ */
+export async function handleImportExactDocuments(context: RequestContext) {
+  requirePermission(context, 'ledger:import')
+  requireIdempotencyKey(context)
+
+  const connection = await withExactConnectionRead(context.database, (repository) =>
+    repository.find(context.entityId),
+  )
+
+  const divisionCode = connection?.divisionCode ?? null
+  if (divisionCode === null) {
+    throw new ApiError(
+      'conflict',
+      'No Exact administration has been chosen yet. Connect and choose one first.',
+    )
+  }
+
+  const run = await withExactDocuments(context.database, (repository) =>
+    repository.request({
+      entityId: context.entityId,
+      divisionCode,
+      requestedBy: context.actor.id,
+    }),
+  )
+
+  await recordAudit(context, {
+    action: 'exact.importDocuments',
+    resourceType: 'exact_connection',
+    resourceId: context.entityId,
+    after: { divisionCode, runId: run.id, state: run.state },
+  })
+
+  return { status: 202, body: serialiseRun(run) }
+}
+
+export async function handleExactDocumentStatus(context: RequestContext) {
+  requirePermission(context, 'ledger:read')
+
+  const run = await withExactDocuments(context.database, (repository) =>
+    repository.find(context.entityId),
+  )
+
+  return { status: 200, body: run === null ? { requested: false } : serialiseRun(run) }
+}
+
+function serialiseRun(run: DocumentRunRow) {
+  return {
+    requested: true,
+    state: run.state,
+    divisionCode: run.divisionCode,
+    documentsSeen: run.documentsSeen,
+    attachmentsStored: run.attachmentsStored,
+    attachmentsSkipped: run.attachmentsSkipped,
+    // A count of bytes is not money, whatever the lint thinks of a bare
+    // `total`. Named for what it is.
+    bytesStored: run.bytesStored.toString(),
+    requestedAt: run.requestedAt,
+    startedAt: run.startedAt,
+    finishedAt: run.finishedAt,
+    lastError: run.lastError,
   }
 }
 

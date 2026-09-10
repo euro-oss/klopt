@@ -1,5 +1,6 @@
 import type { Job, PgBoss } from 'pg-boss'
 import { pollInboundSourcesJob } from './inbound.js'
+import { importExactDocumentsJob } from './exact.js'
 import { purgeExpiredCodesJob } from './oauth.js'
 import { sealPendingYearsJob } from './snapshots.js'
 
@@ -75,8 +76,31 @@ function oauthPurgeJob(databaseUrl: string): JobDefinition {
   }
 }
 
+/**
+ * Pulling Exact's document archive across, a batch at a time.
+ *
+ * Every two minutes, and each tick does bounded work. Not one long job: an
+ * import that takes six hours has to survive a deploy, and "resume where it
+ * stopped" is a property of short jobs with their progress in a table.
+ *
+ * It does nothing at all unless somebody has asked for an import, so the cost
+ * of the schedule is one indexed query a couple of times a minute.
+ */
+function exactDocumentsJob(databaseUrl: string): JobDefinition {
+  return {
+    name: 'exact.importDocuments',
+    schedule: '*/2 * * * *',
+    handler: () => importExactDocumentsJob(databaseUrl),
+  }
+}
+
 export function jobsFor(databaseUrl: string): readonly JobDefinition[] {
-  return [inboundPollJob(databaseUrl), snapshotJob(databaseUrl), oauthPurgeJob(databaseUrl)]
+  return [
+    inboundPollJob(databaseUrl),
+    snapshotJob(databaseUrl),
+    oauthPurgeJob(databaseUrl),
+    exactDocumentsJob(databaseUrl),
+  ]
 }
 
 export async function registerJobs(boss: PgBoss, list: readonly JobDefinition[]): Promise<void> {

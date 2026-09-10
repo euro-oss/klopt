@@ -77,6 +77,17 @@ export {
   type ExactCommitResult,
 } from './exact/import.js'
 export {
+  runExactDocumentBatch,
+  type DocumentBatchOptions,
+  type DocumentBatchResult,
+} from './exact/documents.js'
+export {
+  ExactDocumentRepository,
+  withExactDocuments,
+  type DocumentRunRow,
+  type RunState,
+} from './repositories/exact-documents.js'
+export {
   type PurchaseContext,
   type PurchaseInvoiceRow,
   PurchaseRepository,

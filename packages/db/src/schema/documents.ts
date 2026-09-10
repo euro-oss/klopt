@@ -343,3 +343,47 @@ export const exactConnections = klopt.table(
     uniqueIndex('exact_connections_entity').on(table.entityId),
   ],
 )
+
+/**
+ * A walk through Exact's document archive (spec 13).
+ *
+ * One row per administration, because asking twice while one is running should
+ * join it rather than start a second walk over the same tens of thousands of
+ * files.
+ */
+export const exactDocumentRuns = klopt.table('exact_document_runs', {
+  id: uuid('id').primaryKey(),
+  entityId: uuid('entity_id')
+    .notNull()
+    .references(() => entities.id),
+  divisionCode: integer('division_code').notNull(),
+  state: text('state').notNull().default('pending'),
+  /** Exact's `__next`, absolute and opaque. Null before the first page and after the last. */
+  cursor: text('cursor'),
+  documentsSeen: integer('documents_seen').notNull().default(0),
+  attachmentsStored: integer('attachments_stored').notNull().default(0),
+  attachmentsSkipped: integer('attachments_skipped').notNull().default(0),
+  bytesStored: bigint('bytes_stored', { mode: 'bigint' }).notNull().default(0n),
+  requestedBy: text('requested_by'),
+  requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  finishedAt: timestamp('finished_at', { withTimezone: true }),
+  lastError: text('last_error'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/** One row per Exact attachment already stored here: the skip list, and the provenance. */
+export const exactAttachments = klopt.table('exact_attachments', {
+  id: uuid('id').primaryKey(),
+  entityId: uuid('entity_id')
+    .notNull()
+    .references(() => entities.id),
+  exactAttachmentId: text('exact_attachment_id').notNull(),
+  exactDocumentId: text('exact_document_id').notNull(),
+  documentId: uuid('document_id')
+    .notNull()
+    .references(() => documents.id),
+  subject: text('subject'),
+  documentDate: date('document_date'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
