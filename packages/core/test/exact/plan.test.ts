@@ -698,3 +698,72 @@ describe('a trial balance that is readable and empty', () => {
     expect(plan.openItems.length).toBeGreaterThan(0)
   })
 })
+
+describe('a difference that is the question rather than the answer', () => {
+  /**
+   * Open items have no year. A receivable raised in 2024 and still unpaid is
+   * part of today's debtor position and contributes nothing to 2026's movement
+   * on the control account — so comparing an all-ages position against one
+   * reporting year will differ, every time, on any administration with history.
+   *
+   * The report used to call that "something is booked to the control account
+   * without an open item behind it", which is a finding about somebody's
+   * bookkeeping derived entirely from the shape of our own question.
+   */
+  const olderItem = {
+    HID: '900500',
+    AccountId: '11111111-1111-1111-1111-111111111111',
+    AccountCode: '  1000',
+    AccountName: 'Klant Een BV',
+    Amount: 4000,
+    AmountInTransit: 0,
+    CurrencyCode: 'EUR',
+    Description: 'Oude post',
+    DueDate: '2024-04-30T00:00:00',
+    InvoiceDate: '2024-03-31T00:00:00',
+    InvoiceNumber: 20240001,
+    EntryNumber: 20240001,
+    JournalCode: '70',
+    YourRef: null,
+  }
+
+  it('counts the open items that predate the year it reconciled', () => {
+    const plan = planExactImport(
+      snapshot({ receivables: [...(snapshot().receivables ?? []), parseOpenItem(olderItem)] }),
+      options(),
+    )
+
+    expect(plan.reconciliation.receivable.itemsBeforeYear).toBe(1)
+  })
+
+  it('blames the window rather than the books when some items are older', () => {
+    const plan = planExactImport(
+      snapshot({ receivables: [...(snapshot().receivables ?? []), parseOpenItem(olderItem)] }),
+      options(),
+    )
+
+    const warning = plan.warnings.find((w) => w.code === 'open_items_do_not_reconcile')
+    expect(warning?.message).toContain('issued before 2026')
+    expect(warning?.message).toContain('it is the question, not the answer')
+    expect(warning?.message).not.toContain('Something is booked to the control account')
+  })
+
+  it('still says it plainly when every open item is inside the year', () => {
+    // Here a difference really is a finding: nothing about the window explains
+    // it away.
+    const extra = {
+      ...snapshot().trialBalance![0]!,
+      accountCode: '1300',
+      debit: 999_00n,
+      credit: 0n,
+    }
+    const plan = planExactImport(
+      snapshot({ trialBalance: [...(snapshot().trialBalance ?? []), extra] }),
+      options(),
+    )
+
+    const warning = plan.warnings.find((w) => w.code === 'open_items_do_not_reconcile')
+    expect(warning?.message).toContain('Something is booked to the control account')
+    expect(plan.reconciliation.receivable.itemsBeforeYear).toBe(0)
+  })
+})

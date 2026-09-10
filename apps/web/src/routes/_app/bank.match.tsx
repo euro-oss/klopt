@@ -116,11 +116,36 @@ function MatchQueue() {
     if (lineId === undefined) return
 
     let cancelled = false
-    void suggestMatches({ data: { transactionId: lineId } }).then((result) => {
-      if (cancelled) return
-      setAnswered({ id: lineId, items: result.ok ? result.data.suggestions : [] })
-      if (!result.ok) setError(result.problem.detail)
-    })
+    void suggestMatches({ data: { transactionId: lineId } })
+      .then((result) => {
+        if (cancelled) return
+        setAnswered({ id: lineId, items: result.ok ? result.data.suggestions : [] })
+        if (!result.ok) setError(result.problem.detail)
+      })
+      .catch((cause: unknown) => {
+        /**
+         * A rejected fetch, as opposed to a request that arrived and said no.
+         *
+         * This used to have no catch, so a transport failure became an
+         * unhandled rejection and the root error boundary replaced the whole
+         * screen — a bookkeeper working the queue lost the queue. It showed up
+         * as a browser test that failed about one run in four, because holding
+         * ArrowDown fires a request per selection and a superseded one can die
+         * in flight.
+         *
+         * A superseded request failing is not news: `cancelled` means the
+         * answer is already irrelevant. A current one failing is worth saying
+         * out loud, and the suggestions are emptied rather than left showing
+         * the previous transaction's.
+         */
+        if (cancelled) return
+        setAnswered({ id: lineId, items: [] })
+        setError(
+          cause instanceof Error
+            ? `De suggesties konden niet geladen worden: ${cause.message}`
+            : 'De suggesties konden niet geladen worden.',
+        )
+      })
 
     return () => {
       cancelled = true

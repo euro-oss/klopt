@@ -244,6 +244,16 @@ function fakeExact(): FakeExact {
             IsBlocked: false,
           },
           {
+            ID: guid(5),
+            Code: '2000',
+            Description: 'Tussenrekening',
+            BalanceSide: 'D',
+            BalanceType: 'B',
+            Type: 90,
+            TypeDescription: 'General',
+            IsBlocked: false,
+          },
+          {
             ID: guid(2),
             Code: '1600',
             Description: 'Crediteuren',
@@ -935,8 +945,8 @@ describe('the dry run', () => {
       contacts: { count: number; new: number; customers: number; suppliers: number }
     }
 
-    // The seeded chart has its own accounts; Exact's four are all new here.
-    expect(body.accounts.count).toBe(4)
+    // The seeded chart has its own accounts; Exact's five are all new here.
+    expect(body.accounts.count).toBe(5)
     expect(body.contacts).toMatchObject({ count: 2, new: 2, customers: 1, suppliers: 1 })
   })
 
@@ -1106,6 +1116,36 @@ describe('the import itself', () => {
     )
     const debtors = rows.find((row) => row.accountNumber === '1300')
     expect(debtors?.periodDebit).toBe(121_000n)
+  })
+
+  it('accepts a counter-account the import itself is bringing across', async () => {
+    /**
+     * The restriction this removes: the check ran before the read, so the
+     * counter-account had to already be in the chart. A first-time migration
+     * could not use the tussenrekening it was importing from Exact — which is
+     * the obvious thing to want, since that is where the old system kept it.
+     *
+     * The accounts land in the same transaction as the entry that uses them,
+     * so the only thing standing in the way was the order of two checks.
+     */
+    const { token, entityId } = await ready()
+
+    // 2000 Tussenrekening exists in Exact's chart and not in this one, which is
+    // the ordinary case: the old system is where a suspense account lives.
+    const before = await withReporting(database, (repository) => repository.listAccounts(entityId))
+    expect(before.map((account) => account.number)).not.toContain('2000')
+
+    const result = await handleRunExactImport(
+      await context(token, `import-${crypto.randomUUID()}`),
+      request({ openingBalanceAccount: '2000' }),
+    )
+
+    expect(result.status).toBe(201)
+
+    const entry = await withLedger(database, (repository) =>
+      repository.findEntryById(entityId, String(result.body.openingEntryId)),
+    )
+    expect((entry?.lines ?? []).filter((line) => line.accountNumber === '2000')).toHaveLength(1)
   })
 
   it('refuses an account it was told to use and cannot find', async () => {

@@ -684,28 +684,6 @@ export async function handleRunExactImport(context: RequestContext, body: RunExa
 
   if (here.entity === null) throw new ApiError('not_found', 'No such administration.')
 
-  // Every account named in the request has to exist here before anything is
-  // read, because discovering a typo after five thousand relations have been
-  // fetched wastes the read and tells nobody anything sooner.
-  const known = new Set(here.accounts.map((account) => account.number))
-  const missing = [
-    ['receivableAccount', body.receivableAccount],
-    ['payableAccount', body.payableAccount],
-    ['openingBalanceAccount', body.openingBalanceAccount],
-  ].filter(([, number]) => !known.has(number ?? ''))
-
-  if (missing.length > 0) {
-    throw new ApiError(
-      'validation_failed',
-      'The import names accounts this administration does not have.',
-      missing.map(([field, number]) => ({
-        code: 'unknown_account',
-        path: field ?? null,
-        message: `${number ?? ''} does not exist here.`,
-      })),
-    )
-  }
-
   let divisions: readonly ExactDivision[]
   try {
     divisions = await client.divisions()
@@ -734,6 +712,43 @@ export async function handleRunExactImport(context: RequestContext, body: RunExa
     })
   } catch (error: unknown) {
     return refuse(context, error, client.log)
+  }
+
+  /**
+   * Every account the request names has to exist — including the ones this
+   * import is about to create.
+   *
+   * Checked here rather than before the read, which is where it was. That
+   * ordering meant the counter-account had to already be in the chart, so a
+   * first-time migration could not use the tussenrekening it was importing
+   * from Exact. The accounts land in the same transaction as the entry that
+   * uses them, so there was never a reason for it beyond the check happening
+   * too early.
+   *
+   * The cost is finding out after the read rather than before it. That is one
+   * wasted read of somebody's own data against a restriction that made a
+   * reasonable migration impossible.
+   */
+  const known = new Set([
+    ...here.accounts.map((account) => account.number),
+    ...plan.accounts.map((account) => account.number),
+  ])
+  const missing = [
+    ['receivableAccount', body.receivableAccount],
+    ['payableAccount', body.payableAccount],
+    ['openingBalanceAccount', body.openingBalanceAccount],
+  ].filter(([, number]) => !known.has(number ?? ''))
+
+  if (missing.length > 0) {
+    throw new ApiError(
+      'validation_failed',
+      'The import names accounts that neither this administration nor the Exact chart has.',
+      missing.map(([field, number]) => ({
+        code: 'unknown_account',
+        path: field ?? null,
+        message: `${number ?? ''} does not exist here and is not in the chart being imported.`,
+      })),
+    )
   }
 
   // The same refusal the dry run makes, applied where it actually matters. A

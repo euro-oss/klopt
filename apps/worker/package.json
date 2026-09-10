@@ -11,7 +11,7 @@
     "typecheck": "tsc -b tsconfig.build.json && tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "start": "node dist/main.js",
-    "dev": "node --watch src/main.ts"
+    "dev": "tsx watch src/main.ts"
   },
   "dependencies": {
     "@klopt/adapters": "workspace:*",
@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "24.13.3",
+    "tsx": "^4.20.6",
     "typescript": "5.9.3",
     "vitest": "5.0.0"
   }

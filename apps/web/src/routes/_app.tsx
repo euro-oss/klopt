@@ -59,7 +59,16 @@ function AppLayout() {
       activeEntityId={session.memberships[0]?.entityId ?? null}
       userName={session.user.name}
       onSwitchEntity={(entityId) => {
-        void switchEntity({ data: { entityId } }).then(() => router.invalidate())
+        // Same shape as the bug in bank.match: an unhandled rejection here
+        // takes down the layout every screen renders inside. Switching
+        // administrations is exactly when somebody is about to look at
+        // numbers, and blanking the page is the worst available answer —
+        // staying put on the administration they were already in is not.
+        void switchEntity({ data: { entityId } })
+          .then(() => router.invalidate())
+          .catch((cause: unknown) => {
+            console.error('[app] could not switch administration', cause)
+          })
       }}
     >
       <Outlet />

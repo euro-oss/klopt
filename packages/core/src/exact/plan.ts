@@ -291,6 +291,16 @@ export interface ControlAccountCheck {
   readonly difference: bigint | null
   readonly outcome: ControlAccountOutcome
   readonly itemCount: number
+  /**
+   * Open items issued before the reconciliation year.
+   *
+   * The comparison is against **one** reporting year's movement on the control
+   * account, and an open item has no year — a receivable raised in 2024 and
+   * still unpaid is part of today's debtor position and contributes nothing to
+   * 2026's movement. So any of these means a difference is expected, and
+   * reading it as a finding about the administration would be wrong.
+   */
+  readonly itemsBeforeYear: number
 }
 
 /**
@@ -797,11 +807,22 @@ export function planExactImport(
         ),
       )
     } else if (check.outcome === 'differs') {
+      // Two very different sentences. A difference on an administration whose
+      // open items all fall inside the year is a finding about their books. A
+      // difference where some are older is mostly an artefact of comparing an
+      // all-ages position against one year's movement, and saying "something is
+      // booked without an open item behind it" would be an accusation the data
+      // does not support.
+      const stated =
+        check.itemsBeforeYear > 0
+          ? `${String(check.itemsBeforeYear)} of the ${String(check.itemCount)} ${check.side} open items were issued before ${String(reconciliation.year)}, and this compares them against that year's movement alone. Expect a difference; it is the question, not the answer. Reconciling an administration with history needs the control account's cumulative balance, which this does not yet read.`
+          : 'Something is booked to the control account without an open item behind it.'
+
       warnings.push(
         problem(
           'open_items_do_not_reconcile',
           `reconciliation.${check.side}`,
-          `The ${check.side} open items total ${check.openItems.toString()} against ${check.ledger?.toString() ?? '?'} on ${check.accountCodes.join(', ')} — a difference of ${check.difference?.toString() ?? '?'}. Something is booked to the control account without an open item behind it.`,
+          `The ${check.side} open items total ${check.openItems.toString()} against ${check.ledger?.toString() ?? '?'} on ${check.accountCodes.join(', ')} — a difference of ${check.difference?.toString() ?? '?'}. ${stated}`,
         ),
       )
     }
@@ -850,11 +871,16 @@ function reconcile(
   const receivableCodes = controlCodes(options.receivableAccountCodes, RECEIVABLE_TYPES)
   const payableCodes = controlCodes(options.payableAccountCodes, PAYABLE_TYPES)
 
-  const totalFor = (side: 'receivable' | 'payable'): { total: bigint; count: number } => {
+  const yearStart = `${String(snapshot.year)}-01-01`
+
+  const totalFor = (
+    side: 'receivable' | 'payable',
+  ): { total: bigint; count: number; before: number } => {
     const items = openItems.filter((item) => item.side === side)
     return {
       total: items.reduce((sum, item) => sum + item.outstanding, 0n),
       count: items.length,
+      before: items.filter((item) => item.issuedOn < yearStart).length,
     }
   }
 
@@ -872,7 +898,7 @@ function reconcile(
       side: 'receivable' | 'payable',
       codes: readonly string[],
     ): ControlAccountCheck => {
-      const { total, count } = totalFor(side)
+      const { total, count, before } = totalFor(side)
       return {
         side,
         accountCodes: codes,
@@ -881,6 +907,7 @@ function reconcile(
         difference: null,
         outcome: 'not_reconciled',
         itemCount: count,
+        itemsBeforeYear: before,
       }
     }
 
@@ -922,11 +949,12 @@ function reconcile(
     // difference of twice its value.
     const signed = codes.reduce((total, code) => total + (perAccount.get(code) ?? 0n), 0n)
     const ledger = side === 'receivable' ? signed : -signed
-    const { total, count } = totalFor(side)
+    const { total, count, before } = totalFor(side)
 
     return {
       side,
       accountCodes: codes,
+      itemsBeforeYear: before,
       ledger,
       openItems: total,
       difference: total - ledger,

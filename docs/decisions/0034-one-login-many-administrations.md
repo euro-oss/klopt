@@ -372,6 +372,21 @@ account, and one counter-line for the difference. That is how a bookkeeper
 books an overname, it makes the balance explicable line by line, and it means
 the whole migration reverses as one storno if it turns out to be wrong.
 
+### The counter-account may be one the import is bringing across
+
+The check that the named accounts exist used to run _before_ the read, against
+the chart as it stood. That meant the counter-account had to already be here —
+so a first-time migration could not use the tussenrekening it was importing
+from Exact, which is the obvious thing to want, since the old system is where
+such an account lives.
+
+The accounts land in the same transaction as the entry that uses them, so
+nothing but the order of two checks stood in the way. It runs after planning
+now, against what these books have **plus** what the import will create. The
+cost is finding out about a typo after the read rather than before it, which is
+one wasted read of somebody's own data against a restriction that made a
+reasonable migration impossible.
+
 ### The counter-account has no default
 
 The other side of every open item is a bookkeeping decision. Defaulting it to
@@ -516,6 +531,21 @@ books.
 The right measure is the control account's cumulative balance as at a date,
 which means reading `ReportingBalance` for the control accounts across every
 year rather than one. That is a narrow query — three or four account codes —
-so it is affordable; it is simply not done yet. Until it is, a `differs`
-outcome on an administration with more than one year of history deserves to be
-checked by hand before it is believed.
+so it is affordable.
+
+**It is still not done, and the reason is that it cannot be tested.** The filter
+would have to select on `GLAccountCode`, and Exact's documentation does not say
+which fields on this resource are filterable. The failure mode when it does not
+like a filter is not an error: the one real administration available answers
+`200` with **no rows at all**, for every year, which is exactly what an
+unsupported filter would also look like. Shipping a second untested filter
+against an API that fails silently would be guessing, and the guess would land
+in the one number the whole feature exists to prove.
+
+What is fixed is the claim. The report used to say "Something is booked to the
+control account without an open item behind it" — a finding about somebody's
+bookkeeping derived entirely from the shape of our own question. It now counts
+the open items issued before the reconciliation year and, when there are any,
+says the difference is expected and why. A `differs` outcome on an
+administration with no older items still says it plainly, because there it
+really is a finding.
