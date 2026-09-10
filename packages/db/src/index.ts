@@ -30,6 +30,12 @@ export {
   revokeToken,
   touchToken,
 } from './repositories/tokens.js'
+export {
+  OAuthRepository,
+  withOAuth,
+  type ClientRegistration,
+  type RegisteredClientRow,
+} from './repositories/oauth.js'
 export { XafExportRepository, type XafExportRequest } from './repositories/xaf.js'
 export { RgsRepository } from './repositories/rgs.js'
 export { type InboxItemRow, InboxRepository } from './repositories/inbox.js'

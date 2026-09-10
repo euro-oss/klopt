@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { handleMcpRequest } from '@klopt/mcp'
+import { baseUrlFrom } from '~/api/handlers/oauth'
 
 /**
  * The MCP endpoint, mounted where Klopt already is (spec 10.3).
@@ -38,29 +39,30 @@ export const Route = createFileRoute('/api/mcp')({
         const token = /^bearer\s+(.+)$/i.exec(header)?.[1]?.trim() ?? ''
 
         if (token === '') {
-          // 401 with the scheme, so a client knows what to present rather than
-          // guessing. MCP clients that support OAuth read this.
+          // RFC 9728: point at the metadata rather than only saying no. This
+          // header is what turns a 401 into a connection — a client that
+          // supports OAuth reads it, fetches the document, registers itself and
+          // sends the user to the consent screen. Without it the only way in is
+          // a human pasting a token, which is the thing hosting was supposed to
+          // remove.
+          const base = baseUrlFrom(request)
+
           return new Response(
             JSON.stringify({
               error:
-                'This endpoint needs a bearer token. Issue one in Klopt under Toegang; a read-only token is enough for every tool.',
+                'This endpoint needs a bearer token. Authorise through OAuth, or issue one by hand under Toegang.',
             }),
             {
               status: 401,
               headers: {
                 'content-type': 'application/json',
-                'www-authenticate': 'Bearer realm="klopt"',
+                'www-authenticate': `Bearer realm="klopt", resource_metadata="${base}/.well-known/oauth-protected-resource"`,
               },
             },
           )
         }
 
-        // Its own origin. `KLOPT_BASE_URL` is what the instance calls itself
-        // everywhere else; the request's own origin is the fallback for a
-        // deployment that has not set it.
-        const baseUrl = process.env['KLOPT_BASE_URL'] ?? new URL(request.url).origin
-
-        return handleMcpRequest(request, { baseUrl, token })
+        return handleMcpRequest(request, { baseUrl: baseUrlFrom(request), token })
       },
 
       GET: () =>

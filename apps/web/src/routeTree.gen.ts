@@ -13,6 +13,8 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignOutRouteImport } from './routes/sign-out'
+import { Route as DotwellKnownOauthAuthorizationServerRouteImport } from './routes/[.]well-known.oauth-authorization-server'
+import { Route as DotwellKnownOauthProtectedResourceRouteImport } from './routes/[.]well-known.oauth-protected-resource'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
 import { Route as AppAuditLogRouteImport } from './routes/_app/audit-log'
@@ -23,6 +25,9 @@ import { Route as AppRetentionRouteImport } from './routes/_app/retention'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSnapshotsRouteImport } from './routes/_app/snapshots'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
+import { Route as OauthAuthorizeRouteImport } from './routes/oauth/authorize'
+import { Route as OauthRegisterRouteImport } from './routes/oauth/register'
+import { Route as OauthTokenRouteImport } from './routes/oauth/token'
 import { Route as AppBankIndexRouteImport } from './routes/_app/bank.index'
 import { Route as AppBankMatchRouteImport } from './routes/_app/bank.match'
 import { Route as AppContactsIndexRouteImport } from './routes/_app/contacts.index'
@@ -67,6 +72,7 @@ import { Route as ApiV1RetentionRouteImport } from './routes/api/v1/retention'
 import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-invoices'
 import { Route as ApiV1SnapshotsRouteImport } from './routes/api/v1/snapshots'
 import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
+import { Route as DotwellKnownOauthProtectedResourceApiMcpRouteImport } from './routes/[.]well-known.oauth-protected-resource.api.mcp'
 import { Route as AppVatIcpPeriodRouteImport } from './routes/_app/vat.icp.$period'
 import { Route as ApiV1AuditLogExportRouteImport } from './routes/api/v1/audit-log.export'
 import { Route as ApiV1BankMatchRulesRuleIdRouteImport } from './routes/api/v1/bank-match-rules.$ruleId'
@@ -153,6 +159,18 @@ const SignOutRoute = SignOutRouteImport.update({
   path: '/sign-out',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownOauthAuthorizationServerRoute =
+  DotwellKnownOauthAuthorizationServerRouteImport.update({
+    id: '/.well-known/oauth-authorization-server',
+    path: '/.well-known/oauth-authorization-server',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownOauthProtectedResourceRoute =
+  DotwellKnownOauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -201,6 +219,21 @@ const AppSnapshotsRoute = AppSnapshotsRouteImport.update({
 const ApiMcpRoute = ApiMcpRouteImport.update({
   id: '/api/mcp',
   path: '/api/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OauthAuthorizeRoute = OauthAuthorizeRouteImport.update({
+  id: '/oauth/authorize',
+  path: '/oauth/authorize',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OauthRegisterRoute = OauthRegisterRouteImport.update({
+  id: '/oauth/register',
+  path: '/oauth/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OauthTokenRoute = OauthTokenRouteImport.update({
+  id: '/oauth/token',
+  path: '/oauth/token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppBankIndexRoute = AppBankIndexRouteImport.update({
@@ -424,6 +457,12 @@ const ApiV1TaxCodesRoute = ApiV1TaxCodesRouteImport.update({
   path: '/api/v1/tax-codes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownOauthProtectedResourceApiMcpRoute =
+  DotwellKnownOauthProtectedResourceApiMcpRouteImport.update({
+    id: '/api/mcp',
+    path: '/api/mcp',
+    getParentRoute: () => DotwellKnownOauthProtectedResourceRoute,
+  } as any)
 const AppVatIcpPeriodRoute = AppVatIcpPeriodRouteImport.update({
   id: '/vat/icp/$period',
   path: '/vat/icp/$period',
@@ -796,6 +835,8 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   '/accounts': typeof AppAccountsRoute
   '/audit-log': typeof AppAuditLogRoute
   '/dunning': typeof AppDunningRoute
@@ -805,6 +846,9 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/snapshots': typeof AppSnapshotsRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/oauth/authorize': typeof OauthAuthorizeRoute
+  '/oauth/register': typeof OauthRegisterRoute
+  '/oauth/token': typeof OauthTokenRoute
   '/bank/match': typeof AppBankMatchRoute
   '/contacts/$contactId': typeof AppContactsContactIdRoute
   '/entries/$entryId': typeof AppEntriesEntryIdRoute
@@ -849,6 +893,7 @@ export interface FileRoutesByFullPath {
   '/payments/': typeof AppPaymentsIndexRoute
   '/purchases/': typeof AppPurchasesIndexRoute
   '/vat/': typeof AppVatIndexRoute
+  '/.well-known/oauth-protected-resource/api/mcp': typeof DotwellKnownOauthProtectedResourceApiMcpRoute
   '/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/audit-log/export': typeof ApiV1AuditLogExportRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
@@ -920,6 +965,8 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   '/accounts': typeof AppAccountsRoute
   '/audit-log': typeof AppAuditLogRoute
   '/dunning': typeof AppDunningRoute
@@ -929,6 +976,9 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/snapshots': typeof AppSnapshotsRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/oauth/authorize': typeof OauthAuthorizeRoute
+  '/oauth/register': typeof OauthRegisterRoute
+  '/oauth/token': typeof OauthTokenRoute
   '/': typeof AppIndexRoute
   '/bank/match': typeof AppBankMatchRoute
   '/contacts/$contactId': typeof AppContactsContactIdRoute
@@ -974,6 +1024,7 @@ export interface FileRoutesByTo {
   '/payments': typeof AppPaymentsIndexRoute
   '/purchases': typeof AppPurchasesIndexRoute
   '/vat': typeof AppVatIndexRoute
+  '/.well-known/oauth-protected-resource/api/mcp': typeof DotwellKnownOauthProtectedResourceApiMcpRoute
   '/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/audit-log/export': typeof ApiV1AuditLogExportRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
@@ -1047,6 +1098,8 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   '/_app/accounts': typeof AppAccountsRoute
   '/_app/audit-log': typeof AppAuditLogRoute
   '/_app/dunning': typeof AppDunningRoute
@@ -1056,6 +1109,9 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/snapshots': typeof AppSnapshotsRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/oauth/authorize': typeof OauthAuthorizeRoute
+  '/oauth/register': typeof OauthRegisterRoute
+  '/oauth/token': typeof OauthTokenRoute
   '/_app/': typeof AppIndexRoute
   '/_app/bank/match': typeof AppBankMatchRoute
   '/_app/contacts/$contactId': typeof AppContactsContactIdRoute
@@ -1101,6 +1157,7 @@ export interface FileRoutesById {
   '/_app/payments/': typeof AppPaymentsIndexRoute
   '/_app/purchases/': typeof AppPurchasesIndexRoute
   '/_app/vat/': typeof AppVatIndexRoute
+  '/.well-known/oauth-protected-resource/api/mcp': typeof DotwellKnownOauthProtectedResourceApiMcpRoute
   '/_app/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/audit-log/export': typeof ApiV1AuditLogExportRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
@@ -1175,6 +1232,8 @@ export interface FileRouteTypes {
     | '/setup'
     | '/sign-in'
     | '/sign-out'
+    | '/.well-known/oauth-authorization-server'
+    | '/.well-known/oauth-protected-resource'
     | '/accounts'
     | '/audit-log'
     | '/dunning'
@@ -1184,6 +1243,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/snapshots'
     | '/api/mcp'
+    | '/oauth/authorize'
+    | '/oauth/register'
+    | '/oauth/token'
     | '/bank/match'
     | '/contacts/$contactId'
     | '/entries/$entryId'
@@ -1228,6 +1290,7 @@ export interface FileRouteTypes {
     | '/payments/'
     | '/purchases/'
     | '/vat/'
+    | '/.well-known/oauth-protected-resource/api/mcp'
     | '/vat/icp/$period'
     | '/api/v1/audit-log/export'
     | '/api/v1/bank-match-rules/$ruleId'
@@ -1299,6 +1362,8 @@ export interface FileRouteTypes {
     | '/setup'
     | '/sign-in'
     | '/sign-out'
+    | '/.well-known/oauth-authorization-server'
+    | '/.well-known/oauth-protected-resource'
     | '/accounts'
     | '/audit-log'
     | '/dunning'
@@ -1308,6 +1373,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/snapshots'
     | '/api/mcp'
+    | '/oauth/authorize'
+    | '/oauth/register'
+    | '/oauth/token'
     | '/'
     | '/bank/match'
     | '/contacts/$contactId'
@@ -1353,6 +1421,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/purchases'
     | '/vat'
+    | '/.well-known/oauth-protected-resource/api/mcp'
     | '/vat/icp/$period'
     | '/api/v1/audit-log/export'
     | '/api/v1/bank-match-rules/$ruleId'
@@ -1425,6 +1494,8 @@ export interface FileRouteTypes {
     | '/setup'
     | '/sign-in'
     | '/sign-out'
+    | '/.well-known/oauth-authorization-server'
+    | '/.well-known/oauth-protected-resource'
     | '/_app/accounts'
     | '/_app/audit-log'
     | '/_app/dunning'
@@ -1434,6 +1505,9 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/snapshots'
     | '/api/mcp'
+    | '/oauth/authorize'
+    | '/oauth/register'
+    | '/oauth/token'
     | '/_app/'
     | '/_app/bank/match'
     | '/_app/contacts/$contactId'
@@ -1479,6 +1553,7 @@ export interface FileRouteTypes {
     | '/_app/payments/'
     | '/_app/purchases/'
     | '/_app/vat/'
+    | '/.well-known/oauth-protected-resource/api/mcp'
     | '/_app/vat/icp/$period'
     | '/api/v1/audit-log/export'
     | '/api/v1/bank-match-rules/$ruleId'
@@ -1552,7 +1627,12 @@ export interface RootRouteChildren {
   SetupRoute: typeof SetupRoute
   SignInRoute: typeof SignInRoute
   SignOutRoute: typeof SignOutRoute
+  DotwellKnownOauthAuthorizationServerRoute: typeof DotwellKnownOauthAuthorizationServerRoute
+  DotwellKnownOauthProtectedResourceRoute: typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   ApiMcpRoute: typeof ApiMcpRoute
+  OauthAuthorizeRoute: typeof OauthAuthorizeRoute
+  OauthRegisterRoute: typeof OauthRegisterRoute
+  OauthTokenRoute: typeof OauthTokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1AccountsRoute: typeof ApiV1AccountsRoute
   ApiV1AuditLogRoute: typeof ApiV1AuditLogRouteWithChildren
@@ -1632,6 +1712,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignOutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-authorization-server': {
+      id: '/.well-known/oauth-authorization-server'
+      path: '/.well-known/oauth-authorization-server'
+      fullPath: '/.well-known/oauth-authorization-server'
+      preLoaderRoute: typeof DotwellKnownOauthAuthorizationServerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof DotwellKnownOauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/': {
       id: '/_app/'
       path: '/'
@@ -1700,6 +1794,27 @@ declare module '@tanstack/react-router' {
       path: '/api/mcp'
       fullPath: '/api/mcp'
       preLoaderRoute: typeof ApiMcpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oauth/authorize': {
+      id: '/oauth/authorize'
+      path: '/oauth/authorize'
+      fullPath: '/oauth/authorize'
+      preLoaderRoute: typeof OauthAuthorizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oauth/register': {
+      id: '/oauth/register'
+      path: '/oauth/register'
+      fullPath: '/oauth/register'
+      preLoaderRoute: typeof OauthRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oauth/token': {
+      id: '/oauth/token'
+      path: '/oauth/token'
+      fullPath: '/oauth/token'
+      preLoaderRoute: typeof OauthTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/bank/': {
@@ -2009,6 +2124,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/tax-codes'
       preLoaderRoute: typeof ApiV1TaxCodesRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource/api/mcp': {
+      id: '/.well-known/oauth-protected-resource/api/mcp'
+      path: '/api/mcp'
+      fullPath: '/.well-known/oauth-protected-resource/api/mcp'
+      preLoaderRoute: typeof DotwellKnownOauthProtectedResourceApiMcpRouteImport
+      parentRoute: typeof DotwellKnownOauthProtectedResourceRoute
     }
     '/_app/vat/icp/$period': {
       id: '/_app/vat/icp/$period'
@@ -2549,6 +2671,21 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface DotwellKnownOauthProtectedResourceRouteChildren {
+  DotwellKnownOauthProtectedResourceApiMcpRoute: typeof DotwellKnownOauthProtectedResourceApiMcpRoute
+}
+
+const DotwellKnownOauthProtectedResourceRouteChildren: DotwellKnownOauthProtectedResourceRouteChildren =
+  {
+    DotwellKnownOauthProtectedResourceApiMcpRoute:
+      DotwellKnownOauthProtectedResourceApiMcpRoute,
+  }
+
+const DotwellKnownOauthProtectedResourceRouteWithChildren =
+  DotwellKnownOauthProtectedResourceRoute._addFileChildren(
+    DotwellKnownOauthProtectedResourceRouteChildren,
+  )
+
 interface ApiV1AuditLogRouteChildren {
   ApiV1AuditLogExportRoute: typeof ApiV1AuditLogExportRoute
 }
@@ -2876,7 +3013,14 @@ const rootRouteChildren: RootRouteChildren = {
   SetupRoute: SetupRoute,
   SignInRoute: SignInRoute,
   SignOutRoute: SignOutRoute,
+  DotwellKnownOauthAuthorizationServerRoute:
+    DotwellKnownOauthAuthorizationServerRoute,
+  DotwellKnownOauthProtectedResourceRoute:
+    DotwellKnownOauthProtectedResourceRouteWithChildren,
   ApiMcpRoute: ApiMcpRoute,
+  OauthAuthorizeRoute: OauthAuthorizeRoute,
+  OauthRegisterRoute: OauthRegisterRoute,
+  OauthTokenRoute: OauthTokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1AccountsRoute: ApiV1AccountsRoute,
   ApiV1AuditLogRoute: ApiV1AuditLogRouteWithChildren,

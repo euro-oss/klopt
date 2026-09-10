@@ -598,6 +598,13 @@ export const apiTokens = klopt.table(
     revokedAt: timestamp('revoked_at', { withTimezone: true, mode: 'date' }),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true, mode: 'date' }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+    /**
+     * The OAuth client that obtained this token, when one did.
+     *
+     * So Toegang can say "Claude" rather than "a token", and so revoking a
+     * client can revoke what it holds.
+     */
+    oauthClientId: text('oauth_client_id'),
   },
   (table) => [index('api_tokens_entity').on(table.entityId)],
 )
@@ -630,3 +637,40 @@ export const yearCloses = klopt.table(
       .where(sql`reversed_at is null`),
   ],
 )
+
+/**
+ * OAuth clients, registered dynamically (RFC 7591).
+ *
+ * Public clients only: an MCP client running on somebody's laptop cannot keep
+ * a secret, so there is none. PKCE is what authenticates the redemption.
+ */
+export const oauthClients = klopt.table('oauth_clients', {
+  id: uuid('id').primaryKey(),
+  clientId: text('client_id').notNull().unique(),
+  clientName: text('client_name').notNull(),
+  /** Exact-match list. A prefix match here is an open redirect. */
+  redirectUris: text('redirect_uris').array().notNull(),
+  registeredBy: text('registered_by'),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true, mode: 'date' }),
+})
+
+/** An authorization code, hashed, single-use and short-lived. */
+export const oauthAuthorizationCodes = klopt.table('oauth_authorization_codes', {
+  id: uuid('id').primaryKey(),
+  codeHash: char('code_hash', { length: 64 }).notNull().unique(),
+  clientId: text('client_id')
+    .notNull()
+    .references(() => oauthClients.clientId, { onDelete: 'cascade' }),
+  redirectUri: text('redirect_uri').notNull(),
+  codeChallenge: text('code_challenge').notNull(),
+  resource: text('resource'),
+  scope: text('scope').array().notNull(),
+  userId: text('user_id').notNull(),
+  entityId: uuid('entity_id')
+    .notNull()
+    .references(() => entities.id),
+  expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true, mode: 'date' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+})
