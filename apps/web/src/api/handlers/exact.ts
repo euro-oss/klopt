@@ -865,13 +865,37 @@ export async function handleExactDocumentStatus(context: RequestContext) {
     repository.find(context.entityId),
   )
 
-  return { status: 200, body: run === null ? { requested: false } : serialiseRun(run) }
+  // Literal discriminants, so a caller can narrow on `requested` instead of
+  // reaching for a cast.
+  return { status: 200, body: run === null ? ({ requested: false } as const) : serialiseRun(run) }
 }
 
+/**
+ * How long a run may sit unclaimed before something is wrong.
+ *
+ * The sweep runs every two minutes, so five is comfortably past "any moment
+ * now" without accusing a busy worker of being dead.
+ */
+const WORKER_SILENCE_MS = 5 * 60_000
+
 function serialiseRun(run: DocumentRunRow) {
+  /**
+   * A run nobody has picked up.
+   *
+   * Without this the screen says "waiting for the worker" and keeps saying it,
+   * which looks the same whether the worker is about to start or is not
+   * running at all. It was not running at all — `pnpm dev` started only the
+   * web app — and there was nothing on the screen to suggest looking.
+   */
+  const waiting =
+    run.state === 'pending' &&
+    run.startedAt === null &&
+    Date.now() - Date.parse(run.requestedAt) > WORKER_SILENCE_MS
+
   return {
-    requested: true,
+    requested: true as const,
     state: run.state,
+    workerSilent: waiting,
     divisionCode: run.divisionCode,
     documentsSeen: run.documentsSeen,
     attachmentsStored: run.attachmentsStored,

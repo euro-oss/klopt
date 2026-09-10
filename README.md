@@ -74,6 +74,15 @@ pnpm --filter @klopt/db run migrate
 pnpm run dev                               # http://localhost:3000
 ```
 
+That starts two processes: the web app, and the **worker**. The worker is not
+optional scenery — it empties mailboxes into the purchase inbox, seals book
+years overnight, and pulls the Exact document archive across. Without it those
+things silently never happen, which is exactly how it looks: a status that
+says "waiting for the worker" and stays there.
+
+`pnpm run dev:web` and `pnpm run dev:worker` run them separately when one is in
+the way.
+
 Open it and enter your email address. With no SMTP configured the sign-in code
 is written to the container log, so a fresh install works with no mail server —
 find the code and type it in.
@@ -102,6 +111,10 @@ npm install -g portless
 portless proxy start                       # once; sudo, to bind 443
 pnpm run dev:https                         # https://klopt.localhost
 ```
+
+Same two processes as `pnpm run dev`; only the web half moves behind the proxy.
+The worker speaks to Postgres and to other people's APIs and serves no HTTP of
+its own, so it needs no hostname.
 
 Then set `KLOPT_BASE_URL=https://klopt.localhost` so the session cookie is
 issued `secure` and sign-in links point at the right host, and register

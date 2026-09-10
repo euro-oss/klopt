@@ -885,6 +885,8 @@ interface DocumentRun {
   readonly attachmentsSkipped?: number
   readonly bytesStored?: string
   readonly lastError?: string | null
+  /** Requested a while ago and never claimed: the worker is probably not up. */
+  readonly workerSilent?: boolean
 }
 
 const RUN_TEXT: Record<string, string> = {
@@ -937,6 +939,14 @@ function DocumentArchive({ result }: { result: { ok: boolean; data?: unknown } }
       {error !== null && (
         <p role="alert" className="text-destructive mb-4 text-sm">
           {error}
+        </p>
+      )}
+
+      {run.workerSilent === true && (
+        <p role="alert" className="text-destructive mb-4 text-sm">
+          De worker lijkt niet te draaien: deze opdracht staat al een tijd te wachten en is nog niet
+          opgepakt. Start hem met <code>pnpm run dev</code> (die start web én worker) of apart met{' '}
+          <code>pnpm run dev:worker</code>.
         </p>
       )}
 

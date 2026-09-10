@@ -9,7 +9,11 @@ import {
   type Database,
   type DocumentRunRow,
 } from '@klopt/db'
+import { issueToken } from '@klopt/db'
 import { seedEntity } from '@klopt/db/testing'
+import { resolveRequestContext } from '../src/api/auth.js'
+import { setDatabaseForTest } from '../src/api/database.js'
+import { handleExactDocumentStatus } from '../src/api/handlers/exact.js'
 import type { DocumentStore, ExactClient, ExactPage } from '@klopt/core'
 
 /**
@@ -106,9 +110,11 @@ async function newRun(): Promise<DocumentRunRow> {
 beforeAll(async () => {
   await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
+  setDatabaseForTest(database)
 }, 120_000)
 
 afterAll(async () => {
+  setDatabaseForTest(null)
   await closeDatabase(database)
 })
 
@@ -323,4 +329,88 @@ function counts(result: {
     attachmentsSkipped: result.attachmentsSkipped,
     bytesStored: result.bytesStored,
   }
+}
+
+describe('a run nobody picks up', () => {
+  /**
+   * The symptom that started this: the screen said "waiting for the worker"
+   * and kept saying it, because `pnpm dev` started only the web app. A pending
+   * run looks the same whether the worker is about to claim it or is not
+   * running at all, so the status has to distinguish them.
+   */
+  it('says nothing is wrong while the run is fresh', async () => {
+    const entityId = await seedEntity(database)
+    await withExactDocuments(database, (repository) =>
+      repository.request({ entityId, divisionCode: 1000, requestedBy: 'a' }),
+    )
+
+    const status = await handleExactDocumentStatus(await contextFor(entityId))
+
+    expect(status.body.requested).toBe(true)
+    if (!status.body.requested) throw new Error('unreachable')
+    expect(status.body.state).toBe('pending')
+    expect(status.body.workerSilent).toBe(false)
+  })
+
+  it('flags a run that has sat unclaimed', async () => {
+    const entityId = await seedEntity(database)
+    const run = await withExactDocuments(database, (repository) =>
+      repository.request({ entityId, divisionCode: 1000, requestedBy: 'a' }),
+    )
+
+    // Ten minutes ago, and never started.
+    await database.execute(
+      `update klopt.exact_document_runs set requested_at = now() - interval '10 minutes' where id = '${run.id}'`,
+    )
+
+    const status = await handleExactDocumentStatus(await contextFor(entityId))
+
+    if (!status.body.requested) throw new Error('unreachable')
+    expect(status.body.workerSilent).toBe(true)
+  })
+
+  it('says nothing once the worker has it, however long it takes', async () => {
+    // A long-running import is not a missing worker. Only "never claimed" is.
+    const entityId = await seedEntity(database)
+    const run = await withExactDocuments(database, (repository) =>
+      repository.request({ entityId, divisionCode: 1000, requestedBy: 'a' }),
+    )
+    await withExactDocuments(database, (repository) =>
+      repository.advance({
+        id: run.id,
+        cursor: 'halfway',
+        documentsSeen: 0,
+        attachmentsStored: 0,
+        attachmentsSkipped: 0,
+        bytesStored: 0n,
+        state: 'pending',
+      }),
+    )
+    await database.execute(
+      `update klopt.exact_document_runs
+         set requested_at = now() - interval '2 hours', started_at = now() - interval '2 hours'
+       where id = '${run.id}'`,
+    )
+
+    const status = await handleExactDocumentStatus(await contextFor(entityId))
+
+    if (!status.body.requested) throw new Error('unreachable')
+    expect(status.body.workerSilent).toBe(false)
+  })
+})
+
+async function contextFor(entityId: string) {
+  const { token } = await issueToken(database, {
+    entityId,
+    name: 'status-test',
+    permissions: ['*'],
+    actorKind: 'human',
+    actorId: `human-${entityId.slice(0, 8)}`,
+  })
+  return resolveRequestContext({
+    database,
+    request: new Request('https://klopt.test/x', {
+      headers: { authorization: `Bearer ${token}` },
+    }),
+  })
 }
