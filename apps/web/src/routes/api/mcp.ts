@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { handleMcpRequest } from '@klopt/mcp'
+import { resolveToken } from '@klopt/db'
 import { baseUrlFrom } from '~/api/handlers/oauth'
+import { getDatabase } from '~/api/database'
 
 /**
  * The MCP endpoint, mounted where Klopt already is (spec 10.3).
@@ -31,6 +33,38 @@ import { baseUrlFrom } from '~/api/handlers/oauth'
  * routes had drifted. The hop costs a few milliseconds on the same host and
  * buys the guarantee that there is exactly one way in.
  */
+/**
+ * Check the token before anything else happens.
+ *
+ * The tool calls go back through the REST API, which authenticates them — but
+ * `initialize` and `tools/list` make no API call at all, so without this the
+ * endpoint answered them for **any non-empty string**. Anybody could enumerate
+ * the tools, and a revoked token kept working for as long as nobody asked it
+ * for data.
+ *
+ * Found by a test that revoked a token and expected the next call to fail. It
+ * did not.
+ */
+async function authorised(request: Request, token: string): Promise<Response> {
+  const resolved = await resolveToken(getDatabase(), token)
+
+  if (resolved === null) {
+    const base = baseUrlFrom(request)
+    return new Response(
+      JSON.stringify({ error: 'That token is not valid, has expired, or has been revoked.' }),
+      {
+        status: 401,
+        headers: {
+          'content-type': 'application/json',
+          'www-authenticate': `Bearer realm="klopt", resource_metadata="${base}/.well-known/oauth-protected-resource"`,
+        },
+      },
+    )
+  }
+
+  return handleMcpRequest(request, { baseUrl: baseUrlFrom(request), token })
+}
+
 export const Route = createFileRoute('/api/mcp')({
   server: {
     handlers: {
@@ -62,7 +96,7 @@ export const Route = createFileRoute('/api/mcp')({
           )
         }
 
-        return handleMcpRequest(request, { baseUrl: baseUrlFrom(request), token })
+        return authorised(request, token)
       },
 
       GET: () =>

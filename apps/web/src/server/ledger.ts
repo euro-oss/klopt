@@ -3,14 +3,20 @@ import { setActiveEntity } from '@klopt/db'
 import { getRequest } from '@tanstack/react-start/server'
 import {
   handleGetJournalEntry,
-  handleListAccounts,
-  handleListJournals,
-  handleListJournalEntries,
   handleGetTrialBalance,
+  handleListAccounts,
+  handleListJournalEntries,
+  handleListJournals,
   handlePostJournalEntry,
   handleReverseJournalEntry,
   handleVerifyChain,
 } from '~/api/handlers/ledger'
+import {
+  handleIssueToken,
+  handleListTokens,
+  handleRevokeOAuthClient,
+  handleRevokeToken,
+} from '~/api/handlers/tokens'
 import {
   handleCloseYear,
   handleGetBalanceSheet,
@@ -47,6 +53,7 @@ import {
   connectExactBody,
   deleteDocumentsBody,
   exactPreviewQuery,
+  issueTokenBody,
   retentionQuery,
   runExactImportBody,
   sealSnapshotBody,
@@ -88,6 +95,36 @@ export const listAccounts = createServerFn({ method: 'GET' }).handler(async () =
 export const listJournals = createServerFn({ method: 'GET' }).handler(async () =>
   run(async () => (await handleListJournals(await contextFromRequest())).body),
 )
+
+export const listTokens = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handleListTokens(await contextFromRequest())).body),
+)
+
+export const issueApiToken = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      issueTokenBody,
+      data,
+      async (body) =>
+        (await handleIssueToken(await contextFromRequest({ idempotencyKey: keyOf(data) }), body))
+          .body,
+    ),
+  )
+
+export const revokeApiToken = createServerFn({ method: 'POST' })
+  .validator((input: { tokenId: string }) => input)
+  .handler(async ({ data }) =>
+    run(async () => (await handleRevokeToken(await contextFromRequest(), data.tokenId)).body),
+  )
+
+export const revokeAuthorisedApp = createServerFn({ method: 'POST' })
+  .validator((input: { clientId: string }) => input)
+  .handler(async ({ data }) =>
+    run(
+      async () => (await handleRevokeOAuthClient(await contextFromRequest(), data.clientId)).body,
+    ),
+  )
 
 export const getRgsCoverage = createServerFn({ method: 'GET' })
   .validator((input: { currency?: string; applicableFlag?: string | null }) => input)

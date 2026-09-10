@@ -981,3 +981,20 @@ export const runExactImportBody = z.object({
 })
 
 export type RunExactImportBody = z.infer<typeof runExactImportBody>
+
+/**
+ * Issuing an API token.
+ *
+ * `permissions` is required and has no default. A token whose scope somebody
+ * did not think about is a token with the wrong scope, and the common case —
+ * read-only for an agent — is two clicks on the screen rather than an omission.
+ */
+export const issueTokenBody = z.object({
+  name: z.string().trim().min(1).max(80),
+  permissions: z.array(z.string().trim().min(1)).min(1).max(30),
+  /** Null means it does not expire, which is a choice somebody has to make. */
+  expiresInDays: z.number().int().min(1).max(3650).nullable().default(90),
+  idempotencyKey: z.string().uuid().optional(),
+})
+
+export type IssueTokenBody = z.infer<typeof issueTokenBody>

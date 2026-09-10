@@ -186,3 +186,116 @@ test('an unregistered redirect URI is never redirected to', async ({ page }) => 
   expect(page.url()).not.toContain('127.0.0.1:9876')
   await expect(page.getByText('Deze aanvraag klopt niet')).toBeVisible()
 })
+
+test('an authorised app can be withdrawn, and its token dies with it', async ({ page }) => {
+  /**
+   * The other half of granting access. Before this there was no way to see what
+   * an administration had authorised, let alone take it back — the tokens
+   * screen did not exist, so the only route was SQL.
+   *
+   * Withdrawing does both halves: the live token stops working now, and the
+   * registration goes, so the next attempt needs a human to approve it again
+   * rather than quietly getting another token.
+   */
+  await anAdministration(page)
+
+  const client = await register(page.request)
+  const { verifier, challenge } = pkce()
+  const origin = new URL(page.url()).origin
+
+  await page.goto(`/oauth/authorize?${authorizeQuery(client.client_id, challenge, origin)}`)
+  await page.route(`${REDIRECT}*`, (route) => route.fulfill({ status: 200, body: 'ok' }))
+  await page.getByRole('button', { name: 'Toegang geven' }).click()
+  await page.waitForURL(/127\.0\.0\.1:9876/)
+
+  const code = new URL(page.url()).searchParams.get('code')
+  const granted = await page.request.post('/oauth/token', {
+    form: {
+      grant_type: 'authorization_code',
+      code: code!,
+      client_id: client.client_id,
+      redirect_uri: REDIRECT,
+      code_verifier: verifier,
+    },
+  })
+  const { access_token: accessToken } = (await granted.json()) as { access_token: string }
+
+  // It works.
+  const before = await page.request.post('/api/mcp', {
+    headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+    data: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} },
+  })
+  expect(before.status()).toBe(200)
+
+  // Toegang shows it by name, as an app rather than as a token nobody recognises.
+  await page.goto('/members')
+  await expect(page.getByRole('heading', { name: 'Tokens en gekoppelde apps' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: /Claude/ })).toBeVisible()
+
+  // Enabled, not merely present: before hydration the handler is not attached
+  // and the click goes nowhere.
+  const withdraw = page.getByRole('button', { name: 'App loskoppelen' })
+  await expect(withdraw).toBeEnabled()
+  await withdraw.click()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'App loskoppelen' })).toHaveCount(0)
+
+  // The token is dead.
+  const after = await page.request.post('/api/mcp', {
+    headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+    data: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} },
+  })
+  expect(after.status()).toBe(401)
+})
+
+test('a hand-issued token appears, works, and can be revoked', async ({ page }) => {
+  // What the README has been telling people to do since before the screen
+  // existed: "issue a read-only token under Toegang".
+  await anAdministration(page)
+  await page.goto('/members')
+
+  await expect(page.getByLabel('Naam')).toBeEnabled()
+  await page.getByLabel('Naam').fill('mcp-lezen')
+  await page.getByRole('button', { name: 'Token maken' }).click()
+
+  const secret = page.locator('code', { hasText: /^klopt_/ })
+  await expect(secret).toBeVisible()
+  const token = (await secret.textContent())?.trim() ?? ''
+  expect(token).not.toBe('')
+
+  const works = await page.request.get('/api/v1/accounts', {
+    headers: { authorization: `Bearer ${token}` },
+  })
+  expect(works.status()).toBe(200)
+
+  await page.getByRole('button', { name: 'Ik heb het bewaard' }).click()
+  await page.getByRole('button', { name: 'Intrekken' }).first().click()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  // The row has to actually change, or the revoke did not happen.
+  await expect(page.getByRole('button', { name: 'Intrekken' })).toHaveCount(0)
+
+  const dead = await page.request.get('/api/v1/accounts', {
+    headers: { authorization: `Bearer ${token}` },
+  })
+  expect(dead.status()).toBe(401)
+})
+
+test('MCP will not answer a made-up token, even for tools/list', async ({ page }) => {
+  /**
+   * `initialize` and `tools/list` make no API call, so before the endpoint
+   * checked the bearer itself they were answered for **any non-empty string**.
+   * Anybody could enumerate the tools, and a revoked token kept working right
+   * up until something asked it for data.
+   */
+  await anAdministration(page)
+
+  for (const token of ['klopt_not_a_real_token', 'nonsense']) {
+    const response = await page.request.post('/api/mcp', {
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      data: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} },
+    })
+    expect(response.status()).toBe(401)
+    // And it says where to authenticate, rather than only saying no.
+    expect(response.headers()['www-authenticate']).toContain('resource_metadata=')
+  }
+})

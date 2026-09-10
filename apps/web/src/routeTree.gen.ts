@@ -72,6 +72,7 @@ import { Route as ApiV1RetentionRouteImport } from './routes/api/v1/retention'
 import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-invoices'
 import { Route as ApiV1SnapshotsRouteImport } from './routes/api/v1/snapshots'
 import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
+import { Route as ApiV1TokensRouteImport } from './routes/api/v1/tokens'
 import { Route as DotwellKnownOauthProtectedResourceApiMcpRouteImport } from './routes/[.]well-known.oauth-protected-resource.api.mcp'
 import { Route as AppVatIcpPeriodRouteImport } from './routes/_app/vat.icp.$period'
 import { Route as ApiV1AuditLogExportRouteImport } from './routes/api/v1/audit-log.export'
@@ -91,6 +92,7 @@ import { Route as ApiV1InboxSourcesRouteImport } from './routes/api/v1/inbox.sou
 import { Route as ApiV1JournalEntriesEntryIdRouteImport } from './routes/api/v1/journal-entries.$entryId'
 import { Route as ApiV1LedgerChainVerificationRouteImport } from './routes/api/v1/ledger.chain-verification'
 import { Route as ApiV1MembersMemberIdRouteImport } from './routes/api/v1/members.$memberId'
+import { Route as ApiV1OauthClientsClientIdRouteImport } from './routes/api/v1/oauth-clients.$clientId'
 import { Route as ApiV1PaymentBatchesBatchIdRouteImport } from './routes/api/v1/payment-batches.$batchId'
 import { Route as ApiV1PurchaseInvoicesInvoiceIdRouteImport } from './routes/api/v1/purchase-invoices.$invoiceId'
 import { Route as ApiV1ReportsBalanceSheetRouteImport } from './routes/api/v1/reports.balance-sheet'
@@ -107,6 +109,7 @@ import { Route as ApiV1RgsMappingsRouteImport } from './routes/api/v1/rgs.mappin
 import { Route as ApiV1RgsUpgradePreviewRouteImport } from './routes/api/v1/rgs.upgrade-preview'
 import { Route as ApiV1SalesInvoicesInvoiceIdRouteImport } from './routes/api/v1/sales-invoices.$invoiceId'
 import { Route as ApiV1SetupChartsRouteImport } from './routes/api/v1/setup.charts'
+import { Route as ApiV1TokensTokenIdRouteImport } from './routes/api/v1/tokens.$tokenId'
 import { Route as ApiV1VatFilingsRouteImport } from './routes/api/v1/vat.filings'
 import { Route as ApiV1VatNumberChecksRouteImport } from './routes/api/v1/vat.number-checks'
 import { Route as ApiV1VatPeriodsRouteImport } from './routes/api/v1/vat.periods'
@@ -457,6 +460,11 @@ const ApiV1TaxCodesRoute = ApiV1TaxCodesRouteImport.update({
   path: '/api/v1/tax-codes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1TokensRoute = ApiV1TokensRouteImport.update({
+  id: '/api/v1/tokens',
+  path: '/api/v1/tokens',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DotwellKnownOauthProtectedResourceApiMcpRoute =
   DotwellKnownOauthProtectedResourceApiMcpRouteImport.update({
     id: '/api/mcp',
@@ -557,6 +565,12 @@ const ApiV1MembersMemberIdRoute = ApiV1MembersMemberIdRouteImport.update({
   path: '/$memberId',
   getParentRoute: () => ApiV1MembersRoute,
 } as any)
+const ApiV1OauthClientsClientIdRoute =
+  ApiV1OauthClientsClientIdRouteImport.update({
+    id: '/api/v1/oauth-clients/$clientId',
+    path: '/api/v1/oauth-clients/$clientId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1PaymentBatchesBatchIdRoute =
   ApiV1PaymentBatchesBatchIdRouteImport.update({
     id: '/$batchId',
@@ -644,6 +658,11 @@ const ApiV1SetupChartsRoute = ApiV1SetupChartsRouteImport.update({
   id: '/api/v1/setup/charts',
   path: '/api/v1/setup/charts',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1TokensTokenIdRoute = ApiV1TokensTokenIdRouteImport.update({
+  id: '/$tokenId',
+  path: '/$tokenId',
+  getParentRoute: () => ApiV1TokensRoute,
 } as any)
 const ApiV1VatFilingsRoute = ApiV1VatFilingsRouteImport.update({
   id: '/api/v1/vat/filings',
@@ -885,6 +904,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
+  '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
   '/bank/': typeof AppBankIndexRoute
   '/contacts/': typeof AppContactsIndexRoute
   '/entries/': typeof AppEntriesIndexRoute
@@ -912,6 +932,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
+  '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
   '/api/v1/payment-batches/$batchId': typeof ApiV1PaymentBatchesBatchIdRouteWithChildren
   '/api/v1/purchase-invoices/$invoiceId': typeof ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
@@ -928,6 +949,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
+  '/api/v1/tokens/$tokenId': typeof ApiV1TokensTokenIdRoute
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
@@ -1016,6 +1038,7 @@ export interface FileRoutesByTo {
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
+  '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
   '/bank': typeof AppBankIndexRoute
   '/contacts': typeof AppContactsIndexRoute
   '/entries': typeof AppEntriesIndexRoute
@@ -1043,6 +1066,7 @@ export interface FileRoutesByTo {
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
+  '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
   '/api/v1/payment-batches/$batchId': typeof ApiV1PaymentBatchesBatchIdRouteWithChildren
   '/api/v1/purchase-invoices/$invoiceId': typeof ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
@@ -1059,6 +1083,7 @@ export interface FileRoutesByTo {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
+  '/api/v1/tokens/$tokenId': typeof ApiV1TokensTokenIdRoute
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
@@ -1149,6 +1174,7 @@ export interface FileRoutesById {
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
+  '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
   '/_app/bank/': typeof AppBankIndexRoute
   '/_app/contacts/': typeof AppContactsIndexRoute
   '/_app/entries/': typeof AppEntriesIndexRoute
@@ -1176,6 +1202,7 @@ export interface FileRoutesById {
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
+  '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
   '/api/v1/payment-batches/$batchId': typeof ApiV1PaymentBatchesBatchIdRouteWithChildren
   '/api/v1/purchase-invoices/$invoiceId': typeof ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren
   '/api/v1/reports/balance-sheet': typeof ApiV1ReportsBalanceSheetRoute
@@ -1192,6 +1219,7 @@ export interface FileRoutesById {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
+  '/api/v1/tokens/$tokenId': typeof ApiV1TokensTokenIdRoute
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
@@ -1282,6 +1310,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices'
     | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
+    | '/api/v1/tokens'
     | '/bank/'
     | '/contacts/'
     | '/entries/'
@@ -1309,6 +1338,7 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/$entryId'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
+    | '/api/v1/oauth-clients/$clientId'
     | '/api/v1/payment-batches/$batchId'
     | '/api/v1/purchase-invoices/$invoiceId'
     | '/api/v1/reports/balance-sheet'
@@ -1325,6 +1355,7 @@ export interface FileRouteTypes {
     | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
+    | '/api/v1/tokens/$tokenId'
     | '/api/v1/vat/filings'
     | '/api/v1/vat/number-checks'
     | '/api/v1/vat/periods'
@@ -1413,6 +1444,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices'
     | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
+    | '/api/v1/tokens'
     | '/bank'
     | '/contacts'
     | '/entries'
@@ -1440,6 +1472,7 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/$entryId'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
+    | '/api/v1/oauth-clients/$clientId'
     | '/api/v1/payment-batches/$batchId'
     | '/api/v1/purchase-invoices/$invoiceId'
     | '/api/v1/reports/balance-sheet'
@@ -1456,6 +1489,7 @@ export interface FileRouteTypes {
     | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
+    | '/api/v1/tokens/$tokenId'
     | '/api/v1/vat/filings'
     | '/api/v1/vat/number-checks'
     | '/api/v1/vat/periods'
@@ -1545,6 +1579,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices'
     | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
+    | '/api/v1/tokens'
     | '/_app/bank/'
     | '/_app/contacts/'
     | '/_app/entries/'
@@ -1572,6 +1607,7 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/$entryId'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
+    | '/api/v1/oauth-clients/$clientId'
     | '/api/v1/payment-batches/$batchId'
     | '/api/v1/purchase-invoices/$invoiceId'
     | '/api/v1/reports/balance-sheet'
@@ -1588,6 +1624,7 @@ export interface FileRouteTypes {
     | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
+    | '/api/v1/tokens/$tokenId'
     | '/api/v1/vat/filings'
     | '/api/v1/vat/number-checks'
     | '/api/v1/vat/periods'
@@ -1654,6 +1691,7 @@ export interface RootRouteChildren {
   ApiV1SalesInvoicesRoute: typeof ApiV1SalesInvoicesRouteWithChildren
   ApiV1SnapshotsRoute: typeof ApiV1SnapshotsRouteWithChildren
   ApiV1TaxCodesRoute: typeof ApiV1TaxCodesRoute
+  ApiV1TokensRoute: typeof ApiV1TokensRouteWithChildren
   ApiV1DocumentsDocumentIdRoute: typeof ApiV1DocumentsDocumentIdRoute
   ApiV1EntitiesEntityIdRoute: typeof ApiV1EntitiesEntityIdRoute
   ApiV1ExactCallbackRoute: typeof ApiV1ExactCallbackRoute
@@ -1664,6 +1702,7 @@ export interface RootRouteChildren {
   ApiV1ExportsAuditFileRoute: typeof ApiV1ExportsAuditFileRoute
   ApiV1ImportsAuditFileRoute: typeof ApiV1ImportsAuditFileRoute
   ApiV1LedgerChainVerificationRoute: typeof ApiV1LedgerChainVerificationRoute
+  ApiV1OauthClientsClientIdRoute: typeof ApiV1OauthClientsClientIdRoute
   ApiV1ReportsBalanceSheetRoute: typeof ApiV1ReportsBalanceSheetRoute
   ApiV1ReportsCreditorAgeingRoute: typeof ApiV1ReportsCreditorAgeingRoute
   ApiV1ReportsDunningRoute: typeof ApiV1ReportsDunningRoute
@@ -2125,6 +2164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1TaxCodesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/tokens': {
+      id: '/api/v1/tokens'
+      path: '/api/v1/tokens'
+      fullPath: '/api/v1/tokens'
+      preLoaderRoute: typeof ApiV1TokensRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.well-known/oauth-protected-resource/api/mcp': {
       id: '/.well-known/oauth-protected-resource/api/mcp'
       path: '/api/mcp'
@@ -2258,6 +2304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1MembersMemberIdRouteImport
       parentRoute: typeof ApiV1MembersRoute
     }
+    '/api/v1/oauth-clients/$clientId': {
+      id: '/api/v1/oauth-clients/$clientId'
+      path: '/api/v1/oauth-clients/$clientId'
+      fullPath: '/api/v1/oauth-clients/$clientId'
+      preLoaderRoute: typeof ApiV1OauthClientsClientIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/payment-batches/$batchId': {
       id: '/api/v1/payment-batches/$batchId'
       path: '/$batchId'
@@ -2369,6 +2422,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/setup/charts'
       preLoaderRoute: typeof ApiV1SetupChartsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/tokens/$tokenId': {
+      id: '/api/v1/tokens/$tokenId'
+      path: '/$tokenId'
+      fullPath: '/api/v1/tokens/$tokenId'
+      preLoaderRoute: typeof ApiV1TokensTokenIdRouteImport
+      parentRoute: typeof ApiV1TokensRoute
     }
     '/api/v1/vat/filings': {
       id: '/api/v1/vat/filings'
@@ -2982,6 +3042,18 @@ const ApiV1SnapshotsRouteWithChildren = ApiV1SnapshotsRoute._addFileChildren(
   ApiV1SnapshotsRouteChildren,
 )
 
+interface ApiV1TokensRouteChildren {
+  ApiV1TokensTokenIdRoute: typeof ApiV1TokensTokenIdRoute
+}
+
+const ApiV1TokensRouteChildren: ApiV1TokensRouteChildren = {
+  ApiV1TokensTokenIdRoute: ApiV1TokensTokenIdRoute,
+}
+
+const ApiV1TokensRouteWithChildren = ApiV1TokensRoute._addFileChildren(
+  ApiV1TokensRouteChildren,
+)
+
 interface ApiV1ExactImportRouteChildren {
   ApiV1ExactImportPreviewRoute: typeof ApiV1ExactImportPreviewRoute
 }
@@ -3042,6 +3114,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1SalesInvoicesRoute: ApiV1SalesInvoicesRouteWithChildren,
   ApiV1SnapshotsRoute: ApiV1SnapshotsRouteWithChildren,
   ApiV1TaxCodesRoute: ApiV1TaxCodesRoute,
+  ApiV1TokensRoute: ApiV1TokensRouteWithChildren,
   ApiV1DocumentsDocumentIdRoute: ApiV1DocumentsDocumentIdRoute,
   ApiV1EntitiesEntityIdRoute: ApiV1EntitiesEntityIdRoute,
   ApiV1ExactCallbackRoute: ApiV1ExactCallbackRoute,
@@ -3052,6 +3125,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ExportsAuditFileRoute: ApiV1ExportsAuditFileRoute,
   ApiV1ImportsAuditFileRoute: ApiV1ImportsAuditFileRoute,
   ApiV1LedgerChainVerificationRoute: ApiV1LedgerChainVerificationRoute,
+  ApiV1OauthClientsClientIdRoute: ApiV1OauthClientsClientIdRoute,
   ApiV1ReportsBalanceSheetRoute: ApiV1ReportsBalanceSheetRoute,
   ApiV1ReportsCreditorAgeingRoute: ApiV1ReportsCreditorAgeingRoute,
   ApiV1ReportsDunningRoute: ApiV1ReportsDunningRoute,

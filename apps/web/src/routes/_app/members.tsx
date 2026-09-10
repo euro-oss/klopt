@@ -1,6 +1,8 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
+import { listTokens } from '~/server/ledger'
 import { PageHeader } from '~/components/app-shell'
+import { TokenSection as Tokens } from '~/components/tokens'
 import { useHydrated } from '~/lib/hydration'
 import { inviteMember, listMembers, removeMember, setMemberRole } from '~/server/members'
 
@@ -17,7 +19,7 @@ import { inviteMember, listMembers, removeMember, setMemberRole } from '~/server
  * them, in that order of politeness.
  */
 export const Route = createFileRoute('/_app/members')({
-  loader: async () => ({ access: await listMembers() }),
+  loader: async () => ({ access: await listMembers(), tokens: await listTokens() }),
   component: Members,
 })
 
@@ -43,7 +45,7 @@ function roleLabel(role: string): string {
 }
 
 function Members() {
-  const { access } = Route.useLoaderData()
+  const { access, tokens: tokensResult } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
 
@@ -282,6 +284,8 @@ function Members() {
           </div>
         ))}
       </dl>
+
+      <Tokens result={tokensResult} />
     </>
   )
 }

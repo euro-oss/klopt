@@ -27,7 +27,9 @@ export {
   issueToken,
   listTokens,
   resolveToken,
+  revokeOAuthClientFor,
   revokeToken,
+  revokeTokenFor,
   touchToken,
 } from './repositories/tokens.js'
 export {

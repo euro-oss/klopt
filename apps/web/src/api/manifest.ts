@@ -86,6 +86,30 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/members.$memberId.ts',
   },
   {
+    operationId: 'tokens.list',
+    method: 'GET',
+    path: '/tokens',
+    module: 'api/v1/tokens.ts',
+  },
+  {
+    operationId: 'tokens.issue',
+    method: 'POST',
+    path: '/tokens',
+    module: 'api/v1/tokens.ts',
+  },
+  {
+    operationId: 'tokens.revoke',
+    method: 'DELETE',
+    path: '/tokens/{tokenId}',
+    module: 'api/v1/tokens.$tokenId.ts',
+  },
+  {
+    operationId: 'tokens.revokeClient',
+    method: 'DELETE',
+    path: '/oauth-clients/{clientId}',
+    module: 'api/v1/oauth-clients.$clientId.ts',
+  },
+  {
     operationId: 'setup.listCharts',
     method: 'GET',
     path: '/setup/charts',

@@ -125,6 +125,11 @@ wrong one is not.
 - **Expired codes accumulate** until something deletes them.
   `purgeExpiredCodes` exists and nothing calls it yet; it belongs on the
   worker's nightly sweep.
-- **There is no screen listing connected clients.** Toegang shows the tokens,
-  which is most of the value, but "which agents has this administration
-  authorised, and revoke that one" deserves its own view.
+- **Withdrawing an app revokes its tokens and keeps the registration.**
+  Deleting the client row was the first attempt and the foreign key refused,
+  rightly: `api_tokens.oauth_client_id` is what lets Toegang say "Claude" next
+  to a revoked token instead of an opaque name, and deleting the client takes
+  that with it. It would also buy nothing — registration is open, so a deleted
+  client registers again with a new id, and every grant needs a human at the
+  consent screen regardless. Withdrawal means "stop it working now", and that
+  is the tokens.

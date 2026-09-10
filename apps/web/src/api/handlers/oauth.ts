@@ -362,6 +362,9 @@ export async function handleToken(request: Request, now: Date = new Date()): Pro
     actorId: `oauth:${redemption.clientId}`,
     principalId: grant.userId,
     expiresAt: new Date(now.getTime() + TOKEN_LIFETIME_MS),
+    // So Toegang can name what holds it, and so withdrawing the app can find
+    // everything it was given.
+    oauthClientId: redemption.clientId,
   })
 
   await withOAuth(database, (repository) => repository.touchClient(redemption.clientId, now))

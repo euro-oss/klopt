@@ -568,6 +568,55 @@ export const membershipOperations: Readonly<Record<string, OperationDefinition>>
     agentExposure: 'none',
     idempotent: true,
   }),
+
+  /**
+   * API tokens and the OAuth clients that hold them.
+   *
+   * `tokens:manage` has existed since the roles were written and nothing used
+   * it, which meant there was no way to issue a token or revoke one except by
+   * hand in the database — while the README told people to do both under
+   * Toegang.
+   *
+   * `agentExposure: 'none'`, and not arguable: a token is the thing an agent
+   * authenticates with, and an agent that can mint tokens can mint one with
+   * permissions it was not given.
+   */
+  listTokens: defineOperation({
+    id: 'tokens.list',
+    kind: 'read',
+    permission: 'tokens:manage',
+    summary: 'Every API token on these books: what it may do, who holds it, when it was last used.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  issueToken: defineOperation({
+    id: 'tokens.issue',
+    kind: 'write',
+    permission: 'tokens:manage',
+    summary: 'Issue an API token. The secret is shown once and never again.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  revokeToken: defineOperation({
+    id: 'tokens.revoke',
+    kind: 'write',
+    permission: 'tokens:manage',
+    summary: 'Revoke a token. Takes effect on the next request that presents it.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  revokeOAuthClient: defineOperation({
+    id: 'tokens.revokeClient',
+    kind: 'write',
+    permission: 'tokens:manage',
+    summary:
+      'Withdraw an authorised app: revoke its live tokens and require fresh consent before it gets more.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
 }
 
 /**
