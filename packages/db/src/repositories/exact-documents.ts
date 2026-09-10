@@ -1,5 +1,5 @@
 import { uuidv7 } from '@klopt/core'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, lt, or, sql } from 'drizzle-orm'
 import type { Database, Transaction } from '../client.js'
 import { exactAttachments, exactDocumentRuns } from '../schema/documents.js'
 
@@ -11,6 +11,14 @@ import { exactAttachments, exactDocumentRuns } from '../schema/documents.js'
  * without which a resumed run downloads the whole archive again to discover by
  * hash that it already has it.
  */
+
+/**
+ * How long a claim is good for before another worker may take the run.
+ *
+ * Longer than a batch, short enough that a crashed worker is not a lost
+ * afternoon.
+ */
+export const CLAIM_LEASE_MS = 10 * 60_000
 
 export type RunState = 'pending' | 'running' | 'paused' | 'done' | 'failed'
 
@@ -141,22 +149,49 @@ export class ExactDocumentRepository {
    * because the `where` no longer matches once the first has written.
    */
   async claim(now: Date): Promise<DocumentRunRow | null> {
+    /**
+     * A claim is a lease, not a flag.
+     *
+     * `running` means "a worker has this". If that worker dies mid-batch —
+     * a deploy, a crash, a laptop lid — the row stays `running` and nothing
+     * ever picks it up again. Three of them were sitting in a development
+     * database before this existed, permanently stuck.
+     *
+     * So a `running` row whose last update is older than the lease is fair
+     * game. Ten minutes: comfortably longer than a batch, short enough that a
+     * restart is not a lost afternoon.
+     */
+    const staleBefore = new Date(now.getTime() - CLAIM_LEASE_MS)
+
     const [candidate] = await this.tx
       .select({ id: exactDocumentRuns.id })
       .from(exactDocumentRuns)
-      .where(inArray(exactDocumentRuns.state, ['pending', 'paused']))
+      .where(
+        or(
+          inArray(exactDocumentRuns.state, ['pending', 'paused']),
+          and(eq(exactDocumentRuns.state, 'running'), lt(exactDocumentRuns.updatedAt, staleBefore)),
+        ),
+      )
       .orderBy(exactDocumentRuns.requestedAt)
       .limit(1)
 
     if (candidate === undefined) return null
 
+    // The update is the claim: two workers racing for the same row means one
+    // of them sees nothing come back, because the `where` no longer matches.
     const [claimed] = await this.tx
       .update(exactDocumentRuns)
       .set({ state: 'running', startedAt: now, updatedAt: now })
       .where(
         and(
           eq(exactDocumentRuns.id, candidate.id),
-          inArray(exactDocumentRuns.state, ['pending', 'paused']),
+          or(
+            inArray(exactDocumentRuns.state, ['pending', 'paused']),
+            and(
+              eq(exactDocumentRuns.state, 'running'),
+              lt(exactDocumentRuns.updatedAt, staleBefore),
+            ),
+          ),
         ),
       )
       .returning(COLUMNS)

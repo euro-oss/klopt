@@ -32,6 +32,20 @@ const DATABASE_URL =
 
 let database: Database
 
+/**
+ * Entities this file made, so it can take its litter away.
+ *
+ * Not "delete everything called Test Beheer B.V.": that is every fixture in
+ * the repository, and one day somebody's real administration.
+ */
+const created: string[] = []
+
+async function seedRunEntity(): Promise<string> {
+  const entityId = await seedEntity(database)
+  created.push(entityId)
+  return entityId
+}
+
 /** A store that keeps bytes in memory and reports the hash, like the real one. */
 function memoryStore(): DocumentStore & { readonly kept: Map<string, Uint8Array> } {
   const kept = new Map<string, Uint8Array>()
@@ -101,7 +115,7 @@ function fakeExact(options: {
 }
 
 async function newRun(): Promise<DocumentRunRow> {
-  const entityId = await seedEntity(database)
+  const entityId = await seedRunEntity()
   return withExactDocuments(database, (repository) =>
     repository.request({ entityId, divisionCode: 3242325, requestedBy: 'human-test' }),
   )
@@ -114,6 +128,21 @@ beforeAll(async () => {
 }, 120_000)
 
 afterAll(async () => {
+  /**
+   * Clear up after ourselves.
+   *
+   * These tests create a run per case, for entities with no Exact connection.
+   * Left behind in a shared development database they are claimed ahead of
+   * real work — `claim` takes the oldest pending anywhere — so thirty of them
+   * held up a genuine import for an hour while the worker logged an error
+   * about each one in turn. The worker copes with that now; leaving the litter
+   * anyway would just be rude to whoever is using the same Postgres.
+   */
+  if (created.length > 0) {
+    const ids = created.map((id) => `'${id}'`).join(', ')
+    await database.execute(`delete from klopt.exact_document_runs where entity_id in (${ids})`)
+  }
+
   setDatabaseForTest(null)
   await closeDatabase(database)
 })
@@ -258,7 +287,7 @@ describe('asking for a run', () => {
   it('joins the one already going rather than starting a second', async () => {
     // One walk over one archive. Two would double the rate-limit spend and race
     // each other for the same attachments.
-    const entityId = await seedEntity(database)
+    const entityId = await seedRunEntity()
 
     const first = await withExactDocuments(database, (repository) =>
       repository.request({ entityId, divisionCode: 1000, requestedBy: 'a' }),
@@ -290,7 +319,7 @@ describe('asking for a run', () => {
   })
 
   it('restarts one that has finished', async () => {
-    const entityId = await seedEntity(database)
+    const entityId = await seedRunEntity()
     const first = await withExactDocuments(database, (repository) =>
       repository.request({ entityId, divisionCode: 1000, requestedBy: 'a' }),
     )
@@ -339,7 +368,7 @@ describe('a run nobody picks up', () => {
    * running at all, so the status has to distinguish them.
    */
   it('says nothing is wrong while the run is fresh', async () => {
-    const entityId = await seedEntity(database)
+    const entityId = await seedRunEntity()
     await withExactDocuments(database, (repository) =>
       repository.request({ entityId, divisionCode: 1000, requestedBy: 'a' }),
     )
@@ -353,7 +382,7 @@ describe('a run nobody picks up', () => {
   })
 
   it('flags a run that has sat unclaimed', async () => {
-    const entityId = await seedEntity(database)
+    const entityId = await seedRunEntity()
     const run = await withExactDocuments(database, (repository) =>
       repository.request({ entityId, divisionCode: 1000, requestedBy: 'a' }),
     )
@@ -371,7 +400,7 @@ describe('a run nobody picks up', () => {
 
   it('says nothing once the worker has it, however long it takes', async () => {
     // A long-running import is not a missing worker. Only "never claimed" is.
-    const entityId = await seedEntity(database)
+    const entityId = await seedRunEntity()
     const run = await withExactDocuments(database, (repository) =>
       repository.request({ entityId, divisionCode: 1000, requestedBy: 'a' }),
     )
@@ -414,3 +443,156 @@ async function contextFor(entityId: string) {
     }),
   })
 }
+
+describe('a queue full of runs that can never go anywhere', () => {
+  /**
+   * What went wrong in practice. `claim` takes the oldest pending run
+   * anywhere, so thirty abandoned runs — administrations that had since
+   * disconnected — sat ahead of a real one. The worker retired exactly one per
+   * tick and logged an error about it, so a genuine import waited an hour
+   * behind junk while the console filled with a message about somebody else's
+   * administration.
+   *
+   * One tick should clear them and get to the work.
+   */
+  it('retires them all in one pass instead of one per tick', async () => {
+    const { importExactDocuments } = await import('../../worker/src/exact.js')
+
+    // Five runs with no Exact connection behind them, tracked by id — the
+    // assertion has to be about these five and not about whatever else is in a
+    // shared development database.
+    const mine: string[] = []
+    for (let index = 0; index < 5; index += 1) {
+      const entityId = await seedRunEntity()
+      mine.push(entityId)
+      const run = await withExactDocuments(database, (repository) =>
+        repository.request({ entityId, divisionCode: 1000, requestedBy: 'test' }),
+      )
+      // Oldest first, so `claim` reaches these before anything else that
+      // happens to be queued in a shared database.
+      await database.execute(
+        `update klopt.exact_document_runs set requested_at = '1990-01-01' where id = '${run.id}'`,
+      )
+    }
+
+    /**
+     * Scoped to this file's own entities, and that matters.
+     *
+     * The first version of this counted *every* pending run in the database
+     * and asserted it reached zero. On a shared development Postgres that
+     * swept up a real administration's run and fired a batch at somebody's
+     * production Exact — the exact class of accident the cleanup above exists
+     * to prevent, committed by the test asserting it.
+     */
+    const list = mine.map((id) => `'${id}'`).join(', ')
+
+    const before = await database.execute(
+      `select count(*)::int as pending from klopt.exact_document_runs
+        where state = 'pending' and entity_id in (${list})`,
+    )
+    expect((before[0] as { pending: number }).pending).toBe(5)
+
+    // One tick clears all five rather than stopping at the first. The fetch
+    // refuses outright: if this ever reached a real connection, the test would
+    // fail rather than quietly talk to somebody's Exact.
+    const noNetwork = (() => {
+      throw new Error('a unit test must not reach the network')
+    }) as unknown as typeof globalThis.fetch
+    await importExactDocuments(database, memoryStore(), noNetwork)
+
+    const after = await database.execute(
+      `select count(*)::int as pending from klopt.exact_document_runs
+        where state = 'pending' and entity_id in (${list})`,
+    )
+    expect((after[0] as { pending: number }).pending).toBe(0)
+  })
+})
+
+describe('a worker that died mid-batch', () => {
+  /**
+   * A claim is a lease, not a flag. `running` means "somebody has this", and
+   * if that somebody dies — a deploy, a crash, a closed laptop — the row used
+   * to stay `running` and nothing ever picked it up again. Three were sitting
+   * permanently stuck in a development database before this existed.
+   */
+  it('leaves a fresh claim alone', async () => {
+    const entityId = await seedRunEntity()
+    const run = await withExactDocuments(database, (repository) =>
+      repository.request({ entityId, divisionCode: 1000, requestedBy: 'a' }),
+    )
+    await withExactDocuments(database, (repository) => repository.claim(new Date()))
+
+    // Somebody is working on it right now.
+    const again = await withExactDocuments(database, (repository) => repository.claim(new Date()))
+    expect(again?.id).not.toBe(run.id)
+  })
+
+  it('takes back a claim nobody has touched for the lease', async () => {
+    const entityId = await seedRunEntity()
+    const run = await withExactDocuments(database, (repository) =>
+      repository.request({ entityId, divisionCode: 1000, requestedBy: 'a' }),
+    )
+    await database.execute(
+      `update klopt.exact_document_runs set requested_at = '1990-01-01' where id = '${run.id}'`,
+    )
+    await withExactDocuments(database, (repository) => repository.claim(new Date()))
+
+    // The worker that had it went away twenty minutes ago.
+    await database.execute(
+      `update klopt.exact_document_runs
+          set updated_at = now() - interval '20 minutes'
+        where id = '${run.id}'`,
+    )
+
+    const reclaimed = await withExactDocuments(database, (repository) =>
+      repository.claim(new Date()),
+    )
+    expect(reclaimed?.id).toBe(run.id)
+  })
+})
+
+describe('a worker that cannot decrypt what it stored', () => {
+  /**
+   * `decryptSecret` returns null both for "no KLOPT_ENCRYPTION_KEY" and for
+   * "this does not decrypt", and the first version fed that into `?? ''`. An
+   * empty client secret reaches Exact and comes back `invalid_request` — so a
+   * worker with no key configured reported a perfectly good OAuth connection
+   * as broken, and that is what it looked like for a while.
+   *
+   * A deployment problem should say it is one.
+   */
+  it('says the key is missing rather than blaming the connection', async () => {
+    const { importExactDocuments } = await import('../../worker/src/exact.js')
+
+    const entityId = await seedRunEntity()
+    await withExactDocuments(database, (repository) =>
+      repository.request({ entityId, divisionCode: 1000, requestedBy: 'test' }),
+    )
+    // A connection that exists and is authorised, so the only thing wrong is
+    // that its secrets cannot be read back.
+    await database.execute(
+      `insert into klopt.exact_connections
+         (id, entity_id, base_url, client_id, client_secret, redirect_uri, refresh_token, division_code)
+       values (gen_random_uuid(), '${entityId}', 'https://start.exactonline.nl', 'c',
+               'v1.not.a.valid.envelope', 'https://x.test/cb', 'v1.not.a.valid.envelope', 1000)`,
+    )
+
+    await database.execute(
+      `update klopt.exact_document_runs set requested_at = '1990-01-01' where entity_id = '${entityId}'`,
+    )
+    const noNetwork = (() => {
+      throw new Error('a unit test must not reach the network')
+    }) as unknown as typeof globalThis.fetch
+    await importExactDocuments(database, memoryStore(), noNetwork)
+
+    const [row] = await database.execute(
+      `select last_error from klopt.exact_document_runs where entity_id = '${entityId}'`,
+    )
+    const error = (row as { last_error: string }).last_error
+
+    expect(error).toMatch(/KLOPT_ENCRYPTION_KEY|different KLOPT_ENCRYPTION_KEY/)
+    // And specifically not the message that sends somebody to re-authorise a
+    // connection that was never the problem.
+    expect(error).not.toContain('invalid_request')
+  })
+})
