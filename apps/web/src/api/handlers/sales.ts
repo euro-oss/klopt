@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import {
   CUSTOMIZATION_ID,
   DEFAULT_DUNNING_SCHEDULE,
+  PERMISSIONS,
   checkUblRules,
   formatMinorUnits,
   generateUbl,
@@ -185,6 +186,15 @@ export async function handleGetContact(context: RequestContext, contactId: strin
                 },
         },
         openDocuments: open,
+        /**
+         * Whether this caller may answer an erasure request about them.
+         *
+         * Decided here rather than by the screen reading a role, so the one
+         * place that knows the permission model is the one that answers. The
+         * screen hides the section when it is false, on the same principle as
+         * the navigation: do not offer an action that will 403.
+         */
+        canErase: hasPermission(context, PERMISSIONS.manageRetention),
       },
     }
   })

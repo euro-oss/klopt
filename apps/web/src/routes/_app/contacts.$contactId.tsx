@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
-import { getContact, updateContact } from '~/server/sales'
+import { getContact, pseudonymiseContact, updateContact } from '~/server/sales'
 
 /**
  * Correcting a relatie.
@@ -238,6 +238,116 @@ function EditContact() {
           {busy ? t('common.busy') : t('common.save')}
         </button>
       </form>
+
+      {contact.data.canErase && (
+        <Erase
+          contactId={contactId}
+          open={open.sales + open.purchase}
+          onErased={() => {
+            void router.invalidate()
+          }}
+        />
+      )}
     </>
+  )
+}
+
+/**
+ * Answering a right-to-erasure request (spec 7.6).
+ *
+ * At the bottom of the contact, behind its own heading and its own reason
+ * field, because it is not an edit. Editing a contact corrects what we know;
+ * this destroys it, and the two should not sit in the same form where a stray
+ * submit reaches the wrong one.
+ *
+ * Shown only when the caller holds `retention:manage` — the server says so
+ * rather than the screen inferring it from a role — on the same principle as
+ * the navigation: do not offer an action that will answer 403.
+ */
+function Erase({
+  contactId,
+  open,
+  onErased,
+}: {
+  contactId: string
+  open: number
+  onErased: () => void
+}) {
+  const hydrated = useHydrated()
+  const { t, plural } = useT()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+  const key = useRef(crypto.randomUUID())
+
+  async function erase(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const field = new FormData(event.currentTarget).get('reason')
+    const reason = typeof field === 'string' ? field.trim() : ''
+    if (reason === '') return
+
+    setBusy(true)
+    setError(null)
+
+    const result = await pseudonymiseContact({
+      data: { contactId, idempotencyKey: key.current, reason },
+    })
+    setBusy(false)
+
+    if (!result.ok) {
+      setError(result.problem.detail)
+      return
+    }
+
+    key.current = crypto.randomUUID()
+    setDone(true)
+    onErased()
+  }
+
+  return (
+    <section className="border-destructive/40 mt-10 max-w-2xl rounded-md border p-4">
+      <h2 className="text-sm font-semibold">{t('erase.title')}</h2>
+      <p className="text-muted-foreground mt-1 text-sm">{t('erase.intro')}</p>
+
+      <p className="text-muted-foreground mt-3 text-xs">
+        <strong className="text-foreground font-medium">{t('erase.keptTitle')}</strong>{' '}
+        {t('erase.kept')}
+      </p>
+
+      {open > 0 ? (
+        <p className="text-unreconciled mt-3 text-sm">{plural('erase.blockedByOpen', open)}</p>
+      ) : (
+        <form onSubmit={(event) => void erase(event)} className="mt-4 space-y-3">
+          <label className="block">
+            <span className="text-muted-foreground mb-1 block text-xs font-medium">
+              {t('erase.reason')}
+            </span>
+            <input
+              name="reason"
+              required
+              placeholder={t('erase.reasonPlaceholder')}
+              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+            />
+          </label>
+
+          <p className="text-destructive text-xs">{t('erase.irreversible')}</p>
+
+          {error !== null && (
+            <p role="alert" className="text-destructive text-sm">
+              {error}
+            </p>
+          )}
+          {done && <p className="text-sm">{t('erase.done')}</p>}
+
+          <button
+            type="submit"
+            disabled={busy || !hydrated}
+            className="bg-destructive text-destructive-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+          >
+            {busy ? t('common.busy') : t('erase.action')}
+          </button>
+        </form>
+      )}
+    </section>
   )
 }

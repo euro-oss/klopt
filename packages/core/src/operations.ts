@@ -260,6 +260,20 @@ export const complianceOperations: Readonly<Record<string, OperationDefinition>>
     idempotent: true,
   }),
 
+  pseudonymiseContact: defineOperation({
+    id: 'retention.pseudonymiseContact',
+    kind: 'write',
+    permission: 'retention:manage',
+    summary:
+      "Erase a contact's personal data on an erasure request. The ledger, the invoices and the documents are untouched.",
+    // Never. An erasure is irreversible and answers a legal request made to a
+    // human; an assistant offering to do it is offering the wrong thing.
+    agentExposure: 'none',
+    // The second run finds the contact already pseudonymised and changes
+    // nothing, which is what makes a retried request safe.
+    idempotent: true,
+  }),
+
   deleteDocuments: defineOperation({
     id: 'retention.deleteDocuments',
     kind: 'write',

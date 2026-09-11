@@ -117,6 +117,7 @@ import { Route as ApiV1VatPeriodsRouteImport } from './routes/api/v1/vat.periods
 import { Route as ApiV1BankTransactionsTransactionIdIgnoreRouteImport } from './routes/api/v1/bank-transactions.$transactionId.ignore'
 import { Route as ApiV1BankTransactionsTransactionIdMatchRouteImport } from './routes/api/v1/bank-transactions.$transactionId.match'
 import { Route as ApiV1BankTransactionsTransactionIdSuggestionsRouteImport } from './routes/api/v1/bank-transactions.$transactionId.suggestions'
+import { Route as ApiV1ContactsContactIdPseudonymiseRouteImport } from './routes/api/v1/contacts.$contactId.pseudonymise'
 import { Route as ApiV1ExactImportPreviewRouteImport } from './routes/api/v1/exact.import.preview'
 import { Route as ApiV1InboxItemIdDiscardRouteImport } from './routes/api/v1/inbox.$itemId.discard'
 import { Route as ApiV1InboxItemIdDraftRouteImport } from './routes/api/v1/inbox.$itemId.draft'
@@ -703,6 +704,12 @@ const ApiV1BankTransactionsTransactionIdSuggestionsRoute =
     path: '/$transactionId/suggestions',
     getParentRoute: () => ApiV1BankTransactionsRoute,
   } as any)
+const ApiV1ContactsContactIdPseudonymiseRoute =
+  ApiV1ContactsContactIdPseudonymiseRouteImport.update({
+    id: '/pseudonymise',
+    path: '/pseudonymise',
+    getParentRoute: () => ApiV1ContactsContactIdRoute,
+  } as any)
 const ApiV1ExactImportPreviewRoute = ApiV1ExactImportPreviewRouteImport.update({
   id: '/preview',
   path: '/preview',
@@ -923,7 +930,7 @@ export interface FileRoutesByFullPath {
   '/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/audit-log/export': typeof ApiV1AuditLogExportRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
-  '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
+  '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRouteWithChildren
   '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exact/callback': typeof ApiV1ExactCallbackRoute
@@ -963,6 +970,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
+  '/api/v1/contacts/$contactId/pseudonymise': typeof ApiV1ContactsContactIdPseudonymiseRoute
   '/api/v1/exact/import/preview': typeof ApiV1ExactImportPreviewRoute
   '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
   '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
@@ -1058,7 +1066,7 @@ export interface FileRoutesByTo {
   '/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/audit-log/export': typeof ApiV1AuditLogExportRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
-  '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
+  '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRouteWithChildren
   '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exact/callback': typeof ApiV1ExactCallbackRoute
@@ -1098,6 +1106,7 @@ export interface FileRoutesByTo {
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
+  '/api/v1/contacts/$contactId/pseudonymise': typeof ApiV1ContactsContactIdPseudonymiseRoute
   '/api/v1/exact/import/preview': typeof ApiV1ExactImportPreviewRoute
   '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
   '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
@@ -1195,7 +1204,7 @@ export interface FileRoutesById {
   '/_app/vat/icp/$period': typeof AppVatIcpPeriodRoute
   '/api/v1/audit-log/export': typeof ApiV1AuditLogExportRoute
   '/api/v1/bank-match-rules/$ruleId': typeof ApiV1BankMatchRulesRuleIdRoute
-  '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRoute
+  '/api/v1/contacts/$contactId': typeof ApiV1ContactsContactIdRouteWithChildren
   '/api/v1/documents/$documentId': typeof ApiV1DocumentsDocumentIdRoute
   '/api/v1/entities/$entityId': typeof ApiV1EntitiesEntityIdRoute
   '/api/v1/exact/callback': typeof ApiV1ExactCallbackRoute
@@ -1235,6 +1244,7 @@ export interface FileRoutesById {
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
+  '/api/v1/contacts/$contactId/pseudonymise': typeof ApiV1ContactsContactIdPseudonymiseRoute
   '/api/v1/exact/import/preview': typeof ApiV1ExactImportPreviewRoute
   '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
   '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
@@ -1372,6 +1382,7 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
+    | '/api/v1/contacts/$contactId/pseudonymise'
     | '/api/v1/exact/import/preview'
     | '/api/v1/inbox/$itemId/discard'
     | '/api/v1/inbox/$itemId/draft'
@@ -1507,6 +1518,7 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
+    | '/api/v1/contacts/$contactId/pseudonymise'
     | '/api/v1/exact/import/preview'
     | '/api/v1/inbox/$itemId/discard'
     | '/api/v1/inbox/$itemId/draft'
@@ -1643,6 +1655,7 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
+    | '/api/v1/contacts/$contactId/pseudonymise'
     | '/api/v1/exact/import/preview'
     | '/api/v1/inbox/$itemId/discard'
     | '/api/v1/inbox/$itemId/draft'
@@ -2492,6 +2505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1BankTransactionsTransactionIdSuggestionsRouteImport
       parentRoute: typeof ApiV1BankTransactionsRoute
     }
+    '/api/v1/contacts/$contactId/pseudonymise': {
+      id: '/api/v1/contacts/$contactId/pseudonymise'
+      path: '/pseudonymise'
+      fullPath: '/api/v1/contacts/$contactId/pseudonymise'
+      preLoaderRoute: typeof ApiV1ContactsContactIdPseudonymiseRouteImport
+      parentRoute: typeof ApiV1ContactsContactIdRoute
+    }
     '/api/v1/exact/import/preview': {
       id: '/api/v1/exact/import/preview'
       path: '/preview'
@@ -2809,12 +2829,27 @@ const ApiV1BankTransactionsRouteWithChildren =
     ApiV1BankTransactionsRouteChildren,
   )
 
+interface ApiV1ContactsContactIdRouteChildren {
+  ApiV1ContactsContactIdPseudonymiseRoute: typeof ApiV1ContactsContactIdPseudonymiseRoute
+}
+
+const ApiV1ContactsContactIdRouteChildren: ApiV1ContactsContactIdRouteChildren =
+  {
+    ApiV1ContactsContactIdPseudonymiseRoute:
+      ApiV1ContactsContactIdPseudonymiseRoute,
+  }
+
+const ApiV1ContactsContactIdRouteWithChildren =
+  ApiV1ContactsContactIdRoute._addFileChildren(
+    ApiV1ContactsContactIdRouteChildren,
+  )
+
 interface ApiV1ContactsRouteChildren {
-  ApiV1ContactsContactIdRoute: typeof ApiV1ContactsContactIdRoute
+  ApiV1ContactsContactIdRoute: typeof ApiV1ContactsContactIdRouteWithChildren
 }
 
 const ApiV1ContactsRouteChildren: ApiV1ContactsRouteChildren = {
-  ApiV1ContactsContactIdRoute: ApiV1ContactsContactIdRoute,
+  ApiV1ContactsContactIdRoute: ApiV1ContactsContactIdRouteWithChildren,
 }
 
 const ApiV1ContactsRouteWithChildren = ApiV1ContactsRoute._addFileChildren(

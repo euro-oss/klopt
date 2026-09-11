@@ -966,6 +966,59 @@ export class SalesRepository {
    * which is what makes a screen able to edit one field without shipping the
    * other fifteen back.
    */
+  /**
+   * Erase a contact's personal data, leaving the ledger alone (spec 7.6).
+   *
+   * Everything the invoice needs it already has: the buyer snapshot is taken
+   * at issue and lives on `sales_invoices`. What is wiped here is the address
+   * book — who we would bill *today* — and nothing that any posting reads.
+   *
+   * The debiteurennummer stays. It travels into the XAF and it is how a
+   * posting finds its subledger account; erasing it would not anonymise
+   * anybody, it would break the invoice's link to its own history.
+   *
+   * `vat_number` and `kvk_number` stay too. They identify a registered
+   * business rather than a person, an ICP declaration is a legal record that
+   * had to name one, and the VIES proof stored against it is the evidence that
+   * the zero rate was allowed.
+   *
+   * Blocked on the way out, because a contact nobody can name is not one
+   * anybody should be able to invoice again by accident.
+   */
+  async pseudonymiseContact(request: {
+    readonly entityId: string
+    readonly contactId: string
+    readonly pseudonym: string
+  }): Promise<void> {
+    await this.tx
+      .update(contacts)
+      .set({
+        name: request.pseudonym,
+        legalName: null,
+        email: null,
+        phone: null,
+        iban: null,
+        notes: null,
+        electronicAddress: null,
+        electronicAddressScheme: null,
+        isBlocked: true,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(and(eq(contacts.entityId, request.entityId), eq(contacts.id, request.contactId)))
+
+    // Removed rather than blanked: a row of nulls is a record that somebody
+    // lived somewhere, and the invoice already keeps the address it was sent
+    // to at the time.
+    await this.tx
+      .delete(contactAddresses)
+      .where(
+        and(
+          eq(contactAddresses.entityId, request.entityId),
+          eq(contactAddresses.contactId, request.contactId),
+        ),
+      )
+  }
+
   async updateContact(request: {
     readonly entityId: string
     readonly contactId: string

@@ -15,12 +15,14 @@ import {
   handleSendInvoice,
   handleUpdateContact,
 } from '~/api/handlers/sales'
+import { handlePseudonymiseContact } from '~/api/handlers/retention'
 import {
   createContactBody,
   draftInvoiceBody,
   issueInvoiceBody,
   sendInvoiceBody,
   sendReminderBody,
+  pseudonymiseContactBody,
   updateContactBody,
 } from '~/api/schemas'
 import { contextFromRequest, run, runWith } from './internal'
@@ -198,6 +200,31 @@ export const getContact = createServerFn({ method: 'GET' })
   .validator((input: { contactId: string }) => input)
   .handler(async ({ data }) =>
     run(async () => (await handleGetContact(await contextFromRequest(), data.contactId)).body),
+  )
+
+/**
+ * Answering a right-to-erasure request about a contact (spec 7.6).
+ *
+ * Lives beside the contact screen rather than under retention, because the
+ * screen it belongs on is the contact's own — that is where somebody is
+ * standing when the request arrives. The permission it needs is still
+ * `retention:manage`, and the handler is the one that enforces it.
+ */
+export const pseudonymiseContact = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      pseudonymiseContactBody,
+      data,
+      async (body) =>
+        (
+          await handlePseudonymiseContact(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            (data as { contactId: string }).contactId,
+            body,
+          )
+        ).body,
+    ),
   )
 
 export const updateContact = createServerFn({ method: 'POST' })

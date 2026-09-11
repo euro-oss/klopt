@@ -1213,6 +1213,23 @@ export const nl = {
   'nav.group.reports': 'Rapporten',
   'nav.group.admin': 'Beheer',
   'shell.profile': 'Profiel',
+
+  // Answering a right-to-erasure request about a contact.
+  'erase.title': 'Gegevens wissen op verzoek',
+  'erase.intro':
+    'Wist naam, e-mail, telefoon, IBAN, adres en notities van deze relatie. De boekhouding blijft: elke factuur bewaart zelf van wie hij was, dus wat verstuurd is verandert niet en het grootboek beweegt geen cent.',
+  'erase.keptTitle': 'Wat blijft staan',
+  'erase.kept':
+    'Het debiteurennummer, want daar hangen de boekingen aan en het gaat mee in de auditfile. Het btw- en KvK-nummer, want die horen bij een onderneming en een ICP-opgaaf moest ze noemen.',
+  'erase.irreversible': 'Dit kan niet ongedaan worden gemaakt.',
+  'erase.blockedByOpen_one':
+    'Kan nog niet: er staat {count} factuur open. Los die eerst af of schrijf hem af — een gewiste relatie kun je niet aanmanen.',
+  'erase.blockedByOpen_other':
+    'Kan nog niet: er staan {count} facturen open. Los die eerst af of schrijf ze af — een gewiste relatie kun je niet aanmanen.',
+  'erase.reason': 'Waarom, en wanneer is het gevraagd?',
+  'erase.reasonPlaceholder': 'Verzoek tot verwijdering per e-mail, 12 maart',
+  'erase.action': 'Gegevens wissen',
+  'erase.done': 'Gewist. Wat er stond is vastgelegd in het logboek.',
 } as const
 
 export type MessageKey = keyof typeof nl

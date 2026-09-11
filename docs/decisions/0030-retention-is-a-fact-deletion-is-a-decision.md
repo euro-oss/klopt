@@ -161,11 +161,12 @@ What that means concretely, and what this change does and does not do:
 - **The retention term is the boundary, not a licence.** Once it has run out
   there is no legal obligation left to weigh, and the deletion path in this
   change is what makes acting on an erasure request possible at all.
-- **Pseudonymisation belongs outside the ledger and is not built yet.** Contact
+- **Pseudonymisation belongs outside the ledger, and now exists.** Contact
   records hold things an invoice does not need — a phone number, an email
-  address, notes — and those are erasable without touching a posting. That is
-  the right shape and it needs its own slice: a `contacts` pseudonymisation
-  path that leaves `sales_invoices` and the journal untouched.
+  address, notes — and those are erasable without touching a posting. See
+  ADR 0039, which builds that path and describes the one thing that had to
+  change first: an invoice used to read its buyer out of the contact row, so
+  the contact was load-bearing for the bewaarplicht and could not be touched.
 - **A refusal is written down.** The audit log now covers contact and document
   changes, so "we declined to erase X because of the bewaarplicht, on this
   date" is recordable — which is what a supervisory authority asks for.

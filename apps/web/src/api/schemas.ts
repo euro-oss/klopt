@@ -830,10 +830,25 @@ export const deleteDocumentsBody = z.object({
   reason: z.string().trim().min(1, 'Say why. This is the one act that cannot be reversed.'),
 })
 
+/**
+ * Erasing a contact (spec 7.6).
+ *
+ * The reason is required for the same reason it is on a deletion: this is
+ * answering a request somebody made, and "we erased X on this date because
+ * they asked on that date" is what a supervisory authority looks for.
+ */
+export const pseudonymiseContactBody = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(1, 'Say why. An erasure answers a request, and the request is the record.'),
+})
+
 export type RetentionQuery = z.infer<typeof retentionQuery>
 export type SetLegalHoldBody = z.infer<typeof setLegalHoldBody>
 export type SetRetentionClassBody = z.infer<typeof setRetentionClassBody>
 export type DeleteDocumentsBody = z.infer<typeof deleteDocumentsBody>
+export type PseudonymiseContactBody = z.infer<typeof pseudonymiseContactBody>
 
 /** Sealing a snapshot (spec 7.6). */
 export const sealSnapshotBody = z.object({

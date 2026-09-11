@@ -1,6 +1,8 @@
 import {
   PERMISSIONS,
   RETENTION_CLASS_LABEL,
+  pseudonymOf,
+  refusePseudonymisation,
   retentionState,
   summariseRetention,
   supportsWorm,
@@ -9,6 +11,7 @@ import {
   applyRetention,
   withRetention,
   withRetentionRead,
+  withSales,
   type RetentionDocumentRow,
 } from '@klopt/db'
 import { hasPermission, type RequestContext } from '../context.js'
@@ -17,6 +20,7 @@ import { recordAudit } from '../audit.js'
 import { documentStore } from '../document-store.js'
 import type {
   DeleteDocumentsBody,
+  PseudonymiseContactBody,
   RetentionQuery,
   SetLegalHoldBody,
   SetRetentionClassBody,
@@ -394,5 +398,83 @@ export async function handleDeleteDocuments(context: RequestContext, body: Delet
       refusedByStorage,
       reason: body.reason,
     },
+  }
+}
+
+/**
+ * Answering a right-to-erasure request about a contact (spec 7.6).
+ *
+ * The ledger is not erasable and will not be made so. What this erases is the
+ * address book entry — name, email, phone, bank account, notes, address — none
+ * of which any posting reads, because the invoice took its own copy of the
+ * buyer when it was issued.
+ *
+ * Under `retention:manage` and therefore the owner alone, alongside deletion.
+ * It is the same kind of act: irreversible, and about somebody's rights rather
+ * than about bookkeeping.
+ */
+export async function handlePseudonymiseContact(
+  context: RequestContext,
+  contactId: string,
+  body: PseudonymiseContactBody,
+) {
+  requirePermission(context, PERMISSIONS.manageRetention)
+
+  const outcome = await withSales(context.database, async ({ sales }) => {
+    const found = await sales.findContact(context.entityId, contactId)
+    if (found === null) return { code: 'not_found' as const }
+
+    const { contact } = found
+    const open = await sales.openDocumentCounts(context.entityId, contactId)
+
+    const refusal = refusePseudonymisation({
+      number: contact.number,
+      kind: contact.kind,
+      openSales: open.sales,
+      openPurchases: open.purchase,
+    })
+    if (refusal !== null) return { code: 'refused' as const, refusal }
+
+    const pseudonym = pseudonymOf(contact.number)
+    await sales.pseudonymiseContact({ entityId: context.entityId, contactId, pseudonym })
+
+    return { code: 'done' as const, before: contact, pseudonym }
+  })
+
+  if (outcome.code === 'not_found') {
+    throw new ApiError('not_found', 'No such contact.')
+  }
+
+  if (outcome.code === 'refused') {
+    throw new ApiError(
+      'conflict',
+      `This contact still has ${String(outcome.refusal.open)} open invoice(s). Settle or write them off first: an erased contact cannot be chased, and the outstanding amount is what keeps the ground for holding their details alive.`,
+    )
+  }
+
+  /**
+   * The audit entry is the point as much as the erasure is.
+   *
+   * `before` names what was erased, which is exactly what a supervisory
+   * authority asks for — and it lives in the audit log, which is itself
+   * subject to the bewaarplicht rather than to the erasure. That tension is
+   * real and it is resolved in favour of being able to prove what was done:
+   * an erasure nobody can evidence is indistinguishable from a data loss.
+   */
+  await recordAudit(context, {
+    action: 'retention.pseudonymiseContact',
+    resourceType: 'contact',
+    resourceId: contactId,
+    before: {
+      name: outcome.before.name,
+      email: outcome.before.email,
+      phone: outcome.before.phone,
+    },
+    after: { name: outcome.pseudonym, isBlocked: true, reason: body.reason },
+  })
+
+  return {
+    status: 200,
+    body: { contactId, name: outcome.pseudonym, reason: body.reason },
   }
 }

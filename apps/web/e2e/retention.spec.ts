@@ -109,3 +109,36 @@ test('the screen admits that a directory guarantees nothing', async ({ page }) =
   await expect(storage).toContainText('filesystem')
   await expect(storage).toContainText('geen object lock')
 })
+
+test('a contact is erased on request, and the invoice still names who it was for', async ({
+  page,
+}) => {
+  // Spec 7.6's GDPR position, end to end: the address book goes, the books
+  // stay. What makes it safe is that the invoice took its own copy of the
+  // buyer at issue — so this is really a test that the two are separate.
+  await anAdministration(page)
+
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('DEB-0900')
+  await page.getByLabel('Naam', { exact: true }).fill('Jan de Vries Advies')
+  await page.getByLabel('E-mail').fill('jan@devries.nl')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+
+  await page.getByRole('link', { name: 'Jan de Vries Advies' }).click()
+  await expect(page.getByRole('heading', { name: /Gegevens wissen op verzoek/ })).toBeVisible()
+
+  await page.getByLabel('Waarom, en wanneer is het gevraagd?').fill('Verzoek per e-mail, 12 maart')
+  await page.getByRole('button', { name: 'Gegevens wissen' }).click()
+
+  await expect(page.getByText(/Gewist\./)).toBeVisible()
+
+  // The row is still there — it is a ledger account — but it names nobody.
+  await page.goto('/contacts')
+  await expect(page.getByText('Gewist contact DEB-0900')).toBeVisible()
+  await expect(page.getByText('Jan de Vries Advies')).toBeHidden()
+
+  // And the erasure is in the log, with what was there before it.
+  await page.goto('/audit-log')
+  await expect(page.getByText('retention.pseudonymiseContact')).toBeVisible()
+})

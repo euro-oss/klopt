@@ -1190,4 +1190,21 @@ export const en: Record<MessageKey, string> = {
   'nav.group.reports': 'Reports',
   'nav.group.admin': 'Administration',
   'shell.profile': 'Profile',
+
+  // Answering a right-to-erasure request about a contact.
+  'erase.title': 'Erase personal data on request',
+  'erase.intro':
+    "Erases this contact's name, email, phone, IBAN, address and notes. The books stay: every invoice keeps its own record of who it was for, so nothing that was sent changes and the ledger does not move a cent.",
+  'erase.keptTitle': 'What stays',
+  'erase.kept':
+    'The contact number, because the postings hang off it and it travels into the audit file. The VAT and Chamber of Commerce numbers, because they identify a business and an ICP return had to name them.',
+  'erase.irreversible': 'This cannot be undone.',
+  'erase.blockedByOpen_one':
+    'Not yet: {count} invoice is still open. Settle or write it off first — an erased contact cannot be chased.',
+  'erase.blockedByOpen_other':
+    'Not yet: {count} invoices are still open. Settle or write them off first — an erased contact cannot be chased.',
+  'erase.reason': 'Why, and when was it asked?',
+  'erase.reasonPlaceholder': 'Erasure requested by email, 12 March',
+  'erase.action': 'Erase the data',
+  'erase.done': 'Erased. What was there is recorded in the audit log.',
 }

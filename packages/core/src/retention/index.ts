@@ -10,3 +10,11 @@ export {
   type RetentionSubject,
   type RetentionSummary,
 } from './policy.js'
+
+export {
+  PSEUDONYMISED_FIELDS,
+  pseudonymOf,
+  refusePseudonymisation,
+  type PseudonymisationRefusal,
+  type PseudonymisationSubject,
+} from './pseudonymise.js'

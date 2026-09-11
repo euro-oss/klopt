@@ -639,6 +639,12 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/retention.class.ts',
   },
   {
+    operationId: 'retention.pseudonymiseContact',
+    method: 'POST',
+    path: '/contacts/:contactId/pseudonymise',
+    module: 'api/v1/contacts.$contactId.pseudonymise.ts',
+  },
+  {
     operationId: 'retention.deleteDocuments',
     method: 'POST',
     path: '/retention/deletions',
