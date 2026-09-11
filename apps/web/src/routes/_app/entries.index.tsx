@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
+import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
 import { listEntries } from '~/server/ledger'
 
@@ -21,6 +22,7 @@ interface Row {
 function Entries() {
   const result = Route.useLoaderData()
   const navigate = useNavigate()
+  const { t } = useT()
   if (!result.ok) return <p className="text-destructive">{result.problem.detail}</p>
 
   const columns: readonly Column<Row>[] = [
@@ -32,20 +34,20 @@ function Entries() {
     },
     {
       key: 'number',
-      header: 'Nr.',
+      header: t('entries.number'),
       width: '5rem',
       cell: (row) => <span className="tabular">{String(row.entryNumber)}</span>,
     },
     {
       key: 'date',
-      header: 'Boekdatum',
+      header: t('entries.bookingDate'),
       width: '8rem',
       cell: (row) => <span className="tabular">{formatDate(row.bookingDate)}</span>,
     },
-    { key: 'desc', header: 'Omschrijving', cell: (row) => row.description },
+    { key: 'desc', header: t('entries.description'), cell: (row) => row.description },
     {
       key: 'hash',
-      header: 'Hash',
+      header: t('entries.hash'),
       width: '9rem',
       // Shown on the list on purpose: the chain is the product's tamper
       // evidence, and evidence you have to go looking for is evidence nobody
@@ -58,10 +60,7 @@ function Entries() {
 
   return (
     <>
-      <PageHeader
-        title="Journaalposten"
-        description="Onveranderlijk. Correcties zijn tegenboekingen."
-      />
+      <PageHeader title={t('entries.title')} description={t('entries.intro')} />
       <LedgerTable
         columns={columns}
         rows={result.data.entries}
@@ -69,8 +68,8 @@ function Entries() {
         onRowActivate={(row) => {
           void navigate({ to: '/entries/$entryId', params: { entryId: row.id } })
         }}
-        caption="Journaalposten"
-        empty="Nog geen journaalposten geboekt."
+        caption={t('entries.title')}
+        empty={t('entries.empty')}
       />
     </>
   )

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
 import { getEntry } from '~/server/ledger'
 
@@ -11,6 +12,7 @@ export const Route = createFileRoute('/_app/entries/$entryId')({
 
 function EntryDetail() {
   const result = Route.useLoaderData()
+  const { t } = useT()
   if (!result.ok) return <p className="text-destructive">{result.problem.detail}</p>
   const entry = result.data.entry
 
@@ -23,21 +25,21 @@ function EntryDetail() {
 
       <dl className="mb-6 grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4">
         <div>
-          <dt className="text-muted-foreground text-xs">Boekdatum</dt>
+          <dt className="text-muted-foreground text-xs">{t('entry.bookingDate')}</dt>
           <dd className="tabular">{formatDate(entry.bookingDate)}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground text-xs">Documentdatum</dt>
+          <dt className="text-muted-foreground text-xs">{t('entry.documentDate')}</dt>
           <dd className="tabular">{formatDate(entry.documentDate)}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground text-xs">Periode</dt>
+          <dt className="text-muted-foreground text-xs">{t('entry.period')}</dt>
           <dd className="tabular">
             {entry.fiscalYear}-{String(entry.period).padStart(2, '0')}
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground text-xs">Geboekt door</dt>
+          <dt className="text-muted-foreground text-xs">{t('entry.postedBy')}</dt>
           <dd>
             {entry.actor.id}
             <span className="text-muted-foreground"> ({entry.actor.kind})</span>
@@ -49,19 +51,19 @@ function EntryDetail() {
         <thead>
           <tr className="border-border bg-muted/50 border-b">
             <th scope="col" className="text-muted-foreground px-3 py-2 text-left font-medium">
-              Rek.
+              {t('trial.account')}
             </th>
             <th scope="col" className="text-muted-foreground px-3 py-2 text-left font-medium">
-              Omschrijving
+              {t('entries.description')}
             </th>
             <th scope="col" className="text-muted-foreground px-3 py-2 text-left font-medium">
-              Dimensies
+              {t('entry.dimensions')}
             </th>
             <th scope="col" className="text-muted-foreground px-3 py-2 text-right font-medium">
-              Debet
+              {t('trial.debit')}
             </th>
             <th scope="col" className="text-muted-foreground px-3 py-2 text-right font-medium">
-              Credit
+              {t('trial.credit')}
             </th>
           </tr>
         </thead>
@@ -94,18 +96,24 @@ function EntryDetail() {
       {/* The tamper evidence, on the face of the entry. An inspector can
           recompute this from an export and compare (spec 6.2). */}
       <section className="border-border mt-6 rounded-md border p-4">
-        <h2 className="text-sm font-medium">Hash-keten</h2>
+        <h2 className="text-sm font-medium">{t('entry.chain')}</h2>
         <dl className="mt-2 space-y-1 font-mono text-xs">
           <div className="flex gap-2">
-            <dt className="text-muted-foreground w-24 shrink-0 font-sans">Positie</dt>
+            <dt className="text-muted-foreground w-24 shrink-0 font-sans">
+              {t('entry.chainPosition')}
+            </dt>
             <dd>{entry.chainSequence}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="text-muted-foreground w-24 shrink-0 font-sans">Vorige</dt>
-            <dd className="break-all">{entry.previousHash ?? '— (eerste post)'}</dd>
+            <dt className="text-muted-foreground w-24 shrink-0 font-sans">
+              {t('entry.chainPrevious')}
+            </dt>
+            <dd className="break-all">{entry.previousHash ?? t('entry.chainFirst')}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="text-muted-foreground w-24 shrink-0 font-sans">Deze</dt>
+            <dt className="text-muted-foreground w-24 shrink-0 font-sans">
+              {t('entry.chainThis')}
+            </dt>
             <dd className="break-all">{entry.hash}</dd>
           </div>
         </dl>
@@ -113,13 +121,13 @@ function EntryDetail() {
 
       {entry.reversesEntryId !== null && (
         <p className="text-muted-foreground mt-4 text-sm">
-          Dit is een tegenboeking van{' '}
+          {t('entry.reversalOf')}{' '}
           <Link
             to="/entries/$entryId"
             params={{ entryId: entry.reversesEntryId }}
             className="underline"
           >
-            een eerdere post
+            {t('entry.reversalOfLink')}
           </Link>
           .
         </p>

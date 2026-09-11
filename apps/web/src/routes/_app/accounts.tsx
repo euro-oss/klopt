@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { getRgsCoverage, listAccounts } from '~/server/ledger'
 
 export const Route = createFileRoute('/_app/accounts')({
@@ -20,16 +22,17 @@ interface AccountRow {
   isBlocked: boolean
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  asset: 'Activa',
-  liability: 'Passiva',
-  equity: 'Eigen vermogen',
-  revenue: 'Opbrengsten',
-  expense: 'Kosten',
+const TYPE_KEY: Record<string, MessageKey> = {
+  asset: 'accounts.type.asset',
+  liability: 'accounts.type.liability',
+  equity: 'accounts.type.equity',
+  revenue: 'accounts.type.revenue',
+  expense: 'accounts.type.expense',
 }
 
 function Accounts() {
   const { accounts, coverage } = Route.useLoaderData()
+  const { t } = useT()
 
   if (!accounts.ok) return <p className="text-destructive">{accounts.problem.detail}</p>
 
@@ -45,16 +48,19 @@ function Accounts() {
   const columns: readonly Column<AccountRow>[] = [
     {
       key: 'number',
-      header: 'Nummer',
+      header: t('accounts.number'),
       width: '6rem',
       cell: (row) => <span className="tabular font-mono">{row.number}</span>,
     },
-    { key: 'name', header: 'Omschrijving', cell: (row) => row.name },
+    { key: 'name', header: t('accounts.description'), cell: (row) => row.name },
     {
       key: 'type',
-      header: 'Soort',
+      header: t('accounts.kind'),
       width: '9rem',
-      cell: (row) => TYPE_LABEL[row.type] ?? row.type,
+      cell: (row) => {
+        const key = TYPE_KEY[row.type]
+        return key === undefined ? row.type : t(key)
+      },
     },
     {
       key: 'dc',
@@ -68,7 +74,9 @@ function Accounts() {
       width: '11rem',
       cell: (row) =>
         row.rgsCode === null ? (
-          <span className="bg-unreconciled/15 rounded px-1.5 py-0.5 text-xs">niet gekoppeld</span>
+          <span className="bg-unreconciled/15 rounded px-1.5 py-0.5 text-xs">
+            {t('accounts.unmapped')}
+          </span>
         ) : (
           <span className="font-mono text-xs">{row.rgsCode}</span>
         ),
@@ -79,7 +87,8 @@ function Accounts() {
       cell: (row) => {
         const problems = problemsByAccount.get(row.number) ?? []
         const worst = problems.find((problem) => problem.severity === 'error') ?? problems[0]
-        if (row.isBlocked) return <span className="text-muted-foreground text-xs">geblokkeerd</span>
+        if (row.isBlocked)
+          return <span className="text-muted-foreground text-xs">{t('accounts.blocked')}</span>
         if (worst === undefined) return null
         return (
           <span
@@ -100,10 +109,16 @@ function Accounts() {
   return (
     <>
       <PageHeader
-        title="Grootboekrekeningen"
+        title={t('accounts.title')}
         description={
           coverage.ok
-            ? `${String(coverage.data.mappedCount)} van ${String(coverage.data.accountCount)} gekoppeld aan RGS ${coverage.data.version} (${coverage.data.variant}). ${String(coverage.data.mappedPercentage)}% van het saldo is rapporteerbaar.`
+            ? t('accounts.intro', {
+                mapped: String(coverage.data.mappedCount),
+                total: String(coverage.data.accountCount),
+                version: coverage.data.version,
+                variant: coverage.data.variant,
+                percentage: String(coverage.data.mappedPercentage),
+              })
             : undefined
         }
       />
@@ -111,7 +126,7 @@ function Accounts() {
         columns={columns}
         rows={accounts.data.accounts}
         rowKey={(row) => row.number}
-        caption="Grootboekrekeningen met hun RGS-koppeling"
+        caption={t('accounts.caption')}
       />
     </>
   )

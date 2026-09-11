@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import { useT } from '~/i18n/provider'
 import { getProfitAndLoss } from '~/server/ledger'
 
 const YEAR = String(new Date().getFullYear())
@@ -18,6 +19,7 @@ interface Line {
 
 function ProfitAndLoss() {
   const result = Route.useLoaderData()
+  const { t } = useT()
   if (!result.ok) return <p className="text-destructive">{result.problem.detail}</p>
   const statement = result.data
 
@@ -37,7 +39,7 @@ function ProfitAndLoss() {
           ))}
           <tr className="border-border border-t font-medium">
             <td />
-            <td className="py-1">Totaal</td>
+            <td className="py-1">{t('report.total')}</td>
             <td className="py-1 text-right">
               <Money amount={total} />
             </td>
@@ -50,16 +52,20 @@ function ProfitAndLoss() {
   return (
     <>
       <PageHeader
-        title="Winst- en verliesrekening"
-        description={`${statement.fromDate} tot en met ${statement.toDate}, in ${statement.currency}.`}
+        title={t('profit.title')}
+        description={t('profit.intro', {
+          from: statement.fromDate,
+          to: statement.toDate,
+          currency: statement.currency,
+        })}
       />
 
       <div className="max-w-2xl space-y-8">
-        {section('Opbrengsten', statement.revenue.lines, statement.revenue.total)}
-        {section('Kosten', statement.expenses.lines, statement.expenses.total)}
+        {section(t('profit.revenue'), statement.revenue.lines, statement.revenue.total)}
+        {section(t('profit.expenses'), statement.expenses.lines, statement.expenses.total)}
 
         <div className="border-border flex justify-between border-t-2 pt-3 text-lg font-semibold">
-          <span>{BigInt(statement.result) < 0n ? 'Verlies' : 'Resultaat'}</span>
+          <span>{BigInt(statement.result) < 0n ? t('profit.loss') : t('profit.result')}</span>
           <Money amount={statement.result} />
         </div>
       </div>

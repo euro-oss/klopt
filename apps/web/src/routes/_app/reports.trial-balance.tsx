@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import { useT } from '~/i18n/provider'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { getTrialBalance } from '~/server/ledger'
 
@@ -23,17 +24,18 @@ interface Row {
 
 function TrialBalance() {
   const result = Route.useLoaderData()
+  const { t } = useT()
   if (!result.ok) return <p className="text-destructive">{result.problem.detail}</p>
   const report = result.data
 
   const columns: readonly Column<Row>[] = [
     {
       key: 'number',
-      header: 'Rek.',
+      header: t('trial.account'),
       width: '5rem',
       cell: (row) => <span className="font-mono">{row.accountNumber}</span>,
     },
-    { key: 'name', header: 'Omschrijving', cell: (row) => row.accountName },
+    { key: 'name', header: t('accounts.description'), cell: (row) => row.accountName },
     {
       key: 'rgs',
       header: 'RGS',
@@ -42,25 +44,25 @@ function TrialBalance() {
     },
     {
       key: 'opening',
-      header: 'Beginsaldo',
+      header: t('trial.opening'),
       align: 'right',
       cell: (row) => <Money amount={row.openingBalance} muteZero />,
     },
     {
       key: 'debit',
-      header: 'Debet',
+      header: t('trial.debit'),
       align: 'right',
       cell: (row) => <Money amount={row.debit} format={{ negative: 'minus', showZero: false }} />,
     },
     {
       key: 'credit',
-      header: 'Credit',
+      header: t('trial.credit'),
       align: 'right',
       cell: (row) => <Money amount={row.credit} format={{ negative: 'minus', showZero: false }} />,
     },
     {
       key: 'closing',
-      header: 'Eindsaldo',
+      header: t('trial.closing'),
       align: 'right',
       cell: (row) => <Money amount={row.closingBalance} muteZero />,
     },
@@ -69,19 +71,23 @@ function TrialBalance() {
   return (
     <>
       <PageHeader
-        title="Proefbalans"
-        description={`Boekjaar ${report.fiscalYear}, periode ${String(report.fromPeriod)} tot en met ${String(report.toPeriod)}.`}
+        title={t('trial.title')}
+        description={t('trial.intro', {
+          year: report.fiscalYear,
+          from: String(report.fromPeriod),
+          to: String(report.toPeriod),
+        })}
       />
       <LedgerTable
         columns={columns}
         rows={report.lines}
         rowKey={(row) => row.accountNumber}
-        caption="Proefbalans"
-        empty="Nog geen boekingen in dit boekjaar."
+        caption={t('trial.title')}
+        empty={t('trial.empty')}
         footer={
           <tr>
             <td colSpan={3} className="px-3 py-2">
-              Totaal
+              {t('report.total')}
             </td>
             <td />
             <td className="px-3 py-2 text-right">

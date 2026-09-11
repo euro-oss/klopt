@@ -1,6 +1,8 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
 import { getCreditorAgeing } from '~/server/purchase'
 
@@ -30,20 +32,21 @@ export const Route = createFileRoute('/_app/reports/creditor-ageing')({
 })
 
 const BUCKETS = [
-  ['current', 'Niet vervallen'],
-  ['upTo30', '1–30 dagen'],
-  ['upTo60', '31–60 dagen'],
-  ['upTo90', '61–90 dagen'],
-  ['over90', 'Meer dan 90'],
-] as const
+  ['current', 'ageing.bucket.current'],
+  ['upTo30', 'ageing.bucket.upTo30'],
+  ['upTo60', 'ageing.bucket.upTo60'],
+  ['upTo90', 'ageing.bucket.upTo90'],
+  ['over90', 'ageing.bucket.over90'],
+] as const satisfies readonly (readonly [string, MessageKey])[]
 
 function CreditorAgeing() {
   const { ageing, asOf } = Route.useLoaderData()
+  const { t } = useT()
 
   if (!ageing.ok) {
     return (
       <>
-        <PageHeader title="Ouderdomsanalyse crediteuren" />
+        <PageHeader title={t('ageing.title')} />
         <p role="alert" className="text-destructive text-sm">
           {ageing.problem.detail}
         </p>
@@ -58,19 +61,19 @@ function CreditorAgeing() {
   return (
     <>
       <PageHeader
-        title="Ouderdomsanalyse crediteuren"
-        description={`Openstaande inkoopfacturen per ${formatDate(asOf)}, ingedeeld naar hoe lang ze te laat zijn.`}
+        title={t('ageing.title')}
+        description={t('ageing.intro', { date: formatDate(asOf) })}
         actions={
           <Link to="/purchases" className="text-sm underline">
-            Inkoopfacturen
+            {t('nav.purchases')}
           </Link>
         }
       />
 
       <div className="mb-8 flex flex-wrap gap-8">
-        <Stat label="Totaal openstaand" value={<Money amount={data.total} />} />
+        <Stat label={t('ageing.totalOutstanding')} value={<Money amount={data.total} />} />
         <Stat
-          label="Te laat"
+          label={t('ageing.overdue')}
           value={
             <Money
               amount={(
@@ -83,37 +86,38 @@ function CreditorAgeing() {
           }
         />
         <Stat
-          label={`Grootboek ${data.payableAccountNumber}`}
+          label={t('ageing.controlAccount', { account: data.payableAccountNumber })}
           value={<Money amount={data.reconciliation.controlAccount} />}
-          hint={data.reconciliation.reconciles ? 'sluit aan' : 'wijkt af'}
+          hint={
+            data.reconciliation.reconciles ? t('ageing.reconciles') : t('ageing.doesNotReconcile')
+          }
           tone={data.reconciliation.reconciles ? 'good' : 'warn'}
         />
       </div>
 
       {!data.reconciliation.reconciles && (
         <p role="alert" className="text-destructive mb-6 max-w-3xl text-sm">
-          De subadministratie telt op tot <Money amount={data.reconciliation.subledger} /> en de
-          grootboekrekening staat op <Money amount={data.reconciliation.controlAccount} />. Het
-          verschil van <Money amount={data.reconciliation.difference} /> betekent dat er op de
-          crediteurenrekening is geboekt buiten een inkoopfactuur om, of dat een factuur is geboekt
-          zonder de koppeling vast te leggen. Zoek het verschil voordat je op deze lijst afgaat.
+          {t('ageing.driftBefore')} <Money amount={data.reconciliation.subledger} />{' '}
+          {t('ageing.driftMiddle')} <Money amount={data.reconciliation.controlAccount} />.{' '}
+          {t('ageing.difference')} <Money amount={data.reconciliation.difference} />{' '}
+          {t('ageing.driftAfter')}
         </p>
       )}
 
       <table className="border-border w-full max-w-5xl border-collapse text-sm">
-        <caption className="sr-only">Openstaande bedragen per leverancier en ouderdom</caption>
+        <caption className="sr-only">{t('ageing.caption')}</caption>
         <thead>
           <tr className="border-border text-muted-foreground border-b text-left text-xs">
             <th scope="col" className="py-2 pr-2 font-medium">
-              Leverancier
+              {t('ageing.supplier')}
             </th>
             {BUCKETS.map(([key, label]) => (
               <th key={key} scope="col" className="py-2 pr-2 text-right font-medium">
-                {label}
+                {t(label)}
               </th>
             ))}
             <th scope="col" className="py-2 text-right font-medium">
-              Totaal
+              {t('report.total')}
             </th>
           </tr>
         </thead>
@@ -121,7 +125,7 @@ function CreditorAgeing() {
           {data.buckets.length === 0 && (
             <tr>
               <td colSpan={7} className="text-muted-foreground py-3">
-                Geen openstaande inkoopfacturen.
+                {t('ageing.empty')}
               </td>
             </tr>
           )}
@@ -149,7 +153,7 @@ function CreditorAgeing() {
           <tfoot>
             <tr className="border-border border-t font-medium">
               <th scope="row" className="py-2 pr-2 text-left">
-                Totaal
+                {t('report.total')}
               </th>
               {BUCKETS.map(([key]) => (
                 <td key={key} className="py-2 pr-2 text-right">

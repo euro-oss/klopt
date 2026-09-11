@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import { useT } from '~/i18n/provider'
 import { getBalanceSheet } from '~/server/ledger'
 
 const YEAR = String(new Date().getFullYear())
@@ -57,12 +58,16 @@ function Side({ section, extra }: { section: Section; extra?: { label: string; a
 
 function BalanceSheet() {
   const result = Route.useLoaderData()
+  const { t } = useT()
   if (!result.ok) return <p className="text-destructive">{result.problem.detail}</p>
   const sheet = result.data
 
   return (
     <>
-      <PageHeader title="Balans" description={`Per ${sheet.asOf}, in ${sheet.currency}.`} />
+      <PageHeader
+        title={t('balance.title')}
+        description={t('balance.intro', { date: sheet.asOf, currency: sheet.currency })}
+      />
 
       <div className="grid gap-10 lg:grid-cols-2">
         <Side section={sheet.assets} />
@@ -72,26 +77,26 @@ function BalanceSheet() {
             section={sheet.equity}
             // Before a year close the result sits here, unappropriated. That is
             // what a balance sheet at year end actually shows.
-            extra={{ label: 'Resultaat boekjaar', amount: sheet.resultForPeriod }}
+            extra={{ label: t('balance.result'), amount: sheet.resultForPeriod }}
           />
         </div>
       </div>
 
       <div className="border-border mt-8 grid gap-10 border-t pt-3 lg:grid-cols-2">
         <div className="flex justify-between font-medium">
-          <span>Totaal activa</span>
+          <span>{t('balance.totalAssets')}</span>
           <Money amount={sheet.totalAssets} />
         </div>
         <div className="flex justify-between font-medium">
-          <span>Totaal passiva</span>
+          <span>{t('balance.totalLiabilities')}</span>
           <Money amount={sheet.totalLiabilitiesAndEquity} />
         </div>
       </div>
 
       {sheet.difference !== '0' && (
         <p className="text-destructive mt-4 text-sm">
-          De balans sluit niet: verschil van <Money amount={sheet.difference} />. Dit hoort niet te
-          kunnen en is een fout in het grootboek.
+          {t('balance.doesNotBalance')} <Money amount={sheet.difference} />
+          {t('balance.doesNotBalanceBody')}
         </p>
       )}
     </>

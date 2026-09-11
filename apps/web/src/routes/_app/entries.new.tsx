@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import { useT } from '~/i18n/provider'
 import { formatMinorUnits, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
@@ -169,6 +170,7 @@ function NewEntry() {
   }
 
   const modLabel = isApple() ? '⌘' : 'Ctrl'
+  const { t } = useT()
 
   return (
     <form
@@ -180,15 +182,17 @@ function NewEntry() {
       }}
     >
       <PageHeader
-        title="Nieuwe journaalpost"
-        description={`${modLabel}+↵ boekt. ${modLabel}+⇧+↵ boekt en begint de volgende. = in een bedrag vult het sluitende bedrag in.`}
+        title={t('entryNew.title')}
+        description={t('entryNew.intro', { mod: modLabel })}
       />
 
       <div className="mb-4 grid gap-4 sm:grid-cols-3">
         <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">Dagboek</span>
+          <span className="text-muted-foreground mb-1 block text-xs font-medium">
+            {t('entryNew.journal')}
+          </span>
           <select
-            aria-label="Dagboek"
+            aria-label={t('entryNew.journal')}
             value={journalCode}
             onChange={(event) => {
               setJournalCode(event.target.value)
@@ -204,7 +208,9 @@ function NewEntry() {
         </label>
 
         <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">Boekdatum</span>
+          <span className="text-muted-foreground mb-1 block text-xs font-medium">
+            {t('entry.bookingDate')}
+          </span>
           <input
             type="date"
             value={bookingDate}
@@ -216,7 +222,9 @@ function NewEntry() {
         </label>
 
         <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">Omschrijving</span>
+          <span className="text-muted-foreground mb-1 block text-xs font-medium">
+            {t('entries.description')}
+          </span>
           <input
             name="description"
             value={description}
@@ -241,16 +249,16 @@ function NewEntry() {
         <thead>
           <tr className="border-border bg-muted/50 border-b">
             <th scope="col" className="text-muted-foreground w-32 px-3 py-2 text-left font-medium">
-              Rekening
+              {t('entryNew.account')}
             </th>
             <th scope="col" className="text-muted-foreground px-3 py-2 text-left font-medium">
-              Omschrijving
+              {t('entries.description')}
             </th>
             <th scope="col" className="text-muted-foreground w-36 px-3 py-2 text-right font-medium">
-              Debet
+              {t('trial.debit')}
             </th>
             <th scope="col" className="text-muted-foreground w-36 px-3 py-2 text-right font-medium">
-              Credit
+              {t('trial.credit')}
             </th>
           </tr>
         </thead>
@@ -264,7 +272,7 @@ function NewEntry() {
                   onChange={(event) => {
                     update(index, { accountNumber: event.target.value })
                   }}
-                  aria-label={`Rekening regel ${String(index + 1)}`}
+                  aria-label={t('entryNew.accountLine', { line: String(index + 1) })}
                   className="w-full rounded bg-transparent px-1 py-1 font-mono outline-none focus:bg-accent"
                 />
               </td>
@@ -274,7 +282,7 @@ function NewEntry() {
                   onChange={(event) => {
                     update(index, { description: event.target.value })
                   }}
-                  aria-label={`Omschrijving regel ${String(index + 1)}`}
+                  aria-label={t('entryNew.descriptionLine', { line: String(index + 1) })}
                   className="focus:bg-accent w-full rounded bg-transparent px-1 py-1 outline-none"
                 />
               </td>
@@ -283,7 +291,9 @@ function NewEntry() {
                   <input
                     inputMode="decimal"
                     value={line[side]}
-                    aria-label={`${side === 'debit' ? 'Debet' : 'Credit'} regel ${String(index + 1)}`}
+                    aria-label={t(side === 'debit' ? 'entryNew.debitLine' : 'entryNew.creditLine', {
+                      line: String(index + 1),
+                    })}
                     onChange={(event) => {
                       update(index, {
                         [side]: event.target.value,
@@ -313,7 +323,7 @@ function NewEntry() {
           <tr>
             <td colSpan={2} className="px-3 py-2">
               <button type="button" onClick={addLine} className="text-sm underline">
-                Regel toevoegen
+                {t('entryNew.addLine')}
               </button>
             </td>
             <td className="px-3 py-2 text-right font-medium">
@@ -325,7 +335,7 @@ function NewEntry() {
           </tr>
           <tr>
             <td colSpan={2} className="text-muted-foreground px-3 pb-2 text-xs">
-              {difference === 0n ? 'Sluit.' : 'Verschil'}
+              {difference === 0n ? t('entryNew.balances') : t('entryNew.difference')}
             </td>
             <td
               colSpan={2}
@@ -354,7 +364,7 @@ function NewEntry() {
           disabled={posting || !hydrated}
           className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
-          Boeken
+          {t('entryNew.post')}
         </button>
         <button
           type="button"
@@ -364,7 +374,7 @@ function NewEntry() {
           }}
           className="border-input rounded-md border px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
-          Boeken en volgende
+          {t('entryNew.postAndNext')}
         </button>
       </div>
     </form>
