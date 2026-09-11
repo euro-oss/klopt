@@ -46,6 +46,7 @@ export function SelectField({
   onValueChange,
   disabled = false,
   placeholder,
+  size,
   children,
   className,
   triggerClassName,
@@ -63,6 +64,15 @@ export function SelectField({
   /** Pass `!hydrated`. See the note on `~/components/ui/select`. */
   readonly disabled?: boolean
   readonly placeholder?: string
+  /**
+   * The trigger's height, as the theme defines it.
+   *
+   * A prop rather than `triggerClassName="h-8"`, because the preset sets the
+   * height through `data-[size=default]:h-10` — a data-attribute selector that
+   * beats a plain `h-8` in the cascade, so the class looked applied and did
+   * nothing.
+   */
+  readonly size?: 'sm' | 'default'
   readonly children: ReactNode
   readonly className?: string
   readonly triggerClassName?: string
@@ -92,7 +102,11 @@ export function SelectField({
         }}
         disabled={disabled}
       >
-        <SelectTrigger id={id} className={cn('w-full', triggerClassName)}>
+        <SelectTrigger
+          id={id}
+          {...(size === undefined ? {} : { size })}
+          className={cn('w-full', triggerClassName)}
+        >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>{children}</SelectContent>

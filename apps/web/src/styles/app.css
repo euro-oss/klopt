@@ -1,68 +1,11 @@
 @import 'tailwindcss';
-
-/**
- * Design tokens (spec 11.3). Light and dark are defined together, and every
- * component reads a token — never a literal colour, spacing or radius. shadcn/ui
- * components copied in with the CLI read these same variables.
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/ibm-plex-sans';
+@import '@fontsource-variable/manrope';
+/*---break---
  */
-@layer base {
-  :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.21 0.006 285.9);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.21 0.006 285.9);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.21 0.006 285.9);
-    --primary: oklch(0.21 0.006 285.9);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.967 0.001 286.4);
-    --secondary-foreground: oklch(0.21 0.006 285.9);
-    --muted: oklch(0.967 0.001 286.4);
-    --muted-foreground: oklch(0.552 0.016 285.9);
-    --accent: oklch(0.967 0.001 286.4);
-    --accent-foreground: oklch(0.21 0.006 285.9);
-    --destructive: oklch(0.577 0.245 27.3);
-    --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(0.92 0.004 286.3);
-    --input: oklch(0.92 0.004 286.3);
-    --ring: oklch(0.705 0.015 286.1);
-    --radius: 0.5rem;
-
-    /* Ledger semantics. Debit and credit are not "good" and "bad", so they are
-       not green and red; negative amounts are what gets the destructive tone. */
-    --debit: oklch(0.21 0.006 285.9);
-    --credit: oklch(0.21 0.006 285.9);
-    --amount-negative: oklch(0.577 0.245 27.3);
-    --unreconciled: oklch(0.75 0.15 85);
-  }
-
-  .dark {
-    --background: oklch(0.141 0.005 285.8);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.21 0.006 285.9);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.21 0.006 285.9);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.92 0.004 286.3);
-    --primary-foreground: oklch(0.21 0.006 285.9);
-    --secondary: oklch(0.274 0.006 286);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.274 0.006 286);
-    --muted-foreground: oklch(0.705 0.015 286.1);
-    --accent: oklch(0.274 0.006 286);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.2);
-    --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.552 0.016 285.9);
-
-    --debit: oklch(0.985 0 0);
-    --credit: oklch(0.985 0 0);
-    --amount-negative: oklch(0.704 0.191 22.2);
-    --unreconciled: oklch(0.8 0.15 85);
-  }
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -92,6 +35,25 @@
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
+  --font-sans: 'IBM Plex Sans Variable', sans-serif;
+  --font-heading: 'Manrope Variable', sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 @layer base {
@@ -109,4 +71,108 @@
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
   }
+}
+/**
+ * Design tokens (spec 11.3).
+ *
+ * The palette below came from a shadcn preset (`b6DcLoveJE`) and is applied by
+ * `shadcn apply`, which rewrites these two blocks. Anything of ours that lives
+ * here has to survive that, so it is marked and kept short — and everything
+ * else reads a token rather than a literal, which is what makes a preset
+ * swappable at all.
+ *
+ * Unlayered on purpose, which is how the CLI writes them: unlayered rules beat
+ * `@layer base`, so a token defined in both places would silently take the
+ * value from here. There is only one place now.
+ */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.852 0.199 91.936);
+  --primary-foreground: oklch(0.421 0.095 57.708);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.811 0.111 293.571);
+  --chart-2: oklch(0.606 0.25 292.717);
+  --chart-3: oklch(0.541 0.281 293.009);
+  --chart-4: oklch(0.491 0.27 292.581);
+  --chart-5: oklch(0.432 0.232 292.759);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.681 0.162 75.834);
+  --sidebar-primary-foreground: oklch(0.987 0.026 102.212);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  /* The preset does not define this one, and two destructive buttons read it. */
+  --destructive-foreground: oklch(0.985 0 0);
+
+  /*
+    Ledger semantics (spec 11.3). Debit and credit are not "good" and "bad", so
+    they are not green and red — they are simply the foreground, and they track
+    the theme rather than pinning a colour a preset has since moved. A negative
+    amount is what gets the destructive tone; `unreconciled` is the amber that
+    means "a human has not looked at this yet".
+  */
+  --debit: var(--foreground);
+  --credit: var(--foreground);
+  --amount-negative: var(--destructive);
+  --unreconciled: oklch(0.75 0.15 85);
+}
+/*---break---
+ */
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.795 0.184 86.047);
+  --primary-foreground: oklch(0.421 0.095 57.708);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.811 0.111 293.571);
+  --chart-2: oklch(0.606 0.25 292.717);
+  --chart-3: oklch(0.541 0.281 293.009);
+  --chart-4: oklch(0.491 0.27 292.581);
+  --chart-5: oklch(0.432 0.232 292.759);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.795 0.184 86.047);
+  --sidebar-primary-foreground: oklch(0.987 0.026 102.212);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+
+  --destructive-foreground: oklch(0.985 0 0);
+
+  --debit: var(--foreground);
+  --credit: var(--foreground);
+  --amount-negative: var(--destructive);
+  --unreconciled: oklch(0.8 0.15 85);
 }

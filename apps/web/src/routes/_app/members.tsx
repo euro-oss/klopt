@@ -165,7 +165,7 @@ function Members() {
                   labelHidden
                   value={member.role}
                   disabled={busy || !hydrated}
-                  triggerClassName="h-8"
+                  size="sm"
                   onValueChange={(role) => {
                     void act(
                       () => setMemberRole({ data: { memberId: member.userId, role } }),

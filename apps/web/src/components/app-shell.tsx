@@ -214,7 +214,7 @@ export function AppShell({
                 value={active?.entityId ?? ''}
                 onValueChange={onSwitchEntity}
                 disabled={!hydrated}
-                triggerClassName="h-8 text-sm"
+                size="sm"
               >
                 {entities.map((entity) => (
                   <SelectOption key={entity.entityId} value={entity.entityId}>
@@ -438,7 +438,7 @@ function LanguagePicker() {
       label={t('language.label')}
       value={locale}
       disabled={!hydrated}
-      triggerClassName="h-8 text-xs"
+      size="sm"
       onValueChange={(chosen) => {
         void setLocale({ data: { locale: chosen } })
           // The whole tree re-renders from the root loader, which is where the
