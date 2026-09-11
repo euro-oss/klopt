@@ -7,6 +7,8 @@ export {
 } from './client.js'
 export { recordAuthEvent } from './auth-audit.js'
 export { type EventQuery, type EventRow } from './repositories/events.js'
+export { type EndpointRow } from './repositories/webhooks.js'
+export { deliverWebhooks, type DeliveryReport, type FetchLike } from './webhooks/deliver.js'
 export {
   type Auth,
   type AuthConfig,
@@ -152,6 +154,8 @@ export {
   withAudit,
   withAuditRead,
   withEventsRead,
+  withWebhooks,
+  withWebhooksRead,
   withRetention,
   withRetentionRead,
   withSnapshots,

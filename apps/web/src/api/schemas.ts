@@ -851,6 +851,37 @@ export type DeleteDocumentsBody = z.infer<typeof deleteDocumentsBody>
 export type PseudonymiseContactBody = z.infer<typeof pseudonymiseContactBody>
 
 /**
+ * Subscribing to the event stream (spec 10.2).
+ *
+ * `https` only, and not a courtesy: the signature proves who sent it and that
+ * it is recent, but it does nothing about who *read* it on the way. Over plain
+ * http the resource ids are in the clear, and an id is enough to ask the API
+ * for the thing itself if you also have a token.
+ */
+export const createWebhookBody = z.object({
+  url: z
+    .url()
+    .refine((value) => value.startsWith('https://'), 'A webhook URL has to be https.')
+    .refine((value) => value.length <= 2000, 'That URL is unreasonably long.'),
+  /** Empty means every type, including ones added after this was created. */
+  eventTypes: z.array(z.string().min(1)).default([]),
+})
+
+/**
+ * Replaying (spec 10.2's "replay endpoint").
+ *
+ * `after` is where to resume from — the id of the last event to treat as
+ * already delivered. Absent means the very beginning, which is the honest
+ * meaning of "send me everything again".
+ */
+export const replayWebhookBody = z.object({
+  after: z.uuid().nullish(),
+})
+
+export type CreateWebhookBody = z.infer<typeof createWebhookBody>
+export type ReplayWebhookBody = z.infer<typeof replayWebhookBody>
+
+/**
  * Reading the event stream (spec 10.2).
  *
  * `after` is the id of the last event already handled, which is also its dedup

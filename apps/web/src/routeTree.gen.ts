@@ -74,6 +74,7 @@ import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-in
 import { Route as ApiV1SnapshotsRouteImport } from './routes/api/v1/snapshots'
 import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
 import { Route as ApiV1TokensRouteImport } from './routes/api/v1/tokens'
+import { Route as ApiV1WebhooksRouteImport } from './routes/api/v1/webhooks'
 import { Route as DotwellKnownOauthProtectedResourceApiMcpRouteImport } from './routes/[.]well-known.oauth-protected-resource.api.mcp'
 import { Route as AppVatIcpPeriodRouteImport } from './routes/_app/vat.icp.$period'
 import { Route as ApiV1AuditLogExportRouteImport } from './routes/api/v1/audit-log.export'
@@ -115,6 +116,7 @@ import { Route as ApiV1TokensTokenIdRouteImport } from './routes/api/v1/tokens.$
 import { Route as ApiV1VatFilingsRouteImport } from './routes/api/v1/vat.filings'
 import { Route as ApiV1VatNumberChecksRouteImport } from './routes/api/v1/vat.number-checks'
 import { Route as ApiV1VatPeriodsRouteImport } from './routes/api/v1/vat.periods'
+import { Route as ApiV1WebhooksEndpointIdRouteImport } from './routes/api/v1/webhooks.$endpointId'
 import { Route as ApiV1BankTransactionsTransactionIdIgnoreRouteImport } from './routes/api/v1/bank-transactions.$transactionId.ignore'
 import { Route as ApiV1BankTransactionsTransactionIdMatchRouteImport } from './routes/api/v1/bank-transactions.$transactionId.match'
 import { Route as ApiV1BankTransactionsTransactionIdSuggestionsRouteImport } from './routes/api/v1/bank-transactions.$transactionId.suggestions'
@@ -140,6 +142,7 @@ import { Route as ApiV1SnapshotsSnapshotIdManifestRouteImport } from './routes/a
 import { Route as ApiV1SnapshotsSnapshotIdVerificationsRouteImport } from './routes/api/v1/snapshots.$snapshotId.verifications'
 import { Route as ApiV1VatIcpPeriodRouteImport } from './routes/api/v1/vat.icp.$period'
 import { Route as ApiV1VatReturnsPeriodRouteImport } from './routes/api/v1/vat.returns.$period'
+import { Route as ApiV1WebhooksEndpointIdReplayRouteImport } from './routes/api/v1/webhooks.$endpointId.replay'
 import { Route as ApiV1InboxSourcesSourceIdPollRouteImport } from './routes/api/v1/inbox.sources.$sourceId.poll'
 import { Route as ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRouteImport } from './routes/api/v1/payment-batches.$batchId.instructions.$instructionId'
 import { Route as ApiV1VatFilingsFilingIdStatusRouteImport } from './routes/api/v1/vat.filings.$filingId.status'
@@ -473,6 +476,11 @@ const ApiV1TokensRoute = ApiV1TokensRouteImport.update({
   path: '/api/v1/tokens',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1WebhooksRoute = ApiV1WebhooksRouteImport.update({
+  id: '/api/v1/webhooks',
+  path: '/api/v1/webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DotwellKnownOauthProtectedResourceApiMcpRoute =
   DotwellKnownOauthProtectedResourceApiMcpRouteImport.update({
     id: '/api/mcp',
@@ -692,6 +700,11 @@ const ApiV1VatPeriodsRoute = ApiV1VatPeriodsRouteImport.update({
   path: '/api/v1/vat/periods',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1WebhooksEndpointIdRoute = ApiV1WebhooksEndpointIdRouteImport.update({
+  id: '/$endpointId',
+  path: '/$endpointId',
+  getParentRoute: () => ApiV1WebhooksRoute,
+} as any)
 const ApiV1BankTransactionsTransactionIdIgnoreRoute =
   ApiV1BankTransactionsTransactionIdIgnoreRouteImport.update({
     id: '/$transactionId/ignore',
@@ -837,6 +850,12 @@ const ApiV1VatReturnsPeriodRoute = ApiV1VatReturnsPeriodRouteImport.update({
   path: '/api/v1/vat/returns/$period',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1WebhooksEndpointIdReplayRoute =
+  ApiV1WebhooksEndpointIdReplayRouteImport.update({
+    id: '/replay',
+    path: '/replay',
+    getParentRoute: () => ApiV1WebhooksEndpointIdRoute,
+  } as any)
 const ApiV1InboxSourcesSourceIdPollRoute =
   ApiV1InboxSourcesSourceIdPollRouteImport.update({
     id: '/poll',
@@ -925,6 +944,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
+  '/api/v1/webhooks': typeof ApiV1WebhooksRouteWithChildren
   '/bank/': typeof AppBankIndexRoute
   '/contacts/': typeof AppContactsIndexRoute
   '/entries/': typeof AppEntriesIndexRoute
@@ -974,6 +994,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
+  '/api/v1/webhooks/$endpointId': typeof ApiV1WebhooksEndpointIdRouteWithChildren
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
@@ -999,6 +1020,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/snapshots/$snapshotId/verifications': typeof ApiV1SnapshotsSnapshotIdVerificationsRoute
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
+  '/api/v1/webhooks/$endpointId/replay': typeof ApiV1WebhooksEndpointIdReplayRoute
   '/api/v1/inbox/sources/$sourceId/poll': typeof ApiV1InboxSourcesSourceIdPollRoute
   '/api/v1/payment-batches/$batchId/instructions/$instructionId': typeof ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute
   '/api/v1/vat/filings/$filingId/status': typeof ApiV1VatFilingsFilingIdStatusRoute
@@ -1062,6 +1084,7 @@ export interface FileRoutesByTo {
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
+  '/api/v1/webhooks': typeof ApiV1WebhooksRouteWithChildren
   '/bank': typeof AppBankIndexRoute
   '/contacts': typeof AppContactsIndexRoute
   '/entries': typeof AppEntriesIndexRoute
@@ -1111,6 +1134,7 @@ export interface FileRoutesByTo {
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
+  '/api/v1/webhooks/$endpointId': typeof ApiV1WebhooksEndpointIdRouteWithChildren
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
@@ -1136,6 +1160,7 @@ export interface FileRoutesByTo {
   '/api/v1/snapshots/$snapshotId/verifications': typeof ApiV1SnapshotsSnapshotIdVerificationsRoute
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
+  '/api/v1/webhooks/$endpointId/replay': typeof ApiV1WebhooksEndpointIdReplayRoute
   '/api/v1/inbox/sources/$sourceId/poll': typeof ApiV1InboxSourcesSourceIdPollRoute
   '/api/v1/payment-batches/$batchId/instructions/$instructionId': typeof ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute
   '/api/v1/vat/filings/$filingId/status': typeof ApiV1VatFilingsFilingIdStatusRoute
@@ -1201,6 +1226,7 @@ export interface FileRoutesById {
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
+  '/api/v1/webhooks': typeof ApiV1WebhooksRouteWithChildren
   '/_app/bank/': typeof AppBankIndexRoute
   '/_app/contacts/': typeof AppContactsIndexRoute
   '/_app/entries/': typeof AppEntriesIndexRoute
@@ -1250,6 +1276,7 @@ export interface FileRoutesById {
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
   '/api/v1/vat/periods': typeof ApiV1VatPeriodsRoute
+  '/api/v1/webhooks/$endpointId': typeof ApiV1WebhooksEndpointIdRouteWithChildren
   '/api/v1/bank-transactions/$transactionId/ignore': typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
   '/api/v1/bank-transactions/$transactionId/match': typeof ApiV1BankTransactionsTransactionIdMatchRoute
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
@@ -1275,6 +1302,7 @@ export interface FileRoutesById {
   '/api/v1/snapshots/$snapshotId/verifications': typeof ApiV1SnapshotsSnapshotIdVerificationsRoute
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
+  '/api/v1/webhooks/$endpointId/replay': typeof ApiV1WebhooksEndpointIdReplayRoute
   '/api/v1/inbox/sources/$sourceId/poll': typeof ApiV1InboxSourcesSourceIdPollRoute
   '/api/v1/payment-batches/$batchId/instructions/$instructionId': typeof ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute
   '/api/v1/vat/filings/$filingId/status': typeof ApiV1VatFilingsFilingIdStatusRoute
@@ -1340,6 +1368,7 @@ export interface FileRouteTypes {
     | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
     | '/api/v1/tokens'
+    | '/api/v1/webhooks'
     | '/bank/'
     | '/contacts/'
     | '/entries/'
@@ -1389,6 +1418,7 @@ export interface FileRouteTypes {
     | '/api/v1/vat/filings'
     | '/api/v1/vat/number-checks'
     | '/api/v1/vat/periods'
+    | '/api/v1/webhooks/$endpointId'
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
@@ -1414,6 +1444,7 @@ export interface FileRouteTypes {
     | '/api/v1/snapshots/$snapshotId/verifications'
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
+    | '/api/v1/webhooks/$endpointId/replay'
     | '/api/v1/inbox/sources/$sourceId/poll'
     | '/api/v1/payment-batches/$batchId/instructions/$instructionId'
     | '/api/v1/vat/filings/$filingId/status'
@@ -1477,6 +1508,7 @@ export interface FileRouteTypes {
     | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
     | '/api/v1/tokens'
+    | '/api/v1/webhooks'
     | '/bank'
     | '/contacts'
     | '/entries'
@@ -1526,6 +1558,7 @@ export interface FileRouteTypes {
     | '/api/v1/vat/filings'
     | '/api/v1/vat/number-checks'
     | '/api/v1/vat/periods'
+    | '/api/v1/webhooks/$endpointId'
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
@@ -1551,6 +1584,7 @@ export interface FileRouteTypes {
     | '/api/v1/snapshots/$snapshotId/verifications'
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
+    | '/api/v1/webhooks/$endpointId/replay'
     | '/api/v1/inbox/sources/$sourceId/poll'
     | '/api/v1/payment-batches/$batchId/instructions/$instructionId'
     | '/api/v1/vat/filings/$filingId/status'
@@ -1615,6 +1649,7 @@ export interface FileRouteTypes {
     | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
     | '/api/v1/tokens'
+    | '/api/v1/webhooks'
     | '/_app/bank/'
     | '/_app/contacts/'
     | '/_app/entries/'
@@ -1664,6 +1699,7 @@ export interface FileRouteTypes {
     | '/api/v1/vat/filings'
     | '/api/v1/vat/number-checks'
     | '/api/v1/vat/periods'
+    | '/api/v1/webhooks/$endpointId'
     | '/api/v1/bank-transactions/$transactionId/ignore'
     | '/api/v1/bank-transactions/$transactionId/match'
     | '/api/v1/bank-transactions/$transactionId/suggestions'
@@ -1689,6 +1725,7 @@ export interface FileRouteTypes {
     | '/api/v1/snapshots/$snapshotId/verifications'
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
+    | '/api/v1/webhooks/$endpointId/replay'
     | '/api/v1/inbox/sources/$sourceId/poll'
     | '/api/v1/payment-batches/$batchId/instructions/$instructionId'
     | '/api/v1/vat/filings/$filingId/status'
@@ -1730,6 +1767,7 @@ export interface RootRouteChildren {
   ApiV1SnapshotsRoute: typeof ApiV1SnapshotsRouteWithChildren
   ApiV1TaxCodesRoute: typeof ApiV1TaxCodesRoute
   ApiV1TokensRoute: typeof ApiV1TokensRouteWithChildren
+  ApiV1WebhooksRoute: typeof ApiV1WebhooksRouteWithChildren
   ApiV1DocumentsDocumentIdRoute: typeof ApiV1DocumentsDocumentIdRoute
   ApiV1EntitiesEntityIdRoute: typeof ApiV1EntitiesEntityIdRoute
   ApiV1ExactCallbackRoute: typeof ApiV1ExactCallbackRoute
@@ -2217,6 +2255,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1TokensRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/webhooks': {
+      id: '/api/v1/webhooks'
+      path: '/api/v1/webhooks'
+      fullPath: '/api/v1/webhooks'
+      preLoaderRoute: typeof ApiV1WebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.well-known/oauth-protected-resource/api/mcp': {
       id: '/.well-known/oauth-protected-resource/api/mcp'
       path: '/api/mcp'
@@ -2504,6 +2549,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1VatPeriodsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/webhooks/$endpointId': {
+      id: '/api/v1/webhooks/$endpointId'
+      path: '/$endpointId'
+      fullPath: '/api/v1/webhooks/$endpointId'
+      preLoaderRoute: typeof ApiV1WebhooksEndpointIdRouteImport
+      parentRoute: typeof ApiV1WebhooksRoute
+    }
     '/api/v1/bank-transactions/$transactionId/ignore': {
       id: '/api/v1/bank-transactions/$transactionId/ignore'
       path: '/$transactionId/ignore'
@@ -2678,6 +2730,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/vat/returns/$period'
       preLoaderRoute: typeof ApiV1VatReturnsPeriodRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/webhooks/$endpointId/replay': {
+      id: '/api/v1/webhooks/$endpointId/replay'
+      path: '/replay'
+      fullPath: '/api/v1/webhooks/$endpointId/replay'
+      preLoaderRoute: typeof ApiV1WebhooksEndpointIdReplayRouteImport
+      parentRoute: typeof ApiV1WebhooksEndpointIdRoute
     }
     '/api/v1/inbox/sources/$sourceId/poll': {
       id: '/api/v1/inbox/sources/$sourceId/poll'
@@ -3129,6 +3188,32 @@ const ApiV1TokensRouteWithChildren = ApiV1TokensRoute._addFileChildren(
   ApiV1TokensRouteChildren,
 )
 
+interface ApiV1WebhooksEndpointIdRouteChildren {
+  ApiV1WebhooksEndpointIdReplayRoute: typeof ApiV1WebhooksEndpointIdReplayRoute
+}
+
+const ApiV1WebhooksEndpointIdRouteChildren: ApiV1WebhooksEndpointIdRouteChildren =
+  {
+    ApiV1WebhooksEndpointIdReplayRoute: ApiV1WebhooksEndpointIdReplayRoute,
+  }
+
+const ApiV1WebhooksEndpointIdRouteWithChildren =
+  ApiV1WebhooksEndpointIdRoute._addFileChildren(
+    ApiV1WebhooksEndpointIdRouteChildren,
+  )
+
+interface ApiV1WebhooksRouteChildren {
+  ApiV1WebhooksEndpointIdRoute: typeof ApiV1WebhooksEndpointIdRouteWithChildren
+}
+
+const ApiV1WebhooksRouteChildren: ApiV1WebhooksRouteChildren = {
+  ApiV1WebhooksEndpointIdRoute: ApiV1WebhooksEndpointIdRouteWithChildren,
+}
+
+const ApiV1WebhooksRouteWithChildren = ApiV1WebhooksRoute._addFileChildren(
+  ApiV1WebhooksRouteChildren,
+)
+
 interface ApiV1ExactImportRouteChildren {
   ApiV1ExactImportPreviewRoute: typeof ApiV1ExactImportPreviewRoute
 }
@@ -3191,6 +3276,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1SnapshotsRoute: ApiV1SnapshotsRouteWithChildren,
   ApiV1TaxCodesRoute: ApiV1TaxCodesRoute,
   ApiV1TokensRoute: ApiV1TokensRouteWithChildren,
+  ApiV1WebhooksRoute: ApiV1WebhooksRouteWithChildren,
   ApiV1DocumentsDocumentIdRoute: ApiV1DocumentsDocumentIdRoute,
   ApiV1EntitiesEntityIdRoute: ApiV1EntitiesEntityIdRoute,
   ApiV1ExactCallbackRoute: ApiV1ExactCallbackRoute,

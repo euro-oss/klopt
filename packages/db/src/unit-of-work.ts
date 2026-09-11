@@ -10,6 +10,7 @@ import { ExactConnectionRepository } from './repositories/exact.js'
 import { InboundSourceRepository } from './repositories/inbound-sources.js'
 import { AuditRepository } from './repositories/audit.js'
 import { EventRepository } from './repositories/events.js'
+import { WebhookRepository } from './repositories/webhooks.js'
 import { RetentionRepository } from './repositories/retention.js'
 import { SnapshotRepository } from './repositories/snapshots.js'
 import { PurchaseRepository } from './repositories/purchase.js'
@@ -408,6 +409,23 @@ export async function withEventsRead<T>(
   work: (repository: EventRepository) => Promise<T>,
 ): Promise<T> {
   return database.transaction(async (tx) => work(new EventRepository(tx)), {
+    accessMode: 'read only',
+  })
+}
+
+/** Webhook subscriptions. Writes: creating, replaying, switching back on. */
+export async function withWebhooks<T>(
+  database: Database,
+  work: (repository: WebhookRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new WebhookRepository(tx)))
+}
+
+export async function withWebhooksRead<T>(
+  database: Database,
+  work: (repository: WebhookRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new WebhookRepository(tx)), {
     accessMode: 'read only',
   })
 }

@@ -651,6 +651,30 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/retention.deletions.ts',
   },
   {
+    operationId: 'webhooks.list',
+    method: 'GET',
+    path: '/webhooks',
+    module: 'api/v1/webhooks.ts',
+  },
+  {
+    operationId: 'webhooks.create',
+    method: 'POST',
+    path: '/webhooks',
+    module: 'api/v1/webhooks.ts',
+  },
+  {
+    operationId: 'webhooks.delete',
+    method: 'DELETE',
+    path: '/webhooks/:endpointId',
+    module: 'api/v1/webhooks.$endpointId.ts',
+  },
+  {
+    operationId: 'webhooks.replay',
+    method: 'POST',
+    path: '/webhooks/:endpointId/replay',
+    module: 'api/v1/webhooks.$endpointId.replay.ts',
+  },
+  {
     operationId: 'events.list',
     method: 'GET',
     path: '/events',

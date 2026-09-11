@@ -1,5 +1,6 @@
 import type { Job, PgBoss } from 'pg-boss'
 import { pollInboundSourcesJob } from './inbound.js'
+import { deliverWebhooksJob } from './webhooks.js'
 import { importExactDocumentsJob } from './exact.js'
 import { purgeExpiredCodesJob } from './oauth.js'
 import { sealPendingYearsJob } from './snapshots.js'
@@ -94,8 +95,24 @@ function exactDocumentsJob(databaseUrl: string): JobDefinition {
   }
 }
 
+/**
+ * Pushing the event stream out (spec 10.2).
+ *
+ * Every half minute, because a webhook that arrives ten minutes late is one an
+ * integrator works around by polling instead. It costs one indexed query when
+ * nobody has subscribed, which is the ordinary case.
+ */
+function webhookJob(databaseUrl: string): JobDefinition {
+  return {
+    name: 'webhooks.deliver',
+    schedule: '* * * * *',
+    handler: () => deliverWebhooksJob(databaseUrl),
+  }
+}
+
 export function jobsFor(databaseUrl: string): readonly JobDefinition[] {
   return [
+    webhookJob(databaseUrl),
     inboundPollJob(databaseUrl),
     snapshotJob(databaseUrl),
     oauthPurgeJob(databaseUrl),

@@ -272,6 +272,44 @@ export const complianceOperations: Readonly<Record<string, OperationDefinition>>
     idempotent: true,
   }),
 
+  listWebhooks: defineOperation({
+    id: 'webhooks.list',
+    kind: 'read',
+    permission: 'tokens:manage',
+    summary:
+      'The subscriptions on this administration, how far behind each is, and recent attempts.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  createWebhook: defineOperation({
+    id: 'webhooks.create',
+    kind: 'write',
+    permission: 'tokens:manage',
+    summary: 'Subscribe a URL to the event stream. The signing secret is shown once.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  deleteWebhook: defineOperation({
+    id: 'webhooks.delete',
+    kind: 'write',
+    permission: 'tokens:manage',
+    summary: 'Stop sending to a URL, and forget its secret.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  replayWebhook: defineOperation({
+    id: 'webhooks.replay',
+    kind: 'write',
+    permission: 'tokens:manage',
+    summary:
+      'Send everything again from a point in the stream, or switch a disabled endpoint back on.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
   pseudonymiseContact: defineOperation({
     id: 'retention.pseudonymiseContact',
     kind: 'write',
