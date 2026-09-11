@@ -3,6 +3,8 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { listVatPeriods } from '~/server/vat'
 
@@ -38,21 +40,28 @@ interface Row {
   payable: string | null
 }
 
-const KIND_LABEL: Record<string, string> = {
-  monthly: 'per maand',
-  quarterly: 'per kwartaal',
-  annual: 'per jaar',
+const KIND_KEY: Record<string, MessageKey> = {
+  monthly: 'vat.kind.monthly',
+  quarterly: 'vat.kind.quarterly',
+  annual: 'vat.kind.annual',
 }
 
 function VatPeriods() {
   const { periods, year } = Route.useLoaderData()
   const navigate = useNavigate()
   const hydrated = useHydrated()
+  const { t } = useT()
+
+  /** An unrecognised filing frequency is shown raw rather than as a blank. */
+  const kindOf = (kind: string) => {
+    const key = KIND_KEY[kind]
+    return key === undefined ? kind : t(key)
+  }
 
   if (!periods.ok) {
     return (
       <>
-        <PageHeader title="BTW" />
+        <PageHeader title={t('vat.title')} />
         <p role="alert" className="text-destructive text-sm">
           {periods.problem.detail}
         </p>
@@ -67,7 +76,7 @@ function VatPeriods() {
   const columns: readonly Column<Row>[] = [
     {
       key: 'label',
-      header: 'Periode',
+      header: t('vat.period'),
       width: '14rem',
       cell: (row) => (
         <Link
@@ -81,7 +90,7 @@ function VatPeriods() {
     },
     {
       key: 'deadline',
-      header: 'Uiterlijk',
+      header: t('vat.deadline'),
       width: '9rem',
       cell: (row) => (
         <span
@@ -93,28 +102,29 @@ function VatPeriods() {
     },
     {
       key: 'state',
-      header: 'Status',
+      header: t('invoices.status'),
       width: '14rem',
       cell: (row) =>
         row.filed ? (
           <span>
-            {row.sequence > 1 ? `suppletie ${String(row.sequence - 1)} ingediend` : 'ingediend'}
+            {row.sequence > 1
+              ? t('vat.filedSupplement', { number: String(row.sequence - 1) })
+              : t('vat.filed')}
             {row.filedAt !== null && (
               <span className="text-muted-foreground">
-                {' '}
-                op {formatDate(row.filedAt.slice(0, 10))}
+                {t('vat.filedOn', { date: formatDate(row.filedAt.slice(0, 10)) })}
               </span>
             )}
           </span>
         ) : (
           <span className={row.deadline < today ? 'text-destructive' : 'text-unreconciled'}>
-            {row.deadline < today ? 'te laat' : 'nog niet ingediend'}
+            {row.deadline < today ? t('vat.late') : t('vat.notFiled')}
           </span>
         ),
     },
     {
       key: 'payable',
-      header: 'Te betalen',
+      header: t('vat.payable'),
       width: '10rem',
       align: 'right',
       cell: (row) =>
@@ -129,13 +139,13 @@ function VatPeriods() {
   return (
     <>
       <PageHeader
-        title="BTW"
-        description={`Aangifte ${KIND_LABEL[periods.data.kind] ?? periods.data.kind}. Elke aangifte wordt uit het grootboek berekend, niet uit een aparte telling.`}
+        title={t('vat.title')}
+        description={t('vat.intro', { kind: kindOf(periods.data.kind) })}
         actions={
           <label className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground text-xs font-medium">Jaar</span>
+            <span className="text-muted-foreground text-xs font-medium">{t('vat.year')}</span>
             <select
-              aria-label="Jaar"
+              aria-label={t('vat.year')}
               disabled={!hydrated}
               value={String(year)}
               onChange={(event) => {
@@ -154,17 +164,17 @@ function VatPeriods() {
       />
 
       <div className="mb-8 flex flex-wrap gap-8">
-        <Stat label="Periodes" value={String(rows.length)} />
-        <Stat label="Ingediend" value={String(rows.filter((row) => row.filed).length)} />
-        <Stat label="Te laat" value={String(overdue.length)} />
+        <Stat label={t('vat.periods')} value={String(rows.length)} />
+        <Stat label={t('vat.filedCount')} value={String(rows.filter((row) => row.filed).length)} />
+        <Stat label={t('vat.lateCount')} value={String(overdue.length)} />
       </div>
 
       <LedgerTable
-        caption={`BTW-periodes ${String(year)}`}
+        caption={t('vat.periodsCaption', { year: String(year) })}
         columns={columns}
         rows={rows}
         rowKey={(row) => row.code}
-        empty="Geen periodes."
+        empty={t('vat.noPeriods')}
       />
     </>
   )

@@ -3,6 +3,8 @@ import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { checkVatNumbers, getIcp } from '~/server/vat'
 
@@ -22,27 +24,38 @@ export const Route = createFileRoute('/_app/vat/icp/$period')({
   component: IcpScreen,
 })
 
-const FINDING_LABEL: Record<string, string> = {
-  supply_without_counterparty: 'Levering zonder afnemer',
-  counterparty_without_vat_number: 'Afnemer zonder btw-nummer',
-  vat_number_malformed: 'Btw-nummer heeft niet de juiste vorm',
-  vat_number_not_eu: 'Btw-nummer is niet van een EU-lidstaat',
-  vat_number_invalid: 'VIES kent dit btw-nummer niet',
-  vat_number_unproven: 'Btw-nummer niet bij VIES gecontroleerd',
-  proof_predates_period: 'VIES-controle is ouder dan de periode',
-  icp_mismatch: 'Opgaaf en rubriek 3b lopen uiteen',
+const FINDING_KEY: Record<string, MessageKey> = {
+  supply_without_counterparty: 'icp.finding.supply_without_counterparty',
+  counterparty_without_vat_number: 'icp.finding.counterparty_without_vat_number',
+  vat_number_malformed: 'icp.finding.vat_number_malformed',
+  vat_number_not_eu: 'icp.finding.vat_number_not_eu',
+  vat_number_invalid: 'icp.finding.vat_number_invalid',
+  vat_number_unproven: 'icp.finding.vat_number_unproven',
+  proof_predates_period: 'icp.finding.proof_predates_period',
+  icp_mismatch: 'icp.finding.icp_mismatch',
 }
 
-const OUTCOME_LABEL: Record<string, string> = {
-  valid: 'geldig',
-  invalid: 'ongeldig',
-  unavailable: 'niet bevestigd',
+const OUTCOME_KEY: Record<string, MessageKey> = {
+  valid: 'icp.outcome.valid',
+  invalid: 'icp.outcome.invalid',
+  unavailable: 'icp.outcome.unavailable',
 }
 
 function IcpScreen() {
   const { icp } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { t, plural } = useT()
+
+  /** Anything the tables do not know is shown raw rather than as a blank. */
+  const findingOf = (code: string) => {
+    const key = FINDING_KEY[code]
+    return key === undefined ? code : t(key)
+  }
+  const outcomeOf = (outcome: string) => {
+    const key = OUTCOME_KEY[outcome]
+    return key === undefined ? outcome : t(key)
+  }
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +65,7 @@ function IcpScreen() {
   if (!icp.ok) {
     return (
       <>
-        <PageHeader title="ICP-opgaaf" />
+        <PageHeader title={t('icp.title')} />
         <p role="alert" className="text-destructive text-sm">
           {icp.problem.detail}
         </p>
@@ -87,13 +100,9 @@ function IcpScreen() {
     }
 
     if (result.data.source === 'offline') {
-      setNote(
-        'Er is geen VIES-verbinding geconfigureerd, dus er is alleen op vorm gecontroleerd. Zet KLOPT_VIES_ENDPOINT, of controleer de nummers zelf bij de Europese Commissie en leg het raadplegingsnummer vast.',
-      )
+      setNote(t('icp.offline'))
     } else if (!result.data.provenByConsultationNumber) {
-      setNote(
-        'VIES gaf geen raadplegingsnummer terug. Dat gebeurt als het eigen btw-nummer van deze administratie niet is ingevuld — en zonder raadplegingsnummer is er geen bewijs dat je kunt laten zien.',
-      )
+      setNote(t('icp.noConsultation'))
     }
 
     await router.invalidate()
@@ -102,52 +111,52 @@ function IcpScreen() {
   return (
     <>
       <PageHeader
-        title={`ICP-opgaaf ${data.period.label}`}
-        description={`${formatDate(data.period.from)} tot en met ${formatDate(data.period.to)}. Uiterlijk indienen op ${formatDate(data.period.deadline)}.`}
+        title={t('icp.titleFor', { period: data.period.label })}
+        description={t('vatReturn.intro', {
+          from: formatDate(data.period.from),
+          to: formatDate(data.period.to),
+          deadline: formatDate(data.period.deadline),
+        })}
         actions={
           <Link
             to="/vat/$period"
             params={{ period: data.period.code }}
             className="text-sm underline"
           >
-            Naar de BTW-aangifte
+            {t('icp.toVatReturn')}
           </Link>
         }
       />
 
       <div className="mb-8 flex flex-wrap gap-8">
-        <Stat label="Goederen" value={<Money amount={data.goods} />} />
-        <Stat label="Diensten" value={<Money amount={data.services} />} />
-        <Stat label="Totaal opgaaf" value={<Money amount={data.total} />} />
+        <Stat label={t('icp.goods')} value={<Money amount={data.goods} />} />
+        <Stat label={t('icp.services')} value={<Money amount={data.services} />} />
+        <Stat label={t('icp.totalDeclared')} value={<Money amount={data.total} />} />
         <Stat
-          label="Rubriek 3b"
+          label={t('icp.rubriek3b')}
           value={<Money amount={data.rubriek3b} />}
-          hint={data.difference === '0' ? 'sluit aan' : 'wijkt af'}
+          hint={data.difference === '0' ? t('icp.reconciles') : t('icp.doesNotReconcile')}
           tone={data.difference === '0' ? 'good' : 'warn'}
         />
       </div>
 
-      <p className="text-muted-foreground mb-6 max-w-2xl text-sm">
-        De opgaaf en rubriek 3b beschrijven dezelfde leveringen — de een per afnemer, de ander per
-        tarief — en de Belastingdienst legt ze naast elkaar. Een verschil tussen je eigen twee
-        aangiftes is de makkelijkste bevinding die er is, dus die wordt hier geblokkeerd.
-      </p>
+      <p className="text-muted-foreground mb-6 max-w-2xl text-sm">{t('icp.intro')}</p>
 
       <table className="border-border mb-8 w-full max-w-4xl border-collapse text-sm">
-        <caption className="sr-only">Afnemers in de ICP-opgaaf</caption>
+        <caption className="sr-only">{t('icp.caption')}</caption>
         <thead>
           <tr className="border-border text-muted-foreground border-b text-left text-xs">
             <th scope="col" className="py-2 pr-2 font-medium">
-              Btw-nummer
+              {t('icp.vatNumber')}
             </th>
             <th scope="col" className="py-2 pr-2 font-medium">
-              Afnemer
+              {t('icp.customer')}
             </th>
             <th scope="col" className="py-2 pr-2 text-right font-medium">
-              Goederen
+              {t('icp.goods')}
             </th>
             <th scope="col" className="py-2 pr-2 text-right font-medium">
-              Diensten
+              {t('icp.services')}
             </th>
             <th scope="col" className="py-2 font-medium">
               VIES
@@ -158,7 +167,7 @@ function IcpScreen() {
           {data.entries.length === 0 && (
             <tr>
               <td colSpan={5} className="text-muted-foreground py-3">
-                Geen intracommunautaire leveringen in deze periode.
+                {t('icp.empty')}
               </td>
             </tr>
           )}
@@ -184,21 +193,23 @@ function IcpScreen() {
               </td>
               <td className="py-1.5 text-xs">
                 {entry.proof === null ? (
-                  <span className="text-destructive">nooit gecontroleerd</span>
+                  <span className="text-destructive">{t('icp.neverChecked')}</span>
                 ) : (
                   <span
                     className={entry.proof.outcome === 'valid' ? undefined : 'text-destructive'}
                   >
-                    {OUTCOME_LABEL[entry.proof.outcome] ?? entry.proof.outcome} op{' '}
+                    {outcomeOf(entry.proof.outcome)}
+                    {t('icp.checkedOn')}
                     <span className="tabular">
                       {formatDate(entry.proof.checkedAt.slice(0, 10))}
                     </span>
                     {entry.proof.requestIdentifier === null ? (
-                      <span className="text-muted-foreground"> · geen raadplegingsnummer</span>
+                      <span className="text-muted-foreground">{t('icp.noConsultationNumber')}</span>
                     ) : (
                       <span className="text-muted-foreground">
-                        {' '}
-                        · nr. {entry.proof.requestIdentifier}
+                        {t('icp.consultationNumber', {
+                          number: entry.proof.requestIdentifier,
+                        })}
                       </span>
                     )}
                   </span>
@@ -219,10 +230,10 @@ function IcpScreen() {
           className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
           {busy
-            ? 'Bezig…'
+            ? t('common.busy')
             : unchecked.length === 0
-              ? 'Alle nummers zijn bevestigd'
-              : `${String(unchecked.length)} ${unchecked.length === 1 ? 'nummer' : 'nummers'} bij VIES controleren`}
+              ? t('icp.allConfirmed')
+              : plural('icp.checkCount', unchecked.length)}
         </button>
         {data.entries.length > 0 && (
           <button
@@ -233,7 +244,7 @@ function IcpScreen() {
             }}
             className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
           >
-            Alles opnieuw controleren
+            {t('icp.recheckAll')}
           </button>
         )}
       </div>
@@ -251,7 +262,7 @@ function IcpScreen() {
 
       {data.findings.length > 0 && (
         <>
-          <h2 className="mb-3 text-sm font-semibold">Bevindingen</h2>
+          <h2 className="mb-3 text-sm font-semibold">{t('icp.findings')}</h2>
           <ul className="mb-10 max-w-3xl space-y-3">
             {data.findings.map((finding) => (
               <li
@@ -263,8 +274,10 @@ function IcpScreen() {
                 }
               >
                 <p className="font-medium">
-                  {finding.severity === 'blocking' ? 'Blokkerend: ' : 'Ter beoordeling: '}
-                  {FINDING_LABEL[finding.code] ?? finding.code}{' '}
+                  {finding.severity === 'blocking'
+                    ? t('vatReturn.blockingPrefix')
+                    : t('vatReturn.warningPrefix')}
+                  {findingOf(finding.code)}{' '}
                   <span className="text-muted-foreground font-normal">
                     (<Money amount={finding.amount} />)
                   </span>

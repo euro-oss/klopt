@@ -3,6 +3,8 @@ import { Fragment, useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { fileVatReturn, getVatReturn, listFilingSubmissions, pollFilingStatus } from '~/server/vat'
 
@@ -37,40 +39,59 @@ export const Route = createFileRoute('/_app/vat/$period')({
   component: VatReturnScreen,
 })
 
-const TRANSPORT_LABEL: Record<string, string> = {
-  manual: 'Zelf indienen via Mijn Belastingdienst Zakelijk',
-  digipoort: 'Digipoort (eigen certificaat)',
-  sbr_provider: 'Via een SBR-dienstverlener',
+const TRANSPORT_KEY: Record<string, MessageKey> = {
+  manual: 'vatReturn.transport.manual',
+  digipoort: 'vatReturn.transport.digipoort',
+  sbr_provider: 'vatReturn.transport.sbr_provider',
 }
 
-const DELIVERY_LABEL: Record<string, string> = {
-  prepared: 'klaargezet om zelf in te dienen',
-  delivered: 'ontvangen, nog niet verwerkt',
-  accepted: 'verwerkt door de Belastingdienst',
-  rejected: 'afgekeurd',
-  failed: 'niet verstuurd',
+const DELIVERY_KEY: Record<string, MessageKey> = {
+  prepared: 'vatReturn.delivery.prepared',
+  delivered: 'vatReturn.delivery.delivered',
+  accepted: 'vatReturn.delivery.accepted',
+  rejected: 'vatReturn.delivery.rejected',
+  failed: 'vatReturn.delivery.failed',
 }
 
-const INTERACTION_LABEL: Record<string, string> = {
-  deliver: 'aangeboden',
-  status: 'status opgevraagd',
-  confirmation: 'ontvangstbewijs vastgelegd',
+const INTERACTION_KEY: Record<string, MessageKey> = {
+  deliver: 'vatReturn.interaction.deliver',
+  status: 'vatReturn.interaction.status',
+  confirmation: 'vatReturn.interaction.confirmation',
 }
 
-const FINDING_LABEL: Record<string, string> = {
-  unknown_tax_code: 'Onbekende BTW-code',
-  no_rule_in_force: 'BTW-code niet geldig op de boekdatum',
-  code_declares_no_vat: 'BTW geboekt op een 0%-code',
-  code_declares_no_base: 'Grondslag zonder rubriek',
-  untagged_control_movement: 'Mutatie op een BTW-rekening zonder code',
-  rate_mismatch: 'BTW wijkt af van grondslag maal tarief',
-  control_account_difference: 'BTW-rekening sluit niet aan',
+const FINDING_KEY: Record<string, MessageKey> = {
+  unknown_tax_code: 'vatReturn.finding.unknown_tax_code',
+  no_rule_in_force: 'vatReturn.finding.no_rule_in_force',
+  code_declares_no_vat: 'vatReturn.finding.code_declares_no_vat',
+  code_declares_no_base: 'vatReturn.finding.code_declares_no_base',
+  untagged_control_movement: 'vatReturn.finding.untagged_control_movement',
+  rate_mismatch: 'vatReturn.finding.rate_mismatch',
+  control_account_difference: 'vatReturn.finding.control_account_difference',
 }
 
 function VatReturnScreen() {
   const { aangifte, submissions } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { t, plural } = useT()
+
+  /** Anything the tables do not know is shown raw rather than as a blank. */
+  const transportOf = (kind: string, fallback = kind) => {
+    const key = TRANSPORT_KEY[kind]
+    return key === undefined ? fallback : t(key)
+  }
+  const deliveryOf = (status: string) => {
+    const key = DELIVERY_KEY[status]
+    return key === undefined ? status : t(key)
+  }
+  const interactionOf = (interaction: string) => {
+    const key = INTERACTION_KEY[interaction]
+    return key === undefined ? interaction : t(key)
+  }
+  const findingOf = (code: string) => {
+    const key = FINDING_KEY[code]
+    return key === undefined ? code : t(key)
+  }
 
   const [open, setOpen] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -82,7 +103,7 @@ function VatReturnScreen() {
   if (!aangifte.ok) {
     return (
       <>
-        <PageHeader title="BTW-aangifte" />
+        <PageHeader title={t('vatReturn.title')} />
         <p role="alert" className="text-destructive text-sm">
           {aangifte.problem.detail}
         </p>
@@ -168,8 +189,12 @@ function VatReturnScreen() {
   return (
     <>
       <PageHeader
-        title={`BTW-aangifte ${data.period.label}`}
-        description={`${formatDate(data.period.from)} tot en met ${formatDate(data.period.to)}. Uiterlijk indienen op ${formatDate(data.period.deadline)}.`}
+        title={t('vatReturn.titleFor', { period: data.period.label })}
+        description={t('vatReturn.intro', {
+          from: formatDate(data.period.from),
+          to: formatDate(data.period.to),
+          deadline: formatDate(data.period.deadline),
+        })}
         actions={
           <div className="flex items-center gap-4">
             <Link
@@ -177,20 +202,20 @@ function VatReturnScreen() {
               params={{ period: data.period.code }}
               className="text-sm underline"
             >
-              ICP-opgaaf
+              {t('vatReturn.icp')}
             </Link>
             <Link to="/vat" className="text-sm underline">
-              Alle periodes
+              {t('vatReturn.allPeriods')}
             </Link>
           </div>
         }
       />
 
       <div className="mb-8 flex flex-wrap gap-8">
-        <Stat label="5a Verschuldigd" value={<Money amount={data.owed} />} />
-        <Stat label="5b Voorbelasting" value={<Money amount={data.deductible} />} />
+        <Stat label={t('vatReturn.owed')} value={<Money amount={data.owed} />} />
+        <Stat label={t('vatReturn.deductible')} value={<Money amount={data.deductible} />} />
         <Stat
-          label={BigInt(data.payable) < 0n ? '5c Terug te vragen' : '5c Te betalen'}
+          label={BigInt(data.payable) < 0n ? t('vatReturn.refund') : t('vatReturn.toPay')}
           value={<Money amount={data.payable} />}
           tone={data.blocked ? 'warn' : 'neutral'}
         />
@@ -199,18 +224,18 @@ function VatReturnScreen() {
       {filing !== null && (
         <div className="border-border mb-8 rounded-md border p-4 text-sm">
           <p>
-            Ingediend
-            {filing.filedAt !== null && ` op ${formatDate(filing.filedAt.slice(0, 10))}`}
-            {filing.sequence > 1 && ` als suppletie ${String(filing.sequence - 1)}`}
-            {filing.transport !== null &&
-              ` — ${TRANSPORT_LABEL[filing.transport] ?? filing.transport}`}
-            .
+            {t('vatReturn.filed')}
+            {filing.filedAt !== null &&
+              t('vatReturn.filedOn', { date: formatDate(filing.filedAt.slice(0, 10)) })}
+            {filing.sequence > 1 &&
+              t('vatReturn.asSupplement', { number: String(filing.sequence - 1) })}
+            {filing.transport !== null && ` — ${transportOf(filing.transport)}`}.
           </p>
           {/* Ontvangen is niet geaccepteerd, en dat gat is waar de problemen
               zitten. Dus staat de bezorgstatus los van "ingediend". */}
           {filing.deliveryStatus !== null && (
             <p className="mt-2">
-              Status van de aanlevering:{' '}
+              {t('vatReturn.deliveryStatus')}{' '}
               <span
                 className={
                   filing.deliveryStatus === 'rejected' || filing.deliveryStatus === 'failed'
@@ -220,12 +245,11 @@ function VatReturnScreen() {
                       : 'text-unreconciled'
                 }
               >
-                {DELIVERY_LABEL[filing.deliveryStatus] ?? filing.deliveryStatus}
+                {deliveryOf(filing.deliveryStatus)}
               </span>
               {filing.transportReference !== null && (
                 <span className="text-muted-foreground">
-                  {' '}
-                  · kenmerk {filing.transportReference}
+                  {t('vatReturn.reference', { reference: filing.transportReference })}
                 </span>
               )}
             </p>
@@ -238,13 +262,13 @@ function VatReturnScreen() {
                   href={`/api/v1/vat/submissions/${lastInstance.id}/instance`}
                   className="underline"
                 >
-                  XBRL-instance downloaden
+                  {t('vatReturn.downloadInstance')}
                 </a>
                 <a
                   href={`/api/v1/vat/submissions/${lastInstance.id}/instance?format=summary`}
                   className="underline"
                 >
-                  Samenvatting om zelf in te dienen
+                  {t('vatReturn.downloadSummary')}
                 </a>
               </>
             )}
@@ -259,7 +283,7 @@ function VatReturnScreen() {
                   }}
                   className="border-input rounded-md border px-3 py-1.5 text-sm disabled:opacity-50"
                 >
-                  {busy ? 'Bezig…' : 'Status opvragen'}
+                  {busy ? t('common.busy') : t('vatReturn.pollStatus')}
                 </button>
               )}
           </div>
@@ -267,28 +291,25 @@ function VatReturnScreen() {
           {history.length > 0 && (
             <details className="mt-4">
               <summary className="cursor-pointer text-xs underline">
-                Bewijslast ({history.length}{' '}
-                {history.length === 1 ? 'gebeurtenis' : 'gebeurtenissen'})
+                {plural('vatReturn.evidence', history.length)}
               </summary>
               <table className="mt-2 w-full max-w-3xl text-xs">
-                <caption className="sr-only">Alles wat er met deze aangifte is gebeurd</caption>
+                <caption className="sr-only">{t('vatReturn.evidenceCaption')}</caption>
                 <thead>
                   <tr className="text-muted-foreground text-left">
-                    <th scope="col">Wanneer</th>
-                    <th scope="col">Wat</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Kenmerk</th>
-                    <th scope="col">Toelichting</th>
+                    <th scope="col">{t('vatReturn.when')}</th>
+                    <th scope="col">{t('vatReturn.what')}</th>
+                    <th scope="col">{t('invoices.status')}</th>
+                    <th scope="col">{t('vatReturn.referenceColumn')}</th>
+                    <th scope="col">{t('vatReturn.explanation')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {history.map((entry) => (
                     <tr key={entry.id}>
                       <td className="tabular py-1">{entry.at.slice(0, 19).replace('T', ' ')}</td>
-                      <td className="py-1">
-                        {INTERACTION_LABEL[entry.interaction] ?? entry.interaction}
-                      </td>
-                      <td className="py-1">{DELIVERY_LABEL[entry.status] ?? entry.status}</td>
+                      <td className="py-1">{interactionOf(entry.interaction)}</td>
+                      <td className="py-1">{deliveryOf(entry.status)}</td>
                       <td className="py-1">{entry.reference ?? '—'}</td>
                       <td className="py-1">{entry.error ?? entry.instructions ?? ''}</td>
                     </tr>
@@ -299,19 +320,17 @@ function VatReturnScreen() {
           )}
           {needsSuppletie && (
             <div className="mt-3">
-              <p className="text-unreconciled font-medium">
-                Er is na de aangifte nog geboekt in deze periode. Dit vraagt een suppletie.
-              </p>
+              <p className="text-unreconciled font-medium">{t('vatReturn.suppletieNeeded')}</p>
               <table className="mt-2 w-full max-w-2xl text-sm">
-                <caption className="sr-only">Verschil met de ingediende aangifte</caption>
+                <caption className="sr-only">{t('vatReturn.suppletieCaption')}</caption>
                 <thead>
                   <tr className="text-muted-foreground text-left text-xs">
-                    <th scope="col">Rubriek</th>
+                    <th scope="col">{t('vatReturn.rubriek')}</th>
                     <th scope="col" className="text-right">
-                      Ingediend
+                      {t('vatReturn.filedAmount')}
                     </th>
                     <th scope="col" className="text-right">
-                      Nu
+                      {t('vatReturn.nowAmount')}
                     </th>
                   </tr>
                 </thead>
@@ -334,25 +353,25 @@ function VatReturnScreen() {
         </div>
       )}
 
-      <h2 className="mb-3 text-sm font-semibold">De aangifte</h2>
+      <h2 className="mb-3 text-sm font-semibold">{t('vatReturn.theReturn')}</h2>
       <table className="border-border mb-10 w-full max-w-4xl border-collapse text-sm">
-        <caption className="sr-only">Rubrieken van de BTW-aangifte</caption>
+        <caption className="sr-only">{t('vatReturn.rubriekenCaption')}</caption>
         <thead>
           <tr className="border-border text-muted-foreground border-b text-left text-xs">
             <th scope="col" className="py-2 pr-2 font-medium">
-              Rubriek
+              {t('vatReturn.rubriek')}
             </th>
             <th scope="col" className="py-2 pr-2 font-medium">
-              Omschrijving
+              {t('entries.description')}
             </th>
             <th scope="col" className="py-2 pr-2 text-right font-medium">
-              Grondslag
+              {t('vatReturn.base')}
             </th>
             <th scope="col" className="py-2 pr-2 text-right font-medium">
-              BTW
+              {t('vatReturn.vat')}
             </th>
             <th scope="col" className="py-2 font-medium">
-              <span className="sr-only">Onderbouwing</span>
+              <span className="sr-only">{t('vatReturn.evidenceColumn')}</span>
             </th>
           </tr>
         </thead>
@@ -399,8 +418,8 @@ function VatReturnScreen() {
                         className="text-xs underline disabled:opacity-50"
                       >
                         {expanded
-                          ? 'verberg regels'
-                          : `${String(lines.length)} ${lines.length === 1 ? 'regel' : 'regels'}`}
+                          ? t('vatReturn.hideLines')
+                          : plural('vatReturn.showLines', lines.length)}
                       </button>
                     )}
                   </td>
@@ -409,16 +428,18 @@ function VatReturnScreen() {
                   <tr className="bg-muted/30">
                     <td colSpan={5} className="p-3">
                       <table className="w-full text-xs">
-                        <caption className="sr-only">{`Grootboekregels achter rubriek ${row.id}`}</caption>
+                        <caption className="sr-only">
+                          {t('vatReturn.linesBehind', { rubriek: row.id })}
+                        </caption>
                         <thead>
                           <tr className="text-muted-foreground text-left">
-                            <th scope="col">Datum</th>
-                            <th scope="col">Boeking</th>
-                            <th scope="col">Rekening</th>
-                            <th scope="col">Omschrijving</th>
-                            <th scope="col">Code</th>
+                            <th scope="col">{t('bank.map.bookingDate')}</th>
+                            <th scope="col">{t('vatReturn.posting')}</th>
+                            <th scope="col">{t('entryNew.account')}</th>
+                            <th scope="col">{t('entries.description')}</th>
+                            <th scope="col">{t('vatReturn.code')}</th>
                             <th scope="col" className="text-right">
-                              Bedrag
+                              {t('bank.amount')}
                             </th>
                           </tr>
                         </thead>
@@ -440,7 +461,9 @@ function VatReturnScreen() {
                               <td className="py-1">
                                 {line.taxCode}
                                 <span className="text-muted-foreground">
-                                  {line.taxRole === 'base' ? ' (grondslag)' : ' (btw)'}
+                                  {line.taxRole === 'base'
+                                    ? t('vatReturn.roleBase')
+                                    : t('vatReturn.roleVat')}
                                 </span>
                               </td>
                               <td className="py-1 text-right">
@@ -459,30 +482,28 @@ function VatReturnScreen() {
         </tbody>
       </table>
 
-      <h2 className="mb-3 text-sm font-semibold">Aansluiting met de BTW-rekeningen</h2>
+      <h2 className="mb-3 text-sm font-semibold">{t('vatReturn.reconciliation')}</h2>
       <p className="text-muted-foreground mb-3 max-w-2xl text-sm">
-        De mutatie op elke BTW-rekening moet gelijk zijn aan wat de aangifte daarvoor opgeeft. Een
-        verschil is het bedrag dat wel in de boeken staat maar niet in een rubriek terechtkomt, en
-        dat blokkeert de aangifte.
+        {t('vatReturn.reconciliationIntro')}
       </p>
       <table className="border-border mb-10 w-full max-w-4xl border-collapse text-sm">
-        <caption className="sr-only">Aansluiting van de BTW-rekeningen</caption>
+        <caption className="sr-only">{t('vatReturn.reconciliationCaption')}</caption>
         <thead>
           <tr className="border-border text-muted-foreground border-b text-left text-xs">
             <th scope="col" className="py-2 pr-2 font-medium">
-              Rekening
+              {t('entryNew.account')}
             </th>
             <th scope="col" className="py-2 pr-2 text-right font-medium">
-              Mutatie met code
+              {t('vatReturn.taggedMovement')}
             </th>
             <th scope="col" className="py-2 pr-2 text-right font-medium">
-              Opgegeven
+              {t('vatReturn.declared')}
             </th>
             <th scope="col" className="py-2 pr-2 text-right font-medium">
-              Verschil
+              {t('vatReturn.difference')}
             </th>
             <th scope="col" className="py-2 text-right font-medium">
-              Zonder code
+              {t('vatReturn.untagged')}
             </th>
           </tr>
         </thead>
@@ -490,7 +511,7 @@ function VatReturnScreen() {
           {data.reconciliation.length === 0 && (
             <tr>
               <td colSpan={5} className="text-muted-foreground py-3">
-                Geen mutaties op een BTW-rekening in deze periode.
+                {t('vatReturn.noMovements')}
               </td>
             </tr>
           )}
@@ -507,7 +528,7 @@ function VatReturnScreen() {
               </td>
               <td className="py-1.5 pr-2 text-right">
                 {account.difference === '0' ? (
-                  <span className="text-muted-foreground">sluit aan</span>
+                  <span className="text-muted-foreground">{t('vatReturn.reconciles')}</span>
                 ) : (
                   <span className="text-destructive">
                     <Money amount={account.difference} />
@@ -525,7 +546,10 @@ function VatReturnScreen() {
       {data.findings.length > 0 && (
         <>
           <h2 className="mb-3 text-sm font-semibold">
-            Bevindingen ({blocking.length} blokkerend, {warnings.length} ter beoordeling)
+            {t('vatReturn.findings', {
+              blocking: String(blocking.length),
+              warnings: String(warnings.length),
+            })}
           </h2>
           <ul className="mb-10 max-w-3xl space-y-3">
             {data.findings.map((finding) => (
@@ -538,8 +562,10 @@ function VatReturnScreen() {
                 }
               >
                 <p className="font-medium">
-                  {finding.severity === 'blocking' ? 'Blokkerend: ' : 'Ter beoordeling: '}
-                  {FINDING_LABEL[finding.code] ?? finding.code}{' '}
+                  {finding.severity === 'blocking'
+                    ? t('vatReturn.blockingPrefix')
+                    : t('vatReturn.warningPrefix')}
+                  {findingOf(finding.code)}{' '}
                   <span className="text-muted-foreground font-normal">
                     (<Money amount={finding.amount} />)
                   </span>
@@ -570,22 +596,20 @@ function VatReturnScreen() {
       )}
 
       <h2 className="mb-3 text-sm font-semibold">
-        {needsSuppletie ? 'Suppletie indienen' : 'Aangifte indienen'}
+        {needsSuppletie ? t('vatReturn.fileSupplement') : t('vatReturn.fileReturn')}
       </h2>
 
       {data.blocked && (
         <p role="alert" className="text-destructive mb-4 max-w-2xl text-sm">
-          Deze aangifte kan niet worden ingediend zolang de aansluiting niet klopt. Los de
-          blokkerende bevindingen hierboven op.
+          {t('vatReturn.blocked')}
         </p>
       )}
 
       {!data.identity.ready && (
         <p role="alert" className="text-destructive mb-4 max-w-2xl text-sm">
-          Een aangifte wordt geïdentificeerd door het omzetbelastingnummer, en dat staat nog niet in
-          deze administratie. Vul het in onder{' '}
+          {t('vatReturn.noIdentity')}{' '}
           <Link to="/settings" className="underline">
-            Instellingen
+            {t('nav.settings')}
           </Link>
           .
         </p>
@@ -599,23 +623,16 @@ function VatReturnScreen() {
 
       {data.taxonomy.version !== null && (
         <p className="text-muted-foreground mb-4 max-w-2xl text-sm">
-          Taxonomie {data.taxonomy.version}, gekozen op basis van de periode — niet op basis van
-          welke versie de nieuwste is.
+          {t('vatReturn.taxonomy', { version: data.taxonomy.version })}
           {!data.taxonomy.verified && (
-            <span className="text-unreconciled">
-              {' '}
-              Deze mapping is nog niet gecontroleerd tegen de gepubliceerde Nederlandse Taxonomie,
-              dus de bedragen zijn goed maar de XBRL-elementnamen misschien niet. Zelf indienen kan;
-              elektronisch versturen wordt geweigerd.
-            </span>
+            <span className="text-unreconciled">{t('vatReturn.taxonomyUnverified')}</span>
           )}
         </p>
       )}
 
       {filing !== null && !needsSuppletie && (
         <p className="text-muted-foreground mb-4 max-w-2xl text-sm">
-          Deze periode is ingediend en er is daarna niets meer gewijzigd. Er is dus niets te
-          corrigeren.
+          {t('vatReturn.nothingToCorrect')}
         </p>
       )}
 
@@ -627,16 +644,18 @@ function VatReturnScreen() {
           className="border-border mb-10 max-w-2xl space-y-4 rounded-md border p-4"
         >
           <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">Hoe</span>
+            <span className="text-muted-foreground mb-1 block text-xs font-medium">
+              {t('vatReturn.how')}
+            </span>
             <select
-              aria-label="Hoe"
+              aria-label={t('vatReturn.how')}
               name="transport"
               defaultValue="manual"
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             >
               {usable.map((transport) => (
                 <option key={transport.kind} value={transport.kind}>
-                  {TRANSPORT_LABEL[transport.kind] ?? transport.name}
+                  {transportOf(transport.kind, transport.name)}
                 </option>
               ))}
             </select>
@@ -648,9 +667,9 @@ function VatReturnScreen() {
                 .map((transport) => (
                   <li key={transport.kind}>
                     <strong className="font-medium">
-                      {TRANSPORT_LABEL[transport.kind] ?? transport.name}
-                    </strong>{' '}
-                    is niet beschikbaar: {transport.reason}
+                      {transportOf(transport.kind, transport.name)}
+                    </strong>
+                    {t('vatReturn.transportUnavailable', { reason: transport.reason ?? '' })}
                   </li>
                 ))}
             </ul>
@@ -659,7 +678,7 @@ function VatReturnScreen() {
           <div>
             <label className="block">
               <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                Kenmerk van de indiening
+                {t('vatReturn.filingReference')}
               </span>
               <input
                 name="transportReference"
@@ -668,9 +687,7 @@ function VatReturnScreen() {
               />
             </label>
             <p id="transport-reference-hint" className="text-muted-foreground mt-1 text-xs">
-              Het berichtnummer van Digipoort of het kenmerk uit Mijn Belastingdienst. Optioneel,
-              maar het is het enige waarmee je deze aangifte later kunt terugvinden bij de
-              Belastingdienst.
+              {t('vatReturn.filingReferenceHint')}
             </p>
           </div>
 
@@ -685,16 +702,13 @@ function VatReturnScreen() {
                   }}
                   className="mt-0.5"
                 />
-                <span>
-                  Ik heb de {warnings.length} {warnings.length === 1 ? 'bevinding' : 'bevindingen'}{' '}
-                  hierboven bekeken en dien toch in
-                </span>
+                <span>{plural('vatReturn.accept', warnings.length)}</span>
               </label>
               {accept && (
                 <div className="mt-3">
                   <label className="block">
                     <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                      Waarom
+                      {t('vatReturn.why')}
                     </span>
                     <textarea
                       name="acceptedReason"
@@ -705,8 +719,7 @@ function VatReturnScreen() {
                     />
                   </label>
                   <p id="accepted-reason-hint" className="text-muted-foreground mt-1 text-xs">
-                    Deze toelichting wordt bij de aangifte bewaard en hoort bij het dossier van deze
-                    periode.
+                    {t('vatReturn.whyHint')}
                   </p>
                 </div>
               )}
@@ -727,15 +740,12 @@ function VatReturnScreen() {
             className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
             {busy
-              ? 'Bezig…'
+              ? t('common.busy')
               : needsSuppletie
-                ? 'Suppletie indienen'
-                : 'Aangifte indienen en periode vastzetten'}
+                ? t('vatReturn.fileSupplement')
+                : t('vatReturn.fileAndClose')}
           </button>
-          <p className="text-muted-foreground text-xs">
-            Indienen zet de perioden in deze aangifte op zacht afgesloten. Alleen de accountant kan
-            er daarna nog in boeken, en zo'n correctie vraagt een suppletie.
-          </p>
+          <p className="text-muted-foreground text-xs">{t('vatReturn.fileNote')}</p>
         </form>
       )}
     </>
