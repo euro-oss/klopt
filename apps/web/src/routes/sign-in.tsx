@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { getSession } from '~/server/context'
 
@@ -36,6 +37,7 @@ const CODE_LENGTH = 6
 function SignIn() {
   const { redirect: target } = Route.useSearch()
   const navigate = useNavigate()
+  const { t } = useT()
 
   const [step, setStep] = useState<'email' | 'code'>('email')
   /** Captured from the form on submit, not bound to the input. See below. */
@@ -93,12 +95,12 @@ function SignIn() {
 
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { message?: string }
-      setError(body.message ?? 'De code kon niet worden verstuurd.')
+      setError(body.message ?? t('signIn.sendFailed'))
       return
     }
 
     setStep('code')
-    setNotice(`We hebben een code van ${String(CODE_LENGTH)} cijfers naar ${address} gestuurd.`)
+    setNotice(t('signIn.codeSent', { digits: String(CODE_LENGTH), email: address }))
   }
 
   function onRequestSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -122,7 +124,7 @@ function SignIn() {
       setBusy(false)
       setCode('')
       codeRef.current?.focus()
-      setError('Die code klopt niet, of is verlopen. Vraag zo nodig een nieuwe aan.')
+      setError(t('signIn.codeWrong'))
       return
     }
 
@@ -136,15 +138,15 @@ function SignIn() {
       <div className="w-full max-w-sm">
         <h1 className="text-2xl font-semibold tracking-tight">Klopt</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          {step === 'email'
-            ? 'Vul je e-mailadres in. We sturen je een code.'
-            : 'Vul de code in die we je hebben gestuurd.'}
+          {step === 'email' ? t('signIn.introEmail') : t('signIn.introCode')}
         </p>
 
         {step === 'email' ? (
           <form onSubmit={onRequestSubmit} className="mt-6">
             <label className="block">
-              <span className="text-muted-foreground mb-1 block text-xs font-medium">E-mail</span>
+              <span className="text-muted-foreground mb-1 block text-xs font-medium">
+                {t('signIn.email')}
+              </span>
               <input
                 name="email"
                 type="email"
@@ -166,7 +168,7 @@ function SignIn() {
               disabled={busy || !hydrated}
               className="bg-primary text-primary-foreground mt-6 w-full rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
-              {busy ? 'Bezig…' : 'Stuur me een code'}
+              {busy ? t('common.busy') : t('signIn.sendCode')}
             </button>
           </form>
         ) : (
@@ -188,12 +190,14 @@ function SignIn() {
                 }}
                 className="underline"
               >
-                wijzigen
+                {t('signIn.change')}
               </button>
             </p>
 
             <label className="block">
-              <span className="text-muted-foreground mb-1 block text-xs font-medium">Code</span>
+              <span className="text-muted-foreground mb-1 block text-xs font-medium">
+                {t('signIn.code')}
+              </span>
               <input
                 ref={codeRef}
                 name="otp"
@@ -227,7 +231,7 @@ function SignIn() {
               disabled={busy || !hydrated || code.length !== CODE_LENGTH}
               className="bg-primary text-primary-foreground mt-6 w-full rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
-              {busy ? 'Bezig…' : 'Aanmelden'}
+              {busy ? t('common.busy') : t('signIn.verify')}
             </button>
 
             <button
@@ -238,14 +242,12 @@ function SignIn() {
               }}
               className="text-muted-foreground hover:text-foreground mt-3 w-full text-center text-xs underline"
             >
-              Stuur een nieuwe code
+              {t('signIn.resend')}
             </button>
           </form>
         )}
 
-        <p className="text-muted-foreground mt-8 text-xs">
-          Geen wachtwoord nodig. Een code is tien minuten geldig en werkt één keer.
-        </p>
+        <p className="text-muted-foreground mt-8 text-xs">{t('signIn.footer')}</p>
       </div>
     </main>
   )

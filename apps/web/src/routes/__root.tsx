@@ -1,7 +1,16 @@
 /// <reference types="vite/client" />
-import { HeadContent, Scripts, createRootRoute, useRouter } from '@tanstack/react-router'
+import {
+  HeadContent,
+  Scripts,
+  createRootRoute,
+  useRouter,
+  useRouterState,
+} from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import appCss from '~/styles/app.css?url'
+import { DEFAULT_LOCALE, intlTag, type Locale } from '~/i18n/locale'
+import { LocaleProvider, useT } from '~/i18n/provider'
+import { getLocale } from '~/server/locale'
 
 /**
  * The document, and nothing else.
@@ -23,6 +32,14 @@ import appCss from '~/styles/app.css?url'
  * report usefully.
  */
 export const Route = createRootRoute({
+  /**
+   * The language, decided once and handed down.
+   *
+   * In the root loader because every screen needs it and because it has to be
+   * settled before anything renders: resolving it lower down would mean the
+   * shell rendering in one language and its children in another for a frame.
+   */
+  loader: async () => ({ locale: await getLocale() }),
   errorComponent: RootError,
   head: () => ({
     meta: [
@@ -46,14 +63,15 @@ export const Route = createRootRoute({
  */
 function RootError({ error }: { error: Error }) {
   const router = useRouter()
+  // Deliberately not `useT()`: this renders when a loader failed, which may be
+  // the loader that resolved the language. The default is better than a crash
+  // inside an error screen.
+  const { t } = useT()
 
   return (
     <div className="mx-auto max-w-lg p-8">
-      <h1 className="mb-2 text-lg font-semibold">Dit scherm kon niet geladen worden</h1>
-      <p className="text-muted-foreground mb-4 text-sm">
-        Meestal is de verbinding even weg. Probeer het opnieuw; als het blijft gebeuren, is dit de
-        melding om door te geven.
-      </p>
+      <h1 className="mb-2 text-lg font-semibold">{t('error.title')}</h1>
+      <p className="text-muted-foreground mb-4 text-sm">{t('error.body')}</p>
       <pre className="bg-muted mb-4 overflow-x-auto rounded-md p-3 text-xs">{error.message}</pre>
       <button
         type="button"
@@ -62,22 +80,39 @@ function RootError({ error }: { error: Error }) {
         }}
         className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
       >
-        Opnieuw proberen
+        {t('common.retry')}
       </button>
     </div>
   )
 }
 
 function RootDocument({ children }: { children: ReactNode }) {
+  /**
+   * Read off the router state rather than with `useLoaderData`.
+   *
+   * This is the shell, so it also renders when a loader failed — and then
+   * there is no loader data. `useLoaderData` throws in that case, which would
+   * replace a useful error message with a blank document. Selecting from the
+   * root match gives `undefined` instead, and `undefined` has a sensible
+   * answer: the default language.
+   */
+  const locale = useRouterState({
+    select: (state) => {
+      const data = state.matches[0]?.loaderData as { locale?: Locale } | undefined
+      return data?.locale ?? DEFAULT_LOCALE
+    },
+  })
+
   return (
-    // Dutch: the fiscal terminology stays Dutch even in the English UI
-    // (spec 12), so the document language should not claim otherwise.
-    <html lang="nl-NL">
+    // The real language, for screen readers and for the browser's own
+    // translation prompt. The fiscal terminology stays Dutch inside an English
+    // UI (spec 12), but the document is in the language the user reads.
+    <html lang={intlTag(locale)}>
       <head>
         <HeadContent />
       </head>
       <body>
-        {children}
+        <LocaleProvider locale={locale}>{children}</LocaleProvider>
         <Scripts />
       </body>
     </html>

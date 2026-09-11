@@ -42,6 +42,13 @@ export default defineConfig({
   use: {
     baseURL: process.env['KLOPT_E2E_BASE_URL'] ?? 'http://localhost:3399',
     trace: 'retain-on-failure',
+
+    // These specs assert Dutch copy, so say so rather than inheriting whatever
+    // language the browser on this machine happens to ask for. Chromium
+    // defaults to en-US, which the app now honours — correctly, and it would
+    // otherwise make the whole suite depend on where it runs. The specs about
+    // language negotiation open their own contexts and override this.
+    locale: 'nl-NL',
   },
 
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],

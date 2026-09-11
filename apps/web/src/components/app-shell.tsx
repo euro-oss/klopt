@@ -1,4 +1,6 @@
-import { Link, useRouterState } from '@tanstack/react-router'
+import { Link, useRouter, useRouterState } from '@tanstack/react-router'
+import { useT } from '~/i18n/provider'
+import { setLocale } from '~/server/locale'
 import type { ReactNode } from 'react'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
@@ -17,20 +19,20 @@ import { CommandPalette } from './command-palette'
  */
 
 const NAVIGATION = [
-  { to: '/', label: 'Dashboard', binding: 'go.dashboard' },
-  { to: '/entries', label: 'Journaalposten', binding: 'go.journal' },
-  { to: '/accounts', label: 'Grootboek', binding: 'go.accounts' },
-  { to: '/invoices', label: 'Verkoopfacturen', binding: 'go.invoices' },
-  { to: '/inbox', label: 'Postvak', binding: 'go.inbox' },
-  { to: '/purchases', label: 'Inkoopfacturen', binding: 'go.purchases' },
-  { to: '/contacts', label: 'Relaties', binding: 'go.contacts' },
-  { to: '/bank', label: 'Bank', binding: 'go.bank' },
-  { to: '/payments', label: 'Betalingen', binding: 'go.payments' },
-  { to: '/dunning', label: 'Aanmaningen', binding: 'go.dunning' },
-  { to: '/vat', label: 'BTW', binding: 'go.vat' },
-  { to: '/reports/trial-balance', label: 'Proefbalans', binding: 'go.trial' },
-  { to: '/reports/balance-sheet', label: 'Balans', binding: 'go.balance' },
-  { to: '/reports/profit-and-loss', label: 'Winst & verlies', binding: 'go.profit' },
+  { to: '/', key: 'nav.dashboard', binding: 'go.dashboard' },
+  { to: '/entries', key: 'nav.entries', binding: 'go.journal' },
+  { to: '/accounts', key: 'nav.accounts', binding: 'go.accounts' },
+  { to: '/invoices', key: 'nav.invoices', binding: 'go.invoices' },
+  { to: '/inbox', key: 'nav.inbox', binding: 'go.inbox' },
+  { to: '/purchases', key: 'nav.purchases', binding: 'go.purchases' },
+  { to: '/contacts', key: 'nav.contacts', binding: 'go.contacts' },
+  { to: '/bank', key: 'nav.bank', binding: 'go.bank' },
+  { to: '/payments', key: 'nav.payments', binding: 'go.payments' },
+  { to: '/dunning', key: 'nav.dunning', binding: 'go.dunning' },
+  { to: '/vat', key: 'nav.vat', binding: 'go.vat' },
+  { to: '/reports/trial-balance', key: 'nav.trialBalance', binding: 'go.trial' },
+  { to: '/reports/balance-sheet', key: 'nav.balanceSheet', binding: 'go.balance' },
+  { to: '/reports/profit-and-loss', key: 'nav.profitAndLoss', binding: 'go.profit' },
 ] as const
 
 /**
@@ -41,16 +43,16 @@ const NAVIGATION = [
 const RESTRICTED_NAVIGATION = [
   {
     to: '/settings',
-    label: 'Instellingen',
+    key: 'nav.settings',
     binding: 'go.settings',
     roles: ['owner', 'accountant', 'bookkeeper'],
   },
-  { to: '/members', label: 'Toegang', binding: 'go.members', roles: ['owner'] },
+  { to: '/members', key: 'nav.members', binding: 'go.members', roles: ['owner'] },
   // `ledger:export` is what the operation needs, and the roles that hold it are
   // the ones who would be asked for the log.
   {
     to: '/audit-log',
-    label: 'Wie wat deed',
+    key: 'nav.auditLog',
     binding: 'go.audit',
     roles: ['owner', 'accountant', 'auditor'],
   },
@@ -59,7 +61,7 @@ const RESTRICTED_NAVIGATION = [
   // the screen says which is which.
   {
     to: '/retention',
-    label: 'Bewaarplicht',
+    key: 'nav.retention',
     binding: 'go.retention',
     roles: ['owner', 'accountant', 'auditor'],
   },
@@ -67,7 +69,7 @@ const RESTRICTED_NAVIGATION = [
   // is a seal nobody checks, so the bookkeeper gets the screen too.
   {
     to: '/snapshots',
-    label: 'Momentopnames',
+    key: 'nav.snapshots',
     binding: 'go.snapshots',
     roles: ['owner', 'accountant', 'auditor', 'bookkeeper'],
   },
@@ -75,7 +77,7 @@ const RESTRICTED_NAVIGATION = [
   // An auditor holds neither, so the nav does not offer them a 403.
   {
     to: '/exact',
-    label: 'Exact Online',
+    key: 'nav.exact',
     binding: 'go.exact',
     roles: ['owner', 'accountant', 'bookkeeper'],
   },
@@ -106,6 +108,7 @@ export function AppShell({
   // advertising them with no listener at all, only shorter — so the hint
   // appears exactly when the key starts working.
   const shortcutsLive = useHydrated()
+  const { t } = useT()
   const active = entities.find((entity) => entity.entityId === activeEntityId) ?? entities[0]
   const navigation = [
     ...NAVIGATION,
@@ -121,26 +124,29 @@ export function AppShell({
         href="#main"
         className="focus:bg-primary focus:text-primary-foreground sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded focus:px-3 focus:py-2"
       >
-        Naar de inhoud
+        {t('shell.skipToContent')}
       </a>
 
       <div className="flex min-h-screen">
-        <nav aria-label="Hoofdnavigatie" className="border-border w-60 shrink-0 border-r p-4">
+        <nav
+          aria-label={t('shell.navigation')}
+          className="border-border w-60 shrink-0 border-r p-4"
+        >
           <div className="mb-6">
             <Link to="/" className="text-lg font-semibold tracking-tight">
               Klopt
             </Link>
-            <p className="text-muted-foreground text-xs">Open boekhouden</p>
+            <p className="text-muted-foreground text-xs">{t('shell.tagline')}</p>
           </div>
 
           {entities.length > 0 && (
             <div className="mb-6">
               <label className="block">
                 <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                  Administratie
+                  {t('shell.administration')}
                 </span>
                 <select
-                  aria-label="Administratie"
+                  aria-label={t('shell.administration')}
                   value={active?.entityId ?? ''}
                   onChange={(event) => {
                     onSwitchEntity(event.target.value)
@@ -158,7 +164,9 @@ export function AppShell({
                   of the select's accessible name, so "Administratie" would read
                   as "Administratie … rol: owner" to a screen reader. */}
               {active !== undefined && (
-                <p className="text-muted-foreground mt-1 text-xs">rol: {active.role}</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {t('shell.role', { role: active.role })}
+                </p>
               )}
             </div>
           )}
@@ -178,7 +186,7 @@ export function AppShell({
                         : 'hover:bg-accent/60',
                     )}
                   >
-                    {item.label}
+                    {t(item.key)}
                     {binding !== undefined && shortcutsLive && (
                       <kbd className="text-muted-foreground font-mono text-[10px] opacity-0 group-hover:opacity-100">
                         {formatBinding(binding)}
@@ -195,15 +203,16 @@ export function AppShell({
               to="/entries/new"
               className="bg-primary text-primary-foreground hover:bg-primary/90 block rounded-md px-3 py-2 text-center text-sm font-medium"
             >
-              Nieuwe journaalpost
+              {t('shell.newEntry')}
             </Link>
           </div>
 
           <div className="text-muted-foreground mt-8 text-xs">
-            <p>{userName}</p>
+            <LanguagePicker />
+            <p className="mt-3">{userName}</p>
             <form method="post" action="/sign-out">
               <button type="submit" className="hover:text-foreground mt-1 underline">
-                Afmelden
+                {t('shell.signOut')}
               </button>
             </form>
           </div>
@@ -271,5 +280,47 @@ export function Stat({
       </p>
       {hint !== undefined && <p className="text-muted-foreground mt-1 text-xs">{hint}</p>}
     </div>
+  )
+}
+
+/**
+ * Changing the language.
+ *
+ * In the sidebar rather than buried in Instellingen, and labelled in both
+ * languages, because somebody who has landed in the wrong one cannot read the
+ * word for "language" to go and find it.
+ *
+ * A `select` that submits on change: this is a two-option choice, and a save
+ * button would be a second thing to find.
+ */
+function LanguagePicker() {
+  const { locale, t } = useT()
+  const router = useRouter()
+  const hydrated = useHydrated()
+
+  return (
+    <label className="block">
+      <span className="mb-1 block font-medium">{t('language.label')}</span>
+      <select
+        value={locale}
+        aria-label={t('language.label')}
+        disabled={!hydrated}
+        onChange={(event) => {
+          const chosen = event.target.value
+          void setLocale({ data: { locale: chosen } })
+            // The whole tree re-renders from the root loader, which is where
+            // the language is resolved — so no reload, and no flash of the
+            // language somebody has just left.
+            .then(() => router.invalidate())
+            .catch((cause: unknown) => {
+              console.error('[app] could not change language', cause)
+            })
+        }}
+        className="border-input bg-background w-full rounded-md border px-2 py-1 text-xs"
+      >
+        <option value="nl">{t('language.nl')}</option>
+        <option value="en">{t('language.en')}</option>
+      </select>
+    </label>
   )
 }

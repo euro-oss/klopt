@@ -37,8 +37,10 @@ describe('the root route', () => {
 
   it('shows the message and offers a retry', () => {
     // Both matter. The message is what a bookkeeper can pass on, and the retry
-    // is what fixes the commonest cause without a full reload.
+    // is what fixes the commonest cause without a full reload. The retry is a
+    // message key now, so this asserts the key and the catalogue test asserts
+    // that both languages have one.
     expect(ROOT).toContain('error.message')
-    expect(ROOT).toContain('Opnieuw proberen')
+    expect(ROOT).toContain('common.retry')
   })
 })

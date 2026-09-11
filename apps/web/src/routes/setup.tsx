@@ -1,5 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
+import { intlTag } from '~/i18n/locale'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { getSession } from '~/server/context'
 import { beginSetup, createAdministration } from '~/server/setup'
@@ -43,25 +45,25 @@ interface ChartSummary {
   readonly taxCodeCount: number
 }
 
-const MONTHS = [
-  'januari',
-  'februari',
-  'maart',
-  'april',
-  'mei',
-  'juni',
-  'juli',
-  'augustus',
-  'september',
-  'oktober',
-  'november',
-  'december',
-]
+/**
+ * Month names in whichever language the page is in.
+ *
+ * Derived rather than listed: the twelve names are the same twelve facts Intl
+ * already holds, and a second copy of them is a second thing to translate.
+ * Safe across hydration because the locale is decided on the server, so both
+ * renders ask for the same one.
+ */
+function monthNames(tag: string): readonly string[] {
+  const format = new Intl.DateTimeFormat(tag, { month: 'long', timeZone: 'UTC' })
+  return Array.from({ length: 12 }, (_, index) => format.format(new Date(Date.UTC(2026, index, 1))))
+}
 
 function Setup() {
   const { session, setup } = Route.useLoaderData()
   const navigate = useNavigate()
   const hydrated = useHydrated()
+  const { t, locale } = useT()
+  const months = monthNames(intlTag(locale))
 
   const available: readonly ChartSummary[] = setup.ok ? setup.data.charts : []
 
@@ -137,15 +139,14 @@ function Setup() {
 
   return (
     <main className="bg-background text-foreground mx-auto min-h-screen max-w-xl p-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Nieuwe administratie</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t('setup.title')}</h1>
       <p className="text-muted-foreground mt-1 text-sm">
-        Je bent aangemeld als {session.user.email}. Vul een naam in — de rest kun je later nog
-        wijzigen.
+        {t('setup.intro', { email: session.user.email })}
       </p>
 
       {!setup.ok && (
         <p role="alert" className="text-destructive mt-6 text-sm">
-          De rekeningschema&apos;s konden niet worden geladen: {setup.problem.detail}
+          {t('setup.chartsFailed', { detail: setup.problem.detail })}
         </p>
       )}
 
@@ -157,13 +158,13 @@ function Setup() {
       >
         <label className="block">
           <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            Naam van de administratie
+            {t('setup.name')}
           </span>
           <input
             name="name"
             required
             autoFocus
-            placeholder="Mijn Bedrijf"
+            placeholder={t('setup.namePlaceholder')}
             className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
           />
           {problem('name')}
@@ -171,11 +172,11 @@ function Setup() {
 
         <label className="block">
           <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            Statutaire naam <span className="opacity-70">(optioneel)</span>
+            {t('setup.legalName')} <span className="opacity-70">{t('setup.optional')}</span>
           </span>
           <input
             name="legalName"
-            placeholder="Mijn Bedrijf B.V."
+            placeholder={t('setup.legalNamePlaceholder')}
             className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
           />
           {problem('legalName')}
@@ -184,7 +185,7 @@ function Setup() {
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
             <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              KvK-nummer <span className="opacity-70">(optioneel)</span>
+              {t('setup.kvk')} <span className="opacity-70">{t('setup.optional')}</span>
             </span>
             <input
               name="kvkNumber"
@@ -197,7 +198,7 @@ function Setup() {
 
           <label className="block">
             <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              Btw-nummer <span className="opacity-70">(optioneel)</span>
+              {t('setup.vat')} <span className="opacity-70">{t('setup.optional')}</span>
             </span>
             <input
               name="vatNumber"
@@ -210,10 +211,10 @@ function Setup() {
 
         <label className="block">
           <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            Rekeningschema
+            {t('setup.chart')}
           </span>
           <select
-            aria-label="Rekeningschema"
+            aria-label={t('setup.chart')}
             name="chartCode"
             defaultValue={available[0]?.code ?? 'nl-mkb'}
             className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
@@ -226,8 +227,12 @@ function Setup() {
           </select>
           {available[0] !== undefined && (
             <span className="text-muted-foreground mt-1 block text-xs">
-              {available[0].accountCount} grootboekrekeningen, {available[0].journalCount} dagboeken
-              en {available[0].taxCodeCount} btw-codes, gekoppeld aan RGS {available[0].rgsVersion}.
+              {t('setup.chartSummary', {
+                accounts: String(available[0].accountCount),
+                journals: String(available[0].journalCount),
+                taxCodes: String(available[0].taxCodeCount),
+                rgs: available[0].rgsVersion,
+              })}
             </span>
           )}
           {problem('chartCode')}
@@ -235,7 +240,9 @@ function Setup() {
 
         <div className="grid grid-cols-3 gap-4">
           <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">Valuta</span>
+            <span className="text-muted-foreground mb-1 block text-xs font-medium">
+              {t('setup.currency')}
+            </span>
             <input
               name="functionalCurrency"
               defaultValue="EUR"
@@ -246,7 +253,9 @@ function Setup() {
           </label>
 
           <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">Boekjaar</span>
+            <span className="text-muted-foreground mb-1 block text-xs font-medium">
+              {t('setup.fiscalYear')}
+            </span>
             <input
               name="firstFiscalYear"
               defaultValue={thisYear}
@@ -258,14 +267,16 @@ function Setup() {
           </label>
 
           <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">Begint in</span>
+            <span className="text-muted-foreground mb-1 block text-xs font-medium">
+              {t('setup.startsIn')}
+            </span>
             <select
-              aria-label="Begint in"
+              aria-label={t('setup.startsIn')}
               name="fiscalYearStartMonth"
               defaultValue="1"
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             >
-              {MONTHS.map((month, index) => (
+              {months.map((month, index) => (
                 <option key={month} value={String(index + 1)}>
                   {month}
                 </option>
@@ -275,10 +286,7 @@ function Setup() {
           </label>
         </div>
 
-        <p className="text-muted-foreground text-xs">
-          Een boekjaar hoeft geen kalenderjaar te zijn. Het jaar heet naar de maand waarin het
-          begint, dus een boekjaar dat in juli 2026 opent, heet 2026.
-        </p>
+        <p className="text-muted-foreground text-xs">{t('setup.fiscalYearNote')}</p>
 
         {error !== null && (
           <p role="alert" className="text-destructive text-sm">
@@ -292,7 +300,7 @@ function Setup() {
             disabled={busy || !hydrated}
             className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
-            {busy ? 'Bezig…' : 'Administratie aanmaken'}
+            {busy ? t('common.busy') : t('setup.create')}
           </button>
         </div>
       </form>
@@ -304,7 +312,7 @@ function Setup() {
           type="submit"
           className="text-muted-foreground hover:text-foreground text-sm underline"
         >
-          Afmelden
+          {t('shell.signOut')}
         </button>
       </form>
     </main>
