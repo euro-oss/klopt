@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatMinorUnits, parseMinorUnits, percentOf } from '~/lib/format'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { capturePurchaseInvoice } from '~/server/purchase'
 import { listContacts, listTaxCodes } from '~/server/sales'
@@ -59,6 +60,7 @@ function NewPurchaseInvoice() {
   const { contacts, taxCodes, accounts } = Route.useLoaderData()
   const navigate = useNavigate()
   const hydrated = useHydrated()
+  const { t } = useT()
 
   const suppliers = contacts.ok
     ? contacts.data.contacts.filter((contact) => contact.isSupplier && !contact.isBlocked)
@@ -198,9 +200,9 @@ function NewPurchaseInvoice() {
   if (suppliers.length === 0) {
     return (
       <>
-        <PageHeader title="Inkoopfactuur invoeren" />
+        <PageHeader title={t('purchaseNew.title')} />
         <p className="text-muted-foreground border-border max-w-2xl rounded-md border border-dashed p-4 text-sm">
-          Er is nog geen leverancier. Maak er een aan onder Relaties en vink “leverancier” aan.
+          {t('purchaseNew.noSuppliers')}
         </p>
       </>
     )
@@ -212,16 +214,15 @@ function NewPurchaseInvoice() {
         void capture(event)
       }}
     >
-      <PageHeader
-        title="Inkoopfactuur invoeren"
-        description="Neem de bedragen over van het document. Ze worden nagerekend, niet uitgerekend — wat de leverancier zegt, is wat je verschuldigd bent."
-      />
+      <PageHeader title={t('purchaseNew.title')} description={t('purchaseNew.intro')} />
 
       <div className="mb-6 grid max-w-5xl grid-cols-4 gap-4">
         <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">Leverancier</span>
+          <span className="text-muted-foreground mb-1 block text-xs font-medium">
+            {t('contacts.supplierLabel')}
+          </span>
           <select
-            aria-label="Leverancier"
+            aria-label={t('contacts.supplierLabel')}
             value={contactNumber}
             onChange={(event) => {
               setContactNumber(event.target.value)
@@ -238,10 +239,10 @@ function NewPurchaseInvoice() {
 
         <label className="block">
           <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            Factuurnummer leverancier
+            {t('purchaseNew.supplierInvoiceNumber')}
           </span>
           <input
-            aria-label="Factuurnummer leverancier"
+            aria-label={t('purchaseNew.supplierInvoiceNumber')}
             value={supplierInvoiceNumber}
             onChange={(event) => {
               setSupplierInvoiceNumber(event.target.value)
@@ -254,26 +255,28 @@ function NewPurchaseInvoice() {
         </label>
 
         <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">Soort</span>
+          <span className="text-muted-foreground mb-1 block text-xs font-medium">
+            {t('invoices.kind')}
+          </span>
           <select
-            aria-label="Soort"
+            aria-label={t('invoices.kind')}
             value={kind}
             onChange={(event) => {
               setKind(event.target.value === 'credit_note' ? 'credit_note' : 'invoice')
             }}
             className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
           >
-            <option value="invoice">Factuur</option>
-            <option value="credit_note">Creditnota</option>
+            <option value="invoice">{t('invoice.title')}</option>
+            <option value="credit_note">{t('invoice.creditNote')}</option>
           </select>
         </label>
 
         <label className="block">
           <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            Betalingskenmerk
+            {t('purchaseNew.paymentReference')}
           </span>
           <input
-            aria-label="Betalingskenmerk"
+            aria-label={t('purchaseNew.paymentReference')}
             value={paymentReference}
             onChange={(event) => {
               setPaymentReference(event.target.value)
@@ -284,10 +287,12 @@ function NewPurchaseInvoice() {
         </label>
 
         <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">Factuurdatum</span>
+          <span className="text-muted-foreground mb-1 block text-xs font-medium">
+            {t('purchases.invoiceDate')}
+          </span>
           <input
             type="date"
-            aria-label="Factuurdatum"
+            aria-label={t('purchases.invoiceDate')}
             value={invoiceDate}
             onChange={(event) => {
               setInvoiceDate(event.target.value)
@@ -298,10 +303,12 @@ function NewPurchaseInvoice() {
         </label>
 
         <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">Vervaldatum</span>
+          <span className="text-muted-foreground mb-1 block text-xs font-medium">
+            {t('purchases.dueDate')}
+          </span>
           <input
             type="date"
-            aria-label="Vervaldatum"
+            aria-label={t('purchases.dueDate')}
             value={dueDate}
             onChange={(event) => {
               setDueDate(event.target.value)
@@ -311,13 +318,13 @@ function NewPurchaseInvoice() {
         </label>
       </div>
 
-      <h2 className="mb-2 text-sm font-semibold">Zoals op het document</h2>
+      <h2 className="mb-2 text-sm font-semibold">{t('purchaseNew.asOnDocument')}</h2>
       <div className="mb-6 grid max-w-2xl grid-cols-3 gap-4">
         {(
           [
-            ['Bedrag excl. btw', statedNet, setStatedNet, netMatches],
-            ['Btw', statedTax, setStatedTax, taxMatches],
-            ['Totaal', statedTotal, setStatedTotal, totalMatches],
+            [t('purchaseNew.netAmount'), statedNet, setStatedNet, netMatches],
+            [t('invoice.vat'), statedTax, setStatedTax, taxMatches],
+            [t('report.total'), statedTotal, setStatedTotal, totalMatches],
           ] as const
         ).map(([label, value, setValue, matches]) => (
           <label key={label} className="block">
@@ -341,14 +348,14 @@ function NewPurchaseInvoice() {
       </div>
 
       <table className="mb-4 w-full max-w-5xl text-sm">
-        <caption className="sr-only">Regels van de inkoopfactuur</caption>
+        <caption className="sr-only">{t('purchaseNew.lines')}</caption>
         <thead>
           <tr className="border-border text-muted-foreground border-b text-left text-xs">
-            <th className="py-2 font-medium">Omschrijving</th>
-            <th className="w-48 py-2 font-medium">Grootboek</th>
-            <th className="w-32 py-2 font-medium">Btw-code</th>
-            <th className="w-28 py-2 text-right font-medium">Excl. btw</th>
-            <th className="w-28 py-2 text-right font-medium">Btw</th>
+            <th className="py-2 font-medium">{t('entries.description')}</th>
+            <th className="w-48 py-2 font-medium">{t('invoice.ledgerAccount')}</th>
+            <th className="w-32 py-2 font-medium">{t('purchaseNew.taxCode')}</th>
+            <th className="w-28 py-2 text-right font-medium">{t('purchaseNew.excludingVat')}</th>
+            <th className="w-28 py-2 text-right font-medium">{t('invoice.vat')}</th>
             <th className="w-8 py-2" />
           </tr>
         </thead>
@@ -357,7 +364,7 @@ function NewPurchaseInvoice() {
             <tr key={index} className="border-border border-b">
               <td className="py-1">
                 <input
-                  aria-label={`Omschrijving regel ${String(index + 1)}`}
+                  aria-label={t('entryNew.descriptionLine', { line: String(index + 1) })}
                   value={line.description}
                   onChange={(event) => {
                     update(index, { description: event.target.value })
@@ -370,7 +377,7 @@ function NewPurchaseInvoice() {
               </td>
               <td className="py-1">
                 <select
-                  aria-label={`Grootboek regel ${String(index + 1)}`}
+                  aria-label={t('invoiceNew.accountLine', { line: String(index + 1) })}
                   value={line.accountNumber}
                   onChange={(event) => {
                     update(index, { accountNumber: event.target.value })
@@ -386,7 +393,7 @@ function NewPurchaseInvoice() {
               </td>
               <td className="py-1">
                 <select
-                  aria-label={`Btw-code regel ${String(index + 1)}`}
+                  aria-label={t('purchaseNew.taxCodeLine', { line: String(index + 1) })}
                   value={line.taxCode}
                   onChange={(event) => {
                     update(index, { taxCode: event.target.value })
@@ -402,7 +409,7 @@ function NewPurchaseInvoice() {
               </td>
               <td className="py-1">
                 <input
-                  aria-label={`Excl. btw regel ${String(index + 1)}`}
+                  aria-label={t('purchaseNew.netLine', { line: String(index + 1) })}
                   value={line.net}
                   onChange={(event) => {
                     update(index, { net: event.target.value })
@@ -412,7 +419,7 @@ function NewPurchaseInvoice() {
               </td>
               <td className="py-1">
                 <input
-                  aria-label={`Btw regel ${String(index + 1)}`}
+                  aria-label={t('invoiceNew.vatLine', { line: String(index + 1) })}
                   value={line.tax}
                   onChange={(event) => {
                     update(index, { tax: event.target.value })
@@ -423,8 +430,8 @@ function NewPurchaseInvoice() {
               <td className="py-1 text-center">
                 <button
                   type="button"
-                  aria-label={`Btw berekenen voor regel ${String(index + 1)}`}
-                  title="Btw uit de code berekenen"
+                  aria-label={t('purchaseNew.computeTaxLine', { line: String(index + 1) })}
+                  title={t('purchaseNew.computeTaxTitle')}
                   disabled={!hydrated}
                   onClick={() => {
                     suggestTax(index)
@@ -440,7 +447,7 @@ function NewPurchaseInvoice() {
         <tfoot>
           <tr className="text-xs">
             <td colSpan={3} className="text-muted-foreground py-2">
-              Regels bij elkaar
+              {t('purchaseNew.linesTogether')}
             </td>
             <td className="py-2 text-right">
               <span className={netMatches ? undefined : 'text-destructive'}>
@@ -459,14 +466,9 @@ function NewPurchaseInvoice() {
 
       {(!netMatches || !taxMatches || !totalMatches) && (
         <ul className="text-unreconciled mb-4 max-w-2xl space-y-1 text-sm">
-          {!netMatches && (
-            <li>
-              De regels tellen op tot een ander bedrag dan het document zegt. Er mist een regel, of
-              er staat een typefout in.
-            </li>
-          )}
-          {!taxMatches && <li>De btw op de regels is niet de btw op het document.</li>}
-          {!totalMatches && <li>Excl. btw plus btw is niet het totaal.</li>}
+          {!netMatches && <li>{t('purchaseNew.netDoesNotMatch')}</li>}
+          {!taxMatches && <li>{t('purchaseNew.taxDoesNotMatch')}</li>}
+          {!totalMatches && <li>{t('purchaseNew.totalDoesNotMatch')}</li>}
         </ul>
       )}
 
@@ -483,12 +485,9 @@ function NewPurchaseInvoice() {
         disabled={!hydrated || busy || filled.length === 0 || supplierInvoiceNumber === ''}
         className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
       >
-        {busy ? 'Bezig…' : 'Concept opslaan'}
+        {busy ? t('common.busy') : t('invoiceNew.saveDraft')}
       </button>
-      <p className="text-muted-foreground mt-2 max-w-2xl text-xs">
-        Opslaan boekt nog niets. Op de factuur zelf staat wat er niet klopt en kun je hem boeken —
-        dan pas ontstaan de schuld en de voorbelasting, met de factuurdatum als boekdatum.
-      </p>
+      <p className="text-muted-foreground mt-2 max-w-2xl text-xs">{t('purchaseNew.saveNote')}</p>
     </form>
   )
 }

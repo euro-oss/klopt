@@ -3,6 +3,8 @@ import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import {
   bookPurchaseInvoice,
@@ -32,29 +34,40 @@ export const Route = createFileRoute('/_app/purchases/$invoiceId')({
   component: PurchaseInvoiceScreen,
 })
 
-const FINDING_LABEL: Record<string, string> = {
-  lines_do_not_sum_to_net: 'Regels tellen niet op tot het bedrag op de factuur',
-  lines_do_not_sum_to_tax: 'Btw op de regels is niet de btw op de factuur',
-  net_plus_tax_is_not_total: 'Excl. btw plus btw is niet het totaal',
-  rate_mismatch: 'Btw wijkt af van het tarief van de code',
-  reverse_charge_with_tax: 'Verlegde btw, maar de factuur brengt btw in rekening',
-  unknown_tax_code: 'Btw-code klopt niet',
-  no_rule_in_force: 'Btw-code is niet geldig op de factuurdatum',
-  not_deductible: 'Btw is niet aftrekbaar',
-  pro_rata: 'Btw is gedeeltelijk aftrekbaar',
-  duplicate_invoice_number: 'Dit factuurnummer is al eerder geboekt',
+const FINDING_KEY: Record<string, MessageKey> = {
+  lines_do_not_sum_to_net: 'purchase.finding.lines_do_not_sum_to_net',
+  lines_do_not_sum_to_tax: 'purchase.finding.lines_do_not_sum_to_tax',
+  net_plus_tax_is_not_total: 'purchase.finding.net_plus_tax_is_not_total',
+  rate_mismatch: 'purchase.finding.rate_mismatch',
+  reverse_charge_with_tax: 'purchase.finding.reverse_charge_with_tax',
+  unknown_tax_code: 'purchase.finding.unknown_tax_code',
+  no_rule_in_force: 'purchase.finding.no_rule_in_force',
+  not_deductible: 'purchase.finding.not_deductible',
+  pro_rata: 'purchase.finding.pro_rata',
+  duplicate_invoice_number: 'purchase.finding.duplicate_invoice_number',
 }
 
-const SEVERITY_LABEL: Record<string, string> = {
-  blocking: 'Blokkerend',
-  warning: 'Ter beoordeling',
-  note: 'Ter info',
+const SEVERITY_KEY: Record<string, MessageKey> = {
+  blocking: 'purchase.severity.blocking',
+  warning: 'purchase.severity.warning',
+  note: 'purchase.severity.note',
 }
 
 function PurchaseInvoiceScreen() {
   const { invoice } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { t } = useT()
+
+  /** An unrecognised code is shown raw rather than swallowed. */
+  const findingOf = (code: string) => {
+    const key = FINDING_KEY[code]
+    return key === undefined ? code : t(key)
+  }
+  const severityOf = (severity: string) => {
+    const key = SEVERITY_KEY[severity]
+    return key === undefined ? severity : t(key)
+  }
 
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<string[]>([])
@@ -64,7 +77,7 @@ function PurchaseInvoiceScreen() {
   if (!invoice.ok) {
     return (
       <>
-        <PageHeader title="Inkoopfactuur" />
+        <PageHeader title={t('purchase.title')} />
         <p role="alert" className="text-destructive text-sm">
           {invoice.problem.detail}
         </p>
@@ -116,7 +129,7 @@ function PurchaseInvoiceScreen() {
   return (
     <>
       <PageHeader
-        title={`${data.kind === 'credit_note' ? 'Creditnota' : 'Inkoopfactuur'} ${data.supplierInvoiceNumber}`}
+        title={`${data.kind === 'credit_note' ? t('invoice.creditNote') : t('purchase.title')} ${data.supplierInvoiceNumber}`}
         description={`${data.contactNumber} · ${data.contactName} · ${formatDate(data.invoiceDate)} · ${data.statusLabel}`}
         actions={
           <div className="flex items-center gap-3">
@@ -129,7 +142,7 @@ function PurchaseInvoiceScreen() {
                 }}
                 className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
-                {busy ? 'Bezig…' : 'Boeken'}
+                {busy ? t('common.busy') : t('purchase.book')}
               </button>
             )}
             {data.status === 'booked' && (
@@ -141,7 +154,7 @@ function PurchaseInvoiceScreen() {
                 }}
                 className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
-                {busy ? 'Bezig…' : 'Goedkeuren voor betaling'}
+                {busy ? t('common.busy') : t('purchase.approve')}
               </button>
             )}
             {(data.status === 'booked' || data.status === 'approved') && (
@@ -153,7 +166,7 @@ function PurchaseInvoiceScreen() {
                 }}
                 className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
               >
-                In geschil zetten
+                {t('purchase.dispute')}
               </button>
             )}
             {data.status === 'disputed' && (
@@ -165,7 +178,7 @@ function PurchaseInvoiceScreen() {
                 }}
                 className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
               >
-                Geschil opgelost
+                {t('purchase.resolve')}
               </button>
             )}
             {data.status === 'draft' && (
@@ -177,24 +190,28 @@ function PurchaseInvoiceScreen() {
                 }}
                 className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
               >
-                Laten vervallen
+                {t('purchase.cancel')}
               </button>
             )}
             <Link to="/purchases" className="text-sm underline">
-              Alle facturen
+              {t('purchase.all')}
             </Link>
           </div>
         }
       />
 
       <div className="mb-8 flex flex-wrap gap-8">
-        <Stat label="Excl. btw" value={<Money amount={data.net} />} />
-        <Stat label="Btw" value={<Money amount={data.tax} />} />
-        <Stat label="Totaal" value={<Money amount={data.total} />} />
+        <Stat label={t('purchaseNew.excludingVat')} value={<Money amount={data.net} />} />
+        <Stat label={t('invoice.vat')} value={<Money amount={data.tax} />} />
+        <Stat label={t('report.total')} value={<Money amount={data.total} />} />
         <Stat
-          label="Openstaand"
+          label={t('purchases.outstanding')}
           value={<Money amount={data.outstanding} />}
-          hint={data.outstanding === '0' ? 'betaald' : `vervalt ${formatDate(data.dueDate)}`}
+          hint={
+            data.outstanding === '0'
+              ? t('purchase.paid')
+              : t('purchase.dueOn', { date: formatDate(data.dueDate) })
+          }
           tone={data.outstanding === '0' ? 'good' : 'neutral'}
         />
       </div>
@@ -211,7 +228,7 @@ function PurchaseInvoiceScreen() {
         >
           <label className="block">
             <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              Waarom is deze factuur in geschil?
+              {t('purchase.disputeWhy')}
             </span>
             <textarea
               name="reason"
@@ -222,23 +239,21 @@ function PurchaseInvoiceScreen() {
             />
           </label>
           <p id="dispute-hint" className="text-muted-foreground text-xs">
-            Dit is wat de leverancier te horen krijgt en wat de volgende persoon leest. De factuur
-            blijft geboekt — de schuld bestaat tot hij is voldaan of gecrediteerd — maar wordt niet
-            betaald.
+            {t('purchase.disputeHint')}
           </p>
           <button
             type="submit"
             disabled={!hydrated || busy}
             className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
-            In geschil zetten
+            {t('purchase.dispute')}
           </button>
         </form>
       )}
 
       {data.disputedReason !== null && (
         <p className="border-destructive mb-8 max-w-2xl rounded-md border p-3 text-sm">
-          <strong className="font-medium">In geschil:</strong> {data.disputedReason}
+          <strong className="font-medium">{t('purchase.disputed')}</strong> {data.disputedReason}
         </p>
       )}
 
@@ -250,25 +265,25 @@ function PurchaseInvoiceScreen() {
         </ul>
       )}
 
-      <h2 className="mb-3 text-sm font-semibold">Regels</h2>
+      <h2 className="mb-3 text-sm font-semibold">{t('purchase.lines')}</h2>
       <table className="border-border mb-8 w-full max-w-4xl border-collapse text-sm">
-        <caption className="sr-only">Regels van deze inkoopfactuur</caption>
+        <caption className="sr-only">{t('purchase.linesCaption')}</caption>
         <thead>
           <tr className="border-border text-muted-foreground border-b text-left text-xs">
             <th scope="col" className="py-2 pr-2 font-medium">
-              Omschrijving
+              {t('entries.description')}
             </th>
             <th scope="col" className="py-2 pr-2 font-medium">
-              Grootboek
+              {t('invoice.ledgerAccount')}
             </th>
             <th scope="col" className="py-2 pr-2 font-medium">
-              Btw-code
+              {t('purchaseNew.taxCode')}
             </th>
             <th scope="col" className="py-2 pr-2 text-right font-medium">
-              Excl. btw
+              {t('purchaseNew.excludingVat')}
             </th>
             <th scope="col" className="py-2 text-right font-medium">
-              Btw
+              {t('invoice.vat')}
             </th>
           </tr>
         </thead>
@@ -292,7 +307,9 @@ function PurchaseInvoiceScreen() {
       {data.findings.length > 0 && (
         <>
           <h2 className="mb-3 text-sm font-semibold">
-            Bevindingen{blocking.length > 0 && ` (${String(blocking.length)} blokkerend)`}
+            {t('purchase.findings')}
+            {blocking.length > 0 &&
+              t('purchase.findingsBlocking', { count: String(blocking.length) })}
           </h2>
           <ul className="mb-8 max-w-3xl space-y-3">
             {data.findings.map((finding, index) => (
@@ -305,9 +322,9 @@ function PurchaseInvoiceScreen() {
                 }
               >
                 <p className="font-medium">
-                  {SEVERITY_LABEL[finding.severity] ?? finding.severity}:{' '}
-                  {FINDING_LABEL[finding.code] ?? finding.code}
-                  {finding.lineNumber !== null && ` (regel ${String(finding.lineNumber)})`}
+                  {severityOf(finding.severity)}: {findingOf(finding.code)}
+                  {finding.lineNumber !== null &&
+                    t('purchase.findingLine', { line: String(finding.lineNumber) })}
                 </p>
                 <p className="text-muted-foreground mt-1">{finding.message}</p>
               </li>
@@ -318,15 +335,15 @@ function PurchaseInvoiceScreen() {
 
       {data.journalEntryId !== null && (
         <p className="text-sm">
-          Geboekt als{' '}
+          {t('invoice.postedAs')}{' '}
           <Link
             to="/entries/$entryId"
             params={{ entryId: data.journalEntryId }}
             className="underline"
           >
-            journaalpost {data.journalEntryNumber ?? ''}
+            {t('purchase.postedAsEntry', { number: data.journalEntryNumber ?? '' })}
           </Link>
-          {data.approvedBy !== null && ' · goedgekeurd voor betaling'}
+          {data.approvedBy !== null && t('purchase.approvedForPayment')}
           {data.payableRefusal !== null && (
             <span className="text-muted-foreground"> · {data.payableRefusal}</span>
           )}

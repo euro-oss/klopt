@@ -3,6 +3,8 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { listPurchaseInvoices } from '~/server/purchase'
 
@@ -50,22 +52,27 @@ interface Row {
 }
 
 const FILTERS = [
-  { label: 'Alles', status: undefined, open: false },
-  { label: 'Concepten', status: 'draft', open: false },
-  { label: 'Wacht op fiat', status: 'booked', open: false },
-  { label: 'Openstaand', status: undefined, open: true },
-  { label: 'In geschil', status: 'disputed', open: false },
-] as const
+  { key: 'purchases.filter.all', status: undefined, open: false },
+  { key: 'purchases.drafts', status: 'draft', open: false },
+  { key: 'purchases.awaitingApproval', status: 'booked', open: false },
+  { key: 'purchases.filter.open', status: undefined, open: true },
+  { key: 'purchases.filter.disputed', status: 'disputed', open: false },
+] as const satisfies readonly {
+  key: MessageKey
+  status: string | undefined
+  open: boolean
+}[]
 
 function PurchaseInvoices() {
   const { invoices, filter } = Route.useLoaderData()
   const navigate = useNavigate()
   const hydrated = useHydrated()
+  const { t } = useT()
 
   if (!invoices.ok) {
     return (
       <>
-        <PageHeader title="Inkoopfacturen" />
+        <PageHeader title={t('purchases.title')} />
         <p role="alert" className="text-destructive text-sm">
           {invoices.problem.detail}
         </p>
@@ -82,7 +89,7 @@ function PurchaseInvoices() {
   const columns: readonly Column<Row>[] = [
     {
       key: 'number',
-      header: 'Factuurnr.',
+      header: t('purchases.invoiceNumber'),
       width: '11rem',
       cell: (row) => (
         <Link
@@ -96,7 +103,7 @@ function PurchaseInvoices() {
     },
     {
       key: 'supplier',
-      header: 'Leverancier',
+      header: t('ageing.supplier'),
       cell: (row) => (
         <span>
           {row.contactName}
@@ -106,13 +113,13 @@ function PurchaseInvoices() {
     },
     {
       key: 'date',
-      header: 'Factuurdatum',
+      header: t('purchases.invoiceDate'),
       width: '9rem',
       cell: (row) => <span className="tabular">{formatDate(row.invoiceDate)}</span>,
     },
     {
       key: 'due',
-      header: 'Vervaldatum',
+      header: t('purchases.dueDate'),
       width: '9rem',
       cell: (row) => (
         <span
@@ -126,7 +133,7 @@ function PurchaseInvoices() {
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('invoices.status'),
       width: '11rem',
       cell: (row) => (
         <span
@@ -139,20 +146,22 @@ function PurchaseInvoices() {
           }
           title={row.disputedReason ?? undefined}
         >
-          {row.kind === 'credit_note' ? `creditnota · ${row.statusLabel}` : row.statusLabel}
+          {row.kind === 'credit_note'
+            ? `${t('invoices.kind.creditNote')} · ${row.statusLabel}`
+            : row.statusLabel}
         </span>
       ),
     },
     {
       key: 'total',
-      header: 'Totaal',
+      header: t('report.total'),
       width: '9rem',
       align: 'right',
       cell: (row) => <Money amount={row.total} />,
     },
     {
       key: 'outstanding',
-      header: 'Openstaand',
+      header: t('purchases.outstanding'),
       width: '11rem',
       align: 'right',
       // Still openstaand, and already in a batch: the money has not moved, so
@@ -172,32 +181,32 @@ function PurchaseInvoices() {
   return (
     <>
       <PageHeader
-        title="Inkoopfacturen"
-        description="Wat leveranciers hebben gestuurd. De bedragen zijn die van hun document — wij rekenen ze na, we rekenen ze niet uit."
+        title={t('purchases.title')}
+        description={t('purchases.intro')}
         actions={
           <Link
             to="/purchases/new"
             className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
           >
-            Factuur invoeren
+            {t('purchases.enter')}
           </Link>
         }
       />
 
       <div className="mb-8 flex flex-wrap gap-8">
-        <Stat label="Concepten" value={String(invoices.data.drafts)} />
+        <Stat label={t('purchases.drafts')} value={String(invoices.data.drafts)} />
         <Stat
-          label="Wacht op fiat"
+          label={t('purchases.awaitingApproval')}
           value={String(invoices.data.awaitingApproval)}
           tone={invoices.data.awaitingApproval > 0 ? 'warn' : 'neutral'}
         />
         <Stat
-          label="Te laat"
+          label={t('purchases.overdue')}
           value={String(overdue.length)}
           tone={overdue.length > 0 ? 'warn' : 'neutral'}
         />
         <Stat
-          label="Nog te betalen"
+          label={t('purchases.stillToPay')}
           value={
             <Money
               amount={rows
@@ -215,7 +224,7 @@ function PurchaseInvoices() {
             (option.status ?? undefined) === filter.status && option.open === filter.open
           return (
             <button
-              key={option.label}
+              key={option.key}
               type="button"
               disabled={!hydrated}
               onClick={() => {
@@ -233,7 +242,7 @@ function PurchaseInvoices() {
                   : 'border-input rounded-md border px-3 py-1.5 text-sm disabled:opacity-50'
               }
             >
-              {option.label}
+              {t(option.key)}
             </button>
           )
         })}
@@ -241,16 +250,16 @@ function PurchaseInvoices() {
           to="/reports/creditor-ageing"
           className="border-input ml-auto rounded-md border px-3 py-1.5 text-sm"
         >
-          Ouderdomsanalyse
+          {t('purchases.ageing')}
         </Link>
       </div>
 
       <LedgerTable
-        caption="Inkoopfacturen"
+        caption={t('purchases.title')}
         columns={columns}
         rows={rows}
         rowKey={(row) => row.id}
-        empty="Geen inkoopfacturen."
+        empty={t('purchases.empty')}
       />
     </>
   )

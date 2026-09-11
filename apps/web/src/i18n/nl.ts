@@ -355,6 +355,86 @@ export const nl = {
   'contact.and': ' en ',
   'contact.blocked': 'Geblokkeerd',
   'contact.saved': 'Opgeslagen.',
+
+  // Purchase invoices.
+  'purchases.title': 'Inkoopfacturen',
+  'purchases.intro':
+    'Wat leveranciers hebben gestuurd. De bedragen zijn die van hun document — wij rekenen ze na, we rekenen ze niet uit.',
+  'purchases.enter': 'Factuur invoeren',
+  'purchases.empty': 'Geen inkoopfacturen.',
+  'purchases.ageing': 'Ouderdomsanalyse',
+  'purchases.drafts': 'Concepten',
+  'purchases.awaitingApproval': 'Wacht op fiat',
+  'purchases.overdue': 'Te laat',
+  'purchases.stillToPay': 'Nog te betalen',
+  'purchases.filter.all': 'Alles',
+  'purchases.filter.open': 'Openstaand',
+  'purchases.filter.disputed': 'In geschil',
+  'purchases.invoiceNumber': 'Factuurnr.',
+  'purchases.invoiceDate': 'Factuurdatum',
+  'purchases.dueDate': 'Vervaldatum',
+  'purchases.outstanding': 'Openstaand',
+
+  // Entering a purchase invoice.
+  'purchaseNew.title': 'Inkoopfactuur invoeren',
+  'purchaseNew.intro':
+    'Neem de bedragen over van het document. Ze worden nagerekend, niet uitgerekend — wat de leverancier zegt, is wat je verschuldigd bent.',
+  'purchaseNew.noSuppliers':
+    'Er is nog geen leverancier. Maak er een aan onder Relaties en vink “leverancier” aan.',
+  'purchaseNew.supplierInvoiceNumber': 'Factuurnummer leverancier',
+  'purchaseNew.paymentReference': 'Betalingskenmerk',
+  'purchaseNew.asOnDocument': 'Zoals op het document',
+  'purchaseNew.netAmount': 'Bedrag excl. btw',
+  'purchaseNew.lines': 'Regels van de inkoopfactuur',
+  'purchaseNew.taxCode': 'Btw-code',
+  'purchaseNew.excludingVat': 'Excl. btw',
+  'purchaseNew.netLine': 'Excl. btw regel {line}',
+  'purchaseNew.taxCodeLine': 'Btw-code regel {line}',
+  'purchaseNew.computeTaxLine': 'Btw berekenen voor regel {line}',
+  'purchaseNew.computeTaxTitle': 'Btw uit de code berekenen',
+  'purchaseNew.linesTogether': 'Regels bij elkaar',
+  'purchaseNew.netDoesNotMatch':
+    'De regels tellen op tot een ander bedrag dan het document zegt. Er mist een regel, of er staat een typefout in.',
+  'purchaseNew.taxDoesNotMatch': 'De btw op de regels is niet de btw op het document.',
+  'purchaseNew.totalDoesNotMatch': 'Excl. btw plus btw is niet het totaal.',
+  'purchaseNew.saveNote':
+    'Opslaan boekt nog niets. Op de factuur zelf staat wat er niet klopt en kun je hem boeken — dan pas ontstaan de schuld en de voorbelasting, met de factuurdatum als boekdatum.',
+
+  // One purchase invoice, and what the checks found.
+  'purchase.title': 'Inkoopfactuur',
+  'purchase.book': 'Boeken',
+  'purchase.approve': 'Goedkeuren voor betaling',
+  'purchase.dispute': 'In geschil zetten',
+  'purchase.resolve': 'Geschil opgelost',
+  'purchase.cancel': 'Laten vervallen',
+  'purchase.all': 'Alle facturen',
+  'purchase.paid': 'betaald',
+  'purchase.dueOn': 'vervalt {date}',
+  'purchase.disputeWhy': 'Waarom is deze factuur in geschil?',
+  'purchase.disputeHint':
+    'Dit is wat de leverancier te horen krijgt en wat de volgende persoon leest. De factuur blijft geboekt — de schuld bestaat tot hij is voldaan of gecrediteerd — maar wordt niet betaald.',
+  'purchase.disputed': 'In geschil:',
+  'purchase.lines': 'Regels',
+  'purchase.linesCaption': 'Regels van deze inkoopfactuur',
+  'purchase.findings': 'Bevindingen',
+  'purchase.findingsBlocking': ' ({count} blokkerend)',
+  'purchase.findingLine': ' (regel {line})',
+  'purchase.postedAsEntry': 'journaalpost {number}',
+  'purchase.approvedForPayment': ' · goedgekeurd voor betaling',
+  'purchase.severity.blocking': 'Blokkerend',
+  'purchase.severity.warning': 'Ter beoordeling',
+  'purchase.severity.note': 'Ter info',
+  'purchase.finding.lines_do_not_sum_to_net': 'Regels tellen niet op tot het bedrag op de factuur',
+  'purchase.finding.lines_do_not_sum_to_tax': 'Btw op de regels is niet de btw op de factuur',
+  'purchase.finding.net_plus_tax_is_not_total': 'Excl. btw plus btw is niet het totaal',
+  'purchase.finding.rate_mismatch': 'Btw wijkt af van het tarief van de code',
+  'purchase.finding.reverse_charge_with_tax':
+    'Verlegde btw, maar de factuur brengt btw in rekening',
+  'purchase.finding.unknown_tax_code': 'Btw-code klopt niet',
+  'purchase.finding.no_rule_in_force': 'Btw-code is niet geldig op de factuurdatum',
+  'purchase.finding.not_deductible': 'Btw is niet aftrekbaar',
+  'purchase.finding.pro_rata': 'Btw is gedeeltelijk aftrekbaar',
+  'purchase.finding.duplicate_invoice_number': 'Dit factuurnummer is al eerder geboekt',
 } as const
 
 export type MessageKey = keyof typeof nl
