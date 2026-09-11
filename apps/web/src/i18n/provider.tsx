@@ -51,13 +51,17 @@ export function LocaleProvider({ locale, children }: { locale: Locale; children:
  * component rendered in a context nobody thought about.
  */
 export function useT(): Translator {
-  const value = useContext(LocaleContext)
-  if (value !== null) return value
+  return useContext(LocaleContext) ?? FALLBACK
+}
 
-  return {
-    locale: DEFAULT_LOCALE,
-    t: (key, values) => translate(DEFAULT_LOCALE, key, values),
-    plural: (key, count, values) => translatePlural(DEFAULT_LOCALE, key, count, values),
-    tag: intlTag(DEFAULT_LOCALE),
-  }
+/**
+ * Hoisted rather than built per call, so that `t` is referentially stable even
+ * without a provider. Screens put `t` in a `useCallback` dependency array; a
+ * fresh object every render would quietly turn those into no-ops.
+ */
+const FALLBACK: Translator = {
+  locale: DEFAULT_LOCALE,
+  t: (key, values) => translate(DEFAULT_LOCALE, key, values),
+  plural: (key, count, values) => translatePlural(DEFAULT_LOCALE, key, count, values),
+  tag: intlTag(DEFAULT_LOCALE),
 }

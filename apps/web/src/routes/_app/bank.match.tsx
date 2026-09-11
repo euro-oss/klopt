@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import {
   confirmMatch,
@@ -58,12 +60,12 @@ interface Suggestion {
   allocations: { invoiceId: string; number: string; amount: string }[]
 }
 
-const STRATEGY_LABEL: Record<string, string> = {
-  reference: 'factuurnummer',
-  iban_amount: 'rekeningnummer en bedrag',
-  learned_rule: 'eerdere boeking',
-  fuzzy_name: 'naam lijkt erop',
-  oldest_first: 'oudste eerst',
+const STRATEGY_KEY: Record<string, MessageKey> = {
+  reference: 'match.strategy.reference',
+  iban_amount: 'match.strategy.iban_amount',
+  learned_rule: 'match.strategy.learned_rule',
+  fuzzy_name: 'match.strategy.fuzzy_name',
+  oldest_first: 'match.strategy.oldest_first',
 }
 
 function confidenceClass(confidence: number): string {
@@ -76,6 +78,13 @@ function MatchQueue() {
   const { transactions, accounts } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { t } = useT()
+
+  /** An unrecognised strategy is shown raw rather than as a blank. */
+  const strategyOf = (strategy: string) => {
+    const key = STRATEGY_KEY[strategy]
+    return key === undefined ? strategy : t(key)
+  }
 
   const queue: Line[] = transactions.ok ? transactions.data.transactions : []
   const postable = accounts.ok ? accounts.data.accounts.filter((account) => !account.isBlocked) : []
@@ -142,15 +151,15 @@ function MatchQueue() {
         setAnswered({ id: lineId, items: [] })
         setError(
           cause instanceof Error
-            ? `De suggesties konden niet geladen worden: ${cause.message}`
-            : 'De suggesties konden niet geladen worden.',
+            ? t('match.suggestionsFailedWhy', { reason: cause.message })
+            : t('match.suggestionsFailed'),
         )
       })
 
     return () => {
       cancelled = true
     }
-  }, [lineId])
+  }, [lineId, t])
 
   const book = useCallback(
     async (suggestion: Suggestion | null, accountNumber: string | null) => {
@@ -191,14 +200,14 @@ function MatchQueue() {
       keys.current.delete(line.id)
       const body = result.data
       setNotice(
-        `Geboekt als journaalpost ${String(body.entryNumber)}` +
-          (body.learned ? ', en onthouden voor volgende keer.' : '.'),
+        t('match.posted', { number: String(body.entryNumber) }) +
+          (body.learned ? t('match.postedLearned') : '.'),
       )
       setManualAccount('')
       // The row goes; the selection stays put, which lands it on the next line.
       await router.invalidate()
     },
-    [line, busy, keyFor, router],
+    [line, busy, keyFor, router, t],
   )
 
   const skip = useCallback(async () => {
@@ -218,9 +227,9 @@ function MatchQueue() {
     }
 
     keys.current.delete(line.id)
-    setNotice('Overgeslagen.')
+    setNotice(t('match.skipped'))
     await router.invalidate()
-  }, [line, busy, keyFor, router])
+  }, [line, busy, keyFor, router, t])
 
   /**
    * The keyboard is the point.
@@ -283,7 +292,7 @@ function MatchQueue() {
   if (!transactions.ok) {
     return (
       <>
-        <PageHeader title="Koppelen" />
+        <PageHeader title={t('match.title')} />
         <p role="alert" className="text-destructive text-sm">
           {transactions.problem.detail}
         </p>
@@ -294,11 +303,11 @@ function MatchQueue() {
   return (
     <>
       <PageHeader
-        title="Koppelen"
-        description="↑↓ kiest een regel · ↵ boekt het beste voorstel · 1–9 kiest een voorstel · x slaat over"
+        title={t('match.title')}
+        description={t('match.intro')}
         actions={
           <Link to="/bank" className="border-input rounded-md border px-4 py-2 text-sm">
-            Terug naar bank
+            {t('match.backToBank')}
           </Link>
         }
       />
@@ -316,12 +325,12 @@ function MatchQueue() {
 
       {queue.length === 0 ? (
         <p className="text-muted-foreground border-border rounded-md border border-dashed p-6 text-sm">
-          Niets te koppelen. Elke banktransactie is geboekt of overgeslagen.
+          {t('match.nothingToDo')}
         </p>
       ) : (
         <div className="grid grid-cols-[22rem_1fr] gap-6">
           <ol
-            aria-label="Wachtrij"
+            aria-label={t('match.queue')}
             className="border-border max-h-[36rem] overflow-y-auto rounded-md border"
           >
             {queue.map((item, index) => (
@@ -342,7 +351,7 @@ function MatchQueue() {
                   </span>
                   <span className="mt-0.5 block truncate">
                     {item.counterpartyName ??
-                      (item.description === '' ? 'zonder tegenpartij' : item.description)}
+                      (item.description === '' ? t('match.noCounterparty') : item.description)}
                   </span>
                 </button>
               </li>
@@ -354,7 +363,9 @@ function MatchQueue() {
               <div className="border-border mb-4 rounded-md border p-4">
                 <div className="flex items-baseline justify-between gap-4">
                   <div>
-                    <p className="font-medium">{line.counterpartyName ?? 'Zonder tegenpartij'}</p>
+                    <p className="font-medium">
+                      {line.counterpartyName ?? t('match.noCounterpartyTitle')}
+                    </p>
                     <p className="text-muted-foreground tabular text-xs">
                       {formatDate(line.bookingDate)}
                       {line.counterpartyIban === null ? '' : ` · ${line.counterpartyIban}`}
@@ -368,11 +379,11 @@ function MatchQueue() {
               </div>
             )}
 
-            {loading && <p className="text-muted-foreground text-sm">Voorstellen zoeken…</p>}
+            {loading && <p className="text-muted-foreground text-sm">{t('match.searching')}</p>}
 
             {suggestions !== null && suggestions.length === 0 && (
               <p className="text-muted-foreground border-border mb-4 rounded-md border border-dashed p-4 text-sm">
-                Geen voorstel. Kies zelf een grootboekrekening.
+                {t('match.noSuggestion')}
               </p>
             )}
 
@@ -392,7 +403,7 @@ function MatchQueue() {
                       {index < 9 && (
                         <kbd className="border-input mr-1 rounded border px-1">{index + 1}</kbd>
                       )}
-                      {STRATEGY_LABEL[suggestion.strategy] ?? suggestion.strategy}
+                      {strategyOf(suggestion.strategy)}
                     </span>
                     <span className="block text-sm">{suggestion.reason}</span>
                     {suggestion.allocations.length > 0 && (
@@ -409,7 +420,7 @@ function MatchQueue() {
                     }}
                     className="bg-primary text-primary-foreground shrink-0 rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-50"
                   >
-                    Boeken
+                    {t('match.book')}
                   </button>
                 </li>
               ))}
@@ -418,17 +429,17 @@ function MatchQueue() {
             <div className="border-border flex items-end gap-3 rounded-md border p-4">
               <label className="flex-1">
                 <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                  Zelf kiezen
+                  {t('match.chooseYourself')}
                 </span>
                 <select
-                  aria-label="Zelf kiezen"
+                  aria-label={t('match.chooseYourself')}
                   value={manualAccount}
                   onChange={(event) => {
                     setManualAccount(event.target.value)
                   }}
                   className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                 >
-                  <option value="">Kies een grootboekrekening…</option>
+                  <option value="">{t('match.choosePlaceholder')}</option>
                   {postable.map((account) => (
                     <option key={account.number} value={account.number}>
                       {account.number} {account.name}
@@ -444,7 +455,7 @@ function MatchQueue() {
                 }}
                 className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
-                Boeken
+                {t('match.book')}
               </button>
               <button
                 type="button"
@@ -454,15 +465,12 @@ function MatchQueue() {
                 }}
                 className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
               >
-                Overslaan <kbd className="border-input ml-1 rounded border px-1 text-xs">x</kbd>
+                {t('match.skip')}{' '}
+                <kbd className="border-input ml-1 rounded border px-1 text-xs">x</kbd>
               </button>
             </div>
 
-            <p className="text-muted-foreground mt-4 max-w-2xl text-xs">
-              Zelf kiezen zonder factuur wordt onthouden: de volgende keer dat er geld van dezelfde
-              tegenpartij komt, staat deze rekening als voorstel bovenaan. Die regels staan onder
-              Bank en kun je uitzetten.
-            </p>
+            <p className="text-muted-foreground mt-4 max-w-2xl text-xs">{t('match.learnNote')}</p>
           </div>
         </div>
       )}

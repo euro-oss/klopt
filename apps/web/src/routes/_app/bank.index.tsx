@@ -5,6 +5,8 @@ import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import type { CsvMapping } from '@klopt/core'
 import { formatDate } from '~/lib/format'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import {
   createBankAccount,
@@ -70,15 +72,15 @@ interface ImportReport {
  * are already right is how a configuration form goes unfinished.
  */
 const MAPPING_FIELDS = [
-  { key: 'bookingDate', label: 'Datum', required: true },
-  { key: 'amount', label: 'Bedrag', required: true },
-  { key: 'indicator', label: 'Af/bij-kolom', required: false },
-  { key: 'counterpartyName', label: 'Naam tegenpartij', required: false },
-  { key: 'counterpartyIban', label: 'Tegenrekening', required: false },
-  { key: 'description', label: 'Omschrijving', required: false },
-  { key: 'reference', label: 'Kenmerk', required: false },
-  { key: 'balanceAfter', label: 'Saldo na mutatie', required: false },
-] as const
+  { key: 'bookingDate', label: 'bank.map.bookingDate', required: true },
+  { key: 'amount', label: 'bank.map.amount', required: true },
+  { key: 'indicator', label: 'bank.map.indicator', required: false },
+  { key: 'counterpartyName', label: 'bank.map.counterpartyName', required: false },
+  { key: 'counterpartyIban', label: 'bank.map.counterpartyIban', required: false },
+  { key: 'description', label: 'bank.map.description', required: false },
+  { key: 'reference', label: 'bank.map.reference', required: false },
+  { key: 'balanceAfter', label: 'bank.map.balanceAfter', required: false },
+] as const satisfies readonly { key: string; label: MessageKey; required: boolean }[]
 
 const DATE_FORMATS = [
   'yyyy-MM-dd',
@@ -89,17 +91,24 @@ const DATE_FORMATS = [
   'dd.MM.yyyy',
 ] as const
 
-const CONSENT_LABEL: Record<string, string> = {
-  not_required: 'bestandsimport',
-  active: 'toegang actief',
-  expiring: 'toegang verloopt binnenkort',
-  expired: 'toegang verlopen',
+const CONSENT_KEY: Record<string, MessageKey> = {
+  not_required: 'bank.consent.not_required',
+  active: 'bank.consent.active',
+  expiring: 'bank.consent.expiring',
+  expired: 'bank.consent.expired',
 }
 
 function Bank() {
   const { accounts, transactions, rules } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { t } = useT()
+
+  /** An unrecognised consent state is shown raw rather than as a blank. */
+  const consentOf = (state: string) => {
+    const key = CONSENT_KEY[state]
+    return key === undefined ? state : t(key)
+  }
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -117,7 +126,7 @@ function Bank() {
   if (!accounts.ok) {
     return (
       <>
-        <PageHeader title="Bank" />
+        <PageHeader title={t('bank.title')} />
         <p role="alert" className="text-destructive text-sm">
           {accounts.problem.detail}
         </p>
@@ -226,8 +235,10 @@ function Bank() {
     setPreview(null)
     setMapping(null)
     setNotice(
-      `${String(body.imported)} transacties ingelezen` +
-        (body.duplicates > 0 ? `, ${String(body.duplicates)} stonden er al.` : '.'),
+      t('bank.imported', { count: String(body.imported) }) +
+        (body.duplicates > 0
+          ? t('bank.importedDuplicates', { count: String(body.duplicates) })
+          : '.'),
     )
     await router.invalidate()
   }
@@ -271,34 +282,36 @@ function Bank() {
   const columns: readonly Column<Row>[] = [
     {
       key: 'date',
-      header: 'Datum',
+      header: t('bank.map.bookingDate'),
       width: '7rem',
       cell: (row) => <span className="tabular">{formatDate(row.bookingDate)}</span>,
     },
     {
       key: 'counterparty',
-      header: 'Tegenpartij',
+      header: t('bank.counterparty'),
       width: '16rem',
       cell: (row) =>
-        row.counterpartyName ?? <span className="text-muted-foreground">onbekend</span>,
+        row.counterpartyName ?? (
+          <span className="text-muted-foreground">{t('bank.counterpartyUnknown')}</span>
+        ),
     },
-    { key: 'description', header: 'Omschrijving', cell: (row) => row.description },
+    { key: 'description', header: t('entries.description'), cell: (row) => row.description },
     {
       key: 'status',
-      header: 'Status',
+      header: t('invoices.status'),
       width: '7rem',
       cell: (row) =>
         row.status === 'matched' ? (
-          'gekoppeld'
+          t('bank.status.matched')
         ) : row.status === 'ignored' ? (
-          <span className="text-muted-foreground">genegeerd</span>
+          <span className="text-muted-foreground">{t('bank.status.ignored')}</span>
         ) : (
-          <span className="text-unreconciled">te koppelen</span>
+          <span className="text-unreconciled">{t('bank.status.unmatched')}</span>
         ),
     },
     {
       key: 'amount',
-      header: 'Bedrag',
+      header: t('bank.amount'),
       width: '9rem',
       align: 'right',
       cell: (row) => <Money amount={row.amount} />,
@@ -308,8 +321,8 @@ function Bank() {
   return (
     <>
       <PageHeader
-        title="Bank"
-        description="Rekeningen, afschriften en wat er binnenkwam."
+        title={t('bank.title')}
+        description={t('bank.intro')}
         actions={
           <>
             {unmatched > 0 && (
@@ -317,7 +330,7 @@ function Bank() {
                 to="/bank/match"
                 className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
               >
-                {unmatched} koppelen
+                {t('bank.matchCount', { count: String(unmatched) })}
               </Link>
             )}
             <button
@@ -328,7 +341,7 @@ function Bank() {
               }}
               className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
             >
-              {showAccountForm ? 'Annuleren' : 'Rekening toevoegen'}
+              {showAccountForm ? t('common.cancel') : t('bank.addAccount')}
             </button>
           </>
         }
@@ -351,16 +364,20 @@ function Bank() {
             />
           </label>
           <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">Naam</span>
+            <span className="text-muted-foreground mb-1 block text-xs font-medium">
+              {t('bank.accountName')}
+            </span>
             <input
               name="name"
               required
-              placeholder="Rekening-courant"
+              placeholder={t('bank.accountNamePlaceholder')}
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             />
           </label>
           <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">Grootboek</span>
+            <span className="text-muted-foreground mb-1 block text-xs font-medium">
+              {t('invoice.ledgerAccount')}
+            </span>
             <input
               name="ledgerAccountNumber"
               defaultValue="1100"
@@ -372,14 +389,14 @@ function Bank() {
             disabled={busy || !hydrated}
             className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
-            Opslaan
+            {t('common.save')}
           </button>
         </form>
       )}
 
       {bankAccounts.length === 0 ? (
         <p className="text-muted-foreground border-border mb-8 rounded-md border border-dashed p-6 text-sm">
-          Nog geen bankrekening. Voeg er een toe om afschriften te kunnen inlezen.
+          {t('bank.noAccounts')}
         </p>
       ) : (
         <div className="mb-8 grid grid-cols-3 gap-4">
@@ -389,27 +406,30 @@ function Bank() {
               <p className="text-muted-foreground tabular text-xs">{account.iban}</p>
               <p className="mt-3 text-2xl font-semibold tabular">
                 {account.reconciliation.statementBalance === null ? (
-                  <span className="text-muted-foreground text-sm">nog geen afschrift</span>
+                  <span className="text-muted-foreground text-sm">{t('bank.noStatement')}</span>
                 ) : (
                   <Money amount={account.reconciliation.statementBalance} />
                 )}
               </p>
               <p className="text-muted-foreground mt-1 text-xs">
                 {account.reconciliation.statementDate === null
-                  ? CONSENT_LABEL[account.consentState]
-                  : `per ${formatDate(account.reconciliation.statementDate)} · ${
-                      CONSENT_LABEL[account.consentState] ?? account.consentState
-                    }`}
+                  ? consentOf(account.consentState)
+                  : t('bank.asAt', {
+                      date: formatDate(account.reconciliation.statementDate),
+                      consent: consentOf(account.consentState),
+                    })}
               </p>
               {account.reconciliation.unmatchedCount > 0 && (
                 <p className="text-unreconciled mt-2 text-xs">
-                  {account.reconciliation.unmatchedCount} regels nog te koppelen
+                  {t('bank.unmatchedLines', {
+                    count: String(account.reconciliation.unmatchedCount),
+                  })}
                 </p>
               )}
 
               <label className="mt-4 block">
                 <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                  Afschrift inlezen
+                  {t('bank.importStatement')}
                 </span>
                 <input
                   type="file"
@@ -441,24 +461,21 @@ function Bank() {
 
       {preview !== null && preview.report.needsMapping && mapping !== null && (
         <div className="border-border mb-8 rounded-md border p-4">
-          <h2 className="text-base font-medium">Kolommen van dit bestand</h2>
+          <h2 className="text-base font-medium">{t('bank.columns')}</h2>
           {/* A guess to correct, not a form to fill in: spec 7.4 asks for a
               configurable mapper, and eleven empty dropdowns is a mapper
               nobody configures. */}
-          <p className="text-muted-foreground mt-1 text-sm">
-            Dit is een CSV, en elke bank verzint zijn eigen kolommen. Dit is een gok — controleer
-            hem. Hij wordt onthouden, dus dit hoeft één keer.
-          </p>
+          <p className="text-muted-foreground mt-1 text-sm">{t('bank.columnsIntro')}</p>
 
           <div className="mt-4 grid grid-cols-4 gap-4">
             {MAPPING_FIELDS.map((field) => (
               <label key={field.key} className="block">
                 <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                  {field.label}
-                  {field.required ? '' : ' (optioneel)'}
+                  {t(field.label)}
+                  {field.required ? '' : t('bank.optionalSuffix')}
                 </span>
                 <select
-                  aria-label={field.label}
+                  aria-label={t(field.label)}
                   value={mapping[field.key] ?? ''}
                   onChange={(event) => {
                     const value = event.target.value === '' ? null : event.target.value
@@ -486,10 +503,10 @@ function Bank() {
 
             <label className="block">
               <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                Datumnotatie
+                {t('bank.dateFormat')}
               </span>
               <select
-                aria-label="Datumnotatie"
+                aria-label={t('bank.dateFormat')}
                 value={mapping.dateFormat}
                 onChange={(event) => {
                   setMapping({ ...mapping, dateFormat: event.target.value })
@@ -506,10 +523,10 @@ function Bank() {
 
             <label className="block">
               <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                Decimaalteken
+                {t('bank.decimalSeparator')}
               </span>
               <select
-                aria-label="Decimaalteken"
+                aria-label={t('bank.decimalSeparator')}
                 value={mapping.decimalSeparator}
                 onChange={(event) => {
                   setMapping({
@@ -527,7 +544,7 @@ function Bank() {
             {mapping.amountStyle === 'indicator' && (
               <label className="block">
                 <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                  Waarde voor &ldquo;bij&rdquo;
+                  {t('bank.creditIndicator')}
                 </span>
                 <input
                   value={mapping.creditIndicator ?? ''}
@@ -542,8 +559,7 @@ function Bank() {
 
           {preview.report.unmatched.length > 0 && (
             <p className="text-muted-foreground mt-4 text-xs">
-              Niet toegewezen: {preview.report.unmatched.join(', ')}. Die kolommen worden
-              overgeslagen.
+              {t('bank.unassignedColumns', { columns: preview.report.unmatched.join(', ') })}
             </p>
           )}
 
@@ -556,7 +572,7 @@ function Bank() {
               }}
               className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
-              {busy ? 'Bezig…' : 'Bestand lezen'}
+              {busy ? t('common.busy') : t('bank.readFile')}
             </button>
             <button
               type="button"
@@ -566,7 +582,7 @@ function Bank() {
               }}
               className="border-input rounded-md border px-4 py-2 text-sm"
             >
-              Annuleren
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -574,14 +590,14 @@ function Bank() {
 
       {preview !== null && !preview.report.needsMapping && (
         <div className="border-border mb-8 rounded-md border p-4">
-          <h2 className="text-base font-medium">Wat dit bestand zou doen</h2>
+          <h2 className="text-base font-medium">{t('bank.wouldDo')}</h2>
           <dl className="mt-3 grid grid-cols-4 gap-4 text-sm">
             <div>
-              <dt className="text-muted-foreground text-xs">Formaat</dt>
-              <dd>{preview.report.format ?? 'onbekend'}</dd>
+              <dt className="text-muted-foreground text-xs">{t('bank.format')}</dt>
+              <dd>{preview.report.format ?? t('bank.formatUnknown')}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground text-xs">Periode</dt>
+              <dt className="text-muted-foreground text-xs">{t('bank.periodLabel')}</dt>
               <dd className="tabular">
                 {preview.report.period === null
                   ? '—'
@@ -589,11 +605,11 @@ function Bank() {
               </dd>
             </div>
             <div>
-              <dt className="text-muted-foreground text-xs">Nieuw</dt>
+              <dt className="text-muted-foreground text-xs">{t('bank.newCount')}</dt>
               <dd className="tabular font-medium">{preview.report.newEntries}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground text-xs">Al ingelezen</dt>
+              <dt className="text-muted-foreground text-xs">{t('bank.alreadyImported')}</dt>
               <dd className="tabular">{preview.report.duplicates}</dd>
             </div>
           </dl>
@@ -622,7 +638,7 @@ function Bank() {
               }}
               className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
-              {busy ? 'Bezig…' : 'Inlezen'}
+              {busy ? t('common.busy') : t('bank.import')}
             </button>
             <button
               type="button"
@@ -631,7 +647,7 @@ function Bank() {
               }}
               className="border-input rounded-md border px-4 py-2 text-sm"
             >
-              Annuleren
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -639,18 +655,16 @@ function Bank() {
 
       {learnedRules.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-1 text-base font-medium">Onthouden regels</h2>
+          <h2 className="mb-1 text-base font-medium">{t('bank.rules')}</h2>
           {/* Spec 7.4: "visible and editable, never a black box". A rule you
               cannot read is one you cannot disagree with. */}
-          <p className="text-muted-foreground mb-3 text-sm">
-            Wat er is onthouden van eerdere koppelingen, en hoe vaak het klopte.
-          </p>
+          <p className="text-muted-foreground mb-3 text-sm">{t('bank.rulesIntro')}</p>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-border text-muted-foreground border-b text-left text-xs">
-                <th className="py-2 font-medium">Als</th>
-                <th className="py-2 font-medium">Dan</th>
-                <th className="py-2 text-right font-medium">Toegepast</th>
+                <th className="py-2 font-medium">{t('bank.ruleIf')}</th>
+                <th className="py-2 font-medium">{t('bank.ruleThen')}</th>
+                <th className="py-2 text-right font-medium">{t('bank.ruleApplied')}</th>
                 <th className="py-2" />
               </tr>
             </thead>
@@ -659,14 +673,18 @@ function Bank() {
                 <tr key={rule.id} className="border-border border-b">
                   <td className="py-2">
                     {[
-                      rule.counterpartyIban === null ? null : `rekening ${rule.counterpartyIban}`,
-                      rule.counterpartyName === null ? null : `naam "${rule.counterpartyName}"`,
+                      rule.counterpartyIban === null
+                        ? null
+                        : t('bank.ruleAccount', { iban: rule.counterpartyIban }),
+                      rule.counterpartyName === null
+                        ? null
+                        : t('bank.ruleName', { name: rule.counterpartyName }),
                       rule.descriptionContains === null
                         ? null
-                        : `omschrijving bevat "${rule.descriptionContains}"`,
+                        : t('bank.ruleDescription', { text: rule.descriptionContains }),
                     ]
                       .filter((part) => part !== null)
-                      .join(' en ')}
+                      .join(t('bank.ruleAnd'))}
                   </td>
                   <td className="tabular py-2">{rule.accountNumber ?? '—'}</td>
                   <td className="tabular py-2 text-right">{rule.timesApplied}×</td>
@@ -679,7 +697,7 @@ function Bank() {
                       }}
                       className="text-muted-foreground hover:text-foreground text-xs underline disabled:opacity-50"
                     >
-                      {rule.isActive ? 'Uitzetten' : 'Aanzetten'}
+                      {rule.isActive ? t('bank.ruleDisable') : t('bank.ruleEnable')}
                     </button>
                   </td>
                 </tr>
@@ -692,28 +710,32 @@ function Bank() {
       {bankAccounts.length > 0 && (
         <>
           <div className="mb-4 grid grid-cols-3 gap-4">
-            <Stat label="Regels" value={String(rows.length)} hint="laatste 200" />
             <Stat
-              label="Te koppelen"
+              label={t('bank.lines')}
+              value={String(rows.length)}
+              hint={t('bank.lastTwoHundred')}
+            />
+            <Stat
+              label={t('bank.toMatch')}
               value={String(unmatched)}
               tone={unmatched > 0 ? 'warn' : 'neutral'}
-              hint="nog niet aan een boeking gekoppeld"
+              hint={t('bank.toMatchHint')}
             />
-            <Stat label="Rekeningen" value={String(bankAccounts.length)} />
+            <Stat label={t('bank.accounts')} value={String(bankAccounts.length)} />
           </div>
 
           <LedgerTable
             columns={columns}
             rows={rows}
             rowKey={(row) => row.id}
-            caption="Banktransacties"
-            empty="Nog geen transacties. Lees een afschrift in."
+            caption={t('bank.transactions')}
+            empty={t('bank.transactionsEmpty')}
           />
 
           <p className="text-muted-foreground mt-6 max-w-2xl text-xs">
-            Wat de bank zei, precies zoals de bank het zei. Koppelen aan boekingen gaat via{' '}
+            {t('bank.footerNote')}{' '}
             <Link to="/bank/match" className="underline">
-              de koppelwachtrij
+              {t('bank.footerLink')}
             </Link>
             .
           </p>
