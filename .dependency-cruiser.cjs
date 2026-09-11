@@ -51,6 +51,20 @@ module.exports = {
       to: { dependencyTypes: ['npm-dev'], pathNot: '\\.d\\.ts$' },
     },
     {
+      name: 'examples-use-only-the-public-api',
+      severity: 'error',
+      comment:
+        'An example is proof that the published API is enough to build on. The moment it imports ' +
+        '@klopt/anything it stops being proof and becomes a part of the application that happens ' +
+        'to live in examples/ — and the gap it was meant to detect goes unnoticed. It talks HTTP ' +
+        'and node builtins, like anybody outside this repository would.',
+      from: { path: '^examples/' },
+      // The module name, not a source path: a workspace dependency resolves
+      // through a node_modules symlink, so `^packages/` would never match and
+      // the rule would sit there looking reassuring and checking nothing.
+      to: { path: '^@klopt/' },
+    },
+    {
       name: 'no-non-package-json',
       severity: 'error',
       comment: 'Imported but not declared in package.json. A phantom dependency.',

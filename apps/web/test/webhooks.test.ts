@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7, verifyWebhook } from '@klopt/core'
 import {
   closeDatabase,
@@ -15,6 +15,7 @@ import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
 import {
   handleCreateWebhook,
+  handleDeleteWebhook,
   handleListWebhooks,
   handleReplayWebhook,
 } from '../src/api/handlers/webhooks.js'
@@ -128,6 +129,21 @@ beforeAll(async () => {
   })
   token = issued.token
 }, 60_000)
+
+/**
+ * Every test takes its endpoints away again.
+ *
+ * Without this each one leaves a live subscriber behind, so a later
+ * `deliverWebhooks` does the work of every test that ran before it — the file
+ * got slower until it timed out. It also removes the coupling that made two
+ * assertions here read somebody else's post before they were scoped by URL.
+ */
+afterEach(async () => {
+  const listed = await handleListWebhooks(await contextFor())
+  for (const endpoint of listed.body.endpoints) {
+    await handleDeleteWebhook(await contextFor(uuidv7()), endpoint.id)
+  }
+})
 
 afterAll(async () => {
   await cleanupSeededBackgroundWork(database)
@@ -287,33 +303,48 @@ describe('delivering', () => {
 })
 
 describe('replaying', () => {
-  it('sends everything again from the beginning, and switches the endpoint back on', async () => {
-    const endpoint = await anEndpoint()
-    const resourceId = await anEvent()
+  /**
+   * Slow on purpose, and allowed to be.
+   *
+   * A new endpoint starts with no cursor, which means the whole history — that
+   * is the product decision, so that connecting an integration gives it what
+   * happened rather than only what happens next. This test then does it three
+   * times over, and each event is its own HTTP call and its own transaction so
+   * that a crash mid-batch cannot lose the cursor.
+   *
+   * The default five seconds is a budget for a unit test, and this is not one.
+   */
+  it(
+    'sends everything again from the beginning, and switches the endpoint back on',
+    { timeout: 30_000 },
+    async () => {
+      const endpoint = await anEndpoint()
+      const resourceId = await anEvent()
 
-    // Deliver once, successfully.
-    const mineIn = (seen: { url: string; body: string }[]) =>
-      seen.filter((attempt) => attempt.url === endpoint.url)
+      // Deliver once, successfully.
+      const mineIn = (seen: { url: string; body: string }[]) =>
+        seen.filter((attempt) => attempt.url === endpoint.url)
 
-    const first = subscriber(() => ({ status: 200 }))
-    await deliverWebhooks(database, { fetch: first.fetch })
-    expect(mineIn(first.seen).some((attempt) => attempt.body.includes(resourceId))).toBe(true)
+      const first = subscriber(() => ({ status: 200 }))
+      await deliverWebhooks(database, { fetch: first.fetch })
+      expect(mineIn(first.seen).some((attempt) => attempt.body.includes(resourceId))).toBe(true)
 
-    // Nothing to do the second time.
-    const idle = subscriber(() => ({ status: 200 }))
-    await deliverWebhooks(database, { fetch: idle.fetch })
-    expect(mineIn(idle.seen).some((attempt) => attempt.body.includes(resourceId))).toBe(false)
+      // Nothing to do the second time.
+      const idle = subscriber(() => ({ status: 200 }))
+      await deliverWebhooks(database, { fetch: idle.fetch })
+      expect(mineIn(idle.seen).some((attempt) => attempt.body.includes(resourceId))).toBe(false)
 
-    await handleReplayWebhook(
-      await contextFor(uuidv7()),
-      endpoint.id,
-      replayWebhookBody.parse({ after: null }),
-    )
+      await handleReplayWebhook(
+        await contextFor(uuidv7()),
+        endpoint.id,
+        replayWebhookBody.parse({ after: null }),
+      )
 
-    const again = subscriber(() => ({ status: 200 }))
-    await deliverWebhooks(database, { fetch: again.fetch })
-    expect(mineIn(again.seen).some((attempt) => attempt.body.includes(resourceId))).toBe(true)
-  })
+      const again = subscriber(() => ({ status: 200 }))
+      await deliverWebhooks(database, { fetch: again.fetch })
+      expect(mineIn(again.seen).some((attempt) => attempt.body.includes(resourceId))).toBe(true)
+    },
+  )
 
   it('re-enables an endpoint that had been switched off', async () => {
     const endpoint = await anEndpoint()

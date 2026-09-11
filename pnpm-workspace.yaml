@@ -2,6 +2,7 @@ packages:
   - packages/*
   - apps/*
   - tools/*
+  - examples/*
 
 # Workspace packages are linked from source, never fetched from a registry.
 linkWorkspacePackages: true

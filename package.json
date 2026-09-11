@@ -20,7 +20,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "lint:boundaries": "depcruise packages apps --config .dependency-cruiser.cjs",
+    "lint:boundaries": "depcruise packages apps examples --config .dependency-cruiser.cjs",
     "lint:fix": "eslint . --fix",
     "rgs:generate": "pnpm --filter @klopt/rgs-import run build && node tools/rgs-import/dist/main.js",
     "test": "vitest run",
