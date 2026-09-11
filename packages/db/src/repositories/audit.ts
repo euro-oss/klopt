@@ -95,6 +95,31 @@ export class AuditRepository {
     })
   }
 
+  /**
+   * An event that belongs to no administration.
+   *
+   * Authenticating is not an act inside a set of books — it happens before one
+   * is chosen, and a failed attempt on an address nobody recognises belongs to
+   * no books at all. `entity_id` is nullable for exactly this, and the type on
+   * `AuditEvent` stays `string` so that no ordinary caller can forget it.
+   */
+  async appendInstanceEvent(event: Omit<AuditEvent, 'entityId'>): Promise<void> {
+    await this.tx.insert(auditLog).values({
+      id: uuidv7(),
+      entityId: null,
+      actorKind: event.actor.kind,
+      actorId: event.actor.id,
+      actorPrincipalId: event.actor.principalId,
+      action: event.action,
+      resourceType: event.resourceType,
+      resourceId: event.resourceId,
+      before: event.before,
+      after: event.after,
+      requestId: event.requestId,
+      ip: event.ip,
+    })
+  }
+
   private conditions(query: AuditQuery): SQL[] {
     const conditions: SQL[] = [eq(auditLog.entityId, query.entityId)]
 

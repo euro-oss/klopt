@@ -1230,6 +1230,9 @@ export const nl = {
   'erase.reasonPlaceholder': 'Verzoek tot verwijdering per e-mail, 12 maart',
   'erase.action': 'Gegevens wissen',
   'erase.done': 'Gewist. Wat er stond is vastgelegd in het logboek.',
+
+  // Authentication in the audit log.
+  'audit.kind.auth': 'Aanmelden',
 } as const
 
 export type MessageKey = keyof typeof nl

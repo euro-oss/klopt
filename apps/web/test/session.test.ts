@@ -95,6 +95,9 @@ beforeAll(async () => {
     secret: 'test-secret-not-for-production-0123456789',
     baseUrl: 'https://klopt.test',
     email: mailbox,
+    // This file signs in repeatedly to reach the thing it is about. The
+    // limiter has its own test, in `auth-security.test.ts`.
+    disableRateLimit: true,
   })
   setAuthForTest(auth)
 }, 60_000)

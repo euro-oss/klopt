@@ -47,6 +47,7 @@ const KINDS = [
   ['nav.contacts', 'contact'],
   ['nav.bank', 'bank_transaction'],
   ['nav.settings', 'entity'],
+  ['audit.kind.auth', 'auth'],
 ] as const satisfies readonly (readonly [MessageKey, string | undefined])[]
 
 const ACTOR_KEY: Record<string, MessageKey> = {

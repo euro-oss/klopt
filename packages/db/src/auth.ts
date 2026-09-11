@@ -5,7 +5,14 @@ import type { EmailTransport } from '@klopt/core'
 import { uuidv7, type Role } from '@klopt/core'
 import { and, eq } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { accounts_, entityMembers, sessions, users, verifications } from './schema/auth.js'
+import {
+  accounts_,
+  authRateLimits,
+  entityMembers,
+  sessions,
+  users,
+  verifications,
+} from './schema/auth.js'
 import { claimInvitations } from './repositories/members.js'
 import { entities } from './schema/ledger.js'
 
@@ -47,11 +54,60 @@ export interface AuthConfig {
     readonly clientId: string
     readonly clientSecret: string
   }
+  /**
+   * Switches rate limiting off. For the test suites, which sign in far more
+   * often in three minutes than a person does in a year and would otherwise
+   * spend their time exercising the limiter.
+   *
+   * A switch rather than a set of numbers somebody can widen: an operator who
+   * can raise a limit from a config file raises it once, during an incident,
+   * and never lowers it again. Off is at least a decision that is legible in
+   * a deployment, and `createAuth` says so on the way past.
+   */
+  readonly disableRateLimit?: boolean
+  /** Records an authentication event. Called for both halves of a sign-in. */
+  readonly onAuthEvent?: (event: AuthEvent) => Promise<void>
+}
+
+/** What happened, for the audit log. See `recordAuthEvent`. */
+export interface AuthEvent {
+  readonly action: 'auth.codeRequested' | 'auth.signedIn'
+  /** The address it concerns. The only identifier a failed attempt has. */
+  readonly email: string
+  readonly userId: string | null
 }
 
 /** How long a code is worth typing. Long enough to switch to a mail client. */
 const OTP_MINUTES = 10
 const OTP_LENGTH = 6
+
+/**
+ * Rate limiting (spec 14), stated rather than inherited.
+ *
+ * better-auth rate-limits by default — but only in production, and only in
+ * process memory. Both are left behind here: a control whose behaviour under
+ * test differs from the behaviour shipped has not been tested, and counters
+ * that reset on deploy make the limit as long as the uptime.
+ *
+ * Two tiers, because the two risks are different:
+ *
+ *   - **Everything** gets a broad ceiling. This is about a script hammering
+ *     the endpoints, not about guessing a credential.
+ *   - **Asking for a code** gets a tight one, per address and per client.
+ *     Every request sends an email to somebody who may not have asked for it,
+ *     so the abuse to prevent is using sign-in as a way to post mail to a
+ *     stranger — quite apart from the cost of the relay.
+ *
+ * Guessing a code is *not* limited here: `allowedAttempts` already burns the
+ * code after three wrong tries, which is the tighter control and the one that
+ * cannot be evaded by changing address.
+ */
+export const RATE_LIMIT = {
+  window: 60,
+  max: 100,
+  /** Six codes an hour is a person having a bad day; the seventh is not. */
+  sendCode: { window: 60 * 60, max: 6 },
+} as const
 
 function otpMessage(product: string, otp: string, type: string): { subject: string; text: string } {
   const purpose =
@@ -79,6 +135,12 @@ function otpMessage(product: string, otp: string, type: string): { subject: stri
 export type Auth = ReturnType<typeof createAuth>
 
 export function createAuth(config: AuthConfig) {
+  if (config.disableRateLimit === true) {
+    // Loud, because the one way this ends badly is somebody setting it in a
+    // deployment and nobody noticing for a year.
+    console.warn('[auth] rate limiting is OFF. This is for tests, not for a deployment.')
+  }
+
   return betterAuth({
     secret: config.secret,
     baseURL: config.baseUrl,
@@ -91,6 +153,7 @@ export function createAuth(config: AuthConfig) {
         session: sessions,
         account: accounts_,
         verification: verifications,
+        rateLimit: authRateLimits,
       },
     }),
 
@@ -116,6 +179,15 @@ export function createAuth(config: AuthConfig) {
         sendVerificationOTP: async ({ email, otp, type }) => {
           const { subject, text } = otpMessage(config.productName ?? 'Klopt', otp, type)
           await config.email.send({ to: email, subject, text })
+
+          // After the send, so a failed relay is not recorded as a code
+          // somebody could have used. A throw here would strand the caller
+          // with a code in their inbox and an error on screen, so it does not.
+          try {
+            await config.onAuthEvent?.({ action: 'auth.codeRequested', email, userId: null })
+          } catch (error: unknown) {
+            console.error('[auth] could not record the code request', error)
+          }
         },
       }),
     ],
@@ -149,11 +221,36 @@ export function createAuth(config: AuthConfig) {
                 .limit(1)
               if (user === undefined) return
               await claimInvitations(config.database, session.userId, user.email)
+
+              // After the invitations are claimed, so the event is recorded
+              // against the administrations this sign-in can actually reach.
+              await config.onAuthEvent?.({
+                action: 'auth.signedIn',
+                email: user.email,
+                userId: session.userId,
+              })
             } catch (error: unknown) {
               console.error('[auth] could not claim invitations', error)
             }
           },
         },
+      },
+    },
+
+    /**
+     * On in every environment, and counted in the database. See `RATE_LIMIT`
+     * and migration 0027 for why neither of better-auth's defaults is kept.
+     */
+    rateLimit: {
+      enabled: config.disableRateLimit !== true,
+      window: RATE_LIMIT.window,
+      max: RATE_LIMIT.max,
+      storage: 'database',
+      customRules: {
+        // Sending a code puts mail in somebody's inbox, and the sender does
+        // not have to be them. The limit is mostly about that, and only
+        // secondarily about the relay bill.
+        '/email-otp/send-verification-otp': RATE_LIMIT.sendCode,
       },
     },
 

@@ -108,3 +108,30 @@ test('the export downloads as a file', async ({ page }) => {
 
   expect(file.suggestedFilename()).toMatch(/^auditlog-.*\.csv$/)
 })
+
+test('signing in is on the log, once there are books to have opened', async ({ page }) => {
+  // Spec 14 asks for a full audit on every authentication event. An auth event
+  // is recorded against the administrations the address can reach, so the very
+  // first sign-in — before any exist — belongs to none and is instance-scoped.
+  // The one after it is the one an owner can see, and the one they care about.
+  const email = uniqueEmail()
+
+  await page.goto('/sign-in')
+  await signIn(page, email)
+  await page.getByRole('link', { name: 'Administratie opzetten' }).click()
+  await page.getByLabel('Naam van de administratie').fill('Aanmelden BV')
+  await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+
+  // Out and back in, now that the address reaches something.
+  await page.getByRole('button', { name: 'Afmelden' }).click()
+  await expect(page.getByRole('button', { name: 'Stuur me een code' })).toBeVisible()
+  await signIn(page, email)
+  // Signing in ends in a document navigation. Going somewhere else before it
+  // lands cancels it, and the next page is served without the new cookie.
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+
+  await page.goto('/audit-log')
+  await expect(page.getByText('auth.signedIn').first()).toBeVisible()
+  await expect(page.getByText(email).first()).toBeVisible()
+})

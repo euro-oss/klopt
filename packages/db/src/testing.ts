@@ -399,3 +399,39 @@ export async function readAuditLog(
 
   return rows
 }
+
+export interface AuthAuditEntry extends AuditEntry {
+  /** Null for an event that belongs to no administration. See `recordAuthEvent`. */
+  readonly entityId: string | null
+  readonly resourceType: string
+}
+
+/**
+ * Every audit row naming this actor, across all administrations and the ones
+ * belonging to none.
+ *
+ * `readAuditLog` above takes an entity, which is the right shape for a state
+ * change inside a set of books. An authentication event is not one: it can
+ * land against several administrations at once, or against none at all, and
+ * the question a test asks about it is "what was recorded for this address".
+ */
+export async function readAuditLogForActor(
+  database: Database,
+  actorId: string,
+): Promise<AuthAuditEntry[]> {
+  const rows = await database
+    .select({
+      action: auditLog.action,
+      actorId: auditLog.actorId,
+      resourceId: auditLog.resourceId,
+      resourceType: auditLog.resourceType,
+      entityId: auditLog.entityId,
+      before: auditLog.before,
+      after: auditLog.after,
+    })
+    .from(auditLog)
+    .where(eq(auditLog.actorId, actorId))
+    .orderBy(asc(auditLog.occurredAt))
+
+  return rows
+}

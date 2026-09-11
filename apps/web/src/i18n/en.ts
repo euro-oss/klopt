@@ -1207,4 +1207,7 @@ export const en: Record<MessageKey, string> = {
   'erase.reasonPlaceholder': 'Erasure requested by email, 12 March',
   'erase.action': 'Erase the data',
   'erase.done': 'Erased. What was there is recorded in the audit log.',
+
+  // Authentication in the audit log.
+  'audit.kind.auth': 'Sign-ins',
 }

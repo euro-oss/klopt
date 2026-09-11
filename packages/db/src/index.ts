@@ -5,10 +5,13 @@ export {
   closeDatabase,
   createDatabase,
 } from './client.js'
+export { recordAuthEvent } from './auth-audit.js'
 export {
   type Auth,
   type AuthConfig,
+  type AuthEvent,
   type EntityMembership,
+  RATE_LIMIT,
   activeEntityFor,
   addMember,
   createAuth,

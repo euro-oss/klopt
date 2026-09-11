@@ -71,6 +71,9 @@ export default defineConfig({
               process.env['DATABASE_URL'] ??
               'postgres://klopt:klopt@localhost:5432/klopt',
             KLOPT_AUTH_SECRET: 'e2e-secret-not-for-production-0123456789',
+            // Forty sign-ins in three minutes from one address is what this
+            // suite is; the limiter has its own test.
+            KLOPT_RATE_LIMIT: 'off',
             KLOPT_BASE_URL: 'http://localhost:3399',
             // No SMTP. Messages are written to a directory the tests read,
             // because the codes are hashed in the database on purpose.

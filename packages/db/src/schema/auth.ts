@@ -1,5 +1,15 @@
 import { sql } from 'drizzle-orm'
-import { boolean, index, text, timestamp, unique, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import {
+  bigint,
+  boolean,
+  index,
+  integer,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core'
 import { klopt } from './schema.js'
 import { entities } from './ledger.js'
 
@@ -158,3 +168,18 @@ export const entityInvitations = klopt.table(
     index('entity_invitations_email').on(table.email),
   ],
 )
+
+/**
+ * Rate-limit counters (spec 14).
+ *
+ * In the database rather than in process memory, so a deploy does not hand
+ * everybody a fresh allowance and two replicas do not enforce two separate
+ * limits. See migration 0027.
+ */
+export const authRateLimits = klopt.table('auth_rate_limit', {
+  id: text('id').primaryKey(),
+  key: text('key').notNull(),
+  count: integer('count').notNull().default(0),
+  /** Epoch milliseconds: better-auth compares it against `Date.now()`. */
+  lastRequest: bigint('last_request', { mode: 'number' }).notNull(),
+})
