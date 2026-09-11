@@ -108,6 +108,14 @@ export const BINDINGS: readonly Binding[] = [
   // BTW arrived, which is what happens when a keyboard map is real.
   { id: 'go.vat', label: 'keys.goVat', group: 'keys.group.goTo', keys: 'g g', to: '/vat' },
   { id: 'go.members', label: 'nav.members', group: 'keys.group.goTo', keys: 'g t', to: '/members' },
+  // `g w` is the winst-en-verlies and `g k` the bank, so `g u` for uitgaand.
+  {
+    id: 'go.webhooks',
+    label: 'nav.webhooks',
+    group: 'keys.group.goTo',
+    keys: 'g u',
+    to: '/webhooks',
+  },
   {
     id: 'go.settings',
     label: 'nav.settings',

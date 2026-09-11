@@ -24,6 +24,7 @@ import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppRetentionRouteImport } from './routes/_app/retention'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSnapshotsRouteImport } from './routes/_app/snapshots'
+import { Route as AppWebhooksRouteImport } from './routes/_app/webhooks'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as OauthAuthorizeRouteImport } from './routes/oauth/authorize'
 import { Route as OauthRegisterRouteImport } from './routes/oauth/register'
@@ -223,6 +224,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const AppSnapshotsRoute = AppSnapshotsRouteImport.update({
   id: '/snapshots',
   path: '/snapshots',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWebhooksRoute = AppWebhooksRouteImport.update({
+  id: '/webhooks',
+  path: '/webhooks',
   getParentRoute: () => AppRoute,
 } as any)
 const ApiMcpRoute = ApiMcpRouteImport.update({
@@ -902,6 +908,7 @@ export interface FileRoutesByFullPath {
   '/retention': typeof AppRetentionRoute
   '/settings': typeof AppSettingsRoute
   '/snapshots': typeof AppSnapshotsRoute
+  '/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
@@ -1041,6 +1048,7 @@ export interface FileRoutesByTo {
   '/retention': typeof AppRetentionRoute
   '/settings': typeof AppSettingsRoute
   '/snapshots': typeof AppSnapshotsRoute
+  '/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
@@ -1183,6 +1191,7 @@ export interface FileRoutesById {
   '/_app/retention': typeof AppRetentionRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/snapshots': typeof AppSnapshotsRoute
+  '/_app/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
@@ -1326,6 +1335,7 @@ export interface FileRouteTypes {
     | '/retention'
     | '/settings'
     | '/snapshots'
+    | '/webhooks'
     | '/api/mcp'
     | '/oauth/authorize'
     | '/oauth/register'
@@ -1465,6 +1475,7 @@ export interface FileRouteTypes {
     | '/retention'
     | '/settings'
     | '/snapshots'
+    | '/webhooks'
     | '/api/mcp'
     | '/oauth/authorize'
     | '/oauth/register'
@@ -1606,6 +1617,7 @@ export interface FileRouteTypes {
     | '/_app/retention'
     | '/_app/settings'
     | '/_app/snapshots'
+    | '/_app/webhooks'
     | '/api/mcp'
     | '/oauth/authorize'
     | '/oauth/register'
@@ -1903,6 +1915,13 @@ declare module '@tanstack/react-router' {
       path: '/snapshots'
       fullPath: '/snapshots'
       preLoaderRoute: typeof AppSnapshotsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/webhooks': {
+      id: '/_app/webhooks'
+      path: '/webhooks'
+      fullPath: '/webhooks'
+      preLoaderRoute: typeof AppWebhooksRouteImport
       parentRoute: typeof AppRoute
     }
     '/api/mcp': {
@@ -2785,6 +2804,7 @@ interface AppRouteChildren {
   AppRetentionRoute: typeof AppRetentionRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSnapshotsRoute: typeof AppSnapshotsRoute
+  AppWebhooksRoute: typeof AppWebhooksRoute
   AppIndexRoute: typeof AppIndexRoute
   AppBankMatchRoute: typeof AppBankMatchRoute
   AppContactsContactIdRoute: typeof AppContactsContactIdRoute
@@ -2821,6 +2841,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRetentionRoute: AppRetentionRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSnapshotsRoute: AppSnapshotsRoute,
+  AppWebhooksRoute: AppWebhooksRoute,
   AppIndexRoute: AppIndexRoute,
   AppBankMatchRoute: AppBankMatchRoute,
   AppContactsContactIdRoute: AppContactsContactIdRoute,

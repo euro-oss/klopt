@@ -100,6 +100,9 @@ const NAVIGATION: readonly NavGroup[] = [
         roles: ['owner', 'accountant', 'bookkeeper'],
       },
       { to: '/members', key: 'nav.members', binding: 'go.members', roles: ['owner'] },
+      // `tokens:manage`, like the tokens it sits beside: a webhook is a
+      // standing grant of information to a third party.
+      { to: '/webhooks', key: 'nav.webhooks', binding: 'go.webhooks', roles: ['owner'] },
       // `ledger:export` is what the operation needs, and the roles that hold it
       // are the ones who would be asked for the log.
       {

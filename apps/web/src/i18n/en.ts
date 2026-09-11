@@ -1210,4 +1210,40 @@ export const en: Record<MessageKey, string> = {
 
   // Authentication in the audit log.
   'audit.kind.auth': 'Sign-ins',
+
+  // Webhooks.
+  'nav.webhooks': 'Webhooks',
+  'webhooks.title': 'Webhooks',
+  'webhooks.intro':
+    'Klopt posts to your system as things happen. The message says what happened and to what — never the invoice itself. You fetch that with your own token, so nothing ends up in a payload that should not be there.',
+  'webhooks.pollInstead':
+    'Behind NAT and unable to receive anything? There is {link}, with the same events in the same order.',
+  'webhooks.pollLink': '/api/v1/events',
+  'webhooks.none': 'No webhooks yet.',
+  'webhooks.add': 'Add a webhook',
+  'webhooks.url': 'URL',
+  'webhooks.urlHint': 'Has to be https.',
+  'webhooks.types': 'Which events',
+  'webhooks.allTypes': 'Ticking nothing means everything, including types added later.',
+  'webhooks.create': 'Create',
+  'webhooks.secretTitle': 'This is the signing secret',
+  'webhooks.secretOnce':
+    'You see it once. Check the Klopt-Signature header with it; without that check you do not know who is knocking.',
+  'webhooks.secretSaved': 'I have saved it',
+  'webhooks.status': 'Status',
+  'webhooks.enabled': 'live',
+  'webhooks.disabled': 'switched off',
+  'webhooks.backlog': '{count} waiting',
+  'webhooks.upToDate': 'up to date',
+  'webhooks.lastSuccess': 'last succeeded {date}',
+  'webhooks.never': 'nothing delivered yet',
+  'webhooks.replay': 'Send everything again',
+  'webhooks.reenable': 'Switch it back on',
+  'webhooks.remove': 'Remove',
+  'webhooks.attempts': 'Recent attempts',
+  'webhooks.attemptWhen': 'When',
+  'webhooks.attemptResult': 'Answer',
+  'webhooks.attemptNoReply': 'no answer',
+  'webhooks.noEncryptionKey':
+    'No KLOPT_ENCRYPTION_KEY is set, so a signing secret cannot be stored encrypted. Set one first.',
 }

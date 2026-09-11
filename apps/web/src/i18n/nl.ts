@@ -1233,6 +1233,42 @@ export const nl = {
 
   // Authentication in the audit log.
   'audit.kind.auth': 'Aanmelden',
+
+  // Webhooks.
+  'nav.webhooks': 'Webhooks',
+  'webhooks.title': 'Webhooks',
+  'webhooks.intro':
+    'Klopt stuurt een bericht naar jouw systeem zodra er iets gebeurt. Het bericht zegt wát er gebeurde en waaraan — niet de factuur zelf. Die haal je op met je eigen token, zodat er niets in een payload belandt dat er niet hoort.',
+  'webhooks.pollInstead':
+    'Zit je achter NAT en kun je niets ontvangen? Dan is er {link}, met dezelfde gebeurtenissen in dezelfde volgorde.',
+  'webhooks.pollLink': '/api/v1/events',
+  'webhooks.none': 'Nog geen webhooks.',
+  'webhooks.add': 'Webhook toevoegen',
+  'webhooks.url': 'URL',
+  'webhooks.urlHint': 'Moet https zijn.',
+  'webhooks.types': 'Welke gebeurtenissen',
+  'webhooks.allTypes': 'Niets aanvinken betekent alles, ook wat er later bij komt.',
+  'webhooks.create': 'Aanmaken',
+  'webhooks.secretTitle': 'Dit is het ondertekeningsgeheim',
+  'webhooks.secretOnce':
+    'Je ziet het nu één keer. Controleer er de Klopt-Signature-header mee; zonder die controle weet je niet wie er klopt.',
+  'webhooks.secretSaved': 'Ik heb het bewaard',
+  'webhooks.status': 'Status',
+  'webhooks.enabled': 'actief',
+  'webhooks.disabled': 'uitgeschakeld',
+  'webhooks.backlog': '{count} wachtend',
+  'webhooks.upToDate': 'bij',
+  'webhooks.lastSuccess': 'laatst gelukt {date}',
+  'webhooks.never': 'nog nooit iets afgeleverd',
+  'webhooks.replay': 'Opnieuw versturen vanaf het begin',
+  'webhooks.reenable': 'Weer aanzetten',
+  'webhooks.remove': 'Verwijderen',
+  'webhooks.attempts': 'Laatste pogingen',
+  'webhooks.attemptWhen': 'Wanneer',
+  'webhooks.attemptResult': 'Antwoord',
+  'webhooks.attemptNoReply': 'geen antwoord',
+  'webhooks.noEncryptionKey':
+    'Er is geen KLOPT_ENCRYPTION_KEY ingesteld, dus een ondertekeningsgeheim kan niet versleuteld worden bewaard. Zet die eerst.',
 } as const
 
 export type MessageKey = keyof typeof nl
