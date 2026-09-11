@@ -1,5 +1,7 @@
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { approveAuthorizationRequest, describeAuthorization } from '~/server/oauth'
 
@@ -49,6 +51,13 @@ function Authorize() {
   const { query, description } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { t } = useT()
+
+  /** An unrecognised scope is shown raw rather than as a blank. */
+  const scopeOf = (scope: string) => {
+    const key = SCOPE_KEY[scope]
+    return key === undefined ? scope : t(key)
+  }
 
   const [entityId, setEntityId] = useState(description.memberships[0]?.id ?? '')
   const [busy, setBusy] = useState(false)
@@ -57,14 +66,11 @@ function Authorize() {
   if (description.refusal !== null) {
     return (
       <main className="mx-auto max-w-lg p-8">
-        <h1 className="text-xl font-semibold">Deze aanvraag klopt niet</h1>
+        <h1 className="text-xl font-semibold">{t('consent.badRequest')}</h1>
         <p role="alert" className="text-destructive mt-3 text-sm">
           {description.refusal.description}
         </p>
-        <p className="text-muted-foreground mt-4 text-sm">
-          Er is niets toegekend. Sluit dit venster en probeer het opnieuw vanuit de app die de
-          koppeling wilde maken.
-        </p>
+        <p className="text-muted-foreground mt-4 text-sm">{t('consent.badRequestBody')}</p>
       </main>
     )
   }
@@ -87,28 +93,30 @@ function Authorize() {
       window.location.assign(redirectTo)
     } catch (cause: unknown) {
       setBusy(false)
-      setError(cause instanceof Error ? cause.message : 'Onbekende fout.')
+      setError(cause instanceof Error ? cause.message : t('common.unknownError'))
     }
   }
 
   return (
     <main className="mx-auto max-w-lg p-8">
-      <h1 className="text-xl font-semibold">Toegang geven</h1>
-      <p className="text-muted-foreground mt-1 text-sm">Je bent ingelogd als {description.user}.</p>
+      <h1 className="text-xl font-semibold">{t('consent.title')}</h1>
+      <p className="text-muted-foreground mt-1 text-sm">
+        {t('consent.signedInAs', { user: description.user ?? '' })}
+      </p>
 
       <div className="border-border mt-6 rounded-md border p-4">
         <p className="text-sm">
-          <strong>{description.clientName}</strong> vraagt toegang tot je boekhouding.
+          <strong>{description.clientName}</strong> {t('consent.asksFor')}
         </p>
         {redirectHost !== '' && (
           <p className="text-muted-foreground mt-2 text-xs">
-            De toegang wordt afgegeven aan <code>{redirectHost}</code>. Herken je dat adres niet,
-            geef dan geen toegang.
+            {t('consent.grantedToBefore')} <code>{redirectHost}</code>
+            {t('consent.grantedToAfter')}
           </p>
         )}
 
         <label className="mt-4 block text-sm">
-          Administratie
+          {t('consent.administration')}
           <select
             value={entityId}
             onChange={(event) => setEntityId(event.target.value)}
@@ -122,21 +130,19 @@ function Authorize() {
             ))}
           </select>
           <span className="text-muted-foreground mt-1 block text-xs">
-            De toegang geldt alleen voor deze administratie.
+            {t('consent.onlyThisOne')}
           </span>
         </label>
 
-        <p className="mt-4 text-sm font-medium">Wat het mag:</p>
+        <p className="mt-4 text-sm font-medium">{t('consent.whatItMay')}</p>
         <ul className="text-muted-foreground mt-1 list-disc pl-5 text-sm">
           {description.scope.map((scope) => (
-            <li key={scope}>{SCOPE_TEXT[scope] ?? scope}</li>
+            <li key={scope}>{scopeOf(scope)}</li>
           ))}
-          <li>Niets wijzigen, niets boeken, niets versturen.</li>
+          <li>{t('consent.nothingElse')}</li>
         </ul>
 
-        <p className="text-muted-foreground mt-4 text-xs">
-          De toegang vervalt automatisch na een uur. Je kunt hem eerder intrekken bij Toegang.
-        </p>
+        <p className="text-muted-foreground mt-4 text-xs">{t('consent.expires')}</p>
       </div>
 
       {error !== null && (
@@ -152,7 +158,7 @@ function Authorize() {
           onClick={() => void approve()}
           className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
         >
-          {busy ? 'Bezig…' : 'Toegang geven'}
+          {busy ? t('common.busy') : t('consent.title')}
         </button>
         <button
           type="button"
@@ -160,14 +166,14 @@ function Authorize() {
           onClick={() => void router.navigate({ to: '/' })}
           className="border-border rounded-md border px-3 py-1.5 text-sm"
         >
-          Annuleren
+          {t('common.cancel')}
         </button>
       </div>
     </main>
   )
 }
 
-const SCOPE_TEXT: Readonly<Record<string, string>> = {
-  'ledger:read': 'De boeken lezen: saldi, facturen, openstaande posten, BTW-overzichten.',
-  'ledger:export': 'Exports maken, zoals een auditfile.',
+const SCOPE_KEY: Readonly<Record<string, MessageKey>> = {
+  'ledger:read': 'consent.scope.read',
+  'ledger:export': 'consent.scope.export',
 }

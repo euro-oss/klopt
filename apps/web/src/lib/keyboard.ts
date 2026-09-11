@@ -9,13 +9,16 @@
  * A screen that writes `event.key === 'k'` is a bug.
  */
 
+import type { MessageKey } from '~/i18n/nl'
+
 export type Modifier = 'mod' | 'shift' | 'alt'
 
 export interface Binding {
   /** Stable id, used by the palette and by tests. */
   readonly id: string
-  readonly label: string
-  readonly group: string
+  /** Message keys, not words: the palette is read in the reader's language. */
+  readonly label: MessageKey
+  readonly group: MessageKey
   /** Lowercase key, or a two-key sequence like `g d`. */
   readonly keys: string
   readonly modifiers?: readonly Modifier[]
@@ -24,96 +27,174 @@ export interface Binding {
 }
 
 export const BINDINGS: readonly Binding[] = [
-  { id: 'palette', label: 'Command palette', group: 'Global', keys: 'k', modifiers: ['mod'] },
-  { id: 'help', label: 'Keyboard help', group: 'Global', keys: '?' },
+  {
+    id: 'palette',
+    label: 'keys.palette',
+    group: 'keys.group.global',
+    keys: 'k',
+    modifiers: ['mod'],
+  },
+  { id: 'help', label: 'keys.help', group: 'keys.group.global', keys: '?' },
 
-  { id: 'go.dashboard', label: 'Dashboard', group: 'Go to', keys: 'g d', to: '/' },
-  { id: 'go.journal', label: 'Journaalposten', group: 'Go to', keys: 'g j', to: '/entries' },
-  { id: 'go.accounts', label: 'Grootboekrekeningen', group: 'Go to', keys: 'g a', to: '/accounts' },
-  { id: 'go.balance', label: 'Balans', group: 'Go to', keys: 'g b', to: '/reports/balance-sheet' },
+  { id: 'go.dashboard', label: 'nav.dashboard', group: 'keys.group.goTo', keys: 'g d', to: '/' },
+  { id: 'go.journal', label: 'nav.entries', group: 'keys.group.goTo', keys: 'g j', to: '/entries' },
+  {
+    id: 'go.accounts',
+    label: 'accounts.title',
+    group: 'keys.group.goTo',
+    keys: 'g a',
+    to: '/accounts',
+  },
+  {
+    id: 'go.balance',
+    label: 'nav.balanceSheet',
+    group: 'keys.group.goTo',
+    keys: 'g b',
+    to: '/reports/balance-sheet',
+  },
   {
     id: 'go.profit',
-    label: 'Winst- en verliesrekening',
-    group: 'Go to',
+    label: 'keys.goProfitAndLoss',
+    group: 'keys.group.goTo',
     keys: 'g w',
     to: '/reports/profit-and-loss',
   },
   {
     id: 'go.trial',
-    label: 'Proefbalans',
-    group: 'Go to',
+    label: 'nav.trialBalance',
+    group: 'keys.group.goTo',
     keys: 'g p',
     to: '/reports/trial-balance',
   },
-  { id: 'go.invoices', label: 'Verkoopfacturen', group: 'Go to', keys: 'g f', to: '/invoices' },
-  { id: 'go.purchases', label: 'Inkoopfacturen', group: 'Go to', keys: 'g n', to: '/purchases' },
-  { id: 'go.inbox', label: 'Postvak', group: 'Go to', keys: 'g e', to: '/inbox' },
-  { id: 'go.contacts', label: 'Relaties', group: 'Go to', keys: 'g r', to: '/contacts' },
-  { id: 'go.bank', label: 'Bank', group: 'Go to', keys: 'g k', to: '/bank' },
-  { id: 'go.match', label: 'Koppelen', group: 'Go to', keys: 'g o', to: '/bank/match' },
-  { id: 'go.payments', label: 'Betalingen', group: 'Go to', keys: 'g y', to: '/payments' },
-  { id: 'go.dunning', label: 'Aanmaningen', group: 'Go to', keys: 'g m', to: '/dunning' },
+  {
+    id: 'go.invoices',
+    label: 'nav.invoices',
+    group: 'keys.group.goTo',
+    keys: 'g f',
+    to: '/invoices',
+  },
+  {
+    id: 'go.purchases',
+    label: 'nav.purchases',
+    group: 'keys.group.goTo',
+    keys: 'g n',
+    to: '/purchases',
+  },
+  { id: 'go.inbox', label: 'nav.inbox', group: 'keys.group.goTo', keys: 'g e', to: '/inbox' },
+  {
+    id: 'go.contacts',
+    label: 'nav.contacts',
+    group: 'keys.group.goTo',
+    keys: 'g r',
+    to: '/contacts',
+  },
+  { id: 'go.bank', label: 'nav.bank', group: 'keys.group.goTo', keys: 'g k', to: '/bank' },
+  {
+    id: 'go.match',
+    label: 'match.title',
+    group: 'keys.group.goTo',
+    keys: 'g o',
+    to: '/bank/match',
+  },
+  {
+    id: 'go.payments',
+    label: 'nav.payments',
+    group: 'keys.group.goTo',
+    keys: 'g y',
+    to: '/payments',
+  },
+  { id: 'go.dunning', label: 'nav.dunning', group: 'keys.group.goTo', keys: 'g m', to: '/dunning' },
   // `g g` for aan**g**ifte. `g b`, `g t` and `g w` were all taken by the time
   // BTW arrived, which is what happens when a keyboard map is real.
-  { id: 'go.vat', label: 'BTW-aangifte', group: 'Go to', keys: 'g g', to: '/vat' },
-  { id: 'go.members', label: 'Toegang', group: 'Go to', keys: 'g t', to: '/members' },
-  { id: 'go.settings', label: 'Instellingen', group: 'Go to', keys: 'g i', to: '/settings' },
+  { id: 'go.vat', label: 'keys.goVat', group: 'keys.group.goTo', keys: 'g g', to: '/vat' },
+  { id: 'go.members', label: 'nav.members', group: 'keys.group.goTo', keys: 'g t', to: '/members' },
+  {
+    id: 'go.settings',
+    label: 'nav.settings',
+    group: 'keys.group.goTo',
+    keys: 'g i',
+    to: '/settings',
+  },
   // `g l` for **l**og. `g a` is the grootboek and `g w` the winst-en-verlies.
-  { id: 'go.audit', label: 'Wie wat deed', group: 'Go to', keys: 'g l', to: '/audit-log' },
+  {
+    id: 'go.audit',
+    label: 'nav.auditLog',
+    group: 'keys.group.goTo',
+    keys: 'g l',
+    to: '/audit-log',
+  },
   // `g h` for bewaren, since `g b` is the balans and `g w` the winst-en-verlies.
-  { id: 'go.retention', label: 'Bewaarplicht', group: 'Go to', keys: 'g h', to: '/retention' },
+  {
+    id: 'go.retention',
+    label: 'nav.retention',
+    group: 'keys.group.goTo',
+    keys: 'g h',
+    to: '/retention',
+  },
   // `g z` for **z**egel. `g s` is unclaimed but reads as "settings" to anybody
   // who has used another application, and `g i` already is Instellingen.
-  { id: 'go.snapshots', label: 'Momentopnames', group: 'Go to', keys: 'g z', to: '/snapshots' },
+  {
+    id: 'go.snapshots',
+    label: 'nav.snapshots',
+    group: 'keys.group.goTo',
+    keys: 'g z',
+    to: '/snapshots',
+  },
   // `g x` for E**x**act. `g e` is the postvak and `g o` the koppelscherm.
-  { id: 'go.exact', label: 'Exact Online', group: 'Go to', keys: 'g x', to: '/exact' },
+  { id: 'go.exact', label: 'nav.exact', group: 'keys.group.goTo', keys: 'g x', to: '/exact' },
 
   {
     id: 'new.entry',
-    label: 'Nieuwe journaalpost',
-    group: 'Nieuw',
+    label: 'entryNew.title',
+    group: 'keys.group.new',
     keys: 'n j',
     to: '/entries/new',
   },
-  { id: 'new.invoice', label: 'Nieuwe factuur', group: 'Nieuw', keys: 'n f', to: '/invoices/new' },
+  {
+    id: 'new.invoice',
+    label: 'keys.newInvoice',
+    group: 'keys.group.new',
+    keys: 'n f',
+    to: '/invoices/new',
+  },
   {
     id: 'new.purchase',
-    label: 'Inkoopfactuur invoeren',
-    group: 'Nieuw',
+    label: 'purchaseNew.title',
+    group: 'keys.group.new',
     keys: 'n i',
     to: '/purchases/new',
   },
 
-  { id: 'match.confirm', label: 'Beste voorstel boeken', group: 'Koppelen', keys: 'enter' },
-  { id: 'match.skip', label: 'Regel overslaan', group: 'Koppelen', keys: 'x' },
-  { id: 'match.next', label: 'Volgende regel', group: 'Koppelen', keys: 'j' },
-  { id: 'match.previous', label: 'Vorige regel', group: 'Koppelen', keys: 'k' },
+  { id: 'match.confirm', label: 'keys.matchConfirm', group: 'keys.group.match', keys: 'enter' },
+  { id: 'match.skip', label: 'keys.matchSkip', group: 'keys.group.match', keys: 'x' },
+  { id: 'match.next', label: 'keys.matchNext', group: 'keys.group.match', keys: 'j' },
+  { id: 'match.previous', label: 'keys.matchPrevious', group: 'keys.group.match', keys: 'k' },
 
   {
     id: 'entry.post',
-    label: 'Post entry',
-    group: 'Journaalpost',
+    label: 'keys.entryPost',
+    group: 'keys.group.entry',
     keys: 'enter',
     modifiers: ['mod'],
   },
   {
     id: 'entry.postAndNext',
-    label: 'Post and start another',
-    group: 'Journaalpost',
+    label: 'keys.entryPostAndNext',
+    group: 'keys.group.entry',
     keys: 'enter',
     modifiers: ['mod', 'shift'],
   },
   {
     id: 'entry.duplicateLine',
-    label: 'Duplicate line',
-    group: 'Journaalpost',
+    label: 'keys.entryDuplicateLine',
+    group: 'keys.group.entry',
     keys: 'd',
     modifiers: ['mod'],
   },
   {
     id: 'entry.deleteLine',
-    label: 'Delete line',
-    group: 'Journaalpost',
+    label: 'keys.entryDeleteLine',
+    group: 'keys.group.entry',
     keys: 'backspace',
     modifiers: ['mod'],
   },

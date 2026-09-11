@@ -65,6 +65,7 @@ export const nl = {
   'language.saved': 'Taal gewijzigd.',
 
   // Signing in. The heading is the product name, so it is not translated.
+  'signIn.unreachable': 'De server is niet bereikbaar.',
   'signIn.introEmail': 'Vul je e-mailadres in. We sturen je een code.',
   'signIn.introCode': 'Vul de code in die we je hebben gestuurd.',
   'signIn.email': 'E-mail',
@@ -1158,6 +1159,51 @@ export const nl = {
   'tokens.state.live': 'actief',
   'tokens.state.expired': 'verlopen',
   'tokens.state.revoked': 'ingetrokken',
+
+  // Giving an app access.
+  'consent.badRequest': 'Deze aanvraag klopt niet',
+  'consent.badRequestBody':
+    'Er is niets toegekend. Sluit dit venster en probeer het opnieuw vanuit de app die de koppeling wilde maken.',
+  'consent.title': 'Toegang geven',
+  'consent.signedInAs': 'Je bent ingelogd als {user}.',
+  'consent.asksFor': 'vraagt toegang tot je boekhouding.',
+  'consent.grantedToBefore': 'De toegang wordt afgegeven aan',
+  'consent.grantedToAfter': '. Herken je dat adres niet, geef dan geen toegang.',
+  'consent.administration': 'Administratie',
+  'consent.onlyThisOne': 'De toegang geldt alleen voor deze administratie.',
+  'consent.whatItMay': 'Wat het mag:',
+  'consent.nothingElse': 'Niets wijzigen, niets boeken, niets versturen.',
+  'consent.expires':
+    'De toegang vervalt automatisch na een uur. Je kunt hem eerder intrekken bij Toegang.',
+  'consent.scope.read': 'De boeken lezen: saldi, facturen, openstaande posten, BTW-overzichten.',
+  'consent.scope.export': 'Exports maken, zoals een auditfile.',
+
+  // The keyboard map and the command palette.
+  'keys.group.global': 'Algemeen',
+  'keys.group.goTo': 'Ga naar',
+  'keys.group.new': 'Nieuw',
+  'keys.group.match': 'Koppelen',
+  'keys.group.entry': 'Journaalpost',
+  'keys.palette': 'Commandopalet',
+  'keys.help': 'Sneltoetsen',
+  'keys.goProfitAndLoss': 'Winst- en verliesrekening',
+  'keys.goVat': 'BTW-aangifte',
+  'keys.newInvoice': 'Nieuwe factuur',
+  'keys.matchConfirm': 'Beste voorstel boeken',
+  'keys.matchSkip': 'Regel overslaan',
+  'keys.matchNext': 'Volgende regel',
+  'keys.matchPrevious': 'Vorige regel',
+  'keys.entryPost': 'Journaalpost boeken',
+  'keys.entryPostAndNext': 'Boeken en de volgende beginnen',
+  'keys.entryDuplicateLine': 'Regel dupliceren',
+  'keys.entryDeleteLine': 'Regel verwijderen',
+  'palette.commands': 'Commando’s',
+  'palette.search': 'Zoek een scherm',
+  'palette.searchPlaceholder': 'Waar wil je heen?',
+  'palette.nothingFound': 'Niets gevonden.',
+  'palette.escapeNote':
+    'Sluiten met Escape. G en N zijn voorvoegsels; na 1,5 seconde vervallen ze.',
+  'table.empty': 'Niets te tonen.',
 } as const
 
 export type MessageKey = keyof typeof nl

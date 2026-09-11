@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { en } from '../../src/i18n/en.js'
+import { nl } from '../../src/i18n/nl.js'
 import { BINDINGS, BINDINGS_BY_ID, formatBinding } from '../../src/lib/keyboard.js'
 
 /**
@@ -45,9 +47,20 @@ describe('the keyboard map', () => {
 
   it('gives every binding a label and keys somebody could read out', () => {
     for (const binding of BINDINGS) {
-      expect(binding.label.length, binding.id).toBeGreaterThan(1)
       expect(binding.keys.length, binding.id).toBeGreaterThan(0)
       expect(formatBinding(binding).length, binding.id).toBeGreaterThan(0)
+    }
+  })
+
+  it('names every binding with a message key that resolves', () => {
+    // The labels became keys, so asserting they are non-empty strings would
+    // pass for `nav.thing-i-invented`. What matters is that the palette can
+    // show a word — in both languages, since the palette also searches on it.
+    for (const binding of BINDINGS) {
+      expect(nl[binding.label], binding.id).toBeTruthy()
+      expect(nl[binding.group], binding.id).toBeTruthy()
+      expect(en[binding.label], binding.id).toBeTruthy()
+      expect(en[binding.group], binding.id).toBeTruthy()
     }
   })
 

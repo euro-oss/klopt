@@ -74,7 +74,7 @@ function SignIn() {
         body: JSON.stringify(body),
       })
     } catch {
-      setError('De server is niet bereikbaar.')
+      setError(t('signIn.unreachable'))
       return null
     }
   }

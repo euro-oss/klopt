@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { cn } from '~/lib/utils'
+import { useT } from '~/i18n/provider'
 
 /**
  * The table this application is made of (spec 11).
@@ -27,7 +28,7 @@ export function LedgerTable<TRow>({
   rowKey,
   onRowActivate,
   footer,
-  empty = 'Niets te tonen.',
+  empty,
   caption,
 }: {
   columns: readonly Column<TRow>[]
@@ -38,10 +39,12 @@ export function LedgerTable<TRow>({
   empty?: string | undefined
   caption?: string | undefined
 }) {
+  const { t } = useT()
+
   if (rows.length === 0) {
     return (
       <p className="text-muted-foreground border-border rounded-md border border-dashed p-6 text-sm">
-        {empty}
+        {empty ?? t('table.empty')}
       </p>
     )
   }

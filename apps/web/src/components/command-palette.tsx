@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BINDINGS, formatBinding, type Binding } from '~/lib/keyboard'
 import { useShortcuts } from '~/lib/use-shortcuts'
 import { cn } from '~/lib/utils'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 
 /**
  * The command palette and the keyboard help, and the listener that opens them.
@@ -21,28 +23,36 @@ import { cn } from '~/lib/utils'
 
 const NAVIGABLE: readonly Binding[] = BINDINGS.filter((binding) => binding.to !== undefined)
 
-const GROUPS: readonly string[] = [...new Set(BINDINGS.map((binding) => binding.group))]
+const GROUPS: readonly MessageKey[] = [...new Set(BINDINGS.map((binding) => binding.group))]
 
-function search(query: string): readonly Binding[] {
+/**
+ * Match on what is on screen, not on what is in the registry.
+ *
+ * The labels are message keys now, so searching the key would mean somebody
+ * looking for "facturen" matching nothing while the word is right in front of
+ * them. The translator is the search index.
+ */
+function search(translate: (key: MessageKey) => string, query: string): readonly Binding[] {
   const needle = query.trim().toLowerCase()
   if (needle === '') return NAVIGABLE
   return NAVIGABLE.filter(
     (binding) =>
-      binding.label.toLowerCase().includes(needle) ||
-      binding.group.toLowerCase().includes(needle) ||
+      translate(binding.label).toLowerCase().includes(needle) ||
+      translate(binding.group).toLowerCase().includes(needle) ||
       binding.keys.replace(' ', '').includes(needle),
   )
 }
 
 export function CommandPalette() {
   const navigate = useNavigate()
+  const { t } = useT()
   const [open, setOpen] = useState<'palette' | 'help' | null>(null)
   const [cursor, setCursor] = useState(0)
   const input = useRef<HTMLInputElement | null>(null)
   const sheet = useRef<HTMLDivElement | null>(null)
 
   const [query, setQuery] = useState('')
-  const results = useMemo(() => search(query), [query])
+  const results = useMemo(() => search(t, query), [t, query])
 
   /**
    * Stable across renders, so the window listener is registered once.
@@ -162,7 +172,7 @@ export function CommandPalette() {
             // what a screen reader needs and what makes Escape land somewhere
             // sensible.
             tabIndex={-1}
-            aria-label={open === 'palette' ? 'Commando’s' : 'Sneltoetsen'}
+            aria-label={open === 'palette' ? t('palette.commands') : t('shell.help')}
             className="bg-background border-border max-h-[70vh] w-full max-w-xl overflow-hidden rounded-md border shadow-lg"
             onClick={(event) => {
               event.stopPropagation()
@@ -174,8 +184,8 @@ export function CommandPalette() {
                   ref={input}
                   type="text"
                   value={query}
-                  aria-label="Zoek een scherm"
-                  placeholder="Waar wil je heen?"
+                  aria-label={t('palette.search')}
+                  placeholder={t('palette.searchPlaceholder')}
                   onChange={(event) => {
                     setQuery(event.currentTarget.value)
                     // Back to the top on every keystroke: the list underneath
@@ -188,7 +198,9 @@ export function CommandPalette() {
                 />
                 <ul className="max-h-[50vh] overflow-y-auto py-1">
                   {results.length === 0 && (
-                    <li className="text-muted-foreground px-4 py-3 text-sm">Niets gevonden.</li>
+                    <li className="text-muted-foreground px-4 py-3 text-sm">
+                      {t('palette.nothingFound')}
+                    </li>
                   )}
                   {results.map((binding, index) => (
                     <li key={binding.id}>
@@ -206,8 +218,10 @@ export function CommandPalette() {
                         )}
                       >
                         <span>
-                          <span className="text-muted-foreground text-xs">{binding.group} · </span>
-                          {binding.label}
+                          <span className="text-muted-foreground text-xs">
+                            {t(binding.group)} ·{' '}
+                          </span>
+                          {t(binding.label)}
                         </span>
                         <kbd className="text-muted-foreground text-xs">
                           {formatBinding(binding)}
@@ -219,14 +233,14 @@ export function CommandPalette() {
               </>
             ) : (
               <div className="max-h-[70vh] overflow-y-auto p-4">
-                <h2 className="mb-3 text-sm font-semibold">Sneltoetsen</h2>
+                <h2 className="mb-3 text-sm font-semibold">{t('shell.help')}</h2>
                 {GROUPS.map((group) => (
                   <section key={group} className="mb-4">
-                    <h3 className="text-muted-foreground mb-1 text-xs font-medium">{group}</h3>
+                    <h3 className="text-muted-foreground mb-1 text-xs font-medium">{t(group)}</h3>
                     <dl className="space-y-1">
                       {BINDINGS.filter((binding) => binding.group === group).map((binding) => (
                         <div key={binding.id} className="flex justify-between text-sm">
-                          <dt>{binding.label}</dt>
+                          <dt>{t(binding.label)}</dt>
                           <dd className="text-muted-foreground tabular text-xs">
                             {formatBinding(binding)}
                           </dd>
@@ -235,10 +249,7 @@ export function CommandPalette() {
                     </dl>
                   </section>
                 ))}
-                <p className="text-muted-foreground text-xs">
-                  Sluiten met Escape. <kbd>G</kbd> en <kbd>N</kbd> zijn voorvoegsels; na 1,5 seconde
-                  vervallen ze.
-                </p>
+                <p className="text-muted-foreground text-xs">{t('palette.escapeNote')}</p>
               </div>
             )}
           </div>
