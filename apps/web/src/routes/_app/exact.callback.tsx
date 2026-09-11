@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { completeExactConnection } from '~/server/ledger'
+import { useT } from '~/i18n/provider'
 
 /**
  * Waar Exact de browser naartoe stuurt.
@@ -31,6 +32,7 @@ function ExactCallback() {
   const { code, state, error } = Route.useSearch()
   const navigate = useNavigate()
   const attempted = useRef(false)
+  const { t } = useT()
   const [failure, setFailure] = useState<string | null>(error === '' ? null : error)
 
   useEffect(() => {
@@ -54,10 +56,10 @@ function ExactCallback() {
 
   return (
     <>
-      <PageHeader title="Exact Online" description="Aanmelding afronden…" />
+      <PageHeader title={t('exact.title')} description={t('exactCallback.finishing')} />
       {failure === null ? (
         <p role="status" className="text-muted-foreground text-sm">
-          {code === '' ? 'Geen autorisatiecode ontvangen van Exact.' : 'Even geduld.'}
+          {code === '' ? t('exactCallback.noCode') : t('exactCallback.wait')}
         </p>
       ) : (
         <>
@@ -65,9 +67,9 @@ function ExactCallback() {
             {failure}
           </p>
           <p className="text-muted-foreground mt-2 text-sm">
-            Begin opnieuw op de{' '}
+            {t('exactCallback.startOver')}{' '}
             <a href="/exact" className="underline">
-              Exact-pagina
+              {t('exactCallback.exactPage')}
             </a>
             .
           </p>

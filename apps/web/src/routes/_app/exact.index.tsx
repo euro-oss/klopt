@@ -9,6 +9,8 @@ import {
   type AccountOption,
   type JournalOption,
 } from '~/lib/account-options'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import {
   chooseExactDivision,
@@ -87,6 +89,7 @@ function AccountSelect({
   accounts: readonly AccountOption[]
   disabled: boolean
 }) {
+  const { t } = useT()
   const offered = balanceSheetAccounts(accounts)
 
   return (
@@ -98,11 +101,11 @@ function AccountSelect({
         disabled={disabled}
         className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
       >
-        <option value="">— kies een rekening —</option>
+        <option value="">{t('exact.chooseAccount')}</option>
         {offered.map((account) => (
           <option key={account.number} value={account.number}>
             {account.number} — {account.name}
-            {account.isBlocked ? ' (geblokkeerd)' : ''}
+            {account.isBlocked ? t('exact.blockedSuffix') : ''}
           </option>
         ))}
       </select>
@@ -123,12 +126,12 @@ interface DivisionOption {
   readonly ordinary: boolean
 }
 
-const CAUTION_TEXT: Record<string, string> = {
-  practice: 'oefenadministratie',
-  dossier: 'dossieradministratie',
-  archived: 'gearchiveerd',
-  inactive: 'inactief',
-  blocked: 'geblokkeerd',
+const CAUTION_KEY: Record<string, MessageKey> = {
+  practice: 'exact.caution.practice',
+  dossier: 'exact.caution.dossier',
+  archived: 'exact.caution.archived',
+  inactive: 'exact.caution.inactive',
+  blocked: 'exact.caution.blocked',
 }
 
 function Exact() {
@@ -138,6 +141,13 @@ function Exact() {
     journals: journalsResult,
     documents: documentsResult,
   } = Route.useLoaderData()
+  const { t } = useT()
+
+  /** An unrecognised caution is shown raw rather than as a blank. */
+  const cautionOf = (caution: string) => {
+    const key = CAUTION_KEY[caution]
+    return key === undefined ? caution : t(key)
+  }
 
   // The pickers are only as good as the chart behind them. A failed load leaves
   // them empty rather than falling back to free text, because a field that
@@ -194,7 +204,7 @@ function Exact() {
   if (!connection.ok) {
     return (
       <>
-        <PageHeader title="Exact Online" />
+        <PageHeader title={t('exact.title')} />
         <p role="alert" className="text-destructive text-sm">
           {connection.problem.detail}
         </p>
@@ -216,7 +226,7 @@ function Exact() {
     setBusy(false)
 
     if (!result.ok) {
-      setError(result.problem?.detail ?? 'Onbekende fout.')
+      setError(result.problem?.detail ?? t('common.unknownError'))
       return
     }
     onDone?.(result.data)
@@ -255,10 +265,11 @@ function Exact() {
         const chosen = data as { divisionName: string; cautions: readonly string[] }
         setNote(
           chosen.cautions.length === 0
-            ? `${chosen.divisionName} is gekozen.`
-            : `${chosen.divisionName} is gekozen — let op: ${chosen.cautions
-                .map((caution) => CAUTION_TEXT[caution] ?? caution)
-                .join(', ')}.`,
+            ? t('exact.divisionChosen', { name: chosen.divisionName })
+            : t('exact.divisionChosenCaution', {
+                name: chosen.divisionName,
+                cautions: chosen.cautions.map(cautionOf).join(', '),
+              }),
         )
         void router.invalidate()
       },
@@ -302,8 +313,8 @@ function Exact() {
   return (
     <>
       <PageHeader
-        title="Exact Online"
-        description="Relaties, openstaande posten, grootboekschema en documenten overzetten."
+        title={t('exact.title')}
+        description={t('exact.intro')}
         actions={
           state?.connected === true ? (
             <button
@@ -312,7 +323,7 @@ function Exact() {
               onClick={() => void run(disconnectExact, () => void router.invalidate())}
               className="border-border rounded-md border px-3 py-1.5 text-sm"
             >
-              Verbinding verbreken
+              {t('exact.disconnect')}
             </button>
           ) : undefined
         }
@@ -332,23 +343,18 @@ function Exact() {
       {/* Stap 1 — de OAuth-app. */}
       {state === null || state.connected !== true ? (
         <section className="border-border mb-8 rounded-md border p-4">
-          <h2 className="text-lg font-semibold">1. Verbinden</h2>
-          <p className="text-muted-foreground mt-1 mb-4 text-sm">
-            De OAuth-app is van degene die deze installatie beheert. Registreer hem in het Exact App
-            Center met precies deze redirect-URI — Exact vergelijkt hem letterlijk.
-          </p>
+          <h2 className="text-lg font-semibold">{t('exact.step1Connect')}</h2>
+          <p className="text-muted-foreground mt-1 mb-4 text-sm">{t('exact.step1Intro')}</p>
 
           {!canStoreSecrets && (
             <p role="alert" className="text-destructive mb-4 text-sm">
-              Er is geen KLOPT_ENCRYPTION_KEY ingesteld, dus een client secret kan niet versleuteld
-              worden opgeslagen. Zet die eerst; onversleuteld bewaren doet dit systeem niet.
+              {t('exact.noEncryptionKey')}
             </p>
           )}
 
           {hydrated && !redirectIsSecure && (
             <p role="alert" className="text-destructive mb-4 text-sm">
-              Exact accepteert alleen een https-redirect. Start de app met{' '}
-              <code>pnpm dev:https</code> en open die URL, of zet er een https-proxy voor.
+              {t('exact.needsHttps')} <code>pnpm dev:https</code> {t('exact.needsHttpsAfter')}
             </p>
           )}
 
@@ -359,7 +365,7 @@ function Exact() {
           */}
           <div className="grid max-w-2xl gap-3">
             <label className="text-sm">
-              Exact-omgeving
+              {t('exact.environment')}
               <input
                 value={baseUrl}
                 onChange={(event) => setBaseUrl(event.target.value)}
@@ -368,7 +374,7 @@ function Exact() {
               />
             </label>
             <label className="text-sm">
-              Client ID
+              {t('exact.clientId')}
               <input
                 value={clientId}
                 onChange={(event) => setClientId(event.target.value)}
@@ -377,7 +383,7 @@ function Exact() {
               />
             </label>
             <label className="text-sm">
-              Client secret
+              {t('exact.clientSecret')}
               <input
                 type="password"
                 value={clientSecret}
@@ -387,7 +393,7 @@ function Exact() {
               />
             </label>
             <label className="text-sm">
-              Redirect-URI
+              {t('exact.redirectUri')}
               <input
                 value={redirectUri}
                 onChange={(event) => setEditedRedirect(event.target.value)}
@@ -409,17 +415,18 @@ function Exact() {
                 onClick={() => void connect()}
                 className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
               >
-                Aanmelden bij Exact
+                {t('exact.signIn')}
               </button>
             </div>
           </div>
         </section>
       ) : (
         <section className="border-border mb-8 rounded-md border p-4">
-          <h2 className="text-lg font-semibold">1. Verbonden</h2>
+          <h2 className="text-lg font-semibold">{t('exact.step1Connected')}</h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            {state.userName ?? 'onbekende gebruiker'} — {state.baseUrl}
-            {state.lastImportAt !== null && ` · laatst overgezet ${formatDate(state.lastImportAt)}`}
+            {state.userName ?? t('exact.unknownUser')} — {state.baseUrl}
+            {state.lastImportAt !== null &&
+              t('exact.lastImported', { date: formatDate(state.lastImportAt) })}
           </p>
           {state.lastError !== null && (
             <p role="alert" className="text-destructive mt-2 text-sm">
@@ -432,22 +439,16 @@ function Exact() {
       {/* Stap 2 — welke administratie. De hele reden dat dit een eigen stap is. */}
       {state?.connected === true && (
         <section className="border-border mb-8 rounded-md border p-4">
-          <h2 className="text-lg font-semibold">2. Welke administratie</h2>
-          <p className="text-muted-foreground mt-1 mb-4 text-sm">
-            Eén Exact-login bereikt élke administratie waar deze gebruiker rechten op heeft. Kies de
-            juiste: achteraf is aan de cijfers niet te zien welke het was.
-          </p>
+          <h2 className="text-lg font-semibold">{t('exact.step2')}</h2>
+          <p className="text-muted-foreground mt-1 mb-4 text-sm">{t('exact.step2Intro')}</p>
 
           {state.divisionCode !== null && (
             <p className="mb-4 text-sm">
-              Gekozen: <strong>{state.divisionName}</strong> ({state.divisionCode})
+              {t('exact.chosen')} <strong>{state.divisionName}</strong> ({state.divisionCode})
               {state.divisionCautions.length > 0 && (
                 <span className="text-unreconciled">
                   {' '}
-                  —{' '}
-                  {state.divisionCautions
-                    .map((caution) => CAUTION_TEXT[caution] ?? caution)
-                    .join(', ')}
+                  — {state.divisionCautions.map(cautionOf).join(', ')}
                 </span>
               )}
             </p>
@@ -459,17 +460,17 @@ function Exact() {
             onClick={() => void loadDivisions()}
             className="border-border rounded-md border px-3 py-1.5 text-sm"
           >
-            {divisions === null ? 'Administraties ophalen' : 'Opnieuw ophalen'}
+            {divisions === null ? t('exact.fetchDivisions') : t('exact.fetchAgain')}
           </button>
 
           {divisions !== null && (
             <table className="mt-4 w-full text-sm">
               <thead>
                 <tr className="border-border border-b text-left">
-                  <th className="py-2">Administratie</th>
-                  <th className="py-2">Nummer</th>
-                  <th className="py-2">BTW-nummer</th>
-                  <th className="py-2">Let op</th>
+                  <th className="py-2">{t('exact.division')}</th>
+                  <th className="py-2">{t('exact.divisionNumber')}</th>
+                  <th className="py-2">{t('exact.divisionVat')}</th>
+                  <th className="py-2">{t('exact.caution')}</th>
                   <th className="py-2" />
                 </tr>
               </thead>
@@ -482,9 +483,7 @@ function Exact() {
                     <td className="text-unreconciled py-2">
                       {division.cautions.length === 0
                         ? ''
-                        : division.cautions
-                            .map((caution) => CAUTION_TEXT[caution] ?? caution)
-                            .join(', ')}
+                        : division.cautions.map(cautionOf).join(', ')}
                     </td>
                     <td className="py-2 text-right">
                       <button
@@ -493,7 +492,9 @@ function Exact() {
                         onClick={() => void choose(division.code)}
                         className="border-border rounded-md border px-2 py-1 text-xs disabled:opacity-50"
                       >
-                        {state.divisionCode === division.code ? 'gekozen' : 'kies deze'}
+                        {state.divisionCode === division.code
+                          ? t('exact.isChosen')
+                          : t('exact.chooseThis')}
                       </button>
                     </td>
                   </tr>
@@ -507,15 +508,12 @@ function Exact() {
       {/* Stap 3 — de proefimport. */}
       {state?.ready === true && (
         <section className="border-border rounded-md border p-4">
-          <h2 className="text-lg font-semibold">3. Proefimport</h2>
-          <p className="text-muted-foreground mt-1 mb-4 text-sm">
-            Leest de administratie en sluit aan op de proefbalans van Exact zelf. Er wordt niets
-            overgezet.
-          </p>
+          <h2 className="text-lg font-semibold">{t('exact.step3')}</h2>
+          <p className="text-muted-foreground mt-1 mb-4 text-sm">{t('exact.step3Intro')}</p>
 
           <div className="mb-4 flex items-end gap-3">
             <label className="text-sm">
-              Boekjaar
+              {t('exact.fiscalYear')}
               <input
                 value={year}
                 onChange={(event) => setYear(event.target.value)}
@@ -529,7 +527,7 @@ function Exact() {
               onClick={() => void runPreview()}
               className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
             >
-              {busy ? 'Bezig…' : 'Proefimport uitvoeren'}
+              {busy ? t('common.busy') : t('exact.runPreview')}
             </button>
           </div>
 
@@ -547,17 +545,14 @@ function Exact() {
 
       {state?.ready === true && preview !== null && (
         <section className="border-border mt-6 rounded-md border p-4">
-          <h2 className="text-lg font-semibold">4. Overzetten</h2>
-          <p className="text-muted-foreground mt-1 mb-4 text-sm">
-            Zet het grootboekschema, de relaties en de openstaande posten over. De openstaande
-            posten komen als één beginbalanspost in het grootboek.
-          </p>
+          <h2 className="text-lg font-semibold">{t('exact.step4')}</h2>
+          <p className="text-muted-foreground mt-1 mb-4 text-sm">{t('exact.step4Intro')}</p>
 
           {imported === null ? (
             <>
               <div className="mb-4 grid max-w-2xl gap-3 md:grid-cols-2">
                 <label className="text-sm">
-                  Datum beginbalans
+                  {t('exact.openingDate')}
                   <input
                     type="date"
                     value={openingDate}
@@ -567,14 +562,16 @@ function Exact() {
                   />
                 </label>
                 <label className="text-sm">
-                  Dagboek
+                  {t('exact.journal')}
                   <select
                     value={effectiveJournal}
                     onChange={(event) => setJournalCode(event.target.value)}
                     disabled={!hydrated}
                     className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
                   >
-                    {journals.length === 1 ? null : <option value="">— kies een dagboek —</option>}
+                    {journals.length === 1 ? null : (
+                      <option value="">{t('exact.chooseJournal')}</option>
+                    )}
                     {journals.map((journal) => (
                       <option key={journal.code} value={journal.code}>
                         {journal.code} — {journal.name}
@@ -583,14 +580,14 @@ function Exact() {
                   </select>
                 </label>
                 <AccountSelect
-                  label="Debiteurenrekening"
+                  label={t('exact.receivableAccount')}
                   value={receivableAccount}
                   onChange={setReceivableAccount}
                   accounts={accounts}
                   disabled={!hydrated}
                 />
                 <AccountSelect
-                  label="Crediteurenrekening"
+                  label={t('exact.payableAccount')}
                   value={payableAccount}
                   onChange={setPayableAccount}
                   accounts={accounts}
@@ -598,12 +595,12 @@ function Exact() {
                 />
                 <div className="md:col-span-2">
                   <AccountSelect
-                    label="Tegenrekening beginbalans"
+                    label={t('exact.openingAccount')}
                     value={openingBalanceAccount}
                     onChange={setOpeningBalanceAccount}
                     accounts={accounts}
                     disabled={!hydrated}
-                    hint="Hier komt de andere kant van elke openstaande post terecht. Een tussenrekening is hiervoor het veiligst: die staat pas op nul als de rest van de balans óók is overgezet, dus een restsaldo is het signaal dat er nog iets mist. Er is met opzet geen standaard — een verkeerde keuze is achteraf aan de cijfers niet te zien."
+                    hint={t('exact.openingAccountHint')}
                   />
                 </div>
               </div>
@@ -621,7 +618,7 @@ function Exact() {
                 onClick={() => void runImport()}
                 className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
               >
-                {busy ? 'Bezig…' : 'Definitief overzetten'}
+                {busy ? t('common.busy') : t('exact.commit')}
               </button>
             </>
           ) : (
@@ -634,18 +631,23 @@ function Exact() {
 }
 
 function ImportResult({ result }: { result: Record<string, unknown> }) {
+  const { t } = useT()
   const number = (key: string): string => String((result[key] as number | undefined) ?? 0)
 
   return (
     <div>
       <p role="status" className="mb-4 text-sm">
-        Overgezet: {number('accountsCreated')} grootboekrekeningen, {number('contactsCreated')}{' '}
-        relaties, {number('openItemsImported')} openstaande posten ({number('receivableCount')}{' '}
-        debiteuren, {number('payableCount')} crediteuren).
+        {t('exact.imported', {
+          accounts: number('accountsCreated'),
+          contacts: number('contactsCreated'),
+          openItems: number('openItemsImported'),
+          receivables: number('receivableCount'),
+          payables: number('payableCount'),
+        })}
       </p>
       {typeof result['openingEntryId'] === 'string' && (
         <p className="text-muted-foreground text-sm">
-          De beginbalans staat in journaalpost{' '}
+          {t('exact.openingIn')}{' '}
           <Link
             to="/entries/$entryId"
             params={{ entryId: result['openingEntryId'] }}
@@ -653,7 +655,7 @@ function ImportResult({ result }: { result: Record<string, unknown> }) {
           >
             {result['openingEntryId'].slice(0, 8)}
           </Link>
-          . Eén post, dus terugdraaien is één storno.
+          {t('exact.openingInAfter')}
         </p>
       )}
     </div>
@@ -691,6 +693,7 @@ interface Reconciliation {
  * in het schema.
  */
 function PreviewReport({ report }: { report: Record<string, unknown> }) {
+  const { t } = useT()
   const reconciliation = report['reconciliation'] as Reconciliation
   const accounts = report['accounts'] as { count: number; new: number; derived: number }
   const contacts = report['contacts'] as { count: number; new: number }
@@ -717,70 +720,89 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
           in somebody's books.
         */}
         <Stat
-          label={`Proefbalans ${String(reconciliation.year)}`}
+          label={t('exact.trialBalanceLabel', { year: String(reconciliation.year) })}
           value={
             reconciliation.source === 'unreadable'
-              ? 'niet gelezen'
+              ? t('exact.notRead')
               : reconciliation.source === 'empty'
-                ? 'geen saldi'
+                ? t('exact.noBalances')
                 : reconciliation.balanced
-                  ? 'sluit'
-                  : 'sluit niet'
+                  ? t('exact.balances')
+                  : t('exact.doesNotBalance')
           }
           tone={
             reconciliation.source !== 'read' ? 'muted' : reconciliation.balanced ? 'good' : 'warn'
           }
           hint={
             reconciliation.source === 'read'
-              ? `${reconciliation.totalDebit ?? '—'} debet / ${reconciliation.totalCredit ?? '—'} credit`
+              ? t('exact.debitCredit', {
+                  debit: reconciliation.totalDebit ?? '—',
+                  credit: reconciliation.totalCredit ?? '—',
+                })
               : reconciliation.source === 'unreadable'
-                ? 'Exact gaf geen toegang tot financial/ReportingBalance'
-                : 'Exact gaf geen enkele regel terug voor dit jaar'
+                ? t('exact.noAccessToReporting')
+                : t('exact.noRowsForYear')
           }
         />
         <Stat
-          label="Grootboekrekeningen"
+          label={t('exact.ledgerAccounts')}
           value={accounts.count}
-          hint={`${String(accounts.new)} nieuw${accounts.derived > 0 ? `, ${String(accounts.derived)} afgeleid` : ''}`}
+          hint={
+            accounts.derived > 0
+              ? t('exact.newAndDerived', {
+                  count: String(accounts.new),
+                  derived: String(accounts.derived),
+                })
+              : t('exact.newCount', { count: String(accounts.new) })
+          }
         />
-        <Stat label="Relaties" value={contacts.count} hint={`${String(contacts.new)} nieuw`} />
         <Stat
-          label="Openstaand"
+          label={t('exact.contacts')}
+          value={contacts.count}
+          hint={t('exact.newCount', { count: String(contacts.new) })}
+        />
+        <Stat
+          label={t('exact.outstanding')}
           value={`${openItems.receivable.total} / ${openItems.payable.total}`}
-          hint={`${String(openItems.receivable.count)} debiteuren, ${String(openItems.payable.count)} crediteuren`}
+          hint={t('exact.outstandingHint', {
+            receivables: String(openItems.receivable.count),
+            payables: String(openItems.payable.count),
+          })}
         />
       </div>
 
-      <h3 className="mb-2 text-sm font-semibold">Aansluiting openstaande posten</h3>
+      <h3 className="mb-2 text-sm font-semibold">{t('exact.openItemsReconciliation')}</h3>
       {reconciliation.source !== 'read' && (
         <p role="status" className="text-muted-foreground mb-2 text-sm">
           {reconciliation.source === 'unreadable'
-            ? 'De proefbalans van Exact kon niet gelezen worden, dus de openstaande posten zijn niet tegen de tussenrekeningen aangesloten.'
-            : `Exact gaf voor ${String(reconciliation.year)} helemaal geen saldi terug, dus er was niets om tegen aan te sluiten.`}{' '}
-          Wat er staat is wat de openstaande posten zelf zeggen — niet dat het klopt.
+            ? t('exact.unreadableTrialBalance')
+            : t('exact.emptyTrialBalance', { year: String(reconciliation.year) })}{' '}
+          {t('exact.reconciliationCaveat')}
         </p>
       )}
       <table className="mb-6 w-full text-sm">
         <thead>
           <tr className="border-border border-b text-left">
-            <th className="py-2">Zijde</th>
-            <th className="py-2">Rekening(en)</th>
-            <th className="py-2 text-right">Grootboek</th>
-            <th className="py-2 text-right">Openstaande posten</th>
-            <th className="py-2 text-right">Verschil</th>
+            <th className="py-2">{t('exact.side')}</th>
+            <th className="py-2">{t('exact.accountsColumn')}</th>
+            <th className="py-2 text-right">{t('exact.ledgerColumn')}</th>
+            <th className="py-2 text-right">{t('exact.openItemsColumn')}</th>
+            <th className="py-2 text-right">{t('exact.differenceColumn')}</th>
           </tr>
         </thead>
         <tbody>
           {(
             [
-              ['Debiteuren', reconciliation.receivable],
-              ['Crediteuren', reconciliation.payable],
-            ] as const
+              ['exact.receivables', reconciliation.receivable],
+              ['exact.payables', reconciliation.payable],
+            ] as const satisfies readonly (readonly [MessageKey, ControlCheck])[]
           ).map(([label, check]) => (
             <tr key={label} className="border-border border-b">
-              <td className="py-2">{label}</td>
+              <td className="py-2">{t(label)}</td>
               <td className="py-2 font-mono text-xs">
-                {check.accountCodes.length === 0 ? 'geen gevonden' : check.accountCodes.join(', ')}
+                {check.accountCodes.length === 0
+                  ? t('exact.noneFound')
+                  : check.accountCodes.join(', ')}
               </td>
               {/*
                 An em dash rather than 0,00 where there is no number. A zero
@@ -804,7 +826,7 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
       {problems.length > 0 && (
         <>
           <h3 className="text-destructive mb-2 text-sm font-semibold">
-            Blokkerend ({String(problems.length)})
+            {t('exact.blocking', { count: String(problems.length) })}
           </h3>
           <ul className="text-destructive mb-6 list-disc pl-5 text-sm">
             {problems.map((problem, index) => (
@@ -823,20 +845,21 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
       {requests.length > 0 && (
         <details className="mb-6">
           <summary className="cursor-pointer text-sm font-semibold">
-            Verzoeken aan Exact ({String(requests.length)}) —{' '}
-            {String(requests.reduce((sum, entry) => sum + entry.rows, 0))} rijen in{' '}
-            {String(
-              Math.round(requests.reduce((sum, entry) => sum + entry.durationMs, 0) / 100) / 10,
-            )}
-            s
+            {t('exact.requests', {
+              count: String(requests.length),
+              rows: String(requests.reduce((sum, entry) => sum + entry.rows, 0)),
+              seconds: String(
+                Math.round(requests.reduce((sum, entry) => sum + entry.durationMs, 0) / 100) / 10,
+              ),
+            })}
           </summary>
           <table className="mt-2 w-full text-sm">
             <thead>
               <tr className="border-border border-b text-left">
-                <th className="py-2">Resource</th>
-                <th className="py-2 text-right">Status</th>
-                <th className="py-2 text-right">Rijen</th>
-                <th className="py-2 text-right">Duur</th>
+                <th className="py-2">{t('exact.resource')}</th>
+                <th className="py-2 text-right">{t('exact.statusColumn')}</th>
+                <th className="py-2 text-right">{t('exact.rowsColumn')}</th>
+                <th className="py-2 text-right">{t('exact.durationColumn')}</th>
               </tr>
             </thead>
             <tbody>
@@ -861,7 +884,9 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
 
       {warnings.length > 0 && (
         <>
-          <h3 className="mb-2 text-sm font-semibold">Let op ({String(warnings.length)})</h3>
+          <h3 className="mb-2 text-sm font-semibold">
+            {t('exact.warnings', { count: String(warnings.length) })}
+          </h3>
           <ul className="text-muted-foreground list-disc pl-5 text-sm">
             {warnings.map((warning, index) => (
               <li key={`${warning.code}-${String(index)}`}>{warning.message}</li>
@@ -871,7 +896,7 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
       )}
 
       {problems.length === 0 && warnings.length === 0 && (
-        <p className="text-muted-foreground text-sm">Niets om te melden.</p>
+        <p className="text-muted-foreground text-sm">{t('exact.nothingToReport')}</p>
       )}
     </div>
   )
@@ -889,12 +914,12 @@ interface DocumentRun {
   readonly workerSilent?: boolean
 }
 
-const RUN_TEXT: Record<string, string> = {
-  pending: 'wacht op de worker',
-  running: 'bezig',
-  paused: 'gepauzeerd tot morgen — het dagbudget van Exact was bijna op',
-  done: 'klaar',
-  failed: 'gestopt',
+const RUN_KEY: Record<string, MessageKey> = {
+  pending: 'docs.run.pending',
+  running: 'docs.run.running',
+  paused: 'docs.run.paused',
+  done: 'docs.run.done',
+  failed: 'docs.run.failed',
 }
 
 /**
@@ -909,6 +934,13 @@ function DocumentArchive({ result }: { result: { ok: boolean; data?: unknown } }
   const hydrated = useHydrated()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { t } = useT()
+
+  /** An unrecognised state is shown raw rather than as a blank. */
+  const runOf = (state: string) => {
+    const key = RUN_KEY[state]
+    return key === undefined ? state : t(key)
+  }
 
   if (!result.ok) return null
   const run = result.data as DocumentRun
@@ -919,7 +951,7 @@ function DocumentArchive({ result }: { result: { ok: boolean; data?: unknown } }
     const response = await importExactDocuments({ data: { idempotencyKey: crypto.randomUUID() } })
     setBusy(false)
     if (response.ok === false) {
-      setError(response.problem?.detail ?? 'Onbekende fout.')
+      setError(response.problem?.detail ?? t('common.unknownError'))
       return
     }
     await router.invalidate()
@@ -929,12 +961,8 @@ function DocumentArchive({ result }: { result: { ok: boolean; data?: unknown } }
 
   return (
     <section className="border-border mt-6 rounded-md border p-4">
-      <h2 className="text-lg font-semibold">Documentarchief</h2>
-      <p className="text-muted-foreground mt-1 mb-4 max-w-2xl text-sm">
-        Haalt de bijlagen uit Exact op en bewaart ze hier. Dit draait op de achtergrond en gaat na
-        een herstart verder waar het gebleven was — bij tienduizenden bestanden duurt het uren, en
-        het stopt vanzelf als het dagbudget van Exact bijna op is.
-      </p>
+      <h2 className="text-lg font-semibold">{t('docs.title')}</h2>
+      <p className="text-muted-foreground mt-1 mb-4 max-w-2xl text-sm">{t('docs.intro')}</p>
 
       {error !== null && (
         <p role="alert" className="text-destructive mb-4 text-sm">
@@ -944,17 +972,18 @@ function DocumentArchive({ result }: { result: { ok: boolean; data?: unknown } }
 
       {run.workerSilent === true && (
         <p role="alert" className="text-destructive mb-4 text-sm">
-          De worker lijkt niet te draaien: deze opdracht staat al een tijd te wachten en is nog niet
-          opgepakt. Start hem met <code>pnpm run dev</code> (die start web én worker) of apart met{' '}
+          {t('docs.workerSilent')} <code>pnpm run dev</code> {t('docs.workerSilentMiddle')}{' '}
           <code>pnpm run dev:worker</code>.
         </p>
       )}
 
       {run.requested && (
         <p className="mb-4 text-sm">
-          Status: <strong>{RUN_TEXT[run.state ?? ''] ?? run.state}</strong> —{' '}
-          {String(run.attachmentsStored ?? 0)} opgeslagen, {String(run.attachmentsSkipped ?? 0)} al
-          aanwezig.
+          {t('docs.status')} <strong>{runOf(run.state ?? '')}</strong>
+          {t('docs.storedAndSkipped', {
+            stored: String(run.attachmentsStored ?? 0),
+            skipped: String(run.attachmentsSkipped ?? 0),
+          })}
           {run.lastError != null && (
             <span className="text-muted-foreground block text-xs">{run.lastError}</span>
           )}
@@ -967,7 +996,7 @@ function DocumentArchive({ result }: { result: { ok: boolean; data?: unknown } }
         onClick={() => void start()}
         className="border-border rounded-md border px-3 py-1.5 text-sm disabled:opacity-50"
       >
-        {busy ? 'Bezig…' : running ? 'Opnieuw bijwerken' : 'Documenten ophalen'}
+        {busy ? t('common.busy') : running ? t('docs.refresh') : t('docs.fetch')}
       </button>
     </section>
   )
