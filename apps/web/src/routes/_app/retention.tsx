@@ -2,6 +2,8 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { formatDate } from '~/lib/format'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { deleteDocuments, getRetention, setLegalHold, setRetentionClass } from '~/server/ledger'
 
@@ -22,12 +24,12 @@ export const Route = createFileRoute('/_app/retention')({
   component: Retention,
 })
 
-const STATE_LABEL: Record<string, string> = {
-  expired: 'termijn verlopen',
-  retained: 'bewaren',
-  held: 'legal hold',
-  undated: 'geen boekjaar',
-  deleted: 'verwijderd',
+const STATE_KEY: Record<string, MessageKey> = {
+  expired: 'retention.state.expired',
+  retained: 'retention.state.retained',
+  held: 'retention.state.held',
+  undated: 'retention.state.undated',
+  deleted: 'retention.state.deleted',
 }
 
 function formatBytes(size: bigint | number): string {
@@ -42,6 +44,14 @@ function Retention() {
   const router = useRouter()
   const hydrated = useHydrated()
 
+  const { t } = useT()
+
+  /** An unrecognised state is shown raw rather than as a blank. */
+  const stateOf = (state: string) => {
+    const key = STATE_KEY[state]
+    return key === undefined ? state : t(key)
+  }
+
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
@@ -52,7 +62,7 @@ function Retention() {
   if (!retention.ok) {
     return (
       <>
-        <PageHeader title="Bewaarplicht" />
+        <PageHeader title={t('retention.title')} />
         <p role="alert" className="text-destructive text-sm">
           {retention.problem.detail}
         </p>
@@ -80,7 +90,7 @@ function Retention() {
     setBusy(false)
 
     if (!result.ok) {
-      setError(result.problem?.detail ?? 'Dat is niet gelukt.')
+      setError(result.problem?.detail ?? t('retention.failed'))
       return null
     }
 
@@ -107,21 +117,21 @@ function Retention() {
 
   return (
     <>
-      <PageHeader
-        title="Bewaarplicht"
-        description="Zeven jaar, tien voor onroerend goed, gerekend vanaf het einde van het boekjaar waar een document bij hoort. Verwijderen gebeurt nooit automatisch."
-      />
+      <PageHeader title={t('retention.title')} description={t('retention.intro')} />
 
       <div className="mb-6 flex flex-wrap gap-8">
-        <Stat label="Documenten" value={String(data.summary.documents)} />
+        <Stat label={t('retention.documents')} value={String(data.summary.documents)} />
         <Stat
-          label="Termijn verlopen"
+          label={t('retention.expired')}
           value={String(data.summary.byState.expired)}
           tone={data.summary.byState.expired > 0 ? 'warn' : 'neutral'}
         />
-        <Stat label="Legal hold" value={String(data.summary.byState.held)} />
-        <Stat label="Geen boekjaar" value={String(data.summary.byState.undated)} />
-        <Stat label="Vrij te maken" value={formatBytes(BigInt(data.summary.deletableBytes))} />
+        <Stat label={t('retention.legalHold')} value={String(data.summary.byState.held)} />
+        <Stat label={t('retention.undated')} value={String(data.summary.byState.undated)} />
+        <Stat
+          label={t('retention.freeable')}
+          value={formatBytes(BigInt(data.summary.deletableBytes))}
+        />
       </div>
 
       {/*
@@ -134,14 +144,15 @@ function Retention() {
         yet is protected by the application and not by the storage.
       */}
       <p className="border-border text-muted-foreground mb-6 max-w-3xl rounded-md border border-dashed p-3 text-sm">
-        <span className="text-foreground font-medium">Opslag: {data.storage.name}</span>
+        <span className="text-foreground font-medium">
+          {t('retention.storage', { name: data.storage.name })}
+        </span>
         {data.storage.objectLock ? (
           <>
             {' '}
-            met object lock ({data.storage.mode}). De opslag houdt{' '}
-            <span className="tabular">{data.storage.locked}</span> van de{' '}
-            <span className="tabular">{data.storage.dated}</span> documenten met een bekende termijn
-            zelf vast — verwijderen kan dan niet, ook niet door ons.
+            {t('retention.objectLockBefore', { mode: data.storage.mode ?? '' })}{' '}
+            <span className="tabular">{data.storage.locked}</span> {t('retention.objectLockMiddle')}{' '}
+            <span className="tabular">{data.storage.dated}</span> {t('retention.objectLockAfter')}
           </>
         ) : (
           <> — {data.storage.note}</>
@@ -152,16 +163,13 @@ function Retention() {
       </p>
 
       <section className="border-border mb-8 max-w-3xl rounded-md border p-4">
-        <h2 className="mb-1 text-sm font-semibold">Legal hold op de hele administratie</h2>
-        <p className="text-muted-foreground mb-3 text-sm">
-          Schort verwijderen op, ongeacht de bewaartermijn. Een geschil of een boekenonderzoek duurt
-          langer dan de termijn, en dan moet de klok niet meer uitmaken.
-        </p>
+        <h2 className="mb-1 text-sm font-semibold">{t('retention.entityHold')}</h2>
+        <p className="text-muted-foreground mb-3 text-sm">{t('retention.entityHoldIntro')}</p>
 
         {data.legalHold.held ? (
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-sm">
-              <span className="font-medium">Aan</span>
+              <span className="font-medium">{t('retention.holdOn')}</span>
               {data.legalHold.reason !== null && ` — ${data.legalHold.reason}`}
             </p>
             <button
@@ -182,7 +190,7 @@ function Retention() {
               }}
               className="border-border rounded-md border px-3 py-1.5 text-sm disabled:opacity-50"
             >
-              Opheffen
+              {t('retention.lift')}
             </button>
           </div>
         ) : (
@@ -206,11 +214,13 @@ function Retention() {
             }}
           >
             <label className="grow">
-              <span className="text-muted-foreground mb-1 block text-xs font-medium">Waarom</span>
+              <span className="text-muted-foreground mb-1 block text-xs font-medium">
+                {t('retention.why')}
+              </span>
               <input
                 name="reason"
                 required
-                placeholder="Boekenonderzoek Belastingdienst"
+                placeholder={t('retention.whyPlaceholder')}
                 className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
               />
             </label>
@@ -219,7 +229,7 @@ function Retention() {
               disabled={!hydrated || busy}
               className="border-border rounded-md border px-3 py-2 text-sm disabled:opacity-50"
             >
-              Instellen
+              {t('retention.set')}
             </button>
           </form>
         )}
@@ -234,21 +244,21 @@ function Retention() {
 
       {documents.length === 0 ? (
         <p className="text-muted-foreground border-border rounded-md border border-dashed p-6 text-sm">
-          Nog geen documenten.
+          {t('retention.empty')}
         </p>
       ) : (
         <>
           <table className="mb-4 w-full text-sm">
-            <caption className="sr-only">Documenten en hun bewaartermijn</caption>
+            <caption className="sr-only">{t('retention.caption')}</caption>
             <thead>
               <tr className="text-muted-foreground text-left text-xs">
                 <th scope="col" className="w-8" />
-                <th scope="col">Document</th>
-                <th scope="col">Boekjaar</th>
-                <th scope="col">Bewaren tot</th>
-                <th scope="col">Status</th>
+                <th scope="col">{t('retention.document')}</th>
+                <th scope="col">{t('retention.bookYear')}</th>
+                <th scope="col">{t('retention.retainUntil')}</th>
+                <th scope="col">{t('invoices.status')}</th>
                 <th scope="col" className="text-right">
-                  Grootte
+                  {t('retention.size')}
                 </th>
               </tr>
             </thead>
@@ -258,7 +268,9 @@ function Retention() {
                   <td className="py-1.5">
                     <input
                       type="checkbox"
-                      aria-label={`Selecteer ${row.filename ?? row.sha256.slice(0, 12)}`}
+                      aria-label={t('retention.select', {
+                        name: row.filename ?? row.sha256.slice(0, 12),
+                      })}
                       checked={chosen.has(row.id)}
                       disabled={!hydrated || row.state === 'deleted'}
                       onChange={() => {
@@ -267,12 +279,14 @@ function Retention() {
                     />
                   </td>
                   <td className="py-1.5 pr-2">
-                    {row.filename ?? <span className="text-muted-foreground">naamloos</span>}
+                    {row.filename ?? (
+                      <span className="text-muted-foreground">{t('retention.unnamed')}</span>
+                    )}
                     <span className="text-muted-foreground block text-xs">
                       {row.contentType} ·{' '}
                       {row.linkCount === 0
-                        ? 'nog niet gekoppeld'
-                        : `${String(row.linkCount)}× gekoppeld`}
+                        ? t('retention.notLinked')
+                        : t('retention.linkedCount', { count: String(row.linkCount) })}
                     </span>
                   </td>
                   <td className="tabular py-1.5 pr-2 text-xs">{row.retentionFiscalYear ?? '—'}</td>
@@ -282,7 +296,7 @@ function Retention() {
                   </td>
                   <td className="py-1.5 pr-2 text-xs">
                     <span className={row.state === 'expired' ? 'text-unreconciled' : undefined}>
-                      {STATE_LABEL[row.state]}
+                      {stateOf(row.state)}
                     </span>
                     <span className="text-muted-foreground block">{row.reason}</span>
                   </td>
@@ -297,8 +311,11 @@ function Retention() {
           <div className="border-border flex flex-wrap items-end gap-3 rounded-md border p-4">
             <p className="text-muted-foreground w-full text-sm">
               {chosen.size === 0
-                ? 'Selecteer documenten om ze op hold te zetten, als onroerend goed te merken, of te verwijderen als de termijn voorbij is.'
-                : `${String(chosen.size)} geselecteerd, waarvan ${String(chosenDeletable.length)} met verlopen termijn.`}
+                ? t('retention.selectPrompt')
+                : t('retention.selected', {
+                    count: String(chosen.size),
+                    deletable: String(chosenDeletable.length),
+                  })}
             </p>
 
             <button
@@ -317,19 +334,19 @@ function Retention() {
               }}
               className="border-border rounded-md border px-3 py-2 text-sm disabled:opacity-50"
             >
-              Tien jaar (onroerend goed)
+              {t('retention.tenYears')}
             </button>
 
             <label className="grow">
               <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                Reden — verplicht bij hold en bij verwijderen
+                {t('retention.reasonLabel')}
               </span>
               <input
                 value={reason}
                 onChange={(event) => {
                   setReason(event.currentTarget.value)
                 }}
-                placeholder="Bewaartermijn 2018 verlopen"
+                placeholder={t('retention.reasonPlaceholder')}
                 className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
               />
             </label>
@@ -352,7 +369,7 @@ function Retention() {
               }}
               className="border-border rounded-md border px-3 py-2 text-sm disabled:opacity-50"
             >
-              Op hold zetten
+              {t('retention.putOnHold')}
             </button>
 
             {/*
@@ -383,7 +400,9 @@ function Retention() {
               }}
               className="bg-destructive text-destructive-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
-              {busy ? 'Bezig…' : `Definitief verwijderen (${String(chosenDeletable.length)})`}
+              {busy
+                ? t('common.busy')
+                : t('retention.deleteCount', { count: String(chosenDeletable.length) })}
             </button>
           </div>
         </>

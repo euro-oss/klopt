@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { formatDate } from '~/lib/format'
 import { listAuditLog } from '~/server/ledger'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 
 /**
  * Wie wat heeft gedaan (spec 7.6).
@@ -36,32 +38,39 @@ export const Route = createFileRoute('/_app/audit-log')({
 
 /** The resource kinds worth a filter chip. Everything else is reachable by API. */
 const KINDS = [
-  ['Alles', undefined],
-  ['Journaalposten', 'journal_entry'],
-  ['Verkoopfacturen', 'sales_invoice'],
-  ['Inkoopfacturen', 'purchase_invoice'],
-  ['Betaalbatches', 'payment_batch'],
-  ['BTW-aangiften', 'vat_filing'],
-  ['Relaties', 'contact'],
-  ['Bank', 'bank_transaction'],
-  ['Instellingen', 'entity'],
-] as const
+  ['audit.kind.all', undefined],
+  ['nav.entries', 'journal_entry'],
+  ['nav.invoices', 'sales_invoice'],
+  ['nav.purchases', 'purchase_invoice'],
+  ['audit.kind.paymentBatches', 'payment_batch'],
+  ['audit.kind.vatFilings', 'vat_filing'],
+  ['nav.contacts', 'contact'],
+  ['nav.bank', 'bank_transaction'],
+  ['nav.settings', 'entity'],
+] as const satisfies readonly (readonly [MessageKey, string | undefined])[]
 
-const ACTOR_LABEL: Record<string, string> = {
-  human: 'mens',
-  script: 'script',
-  agent: 'agent',
+const ACTOR_KEY: Record<string, MessageKey> = {
+  human: 'audit.actor.human',
+  script: 'audit.actor.script',
+  agent: 'audit.actor.agent',
 }
 
 function AuditLog() {
   const { log, resourceType } = Route.useLoaderData()
   const navigate = Route.useNavigate()
   const [open, setOpen] = useState<string | null>(null)
+  const { t } = useT()
+
+  /** An unrecognised actor kind is shown raw rather than as a blank. */
+  const actorOf = (kind: string) => {
+    const key = ACTOR_KEY[kind]
+    return key === undefined ? kind : t(key)
+  }
 
   if (!log.ok) {
     return (
       <>
-        <PageHeader title="Wie wat deed" />
+        <PageHeader title={t('audit.title')} />
         <p role="alert" className="text-destructive text-sm">
           {log.problem.detail}
         </p>
@@ -74,22 +83,22 @@ function AuditLog() {
   return (
     <>
       <PageHeader
-        title="Wie wat deed"
-        description="Elke wijziging met wie, wanneer, vanaf welk adres en onder welk verzoek. Alleen toevoegen — een correctie is een nieuwe regel, net als in het journaal."
+        title={t('audit.title')}
+        description={t('audit.intro')}
         actions={
           <a
             href="/api/v1/audit-log/export?format=csv"
             className="border-border rounded-md border px-4 py-2 text-sm"
           >
-            Exporteren
+            {t('audit.export')}
           </a>
         }
       />
 
       <div className="mb-6 flex flex-wrap gap-8">
-        <Stat label="Regels in beeld" value={String(entries.length)} />
+        <Stat label={t('audit.linesShown')} value={String(entries.length)} />
         <Stat
-          label="Mensen"
+          label={t('audit.people')}
           value={String(
             new Set(entries.filter((entry) => entry.actor.kind === 'human').map((e) => e.actor.id))
               .size,
@@ -111,14 +120,14 @@ function AuditLog() {
                 : 'border-border rounded-md border px-3 py-1.5 text-sm'
             }
           >
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>
 
       {entries.length === 0 ? (
         <p className="text-muted-foreground border-border rounded-md border border-dashed p-6 text-sm">
-          Nog niets vastgelegd.
+          {t('audit.empty')}
         </p>
       ) : (
         <ul className="border-border divide-border divide-y rounded-md border">
@@ -130,9 +139,11 @@ function AuditLog() {
                 </span>
                 <span className="font-medium">{entry.action}</span>
                 <span className="text-muted-foreground text-xs">
-                  {entry.resourceType} · {entry.actor.id} ({ACTOR_LABEL[entry.actor.kind]}
+                  {entry.resourceType} · {entry.actor.id} ({actorOf(entry.actor.kind)}
                   {/* Spec 10.3: an agent action names the human behind its token. */}
-                  {entry.actor.principalId !== null && ` voor ${entry.actor.principalId}`})
+                  {entry.actor.principalId !== null &&
+                    t('audit.onBehalfOf', { principal: entry.actor.principalId })}
+                  )
                 </span>
                 {(entry.before !== null || entry.after !== null) && (
                   <button
@@ -142,7 +153,7 @@ function AuditLog() {
                     }}
                     className="text-primary ml-auto text-xs underline"
                   >
-                    {open === entry.id ? 'Verbergen' : 'Wat er veranderde'}
+                    {open === entry.id ? t('audit.hide') : t('audit.whatChanged')}
                   </button>
                 )}
               </div>
@@ -150,20 +161,24 @@ function AuditLog() {
               {open === entry.id && (
                 <div className="mt-2 grid gap-3 sm:grid-cols-2">
                   <div>
-                    <p className="text-muted-foreground mb-1 text-xs font-medium">Voor</p>
+                    <p className="text-muted-foreground mb-1 text-xs font-medium">
+                      {t('audit.before')}
+                    </p>
                     <pre className="bg-muted overflow-x-auto rounded-md p-2 text-xs">
                       {JSON.stringify(entry.before, null, 2) ?? '—'}
                     </pre>
                   </div>
                   <div>
-                    <p className="text-muted-foreground mb-1 text-xs font-medium">Na</p>
+                    <p className="text-muted-foreground mb-1 text-xs font-medium">
+                      {t('audit.after')}
+                    </p>
                     <pre className="bg-muted overflow-x-auto rounded-md p-2 text-xs">
                       {JSON.stringify(entry.after, null, 2) ?? '—'}
                     </pre>
                   </div>
                   <p className="text-muted-foreground sm:col-span-2 text-xs">
                     {entry.resourceId}
-                    {entry.requestId !== null && ` · verzoek ${entry.requestId}`}
+                    {entry.requestId !== null && t('audit.request', { id: entry.requestId })}
                     {entry.ip !== null && ` · ${entry.ip}`}
                   </p>
                 </div>

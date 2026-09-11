@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { dunningQueue, sendReminder } from '~/server/sales'
 
@@ -37,6 +38,7 @@ function Dunning() {
   const hydrated = useHydrated()
 
   const [busy, setBusy] = useState<string | null>(null)
+  const { t } = useT()
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const keys = useRef<Map<string, string>>(new Map())
@@ -44,7 +46,7 @@ function Dunning() {
   if (!queue.ok) {
     return (
       <>
-        <PageHeader title="Aanmaningen" />
+        <PageHeader title={t('dunning.title')} />
         <p role="alert" className="text-destructive text-sm">
           {queue.problem.detail}
         </p>
@@ -82,8 +84,8 @@ function Dunning() {
     keys.current.delete(invoiceId)
     setNotice(
       result.data.failure === null
-        ? `${result.data.stageLabel} verstuurd naar ${name}.`
-        : `Versturen naar ${name} mislukt: ${result.data.failure}`,
+        ? t('dunning.sent', { stage: result.data.stageLabel, name })
+        : t('dunning.sendFailed', { name, reason: result.data.failure }),
     )
     await router.invalidate()
   }
@@ -91,24 +93,24 @@ function Dunning() {
   return (
     <>
       <PageHeader
-        title="Aanmaningen"
-        description={`Openstaande facturen per ${formatDate(asOf)}, met de herinnering die elk nu verdient.`}
+        title={t('dunning.title')}
+        description={t('dunning.intro', { date: formatDate(asOf) })}
       />
 
       <div className="mb-6 grid grid-cols-3 gap-4">
         <Stat
-          label="Te chasen"
+          label={t('dunning.toChase')}
           value={String(actions.length)}
-          hint="facturen met een openstaande herinnering"
+          hint={t('dunning.toChaseHint')}
         />
         <Stat
-          label="Openstaand bedrag"
+          label={t('dunning.outstandingAmount')}
           value={<Money amount={totalOverdue} />}
           tone={BigInt(totalOverdue) > 0n ? 'warn' : 'neutral'}
-          hint="van de facturen in deze lijst"
+          hint={t('dunning.outstandingHint')}
         />
         <Stat
-          label="Schema"
+          label={t('dunning.schedule')}
           value={schedule.map((stage) => `${String(stage.afterDays)}d`).join(' · ')}
           hint={schedule.map((stage) => stage.label).join(', ')}
         />
@@ -127,18 +129,18 @@ function Dunning() {
 
       {actions.length === 0 ? (
         <p className="text-muted-foreground border-border rounded-md border border-dashed p-6 text-sm">
-          Niets te chasen. Elke openstaande factuur is nog op tijd, of is al aangemaand.
+          {t('dunning.empty')}
         </p>
       ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className="border-border text-muted-foreground border-b text-left text-xs">
-              <th className="py-2 font-medium">Factuur</th>
-              <th className="py-2 font-medium">Relatie</th>
-              <th className="py-2 font-medium">Vervallen</th>
-              <th className="py-2 text-right font-medium">Dagen</th>
-              <th className="py-2 text-right font-medium">Bedrag</th>
-              <th className="py-2 font-medium">Volgende stap</th>
+              <th className="py-2 font-medium">{t('dunning.invoice')}</th>
+              <th className="py-2 font-medium">{t('invoices.contact')}</th>
+              <th className="py-2 font-medium">{t('dunning.overdueSince')}</th>
+              <th className="py-2 text-right font-medium">{t('dunning.days')}</th>
+              <th className="py-2 text-right font-medium">{t('dunning.amount')}</th>
+              <th className="py-2 font-medium">{t('dunning.nextStep')}</th>
               <th className="py-2" />
             </tr>
           </thead>
@@ -157,7 +159,7 @@ function Dunning() {
                 <td className="py-2">
                   {action.contactName}
                   {!action.sendable && (
-                    <span className="text-unreconciled"> · geen e-mailadres</span>
+                    <span className="text-unreconciled">{t('dunning.noEmail')}</span>
                   )}
                 </td>
                 <td className="tabular py-2">{formatDate(action.dueDate)}</td>
@@ -175,7 +177,7 @@ function Dunning() {
                     }}
                     className="border-input rounded-md border px-3 py-1 text-xs disabled:opacity-50"
                   >
-                    {busy === action.invoiceId ? 'Bezig…' : 'Versturen'}
+                    {busy === action.invoiceId ? t('common.busy') : t('dunning.send')}
                   </button>
                 </td>
               </tr>
