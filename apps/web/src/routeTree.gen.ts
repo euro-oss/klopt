@@ -60,6 +60,7 @@ import { Route as ApiV1BankStatementsRouteImport } from './routes/api/v1/bank-st
 import { Route as ApiV1BankTransactionsRouteImport } from './routes/api/v1/bank-transactions'
 import { Route as ApiV1ContactsRouteImport } from './routes/api/v1/contacts'
 import { Route as ApiV1EntityRouteImport } from './routes/api/v1/entity'
+import { Route as ApiV1EventsRouteImport } from './routes/api/v1/events'
 import { Route as ApiV1FiscalYearsRouteImport } from './routes/api/v1/fiscal-years'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1InboxRouteImport } from './routes/api/v1/inbox'
@@ -400,6 +401,11 @@ const ApiV1ContactsRoute = ApiV1ContactsRouteImport.update({
 const ApiV1EntityRoute = ApiV1EntityRouteImport.update({
   id: '/api/v1/entity',
   path: '/api/v1/entity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1EventsRoute = ApiV1EventsRouteImport.update({
+  id: '/api/v1/events',
+  path: '/api/v1/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1FiscalYearsRoute = ApiV1FiscalYearsRouteImport.update({
@@ -905,6 +911,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRouteWithChildren
   '/api/v1/contacts': typeof ApiV1ContactsRouteWithChildren
   '/api/v1/entity': typeof ApiV1EntityRoute
+  '/api/v1/events': typeof ApiV1EventsRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
@@ -1041,6 +1048,7 @@ export interface FileRoutesByTo {
   '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRouteWithChildren
   '/api/v1/contacts': typeof ApiV1ContactsRouteWithChildren
   '/api/v1/entity': typeof ApiV1EntityRoute
+  '/api/v1/events': typeof ApiV1EventsRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
@@ -1179,6 +1187,7 @@ export interface FileRoutesById {
   '/api/v1/bank-transactions': typeof ApiV1BankTransactionsRouteWithChildren
   '/api/v1/contacts': typeof ApiV1ContactsRouteWithChildren
   '/api/v1/entity': typeof ApiV1EntityRoute
+  '/api/v1/events': typeof ApiV1EventsRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
@@ -1317,6 +1326,7 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions'
     | '/api/v1/contacts'
     | '/api/v1/entity'
+    | '/api/v1/events'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
     | '/api/v1/inbox'
@@ -1453,6 +1463,7 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions'
     | '/api/v1/contacts'
     | '/api/v1/entity'
+    | '/api/v1/events'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
     | '/api/v1/inbox'
@@ -1590,6 +1601,7 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions'
     | '/api/v1/contacts'
     | '/api/v1/entity'
+    | '/api/v1/events'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
     | '/api/v1/inbox'
@@ -1704,6 +1716,7 @@ export interface RootRouteChildren {
   ApiV1BankTransactionsRoute: typeof ApiV1BankTransactionsRouteWithChildren
   ApiV1ContactsRoute: typeof ApiV1ContactsRouteWithChildren
   ApiV1EntityRoute: typeof ApiV1EntityRoute
+  ApiV1EventsRoute: typeof ApiV1EventsRoute
   ApiV1FiscalYearsRoute: typeof ApiV1FiscalYearsRouteWithChildren
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1InboxRoute: typeof ApiV1InboxRouteWithChildren
@@ -2104,6 +2117,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/entity'
       fullPath: '/api/v1/entity'
       preLoaderRoute: typeof ApiV1EntityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/events': {
+      id: '/api/v1/events'
+      path: '/api/v1/events'
+      fullPath: '/api/v1/events'
+      preLoaderRoute: typeof ApiV1EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/fiscal-years': {
@@ -3157,6 +3177,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1BankTransactionsRoute: ApiV1BankTransactionsRouteWithChildren,
   ApiV1ContactsRoute: ApiV1ContactsRouteWithChildren,
   ApiV1EntityRoute: ApiV1EntityRoute,
+  ApiV1EventsRoute: ApiV1EventsRoute,
   ApiV1FiscalYearsRoute: ApiV1FiscalYearsRouteWithChildren,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1InboxRoute: ApiV1InboxRouteWithChildren,

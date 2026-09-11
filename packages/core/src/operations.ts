@@ -260,6 +260,18 @@ export const complianceOperations: Readonly<Record<string, OperationDefinition>>
     idempotent: true,
   }),
 
+  listEvents: defineOperation({
+    id: 'events.list',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary:
+      'The event stream since a cursor. What a self-hoster behind NAT polls instead of receiving webhooks.',
+    // An agent asking "what changed" is a reasonable thing to want, and every
+    // event is a reference the agent must still be allowed to fetch.
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
   pseudonymiseContact: defineOperation({
     id: 'retention.pseudonymiseContact',
     kind: 'write',

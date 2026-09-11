@@ -6,6 +6,7 @@ export {
   createDatabase,
 } from './client.js'
 export { recordAuthEvent } from './auth-audit.js'
+export { type EventQuery, type EventRow } from './repositories/events.js'
 export {
   type Auth,
   type AuthConfig,
@@ -150,6 +151,7 @@ export {
   withYearClose,
   withAudit,
   withAuditRead,
+  withEventsRead,
   withRetention,
   withRetentionRead,
   withSnapshots,

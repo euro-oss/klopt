@@ -7,7 +7,9 @@ import {
   payableRefusal,
   postJournalEntry,
   purchaseStatusLabel,
+  resourceOf,
   systemClock,
+  versionOf,
   type PurchaseFinding,
   type PurchaseInvoiceInput,
 } from '@klopt/core'
@@ -375,6 +377,13 @@ export async function handleBookPurchaseInvoice(
       actorId: context.actor.id,
     })
 
+    await ledger.enqueueEvent({
+      entityId: context.entityId,
+      type: 'purchase.invoice.booked',
+      version: versionOf('purchase.invoice.booked'),
+      payload: { resourceType: resourceOf('purchase.invoice.booked'), resourceId: invoiceId },
+    })
+
     // The journal entry has its own audit row, written inside the posting
     // transaction. This one is about the invoice: which document became which
     // entry, which is the join an inspector follows.
@@ -411,7 +420,7 @@ export async function handleTransitionPurchaseInvoice(
   requirePermission(context, 'purchase:approve')
   requireIdempotencyKey(context)
 
-  return withPurchase(context.database, async ({ purchase }) => {
+  return withPurchase(context.database, async ({ purchase, ledger }) => {
     const found = await purchase.load(context.entityId, invoiceId)
     if (found === null) throw new ApiError('not_found', `No purchase invoice ${invoiceId}.`)
 
@@ -434,6 +443,19 @@ export async function handleTransitionPurchaseInvoice(
       actorId: context.actor.id,
       reason: body.reason,
     })
+
+    // Only the approval is published. The other transitions are internal
+    // workflow — a dispute is a conversation with a supplier, not a fact an
+    // integration acts on — and publishing everything is how an event stream
+    // becomes noise nobody subscribes to.
+    if (transition.to === 'approved') {
+      await ledger.enqueueEvent({
+        entityId: context.entityId,
+        type: 'purchase.invoice.approved',
+        version: versionOf('purchase.invoice.approved'),
+        payload: { resourceType: resourceOf('purchase.invoice.approved'), resourceId: invoiceId },
+      })
+    }
 
     // Approving a cost is an authorisation, and an authorisation nobody can
     // point at afterwards is not one.

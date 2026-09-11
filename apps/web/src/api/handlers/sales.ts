@@ -3,6 +3,8 @@ import {
   CUSTOMIZATION_ID,
   DEFAULT_DUNNING_SCHEDULE,
   PERMISSIONS,
+  resourceOf,
+  versionOf,
   checkUblRules,
   formatMinorUnits,
   generateUbl,
@@ -428,6 +430,16 @@ export async function handleIssueInvoice(
     )
 
     await sales.markIssued({ invoiceId, number, journalEntryId: posted.entry.id })
+
+    // In this transaction, not after it. An outbox only gives its
+    // at-least-once guarantee when the event cannot commit without the change
+    // — and cannot be lost when the change commits.
+    await ledger.enqueueEvent({
+      entityId: context.entityId,
+      type: 'sales.invoice.issued',
+      version: versionOf('sales.invoice.issued'),
+      payload: { resourceType: resourceOf('sales.invoice.issued'), resourceId: invoiceId },
+    })
 
     // Issuing allocates a number out of a series the law requires to be
     // gapless, which makes "who issued 2026-0042, and when" a question with
@@ -881,8 +893,8 @@ export async function handleSendInvoice(
 
   const receipt = await transport.send(document, recipient)
 
-  await withSales(context.database, ({ sales }) =>
-    sales.recordDelivery({
+  await withSales(context.database, async ({ sales, ledger }) => {
+    await sales.recordDelivery({
       entityId: context.entityId,
       invoiceId,
       channel: receipt.channel,
@@ -894,8 +906,18 @@ export async function handleSendInvoice(
       failure: receipt.failure,
       purpose: 'invoice',
       dunningStage: null,
-    }),
-  )
+    })
+
+    // Emitted whether or not it arrived. "We tried and it bounced" is the
+    // event an integration most needs to hear; publishing only successes
+    // would make a failed send indistinguishable from one nobody attempted.
+    await ledger.enqueueEvent({
+      entityId: context.entityId,
+      type: 'sales.invoice.sent',
+      version: versionOf('sales.invoice.sent'),
+      payload: { resourceType: resourceOf('sales.invoice.sent'), resourceId: invoiceId },
+    })
+  })
 
   // The hash says which bytes went to the customer. A delivery row records it
   // too; this records who pressed send, which the delivery row does not.

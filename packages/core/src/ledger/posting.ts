@@ -14,6 +14,7 @@ import type {
   ResolvedDimension,
 } from './types.js'
 import { normaliseDecimal, validateCommandShape } from './validation.js'
+import { resourceOf, versionOf } from '../events/catalogue.js'
 
 /**
  * The one posting API (spec 6.5, 9.1).
@@ -428,17 +429,14 @@ export async function postJournalEntry(
     requestId: options.requestId,
     ip: options.ip,
   })
+  // Thin: what happened and to what, never the resource itself. The reasons
+  // are on `EVENT_TYPES`, and the third one — not posting somebody's data to
+  // four subscribers — is the one that settles it.
   await repository.enqueueEvent({
     entityId: command.entityId,
     type: 'ledger.entry.posted',
-    version: 1,
-    payload: {
-      entryId: entry.id,
-      journalCode: entry.journalCode,
-      entryNumber: entry.entryNumber,
-      bookingDate: entry.bookingDate,
-      hash: entry.hash,
-    },
+    version: versionOf('ledger.entry.posted'),
+    payload: { resourceType: resourceOf('ledger.entry.posted'), resourceId: entry.id },
   })
 
   return { entry, replayed: false, dryRun: false }

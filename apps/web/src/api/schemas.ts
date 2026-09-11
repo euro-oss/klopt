@@ -850,6 +850,36 @@ export type SetRetentionClassBody = z.infer<typeof setRetentionClassBody>
 export type DeleteDocumentsBody = z.infer<typeof deleteDocumentsBody>
 export type PseudonymiseContactBody = z.infer<typeof pseudonymiseContactBody>
 
+/**
+ * Reading the event stream (spec 10.2).
+ *
+ * `after` is the id of the last event already handled, which is also its dedup
+ * id — so resuming is "give me what came after this" and needs no clock.
+ */
+export const eventsQuery = z.object({
+  after: z.uuid().optional(),
+  /**
+   * Comma-separated, not repeated. Query parameters arrive here already
+   * flattened to one value per key, and `?type=a&type=b` would silently keep
+   * whichever came last — a filter that quietly drops half of what you asked
+   * for is worse than one that does not exist.
+   */
+  type: z
+    .string()
+    .optional()
+    .transform((value) =>
+      value === undefined
+        ? undefined
+        : value
+            .split(',')
+            .map((part) => part.trim())
+            .filter((part) => part !== ''),
+    ),
+  limit: z.coerce.number().int().min(1).max(1000).default(100),
+})
+
+export type EventsQuery = z.infer<typeof eventsQuery>
+
 /** Sealing a snapshot (spec 7.6). */
 export const sealSnapshotBody = z.object({
   fiscalYear: z.string().regex(/^\d{4}$/, 'A book year is four digits.'),

@@ -3,6 +3,8 @@ import {
   parseVatPeriodCode,
   planFiling,
   presentFilingSummary,
+  resourceOf,
+  versionOf,
   selectTaxonomyMapping,
   presentVatReturn,
   suppletieNeeded,
@@ -316,7 +318,7 @@ export async function handleFileVatReturn(context: RequestContext, body: FileVat
   requireIdempotencyKey(context)
   const period = parseVatPeriodCode(body.period)
 
-  return withVatFiling(context.database, async ({ vat }) => {
+  return withVatFiling(context.database, async ({ vat, ledger }) => {
     const vatReturn = await vat.buildReturn({
       entityId: context.entityId,
       from: period.from,
@@ -393,6 +395,13 @@ export async function handleFileVatReturn(context: RequestContext, body: FileVat
       transportReference: body.transportReference,
       acceptedWarningsBy: plan.acceptedWarnings.length > 0 ? context.actor.id : null,
       acceptedWarningsReason: plan.acceptedWarnings.length > 0 ? body.acceptedReason : null,
+    })
+
+    await ledger.enqueueEvent({
+      entityId: context.entityId,
+      type: 'vat.return.filed',
+      version: versionOf('vat.return.filed'),
+      payload: { resourceType: resourceOf('vat.return.filed'), resourceId: id },
     })
 
     // Hand it over, and record the attempt whichever way it goes. A refused

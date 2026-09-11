@@ -9,6 +9,7 @@ import { InboxRepository } from './repositories/inbox.js'
 import { ExactConnectionRepository } from './repositories/exact.js'
 import { InboundSourceRepository } from './repositories/inbound-sources.js'
 import { AuditRepository } from './repositories/audit.js'
+import { EventRepository } from './repositories/events.js'
 import { RetentionRepository } from './repositories/retention.js'
 import { SnapshotRepository } from './repositories/snapshots.js'
 import { PurchaseRepository } from './repositories/purchase.js'
@@ -398,6 +399,19 @@ export async function withExactConnection<T>(
  * transaction immediately afterwards is honest about what it is and cannot
  * leave the change half-done.
  */
+/**
+ * Reading the event stream. Read-only: `/events` is a tail, not a queue you
+ * can take from — two consumers polling must both see everything.
+ */
+export async function withEventsRead<T>(
+  database: Database,
+  work: (repository: EventRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new EventRepository(tx)), {
+    accessMode: 'read only',
+  })
+}
+
 export async function withAudit<T>(
   database: Database,
   work: (repository: AuditRepository) => Promise<T>,

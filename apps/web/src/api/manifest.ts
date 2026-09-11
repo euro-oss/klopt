@@ -651,6 +651,12 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/retention.deletions.ts',
   },
   {
+    operationId: 'events.list',
+    method: 'GET',
+    path: '/events',
+    module: 'api/v1/events.ts',
+  },
+  {
     operationId: 'audit.list',
     method: 'GET',
     path: '/audit-log',
