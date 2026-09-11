@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import { useT } from '~/i18n/provider'
 import { multiplyByDecimal, parseMinorUnits, percentOf } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
@@ -159,6 +160,7 @@ function NewInvoice() {
   }
 
   const modLabel = isApple() ? '⌘' : 'Ctrl'
+  const { t } = useT()
 
   return (
     <form
@@ -175,21 +177,23 @@ function NewInvoice() {
       }}
     >
       <PageHeader
-        title="Nieuwe factuur"
-        description={`${modLabel}+↵ maakt het concept. Versturen is een aparte stap.`}
+        title={t('invoices.new')}
+        description={t('invoiceNew.intro', { mod: modLabel })}
       />
 
       {customers.length === 0 && (
         <p className="border-border text-muted-foreground mb-6 rounded-md border border-dashed p-4 text-sm">
-          Er zijn nog geen klanten. Maak eerst een relatie aan onder Relaties.
+          {t('invoiceNew.noCustomers')}
         </p>
       )}
 
       <div className="mb-6 grid max-w-5xl grid-cols-5 gap-4">
         <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">Klant</span>
+          <span className="text-muted-foreground mb-1 block text-xs font-medium">
+            {t('invoiceNew.customer')}
+          </span>
           <select
-            aria-label="Klant"
+            aria-label={t('invoiceNew.customer')}
             value={contactNumber}
             onChange={(event) => {
               setContactNumber(event.target.value)
@@ -205,22 +209,26 @@ function NewInvoice() {
         </label>
 
         <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">Soort</span>
+          <span className="text-muted-foreground mb-1 block text-xs font-medium">
+            {t('invoices.kind')}
+          </span>
           <select
-            aria-label="Soort"
+            aria-label={t('invoices.kind')}
             value={kind}
             onChange={(event) => {
               setKind(event.target.value === 'credit_note' ? 'credit_note' : 'invoice')
             }}
             className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
           >
-            <option value="invoice">Factuur</option>
-            <option value="credit_note">Creditnota</option>
+            <option value="invoice">{t('invoice.title')}</option>
+            <option value="credit_note">{t('invoice.creditNote')}</option>
           </select>
         </label>
 
         <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">Factuurdatum</span>
+          <span className="text-muted-foreground mb-1 block text-xs font-medium">
+            {t('invoiceNew.issueDate')}
+          </span>
           <input
             type="date"
             value={issueDate}
@@ -233,20 +241,22 @@ function NewInvoice() {
 
         <label className="block">
           <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            Referentie klant
+            {t('invoiceNew.buyerReference')}
           </span>
           <input
             value={buyerReference}
             onChange={(event) => {
               setBuyerReference(event.target.value)
             }}
-            placeholder="Kostenplaats"
+            placeholder={t('invoiceNew.buyerReferencePlaceholder')}
             className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
           />
         </label>
 
         <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">Inkoopnummer</span>
+          <span className="text-muted-foreground mb-1 block text-xs font-medium">
+            {t('invoiceNew.purchaseOrder')}
+          </span>
           <input
             value={reference}
             onChange={(event) => {
@@ -259,19 +269,18 @@ function NewInvoice() {
       </div>
 
       <p className="text-muted-foreground mb-6 max-w-3xl text-xs">
-        Een e-factuur heeft een van beide referenties nodig — Peppol weigert een factuur zonder
-        (PEPPOL-EN16931-R003). Welke van de twee maakt niet uit.
+        {t('invoiceNew.referenceNote')}
       </p>
 
       <table className="mb-4 w-full text-sm">
         <thead>
           <tr className="border-border text-muted-foreground border-b text-left text-xs">
-            <th className="py-2 font-medium">Omschrijving</th>
-            <th className="w-24 py-2 font-medium">Aantal</th>
-            <th className="w-20 py-2 font-medium">Eenheid</th>
-            <th className="w-32 py-2 text-right font-medium">Prijs</th>
-            <th className="w-40 py-2 font-medium">Grootboek</th>
-            <th className="w-28 py-2 font-medium">Btw</th>
+            <th className="py-2 font-medium">{t('entries.description')}</th>
+            <th className="w-24 py-2 font-medium">{t('invoice.quantity')}</th>
+            <th className="w-20 py-2 font-medium">{t('invoiceNew.unit')}</th>
+            <th className="w-32 py-2 text-right font-medium">{t('invoice.price')}</th>
+            <th className="w-40 py-2 font-medium">{t('invoice.ledgerAccount')}</th>
+            <th className="w-28 py-2 font-medium">{t('invoice.vat')}</th>
           </tr>
         </thead>
         <tbody>
@@ -279,7 +288,7 @@ function NewInvoice() {
             <tr key={index} className="border-border border-b">
               <td className="py-1">
                 <input
-                  aria-label={`Omschrijving regel ${String(index + 1)}`}
+                  aria-label={t('entryNew.descriptionLine', { line: String(index + 1) })}
                   value={line.description}
                   onChange={(event) => {
                     update(index, { description: event.target.value })
@@ -292,7 +301,7 @@ function NewInvoice() {
               </td>
               <td className="py-1">
                 <input
-                  aria-label={`Aantal regel ${String(index + 1)}`}
+                  aria-label={t('invoiceNew.quantityLine', { line: String(index + 1) })}
                   value={line.quantity}
                   onChange={(event) => {
                     update(index, { quantity: event.target.value })
@@ -302,7 +311,7 @@ function NewInvoice() {
               </td>
               <td className="py-1">
                 <input
-                  aria-label={`Eenheid regel ${String(index + 1)}`}
+                  aria-label={t('invoiceNew.unitLine', { line: String(index + 1) })}
                   value={line.unitCode}
                   onChange={(event) => {
                     update(index, { unitCode: event.target.value })
@@ -312,7 +321,7 @@ function NewInvoice() {
               </td>
               <td className="py-1">
                 <input
-                  aria-label={`Prijs regel ${String(index + 1)}`}
+                  aria-label={t('invoiceNew.priceLine', { line: String(index + 1) })}
                   value={line.unitPrice}
                   onChange={(event) => {
                     update(index, { unitPrice: event.target.value })
@@ -322,7 +331,7 @@ function NewInvoice() {
               </td>
               <td className="py-1">
                 <select
-                  aria-label={`Grootboek regel ${String(index + 1)}`}
+                  aria-label={t('invoiceNew.accountLine', { line: String(index + 1) })}
                   value={line.revenueAccountNumber}
                   onChange={(event) => {
                     update(index, { revenueAccountNumber: event.target.value })
@@ -338,7 +347,7 @@ function NewInvoice() {
               </td>
               <td className="py-1">
                 <select
-                  aria-label={`Btw regel ${String(index + 1)}`}
+                  aria-label={t('invoiceNew.vatLine', { line: String(index + 1) })}
                   value={line.taxCode}
                   onChange={(event) => {
                     update(index, { taxCode: event.target.value })
@@ -359,9 +368,9 @@ function NewInvoice() {
 
       <div className="border-border mb-6 flex max-w-md justify-between gap-8 rounded-md border p-4 text-sm">
         <div className="space-y-1">
-          <p className="text-muted-foreground">Subtotaal</p>
-          <p className="text-muted-foreground">Btw</p>
-          <p className="font-medium">Totaal</p>
+          <p className="text-muted-foreground">{t('invoice.subtotal')}</p>
+          <p className="text-muted-foreground">{t('invoice.vat')}</p>
+          <p className="font-medium">{t('report.total')}</p>
         </div>
         <div className="space-y-1 text-right">
           <Money amount={net} className="block" />
@@ -369,10 +378,7 @@ function NewInvoice() {
           <Money amount={net + tax} className="block font-medium" />
         </div>
       </div>
-      <p className="text-muted-foreground mb-6 max-w-md text-xs">
-        Indicatief. De definitieve btw wordt op de server berekend volgens de afrondingsinstelling
-        van deze administratie, en kan een cent afwijken.
-      </p>
+      <p className="text-muted-foreground mb-6 max-w-md text-xs">{t('invoiceNew.vatNote')}</p>
 
       {problems.length > 0 && (
         <ul role="alert" className="text-destructive mb-6 space-y-1 text-sm">
@@ -391,11 +397,9 @@ function NewInvoice() {
           disabled={busy || !hydrated || contactNumber === ''}
           className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
-          {busy ? 'Bezig…' : 'Concept opslaan'}
+          {busy ? t('common.busy') : t('invoiceNew.saveDraft')}
         </button>
-        <span className="text-muted-foreground text-xs">
-          Regels zonder omschrijving worden overgeslagen.
-        </span>
+        <span className="text-muted-foreground text-xs">{t('invoiceNew.emptyLinesSkipped')}</span>
       </div>
     </form>
   )

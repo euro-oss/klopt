@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
+import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { draftInvoice, getInvoice, issueInvoice, listDeliveries, sendInvoice } from '~/server/sales'
@@ -43,6 +44,7 @@ function Invoice() {
   const router = useRouter()
   const navigate = useNavigate()
   const hydrated = useHydrated()
+  const { t } = useT()
 
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<{ path: string | null; message: string }[]>([])
@@ -53,7 +55,7 @@ function Invoice() {
   if (!result.ok) {
     return (
       <>
-        <PageHeader title="Factuur" />
+        <PageHeader title={t('invoice.title')} />
         <p role="alert" className="text-destructive text-sm">
           {result.problem.detail}
         </p>
@@ -118,7 +120,9 @@ function Invoice() {
 
     sendKey.current = crypto.randomUUID()
     if (outcome.data.failure !== null) {
-      setProblems([{ path: null, message: `Versturen mislukt: ${outcome.data.failure}` }])
+      setProblems([
+        { path: null, message: t('invoice.sendFailed', { reason: outcome.data.failure }) },
+      ])
     }
     await router.invalidate()
   }
@@ -165,10 +169,10 @@ function Invoice() {
       width: '3rem',
       cell: (line) => <span className="tabular text-muted-foreground">{line.lineNumber}</span>,
     },
-    { key: 'description', header: 'Omschrijving', cell: (line) => line.description },
+    { key: 'description', header: t('entries.description'), cell: (line) => line.description },
     {
       key: 'quantity',
-      header: 'Aantal',
+      header: t('invoice.quantity'),
       width: '7rem',
       align: 'right',
       cell: (line) => (
@@ -179,26 +183,26 @@ function Invoice() {
     },
     {
       key: 'price',
-      header: 'Prijs',
+      header: t('invoice.price'),
       width: '8rem',
       align: 'right',
       cell: (line) => <Money amount={line.unitPrice} />,
     },
     {
       key: 'account',
-      header: 'Grootboek',
+      header: t('invoice.ledgerAccount'),
       width: '7rem',
       cell: (line) => <span className="tabular">{line.revenueAccountNumber}</span>,
     },
     {
       key: 'tax',
-      header: 'Btw',
+      header: t('invoice.vat'),
       width: '7rem',
       cell: (line) => `${line.taxCode} · ${line.ratePercent}%`,
     },
     {
       key: 'net',
-      header: 'Netto',
+      header: t('invoice.net'),
       width: '9rem',
       align: 'right',
       cell: (line) => <Money amount={line.net} />,
@@ -206,14 +210,14 @@ function Invoice() {
   ]
 
   const isDraft = invoice.status === 'draft'
-  const title = invoice.number ?? 'Concept'
+  const title = invoice.number ?? t('invoice.draft')
   const sentDocuments = deliveries.ok ? deliveries.data.deliveries : []
   const sentAlready = sentDocuments.some((item) => item.purpose === 'invoice' && item.delivered)
 
   return (
     <>
       <PageHeader
-        title={`${invoice.kind === 'credit_note' ? 'Creditnota' : 'Factuur'} ${title}`}
+        title={`${invoice.kind === 'credit_note' ? t('invoice.creditNote') : t('invoice.title')} ${title}`}
         description={`${invoice.contact.number} · ${invoice.contact.name} · ${formatDate(invoice.issueDate)}`}
         actions={
           <>
@@ -226,7 +230,7 @@ function Invoice() {
                 }}
                 className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
-                {busy ? 'Bezig…' : 'Versturen en boeken'}
+                {busy ? t('common.busy') : t('invoice.issueAndPost')}
               </button>
             )}
             {!isDraft && (
@@ -238,7 +242,7 @@ function Invoice() {
                 }}
                 className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
-                {busy ? 'Bezig…' : sentAlready ? 'Opnieuw versturen' : 'Versturen'}
+                {busy ? t('common.busy') : sentAlready ? t('invoice.sendAgain') : t('invoice.send')}
               </button>
             )}
             {!isDraft && invoice.kind === 'invoice' && (
@@ -250,7 +254,7 @@ function Invoice() {
                 }}
                 className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
               >
-                Crediteren
+                {t('invoice.credit')}
               </button>
             )}
             {!isDraft && (
@@ -261,13 +265,13 @@ function Invoice() {
                   href={`/api/v1/sales-invoices/${invoice.id}/pdf?embedUbl=true`}
                   className="border-input rounded-md border px-4 py-2 text-sm"
                 >
-                  PDF downloaden
+                  {t('invoice.downloadPdf')}
                 </a>
                 <a
                   href={`/api/v1/sales-invoices/${invoice.id}/ubl`}
                   className="border-input rounded-md border px-4 py-2 text-sm"
                 >
-                  UBL downloaden
+                  {t('invoice.downloadUbl')}
                 </a>
               </>
             )}
@@ -277,8 +281,7 @@ function Invoice() {
 
       {isDraft && (
         <p className="border-border text-muted-foreground mb-6 rounded-md border border-dashed p-4 text-sm">
-          Dit is een concept. Er is nog geen nummer uitgegeven en er is niets geboekt. Versturen is
-          definitief: corrigeren gaat daarna met een creditnota.
+          {t('invoice.draftNotice')}
         </p>
       )}
 
@@ -297,16 +300,16 @@ function Invoice() {
         columns={columns}
         rows={invoice.lines}
         rowKey={(line) => String(line.lineNumber)}
-        caption="Factuurregels"
-        empty="Geen regels."
+        caption={t('invoice.lines')}
+        empty={t('invoice.noLines')}
       />
 
       <div className="border-border mt-6 flex max-w-md justify-between gap-8 rounded-md border p-4 text-sm">
         <div className="space-y-1">
-          <p className="text-muted-foreground">Subtotaal</p>
-          <p className="text-muted-foreground">Btw</p>
-          <p className="font-medium">Totaal</p>
-          {!isDraft && <p className="text-muted-foreground">Vervalt</p>}
+          <p className="text-muted-foreground">{t('invoice.subtotal')}</p>
+          <p className="text-muted-foreground">{t('invoice.vat')}</p>
+          <p className="font-medium">{t('report.total')}</p>
+          {!isDraft && <p className="text-muted-foreground">{t('invoices.due')}</p>}
         </div>
         <div className="space-y-1 text-right">
           <Money amount={invoice.net} className="block" />
@@ -318,33 +321,35 @@ function Invoice() {
 
       {sentDocuments.length > 0 && (
         <section className="mt-8">
-          <h2 className="mb-2 text-base font-medium">Verzonden</h2>
+          <h2 className="mb-2 text-base font-medium">{t('invoice.sent')}</h2>
           {/* The evidence chain, on the screen. "Store the exact bytes sent"
               (spec 7.5) — the hash is how a reproduction is checked against
               what actually went out. */}
           <table className="w-full text-sm">
             <thead>
               <tr className="border-border text-muted-foreground border-b text-left text-xs">
-                <th className="py-2 font-medium">Wanneer</th>
-                <th className="py-2 font-medium">Wat</th>
-                <th className="py-2 font-medium">Naar</th>
-                <th className="py-2 font-medium">Via</th>
-                <th className="py-2 font-medium">Resultaat</th>
-                <th className="py-2 font-medium">Document</th>
+                <th className="py-2 font-medium">{t('invoice.sentWhen')}</th>
+                <th className="py-2 font-medium">{t('invoice.sentWhat')}</th>
+                <th className="py-2 font-medium">{t('invoice.sentTo')}</th>
+                <th className="py-2 font-medium">{t('invoice.sentVia')}</th>
+                <th className="py-2 font-medium">{t('invoice.sentResult')}</th>
+                <th className="py-2 font-medium">{t('invoice.sentDocument')}</th>
               </tr>
             </thead>
             <tbody>
               {sentDocuments.map((item) => (
                 <tr key={item.id} className="border-border border-b">
                   <td className="tabular py-2">{item.sentAt.slice(0, 16).replace('T', ' ')}</td>
-                  <td className="py-2">{item.stageLabel ?? 'Factuur'}</td>
+                  <td className="py-2">{item.stageLabel ?? t('invoice.title')}</td>
                   <td className="py-2">{item.recipient}</td>
                   <td className="text-muted-foreground py-2">{item.transport}</td>
                   <td className="py-2">
                     {item.delivered ? (
-                      'verzonden'
+                      t('invoice.delivered')
                     ) : (
-                      <span className="text-unreconciled">{item.failure ?? 'niet verzonden'}</span>
+                      <span className="text-unreconciled">
+                        {item.failure ?? t('invoice.notDelivered')}
+                      </span>
                     )}
                   </td>
                   <td className="text-muted-foreground py-2 font-mono text-xs">
@@ -359,13 +364,13 @@ function Invoice() {
 
       {invoice.journalEntryId !== null && (
         <p className="text-muted-foreground mt-6 text-sm">
-          Geboekt als{' '}
+          {t('invoice.postedAs')}{' '}
           <Link
             to="/entries/$entryId"
             params={{ entryId: invoice.journalEntryId }}
             className="underline"
           >
-            journaalpost
+            {t('invoice.postedAsLink')}
           </Link>
           .
         </p>

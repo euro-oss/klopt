@@ -1,6 +1,7 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { getContact, updateContact } from '~/server/sales'
 
@@ -30,6 +31,7 @@ function EditContact() {
   const { contactId } = Route.useParams()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { t, plural } = useT()
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +42,7 @@ function EditContact() {
   if (!contact.ok) {
     return (
       <>
-        <PageHeader title="Relatie" />
+        <PageHeader title={t('contact.title')} />
         <p role="alert" className="text-destructive text-sm">
           {contact.problem.detail}
         </p>
@@ -137,28 +139,24 @@ function EditContact() {
     <>
       <PageHeader
         title={`${row.number} · ${row.name}`}
-        description="Wat hier verandert geldt vanaf nu. Facturen die al verstuurd zijn houden wat erop stond — dat is het document, en dat verandert niet meer."
+        description={t('contact.intro')}
         actions={
           <Link to="/contacts" className="border-border rounded-md border px-4 py-2 text-sm">
-            Terug
+            {t('contact.back')}
           </Link>
         }
       />
 
       {(open.sales > 0 || open.purchase > 0) && (
         <p className="text-muted-foreground mb-6 text-sm">
-          Nog open:{' '}
+          {t('contact.stillOpen')}{' '}
           {[
-            open.sales > 0
-              ? `${String(open.sales)} verkoopfactu${open.sales === 1 ? 'ur' : 'ren'}`
-              : null,
-            open.purchase > 0
-              ? `${String(open.purchase)} inkoopfactu${open.purchase === 1 ? 'ur' : 'ren'}`
-              : null,
+            open.sales > 0 ? plural('contact.openSales', open.sales) : null,
+            open.purchase > 0 ? plural('contact.openPurchase', open.purchase) : null,
           ]
             .filter((value) => value !== null)
-            .join(' en ')}
-          . Zolang die er zijn kan de rol niet weg — blokkeren kan wel.
+            .join(t('contact.and'))}
+          {t('contact.stillOpenNote')}
         </p>
       )}
 
@@ -169,24 +167,34 @@ function EditContact() {
         className="border-border max-w-4xl space-y-4 rounded-md border p-4"
       >
         <div className="grid grid-cols-3 gap-4">
-          {field('number', 'Nummer', { required: true, defaultValue: row.number })}
-          {field('name', 'Naam', { required: true, defaultValue: row.name })}
-          {field('legalName', 'Statutaire naam', { defaultValue: row.legalName ?? '' })}
+          {field('number', t('contacts.numberLabel'), {
+            required: true,
+            defaultValue: row.number,
+          })}
+          {field('name', t('contacts.name'), { required: true, defaultValue: row.name })}
+          {field('legalName', t('contacts.legalName'), { defaultValue: row.legalName ?? '' })}
         </div>
 
         <div className="grid grid-cols-4 gap-4">
-          {field('vatNumber', 'Btw-nummer', { defaultValue: row.vatNumber ?? '' })}
-          {field('kvkNumber', 'KvK-nummer', { defaultValue: row.kvkNumber ?? '' })}
-          {field('email', 'E-mail', { type: 'email', defaultValue: row.email ?? '' })}
-          {field('phone', 'Telefoon', { defaultValue: row.phone ?? '' })}
+          {field('vatNumber', t('contacts.vatNumber'), { defaultValue: row.vatNumber ?? '' })}
+          {field('kvkNumber', t('contacts.kvkNumber'), { defaultValue: row.kvkNumber ?? '' })}
+          {field('email', t('contacts.email'), { type: 'email', defaultValue: row.email ?? '' })}
+          {field('phone', t('contacts.phone'), { defaultValue: row.phone ?? '' })}
         </div>
 
         <div className="grid grid-cols-[1fr_7rem_7rem_1fr_5rem] gap-4">
-          {field('street', 'Straat', { defaultValue: row.address?.street ?? '' })}
-          {field('houseNumber', 'Huisnr.', { defaultValue: row.address?.houseNumber ?? '' })}
-          {field('postalCode', 'Postcode', { defaultValue: row.address?.postalCode ?? '' })}
-          {field('city', 'Plaats', { defaultValue: row.address?.city ?? '' })}
-          {field('countryCode', 'Land', { defaultValue: row.countryCode, maxLength: 2 })}
+          {field('street', t('contacts.street'), { defaultValue: row.address?.street ?? '' })}
+          {field('houseNumber', t('contacts.houseNumber'), {
+            defaultValue: row.address?.houseNumber ?? '',
+          })}
+          {field('postalCode', t('contacts.postalCode'), {
+            defaultValue: row.address?.postalCode ?? '',
+          })}
+          {field('city', t('contacts.city'), { defaultValue: row.address?.city ?? '' })}
+          {field('countryCode', t('contacts.country'), {
+            defaultValue: row.countryCode,
+            maxLength: 2,
+          })}
         </div>
 
         <div className="grid grid-cols-[1fr_10rem] gap-4">
@@ -194,7 +202,7 @@ function EditContact() {
             defaultValue: row.iban ?? '',
             placeholder: 'NL02ABNA0123456789',
           })}
-          {field('paymentTermsDays', 'Betalingstermijn', {
+          {field('paymentTermsDays', t('contacts.paymentTerms'), {
             defaultValue: String(row.paymentTermsDays),
             inputMode: 'numeric',
           })}
@@ -203,15 +211,15 @@ function EditContact() {
         <div className="flex items-end gap-6">
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="isCustomer" defaultChecked={row.isCustomer} />
-            Klant
+            {t('contacts.customerLabel')}
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="isSupplier" defaultChecked={row.isSupplier} />
-            Leverancier
+            {t('contacts.supplierLabel')}
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="isBlocked" defaultChecked={row.isBlocked} />
-            Geblokkeerd
+            {t('contact.blocked')}
           </label>
         </div>
 
@@ -220,14 +228,14 @@ function EditContact() {
             {error}
           </p>
         )}
-        {saved && <p className="text-sm">Opgeslagen.</p>}
+        {saved && <p className="text-sm">{t('contact.saved')}</p>}
 
         <button
           type="submit"
           disabled={busy || !hydrated}
           className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
-          {busy ? 'Bezig…' : 'Opslaan'}
+          {busy ? t('common.busy') : t('common.save')}
         </button>
       </form>
     </>

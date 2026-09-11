@@ -2,6 +2,7 @@ import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { createContact, listContacts } from '~/server/sales'
 
@@ -35,6 +36,7 @@ function Contacts() {
   const { contacts } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { t } = useT()
 
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -45,7 +47,7 @@ function Contacts() {
   if (!contacts.ok) {
     return (
       <>
-        <PageHeader title="Relaties" />
+        <PageHeader title={t('contacts.title')} />
         <p role="alert" className="text-destructive text-sm">
           {contacts.problem.detail}
         </p>
@@ -116,13 +118,13 @@ function Contacts() {
   const columns: readonly Column<Row>[] = [
     {
       key: 'number',
-      header: 'Nr.',
+      header: t('contacts.number'),
       width: '8rem',
       cell: (row) => <span className="tabular">{row.number}</span>,
     },
     {
       key: 'name',
-      header: 'Naam',
+      header: t('contacts.name'),
       // A link rather than a row click, because "open this to correct it" is
       // navigation and a link is what a keyboard, a middle click and a screen
       // reader all already understand.
@@ -138,18 +140,31 @@ function Contacts() {
     },
     {
       key: 'role',
-      header: 'Rol',
+      header: t('contacts.role'),
       width: '10rem',
       cell: (row) =>
-        [row.isCustomer ? 'klant' : null, row.isSupplier ? 'leverancier' : null]
+        [
+          row.isCustomer ? t('contacts.customer') : null,
+          row.isSupplier ? t('contacts.supplier') : null,
+        ]
           .filter((value) => value !== null)
           .join(', '),
     },
-    { key: 'vat', header: 'Btw-nummer', width: '11rem', cell: (row) => row.vatNumber ?? '' },
-    { key: 'country', header: 'Land', width: '4rem', cell: (row) => row.countryCode },
+    {
+      key: 'vat',
+      header: t('contacts.vatNumber'),
+      width: '11rem',
+      cell: (row) => row.vatNumber ?? '',
+    },
+    {
+      key: 'country',
+      header: t('contacts.country'),
+      width: '4rem',
+      cell: (row) => row.countryCode,
+    },
     {
       key: 'terms',
-      header: 'Termijn',
+      header: t('contacts.terms'),
       width: '6rem',
       align: 'right',
       cell: (row) => <span className="tabular">{row.paymentTermsDays} d</span>,
@@ -183,8 +198,8 @@ function Contacts() {
   return (
     <>
       <PageHeader
-        title="Relaties"
-        description="Klanten en leveranciers, met de gegevens die een e-factuur nodig heeft."
+        title={t('contacts.title')}
+        description={t('contacts.intro')}
         actions={
           <button
             type="button"
@@ -194,7 +209,7 @@ function Contacts() {
             }}
             className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
-            {open ? 'Annuleren' : 'Nieuwe relatie'}
+            {open ? t('common.cancel') : t('contacts.new')}
           </button>
         }
       />
@@ -207,41 +222,47 @@ function Contacts() {
           className="border-border mb-8 space-y-4 rounded-md border p-4"
         >
           <div className="grid grid-cols-3 gap-4">
-            {field('number', 'Nummer', { required: true, placeholder: 'DEB-0001' })}
-            {field('name', 'Naam', { required: true, placeholder: 'Grote Klant N.V.' })}
-            {field('legalName', 'Statutaire naam')}
+            {field('number', t('contacts.numberLabel'), {
+              required: true,
+              placeholder: 'DEB-0001',
+            })}
+            {field('name', t('contacts.name'), {
+              required: true,
+              placeholder: t('contacts.namePlaceholder'),
+            })}
+            {field('legalName', t('contacts.legalName'))}
           </div>
 
           <div className="grid grid-cols-4 gap-4">
-            {field('vatNumber', 'Btw-nummer', { placeholder: 'NL123456789B01' })}
-            {field('kvkNumber', 'KvK-nummer')}
-            {field('email', 'E-mail', { type: 'email' })}
-            {field('phone', 'Telefoon')}
+            {field('vatNumber', t('contacts.vatNumber'), { placeholder: 'NL123456789B01' })}
+            {field('kvkNumber', t('contacts.kvkNumber'))}
+            {field('email', t('contacts.email'), { type: 'email' })}
+            {field('phone', t('contacts.phone'))}
           </div>
 
           <div className="grid grid-cols-[1fr_7rem_7rem_1fr_5rem] gap-4">
-            {field('street', 'Straat')}
-            {field('houseNumber', 'Huisnr.')}
-            {field('postalCode', 'Postcode')}
-            {field('city', 'Plaats')}
-            {field('countryCode', 'Land', { defaultValue: 'NL', maxLength: 2 })}
+            {field('street', t('contacts.street'))}
+            {field('houseNumber', t('contacts.houseNumber'))}
+            {field('postalCode', t('contacts.postalCode'))}
+            {field('city', t('contacts.city'))}
+            {field('countryCode', t('contacts.country'), { defaultValue: 'NL', maxLength: 2 })}
             {field('iban', 'IBAN', { placeholder: 'NL02ABNA0123456789' })}
           </div>
 
           <div className="flex items-end gap-6">
             <div className="w-40">
-              {field('paymentTermsDays', 'Betalingstermijn', {
+              {field('paymentTermsDays', t('contacts.paymentTerms'), {
                 defaultValue: '30',
                 inputMode: 'numeric',
               })}
             </div>
             <label className="flex items-center gap-2 pb-2 text-sm">
               <input type="checkbox" name="isCustomer" defaultChecked />
-              Klant
+              {t('contacts.customerLabel')}
             </label>
             <label className="flex items-center gap-2 pb-2 text-sm">
               <input type="checkbox" name="isSupplier" />
-              Leverancier
+              {t('contacts.supplierLabel')}
             </label>
           </div>
 
@@ -256,7 +277,7 @@ function Contacts() {
             disabled={busy || !hydrated}
             className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
-            {busy ? 'Bezig…' : 'Opslaan'}
+            {busy ? t('common.busy') : t('common.save')}
           </button>
         </form>
       )}
@@ -265,8 +286,8 @@ function Contacts() {
         columns={columns}
         rows={rows}
         rowKey={(row) => row.id}
-        caption="Relaties"
-        empty="Nog geen relaties. Maak er een aan om te kunnen factureren."
+        caption={t('contacts.title')}
+        empty={t('contacts.empty')}
       />
     </>
   )

@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
 import { listInvoices } from '~/server/sales'
 
@@ -39,28 +41,29 @@ interface Row {
   contactName: string
 }
 
-const FILTERS: readonly { value: InvoiceStatus | undefined; label: string }[] = [
-  { value: undefined, label: 'Alles' },
-  { value: 'draft', label: 'Concept' },
-  { value: 'issued', label: 'Verstuurd' },
-  { value: 'cancelled', label: 'Vervallen' },
+const FILTERS: readonly { value: InvoiceStatus | undefined; key: MessageKey }[] = [
+  { value: undefined, key: 'invoices.filter.all' },
+  { value: 'draft', key: 'invoices.filter.draft' },
+  { value: 'issued', key: 'invoices.filter.issued' },
+  { value: 'cancelled', key: 'invoices.filter.cancelled' },
 ]
 
-const STATUS_LABEL: Record<Row['status'], string> = {
-  draft: 'concept',
-  issued: 'verstuurd',
-  cancelled: 'vervallen',
+const STATUS_KEY: Record<Row['status'], MessageKey> = {
+  draft: 'invoices.status.draft',
+  issued: 'invoices.status.issued',
+  cancelled: 'invoices.status.cancelled',
 }
 
 function Invoices() {
   const result = Route.useLoaderData()
   const { status } = Route.useSearch()
   const navigate = useNavigate()
+  const { t } = useT()
 
   if (!result.ok) {
     return (
       <>
-        <PageHeader title="Verkoopfacturen" />
+        <PageHeader title={t('invoices.title')} />
         <p role="alert" className="text-destructive text-sm">
           {result.problem.detail}
         </p>
@@ -71,46 +74,49 @@ function Invoices() {
   const columns: readonly Column<Row>[] = [
     {
       key: 'number',
-      header: 'Nummer',
+      header: t('invoices.number'),
       width: '9rem',
       cell: (row) => (
         <span className="tabular">
-          {row.number ?? <span className="text-muted-foreground">concept</span>}
+          {row.number ?? (
+            <span className="text-muted-foreground">{t('invoices.status.draft')}</span>
+          )}
         </span>
       ),
     },
     {
       key: 'date',
-      header: 'Datum',
+      header: t('invoices.date'),
       width: '7rem',
       cell: (row) => <span className="tabular">{formatDate(row.issueDate)}</span>,
     },
-    { key: 'contact', header: 'Relatie', cell: (row) => row.contactName },
+    { key: 'contact', header: t('invoices.contact'), cell: (row) => row.contactName },
     {
       key: 'kind',
-      header: 'Soort',
+      header: t('invoices.kind'),
       width: '7rem',
-      cell: (row) => (row.kind === 'credit_note' ? 'creditnota' : 'factuur'),
+      cell: (row) =>
+        row.kind === 'credit_note' ? t('invoices.kind.creditNote') : t('invoices.kind.invoice'),
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('invoices.status'),
       width: '7rem',
       cell: (row) => (
         <span className={row.status === 'draft' ? 'text-muted-foreground' : undefined}>
-          {STATUS_LABEL[row.status]}
+          {t(STATUS_KEY[row.status])}
         </span>
       ),
     },
     {
       key: 'due',
-      header: 'Vervalt',
+      header: t('invoices.due'),
       width: '7rem',
       cell: (row) => <span className="tabular">{formatDate(row.dueDate)}</span>,
     },
     {
       key: 'total',
-      header: 'Totaal',
+      header: t('report.total'),
       width: '9rem',
       align: 'right',
       cell: (row) => <Money amount={row.total} />,
@@ -120,22 +126,22 @@ function Invoices() {
   return (
     <>
       <PageHeader
-        title="Verkoopfacturen"
-        description="Een verstuurde factuur is definitief. Corrigeren gaat met een creditnota."
+        title={t('invoices.title')}
+        description={t('invoices.intro')}
         actions={
           <Link
             to="/invoices/new"
             className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
           >
-            Nieuwe factuur
+            {t('invoices.new')}
           </Link>
         }
       />
 
-      <nav aria-label="Filter" className="mb-4 flex gap-1">
+      <nav aria-label={t('invoices.filter')} className="mb-4 flex gap-1">
         {FILTERS.map((filter) => (
           <Link
-            key={filter.label}
+            key={filter.key}
             to="/invoices"
             search={{ status: filter.value }}
             className={
@@ -144,7 +150,7 @@ function Invoices() {
                 : 'hover:bg-accent/60 rounded-md px-3 py-1.5 text-sm'
             }
           >
-            {filter.label}
+            {t(filter.key)}
           </Link>
         ))}
       </nav>
@@ -156,8 +162,8 @@ function Invoices() {
         onRowActivate={(row) => {
           void navigate({ to: '/invoices/$invoiceId', params: { invoiceId: row.id } })
         }}
-        caption="Verkoopfacturen"
-        empty="Nog geen facturen."
+        caption={t('invoices.title')}
+        empty={t('invoices.empty')}
       />
     </>
   )
