@@ -4,6 +4,7 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -204,22 +205,18 @@ function PaymentBatches() {
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             />
           </label>
-          <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              {t('payments.account')}
-            </span>
-            <select
-              aria-label={t('payments.account')}
-              name="bankAccountId"
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-            >
-              {bankAccounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name} · {account.iban}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            label={t('payments.account')}
+            name="bankAccountId"
+            defaultValue={bankAccounts[0]?.id ?? ''}
+            disabled={!hydrated}
+          >
+            {bankAccounts.map((account) => (
+              <SelectOption key={account.id} value={account.id}>
+                {account.name} · {account.iban}
+              </SelectOption>
+            ))}
+          </SelectField>
           <label className="block">
             <span className="text-muted-foreground mb-1 block text-xs font-medium">
               {t('payments.executionDate')}

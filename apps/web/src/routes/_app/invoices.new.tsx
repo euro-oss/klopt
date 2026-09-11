@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { useT } from '~/i18n/provider'
 import { multiplyByDecimal, parseMinorUnits, percentOf } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
@@ -188,42 +189,30 @@ function NewInvoice() {
       )}
 
       <div className="mb-6 grid max-w-5xl grid-cols-5 gap-4">
-        <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            {t('invoiceNew.customer')}
-          </span>
-          <select
-            aria-label={t('invoiceNew.customer')}
-            value={contactNumber}
-            onChange={(event) => {
-              setContactNumber(event.target.value)
-            }}
-            className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-          >
-            {customers.map((customer) => (
-              <option key={customer.number} value={customer.number}>
-                {customer.number} · {customer.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label={t('invoiceNew.customer')}
+          value={contactNumber}
+          onValueChange={setContactNumber}
+          disabled={!hydrated}
+        >
+          {customers.map((customer) => (
+            <SelectOption key={customer.number} value={customer.number}>
+              {customer.number} · {customer.name}
+            </SelectOption>
+          ))}
+        </SelectField>
 
-        <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            {t('invoices.kind')}
-          </span>
-          <select
-            aria-label={t('invoices.kind')}
-            value={kind}
-            onChange={(event) => {
-              setKind(event.target.value === 'credit_note' ? 'credit_note' : 'invoice')
-            }}
-            className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-          >
-            <option value="invoice">{t('invoice.title')}</option>
-            <option value="credit_note">{t('invoice.creditNote')}</option>
-          </select>
-        </label>
+        <SelectField
+          label={t('invoices.kind')}
+          value={kind}
+          disabled={!hydrated}
+          onValueChange={(next) => {
+            setKind(next === 'credit_note' ? 'credit_note' : 'invoice')
+          }}
+        >
+          <SelectOption value="invoice">{t('invoice.title')}</SelectOption>
+          <SelectOption value="credit_note">{t('invoice.creditNote')}</SelectOption>
+        </SelectField>
 
         <label className="block">
           <span className="text-muted-foreground mb-1 block text-xs font-medium">
@@ -330,36 +319,38 @@ function NewInvoice() {
                 />
               </td>
               <td className="py-1">
-                <select
-                  aria-label={t('invoiceNew.accountLine', { line: String(index + 1) })}
+                <SelectField
+                  label={t('invoiceNew.accountLine', { line: String(index + 1) })}
+                  labelHidden
                   value={line.revenueAccountNumber}
-                  onChange={(event) => {
-                    update(index, { revenueAccountNumber: event.target.value })
+                  disabled={!hydrated}
+                  onValueChange={(next) => {
+                    update(index, { revenueAccountNumber: next })
                   }}
-                  className="border-input bg-background w-full rounded-md border px-2 py-1.5"
                 >
                   {revenueAccounts.map((account) => (
-                    <option key={account.number} value={account.number}>
+                    <SelectOption key={account.number} value={account.number}>
                       {account.number} {account.name}
-                    </option>
+                    </SelectOption>
                   ))}
-                </select>
+                </SelectField>
               </td>
               <td className="py-1">
-                <select
-                  aria-label={t('invoiceNew.vatLine', { line: String(index + 1) })}
+                <SelectField
+                  label={t('invoiceNew.vatLine', { line: String(index + 1) })}
+                  labelHidden
                   value={line.taxCode}
-                  onChange={(event) => {
-                    update(index, { taxCode: event.target.value })
+                  disabled={!hydrated}
+                  onValueChange={(next) => {
+                    update(index, { taxCode: next })
                   }}
-                  className="border-input bg-background w-full rounded-md border px-2 py-1.5"
                 >
                   {codes.map((code) => (
-                    <option key={code.code} value={code.code}>
+                    <SelectOption key={code.code} value={code.code}>
                       {code.code} · {code.ratePercent}%
-                    </option>
+                    </SelectOption>
                   ))}
-                </select>
+                </SelectField>
               </td>
             </tr>
           ))}

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -427,26 +428,20 @@ function MatchQueue() {
             </ol>
 
             <div className="border-border flex items-end gap-3 rounded-md border p-4">
-              <label className="flex-1">
-                <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                  {t('match.chooseYourself')}
-                </span>
-                <select
-                  aria-label={t('match.chooseYourself')}
-                  value={manualAccount}
-                  onChange={(event) => {
-                    setManualAccount(event.target.value)
-                  }}
-                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-                >
-                  <option value="">{t('match.choosePlaceholder')}</option>
-                  {postable.map((account) => (
-                    <option key={account.number} value={account.number}>
-                      {account.number} {account.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SelectField
+                label={t('match.chooseYourself')}
+                value={manualAccount}
+                onValueChange={setManualAccount}
+                disabled={!hydrated}
+                className="flex-1"
+              >
+                <SelectOption value="">{t('match.choosePlaceholder')}</SelectOption>
+                {postable.map((account) => (
+                  <SelectOption key={account.number} value={account.number}>
+                    {account.number} {account.name}
+                  </SelectOption>
+                ))}
+              </SelectField>
               <button
                 type="button"
                 disabled={busy || !hydrated || manualAccount === ''}

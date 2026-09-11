@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, signIn, uniqueEmail } from './support'
 
 /**
  * Wie wat deed, in a browser.
@@ -26,7 +26,7 @@ async function aSettingsChange(page: Page): Promise<void> {
   const save = page.getByRole('button', { name: 'Opslaan' })
   await expect(save).toBeEnabled()
 
-  await page.getByLabel('Btw-afronding').selectOption('per_line')
+  await chooseOption(page, 'Btw-afronding', 'Per regel')
   await save.click()
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 }

@@ -1204,6 +1204,15 @@ export const nl = {
   'palette.escapeNote':
     'Sluiten met Escape. G en N zijn voorvoegsels; na 1,5 seconde vervallen ze.',
   'table.empty': 'Niets te tonen.',
+
+  // Sidebar groups and the profile block.
+  'nav.group.books': 'Boekhouden',
+  'nav.group.sales': 'Verkoop',
+  'nav.group.purchasing': 'Inkoop',
+  'nav.group.money': 'Geld',
+  'nav.group.reports': 'Rapporten',
+  'nav.group.admin': 'Beheer',
+  'shell.profile': 'Profiel',
 } as const
 
 export type MessageKey = keyof typeof nl

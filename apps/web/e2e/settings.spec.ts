@@ -1,7 +1,7 @@
 import { rmSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
 
 /**
  * The administration's own details, in a browser.
@@ -47,6 +47,32 @@ test('an owner fills in the details an e-invoice needs, and they stick', async (
   await page.reload()
   await expect(page.getByLabel('Plaats')).toHaveValue('Amsterdam')
   await expect(page.getByLabel('IBAN')).toHaveValue('NL02ABNA0123456789')
+})
+
+test('a select set back to its empty option clears the field, not sets a sentinel', async ({
+  page,
+}) => {
+  // The selects are Radix, which refuses an option whose value is the empty
+  // string, so `SelectField` carries `''` under an assumed name and swaps it
+  // back for the hidden input the form actually submits. If that ever stopped
+  // round-tripping, "Niet afsplitsen" would save a literal sentinel and the
+  // handler would reject it — or worse, store it.
+  await anOwner(page, 'Bankkosten BV')
+  await page.goto('/settings')
+
+  await chooseOption(page, 'Rekening voor bankkosten', /^4300 /)
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByLabel('Rekening voor bankkosten')).toHaveText(/^4300 /)
+
+  await chooseOption(page, 'Rekening voor bankkosten', 'Niet afsplitsen')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByLabel('Rekening voor bankkosten')).toHaveText('Niet afsplitsen')
 })
 
 test('a bad country code is reported instead of silently dropped', async ({ page }) => {

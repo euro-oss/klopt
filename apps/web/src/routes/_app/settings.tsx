@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -231,62 +232,55 @@ function Settings() {
               current.electronicAddress,
               t('settings.electronicAddressHint'),
             )}
-            <label className="block">
-              <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                {t('settings.scheme')}
-              </span>
-              <select
-                aria-label={t('settings.scheme')}
-                name="electronicAddressScheme"
-                defaultValue={current.electronicAddressScheme ?? ''}
-                className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-              >
-                {SCHEMES.map((scheme) => (
-                  <option key={scheme.value} value={scheme.value}>
-                    {t(scheme.key)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectField
+              label={t('settings.scheme')}
+              name="electronicAddressScheme"
+              defaultValue={current.electronicAddressScheme ?? ''}
+              disabled={!hydrated}
+            >
+              {SCHEMES.map((scheme) => (
+                <SelectOption key={scheme.value} value={scheme.value}>
+                  {t(scheme.key)}
+                </SelectOption>
+              ))}
+            </SelectField>
           </div>
         </fieldset>
 
         <fieldset className="space-y-4">
           <legend className="text-base font-medium">{t('settings.vatRounding')}</legend>
           <p className="text-muted-foreground text-sm">{t('settings.vatRoundingIntro')}</p>
-          <label className="block max-w-xs">
-            <span className="sr-only">{t('settings.vatRounding')}</span>
-            <select
-              aria-label={t('settings.vatRounding')}
-              name="vatRounding"
-              defaultValue={current.vatRounding}
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-            >
-              <option value="per_invoice">{t('settings.perInvoice')}</option>
-              <option value="per_line">{t('settings.perLine')}</option>
-            </select>
-          </label>
+          <SelectField
+            label={t('settings.vatRounding')}
+            labelHidden
+            name="vatRounding"
+            defaultValue={current.vatRounding}
+            disabled={!hydrated}
+            className="max-w-xs"
+          >
+            <SelectOption value="per_invoice">{t('settings.perInvoice')}</SelectOption>
+            <SelectOption value="per_line">{t('settings.perLine')}</SelectOption>
+          </SelectField>
         </fieldset>
 
         <fieldset className="space-y-4">
           <legend className="text-base font-medium">{t('settings.bankCharges')}</legend>
           <p className="text-muted-foreground text-sm">{t('settings.bankChargesIntro')}</p>
-          <label className="block max-w-md">
-            <span className="sr-only">{t('settings.bankChargesAccount')}</span>
-            <select
-              aria-label={t('settings.bankChargesAccount')}
-              name="bankChargesAccountNumber"
-              defaultValue={current.bankChargesAccountNumber ?? ''}
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-            >
-              <option value="">{t('settings.bankChargesNone')}</option>
-              {expenseAccounts.map((account) => (
-                <option key={account.number} value={account.number}>
-                  {account.number} · {account.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            label={t('settings.bankChargesAccount')}
+            labelHidden
+            name="bankChargesAccountNumber"
+            defaultValue={current.bankChargesAccountNumber ?? ''}
+            disabled={!hydrated}
+            className="max-w-md"
+          >
+            <SelectOption value="">{t('settings.bankChargesNone')}</SelectOption>
+            {expenseAccounts.map((account) => (
+              <SelectOption key={account.number} value={account.number}>
+                {account.number} · {account.name}
+              </SelectOption>
+            ))}
+          </SelectField>
         </fieldset>
 
         <button

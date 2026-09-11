@@ -1,7 +1,7 @@
 import { rmSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
 
 /**
  * The BTW-aangifte, in a browser, from an empty administration to a filing.
@@ -183,7 +183,7 @@ test('a hand-typed movement on a BTW account has to be accepted, with a reason',
   // code, indistinguishable from VAT booked by hand. The return shows it.
   await page.goto('/entries/new')
   await expect(page.getByRole('button', { name: 'Boeken', exact: true })).toBeEnabled()
-  await page.getByLabel('Dagboek').selectOption('BNK')
+  await chooseOption(page, 'Dagboek', 'BNK')
   await page.getByLabel('Boekdatum').fill('2026-01-31')
   await page.getByLabel('Omschrijving', { exact: true }).fill('Betaling aangifte Q4')
   await page.getByLabel('Rekening regel 1').fill('1500')
@@ -230,12 +230,12 @@ test('the ICP opgaaf cross-checks 3b and refuses an unproven VAT number', async 
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
-  await page.getByLabel('Klant', { exact: true }).selectOption('DEB-EU-1')
+  await chooseOption(page, /^Klant$/, /^DEB-EU-1 /)
   await page.getByLabel('Factuurdatum').fill('2026-02-20')
   await page.getByLabel('Omschrijving regel 1').fill('Levering naar Duitsland')
   await page.getByLabel('Aantal regel 1').fill('1')
   await page.getByLabel('Prijs regel 1').fill('1000,00')
-  await page.getByLabel('Btw regel 1').selectOption('ICP')
+  await chooseOption(page, 'Btw regel 1', /^ICP /)
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()

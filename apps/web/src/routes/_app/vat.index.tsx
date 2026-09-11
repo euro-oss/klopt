@@ -3,6 +3,7 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -142,24 +143,21 @@ function VatPeriods() {
         title={t('vat.title')}
         description={t('vat.intro', { kind: kindOf(periods.data.kind) })}
         actions={
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground text-xs font-medium">{t('vat.year')}</span>
-            <select
-              aria-label={t('vat.year')}
-              disabled={!hydrated}
-              value={String(year)}
-              onChange={(event) => {
-                void navigate({ to: '/vat', search: { year: Number(event.target.value) } })
-              }}
-              className="border-input bg-background rounded-md border px-3 py-2 text-sm disabled:opacity-50"
-            >
-              {[year + 1, year, year - 1, year - 2].map((option) => (
-                <option key={option} value={String(option)}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            label={t('vat.year')}
+            value={String(year)}
+            disabled={!hydrated}
+            triggerClassName="w-28"
+            onValueChange={(chosen) => {
+              void navigate({ to: '/vat', search: { year: Number(chosen) } })
+            }}
+          >
+            {[year + 1, year, year - 1, year - 2].map((option) => (
+              <SelectOption key={option} value={String(option)}>
+                {String(option)}
+              </SelectOption>
+            ))}
+          </SelectField>
         }
       />
 

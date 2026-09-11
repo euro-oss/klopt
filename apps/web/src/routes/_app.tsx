@@ -59,6 +59,7 @@ function AppLayout() {
       entities={session.memberships}
       activeEntityId={session.memberships[0]?.entityId ?? null}
       userName={session.user.name}
+      userEmail={session.user.email}
       onSwitchEntity={(entityId) => {
         // Same shape as the bug in bank.match: an unhandled rejection here
         // takes down the layout every screen renders inside. Switching

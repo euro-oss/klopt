@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, signIn, uniqueEmail } from './support'
 
 /**
  * The whole authorization flow, as a client actually walks it (spec 10.3).
@@ -328,7 +328,7 @@ test('an agent drafts an invoice and cannot issue it', async ({ page }) => {
   await page.getByLabel('Naam').fill('agent-schrijft')
   // The proposal tools need more than an OAuth grant gives — but not much
   // more, and specifically not the ability to issue.
-  await page.getByLabel('Wat het mag').selectOption('draft')
+  await chooseOption(page, 'Wat het mag', 'Lezen en concepten maken')
   await page.getByRole('button', { name: 'Token maken' }).click()
   const token = ((await page.locator('code', { hasText: /^klopt_/ }).textContent()) ?? '').trim()
 

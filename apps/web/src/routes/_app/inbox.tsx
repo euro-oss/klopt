@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -429,24 +430,20 @@ function Inbox() {
                       }}
                       className="space-y-4"
                     >
-                      <label className="block max-w-sm">
-                        <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                          {t('contacts.supplierLabel')}
-                        </span>
-                        <select
-                          aria-label={t('contacts.supplierLabel')}
-                          name="contactNumber"
-                          defaultValue={item.contactNumber ?? ''}
-                          className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-                        >
-                          <option value="">{t('inbox.chooseSupplier')}</option>
-                          {suppliers.map((supplier) => (
-                            <option key={supplier.number} value={supplier.number}>
-                              {supplier.number} {supplier.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      <SelectField
+                        label={t('contacts.supplierLabel')}
+                        name="contactNumber"
+                        defaultValue={item.contactNumber ?? ''}
+                        disabled={!hydrated}
+                        className="max-w-sm"
+                      >
+                        <SelectOption value="">{t('inbox.chooseSupplier')}</SelectOption>
+                        {suppliers.map((supplier) => (
+                          <SelectOption key={supplier.number} value={supplier.number}>
+                            {supplier.number} {supplier.name}
+                          </SelectOption>
+                        ))}
+                      </SelectField>
 
                       <table className="w-full text-sm">
                         <caption className="sr-only">{t('inbox.linesCaption')}</caption>
@@ -472,42 +469,44 @@ function Inbox() {
                             <tr key={line.lineNumber}>
                               <td className="py-1 pr-2">{line.description}</td>
                               <td className="py-1 pr-2">
-                                <select
-                                  aria-label={t('invoiceNew.accountLine', {
+                                <SelectField
+                                  label={t('invoiceNew.accountLine', {
                                     line: String(index + 1),
                                   })}
+                                  labelHidden
                                   name={`account-${String(index)}`}
                                   defaultValue={line.accountNumber}
-                                  className="border-input bg-background w-full rounded-md border px-2 py-1.5"
+                                  disabled={!hydrated}
                                 >
                                   {/* An explicit empty option, so a line the
                                       parse could not park anywhere shows as
                                       unchosen rather than silently taking the
                                       first cost account. */}
-                                  <option value="">{t('inbox.choose')}</option>
+                                  <SelectOption value="">{t('inbox.choose')}</SelectOption>
                                   {costAccounts.map((account) => (
-                                    <option key={account.number} value={account.number}>
+                                    <SelectOption key={account.number} value={account.number}>
                                       {account.number} {account.name}
-                                    </option>
+                                    </SelectOption>
                                   ))}
-                                </select>
+                                </SelectField>
                               </td>
                               <td className="py-1 pr-2">
-                                <select
-                                  aria-label={t('purchaseNew.taxCodeLine', {
+                                <SelectField
+                                  label={t('purchaseNew.taxCodeLine', {
                                     line: String(index + 1),
                                   })}
+                                  labelHidden
                                   name={`tax-${String(index)}`}
                                   defaultValue={line.taxCode}
-                                  className="border-input bg-background w-full rounded-md border px-2 py-1.5"
+                                  disabled={!hydrated}
                                 >
-                                  <option value="">{t('inbox.choose')}</option>
+                                  <SelectOption value="">{t('inbox.choose')}</SelectOption>
                                   {inputCodes.map((code) => (
-                                    <option key={code.code} value={code.code}>
+                                    <SelectOption key={code.code} value={code.code}>
                                       {code.code} · {code.ratePercent}% · {code.description}
-                                    </option>
+                                    </SelectOption>
                                   ))}
-                                </select>
+                                </SelectField>
                               </td>
                               {/* The amounts are the document's. Not editable
                                   here: this screen captures what arrived. */}
@@ -756,25 +755,17 @@ function InboundSources() {
             void add(event)
           }}
         >
-          <div>
-            <label
-              htmlFor="source-kind"
-              className="text-muted-foreground mb-1 block text-xs font-medium"
-            >
-              {t('sources.kind')}
-            </label>
-            <select
-              id="source-kind"
-              value={kind}
-              onChange={(event) => {
-                setKind(event.currentTarget.value === 'imap' ? 'imap' : 'maildir')
-              }}
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-            >
-              <option value="maildir">{t('sources.kindMaildir')}</option>
-              <option value="imap">{t('sources.kindImap')}</option>
-            </select>
-          </div>
+          <SelectField
+            label={t('sources.kind')}
+            value={kind}
+            disabled={!hydrated}
+            onValueChange={(next) => {
+              setKind(next === 'imap' ? 'imap' : 'maildir')
+            }}
+          >
+            <SelectOption value="maildir">{t('sources.kindMaildir')}</SelectOption>
+            <SelectOption value="imap">{t('sources.kindImap')}</SelectOption>
+          </SelectField>
 
           <div>
             <label

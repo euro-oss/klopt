@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -115,24 +116,20 @@ function Authorize() {
           </p>
         )}
 
-        <label className="mt-4 block text-sm">
-          {t('consent.administration')}
-          <select
-            value={entityId}
-            onChange={(event) => setEntityId(event.target.value)}
-            disabled={!hydrated || description.memberships.length === 1}
-            className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
-          >
-            {description.memberships.map((membership) => (
-              <option key={membership.id} value={membership.id}>
-                {membership.name}
-              </option>
-            ))}
-          </select>
-          <span className="text-muted-foreground mt-1 block text-xs">
-            {t('consent.onlyThisOne')}
-          </span>
-        </label>
+        <SelectField
+          label={t('consent.administration')}
+          value={entityId}
+          onValueChange={setEntityId}
+          disabled={!hydrated || description.memberships.length === 1}
+          hint={t('consent.onlyThisOne')}
+          className="mt-4"
+        >
+          {description.memberships.map((membership) => (
+            <SelectOption key={membership.id} value={membership.id}>
+              {membership.name}
+            </SelectOption>
+          ))}
+        </SelectField>
 
         <p className="mt-4 text-sm font-medium">{t('consent.whatItMay')}</p>
         <ul className="text-muted-foreground mt-1 list-disc pl-5 text-sm">

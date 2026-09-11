@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
 
 /**
  * The koppelwachtrij, in a browser.
@@ -79,7 +79,7 @@ test('a bookkeeper works through the queue with the keyboard', async ({ page }) 
   await page.keyboard.press('ArrowUp')
 
   // Book the selected line by hand.
-  await page.getByLabel('Zelf kiezen').selectOption('4900')
+  await chooseOption(page, 'Zelf kiezen', /^4900 /)
   await page.getByRole('button', { name: 'Boeken' }).last().click()
 
   await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
@@ -140,7 +140,7 @@ test('booking by hand teaches a rule, and the rule can be switched off', async (
     .getByRole('button', { name: /Telecom B.V./ })
   await telecom.click()
 
-  await page.getByLabel('Zelf kiezen').selectOption('4410')
+  await chooseOption(page, 'Zelf kiezen', /^4410 /)
   await page.getByRole('button', { name: 'Boeken' }).last().click()
 
   await expect(page.getByText(/en onthouden voor volgende keer/)).toBeVisible()

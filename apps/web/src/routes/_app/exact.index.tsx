@@ -9,6 +9,7 @@ import {
   type AccountOption,
   type JournalOption,
 } from '~/lib/account-options'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -93,26 +94,21 @@ function AccountSelect({
   const offered = balanceSheetAccounts(accounts)
 
   return (
-    <label className="text-sm">
-      {label}
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        disabled={disabled}
-        className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
-      >
-        <option value="">{t('exact.chooseAccount')}</option>
-        {offered.map((account) => (
-          <option key={account.number} value={account.number}>
-            {account.number} — {account.name}
-            {account.isBlocked ? t('exact.blockedSuffix') : ''}
-          </option>
-        ))}
-      </select>
-      {hint !== undefined && (
-        <span className="text-muted-foreground mt-1 block text-xs">{hint}</span>
-      )}
-    </label>
+    <SelectField
+      label={label}
+      value={value}
+      onValueChange={onChange}
+      disabled={disabled}
+      hint={hint}
+    >
+      <SelectOption value="">{t('exact.chooseAccount')}</SelectOption>
+      {offered.map((account) => (
+        <SelectOption key={account.number} value={account.number}>
+          {account.number} — {account.name}
+          {account.isBlocked ? t('exact.blockedSuffix') : ''}
+        </SelectOption>
+      ))}
+    </SelectField>
   )
 }
 
@@ -561,24 +557,21 @@ function Exact() {
                     className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
                   />
                 </label>
-                <label className="text-sm">
-                  {t('exact.journal')}
-                  <select
-                    value={effectiveJournal}
-                    onChange={(event) => setJournalCode(event.target.value)}
-                    disabled={!hydrated}
-                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
-                  >
-                    {journals.length === 1 ? null : (
-                      <option value="">{t('exact.chooseJournal')}</option>
-                    )}
-                    {journals.map((journal) => (
-                      <option key={journal.code} value={journal.code}>
-                        {journal.code} — {journal.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <SelectField
+                  label={t('exact.journal')}
+                  value={effectiveJournal}
+                  onValueChange={setJournalCode}
+                  disabled={!hydrated}
+                >
+                  {journals.length === 1 ? null : (
+                    <SelectOption value="">{t('exact.chooseJournal')}</SelectOption>
+                  )}
+                  {journals.map((journal) => (
+                    <SelectOption key={journal.code} value={journal.code}>
+                      {journal.code} — {journal.name}
+                    </SelectOption>
+                  ))}
+                </SelectField>
                 <AccountSelect
                   label={t('exact.receivableAccount')}
                   value={receivableAccount}

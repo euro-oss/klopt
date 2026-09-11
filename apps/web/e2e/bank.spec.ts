@@ -128,10 +128,12 @@ test('a CSV is mapped once and remembered', async ({ page }) => {
   // A CSV has no self-describing layout, so the first import asks — with a
   // guess to correct rather than eleven empty fields.
   await expect(page.getByRole('heading', { name: 'Kolommen van dit bestand' })).toBeVisible()
-  await expect(page.getByLabel('Datum', { exact: true })).toHaveValue('Datum')
-  await expect(page.getByLabel('Bedrag', { exact: true })).toHaveValue('Bedrag (EUR)')
-  await expect(page.getByLabel('Af/bij-kolom', { exact: true })).toHaveValue('Af Bij')
-  await expect(page.getByLabel('Datumnotatie')).toHaveValue('yyyyMMdd')
+  // The trigger shows the chosen column, so this reads the text rather than a
+  // value. The optional fields carry "(optioneel)" in their accessible name.
+  await expect(page.getByLabel('Datum', { exact: true })).toHaveText('Datum')
+  await expect(page.getByLabel('Bedrag', { exact: true })).toHaveText('Bedrag (EUR)')
+  await expect(page.getByLabel('Af/bij-kolom (optioneel)')).toHaveText('Af Bij')
+  await expect(page.getByLabel('Datumnotatie')).toHaveText('yyyyMMdd')
   await expect(page.getByText(/Niet toegewezen/)).toBeVisible()
 
   await page.getByRole('button', { name: 'Bestand lezen' }).click()

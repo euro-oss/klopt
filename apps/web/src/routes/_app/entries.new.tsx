@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { useT } from '~/i18n/provider'
 import { formatMinorUnits, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
@@ -187,25 +188,18 @@ function NewEntry() {
       />
 
       <div className="mb-4 grid gap-4 sm:grid-cols-3">
-        <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            {t('entryNew.journal')}
-          </span>
-          <select
-            aria-label={t('entryNew.journal')}
-            value={journalCode}
-            onChange={(event) => {
-              setJournalCode(event.target.value)
-            }}
-            className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
-          >
-            {JOURNALS.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label={t('entryNew.journal')}
+          value={journalCode}
+          onValueChange={setJournalCode}
+          disabled={!hydrated}
+        >
+          {JOURNALS.map((code) => (
+            <SelectOption key={code} value={code}>
+              {code}
+            </SelectOption>
+          ))}
+        </SelectField>
 
         <label className="block">
           <span className="text-muted-foreground mb-1 block text-xs font-medium">

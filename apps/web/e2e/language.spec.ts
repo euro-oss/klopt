@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, signIn, uniqueEmail } from './support'
 
 /**
  * Which language the app speaks (spec 12).
@@ -66,9 +66,8 @@ test('choosing a language sticks, and outranks the browser', async ({ browser })
 
   await expect(page.getByRole('link', { name: 'Journaalposten' })).toBeVisible()
 
-  const picker = page.getByLabel('Taal / Language')
-  await expect(picker).toBeEnabled()
-  await picker.selectOption('en')
+  await expect(page.getByLabel('Taal / Language')).toBeEnabled()
+  await chooseOption(page, 'Taal / Language', 'English')
 
   // The navigation changes without a reload.
   await expect(page.getByRole('link', { name: 'Journal entries' })).toBeVisible()
@@ -87,7 +86,7 @@ test('the choice survives a new tab on the same browser', async ({ browser }) =>
   const page = await context.newPage()
   await anAdministration(page)
 
-  await page.getByLabel('Taal / Language').selectOption('en')
+  await chooseOption(page, 'Taal / Language', 'English')
   await expect(page.getByRole('link', { name: 'Journal entries' })).toBeVisible()
 
   const second = await context.newPage()

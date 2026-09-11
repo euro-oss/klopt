@@ -3,6 +3,7 @@ import { Fragment, useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -643,23 +644,18 @@ function VatReturnScreen() {
           }}
           className="border-border mb-10 max-w-2xl space-y-4 rounded-md border p-4"
         >
-          <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              {t('vatReturn.how')}
-            </span>
-            <select
-              aria-label={t('vatReturn.how')}
-              name="transport"
-              defaultValue="manual"
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-            >
-              {usable.map((transport) => (
-                <option key={transport.kind} value={transport.kind}>
-                  {transportOf(transport.kind, transport.name)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            label={t('vatReturn.how')}
+            name="transport"
+            defaultValue="manual"
+            disabled={!hydrated}
+          >
+            {usable.map((transport) => (
+              <SelectOption key={transport.kind} value={transport.kind}>
+                {transportOf(transport.kind, transport.name)}
+              </SelectOption>
+            ))}
+          </SelectField>
           {data.transports.some((transport) => !transport.available) && (
             <ul className="text-muted-foreground -mt-2 space-y-1 text-xs">
               {data.transports

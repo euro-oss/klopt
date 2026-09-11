@@ -43,9 +43,9 @@ test('a new user signs in, sets up an administration and lands in it', async ({ 
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     // The picker is on the new administration, not on whichever one sorts
     // first: the session was pointed at it as part of creating it.
-    await expect(
-      page.getByRole('combobox', { name: /Administratie/ }).locator('option:checked'),
-    ).toHaveText('Speelgoedwinkel De Tol')
+    await expect(page.getByRole('combobox', { name: /Administratie/ })).toHaveText(
+      'Speelgoedwinkel De Tol',
+    )
     await expect(page.getByText('rol: owner')).toBeVisible()
 
     const userId = await findUserIdByEmail(database, email)

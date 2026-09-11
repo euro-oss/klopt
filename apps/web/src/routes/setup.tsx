@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { intlTag } from '~/i18n/locale'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -209,22 +210,19 @@ function Setup() {
           </label>
         </div>
 
-        <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            {t('setup.chart')}
-          </span>
-          <select
-            aria-label={t('setup.chart')}
+        <div>
+          <SelectField
+            label={t('setup.chart')}
             name="chartCode"
             defaultValue={available[0]?.code ?? 'nl-mkb'}
-            className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+            disabled={!hydrated}
           >
             {available.map((chart) => (
-              <option key={chart.code} value={chart.code}>
+              <SelectOption key={chart.code} value={chart.code}>
                 {chart.name}
-              </option>
+              </SelectOption>
             ))}
-          </select>
+          </SelectField>
           {available[0] !== undefined && (
             <span className="text-muted-foreground mt-1 block text-xs">
               {t('setup.chartSummary', {
@@ -236,7 +234,7 @@ function Setup() {
             </span>
           )}
           {problem('chartCode')}
-        </label>
+        </div>
 
         <div className="grid grid-cols-3 gap-4">
           <label className="block">
@@ -266,24 +264,21 @@ function Setup() {
             {problem('firstFiscalYear')}
           </label>
 
-          <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              {t('setup.startsIn')}
-            </span>
-            <select
-              aria-label={t('setup.startsIn')}
+          <div>
+            <SelectField
+              label={t('setup.startsIn')}
               name="fiscalYearStartMonth"
               defaultValue="1"
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+              disabled={!hydrated}
             >
               {months.map((month, index) => (
-                <option key={month} value={String(index + 1)}>
+                <SelectOption key={month} value={String(index + 1)}>
                   {month}
-                </option>
+                </SelectOption>
               ))}
-            </select>
+            </SelectField>
             {problem('fiscalYearStartMonth')}
-          </label>
+          </div>
         </div>
 
         <p className="text-muted-foreground text-xs">{t('setup.fiscalYearNote')}</p>

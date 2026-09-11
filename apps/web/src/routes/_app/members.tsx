@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { listTokens } from '~/server/ledger'
 import { PageHeader } from '~/components/app-shell'
 import { TokenSection as Tokens } from '~/components/tokens'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -159,12 +160,13 @@ function Members() {
                 )}
               </td>
               <td className="py-2">
-                <select
-                  aria-label={t('members.roleOf', { email: member.email })}
+                <SelectField
+                  label={t('members.roleOf', { email: member.email })}
+                  labelHidden
                   value={member.role}
                   disabled={busy || !hydrated}
-                  onChange={(event) => {
-                    const role = event.target.value
+                  triggerClassName="h-8"
+                  onValueChange={(role) => {
                     void act(
                       () => setMemberRole({ data: { memberId: member.userId, role } }),
                       () =>
@@ -174,14 +176,13 @@ function Members() {
                         }),
                     )
                   }}
-                  className="border-input bg-background rounded-md border px-2 py-1 text-sm"
                 >
                   {ROLES.map((role) => (
-                    <option key={role.value} value={role.value}>
+                    <SelectOption key={role.value} value={role.value}>
                       {t(role.label)}
-                    </option>
+                    </SelectOption>
                   ))}
-                </select>
+                </SelectField>
               </td>
               <td className="text-muted-foreground py-2 text-xs">
                 {t('members.memberSince', { date: member.since.slice(0, 10) })}
@@ -256,23 +257,19 @@ function Members() {
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             />
           </label>
-          <label>
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              {t('members.role')}
-            </span>
-            <select
-              aria-label={t('members.role')}
-              name="role"
-              defaultValue="bookkeeper"
-              className="border-input bg-background rounded-md border px-3 py-2 text-sm"
-            >
-              {ROLES.map((role) => (
-                <option key={role.value} value={role.value}>
-                  {t(role.label)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            label={t('members.role')}
+            name="role"
+            defaultValue="bookkeeper"
+            disabled={!hydrated}
+            triggerClassName="w-40"
+          >
+            {ROLES.map((role) => (
+              <SelectOption key={role.value} value={role.value}>
+                {t(role.label)}
+              </SelectOption>
+            ))}
+          </SelectField>
         </div>
 
         <button

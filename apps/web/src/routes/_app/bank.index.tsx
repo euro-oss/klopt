@@ -5,6 +5,7 @@ import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import type { CsvMapping } from '@klopt/core'
 import { formatDate } from '~/lib/format'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -469,77 +470,59 @@ function Bank() {
 
           <div className="mt-4 grid grid-cols-4 gap-4">
             {MAPPING_FIELDS.map((field) => (
-              <label key={field.key} className="block">
-                <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                  {t(field.label)}
-                  {field.required ? '' : t('bank.optionalSuffix')}
-                </span>
-                <select
-                  aria-label={t(field.label)}
-                  value={mapping[field.key] ?? ''}
-                  onChange={(event) => {
-                    const value = event.target.value === '' ? null : event.target.value
-                    setMapping({
-                      ...mapping,
-                      [field.key]: value,
-                      // An af/bij column is what decides the style; without one
-                      // the sign has to be in the amount itself.
-                      ...(field.key === 'indicator'
-                        ? { amountStyle: value === null ? 'signed' : 'indicator' }
-                        : {}),
-                    })
-                  }}
-                  className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
-                >
-                  <option value="">—</option>
-                  {preview.report.header.map((column) => (
-                    <option key={column} value={column}>
-                      {column}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ))}
-
-            <label className="block">
-              <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                {t('bank.dateFormat')}
-              </span>
-              <select
-                aria-label={t('bank.dateFormat')}
-                value={mapping.dateFormat}
-                onChange={(event) => {
-                  setMapping({ ...mapping, dateFormat: event.target.value })
-                }}
-                className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
-              >
-                {DATE_FORMATS.map((format) => (
-                  <option key={format} value={format}>
-                    {format}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                {t('bank.decimalSeparator')}
-              </span>
-              <select
-                aria-label={t('bank.decimalSeparator')}
-                value={mapping.decimalSeparator}
-                onChange={(event) => {
+              <SelectField
+                key={field.key}
+                label={`${t(field.label)}${field.required ? '' : t('bank.optionalSuffix')}`}
+                value={mapping[field.key] ?? ''}
+                disabled={!hydrated}
+                onValueChange={(next) => {
+                  const value = next === '' ? null : next
                   setMapping({
                     ...mapping,
-                    decimalSeparator: event.target.value === '.' ? '.' : ',',
+                    [field.key]: value,
+                    // An af/bij column is what decides the style; without one
+                    // the sign has to be in the amount itself.
+                    ...(field.key === 'indicator'
+                      ? { amountStyle: value === null ? 'signed' : 'indicator' }
+                      : {}),
                   })
                 }}
-                className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
               >
-                <option value=",">1.234,56</option>
-                <option value=".">1,234.56</option>
-              </select>
-            </label>
+                <SelectOption value="">—</SelectOption>
+                {preview.report.header.map((column) => (
+                  <SelectOption key={column} value={column}>
+                    {column}
+                  </SelectOption>
+                ))}
+              </SelectField>
+            ))}
+
+            <SelectField
+              label={t('bank.dateFormat')}
+              value={mapping.dateFormat}
+              disabled={!hydrated}
+              onValueChange={(next) => {
+                setMapping({ ...mapping, dateFormat: next })
+              }}
+            >
+              {DATE_FORMATS.map((format) => (
+                <SelectOption key={format} value={format}>
+                  {format}
+                </SelectOption>
+              ))}
+            </SelectField>
+
+            <SelectField
+              label={t('bank.decimalSeparator')}
+              value={mapping.decimalSeparator}
+              disabled={!hydrated}
+              onValueChange={(next) => {
+                setMapping({ ...mapping, decimalSeparator: next === '.' ? '.' : ',' })
+              }}
+            >
+              <SelectOption value=",">1.234,56</SelectOption>
+              <SelectOption value=".">1,234.56</SelectOption>
+            </SelectField>
 
             {mapping.amountStyle === 'indicator' && (
               <label className="block">

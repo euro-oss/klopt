@@ -1181,4 +1181,13 @@ export const en: Record<MessageKey, string> = {
   'palette.nothingFound': 'Nothing found.',
   'palette.escapeNote': 'Close with Escape. G and N are prefixes; they lapse after 1.5 seconds.',
   'table.empty': 'Nothing to show.',
+
+  // Sidebar groups and the profile block.
+  'nav.group.books': 'Bookkeeping',
+  'nav.group.sales': 'Sales',
+  'nav.group.purchasing': 'Purchasing',
+  'nav.group.money': 'Money',
+  'nav.group.reports': 'Reports',
+  'nav.group.admin': 'Administration',
+  'shell.profile': 'Profile',
 }

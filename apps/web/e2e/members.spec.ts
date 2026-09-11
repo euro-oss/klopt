@@ -1,7 +1,7 @@
 import { rmSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
 
 /**
  * Handing out access, in a browser.
@@ -41,7 +41,7 @@ test('an owner invites somebody, sees them waiting, and withdraws it', async ({ 
   // that ambiguity is the screen working as intended.
   const invite = page.locator('form', { has: page.getByRole('button', { name: 'Uitnodigen' }) })
   await invite.getByLabel('E-mail').fill(invitee)
-  await invite.getByLabel('Rol').selectOption('accountant')
+  await chooseOption(page, 'Rol', 'Accountant', invite)
   await page.getByRole('button', { name: 'Uitnodigen' }).click()
 
   // Listed as waiting, not as a member, and the screen says so in words. The

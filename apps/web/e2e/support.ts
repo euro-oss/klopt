@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { expect, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
 /**
  * Shared plumbing for the browser tests: a fresh address, the code that was
@@ -56,4 +56,29 @@ export async function signIn(page: Page, email: string): Promise<void> {
   await expect(page.getByLabel('Code')).toBeVisible()
   await page.getByLabel('Code').fill(await codeFor(email))
   await page.getByRole('button', { name: 'Aanmelden' }).click()
+}
+
+/**
+ * Choose an option from a shadcn/Radix select.
+ *
+ * `selectOption` only drives a real `<select>`, and these are a button and a
+ * portalled listbox. Two clicks — and the second one is always looked up on
+ * the page, never inside `within`, because the listbox is rendered in a portal
+ * at the end of `<body>` rather than where the trigger sits.
+ *
+ * `option` matches the visible text, so pass a RegExp where the test used to
+ * pass a value: `selectOption('4400')` becomes `/^4400 /`.
+ */
+export async function chooseOption(
+  page: Page,
+  label: string | RegExp,
+  option: string | RegExp,
+  within?: Locator,
+): Promise<void> {
+  await (within ?? page).getByLabel(label).click()
+  await page.getByRole('option', { name: option }).click()
+
+  // The listbox animates out. Waiting for it to go means the next interaction
+  // cannot land on an overlay that is still swallowing clicks.
+  await expect(page.getByRole('listbox')).toBeHidden()
 }

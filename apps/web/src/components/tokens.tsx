@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { issueApiToken, revokeApiToken, revokeAuthorisedApp } from '~/server/ledger'
+import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 
@@ -157,18 +158,18 @@ export function TokenSection({ result }: { result: Result }) {
             className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
           />
         </label>
-        <label className="text-sm">
-          {t('tokens.whatItMay')}
-          <select
-            value={scope}
-            onChange={(event) => setScope(event.target.value === 'draft' ? 'draft' : 'read')}
-            disabled={!hydrated}
-            className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
-          >
-            <option value="read">{t('tokens.readOnly')}</option>
-            <option value="draft">{t('tokens.readAndDraft')}</option>
-          </select>
-        </label>
+        <SelectField
+          label={t('tokens.whatItMay')}
+          value={scope}
+          onValueChange={(next) => {
+            setScope(next === 'draft' ? 'draft' : 'read')
+          }}
+          disabled={!hydrated}
+          triggerClassName="w-56"
+        >
+          <SelectOption value="read">{t('tokens.readOnly')}</SelectOption>
+          <SelectOption value="draft">{t('tokens.readAndDraft')}</SelectOption>
+        </SelectField>
         <button
           type="button"
           disabled={busy || !hydrated || name.trim() === ''}
