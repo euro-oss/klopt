@@ -1,6 +1,8 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { listAccounts } from '~/server/ledger'
 import { getEntity, updateEntity } from '~/server/entity'
@@ -23,11 +25,11 @@ export const Route = createFileRoute('/_app/settings')({
 })
 
 const SCHEMES = [
-  { value: '', label: 'Automatisch (KvK-nummer)' },
-  { value: '0106', label: '0106 — KvK-nummer' },
-  { value: '0190', label: '0190 — OIN' },
-  { value: '9944', label: '9944 — btw-nummer' },
-] as const
+  { value: '', key: 'settings.scheme.auto' },
+  { value: '0106', key: 'settings.scheme.0106' },
+  { value: '0190', key: 'settings.scheme.0190' },
+  { value: '9944', key: 'settings.scheme.9944' },
+] as const satisfies readonly { value: string; key: MessageKey }[]
 
 function Settings() {
   const { entity, accounts } = Route.useLoaderData()
@@ -38,6 +40,7 @@ function Settings() {
     : []
   const router = useRouter()
   const hydrated = useHydrated()
+  const { t } = useT()
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,7 +50,7 @@ function Settings() {
   if (!entity.ok) {
     return (
       <>
-        <PageHeader title="Instellingen" />
+        <PageHeader title={t('settings.title')} />
         <p role="alert" className="text-destructive text-sm">
           {entity.problem.detail}
         </p>
@@ -108,7 +111,7 @@ function Settings() {
       return
     }
 
-    setNotice('Opgeslagen.')
+    setNotice(t('settings.saved'))
     await router.invalidate()
   }
 
@@ -164,10 +167,7 @@ function Settings() {
 
   return (
     <>
-      <PageHeader
-        title="Instellingen"
-        description="De gegevens van deze administratie. Een e-factuur kan niet zonder."
-      />
+      <PageHeader title={t('settings.title')} description={t('settings.intro')} />
 
       {notice !== null && (
         <p className="border-border text-muted-foreground mb-4 rounded-md border p-3 text-sm">
@@ -187,62 +187,63 @@ function Settings() {
         className="max-w-2xl space-y-6"
       >
         <fieldset className="space-y-4">
-          <legend className="text-base font-medium">Naam en registratie</legend>
+          <legend className="text-base font-medium">{t('settings.registration')}</legend>
           <div className="grid grid-cols-2 gap-4">
-            {field('name', 'Handelsnaam', current.name)}
-            {field('legalName', 'Statutaire naam', current.legalName)}
-            {field('kvkNumber', 'KvK-nummer', current.kvkNumber, 'Acht cijfers.')}
-            {field('vatNumber', 'Btw-nummer', current.vatNumber, 'Bijvoorbeeld NL123456789B01.')}
+            {field('name', t('settings.tradeName'), current.name)}
+            {field('legalName', t('contacts.legalName'), current.legalName)}
+            {field('kvkNumber', t('contacts.kvkNumber'), current.kvkNumber, t('settings.kvkHint'))}
+            {field('vatNumber', t('contacts.vatNumber'), current.vatNumber, t('settings.vatHint'))}
           </div>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-base font-medium">Adres</legend>
+          <legend className="text-base font-medium">{t('settings.address')}</legend>
           <div className="grid grid-cols-[1fr_8rem] gap-4">
-            {field('street', 'Straat', current.street)}
-            {field('houseNumber', 'Huisnummer', current.houseNumber)}
+            {field('street', t('contacts.street'), current.street)}
+            {field('houseNumber', t('settings.houseNumber'), current.houseNumber)}
           </div>
           <div className="grid grid-cols-[8rem_1fr_6rem] gap-4">
-            {field('postalCode', 'Postcode', current.postalCode)}
-            {field('city', 'Plaats', current.city)}
-            {field('countryCode', 'Land', current.countryCode, undefined, { maxLength: 2 })}
+            {field('postalCode', t('contacts.postalCode'), current.postalCode)}
+            {field('city', t('contacts.city'), current.city)}
+            {field('countryCode', t('contacts.country'), current.countryCode, undefined, {
+              maxLength: 2,
+            })}
           </div>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-base font-medium">Contact en betaling</legend>
+          <legend className="text-base font-medium">{t('settings.contactAndPayment')}</legend>
           <div className="grid grid-cols-2 gap-4">
-            {field('email', 'E-mail', current.email, undefined, { type: 'email' })}
-            {field('phone', 'Telefoon', current.phone)}
-            {field('iban', 'IBAN', current.iban, 'Komt op de factuur als betaalinstructie.')}
+            {field('email', t('contacts.email'), current.email, undefined, { type: 'email' })}
+            {field('phone', t('contacts.phone'), current.phone)}
+            {field('iban', 'IBAN', current.iban, t('settings.ibanHint'))}
             {field('bic', 'BIC', current.bic)}
           </div>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-base font-medium">E-facturatie</legend>
-          <p className="text-muted-foreground text-sm">
-            Het elektronische adres waarop deze administratie te bereiken is. Peppol vereist het,
-            ook als je de factuur per e-mail verstuurt.
-          </p>
+          <legend className="text-base font-medium">{t('settings.eInvoicing')}</legend>
+          <p className="text-muted-foreground text-sm">{t('settings.eInvoicingIntro')}</p>
           <div className="grid grid-cols-2 gap-4">
             {field(
               'electronicAddress',
-              'Elektronisch adres',
+              t('settings.electronicAddress'),
               current.electronicAddress,
-              'Leeg laten om het KvK-nummer te gebruiken.',
+              t('settings.electronicAddressHint'),
             )}
             <label className="block">
-              <span className="text-muted-foreground mb-1 block text-xs font-medium">Schema</span>
+              <span className="text-muted-foreground mb-1 block text-xs font-medium">
+                {t('settings.scheme')}
+              </span>
               <select
-                aria-label="Schema"
+                aria-label={t('settings.scheme')}
                 name="electronicAddressScheme"
                 defaultValue={current.electronicAddressScheme ?? ''}
                 className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
               >
                 {SCHEMES.map((scheme) => (
                   <option key={scheme.value} value={scheme.value}>
-                    {scheme.label}
+                    {t(scheme.key)}
                   </option>
                 ))}
               </select>
@@ -251,41 +252,34 @@ function Settings() {
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-base font-medium">Btw-afronding</legend>
-          <p className="text-muted-foreground text-sm">
-            Per factuur of per regel. De twee geven andere uitkomsten — drie regels van 33,33 bij
-            21% worden 7,00 per regel en 6,99 op het totaal — en dit is een keuze, geen detail.
-          </p>
+          <legend className="text-base font-medium">{t('settings.vatRounding')}</legend>
+          <p className="text-muted-foreground text-sm">{t('settings.vatRoundingIntro')}</p>
           <label className="block max-w-xs">
-            <span className="sr-only">Btw-afronding</span>
+            <span className="sr-only">{t('settings.vatRounding')}</span>
             <select
-              aria-label="Btw-afronding"
+              aria-label={t('settings.vatRounding')}
               name="vatRounding"
               defaultValue={current.vatRounding}
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             >
-              <option value="per_invoice">Per factuur</option>
-              <option value="per_line">Per regel</option>
+              <option value="per_invoice">{t('settings.perInvoice')}</option>
+              <option value="per_line">{t('settings.perLine')}</option>
             </select>
           </label>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-base font-medium">Bankkosten</legend>
-          <p className="text-muted-foreground text-sm">
-            Waar bankkosten heen gaan als een betaling net te laag binnenkomt. Zonder rekening wordt
-            het afsplitsen niet aangeboden — dan is het handmatig boeken, wat beter is dan een
-            voorstel dat niet geboekt kan worden.
-          </p>
+          <legend className="text-base font-medium">{t('settings.bankCharges')}</legend>
+          <p className="text-muted-foreground text-sm">{t('settings.bankChargesIntro')}</p>
           <label className="block max-w-md">
-            <span className="sr-only">Rekening voor bankkosten</span>
+            <span className="sr-only">{t('settings.bankChargesAccount')}</span>
             <select
-              aria-label="Rekening voor bankkosten"
+              aria-label={t('settings.bankChargesAccount')}
               name="bankChargesAccountNumber"
               defaultValue={current.bankChargesAccountNumber ?? ''}
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             >
-              <option value="">Niet afsplitsen</option>
+              <option value="">{t('settings.bankChargesNone')}</option>
               {expenseAccounts.map((account) => (
                 <option key={account.number} value={account.number}>
                   {account.number} · {account.name}
@@ -300,7 +294,7 @@ function Settings() {
           disabled={busy || !hydrated}
           className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
-          {busy ? 'Bezig…' : 'Opslaan'}
+          {busy ? t('common.busy') : t('common.save')}
         </button>
       </form>
     </>

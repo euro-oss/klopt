@@ -3,6 +3,8 @@ import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import {
   addInboundSource,
@@ -49,11 +51,11 @@ export const Route = createFileRoute('/_app/inbox')({
   component: Inbox,
 })
 
-const SOURCE_LABEL: Record<string, string> = {
-  upload: 'geüpload',
-  email: 'per e-mail',
-  peppol: 'via Peppol',
-  generated: 'zelf gemaakt',
+const SOURCE_KEY: Record<string, MessageKey> = {
+  upload: 'inbox.source.upload',
+  email: 'inbox.source.email',
+  peppol: 'inbox.source.peppol',
+  generated: 'inbox.source.generated',
 }
 
 function formatBytes(size: number): string {
@@ -67,6 +69,13 @@ function Inbox() {
   const router = useRouter()
   const navigate = useNavigate()
   const hydrated = useHydrated()
+  const { t } = useT()
+
+  /** An unrecognised source is shown raw rather than as a blank. */
+  const sourceOf = (source: string) => {
+    const key = SOURCE_KEY[source]
+    return key === undefined ? source : t(key)
+  }
 
   const [open, setOpen] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -77,7 +86,7 @@ function Inbox() {
   if (!inbox.ok) {
     return (
       <>
-        <PageHeader title="Postvak" />
+        <PageHeader title={t('inbox.title')} />
         <p role="alert" className="text-destructive text-sm">
           {inbox.problem.detail}
         </p>
@@ -137,15 +146,13 @@ function Inbox() {
     }
 
     if (result.data.alreadyHeld) {
-      setNote('Dit bestand was er al. Het staat nu twee keer in het postvak, als één document.')
+      setNote(t('inbox.alreadyHeld'))
     } else if (result.data.parseError !== null) {
-      setNote(`Er kon niets uit gelezen worden: ${result.data.parseError}`)
+      setNote(t('inbox.parseError', { reason: result.data.parseError }))
     } else if (result.data.parsed === null) {
-      setNote(
-        'Opgeslagen. Uit dit soort bestand kan niets gelezen worden — voer de factuur zelf in en hang dit bestand eraan.',
-      )
+      setNote(t('inbox.unreadable'))
     } else if (result.data.matchedSupplier === null) {
-      setNote('Gelezen, maar niet aan een leverancier gekoppeld. Kies er zelf een.')
+      setNote(t('inbox.noSupplierMatched'))
     }
 
     await router.invalidate()
@@ -215,11 +222,11 @@ function Inbox() {
   return (
     <>
       <PageHeader
-        title="Postvak"
-        description="Alles wat binnenkomt — geüpload, per e-mail, via Peppol — staat in één rij. Wat gelezen kan worden is al ingevuld; de rest wacht op iemand."
+        title={t('inbox.title')}
+        description={t('inbox.intro')}
         actions={
           <label className="bg-primary text-primary-foreground cursor-pointer rounded-md px-4 py-2 text-sm font-medium">
-            {busy ? 'Bezig…' : 'Bestand toevoegen'}
+            {busy ? t('common.busy') : t('inbox.addFile')}
             <input
               type="file"
               className="sr-only"
@@ -234,20 +241,20 @@ function Inbox() {
 
       <div className="mb-6 flex flex-wrap gap-8">
         <Stat
-          label="Wacht op behandeling"
+          label={t('inbox.waiting')}
           value={String(inbox.data.waiting)}
           tone={inbox.data.waiting > 0 ? 'warn' : 'neutral'}
         />
-        <Stat label="In beeld" value={String(items.length)} />
+        <Stat label={t('inbox.showing')} value={String(items.length)} />
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
         {(
           [
-            ['Nieuw', undefined],
-            ['Verwerkt', 'drafted'],
-            ['Terzijde gelegd', 'discarded'],
-          ] as const
+            ['inbox.filter.new', undefined],
+            ['inbox.filter.drafted', 'drafted'],
+            ['inbox.filter.discarded', 'discarded'],
+          ] as const satisfies readonly (readonly [MessageKey, string | undefined])[]
         ).map(([label, value]) => (
           <button
             key={label}
@@ -265,7 +272,7 @@ function Inbox() {
                 : 'border-input rounded-md border px-3 py-1.5 text-sm disabled:opacity-50'
             }
           >
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>
@@ -285,7 +292,7 @@ function Inbox() {
 
       {items.length === 0 && (
         <p className="text-muted-foreground border-border max-w-2xl rounded-md border border-dashed p-4 text-sm">
-          Niets in het postvak.
+          {t('inbox.empty')}
         </p>
       )}
 
@@ -300,16 +307,18 @@ function Inbox() {
                 <div>
                   <p className="font-medium">
                     {parsed === null
-                      ? (item.filename ?? 'Document zonder naam')
-                      : `${parsed.invoice.supplierInvoiceNumber} · ${parsed.supplier.name ?? 'onbekende afzender'}`}
+                      ? (item.filename ?? t('inbox.unnamedDocument'))
+                      : `${parsed.invoice.supplierInvoiceNumber} · ${parsed.supplier.name ?? t('inbox.unknownSender')}`}
                   </p>
                   <p className="text-muted-foreground text-xs">
-                    {SOURCE_LABEL[item.source] ?? item.source} op{' '}
+                    {sourceOf(item.source)}
+                    {t('inbox.receivedOn')}
                     {formatDate(item.receivedAt.slice(0, 10))} · {item.contentType} ·{' '}
                     {formatBytes(item.sizeBytes)}
-                    {item.receivedFrom !== null && ` · van ${item.receivedFrom}`}
+                    {item.receivedFrom !== null &&
+                      t('inbox.receivedFrom', { from: item.receivedFrom })}
                     {item.seenBefore && (
-                      <span className="text-unreconciled"> · dit bestand was er al</span>
+                      <span className="text-unreconciled">{t('inbox.seenBefore')}</span>
                     )}
                   </p>
                 </div>
@@ -320,7 +329,7 @@ function Inbox() {
                     rel="noreferrer"
                     className="underline"
                   >
-                    Document openen
+                    {t('inbox.openDocument')}
                   </a>
                   {item.state === 'new' && (
                     <button
@@ -331,7 +340,7 @@ function Inbox() {
                       }}
                       className="border-input rounded-md border px-3 py-1.5 disabled:opacity-50"
                     >
-                      {expanded ? 'Sluiten' : 'Verwerken'}
+                      {expanded ? t('inbox.close') : t('inbox.handle')}
                     </button>
                   )}
                   {item.purchaseInvoiceId !== null && (
@@ -340,7 +349,7 @@ function Inbox() {
                       params={{ invoiceId: item.purchaseInvoiceId }}
                       className="underline"
                     >
-                      Naar de factuur
+                      {t('inbox.toInvoice')}
                     </Link>
                   )}
                 </div>
@@ -348,22 +357,22 @@ function Inbox() {
 
               {item.parseError !== null && (
                 <p className="text-muted-foreground mt-2 text-sm">
-                  Er kon niets uit gelezen worden: {item.parseError}
+                  {t('inbox.parseError', { reason: item.parseError })}
                 </p>
               )}
               {item.discardedReason !== null && (
                 <p className="text-muted-foreground mt-2 text-sm">
-                  Terzijde gelegd: {item.discardedReason}
+                  {t('inbox.setAsideReason', { reason: item.discardedReason })}
                 </p>
               )}
 
               {parsed !== null && (
                 <p className="mt-2 text-sm">
-                  <Money amount={parsed.invoice.total} /> · {formatDate(parsed.invoice.invoiceDate)}{' '}
-                  · vervalt {formatDate(parsed.invoice.dueDate)}
+                  <Money amount={parsed.invoice.total} /> · {formatDate(parsed.invoice.invoiceDate)}
+                  {t('inbox.dueOn', { date: formatDate(parsed.invoice.dueDate) })}
                   {item.contactName !== null && ` · ${item.contactName}`}
                   {item.contactName === null && (
-                    <span className="text-unreconciled"> · nog geen leverancier</span>
+                    <span className="text-unreconciled">{t('inbox.noSupplierYet')}</span>
                   )}
                 </p>
               )}
@@ -387,20 +396,20 @@ function Inbox() {
                       className="max-w-xl space-y-3"
                     >
                       <p className="text-muted-foreground text-sm">
-                        Uit dit bestand kan niets gelezen worden. Voer de factuur zelf in onder{' '}
+                        {t('inbox.cannotRead')}{' '}
                         <Link to="/purchases/new" className="underline">
-                          Inkoopfacturen
+                          {t('nav.purchases')}
                         </Link>
-                        , of leg het terzijde.
+                        {t('inbox.orSetAside')}
                       </p>
                       <label className="block">
                         <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                          Waarom terzijde?
+                          {t('inbox.whySetAside')}
                         </span>
                         <input
                           name="reason"
                           required
-                          aria-label="Waarom terzijde?"
+                          aria-label={t('inbox.whySetAside')}
                           className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         />
                       </label>
@@ -409,7 +418,7 @@ function Inbox() {
                         disabled={!hydrated || busy}
                         className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
                       >
-                        Terzijde leggen
+                        {t('inbox.setAside')}
                       </button>
                     </form>
                   ) : (
@@ -422,15 +431,15 @@ function Inbox() {
                     >
                       <label className="block max-w-sm">
                         <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                          Leverancier
+                          {t('contacts.supplierLabel')}
                         </span>
                         <select
-                          aria-label="Leverancier"
+                          aria-label={t('contacts.supplierLabel')}
                           name="contactNumber"
                           defaultValue={item.contactNumber ?? ''}
                           className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         >
-                          <option value="">— kies een leverancier —</option>
+                          <option value="">{t('inbox.chooseSupplier')}</option>
                           {suppliers.map((supplier) => (
                             <option key={supplier.number} value={supplier.number}>
                               {supplier.number} {supplier.name}
@@ -440,23 +449,21 @@ function Inbox() {
                       </label>
 
                       <table className="w-full text-sm">
-                        <caption className="sr-only">
-                          Regels uit het document, met de codering
-                        </caption>
+                        <caption className="sr-only">{t('inbox.linesCaption')}</caption>
                         <thead>
                           <tr className="text-muted-foreground text-left text-xs">
-                            <th scope="col">Omschrijving</th>
+                            <th scope="col">{t('entries.description')}</th>
                             <th scope="col" className="w-48">
-                              Grootboek
+                              {t('invoice.ledgerAccount')}
                             </th>
                             <th scope="col" className="w-40">
-                              Btw-code
+                              {t('purchaseNew.taxCode')}
                             </th>
                             <th scope="col" className="w-24 text-right">
-                              Excl. btw
+                              {t('purchaseNew.excludingVat')}
                             </th>
                             <th scope="col" className="w-24 text-right">
-                              Btw
+                              {t('invoice.vat')}
                             </th>
                           </tr>
                         </thead>
@@ -466,7 +473,9 @@ function Inbox() {
                               <td className="py-1 pr-2">{line.description}</td>
                               <td className="py-1 pr-2">
                                 <select
-                                  aria-label={`Grootboek regel ${String(index + 1)}`}
+                                  aria-label={t('invoiceNew.accountLine', {
+                                    line: String(index + 1),
+                                  })}
                                   name={`account-${String(index)}`}
                                   defaultValue={line.accountNumber}
                                   className="border-input bg-background w-full rounded-md border px-2 py-1.5"
@@ -475,7 +484,7 @@ function Inbox() {
                                       parse could not park anywhere shows as
                                       unchosen rather than silently taking the
                                       first cost account. */}
-                                  <option value="">— kies —</option>
+                                  <option value="">{t('inbox.choose')}</option>
                                   {costAccounts.map((account) => (
                                     <option key={account.number} value={account.number}>
                                       {account.number} {account.name}
@@ -485,12 +494,14 @@ function Inbox() {
                               </td>
                               <td className="py-1 pr-2">
                                 <select
-                                  aria-label={`Btw-code regel ${String(index + 1)}`}
+                                  aria-label={t('purchaseNew.taxCodeLine', {
+                                    line: String(index + 1),
+                                  })}
                                   name={`tax-${String(index)}`}
                                   defaultValue={line.taxCode}
                                   className="border-input bg-background w-full rounded-md border px-2 py-1.5"
                                 >
-                                  <option value="">— kies —</option>
+                                  <option value="">{t('inbox.choose')}</option>
                                   {inputCodes.map((code) => (
                                     <option key={code.code} value={code.code}>
                                       {code.code} · {code.ratePercent}% · {code.description}
@@ -517,21 +528,21 @@ function Inbox() {
                           disabled={!hydrated || busy}
                           className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
                         >
-                          {busy ? 'Bezig…' : 'Concept maken'}
+                          {busy ? t('common.busy') : t('inbox.makeDraft')}
                         </button>
                         <button
                           type="button"
                           disabled={!hydrated || busy}
                           onClick={() => {
-                            const reason = globalThis.prompt('Waarom terzijde?')
+                            const reason = globalThis.prompt(t('inbox.whySetAside'))
                             if (reason !== null && reason !== '') void discard(item.id, reason)
                           }}
                           className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
                         >
-                          Terzijde leggen
+                          {t('inbox.setAside')}
                         </button>
                         <span className="text-muted-foreground text-xs">
-                          De bedragen komen van het document en zijn hier niet te wijzigen.
+                          {t('inbox.amountsFixed')}
                         </span>
                       </div>
                     </form>
@@ -548,10 +559,10 @@ function Inbox() {
   )
 }
 
-const KIND_LABEL: Record<string, string> = {
-  maildir: 'map',
-  imap: 'mailbox',
-  peppol: 'Peppol',
+const KIND_KEY: Record<string, MessageKey> = {
+  maildir: 'sources.label.maildir',
+  imap: 'sources.label.imap',
+  peppol: 'sources.label.peppol',
 }
 
 /**
@@ -566,6 +577,14 @@ function InboundSources() {
   const { sources } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { t } = useT()
+
+  /** An unrecognised kind is shown raw rather than as a blank. */
+  const kindOf = (kind: string) => {
+    const key = KIND_KEY[kind]
+    return key === undefined ? kind : t(key)
+  }
+
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [kind, setKind] = useState<'maildir' | 'imap'>('maildir')
@@ -626,8 +645,11 @@ function InboundSources() {
     }
     setNote(
       result.data.ok
-        ? `${String(result.data.filed)} nieuw bericht(en), ${String(result.data.documents)} document(en).`
-        : (result.data.failure ?? 'Ophalen is niet gelukt.'),
+        ? t('sources.pollResult', {
+            messages: String(result.data.filed),
+            documents: String(result.data.documents),
+          })
+        : (result.data.failure ?? t('sources.pollFailed')),
     )
     await router.invalidate()
   }
@@ -641,32 +663,23 @@ function InboundSources() {
 
   return (
     <section className="border-border mt-10 max-w-3xl rounded-md border p-4">
-      <h2 className="mb-1 text-sm font-semibold">Waar post vandaan komt</h2>
-      <p className="text-muted-foreground mb-3 text-sm">
-        Een map waar bestanden in gezet worden vraagt geen wachtwoord en is de gewone keuze; een
-        mailbox wordt elke vijf minuten geleegd. Wat via Peppol binnenkomt wordt bezorgd en hoeft
-        niet opgehaald te worden.
-      </p>
+      <h2 className="mb-1 text-sm font-semibold">{t('sources.title')}</h2>
+      <p className="text-muted-foreground mb-3 text-sm">{t('sources.intro')}</p>
 
       {!sources.data.canStoreSecrets && (
-        <p className="text-muted-foreground mb-3 text-xs">
-          Er is geen KLOPT_ENCRYPTION_KEY ingesteld, dus een wachtwoord kan niet veilig bewaard
-          worden. Een map werkt wel — die heeft er geen nodig.
-        </p>
+        <p className="text-muted-foreground mb-3 text-xs">{t('sources.noSecrets')}</p>
       )}
 
       {rows.length === 0 ? (
-        <p className="text-muted-foreground mb-3 text-sm">
-          Nog geen bronnen. Alles komt nu binnen doordat iemand het hierboven toevoegt.
-        </p>
+        <p className="text-muted-foreground mb-3 text-sm">{t('sources.empty')}</p>
       ) : (
         <table className="mb-3 w-full text-sm">
-          <caption className="sr-only">Bronnen waar post vandaan komt</caption>
+          <caption className="sr-only">{t('sources.caption')}</caption>
           <thead>
             <tr className="text-muted-foreground text-left text-xs">
-              <th scope="col">Naam</th>
-              <th scope="col">Waar</th>
-              <th scope="col">Laatst opgehaald</th>
+              <th scope="col">{t('sources.name')}</th>
+              <th scope="col">{t('sources.where')}</th>
+              <th scope="col">{t('sources.lastPolled')}</th>
               <th scope="col" />
             </tr>
           </thead>
@@ -675,12 +688,12 @@ function InboundSources() {
               <tr key={row.id} className="border-border/50 border-t align-top">
                 <td className="py-1.5 pr-2">
                   {row.name}
-                  <span className="text-muted-foreground text-xs"> {KIND_LABEL[row.kind]}</span>
+                  <span className="text-muted-foreground text-xs"> {kindOf(row.kind)}</span>
                 </td>
                 <td className="text-muted-foreground py-1.5 pr-2 text-xs">{row.where}</td>
                 <td className="py-1.5 pr-2 text-xs">
                   {row.lastPolledAt === null ? (
-                    <span className="text-muted-foreground">nog nooit</span>
+                    <span className="text-muted-foreground">{t('sources.never')}</span>
                   ) : (
                     <span className="tabular">{formatDate(row.lastPolledAt.slice(0, 10))}</span>
                   )}
@@ -698,7 +711,7 @@ function InboundSources() {
                       }}
                       className="text-primary mr-3 text-xs underline disabled:opacity-50"
                     >
-                      Nu ophalen
+                      {t('sources.pollNow')}
                     </button>
                   )}
                   <button
@@ -709,7 +722,7 @@ function InboundSources() {
                     }}
                     className="text-muted-foreground text-xs underline disabled:opacity-50"
                   >
-                    Verwijderen
+                    {t('sources.remove')}
                   </button>
                 </td>
               </tr>
@@ -733,7 +746,7 @@ function InboundSources() {
         }}
         className="border-border rounded-md border px-3 py-1.5 text-sm disabled:opacity-50"
       >
-        {open ? 'Annuleren' : 'Bron toevoegen'}
+        {open ? t('common.cancel') : t('sources.add')}
       </button>
 
       {open && (
@@ -748,7 +761,7 @@ function InboundSources() {
               htmlFor="source-kind"
               className="text-muted-foreground mb-1 block text-xs font-medium"
             >
-              Soort
+              {t('sources.kind')}
             </label>
             <select
               id="source-kind"
@@ -758,8 +771,8 @@ function InboundSources() {
               }}
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             >
-              <option value="maildir">Map met bestanden</option>
-              <option value="imap">Mailbox (IMAP)</option>
+              <option value="maildir">{t('sources.kindMaildir')}</option>
+              <option value="imap">{t('sources.kindImap')}</option>
             </select>
           </div>
 
@@ -768,7 +781,7 @@ function InboundSources() {
               htmlFor="source-name"
               className="text-muted-foreground mb-1 block text-xs font-medium"
             >
-              Naam
+              {t('sources.name')}
             </label>
             <input
               id="source-name"
@@ -784,7 +797,7 @@ function InboundSources() {
                 htmlFor="source-directory"
                 className="text-muted-foreground mb-1 block text-xs font-medium"
               >
-                Map
+                {t('sources.directory')}
               </label>
               <input
                 id="source-directory"
@@ -801,7 +814,7 @@ function InboundSources() {
                   htmlFor="source-host"
                   className="text-muted-foreground mb-1 block text-xs font-medium"
                 >
-                  Server
+                  {t('sources.host')}
                 </label>
                 <input
                   id="source-host"
@@ -816,7 +829,7 @@ function InboundSources() {
                   htmlFor="source-user"
                   className="text-muted-foreground mb-1 block text-xs font-medium"
                 >
-                  Gebruiker
+                  {t('sources.user')}
                 </label>
                 <input
                   id="source-user"
@@ -830,7 +843,7 @@ function InboundSources() {
                   htmlFor="source-password"
                   className="text-muted-foreground mb-1 block text-xs font-medium"
                 >
-                  Wachtwoord
+                  {t('sources.password')}
                 </label>
                 <input
                   id="source-password"
@@ -845,12 +858,12 @@ function InboundSources() {
                   htmlFor="source-processed"
                   className="text-muted-foreground mb-1 block text-xs font-medium"
                 >
-                  Map voor verwerkte post
+                  {t('sources.processedMailbox')}
                 </label>
                 <input
                   id="source-processed"
                   name="processedMailbox"
-                  placeholder="Verwerkt"
+                  placeholder={t('sources.processedPlaceholder')}
                   className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                 />
               </div>
@@ -863,7 +876,7 @@ function InboundSources() {
               disabled={!hydrated || busy}
               className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
-              {busy ? 'Bezig…' : 'Opslaan'}
+              {busy ? t('common.busy') : t('common.save')}
             </button>
           </div>
         </form>
