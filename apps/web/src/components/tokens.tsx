@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { issueApiToken, revokeApiToken, revokeAuthorisedApp } from '~/server/ledger'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 
 /**
  * API tokens and the apps holding them (spec 14).
@@ -36,10 +38,10 @@ type Result =
   | { ok: true; data: { tokens: readonly TokenRow[]; grantableScopes: readonly string[] } }
   | { ok: false; problem?: { detail: string } }
 
-const STATE_TEXT: Record<TokenRow['state'], string> = {
-  live: 'actief',
-  expired: 'verlopen',
-  revoked: 'ingetrokken',
+const STATE_KEY: Record<TokenRow['state'], MessageKey> = {
+  live: 'tokens.state.live',
+  expired: 'tokens.state.expired',
+  revoked: 'tokens.state.revoked',
 }
 
 export function TokenSection({ result }: { result: Result }) {
@@ -51,6 +53,7 @@ export function TokenSection({ result }: { result: Result }) {
   const [issued, setIssued] = useState<{ name: string; token: string } | null>(null)
   const [name, setName] = useState('')
   const [scope, setScope] = useState<'read' | 'draft'>('read')
+  const { t } = useT()
 
   if (!result.ok) {
     // `tokens:manage` is owner-only, so a bookkeeper simply does not see this.
@@ -73,12 +76,12 @@ export function TokenSection({ result }: { result: Result }) {
     try {
       const result = await work()
       if (!result.ok) {
-        setError(result.problem?.detail ?? 'Onbekende fout.')
+        setError(result.problem?.detail ?? t('common.unknownError'))
         return
       }
       await router.invalidate()
     } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : 'Onbekende fout.')
+      setError(cause instanceof Error ? cause.message : t('common.unknownError'))
     } finally {
       setBusy(false)
     }
@@ -117,13 +120,8 @@ export function TokenSection({ result }: { result: Result }) {
 
   return (
     <section className="mt-10">
-      <h2 className="text-lg font-semibold">Tokens en gekoppelde apps</h2>
-      <p className="text-muted-foreground mt-1 mb-4 max-w-2xl text-sm">
-        Een token laat een script of een assistent deze administratie lezen. Met &ldquo;concepten
-        maken&rdquo; mag het ook conceptfacturen aanmaken — versturen, boeken en definitief maken
-        blijft aan een mens. Apps die je via &ldquo;Toegang geven&rdquo; hebt gekoppeld staan er ook
-        tussen; die loskoppelen doet meteen alle tokens vervallen die de app heeft.
-      </p>
+      <h2 className="text-lg font-semibold">{t('tokens.title')}</h2>
+      <p className="text-muted-foreground mt-1 mb-4 max-w-2xl text-sm">{t('tokens.intro')}</p>
 
       {error !== null && (
         <p role="alert" className="text-destructive mb-4 text-sm">
@@ -133,11 +131,8 @@ export function TokenSection({ result }: { result: Result }) {
 
       {issued !== null && (
         <div className="border-border bg-muted/40 mb-4 rounded-md border p-4">
-          <p className="text-sm font-medium">Dit is het token voor {issued.name}.</p>
-          <p className="text-muted-foreground mt-1 text-xs">
-            Je ziet het nu één keer. Er wordt alleen een hash bewaard, dus er is geen scherm dat het
-            later nog kan tonen.
-          </p>
+          <p className="text-sm font-medium">{t('tokens.issued', { name: issued.name })}</p>
+          <p className="text-muted-foreground mt-1 text-xs">{t('tokens.issuedOnce')}</p>
           <code className="mt-2 block overflow-x-auto rounded bg-black/5 p-2 font-mono text-xs">
             {issued.token}
           </code>
@@ -146,32 +141,32 @@ export function TokenSection({ result }: { result: Result }) {
             onClick={() => setIssued(null)}
             className="border-border mt-3 rounded-md border px-2 py-1 text-xs"
           >
-            Ik heb het bewaard
+            {t('tokens.saved')}
           </button>
         </div>
       )}
 
       <div className="border-border mb-6 flex max-w-2xl items-end gap-3 rounded-md border p-4">
         <label className="flex-1 text-sm">
-          Naam
+          {t('tokens.name')}
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
             disabled={!hydrated}
-            placeholder="Bijvoorbeeld: boekhouder-export"
+            placeholder={t('tokens.namePlaceholder')}
             className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
           />
         </label>
         <label className="text-sm">
-          Wat het mag
+          {t('tokens.whatItMay')}
           <select
             value={scope}
             onChange={(event) => setScope(event.target.value === 'draft' ? 'draft' : 'read')}
             disabled={!hydrated}
             className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
           >
-            <option value="read">Alleen lezen</option>
-            <option value="draft">Lezen en concepten maken</option>
+            <option value="read">{t('tokens.readOnly')}</option>
+            <option value="draft">{t('tokens.readAndDraft')}</option>
           </select>
         </label>
         <button
@@ -180,20 +175,20 @@ export function TokenSection({ result }: { result: Result }) {
           onClick={() => void issue()}
           className="bg-primary text-primary-foreground mb-1 rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
         >
-          {busy ? 'Bezig…' : 'Token maken'}
+          {busy ? t('common.busy') : t('tokens.create')}
         </button>
       </div>
 
       {tokens.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Er zijn nog geen tokens.</p>
+        <p className="text-muted-foreground text-sm">{t('tokens.empty')}</p>
       ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className="border-border border-b text-left">
-              <th className="py-2">Naam</th>
-              <th className="py-2">Wat het mag</th>
-              <th className="py-2">Laatst gebruikt</th>
-              <th className="py-2">Status</th>
+              <th className="py-2">{t('tokens.name')}</th>
+              <th className="py-2">{t('tokens.whatItMay')}</th>
+              <th className="py-2">{t('tokens.lastUsed')}</th>
+              <th className="py-2">{t('invoices.status')}</th>
               <th className="py-2" />
             </tr>
           </thead>
@@ -206,18 +201,22 @@ export function TokenSection({ result }: { result: Result }) {
                     {token.prefix}…
                   </span>
                   {token.oauthClientName !== null && (
-                    <span className="text-muted-foreground ml-2 text-xs">gekoppelde app</span>
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      {t('tokens.connectedApp')}
+                    </span>
                   )}
                 </td>
                 <td className="text-muted-foreground py-2 text-xs">
-                  {token.permissions.includes('*') ? 'alles' : token.permissions.join(', ')}
+                  {token.permissions.includes('*')
+                    ? t('tokens.everything')
+                    : token.permissions.join(', ')}
                 </td>
                 <td className="text-muted-foreground py-2 text-xs">
-                  {token.lastUsedAt === null ? 'nooit' : formatDate(token.lastUsedAt)}
+                  {token.lastUsedAt === null ? t('tokens.never') : formatDate(token.lastUsedAt)}
                 </td>
                 <td className="py-2 text-xs">
                   <span className={token.state === 'live' ? '' : 'text-muted-foreground'}>
-                    {STATE_TEXT[token.state]}
+                    {t(STATE_KEY[token.state])}
                   </span>
                 </td>
                 <td className="py-2 text-right">
@@ -238,7 +237,7 @@ export function TokenSection({ result }: { result: Result }) {
                       }
                       className="border-border rounded-md border px-2 py-1 text-xs"
                     >
-                      {token.oauthClientId === null ? 'Intrekken' : 'App loskoppelen'}
+                      {token.oauthClientId === null ? t('tokens.revoke') : t('tokens.disconnect')}
                     </button>
                   )}
                 </td>

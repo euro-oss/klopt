@@ -4,6 +4,8 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
+import type { MessageKey } from '~/i18n/nl'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { createPaymentBatch, listPaymentBatches } from '~/server/payments'
 import { listBankAccounts } from '~/server/bank'
@@ -36,12 +38,12 @@ interface Row {
   rejectionReason: string | null
 }
 
-export const STATE_LABEL: Record<Row['state'], string> = {
-  draft: 'concept',
-  submitted: 'wacht op fiat',
-  approved: 'gefiatteerd',
-  exported: 'verstuurd naar de bank',
-  rejected: 'afgekeurd',
+export const STATE_KEY: Record<Row['state'], MessageKey> = {
+  draft: 'payments.state.draft',
+  submitted: 'payments.state.submitted',
+  approved: 'payments.state.approved',
+  exported: 'payments.state.exported',
+  rejected: 'payments.state.rejected',
 }
 
 const today = (): string => new Date().toISOString().slice(0, 10)
@@ -51,6 +53,7 @@ function PaymentBatches() {
   const router = useRouter()
   const navigate = useNavigate()
   const hydrated = useHydrated()
+  const { t } = useT()
 
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -60,7 +63,7 @@ function PaymentBatches() {
   if (!batches.ok) {
     return (
       <>
-        <PageHeader title="Betalingen" />
+        <PageHeader title={t('payments.title')} />
         <p role="alert" className="text-destructive text-sm">
           {batches.problem.detail}
         </p>
@@ -109,39 +112,44 @@ function PaymentBatches() {
   }
 
   const columns: readonly Column<Row>[] = [
-    { key: 'reference', header: 'Kenmerk', width: '12rem', cell: (row) => row.reference },
+    {
+      key: 'reference',
+      header: t('payments.reference'),
+      width: '12rem',
+      cell: (row) => row.reference,
+    },
     {
       key: 'date',
-      header: 'Uitvoerdatum',
+      header: t('payments.executionDate'),
       width: '9rem',
       cell: (row) => <span className="tabular">{formatDate(row.requestedExecutionDate)}</span>,
     },
     {
       key: 'account',
-      header: 'Rekening',
+      header: t('payments.account'),
       width: '12rem',
       cell: (row) => <span className="tabular text-xs">{row.bankAccountIban}</span>,
     },
     {
       key: 'count',
-      header: 'Posten',
+      header: t('payments.instructions'),
       width: '5rem',
       align: 'right',
       cell: (row) => <span className="tabular">{row.instructionCount}</span>,
     },
     {
       key: 'state',
-      header: 'Status',
+      header: t('invoices.status'),
       width: '12rem',
       cell: (row) => (
         <span className={row.state === 'submitted' ? 'text-unreconciled' : undefined}>
-          {STATE_LABEL[row.state]}
+          {t(STATE_KEY[row.state])}
         </span>
       ),
     },
     {
       key: 'total',
-      header: 'Totaal',
+      header: t('report.total'),
       width: '9rem',
       align: 'right',
       cell: (row) => <Money amount={row.total} />,
@@ -151,8 +159,8 @@ function PaymentBatches() {
   return (
     <>
       <PageHeader
-        title="Betalingen"
-        description="Een batch wordt door één iemand klaargezet en door een ander gefiatteerd."
+        title={t('payments.title')}
+        description={t('payments.intro')}
         actions={
           <button
             type="button"
@@ -162,16 +170,16 @@ function PaymentBatches() {
             }}
             className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
-            {open ? 'Annuleren' : 'Nieuwe batch'}
+            {open ? t('common.cancel') : t('payments.newBatch')}
           </button>
         }
       />
 
       {bankAccounts.length === 0 && (
         <p className="text-muted-foreground border-border mb-6 rounded-md border border-dashed p-4 text-sm">
-          Er is nog geen bankrekening. Voeg er een toe onder{' '}
+          {t('payments.noBankAccount')}{' '}
           <Link to="/bank" className="underline">
-            Bank
+            {t('nav.bank')}
           </Link>
           .
         </p>
@@ -185,7 +193,9 @@ function PaymentBatches() {
           className="border-border mb-8 grid max-w-3xl grid-cols-[1fr_1fr_10rem_auto] items-end gap-4 rounded-md border p-4"
         >
           <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">Kenmerk</span>
+            <span className="text-muted-foreground mb-1 block text-xs font-medium">
+              {t('payments.reference')}
+            </span>
             <input
               name="reference"
               required
@@ -195,9 +205,11 @@ function PaymentBatches() {
             />
           </label>
           <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">Rekening</span>
+            <span className="text-muted-foreground mb-1 block text-xs font-medium">
+              {t('payments.account')}
+            </span>
             <select
-              aria-label="Rekening"
+              aria-label={t('payments.account')}
               name="bankAccountId"
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             >
@@ -210,7 +222,7 @@ function PaymentBatches() {
           </label>
           <label className="block">
             <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              Uitvoerdatum
+              {t('payments.executionDate')}
             </span>
             <input
               type="date"
@@ -224,7 +236,7 @@ function PaymentBatches() {
             disabled={busy || !hydrated}
             className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
-            Aanmaken
+            {t('payments.create')}
           </button>
         </form>
       )}
@@ -237,15 +249,15 @@ function PaymentBatches() {
 
       {rows.length > 0 && (
         <div className="mb-6 grid grid-cols-3 gap-4">
-          <Stat label="Batches" value={String(rows.length)} />
+          <Stat label={t('payments.batches')} value={String(rows.length)} />
           <Stat
-            label="Wacht op fiat"
+            label={t('payments.awaitingApproval')}
             value={String(waiting.length)}
             tone={waiting.length > 0 ? 'warn' : 'neutral'}
-            hint="door iemand anders dan wie ze klaarzette"
+            hint={t('payments.awaitingApprovalHint')}
           />
           <Stat
-            label="Klaar om te betalen"
+            label={t('payments.readyToPay')}
             value={<Money amount={waiting.reduce((sum, row) => sum + BigInt(row.total), 0n)} />}
           />
         </div>
@@ -258,8 +270,8 @@ function PaymentBatches() {
         onRowActivate={(row) => {
           void navigate({ to: '/payments/$batchId', params: { batchId: row.id } })
         }}
-        caption="Betaalbatches"
-        empty="Nog geen betaalbatches."
+        caption={t('payments.caption')}
+        empty={t('payments.empty')}
       />
     </>
   )

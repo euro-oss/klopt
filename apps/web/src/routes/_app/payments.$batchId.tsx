@@ -4,6 +4,7 @@ import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import { formatDate, parseMinorUnits } from '~/lib/format'
+import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { getSession } from '~/server/context'
 import {
@@ -14,7 +15,7 @@ import {
   removePaymentInstruction,
   transitionPaymentBatch,
 } from '~/server/payments'
-import { STATE_LABEL } from './payments.index'
+import { STATE_KEY } from './payments.index'
 
 /**
  * One payment batch.
@@ -55,6 +56,7 @@ function PaymentBatch() {
   const { batchId } = Route.useParams()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { t, plural } = useT()
 
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -105,7 +107,7 @@ function PaymentBatch() {
       return
     }
 
-    setNotice(`Status is nu: ${STATE_LABEL[result.data.state]}.`)
+    setNotice(t('batch.stateNow', { state: t(STATE_KEY[result.data.state]) }))
     await router.invalidate()
   }
 
@@ -205,7 +207,7 @@ function PaymentBatch() {
   }
 
   const columns: readonly Column<Instruction>[] = [
-    { key: 'name', header: 'Begunstigde', cell: (row) => row.creditorName },
+    { key: 'name', header: t('batch.beneficiary'), cell: (row) => row.creditorName },
     {
       key: 'iban',
       header: 'IBAN',
@@ -214,18 +216,18 @@ function PaymentBatch() {
     },
     {
       key: 'reference',
-      header: 'Kenmerk',
+      header: t('payments.reference'),
       width: '11rem',
       cell: (row) => <span className="text-xs">{row.remittanceReference ?? row.endToEndId}</span>,
     },
     {
       key: 'description',
-      header: 'Omschrijving',
+      header: t('entries.description'),
       cell: (row) => <span className="text-xs">{row.remittanceInformation}</span>,
     },
     {
       key: 'amount',
-      header: 'Bedrag',
+      header: t('batch.amount'),
       width: '9rem',
       align: 'right',
       cell: (row) => <Money amount={row.amount} />,
@@ -246,7 +248,7 @@ function PaymentBatch() {
                 }}
                 className="text-muted-foreground hover:text-destructive text-xs underline disabled:opacity-50"
               >
-                Weg
+                {t('batch.remove')}
               </button>
             ),
           },
@@ -257,8 +259,12 @@ function PaymentBatch() {
   return (
     <>
       <PageHeader
-        title={`Betaalbatch ${batch.reference}`}
-        description={`${batch.debtorIban} · uitvoerdatum ${formatDate(batch.requestedExecutionDate)} · ${STATE_LABEL[batch.state]}`}
+        title={t('batch.title', { reference: batch.reference })}
+        description={t('batch.intro', {
+          iban: batch.debtorIban,
+          date: formatDate(batch.requestedExecutionDate),
+          state: t(STATE_KEY[batch.state]),
+        })}
         actions={
           <>
             {batch.state === 'draft' && (
@@ -270,7 +276,7 @@ function PaymentBatch() {
                 }}
                 className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
-                Ter fiattering aanbieden
+                {t('batch.submit')}
               </button>
             )}
             {batch.state === 'submitted' && !iSubmitted && (
@@ -282,7 +288,7 @@ function PaymentBatch() {
                 }}
                 className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
-                Fiatteren
+                {t('batch.approve')}
               </button>
             )}
             {batch.state === 'submitted' && (
@@ -290,11 +296,11 @@ function PaymentBatch() {
                 type="button"
                 disabled={busy || !hydrated}
                 onClick={() => {
-                  void act('reject', 'afgekeurd')
+                  void act('reject', t('batch.rejectedReason'))
                 }}
                 className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
               >
-                Afkeuren
+                {t('batch.reject')}
               </button>
             )}
             {batch.state === 'rejected' && (
@@ -306,7 +312,7 @@ function PaymentBatch() {
                 }}
                 className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
               >
-                Weer openen
+                {t('batch.reopen')}
               </button>
             )}
             {(batch.state === 'approved' || batch.state === 'exported') && (
@@ -315,7 +321,7 @@ function PaymentBatch() {
                   href={`/api/v1/payment-batches/${batchId}/pain001`}
                   className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
                 >
-                  Bestand downloaden
+                  {t('batch.download')}
                 </a>
                 {batch.state === 'approved' && (
                   <button
@@ -326,13 +332,13 @@ function PaymentBatch() {
                     }}
                     className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
                   >
-                    Markeren als verstuurd
+                    {t('batch.markSent')}
                   </button>
                 )}
               </>
             )}
             <Link to="/payments" className="border-input rounded-md border px-4 py-2 text-sm">
-              Terug
+              {t('batch.back')}
             </Link>
           </>
         }
@@ -340,16 +346,12 @@ function PaymentBatch() {
 
       {batch.state === 'submitted' && iSubmitted && (
         <p className="border-border text-muted-foreground mb-4 rounded-md border p-3 text-sm">
-          Je hebt deze batch zelf klaargezet, dus iemand anders moet hem fiatteren. Dat is niet een
-          instelling — het is de hele bedoeling van twee paar ogen.
+          {t('batch.iSubmitted')}
         </p>
       )}
 
       {batch.state === 'submitted' && !iSubmitted && (
-        <p className="border-border mb-4 rounded-md border p-3 text-sm">
-          Controleer de regels hieronder. Na fiattering staat de batch vast en kan er alleen nog een
-          nieuwe komen.
-        </p>
+        <p className="border-border mb-4 rounded-md border p-3 text-sm">{t('batch.checkLines')}</p>
       )}
 
       {notice !== null && (
@@ -377,12 +379,12 @@ function PaymentBatch() {
         columns={columns}
         rows={batch.instructions}
         rowKey={(row) => row.id}
-        caption="Betaalregels"
-        empty="Nog geen regels. Een batch die niemand betaalt kan niet worden aangeboden."
+        caption={t('batch.lines')}
+        empty={t('batch.linesEmpty')}
         footer={
           <tr>
             <td colSpan={columns.length - 1} className="py-2 text-right text-sm font-medium">
-              Totaal
+              {t('report.total')}
             </td>
             <td className="py-2 text-right">
               <Money amount={batch.total} className="font-medium" />
@@ -396,24 +398,19 @@ function PaymentBatch() {
           {run.ok && run.data.instructions.length + run.data.findings.length > 0 && (
             <section className="border-border mt-6 max-w-4xl rounded-md border p-4">
               <h2 className="mb-1 text-sm font-semibold">
-                Goedgekeurde inkoopfacturen ({run.data.instructions.length}{' '}
-                {run.data.instructions.length === 1 ? 'begunstigde' : 'begunstigden'})
+                {plural('batch.approvedInvoices', run.data.instructions.length)}
               </h2>
-              <p className="text-muted-foreground mb-3 text-sm">
-                Eén betaling per leverancier, met hun creditnota’s er al afgehaald — een betaling
-                van min tweehonderd euro bestaat niet, dus moet een creditnota eerst ergens tegen
-                weggestreept worden.
-              </p>
+              <p className="text-muted-foreground mb-3 text-sm">{t('batch.runIntro')}</p>
 
               {run.data.instructions.length > 0 && (
                 <table className="mb-3 w-full text-sm">
-                  <caption className="sr-only">Wat deze betaalrun zou betalen</caption>
+                  <caption className="sr-only">{t('batch.runCaption')}</caption>
                   <thead>
                     <tr className="text-muted-foreground text-left text-xs">
-                      <th scope="col">Leverancier</th>
-                      <th scope="col">Wat het afrekent</th>
+                      <th scope="col">{t('ageing.supplier')}</th>
+                      <th scope="col">{t('batch.settles')}</th>
                       <th scope="col" className="text-right">
-                        Bedrag
+                        {t('batch.amount')}
                       </th>
                     </tr>
                   </thead>
@@ -435,7 +432,9 @@ function PaymentBatch() {
                               {settled.kind === 'credit_note' && (
                                 // Named, because a supplier who sees a short
                                 // payment and no reason phones about it.
-                                <span className="text-muted-foreground"> (credit)</span>
+                                <span className="text-muted-foreground">
+                                  {t('batch.creditSuffix')}
+                                </span>
                               )}
                             </span>
                           ))}
@@ -449,7 +448,7 @@ function PaymentBatch() {
                   <tfoot>
                     <tr className="border-border border-t font-medium">
                       <td colSpan={2} className="py-2">
-                        Totaal
+                        {t('report.total')}
                       </td>
                       <td className="py-2 text-right">
                         <Money amount={run.data.total} />
@@ -489,7 +488,7 @@ function PaymentBatch() {
                 }}
                 className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
-                {busy ? 'Bezig…' : 'Deze betalingen overnemen'}
+                {busy ? t('common.busy') : t('batch.takeOver')}
               </button>
             </section>
           )}
@@ -502,7 +501,7 @@ function PaymentBatch() {
             }}
             className="border-input mt-6 rounded-md border px-4 py-2 text-sm disabled:opacity-50"
           >
-            {open ? 'Annuleren' : 'Betaling toevoegen'}
+            {open ? t('common.cancel') : t('batch.addPayment')}
           </button>
 
           {open && (
@@ -515,7 +514,7 @@ function PaymentBatch() {
               <div className="grid grid-cols-3 gap-4">
                 <label className="block">
                   <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                    Begunstigde
+                    {t('batch.beneficiary')}
                   </span>
                   <input
                     name="creditorName"
@@ -535,7 +534,7 @@ function PaymentBatch() {
                 </label>
                 <label className="block">
                   <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                    BIC <span className="opacity-70">(optioneel)</span>
+                    BIC <span className="opacity-70">{t('batch.optional')}</span>
                   </span>
                   <input
                     name="creditorBic"
@@ -547,7 +546,7 @@ function PaymentBatch() {
               <div className="grid grid-cols-4 gap-4">
                 <label className="block">
                   <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                    Bedrag
+                    {t('batch.amount')}
                   </span>
                   <input
                     name="amount"
@@ -559,7 +558,7 @@ function PaymentBatch() {
                 </label>
                 <label className="block">
                   <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                    Eigen kenmerk
+                    {t('batch.ownReference')}
                   </span>
                   <input
                     name="endToEndId"
@@ -571,7 +570,7 @@ function PaymentBatch() {
                 </label>
                 <label className="block">
                   <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                    Omschrijving
+                    {t('entries.description')}
                   </span>
                   <input
                     name="remittanceInformation"
@@ -581,7 +580,7 @@ function PaymentBatch() {
                 </label>
                 <label className="block">
                   <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                    Betalingskenmerk
+                    {t('batch.paymentReference')}
                   </span>
                   <input
                     name="remittanceReference"
@@ -596,7 +595,7 @@ function PaymentBatch() {
                 disabled={busy || !hydrated}
                 className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
-                Toevoegen
+                {t('batch.add')}
               </button>
             </form>
           )}
@@ -605,8 +604,9 @@ function PaymentBatch() {
 
       {batch.exportedHash !== null && (
         <p className="text-muted-foreground mt-6 text-xs">
-          Verstuurd bestand: <span className="font-mono">{batch.exportedHash.slice(0, 16)}…</span> —
-          de hash van precies die bytes, zodat later te controleren is wat de bank kreeg.
+          {t('batch.exportedHashBefore')}{' '}
+          <span className="font-mono">{batch.exportedHash.slice(0, 16)}…</span>{' '}
+          {t('batch.exportedHashAfter')}
         </p>
       )}
     </>
