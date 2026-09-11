@@ -218,6 +218,26 @@ export const salesInvoices = klopt.table(
     /** For a credit note, the invoice it corrects. */
     creditsInvoiceId: uuid('credits_invoice_id'),
     issuedAt: timestamp('issued_at', { withTimezone: true, mode: 'date' }),
+
+    /**
+     * The buyer as they were at issue, not as `contacts` has them today.
+     *
+     * An invoice has to name its buyer for seven years, and the contact row is
+     * current master data — it changes when somebody moves, and it is the row
+     * an erasure request acts on. Taken at issue, with the number and the
+     * entry. See migration 0026.
+     */
+    buyerName: text('buyer_name'),
+    buyerLegalName: text('buyer_legal_name'),
+    buyerVatNumber: text('buyer_vat_number'),
+    buyerKvkNumber: text('buyer_kvk_number'),
+    buyerCountryCode: char('buyer_country_code', { length: 2 }),
+    buyerStreet: text('buyer_street'),
+    buyerHouseNumber: text('buyer_house_number'),
+    buyerPostalCode: text('buyer_postal_code'),
+    buyerCity: text('buyer_city'),
+    buyerElectronicAddress: text('buyer_electronic_address'),
+    buyerElectronicAddressScheme: text('buyer_electronic_address_scheme'),
     ...timestamps,
   },
   (table) => [
@@ -229,6 +249,10 @@ export const salesInvoices = klopt.table(
     check(
       'sales_invoices_issued_is_complete',
       sql`(${table.status} <> 'issued') or (${table.number} is not null and ${table.journalEntryId} is not null)`,
+    ),
+    check(
+      'sales_invoices_issued_names_buyer',
+      sql`${table.status} = 'draft' or ${table.buyerName} is not null`,
     ),
   ],
 )

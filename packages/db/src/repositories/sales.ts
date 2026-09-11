@@ -263,6 +263,7 @@ export class SalesRepository {
     readonly journalEntryId: string
   }): Promise<string> {
     const id = uuidv7()
+    const buyer = await this.buyerSnapshot(request.contactId)
 
     await this.tx.insert(salesInvoices).values({
       id,
@@ -270,6 +271,7 @@ export class SalesRepository {
       contactId: request.contactId,
       kind: request.kind,
       status: 'issued',
+      ...(buyer ?? {}),
       number: request.number,
       issueDate: request.issueDate,
       // An import can carry a due date before its issue date if the source did;
@@ -326,11 +328,70 @@ export class SalesRepository {
     return new Set(rows.flatMap((row) => (row.number === null ? [] : [row.number])))
   }
 
+  /**
+   * The buyer's statutory identity, copied off the contact.
+   *
+   * Read here rather than passed in, so that no caller can issue an invoice
+   * without it. The check constraint would refuse the row, but a constraint
+   * that fires is a bug somebody has to debug; a snapshot that is always taken
+   * is one they never write.
+   */
+  private async buyerSnapshot(contactId: string) {
+    const [contact] = await this.tx
+      .select({
+        name: contacts.name,
+        legalName: contacts.legalName,
+        vatNumber: contacts.vatNumber,
+        kvkNumber: contacts.kvkNumber,
+        countryCode: contacts.countryCode,
+        electronicAddress: contacts.electronicAddress,
+        electronicAddressScheme: contacts.electronicAddressScheme,
+      })
+      .from(contacts)
+      .where(eq(contacts.id, contactId))
+      .limit(1)
+
+    if (contact === undefined) return null
+
+    const [address] = await this.tx
+      .select({
+        street: contactAddresses.street,
+        houseNumber: contactAddresses.houseNumber,
+        postalCode: contactAddresses.postalCode,
+        city: contactAddresses.city,
+      })
+      .from(contactAddresses)
+      .where(and(eq(contactAddresses.contactId, contactId), eq(contactAddresses.kind, 'street')))
+      .limit(1)
+
+    return {
+      buyerName: contact.name,
+      buyerLegalName: contact.legalName,
+      buyerVatNumber: contact.vatNumber,
+      buyerKvkNumber: contact.kvkNumber,
+      buyerCountryCode: contact.countryCode,
+      buyerStreet: address?.street ?? null,
+      buyerHouseNumber: address?.houseNumber ?? null,
+      buyerPostalCode: address?.postalCode ?? null,
+      buyerCity: address?.city ?? null,
+      buyerElectronicAddress: contact.electronicAddress,
+      buyerElectronicAddressScheme: contact.electronicAddressScheme,
+    }
+  }
+
   async markIssued(request: {
     readonly invoiceId: string
     readonly number: string
     readonly journalEntryId: string
   }): Promise<void> {
+    const [invoice] = await this.tx
+      .select({ contactId: salesInvoices.contactId })
+      .from(salesInvoices)
+      .where(eq(salesInvoices.id, request.invoiceId))
+      .limit(1)
+
+    const buyer = invoice === undefined ? null : await this.buyerSnapshot(invoice.contactId)
+
     await this.tx
       .update(salesInvoices)
       .set({
@@ -338,6 +399,9 @@ export class SalesRepository {
         number: request.number,
         journalEntryId: request.journalEntryId,
         issuedAt: new Date(),
+        // Taken now, with the number and the entry: the three things an
+        // invoice acquires by becoming a document somebody owes money on.
+        ...(buyer ?? {}),
         updatedAt: new Date().toISOString(),
       })
       .where(eq(salesInvoices.id, request.invoiceId))
@@ -439,13 +503,26 @@ export class SalesRepository {
         sellerIban: entities.iban,
         sellerBic: entities.bic,
 
-        buyerName: contacts.name,
-        buyerLegalName: contacts.legalName,
-        buyerCountry: contacts.countryCode,
-        buyerVatNumber: contacts.vatNumber,
-        buyerKvkNumber: contacts.kvkNumber,
-        buyerEndpoint: contacts.electronicAddress,
-        buyerEndpointScheme: contacts.electronicAddressScheme,
+        /**
+         * The snapshot taken at issue, not today's contact row.
+         *
+         * `contacts` is current master data: it moves when the customer moves
+         * and it is what an erasure request acts on. The document has to say
+         * who it was for when it was issued, and keep saying it for seven
+         * years. Only the two fields that are not on the invoice at all —
+         * where to email it, what number to ring — still come off the contact.
+         */
+        buyerName: salesInvoices.buyerName,
+        buyerLegalName: salesInvoices.buyerLegalName,
+        buyerCountry: salesInvoices.buyerCountryCode,
+        buyerVatNumber: salesInvoices.buyerVatNumber,
+        buyerKvkNumber: salesInvoices.buyerKvkNumber,
+        buyerStreet: salesInvoices.buyerStreet,
+        buyerHouseNumber: salesInvoices.buyerHouseNumber,
+        buyerPostalCode: salesInvoices.buyerPostalCode,
+        buyerCity: salesInvoices.buyerCity,
+        buyerEndpoint: salesInvoices.buyerElectronicAddress,
+        buyerEndpointScheme: salesInvoices.buyerElectronicAddressScheme,
         buyerEmail: contacts.email,
         buyerPhone: contacts.phone,
         contactId: contacts.id,
@@ -457,20 +534,6 @@ export class SalesRepository {
       .limit(1)
 
     if (row === undefined || row.number === null) return null
-
-    const [address] = await this.tx
-      .select({
-        street: contactAddresses.street,
-        houseNumber: contactAddresses.houseNumber,
-        postalCode: contactAddresses.postalCode,
-        city: contactAddresses.city,
-        countryCode: contactAddresses.countryCode,
-      })
-      .from(contactAddresses)
-      .where(
-        and(eq(contactAddresses.contactId, row.contactId), eq(contactAddresses.kind, 'street')),
-      )
-      .limit(1)
 
     // BT-25 and BT-26. A credit note that does not name the invoice it corrects
     // is refused outright by NL-R-001, so this is not decoration.
@@ -537,13 +600,13 @@ export class SalesRepository {
         email: row.sellerEmail,
       },
       buyer: {
-        legalName: row.buyerLegalName ?? row.buyerName,
-        tradingName: row.buyerName,
-        street: address?.street ?? null,
-        houseNumber: address?.houseNumber ?? null,
-        postalCode: address?.postalCode ?? null,
-        city: address?.city ?? null,
-        countryCode: address?.countryCode ?? row.buyerCountry,
+        legalName: row.buyerLegalName ?? row.buyerName ?? '',
+        tradingName: row.buyerName ?? '',
+        street: row.buyerStreet,
+        houseNumber: row.buyerHouseNumber,
+        postalCode: row.buyerPostalCode,
+        city: row.buyerCity,
+        countryCode: row.buyerCountry ?? 'NL',
         vatNumber: row.buyerVatNumber,
         kvkNumber: row.buyerKvkNumber,
         electronicAddress: row.buyerEndpoint ?? row.buyerKvkNumber,

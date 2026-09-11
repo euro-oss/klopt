@@ -212,6 +212,39 @@ describe('an administration that has been', () => {
     expect(hashOf(second.xml)).toBe(hashOf(first.xml))
   })
 
+  it('names the buyer it was issued to, even if nobody downloaded it first', async () => {
+    // The sibling test above renames *after* a fetch, so the stored bytes
+    // answer. Nothing had covered the window before the first fetch, and in
+    // that window there were no bytes to be faithful to: the document was
+    // rebuilt from `contacts` as it stood today. A customer who moved between
+    // issuing and downloading got last year's invoice with this year's
+    // address on it — and the buyer's identity is exactly what the
+    // bewaarplicht requires the invoice to keep.
+    const number = await aCustomer()
+    const invoiceId = await anIssuedInvoice(number)
+
+    const contacts = await handleListContacts(await contextFor(), { customersOnly: false })
+    const customer = contacts.body.contacts.find((row) => row.number === number)!
+    await handleUpdateContact(
+      await contextFor(uuidv7()),
+      customer.id,
+      updateContactBody.parse({
+        name: 'Verhuisd B.V.',
+        street: 'Ergens Anders',
+        houseNumber: '99',
+        postalCode: '9999 ZZ',
+        city: 'Maastricht',
+      }),
+    )
+
+    // First fetch of this invoice, ever.
+    const ubl = await handleGetInvoiceUbl(await contextFor(), invoiceId)
+
+    expect(ubl.xml).toContain('Grote Klant N.V.')
+    expect(ubl.xml).not.toContain('Verhuisd B.V.')
+    expect(ubl.xml).not.toContain('Maastricht')
+  })
+
   it('carries the amounts the ledger posted, to the cent', async () => {
     const invoiceId = await anIssuedInvoice(await aCustomer())
     const result = await handleGetInvoiceUbl(await contextFor(), invoiceId)
