@@ -206,11 +206,13 @@ describe('what the bucket actually guarantees', () => {
   })
 
   it('says so, with a reason, for a bucket without one', async () => {
-    // The exports bucket is created without `--with-lock`, which makes it the
-    // honest fixture for this.
+    // `klopt-exports` is created without `--with-lock`, which makes it the
+    // honest fixture for this. It is a fixture and nothing else: no product
+    // setting points at it, because sealed snapshots go to the documents
+    // bucket where they inherit the lock and a retention date (ADR 0032).
     const unlocked = createS3DocumentStore({
       endpoint: ENDPOINT,
-      bucket: process.env['KLOPT_S3_EXPORTS_BUCKET'] ?? 'klopt-exports',
+      bucket: 'klopt-exports',
       credentials: {
         accessKeyId: process.env['KLOPT_S3_ACCESS_KEY_ID'] ?? 'klopt',
         secretAccessKey: process.env['KLOPT_S3_SECRET_ACCESS_KEY'] ?? 'klopt-dev-secret',

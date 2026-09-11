@@ -150,11 +150,26 @@ impossible.
   The browser suite is pinned to a directory for the same reason plus a second
   one: it is about screens, and sending every upload over the network to MinIO
   made it slower and flakier without testing anything the S3 tests do not.
-- **The exports bucket is not used yet.** `KLOPT_S3_EXPORTS_BUCKET` has existed
-  since M0 and nothing reads it. A sealed snapshot's XAF and manifest currently
-  go into the documents bucket, which is defensible — they are documents, and
-  they inherit retention there — but "written to the WORM bucket" could mean a
-  separate one, and it is worth deciding rather than drifting.
+- **There is no exports bucket, and that is now decided rather than drifting.**
+  A sealed snapshot's XAF and manifest go into the documents bucket. They are
+  documents: content-addressed, hashed, linked, and inheriting both the object
+  lock and a retention date computed the same way as everything else there.
+  Spec 7.6 asks for them to be "written to the WORM bucket", and that is the
+  WORM bucket.
+
+  A second one would be a second thing to create with `--with-lock`, a second
+  `verifyLock` to report on a screen, and a second way for a deployment to be
+  half-configured — in exchange for a separation that buys nothing, since both
+  buckets would hold statutory records under the same rules.
+
+  `KLOPT_S3_EXPORTS_BUCKET` therefore no longer appears in `.env.example`. It
+  had existed since M0, configured nothing, and a setting that promises a
+  behaviour the software does not have is worse than no setting: somebody sets
+  it and believes something. The `klopt-exports` bucket stays in
+  `docker-compose.yml` as what it always really was — a bucket deliberately
+  created _without_ a lock, so `verifyLock` has something honest to fail
+  against — and the compose file and the test both now say so.
+
 - **The bucket is asked, not assumed.** Writing the consequence above down was
   what made it obvious it should not be one: reporting `objectLock: true` on the
   strength of the store's _class_ is the same unverified claim this whole ADR is
