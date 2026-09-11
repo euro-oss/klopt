@@ -68,6 +68,27 @@ looking for it, and cannot navigate three screens deep in a language they do
 not speak to fix it. It is two words of redundancy that make the control
 self-rescuing.
 
+## Numbers and dates stay Dutch, in both languages
+
+An English UI does **not** get `1,210.00` and `15/03/2026`.
+
+`@klopt/core/format` says why in its own docstring: it has exactly two
+consumers and they must agree — the screens, and the PDF of an invoice. A
+figure reading `1.210,00` on the document and `1,210.00` on the screen that
+produced it is a support call, and worse, it is a support call about whether
+the amount is right.
+
+The paperwork is not localisable. An invoice from a Dutch BV, the XAF audit
+file, the BTW-aangifte and the SEPA file are all Dutch-format artefacts fixed
+by their standards and their recipients. Switching the screen to British
+conventions would make Klopt disagree with every document it emits, in the one
+area where disagreement is most expensive. The reader's language is a
+preference; the format of a figure in a set of Dutch books is not.
+
+So `intlTag` is used for the things that genuinely are language — month names
+in a date picker come from `Intl`, and `<html lang>` is set — while amounts and
+dates keep the one format the ledger, the exports and the documents share.
+
 ## Consequences
 
 - Month names come from `Intl`, not from a list. The twelve names are facts
@@ -85,3 +106,13 @@ self-rescuing.
   locale. Translating them means giving problems a code and mapping the code in
   the UI; until that happens a Dutch user can still meet an English sentence
   from the domain.
+- The same applies to labels the server computes rather than the screen: the
+  balance sheet's section titles, a purchase invoice's `statusLabel`, a BTW
+  period's `label` and rubriek names, a dunning stage's name. These arrive from
+  handlers that have no locale, so an English reader still sees them in Dutch.
+  Where a screen could map a **code** to a key instead, it now does — finding
+  codes, retention states, match strategies, division cautions, run states —
+  which is the pattern the remaining ones would follow.
+- Lookup tables of Dutch strings keyed by a domain value are gone from the
+  screens; they map to `MessageKey` and fall back to showing the raw value, so
+  a code the catalogue does not know is visible rather than blank.
