@@ -115,6 +115,23 @@ export default tseslint.config(
   },
 
   {
+    files: ['apps/cli/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': forbid(
+        [
+          ...FRAMEWORK,
+          ...DATABASE,
+          '@klopt/db',
+          '@klopt/db/*',
+          '@klopt/adapters',
+          '@klopt/adapters/*',
+        ],
+        'The CLI is a client of the public API, not a privileged path into the domain (spec 10.1: "The UI, the MCP server and the CLI are all clients"). It is also the surface most likely to be reached for at 23:00, which is exactly when a second way into the database would get used and nobody would notice the audit log was thinner for it.',
+      ),
+    },
+  },
+
+  {
     files: ['apps/worker/**/*.ts'],
     rules: {
       '@typescript-eslint/no-restricted-imports': forbid(
