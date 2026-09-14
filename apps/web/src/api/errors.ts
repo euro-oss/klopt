@@ -39,7 +39,12 @@ export type ApiErrorCode =
   | 'conflict'
   | 'internal_error'
 
-const STATUS: Record<ApiErrorCode, number> = {
+/**
+ * The status each code answers with. Exported because the OpenAPI generator
+ * reads it: a document that listed a 409 the code cannot produce, or omitted a
+ * 410 it can, would be a second source of truth for the same fact.
+ */
+export const STATUS: Record<ApiErrorCode, number> = {
   unauthenticated: 401,
   forbidden: 403,
   not_found: 404,

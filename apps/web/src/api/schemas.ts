@@ -16,10 +16,23 @@ import { z } from 'zod'
  * default short-circuits the pipeline and is returned as the parsed output, so
  * `.transform(BigInt).default('0')` yields the string '0' and the domain then
  * tries to add a string to a bigint.
+ *
+ * The `.meta({ id })` here and below is not decoration. It is what makes the
+ * generated OpenAPI document say `MinorUnits` in ninety places instead of
+ * repeating a regex, so that the one thing an integrator most needs to notice
+ * about this API — money is a string of minor units, never a number — has a
+ * name they can look up. See ADR 0043.
  */
 const minorUnitString = z
   .string()
   .regex(/^\d+$/, 'Amounts are unsigned integer minor units, as a string.')
+  .meta({
+    id: 'MinorUnits',
+    description:
+      'An amount in unsigned integer minor units, as a decimal string: "124950" is ' +
+      '€1249,50. Never a number — a float cannot hold a cent exactly, and a ledger ' +
+      'that is out by a cent is out. The sign lives in the debit/credit distinction.',
+  })
 
 export const minorUnits = minorUnitString.transform((value) => BigInt(value))
 
@@ -30,16 +43,30 @@ const nullableMinorUnits = minorUnitString
   .default(null)
   .transform((value) => (value === null ? null : BigInt(value)))
 
-export const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dates are YYYY-MM-DD.')
+export const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Dates are YYYY-MM-DD.')
+  .meta({ id: 'IsoDate', description: 'A calendar date, YYYY-MM-DD. No time, no zone.' })
 
-export const currencyCode = z.string().regex(/^[A-Z]{3}$/, 'ISO 4217, three uppercase letters.')
+export const currencyCode = z
+  .string()
+  .regex(/^[A-Z]{3}$/, 'ISO 4217, three uppercase letters.')
+  .meta({ id: 'CurrencyCode', description: 'ISO 4217, three uppercase letters.' })
 
-export const decimalString = z.string().regex(/^\d+(\.\d+)?$/, 'A positive decimal, as a string.')
+export const decimalString = z
+  .string()
+  .regex(/^\d+(\.\d+)?$/, 'A positive decimal, as a string.')
+  .meta({
+    id: 'DecimalString',
+    description: 'A positive decimal as a string, for rates and ratios. Not money.',
+  })
 
-export const dimensionAssignment = z.object({
-  typeCode: z.string().min(1),
-  valueCode: z.string().min(1),
-})
+export const dimensionAssignment = z
+  .object({
+    typeCode: z.string().min(1),
+    valueCode: z.string().min(1),
+  })
+  .meta({ id: 'DimensionAssignment' })
 
 export const journalLineInput = z
   .object({

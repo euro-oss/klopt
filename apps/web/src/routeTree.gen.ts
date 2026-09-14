@@ -68,6 +68,7 @@ import { Route as ApiV1InboxRouteImport } from './routes/api/v1/inbox'
 import { Route as ApiV1JournalEntriesRouteImport } from './routes/api/v1/journal-entries'
 import { Route as ApiV1JournalsRouteImport } from './routes/api/v1/journals'
 import { Route as ApiV1MembersRouteImport } from './routes/api/v1/members'
+import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
 import { Route as ApiV1PaymentBatchesRouteImport } from './routes/api/v1/payment-batches'
 import { Route as ApiV1PurchaseInvoicesRouteImport } from './routes/api/v1/purchase-invoices'
 import { Route as ApiV1RetentionRouteImport } from './routes/api/v1/retention'
@@ -445,6 +446,11 @@ const ApiV1JournalsRoute = ApiV1JournalsRouteImport.update({
 const ApiV1MembersRoute = ApiV1MembersRouteImport.update({
   id: '/api/v1/members',
   path: '/api/v1/members',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1OpenapiDotjsonRoute = ApiV1OpenapiDotjsonRouteImport.update({
+  id: '/api/v1/openapi.json',
+  path: '/api/v1/openapi.json',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1PaymentBatchesRoute = ApiV1PaymentBatchesRouteImport.update({
@@ -944,6 +950,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
   '/api/v1/journals': typeof ApiV1JournalsRoute
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
+  '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
@@ -1085,6 +1092,7 @@ export interface FileRoutesByTo {
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
   '/api/v1/journals': typeof ApiV1JournalsRoute
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
+  '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
@@ -1228,6 +1236,7 @@ export interface FileRoutesById {
   '/api/v1/journal-entries': typeof ApiV1JournalEntriesRouteWithChildren
   '/api/v1/journals': typeof ApiV1JournalsRoute
   '/api/v1/members': typeof ApiV1MembersRouteWithChildren
+  '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/payment-batches': typeof ApiV1PaymentBatchesRouteWithChildren
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
@@ -1371,6 +1380,7 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries'
     | '/api/v1/journals'
     | '/api/v1/members'
+    | '/api/v1/openapi.json'
     | '/api/v1/payment-batches'
     | '/api/v1/purchase-invoices'
     | '/api/v1/retention'
@@ -1512,6 +1522,7 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries'
     | '/api/v1/journals'
     | '/api/v1/members'
+    | '/api/v1/openapi.json'
     | '/api/v1/payment-batches'
     | '/api/v1/purchase-invoices'
     | '/api/v1/retention'
@@ -1654,6 +1665,7 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries'
     | '/api/v1/journals'
     | '/api/v1/members'
+    | '/api/v1/openapi.json'
     | '/api/v1/payment-batches'
     | '/api/v1/purchase-invoices'
     | '/api/v1/retention'
@@ -1772,6 +1784,7 @@ export interface RootRouteChildren {
   ApiV1JournalEntriesRoute: typeof ApiV1JournalEntriesRouteWithChildren
   ApiV1JournalsRoute: typeof ApiV1JournalsRoute
   ApiV1MembersRoute: typeof ApiV1MembersRouteWithChildren
+  ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1PaymentBatchesRoute: typeof ApiV1PaymentBatchesRouteWithChildren
   ApiV1PurchaseInvoicesRoute: typeof ApiV1PurchaseInvoicesRouteWithChildren
   ApiV1RetentionRoute: typeof ApiV1RetentionRouteWithChildren
@@ -2223,6 +2236,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/members'
       fullPath: '/api/v1/members'
       preLoaderRoute: typeof ApiV1MembersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/openapi.json': {
+      id: '/api/v1/openapi.json'
+      path: '/api/v1/openapi.json'
+      fullPath: '/api/v1/openapi.json'
+      preLoaderRoute: typeof ApiV1OpenapiDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/payment-batches': {
@@ -3290,6 +3310,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1JournalEntriesRoute: ApiV1JournalEntriesRouteWithChildren,
   ApiV1JournalsRoute: ApiV1JournalsRoute,
   ApiV1MembersRoute: ApiV1MembersRouteWithChildren,
+  ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1PaymentBatchesRoute: ApiV1PaymentBatchesRouteWithChildren,
   ApiV1PurchaseInvoicesRoute: ApiV1PurchaseInvoicesRouteWithChildren,
   ApiV1RetentionRoute: ApiV1RetentionRouteWithChildren,

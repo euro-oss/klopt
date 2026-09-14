@@ -49,7 +49,9 @@ something in CI.
 2. **Your data leaves whenever you want.** A valid XAF 3.2 export with RGS codes,
    one click, always.
 3. **The API is the product.** The UI is a client of it. If the UI can do it, a
-   script can do it.
+   script can do it — see `GET /api/v1/openapi.json` on any instance, or
+   [`docs/openapi.json`](docs/openapi.json) here, both generated from the
+   schemas the code validates against.
 4. **Self-hosted is complete, not crippled.** No feature is withheld. The hosted
    offering sells credentials and operations, never features.
 5. **One instance, few dependencies.** One container, Postgres, S3-compatible

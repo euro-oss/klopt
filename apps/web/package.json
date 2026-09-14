@@ -8,6 +8,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "vite build",
+    "openapi": "tsx scripts/generate-openapi.ts",
     "clean": "rm -rf .output dist .nitro .tanstack",
     "dev": "vite dev",
     "dev:https": "portless klopt pnpm exec vite dev",
@@ -41,11 +42,13 @@
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",
+    "@readme/openapi-parser": "^9.0.0",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "24.13.3",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.1.1",
+    "ajv": "^8.20.0",
     "nitro": "3.0.260903-beta",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",

@@ -7,6 +7,18 @@ public API stability commitment, so that an ecosystem is possible.
 This is that commitment. It is deliberately narrow: a promise nobody can keep
 is worse than a small one kept exactly.
 
+## Where to read it
+
+`GET /api/v1/openapi.json`, from any instance, without a token. The same
+document is checked in at [`openapi.json`](openapi.json), so a change to
+anything promised below arrives as a diff in a pull request rather than as a
+surprise in somebody's client.
+
+It is generated — from the route manifest, the operation registry and the Zod
+schemas the routes validate against — and a test refuses a stale copy. Nothing
+in it is written twice, which is the only reason it can be trusted. See ADR
+0043 for what it does and does not yet describe.
+
 ## What is public
 
 Three things, and nothing else:
@@ -100,6 +112,11 @@ what maintainers will do. Where it is the first, the test is named:
 | ------------------------------------------ | --------------------------------------- |
 | Every operation has exactly one route      | `apps/web/test/contract.test.ts`        |
 | Every write is idempotent                  | `apps/web/test/contract.test.ts`        |
+| No route exists outside the contract       | `apps/web/test/contract.test.ts`        |
+| The document describes the real schemas    | `apps/web/test/contract.test.ts`        |
+| The document is valid OpenAPI 3.1          | `apps/web/test/openapi.test.ts`         |
+| It accepts exactly what the API accepts    | `apps/web/test/openapi.test.ts`         |
+| The checked-in copy is current             | `apps/web/test/openapi.test.ts`         |
 | Events survive only committed changes      | `apps/web/test/events.test.ts`          |
 | The stream resumes without gaps or repeats | `apps/web/test/events.test.ts`          |
 | Permissions do not widen by role           | `packages/core/test/auth/roles.test.ts` |

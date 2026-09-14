@@ -1,4 +1,5 @@
 import type { OperationDefinition } from '@klopt/core'
+import type * as Schemas from './schemas.js'
 
 /**
  * The REST surface (spec 10.1, 10.2).
@@ -13,6 +14,16 @@ import type { OperationDefinition } from '@klopt/core'
  */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
+/**
+ * A schema exported by `./schemas.ts`, named rather than imported.
+ *
+ * By name so this file does not pull in a hundred schemas to describe them,
+ * and so `test/contract.test.ts` can read the route module and check that the
+ * name here is the one the route actually parses with. A name that is not an
+ * export of `schemas.ts` does not compile.
+ */
+export type SchemaName = Extract<keyof typeof Schemas, string>
+
 export interface RouteBinding {
   /** Id of the operation in the core registry. */
   readonly operationId: string
@@ -21,6 +32,18 @@ export interface RouteBinding {
   readonly path: string
   /** Route file under src/routes, relative to the routes directory. */
   readonly module: string
+  /**
+   * What this route validates, which is what the OpenAPI document describes.
+   *
+   * Declared here rather than discovered, because a generator that read the
+   * route files would be a parser of our own source and would agree with
+   * whatever it managed to parse. Declaring it and checking the declaration is
+   * the version that fails loudly when they diverge.
+   */
+  readonly request?: {
+    readonly query?: SchemaName
+    readonly body?: SchemaName
+  }
 }
 
 export const routeManifest: readonly RouteBinding[] = [
@@ -29,12 +52,14 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/journal-entries',
     module: 'api/v1/journal-entries.ts',
+    request: { body: 'postJournalEntryBody' },
   },
   {
     operationId: 'ledger.listJournalEntries',
     method: 'GET',
     path: '/journal-entries',
     module: 'api/v1/journal-entries.ts',
+    request: { query: 'listEntriesQuery' },
   },
   {
     operationId: 'ledger.getJournalEntry',
@@ -48,12 +73,14 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/journal-entries/{entryId}/reversal',
     module: 'api/v1/journal-entries.$entryId.reversal.ts',
+    request: { body: 'reverseJournalEntryBody' },
   },
   {
     operationId: 'ledger.getTrialBalance',
     method: 'GET',
     path: '/reports/trial-balance',
     module: 'api/v1/reports.trial-balance.ts',
+    request: { query: 'trialBalanceQuery' },
   },
   {
     operationId: 'ledger.verifyChain',
@@ -72,12 +99,14 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/members',
     module: 'api/v1/members.ts',
+    request: { body: 'inviteMemberBody' },
   },
   {
     operationId: 'members.setRole',
     method: 'PATCH',
     path: '/members/{memberId}',
     module: 'api/v1/members.$memberId.ts',
+    request: { body: 'setMemberRoleBody' },
   },
   {
     operationId: 'members.remove',
@@ -96,6 +125,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/tokens',
     module: 'api/v1/tokens.ts',
+    request: { body: 'issueTokenBody' },
   },
   {
     operationId: 'tokens.revoke',
@@ -122,6 +152,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'PUT',
     path: '/entities/{entityId}',
     module: 'api/v1/entities.$entityId.ts',
+    request: { body: 'createEntityBody' },
   },
   {
     operationId: 'ledger.getEntity',
@@ -134,6 +165,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'PATCH',
     path: '/entity',
     module: 'api/v1/entity.ts',
+    request: { body: 'updateEntityBody' },
   },
   {
     operationId: 'sales.getInvoiceUbl',
@@ -152,6 +184,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/payment-batches',
     module: 'api/v1/payment-batches.ts',
+    request: { body: 'createBatchBody' },
   },
   {
     operationId: 'payments.getBatch',
@@ -164,6 +197,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/payment-batches/{batchId}/instructions',
     module: 'api/v1/payment-batches.$batchId.instructions.ts',
+    request: { body: 'addInstructionBody' },
   },
   {
     operationId: 'payments.removeInstruction',
@@ -176,6 +210,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/payment-batches/{batchId}/transitions',
     module: 'api/v1/payment-batches.$batchId.transitions.ts',
+    request: { body: 'transitionBatchBody' },
   },
   {
     operationId: 'payments.getBatchPain001',
@@ -194,12 +229,14 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/bank-accounts',
     module: 'api/v1/bank-accounts.ts',
+    request: { body: 'createBankAccountBody' },
   },
   {
     operationId: 'bank.importStatement',
     method: 'POST',
     path: '/bank-statements',
     module: 'api/v1/bank-statements.ts',
+    request: { body: 'importStatementBody' },
   },
   {
     operationId: 'bank.suggestMatches',
@@ -212,6 +249,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/bank-transactions/{transactionId}/match',
     module: 'api/v1/bank-transactions.$transactionId.match.ts',
+    request: { body: 'confirmMatchBody' },
   },
   {
     operationId: 'bank.ignoreTransaction',
@@ -230,18 +268,21 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'PATCH',
     path: '/bank-match-rules/{ruleId}',
     module: 'api/v1/bank-match-rules.$ruleId.ts',
+    request: { body: 'setRuleActiveBody' },
   },
   {
     operationId: 'bank.listTransactions',
     method: 'GET',
     path: '/bank-transactions',
     module: 'api/v1/bank-transactions.ts',
+    request: { query: 'transactionsQuery' },
   },
   {
     operationId: 'sales.sendInvoice',
     method: 'POST',
     path: '/sales-invoices/{invoiceId}/send',
     module: 'api/v1/sales-invoices.$invoiceId.send.ts',
+    request: { body: 'sendInvoiceBody' },
   },
   {
     operationId: 'sales.listDeliveries',
@@ -254,18 +295,21 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/sales-invoices/{invoiceId}/reminders',
     module: 'api/v1/sales-invoices.$invoiceId.reminders.ts',
+    request: { body: 'sendReminderBody' },
   },
   {
     operationId: 'sales.getDunningQueue',
     method: 'GET',
     path: '/reports/dunning',
     module: 'api/v1/reports.dunning.ts',
+    request: { query: 'dunningQuery' },
   },
   {
     operationId: 'sales.getInvoicePdf',
     method: 'GET',
     path: '/sales-invoices/{invoiceId}/pdf',
     module: 'api/v1/sales-invoices.$invoiceId.pdf.ts',
+    request: { query: 'invoicePdfQuery' },
   },
   {
     operationId: 'ledger.listFiscalYears',
@@ -278,6 +322,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/fiscal-years',
     module: 'api/v1/fiscal-years.ts',
+    request: { body: 'createFiscalYearBody' },
   },
   {
     operationId: 'ledger.listAccounts',
@@ -296,12 +341,14 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'GET',
     path: '/reports/balance-sheet',
     module: 'api/v1/reports.balance-sheet.ts',
+    request: { query: 'statementQuery' },
   },
   {
     operationId: 'ledger.getProfitAndLoss',
     method: 'GET',
     path: '/reports/profit-and-loss',
     module: 'api/v1/reports.profit-and-loss.ts',
+    request: { query: 'statementQuery' },
   },
   {
     // Not "reopen": a close is two ordinary entries, and undoing it is a
@@ -310,24 +357,28 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/fiscal-years/close',
     module: 'api/v1/fiscal-years.close.ts',
+    request: { body: 'closeYearBody' },
   },
   {
     operationId: 'rgs.getCoverage',
     method: 'GET',
     path: '/rgs/coverage',
     module: 'api/v1/rgs.coverage.ts',
+    request: { query: 'rgsCoverageQuery' },
   },
   {
     operationId: 'rgs.setMappings',
     method: 'PUT',
     path: '/rgs/mappings',
     module: 'api/v1/rgs.mappings.ts',
+    request: { body: 'rgsMappingsBody' },
   },
   {
     operationId: 'rgs.previewUpgrade',
     method: 'GET',
     path: '/rgs/upgrade-preview',
     module: 'api/v1/rgs.upgrade-preview.ts',
+    request: { query: 'rgsUpgradeQuery' },
   },
   {
     // Returns XML, not JSON. Leaving is one request (principle 2).
@@ -335,12 +386,14 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'GET',
     path: '/exports/audit-file',
     module: 'api/v1/exports.audit-file.ts',
+    request: { query: 'auditFileQuery' },
   },
   {
     operationId: 'import.auditFile',
     method: 'POST',
     path: '/imports/audit-file',
     module: 'api/v1/imports.audit-file.ts',
+    request: { body: 'auditFileImportBody' },
   },
 
   // Exact Online (M5, spec 13). Connecting, choosing a division and previewing
@@ -358,6 +411,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/exact/connection',
     module: 'api/v1/exact.connection.ts',
+    request: { body: 'connectExactBody' },
   },
   {
     operationId: 'exact.disconnect',
@@ -374,6 +428,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/exact/callback',
     module: 'api/v1/exact.callback.ts',
+    request: { body: 'completeExactBody' },
   },
   {
     operationId: 'exact.listDivisions',
@@ -386,6 +441,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/exact/division',
     module: 'api/v1/exact.division.ts',
+    request: { body: 'chooseExactDivisionBody' },
   },
   {
     // A GET, because it is a read: nothing here changes. The one thing it does
@@ -395,12 +451,14 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'GET',
     path: '/exact/import/preview',
     module: 'api/v1/exact.import.preview.ts',
+    request: { query: 'exactPreviewQuery' },
   },
   {
     operationId: 'exact.runImport',
     method: 'POST',
     path: '/exact/import',
     module: 'api/v1/exact.import.ts',
+    request: { body: 'runExactImportBody' },
   },
   {
     operationId: 'exact.importDocuments',
@@ -421,12 +479,14 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'GET',
     path: '/contacts',
     module: 'api/v1/contacts.ts',
+    request: { query: 'contactsQuery' },
   },
   {
     operationId: 'sales.createContact',
     method: 'POST',
     path: '/contacts',
     module: 'api/v1/contacts.ts',
+    request: { body: 'createContactBody' },
   },
   {
     operationId: 'sales.getContact',
@@ -439,6 +499,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'PATCH',
     path: '/contacts/{contactId}',
     module: 'api/v1/contacts.$contactId.ts',
+    request: { body: 'updateContactBody' },
   },
   {
     operationId: 'sales.listTaxCodes',
@@ -451,12 +512,14 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'GET',
     path: '/sales-invoices',
     module: 'api/v1/sales-invoices.ts',
+    request: { query: 'invoicesQuery' },
   },
   {
     operationId: 'sales.draftInvoice',
     method: 'POST',
     path: '/sales-invoices',
     module: 'api/v1/sales-invoices.ts',
+    request: { body: 'draftInvoiceBody' },
   },
   {
     operationId: 'sales.getInvoice',
@@ -469,12 +532,14 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/sales-invoices/{invoiceId}/issue',
     module: 'api/v1/sales-invoices.$invoiceId.issue.ts',
+    request: { body: 'issueInvoiceBody' },
   },
   {
     operationId: 'sales.listOverdueInvoices',
     method: 'GET',
     path: '/reports/overdue-invoices',
     module: 'api/v1/reports.overdue-invoices.ts',
+    request: { query: 'overdueQuery' },
   },
   {
     operationId: 'vat.listPeriods',
@@ -499,6 +564,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/vat/filings',
     module: 'api/v1/vat.filings.ts',
+    request: { body: 'fileVatReturnBody' },
   },
   {
     operationId: 'vat.getIcp',
@@ -511,6 +577,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/vat/number-checks',
     module: 'api/v1/vat.number-checks.ts',
+    request: { body: 'checkVatNumbersBody' },
   },
   {
     operationId: 'vat.listSubmissions',
@@ -541,6 +608,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/purchase-invoices',
     module: 'api/v1/purchase-invoices.ts',
+    request: { body: 'capturePurchaseInvoiceBody' },
   },
   {
     operationId: 'purchase.getInvoice',
@@ -553,18 +621,21 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/purchase-invoices/{invoiceId}/booking',
     module: 'api/v1/purchase-invoices.$invoiceId.booking.ts',
+    request: { body: 'bookPurchaseInvoiceBody' },
   },
   {
     operationId: 'purchase.transitionInvoice',
     method: 'POST',
     path: '/purchase-invoices/{invoiceId}/transitions',
     module: 'api/v1/purchase-invoices.$invoiceId.transitions.ts',
+    request: { body: 'transitionPurchaseInvoiceBody' },
   },
   {
     operationId: 'purchase.getCreditorAgeing',
     method: 'GET',
     path: '/reports/creditor-ageing',
     module: 'api/v1/reports.creditor-ageing.ts',
+    request: { query: 'creditorAgeingQuery' },
   },
   {
     operationId: 'inbox.receiveDocument',
@@ -577,18 +648,21 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'GET',
     path: '/inbox',
     module: 'api/v1/inbox.ts',
+    request: { query: 'inboxQuery' },
   },
   {
     operationId: 'inbox.draftFromItem',
     method: 'POST',
     path: '/inbox/{itemId}/draft',
     module: 'api/v1/inbox.$itemId.draft.ts',
+    request: { body: 'draftFromInboxBody' },
   },
   {
     operationId: 'inbox.discardItem',
     method: 'POST',
     path: '/inbox/{itemId}/discard',
     module: 'api/v1/inbox.$itemId.discard.ts',
+    request: { body: 'discardInboxItemBody' },
   },
   {
     operationId: 'inbox.getDocument',
@@ -601,6 +675,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/snapshots',
     module: 'api/v1/snapshots.ts',
+    request: { body: 'sealSnapshotBody' },
   },
   {
     operationId: 'snapshot.list',
@@ -619,36 +694,42 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/snapshots/{snapshotId}/verifications',
     module: 'api/v1/snapshots.$snapshotId.verifications.ts',
+    request: { query: 'verifySnapshotQuery' },
   },
   {
     operationId: 'retention.get',
     method: 'GET',
     path: '/retention',
     module: 'api/v1/retention.ts',
+    request: { query: 'retentionQuery' },
   },
   {
     operationId: 'retention.setLegalHold',
     method: 'POST',
     path: '/retention/legal-hold',
     module: 'api/v1/retention.legal-hold.ts',
+    request: { body: 'setLegalHoldBody' },
   },
   {
     operationId: 'retention.setClass',
     method: 'POST',
     path: '/retention/class',
     module: 'api/v1/retention.class.ts',
+    request: { body: 'setRetentionClassBody' },
   },
   {
     operationId: 'retention.pseudonymiseContact',
     method: 'POST',
     path: '/contacts/:contactId/pseudonymise',
     module: 'api/v1/contacts.$contactId.pseudonymise.ts',
+    request: { body: 'pseudonymiseContactBody' },
   },
   {
     operationId: 'retention.deleteDocuments',
     method: 'POST',
     path: '/retention/deletions',
     module: 'api/v1/retention.deletions.ts',
+    request: { body: 'deleteDocumentsBody' },
   },
   {
     operationId: 'webhooks.list',
@@ -661,6 +742,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/webhooks',
     module: 'api/v1/webhooks.ts',
+    request: { body: 'createWebhookBody' },
   },
   {
     operationId: 'webhooks.delete',
@@ -673,24 +755,28 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/webhooks/:endpointId/replay',
     module: 'api/v1/webhooks.$endpointId.replay.ts',
+    request: { body: 'replayWebhookBody' },
   },
   {
     operationId: 'events.list',
     method: 'GET',
     path: '/events',
     module: 'api/v1/events.ts',
+    request: { query: 'eventsQuery' },
   },
   {
     operationId: 'audit.list',
     method: 'GET',
     path: '/audit-log',
     module: 'api/v1/audit-log.ts',
+    request: { query: 'auditLogQuery' },
   },
   {
     operationId: 'audit.export',
     method: 'GET',
     path: '/audit-log/export',
     module: 'api/v1/audit-log.export.ts',
+    request: { query: 'auditLogExportQuery' },
   },
   {
     operationId: 'inbox.listSources',
@@ -703,6 +789,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'POST',
     path: '/inbox/sources',
     module: 'api/v1/inbox.sources.ts',
+    request: { body: 'addInboundSourceBody' },
   },
   {
     operationId: 'inbox.removeSource',

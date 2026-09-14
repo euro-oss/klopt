@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -6,6 +6,7 @@ import { clearOperationsForTest, defineOperation, listOperations } from '@klopt/
 import '@klopt/core'
 import { findContractViolations, routeManifest } from '../src/api/manifest.js'
 import type { RouteBinding } from '../src/api/manifest.js'
+import * as schemas from '../src/api/schemas.js'
 
 /**
  * The mechanism from spec 10.1, and the reason principle 3 is still true after
@@ -92,5 +93,123 @@ describe('every registered domain operation is reachable over REST', () => {
     } finally {
       clearOperationsForTest()
     }
+  })
+})
+
+/**
+ * The routes under /api/v1 that are not domain operations, and why.
+ *
+ * The manifest maps operations to routes. It has never said anything about a
+ * route with no operation, so until this list existed you could add one and
+ * nothing would notice — `/api/v1/health` had been there all along, correctly,
+ * but by nobody's decision that survived in writing.
+ */
+const NOT_DOMAIN_ROUTES: Readonly<Record<string, string>> = {
+  'api/v1/health.ts': 'Liveness. Says nothing about the database, on purpose.',
+  'api/v1/openapi[.]json.ts': 'The API describing itself. A map is not a place on the map.',
+}
+
+/**
+ * What each route file actually parses, read out of the source.
+ *
+ * The manifest *declares* the schemas; this reads what the route really uses,
+ * and the test below compares them. Without it, `request` would be prose: a
+ * renamed schema or a copy-pasted binding would leave the OpenAPI document
+ * describing a body nobody sends, and a generated client would compile against
+ * it and fail in production.
+ */
+function parsedSchemas(module: string): Record<string, { query?: string; body?: string }> {
+  const source = readFileSync(join(ROUTES_DIR, module), 'utf8')
+  const found: Record<string, { query?: string; body?: string }> = {}
+  let method: string | null = null
+
+  for (const line of source.split('\n')) {
+    const isMethod = /^ {6}(GET|POST|PUT|PATCH|DELETE):/.exec(line)
+    if (isMethod?.[1] !== undefined) {
+      method = isMethod[1]
+      found[method] ??= {}
+    }
+    const parsed =
+      /parse\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*,\s*(?:await\s+)?([A-Za-z_][A-Za-z0-9_]*)\(/.exec(line)
+    if (parsed?.[1] !== undefined && method !== null) {
+      const entry = (found[method] ??= {})
+      if (parsed[2] === 'searchParams') entry.query = parsed[1]
+      else if (parsed[2] === 'readJson') entry.body = parsed[1]
+    }
+  }
+  return found
+}
+
+describe('the manifest describes what the routes actually do', () => {
+  it('declares the schema each route parses, and no other', () => {
+    const mismatches: string[] = []
+
+    for (const binding of routeManifest) {
+      const actual = parsedSchemas(binding.module)[binding.method] ?? {}
+      const declared = binding.request ?? {}
+
+      for (const kind of ['query', 'body'] as const) {
+        if (actual[kind] !== declared[kind]) {
+          mismatches.push(
+            `${binding.method} /api/v1${binding.path}: manifest says ${kind} ` +
+              `${declared[kind] ?? '(none)'}, the route parses ${actual[kind] ?? '(none)'}`,
+          )
+        }
+      }
+    }
+
+    expect(mismatches).toEqual([])
+  })
+
+  it('names only schemas that exist', () => {
+    for (const binding of routeManifest) {
+      for (const name of [binding.request?.query, binding.request?.body]) {
+        if (name === undefined) continue
+        expect(Object.keys(schemas), `${binding.operationId} names ${name}`).toContain(name)
+      }
+    }
+  })
+
+  it('would catch a route that started parsing something else', () => {
+    // The check is only worth having if a wrong declaration fails it.
+    const [binding] = routeManifest.filter((item) => item.request?.body !== undefined)
+    expect(binding).toBeDefined()
+    const actual = parsedSchemas(binding!.module)[binding!.method]
+    expect(actual?.body).toBe(binding!.request?.body)
+    expect(actual?.body).not.toBe('somethingElseEntirely')
+  })
+})
+
+describe('no route under /api/v1 exists outside the contract', () => {
+  it('has every route file either in the manifest or on the short list', () => {
+    const declared = new Set(routeManifest.map((binding) => binding.module))
+    const orphans = readdirSync(join(ROUTES_DIR, 'api', 'v1'))
+      .filter((name) => name.endsWith('.ts'))
+      .map((name) => `api/v1/${name}`)
+      .filter((module) => !declared.has(module) && !(module in NOT_DOMAIN_ROUTES))
+
+    expect(orphans).toEqual([])
+  })
+
+  it('has no entry on that list for a file that is gone', () => {
+    for (const module of Object.keys(NOT_DOMAIN_ROUTES)) {
+      expect(existsSync(join(ROUTES_DIR, module)), module).toBe(true)
+    }
+  })
+
+  it('has every HTTP method of every manifest route bound', () => {
+    // A file in the manifest can still grow a second method nobody declared.
+    const declared = new Set(routeManifest.map((b) => `${b.module} ${b.method}`))
+    const missing: string[] = []
+
+    for (const binding of routeManifest) {
+      for (const method of Object.keys(parsedSchemas(binding.module))) {
+        if (!declared.has(`${binding.module} ${method}`)) {
+          missing.push(`${method} in ${binding.module}`)
+        }
+      }
+    }
+
+    expect([...new Set(missing)]).toEqual([])
   })
 })
