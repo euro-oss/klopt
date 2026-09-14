@@ -101,9 +101,7 @@ export function buildPurchaseEntry(
   const { invoice } = request
 
   if (invoice.totalMinorUnits === 0n && invoice.netMinorUnits === 0n) {
-    throw new LedgerError([
-      violation('line_no_amount', 'lines', 'An invoice totalling zero posts nothing.'),
-    ])
+    throw new LedgerError([violation('line_no_amount.invoice_totalling_zero', 'lines')])
   }
 
   // A credit note reverses every side. Computed once rather than branched on
@@ -139,11 +137,10 @@ export function buildPurchaseEntry(
     const rule = ruleFor(rules, item.taxCode, invoice.invoiceDate)
     if (rule === undefined) {
       throw new LedgerError([
-        violation(
-          'invalid_tax_code',
-          `lines.${item.taxCode}`,
-          `Tax code ${item.taxCode} has no rule valid on ${invoice.invoiceDate}. This should have been caught before posting.`,
-        ),
+        violation('invalid_tax_code.tax_code_rule', `lines.${item.taxCode}`, {
+          taxCode: item.taxCode,
+          invoiceDate: invoice.invoiceDate,
+        }),
       ])
     }
 
@@ -221,11 +218,9 @@ export function buildPurchaseEntry(
     const accountNumber = taxAccountFor(group.taxCode)
     if (accountNumber === null) {
       throw new LedgerError([
-        violation(
-          'unknown_account',
-          `taxCodes.${group.taxCode}`,
-          `Tax code ${group.taxCode} has no ledger account. Set one before booking with it.`,
-        ),
+        violation('unknown_account.tax_code_no_account', `taxCodes.${group.taxCode}`, {
+          taxCode: group.taxCode,
+        }),
       ])
     }
     lines.push(
@@ -252,22 +247,18 @@ export function buildPurchaseEntry(
     const deductionCode = group.selfAssessed === 0n ? group.taxCode : group.rule.deductionCode
     if (deductionCode === null) {
       throw new LedgerError([
-        violation(
-          'invalid_tax_code',
-          `taxCodes.${group.taxCode}`,
-          `${group.taxCode} self-assesses its VAT but names no deduction code, so the voorbelasting side has nowhere to go. Set deductionCode on it.`,
-        ),
+        violation('invalid_tax_code.self_assesses_vat', `taxCodes.${group.taxCode}`, {
+          taxCode: group.taxCode,
+        }),
       ])
     }
 
     const accountNumber = taxAccountFor(deductionCode)
     if (accountNumber === null) {
       throw new LedgerError([
-        violation(
-          'unknown_account',
-          `taxCodes.${deductionCode}`,
-          `Tax code ${deductionCode} has no ledger account. Set one before booking with it.`,
-        ),
+        violation('unknown_account.deduction_code_no_account', `taxCodes.${deductionCode}`, {
+          deductionCode,
+        }),
       ])
     }
 

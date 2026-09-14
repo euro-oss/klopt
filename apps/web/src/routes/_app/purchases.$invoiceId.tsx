@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { purchaseStatusLabel } from '~/i18n/labels'
+import { purchaseStatusLabel, violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
@@ -100,7 +100,7 @@ function PurchaseInvoiceScreen() {
     if (!result.ok) {
       setProblems(
         result.problem.violations.length > 0
-          ? result.problem.violations.map((item) => item.message)
+          ? result.problem.violations.map((item) => violationMessage(t, item))
           : [result.problem.detail],
       )
       return

@@ -67,7 +67,7 @@ function endOfMonth(year: number, month: number): string {
 
 export function vatPeriodsIn(kind: VatPeriodKind, year: number): readonly VatPeriod[] {
   if (!Number.isInteger(year) || year < 1900 || year > 2999) {
-    throw new LedgerError([violation('invalid_date', 'year', 'A declaration year is four digits.')])
+    throw new LedgerError([violation('invalid_date.declaration_year_four', 'year')])
   }
 
   if (kind === 'annual') {
@@ -116,13 +116,7 @@ export function parseVatPeriodCode(code: string): VatPeriod {
     return vatPeriodsIn('monthly', Number(month[1]))[Number(month[2]) - 1]!
   }
 
-  throw new LedgerError([
-    violation(
-      'unknown_vat_period',
-      'period',
-      `${code} is not a declaration period. Use 2026, 2026-Q1 or 2026-03.`,
-    ),
-  ])
+  throw new LedgerError([violation('unknown_vat_period', 'period', { code })])
 }
 
 /**
@@ -132,7 +126,7 @@ export function vatPeriodFor(kind: VatPeriodKind, date: string): VatPeriod {
   const year = Number(date.slice(0, 4))
   const found = vatPeriodsIn(kind, year).find((period) => period.from <= date && period.to >= date)
   if (found === undefined) {
-    throw new LedgerError([violation('invalid_date', 'date', `${date} is not a date.`)])
+    throw new LedgerError([violation('invalid_date.date', 'date', { date })])
   }
   return found
 }

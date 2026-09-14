@@ -305,9 +305,7 @@ export function suggestMatches(
   options: MatchOptions = DEFAULT_MATCH_OPTIONS,
 ): readonly MatchSuggestion[] {
   if (entry.amount === 0n) {
-    throw new LedgerError([
-      violation('line_no_amount', 'amount', 'A bank line with no amount cannot be matched.'),
-    ])
+    throw new LedgerError([violation('line_no_amount.bank_line_amount', 'amount')])
   }
 
   const suggestions: MatchSuggestion[] = []

@@ -1,4 +1,4 @@
-import { violation, LedgerError } from '../errors.js'
+import { LedgerError, forwarded } from '../errors.js'
 
 /**
  * Outbound payments (spec 7.4).
@@ -239,6 +239,8 @@ export function assertPayable(batch: PaymentBatch): void {
   if (problems.length === 0) return
 
   throw new LedgerError(
-    problems.map((problem) => violation('invalid_payment', problem.path, problem.message)),
+    problems.map((problem) =>
+      forwarded('invalid_payment', problem.path, problem.message, { code: problem.code }),
+    ),
   )
 }

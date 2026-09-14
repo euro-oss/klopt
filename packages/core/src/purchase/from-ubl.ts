@@ -1,4 +1,4 @@
-import { violation, LedgerError, type LedgerViolation } from '../errors.js'
+import { LedgerError, forwarded, type LedgerViolation, violation } from '../errors.js'
 import { parseMinorUnits } from '../format/index.js'
 import { at, child, childrenNamed, parseXmlDocument, textAt, textOf } from '../xml/parse.js'
 import type { PurchaseInvoiceInput, PurchaseLineInput } from './check.js'
@@ -192,21 +192,15 @@ export function parseUblInvoice(xml: string, options: ParseUblInvoiceOptions): I
     root = parseXmlDocument(xml)
   } catch (error: unknown) {
     throw new LedgerError([
-      violation(
-        'invalid_document',
-        'document',
-        `This is not readable XML: ${error instanceof Error ? error.message : String(error)}`,
-      ),
+      violation('invalid_document.readable_xml', 'document', {
+        error: error instanceof Error ? error.message : String(error),
+      }),
     ])
   }
 
   if (root.name !== 'Invoice' && root.name !== 'CreditNote') {
     throw new LedgerError([
-      violation(
-        'invalid_document',
-        'document',
-        `Expected a UBL Invoice or CreditNote, found <${root.name}>.`,
-      ),
+      violation('invalid_document.expected_ubl_invoice', 'document', { name: root.name }),
     ])
   }
 
@@ -303,9 +297,7 @@ export function parseUblInvoice(xml: string, options: ParseUblInvoiceOptions): I
   // credit note — the only structural difference between the two documents.
   const rawLines = childrenNamed(root, isCreditNote ? 'CreditNoteLine' : 'InvoiceLine')
   if (rawLines.length === 0) {
-    throw new LedgerError([
-      violation('invalid_document', 'lines', 'The document has no invoice lines.'),
-    ])
+    throw new LedgerError([violation('invalid_document.document_invoice_lines', 'lines')])
   }
 
   const declaredTax: InboundTaxLine[] = []
@@ -396,5 +388,9 @@ export function parseUblInvoice(xml: string, options: ParseUblInvoiceOptions): I
 export function inboundBlockers(parsed: InboundInvoice): readonly LedgerViolation[] {
   return parsed.findings
     .filter((finding) => finding.severity === 'blocking')
-    .map((finding) => violation('invalid_document', `document.${finding.code}`, finding.message))
+    .map((finding) =>
+      forwarded('invalid_document', `document.${finding.code}`, finding.message, {
+        code: finding.code,
+      }),
+    )
 }

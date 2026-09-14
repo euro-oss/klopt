@@ -223,11 +223,12 @@ export function selectTaxonomyMapping(
   if (matching.length === 0) {
     const loaded = forReport.map((mapping) => mapping.version).join(', ') || '(none)'
     throw new LedgerError([
-      violation(
-        'unknown_taxonomy',
-        'taxonomy',
-        `No ${request.report} taxonomy mapping covers ${request.periodFrom}..${request.periodTo}. Loaded: ${loaded}. A taxonomy is a data release — see docs/compliance-calendar.md.`,
-      ),
+      violation('unknown_taxonomy.taxonomy_mapping_covers', 'taxonomy', {
+        report: request.report,
+        periodFrom: request.periodFrom,
+        periodTo: request.periodTo,
+        loaded,
+      }),
     ])
   }
 
@@ -235,11 +236,12 @@ export function selectTaxonomyMapping(
     // Two mappings claiming one period means one of them has the wrong window,
     // and picking either would be a guess about which.
     throw new LedgerError([
-      violation(
-        'unknown_taxonomy',
-        'taxonomy',
-        `${String(matching.length)} taxonomy mappings claim ${request.periodFrom}..${request.periodTo}: ${matching.map((mapping) => mapping.version).join(', ')}. Fix their validity windows.`,
-      ),
+      violation('unknown_taxonomy.taxonomy_mappings_claim', 'taxonomy', {
+        count: String(matching.length),
+        periodFrom: request.periodFrom,
+        periodTo: request.periodTo,
+        versions: matching.map((mapping) => mapping.version).join(', '),
+      }),
     ])
   }
 

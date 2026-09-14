@@ -95,3 +95,50 @@ export function vatPeriodLabel(
 
   return t('label.vatPeriod.monthly', { year: yearPart, month: name })
 }
+
+/**
+ * As much of a problem document's violation as translating one needs.
+ *
+ * No `code`: it is what a caller branches on and has nothing to do with the
+ * sentence. Requiring it here would only make this refuse the several server
+ * functions that narrow their result type down to what they render.
+ */
+export interface TranslatableViolation {
+  readonly message: string
+  readonly messageKey?: string | null
+  readonly detail?: Readonly<Record<string, string>> | undefined
+}
+
+/**
+ * A domain refusal, in the reader's language (ADR 0046).
+ *
+ * The server sends the sentence in English — that is the language the API
+ * speaks, and an integrator reading a problem document should get something
+ * they can act on. It also sends `messageKey`, which names *which* sentence,
+ * and `detail`, which holds the values in it. Those two are enough to write
+ * the same sentence again in any language that has a catalogue.
+ *
+ * Falls back to the server's English when there is no key or no translation.
+ * Two cases reach that: a violation forwarded from a finding, which carries
+ * somebody else's sentence and its own code in `detail`, and a message added
+ * to `@klopt/core` that nobody has translated yet. Both are better shown in
+ * English than as a key.
+ */
+export function violationMessage(t: Translate, violation: TranslatableViolation): string {
+  if (violation.messageKey === undefined || violation.messageKey === null) return violation.message
+
+  const key = `violation.${violation.messageKey}` as MessageKey
+  // `translate` reads the catalogue by key and hands back whatever it finds,
+  // which for a key nobody wrote is `undefined`. A message added to
+  // `@klopt/core` and not yet translated should read as English, not as a gap.
+  const translated: string | undefined = t(key, violation.detail)
+  return translated === undefined || translated === key ? violation.message : translated
+}
+
+/** The same, for the several screens that show a list of them. */
+export function violationMessages(
+  t: Translate,
+  violations: readonly TranslatableViolation[],
+): string[] {
+  return violations.map((violation) => violationMessage(t, violation))
+}

@@ -1,4 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
+import { violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
@@ -170,7 +171,7 @@ function Bank() {
     if (!result.ok) {
       setError(
         result.problem.violations.length > 0
-          ? result.problem.violations.map((item) => item.message).join(' ')
+          ? result.problem.violations.map((item) => violationMessage(t, item)).join(' ')
           : result.problem.detail,
       )
       return
@@ -202,7 +203,7 @@ function Bank() {
     if (!result.ok) {
       setError(
         result.problem.violations.length > 0
-          ? result.problem.violations.map((item) => item.message).join(' ')
+          ? result.problem.violations.map((item) => violationMessage(t, item)).join(' ')
           : result.problem.detail,
       )
       return
@@ -269,7 +270,7 @@ function Bank() {
     if (!result.ok) {
       setError(
         result.problem.violations.length > 0
-          ? result.problem.violations.map((item) => item.message).join(' ')
+          ? result.problem.violations.map((item) => violationMessage(t, item)).join(' ')
           : result.problem.detail,
       )
       return

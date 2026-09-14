@@ -1,4 +1,5 @@
 import { Link, createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
+import { violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
@@ -140,7 +141,7 @@ function Inbox() {
     if (!result.ok) {
       setProblems(
         result.problem.violations.length > 0
-          ? result.problem.violations.map((item) => item.message)
+          ? result.problem.violations.map((item) => violationMessage(t, item))
           : [result.problem.detail],
       )
       return
@@ -193,7 +194,7 @@ function Inbox() {
     if (!result.ok) {
       setProblems(
         result.problem.violations.length > 0
-          ? result.problem.violations.map((entry) => entry.message)
+          ? result.problem.violations.map((entry) => violationMessage(t, entry))
           : [result.problem.detail],
       )
       return

@@ -1,4 +1,5 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { intlTag } from '~/i18n/locale'
@@ -112,7 +113,7 @@ function Setup() {
       setBusy(false)
       const byField: Record<string, string> = {}
       for (const item of result.problem.violations) {
-        if (item.path !== null) byField[item.path] = item.message
+        if (item.path !== null) byField[item.path] = violationMessage(t, item)
       }
       setFieldErrors(byField)
       // Only summarise when there is nothing to put next to a field. A message

@@ -18,6 +18,15 @@ export interface ApiViolation {
   readonly code: string
   readonly path: string | null
   readonly message: string
+  /**
+   * Which sentence this is (ADR 0046), for a client writing its own.
+   *
+   * `code` is what you branch on and is deliberately coarse — `invalid_tax_code`
+   * covers sixteen faults. This names the sentence, `message` is it rendered in
+   * English, and `detail` holds the values inside it. Null when the sentence
+   * came from a finding that already had one; then `detail.code` is the finding's.
+   */
+  readonly messageKey?: string | null
   readonly detail?: Readonly<Record<string, string>>
 }
 

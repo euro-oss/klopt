@@ -5,6 +5,8 @@ import {
   STATEMENT_SECTIONS,
   VAT_PERIOD_KINDS,
   DEFAULT_DUNNING_SCHEDULE,
+  VIOLATION_MESSAGES,
+  type ViolationMessageKey,
 } from '@klopt/core'
 import { en } from '../src/i18n/en.js'
 import { nl } from '../src/i18n/nl.js'
@@ -16,6 +18,7 @@ import {
   retentionClassLabel,
   statementSectionLabel,
   vatPeriodLabel,
+  violationMessage,
 } from '../src/i18n/labels.js'
 import type { MessageKey } from '../src/i18n/nl.js'
 
@@ -152,5 +155,107 @@ describe('what stays Dutch, deliberately', () => {
      */
     const keys = Object.keys(nl).filter((key) => key.startsWith('label.rubriek'))
     expect(keys).toEqual([])
+  })
+})
+
+/**
+ * Every sentence the domain can say, in both languages (ADR 0046).
+ *
+ * `VIOLATION_MESSAGES` is the list, imported rather than restated, so adding a
+ * message to `@klopt/core` fails this until it has been translated. That is
+ * the whole mechanism: the default locale is Dutch, and a Dutch bookkeeper
+ * seeing "No account 1300." is the defect this closes.
+ */
+describe('the domain’s refusals', () => {
+  const keys = Object.keys(VIOLATION_MESSAGES) as ViolationMessageKey[]
+
+  it('has more than a hundred of them, so this is walking the real list', () => {
+    expect(keys.length).toBeGreaterThan(100)
+  })
+
+  it('translates every one into Dutch', () => {
+    const missing = keys.filter((key) => !(`violation.${key}` in nl))
+    expect(missing).toEqual([])
+  })
+
+  it('takes the English from the domain rather than restating it', () => {
+    // Not a copy: `en.ts` spreads `VIOLATION_MESSAGES`. If somebody ever types
+    // one of these out by hand, this catches the first one that drifts.
+    for (const key of keys) {
+      expect(en[`violation.${key}`], key).toBe(VIOLATION_MESSAGES[key].text)
+    }
+  })
+
+  it('uses the same placeholders in both languages', () => {
+    // A Dutch sentence that forgot `{accountNumber}` loses the account number;
+    // one that invented `{account}` shows the braces to the user.
+    const placeholders = (text: string) =>
+      [...text.matchAll(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g)].map((match) => match[1]).sort()
+
+    for (const key of keys) {
+      expect(placeholders(nl[`violation.${key}`]), key).toEqual(
+        placeholders(VIOLATION_MESSAGES[key].text),
+      )
+    }
+  })
+
+  // That every message names a real `LedgerErrorCode` needs no test: the
+  // catalogue is `satisfies Readonly<Record<string, ViolationMessage>>`, so a
+  // made-up code does not compile.
+})
+
+describe('turning a violation into a sentence', () => {
+  const nlT = translator('nl')
+  const enT = translator('en')
+
+  const unbalanced = {
+    code: 'entry_unbalanced',
+    path: 'lines',
+    messageKey: 'entry_unbalanced.does_not_balance',
+    message: 'Entry does not balance in EUR: debits minus credits is 500 minor units.',
+    detail: { currency: 'EUR', difference: '500' },
+  }
+
+  it('says it in Dutch for a Dutch reader, with the numbers in it', () => {
+    const dutch = violationMessage(nlT, unbalanced)
+    expect(dutch).toContain('EUR')
+    expect(dutch).toContain('500')
+    expect(dutch).not.toBe(unbalanced.message)
+    expect(dutch).not.toContain('{')
+  })
+
+  it('gives an English reader back what the server sent', () => {
+    expect(violationMessage(enT, unbalanced)).toBe(unbalanced.message)
+  })
+
+  it('falls back to the server’s sentence when there is no key', () => {
+    // A violation forwarded from a finding carries somebody else's message and
+    // no key of its own. English is better than a blank or a key.
+    const forwarded = {
+      code: 'invalid_payment',
+      message: 'IBAN NL00 is not valid.',
+      messageKey: null,
+    }
+    expect(violationMessage(nlT, forwarded)).toBe('IBAN NL00 is not valid.')
+  })
+
+  it('falls back when the key is one nobody has translated', () => {
+    const unknown = {
+      code: 'x',
+      message: 'Something specific went wrong.',
+      messageKey: 'not_a_real_key',
+    }
+    expect(violationMessage(nlT, unknown)).toBe('Something specific went wrong.')
+  })
+
+  it('leaves a placeholder visible when its value is missing', () => {
+    // Deliberate: an obvious `{accountNumber}` is a bug somebody reports, and
+    // a blank is one nobody notices.
+    const noDetail = {
+      code: 'unknown_account',
+      message: 'No account 1300.',
+      messageKey: 'unknown_account.account',
+    }
+    expect(violationMessage(nlT, noDetail)).toContain('{accountNumber}')
   })
 })

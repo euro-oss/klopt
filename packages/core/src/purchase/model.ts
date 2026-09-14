@@ -139,23 +139,19 @@ export function nextPurchaseStatus(
 ): PurchaseTransition {
   if (!ALLOWED[action].includes(current)) {
     throw new LedgerError([
-      violation(
-        'wrong_invoice_state',
-        'status',
-        `An invoice that is ${purchaseStatusLabel(current)} cannot be ${ACTION_PAST[action]}. That is allowed from: ${ALLOWED[action].map(purchaseStatusLabel).join(', ')}.`,
-        { status: current, action },
-      ),
+      violation('wrong_invoice_state', 'status', {
+        current: purchaseStatusLabel(current),
+        actionPast: ACTION_PAST[action],
+        allowedFrom: ALLOWED[action].map(purchaseStatusLabel).join(', '),
+        status: current,
+        action,
+      }),
     ])
   }
 
   if (action === 'approve' && actor.actorKind !== 'human') {
     throw new LedgerError([
-      violation(
-        'approval_by_script',
-        'actor',
-        'An approval has to be somebody looking. A script cannot authorise a cost, though a human working through the API with a token can.',
-        { actorKind: actor.actorKind },
-      ),
+      violation('approval_by_script', 'actor', { actorKind: actor.actorKind }),
     ])
   }
 

@@ -1,4 +1,4 @@
-import { violation, LedgerError } from '../errors.js'
+import { LedgerError, forwarded } from '../errors.js'
 import { formatMinorUnits } from '../format/index.js'
 import type { TaxCodeRule } from '../vat/tax-code.js'
 
@@ -264,7 +264,7 @@ export function assertBookable(findings: readonly PurchaseFinding[]): void {
 
   throw new LedgerError(
     blocking.map((finding) =>
-      violation(
+      forwarded(
         'invoice_not_bookable',
         finding.lineNumber === null ? 'invoice' : `lines.${String(finding.lineNumber - 1)}`,
         finding.message,

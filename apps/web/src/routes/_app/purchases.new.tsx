@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
@@ -187,7 +188,7 @@ function NewPurchaseInvoice() {
     if (!result.ok) {
       setProblems(
         result.problem.violations.length > 0
-          ? result.problem.violations.map((item) => item.message)
+          ? result.problem.violations.map((item) => violationMessage(t, item))
           : [result.problem.detail],
       )
       return

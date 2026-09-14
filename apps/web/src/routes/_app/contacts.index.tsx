@@ -1,4 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
+import { violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
@@ -103,7 +104,7 @@ function Contacts() {
     if (!result.ok) {
       const byField: Record<string, string> = {}
       for (const item of result.problem.violations) {
-        if (item.path !== null) byField[item.path] = item.message
+        if (item.path !== null) byField[item.path] = violationMessage(t, item)
       }
       setFieldErrors(byField)
       setError(Object.keys(byField).length > 0 ? null : result.problem.detail)

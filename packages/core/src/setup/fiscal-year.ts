@@ -38,14 +38,10 @@ function iso(date: Date): string {
  */
 export function planFiscalYear(code: string, startMonth: number): FiscalYearLayout {
   if (!/^\d{4}$/.test(code)) {
-    throw new LedgerError([
-      violation('invalid_date', 'code', 'A fiscal year is labelled by its four-digit start year.'),
-    ])
+    throw new LedgerError([violation('invalid_date.fiscal_year_labelled', 'code')])
   }
   if (!Number.isInteger(startMonth) || startMonth < 1 || startMonth > 12) {
-    throw new LedgerError([
-      violation('invalid_date', 'startMonth', 'The starting month is 1 to 12.'),
-    ])
+    throw new LedgerError([violation('invalid_date.starting_month', 'startMonth')])
   }
 
   const year = Number(code)

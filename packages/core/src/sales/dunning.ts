@@ -94,7 +94,7 @@ export function planDunning(
   schedule: readonly DunningStage[] = DEFAULT_DUNNING_SCHEDULE,
 ): readonly DunningAction[] {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(asOf)) {
-    throw new LedgerError([violation('invalid_date', 'asOf', 'A date is yyyy-mm-dd.')])
+    throw new LedgerError([violation('invalid_date.date_yyyy_mm', 'asOf')])
   }
 
   const ordered = [...schedule].sort((a, b) => a.afterDays - b.afterDays)

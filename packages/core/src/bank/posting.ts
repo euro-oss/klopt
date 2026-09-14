@@ -88,17 +88,13 @@ export function buildBankMatchEntry(request: BankMatchRequest): PostJournalEntry
   const violations = []
 
   if (request.amount === 0n) {
-    violations.push(violation('line_no_amount', 'amount', 'A bank line of zero posts nothing.'))
+    violations.push(violation('line_no_amount.bank_line_zero', 'amount'))
   }
   if (request.chargesAmount < 0n) {
-    violations.push(
-      violation('line_negative_amount', 'chargesAmount', 'Charges cannot be negative.'),
-    )
+    violations.push(violation('line_negative_amount.charges_negative', 'chargesAmount'))
   }
   if (request.chargesAmount > 0n && request.chargesAccountNumber === null) {
-    violations.push(
-      violation('unknown_account', 'chargesAccountNumber', 'Charges need an account to post to.'),
-    )
+    violations.push(violation('unknown_account.charges_account_post', 'chargesAccountNumber'))
   }
 
   const incoming = request.amount > 0n
@@ -114,11 +110,9 @@ export function buildBankMatchEntry(request: BankMatchRequest): PostJournalEntry
     // that went in the opposite direction, which is never what happened.
     if (allocation.amount === 0n || allocation.amount < 0n === incoming) {
       violations.push(
-        violation(
-          'line_negative_amount',
-          'allocations',
-          `The allocation to ${allocation.invoiceNumber} does not point the same way as the payment.`,
-        ),
+        violation('line_negative_amount.allocation_point_way', 'allocations', {
+          invoiceNumber: allocation.invoiceNumber,
+        }),
       )
     }
   }
@@ -133,21 +127,17 @@ export function buildBankMatchEntry(request: BankMatchRequest): PostJournalEntry
 
   if (remainder < 0n) {
     violations.push(
-      violation(
-        'entry_unbalanced',
-        'allocations',
-        `The allocations come to ${allocated.toString()}, which is more than the ` +
-          `${(magnitude + request.chargesAmount).toString()} this line accounts for.`,
-      ),
+      violation('entry_unbalanced.allocations_exceed_line', 'allocations', {
+        allocated: allocated.toString(),
+        available: (magnitude + request.chargesAmount).toString(),
+      }),
     )
   }
   if (remainder > 0n && request.remainderAccountNumber === null) {
     violations.push(
-      violation(
-        'unknown_account',
-        'remainderAccountNumber',
-        `${remainder.toString()} is not accounted for. Say which account it belongs to.`,
-      ),
+      violation('unknown_account.accounted_say_account', 'remainderAccountNumber', {
+        remainder: remainder.toString(),
+      }),
     )
   }
 

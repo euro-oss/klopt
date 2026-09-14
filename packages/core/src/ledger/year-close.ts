@@ -88,22 +88,17 @@ export function planYearClose(
   const resultAccount = rows.find((row) => row.accountNumber === request.resultAccountNumber)
   if (resultAccount === undefined) {
     throw new LedgerError([
-      violation(
-        'unknown_account',
-        'resultAccountNumber',
-        `No account ${request.resultAccountNumber} to appropriate the result to.`,
-        { accountNumber: request.resultAccountNumber },
-      ),
+      violation('unknown_account.account_appropriate_result', 'resultAccountNumber', {
+        accountNumber: request.resultAccountNumber,
+      }),
     ])
   }
   if (resultAccount.accountType !== 'equity') {
     throw new LedgerError([
-      violation(
-        'unknown_account',
-        'resultAccountNumber',
-        `Account ${request.resultAccountNumber} is ${resultAccount.accountType}. The year's result is appropriated to equity.`,
-        { accountNumber: request.resultAccountNumber, accountType: resultAccount.accountType },
-      ),
+      violation('unknown_account.account_year_s', 'resultAccountNumber', {
+        accountNumber: request.resultAccountNumber,
+        accountType: resultAccount.accountType,
+      }),
     ])
   }
 

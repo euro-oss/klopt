@@ -77,9 +77,7 @@ const QUANTITY = /^-?\d+(\.\d+)?$/
 /** A decimal string to a scaled integer, keeping the scale. */
 function parseDecimal(value: string, field: string): { scaled: bigint; scale: bigint } {
   if (!QUANTITY.test(value)) {
-    throw new LedgerError([
-      violation('invalid_exchange_rate', field, `"${value}" is not a decimal number.`),
-    ])
+    throw new LedgerError([violation('invalid_exchange_rate.decimal_number', field, { value })])
   }
   const negative = value.startsWith('-')
   const unsigned = negative ? value.slice(1) : value
@@ -153,19 +151,16 @@ export function priceInvoice(
   rounding: VatRounding,
 ): PricedInvoice {
   if (lines.length === 0) {
-    throw new LedgerError([violation('entry_too_few_lines', 'lines', 'An invoice needs a line.')])
+    throw new LedgerError([violation('entry_too_few_lines.invoice_line', 'lines')])
   }
 
   const resolved = lines.map((line, index) => {
     const tax = taxCodes.get(line.taxCode)
     if (tax === undefined) {
       throw new LedgerError([
-        violation(
-          'unknown_account',
-          `lines.${String(index)}.taxCode`,
-          `No tax code ${line.taxCode}.`,
-          { taxCode: line.taxCode },
-        ),
+        violation('unknown_account.tax_code', `lines.${String(index)}.taxCode`, {
+          taxCode: line.taxCode,
+        }),
       ])
     }
     return { line, tax, index, net: lineNet(line.quantity, line.unitPrice) }

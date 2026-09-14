@@ -40,16 +40,14 @@ const EMAIL = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/
 export function requireEmail(value: string, path = 'email'): string {
   const email = normaliseEmail(value)
   if (!EMAIL.test(email)) {
-    throw new LedgerError([violation('invalid_email', path, 'That is not an email address.')])
+    throw new LedgerError([violation('invalid_email', path)])
   }
   return email
 }
 
 export function requireRole(value: string, path = 'role'): Role {
   if (!isRole(value)) {
-    throw new LedgerError([
-      violation('unknown_role', path, `Role must be owner, bookkeeper, accountant or auditor.`),
-    ])
+    throw new LedgerError([violation('unknown_role', path)])
   }
   return value
 }
@@ -79,11 +77,8 @@ export function assertKeepsAnOwner(
 
   throw new LedgerError([
     violation(
-      'last_owner',
+      next === null ? 'last_owner.make_somebody_owner' : 'last_owner.without_owner',
       next === null ? 'userId' : 'role',
-      next === null
-        ? 'This is the last owner. Make somebody else an owner first.'
-        : 'This is the last owner. An administration cannot be left without one.',
     ),
   ])
 }

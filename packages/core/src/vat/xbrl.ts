@@ -116,27 +116,22 @@ export function checkInstanceRequest(request: VatInstanceRequest): readonly Ledg
   const identifier = omzetbelastingnummer(request.vatNumber)
   if (!NL_VAT.test(identifier)) {
     problems.push(
-      violation(
-        'invalid_vat_number',
-        'entity.vatNumber',
-        `The aangifte is identified by the omzetbelastingnummer, and ${request.vatNumber} is not one. Fill it in under Instellingen.`,
-      ),
+      violation('invalid_vat_number.omzetbelastingnummer', 'entity.vatNumber', {
+        vatNumber: request.vatNumber,
+      }),
     )
   }
 
   if (request.legalName.trim() === '') {
-    problems.push(
-      violation('invalid_name', 'entity.legalName', 'The filing needs the entity’s legal name.'),
-    )
+    problems.push(violation('invalid_name.filing_legal_name', 'entity.legalName'))
   }
 
   if (request.mapping.report !== 'ob-aangifte') {
     problems.push(
-      violation(
-        'unknown_taxonomy',
-        'taxonomy.report',
-        `Mapping ${request.mapping.version} maps ${request.mapping.report}, not the BTW-aangifte.`,
-      ),
+      violation('unknown_taxonomy.mapping_maps_btw', 'taxonomy.report', {
+        version: request.mapping.version,
+        report: request.mapping.report,
+      }),
     )
   }
 
@@ -149,22 +144,22 @@ export function checkInstanceRequest(request: VatInstanceRequest): readonly Ledg
     if (rubriek.carries !== 'vat' && amounts.baseMinorUnits !== 0n) {
       if (!mapped.has(`${rubriek.id}.base`)) {
         problems.push(
-          violation(
-            'unknown_taxonomy',
-            `taxonomy.facts.${rubriek.id}.base`,
-            `Rubriek ${rubriek.id} has a base of ${decimalString(amounts.baseMinorUnits)} and mapping ${request.mapping.version} has no element for it.`,
-          ),
+          violation('unknown_taxonomy.rubriek_base_mapping', `taxonomy.facts.${rubriek.id}.base`, {
+            id: rubriek.id,
+            baseMinorUnits: decimalString(amounts.baseMinorUnits),
+            version: request.mapping.version,
+          }),
         )
       }
     }
     if (rubriek.carries !== 'base' && amounts.vatMinorUnits !== 0n) {
       if (!mapped.has(`${rubriek.id}.vat`)) {
         problems.push(
-          violation(
-            'unknown_taxonomy',
-            `taxonomy.facts.${rubriek.id}.vat`,
-            `Rubriek ${rubriek.id} has VAT of ${decimalString(amounts.vatMinorUnits)} and mapping ${request.mapping.version} has no element for it.`,
-          ),
+          violation('unknown_taxonomy.rubriek_vat_mapping', `taxonomy.facts.${rubriek.id}.vat`, {
+            id: rubriek.id,
+            vatMinorUnits: decimalString(amounts.vatMinorUnits),
+            version: request.mapping.version,
+          }),
         )
       }
     }

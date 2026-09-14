@@ -318,13 +318,7 @@ export class MembersRepository {
     const current = members.find((member) => member.userId === userId)
 
     if (current === undefined) {
-      throw new LedgerError([
-        violation(
-          'unknown_member',
-          'userId',
-          'That person is not a member of this administration.',
-        ),
-      ])
+      throw new LedgerError([violation('unknown_member.not_a_member', 'userId')])
     }
 
     assertKeepsAnOwner(members, userId, role)
@@ -360,9 +354,7 @@ export class MembersRepository {
         .limit(1)
 
       if (invitation === undefined) {
-        throw new LedgerError([
-          violation('unknown_invitation', 'invitationId', 'There is no such open invitation.'),
-        ])
+        throw new LedgerError([violation('unknown_invitation', 'invitationId')])
       }
 
       // Revoked, not deleted: "who was invited and then un-invited" is a
@@ -386,19 +378,13 @@ export class MembersRepository {
 
     const userId = subject.userId
     if (userId === undefined) {
-      throw new LedgerError([violation('unknown_member', 'userId', 'Say who is being removed.')])
+      throw new LedgerError([violation('unknown_member.say_who', 'userId')])
     }
 
     const members = await this.membersOf(entityId)
     const current = members.find((member) => member.userId === userId)
     if (current === undefined) {
-      throw new LedgerError([
-        violation(
-          'unknown_member',
-          'userId',
-          'That person is not a member of this administration.',
-        ),
-      ])
+      throw new LedgerError([violation('unknown_member.not_a_member', 'userId')])
     }
 
     assertKeepsAnOwner(members, userId, null)

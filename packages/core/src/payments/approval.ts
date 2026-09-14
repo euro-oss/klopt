@@ -66,11 +66,11 @@ export function nextState(
 ): PaymentBatchState {
   if (!ALLOWED[action].includes(current)) {
     throw new LedgerError([
-      violation(
-        'wrong_batch_state',
-        'state',
-        `A ${current} batch cannot be ${action === 'reopen' ? 'reopened' : `${action}${action.endsWith('e') ? 'd' : 'ed'}`}.`,
-      ),
+      violation('wrong_batch_state', 'state', {
+        current,
+        actionPast:
+          action === 'reopen' ? 'reopened' : `${action}${action.endsWith('e') ? 'd' : 'ed'}`,
+      }),
     ])
   }
 
@@ -83,22 +83,10 @@ export function nextState(
    */
   if (action === 'approve') {
     if (actor.actorKind !== 'human') {
-      throw new LedgerError([
-        violation(
-          'approval_by_submitter',
-          'approvedBy',
-          'A payment batch has to be approved by a person. A script cannot be the second pair of eyes.',
-        ),
-      ])
+      throw new LedgerError([violation('approval_by_submitter.not_a_script', 'approvedBy')])
     }
     if (actor.submittedBy !== null && actor.submittedBy === actor.userId) {
-      throw new LedgerError([
-        violation(
-          'approval_by_submitter',
-          'approvedBy',
-          'A payment batch has to be approved by somebody other than the person who submitted it.',
-        ),
-      ])
+      throw new LedgerError([violation('approval_by_submitter.not_the_submitter', 'approvedBy')])
     }
   }
 

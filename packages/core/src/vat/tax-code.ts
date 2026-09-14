@@ -132,27 +132,23 @@ export function checkTaxCodeRule(rule: TaxCodeRule): readonly LedgerViolation[] 
   const at = (field: string) => `taxCodes.${rule.code}.${field}`
 
   if (rule.code.trim() === '') {
-    problems.push(violation('invalid_tax_code', at('code'), 'A tax code needs a code.'))
+    problems.push(violation('invalid_tax_code.tax_code_code', at('code')))
   }
   if (
     !Number.isInteger(rule.rateBasisPoints) ||
     rule.rateBasisPoints < 0 ||
     rule.rateBasisPoints > 10_000
   ) {
-    problems.push(
-      violation('invalid_tax_code', at('rateBasisPoints'), 'A rate is 0 to 10000 basis points.'),
-    )
+    problems.push(violation('invalid_tax_code.rate_basis_points', at('rateBasisPoints')))
   }
   if (!isIsoDate(rule.validFrom)) {
-    problems.push(violation('invalid_date', at('validFrom'), 'validFrom must be a date.'))
+    problems.push(violation('invalid_date.validfrom_date', at('validFrom')))
   }
   if (rule.validTo !== null && !isIsoDate(rule.validTo)) {
-    problems.push(violation('invalid_date', at('validTo'), 'validTo must be a date or null.'))
+    problems.push(violation('invalid_date.validto_date_null', at('validTo')))
   }
   if (rule.validTo !== null && isIsoDate(rule.validFrom) && rule.validTo < rule.validFrom) {
-    problems.push(
-      violation('invalid_date', at('validTo'), 'A validity window cannot end before it starts.'),
-    )
+    problems.push(violation('invalid_date.validity_window_end', at('validTo')))
   }
 
   for (const [field, id] of [
@@ -161,17 +157,9 @@ export function checkTaxCodeRule(rule: TaxCodeRule): readonly LedgerViolation[] 
   ] as const) {
     if (id === null) continue
     if (findRubriek(id) === undefined) {
-      problems.push(
-        violation('unknown_rubriek', at(field), `${id} is not a rubriek on the BTW-aangifte.`),
-      )
+      problems.push(violation('unknown_rubriek.rubriek_btw_aangifte', at(field), { id }))
     } else if (!isAssignableRubriek(id)) {
-      problems.push(
-        violation(
-          'unknown_rubriek',
-          at(field),
-          `Rubriek ${id} is a computed subtotal. A tax code cannot write to it.`,
-        ),
-      )
+      problems.push(violation('unknown_rubriek.rubriek_computed_subtotal', at(field), { id }))
     }
   }
 
@@ -185,60 +173,32 @@ export function checkTaxCodeRule(rule: TaxCodeRule): readonly LedgerViolation[] 
   const declaresBase = rule.vatRubriek !== '5b' && rule.scope !== 'out_of_scope'
 
   if (declaresBase && rule.baseRubriek === null) {
-    problems.push(
-      violation(
-        'invalid_tax_code',
-        at('baseRubriek'),
-        'This transaction has a base box on the aangifte, so the code must name it.',
-      ),
-    )
+    problems.push(violation('invalid_tax_code.base_box_named', at('baseRubriek')))
   }
   if (!declaresBase && rule.baseRubriek !== null) {
-    problems.push(
-      violation(
-        'invalid_tax_code',
-        at('baseRubriek'),
-        'The aangifte has no base box for this kind of transaction — rubriek 5b reports VAT only. Leave it empty.',
-      ),
-    )
+    problems.push(violation('invalid_tax_code.aangifte_base_box', at('baseRubriek')))
   }
 
   const base = rule.baseRubriek === null ? undefined : findRubriek(rule.baseRubriek)
   if (base !== undefined && base.carries === 'vat') {
     problems.push(
-      violation(
-        'invalid_tax_code',
-        at('baseRubriek'),
-        `Rubriek ${base.id} reports no base amount.`,
-      ),
+      violation('invalid_tax_code.rubriek_reports_base', at('baseRubriek'), { id: base.id }),
     )
   }
   const vat = rule.vatRubriek === null ? undefined : findRubriek(rule.vatRubriek)
   if (vat !== undefined && vat.carries === 'base') {
     problems.push(
-      violation('invalid_tax_code', at('vatRubriek'), `Rubriek ${vat.id} reports no VAT amount.`),
+      violation('invalid_tax_code.rubriek_reports_vat', at('vatRubriek'), { id: vat.id }),
     )
   }
 
   // A rate with nowhere to declare its VAT is the misconfiguration that silently
   // under-declares: the base shows up, the tax does not.
   if (rule.rateBasisPoints > 0 && rule.vatRubriek === null) {
-    problems.push(
-      violation(
-        'invalid_tax_code',
-        at('vatRubriek'),
-        'A code with a rate above zero produces VAT, so it needs a rubriek to declare it in.',
-      ),
-    )
+    problems.push(violation('invalid_tax_code.rate_needs_rubriek', at('vatRubriek')))
   }
   if (rule.rateBasisPoints === 0 && rule.vatRubriek !== null) {
-    problems.push(
-      violation(
-        'invalid_tax_code',
-        at('vatRubriek'),
-        'A zero-rate code produces no VAT. Leave its VAT rubriek empty.',
-      ),
-    )
+    problems.push(violation('invalid_tax_code.zero_rate_code', at('vatRubriek')))
   }
 
   if (rule.deductibility === 'pro_rata') {
@@ -248,32 +208,14 @@ export function checkTaxCodeRule(rule: TaxCodeRule): readonly LedgerViolation[] 
       rule.proRataBasisPoints <= 0 ||
       rule.proRataBasisPoints >= 10_000
     ) {
-      problems.push(
-        violation(
-          'invalid_tax_code',
-          at('proRataBasisPoints'),
-          'A pro rata code needs a recoverable share strictly between 0 and 10000 basis points. Use full or none for the ends.',
-        ),
-      )
+      problems.push(violation('invalid_tax_code.pro_rata_code', at('proRataBasisPoints')))
     }
   } else if (rule.proRataBasisPoints !== null) {
-    problems.push(
-      violation(
-        'invalid_tax_code',
-        at('proRataBasisPoints'),
-        'A recoverable share only means something on a pro rata code.',
-      ),
-    )
+    problems.push(violation('invalid_tax_code.recoverable_share_only', at('proRataBasisPoints')))
   }
 
   if (rule.direction === 'output' && rule.deductibility !== 'full') {
-    problems.push(
-      violation(
-        'invalid_tax_code',
-        at('deductibility'),
-        'Deductibility describes input VAT. An output code has none.',
-      ),
-    )
+    problems.push(violation('invalid_tax_code.deductibility_describes_input', at('deductibility')))
   }
 
   // Scope decides the box, so the two must agree or the return is wrong in a
@@ -288,22 +230,16 @@ export function checkTaxCodeRule(rule: TaxCodeRule): readonly LedgerViolation[] 
   const allowed = expectedBase[rule.scope]
   if (allowed !== undefined && rule.baseRubriek !== null && !allowed.includes(rule.baseRubriek)) {
     problems.push(
-      violation(
-        'invalid_tax_code',
-        at('baseRubriek'),
-        `Scope ${rule.scope} declares its base in ${allowed.join(' or ')}, not ${rule.baseRubriek}.`,
-      ),
+      violation('invalid_tax_code.scope_declares_base', at('baseRubriek'), {
+        scope: rule.scope,
+        allowed: allowed.join(' or '),
+        baseRubriek: rule.baseRubriek,
+      }),
     )
   }
 
   if (rule.scope === 'intra_community_supply' && rule.supplyKind === 'not_applicable') {
-    problems.push(
-      violation(
-        'invalid_tax_code',
-        at('supplyKind'),
-        'The ICP opgaaf reports goods and services separately, so an intra-community supply must say which it is.',
-      ),
-    )
+    problems.push(violation('invalid_tax_code.supply_kind_named', at('supplyKind')))
   }
 
   if (
@@ -311,22 +247,10 @@ export function checkTaxCodeRule(rule: TaxCodeRule): readonly LedgerViolation[] 
     rule.rateBasisPoints !== 0 &&
     rule.direction === 'output'
   ) {
-    problems.push(
-      violation(
-        'invalid_tax_code',
-        at('rateBasisPoints'),
-        'Under a domestic reverse charge the supplier charges no VAT. The rate on the outgoing code is zero.',
-      ),
-    )
+    problems.push(violation('invalid_tax_code.under_domestic_reverse', at('rateBasisPoints')))
   }
   if (rule.reverseCharge === 'import_article_23' && rule.scope !== 'import') {
-    problems.push(
-      violation(
-        'invalid_tax_code',
-        at('scope'),
-        'Article 23 deferment applies to imports. Set the scope to import.',
-      ),
-    )
+    problems.push(violation('invalid_tax_code.article_deferment_applies', at('scope')))
   }
 
   return problems

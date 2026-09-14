@@ -5,72 +5,33 @@
  * Codes are part of the public contract: an integrator branches on them. Add
  * new ones freely, never repurpose an existing one.
  */
-export type LedgerErrorCode =
-  | 'entry_unbalanced'
-  | 'entry_unbalanced_functional'
-  | 'entry_too_few_lines'
-  | 'line_debit_and_credit'
-  | 'line_no_amount'
-  | 'line_negative_amount'
-  | 'unknown_account'
-  | 'account_blocked'
-  | 'unknown_journal'
-  | 'unknown_dimension_type'
-  | 'unknown_dimension_value'
-  | 'dimension_value_blocked'
-  | 'duplicate_dimension_type'
-  | 'missing_required_dimension'
-  | 'no_period_for_date'
-  | 'period_hard_closed'
-  | 'period_soft_closed'
-  | 'invalid_date'
-  | 'document_date_after_booking_date'
-  | 'missing_exchange_rate'
-  | 'unexpected_exchange_rate'
-  | 'invalid_exchange_rate'
-  | 'unknown_entity'
-  | 'unknown_entry'
-  | 'reversal_target_not_found'
-  | 'reversal_target_already_reversed'
-  | 'idempotency_key_reused'
-  | 'invalid_name'
-  | 'invalid_currency'
-  | 'invalid_kvk_number'
-  | 'invalid_vat_number'
-  | 'unknown_chart'
-  | 'duplicate_entity_name'
-  | 'duplicate_fiscal_year'
-  | 'invalid_email'
-  | 'unknown_role'
-  | 'unknown_member'
-  | 'already_member'
-  | 'last_owner'
-  | 'unknown_invitation'
-  | 'invitation_expired'
-  | 'invalid_payment'
-  | 'approval_by_submitter'
-  | 'wrong_batch_state'
-  | 'invalid_tax_code'
-  | 'unknown_tax_code'
-  | 'unknown_rubriek'
-  | 'vat_out_of_balance'
-  | 'period_already_filed'
-  | 'unknown_vat_period'
-  | 'icp_mismatch'
-  | 'unknown_taxonomy'
-  | 'instance_invalid'
-  | 'wrong_invoice_state'
-  | 'approval_by_script'
-  | 'invoice_not_bookable'
-  | 'unknown_invoice'
-  | 'invalid_document'
-  | 'chain_broken'
+import type { LedgerErrorCode } from './error-codes.js'
+import {
+  VIOLATION_MESSAGES,
+  renderViolationMessage,
+  type ViolationMessageKey,
+} from './violation-messages.js'
+
+export type { LedgerErrorCode } from './error-codes.js'
 
 export interface LedgerViolation {
   readonly code: LedgerErrorCode
   /** Dotted path into the command, e.g. `lines.2.accountNumber`. Null if entry-wide. */
   readonly path: string | null
   readonly message: string
+  /**
+   * Which sentence this is, for a client that wants to write its own.
+   *
+   * The `code` is coarse on purpose — `invalid_tax_code` covers sixteen
+   * different faults — so it cannot double as a translation key without
+   * flattening sixteen useful messages into one vague one. This names the
+   * sentence; `message` is that sentence rendered in English, and `detail`
+   * carries the values in it.
+   *
+   * `null` where the sentence came from somewhere that already had one: a
+   * payment finding, a UBL problem. Those carry their own code in `detail`.
+   */
+  readonly messageKey: ViolationMessageKey | null
   readonly detail?: Readonly<Record<string, string>>
 }
 
@@ -94,11 +55,45 @@ export class LedgerError extends Error {
   }
 }
 
+/**
+ * A violation, named by which sentence it is.
+ *
+ * The message is not passed in: it comes from `VIOLATION_MESSAGES`, rendered
+ * with `detail`. One place holds every sentence the domain can say, which is
+ * what makes translating them possible at all — and what makes a key that is
+ * not in the catalogue a compile error rather than a screen showing a key.
+ */
 export function violation(
+  key: ViolationMessageKey,
+  path: string | null,
+  detail?: Readonly<Record<string, string>>,
+): LedgerViolation {
+  const entry = VIOLATION_MESSAGES[key]
+  const message = renderViolationMessage(entry.text, detail)
+  return detail === undefined
+    ? { code: entry.code, path, message, messageKey: key }
+    : { code: entry.code, path, message, messageKey: key, detail }
+}
+
+/**
+ * A violation whose sentence was written somewhere else.
+ *
+ * Eight call sites turn a finding — a payment problem, a UBL fault, a VAT
+ * reconciliation warning — into a violation, and the finding already carries
+ * its own message and its own code. Copying those sentences into the
+ * catalogue would make two places to change one of them.
+ *
+ * `messageKey` is null, and `detail.code` is the finding's code, which is what
+ * a client translates from instead. Named rather than an overload of
+ * `violation`, so that the exception is visible at every site that takes it.
+ */
+export function forwarded(
   code: LedgerErrorCode,
   path: string | null,
   message: string,
   detail?: Readonly<Record<string, string>>,
 ): LedgerViolation {
-  return detail === undefined ? { code, path, message } : { code, path, message, detail }
+  return detail === undefined
+    ? { code, path, message, messageKey: null }
+    : { code, path, message, messageKey: null, detail }
 }

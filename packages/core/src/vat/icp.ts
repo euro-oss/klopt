@@ -1,4 +1,4 @@
-import { violation, LedgerError, type LedgerViolation } from '../errors.js'
+import { LedgerError, forwarded, type LedgerViolation } from '../errors.js'
 import { isEuVatCountry, parseVatNumber } from '../ports/vat-number.js'
 import { feedsIcp, ruleInForce, type TaxCodeRule } from './tax-code.js'
 import type { VatJournalLine, VatLineContribution, VatReturn } from './return.js'
@@ -335,7 +335,8 @@ export function assertIcpFileable(icp: IcpReturn): void {
   const problems: LedgerViolation[] = icp.findings
     .filter((finding) => finding.severity === 'blocking')
     .map((finding) =>
-      violation('icp_mismatch', `icp.${finding.code}`, finding.message, {
+      forwarded('icp_mismatch', `icp.${finding.code}`, finding.message, {
+        code: finding.code,
         amount: finding.amountMinorUnits.toString(),
         lines: String(finding.lines.length),
       }),

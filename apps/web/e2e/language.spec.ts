@@ -146,3 +146,54 @@ test('and the same screens stay Dutch for a Dutch reader', async ({ browser }) =
 
   await context.close()
 })
+
+/**
+ * The domain's own refusals, which were English whatever the reader asked for
+ * (ADR 0046).
+ *
+ * This is the half of the translation gap that hits the *default* user: the
+ * app opens in Dutch, and a Dutch bookkeeper who mistyped an account number
+ * used to get "No account 9999." from a screen that is otherwise entirely
+ * Dutch.
+ */
+test('a domain refusal is in the reader’s language, with its numbers intact', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ locale: 'nl-NL' })
+  const page = await context.newPage()
+  await anAdministration(page)
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+
+  await page.getByRole('link', { name: /Nieuwe journaalpost/ }).click()
+  await expect(page.getByRole('button', { name: /Boeken/ }).first()).toBeEnabled()
+  await page.getByLabel('Omschrijving', { exact: true }).fill('Verkeerde rekening')
+
+  // 9999 does not exist in the MKB chart, so the domain refuses with
+  // `unknown_account.account`, whose detail carries the number.
+  await page.getByLabel('Rekening regel 1').fill('9999')
+  await page.getByLabel('Debet regel 1').fill('1000,00')
+  await page.getByLabel('Rekening regel 2').fill('0500')
+  await page.getByLabel('Credit regel 2').fill('1000,00')
+  await page
+    .getByRole('button', { name: /Boeken/ })
+    .first()
+    .click()
+
+  await expect(page.getByText('Geen rekening 9999.')).toBeVisible()
+  await expect(page.getByText('No account 9999.')).toHaveCount(0)
+
+  // And the same refusal in English, for somebody who asked for English.
+  await chooseOption(page, 'Taal / Language', 'English')
+  await page.getByRole('link', { name: 'Journal entries' }).click()
+  await page.getByRole('link', { name: /New journal entry/ }).click()
+  await page.getByLabel('Description', { exact: true }).fill('Wrong account')
+  await page.getByLabel('Account line 1').fill('9999')
+  await page.getByLabel('Debit line 1').fill('1000,00')
+  await page.getByLabel('Account line 2').fill('0500')
+  await page.getByLabel('Credit line 2').fill('1000,00')
+  await page.getByRole('button', { name: /Post/ }).first().click()
+
+  await expect(page.getByText('No account 9999.')).toBeVisible()
+
+  await context.close()
+})

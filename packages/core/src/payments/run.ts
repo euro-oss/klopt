@@ -1,4 +1,4 @@
-import { violation, LedgerError, type LedgerViolation } from '../errors.js'
+import { LedgerError, forwarded, type LedgerViolation } from '../errors.js'
 import { formatMinorUnits } from '../format/index.js'
 import { isValidIban } from './model.js'
 
@@ -299,7 +299,7 @@ export function assertRunnable(plan: PaymentRunPlan): void {
   if (blocking.length === 0) return
 
   const problems: LedgerViolation[] = blocking.map((finding) =>
-    violation('invalid_payment', `suppliers.${finding.contactNumber}`, finding.message, {
+    forwarded('invalid_payment', `suppliers.${finding.contactNumber}`, finding.message, {
       code: finding.code,
       amount: finding.amountMinorUnits.toString(),
     }),

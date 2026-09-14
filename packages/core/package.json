@@ -13,6 +13,10 @@
     "./format": {
       "types": "./dist/format/index.d.ts",
       "default": "./dist/format/index.js"
+    },
+    "./violations": {
+      "types": "./dist/violation-messages.d.ts",
+      "default": "./dist/violation-messages.js"
     }
   },
   "files": [

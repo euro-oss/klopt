@@ -1,3 +1,4 @@
+import { VIOLATION_MESSAGES, type ViolationMessageKey } from '@klopt/core/violations'
 import type { MessageKey } from './nl.js'
 
 /**
@@ -12,8 +13,25 @@ import type { MessageKey } from './nl.js'
  * The accounting terms are the ones an English-speaking accountant would use,
  * except where the Dutch word *is* the term — `BTW` stays `VAT`, but a
  * *journaalpost* is a journal entry and a *proefbalans* is a trial balance.
+ *
+ * The `violation.*` keys are the exception, and they are not written here at
+ * all. The domain already says those sentences in English — that is the
+ * language the API speaks, and `VIOLATION_MESSAGES` in `@klopt/core` is where
+ * they live. Copying them would be a hundred and three strings to keep in step
+ * with a file that is already correct, so they are taken from it instead.
+ *
+ * Through the `@klopt/core/violations` subpath, not the barrel. This file is
+ * imported by the locale provider and therefore ends up in the browser bundle,
+ * and the barrel reaches `node:crypto` — which Vite externalises, leaving a
+ * page that renders and then throws on the first hash. The `./format` subpath
+ * exists for the same reason.
  */
+const violationsInEnglish = Object.fromEntries(
+  Object.entries(VIOLATION_MESSAGES).map(([key, entry]) => [`violation.${key}`, entry.text]),
+) as Record<`violation.${ViolationMessageKey}`, string>
+
 export const en: Record<MessageKey, string> = {
+  ...violationsInEnglish,
   'nav.dashboard': 'Dashboard',
   'nav.entries': 'Journal entries',
   'nav.accounts': 'Chart of accounts',

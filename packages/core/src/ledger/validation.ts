@@ -96,12 +96,9 @@ function validateDimensions(
   for (const dimension of dimensions) {
     if (seen.has(dimension.typeCode)) {
       violations.push(
-        violation(
-          'duplicate_dimension_type',
-          `${path}.dimensions`,
-          `Dimension ${dimension.typeCode} is assigned more than once on this line.`,
-          { dimensionType: dimension.typeCode },
-        ),
+        violation('duplicate_dimension_type', `${path}.dimensions`, {
+          dimensionType: dimension.typeCode,
+        }),
       )
     }
     seen.add(dimension.typeCode)
@@ -119,53 +116,33 @@ function validateLine(
   const violations: LedgerViolation[] = []
 
   if (line.debit < 0n || line.credit < 0n) {
-    violations.push(
-      violation(
-        'line_negative_amount',
-        path,
-        'Amounts are unsigned. A negative debit is a credit, and must be posted as one.',
-      ),
-    )
+    violations.push(violation('line_negative_amount.amounts_unsigned', path))
   }
 
   if (line.debit > 0n && line.credit > 0n) {
-    violations.push(
-      violation('line_debit_and_credit', path, 'A line is either a debit or a credit, never both.'),
-    )
+    violations.push(violation('line_debit_and_credit', path))
   }
 
   if (line.debit === 0n && line.credit === 0n) {
-    violations.push(violation('line_no_amount', path, 'A line with no amount posts nothing.'))
+    violations.push(violation('line_no_amount.line_amount_posts', path))
   }
 
   const currency = line.currency ?? functionalCurrency
   if (currency === functionalCurrency) {
     if (line.exchangeRate !== null) {
       violations.push(
-        violation(
-          'unexpected_exchange_rate',
-          `${path}.exchangeRate`,
-          `A line already in the functional currency (${functionalCurrency}) must not carry a rate.`,
-        ),
+        violation('unexpected_exchange_rate', `${path}.exchangeRate`, { functionalCurrency }),
       )
     }
   } else if (line.exchangeRate === null) {
     violations.push(
-      violation(
-        'missing_exchange_rate',
-        `${path}.exchangeRate`,
-        `A ${currency} line needs a rate to ${functionalCurrency}, and a source for it.`,
-        { currency, functionalCurrency },
-      ),
+      violation('missing_exchange_rate', `${path}.exchangeRate`, { currency, functionalCurrency }),
     )
   } else if (!isValidExchangeRate(line.exchangeRate)) {
     violations.push(
-      violation(
-        'invalid_exchange_rate',
-        `${path}.exchangeRate`,
-        'An exchange rate is a positive decimal string.',
-        { value: line.exchangeRate },
-      ),
+      violation('invalid_exchange_rate.exchange_rate_positive', `${path}.exchangeRate`, {
+        value: line.exchangeRate,
+      }),
     )
   }
 
@@ -186,32 +163,14 @@ export function validateCommandShape(
   const violations: LedgerViolation[] = []
 
   if (!isValidDate(command.bookingDate)) {
-    violations.push(
-      violation(
-        'invalid_date',
-        'bookingDate',
-        'Booking date must be a real calendar date, YYYY-MM-DD.',
-      ),
-    )
+    violations.push(violation('invalid_date.booking_date_calendar', 'bookingDate'))
   }
   if (!isValidDate(command.documentDate)) {
-    violations.push(
-      violation(
-        'invalid_date',
-        'documentDate',
-        'Document date must be a real calendar date, YYYY-MM-DD.',
-      ),
-    )
+    violations.push(violation('invalid_date.document_date_calendar', 'documentDate'))
   }
 
   if (command.lines.length < 2) {
-    violations.push(
-      violation(
-        'entry_too_few_lines',
-        'lines',
-        'An entry has at least two lines. One line cannot balance.',
-      ),
-    )
+    violations.push(violation('entry_too_few_lines.entry_least_two', 'lines'))
   }
 
   command.lines.forEach((line, index) => {
@@ -233,12 +192,10 @@ export function validateCommandShape(
       for (const [currency, difference] of totals) {
         if (difference !== 0n) {
           violations.push(
-            violation(
-              'entry_unbalanced',
-              'lines',
-              `Entry does not balance in ${currency}: debits minus credits is ${difference.toString()} minor units.`,
-              { currency, difference: difference.toString() },
-            ),
+            violation('entry_unbalanced.does_not_balance', 'lines', {
+              currency,
+              difference: difference.toString(),
+            }),
           )
         }
       }

@@ -1,4 +1,4 @@
-import { violation, type LedgerViolation } from '../errors.js'
+import { forwarded, type LedgerViolation, violation } from '../errors.js'
 import type { JournalLineInput, PostJournalEntryCommand, SubledgerKind } from '../ledger/types.js'
 import { parseXaf, readDeclaredTotals } from './parse.js'
 import { validateXafDocument } from './validate.js'
@@ -369,7 +369,7 @@ export function planXafImport(source: string, options: XafImportOptions): XafImp
 
   for (const problem of computed.problems) {
     if (problem.severity === 'error') {
-      problems.push(violation('unknown_entry', problem.path, problem.message))
+      problems.push(forwarded('unknown_entry', problem.path, problem.message))
     } else {
       warnings.push(`${problem.path}: ${problem.message}`)
     }
@@ -390,11 +390,14 @@ export function planXafImport(source: string, options: XafImportOptions): XafImp
 
   if (!reconciliation.matches) {
     problems.push(
-      violation(
-        'entry_unbalanced',
-        'transactions',
-        `The file's own control totals do not match its contents: it declares ${String(declared.linesCount)} lines, ${String(declared.totalDebit)} debit and ${String(declared.totalCredit)} credit; it contains ${String(computed.lineCount)}, ${computed.totalDebit.toString()} and ${computed.totalCredit.toString()}.`,
-      ),
+      violation('entry_unbalanced.file_control_totals', 'transactions', {
+        declaredLines: String(declared.linesCount),
+        declaredDebit: String(declared.totalDebit),
+        declaredCredit: String(declared.totalCredit),
+        lineCount: String(computed.lineCount),
+        totalDebit: computed.totalDebit.toString(),
+        totalCredit: computed.totalCredit.toString(),
+      }),
     )
   }
 
@@ -497,12 +500,13 @@ export function planXafImport(source: string, options: XafImportOptions): XafImp
   const unknownTaxCodes = vatCodes.filter((code) => !code.exists)
   if (unknownTaxCodes.length > 0) {
     problems.push(
-      violation(
-        'unknown_tax_code',
-        'vatCodes',
-        `This file uses ${String(unknownTaxCodes.length)} tax code(s) this administration does not have: ${unknownTaxCodes.map((code) => `${code.code} (${code.description})`).join(', ')}. Create them, mapped to their rubrieken, and try again — importing without them would post a year that declares no VAT.`,
-        { codes: unknownTaxCodes.map((code) => code.code).join(',') },
-      ),
+      violation('unknown_tax_code', 'vatCodes', {
+        count: String(unknownTaxCodes.length),
+        codesWithNames: unknownTaxCodes
+          .map((code) => `${code.code} (${code.description})`)
+          .join(', '),
+        codes: unknownTaxCodes.map((code) => code.code).join(','),
+      }),
     )
   }
 

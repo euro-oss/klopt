@@ -1,4 +1,4 @@
-import { violation, LedgerError } from '../errors.js'
+import { LedgerError, forwarded, violation } from '../errors.js'
 import type { FilingTransportKind } from '../ports/filing.js'
 import type { VatPeriodKind } from './period.js'
 import type { VatFinding, VatReturn } from './return.js'
@@ -68,7 +68,8 @@ export function planFiling(request: FilingRequest): FilingPlan {
     // one, and "the reconciliation failed" tells them nothing about which line.
     for (const finding of blocking) {
       problems.push(
-        violation('vat_out_of_balance', `findings.${finding.code}`, finding.message, {
+        forwarded('vat_out_of_balance', `findings.${finding.code}`, finding.message, {
+          code: finding.code,
           amount: finding.amountMinorUnits.toString(),
           lines: String(finding.lines.length),
         }),
@@ -78,22 +79,14 @@ export function planFiling(request: FilingRequest): FilingPlan {
 
   if (warnings.length > 0 && !request.acceptWarnings) {
     problems.push(
-      violation(
-        'vat_out_of_balance',
-        'acceptWarnings',
-        `This return has ${String(warnings.length)} warning(s). Read them and accept them explicitly, with a reason, or fix them.`,
-      ),
+      violation('vat_out_of_balance.return_warning_s', 'acceptWarnings', {
+        count: String(warnings.length),
+      }),
     )
   }
 
   if (request.acceptWarnings && (request.acceptedReason ?? '').trim() === '') {
-    problems.push(
-      violation(
-        'vat_out_of_balance',
-        'acceptedReason',
-        'Accepting a warning needs a reason. It becomes part of the evidence for this period.',
-      ),
-    )
+    problems.push(violation('vat_out_of_balance.accepting_warning_reason', 'acceptedReason'))
   }
 
   const differences: FilingDifference[] = []
@@ -120,13 +113,7 @@ export function planFiling(request: FilingRequest): FilingPlan {
     )
 
     if (differences.length === 0) {
-      problems.push(
-        violation(
-          'period_already_filed',
-          'period',
-          'This period has been declared and the figures have not changed. There is nothing to correct, so there is no suppletie to file.',
-        ),
-      )
+      problems.push(violation('period_already_filed', 'period'))
     }
   }
 

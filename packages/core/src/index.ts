@@ -28,7 +28,19 @@ export {
   listOperations,
 } from './operation.js'
 
-export { type LedgerErrorCode, type LedgerViolation, LedgerError, violation } from './errors.js'
+export {
+  type LedgerErrorCode,
+  type LedgerViolation,
+  LedgerError,
+  forwarded,
+  violation,
+} from './errors.js'
+export {
+  VIOLATION_MESSAGES,
+  renderViolationMessage,
+  type ViolationMessage,
+  type ViolationMessageKey,
+} from './violation-messages.js'
 
 export { isUuid, uuidv7, uuidv7Timestamp } from './ids.js'
 

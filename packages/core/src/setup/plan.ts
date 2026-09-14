@@ -110,34 +110,26 @@ export function planEntitySetup(command: EntitySetupCommand, chart: Chart): Enti
 
   const name = command.name.trim()
   if (name === '') {
-    violations.push(violation('invalid_name', 'name', 'An administration needs a name.'))
+    violations.push(violation('invalid_name.administration_name', 'name'))
   } else if (name.length > 200) {
-    violations.push(violation('invalid_name', 'name', 'A name is at most 200 characters.'))
+    violations.push(violation('invalid_name.name_most_characters', 'name'))
   }
 
   const currency = (command.functionalCurrency ?? chart.currency).toUpperCase()
   if (!CURRENCY.test(currency)) {
-    violations.push(
-      violation('invalid_currency', 'functionalCurrency', 'Use a three-letter ISO 4217 code.'),
-    )
+    violations.push(violation('invalid_currency', 'functionalCurrency'))
   }
 
   const kvkNumber = optional(command.kvkNumber)
   if (kvkNumber !== null && !KVK.test(kvkNumber)) {
-    violations.push(violation('invalid_kvk_number', 'kvkNumber', 'A KvK number is eight digits.'))
+    violations.push(violation('invalid_kvk_number', 'kvkNumber'))
   }
 
   const vatNumber = optional(command.vatNumber)?.toUpperCase().replace(/\s/g, '') ?? null
   if (vatNumber !== null) {
     const shape = vatNumber.startsWith('NL') ? VAT_NL : VAT_EU
     if (!shape.test(vatNumber)) {
-      violations.push(
-        violation(
-          'invalid_vat_number',
-          'vatNumber',
-          'A Dutch VAT number looks like NL123456789B01.',
-        ),
-      )
+      violations.push(violation('invalid_vat_number.dutch_vat_number', 'vatNumber'))
     }
   }
 

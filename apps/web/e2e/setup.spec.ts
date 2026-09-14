@@ -75,7 +75,9 @@ test('a bad KvK number is reported on the field, not swallowed', async ({ page }
   await page.getByLabel('KvK-nummer').fill('123')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
 
-  // On the field itself, next to the input that is wrong.
-  await expect(page.getByText('A KvK number is eight digits.')).toBeVisible()
+  // On the field itself, next to the input that is wrong — and in Dutch,
+  // because the browser is. The domain says this in English; the page
+  // translates it from the violation'''s message key (ADR 0046).
+  await expect(page.getByText('Een KvK-nummer is acht cijfers.')).toBeVisible()
   await expect(page).toHaveURL(/\/setup$/)
 })

@@ -92,7 +92,7 @@ function resolveLine(
 
   if (account === undefined) {
     violations.push(
-      violation('unknown_account', `${path}.accountNumber`, `No account ${line.accountNumber}.`, {
+      violation('unknown_account.account', `${path}.accountNumber`, {
         accountNumber: line.accountNumber,
       }),
     )
@@ -101,12 +101,10 @@ function resolveLine(
 
   if (account.isBlocked) {
     violations.push(
-      violation(
-        'account_blocked',
-        `${path}.accountNumber`,
-        `Account ${account.number} (${account.name}) is blocked for posting.`,
-        { accountNumber: account.number },
-      ),
+      violation('account_blocked', `${path}.accountNumber`, {
+        name: account.name,
+        accountNumber: account.number,
+      }),
     )
   }
 
@@ -115,12 +113,9 @@ function resolveLine(
     const type = context.dimensionTypesByCode.get(assignment.typeCode)
     if (type === undefined) {
       violations.push(
-        violation(
-          'unknown_dimension_type',
-          `${path}.dimensions`,
-          `No dimension type ${assignment.typeCode}.`,
-          { dimensionType: assignment.typeCode },
-        ),
+        violation('unknown_dimension_type', `${path}.dimensions`, {
+          dimensionType: assignment.typeCode,
+        }),
       )
       continue
     }
@@ -130,24 +125,20 @@ function resolveLine(
     )
     if (value === undefined) {
       violations.push(
-        violation(
-          'unknown_dimension_value',
-          `${path}.dimensions`,
-          `No value ${assignment.valueCode} for dimension ${assignment.typeCode}.`,
-          { dimensionType: assignment.typeCode, dimensionValue: assignment.valueCode },
-        ),
+        violation('unknown_dimension_value', `${path}.dimensions`, {
+          dimensionType: assignment.typeCode,
+          dimensionValue: assignment.valueCode,
+        }),
       )
       continue
     }
 
     if (value.isBlocked) {
       violations.push(
-        violation(
-          'dimension_value_blocked',
-          `${path}.dimensions`,
-          `Dimension value ${assignment.typeCode}/${assignment.valueCode} is blocked.`,
-          { dimensionType: assignment.typeCode, dimensionValue: assignment.valueCode },
-        ),
+        violation('dimension_value_blocked', `${path}.dimensions`, {
+          dimensionType: assignment.typeCode,
+          dimensionValue: assignment.valueCode,
+        }),
       )
     }
 
@@ -165,12 +156,10 @@ function resolveLine(
     if (present.has(requiredId)) continue
     const type = [...context.dimensionTypesByCode.values()].find((it) => it.id === requiredId)
     violations.push(
-      violation(
-        'missing_required_dimension',
-        `${path}.dimensions`,
-        `Account ${account.number} requires a ${type?.code ?? requiredId} dimension.`,
-        { accountNumber: account.number, dimensionType: type?.code ?? requiredId },
-      ),
+      violation('missing_required_dimension', `${path}.dimensions`, {
+        accountNumber: account.number,
+        dimensionType: type?.code ?? requiredId,
+      }),
     )
   }
 
@@ -224,24 +213,14 @@ export async function postJournalEntry(
     if (existing !== null) {
       if (existing.requestHash !== requestHash || existing.operationId !== OPERATION_ID) {
         throw new LedgerError([
-          violation(
-            'idempotency_key_reused',
-            'idempotencyKey',
-            'This idempotency key was used for a different request. Keys are per request, not per client.',
-            { key: options.idempotencyKey },
-          ),
+          violation('idempotency_key_reused', 'idempotencyKey', { key: options.idempotencyKey }),
         ])
       }
 
       const entry = await repository.findEntryById(command.entityId, existing.resultId)
       if (entry === null) {
         throw new LedgerError([
-          violation(
-            'unknown_entry',
-            'idempotencyKey',
-            'The entry recorded for this idempotency key no longer exists.',
-            { key: options.idempotencyKey },
-          ),
+          violation('unknown_entry', 'idempotencyKey', { key: options.idempotencyKey }),
         ])
       }
       return { entry, replayed: true, dryRun: false }
@@ -260,9 +239,7 @@ export async function postJournalEntry(
   })
 
   if (context === null) {
-    throw new LedgerError([
-      violation('unknown_entity', 'entityId', `No entity ${command.entityId}.`),
-    ])
+    throw new LedgerError([violation('unknown_entity', 'entityId', { entityId: command.entityId })])
   }
 
   const functionalCurrency = context.entity.functionalCurrency
@@ -270,38 +247,27 @@ export async function postJournalEntry(
 
   if (context.journal === null) {
     violations.push(
-      violation('unknown_journal', 'journalCode', `No journal ${command.journalCode}.`, {
-        journalCode: command.journalCode,
-      }),
+      violation('unknown_journal', 'journalCode', { journalCode: command.journalCode }),
     )
   }
 
   if (context.period === null) {
     violations.push(
-      violation(
-        'no_period_for_date',
-        'bookingDate',
-        `No fiscal period contains ${command.bookingDate}. Create the fiscal year first.`,
-        { bookingDate: command.bookingDate },
-      ),
+      violation('no_period_for_date', 'bookingDate', { bookingDate: command.bookingDate }),
     )
   } else if (context.period.status === 'hard_closed') {
     violations.push(
-      violation(
-        'period_hard_closed',
-        'bookingDate',
-        `Period ${context.period.fiscalYearCode}-${String(context.period.sequence)} is closed. Post to an open period, or reopen it deliberately.`,
-        { period: String(context.period.sequence), fiscalYear: context.period.fiscalYearCode },
-      ),
+      violation('period_hard_closed', 'bookingDate', {
+        period: String(context.period.sequence),
+        fiscalYear: context.period.fiscalYearCode,
+      }),
     )
   } else if (context.period.status === 'soft_closed' && !options.mayPostToSoftClosedPeriod) {
     violations.push(
-      violation(
-        'period_soft_closed',
-        'bookingDate',
-        `Period ${context.period.fiscalYearCode}-${String(context.period.sequence)} is soft-closed: only an accountant may post to it.`,
-        { period: String(context.period.sequence), fiscalYear: context.period.fiscalYearCode },
-      ),
+      violation('period_soft_closed', 'bookingDate', {
+        period: String(context.period.sequence),
+        fiscalYear: context.period.fiscalYearCode,
+      }),
     )
   }
 
@@ -309,11 +275,9 @@ export async function postJournalEntry(
     const target = await repository.findEntryById(command.entityId, command.reversesEntryId)
     if (target === null) {
       violations.push(
-        violation(
-          'reversal_target_not_found',
-          'reversesEntryId',
-          `No entry ${command.reversesEntryId} to reverse.`,
-        ),
+        violation('reversal_target_not_found', 'reversesEntryId', {
+          reversesEntryId: command.reversesEntryId,
+        }),
       )
     } else {
       const alreadyReversed = await repository.findReversalOf(
@@ -322,12 +286,10 @@ export async function postJournalEntry(
       )
       if (alreadyReversed !== null) {
         violations.push(
-          violation(
-            'reversal_target_already_reversed',
-            'reversesEntryId',
-            `Entry ${command.reversesEntryId} was already reversed by ${alreadyReversed}.`,
-            { reversedBy: alreadyReversed },
-          ),
+          violation('reversal_target_already_reversed', 'reversesEntryId', {
+            reversesEntryId: command.reversesEntryId,
+            reversedBy: alreadyReversed,
+          }),
         )
       }
     }
@@ -355,12 +317,10 @@ export async function postJournalEntry(
     // Either way it needs a destination account chosen by a human, because
     // nothing is silently absorbed (spec 6.1).
     throw new LedgerError([
-      violation(
-        'entry_unbalanced_functional',
-        'lines',
-        `Entry does not balance in ${functionalCurrency}: debits minus credits is ${conversion.residual.toString()} minor units. If this is a realised exchange result, post the remainder to an exchange-difference account.`,
-        { difference: conversion.residual.toString(), functionalCurrency },
-      ),
+      violation('entry_unbalanced_functional', 'lines', {
+        difference: conversion.residual.toString(),
+        functionalCurrency,
+      }),
     ])
   }
 

@@ -1294,6 +1294,179 @@ export const nl = {
   'label.vatPeriod.annual': 'Jaar {year}',
   'label.vatPeriod.quarterly': '{quarter}e kwartaal {year}',
   'label.vatPeriod.monthly': '{month} {year}',
+
+  // The domain's own refusals (ADR 0046), keyed by which sentence rather than
+  // by the error code — `invalid_tax_code` alone covers sixteen of these.
+  // English lives in `VIOLATION_MESSAGES` in @klopt/core, because that is the
+  // language the API speaks; this is the reader's.
+  'violation.account_blocked':
+    'Grootboekrekening {accountNumber} ({name}) is geblokkeerd voor boekingen.',
+  'violation.approval_by_script':
+    'Goedkeuren doet een mens. Een script kan geen kosten fiatteren; een mens die via de API met een token werkt wel.',
+  'violation.approval_by_submitter.not_a_script':
+    'Een betaalbatch moet door een persoon worden goedgekeurd. Een script is geen tweede paar ogen.',
+  'violation.approval_by_submitter.not_the_submitter':
+    'Een betaalbatch moet worden goedgekeurd door iemand anders dan degene die hem heeft ingediend.',
+  'violation.unknown_invitation': 'Zo’n openstaande uitnodiging bestaat niet.',
+  'violation.unknown_member.not_a_member': 'Die persoon hoort niet bij deze administratie.',
+  'violation.unknown_member.say_who': 'Zeg wie er wordt verwijderd.',
+  'violation.dimension_value_blocked':
+    'Dimensiewaarde {dimensionType}/{dimensionValue} is geblokkeerd.',
+  'violation.duplicate_dimension_type':
+    'Dimensie {dimensionType} staat meer dan één keer op deze regel.',
+  'violation.entry_too_few_lines.entry_least_two':
+    'Een journaalpost heeft minstens twee regels. Eén regel kan niet in balans zijn.',
+  'violation.entry_too_few_lines.invoice_line': 'Een factuur heeft een regel nodig.',
+  'violation.entry_unbalanced.allocations_exceed_line':
+    'De toewijzingen komen op {allocated}, meer dan de {available} die deze regel dekt.',
+  'violation.entry_unbalanced.does_not_balance':
+    'De post is niet in balans in {currency}: debet min credit is {difference} centen.',
+  'violation.entry_unbalanced.file_control_totals':
+    'De controletotalen van het bestand kloppen niet met de inhoud: het meldt {declaredLines} regels, {declaredDebit} debet en {declaredCredit} credit; het bevat er {lineCount}, {totalDebit} en {totalCredit}.',
+  'violation.entry_unbalanced_functional':
+    'De post is niet in balans in {functionalCurrency}: debet min credit is {difference} centen. Is dit een gerealiseerd koersresultaat, boek het restant dan op een koersverschillenrekening.',
+  'violation.idempotency_key_reused':
+    'Deze idempotency-key is al voor een ander verzoek gebruikt. Een key hoort bij één verzoek, niet bij één client.',
+  'violation.invalid_currency': 'Gebruik een ISO 4217-code van drie letters.',
+  'violation.invalid_date.booking_date_calendar':
+    'De boekdatum moet een echte kalenderdatum zijn, jjjj-mm-dd.',
+  'violation.invalid_date.date': '{date} is geen datum.',
+  'violation.invalid_date.date_yyyy_mm': 'Een datum is jjjj-mm-dd.',
+  'violation.invalid_date.declaration_year_four': 'Een aangiftejaar is vier cijfers.',
+  'violation.invalid_date.document_date_calendar':
+    'De documentdatum moet een echte kalenderdatum zijn, jjjj-mm-dd.',
+  'violation.invalid_date.fiscal_year_labelled':
+    'Een boekjaar wordt aangeduid met het beginjaar van vier cijfers.',
+  'violation.invalid_date.starting_month': 'De beginmaand is 1 tot en met 12.',
+  'violation.invalid_date.validfrom_date': 'validFrom moet een datum zijn.',
+  'violation.invalid_date.validity_window_end':
+    'Een geldigheidsperiode kan niet eindigen voordat hij begint.',
+  'violation.invalid_date.validto_date_null': 'validTo moet een datum of null zijn.',
+  'violation.invalid_document.document_invoice_lines': 'Het document heeft geen factuurregels.',
+  'violation.invalid_document.expected_ubl_invoice':
+    'Verwacht een UBL Invoice of CreditNote, gevonden <{name}>.',
+  'violation.invalid_document.readable_xml': 'Dit is geen leesbare XML: {error}',
+  'violation.invalid_email': 'Dat is geen e-mailadres.',
+  'violation.invalid_exchange_rate.decimal_number': '"{value}" is geen decimaal getal.',
+  'violation.invalid_exchange_rate.exchange_rate_positive':
+    'Een wisselkoers is een positief decimaal getal als tekst.',
+  'violation.invalid_kvk_number': 'Een KvK-nummer is acht cijfers.',
+  'violation.invalid_name.administration_name': 'Een administratie heeft een naam nodig.',
+  'violation.invalid_name.filing_legal_name': 'Voor de aangifte is de statutaire naam nodig.',
+  'violation.invalid_name.name_most_characters': 'Een naam is hoogstens 200 tekens.',
+  'violation.invalid_tax_code.aangifte_base_box':
+    'De aangifte heeft geen grondslagrubriek voor dit soort transactie — rubriek 5b meldt alleen btw. Laat hem leeg.',
+  'violation.invalid_tax_code.article_deferment_applies':
+    'De verleggingsregeling van artikel 23 geldt bij invoer. Zet de scope op import.',
+  'violation.invalid_tax_code.base_box_named':
+    'Deze transactie heeft een grondslagrubriek op de aangifte, dus de code moet die noemen.',
+  'violation.invalid_tax_code.deductibility_describes_input':
+    'Aftrekbaarheid gaat over voorbelasting. Een verkoopcode heeft die niet.',
+  'violation.invalid_tax_code.pro_rata_code':
+    'Een pro-ratacode heeft een aftrekbaar deel strikt tussen 0 en 10000 basispunten nodig. Gebruik voor de uitersten volledig of geen.',
+  'violation.invalid_tax_code.rate_basis_points': 'Een tarief is 0 tot 10000 basispunten.',
+  'violation.invalid_tax_code.rate_needs_rubriek':
+    'Een code met een tarief boven nul levert btw op en heeft dus een rubriek nodig om die in aan te geven.',
+  'violation.invalid_tax_code.recoverable_share_only':
+    'Een aftrekbaar deel betekent alleen iets op een pro-ratacode.',
+  'violation.invalid_tax_code.rubriek_reports_base': 'Rubriek {id} meldt geen grondslag.',
+  'violation.invalid_tax_code.rubriek_reports_vat': 'Rubriek {id} meldt geen btw-bedrag.',
+  'violation.invalid_tax_code.scope_declares_base':
+    'Scope {scope} geeft zijn grondslag aan in {allowed}, niet in {baseRubriek}.',
+  'violation.invalid_tax_code.self_assesses_vat':
+    '{taxCode} verlegt de btw naar zichzelf maar noemt geen aftrekcode, dus de voorbelasting kan nergens heen. Zet er deductionCode op.',
+  'violation.invalid_tax_code.supply_kind_named':
+    'De ICP-opgaaf meldt goederen en diensten apart, dus een intracommunautaire levering moet zeggen welk van de twee het is.',
+  'violation.invalid_tax_code.tax_code_code': 'Een btw-code heeft een code nodig.',
+  'violation.invalid_tax_code.tax_code_rule':
+    'Btw-code {taxCode} heeft geen regel die geldt op {invoiceDate}. Dit had vóór het boeken opgemerkt moeten worden.',
+  'violation.invalid_tax_code.under_domestic_reverse':
+    'Bij binnenlandse verlegging brengt de leverancier geen btw in rekening. Het tarief op de verkoopcode is nul.',
+  'violation.invalid_tax_code.zero_rate_code':
+    'Een nultariefcode levert geen btw op. Laat zijn btw-rubriek leeg.',
+  'violation.invalid_vat_number.omzetbelastingnummer':
+    'De aangifte wordt geïdentificeerd met het omzetbelastingnummer, en {vatNumber} is er geen. Vul het in bij Instellingen.',
+  'violation.invalid_vat_number.dutch_vat_number':
+    'Een Nederlands btw-nummer ziet eruit als NL123456789B01.',
+  'violation.last_owner.make_somebody_owner':
+    'Dit is de laatste eigenaar. Maak eerst iemand anders eigenaar.',
+  'violation.last_owner.without_owner':
+    'Dit is de laatste eigenaar. Een administratie kan niet zonder.',
+  'violation.line_debit_and_credit': 'Een regel is debet of credit, nooit allebei.',
+  'violation.line_negative_amount.allocation_point_way':
+    'De toewijzing aan {invoiceNumber} wijst niet dezelfde kant op als de betaling.',
+  'violation.line_negative_amount.amounts_unsigned':
+    'Bedragen zijn zonder teken. Een negatieve debet is een credit en moet ook zo geboekt worden.',
+  'violation.line_negative_amount.charges_negative': 'Kosten kunnen niet negatief zijn.',
+  'violation.line_no_amount.bank_line_amount':
+    'Een bankregel zonder bedrag kan niet worden afgeletterd.',
+  'violation.line_no_amount.bank_line_zero': 'Een bankregel van nul boekt niets.',
+  'violation.line_no_amount.invoice_totalling_zero': 'Een factuur van nul boekt niets.',
+  'violation.line_no_amount.line_amount_posts': 'Een regel zonder bedrag boekt niets.',
+  'violation.missing_exchange_rate':
+    'Een regel in {currency} heeft een koers naar {functionalCurrency} nodig, en een bron daarvoor.',
+  'violation.missing_required_dimension':
+    'Rekening {accountNumber} vereist een dimensie {dimensionType}.',
+  'violation.no_period_for_date':
+    'Geen enkele periode bevat {bookingDate}. Maak eerst het boekjaar aan.',
+  'violation.period_already_filed':
+    'Deze periode is aangegeven en de cijfers zijn niet veranderd. Er valt niets te corrigeren, dus er is geen suppletie.',
+  'violation.period_hard_closed':
+    'Periode {fiscalYear}-{period} is afgesloten. Boek in een open periode, of open hem bewust opnieuw.',
+  'violation.period_soft_closed':
+    'Periode {fiscalYear}-{period} is zacht afgesloten: alleen een accountant mag er nog in boeken.',
+  'violation.reversal_target_already_reversed':
+    'Post {reversesEntryId} is al gestorneerd door {reversedBy}.',
+  'violation.reversal_target_not_found': 'Geen post {reversesEntryId} om te storneren.',
+  'violation.unexpected_exchange_rate':
+    'Een regel die al in de functionele valuta staat ({functionalCurrency}) mag geen koers dragen.',
+  'violation.unknown_account.account': 'Geen rekening {accountNumber}.',
+  'violation.unknown_account.account_appropriate_result':
+    'Geen rekening {accountNumber} om het resultaat naar over te boeken.',
+  'violation.unknown_account.account_year_s':
+    'Rekening {accountNumber} is {accountType}. Het jaarresultaat gaat naar het eigen vermogen.',
+  'violation.unknown_account.accounted_say_account':
+    '{remainder} is nergens aan toegewezen. Zeg bij welke rekening dat hoort.',
+  'violation.unknown_account.charges_account_post':
+    'Kosten hebben een rekening nodig om op te boeken.',
+  'violation.unknown_account.tax_code': 'Geen btw-code {taxCode}.',
+  'violation.unknown_account.tax_code_no_account':
+    'Btw-code {taxCode} heeft geen grootboekrekening. Stel er een in voordat je ermee boekt.',
+  'violation.unknown_account.deduction_code_no_account':
+    'Btw-code {deductionCode} heeft geen grootboekrekening. Stel er een in voordat je ermee boekt.',
+  'violation.unknown_account.tax_code_no_account_invoicing':
+    'Btw-code {taxCode} heeft geen grootboekrekening. Stel er een in voordat je ermee factureert.',
+  'violation.unknown_dimension_type': 'Geen dimensiesoort {dimensionType}.',
+  'violation.unknown_dimension_value':
+    'Geen waarde {dimensionValue} voor dimensie {dimensionType}.',
+  'violation.unknown_entity': 'Geen administratie {entityId}.',
+  'violation.unknown_entry': 'De post die bij deze idempotency-key hoorde bestaat niet meer.',
+  'violation.unknown_journal': 'Geen dagboek {journalCode}.',
+  'violation.unknown_role': 'Rol moet eigenaar, boekhouder, accountant of auditor zijn.',
+  'violation.unknown_rubriek.rubriek_btw_aangifte': '{id} is geen rubriek op de BTW-aangifte.',
+  'violation.unknown_rubriek.rubriek_computed_subtotal':
+    'Rubriek {id} is een berekend subtotaal. Een btw-code kan er niet naar schrijven.',
+  'violation.unknown_tax_code':
+    'Dit bestand gebruikt {count} btw-code(s) die deze administratie niet heeft: {codesWithNames}. Maak ze aan, gekoppeld aan hun rubrieken, en probeer het opnieuw — importeren zonder die codes boekt een jaar dat geen btw aangeeft.',
+  'violation.unknown_taxonomy.mapping_maps_btw':
+    'Mapping {version} hoort bij {report}, niet bij de BTW-aangifte.',
+  'violation.unknown_taxonomy.rubriek_base_mapping':
+    'Rubriek {id} heeft een grondslag van {baseMinorUnits} en mapping {version} heeft er geen element voor.',
+  'violation.unknown_taxonomy.rubriek_vat_mapping':
+    'Rubriek {id} heeft btw van {vatMinorUnits} en mapping {version} heeft er geen element voor.',
+  'violation.unknown_taxonomy.taxonomy_mapping_covers':
+    'Geen {report}-taxonomiemapping dekt {periodFrom}..{periodTo}. Geladen: {loaded}. Een taxonomie is een datarelease — zie docs/compliance-calendar.md.',
+  'violation.unknown_taxonomy.taxonomy_mappings_claim':
+    '{count} taxonomiemappings claimen {periodFrom}..{periodTo}: {versions}. Zet hun geldigheidsperiodes recht.',
+  'violation.unknown_vat_period':
+    '{code} is geen aangifteperiode. Gebruik 2026, 2026-Q1 of 2026-03.',
+  'violation.vat_out_of_balance.accepting_warning_reason':
+    'Een waarschuwing accepteren vraagt om een reden. Die wordt onderdeel van het dossier voor deze periode.',
+  'violation.vat_out_of_balance.return_warning_s':
+    'Deze aangifte heeft {count} waarschuwing(en). Lees ze en accepteer ze uitdrukkelijk, met een reden, of los ze op.',
+  'violation.wrong_batch_state': 'Een batch die {current} is kan niet worden {actionPast}.',
+  'violation.wrong_invoice_state':
+    'Een factuur die {current} is kan niet worden {actionPast}. Dat mag vanuit: {allowedFrom}.',
 } as const
 
 export type MessageKey = keyof typeof nl

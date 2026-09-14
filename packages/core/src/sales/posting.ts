@@ -77,9 +77,7 @@ export function buildInvoiceEntry(
   taxAccountFor: TaxAccountResolver,
 ): PostJournalEntryCommand {
   if (priced.total === 0n) {
-    throw new LedgerError([
-      violation('line_no_amount', 'lines', 'An invoice totalling zero posts nothing.'),
-    ])
+    throw new LedgerError([violation('line_no_amount.invoice_totalling_zero', 'lines')])
   }
 
   // A credit note reverses every side. Computed once rather than branched on
@@ -154,12 +152,9 @@ export function buildInvoiceEntry(
     const accountNumber = taxAccountFor(group.tax.code)
     if (accountNumber === null) {
       throw new LedgerError([
-        violation(
-          'unknown_account',
-          `taxCodes.${group.tax.code}`,
-          `Tax code ${group.tax.code} has no ledger account. Set one before invoicing with it.`,
-          { taxCode: group.tax.code },
-        ),
+        violation('unknown_account.tax_code_no_account_invoicing', `taxCodes.${group.tax.code}`, {
+          taxCode: group.tax.code,
+        }),
       ])
     }
 
