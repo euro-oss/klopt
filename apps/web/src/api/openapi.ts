@@ -3,6 +3,7 @@ import { getOperation, type OperationDefinition } from '@klopt/core'
 import { routeManifest, type HttpMethod, type RouteBinding } from './manifest.js'
 import { STATUS, type ApiErrorCode } from './errors.js'
 import * as schemas from './schemas.js'
+import responseSchemas from './response-schemas.generated.json' with { type: 'json' }
 
 /**
  * The OpenAPI 3.1 document (spec 10.2).
@@ -32,14 +33,26 @@ import * as schemas from './schemas.js'
  * wire's, and the wire is what a document describes. Asking Zod for the output
  * side would produce a document telling integrators to send us bigints.
  *
- * ## What this does not yet describe
+ * ## Responses
  *
- * Success response bodies. The handlers return plain objects with no schema to
- * generate from, so writing one here would be the hand-maintained second
- * source of truth the spec sentence rules out. `undocumentedResponses()`
- * counts them, and a test holds that count as a ceiling so it can only fall.
- * See ADR 0043.
+ * Also generated, and from the only description of them that exists: the
+ * handlers' own inferred return types, read out of the TypeScript program by
+ * `scripts/build-response-schemas.ts` into a JSON file this imports. Writing a
+ * Zod schema per operation would have been the hand-maintained second source
+ * of truth by a different door — accurate the day it was written. See ADR
+ * 0044.
+ *
+ * It is a file rather than something computed here because deriving it needs
+ * the compiler and the source, and a container has neither. A test regenerates
+ * it and fails when the checked-in copy is stale.
  */
+
+interface ResponseArtefact {
+  readonly operations: Readonly<Record<string, { schema?: JsonObject; media?: string }>>
+  readonly components: Readonly<Record<string, JsonObject>>
+}
+
+const RESPONSES = responseSchemas as ResponseArtefact
 
 /** OpenAPI is JSON, and JSON is not something we have a type for beyond this. */
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue }
@@ -301,35 +314,39 @@ function operationObject(
 }
 
 /**
- * The success half, which is where this document is thin.
+ * The success half.
  *
- * The status is honest — reads answer 200, and a write answers 200 on a replay
- * or a dry run and 201 otherwise, which is `handle`'s actual behaviour — but
- * the body has no schema, because nothing validates one on the way out yet.
- * Saying `application/json` and stopping is the true statement.
+ * The status is `handle`'s actual behaviour: a read answers 200, and a write
+ * answers 200 on a replay or a dry run and 201 otherwise. The body is the
+ * handler's return type — the same shape for both, because a replayed write
+ * returns what the first one did.
+ *
+ * A route that answers with bytes says so with its media type and nothing
+ * else. There is no schema for a PDF, and pretending otherwise by describing
+ * it as a base64 string would be a document a client generator acts on.
  */
 function successResponse(binding: RouteBinding): JsonObject {
   const operation = getOperation(binding.operationId)
-  const description = 'The request succeeded. The body is not yet described — see ADR 0043.'
-  const content = { 'application/json': {} }
+  const described = RESPONSES.operations[binding.operationId]
+
+  const content: JsonObject =
+    described?.media !== undefined
+      ? { [described.media]: { schema: { type: 'string', format: 'binary' } } }
+      : described?.schema !== undefined
+        ? { 'application/json': { schema: described.schema } }
+        : // Unreachable: the generator refuses to produce an artefact with a
+          // gap in it, and a test compares the artefact to the manifest.
+          { 'application/json': {} }
 
   if (operation?.kind === 'write' && binding.method === 'POST') {
     return {
-      '200': { description: `Replayed, or a dry run. ${description}`, content },
-      '201': { description: `Created. ${description}`, content },
+      '200': { description: 'Replayed, or a dry run.', content },
+      '201': { description: 'Created.', content },
     }
   }
-  return { '200': { description, content } }
+  return { '200': { description: 'The request succeeded.', content } }
 }
 
-/**
- * How many success responses in a document carry no schema. The ratchet.
- *
- * Counted from the generated document rather than from the manifest, so it
- * stays honest however the schemas eventually arrive. `test/openapi.test.ts`
- * holds it as a ceiling: it may fall, and the day it reaches zero the sentence
- * in `info.description` admitting the gap has to go with it.
- */
 export function undocumentedResponses(document: JsonObject): number {
   let count = 0
   for (const methods of Object.values(asObject(document['paths']) ?? {})) {
@@ -337,8 +354,10 @@ export function undocumentedResponses(document: JsonObject): number {
       const responses = asObject(asObject(operation)?.['responses'])
       for (const [status, response] of Object.entries(responses ?? {})) {
         if (!status.startsWith('2')) continue
-        const json = asObject(asObject(asObject(response)?.['content'])?.['application/json'])
-        if (json !== undefined && !('schema' in json)) count += 1
+        for (const body of Object.values(asObject(asObject(response)?.['content']) ?? {})) {
+          const described = asObject(body)
+          if (described !== undefined && !('schema' in described)) count += 1
+        }
       }
     }
   }
@@ -355,7 +374,10 @@ export function openApiJson(document: JsonObject): string {
 }
 
 export function buildOpenApiDocument(options: DocumentOptions): JsonObject {
-  const components: Record<string, JsonValue> = { Problem: PROBLEM_SCHEMA }
+  // The named types the response schemas reference — `AccountType`, `TaxRole`,
+  // `JsonValue` and the rest — come along with them. Request schemas add
+  // theirs as they are converted.
+  const components: Record<string, JsonValue> = { Problem: PROBLEM_SCHEMA, ...RESPONSES.components }
   const paths: Record<string, JsonObject> = {}
 
   // Sorted, so that the document checked into the repository changes only when
@@ -425,8 +447,9 @@ export function buildOpenApiDocument(options: DocumentOptions): JsonObject {
 }
 
 const DESCRIPTION = [
-  'Generated from the route manifest, the operation registry and the Zod schemas the',
-  'routes validate against — never hand-written. See ADR 0043.',
+  'Generated from the route manifest, the operation registry, the Zod schemas the',
+  "routes validate against and the handlers' own return types — never hand-written.",
+  'See ADR 0043 and ADR 0044.',
   '',
   '**Money** crosses this boundary as a string of unsigned integer minor units, never',
   'a number: `"124950"` is €1249,50. A float cannot hold a cent exactly and a ledger',
@@ -441,7 +464,8 @@ const DESCRIPTION = [
   '**Errors** are RFC 9457 problem documents with a `violations` array carrying the',
   "domain's own codes. `400 Bad Request` is not an API.",
   '',
-  '**Success bodies are not described yet.** The handlers return plain objects with',
-  'no schema to generate one from, and inventing one here would be the',
-  'hand-maintained second source of truth this document exists to avoid.',
+  "**Response bodies** are the handlers' own inferred return types, read out of the",
+  'TypeScript program rather than described alongside it. A field that changes shape',
+  'changes here in the same commit. Endpoints that answer with bytes — a PDF, a UBL',
+  'invoice, a pain.001 — give a media type and no schema.',
 ].join('\n')

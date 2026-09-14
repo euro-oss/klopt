@@ -14,10 +14,10 @@ document is checked in at [`openapi.json`](openapi.json), so a change to
 anything promised below arrives as a diff in a pull request rather than as a
 surprise in somebody's client.
 
-It is generated — from the route manifest, the operation registry and the Zod
-schemas the routes validate against — and a test refuses a stale copy. Nothing
-in it is written twice, which is the only reason it can be trusted. See ADR
-0043 for what it does and does not yet describe.
+It is generated — from the route manifest, the operation registry, the Zod
+schemas the routes validate against and the handlers' own inferred return
+types — and a test refuses a stale copy. Nothing in it is written twice, which
+is the only reason it can be trusted. See ADR 0043 and ADR 0044.
 
 ## What is public
 
@@ -43,7 +43,9 @@ that is a bug worth reporting.
 
 - **A route will not be removed**, and its path will not change.
 - **A field will not be removed from a response**, and its type will not
-  change. Fields are added; a consumer must ignore ones it does not know.
+  change. Fields are added; a consumer must ignore ones it does not know. This
+  one is visible: response schemas are the handlers' return types, so removing
+  a field shows up as a red line in `openapi.json` in the same commit.
 - **A required request field will not be added**, and no existing optional
   field becomes required.
 - **An error code will not be repurposed.** `validation_failed` will always
@@ -116,7 +118,9 @@ what maintainers will do. Where it is the first, the test is named:
 | The document describes the real schemas    | `apps/web/test/contract.test.ts`        |
 | The document is valid OpenAPI 3.1          | `apps/web/test/openapi.test.ts`         |
 | It accepts exactly what the API accepts    | `apps/web/test/openapi.test.ts`         |
-| The checked-in copy is current             | `apps/web/test/openapi.test.ts`         |
+| Every response body is described           | `apps/web/test/openapi.test.ts`         |
+| Responses match the handlers as they are   | `apps/web/test/openapi.test.ts`         |
+| The checked-in copies are current          | `apps/web/test/openapi.test.ts`         |
 | Events survive only committed changes      | `apps/web/test/events.test.ts`          |
 | The stream resumes without gaps or repeats | `apps/web/test/events.test.ts`          |
 | Permissions do not widen by role           | `packages/core/test/auth/roles.test.ts` |

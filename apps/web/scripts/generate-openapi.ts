@@ -1,23 +1,40 @@
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buildOpenApiDocument, openApiJson } from '../src/api/openapi.js'
+import { buildResponseSchemas, RESPONSES_PATH } from './build-response-schemas.js'
 
 /**
- * Writes `docs/openapi.json`.
+ * Writes the two generated files, in the order they depend on each other.
  *
- * The document is served live at `/api/v1/openapi.json`, so this file is not
- * how anybody consumes it. It is checked in so that a change to the public
- * contract shows up as a diff in review — which is what makes the promise in
- * `docs/api-stability.md` something a reviewer can hold you to rather than
- * something you meant. `test/openapi.test.ts` fails when it is stale.
+ * 1. `src/api/response-schemas.generated.json` — every handler's return type,
+ *    read out of the TypeScript program.
+ * 2. `docs/openapi.json` — the whole document, which imports the first.
  *
- * No `servers` and a fixed version, because the checked-in artefact describes
- * the API and not one deployment of it.
+ * `openapi.ts` is imported dynamically, after the first file is written,
+ * because a static import would read the previous copy — or, on a fresh
+ * checkout where it does not exist yet, fail to resolve at all.
+ *
+ * Both are checked in and both are compared by `test/openapi.test.ts`, so a
+ * change to what a handler returns arrives as a diff in review. That is what
+ * makes the promise in `docs/api-stability.md` — "a field will not be removed
+ * from a response" — something a reviewer can see rather than something a
+ * maintainer meant.
+ *
+ * Run it with `pnpm --filter @klopt/web run openapi`.
  */
 
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
-const target = join(repoRoot, 'docs', 'openapi.json')
+const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+const REPO_ROOT = join(WEB_ROOT, '..', '..')
 
+const responses = buildResponseSchemas()
+writeFileSync(join(WEB_ROOT, RESPONSES_PATH), `${JSON.stringify(responses, null, 2)}\n`)
+console.log(
+  `wrote ${RESPONSES_PATH}: ${String(Object.keys(responses.operations).length)} operations, ` +
+    `${String(Object.keys(responses.components).length)} named types`,
+)
+
+const { buildOpenApiDocument, openApiJson } = await import('../src/api/openapi.js')
+
+const target = join(REPO_ROOT, 'docs', 'openapi.json')
 writeFileSync(target, openApiJson(buildOpenApiDocument({ version: '0.0.0' })))
 console.log(`wrote ${target}`)

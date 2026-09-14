@@ -8,6 +8,11 @@ import { listOperations } from '@klopt/core'
 import { routeManifest } from '../src/api/manifest.js'
 import * as schemas from '../src/api/schemas.js'
 import {
+  BINARY_RESPONSES,
+  RESPONSES_PATH,
+  buildResponseSchemas,
+} from '../scripts/build-response-schemas.js'
+import {
   buildOpenApiDocument,
   openApiJson,
   pathParameters,
@@ -73,6 +78,23 @@ function required(schema: JsonValue | undefined): readonly string[] {
   if (Array.isArray(schema)) return []
   const list = schema['required']
   return Array.isArray(list) ? list.filter((item): item is string => typeof item === 'string') : []
+}
+
+/** A JSON value narrowed to an object. `typeof null` is 'object'. */
+function asObject(value: JsonValue | undefined): Record<string, JsonValue> | undefined {
+  return value !== undefined && value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value
+    : undefined
+}
+
+function contentOf(operation: Operation, status = '200'): Record<string, JsonValue> {
+  const responses = operation.responses as unknown as Record<string, JsonValue>
+  return asObject(asObject(responses[status])?.['content']) ?? {}
+}
+
+function schemaOfResponse(response: unknown): Record<string, JsonValue> | undefined {
+  const content = asObject(asObject(response as JsonValue)?.['content'])
+  return asObject(asObject(content?.['application/json'])?.['schema'])
 }
 
 function componentsOf(section: 'schemas' | 'responses'): Record<string, JsonValue> {
@@ -233,7 +255,25 @@ describe('the errors it admits to', () => {
   })
 })
 
-describe('the checked-in copy is the current one', () => {
+describe('the checked-in copies are the current ones', () => {
+  /**
+   * Re-derives every response schema from the TypeScript program.
+   *
+   * Six seconds, which is the slowest thing in this suite and worth it: this
+   * is the test that makes "the document cannot drift from the handlers" a
+   * fact rather than an intention. Change what a handler returns and forget to
+   * regenerate, and the build says so.
+   */
+  it('has response schemas matching the handlers as they are now', () => {
+    const derived = buildResponseSchemas()
+    const onDisk = JSON.parse(
+      readFileSync(join(REPO, 'apps', 'web', RESPONSES_PATH), 'utf8'),
+    ) as unknown
+
+    // If this fails, run `pnpm --filter @klopt/web run openapi`.
+    expect(onDisk).toEqual(derived)
+  }, 60_000)
+
   it('matches what the generator produces', () => {
     const onDisk = readFileSync(join(REPO, 'docs', 'openapi.json'), 'utf8')
     // If this fails, run `pnpm --filter @klopt/web run openapi`. It failing is
@@ -250,31 +290,84 @@ describe('the checked-in copy is the current one', () => {
   })
 })
 
-describe('the response side, and the ratchet on it', () => {
-  /**
-   * The number of success responses with no schema.
-   *
-   * A ceiling, not an assertion of correctness. It may fall and it may not
-   * rise; the day it reaches zero, the paragraph in `info.description`
-   * admitting the gap has to go with it, and this test with it.
-   */
-  const CEILING = 158
-
-  it('describes no more success bodies than it did, and no fewer', () => {
-    expect(undocumentedResponses(document)).toBeLessThanOrEqual(CEILING)
+describe('the response side', () => {
+  it('gives every success response a schema', () => {
+    // Zero, not a ceiling. It was 158 before the schemas were derived from the
+    // handlers' return types; the assertion stays because a route added in a
+    // shape the generator cannot read would show up here.
+    expect(undocumentedResponses(document)).toBe(0)
   })
 
-  it('says so in the document rather than only here', () => {
-    const info = document['info'] as Record<string, JsonValue>
-    expect(info['description']).toContain('Success bodies are not described yet')
+  it('describes a body with the fields the handler actually returns', () => {
+    const schema = at('/api/v1/journal-entries/{entryId}', 'get').responses['200']
+    const body = schemaOfResponse(schema)
+    const entry = asObject(asObject(body?.['properties'])?.['entry'])
+
+    expect(Object.keys(asObject(entry?.['properties']) ?? {})).toEqual(
+      expect.arrayContaining(['id', 'journalCode', 'bookingDate', 'description', 'lines']),
+    )
+    // Money out is a string, the same as money in. If a handler ever returns a
+    // bigint the generator refuses outright, so this is the weaker restatement
+    // of that: whatever it returns, it is not a number.
+    const lines = asObject(asObject(entry?.['properties'])?.['lines'])
+    expect(JSON.stringify(asObject(lines?.['items'])?.['properties'])).toContain(
+      '"debit":{"type":"string"}',
+    )
   })
 
-  it('still gives every operation a success status', () => {
-    for (const binding of routeManifest) {
-      const responses = at(`/api/v1${binding.path}`, binding.method.toLowerCase()).responses
-      const success = Object.keys(responses).filter((status) => status.startsWith('2'))
-      expect(success.length, binding.operationId).toBeGreaterThan(0)
+  it('answers bytes with a media type and no JSON schema', () => {
+    for (const [operationId, media] of Object.entries(BINARY_RESPONSES)) {
+      const binding = routeManifest.find((item) => item.operationId === operationId)
+      expect(binding, operationId).toBeDefined()
+      const content = contentOf(at(`/api/v1${binding!.path}`, binding!.method.toLowerCase()))
+      expect(Object.keys(content), operationId).toEqual([media])
+      expect(content[media], operationId).toEqual({ schema: { type: 'string', format: 'binary' } })
     }
+  })
+
+  it('has an entry for every route that answers with bytes, and no stale ones', () => {
+    // The list is declared, because two of those routes take their content
+    // type from the document they serve. This is what keeps it honest in both
+    // directions.
+    const declared = new Set(Object.keys(BINARY_RESPONSES))
+    for (const operationId of declared) {
+      expect(routeManifest.some((item) => item.operationId === operationId)).toBe(true)
+    }
+    const json = routeManifest.filter((item) => !declared.has(item.operationId))
+    for (const binding of json) {
+      const content = contentOf(at(`/api/v1${binding.path}`, binding.method.toLowerCase()))
+      expect(Object.keys(content), binding.operationId).toEqual(['application/json'])
+    }
+  })
+
+  it('gives a write the same body on 200 and 201', () => {
+    // A replayed write returns what the first one returned. Describing them
+    // differently would send a client looking for a difference that is not
+    // there.
+    const post = at('/api/v1/journal-entries', 'post')
+    expect(JSON.stringify(contentOf(post, '200'))).toBe(JSON.stringify(contentOf(post, '201')))
+  })
+
+  it('names the types the domain names, rather than repeating their literals', () => {
+    const schemas = componentsOf('schemas')
+    expect(Object.keys(schemas)).toEqual(expect.arrayContaining(['AccountType', 'TaxRole']))
+    expect(schemas['AccountType']).toEqual({
+      enum: ['asset', 'liability', 'equity', 'revenue', 'expense'],
+    })
+  })
+
+  it('resolves the recursive one into a reference rather than giving up', () => {
+    // The audit log's before/after are arbitrary JSON. A converter without
+    // cycle detection either loops forever or emits `{}`.
+    const jsonValue = JSON.stringify(componentsOf('schemas')['JsonValue'])
+    expect(jsonValue).toContain('#/components/schemas/JsonValue')
+    expect(jsonValue).not.toBe('{}')
+  })
+
+  it('says in the document that the responses are the return types', () => {
+    const info = document['info'] as Record<string, JsonValue>
+    expect(info['description']).toContain('inferred return types')
+    expect(info['description']).not.toContain('not described yet')
   })
 })
 
