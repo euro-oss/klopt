@@ -4,6 +4,7 @@ export {
   retainUntil,
   retentionState,
   summariseRetention,
+  RETENTION_CLASSES,
   type RetentionClass,
   type RetentionState,
   type RetentionStateCode,

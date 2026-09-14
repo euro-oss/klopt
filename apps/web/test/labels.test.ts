@@ -1,0 +1,156 @@
+import { describe, expect, it } from 'vitest'
+import {
+  PURCHASE_INVOICE_STATUSES,
+  RETENTION_CLASSES,
+  STATEMENT_SECTIONS,
+  VAT_PERIOD_KINDS,
+  DEFAULT_DUNNING_SCHEDULE,
+} from '@klopt/core'
+import { en } from '../src/i18n/en.js'
+import { nl } from '../src/i18n/nl.js'
+import { translate } from '../src/i18n/locale.js'
+import {
+  DUNNING_TONES,
+  dunningStageLabel,
+  purchaseStatusLabel,
+  retentionClassLabel,
+  statementSectionLabel,
+  vatPeriodLabel,
+} from '../src/i18n/labels.js'
+import type { MessageKey } from '../src/i18n/nl.js'
+
+/**
+ * Every code the server sends has a label, in both languages (ADR 0045).
+ *
+ * The enumerations are imported from `@klopt/core` rather than listed here, so
+ * adding a purchase status or a retention class fails this test until it has
+ * been translated. Listing them twice would make the test agree with itself:
+ * somebody adds `on_hold`, adds it to a local copy of the list, and the
+ * missing translation is never noticed until a screen shows a key.
+ */
+
+const LOCALES = [
+  ['nl', nl],
+  ['en', en],
+] as const
+
+/** `t` for one locale, which is what the label helpers take. */
+const translator =
+  (locale: 'nl' | 'en') => (key: MessageKey, values?: Record<string, string | number>) =>
+    translate(locale, key, values)
+
+/**
+ * A translation that came out as its own message key never got written.
+ *
+ * Compared against the *message key*, not the code: `label.purchaseStatus.draft`
+ * is legitimately "draft" in English, and comparing against the code would call
+ * that a failure.
+ */
+function expectTranslated(locale: string, key: MessageKey, produced: string): void {
+  expect(produced, `${locale}: ${key}`).not.toBe(key)
+  expect(produced, `${locale}: ${key}`).not.toBe('')
+  // `{name}` left in the output is the placeholder mechanism telling us a
+  // value was not supplied. Visible on purpose, and a bug here.
+  expect(produced, `${locale}: ${key}`).not.toMatch(/\{[a-zA-Z]+\}/)
+}
+
+describe('every server-sent code has a label', () => {
+  for (const [locale, catalogue] of LOCALES) {
+    const t = translator(locale)
+
+    it(`translates every purchase invoice status in ${locale}`, () => {
+      expect(PURCHASE_INVOICE_STATUSES.length).toBeGreaterThan(0)
+      for (const status of PURCHASE_INVOICE_STATUSES) {
+        expect(catalogue).toHaveProperty(`label.purchaseStatus.${status}`)
+        expectTranslated(locale, `label.purchaseStatus.${status}`, purchaseStatusLabel(t, status))
+      }
+    })
+
+    it(`translates every statement section in ${locale}`, () => {
+      for (const section of STATEMENT_SECTIONS) {
+        expect(catalogue).toHaveProperty(`label.statementSection.${section}`)
+        expectTranslated(
+          locale,
+          `label.statementSection.${section}`,
+          statementSectionLabel(t, section),
+        )
+      }
+    })
+
+    it(`translates every retention class in ${locale}`, () => {
+      for (const retentionClass of RETENTION_CLASSES) {
+        expect(catalogue).toHaveProperty(`label.retentionClass.${retentionClass}`)
+        expectTranslated(
+          locale,
+          `label.retentionClass.${retentionClass}`,
+          retentionClassLabel(t, retentionClass),
+        )
+      }
+    })
+
+    it(`translates every dunning tone in ${locale}`, () => {
+      for (const tone of DUNNING_TONES) {
+        expect(catalogue).toHaveProperty(`label.dunningTone.${tone}`)
+        expectTranslated(locale, `label.dunningTone.${tone}`, dunningStageLabel(t, tone))
+      }
+    })
+
+    it(`translates every VAT period kind in ${locale}`, () => {
+      for (const kind of VAT_PERIOD_KINDS) {
+        expect(catalogue).toHaveProperty(`label.vatPeriod.${kind}`)
+      }
+    })
+  }
+
+  it('covers every tone the shipped dunning schedule uses', () => {
+    // The other direction: a fourth stage with a new tone would otherwise get
+    // a label nobody wrote, and the test above would still pass because it
+    // only walks the tones this file knows about.
+    for (const stage of DEFAULT_DUNNING_SCHEDULE) {
+      expect(DUNNING_TONES, `stage ${String(stage.stage)}`).toContain(stage.tone)
+    }
+  })
+})
+
+describe('the VAT period label, which is built rather than looked up', () => {
+  const nlT = translator('nl')
+  const enT = translator('en')
+
+  it('names the month in the reader’s language, from Intl rather than a catalogue', () => {
+    expect(vatPeriodLabel(nlT, 'nl-NL', 'monthly', '2026-03')).toBe('maart 2026')
+    expect(vatPeriodLabel(enT, 'en-GB', 'monthly', '2026-03')).toBe('March 2026')
+  })
+
+  it('says a quarter the way each language says it', () => {
+    // Dutch bookkeepers say "1e kwartaal"; English speakers say "Q1". The
+    // difference is the reason this is a translated template and not a
+    // formatted number.
+    expect(vatPeriodLabel(nlT, 'nl-NL', 'quarterly', '2026-Q1')).toBe('1e kwartaal 2026')
+    expect(vatPeriodLabel(enT, 'en-GB', 'quarterly', '2026-Q1')).toBe('Q1 2026')
+  })
+
+  it('handles a year', () => {
+    expect(vatPeriodLabel(nlT, 'nl-NL', 'annual', '2026')).toBe('Jaar 2026')
+    expect(vatPeriodLabel(enT, 'en-GB', 'annual', '2026')).toBe('Year 2026')
+  })
+
+  it('does not lose the year when the code is malformed', () => {
+    // A period code comes out of a URL. Showing "2026" beats showing nothing,
+    // and beats throwing on a page somebody linked to.
+    expect(vatPeriodLabel(enT, 'en-GB', 'monthly', '2026-xx')).toContain('2026')
+  })
+})
+
+describe('what stays Dutch, deliberately', () => {
+  it('has no translation for a rubriek name', () => {
+    /**
+     * "Leveringen/diensten belast met hoog tarief" is the text printed next to
+     * box 1a on the Belastingdienst's form. A bookkeeper filing a Dutch return
+     * reads our screen and the form side by side; translating it would mean
+     * the two no longer match, and the words on the form are the ones that
+     * matter. See ADR 0045.
+     */
+    const keys = Object.keys(nl).filter((key) => key.startsWith('label.rubriek'))
+    expect(keys).toEqual([])
+  })
+})

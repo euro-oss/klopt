@@ -31,8 +31,27 @@ export interface StatementLine {
   readonly amount: bigint
 }
 
+/**
+ * The sections a statement can have.
+ *
+ * `key` is what a client translates from; `title` is Dutch and stays on the
+ * response because removing a field is a breaking change and because an
+ * integrator with no message catalogue still needs something to print.
+ */
+export type StatementSectionKey = 'assets' | 'liabilities' | 'equity' | 'revenue' | 'expenses'
+
+const EVERY_SECTION: Readonly<Record<StatementSectionKey, true>> = {
+  assets: true,
+  liabilities: true,
+  equity: true,
+  revenue: true,
+  expenses: true,
+}
+
+export const STATEMENT_SECTIONS = Object.keys(EVERY_SECTION) as readonly StatementSectionKey[]
+
 export interface StatementSection {
-  readonly key: string
+  readonly key: StatementSectionKey
   readonly title: string
   readonly lines: readonly StatementLine[]
   readonly total: bigint
@@ -93,7 +112,11 @@ function toLine(row: BalanceRow, signed: bigint, presentAsDebit: boolean): State
   }
 }
 
-function section(key: string, title: string, lines: readonly StatementLine[]): StatementSection {
+function section(
+  key: StatementSectionKey,
+  title: string,
+  lines: readonly StatementLine[],
+): StatementSection {
   const sorted = [...lines].sort((a, b) =>
     a.accountNumber.localeCompare(b.accountNumber, 'en', { numeric: true }),
   )

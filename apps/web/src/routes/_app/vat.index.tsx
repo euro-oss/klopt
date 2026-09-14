@@ -1,4 +1,6 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { vatPeriodLabel } from '~/i18n/labels'
+import type { VatPeriodKind } from '@klopt/core'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
@@ -31,6 +33,7 @@ export const Route = createFileRoute('/_app/vat/')({
 
 interface Row {
   code: string
+  kind: VatPeriodKind
   label: string
   from: string
   to: string
@@ -51,7 +54,7 @@ function VatPeriods() {
   const { periods, year } = Route.useLoaderData()
   const navigate = useNavigate()
   const hydrated = useHydrated()
-  const { t } = useT()
+  const { t, tag } = useT()
 
   /** An unrecognised filing frequency is shown raw rather than as a blank. */
   const kindOf = (kind: string) => {
@@ -85,7 +88,7 @@ function VatPeriods() {
           params={{ period: row.code }}
           className="underline-offset-2 hover:underline"
         >
-          {row.label}
+          {vatPeriodLabel(t, tag, row.kind, row.code)}
         </Link>
       ),
     },

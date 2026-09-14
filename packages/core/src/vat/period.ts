@@ -13,6 +13,21 @@ import { violation, LedgerError } from '../errors.js'
 
 export type VatPeriodKind = 'monthly' | 'quarterly' | 'annual'
 
+/**
+ * The list, from a map the compiler keeps exhaustive.
+ *
+ * A bare array with the type derived from it would lose the alias — an indexed
+ * access is not a named type — and the OpenAPI document would print three
+ * string literals wherever it now says `VatPeriodKind`.
+ */
+const EVERY_KIND: Readonly<Record<VatPeriodKind, true>> = {
+  monthly: true,
+  quarterly: true,
+  annual: true,
+}
+
+export const VAT_PERIOD_KINDS = Object.keys(EVERY_KIND) as readonly VatPeriodKind[]
+
 export interface VatPeriod {
   readonly kind: VatPeriodKind
   /** `2026-Q1`, `2026-03`, `2026`. Stable enough to appear in a URL. */

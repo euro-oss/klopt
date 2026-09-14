@@ -95,3 +95,54 @@ test('the choice survives a new tab on the same browser', async ({ browser }) =>
 
   await context.close()
 })
+
+/**
+ * The labels the *server* computes, which used to be Dutch whatever the reader
+ * asked for (ADR 0045).
+ *
+ * A screen full of translated chrome with "Activa" and "in geschil" in the
+ * middle of it is worse than one that is honestly all Dutch: it reads as a
+ * translation somebody abandoned halfway. Every one of these arrives as a code
+ * plus a Dutch sentence, and the page now translates the code.
+ */
+test('a server-computed label follows the reader, not the server', async ({ browser }) => {
+  // A Dutch browser, switched to English through the picker — the same path
+  // the tests above take, and the one that reaches `signIn`'s Dutch labels.
+  const context = await browser.newContext({ locale: 'nl-NL' })
+  const page = await context.newPage()
+  await anAdministration(page)
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await chooseOption(page, 'Taal / Language', 'English')
+  await expect(page.getByRole('link', { name: 'Journal entries' })).toBeVisible()
+
+  await page.goto('/reports/balance-sheet')
+  // The section titles come off `getBalanceSheet` as `title: 'Activa'`, with
+  // `key: 'assets'` beside them. The page reads the key.
+  await expect(page.getByRole('heading', { name: 'Assets' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Equity' })).toBeVisible()
+  await expect(page.getByText('Activa')).toHaveCount(0)
+
+  await page.goto('/vat')
+  // "1e kwartaal 2026" in Dutch, "Q1 2026" in English — a different phrasing
+  // rather than a translated word, which is why it is a template and not a
+  // formatted number.
+  await expect(page.getByRole('link', { name: /^Q[1-4] \d{4}$/ }).first()).toBeVisible()
+  await expect(page.getByText(/kwartaal/)).toHaveCount(0)
+
+  await context.close()
+})
+
+test('and the same screens stay Dutch for a Dutch reader', async ({ browser }) => {
+  const context = await browser.newContext({ locale: 'nl-NL' })
+  const page = await context.newPage()
+  await anAdministration(page)
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+
+  await page.goto('/reports/balance-sheet')
+  await expect(page.getByRole('heading', { name: 'Activa' })).toBeVisible()
+
+  await page.goto('/vat')
+  await expect(page.getByRole('link', { name: /kwartaal/ }).first()).toBeVisible()
+
+  await context.close()
+})

@@ -1269,6 +1269,31 @@ export const nl = {
   'webhooks.attemptNoReply': 'geen antwoord',
   'webhooks.noEncryptionKey':
     'Er is geen KLOPT_ENCRYPTION_KEY ingesteld, dus een ondertekeningsgeheim kan niet versleuteld worden bewaard. Zet die eerst.',
+
+  // Labels the server computes, translated here from the code it sends
+  // alongside them. See ADR 0045.
+  'label.purchaseStatus.draft': 'concept',
+  'label.purchaseStatus.booked': 'geboekt',
+  'label.purchaseStatus.approved': 'goedgekeurd',
+  'label.purchaseStatus.disputed': 'in geschil',
+  'label.purchaseStatus.cancelled': 'vervallen',
+
+  'label.dunningTone.reminder': 'Betalingsherinnering',
+  'label.dunningTone.demand': 'Tweede herinnering',
+  'label.dunningTone.final': 'Laatste aanmaning',
+
+  'label.statementSection.assets': 'Activa',
+  'label.statementSection.liabilities': 'Schulden',
+  'label.statementSection.equity': 'Eigen vermogen',
+  'label.statementSection.revenue': 'Opbrengsten',
+  'label.statementSection.expenses': 'Kosten',
+
+  'label.retentionClass.standard': 'Zeven jaar',
+  'label.retentionClass.immovable_property': 'Tien jaar (onroerend goed)',
+
+  'label.vatPeriod.annual': 'Jaar {year}',
+  'label.vatPeriod.quarterly': '{quarter}e kwartaal {year}',
+  'label.vatPeriod.monthly': '{month} {year}',
 } as const
 
 export type MessageKey = keyof typeof nl

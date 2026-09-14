@@ -1,4 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
+import { vatPeriodLabel } from '~/i18n/labels'
 import { Fragment, useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
@@ -74,7 +75,7 @@ function VatReturnScreen() {
   const { aangifte, submissions } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
-  const { t, plural } = useT()
+  const { t, plural, tag } = useT()
 
   /** Anything the tables do not know is shown raw rather than as a blank. */
   const transportOf = (kind: string, fallback = kind) => {
@@ -190,7 +191,9 @@ function VatReturnScreen() {
   return (
     <>
       <PageHeader
-        title={t('vatReturn.titleFor', { period: data.period.label })}
+        title={t('vatReturn.titleFor', {
+          period: vatPeriodLabel(t, tag, data.period.kind, data.period.code),
+        })}
         description={t('vatReturn.intro', {
           from: formatDate(data.period.from),
           to: formatDate(data.period.to),

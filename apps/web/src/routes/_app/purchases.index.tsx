@@ -1,4 +1,6 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { purchaseStatusLabel } from '~/i18n/labels'
+import type { PurchaseInvoiceStatus } from '@klopt/core'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
@@ -36,8 +38,7 @@ export const Route = createFileRoute('/_app/purchases/')({
 
 interface Row {
   id: string
-  status: 'draft' | 'booked' | 'approved' | 'disputed' | 'cancelled'
-  statusLabel: string
+  status: PurchaseInvoiceStatus
   kind: 'invoice' | 'credit_note'
   supplierInvoiceNumber: string
   contactNumber: string
@@ -147,8 +148,8 @@ function PurchaseInvoices() {
           title={row.disputedReason ?? undefined}
         >
           {row.kind === 'credit_note'
-            ? `${t('invoices.kind.creditNote')} · ${row.statusLabel}`
-            : row.statusLabel}
+            ? `${t('invoices.kind.creditNote')} · ${purchaseStatusLabel(t, row.status)}`
+            : purchaseStatusLabel(t, row.status)}
         </span>
       ),
     },

@@ -1,4 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
+import { purchaseStatusLabel } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
@@ -130,7 +131,7 @@ function PurchaseInvoiceScreen() {
     <>
       <PageHeader
         title={`${data.kind === 'credit_note' ? t('invoice.creditNote') : t('purchase.title')} ${data.supplierInvoiceNumber}`}
-        description={`${data.contactNumber} · ${data.contactName} · ${formatDate(data.invoiceDate)} · ${data.statusLabel}`}
+        description={`${data.contactNumber} · ${data.contactName} · ${formatDate(data.invoiceDate)} · ${purchaseStatusLabel(t, data.status)}`}
         actions={
           <div className="flex items-center gap-3">
             {data.status === 'draft' && (

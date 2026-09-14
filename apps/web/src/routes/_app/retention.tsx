@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { retentionClassLabel } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { formatDate } from '~/lib/format'
@@ -292,7 +293,9 @@ function Retention() {
                   <td className="tabular py-1.5 pr-2 text-xs">{row.retentionFiscalYear ?? '—'}</td>
                   <td className="tabular py-1.5 pr-2 text-xs">
                     {row.retainUntil === null ? '—' : formatDate(row.retainUntil)}
-                    <span className="text-muted-foreground block">{row.retentionClassLabel}</span>
+                    <span className="text-muted-foreground block">
+                      {retentionClassLabel(t, row.retentionClass)}
+                    </span>
                   </td>
                   <td className="py-1.5 pr-2 text-xs">
                     <span className={row.state === 'expired' ? 'text-unreconciled' : undefined}>

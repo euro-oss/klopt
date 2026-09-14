@@ -2,6 +2,7 @@ export {
   type PurchaseAction,
   type PurchaseActor,
   type PurchaseInvoiceKind,
+  PURCHASE_INVOICE_STATUSES,
   type PurchaseInvoiceStatus,
   type PurchaseTransition,
   isPayable,

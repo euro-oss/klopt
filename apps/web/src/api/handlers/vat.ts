@@ -157,6 +157,9 @@ export async function handleListVatPeriods(context: RequestContext, query: ListV
           return {
             code: period.code,
             label: period.label,
+            // The kind, so a client can build "1e kwartaal 2026" in its own
+            // language rather than printing ours.
+            kind: period.kind,
             from: period.from,
             to: period.to,
             deadline: vatDeadline(period),

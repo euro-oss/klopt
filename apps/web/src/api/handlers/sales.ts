@@ -965,6 +965,7 @@ export async function handleListDeliveries(context: RequestContext, invoiceId: s
         ...row,
         sentAt: row.sentAt.toISOString(),
         stageLabel: row.dunningStage === null ? null : (stageOf(row.dunningStage)?.label ?? null),
+        tone: row.dunningStage === null ? null : (stageOf(row.dunningStage)?.tone ?? null),
       })),
     },
   }
@@ -1092,6 +1093,10 @@ export async function handleSendDunningReminder(
       number: action.number,
       stage: action.stage.stage,
       stageLabel: action.stage.label,
+      // The tone is what the reminder *is* — a courtesy, a demand, a final
+      // notice — and it is what a client translates from. `stageLabel` stays
+      // because removing a field is a breaking change (docs/api-stability.md).
+      tone: action.stage.tone,
       daysOverdue: action.daysOverdue,
       recipient: receipt.recipient,
       delivered: receipt.delivered,

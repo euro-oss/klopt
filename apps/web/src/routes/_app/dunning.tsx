@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { dunningStageLabel } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
@@ -84,7 +85,7 @@ function Dunning() {
     keys.current.delete(invoiceId)
     setNotice(
       result.data.failure === null
-        ? t('dunning.sent', { stage: result.data.stageLabel, name })
+        ? t('dunning.sent', { stage: dunningStageLabel(t, result.data.tone), name })
         : t('dunning.sendFailed', { name, reason: result.data.failure }),
     )
     await router.invalidate()
@@ -112,7 +113,7 @@ function Dunning() {
         <Stat
           label={t('dunning.schedule')}
           value={schedule.map((stage) => `${String(stage.afterDays)}d`).join(' · ')}
-          hint={schedule.map((stage) => stage.label).join(', ')}
+          hint={schedule.map((stage) => dunningStageLabel(t, stage.tone)).join(', ')}
         />
       </div>
 
@@ -167,7 +168,9 @@ function Dunning() {
                 <td className="py-2 text-right">
                   <Money amount={action.total} />
                 </td>
-                <td className={`py-2 ${TONE_CLASS[action.tone] ?? ''}`}>{action.stageLabel}</td>
+                <td className={`py-2 ${TONE_CLASS[action.tone] ?? ''}`}>
+                  {dunningStageLabel(t, action.tone)}
+                </td>
                 <td className="py-2 text-right">
                   <button
                     type="button"

@@ -79,6 +79,19 @@ export function purchaseStatusLabel(status: PurchaseInvoiceStatus): string {
   return DUTCH[status]
 }
 
+/**
+ * The list, not just the type.
+ *
+ * A type is invisible at runtime, and the test that every status has a label
+ * in both languages needs something to walk. Taken from `DUTCH`, which is a
+ * `Record<PurchaseInvoiceStatus, string>` and therefore already exhaustive by
+ * the compiler's insistence — a new status does not compile until it is in
+ * there. Writing the array out and deriving the type from it would work too,
+ * and would cost the name: an indexed access loses the alias, and the OpenAPI
+ * document would say five string literals instead of `PurchaseInvoiceStatus`.
+ */
+export const PURCHASE_INVOICE_STATUSES = Object.keys(DUTCH) as readonly PurchaseInvoiceStatus[]
+
 export interface PurchaseActor {
   /** The actor id. Compared, not resolved. */
   readonly userId: string

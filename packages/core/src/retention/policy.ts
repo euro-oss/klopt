@@ -45,6 +45,9 @@ export const RETENTION_CLASS_LABEL: Readonly<Record<RetentionClass, string>> = {
   immovable_property: 'Ten years (onroerend goed)',
 }
 
+/** The list, taken from a map the compiler already keeps exhaustive. */
+export const RETENTION_CLASSES = Object.keys(RETENTION_YEARS) as readonly RetentionClass[]
+
 /**
  * The last day this has to be kept.
  *

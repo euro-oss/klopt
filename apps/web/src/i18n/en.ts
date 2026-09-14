@@ -1246,4 +1246,29 @@ export const en: Record<MessageKey, string> = {
   'webhooks.attemptNoReply': 'no answer',
   'webhooks.noEncryptionKey':
     'No KLOPT_ENCRYPTION_KEY is set, so a signing secret cannot be stored encrypted. Set one first.',
+
+  // Labels the server computes, translated here from the code it sends
+  // alongside them. See ADR 0045.
+  'label.purchaseStatus.draft': 'draft',
+  'label.purchaseStatus.booked': 'booked',
+  'label.purchaseStatus.approved': 'approved',
+  'label.purchaseStatus.disputed': 'disputed',
+  'label.purchaseStatus.cancelled': 'cancelled',
+
+  'label.dunningTone.reminder': 'Payment reminder',
+  'label.dunningTone.demand': 'Second reminder',
+  'label.dunningTone.final': 'Final notice',
+
+  'label.statementSection.assets': 'Assets',
+  'label.statementSection.liabilities': 'Liabilities',
+  'label.statementSection.equity': 'Equity',
+  'label.statementSection.revenue': 'Revenue',
+  'label.statementSection.expenses': 'Expenses',
+
+  'label.retentionClass.standard': 'Seven years',
+  'label.retentionClass.immovable_property': 'Ten years (immovable property)',
+
+  'label.vatPeriod.annual': 'Year {year}',
+  'label.vatPeriod.quarterly': 'Q{quarter} {year}',
+  'label.vatPeriod.monthly': '{month} {year}',
 }

@@ -1,4 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { statementSectionLabel } from '~/i18n/labels'
+import type { StatementSectionKey } from '@klopt/core'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
@@ -19,15 +21,19 @@ interface Line {
 }
 
 interface Section {
+  key: StatementSectionKey
   title: string
   total: string
   lines: Line[]
 }
 
 function Side({ section, extra }: { section: Section; extra?: { label: string; amount: string } }) {
+  const { t } = useT()
   return (
     <div>
-      <h2 className="border-border mb-2 border-b pb-1 font-medium">{section.title}</h2>
+      <h2 className="border-border mb-2 border-b pb-1 font-medium">
+        {statementSectionLabel(t, section.key)}
+      </h2>
       <table className="w-full text-sm">
         <tbody>
           {section.lines.map((line) => (

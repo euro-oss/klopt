@@ -533,6 +533,15 @@
           "document_undeleted"
         ]
       },
+      "StatementSectionKey": {
+        "enum": [
+          "equity",
+          "revenue",
+          "assets",
+          "liabilities",
+          "expenses"
+        ]
+      },
       "TaxRole": {
         "enum": [
           "base",
@@ -15021,7 +15030,7 @@
                       "type": "object",
                       "properties": {
                         "key": {
-                          "type": "string"
+                          "$ref": "#/components/schemas/StatementSectionKey"
                         },
                         "title": {
                           "type": "string"
@@ -15078,7 +15087,7 @@
                       "type": "object",
                       "properties": {
                         "key": {
-                          "type": "string"
+                          "$ref": "#/components/schemas/StatementSectionKey"
                         },
                         "title": {
                           "type": "string"
@@ -15135,7 +15144,7 @@
                       "type": "object",
                       "properties": {
                         "key": {
-                          "type": "string"
+                          "$ref": "#/components/schemas/StatementSectionKey"
                         },
                         "title": {
                           "type": "string"
@@ -15705,7 +15714,7 @@
                       "type": "object",
                       "properties": {
                         "key": {
-                          "type": "string"
+                          "$ref": "#/components/schemas/StatementSectionKey"
                         },
                         "title": {
                           "type": "string"
@@ -15762,7 +15771,7 @@
                       "type": "object",
                       "properties": {
                         "key": {
-                          "type": "string"
+                          "$ref": "#/components/schemas/StatementSectionKey"
                         },
                         "title": {
                           "type": "string"
@@ -17968,6 +17977,14 @@
                               "null"
                             ]
                           },
+                          "tone": {
+                            "enum": [
+                              "reminder",
+                              "demand",
+                              "final",
+                              null
+                            ]
+                          },
                           "id": {
                             "type": "string"
                           },
@@ -18014,6 +18031,7 @@
                         "required": [
                           "sentAt",
                           "stageLabel",
+                          "tone",
                           "id",
                           "channel",
                           "recipient",
@@ -18489,6 +18507,13 @@
                     "stageLabel": {
                       "type": "string"
                     },
+                    "tone": {
+                      "enum": [
+                        "reminder",
+                        "demand",
+                        "final"
+                      ]
+                    },
                     "daysOverdue": {
                       "type": "number"
                     },
@@ -18519,6 +18544,7 @@
                     "number",
                     "stage",
                     "stageLabel",
+                    "tone",
                     "daysOverdue",
                     "recipient",
                     "delivered",
@@ -18549,6 +18575,13 @@
                     "stageLabel": {
                       "type": "string"
                     },
+                    "tone": {
+                      "enum": [
+                        "reminder",
+                        "demand",
+                        "final"
+                      ]
+                    },
                     "daysOverdue": {
                       "type": "number"
                     },
@@ -18579,6 +18612,7 @@
                     "number",
                     "stage",
                     "stageLabel",
+                    "tone",
                     "daysOverdue",
                     "recipient",
                     "delivered",
@@ -21534,6 +21568,9 @@
                           "label": {
                             "type": "string"
                           },
+                          "kind": {
+                            "$ref": "#/components/schemas/VatPeriodKind"
+                          },
                           "from": {
                             "type": "string"
                           },
@@ -21565,6 +21602,7 @@
                         "required": [
                           "code",
                           "label",
+                          "kind",
                           "from",
                           "to",
                           "deadline",
