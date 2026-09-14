@@ -4,6 +4,7 @@ import { check } from './check.js'
 import { events, webhooksReplay } from './webhooks.js'
 import { exportAuditFile } from './export.js'
 import { login, logout } from './login.js'
+import { serve } from './serve.js'
 
 /**
  * The command list, which is spec 10.4's list.
@@ -22,9 +23,12 @@ import { login, logout } from './login.js'
  *   - the reconciliation check → `check`
  *
  * Plus `events`, because the question that precedes replaying a webhook is
- * always "what did we actually send".
+ * always "what did we actually send", and `serve` from spec 10.1 — the
+ * deployment mode rather than one of 10.4's six, but the same binary is the
+ * right place for it.
  */
 export const COMMANDS: readonly Command[] = [
+  serve,
   login,
   logout,
   check,

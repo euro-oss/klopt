@@ -63,6 +63,8 @@ export const NOT_DOMAIN_OPERATIONS: Readonly<Record<string, string>> = {
   login: 'better-auth’s own endpoints, which are not under /api/v1 and are not versioned by us.',
   logout: 'Deletes a local file. It reaches nothing at all.',
   help: 'Prints this list.',
+  serve:
+    'Starts the API and the worker (spec 10.1). Process management, not domain access — it spawns two entry points and reaches nothing itself.',
 }
 
 export function optionOf(args: Args, name: string): string | undefined {

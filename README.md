@@ -83,6 +83,23 @@ says "waiting for the worker" and stays there.
 `pnpm run dev:web` and `pnpm run dev:worker` run them separately when one is in
 the way.
 
+### Running it as a container
+
+```bash
+docker build -t klopt .                          # the whole thing
+docker build -t klopt:headless --target headless .   # API and worker, no UI
+
+docker run --rm klopt migrate                    # explicit, never on boot
+docker run -p 3000:3000 klopt                    # the same two processes
+docker run --rm --entrypoint klopt klopt help    # the operator's surface
+```
+
+Both images run `klopt serve`, which spawns the server and the worker and stops
+one when the other goes. The headless image ships no client bundle and sets
+`KLOPT_HEADLESS=1`, so every path but `/api` and `/.well-known` answers 404 —
+what that is and is not worth is in [ADR
+0042](docs/decisions/0042-headless-is-a-switch-not-a-second-build.md).
+
 Open it and enter your email address. With no SMTP configured the sign-in code
 is written to the container log, so a fresh install works with no mail server —
 find the code and type it in.
