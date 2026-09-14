@@ -2,6 +2,7 @@ import { LedgerError, forwarded, type LedgerViolation } from '../errors.js'
 import { isEuVatCountry, parseVatNumber } from '../ports/vat-number.js'
 import { feedsIcp, ruleInForce, type TaxCodeRule } from './tax-code.js'
 import type { VatJournalLine, VatLineContribution, VatReturn } from './return.js'
+import { renderFindingMessage, type FindingMessageKey } from '../finding-messages.js'
 
 /**
  * The ICP opgaaf (spec 7.2).
@@ -65,6 +66,9 @@ export interface IcpFinding {
   readonly code: IcpFindingCode
   readonly severity: 'blocking' | 'warning'
   readonly message: string
+  /** Which sentence this is, and the values in it, for a client that translates. */
+  readonly messageKey: FindingMessageKey
+  readonly detail?: Readonly<Record<string, string>>
   readonly amountMinorUnits: bigint
   readonly lines: readonly VatLineContribution[]
 }
@@ -244,48 +248,49 @@ export function buildIcpReturn(request: IcpRequest): IcpReturn {
     code: IcpFindingCode
     severity: 'blocking' | 'warning'
     message: string
+    messageKey: FindingMessageKey
   }[] = [
     {
       code: 'supply_without_counterparty',
       severity: 'blocking',
-      message:
-        'An intra-community supply is posted with no customer on the line, so it cannot appear in the opgaaf. The aangifte declares it in 3b and the opgaaf cannot, which is the mismatch the Belastingdienst checks for first.',
+      message: renderFindingMessage('icp.supply_without_counterparty'),
+      messageKey: 'icp.supply_without_counterparty',
     },
     {
       code: 'counterparty_without_vat_number',
       severity: 'blocking',
-      message:
-        'An intra-community supply is zero-rated to a customer with no VAT number on file. The customer’s number is a condition of the zero rate, not a detail.',
+      message: renderFindingMessage('icp.counterparty_without_vat_number'),
+      messageKey: 'icp.counterparty_without_vat_number',
     },
     {
       code: 'vat_number_malformed',
       severity: 'blocking',
-      message:
-        'A customer’s VAT number is not the shape that member state issues. VIES will refuse it, so it is refused here where it can still be corrected.',
+      message: renderFindingMessage('icp.vat_number_malformed'),
+      messageKey: 'icp.vat_number_malformed',
     },
     {
       code: 'vat_number_not_eu',
       severity: 'blocking',
-      message:
-        'A supply is declared as intra-community to a customer whose VAT number is not from an EU member state. Either the number or the tax code is wrong.',
+      message: renderFindingMessage('icp.vat_number_not_eu'),
+      messageKey: 'icp.vat_number_not_eu',
     },
     {
       code: 'vat_number_invalid',
       severity: 'blocking',
-      message:
-        'VIES says this VAT number is not valid. The zero rate does not apply, and the supply has to be corrected before either filing goes out.',
+      message: renderFindingMessage('icp.vat_number_invalid'),
+      messageKey: 'icp.vat_number_invalid',
     },
     {
       code: 'vat_number_unproven',
       severity: 'blocking',
-      message:
-        'This VAT number has never been checked against VIES, or the last attempt could not reach it. What VIES said and when is the evidence for applying the zero rate; without it there is nothing to show.',
+      message: renderFindingMessage('icp.vat_number_unproven'),
+      messageKey: 'icp.vat_number_unproven',
     },
     {
       code: 'proof_predates_period',
       severity: 'warning',
-      message:
-        'The VIES check for this customer predates the period being declared. A number can be deregistered between one quarter and the next, so the proof is weaker than a check made during the period.',
+      message: renderFindingMessage('icp.proof_predates_period'),
+      messageKey: 'icp.proof_predates_period',
     },
   ]
 
@@ -297,6 +302,7 @@ export function buildIcpReturn(request: IcpRequest): IcpReturn {
       code: kind.code,
       severity: kind.severity,
       message: kind.message,
+      messageKey: kind.messageKey,
       amountMinorUnits: found.amount,
       lines: found.lines,
     })
@@ -307,7 +313,12 @@ export function buildIcpReturn(request: IcpRequest): IcpReturn {
     findings.push({
       code: 'icp_mismatch',
       severity: 'blocking',
-      message: `The opgaaf totals ${total.toString()} and rubriek 3b declares ${rubriek3b.toString()} (minor units). The two describe the same supplies and must agree; the findings above name the lines the opgaaf could not place.`,
+      message: renderFindingMessage('icp.icp_mismatch', {
+        total: total.toString(),
+        rubriek3b: rubriek3b.toString(),
+      }),
+      messageKey: 'icp.icp_mismatch',
+      detail: { total: total.toString(), rubriek3b: rubriek3b.toString() },
       amountMinorUnits: difference,
       lines: [],
     })
@@ -335,7 +346,7 @@ export function assertIcpFileable(icp: IcpReturn): void {
   const problems: LedgerViolation[] = icp.findings
     .filter((finding) => finding.severity === 'blocking')
     .map((finding) =>
-      forwarded('icp_mismatch', `icp.${finding.code}`, finding.message, {
+      forwarded('icp_mismatch', `icp.${finding.code}`, finding.message, finding.messageKey, {
         code: finding.code,
         amount: finding.amountMinorUnits.toString(),
         lines: String(finding.lines.length),

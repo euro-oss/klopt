@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { violationMessage } from '~/i18n/labels'
+import { findingMessage, violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
@@ -370,7 +370,7 @@ function PaymentBatch() {
         <ul role="alert" className="text-destructive mb-4 space-y-1 text-sm">
           {problems.map((problem, index) => (
             <li key={index}>
-              {problem.path}: {problem.message}
+              {problem.path}: {findingMessage(t, problem)}
             </li>
           ))}
         </ul>
@@ -470,7 +470,7 @@ function PaymentBatch() {
                           : 'text-muted-foreground'
                       }
                     >
-                      {finding.message}
+                      {findingMessage(t, finding)}
                     </li>
                   ))}
                 </ul>

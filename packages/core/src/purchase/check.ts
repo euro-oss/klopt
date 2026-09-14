@@ -1,6 +1,7 @@
 import { LedgerError, forwarded } from '../errors.js'
 import { formatMinorUnits } from '../format/index.js'
 import type { TaxCodeRule } from '../vat/tax-code.js'
+import { renderFindingMessage, type FindingMessageKey } from '../finding-messages.js'
 
 /**
  * Verifying a supplier's invoice rather than recomputing it.
@@ -67,6 +68,9 @@ export interface PurchaseFinding {
   readonly code: PurchaseFindingCode
   readonly severity: 'blocking' | 'warning' | 'note'
   readonly message: string
+  /** Which sentence this is, and the values in it, for a client that translates. */
+  readonly messageKey: FindingMessageKey
+  readonly detail?: Readonly<Record<string, string>>
   /** Which line, when it is about one. */
   readonly lineNumber: number | null
   readonly amountMinorUnits: bigint
@@ -110,24 +114,25 @@ export function checkPurchaseInvoice(request: PurchaseCheckRequest): readonly Pu
   const add = (
     code: PurchaseFindingCode,
     severity: 'blocking' | 'warning' | 'note',
-    message: string,
+    messageKey: FindingMessageKey,
+    detail?: Readonly<Record<string, string>>,
     options: { lineNumber?: number; amountMinorUnits?: bigint } = {},
   ): void => {
     findings.push({
       code,
       severity,
-      message,
+      message: renderFindingMessage(messageKey, detail),
+      messageKey,
+      ...(detail === undefined ? {} : { detail }),
       lineNumber: options.lineNumber ?? null,
       amountMinorUnits: options.amountMinorUnits ?? 0n,
     })
   }
 
   if (request.isDuplicate) {
-    add(
-      'duplicate_invoice_number',
-      'blocking',
-      `This supplier has already sent invoice ${invoice.supplierInvoiceNumber}. Booking it twice is how an invoice gets paid twice.`,
-    )
+    add('duplicate_invoice_number', 'blocking', 'purchase.duplicate_invoice_number', {
+      supplierInvoiceNumber: invoice.supplierInvoiceNumber,
+    })
   }
 
   const lineNet = invoice.lines.reduce((sum, line) => sum + line.netMinorUnits, 0n)
@@ -137,7 +142,8 @@ export function checkPurchaseInvoice(request: PurchaseCheckRequest): readonly Pu
     add(
       'lines_do_not_sum_to_net',
       'blocking',
-      `The lines add up to ${money(lineNet)} and the invoice states ${money(invoice.netMinorUnits)}. A line is missing or mistyped — what is in the system is not the document.`,
+      'purchase.lines_do_not_sum_to_net',
+      { lineNet: money(lineNet), netMinorUnits: money(invoice.netMinorUnits) },
       { amountMinorUnits: lineNet - invoice.netMinorUnits },
     )
   }
@@ -146,7 +152,8 @@ export function checkPurchaseInvoice(request: PurchaseCheckRequest): readonly Pu
     add(
       'lines_do_not_sum_to_tax',
       'blocking',
-      `The lines' VAT adds up to ${money(lineTax)} and the invoice states ${money(invoice.taxMinorUnits)}.`,
+      'purchase.lines_do_not_sum_to_tax',
+      { lineTax: money(lineTax), taxMinorUnits: money(invoice.taxMinorUnits) },
       { amountMinorUnits: lineTax - invoice.taxMinorUnits },
     )
   }
@@ -155,7 +162,12 @@ export function checkPurchaseInvoice(request: PurchaseCheckRequest): readonly Pu
     add(
       'net_plus_tax_is_not_total',
       'blocking',
-      `${money(invoice.netMinorUnits)} plus ${money(invoice.taxMinorUnits)} is not ${money(invoice.totalMinorUnits)}. Check the figures against the document.`,
+      'purchase.net_plus_tax_is_not_total',
+      {
+        netMinorUnits: money(invoice.netMinorUnits),
+        taxMinorUnits: money(invoice.taxMinorUnits),
+        totalMinorUnits: money(invoice.totalMinorUnits),
+      },
       {
         amountMinorUnits: invoice.netMinorUnits + invoice.taxMinorUnits - invoice.totalMinorUnits,
       },
@@ -176,9 +188,10 @@ export function checkPurchaseInvoice(request: PurchaseCheckRequest): readonly Pu
       add(
         known ? 'no_rule_in_force' : 'unknown_tax_code',
         'blocking',
+        known ? 'purchase.no_rule_in_force' : 'purchase.unknown_tax_code.no_such_code',
         known
-          ? `Tax code ${line.taxCode} has no rule valid on ${invoice.invoiceDate}.`
-          : `There is no tax code ${line.taxCode}.`,
+          ? { taxCode: line.taxCode, invoiceDate: invoice.invoiceDate }
+          : { taxCode: line.taxCode },
         { lineNumber },
       )
       return
@@ -188,7 +201,8 @@ export function checkPurchaseInvoice(request: PurchaseCheckRequest): readonly Pu
       add(
         'unknown_tax_code',
         'blocking',
-        `Tax code ${line.taxCode} is an output code. A purchase invoice needs an input code — the VAT on it is ours to deduct, not to charge.`,
+        'purchase.unknown_tax_code',
+        { taxCode: line.taxCode },
         { lineNumber },
       )
       return
@@ -202,7 +216,12 @@ export function checkPurchaseInvoice(request: PurchaseCheckRequest): readonly Pu
         add(
           'reverse_charge_with_tax',
           'blocking',
-          `Line ${String(lineNumber)} uses ${line.taxCode}, which means the VAT is ours to declare — but the invoice charges ${money(line.taxMinorUnits)} of it. Either the supplier should not have charged VAT, or this is the wrong code.`,
+          'purchase.reverse_charge_with_tax',
+          {
+            lineNumber: String(lineNumber),
+            taxCode: line.taxCode,
+            taxMinorUnits: money(line.taxMinorUnits),
+          },
           { lineNumber, amountMinorUnits: line.taxMinorUnits },
         )
       }
@@ -217,7 +236,15 @@ export function checkPurchaseInvoice(request: PurchaseCheckRequest): readonly Pu
       add(
         'rate_mismatch',
         'warning',
-        `Line ${String(lineNumber)} charges ${money(line.taxMinorUnits)} where ${line.taxCode} at ${(rule.rateBasisPoints / 100).toFixed(2)}% over ${money(line.netMinorUnits)} would be ${money(expected)}. The invoice is booked as stated; check whether the code is right.`,
+        'purchase.rate_mismatch',
+        {
+          lineNumber: String(lineNumber),
+          taxMinorUnits: money(line.taxMinorUnits),
+          taxCode: line.taxCode,
+          rate: (rule.rateBasisPoints / 100).toFixed(2),
+          netMinorUnits: money(line.netMinorUnits),
+          expected: money(expected),
+        },
         { lineNumber, amountMinorUnits: line.taxMinorUnits - expected },
       )
     }
@@ -229,7 +256,12 @@ export function checkPurchaseInvoice(request: PurchaseCheckRequest): readonly Pu
       add(
         'not_deductible',
         'note',
-        `${line.taxCode} is not deductible, so the ${money(line.taxMinorUnits)} of VAT on line ${String(lineNumber)} becomes part of the cost rather than voorbelasting.`,
+        'purchase.not_deductible',
+        {
+          taxCode: line.taxCode,
+          taxMinorUnits: money(line.taxMinorUnits),
+          lineNumber: String(lineNumber),
+        },
         { lineNumber, amountMinorUnits: line.taxMinorUnits },
       )
     }
@@ -239,7 +271,13 @@ export function checkPurchaseInvoice(request: PurchaseCheckRequest): readonly Pu
       add(
         'pro_rata',
         'note',
-        `${line.taxCode} is ${(share / 100).toFixed(2)}% deductible, so ${money(deductible)} of line ${String(lineNumber)}'s VAT goes to voorbelasting and ${money(line.taxMinorUnits - deductible)} to the cost.`,
+        'purchase.pro_rata',
+        {
+          taxCode: line.taxCode,
+          share: (share / 100).toFixed(2),
+          deductible: money(deductible),
+          lineNumber: String(lineNumber),
+        },
         { lineNumber, amountMinorUnits: deductible },
       )
     }
@@ -268,6 +306,7 @@ export function assertBookable(findings: readonly PurchaseFinding[]): void {
         'invoice_not_bookable',
         finding.lineNumber === null ? 'invoice' : `lines.${String(finding.lineNumber - 1)}`,
         finding.message,
+        finding.messageKey,
         { code: finding.code, amount: finding.amountMinorUnits.toString() },
       ),
     ),

@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
-import { violationMessage } from '~/i18n/labels'
+import { findingMessage, violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
@@ -382,7 +382,7 @@ function Inbox() {
               {parsed !== null && parsed.findings.length > 0 && (
                 <ul className="text-muted-foreground mt-2 space-y-1 text-xs">
                   {parsed.findings.map((finding, index) => (
-                    <li key={`${finding.code}-${String(index)}`}>{finding.message}</li>
+                    <li key={`${finding.code}-${String(index)}`}>{findingMessage(t, finding)}</li>
                   ))}
                 </ul>
               )}

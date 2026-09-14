@@ -1,4 +1,5 @@
 import { LedgerError, forwarded } from '../errors.js'
+import { renderFindingMessage, type FindingMessageKey } from '../finding-messages.js'
 
 /**
  * Outbound payments (spec 7.4).
@@ -112,6 +113,9 @@ export interface PaymentProblem {
     | 'missing_name'
   readonly path: string
   readonly message: string
+  /** Which sentence this is, and the values in it, for a client that translates. */
+  readonly messageKey: FindingMessageKey
+  readonly detail?: Readonly<Record<string, string>>
 }
 
 /**
@@ -127,32 +131,45 @@ export function validatePaymentBatch(batch: PaymentBatch): readonly PaymentProbl
     problems.push({
       code: 'empty_batch',
       path: 'instructions',
-      message: 'A payment batch with no instructions pays nobody.',
+      message: renderFindingMessage('payment.empty_batch'),
+      messageKey: 'payment.empty_batch',
     })
   }
 
   if (batch.debtorName.trim() === '') {
-    problems.push({ code: 'missing_name', path: 'debtorName', message: 'The payer needs a name.' })
+    problems.push({
+      code: 'missing_name',
+      path: 'debtorName',
+      message: renderFindingMessage('payment.missing_name.payer'),
+      messageKey: 'payment.missing_name.payer',
+    })
   }
   if (!isValidIban(batch.debtorIban)) {
     problems.push({
       code: 'invalid_iban',
       path: 'debtorIban',
-      message: `${batch.debtorIban} is not a valid IBAN.`,
+      message: renderFindingMessage('payment.invalid_iban.debtor', {
+        debtorIban: batch.debtorIban,
+      }),
+      messageKey: 'payment.invalid_iban.debtor',
+      detail: { debtorIban: batch.debtorIban },
     })
   }
   if (batch.debtorBic !== null && !isValidBic(batch.debtorBic)) {
     problems.push({
       code: 'invalid_bic',
       path: 'debtorBic',
-      message: `${batch.debtorBic} is not a valid BIC.`,
+      message: renderFindingMessage('payment.invalid_bic.debtor', { debtorBic: batch.debtorBic }),
+      messageKey: 'payment.invalid_bic.debtor',
+      detail: { debtorBic: batch.debtorBic },
     })
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(batch.requestedExecutionDate)) {
     problems.push({
       code: 'invalid_date',
       path: 'requestedExecutionDate',
-      message: 'The execution date is yyyy-mm-dd.',
+      message: renderFindingMessage('payment.invalid_date'),
+      messageKey: 'payment.invalid_date',
     })
   }
 
@@ -165,28 +182,38 @@ export function validatePaymentBatch(batch: PaymentBatch): readonly PaymentProbl
       problems.push({
         code: 'missing_name',
         path: `${at}.creditorName`,
-        message: 'A payee needs a name.',
+        message: renderFindingMessage('payment.missing_name.payee'),
+        messageKey: 'payment.missing_name.payee',
       })
     }
     if (!isValidIban(instruction.creditorIban)) {
       problems.push({
         code: 'invalid_iban',
         path: `${at}.creditorIban`,
-        message: `${instruction.creditorIban} is not a valid IBAN.`,
+        message: renderFindingMessage('payment.invalid_iban.creditor', {
+          creditorIban: instruction.creditorIban,
+        }),
+        messageKey: 'payment.invalid_iban.creditor',
+        detail: { creditorIban: instruction.creditorIban },
       })
     }
     if (instruction.creditorBic !== null && !isValidBic(instruction.creditorBic)) {
       problems.push({
         code: 'invalid_bic',
         path: `${at}.creditorBic`,
-        message: `${instruction.creditorBic} is not a valid BIC.`,
+        message: renderFindingMessage('payment.invalid_bic.creditor', {
+          creditorBic: instruction.creditorBic,
+        }),
+        messageKey: 'payment.invalid_bic.creditor',
+        detail: { creditorBic: instruction.creditorBic },
       })
     }
     if (instruction.amount <= 0n) {
       problems.push({
         code: 'invalid_amount',
         path: `${at}.amount`,
-        message: 'A payment of zero or less is not a payment.',
+        message: renderFindingMessage('payment.invalid_amount'),
+        messageKey: 'payment.invalid_amount',
       })
     }
     if (instruction.currency !== 'EUR') {
@@ -196,8 +223,8 @@ export function validatePaymentBatch(batch: PaymentBatch): readonly PaymentProbl
       problems.push({
         code: 'invalid_currency',
         path: `${at}.currency`,
-        message:
-          'A SEPA credit transfer is in euro. Use a different instrument for other currencies.',
+        message: renderFindingMessage('payment.invalid_currency'),
+        messageKey: 'payment.invalid_currency',
       })
     }
 
@@ -205,7 +232,11 @@ export function validatePaymentBatch(batch: PaymentBatch): readonly PaymentProbl
       problems.push({
         code: 'duplicate_end_to_end_id',
         path: `${at}.endToEndId`,
-        message: `${instruction.endToEndId} appears twice. A bank may treat that as a duplicate payment.`,
+        message: renderFindingMessage('payment.duplicate_end_to_end_id', {
+          endToEndId: instruction.endToEndId,
+        }),
+        messageKey: 'payment.duplicate_end_to_end_id',
+        detail: { endToEndId: instruction.endToEndId },
       })
     }
     seen.add(instruction.endToEndId)
@@ -217,10 +248,13 @@ export function validatePaymentBatch(batch: PaymentBatch): readonly PaymentProbl
     ] as const) {
       const offending = offendingSepaCharacters(value)
       if (offending.length > 0) {
+        const characters = offending.map((character) => `"${character}"`).join(', ')
         problems.push({
           code: 'invalid_characters',
           path: `${at}.${field}`,
-          message: `SEPA does not accept ${offending.map((character) => `"${character}"`).join(', ')}.`,
+          message: renderFindingMessage('payment.invalid_characters', { characters }),
+          messageKey: 'payment.invalid_characters',
+          detail: { characters },
         })
       }
     }
@@ -240,7 +274,9 @@ export function assertPayable(batch: PaymentBatch): void {
 
   throw new LedgerError(
     problems.map((problem) =>
-      forwarded('invalid_payment', problem.path, problem.message, { code: problem.code }),
+      forwarded('invalid_payment', problem.path, problem.message, problem.messageKey, {
+        code: problem.code,
+      }),
     ),
   )
 }

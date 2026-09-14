@@ -369,7 +369,7 @@ export function planXafImport(source: string, options: XafImportOptions): XafImp
 
   for (const problem of computed.problems) {
     if (problem.severity === 'error') {
-      problems.push(forwarded('unknown_entry', problem.path, problem.message))
+      problems.push(forwarded('unknown_entry', problem.path, problem.message, null))
     } else {
       warnings.push(`${problem.path}: ${problem.message}`)
     }

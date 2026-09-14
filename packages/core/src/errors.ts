@@ -6,6 +6,7 @@
  * new ones freely, never repurpose an existing one.
  */
 import type { LedgerErrorCode } from './error-codes.js'
+import type { FindingMessageKey } from './finding-messages.js'
 import {
   VIOLATION_MESSAGES,
   renderViolationMessage,
@@ -31,7 +32,7 @@ export interface LedgerViolation {
    * `null` where the sentence came from somewhere that already had one: a
    * payment finding, a UBL problem. Those carry their own code in `detail`.
    */
-  readonly messageKey: ViolationMessageKey | null
+  readonly messageKey: ViolationMessageKey | FindingMessageKey | null
   readonly detail?: Readonly<Record<string, string>>
 }
 
@@ -83,17 +84,20 @@ export function violation(
  * its own message and its own code. Copying those sentences into the
  * catalogue would make two places to change one of them.
  *
- * `messageKey` is null, and `detail.code` is the finding's code, which is what
- * a client translates from instead. Named rather than an overload of
- * `violation`, so that the exception is visible at every site that takes it.
+ * Since ADR 0047 a finding names its own sentence, so the key comes across with
+ * it and the violation is as translatable as any other. `null` remains for the
+ * one source that has no code at all — an XAF problem, which is a message and
+ * a path and nothing else. Named rather than an overload of `violation`, so
+ * that the borrowing is visible at every site that does it.
  */
 export function forwarded(
   code: LedgerErrorCode,
   path: string | null,
   message: string,
+  messageKey: FindingMessageKey | null,
   detail?: Readonly<Record<string, string>>,
 ): LedgerViolation {
   return detail === undefined
-    ? { code, path, message, messageKey: null }
-    : { code, path, message, messageKey: null, detail }
+    ? { code, path, message, messageKey }
+    : { code, path, message, messageKey, detail }
 }

@@ -2552,6 +2552,57 @@
                 "messageKey": {
                   "enum": [
                     "unknown_tax_code",
+                    "icp.counterparty_without_vat_number",
+                    "icp.icp_mismatch",
+                    "icp.proof_predates_period",
+                    "icp.supply_without_counterparty",
+                    "icp.vat_number_invalid",
+                    "icp.vat_number_malformed",
+                    "icp.vat_number_not_eu",
+                    "icp.vat_number_unproven",
+                    "inbound.credit_note",
+                    "inbound.currency_not_functional",
+                    "inbound.no_due_date",
+                    "inbound.no_invoice_number",
+                    "inbound.no_supplier_identifier",
+                    "inbound.no_tax_category",
+                    "inbound.totals_disagree_with_lines",
+                    "inbound.unmapped_tax_category",
+                    "payment.duplicate_end_to_end_id",
+                    "payment.empty_batch",
+                    "payment.invalid_amount",
+                    "payment.invalid_bic.creditor",
+                    "payment.invalid_bic.debtor",
+                    "payment.invalid_characters",
+                    "payment.invalid_currency",
+                    "payment.invalid_date",
+                    "payment.invalid_iban.creditor",
+                    "payment.invalid_iban.debtor",
+                    "payment.missing_name.payee",
+                    "payment.missing_name.payer",
+                    "paymentRun.credit_exceeds_invoices",
+                    "paymentRun.invalid_iban",
+                    "paymentRun.mixed_currencies",
+                    "paymentRun.no_iban",
+                    "paymentRun.nothing_owed",
+                    "purchase.duplicate_invoice_number",
+                    "purchase.lines_do_not_sum_to_net",
+                    "purchase.lines_do_not_sum_to_tax",
+                    "purchase.net_plus_tax_is_not_total",
+                    "purchase.no_rule_in_force",
+                    "purchase.unknown_tax_code.no_such_code",
+                    "purchase.not_deductible",
+                    "purchase.pro_rata",
+                    "purchase.rate_mismatch",
+                    "purchase.reverse_charge_with_tax",
+                    "purchase.unknown_tax_code",
+                    "vat.code_declares_no_base",
+                    "vat.code_declares_no_vat",
+                    "vat.control_account_difference",
+                    "vat.no_rule_in_force",
+                    "vat.rate_mismatch",
+                    "vat.unknown_tax_code",
+                    "vat.untagged_control_movement",
                     "invalid_currency",
                     "entry_unbalanced_functional",
                     "line_debit_and_credit",
@@ -2778,6 +2829,75 @@
                     "note"
                   ]
                 },
+                "messageKey": {
+                  "enum": [
+                    "icp.counterparty_without_vat_number",
+                    "icp.icp_mismatch",
+                    "icp.proof_predates_period",
+                    "icp.supply_without_counterparty",
+                    "icp.vat_number_invalid",
+                    "icp.vat_number_malformed",
+                    "icp.vat_number_not_eu",
+                    "icp.vat_number_unproven",
+                    "inbound.credit_note",
+                    "inbound.currency_not_functional",
+                    "inbound.no_due_date",
+                    "inbound.no_invoice_number",
+                    "inbound.no_supplier_identifier",
+                    "inbound.no_tax_category",
+                    "inbound.totals_disagree_with_lines",
+                    "inbound.unmapped_tax_category",
+                    "payment.duplicate_end_to_end_id",
+                    "payment.empty_batch",
+                    "payment.invalid_amount",
+                    "payment.invalid_bic.creditor",
+                    "payment.invalid_bic.debtor",
+                    "payment.invalid_characters",
+                    "payment.invalid_currency",
+                    "payment.invalid_date",
+                    "payment.invalid_iban.creditor",
+                    "payment.invalid_iban.debtor",
+                    "payment.missing_name.payee",
+                    "payment.missing_name.payer",
+                    "paymentRun.credit_exceeds_invoices",
+                    "paymentRun.invalid_iban",
+                    "paymentRun.mixed_currencies",
+                    "paymentRun.no_iban",
+                    "paymentRun.nothing_owed",
+                    "purchase.duplicate_invoice_number",
+                    "purchase.lines_do_not_sum_to_net",
+                    "purchase.lines_do_not_sum_to_tax",
+                    "purchase.net_plus_tax_is_not_total",
+                    "purchase.no_rule_in_force",
+                    "purchase.unknown_tax_code.no_such_code",
+                    "purchase.not_deductible",
+                    "purchase.pro_rata",
+                    "purchase.rate_mismatch",
+                    "purchase.reverse_charge_with_tax",
+                    "purchase.unknown_tax_code",
+                    "vat.code_declares_no_base",
+                    "vat.code_declares_no_vat",
+                    "vat.control_account_difference",
+                    "vat.no_rule_in_force",
+                    "vat.rate_mismatch",
+                    "vat.unknown_tax_code",
+                    "vat.untagged_control_movement"
+                  ]
+                },
+                "detail": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "message": {
                   "type": "string"
                 },
@@ -2791,6 +2911,8 @@
               "required": [
                 "code",
                 "severity",
+                "messageKey",
+                "detail",
                 "message",
                 "lineNumber"
               ]
@@ -3041,12 +3163,75 @@
                               },
                               "message": {
                                 "type": "string"
+                              },
+                              "messageKey": {
+                                "enum": [
+                                  "icp.counterparty_without_vat_number",
+                                  "icp.icp_mismatch",
+                                  "icp.proof_predates_period",
+                                  "icp.supply_without_counterparty",
+                                  "icp.vat_number_invalid",
+                                  "icp.vat_number_malformed",
+                                  "icp.vat_number_not_eu",
+                                  "icp.vat_number_unproven",
+                                  "inbound.credit_note",
+                                  "inbound.currency_not_functional",
+                                  "inbound.no_due_date",
+                                  "inbound.no_invoice_number",
+                                  "inbound.no_supplier_identifier",
+                                  "inbound.no_tax_category",
+                                  "inbound.totals_disagree_with_lines",
+                                  "inbound.unmapped_tax_category",
+                                  "payment.duplicate_end_to_end_id",
+                                  "payment.empty_batch",
+                                  "payment.invalid_amount",
+                                  "payment.invalid_bic.creditor",
+                                  "payment.invalid_bic.debtor",
+                                  "payment.invalid_characters",
+                                  "payment.invalid_currency",
+                                  "payment.invalid_date",
+                                  "payment.invalid_iban.creditor",
+                                  "payment.invalid_iban.debtor",
+                                  "payment.missing_name.payee",
+                                  "payment.missing_name.payer",
+                                  "paymentRun.credit_exceeds_invoices",
+                                  "paymentRun.invalid_iban",
+                                  "paymentRun.mixed_currencies",
+                                  "paymentRun.no_iban",
+                                  "paymentRun.nothing_owed",
+                                  "purchase.duplicate_invoice_number",
+                                  "purchase.lines_do_not_sum_to_net",
+                                  "purchase.lines_do_not_sum_to_tax",
+                                  "purchase.net_plus_tax_is_not_total",
+                                  "purchase.no_rule_in_force",
+                                  "purchase.unknown_tax_code.no_such_code",
+                                  "purchase.not_deductible",
+                                  "purchase.pro_rata",
+                                  "purchase.rate_mismatch",
+                                  "purchase.reverse_charge_with_tax",
+                                  "purchase.unknown_tax_code",
+                                  "vat.code_declares_no_base",
+                                  "vat.code_declares_no_vat",
+                                  "vat.control_account_difference",
+                                  "vat.no_rule_in_force",
+                                  "vat.rate_mismatch",
+                                  "vat.unknown_tax_code",
+                                  "vat.untagged_control_movement"
+                                ]
+                              },
+                              "detail": {
+                                "type": "object",
+                                "properties": {},
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
                               }
                             },
                             "required": [
                               "code",
                               "severity",
-                              "message"
+                              "message",
+                              "messageKey"
                             ]
                           }
                         }
@@ -3436,12 +3621,75 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "messageKey": {
+                          "enum": [
+                            "icp.counterparty_without_vat_number",
+                            "icp.icp_mismatch",
+                            "icp.proof_predates_period",
+                            "icp.supply_without_counterparty",
+                            "icp.vat_number_invalid",
+                            "icp.vat_number_malformed",
+                            "icp.vat_number_not_eu",
+                            "icp.vat_number_unproven",
+                            "inbound.credit_note",
+                            "inbound.currency_not_functional",
+                            "inbound.no_due_date",
+                            "inbound.no_invoice_number",
+                            "inbound.no_supplier_identifier",
+                            "inbound.no_tax_category",
+                            "inbound.totals_disagree_with_lines",
+                            "inbound.unmapped_tax_category",
+                            "payment.duplicate_end_to_end_id",
+                            "payment.empty_batch",
+                            "payment.invalid_amount",
+                            "payment.invalid_bic.creditor",
+                            "payment.invalid_bic.debtor",
+                            "payment.invalid_characters",
+                            "payment.invalid_currency",
+                            "payment.invalid_date",
+                            "payment.invalid_iban.creditor",
+                            "payment.invalid_iban.debtor",
+                            "payment.missing_name.payee",
+                            "payment.missing_name.payer",
+                            "paymentRun.credit_exceeds_invoices",
+                            "paymentRun.invalid_iban",
+                            "paymentRun.mixed_currencies",
+                            "paymentRun.no_iban",
+                            "paymentRun.nothing_owed",
+                            "purchase.duplicate_invoice_number",
+                            "purchase.lines_do_not_sum_to_net",
+                            "purchase.lines_do_not_sum_to_tax",
+                            "purchase.net_plus_tax_is_not_total",
+                            "purchase.no_rule_in_force",
+                            "purchase.unknown_tax_code.no_such_code",
+                            "purchase.not_deductible",
+                            "purchase.pro_rata",
+                            "purchase.rate_mismatch",
+                            "purchase.reverse_charge_with_tax",
+                            "purchase.unknown_tax_code",
+                            "vat.code_declares_no_base",
+                            "vat.code_declares_no_vat",
+                            "vat.control_account_difference",
+                            "vat.no_rule_in_force",
+                            "vat.rate_mismatch",
+                            "vat.unknown_tax_code",
+                            "vat.untagged_control_movement"
+                          ]
+                        },
+                        "detail": {
+                          "type": "object",
+                          "properties": {},
+                          "additionalProperties": {
+                            "type": "string"
+                          }
                         }
                       },
                       "required": [
                         "code",
                         "severity",
-                        "message"
+                        "message",
+                        "messageKey"
                       ]
                     }
                   }
@@ -5803,12 +6051,75 @@
                 },
                 "message": {
                   "type": "string"
+                },
+                "messageKey": {
+                  "enum": [
+                    "icp.counterparty_without_vat_number",
+                    "icp.icp_mismatch",
+                    "icp.proof_predates_period",
+                    "icp.supply_without_counterparty",
+                    "icp.vat_number_invalid",
+                    "icp.vat_number_malformed",
+                    "icp.vat_number_not_eu",
+                    "icp.vat_number_unproven",
+                    "inbound.credit_note",
+                    "inbound.currency_not_functional",
+                    "inbound.no_due_date",
+                    "inbound.no_invoice_number",
+                    "inbound.no_supplier_identifier",
+                    "inbound.no_tax_category",
+                    "inbound.totals_disagree_with_lines",
+                    "inbound.unmapped_tax_category",
+                    "payment.duplicate_end_to_end_id",
+                    "payment.empty_batch",
+                    "payment.invalid_amount",
+                    "payment.invalid_bic.creditor",
+                    "payment.invalid_bic.debtor",
+                    "payment.invalid_characters",
+                    "payment.invalid_currency",
+                    "payment.invalid_date",
+                    "payment.invalid_iban.creditor",
+                    "payment.invalid_iban.debtor",
+                    "payment.missing_name.payee",
+                    "payment.missing_name.payer",
+                    "paymentRun.credit_exceeds_invoices",
+                    "paymentRun.invalid_iban",
+                    "paymentRun.mixed_currencies",
+                    "paymentRun.no_iban",
+                    "paymentRun.nothing_owed",
+                    "purchase.duplicate_invoice_number",
+                    "purchase.lines_do_not_sum_to_net",
+                    "purchase.lines_do_not_sum_to_tax",
+                    "purchase.net_plus_tax_is_not_total",
+                    "purchase.no_rule_in_force",
+                    "purchase.unknown_tax_code.no_such_code",
+                    "purchase.not_deductible",
+                    "purchase.pro_rata",
+                    "purchase.rate_mismatch",
+                    "purchase.reverse_charge_with_tax",
+                    "purchase.unknown_tax_code",
+                    "vat.code_declares_no_base",
+                    "vat.code_declares_no_vat",
+                    "vat.control_account_difference",
+                    "vat.no_rule_in_force",
+                    "vat.rate_mismatch",
+                    "vat.unknown_tax_code",
+                    "vat.untagged_control_movement"
+                  ]
+                },
+                "detail": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               },
               "required": [
                 "code",
                 "path",
-                "message"
+                "message",
+                "messageKey"
               ]
             }
           },
@@ -6005,6 +6316,75 @@
                     "note"
                   ]
                 },
+                "messageKey": {
+                  "enum": [
+                    "icp.counterparty_without_vat_number",
+                    "icp.icp_mismatch",
+                    "icp.proof_predates_period",
+                    "icp.supply_without_counterparty",
+                    "icp.vat_number_invalid",
+                    "icp.vat_number_malformed",
+                    "icp.vat_number_not_eu",
+                    "icp.vat_number_unproven",
+                    "inbound.credit_note",
+                    "inbound.currency_not_functional",
+                    "inbound.no_due_date",
+                    "inbound.no_invoice_number",
+                    "inbound.no_supplier_identifier",
+                    "inbound.no_tax_category",
+                    "inbound.totals_disagree_with_lines",
+                    "inbound.unmapped_tax_category",
+                    "payment.duplicate_end_to_end_id",
+                    "payment.empty_batch",
+                    "payment.invalid_amount",
+                    "payment.invalid_bic.creditor",
+                    "payment.invalid_bic.debtor",
+                    "payment.invalid_characters",
+                    "payment.invalid_currency",
+                    "payment.invalid_date",
+                    "payment.invalid_iban.creditor",
+                    "payment.invalid_iban.debtor",
+                    "payment.missing_name.payee",
+                    "payment.missing_name.payer",
+                    "paymentRun.credit_exceeds_invoices",
+                    "paymentRun.invalid_iban",
+                    "paymentRun.mixed_currencies",
+                    "paymentRun.no_iban",
+                    "paymentRun.nothing_owed",
+                    "purchase.duplicate_invoice_number",
+                    "purchase.lines_do_not_sum_to_net",
+                    "purchase.lines_do_not_sum_to_tax",
+                    "purchase.net_plus_tax_is_not_total",
+                    "purchase.no_rule_in_force",
+                    "purchase.unknown_tax_code.no_such_code",
+                    "purchase.not_deductible",
+                    "purchase.pro_rata",
+                    "purchase.rate_mismatch",
+                    "purchase.reverse_charge_with_tax",
+                    "purchase.unknown_tax_code",
+                    "vat.code_declares_no_base",
+                    "vat.code_declares_no_vat",
+                    "vat.control_account_difference",
+                    "vat.no_rule_in_force",
+                    "vat.rate_mismatch",
+                    "vat.unknown_tax_code",
+                    "vat.untagged_control_movement"
+                  ]
+                },
+                "detail": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "contactNumber": {
                   "type": "string"
                 },
@@ -6018,6 +6398,8 @@
               "required": [
                 "code",
                 "severity",
+                "messageKey",
+                "detail",
                 "contactNumber",
                 "message",
                 "amount"
@@ -6145,6 +6527,75 @@
                     "note"
                   ]
                 },
+                "messageKey": {
+                  "enum": [
+                    "icp.counterparty_without_vat_number",
+                    "icp.icp_mismatch",
+                    "icp.proof_predates_period",
+                    "icp.supply_without_counterparty",
+                    "icp.vat_number_invalid",
+                    "icp.vat_number_malformed",
+                    "icp.vat_number_not_eu",
+                    "icp.vat_number_unproven",
+                    "inbound.credit_note",
+                    "inbound.currency_not_functional",
+                    "inbound.no_due_date",
+                    "inbound.no_invoice_number",
+                    "inbound.no_supplier_identifier",
+                    "inbound.no_tax_category",
+                    "inbound.totals_disagree_with_lines",
+                    "inbound.unmapped_tax_category",
+                    "payment.duplicate_end_to_end_id",
+                    "payment.empty_batch",
+                    "payment.invalid_amount",
+                    "payment.invalid_bic.creditor",
+                    "payment.invalid_bic.debtor",
+                    "payment.invalid_characters",
+                    "payment.invalid_currency",
+                    "payment.invalid_date",
+                    "payment.invalid_iban.creditor",
+                    "payment.invalid_iban.debtor",
+                    "payment.missing_name.payee",
+                    "payment.missing_name.payer",
+                    "paymentRun.credit_exceeds_invoices",
+                    "paymentRun.invalid_iban",
+                    "paymentRun.mixed_currencies",
+                    "paymentRun.no_iban",
+                    "paymentRun.nothing_owed",
+                    "purchase.duplicate_invoice_number",
+                    "purchase.lines_do_not_sum_to_net",
+                    "purchase.lines_do_not_sum_to_tax",
+                    "purchase.net_plus_tax_is_not_total",
+                    "purchase.no_rule_in_force",
+                    "purchase.unknown_tax_code.no_such_code",
+                    "purchase.not_deductible",
+                    "purchase.pro_rata",
+                    "purchase.rate_mismatch",
+                    "purchase.reverse_charge_with_tax",
+                    "purchase.unknown_tax_code",
+                    "vat.code_declares_no_base",
+                    "vat.code_declares_no_vat",
+                    "vat.control_account_difference",
+                    "vat.no_rule_in_force",
+                    "vat.rate_mismatch",
+                    "vat.unknown_tax_code",
+                    "vat.untagged_control_movement"
+                  ]
+                },
+                "detail": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "message": {
                   "type": "string"
                 },
@@ -6161,6 +6612,8 @@
               "required": [
                 "code",
                 "severity",
+                "messageKey",
+                "detail",
                 "message",
                 "lineNumber",
                 "amount"
@@ -6424,6 +6877,75 @@
                     "note"
                   ]
                 },
+                "messageKey": {
+                  "enum": [
+                    "icp.counterparty_without_vat_number",
+                    "icp.icp_mismatch",
+                    "icp.proof_predates_period",
+                    "icp.supply_without_counterparty",
+                    "icp.vat_number_invalid",
+                    "icp.vat_number_malformed",
+                    "icp.vat_number_not_eu",
+                    "icp.vat_number_unproven",
+                    "inbound.credit_note",
+                    "inbound.currency_not_functional",
+                    "inbound.no_due_date",
+                    "inbound.no_invoice_number",
+                    "inbound.no_supplier_identifier",
+                    "inbound.no_tax_category",
+                    "inbound.totals_disagree_with_lines",
+                    "inbound.unmapped_tax_category",
+                    "payment.duplicate_end_to_end_id",
+                    "payment.empty_batch",
+                    "payment.invalid_amount",
+                    "payment.invalid_bic.creditor",
+                    "payment.invalid_bic.debtor",
+                    "payment.invalid_characters",
+                    "payment.invalid_currency",
+                    "payment.invalid_date",
+                    "payment.invalid_iban.creditor",
+                    "payment.invalid_iban.debtor",
+                    "payment.missing_name.payee",
+                    "payment.missing_name.payer",
+                    "paymentRun.credit_exceeds_invoices",
+                    "paymentRun.invalid_iban",
+                    "paymentRun.mixed_currencies",
+                    "paymentRun.no_iban",
+                    "paymentRun.nothing_owed",
+                    "purchase.duplicate_invoice_number",
+                    "purchase.lines_do_not_sum_to_net",
+                    "purchase.lines_do_not_sum_to_tax",
+                    "purchase.net_plus_tax_is_not_total",
+                    "purchase.no_rule_in_force",
+                    "purchase.unknown_tax_code.no_such_code",
+                    "purchase.not_deductible",
+                    "purchase.pro_rata",
+                    "purchase.rate_mismatch",
+                    "purchase.reverse_charge_with_tax",
+                    "purchase.unknown_tax_code",
+                    "vat.code_declares_no_base",
+                    "vat.code_declares_no_vat",
+                    "vat.control_account_difference",
+                    "vat.no_rule_in_force",
+                    "vat.rate_mismatch",
+                    "vat.unknown_tax_code",
+                    "vat.untagged_control_movement"
+                  ]
+                },
+                "detail": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "message": {
                   "type": "string"
                 },
@@ -6440,6 +6962,8 @@
               "required": [
                 "code",
                 "severity",
+                "messageKey",
+                "detail",
                 "message",
                 "lineNumber",
                 "amount"
@@ -9404,6 +9928,75 @@
                     "blocking"
                   ]
                 },
+                "messageKey": {
+                  "enum": [
+                    "icp.counterparty_without_vat_number",
+                    "icp.icp_mismatch",
+                    "icp.proof_predates_period",
+                    "icp.supply_without_counterparty",
+                    "icp.vat_number_invalid",
+                    "icp.vat_number_malformed",
+                    "icp.vat_number_not_eu",
+                    "icp.vat_number_unproven",
+                    "inbound.credit_note",
+                    "inbound.currency_not_functional",
+                    "inbound.no_due_date",
+                    "inbound.no_invoice_number",
+                    "inbound.no_supplier_identifier",
+                    "inbound.no_tax_category",
+                    "inbound.totals_disagree_with_lines",
+                    "inbound.unmapped_tax_category",
+                    "payment.duplicate_end_to_end_id",
+                    "payment.empty_batch",
+                    "payment.invalid_amount",
+                    "payment.invalid_bic.creditor",
+                    "payment.invalid_bic.debtor",
+                    "payment.invalid_characters",
+                    "payment.invalid_currency",
+                    "payment.invalid_date",
+                    "payment.invalid_iban.creditor",
+                    "payment.invalid_iban.debtor",
+                    "payment.missing_name.payee",
+                    "payment.missing_name.payer",
+                    "paymentRun.credit_exceeds_invoices",
+                    "paymentRun.invalid_iban",
+                    "paymentRun.mixed_currencies",
+                    "paymentRun.no_iban",
+                    "paymentRun.nothing_owed",
+                    "purchase.duplicate_invoice_number",
+                    "purchase.lines_do_not_sum_to_net",
+                    "purchase.lines_do_not_sum_to_tax",
+                    "purchase.net_plus_tax_is_not_total",
+                    "purchase.no_rule_in_force",
+                    "purchase.unknown_tax_code.no_such_code",
+                    "purchase.not_deductible",
+                    "purchase.pro_rata",
+                    "purchase.rate_mismatch",
+                    "purchase.reverse_charge_with_tax",
+                    "purchase.unknown_tax_code",
+                    "vat.code_declares_no_base",
+                    "vat.code_declares_no_vat",
+                    "vat.control_account_difference",
+                    "vat.no_rule_in_force",
+                    "vat.rate_mismatch",
+                    "vat.unknown_tax_code",
+                    "vat.untagged_control_movement"
+                  ]
+                },
+                "detail": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "message": {
                   "type": "string"
                 },
@@ -9464,6 +10057,8 @@
               "required": [
                 "code",
                 "severity",
+                "messageKey",
+                "detail",
                 "message",
                 "amount",
                 "lines"
@@ -9894,6 +10489,75 @@
                     "blocking"
                   ]
                 },
+                "messageKey": {
+                  "enum": [
+                    "icp.counterparty_without_vat_number",
+                    "icp.icp_mismatch",
+                    "icp.proof_predates_period",
+                    "icp.supply_without_counterparty",
+                    "icp.vat_number_invalid",
+                    "icp.vat_number_malformed",
+                    "icp.vat_number_not_eu",
+                    "icp.vat_number_unproven",
+                    "inbound.credit_note",
+                    "inbound.currency_not_functional",
+                    "inbound.no_due_date",
+                    "inbound.no_invoice_number",
+                    "inbound.no_supplier_identifier",
+                    "inbound.no_tax_category",
+                    "inbound.totals_disagree_with_lines",
+                    "inbound.unmapped_tax_category",
+                    "payment.duplicate_end_to_end_id",
+                    "payment.empty_batch",
+                    "payment.invalid_amount",
+                    "payment.invalid_bic.creditor",
+                    "payment.invalid_bic.debtor",
+                    "payment.invalid_characters",
+                    "payment.invalid_currency",
+                    "payment.invalid_date",
+                    "payment.invalid_iban.creditor",
+                    "payment.invalid_iban.debtor",
+                    "payment.missing_name.payee",
+                    "payment.missing_name.payer",
+                    "paymentRun.credit_exceeds_invoices",
+                    "paymentRun.invalid_iban",
+                    "paymentRun.mixed_currencies",
+                    "paymentRun.no_iban",
+                    "paymentRun.nothing_owed",
+                    "purchase.duplicate_invoice_number",
+                    "purchase.lines_do_not_sum_to_net",
+                    "purchase.lines_do_not_sum_to_tax",
+                    "purchase.net_plus_tax_is_not_total",
+                    "purchase.no_rule_in_force",
+                    "purchase.unknown_tax_code.no_such_code",
+                    "purchase.not_deductible",
+                    "purchase.pro_rata",
+                    "purchase.rate_mismatch",
+                    "purchase.reverse_charge_with_tax",
+                    "purchase.unknown_tax_code",
+                    "vat.code_declares_no_base",
+                    "vat.code_declares_no_vat",
+                    "vat.control_account_difference",
+                    "vat.no_rule_in_force",
+                    "vat.rate_mismatch",
+                    "vat.unknown_tax_code",
+                    "vat.untagged_control_movement"
+                  ]
+                },
+                "detail": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "message": {
                   "type": "string"
                 },
@@ -9958,6 +10622,8 @@
               "required": [
                 "code",
                 "severity",
+                "messageKey",
+                "detail",
                 "message",
                 "amount",
                 "lines"

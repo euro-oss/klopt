@@ -5,7 +5,9 @@ import {
   STATEMENT_SECTIONS,
   VAT_PERIOD_KINDS,
   DEFAULT_DUNNING_SCHEDULE,
+  FINDING_MESSAGES,
   VIOLATION_MESSAGES,
+  type FindingMessageKey,
   type ViolationMessageKey,
 } from '@klopt/core'
 import { en } from '../src/i18n/en.js'
@@ -18,6 +20,7 @@ import {
   retentionClassLabel,
   statementSectionLabel,
   vatPeriodLabel,
+  findingMessage,
   violationMessage,
 } from '../src/i18n/labels.js'
 import type { MessageKey } from '../src/i18n/nl.js'
@@ -257,5 +260,67 @@ describe('turning a violation into a sentence', () => {
       messageKey: 'unknown_account.account',
     }
     expect(violationMessage(nlT, noDetail)).toContain('{accountNumber}')
+  })
+})
+
+/**
+ * What a check found, in both languages (ADR 0047).
+ *
+ * The same mechanism as the refusals, and the same reason for the test: these
+ * reach a Dutch screen — the purchase inbox, the VAT return, a payment run's
+ * preview — and they reached it in English.
+ */
+describe('the checks’ findings', () => {
+  const keys = Object.keys(FINDING_MESSAGES) as FindingMessageKey[]
+
+  it('walks the real list', () => {
+    expect(keys.length).toBeGreaterThan(45)
+  })
+
+  it('translates every one into Dutch', () => {
+    expect(keys.filter((key) => !(`finding.${key}` in nl))).toEqual([])
+  })
+
+  it('takes the English from the domain rather than restating it', () => {
+    for (const key of keys) {
+      expect(en[`finding.${key}`], key).toBe(FINDING_MESSAGES[key])
+    }
+  })
+
+  it('uses the same placeholders in both languages', () => {
+    const placeholders = (text: string) =>
+      [...text.matchAll(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g)].map((match) => match[1]).sort()
+
+    for (const key of keys) {
+      expect(placeholders(nl[`finding.${key}`]), key).toEqual(placeholders(FINDING_MESSAGES[key]))
+    }
+  })
+
+  it('renders one in Dutch with its numbers', () => {
+    const dutch = findingMessage(translator('nl'), {
+      message: 'There is no tax code HOOG.',
+      messageKey: 'purchase.unknown_tax_code.no_such_code',
+      detail: { taxCode: 'HOOG' },
+    })
+    expect(dutch).toContain('HOOG')
+    expect(dutch).not.toContain('There is no')
+    expect(dutch).not.toContain('{')
+  })
+
+  it('gives an English reader what the domain wrote', () => {
+    const key: FindingMessageKey = 'payment.empty_batch'
+    expect(
+      findingMessage(translator('en'), { message: FINDING_MESSAGES[key], messageKey: key }),
+    ).toBe(FINDING_MESSAGES[key])
+  })
+
+  it('translates a violation that forwarded a finding’s sentence', () => {
+    // Before ADR 0047 these fell back to English, because a forwarded
+    // violation had no key of its own. It carries the finding's now.
+    const dutch = violationMessage(translator('nl'), {
+      message: 'A payment batch with no instructions pays nobody.',
+      messageKey: 'payment.empty_batch',
+    })
+    expect(dutch).toBe(nl['finding.payment.empty_batch'])
   })
 })

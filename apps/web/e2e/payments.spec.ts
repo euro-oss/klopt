@@ -142,6 +142,8 @@ test('a bad IBAN stops the batch before anybody is asked to approve', async ({ p
   await page.getByLabel('Eigen kenmerk').fill('INK-FOUT')
   await page.getByRole('button', { name: 'Toevoegen' }).click()
 
-  await expect(page.getByRole('alert')).toContainText('is not a valid IBAN')
+  // In Dutch, because the browser is: the finding says this in English and
+  // the page translates it from the message key (ADR 0047).
+  await expect(page.getByRole('alert')).toContainText('geen geldig IBAN')
   await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeDisabled()
 })

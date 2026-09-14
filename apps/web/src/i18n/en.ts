@@ -1,3 +1,4 @@
+import { FINDING_MESSAGES, type FindingMessageKey } from '@klopt/core/findings'
 import { VIOLATION_MESSAGES, type ViolationMessageKey } from '@klopt/core/violations'
 import type { MessageKey } from './nl.js'
 
@@ -30,8 +31,13 @@ const violationsInEnglish = Object.fromEntries(
   Object.entries(VIOLATION_MESSAGES).map(([key, entry]) => [`violation.${key}`, entry.text]),
 ) as Record<`violation.${ViolationMessageKey}`, string>
 
+const findingsInEnglish = Object.fromEntries(
+  Object.entries(FINDING_MESSAGES).map(([key, text]) => [`finding.${key}`, text]),
+) as Record<`finding.${FindingMessageKey}`, string>
+
 export const en: Record<MessageKey, string> = {
   ...violationsInEnglish,
+  ...findingsInEnglish,
   'nav.dashboard': 'Dashboard',
   'nav.entries': 'Journal entries',
   'nav.accounts': 'Chart of accounts',

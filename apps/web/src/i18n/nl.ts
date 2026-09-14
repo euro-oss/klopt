@@ -1467,6 +1467,102 @@ export const nl = {
   'violation.wrong_batch_state': 'Een batch die {current} is kan niet worden {actionPast}.',
   'violation.wrong_invoice_state':
     'Een factuur die {current} is kan niet worden {actionPast}. Dat mag vanuit: {allowedFrom}.',
+
+  // What a check found (ADR 0047). Same shape as the refusals above: the
+  // English lives in `FINDING_MESSAGES` in @klopt/core and this is the
+  // reader's. These reach a screen directly and are also forwarded into a
+  // violation when a check blocks a posting.
+  'finding.icp.counterparty_without_vat_number':
+    'Een intracommunautaire levering is met 0% aan een klant zonder btw-nummer in het dossier. Het nummer van de klant is een voorwaarde voor het nultarief, geen detail.',
+  'finding.icp.icp_mismatch':
+    'De opgaaf telt op tot {total} en rubriek 3b geeft {rubriek3b} aan (in centen). Beide beschrijven dezelfde leveringen en moeten kloppen; de bevindingen hierboven noemen de regels die de opgaaf niet kon plaatsen.',
+  'finding.icp.proof_predates_period':
+    'De VIES-controle voor deze klant is van vóór het aangiftetijdvak. Een nummer kan tussen twee kwartalen zijn uitgeschreven, dus dit bewijs is zwakker dan een controle binnen het tijdvak.',
+  'finding.icp.supply_without_counterparty':
+    'Een intracommunautaire levering staat geboekt zonder klant op de regel en kan dus niet in de opgaaf komen. De aangifte geeft hem aan in 3b en de opgaaf kan dat niet — precies het verschil waar de Belastingdienst als eerste op kijkt.',
+  'finding.icp.vat_number_invalid':
+    'VIES zegt dat dit btw-nummer niet geldig is. Het nultarief geldt dan niet, en de levering moet worden gecorrigeerd voordat een van beide aangiftes de deur uit gaat.',
+  'finding.icp.vat_number_malformed':
+    'Het btw-nummer van een klant heeft niet de vorm die die lidstaat uitgeeft. VIES weigert het, dus het wordt hier al geweigerd, waar het nog te herstellen is.',
+  'finding.icp.vat_number_not_eu':
+    'Een levering is aangemerkt als intracommunautair aan een klant met een btw-nummer dat niet uit een EU-lidstaat komt. Of het nummer klopt niet, of de levering is iets anders.',
+  'finding.icp.vat_number_unproven':
+    'Dit btw-nummer is nooit tegen VIES gecontroleerd, of de laatste poging kwam er niet doorheen. Wat VIES zei en wanneer is het bewijs voor het nultarief; zonder dat valt er niets te laten zien.',
+  'finding.inbound.credit_note':
+    'Dit is een creditnota. Hij verlaagt wat verschuldigd is en zijn bedragen worden andersom geboekt.',
+  'finding.inbound.currency_not_functional':
+    'Het document staat in {currency} en de boeken in {functionalCurrency}. De bedragen worden overgenomen zoals ze er staan; omrekenen gebeurt hier niet.',
+  'finding.inbound.no_due_date':
+    'Het document heeft geen vervaldatum (BT-9). De betalingstermijn van de leverancier is in plaats daarvan gebruikt.',
+  'finding.inbound.no_invoice_number':
+    'Het document heeft geen factuurnummer (BT-1), dus er is niets om het onder te boeken of aan te herkennen als het nog eens binnenkomt.',
+  'finding.inbound.no_supplier_identifier':
+    'Het document noemt zijn afzender alleen bij naam — geen btw-nummer, geen KvK-nummer, geen Peppol-adres — dus het kan niet automatisch aan een leverancier worden gekoppeld.',
+  'finding.inbound.no_tax_category':
+    'Regel {lineNumber} zegt niets over zijn btw-categorie, dus er kon geen btw-code worden voorgesteld.',
+  'finding.inbound.totals_disagree_with_lines':
+    'Het document noemt zelf {declared} exclusief btw en zijn regels tellen op tot {fromLines}. Beide worden overgenomen zoals ze zijn; het verschil is meestal een toeslag of korting op documentniveau, en die wordt hier niet gelezen.',
+  'finding.inbound.unmapped_tax_category':
+    'Regel {lineNumber} is categorie {categoryCode} tegen {percent}%, en geen enkele inkoop-btw-code past daarbij. Codeer hem met de hand.',
+  'finding.payment.duplicate_end_to_end_id':
+    '{endToEndId} komt twee keer voor. Een bank kan dat als een dubbele betaling opvatten.',
+  'finding.payment.empty_batch': 'Een betaalbatch zonder opdrachten betaalt niemand.',
+  'finding.payment.invalid_amount': 'Een betaling van nul of minder is geen betaling.',
+  'finding.payment.invalid_bic.creditor': '{creditorBic} is geen geldige BIC.',
+  'finding.payment.invalid_bic.debtor': '{debtorBic} is geen geldige BIC.',
+  'finding.payment.invalid_characters': 'SEPA accepteert {characters} niet.',
+  'finding.payment.invalid_currency':
+    'Een SEPA-overboeking gaat in euro. Gebruik een ander middel voor andere valuta.',
+  'finding.payment.invalid_date': 'De uitvoerdatum is jjjj-mm-dd.',
+  'finding.payment.invalid_iban.creditor': '{creditorIban} is geen geldig IBAN.',
+  'finding.payment.invalid_iban.debtor': '{debtorIban} is geen geldig IBAN.',
+  'finding.payment.missing_name.payee': 'Een begunstigde heeft een naam nodig.',
+  'finding.payment.missing_name.payer': 'De betaler heeft een naam nodig.',
+  'finding.paymentRun.credit_exceeds_invoices':
+    'Bij {contactName} staat {net} meer gecrediteerd dan gefactureerd. Dat is een terugbetaling om te vragen, geen betaling om te sturen.',
+  'finding.paymentRun.invalid_iban':
+    'Het IBAN van {contactName} komt niet door zijn eigen controlegetal. Een verkeerd getypt IBAN laat de hele batch afkeuren.',
+  'finding.paymentRun.mixed_currencies':
+    '{contactName} heeft {count} open document(en) in een andere valuta dan de {currency} van deze batch. Een pain.001-batch draagt één valuta; zet die in een eigen run.',
+  'finding.paymentRun.no_iban':
+    'Aan {contactName} is {net} verschuldigd en er staat geen IBAN in het dossier. Vul dat aan bij Relaties.',
+  'finding.paymentRun.nothing_owed':
+    'De openstaande facturen en creditnota’s van {contactName} vallen precies tegen elkaar weg. Niets te betalen, en niets mis.',
+  'finding.purchase.duplicate_invoice_number':
+    'Deze leverancier heeft factuur {supplierInvoiceNumber} al gestuurd. Twee keer boeken is hoe een factuur twee keer betaald wordt.',
+  'finding.purchase.lines_do_not_sum_to_net':
+    'De regels tellen op tot {lineNet} en de factuur zegt {netMinorUnits}. Er ontbreekt een regel of er is er een verkeerd getypt — wat in het systeem staat is niet het document.',
+  'finding.purchase.lines_do_not_sum_to_tax':
+    'De btw op de regels telt op tot {lineTax} en de factuur zegt {taxMinorUnits}.',
+  'finding.purchase.net_plus_tax_is_not_total':
+    '{netMinorUnits} plus {taxMinorUnits} is niet {totalMinorUnits}. Leg de bedragen naast het document.',
+  'finding.purchase.no_rule_in_force':
+    'Btw-code {taxCode} heeft geen regel die geldt op {invoiceDate}.',
+  'finding.purchase.unknown_tax_code.no_such_code': 'Btw-code {taxCode} bestaat niet.',
+  'finding.purchase.not_deductible':
+    '{taxCode} is niet aftrekbaar, dus de {taxMinorUnits} btw op regel {lineNumber} wordt onderdeel van de kosten in plaats van voorbelasting.',
+  'finding.purchase.pro_rata':
+    '{taxCode} is voor {share}% aftrekbaar, dus {deductible} van de btw op regel {lineNumber} gaat naar de voorbelasting en {deductible} naar de kosten.',
+  'finding.purchase.rate_mismatch':
+    'Regel {lineNumber} rekent {taxMinorUnits} waar {taxCode} tegen {rate}% over {netMinorUnits} op {expected} zou uitkomen. De factuur wordt geboekt zoals hij er staat; kijk of de code klopt.',
+  'finding.purchase.reverse_charge_with_tax':
+    'Regel {lineNumber} gebruikt {taxCode}, wat betekent dat wij de btw aangeven — maar de factuur rekent er {taxMinorUnits} van. Of de leverancier had geen btw mogen rekenen, of dit is de verkeerde code.',
+  'finding.purchase.unknown_tax_code':
+    'Btw-code {taxCode} is een verkoopcode. Een inkoopfactuur heeft een inkoopcode nodig — de btw erop is voor ons om af te trekken, niet om in rekening te brengen.',
+  'finding.vat.code_declares_no_base':
+    'Er staat een belaste grondslag geboekt onder een code waarvoor de aangifte geen grondslagrubriek kent en die ook geen btw aangeeft. Van die regels komt niets in de aangifte terecht.',
+  'finding.vat.code_declares_no_vat':
+    'Er staat btw geboekt onder een nultariefcode, die geen rubriek heeft om die in aan te geven. Of het tarief klopt niet, of de boeking niet.',
+  'finding.vat.control_account_difference':
+    'Rekening {accountNumber} {accountName} bewoog {taggedMovementMinorUnits} op regels met een btw-code, terwijl de aangifte {declaredMinorUnits} aangeeft (in centen). Het verschil is de btw die geen rubriek bereikte — de bevindingen hierboven noemen elke regel ervan.',
+  'finding.vat.no_rule_in_force':
+    'Er bestaat wel een btw-code, maar geen regel die geldt op de boekdatum, dus die regels kunnen aan geen rubriek worden toegewezen. Verleng de geldigheid van de code of boek de posten anders.',
+  'finding.vat.rate_mismatch':
+    'Rubriek {id} geeft btw aan die zijn eigen grondslag en tarief niet opleveren. Verwacht ongeveer {expected}, gevonden {vatMinorUnits} (in centen). Een handmatige correctie verklaart dit; een verkeerd gecodeerde regel ook.',
+  'finding.vat.unknown_tax_code':
+    'Journaalregels dragen een btw-code die met geen enkele ingestelde code overeenkomt, dus hun btw staat wel in de boeken maar niet in de aangifte.',
+  'finding.vat.untagged_control_movement':
+    'Een btw-tussenrekening bewoog zonder btw-code. Een betaling aan of teruggaaf van de Belastingdienst ziet er precies zo uit, en met de hand geboekte btw ook.',
 } as const
 
 export type MessageKey = keyof typeof nl

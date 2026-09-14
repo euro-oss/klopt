@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { purchaseStatusLabel, violationMessage } from '~/i18n/labels'
+import { findingMessage, purchaseStatusLabel, violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
@@ -327,7 +327,7 @@ function PurchaseInvoiceScreen() {
                   {finding.lineNumber !== null &&
                     t('purchase.findingLine', { line: String(finding.lineNumber) })}
                 </p>
-                <p className="text-muted-foreground mt-1">{finding.message}</p>
+                <p className="text-muted-foreground mt-1">{findingMessage(t, finding)}</p>
               </li>
             ))}
           </ul>

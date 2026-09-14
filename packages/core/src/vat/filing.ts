@@ -68,11 +68,17 @@ export function planFiling(request: FilingRequest): FilingPlan {
     // one, and "the reconciliation failed" tells them nothing about which line.
     for (const finding of blocking) {
       problems.push(
-        forwarded('vat_out_of_balance', `findings.${finding.code}`, finding.message, {
-          code: finding.code,
-          amount: finding.amountMinorUnits.toString(),
-          lines: String(finding.lines.length),
-        }),
+        forwarded(
+          'vat_out_of_balance',
+          `findings.${finding.code}`,
+          finding.message,
+          finding.messageKey,
+          {
+            code: finding.code,
+            amount: finding.amountMinorUnits.toString(),
+            lines: String(finding.lines.length),
+          },
+        ),
       )
     }
   }

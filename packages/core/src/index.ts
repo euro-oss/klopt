@@ -36,6 +36,11 @@ export {
   violation,
 } from './errors.js'
 export {
+  FINDING_MESSAGES,
+  renderFindingMessage,
+  type FindingMessageKey,
+} from './finding-messages.js'
+export {
   VIOLATION_MESSAGES,
   renderViolationMessage,
   type ViolationMessage,

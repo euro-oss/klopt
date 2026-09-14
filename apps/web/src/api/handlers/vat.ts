@@ -54,6 +54,10 @@ function serialiseFinding(finding: VatFinding) {
   return {
     code: finding.code,
     severity: finding.severity,
+    // The key and its values, so a client writes the sentence in its own
+    // language (ADR 0047). `message` stays: not every client has a catalogue.
+    messageKey: finding.messageKey,
+    detail: finding.detail ?? null,
     message: finding.message,
     amount: finding.amountMinorUnits.toString(),
     lines: finding.lines.map((line) => ({
@@ -623,6 +627,10 @@ function serialiseIcpFinding(finding: IcpFinding) {
   return {
     code: finding.code,
     severity: finding.severity,
+    // The key and its values, so a client writes the sentence in its own
+    // language (ADR 0047). `message` stays: not every client has a catalogue.
+    messageKey: finding.messageKey,
+    detail: finding.detail ?? null,
     message: finding.message,
     amount: finding.amountMinorUnits.toString(),
     lines: finding.lines.map((line) => ({

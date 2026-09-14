@@ -1,6 +1,7 @@
 import { LedgerError, forwarded, type LedgerViolation } from '../errors.js'
 import { formatMinorUnits } from '../format/index.js'
 import { isValidIban } from './model.js'
+import { renderFindingMessage, type FindingMessageKey } from '../finding-messages.js'
 
 /**
  * Turning approved purchase invoices into payment instructions (spec 15, M4).
@@ -94,6 +95,9 @@ export interface PaymentRunFinding {
   readonly severity: 'blocking' | 'note'
   readonly contactNumber: string
   readonly message: string
+  /** Which sentence this is, and the values in it, for a client that translates. */
+  readonly messageKey: FindingMessageKey
+  readonly detail?: Readonly<Record<string, string>>
   readonly amountMinorUnits: bigint
 }
 
@@ -145,21 +149,29 @@ export function planPaymentRun(request: PaymentRunRequest): PaymentRunPlan {
     code: PaymentRunFindingCode,
     severity: 'blocking' | 'note',
     contactNumber: string,
-    message: string,
+    messageKey: FindingMessageKey,
+    detail?: Readonly<Record<string, string>>,
     amountMinorUnits = 0n,
   ): void => {
-    findings.push({ code, severity, contactNumber, message, amountMinorUnits })
+    findings.push({
+      code,
+      severity,
+      contactNumber,
+      message: renderFindingMessage(messageKey, detail),
+      messageKey,
+      ...(detail === undefined ? {} : { detail }),
+      amountMinorUnits,
+    })
   }
 
   for (const supplier of request.suppliers) {
     const wrongCurrency = supplier.items.filter((item) => item.currency !== request.currency)
     if (wrongCurrency.length > 0) {
-      flag(
-        'mixed_currencies',
-        'blocking',
-        supplier.contactNumber,
-        `${supplier.contactName} has ${String(wrongCurrency.length)} open document(s) in another currency than the batch's ${request.currency}. A pain.001 batch carries one currency; put those in their own run.`,
-      )
+      flag('mixed_currencies', 'blocking', supplier.contactNumber, 'paymentRun.mixed_currencies', {
+        contactName: supplier.contactName,
+        count: String(wrongCurrency.length),
+        currency: request.currency,
+      })
       continue
     }
 
@@ -177,12 +189,9 @@ export function planPaymentRun(request: PaymentRunRequest): PaymentRunPlan {
     const net = owed - credited
 
     if (net === 0n) {
-      flag(
-        'nothing_owed',
-        'note',
-        supplier.contactNumber,
-        `${supplier.contactName}'s open invoices and credit notes cancel out exactly. Nothing to pay, and nothing wrong.`,
-      )
+      flag('nothing_owed', 'note', supplier.contactNumber, 'paymentRun.nothing_owed', {
+        contactName: supplier.contactName,
+      })
       continue
     }
     if (net < 0n) {
@@ -192,7 +201,8 @@ export function planPaymentRun(request: PaymentRunRequest): PaymentRunPlan {
         'credit_exceeds_invoices',
         'note',
         supplier.contactNumber,
-        `${supplier.contactName} has ${money(-net)} more credited than invoiced. That is a refund to ask them for, not a payment to send.`,
+        'paymentRun.credit_exceeds_invoices',
+        { contactName: supplier.contactName, net: money(-net) },
         -net,
       )
       continue
@@ -203,7 +213,8 @@ export function planPaymentRun(request: PaymentRunRequest): PaymentRunPlan {
         'no_iban',
         'blocking',
         supplier.contactNumber,
-        `${supplier.contactName} is owed ${money(net)} and has no IBAN on file. Add it under Relaties.`,
+        'paymentRun.no_iban',
+        { contactName: supplier.contactName, net: money(net) },
         net,
       )
       continue
@@ -215,7 +226,8 @@ export function planPaymentRun(request: PaymentRunRequest): PaymentRunPlan {
         'invalid_iban',
         'blocking',
         supplier.contactNumber,
-        `${supplier.contactName}'s IBAN does not pass its own check digits. A mistyped IBAN gets the whole batch refused.`,
+        'paymentRun.invalid_iban',
+        { contactName: supplier.contactName },
         net,
       )
       continue
@@ -299,10 +311,16 @@ export function assertRunnable(plan: PaymentRunPlan): void {
   if (blocking.length === 0) return
 
   const problems: LedgerViolation[] = blocking.map((finding) =>
-    forwarded('invalid_payment', `suppliers.${finding.contactNumber}`, finding.message, {
-      code: finding.code,
-      amount: finding.amountMinorUnits.toString(),
-    }),
+    forwarded(
+      'invalid_payment',
+      `suppliers.${finding.contactNumber}`,
+      finding.message,
+      finding.messageKey,
+      {
+        code: finding.code,
+        amount: finding.amountMinorUnits.toString(),
+      },
+    ),
   )
   throw new LedgerError(problems)
 }

@@ -127,12 +127,45 @@ export interface TranslatableViolation {
 export function violationMessage(t: Translate, violation: TranslatableViolation): string {
   if (violation.messageKey === undefined || violation.messageKey === null) return violation.message
 
-  const key = `violation.${violation.messageKey}` as MessageKey
-  // `translate` reads the catalogue by key and hands back whatever it finds,
-  // which for a key nobody wrote is `undefined`. A message added to
-  // `@klopt/core` and not yet translated should read as English, not as a gap.
-  const translated: string | undefined = t(key, violation.detail)
-  return translated === undefined || translated === key ? violation.message : translated
+  // Either catalogue: since ADR 0047 a violation forwarded from a check
+  // carries the *finding's* key, and the two namespaces are separate files in
+  // `@klopt/core` for the same reason they are separate concepts.
+  return (
+    lookUp(t, `violation.${violation.messageKey}`, violation.detail) ??
+    lookUp(t, `finding.${violation.messageKey}`, violation.detail) ??
+    violation.message
+  )
+}
+
+/**
+ * One catalogue lookup, or undefined when it has no entry.
+ *
+ * `translate` reads by key and hands back whatever it finds, which for a key
+ * nobody wrote is `undefined`. A message added to `@klopt/core` and not yet
+ * translated should read as the English the domain wrote, not as a gap.
+ */
+function lookUp(t: Translate, key: string, detail?: Values): string | undefined {
+  const translated: string | undefined = t(key as MessageKey, detail)
+  return translated === undefined || translated === key ? undefined : translated
+}
+
+/**
+ * What a check found, in the reader's language (ADR 0047).
+ *
+ * Findings appear on their own screens — the purchase inbox, the VAT return,
+ * a payment run's preview — as well as inside a violation when a check blocks
+ * a posting. Same fallback: the English the domain wrote, rather than a key.
+ */
+export function findingMessage(t: Translate, finding: TranslatableFinding): string {
+  return lookUp(t, `finding.${finding.messageKey}`, finding.detail ?? undefined) ?? finding.message
+}
+
+/** As much of a finding as translating one needs. */
+export interface TranslatableFinding {
+  readonly message: string
+  readonly messageKey: string
+  /** Null on the wire rather than absent, because JSON has no undefined. */
+  readonly detail?: Readonly<Record<string, string>> | null | undefined
 }
 
 /** The same, for the several screens that show a list of them. */

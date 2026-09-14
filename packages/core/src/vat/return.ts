@@ -1,6 +1,7 @@
 import type { TaxRole } from '../ledger/types.js'
 import { OWED_RUBRIEKEN, RUBRIEKEN, findRubriek, type Rubriek } from './rubrieken.js'
 import { ruleInForce, type TaxCodeRule } from './tax-code.js'
+import { renderFindingMessage, type FindingMessageKey } from '../finding-messages.js'
 
 /**
  * The BTW-aangifte, derived from the journal.
@@ -101,6 +102,9 @@ export interface VatFinding {
   /** Blocking stops the filing. A warning is shown and can be accepted. */
   readonly severity: 'blocking' | 'warning'
   readonly message: string
+  /** Which sentence this is, and the values in it, for a client that translates. */
+  readonly messageKey: FindingMessageKey
+  readonly detail?: Readonly<Record<string, string>>
   readonly amountMinorUnits: bigint
   readonly lines: readonly VatLineContribution[]
 }
@@ -332,7 +336,17 @@ export function buildVatReturn(request: VatReturnRequest): VatReturn {
       findings.push({
         code: 'rate_mismatch',
         severity: 'warning',
-        message: `Rubriek ${total.rubriek.id} declares VAT that its own base and rate do not produce. Expected roughly ${expected.toString()}, found ${total.vatMinorUnits.toString()} (minor units). A manual correction explains this; a miscoded line also does.`,
+        message: renderFindingMessage('vat.rate_mismatch', {
+          id: total.rubriek.id,
+          expected: expected.toString(),
+          vatMinorUnits: total.vatMinorUnits.toString(),
+        }),
+        messageKey: 'vat.rate_mismatch',
+        detail: {
+          id: total.rubriek.id,
+          expected: expected.toString(),
+          vatMinorUnits: total.vatMinorUnits.toString(),
+        },
         amountMinorUnits: drift,
         lines: total.lines,
       })
@@ -354,36 +368,37 @@ export function buildVatReturn(request: VatReturnRequest): VatReturn {
     code: VatFindingCode
     severity: 'blocking' | 'warning'
     message: string
+    messageKey: FindingMessageKey
   }[] = [
     {
       code: 'unknown_tax_code',
       severity: 'blocking',
-      message:
-        'Journal lines carry a tax code that no configured code matches, so their VAT is in the books but not in the return.',
+      message: renderFindingMessage('vat.unknown_tax_code'),
+      messageKey: 'vat.unknown_tax_code',
     },
     {
       code: 'no_rule_in_force',
       severity: 'blocking',
-      message:
-        'A tax code exists but has no rule valid on the booking date, so those lines cannot be assigned to a rubriek. Extend the code’s validity window or reclassify the entries.',
+      message: renderFindingMessage('vat.no_rule_in_force'),
+      messageKey: 'vat.no_rule_in_force',
     },
     {
       code: 'code_declares_no_vat',
       severity: 'blocking',
-      message:
-        'VAT is posted under a zero-rate code, which has no rubriek to declare it in. Either the rate or the posting is wrong.',
+      message: renderFindingMessage('vat.code_declares_no_vat'),
+      messageKey: 'vat.code_declares_no_vat',
     },
     {
       code: 'code_declares_no_base',
       severity: 'warning',
-      message:
-        'A taxable base is posted under a code the aangifte gives no base box and that does not declare VAT either. Nothing about those lines reaches the return.',
+      message: renderFindingMessage('vat.code_declares_no_base'),
+      messageKey: 'vat.code_declares_no_base',
     },
     {
       code: 'untagged_control_movement',
       severity: 'warning',
-      message:
-        'A VAT control account moved without a tax code. A payment to or refund from the Belastingdienst looks exactly like this, and so does VAT booked by hand.',
+      message: renderFindingMessage('vat.untagged_control_movement'),
+      messageKey: 'vat.untagged_control_movement',
     },
   ]
 
@@ -394,6 +409,7 @@ export function buildVatReturn(request: VatReturnRequest): VatReturn {
       code: kind.code,
       severity: kind.severity,
       message: kind.message,
+      messageKey: kind.messageKey,
       amountMinorUnits: found.amount,
       lines: found.lines,
     })
@@ -404,7 +420,19 @@ export function buildVatReturn(request: VatReturnRequest): VatReturn {
     findings.push({
       code: 'control_account_difference',
       severity: 'blocking',
-      message: `Account ${account.accountNumber} ${account.accountName} moved ${account.taggedMovementMinorUnits.toString()} on tax-coded lines but the return declares ${account.declaredMinorUnits.toString()} (minor units). The difference is the VAT that did not reach a rubriek — the findings above name every line of it.`,
+      message: renderFindingMessage('vat.control_account_difference', {
+        accountNumber: account.accountNumber,
+        accountName: account.accountName,
+        taggedMovementMinorUnits: account.taggedMovementMinorUnits.toString(),
+        declaredMinorUnits: account.declaredMinorUnits.toString(),
+      }),
+      messageKey: 'vat.control_account_difference',
+      detail: {
+        accountNumber: account.accountNumber,
+        accountName: account.accountName,
+        taggedMovementMinorUnits: account.taggedMovementMinorUnits.toString(),
+        declaredMinorUnits: account.declaredMinorUnits.toString(),
+      },
       amountMinorUnits: account.differenceMinorUnits,
       lines: [],
     })

@@ -17,6 +17,10 @@
     "./violations": {
       "types": "./dist/violation-messages.d.ts",
       "default": "./dist/violation-messages.js"
+    },
+    "./findings": {
+      "types": "./dist/finding-messages.d.ts",
+      "default": "./dist/finding-messages.js"
     }
   },
   "files": [

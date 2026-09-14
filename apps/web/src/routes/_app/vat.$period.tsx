@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { vatPeriodLabel, violationMessage } from '~/i18n/labels'
+import { findingMessage, vatPeriodLabel, violationMessage } from '~/i18n/labels'
 import { Fragment, useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
@@ -574,7 +574,7 @@ function VatReturnScreen() {
                     (<Money amount={finding.amount} />)
                   </span>
                 </p>
-                <p className="text-muted-foreground mt-1">{finding.message}</p>
+                <p className="text-muted-foreground mt-1">{findingMessage(t, finding)}</p>
                 {finding.lines.length > 0 && (
                   <ul className="mt-2 space-y-1 text-xs">
                     {finding.lines.map((line) => (

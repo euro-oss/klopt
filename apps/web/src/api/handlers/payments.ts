@@ -219,6 +219,10 @@ export async function handlePreviewPaymentRun(context: RequestContext, batchId: 
         findings: plan.findings.map((finding) => ({
           code: finding.code,
           severity: finding.severity,
+          // The key and its values, so a client writes the sentence in its own
+          // language (ADR 0047). `message` stays: not every client has a catalogue.
+          messageKey: finding.messageKey,
+          detail: finding.detail ?? null,
           contactNumber: finding.contactNumber,
           message: finding.message,
           amount: finding.amountMinorUnits.toString(),

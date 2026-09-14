@@ -2,6 +2,7 @@ import { LedgerError, forwarded, type LedgerViolation, violation } from '../erro
 import { parseMinorUnits } from '../format/index.js'
 import { at, child, childrenNamed, parseXmlDocument, textAt, textOf } from '../xml/parse.js'
 import type { PurchaseInvoiceInput, PurchaseLineInput } from './check.js'
+import { renderFindingMessage, type FindingMessageKey } from '../finding-messages.js'
 
 /**
  * Reading an inbound UBL invoice into a draft (spec 7.5).
@@ -46,6 +47,9 @@ export interface InboundFinding {
   readonly code: InboundFindingCode
   readonly severity: 'blocking' | 'warning' | 'note'
   readonly message: string
+  /** Which sentence this is, and the values in it, for a client that translates. */
+  readonly messageKey: FindingMessageKey
+  readonly detail?: Readonly<Record<string, string>>
 }
 
 /** How the sender identifies themselves, in the order a matcher should try. */
@@ -209,47 +213,41 @@ export function parseUblInvoice(xml: string, options: ParseUblInvoiceOptions): I
   const note = (
     code: InboundFindingCode,
     severity: 'blocking' | 'warning' | 'note',
-    message: string,
+    messageKey: FindingMessageKey,
+    detail?: Readonly<Record<string, string>>,
   ): void => {
-    findings.push({ code, severity, message })
+    findings.push({
+      code,
+      severity,
+      message: renderFindingMessage(messageKey, detail),
+      messageKey,
+      ...(detail === undefined ? {} : { detail }),
+    })
   }
 
   // BT-1. Without it there is nothing to identify the document by, and the
   // duplicate guard has nothing to work with.
   const number = textOf(root, 'ID')
   if (number === null) {
-    note(
-      'no_invoice_number',
-      'blocking',
-      'The document carries no invoice number (BT-1), so there is nothing to book it under or to recognise it by if it arrives again.',
-    )
+    note('no_invoice_number', 'blocking', 'inbound.no_invoice_number', undefined)
   }
 
   const issueDate = textOf(root, 'IssueDate')
   const dueDate = textOf(root, 'DueDate')
   if (dueDate === null) {
-    note(
-      'no_due_date',
-      'warning',
-      'The document carries no due date (BT-9). The supplier’s payment terms have been used instead.',
-    )
+    note('no_due_date', 'warning', 'inbound.no_due_date', undefined)
   }
 
   const currency = textOf(root, 'DocumentCurrencyCode') ?? options.functionalCurrency
   if (currency !== options.functionalCurrency) {
-    note(
-      'currency_not_functional',
-      'warning',
-      `The document is in ${currency} and the books are in ${options.functionalCurrency}. The amounts are recorded as stated; the conversion is not done here.`,
-    )
+    note('currency_not_functional', 'warning', 'inbound.currency_not_functional', {
+      currency,
+      functionalCurrency: options.functionalCurrency,
+    })
   }
 
   if (isCreditNote) {
-    note(
-      'credit_note',
-      'note',
-      'This is a credit note. It reduces what is owed, and its amounts are booked the other way round.',
-    )
+    note('credit_note', 'note', 'inbound.credit_note', undefined)
   }
 
   const party = at(root, 'AccountingSupplierParty/Party')
@@ -277,11 +275,7 @@ export function parseUblInvoice(xml: string, options: ParseUblInvoiceOptions): I
     supplier.kvkNumber === null &&
     supplier.electronicAddress === null
   ) {
-    note(
-      'no_supplier_identifier',
-      'warning',
-      'The document identifies its sender by name only — no VAT number, no KvK number, no Peppol address — so it cannot be matched to a supplier automatically.',
-    )
+    note('no_supplier_identifier', 'warning', 'inbound.no_supplier_identifier', undefined)
   }
 
   const totals = at(root, 'LegalMonetaryTotal')
@@ -329,8 +323,15 @@ export function parseUblInvoice(xml: string, options: ParseUblInvoiceOptions): I
         declared.categoryCode === null ? 'no_tax_category' : 'unmapped_tax_category',
         'warning',
         declared.categoryCode === null
-          ? `Line ${String(lineNumber)} says nothing about its VAT category, so no tax code could be suggested.`
-          : `Line ${String(lineNumber)} is category ${declared.categoryCode} at ${declared.percent ?? '?'}%, and no input tax code matches it. Code it by hand.`,
+          ? 'inbound.no_tax_category'
+          : 'inbound.unmapped_tax_category',
+        declared.categoryCode === null
+          ? { lineNumber: String(lineNumber) }
+          : {
+              lineNumber: String(lineNumber),
+              categoryCode: declared.categoryCode,
+              percent: String(declared.percent ?? '?'),
+            },
       )
     }
 
@@ -352,11 +353,10 @@ export function parseUblInvoice(xml: string, options: ParseUblInvoiceOptions): I
   const statedTotal = gross ?? statedNet + statedTax
 
   if (net !== null && net !== lineNet) {
-    note(
-      'totals_disagree_with_lines',
-      'warning',
-      `The document's own total excluding VAT is ${(Number(net) / 100).toFixed(2)} and its lines add up to ${(Number(lineNet) / 100).toFixed(2)}. Both are recorded as they are; the difference is usually a document-level charge or allowance, which is not read here.`,
-    )
+    note('totals_disagree_with_lines', 'warning', 'inbound.totals_disagree_with_lines', {
+      declared: (Number(net) / 100).toFixed(2),
+      fromLines: (Number(lineNet) / 100).toFixed(2),
+    })
   }
 
   const order = { blocking: 0, warning: 1, note: 2 } as const
@@ -389,8 +389,14 @@ export function inboundBlockers(parsed: InboundInvoice): readonly LedgerViolatio
   return parsed.findings
     .filter((finding) => finding.severity === 'blocking')
     .map((finding) =>
-      forwarded('invalid_document', `document.${finding.code}`, finding.message, {
-        code: finding.code,
-      }),
+      forwarded(
+        'invalid_document',
+        `document.${finding.code}`,
+        finding.message,
+        finding.messageKey,
+        {
+          code: finding.code,
+        },
+      ),
     )
 }
