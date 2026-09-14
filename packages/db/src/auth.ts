@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { createAuthMiddleware, getSessionFromCtx } from 'better-auth/api'
 import { emailOTP } from 'better-auth/plugins'
 import type { EmailTransport } from '@klopt/core'
 import { uuidv7, type Role } from '@klopt/core'
@@ -71,10 +72,38 @@ export interface AuthConfig {
 
 /** What happened, for the audit log. See `recordAuthEvent`. */
 export interface AuthEvent {
-  readonly action: 'auth.codeRequested' | 'auth.signedIn'
+  readonly action: 'auth.codeRequested' | 'auth.signedIn' | 'auth.signedOut'
   /** The address it concerns. The only identifier a failed attempt has. */
   readonly email: string
   readonly userId: string | null
+}
+
+/**
+ * Who is signing out, carried from the `before` hook to the `after` one.
+ *
+ * A `WeakMap` keyed on the endpoint context, which better-auth hands to both:
+ * one entry per in-flight request, collected with it, and no chance of two
+ * concurrent sign-outs reading each other's.
+ */
+const signingOut = new WeakMap<object, { email: string; userId: string }>()
+
+/**
+ * The key both hooks agree on.
+ *
+ * `createAuthMiddleware` builds a fresh wrapper per invocation, so the `ctx`
+ * the `before` hook sees is not the one `after` sees — a `WeakMap` keyed on it
+ * finds nothing. `ctx.context` is the object the dispatcher writes `returned`
+ * onto, which makes it the request, and the request is the scope this wants:
+ * two people signing out at once must not read each other's.
+ */
+function requestOf(ctx: unknown): object {
+  const inner = (ctx as Returned).context
+  return inner ?? (ctx as object)
+}
+
+/** The one field of a hook's context this reads that its type omits. */
+interface Returned {
+  readonly context?: { readonly returned?: unknown }
 }
 
 /** How long a code is worth typing. Long enough to switch to a mail client. */
@@ -235,6 +264,55 @@ export function createAuth(config: AuthConfig) {
           },
         },
       },
+    },
+
+    /**
+     * Signing out, which has no database hook (ADR 0049).
+     *
+     * `databaseHooks` are create and update only, so the session's deletion is
+     * invisible there. The request hooks see every endpoint, including the one
+     * `auth.api.signOut` dispatches through — which matters, because this
+     * application signs out two ways: a plain form posting to `/sign-out`, and
+     * any API client posting to `/api/auth/sign-out`. One hook covers both.
+     *
+     * Split across `before` and `after` on purpose. `before` is the last
+     * moment the session still exists, so it is the only place to learn whose
+     * it was; `after` is the only place that knows the sign-out succeeded. An
+     * audit line for a sign-out that failed would be a lie, and this log's
+     * whole value is that it is not one.
+     */
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== '/sign-out') return
+        // The library's own resolution rather than reading the cookie here:
+        // it knows how the token is signed and which name it goes under.
+        // Swallowed, because observing a sign-out must never prevent one.
+        const session = await getSessionFromCtx(ctx).catch(() => null)
+        if (session === null) return
+        signingOut.set(requestOf(ctx), { email: session.user.email, userId: session.user.id })
+      }),
+      after: createAuthMiddleware(async (ctx) => {
+        const key = requestOf(ctx)
+        const who = signingOut.get(key)
+        signingOut.delete(key)
+        if (who === undefined) return
+
+        // The endpoint answers `{ success: true }`. Anything else — an expired
+        // session, a database that refused — is not a sign-out, and must not
+        // be written down as one.
+        const returned: unknown = (ctx as Returned).context?.returned
+        const succeeded =
+          typeof returned === 'object' &&
+          returned !== null &&
+          (returned as { success?: unknown }).success === true
+        if (!succeeded) return
+
+        await config.onAuthEvent?.({
+          action: 'auth.signedOut',
+          email: who.email,
+          userId: who.userId,
+        })
+      }),
     },
 
     /**

@@ -109,6 +109,115 @@ describe('authentication is audited', () => {
     expect(rows.some((row) => row.entityId === entityId)).toBe(true)
   })
 
+  /**
+   * Signing out, which spec 14 asks for and ADR 0040 left out because
+   * better-auth has no database hook for a deleted session (ADR 0049).
+   *
+   * "Who got in" without "and when they left" answers half the question an
+   * investigator asks — a session that was never signed out is still open, and
+   * that is worth being able to see.
+   */
+  it('records signing out, with the address', async () => {
+    const email = `signed-out-${randomUUID()}@example.test`
+    const auth = createAuth({
+      database,
+      baseUrl: 'https://klopt.test',
+      secret: 'test-secret-not-for-production-0123456789',
+      email: mailbox,
+      disableRateLimit: true,
+      onAuthEvent: async (event) => {
+        const { recordAuthEvent } = await import('@klopt/db')
+        await recordAuthEvent(database, event)
+      },
+    })
+
+    const otp = await codeFor(auth, email)
+    const signedIn = await auth.api.signInEmailOTP({ body: { email, otp }, asResponse: true })
+    // Just the name=value pair: a Set-Cookie carries its attributes too, and
+    // `Path=/; HttpOnly` in a Cookie header is not a cookie.
+    const cookie = (signedIn.headers.get('set-cookie') ?? '').split(';')[0] ?? ''
+
+    await auth.api.signOut({ headers: new Headers({ cookie }), asResponse: true })
+
+    const actions = (await auditFor(email)).map((row) => row.action)
+    expect(actions).toContain('auth.signedOut')
+  })
+
+  it('does not cross two people signing out at once', async () => {
+    /**
+     * The `before` hook learns who is leaving and the `after` hook writes it
+     * down, and the two see different context objects — so the value is
+     * carried on `ctx.context`, which is the request. If that were shared
+     * rather than per-request, two simultaneous sign-outs would write each
+     * other's address into the audit log, which is a worse bug than the one
+     * this whole feature fixes.
+     */
+    const auth = createAuth({
+      database,
+      secret: 'test-secret-not-for-production-0123456789',
+      baseUrl: 'https://klopt.test',
+      email: mailbox,
+      disableRateLimit: true,
+      onAuthEvent: async (event) => {
+        const { recordAuthEvent } = await import('@klopt/db')
+        await recordAuthEvent(database, event)
+      },
+    })
+
+    const cookieFor = async (email: string): Promise<string> => {
+      const otp = await codeFor(auth, email)
+      const response = await auth.api.signInEmailOTP({ body: { email, otp }, asResponse: true })
+      return (response.headers.get('set-cookie') ?? '').split(';')[0] ?? ''
+    }
+
+    const first = `both-a-${randomUUID()}@example.test`
+    const second = `both-b-${randomUUID()}@example.test`
+    const cookies = [await cookieFor(first), await cookieFor(second)]
+
+    await Promise.all(
+      cookies.map((cookie) =>
+        auth.api.signOut({ headers: new Headers({ cookie }), asResponse: true }),
+      ),
+    )
+
+    for (const email of [first, second]) {
+      const signOuts = (await auditFor(email)).filter((row) => row.action === 'auth.signedOut')
+      expect(signOuts, email).toHaveLength(1)
+      expect(signOuts[0]?.actorId, email).toBe(email)
+    }
+  })
+
+  it('does not record a sign-out that did not happen', async () => {
+    // A log that records sign-outs which failed is worse than one that misses
+    // them: it says a session was closed when it is still open. The `before`
+    // hook finds nobody behind an unknown cookie, so `after` writes nothing.
+    const email = `signed-out-${randomUUID()}@example.test`
+    const auth = createAuth({
+      database,
+      baseUrl: 'https://klopt.test',
+      secret: 'test-secret-not-for-production-0123456789',
+      email: mailbox,
+      disableRateLimit: true,
+      onAuthEvent: async (event) => {
+        const { recordAuthEvent } = await import('@klopt/db')
+        await recordAuthEvent(database, event)
+      },
+    })
+
+    const otp = await codeFor(auth, email)
+    await auth.api.signInEmailOTP({ body: { email, otp }, asResponse: true })
+
+    await auth.api
+      .signOut({
+        headers: new Headers({ cookie: 'better-auth.session_token=not-a-real-token' }),
+        asResponse: true,
+      })
+      .catch(() => undefined)
+
+    const actions = (await auditFor(email)).map((row) => row.action)
+    expect(actions).not.toContain('auth.signedOut')
+  })
+
   it('records an attempt on an address that reaches nothing, with no administration', async () => {
     // The shape of a probe. No owner's screen will show it — it belongs to no
     // administration — but it is in the table and the export, which is where
