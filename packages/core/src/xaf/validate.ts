@@ -1,4 +1,5 @@
 import { XAF_LIMITS, type XafDocument } from './model.js'
+import { renderFindingMessage, type FindingMessageKey } from '../finding-messages.js'
 
 /**
  * Semantic validation of an XAF document (spec 7.3).
@@ -22,10 +23,43 @@ import { XAF_LIMITS, type XafDocument } from './model.js'
 
 export type XafProblemSeverity = 'error' | 'warning'
 
+/**
+ * What is wrong with the file, as a code rather than only as prose.
+ *
+ * An import report is read by a person and by a script. The person wants the
+ * sentence; the script wants to know whether it is looking at a file that does
+ * not balance or one with a duplicate account, and it cannot get that from
+ * English. Added in ADR 0048 for the same reason `LedgerErrorCode` exists.
+ */
+export type XafProblemCode =
+  | 'field_too_long'
+  | 'invalid_date'
+  | 'period_reversed'
+  | 'invalid_currency'
+  | 'invalid_country'
+  | 'duplicate_account'
+  | 'accounts_without_rgs'
+  | 'unknown_account'
+  | 'duplicate_journal'
+  | 'duplicate_transaction'
+  | 'date_outside_fiscal_year'
+  | 'unknown_period'
+  | 'transaction_without_lines'
+  | 'negative_amount'
+  | 'unknown_party'
+  | 'unknown_vat_code'
+  | 'transaction_unbalanced'
+  | 'file_unbalanced'
+  | 'opening_balance_unbalanced'
+
 export interface XafProblem {
   readonly severity: XafProblemSeverity
+  readonly code: XafProblemCode
   readonly path: string
   readonly message: string
+  /** Which sentence this is, and the values in it, for a client that translates. */
+  readonly messageKey: FindingMessageKey
+  readonly detail?: Readonly<Record<string, string>>
 }
 
 export interface XafValidationResult {
@@ -40,24 +74,37 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/
 
 export function validateXafDocument(document: XafDocument): XafValidationResult {
   const problems: XafProblem[] = []
-  const error = (path: string, message: string): void => {
-    problems.push({ severity: 'error', path, message })
-  }
-  const warn = (path: string, message: string): void => {
-    problems.push({ severity: 'warning', path, message })
-  }
+  const report =
+    (severity: XafProblemSeverity) =>
+    (
+      path: string,
+      code: XafProblemCode,
+      messageKey: FindingMessageKey,
+      detail?: Readonly<Record<string, string>>,
+    ): void => {
+      problems.push({
+        severity,
+        code,
+        path,
+        message: renderFindingMessage(messageKey, detail),
+        messageKey,
+        ...(detail === undefined ? {} : { detail }),
+      })
+    }
+  const error = report('error')
+  const warn = report('warning')
 
   const checkLength = (path: string, value: string | null, limit: number): void => {
     if (value !== null && value.length > limit) {
-      error(
-        path,
-        `Exceeds the schema's ${String(limit)} character limit (${String(value.length)}).`,
-      )
+      error(path, 'field_too_long', 'xaf.field_too_long', {
+        limit: String(limit),
+        count: String(value.length),
+      })
     }
   }
 
   const checkDate = (path: string, value: string): void => {
-    if (!DATE.test(value)) error(path, `"${value}" is not an ISO date.`)
+    if (!DATE.test(value)) error(path, 'invalid_date', 'xaf.invalid_date', { value })
   }
 
   checkDate('header.startDate', document.header.startDate)
@@ -66,22 +113,24 @@ export function validateXafDocument(document: XafDocument): XafValidationResult 
   checkLength('header.fiscalYear', document.header.fiscalYear, XAF_LIMITS.string9)
 
   if (document.header.endDate < document.header.startDate) {
-    error('header', 'endDate is before startDate.')
+    error('header', 'period_reversed', 'xaf.period_reversed', undefined)
   }
   if (!/^[A-Z]{3}$/.test(document.header.curCode)) {
-    error('header.curCode', `"${document.header.curCode}" is not an ISO 4217 code.`)
+    error('header.curCode', 'invalid_currency', 'xaf.invalid_currency', {
+      curCode: document.header.curCode,
+    })
   }
 
   checkLength('company.companyName', document.company.companyName, XAF_LIMITS.string999)
   checkLength('company.taxRegIdent', document.company.taxRegIdent, XAF_LIMITS.string30)
   if (!/^[A-Z]{2}$/.test(document.company.taxRegistrationCountry)) {
-    error('company.taxRegistrationCountry', 'Must be a two-letter ISO 3166 code.')
+    error('company.taxRegistrationCountry', 'invalid_country', 'xaf.invalid_country', undefined)
   }
 
   const accountIds = new Set<string>()
   for (const account of document.ledgerAccounts) {
     if (accountIds.has(account.accID)) {
-      error('generalLedger', `Duplicate account ${account.accID}.`)
+      error('generalLedger', 'duplicate_account', 'xaf.duplicate_account', { accID: account.accID })
     }
     accountIds.add(account.accID)
     checkLength(`generalLedger.${account.accID}.accID`, account.accID, XAF_LIMITS.identification35)
@@ -92,13 +141,15 @@ export function validateXafDocument(document: XafDocument): XafValidationResult 
   if (unmapped.length > 0) {
     // Not an error: XAF permits it. But the ODB is pushing XAF *with* RGS, and
     // an accountant receiving this file will notice, so say so before they do.
-    warn(
-      'generalLedger',
-      `${String(unmapped.length)} of ${String(document.ledgerAccounts.length)} accounts have no RGS lead code: ${unmapped
-        .slice(0, 5)
-        .map((account) => account.accID)
-        .join(', ')}${unmapped.length > 5 ? ', …' : ''}`,
-    )
+    const listed = unmapped
+      .slice(0, 5)
+      .map((account) => account.accID)
+      .join(', ')
+    warn('generalLedger', 'accounts_without_rgs', 'xaf.accounts_without_rgs', {
+      unmapped: String(unmapped.length),
+      total: String(document.ledgerAccounts.length),
+      accounts: `${listed}${unmapped.length > 5 ? ', …' : ''}`,
+    })
   }
 
   const partyIds = new Set(document.customersSuppliers.map((party) => party.custSupID))
@@ -111,7 +162,9 @@ export function validateXafDocument(document: XafDocument): XafValidationResult 
       ['vatToClaimAccID', vatCode.vatToClaimAccID],
     ] as const) {
       if (accountId !== null && !accountIds.has(accountId)) {
-        error(`vatCodes.${vatCode.vatID}.${field}`, `References unknown account ${accountId}.`)
+        error(`vatCodes.${vatCode.vatID}.${field}`, 'unknown_account', 'xaf.unknown_account', {
+          accountId,
+        })
       }
     }
   }
@@ -123,12 +176,18 @@ export function validateXafDocument(document: XafDocument): XafValidationResult 
   const journalIds = new Set<string>()
 
   for (const journal of document.journals) {
-    if (journalIds.has(journal.jrnID)) error('transactions', `Duplicate journal ${journal.jrnID}.`)
+    if (journalIds.has(journal.jrnID))
+      error('transactions', 'duplicate_journal', 'xaf.duplicate_journal', { jrnID: journal.jrnID })
     journalIds.add(journal.jrnID)
     checkLength(`journal.${journal.jrnID}.jrnID`, journal.jrnID, XAF_LIMITS.identification35)
 
     if (journal.offsetAccID !== null && !accountIds.has(journal.offsetAccID)) {
-      error(`journal.${journal.jrnID}.offsetAccID`, `Unknown account ${journal.offsetAccID}.`)
+      error(
+        `journal.${journal.jrnID}.offsetAccID`,
+        'unknown_account',
+        'xaf.unknown_offset_account',
+        { offsetAccID: journal.offsetAccID },
+      )
     }
 
     const transactionNumbers = new Set<string>()
@@ -137,7 +196,7 @@ export function validateXafDocument(document: XafDocument): XafValidationResult 
       const where = `journal.${journal.jrnID}.transaction.${transaction.nr}`
 
       if (transactionNumbers.has(transaction.nr)) {
-        error(where, `Duplicate transaction number ${transaction.nr} in this journal.`)
+        error(where, 'duplicate_transaction', 'xaf.duplicate_transaction', { nr: transaction.nr })
       }
       transactionNumbers.add(transaction.nr)
 
@@ -146,17 +205,18 @@ export function validateXafDocument(document: XafDocument): XafValidationResult 
         transaction.trDt < document.header.startDate ||
         transaction.trDt > document.header.endDate
       ) {
-        error(`${where}.trDt`, `${transaction.trDt} is outside the fiscal year in the header.`)
+        error(`${where}.trDt`, 'date_outside_fiscal_year', 'xaf.date_outside_fiscal_year', {
+          trDt: transaction.trDt,
+        })
       }
       if (!periodNumbers.has(transaction.periodNumber)) {
-        error(
-          `${where}.periodNumber`,
-          `Period ${String(transaction.periodNumber)} is not declared.`,
-        )
+        error(`${where}.periodNumber`, 'unknown_period', 'xaf.unknown_period', {
+          periodNumber: String(transaction.periodNumber),
+        })
       }
 
       if (transaction.lines.length === 0) {
-        error(where, 'A transaction with no lines.')
+        error(where, 'transaction_without_lines', 'xaf.transaction_without_lines', undefined)
       }
 
       let transactionDebit = 0n
@@ -166,7 +226,7 @@ export function validateXafDocument(document: XafDocument): XafValidationResult 
         lineCount += 1
         const linePath = `${where}.line.${line.nr}`
 
-        if (line.amount < 0n) error(linePath, 'XAF amounts are unsigned.')
+        if (line.amount < 0n) error(linePath, 'negative_amount', 'xaf.negative_amount', undefined)
 
         if (line.amountType === 'D') {
           totalDebit += line.amount
@@ -177,13 +237,19 @@ export function validateXafDocument(document: XafDocument): XafValidationResult 
         }
 
         if (!accountIds.has(line.accID)) {
-          error(`${linePath}.accID`, `References unknown account ${line.accID}.`)
+          error(`${linePath}.accID`, 'unknown_account', 'xaf.unknown_account', {
+            accountId: line.accID,
+          })
         }
         if (line.custSupID !== null && !partyIds.has(line.custSupID)) {
-          error(`${linePath}.custSupID`, `References unknown party ${line.custSupID}.`)
+          error(`${linePath}.custSupID`, 'unknown_party', 'xaf.unknown_party', {
+            custSupID: line.custSupID,
+          })
         }
         if (line.vat !== null && !vatIds.has(line.vat.vatID)) {
-          error(`${linePath}.vat.vatID`, `References unknown VAT code ${line.vat.vatID}.`)
+          error(`${linePath}.vat.vatID`, 'unknown_vat_code', 'xaf.unknown_vat_code', {
+            vatID: line.vat.vatID,
+          })
         }
         checkDate(`${linePath}.effDate`, line.effDate)
         checkLength(`${linePath}.desc`, line.desc, XAF_LIMITS.string9999)
@@ -191,19 +257,19 @@ export function validateXafDocument(document: XafDocument): XafValidationResult 
       }
 
       if (transactionDebit !== transactionCredit) {
-        error(
-          where,
-          `Does not balance: ${transactionDebit.toString()} debit against ${transactionCredit.toString()} credit, in minor units.`,
-        )
+        error(where, 'transaction_unbalanced', 'xaf.transaction_unbalanced', {
+          transactionDebit: transactionDebit.toString(),
+          transactionCredit: transactionCredit.toString(),
+        })
       }
     }
   }
 
   if (totalDebit !== totalCredit) {
-    error(
-      'transactions',
-      `The file does not balance: ${totalDebit.toString()} debit against ${totalCredit.toString()} credit.`,
-    )
+    error('transactions', 'file_unbalanced', 'xaf.file_unbalanced', {
+      totalDebit: totalDebit.toString(),
+      totalCredit: totalCredit.toString(),
+    })
   }
 
   if (document.openingBalance !== null) {
@@ -211,16 +277,18 @@ export function validateXafDocument(document: XafDocument): XafValidationResult 
     let openingCredit = 0n
     for (const line of document.openingBalance.lines) {
       if (!accountIds.has(line.accID)) {
-        error(`openingBalance.${line.nr}.accID`, `References unknown account ${line.accID}.`)
+        error(`openingBalance.${line.nr}.accID`, 'unknown_account', 'xaf.unknown_account', {
+          accountId: line.accID,
+        })
       }
       if (line.amountType === 'D') openingDebit += line.amount
       else openingCredit += line.amount
     }
     if (openingDebit !== openingCredit) {
-      error(
-        'openingBalance',
-        `Does not balance: ${openingDebit.toString()} debit against ${openingCredit.toString()} credit.`,
-      )
+      error('openingBalance', 'opening_balance_unbalanced', 'xaf.opening_balance_unbalanced', {
+        openingDebit: openingDebit.toString(),
+        openingCredit: openingCredit.toString(),
+      })
     }
   }
 

@@ -339,7 +339,16 @@ export async function handleExportAuditFile(
       'The generated auditfile did not validate. This is a bug; please report it with the detail below.',
       validation.problems
         .filter((problem) => problem.severity === 'error')
-        .map((problem) => ({ code: 'xaf_invalid', path: problem.path, message: problem.message })),
+        .map((problem) => ({
+          // The XAF code rather than one blanket `xaf_invalid`: an importer
+          // should be able to tell a file that does not balance from one with
+          // a duplicate account (ADR 0048).
+          code: problem.code,
+          path: problem.path,
+          message: problem.message,
+          messageKey: problem.messageKey,
+          ...(problem.detail === undefined ? {} : { detail: problem.detail }),
+        })),
     )
   }
 

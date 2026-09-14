@@ -107,6 +107,29 @@ export const FINDING_MESSAGES = {
     'Journal lines carry a tax code that no configured code matches, so their VAT is in the books but not in the return.',
   'vat.untagged_control_movement':
     'A VAT control account moved without a tax code. A payment to or refund from the Belastingdienst looks exactly like this, and so does VAT booked by hand.',
+  'xaf.accounts_without_rgs': '{unmapped} of {total} accounts have no RGS lead code: {accounts}',
+  'xaf.date_outside_fiscal_year': '{trDt} is outside the fiscal year in the header.',
+  'xaf.duplicate_account': 'Duplicate account {accID}.',
+  'xaf.duplicate_journal': 'Duplicate journal {jrnID}.',
+  'xaf.duplicate_transaction': 'Duplicate transaction number {nr} in this journal.',
+  'xaf.field_too_long': "Exceeds the schema's {limit} character limit ({count}).",
+  'xaf.file_unbalanced':
+    'The file does not balance: {totalDebit} debit against {totalCredit} credit.',
+  'xaf.invalid_country': 'Must be a two-letter ISO 3166 code.',
+  'xaf.invalid_currency': '"{curCode}" is not an ISO 4217 code.',
+  'xaf.invalid_date': '"{value}" is not an ISO date.',
+  'xaf.negative_amount': 'XAF amounts are unsigned.',
+  'xaf.opening_balance_unbalanced':
+    'Does not balance: {openingDebit} debit against {openingCredit} credit.',
+  'xaf.period_reversed': 'endDate is before startDate.',
+  'xaf.transaction_unbalanced':
+    'Does not balance: {transactionDebit} debit against {transactionCredit} credit, in minor units.',
+  'xaf.transaction_without_lines': 'A transaction with no lines.',
+  'xaf.unknown_account': 'References unknown account {accountId}.',
+  'xaf.unknown_offset_account': 'Unknown account {offsetAccID}.',
+  'xaf.unknown_party': 'References unknown party {custSupID}.',
+  'xaf.unknown_period': 'Period {periodNumber} is not declared.',
+  'xaf.unknown_vat_code': 'References unknown VAT code {vatID}.',
 } as const satisfies Readonly<Record<string, string>>
 
 export type FindingMessageKey = keyof typeof FINDING_MESSAGES

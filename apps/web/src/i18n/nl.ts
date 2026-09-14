@@ -1563,6 +1563,30 @@ export const nl = {
     'Journaalregels dragen een btw-code die met geen enkele ingestelde code overeenkomt, dus hun btw staat wel in de boeken maar niet in de aangifte.',
   'finding.vat.untagged_control_movement':
     'Een btw-tussenrekening bewoog zonder btw-code. Een betaling aan of teruggaaf van de Belastingdienst ziet er precies zo uit, en met de hand geboekte btw ook.',
+  'finding.xaf.accounts_without_rgs':
+    '{unmapped} van de {total} rekeningen hebben geen RGS-referentiecode: {accounts}',
+  'finding.xaf.date_outside_fiscal_year': '{trDt} valt buiten het boekjaar uit de header.',
+  'finding.xaf.duplicate_account': 'Rekening {accID} komt dubbel voor.',
+  'finding.xaf.duplicate_journal': 'Dagboek {jrnID} komt dubbel voor.',
+  'finding.xaf.duplicate_transaction': 'Boekstuknummer {nr} komt dubbel voor in dit dagboek.',
+  'finding.xaf.field_too_long': 'Langer dan de {limit} tekens die het schema toestaat ({count}).',
+  'finding.xaf.file_unbalanced':
+    'Het bestand is niet in balans: {totalDebit} debet tegen {totalCredit} credit.',
+  'finding.xaf.invalid_country': 'Moet een ISO 3166-code van twee letters zijn.',
+  'finding.xaf.invalid_currency': '"{curCode}" is geen ISO 4217-code.',
+  'finding.xaf.invalid_date': '"{value}" is geen ISO-datum.',
+  'finding.xaf.negative_amount': 'XAF-bedragen zijn zonder teken.',
+  'finding.xaf.opening_balance_unbalanced':
+    'Niet in balans: {openingDebit} debet tegen {openingCredit} credit.',
+  'finding.xaf.period_reversed': 'endDate ligt vóór startDate.',
+  'finding.xaf.transaction_unbalanced':
+    'Niet in balans: {transactionDebit} debet tegen {transactionCredit} credit, in centen.',
+  'finding.xaf.transaction_without_lines': 'Een boekstuk zonder regels.',
+  'finding.xaf.unknown_account': 'Verwijst naar onbekende rekening {accountId}.',
+  'finding.xaf.unknown_offset_account': 'Onbekende rekening {offsetAccID}.',
+  'finding.xaf.unknown_party': 'Verwijst naar onbekende relatie {custSupID}.',
+  'finding.xaf.unknown_period': 'Periode {periodNumber} is niet aangegeven.',
+  'finding.xaf.unknown_vat_code': 'Verwijst naar onbekende btw-code {vatID}.',
 } as const
 
 export type MessageKey = keyof typeof nl
