@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import Ajv2020 from 'ajv/dist/2020.js'
+import { listOperations } from '@klopt/core'
 import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
@@ -26,6 +27,10 @@ import {
   invoicesQuery,
   trialBalanceQuery,
 } from '../src/api/schemas.js'
+import * as schemas from '../src/api/schemas.js'
+import { routeManifest } from '../src/api/manifest.js'
+import { pathParameters } from '../src/api/openapi.js'
+import { BINARY_RESPONSES, handlersIn } from '../scripts/build-response-schemas.js'
 import responseSchemas from '../src/api/response-schemas.generated.json' with { type: 'json' }
 
 /**
@@ -59,6 +64,9 @@ const artefact = responseSchemas as {
 
 const ajv = new Ajv2020({ strict: false, allErrors: true })
 
+/** The year `seedEntity` opens, which is the only one these reads can answer for. */
+const FISCAL_YEAR = '2026'
+
 /**
  * Checks a body against the published schema for one operation.
  *
@@ -74,8 +82,7 @@ function conforms(operationId: string, body: unknown, strictly = true): void {
   expect(described?.schema, `${operationId} publishes a media type, not a schema`).toBeDefined()
 
   const schema = {
-    ...(described!.schema as Record<string, unknown>),
-    ...(strictly ? { additionalProperties: false } : {}),
+    ...strictly_(described!.schema as Record<string, unknown>, strictly),
     components: { schemas: artefact.components },
   }
 
@@ -83,6 +90,57 @@ function conforms(operationId: string, body: unknown, strictly = true): void {
   // The errors, not just the boolean: `false` on a forty-field response tells
   // you nothing about which field.
   expect(valid ? [] : ajv.errors, operationId).toEqual([])
+}
+
+/**
+ * The same schema, refusing fields it does not know about.
+ *
+ * Applied per branch rather than at the top, because a handler that can return
+ * two shapes publishes an `anyOf` — and `additionalProperties: false` beside an
+ * `anyOf` has no sibling `properties` to work from, so it rejects *every*
+ * field and the test fails on a response that is perfectly fine. That is how
+ * this was discovered, and it was the test being wrong rather than the code.
+ */
+function strictly_(schema: Record<string, unknown>, strictly: boolean): Record<string, unknown> {
+  if (!strictly) return schema
+  const branches: unknown = schema['anyOf']
+  if (Array.isArray(branches)) {
+    const tightened = (branches as unknown[]).map((branch) =>
+      typeof branch === 'object' && branch !== null && 'properties' in branch
+        ? { ...(branch as Record<string, unknown>), additionalProperties: false }
+        : branch,
+    )
+    return { ...schema, anyOf: tightened }
+  }
+  return 'properties' in schema ? { ...schema, additionalProperties: false } : schema
+}
+
+type AnyHandler = (context: unknown, query?: unknown) => Promise<{ body: unknown }>
+
+/**
+ * Every exported handler, by name.
+ *
+ * The manifest says which handler a route calls but not which file it lives
+ * in — the route's own import is the only thing that knows. Rather than parse
+ * that too, all twenty modules are pulled in at once and indexed by name.
+ *
+ * `import.meta.glob` rather than a dynamic `import()`: this suite runs through
+ * Vite, which resolves imports at build time and refuses a path it cannot see.
+ */
+function everyHandler(): Map<string, AnyHandler> {
+  const modules = import.meta.glob<Record<string, unknown>>('../src/api/handlers/*.ts', {
+    eager: true,
+  })
+  const found = new Map<string, AnyHandler>()
+
+  for (const module of Object.values(modules)) {
+    for (const [exported, value] of Object.entries(module)) {
+      if (!exported.startsWith('handle') || typeof value !== 'function') continue
+      expect(found.has(exported), `${exported} is exported by two handler modules`).toBe(false)
+      found.set(exported, value as AnyHandler)
+    }
+  }
+  return found
 }
 
 let database: Database
@@ -109,6 +167,11 @@ beforeAll(async () => {
       entityId,
       name: 'response-shape-test',
       permissions: [
+        // Every read this suite drives, so a missing permission is never
+        // mistaken for a shape that does not conform.
+        'entity:create',
+        'ledger:export',
+        'ledger:import',
         'ledger:read',
         'ledger:post',
         'sales:read',
@@ -208,6 +271,100 @@ describe('what the handlers really return matches what the document publishes', 
     conforms('tokens.list', (await handleListTokens(await contextFor())).body)
     conforms('members.list', (await handleListMembers(await contextFor())).body)
   })
+})
+
+/**
+ * Every collection read, driven from the manifest rather than listed here.
+ *
+ * The hand-written cases above cover the shapes that need setting up — a
+ * posted entry, a created contact. These are the thirty-eight reads that take
+ * no path parameter, so an empty administration can answer all of them, and
+ * the list comes from `routeManifest` rather than from a person: an endpoint
+ * added without a conformance case fails this the day it appears.
+ *
+ * The handler is resolved the same way `build-response-schemas.ts` resolves
+ * it, from the route source. If that lookup and this one ever disagree, the
+ * schema being checked is not the schema being published, and the assertion
+ * that every candidate was reached is what catches it.
+ */
+describe('every collection read matches its published schema', () => {
+  /**
+   * Reads an empty administration genuinely cannot answer, and why.
+   *
+   * An allowlist rather than a `catch`: a handler that starts throwing is a
+   * regression, and swallowing it here would make this suite quietly stop
+   * testing whatever broke.
+   */
+  const NEEDS_MORE_THAN_AN_EMPTY_ADMINISTRATION: Readonly<Record<string, string>> = {
+    'exact.listDivisions':
+      'There is no Exact connection until somebody makes one, and making one needs OAuth.',
+    'exact.previewImport': 'Reads an Exact administration, so it needs that connection too.',
+  }
+
+  /**
+   * Query values for the reads that need one, because a default would be a
+   * lie: there is no sensible default fiscal year for a trial balance.
+   */
+  const QUERIES: Readonly<Record<string, Record<string, string>>> = {
+    'ledger.getTrialBalance': { fiscalYear: FISCAL_YEAR },
+    'ledger.getBalanceSheet': { fiscalYear: FISCAL_YEAR },
+    'ledger.getProfitAndLoss': { fiscalYear: FISCAL_YEAR },
+    'rgs.previewUpgrade': { toVersion: '3.7' },
+    'exact.previewImport': { year: FISCAL_YEAR },
+    'purchase.getCreditorAgeing': { asOf: `${FISCAL_YEAR}-12-31` },
+  }
+
+  it('reaches every one of them', async () => {
+    const operations = new Map(listOperations().map((operation) => [operation.id, operation]))
+    const candidates = routeManifest.filter((binding) => {
+      const operation = operations.get(binding.operationId)
+      return (
+        operation?.kind === 'read' &&
+        binding.method === 'GET' &&
+        pathParameters(binding.path).length === 0 &&
+        !(binding.operationId in BINARY_RESPONSES)
+      )
+    })
+    expect(candidates.length).toBeGreaterThan(30)
+
+    const handlers = everyHandler()
+    const failures: string[] = []
+    let checked = 0
+
+    for (const binding of candidates) {
+      if (binding.operationId in NEEDS_MORE_THAN_AN_EMPTY_ADMINISTRATION) continue
+
+      const name = handlersIn(binding.module)[binding.method]
+      const handler = name === undefined ? undefined : handlers.get(name)
+      if (handler === undefined) {
+        failures.push(`${binding.operationId}: cannot find ${name ?? 'a handler'}`)
+        continue
+      }
+
+      const schema =
+        binding.request?.query === undefined
+          ? undefined
+          : (schemas as Record<string, { parse: (value: unknown) => unknown } | undefined>)[
+              binding.request.query
+            ]
+
+      try {
+        const result = await handler(
+          await contextFor(),
+          schema?.parse(QUERIES[binding.operationId] ?? {}),
+        )
+        conforms(binding.operationId, result.body)
+        checked += 1
+      } catch (error: unknown) {
+        failures.push(
+          `${binding.operationId}: ${error instanceof Error ? error.message : String(error)}`,
+        )
+      }
+    }
+
+    expect(failures).toEqual([])
+    expect(checked).toBeGreaterThan(30)
+  }, 120_000)
 })
 
 describe('the check itself would notice', () => {

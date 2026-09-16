@@ -85,6 +85,7 @@ import {
   importStatementBody,
   invoicesQuery,
   issueInvoiceBody,
+  listPurchaseInvoicesQuery,
   postJournalEntryBody,
   retentionQuery,
   sealSnapshotBody,
@@ -425,9 +426,9 @@ describe('a list shows one administration only its own rows', () => {
       [
         'purchase invoices',
         async () =>
-          (await handleListPurchaseInvoices(at, {})).body.invoices.map(
-            (row) => row.supplierInvoiceNumber,
-          ),
+          (
+            await handleListPurchaseInvoices(at, listPurchaseInvoicesQuery.parse({}))
+          ).body.invoices.map((row) => row.supplierInvoiceNumber),
       ],
       [
         'bank accounts',

@@ -546,6 +546,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'GET',
     path: '/vat/periods',
     module: 'api/v1/vat.periods.ts',
+    request: { query: 'listVatPeriodsQuery' },
   },
   {
     operationId: 'vat.getReturn',
@@ -602,6 +603,7 @@ export const routeManifest: readonly RouteBinding[] = [
     method: 'GET',
     path: '/purchase-invoices',
     module: 'api/v1/purchase-invoices.ts',
+    request: { query: 'listPurchaseInvoicesQuery' },
   },
   {
     operationId: 'purchase.captureInvoice',

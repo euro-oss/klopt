@@ -11,6 +11,7 @@ import {
   bookPurchaseInvoiceBody,
   capturePurchaseInvoiceBody,
   creditorAgeingQuery,
+  listPurchaseInvoicesQuery,
   transitionPurchaseInvoiceBody,
 } from '~/api/schemas'
 import { contextFromRequest, run, runWith } from './internal'
@@ -18,17 +19,12 @@ import { contextFromRequest, run, runWith } from './internal'
 /** The purchase screens' RPC surface. Same handlers as `/api/v1/purchase-*`. */
 
 export const listPurchaseInvoices = createServerFn({ method: 'GET' })
-  .validator((input: { status?: string; openOnly?: boolean }) => input)
+  // Through the same schema the route parses, rather than a looser shape
+  // beside it: the screen and the endpoint should not disagree about what a
+  // status is.
+  .validator((input: unknown) => listPurchaseInvoicesQuery.parse(input ?? {}))
   .handler(async ({ data }) =>
-    run(
-      async () =>
-        (
-          await handleListPurchaseInvoices(await contextFromRequest(), {
-            ...(data.status === undefined ? {} : { status: data.status }),
-            ...(data.openOnly === undefined ? {} : { openOnly: data.openOnly }),
-          })
-        ).body,
-    ),
+    run(async () => (await handleListPurchaseInvoices(await contextFromRequest(), data)).body),
   )
 
 export const getPurchaseInvoice = createServerFn({ method: 'GET' })

@@ -213,3 +213,77 @@ describe('no route under /api/v1 exists outside the contract', () => {
     expect([...new Set(missing)]).toEqual([])
   })
 })
+
+/**
+ * The blind spot this check used to have.
+ *
+ * `parsedSchemas` recognises `parse(schema, searchParams(request))` and
+ * `parse(schema, await readJson(request))`, which is how every route is
+ * written — until two were not. `/api/v1/vat/periods` built its query object
+ * by hand before parsing it, and `/api/v1/purchase-invoices` read `status` and
+ * `openOnly` straight off the URL with no schema at all.
+ *
+ * Both were invisible here: an unrecognised shape looked exactly like a route
+ * with no query. So the OpenAPI document omitted two query parameters, and one
+ * of them was not validated either — `status` reached the repository as
+ * whatever string was typed.
+ *
+ * Found by `test/response-shapes.test.ts`, which could not call those handlers
+ * without knowing what to pass them. These two assertions are what would have
+ * found it here, where it belongs.
+ */
+describe('a route cannot parse a query the manifest has not heard of', () => {
+  /** Every `parse(` call in a route file, by method, however it is written. */
+  function parseCallsIn(module: string): Record<string, number> {
+    const source = readFileSync(join(ROUTES_DIR, module), 'utf8')
+    const counts: Record<string, number> = {}
+    let method: string | null = null
+
+    for (const line of source.split('\n')) {
+      const isMethod = /^ {6}(GET|POST|PUT|PATCH|DELETE):/.exec(line)
+      if (isMethod?.[1] !== undefined) method = isMethod[1]
+      if (method === null) continue
+      counts[method] = (counts[method] ?? 0) + (/\bparse\(/.test(line) ? 1 : 0)
+    }
+    return counts
+  }
+
+  it('declares one schema for every parse the route performs', () => {
+    const mismatches: string[] = []
+
+    for (const binding of routeManifest) {
+      const performed = parseCallsIn(binding.module)[binding.method] ?? 0
+      const declared = Object.values(binding.request ?? {}).filter(
+        (name) => name !== undefined,
+      ).length
+
+      if (performed !== declared) {
+        mismatches.push(
+          `${binding.method} /api/v1${binding.path}: parses ${String(performed)}, ` +
+            `declares ${String(declared)}`,
+        )
+      }
+    }
+
+    expect(mismatches).toEqual([])
+  })
+
+  it('declares a query for every route that reads the query string', () => {
+    // A route can read `searchParams` and never parse it, which is how
+    // `purchase-invoices` lost its schema. Reading the URL at all is the
+    // signal; what it does next is the part that was going wrong.
+    const undeclared: string[] = []
+
+    for (const binding of routeManifest) {
+      const source = readFileSync(join(ROUTES_DIR, binding.module), 'utf8')
+      const methods = source.split(/^ {6}(?=(?:GET|POST|PUT|PATCH|DELETE):)/m)
+      const mine = methods.find((block) => block.startsWith(`${binding.method}:`))
+      if (mine === undefined || !mine.includes('searchParams(')) continue
+      if (binding.request?.query === undefined) {
+        undeclared.push(`${binding.method} /api/v1${binding.path}`)
+      }
+    }
+
+    expect(undeclared).toEqual([])
+  })
+})

@@ -15113,7 +15113,45 @@
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": null,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "draft",
+                    "booked",
+                    "approved",
+                    "disputed",
+                    "cancelled"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "openOnly",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "false",
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ]
       },
       "post": {
         "operationId": "purchase.captureInvoice",
@@ -16799,7 +16837,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": "2026-09-14",
+              "default": "2026-09-16",
               "$ref": "#/components/schemas/IsoDate"
             }
           }
@@ -16911,7 +16949,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": "2026-09-14",
+              "default": "2026-09-16",
               "$ref": "#/components/schemas/IsoDate"
             }
           }
@@ -19925,7 +19963,7 @@
                     ]
                   },
                   "asOf": {
-                    "default": "2026-09-14",
+                    "default": "2026-09-16",
                     "$ref": "#/components/schemas/IsoDate"
                   }
                 }
@@ -22964,7 +23002,20 @@
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 2026,
+              "type": "integer",
+              "minimum": 1900,
+              "maximum": 2999
+            }
+          }
+        ]
       }
     },
     "/api/v1/vat/returns/{period}": {

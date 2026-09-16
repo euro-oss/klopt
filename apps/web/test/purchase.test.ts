@@ -27,6 +27,7 @@ import { handleGetJournalEntry } from '../src/api/handlers/ledger.js'
 import {
   bookPurchaseInvoiceBody,
   capturePurchaseInvoiceBody,
+  listPurchaseInvoicesQuery,
   createBankAccountBody,
   createBatchBody,
   createContactBody,
@@ -585,7 +586,10 @@ describe('the list', () => {
       bookPurchaseInvoiceBody.parse({}),
     )
 
-    const listed = await handleListPurchaseInvoices(await context(token), {})
+    const listed = await handleListPurchaseInvoices(
+      await context(token),
+      listPurchaseInvoicesQuery.parse({}),
+    )
     expect(listed.body.invoices).toHaveLength(2)
     expect(listed.body.drafts).toBe(1)
     expect(listed.body.awaitingApproval).toBe(1)
@@ -605,7 +609,10 @@ describe('the list', () => {
       bookPurchaseInvoiceBody.parse({}),
     )
 
-    const open = await handleListPurchaseInvoices(await context(token), { openOnly: true })
+    const open = await handleListPurchaseInvoices(
+      await context(token),
+      listPurchaseInvoicesQuery.parse({ openOnly: 'true' }),
+    )
     expect(open.body.invoices).toHaveLength(1)
     expect(open.body.invoices[0]?.outstanding).toBe('121000')
   })

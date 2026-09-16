@@ -20,6 +20,7 @@ import { recordAudit } from '../audit.js'
 import type {
   BookPurchaseInvoiceBody,
   CapturePurchaseInvoiceBody,
+  ListPurchaseInvoicesQuery,
   TransitionPurchaseInvoiceBody,
 } from '../schemas.js'
 
@@ -82,14 +83,14 @@ function toInput(body: CapturePurchaseInvoiceBody): PurchaseInvoiceInput {
 
 export async function handleListPurchaseInvoices(
   context: RequestContext,
-  query: { readonly status?: string | undefined; readonly openOnly?: boolean | undefined },
+  query: ListPurchaseInvoicesQuery,
 ) {
   requirePermission(context, 'ledger:read')
 
   return withPurchaseRead(context.database, async (repository) => {
     const rows = await repository.list(context.entityId, {
-      ...(query.status === undefined ? {} : { status: query.status }),
-      ...(query.openOnly === undefined ? {} : { openOnly: query.openOnly }),
+      ...(query.status === null ? {} : { status: query.status }),
+      openOnly: query.openOnly,
     })
 
     return {

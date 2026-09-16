@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PURCHASE_INVOICE_STATUSES } from '@klopt/core'
 
 /**
  * One schema per concept, three consumers: the REST routes, the server
@@ -609,8 +610,33 @@ export type TransitionBatchBody = z.infer<typeof transitionBatchBody>
  * who says so and says why — and the reason is stored with the filing, because
  * it is part of the evidence for the period.
  */
+/**
+ * Filters on the purchase invoice list.
+ *
+ * This route used to read both straight off the URL with no schema at all, so
+ * `status` reached the repository as whatever string was typed and the query
+ * appeared nowhere in the OpenAPI document. Found by the response conformance
+ * suite, which could not call the handler without knowing what to pass it.
+ */
+export const listPurchaseInvoicesQuery = z.object({
+  status: z.enum(PURCHASE_INVOICE_STATUSES).nullable().default(null),
+  openOnly: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+})
+
 export const listVatPeriodsQuery = z.object({
-  year: z.coerce.number().int().min(1900).max(2999),
+  /**
+   * Defaults to this year, which is what the route did by hand before the
+   * schema existed. A VAT screen opened with no year means "the current one".
+   */
+  year: z.coerce
+    .number()
+    .int()
+    .min(1900)
+    .max(2999)
+    .default(() => new Date().getUTCFullYear()),
 })
 
 export const fileVatReturnBody = z
@@ -628,6 +654,7 @@ export const fileVatReturnBody = z
     path: ['acceptedReason'],
   })
 
+export type ListPurchaseInvoicesQuery = z.infer<typeof listPurchaseInvoicesQuery>
 export type ListVatPeriodsQuery = z.infer<typeof listVatPeriodsQuery>
 export type FileVatReturnBody = z.infer<typeof fileVatReturnBody>
 
