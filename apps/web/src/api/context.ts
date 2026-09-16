@@ -18,6 +18,15 @@ export interface RequestContext {
   readonly ip: string | null
   /** Client-supplied. Required on writes. */
   readonly idempotencyKey: string | null
+  /**
+   * `If-Match`, for the resources that support optimistic concurrency.
+   *
+   * Optional, and enforced only where it is sent: making it required would be
+   * adding a required request field, which `docs/api-stability.md` says v1
+   * will not do. A caller who does not send one keeps last-write-wins, which
+   * is what they have today.
+   */
+  readonly ifMatch: string | null
 }
 
 /**

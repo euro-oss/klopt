@@ -239,6 +239,19 @@ function errorResponses(codes: readonly ApiErrorCode[]): JsonObject {
   return responses
 }
 
+/**
+ * The resources that answer with an `ETag` and honour `If-Match` (ADR 0052).
+ *
+ * A short list rather than a rule, because it is short: almost everything here
+ * is immutable, and the two that are not are the two a person edits in a form.
+ * Listed by operation so the document cannot claim a precondition a handler
+ * does not check — `test/etag.test.ts` drives both of these for real.
+ */
+const SUPPORTS_IF_MATCH = new Set(['sales.updateContact', 'ledger.updateEntity'])
+
+/** The reads whose response carries the tag those preconditions quote. */
+const RETURNS_ETAG = new Set(['sales.getContact', 'ledger.getEntity'])
+
 /** The error statuses this particular route can reach, and only those. */
 function errorCodesFor(binding: RouteBinding, operation: OperationDefinition): ApiErrorCode[] {
   const codes = [...ALWAYS]
@@ -252,6 +265,11 @@ function errorCodesFor(binding: RouteBinding, operation: OperationDefinition): A
     // different body is a 409.
     codes.push('idempotency_key_required', 'conflict')
   }
+
+  // Only where a handler actually checks one. A 412 on an operation that
+  // ignores `If-Match` would be a status a client writes a branch for and
+  // never sees.
+  if (SUPPORTS_IF_MATCH.has(binding.operationId)) codes.push('precondition_failed')
 
   return codes
 }
@@ -270,6 +288,20 @@ function operationObject(
 
   const query = schemaNamed(binding.request?.query)
   if (query !== undefined) parameters.push(...queryParameters(query, components))
+
+  if (SUPPORTS_IF_MATCH.has(binding.operationId)) {
+    parameters.push({
+      name: 'if-match',
+      in: 'header',
+      required: false,
+      description:
+        'The `ETag` from a previous read of this resource. When given, the edit is ' +
+        'refused with 412 if somebody else has changed it since — which is what ' +
+        'stops two people with the same form open from silently overwriting each ' +
+        'other. Optional: without it, last write wins.',
+      schema: { type: 'string' },
+    })
+  }
 
   if (operation.kind === 'write') {
     parameters.push({
@@ -338,13 +370,27 @@ function successResponse(binding: RouteBinding): JsonObject {
           // gap in it, and a test compares the artefact to the manifest.
           { 'application/json': {} }
 
+  const headers = RETURNS_ETAG.has(binding.operationId)
+    ? {
+        headers: {
+          ETag: {
+            description:
+              'Quote this back in `If-Match` when you edit, and the edit is refused ' +
+              'if somebody else changed it first. Over the resource itself, not the ' +
+              'whole response: the counts alongside it move on their own.',
+            schema: { type: 'string' },
+          },
+        },
+      }
+    : {}
+
   if (operation?.kind === 'write' && binding.method === 'POST') {
     return {
       '200': { description: 'Replayed, or a dry run.', content },
       '201': { description: 'Created.', content },
     }
   }
-  return { '200': { description: 'The request succeeded.', content } }
+  return { '200': { description: 'The request succeeded.', content, ...headers } }
 }
 
 export function undocumentedResponses(document: JsonObject): number {

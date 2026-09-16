@@ -6,10 +6,11 @@ import {
   type RequestContext,
   type SetupContext,
 } from '../context.js'
-import { ApiError } from '../errors.js'
+import { ApiError, requireIfMatch } from '../errors.js'
 import { recordAudit } from '../audit.js'
 import { referenceData } from '../reference-data.js'
 import type { CreateEntityBody, CreateFiscalYearBody, UpdateEntityBody } from '../schemas.js'
+import { etagOf } from '../etag.js'
 
 /**
  * Creating an administration, and opening its book years.
@@ -170,7 +171,9 @@ export async function handleGetEntity(context: RequestContext) {
   )
   if (entity === null) throw new ApiError('not_found', 'No such administration.')
 
-  return { status: 200, body: entity }
+  // The whole row is editable here, so the resource and the representation are
+  // the same thing and the tag can be over either.
+  return { status: 200, body: entity, headers: { etag: etagOf(entity) } }
 }
 
 /**
@@ -208,6 +211,10 @@ export async function handleUpdateEntity(context: RequestContext, body: UpdateEn
   const before = await withSetup(context.database, (repository) =>
     repository.findEntity(context.entityId),
   )
+  if (before === null) throw new ApiError('not_found', 'No such administration.')
+
+  // Before the write, against the same shape `handleGetEntity` tagged.
+  requireIfMatch(context.ifMatch, etagOf(before))
 
   await withSetup(context.database, (repository) => repository.updateEntity(context.entityId, body))
 
@@ -223,13 +230,10 @@ export async function handleUpdateEntity(context: RequestContext, body: UpdateEn
     resourceType: 'entity',
     resourceId: context.entityId,
     before: Object.fromEntries(
-      Object.keys(body).map((key) => [
-        key,
-        (before as Record<string, unknown> | null)?.[key] ?? null,
-      ]),
+      Object.keys(body).map((key) => [key, (before as Record<string, unknown>)[key] ?? null]),
     ),
     after: body,
   })
 
-  return { status: 200, body: entity }
+  return { status: 200, body: entity, headers: { etag: etagOf(entity) } }
 }

@@ -46,6 +46,14 @@ export type ApiErrorCode =
   | 'validation_failed'
   | 'idempotency_key_required'
   | 'conflict'
+  /**
+   * An `If-Match` that no longer matches (spec 10.2).
+   *
+   * Distinct from `conflict`, which is a retried idempotency key: this one
+   * says somebody else changed the thing while you had it open, and the fix
+   * is to read it again rather than to retry what you sent.
+   */
+  | 'precondition_failed'
   | 'internal_error'
 
 /**
@@ -61,6 +69,7 @@ export const STATUS: Record<ApiErrorCode, number> = {
   validation_failed: 422,
   idempotency_key_required: 400,
   conflict: 409,
+  precondition_failed: 412,
   internal_error: 500,
 }
 
@@ -138,4 +147,32 @@ export function problemResponse(error: unknown, requestId: string | null): Respo
     status: problem.status,
     headers: { 'content-type': 'application/problem+json' },
   })
+}
+
+/**
+ * Refuses an edit whose `If-Match` no longer matches (spec 10.2).
+ *
+ * Silent when the caller sent no `If-Match`: the header is how a client opts
+ * into optimistic concurrency, and requiring it would break every client that
+ * exists — including, on the day it shipped, our own UI. A caller who does not
+ * ask for the check keeps the last-write-wins they have now, and a caller who
+ * does gets a 412 naming what to do about it.
+ *
+ * Weak comparison, per RFC 9110: `If-Match` is defined to use strong
+ * comparison, but a proxy that re-tags a response as weak would otherwise make
+ * every edit fail, and the tags here are content hashes either way.
+ */
+export function requireIfMatch(ifMatch: string | null, current: string): void {
+  if (ifMatch === null) return
+
+  const normalise = (tag: string) => tag.trim().replace(/^W\//, '')
+  const offered = ifMatch.split(',').map(normalise)
+  if (offered.includes('*') || offered.includes(normalise(current))) return
+
+  throw new ApiError(
+    'precondition_failed',
+    'This has changed since you read it. Read it again and reapply your change — ' +
+      'saving now would overwrite somebody else’s edit without either of you seeing it.',
+    [{ code: 'stale_etag', path: null, message: `The current ETag is ${current}.` }],
+  )
 }

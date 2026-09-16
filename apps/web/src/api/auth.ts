@@ -73,6 +73,7 @@ async function fromToken(
     requestId,
     ip: options.ip ?? options.request.headers.get('x-forwarded-for'),
     idempotencyKey: options.idempotencyKey ?? options.request.headers.get('idempotency-key'),
+    ifMatch: options.request.headers.get('if-match'),
   }
 }
 
@@ -118,6 +119,7 @@ async function fromSession(
     requestId,
     ip: options.ip ?? options.request.headers.get('x-forwarded-for'),
     idempotencyKey: options.idempotencyKey ?? options.request.headers.get('idempotency-key'),
+    ifMatch: options.request.headers.get('if-match'),
   }
 }
 

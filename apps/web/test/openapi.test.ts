@@ -248,6 +248,7 @@ describe('the errors it admits to', () => {
         'IdempotencyKeyRequired',
         'InternalError',
         'NotFound',
+        'PreconditionFailed',
         'Unauthenticated',
         'ValidationFailed',
       ].sort(),

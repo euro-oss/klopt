@@ -403,6 +403,7 @@
               "validation_failed",
               "idempotency_key_required",
               "conflict",
+              "precondition_failed",
               "internal_error"
             ]
           },
@@ -650,6 +651,16 @@
       },
       "Conflict": {
         "description": "409 conflict",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "PreconditionFailed": {
+        "description": "412 precondition_failed",
         "content": {
           "application/problem+json": {
             "schema": {
@@ -3722,6 +3733,14 @@
                   ]
                 }
               }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Quote this back in `If-Match` when you edit, and the edit is refused if somebody else changed it first. Over the resource itself, not the whole response: the counts alongside it move on their own.",
+                "schema": {
+                  "type": "string"
+                }
+              }
             }
           },
           "401": {
@@ -3798,6 +3817,9 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -3810,6 +3832,15 @@
             "name": "contactId",
             "in": "path",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-match",
+            "in": "header",
+            "required": false,
+            "description": "The `ETag` from a previous read of this resource. When given, the edit is refused with 412 if somebody else has changed it since — which is what stops two people with the same form open from silently overwriting each other. Optional: without it, last write wins.",
             "schema": {
               "type": "string"
             }
@@ -4371,6 +4402,14 @@
                   ]
                 }
               }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Quote this back in `If-Match` when you edit, and the edit is refused if somebody else changed it first. Over the resource itself, not the whole response: the counts alongside it move on their own.",
+                "schema": {
+                  "type": "string"
+                }
+              }
             }
           },
           "401": {
@@ -4570,6 +4609,9 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -4578,6 +4620,15 @@
           }
         },
         "parameters": [
+          {
+            "name": "if-match",
+            "in": "header",
+            "required": false,
+            "description": "The `ETag` from a previous read of this resource. When given, the edit is refused with 412 if somebody else has changed it since — which is what stops two people with the same form open from silently overwriting each other. Optional: without it, last write wins.",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "idempotency-key",
             "in": "header",

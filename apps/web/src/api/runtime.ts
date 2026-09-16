@@ -14,7 +14,9 @@ import type { RequestContext, SetupContext } from './context.js'
 
 export async function handle(
   request: Request,
-  work: (context: RequestContext) => Promise<{ status: number; body: unknown }>,
+  work: (
+    context: RequestContext,
+  ) => Promise<{ status: number; body: unknown; headers?: Record<string, string> }>,
 ): Promise<Response> {
   let requestId: string | null = request.headers.get('x-request-id')
 
@@ -28,6 +30,10 @@ export async function handle(
       headers: {
         'content-type': 'application/json',
         'x-request-id': context.requestId,
+        // A handler adds `ETag` here, and only where the resource supports
+        // `If-Match`. Not on every response: a tag a client cannot send back
+        // is a promise of a precondition nobody honours.
+        ...result.headers,
       },
     })
   } catch (error: unknown) {

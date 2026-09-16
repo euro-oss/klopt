@@ -28,12 +28,13 @@ import {
   type DraftInvoiceRequest,
 } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
-import { ApiError } from '../errors.js'
+import { ApiError, requireIfMatch } from '../errors.js'
 import { recordAudit } from '../audit.js'
 import { invoiceRenderer } from '../documents.js'
 import { documentStore } from '../document-store.js'
 import { eInvoiceTransport } from '../e-invoice.js'
 import { schematron } from '../schematron.js'
+import { etagOf } from '../etag.js'
 import type {
   CreateContactBody,
   DraftInvoiceBody,
@@ -158,35 +159,7 @@ export async function handleGetContact(context: RequestContext, contactId: strin
     return {
       status: 200,
       body: {
-        contact: {
-          id: contact.id,
-          number: contact.number,
-          name: contact.name,
-          legalName: contact.legalName,
-          isCustomer: contact.isCustomer,
-          isSupplier: contact.isSupplier,
-          isBlocked: contact.isBlocked,
-          email: contact.email,
-          phone: contact.phone,
-          vatNumber: contact.vatNumber,
-          kvkNumber: contact.kvkNumber,
-          countryCode: contact.countryCode,
-          paymentTermsDays: contact.paymentTermsDays,
-          electronicAddress: contact.electronicAddress,
-          electronicAddressScheme: contact.electronicAddressScheme,
-          iban: contact.iban,
-          notes: contact.notes,
-          address:
-            address === null
-              ? null
-              : {
-                  street: address.street,
-                  houseNumber: address.houseNumber,
-                  postalCode: address.postalCode,
-                  city: address.city,
-                  countryCode: address.countryCode,
-                },
-        },
+        contact: contactResource(contact, address),
         openDocuments: open,
         /**
          * Whether this caller may answer an erasure request about them.
@@ -198,8 +171,80 @@ export async function handleGetContact(context: RequestContext, contactId: strin
          */
         canErase: hasPermission(context, PERMISSIONS.manageRetention),
       },
+      // Over the contact alone, not the body. `openDocuments` moves when
+      // somebody issues an invoice in another room, and a precondition that
+      // counted that would refuse an edit for something unrelated to the
+      // fields being edited (ADR 0052).
+      headers: { etag: etagOf(contactResource(contact, address)) },
     }
   })
+}
+
+/**
+ * A contact as the API presents it, and as `If-Match` compares it.
+ *
+ * One function for both so the tag a caller reads is a tag of exactly what
+ * they can change. Everything else on the response — the open document
+ * counts, whether this caller may erase them — is about the world around the
+ * contact rather than the contact, and belongs outside.
+ */
+function contactResource(
+  contact: {
+    id: string
+    number: string
+    name: string
+    legalName: string | null
+    isCustomer: boolean
+    isSupplier: boolean
+    isBlocked: boolean
+    email: string | null
+    phone: string | null
+    vatNumber: string | null
+    kvkNumber: string | null
+    countryCode: string
+    paymentTermsDays: number
+    electronicAddress: string | null
+    electronicAddressScheme: string | null
+    iban: string | null
+    notes: string | null
+  },
+  address: {
+    street: string | null
+    houseNumber: string | null
+    postalCode: string | null
+    city: string | null
+    countryCode: string
+  } | null,
+) {
+  return {
+    id: contact.id,
+    number: contact.number,
+    name: contact.name,
+    legalName: contact.legalName,
+    isCustomer: contact.isCustomer,
+    isSupplier: contact.isSupplier,
+    isBlocked: contact.isBlocked,
+    email: contact.email,
+    phone: contact.phone,
+    vatNumber: contact.vatNumber,
+    kvkNumber: contact.kvkNumber,
+    countryCode: contact.countryCode,
+    paymentTermsDays: contact.paymentTermsDays,
+    electronicAddress: contact.electronicAddress,
+    electronicAddressScheme: contact.electronicAddressScheme,
+    iban: contact.iban,
+    notes: contact.notes,
+    address:
+      address === null
+        ? null
+        : {
+            street: address.street,
+            houseNumber: address.houseNumber,
+            postalCode: address.postalCode,
+            city: address.city,
+            countryCode: address.countryCode,
+          },
+  }
 }
 
 /**
@@ -228,6 +273,10 @@ export async function handleUpdateContact(
   return withSales(context.database, async ({ sales }) => {
     const found = await sales.findContact(context.entityId, contactId)
     if (found === null) throw new ApiError('not_found', 'No such contact.')
+
+    // Before the write, and inside the transaction that will do it: reading
+    // the tag outside would leave a gap for the edit this is meant to catch.
+    requireIfMatch(context.ifMatch, etagOf(contactResource(found.contact, found.address)))
 
     const open = await sales.openDocumentCounts(context.entityId, contactId)
     const problems: { code: string; path: string; message: string }[] = []
