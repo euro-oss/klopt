@@ -3,9 +3,11 @@ import {
   RETENTION_CLASS_LABEL,
   pseudonymOf,
   refusePseudonymisation,
+  resourceOf,
   retentionState,
   summariseRetention,
   supportsWorm,
+  versionOf,
 } from '@klopt/core'
 import {
   applyRetention,
@@ -329,6 +331,19 @@ export async function handleDeleteDocuments(context: RequestContext, body: Delet
       actorId: context.actor.id,
       reason: body.reason,
     })
+
+    // One event per document, in the transaction that marked it (ADR 0051).
+    // The reference still resolves after the bytes are gone — to a 410 with
+    // the hash and the reason — which is the whole point of answering 410
+    // there rather than 404.
+    for (const row of deleted) {
+      await repository.enqueueEvent({
+        entityId: context.entityId,
+        type: 'retention.document.deleted',
+        version: versionOf('retention.document.deleted'),
+        payload: { resourceType: resourceOf('retention.document.deleted'), resourceId: row.id },
+      })
+    }
 
     // Which of these hashes anybody still keeps. Checked inside the same
     // transaction as the marking, so the answer cannot go stale between them.

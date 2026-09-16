@@ -72,6 +72,47 @@ export const EVENT_TYPES = {
     resource: 'vat_filing',
     summary: 'A BTW-aangifte was filed, and its periods are soft-closed.',
   },
+
+  // Added in ADR 0051. The six above were the lifecycle transitions of the
+  // three documents; these are the other moments a state change is worth
+  // somebody else hearing about, chosen because each is irreversible and each
+  // has a consumer who would otherwise have to poll for it.
+  'sales.invoice.paid': {
+    version: 1,
+    resource: 'sales_invoice',
+    summary:
+      'A bank line was matched to a sales invoice, settling it in full. The dunning ' +
+      'schedule stops here, which is the fact most integrations are waiting for.',
+  },
+  'payments.batch.exported': {
+    version: 1,
+    resource: 'payment_batch',
+    summary:
+      'A payment batch was exported: the pain.001 has been produced and is on its ' +
+      'way to the bank. The last moment this instance controls.',
+  },
+  'ledger.year.closed': {
+    version: 1,
+    resource: 'fiscal_year',
+    summary:
+      'A book year was closed and its result appropriated. Nothing posts to it ' +
+      'again without reopening it deliberately.',
+  },
+  'compliance.snapshot.sealed': {
+    version: 1,
+    resource: 'snapshot',
+    summary:
+      'A sealed snapshot was taken. An archival system wants the hash the moment ' +
+      'it exists, not whenever it next looks.',
+  },
+  'retention.document.deleted': {
+    version: 1,
+    resource: 'document',
+    summary:
+      'A document past its bewaarplicht was destroyed. One per document, not per ' +
+      'run: the reference still resolves, to a 410 carrying the hash and the ' +
+      'reason, which is the record an archival system wants.',
+  },
 } as const
 
 export type EventType = keyof typeof EVENT_TYPES

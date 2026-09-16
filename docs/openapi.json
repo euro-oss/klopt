@@ -4744,7 +4744,12 @@
                               "sales.invoice.sent",
                               "purchase.invoice.booked",
                               "purchase.invoice.approved",
-                              "vat.return.filed"
+                              "vat.return.filed",
+                              "sales.invoice.paid",
+                              "payments.batch.exported",
+                              "ledger.year.closed",
+                              "compliance.snapshot.sealed",
+                              "retention.document.deleted"
                             ]
                           },
                           "version": {
@@ -23834,14 +23839,7 @@
                             "const": 1
                           },
                           "summary": {
-                            "enum": [
-                              "A journal entry was posted. Immutable from this moment.",
-                              "A sales invoice took a number and posted. It can no longer be edited.",
-                              "A sales invoice was delivered, or delivery was attempted.",
-                              "A purchase invoice posted: the liability and the input VAT now exist.",
-                              "A purchase invoice was authorised for payment.",
-                              "A BTW-aangifte was filed, and its periods are soft-closed."
-                            ]
+                            "type": "string"
                           }
                         },
                         "required": [

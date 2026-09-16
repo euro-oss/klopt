@@ -1,3 +1,6 @@
+import { readFileSync, readdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { EVENT_TYPES, uuidv7 } from '@klopt/core'
@@ -206,5 +209,85 @@ describe('the event stream', () => {
       before.body.events.map((event) => event.id),
     )
     expect(after.body.events.some((event) => event.resource.id === marker)).toBe(false)
+  })
+})
+
+/**
+ * A sealed snapshot publishes itself (ADR 0051).
+ *
+ * The cheapest of the five new events to drive end to end, and the one where
+ * the timing argument is strongest: an archival system wants the hash the
+ * moment it exists, and "whenever it next polls" is too late to prove anything
+ * about when.
+ */
+describe('sealing a book year publishes it', () => {
+  it('emits compliance.snapshot.sealed naming the snapshot', async () => {
+    const { handleSealSnapshot } = await import('../src/api/handlers/snapshots.js')
+    const { sealSnapshotBody } = await import('../src/api/schemas.js')
+
+    const sealed = await handleSealSnapshot(
+      await contextFor(),
+      sealSnapshotBody.parse({ fiscalYear: '2026' }),
+    )
+    const snapshotId = (sealed.body as { id: string }).id
+
+    const published = (await events()).body.events.find(
+      (event) => event.type === 'compliance.snapshot.sealed',
+    )
+
+    expect(published).toBeDefined()
+    expect(published?.resource.id).toBe(snapshotId)
+    expect(published?.resource.type).toBe('snapshot')
+    expect(published?.version).toBe(EVENT_TYPES['compliance.snapshot.sealed'].version)
+  }, 60_000)
+})
+
+/**
+ * Every type in the catalogue is emitted by something (ADR 0051).
+ *
+ * `packages/db/test/modules.test.ts` already refuses a type no module
+ * *declares*, which catches a dead name. It does not catch the other half: a
+ * type declared, documented and published, that no line of code ever writes.
+ * A consumer subscribes to it and waits forever, and nothing fails.
+ *
+ * So this reads the source. Crude, and the right kind of crude — the question
+ * is literally "does this string appear at an emit site", and any cleverer
+ * mechanism would have to be kept in step with the emitting itself.
+ */
+describe('every published event type is actually emitted', () => {
+  const ROOTS = [
+    join(dirname(fileURLToPath(import.meta.url)), '..', 'src'),
+    join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'packages', 'db', 'src'),
+    join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'packages', 'core', 'src'),
+  ]
+
+  function everySource(directory: string): string[] {
+    const out: string[] = []
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) out.push(...everySource(path))
+      else if (entry.name.endsWith('.ts')) out.push(readFileSync(path, 'utf8'))
+    }
+    return out
+  }
+
+  it('has an emit site for each one', () => {
+    const sources = ROOTS.flatMap((root) => everySource(root))
+      // The catalogue itself names every type; it is the declaration, not an
+      // emit, and counting it would make this test agree with itself.
+      .filter((source) => !source.includes('export const EVENT_TYPES'))
+      .join('\n')
+
+    const unemitted = Object.keys(EVENT_TYPES).filter(
+      (type) => !sources.includes(`type: '${type}'`),
+    )
+
+    expect(unemitted).toEqual([])
+  })
+
+  it('would notice a type nobody writes', () => {
+    // The check is only worth having if an absent emit fails it.
+    const sources = ROOTS.flatMap((root) => everySource(root)).join('\n')
+    expect(sources.includes("type: 'ledger.entry.invented'")).toBe(false)
   })
 })

@@ -1,16 +1,18 @@
 import {
+  assessUpgradeImpact,
   buildBalanceSheet,
   buildCoverageReport,
   buildProfitAndLoss,
-  assessUpgradeImpact,
   diffRgsSchemes,
   generateXaf,
   planXafImport,
   planYearClose,
   postJournalEntry,
+  resourceOf,
   systemClock,
   validateMapping,
   validateXafDocument,
+  versionOf,
   type BalanceSheet,
   type ProfitAndLoss,
   type StatementSection,
@@ -618,6 +620,17 @@ export async function handleCloseYear(
       result: plan.result,
       currency: entity.functionalCurrency,
       closedBy: context.actor.id,
+    })
+
+    // In the transaction that closed it (ADR 0051). The reference is the
+    // fiscal year rather than the close record: a consumer asking "is 2025
+    // closed" is asking about the year, and the year is what they already have
+    // an id for.
+    await ledger.enqueueEvent({
+      entityId: context.entityId,
+      type: 'ledger.year.closed',
+      version: versionOf('ledger.year.closed'),
+      payload: { resourceType: resourceOf('ledger.year.closed'), resourceId: year.id },
     })
 
     return {

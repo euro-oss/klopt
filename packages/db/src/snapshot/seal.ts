@@ -1,7 +1,9 @@
 import {
+  generateXaf,
+  resourceOf,
   sealSnapshot,
   validateXafDocument,
-  generateXaf,
+  versionOf,
   type DocumentStore,
   type ReferenceDataStore,
   type SealedSnapshot,
@@ -137,14 +139,27 @@ export async function sealFiscalYear(
     contentType: 'text/plain; charset=utf-8',
   })
 
-  const id = await withSnapshots(database, ({ snapshots }) =>
-    snapshots.record({
+  const id = await withSnapshots(database, async ({ snapshots }) => {
+    const recorded = await snapshots.record({
       entityId: options.entityId,
       sealedBy: options.sealedBy,
       snapshot,
       manifestSha256: manifest.sha256,
-    }),
-  )
+    })
+
+    // In the transaction that recorded it (ADR 0051). An archival system wants
+    // the hash the moment it exists rather than whenever it next looks, and a
+    // seal is the one artefact where "whenever it next looks" is too late to
+    // prove anything about when.
+    await snapshots.enqueueEvent({
+      entityId: options.entityId,
+      type: 'compliance.snapshot.sealed',
+      version: versionOf('compliance.snapshot.sealed'),
+      payload: { resourceType: resourceOf('compliance.snapshot.sealed'), resourceId: recorded },
+    })
+
+    return recorded
+  })
 
   await withInbox(database, async ({ inbox }) => {
     for (const artefact of [

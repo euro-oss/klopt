@@ -96,7 +96,7 @@ const kernel: ModuleContract = {
     'audit_log',
     'outbox',
   ],
-  emits: ['ledger.entry.posted'],
+  emits: ['ledger.entry.posted', 'ledger.year.closed'],
   consumes: [],
   posting: [
     { journal: 'MEM', when: 'A journal entry somebody typed, and the two halves of a year close.' },
@@ -162,7 +162,10 @@ const bank: ModuleContract = {
     'payment_instructions',
     'payment_instruction_invoices',
   ],
-  emits: [],
+  // `sales.invoice.paid` is emitted here rather than by sales, because this is
+  // the module that learns it: settlement is a bank line meeting an invoice,
+  // and sales never sees the money arrive.
+  emits: ['sales.invoice.paid', 'payments.batch.exported'],
   consumes: [],
   posting: [
     { journal: 'BNK', when: 'A bank line is matched: the bank account against what it settles.' },
@@ -184,7 +187,7 @@ const compliance: ModuleContract = {
   name: 'compliance',
   summary: 'Bewaarplicht, sealed snapshots and the erasure path.',
   tables: ['sealed_snapshots'],
-  emits: [],
+  emits: ['compliance.snapshot.sealed', 'retention.document.deleted'],
   consumes: [],
   posting: [],
   permissions: ['ledger:read', 'ledger:export', 'retention:manage'],

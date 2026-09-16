@@ -9,6 +9,8 @@ import {
 import { and, asc, desc, eq } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import { bankAccounts, entities, paymentBatches, paymentInstructions } from '../schema/index.js'
+import type { DomainEvent } from '@klopt/core'
+import { enqueueDomainEvent } from '../outbox.js'
 
 /**
  * Payment batches.
@@ -37,6 +39,11 @@ export interface BatchSummary {
 
 export class PaymentsRepository {
   constructor(private readonly tx: Transaction) {}
+
+  /** The outbox (spec 9.3), written in this transaction. See `enqueueDomainEvent`. */
+  async enqueueEvent(event: DomainEvent): Promise<void> {
+    await enqueueDomainEvent(this.tx, event)
+  }
 
   async createBatch(request: {
     readonly entityId: string

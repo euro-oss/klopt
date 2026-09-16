@@ -9,9 +9,11 @@ import {
   parseBankFile,
   planImport,
   postJournalEntry,
+  resourceOf,
   ruleToLearn,
   suggestMatches,
   systemClock,
+  versionOf,
   type BankMatchAllocation,
   type CsvMapping,
   type StatementProblem,
@@ -505,6 +507,35 @@ export async function handleConfirmMatch(
         amount: allocation.amount,
       })),
     })
+
+    /**
+     * The invoices this payment closed (ADR 0051).
+     *
+     * `outstanding` is what was still open before this match, so an allocation
+     * that covers it settles the invoice. Emitted per invoice rather than per
+     * bank line, because "invoice 2026-0042 is paid" is the fact a consumer is
+     * waiting for; that one transfer settled three of them is our arithmetic,
+     * not theirs.
+     *
+     * In this transaction, like every other event: an outbox only gives its
+     * guarantee when the event cannot commit without the change.
+     */
+    for (const allocation of allocations) {
+      const candidate = byId.get(allocation.invoiceId)
+      if (candidate === undefined) continue
+      const applied = allocation.amount < 0n ? -allocation.amount : allocation.amount
+      if (applied < candidate.outstanding) continue
+
+      await ledger.enqueueEvent({
+        entityId: context.entityId,
+        type: 'sales.invoice.paid',
+        version: versionOf('sales.invoice.paid'),
+        payload: {
+          resourceType: resourceOf('sales.invoice.paid'),
+          resourceId: allocation.invoiceId,
+        },
+      })
+    }
 
     if (body.ruleId !== null) await repository.bumpRule(context.entityId, body.ruleId)
 

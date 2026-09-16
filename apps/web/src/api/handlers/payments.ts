@@ -5,7 +5,9 @@ import {
   generatePain001,
   isEditable,
   planPaymentRun,
+  resourceOf,
   validatePaymentBatch,
+  versionOf,
 } from '@klopt/core'
 import { withBankRead, withPayments, withPurchasePayments } from '@klopt/db'
 import { hasPermission, type RequestContext } from '../context.js'
@@ -417,6 +419,18 @@ export async function handleTransitionBatch(
       actorKind: context.actor.kind,
       reason: body.reason,
     })
+
+    // Only the export is published (ADR 0051). Submitting and approving are
+    // this instance's internal control; the file going to the bank is the fact
+    // another system acts on, and the one it would otherwise poll for.
+    if (state === 'exported') {
+      await repository.enqueueEvent({
+        entityId: context.entityId,
+        type: 'payments.batch.exported',
+        version: versionOf('payments.batch.exported'),
+        payload: { resourceType: resourceOf('payments.batch.exported'), resourceId: batchId },
+      })
+    }
 
     // The row an inspector reads to see that two people were involved. Both
     // states, because "approved" without "from submitted" does not show the

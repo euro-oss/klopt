@@ -17,6 +17,7 @@ import {
 import { uuidv7 } from '@klopt/core'
 import { and, asc, eq, gte, inArray, lte, or, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
+import { enqueueDomainEvent } from '../outbox.js'
 import {
   accountDimensionRequirements,
   accountPeriodBalances,
@@ -31,7 +32,6 @@ import {
   journalLineDimensions,
   journalLines,
   journals,
-  outbox,
   periods,
 } from '../schema/index.js'
 
@@ -449,14 +449,9 @@ export class DrizzleLedgerRepository implements LedgerRepository {
     })
   }
 
+  /** The outbox, which is not the ledger's but is reached through it here. */
   async enqueueEvent(event: DomainEvent): Promise<void> {
-    await this.tx.insert(outbox).values({
-      id: uuidv7(),
-      entityId: event.entityId,
-      type: event.type,
-      version: event.version,
-      payload: event.payload,
-    })
+    await enqueueDomainEvent(this.tx, event)
   }
 
   /** Every entry for one entity, ascending, for chain verification. */

@@ -5,6 +5,8 @@ import { documentLinks, documents } from '../schema/documents.js'
 import { entities, fiscalYears, journalEntries } from '../schema/ledger.js'
 import { purchaseInvoices } from '../schema/purchase.js'
 import { salesInvoices } from '../schema/sales.js'
+import type { DomainEvent } from '@klopt/core'
+import { enqueueDomainEvent } from '../outbox.js'
 
 /**
  * The bewaarplicht, against the database (spec 7.6).
@@ -65,6 +67,11 @@ const COLUMNS = {
 
 export class RetentionRepository {
   constructor(private readonly tx: Transaction) {}
+
+  /** The outbox (spec 9.3), written in this transaction. See `enqueueDomainEvent`. */
+  async enqueueEvent(event: DomainEvent): Promise<void> {
+    await enqueueDomainEvent(this.tx, event)
+  }
 
   /** Whether the whole administration is held, and why. */
   async entityHold(

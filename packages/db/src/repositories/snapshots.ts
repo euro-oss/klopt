@@ -3,6 +3,8 @@ import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import { documents, sealedSnapshots } from '../schema/documents.js'
 import { journalEntries } from '../schema/ledger.js'
+import type { DomainEvent } from '@klopt/core'
+import { enqueueDomainEvent } from '../outbox.js'
 
 /**
  * Sealed snapshots, against the database (spec 7.6).
@@ -79,6 +81,11 @@ function toRow(row: {
 
 export class SnapshotRepository {
   constructor(private readonly tx: Transaction) {}
+
+  /** The outbox (spec 9.3), written in this transaction. See `enqueueDomainEvent`. */
+  async enqueueEvent(event: DomainEvent): Promise<void> {
+    await enqueueDomainEvent(this.tx, event)
+  }
 
   /**
    * Everything the manifest covers.
