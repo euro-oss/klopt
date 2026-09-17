@@ -1,15 +1,20 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { uuidv7 } from '@klopt/core'
+import { readFileSync } from 'node:fs'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { uuidv7, type TimestampWitness } from '@klopt/core'
 import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
 import { documentStore } from '../src/api/document-store.js'
+import { setTimestampWitnessForTest } from '../src/api/timestamp.js'
 import {
   handleGetSnapshotManifest,
+  handleGetSnapshotTimestamp,
   handleListSnapshots,
   handleSealSnapshot,
   handleVerifySnapshot,
@@ -449,5 +454,209 @@ describe('what the database refuses', () => {
 
     const listed = await handleListSnapshots(await context(token))
     expect(listed.body.snapshots.find((row) => row.id === sealed.id)?.verifiedAt).not.toBeNull()
+  })
+})
+
+/**
+ * A seal somebody outside has seen (spec 7.6, ADR 0058).
+ *
+ * The sealed snapshot is complete except for one thing: it is entirely ours.
+ * An inspector asking when a year was sealed has our own word for the date, in
+ * the one situation where our word is what is in question. An RFC 3161
+ * authority signs "I saw this hash at this time" — and these tests are about
+ * what happens when it does, and rather more about what happens when it does
+ * not.
+ */
+
+/** The golden reply from `openssl ts -reply`, and the hash it attests to. */
+const REPLY = new Uint8Array(
+  readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      '..',
+      '..',
+      '..',
+      'packages',
+      'core',
+      'test',
+      'snapshot',
+      '__fixtures__',
+      'reply.tsr',
+    ),
+  ),
+)
+const REPLY_IMPRINT = '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
+
+/**
+ * The same reply, with the imprint swapped for another hash.
+ *
+ * The signature no longer covers it, which is fine and deliberate: nothing in
+ * Klopt verifies a TSA signature — that needs the authority's certificate
+ * chain and a trust decision belonging to whoever is checking the evidence.
+ * What Klopt does check is that the token attests to *this* seal, and patching
+ * the imprint is the honest way to exercise exactly that.
+ */
+function replyAbout(sha256: string): Uint8Array {
+  const wanted = Uint8Array.from(REPLY_IMPRINT.match(/../g)!, (pair) => Number.parseInt(pair, 16))
+  const patched = REPLY.slice()
+
+  let found = 0
+  for (let at = 0; at + wanted.length <= patched.length; at += 1) {
+    if (wanted.every((byte, index) => patched[at + index] === byte)) {
+      patched.set(
+        Uint8Array.from(sha256.match(/../g)!, (pair) => Number.parseInt(pair, 16)),
+        at,
+      )
+      found += 1
+    }
+  }
+  if (found !== 1) throw new Error(`Expected one imprint in the fixture, found ${String(found)}.`)
+  return patched
+}
+
+/** An authority that stamps whatever it is shown. */
+function aWitness(options: { readonly attestsTo?: string } = {}): TimestampWitness {
+  return {
+    name: 'https://tsa.test/tsr',
+    stamp: (sha256: string) =>
+      Promise.resolve({
+        kind: 'stamped' as const,
+        authority: 'https://tsa.test/tsr',
+        token: {
+          // `attestsTo` lets a test hand back a token about a *different*
+          // hash, which is the corruption the verification has to notice.
+          token: Buffer.from(replyAbout(options.attestsTo ?? sha256)).toString('base64'),
+          genTime: '2026-09-17T12:26:19Z',
+          serialNumber: '2',
+          policyOid: '1.2.3.4.1',
+          imprintSha256: sha256,
+        },
+      }),
+  }
+}
+
+describe('a witness to a seal', () => {
+  afterEach(() => {
+    setTimestampWitnessForTest(null)
+  })
+
+  it('records what the authority said, on its clock and not ours', async () => {
+    const { token } = await newEntity()
+    await anEntry(token, 'Getuige')
+    setTimestampWitnessForTest(aWitness())
+
+    const sealed = await seal(token)
+
+    expect(sealed.timestamp.witnessed).toBe(true)
+    expect(sealed.timestamp.authority).toBe('https://tsa.test/tsr')
+    // The authority's own `genTime`, not `new Date()`. Recording ours would
+    // make the column say the opposite of what it is there for.
+    expect(sealed.timestamp.at).toBe('2026-09-17T12:26:19Z')
+    expect(sealed.timestamp.reason).toBeNull()
+
+    const listed = await handleListSnapshots(await context(token))
+    expect(listed.body.snapshots[0]?.timestamp.witnessed).toBe(true)
+    expect(listed.body.snapshots[0]?.timestamp.serialNumber).toBe('2')
+  })
+
+  it('hands over the reply as a file somebody else can check', async () => {
+    // The point of the feature: publishing a seal outside this instance means
+    // giving somebody the bytes `openssl ts -verify` takes.
+    const { token } = await newEntity()
+    await anEntry(token, 'Uitgifte')
+    setTimestampWitnessForTest(aWitness())
+    const sealed = await seal(token)
+
+    const handed = await handleGetSnapshotTimestamp(await context(token), sealed.id)
+
+    expect(handed.filename).toMatch(/^snapshot-2026-[0-9a-f]{12}\.tsr$/)
+    // The authority's bytes, unchanged through storage and base64. Not "a
+    // file": `openssl ts -verify` checks a signature over exactly these, and
+    // one byte of helpfulness in the middle would break it.
+    expect(new Uint8Array(handed.token)).toEqual(replyAbout(sealed.seal))
+  })
+
+  it('seals anyway when the authority cannot be reached, and says why', async () => {
+    /**
+     * The property that matters most. A scheduled sealing run that stopped
+     * producing evidence because somebody else's endpoint was down would be
+     * worse than one that occasionally produces evidence with no witness — the
+     * seal detects a change either way.
+     */
+    const { token } = await newEntity()
+    await anEntry(token, 'Zonder getuige')
+    setTimestampWitnessForTest({
+      name: 'https://tsa.test/tsr',
+      stamp: () => Promise.resolve({ kind: 'unavailable' as const, reason: 'Connection refused.' }),
+    })
+
+    const sealed = await seal(token)
+
+    expect(sealed.seal).toMatch(/^[0-9a-f]{64}$/)
+    expect(sealed.timestamp.witnessed).toBe(false)
+    expect(sealed.timestamp.reason).toBe('Connection refused.')
+
+    // And nothing to hand over, with the reason rather than a bare 404 that
+    // reads like the snapshot is missing.
+    await expect(handleGetSnapshotTimestamp(await context(token), sealed.id)).rejects.toThrow(
+      /Connection refused/,
+    )
+  })
+
+  it('has no witness at all by default, and names the setting', async () => {
+    // Spec 8's first rule: a fresh install needs no third party. The absence
+    // is reported with the thing to set rather than as a bare null.
+    const { token } = await newEntity()
+    await anEntry(token, 'Standaard')
+
+    const sealed = await seal(token)
+
+    expect(sealed.timestamp.witnessed).toBe(false)
+    expect(sealed.timestamp.reason).toContain('KLOPT_TIMESTAMP_URL')
+  })
+
+  it('reports the witness as unchecked when there is none', async () => {
+    const { token } = await newEntity()
+    await anEntry(token, 'Niets te checken')
+    const sealed = await seal(token)
+
+    const checked = await verify(token, sealed.id)
+
+    // Neither true nor false: a boolean would make a snapshot with no
+    // timestamp look either verified or broken, and it is neither.
+    expect(checked.timestamp.witnessed).toBe(false)
+    expect(checked.timestamp.ok).toBeNull()
+  })
+
+  it('confirms a token that really does attest to this seal', async () => {
+    const { token } = await newEntity()
+    await anEntry(token, 'Klopt')
+    setTimestampWitnessForTest(aWitness())
+    const sealed = await seal(token)
+
+    const checked = await verify(token, sealed.id)
+
+    expect(checked.timestamp.witnessed).toBe(true)
+    expect(checked.timestamp.ok).toBe(true)
+    // Read out of the reply itself, not off the column beside it — the column
+    // is what would have been edited too.
+    expect(checked.timestamp.at).toBe('2026-09-17T12:26:19Z')
+  })
+
+  it('notices a token that attests to a different seal', async () => {
+    /**
+     * The one failure the rest of the verification cannot see: a row whose
+     * seal was edited while its token was left alone would otherwise present
+     * somebody else's timestamp as evidence for a number it never covered.
+     */
+    const { token } = await newEntity()
+    await anEntry(token, 'Verwisseld')
+    setTimestampWitnessForTest(aWitness({ attestsTo: 'a'.repeat(64) }))
+    const sealed = await seal(token)
+
+    const checked = await verify(token, sealed.id)
+
+    expect(checked.timestamp.witnessed).toBe(true)
+    expect(checked.timestamp.ok).toBe(false)
   })
 })

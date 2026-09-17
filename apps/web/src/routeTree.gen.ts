@@ -144,6 +144,7 @@ import { Route as ApiV1SalesInvoicesInvoiceIdRemindersRouteImport } from './rout
 import { Route as ApiV1SalesInvoicesInvoiceIdSendRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.send'
 import { Route as ApiV1SalesInvoicesInvoiceIdUblRouteImport } from './routes/api/v1/sales-invoices.$invoiceId.ubl'
 import { Route as ApiV1SnapshotsSnapshotIdManifestRouteImport } from './routes/api/v1/snapshots.$snapshotId.manifest'
+import { Route as ApiV1SnapshotsSnapshotIdTimestampRouteImport } from './routes/api/v1/snapshots.$snapshotId.timestamp'
 import { Route as ApiV1SnapshotsSnapshotIdVerificationsRouteImport } from './routes/api/v1/snapshots.$snapshotId.verifications'
 import { Route as ApiV1VatIcpPeriodRouteImport } from './routes/api/v1/vat.icp.$period'
 import { Route as ApiV1VatReturnsPeriodRouteImport } from './routes/api/v1/vat.returns.$period'
@@ -865,6 +866,12 @@ const ApiV1SnapshotsSnapshotIdManifestRoute =
     path: '/$snapshotId/manifest',
     getParentRoute: () => ApiV1SnapshotsRoute,
   } as any)
+const ApiV1SnapshotsSnapshotIdTimestampRoute =
+  ApiV1SnapshotsSnapshotIdTimestampRouteImport.update({
+    id: '/$snapshotId/timestamp',
+    path: '/$snapshotId/timestamp',
+    getParentRoute: () => ApiV1SnapshotsRoute,
+  } as any)
 const ApiV1SnapshotsSnapshotIdVerificationsRoute =
   ApiV1SnapshotsSnapshotIdVerificationsRouteImport.update({
     id: '/$snapshotId/verifications',
@@ -1053,6 +1060,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
   '/api/v1/snapshots/$snapshotId/manifest': typeof ApiV1SnapshotsSnapshotIdManifestRoute
+  '/api/v1/snapshots/$snapshotId/timestamp': typeof ApiV1SnapshotsSnapshotIdTimestampRoute
   '/api/v1/snapshots/$snapshotId/verifications': typeof ApiV1SnapshotsSnapshotIdVerificationsRoute
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
@@ -1198,6 +1206,7 @@ export interface FileRoutesByTo {
   '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
   '/api/v1/snapshots/$snapshotId/manifest': typeof ApiV1SnapshotsSnapshotIdManifestRoute
+  '/api/v1/snapshots/$snapshotId/timestamp': typeof ApiV1SnapshotsSnapshotIdTimestampRoute
   '/api/v1/snapshots/$snapshotId/verifications': typeof ApiV1SnapshotsSnapshotIdVerificationsRoute
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
@@ -1345,6 +1354,7 @@ export interface FileRoutesById {
   '/api/v1/sales-invoices/$invoiceId/send': typeof ApiV1SalesInvoicesInvoiceIdSendRoute
   '/api/v1/sales-invoices/$invoiceId/ubl': typeof ApiV1SalesInvoicesInvoiceIdUblRoute
   '/api/v1/snapshots/$snapshotId/manifest': typeof ApiV1SnapshotsSnapshotIdManifestRoute
+  '/api/v1/snapshots/$snapshotId/timestamp': typeof ApiV1SnapshotsSnapshotIdTimestampRoute
   '/api/v1/snapshots/$snapshotId/verifications': typeof ApiV1SnapshotsSnapshotIdVerificationsRoute
   '/api/v1/vat/icp/$period': typeof ApiV1VatIcpPeriodRoute
   '/api/v1/vat/returns/$period': typeof ApiV1VatReturnsPeriodRoute
@@ -1492,6 +1502,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
     | '/api/v1/snapshots/$snapshotId/manifest'
+    | '/api/v1/snapshots/$snapshotId/timestamp'
     | '/api/v1/snapshots/$snapshotId/verifications'
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
@@ -1637,6 +1648,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
     | '/api/v1/snapshots/$snapshotId/manifest'
+    | '/api/v1/snapshots/$snapshotId/timestamp'
     | '/api/v1/snapshots/$snapshotId/verifications'
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
@@ -1783,6 +1795,7 @@ export interface FileRouteTypes {
     | '/api/v1/sales-invoices/$invoiceId/send'
     | '/api/v1/sales-invoices/$invoiceId/ubl'
     | '/api/v1/snapshots/$snapshotId/manifest'
+    | '/api/v1/snapshots/$snapshotId/timestamp'
     | '/api/v1/snapshots/$snapshotId/verifications'
     | '/api/v1/vat/icp/$period'
     | '/api/v1/vat/returns/$period'
@@ -2809,6 +2822,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SnapshotsSnapshotIdManifestRouteImport
       parentRoute: typeof ApiV1SnapshotsRoute
     }
+    '/api/v1/snapshots/$snapshotId/timestamp': {
+      id: '/api/v1/snapshots/$snapshotId/timestamp'
+      path: '/$snapshotId/timestamp'
+      fullPath: '/api/v1/snapshots/$snapshotId/timestamp'
+      preLoaderRoute: typeof ApiV1SnapshotsSnapshotIdTimestampRouteImport
+      parentRoute: typeof ApiV1SnapshotsRoute
+    }
     '/api/v1/snapshots/$snapshotId/verifications': {
       id: '/api/v1/snapshots/$snapshotId/verifications'
       path: '/$snapshotId/verifications'
@@ -3266,11 +3286,14 @@ const ApiV1SalesInvoicesRouteWithChildren =
 
 interface ApiV1SnapshotsRouteChildren {
   ApiV1SnapshotsSnapshotIdManifestRoute: typeof ApiV1SnapshotsSnapshotIdManifestRoute
+  ApiV1SnapshotsSnapshotIdTimestampRoute: typeof ApiV1SnapshotsSnapshotIdTimestampRoute
   ApiV1SnapshotsSnapshotIdVerificationsRoute: typeof ApiV1SnapshotsSnapshotIdVerificationsRoute
 }
 
 const ApiV1SnapshotsRouteChildren: ApiV1SnapshotsRouteChildren = {
   ApiV1SnapshotsSnapshotIdManifestRoute: ApiV1SnapshotsSnapshotIdManifestRoute,
+  ApiV1SnapshotsSnapshotIdTimestampRoute:
+    ApiV1SnapshotsSnapshotIdTimestampRoute,
   ApiV1SnapshotsSnapshotIdVerificationsRoute:
     ApiV1SnapshotsSnapshotIdVerificationsRoute,
 }

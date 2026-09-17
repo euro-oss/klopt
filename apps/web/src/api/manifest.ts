@@ -713,6 +713,12 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/snapshots.$snapshotId.manifest.ts',
   },
   {
+    operationId: 'snapshot.getTimestamp',
+    method: 'GET',
+    path: '/snapshots/{snapshotId}/timestamp',
+    module: 'api/v1/snapshots.$snapshotId.timestamp.ts',
+  },
+  {
     operationId: 'snapshot.verify',
     method: 'POST',
     path: '/snapshots/{snapshotId}/verifications',

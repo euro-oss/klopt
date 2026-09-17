@@ -64,3 +64,4 @@ export type {
   ExactTokens,
   ExactUser,
 } from './exact.js'
+export type { TimestampOutcome, TimestampWitness } from './timestamp.js'

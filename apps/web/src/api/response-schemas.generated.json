@@ -9999,6 +9999,9 @@
     "snapshot.getManifest": {
       "media": "application/json"
     },
+    "snapshot.getTimestamp": {
+      "media": "application/timestamp-reply"
+    },
     "snapshot.list": {
       "schema": {
         "type": "object",
@@ -10055,6 +10058,45 @@
                 },
                 "totalBytes": {
                   "type": "string"
+                },
+                "timestamp": {
+                  "type": "object",
+                  "properties": {
+                    "witnessed": {
+                      "type": "boolean"
+                    },
+                    "authority": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "serialNumber": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "witnessed",
+                    "authority",
+                    "at",
+                    "serialNumber",
+                    "reason"
+                  ]
                 },
                 "verifiedAt": {
                   "type": [
@@ -10123,6 +10165,7 @@
                 "documentCount",
                 "deletedDocumentCount",
                 "totalBytes",
+                "timestamp",
                 "verifiedAt",
                 "verifiedOk",
                 "drift"
@@ -10180,6 +10223,64 @@
           },
           "manifestSha256": {
             "type": "string"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "witnessed": {
+                    "const": true
+                  },
+                  "authority": {
+                    "type": "string"
+                  },
+                  "at": {
+                    "type": "string"
+                  },
+                  "serialNumber": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "null"
+                  }
+                },
+                "required": [
+                  "witnessed",
+                  "authority",
+                  "at",
+                  "serialNumber",
+                  "reason"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "witnessed": {
+                    "const": false
+                  },
+                  "authority": {
+                    "type": "null"
+                  },
+                  "at": {
+                    "type": "null"
+                  },
+                  "serialNumber": {
+                    "type": "null"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "witnessed",
+                  "authority",
+                  "at",
+                  "serialNumber",
+                  "reason"
+                ]
+              }
+            ]
           }
         },
         "required": [
@@ -10194,7 +10295,8 @@
           "deletedDocumentCount",
           "totalBytes",
           "auditFileSha256",
-          "manifestSha256"
+          "manifestSha256",
+          "timestamp"
         ]
       }
     },
@@ -10216,6 +10318,45 @@
           },
           "chainVerified": {
             "type": "boolean"
+          },
+          "timestamp": {
+            "type": "object",
+            "properties": {
+              "witnessed": {
+                "type": "boolean"
+              },
+              "ok": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "authority": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "witnessed",
+              "ok",
+              "authority",
+              "at",
+              "reason"
+            ]
           },
           "drift": {
             "type": "array",
@@ -10256,6 +10397,7 @@
           "verified",
           "auditFileChecked",
           "chainVerified",
+          "timestamp",
           "drift"
         ]
       }
@@ -10453,9 +10595,9 @@
                 },
                 "outcome": {
                   "enum": [
+                    "unavailable",
                     "valid",
-                    "invalid",
-                    "unavailable"
+                    "invalid"
                   ]
                 },
                 "name": {
@@ -10721,9 +10863,9 @@
                       "properties": {
                         "outcome": {
                           "enum": [
+                            "unavailable",
                             "valid",
-                            "invalid",
-                            "unavailable"
+                            "invalid"
                           ]
                         },
                         "checkedAt": {

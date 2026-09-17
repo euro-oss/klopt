@@ -1,4 +1,10 @@
-import { uuidv7, type SealedSnapshot, type SnapshotDocument, type SnapshotDrift } from '@klopt/core'
+import {
+  uuidv7,
+  type SealedSnapshot,
+  type SnapshotDocument,
+  type SnapshotDrift,
+  type TimestampOutcome,
+} from '@klopt/core'
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import { documents, sealedSnapshots } from '../schema/documents.js'
@@ -41,6 +47,13 @@ export interface SnapshotRow {
   readonly documentCount: number
   readonly deletedDocumentCount: number
   readonly totalBytes: bigint
+  /** What somebody outside said about this seal (ADR 0058). */
+  readonly timestampAuthority: string | null
+  readonly timestampToken: string | null
+  readonly timestampAt: string | null
+  readonly timestampSerial: string | null
+  /** Filled instead when there is no witness, with the why. */
+  readonly timestampReason: string | null
   readonly verifiedAt: string | null
   readonly verifiedOk: boolean | null
   readonly drift: unknown
@@ -62,6 +75,11 @@ const COLUMNS = {
   documentCount: sealedSnapshots.documentCount,
   deletedDocumentCount: sealedSnapshots.deletedDocumentCount,
   totalBytes: sealedSnapshots.totalBytes,
+  timestampAuthority: sealedSnapshots.timestampAuthority,
+  timestampToken: sealedSnapshots.timestampToken,
+  timestampAt: sealedSnapshots.timestampAt,
+  timestampSerial: sealedSnapshots.timestampSerial,
+  timestampReason: sealedSnapshots.timestampReason,
   verifiedAt: sealedSnapshots.verifiedAt,
   verifiedOk: sealedSnapshots.verifiedOk,
   drift: sealedSnapshots.drift,
@@ -70,12 +88,14 @@ const COLUMNS = {
 function toRow(row: {
   sealedAt: Date
   verifiedAt: Date | null
+  timestampAt: Date | null
   [key: string]: unknown
 }): SnapshotRow {
   return {
     ...row,
     sealedAt: row.sealedAt.toISOString(),
     verifiedAt: row.verifiedAt?.toISOString() ?? null,
+    timestampAt: row.timestampAt?.toISOString() ?? null,
   } as SnapshotRow
 }
 
@@ -151,6 +171,7 @@ export class SnapshotRepository {
     readonly sealedBy: string
     readonly snapshot: SealedSnapshot
     readonly manifestSha256: string
+    readonly timestamp: TimestampOutcome
   }): Promise<string> {
     const id = uuidv7()
     const { snapshot } = request
@@ -172,6 +193,16 @@ export class SnapshotRepository {
       documentCount: snapshot.documentCount,
       deletedDocumentCount: snapshot.deletedDocumentCount,
       totalBytes: snapshot.totalBytes,
+      ...(request.timestamp.kind === 'stamped'
+        ? {
+            timestampAuthority: request.timestamp.authority,
+            timestampToken: request.timestamp.token.token,
+            // The authority's own `genTime`, not our clock. Recording ours
+            // would make the column say the opposite of what it is for.
+            timestampAt: new Date(request.timestamp.token.genTime),
+            timestampSerial: request.timestamp.token.serialNumber,
+          }
+        : { timestampReason: request.timestamp.reason }),
     })
 
     return id

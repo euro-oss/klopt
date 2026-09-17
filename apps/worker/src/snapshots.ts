@@ -1,7 +1,7 @@
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadReferenceDataFromDirectory, type ReferenceDataStore } from '@klopt/core'
-import { resolveDocumentStore } from '@klopt/adapters'
+import { resolveDocumentStore, resolveTimestampWitness } from '@klopt/adapters'
 import {
   SealRefusedError,
   closeDatabase,
@@ -10,7 +10,7 @@ import {
   withSnapshotsRead,
   type Database,
 } from '@klopt/db'
-import type { DocumentStore } from '@klopt/core'
+import type { DocumentStore, TimestampWitness } from '@klopt/core'
 
 /**
  * Periodic sealed snapshots (spec 7.6).
@@ -75,6 +75,9 @@ export async function sealPendingYears(
   database: Database,
   store: DocumentStore = storeFor(),
   referenceData: ReferenceDataStore = referenceDataStore(),
+  // Resolved from the same environment the API reads, so a nightly seal and a
+  // seal somebody pressed a button for carry the same kind of evidence.
+  witness: TimestampWitness = resolveTimestampWitness(process.env),
 ): Promise<SnapshotSweepSummary> {
   const entities = await withSnapshotsRead(database, (repository) =>
     repository.entitiesWithPostings(),
@@ -90,7 +93,7 @@ export async function sealPendingYears(
 
     for (const fiscalYear of years) {
       try {
-        const result = await sealFiscalYear(database, store, referenceData, {
+        const result = await sealFiscalYear(database, store, referenceData, witness, {
           entityId,
           fiscalYear,
           // Not a person. The audit trail distinguishes human from script, and

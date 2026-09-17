@@ -7,6 +7,8 @@ import {
   type DocumentStore,
   type ReferenceDataStore,
   type SealedSnapshot,
+  type TimestampOutcome,
+  type TimestampWitness,
 } from '@klopt/core'
 import type { Database } from '../client.js'
 import { withInbox, withReporting, withSnapshots, withXafExport } from '../unit-of-work.js'
@@ -39,6 +41,8 @@ export interface SealResult {
   readonly snapshot: SealedSnapshot
   readonly auditFileSha256: string
   readonly manifestSha256: string
+  /** What an outside authority said, or why there is nothing (ADR 0058). */
+  readonly timestamp: TimestampOutcome
 }
 
 export class SealRefusedError extends Error {
@@ -75,6 +79,7 @@ export async function sealFiscalYear(
   database: Database,
   store: DocumentStore,
   referenceData: ReferenceDataStore,
+  witness: TimestampWitness,
   options: SealOptions,
 ): Promise<SealResult> {
   const entity = await withReporting(database, (repository) => repository.entity(options.entityId))
@@ -139,12 +144,24 @@ export async function sealFiscalYear(
     contentType: 'text/plain; charset=utf-8',
   })
 
+  /**
+   * Ask somebody outside to say they saw it (ADR 0058).
+   *
+   * After the seal exists and before it is recorded, because the seal is what
+   * is stamped — and it cannot fail the sealing: an unreachable authority
+   * records a reason and the snapshot is written anyway. A scheduled job that
+   * stopped producing evidence because of somebody else's downtime would be
+   * worse than one that occasionally produces evidence with no witness.
+   */
+  const timestamp = await witness.stamp(snapshot.seal)
+
   const id = await withSnapshots(database, async ({ snapshots }) => {
     const recorded = await snapshots.record({
       entityId: options.entityId,
       sealedBy: options.sealedBy,
       snapshot,
       manifestSha256: manifest.sha256,
+      timestamp,
     })
 
     // In the transaction that recorded it (ADR 0051). An archival system wants
@@ -199,5 +216,6 @@ export async function sealFiscalYear(
     snapshot,
     auditFileSha256: auditFile.sha256,
     manifestSha256: manifest.sha256,
+    timestamp,
   }
 }

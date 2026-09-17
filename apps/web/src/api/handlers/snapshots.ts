@@ -1,4 +1,10 @@
-import { PERMISSIONS, verifyHashChain, verifySnapshot, type SealedSnapshot } from '@klopt/core'
+import {
+  PERMISSIONS,
+  readTimeStampResponse,
+  verifyHashChain,
+  verifySnapshot,
+  type SealedSnapshot,
+} from '@klopt/core'
 import {
   SealRefusedError,
   sealFiscalYear,
@@ -11,6 +17,7 @@ import { hasPermission, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
 import { recordAudit } from '../audit.js'
 import { documentStore } from '../document-store.js'
+import { timestampWitness } from '../timestamp.js'
 import { referenceData } from '../reference-data.js'
 import { handleExportAuditFile } from './compliance.js'
 import type { SealSnapshotBody } from '../schemas.js'
@@ -61,6 +68,19 @@ function serialise(row: SnapshotRow) {
     documentCount: row.documentCount,
     deletedDocumentCount: row.deletedDocumentCount,
     totalBytes: row.totalBytes.toString(),
+    /**
+     * The token is not here. It is a couple of kilobytes of base64 per row,
+     * and a list of snapshots is not where somebody reaches for evidence —
+     * `GET /snapshots/{id}/timestamp` hands over the file `openssl ts -verify`
+     * takes.
+     */
+    timestamp: {
+      witnessed: row.timestampToken !== null,
+      authority: row.timestampAuthority,
+      at: row.timestampAt,
+      serialNumber: row.timestampSerial,
+      reason: row.timestampReason,
+    },
     verifiedAt: row.verifiedAt,
     verifiedOk: row.verifiedOk,
     drift: row.drift as
@@ -127,11 +147,17 @@ export async function handleSealSnapshot(context: RequestContext, body: SealSnap
 
   let result
   try {
-    result = await sealFiscalYear(context.database, documentStore(), referenceData(), {
-      entityId: context.entityId,
-      fiscalYear: body.fiscalYear,
-      sealedBy: context.actor.id,
-    })
+    result = await sealFiscalYear(
+      context.database,
+      documentStore(),
+      referenceData(),
+      timestampWitness(),
+      {
+        entityId: context.entityId,
+        fiscalYear: body.fiscalYear,
+        sealedBy: context.actor.id,
+      },
+    )
   } catch (error: unknown) {
     // The auditfile refusing to validate is not "sealing failed": it names the
     // rule, and the rule is what somebody has to fix. Spec 7.3.
@@ -185,6 +211,30 @@ export async function handleSealSnapshot(context: RequestContext, body: SealSnap
       totalBytes: snapshot.totalBytes.toString(),
       auditFileSha256: result.auditFileSha256,
       manifestSha256: result.manifestSha256,
+      /**
+       * Whether anybody outside has seen this seal (ADR 0058).
+       *
+       * On the creation response as well as on the row, because the moment a
+       * seal is taken is the moment somebody decides whether to write the
+       * date down themselves — and "no witness, and here is why" is the
+       * answer that makes them do it.
+       */
+      timestamp:
+        result.timestamp.kind === 'stamped'
+          ? {
+              witnessed: true as const,
+              authority: result.timestamp.authority,
+              at: result.timestamp.token.genTime,
+              serialNumber: result.timestamp.token.serialNumber,
+              reason: null,
+            }
+          : {
+              witnessed: false as const,
+              authority: null,
+              at: null,
+              serialNumber: null,
+              reason: result.timestamp.reason,
+            },
     },
   }
 }
@@ -210,6 +260,88 @@ export async function handleGetSnapshotManifest(context: RequestContext, snapsho
   return {
     manifest: row.manifest,
     filename: `snapshot-${row.fiscalYear}-${row.seal.slice(0, 12)}.manifest.txt`,
+  }
+}
+
+/**
+ * What the stored timestamp reply says, checked against the row it is on.
+ *
+ * `ok` is null when there is no witness: neither true nor false is honest
+ * about a check that did not happen, and a boolean here would make a
+ * snapshot with no timestamp look either verified or broken.
+ */
+function checkTimestamp(row: SnapshotRow): {
+  readonly witnessed: boolean
+  readonly ok: boolean | null
+  readonly authority: string | null
+  readonly at: string | null
+  readonly reason: string | null
+} {
+  if (row.timestampToken === null) {
+    return {
+      witnessed: false,
+      ok: null,
+      authority: null,
+      at: null,
+      reason: row.timestampReason,
+    }
+  }
+
+  try {
+    const reply = readTimeStampResponse(
+      new Uint8Array(Buffer.from(row.timestampToken, 'base64')),
+      // No nonce: it is only meaningful at the moment of asking, and one read
+      // back out of the same row would be checked against itself.
+      { sha256: row.seal },
+    )
+    // `readTimeStampResponse` refuses a reply whose imprint is not the hash it
+    // was asked about, so reaching here at all is the check passing. Comparing
+    // again would read as a second check and be none.
+    return {
+      witnessed: true,
+      ok: reply.token !== null,
+      authority: row.timestampAuthority,
+      at: reply.token?.genTime ?? null,
+      reason: null,
+    }
+  } catch (error: unknown) {
+    return {
+      witnessed: true,
+      ok: false,
+      authority: row.timestampAuthority,
+      at: null,
+      reason: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+/**
+ * The timestamp reply, as the authority sent it (ADR 0058).
+ *
+ * The file rather than a description of it: `openssl ts -verify -in
+ * reply.tsr -data seal.txt -CAfile chain.pem` is what an auditor runs, and
+ * they can only run it against bytes. Publishing the seal outside this
+ * instance is the point of the whole feature, and this is the download that
+ * does it.
+ */
+export async function handleGetSnapshotTimestamp(context: RequestContext, snapshotId: string) {
+  requirePermission(context, PERMISSIONS.export)
+
+  const row = await withSnapshotsRead(context.database, (repository) =>
+    repository.find(context.entityId, snapshotId),
+  )
+  if (row === null) throw new ApiError('not_found', 'No such snapshot.')
+  if (row.timestampToken === null) {
+    throw new ApiError(
+      'not_found',
+      row.timestampReason ??
+        'No timestamp authority saw this seal, so there is no reply to hand over.',
+    )
+  }
+
+  return {
+    token: Buffer.from(row.timestampToken, 'base64'),
+    filename: `snapshot-${row.fiscalYear}-${row.seal.slice(0, 12)}.tsr`,
   }
 }
 
@@ -299,6 +431,18 @@ export async function handleVerifySnapshot(
     return verification
   })
 
+  /**
+   * Does the witness still attest to *this* seal?
+   *
+   * Cheap, and it catches the one failure the rest of the verification cannot
+   * see: a row whose seal was edited while its token was left alone, which
+   * would otherwise present somebody else's timestamp as evidence for a
+   * number it never covered. Read out of the stored reply rather than from
+   * the columns beside it, because the columns are what would have been
+   * edited too.
+   */
+  const timestamp = checkTimestamp(row)
+
   await recordAudit(context, {
     action: 'snapshot.verify',
     resourceType: 'sealed_snapshot',
@@ -307,6 +451,7 @@ export async function handleVerifySnapshot(
       verified: result.verified,
       auditFileChecked: options.recomputeAuditFile,
       chainVerified: chainCheck.verified,
+      timestampVerified: timestamp.ok,
       drift: result.drift.map((entry) => entry.code),
     },
   })
@@ -321,6 +466,7 @@ export async function handleVerifySnapshot(
       // omission.
       auditFileChecked: options.recomputeAuditFile,
       chainVerified: chainCheck.verified,
+      timestamp,
       drift: result.drift,
     },
   }

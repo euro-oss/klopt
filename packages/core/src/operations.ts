@@ -389,6 +389,16 @@ export const complianceOperations: Readonly<Record<string, OperationDefinition>>
     idempotent: true,
   }),
 
+  getSnapshotTimestamp: defineOperation({
+    id: 'snapshot.getTimestamp',
+    kind: 'read',
+    permission: 'ledger:export',
+    summary:
+      "The timestamp authority's own reply about this seal, as it arrived — the file `openssl ts -verify` takes.",
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
   verifySnapshot: defineOperation({
     id: 'snapshot.verify',
     kind: 'write',

@@ -22124,6 +22124,45 @@
                           "totalBytes": {
                             "type": "string"
                           },
+                          "timestamp": {
+                            "type": "object",
+                            "properties": {
+                              "witnessed": {
+                                "type": "boolean"
+                              },
+                              "authority": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "at": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "serialNumber": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "reason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "witnessed",
+                              "authority",
+                              "at",
+                              "serialNumber",
+                              "reason"
+                            ]
+                          },
                           "verifiedAt": {
                             "type": [
                               "string",
@@ -22191,6 +22230,7 @@
                           "documentCount",
                           "deletedDocumentCount",
                           "totalBytes",
+                          "timestamp",
                           "verifiedAt",
                           "verifiedOk",
                           "drift"
@@ -22277,6 +22317,64 @@
                     },
                     "manifestSha256": {
                       "type": "string"
+                    },
+                    "timestamp": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "witnessed": {
+                              "const": true
+                            },
+                            "authority": {
+                              "type": "string"
+                            },
+                            "at": {
+                              "type": "string"
+                            },
+                            "serialNumber": {
+                              "type": "string"
+                            },
+                            "reason": {
+                              "type": "null"
+                            }
+                          },
+                          "required": [
+                            "witnessed",
+                            "authority",
+                            "at",
+                            "serialNumber",
+                            "reason"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "witnessed": {
+                              "const": false
+                            },
+                            "authority": {
+                              "type": "null"
+                            },
+                            "at": {
+                              "type": "null"
+                            },
+                            "serialNumber": {
+                              "type": "null"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "witnessed",
+                            "authority",
+                            "at",
+                            "serialNumber",
+                            "reason"
+                          ]
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -22291,7 +22389,8 @@
                     "deletedDocumentCount",
                     "totalBytes",
                     "auditFileSha256",
-                    "manifestSha256"
+                    "manifestSha256",
+                    "timestamp"
                   ]
                 }
               }
@@ -22345,6 +22444,64 @@
                     },
                     "manifestSha256": {
                       "type": "string"
+                    },
+                    "timestamp": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "witnessed": {
+                              "const": true
+                            },
+                            "authority": {
+                              "type": "string"
+                            },
+                            "at": {
+                              "type": "string"
+                            },
+                            "serialNumber": {
+                              "type": "string"
+                            },
+                            "reason": {
+                              "type": "null"
+                            }
+                          },
+                          "required": [
+                            "witnessed",
+                            "authority",
+                            "at",
+                            "serialNumber",
+                            "reason"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "witnessed": {
+                              "const": false
+                            },
+                            "authority": {
+                              "type": "null"
+                            },
+                            "at": {
+                              "type": "null"
+                            },
+                            "serialNumber": {
+                              "type": "null"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "witnessed",
+                            "authority",
+                            "at",
+                            "serialNumber",
+                            "reason"
+                          ]
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -22359,7 +22516,8 @@
                     "deletedDocumentCount",
                     "totalBytes",
                     "auditFileSha256",
-                    "manifestSha256"
+                    "manifestSha256",
+                    "timestamp"
                   ]
                 }
               }
@@ -22467,6 +22625,56 @@
         ]
       }
     },
+    "/api/v1/snapshots/{snapshotId}/timestamp": {
+      "get": {
+        "operationId": "snapshot.getTimestamp",
+        "summary": "The timestamp authority's own reply about this seal, as it arrived — the file `openssl ts -verify` takes.",
+        "tags": [
+          "snapshot"
+        ],
+        "x-klopt-permission": "ledger:export",
+        "x-klopt-kind": "read",
+        "x-klopt-agent-exposure": "read",
+        "responses": {
+          "200": {
+            "description": "The request succeeded.",
+            "content": {
+              "application/timestamp-reply": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "snapshotId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/v1/snapshots/{snapshotId}/verifications": {
       "post": {
         "operationId": "snapshot.verify",
@@ -22500,6 +22708,45 @@
                     "chainVerified": {
                       "type": "boolean"
                     },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "witnessed": {
+                          "type": "boolean"
+                        },
+                        "ok": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "authority": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "witnessed",
+                        "ok",
+                        "authority",
+                        "at",
+                        "reason"
+                      ]
+                    },
                     "drift": {
                       "type": "array",
                       "items": {
@@ -22539,6 +22786,7 @@
                     "verified",
                     "auditFileChecked",
                     "chainVerified",
+                    "timestamp",
                     "drift"
                   ]
                 }
@@ -22567,6 +22815,45 @@
                     "chainVerified": {
                       "type": "boolean"
                     },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "witnessed": {
+                          "type": "boolean"
+                        },
+                        "ok": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "authority": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "witnessed",
+                        "ok",
+                        "authority",
+                        "at",
+                        "reason"
+                      ]
+                    },
                     "drift": {
                       "type": "array",
                       "items": {
@@ -22606,6 +22893,7 @@
                     "verified",
                     "auditFileChecked",
                     "chainVerified",
+                    "timestamp",
                     "drift"
                   ]
                 }
@@ -24109,9 +24397,9 @@
                                 "properties": {
                                   "outcome": {
                                     "enum": [
+                                      "unavailable",
                                       "valid",
-                                      "invalid",
-                                      "unavailable"
+                                      "invalid"
                                     ]
                                   },
                                   "checkedAt": {
@@ -24429,9 +24717,9 @@
                           },
                           "outcome": {
                             "enum": [
+                              "unavailable",
                               "valid",
-                              "invalid",
-                              "unavailable"
+                              "invalid"
                             ]
                           },
                           "name": {
@@ -24525,9 +24813,9 @@
                           },
                           "outcome": {
                             "enum": [
+                              "unavailable",
                               "valid",
-                              "invalid",
-                              "unavailable"
+                              "invalid"
                             ]
                           },
                           "name": {

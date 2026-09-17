@@ -272,6 +272,20 @@ export const sealedSnapshots = klopt.table(
     deletedDocumentCount: integer('deleted_document_count').notNull(),
     totalBytes: bigint('total_bytes', { mode: 'bigint' }).notNull(),
 
+    /**
+     * What somebody outside said about this seal (spec 7.6, ADR 0058).
+     *
+     * `timestamp_token` is the authority's whole reply, base64 — the file
+     * `openssl ts -verify` takes, so the evidence can be checked without us.
+     * `timestamp_reason` is filled instead when there is no witness, because
+     * "none" and "we did not ask" are different facts.
+     */
+    timestampAuthority: text('timestamp_authority'),
+    timestampToken: text('timestamp_token'),
+    timestampAt: timestamp('timestamp_at', { withTimezone: true }),
+    timestampSerial: text('timestamp_serial'),
+    timestampReason: text('timestamp_reason'),
+
     verifiedAt: timestamp('verified_at', { withTimezone: true }),
     verifiedOk: boolean('verified_ok'),
     drift: jsonb('drift'),

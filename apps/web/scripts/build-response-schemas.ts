@@ -60,6 +60,7 @@ export const BINARY_RESPONSES: Readonly<Record<string, string>> = {
   'sales.getInvoiceUbl': 'application/xml',
   'sales.getInvoicePdf': 'application/pdf',
   'snapshot.getManifest': 'application/json',
+  'snapshot.getTimestamp': 'application/timestamp-reply',
   'vat.getFiledInstance': 'application/xml',
 }
 
