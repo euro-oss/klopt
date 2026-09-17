@@ -16,15 +16,14 @@
  * discovery (RFC 8414, RFC 9728) is how an agent finds the authorisation
  * server, and an agent is exactly who is left when the UI is gone.
  *
- * ## What this does not claim
+ * ## It has to be first, which took a plugin
  *
- * Nitro composes its own public-asset middleware ahead of this one, so the few
- * hundred paths in the client manifest never reach here. In the full image
- * they are served, which is right. In the headless image the files are absent
- * and the read fails, so a request for one gets a 500 and a stack trace rather
- * than the refusal below — reachable only by someone holding an asset URL
- * taken from a different instance, since nothing headless ever emits one.
- * ADR 0042 records why that is left alone.
+ * This is installed by `src/server-plugins/headless.ts`, not by
+ * `nitro({ handlers })`. Configured middleware is not first: Nitro unshifts
+ * its own public-asset handler ahead of all of it, so the few hundred paths in
+ * the client manifest were answered before this ran — a 500 in the headless
+ * image, where those files are absent (ADR 0056). A gate that most requests
+ * reach is not a gate.
  *
  * The server *bundle* still contains the SSR code for routes nothing can now
  * reach. Excluding them at build time needs the route generator's

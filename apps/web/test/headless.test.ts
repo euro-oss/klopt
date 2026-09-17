@@ -1,5 +1,7 @@
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import headless, { isHeadless, servesPath } from '../src/server-middleware/headless.js'
+import headlessFirst from '../src/server-plugins/headless.js'
 
 /**
  * Spec 10.1's headless mode, at the level the middleware decides it.
@@ -95,5 +97,45 @@ describe('the middleware', () => {
     } finally {
       delete process.env['KLOPT_HEADLESS']
     }
+  })
+})
+
+describe('the gate is in front of everything', () => {
+  it('goes to the head of the chain, not the end of it', () => {
+    /**
+     * Registered as configured middleware this was *second*: Nitro unshifts
+     * its public-asset handler ahead of all of it, so a path in the client
+     * manifest never reached the gate. In the headless image those files are
+     * absent, so that was a 500 with a stack trace where a 404 was meant.
+     */
+    const nitroStatic = () => undefined
+    const app = { h3: { '~middleware': [nitroStatic] as unknown[] } }
+
+    headlessFirst(app)
+
+    expect(app.h3['~middleware'][0]).toBe(headless)
+    expect(app.h3['~middleware'][1]).toBe(nitroStatic)
+  })
+
+  it('is what the built server actually does', () => {
+    /**
+     * The unit test above proves the plugin unshifts. This proves Nitro runs
+     * it — which is the part no amount of reasoning about the config settles,
+     * because "global middleware" sounds like it means first and does not.
+     *
+     * A build product, like `routeTree.gen.ts`: `pnpm run verify` builds
+     * before it tests.
+     */
+    const bundle = new URL('../.output/server/index.mjs', import.meta.url)
+    expect(
+      existsSync(bundle),
+      'Build apps/web first: this reads the server bundle Nitro generated.',
+    ).toBe(true)
+
+    const source = readFileSync(bundle, 'utf8')
+    expect(source).toContain(`app.h3["~middleware"].unshift(headless)`)
+    // And the gate is no longer in the configured list, where it was behind
+    // the static handler.
+    expect(source).toMatch(/var globalMiddleware = \[toEventHandler\(static_default\)\]/)
   })
 })

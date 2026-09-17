@@ -12,25 +12,16 @@ export default defineConfig({
     tanstackStart({ srcDirectory: 'src' }),
     viteReact(),
     /**
-     * The headless gate (spec 10.1), as Nitro middleware because a route-level
-     * check would only ever see the routes this build happens to have.
+     * The headless gate (spec 10.1), as a Nitro *plugin* rather than a
+     * configured middleware.
      *
-     * Not quite every request, though. Nitro composes its own public-asset
-     * middleware ahead of ours, so a request for a path the asset manifest
-     * knows is answered before this runs — which in the headless image, where
-     * the files are absent, is an ENOENT rather than a refusal. ADR 0042
-     * records why that is a wart worth having rather than one worth fixing
-     * with a private field.
-     *
-     * `route` is there only because `NitroEventHandler` marks it required.
-     * Nitro's own check is `h.middleware || !h.route`, so this stays global
-     * middleware either way — verified by the generated `globalMiddleware`
-     * line being identical with and without it.
+     * Configured middleware is not first: Nitro unshifts its own public-asset
+     * handler ahead of all of it, so a path in the client manifest was
+     * answered before the gate ran — a 500 in the headless image, where those
+     * files are absent. A plugin can reorder the chain after the app is built,
+     * which is the only way to be genuinely in front. See the plugin, and
+     * ADR 0056.
      */
-    nitro({
-      handlers: [
-        { route: '/**', middleware: true, handler: './src/server-middleware/headless.ts' },
-      ],
-    }),
+    nitro({ plugins: ['./src/server-plugins/headless.ts'] }),
   ],
 })
