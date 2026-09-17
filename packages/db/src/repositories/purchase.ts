@@ -5,7 +5,7 @@ import {
   type PurchaseInvoiceInput,
   type TaxCodeRule,
 } from '@klopt/core'
-import { and, asc, desc, eq, inArray, isNotNull, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNotNull, ne, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import { accounts, entities, journalEntries } from '../schema/ledger.js'
 import { contacts, taxCodes } from '../schema/sales.js'
@@ -75,6 +75,8 @@ export interface PurchaseInvoiceRow {
    */
   readonly signedOutstanding: bigint
   readonly journalEntryId: string | null
+  /** For `updatedSince`, maintained by a trigger (migration 0029). */
+  readonly updatedAt: Date
   readonly approvedBy: string | null
   readonly bookedBy: string | null
   readonly disputedReason: string | null
@@ -391,6 +393,8 @@ export class PurchaseRepository {
         tax: purchaseInvoices.taxMinorUnits,
         total: purchaseInvoices.totalMinorUnits,
         journalEntryId: purchaseInvoices.journalEntryId,
+        // What a client passes back as `updatedSince` next time (ADR 0053).
+        updatedAt: purchaseInvoices.updatedAt,
         approvedBy: purchaseInvoices.approvedBy,
         bookedBy: purchaseInvoices.bookedBy,
         disputedReason: purchaseInvoices.disputedReason,
@@ -505,7 +509,11 @@ export class PurchaseRepository {
 
   async list(
     entityId: string,
-    filter: { readonly status?: string; readonly openOnly?: boolean } = {},
+    filter: {
+      readonly status?: string
+      readonly openOnly?: boolean
+      readonly updatedSince?: string | null
+    } = {},
   ): Promise<PurchaseInvoiceRow[]> {
     const rows = await this.tx
       .select({
@@ -520,6 +528,8 @@ export class PurchaseRepository {
         tax: purchaseInvoices.taxMinorUnits,
         total: purchaseInvoices.totalMinorUnits,
         journalEntryId: purchaseInvoices.journalEntryId,
+        // What a client passes back as `updatedSince` next time (ADR 0053).
+        updatedAt: purchaseInvoices.updatedAt,
         approvedBy: purchaseInvoices.approvedBy,
         bookedBy: purchaseInvoices.bookedBy,
         disputedReason: purchaseInvoices.disputedReason,
@@ -538,6 +548,13 @@ export class PurchaseRepository {
                 purchaseInvoices.status,
                 filter.status as 'draft' | 'booked' | 'approved' | 'disputed' | 'cancelled',
               ),
+          // Inclusive, so a client resuming from the newest `updatedAt` it saw
+          // overlaps by a row rather than skipping one.
+          // This table predates the shared `timestamps` builder and declares
+          // its column in date mode, so the ISO string is converted here.
+          filter.updatedSince == null
+            ? undefined
+            : gte(purchaseInvoices.updatedAt, new Date(filter.updatedSince)),
         ),
       )
       .orderBy(desc(purchaseInvoices.invoiceDate), desc(purchaseInvoices.createdAt))

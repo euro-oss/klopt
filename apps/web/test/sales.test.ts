@@ -25,8 +25,10 @@ import { handleGetJournalEntry } from '../src/api/handlers/ledger.js'
 import {
   bookPurchaseInvoiceBody,
   capturePurchaseInvoiceBody,
+  contactsQuery,
   createContactBody,
   draftInvoiceBody,
+  invoicesQuery,
   issueInvoiceBody,
   updateContactBody,
 } from '../src/api/schemas.js'
@@ -116,7 +118,10 @@ describe('contacts', () => {
     const { token } = await newEntity()
     await withCustomer(token)
 
-    const result = await handleListContacts(await context(token), { customersOnly: true })
+    const result = await handleListContacts(
+      await context(token),
+      contactsQuery.parse({ customersOnly: 'true' }),
+    )
     expect(result.body.contacts).toHaveLength(1)
     expect(result.body.contacts[0]?.name).toBe('Klant B.V.')
     expect(result.body.contacts[0]?.paymentTermsDays).toBe(30)
@@ -434,8 +439,14 @@ describe('listing and ageing', () => {
       issueInvoiceBody.parse({}),
     )
 
-    const drafts = await handleListInvoices(await context(token), { status: 'draft', limit: 100 })
-    const issued = await handleListInvoices(await context(token), { status: 'issued', limit: 100 })
+    const drafts = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'draft', limit: '100' }),
+    )
+    const issued = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'issued', limit: '100' }),
+    )
 
     expect(drafts.body.invoices).toHaveLength(1)
     expect(issued.body.invoices).toHaveLength(1)
@@ -628,7 +639,10 @@ describe('correcting a relatie', () => {
       bookPurchaseInvoiceBody.parse({}),
     )
 
-    const contacts = await handleListContacts(await context(token), { customersOnly: false })
+    const contacts = await handleListContacts(
+      await context(token),
+      contactsQuery.parse({ customersOnly: 'false' }),
+    )
     const supplier = contacts.body.contacts.find((row) => row.number === 'CRE-0100')!
 
     await expect(

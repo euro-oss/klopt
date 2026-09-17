@@ -183,9 +183,24 @@ export const closeYearBody = z.object({
   dryRun: z.boolean().default(false),
 })
 
+/**
+ * Incremental sync, on the lists whose rows change in place (ADR 0053).
+ *
+ * A filter, not a subscription. It answers "what has moved since I last
+ * looked" well enough to keep a mirror warm, and `GET /api/v1/events` is the
+ * feed with the ordering guarantee — the two are for different jobs and the
+ * document says which is which.
+ */
+export const updatedSince = z.iso
+  .datetime({ offset: true })
+  .nullable()
+  .default(null)
+  .describe('RFC 3339. Only rows whose updatedAt is at or after this.')
+
 /** Sales (M1). */
 
 export const contactsQuery = z.object({
+  updatedSince,
   customersOnly: z
     .enum(['true', 'false'])
     .default('false')
@@ -271,6 +286,7 @@ export const issueInvoiceBody = z.object({
 })
 
 export const invoicesQuery = z.object({
+  updatedSince,
   status: z.enum(['draft', 'issued', 'cancelled']).nullable().default(null),
   limit: z.coerce.number().int().min(1).max(500).default(100),
 })
@@ -522,6 +538,7 @@ export const importStatementBody = z.object({
 })
 
 export const transactionsQuery = z.object({
+  updatedSince,
   bankAccountId: z.uuid().nullable().default(null),
   status: z.enum(['unmatched', 'matched', 'ignored']).nullable().default(null),
   limit: z.coerce.number().int().min(1).max(1000).default(200),
@@ -619,6 +636,7 @@ export type TransitionBatchBody = z.infer<typeof transitionBatchBody>
  * suite, which could not call the handler without knowing what to pass it.
  */
 export const listPurchaseInvoicesQuery = z.object({
+  updatedSince,
   status: z.enum(PURCHASE_INVOICE_STATUSES).nullable().default(null),
   openOnly: z
     .enum(['true', 'false'])
@@ -654,7 +672,10 @@ export const fileVatReturnBody = z
     path: ['acceptedReason'],
   })
 
+export type ContactsQuery = z.infer<typeof contactsQuery>
+export type InvoicesQuery = z.infer<typeof invoicesQuery>
 export type ListPurchaseInvoicesQuery = z.infer<typeof listPurchaseInvoicesQuery>
+export type TransactionsQuery = z.infer<typeof transactionsQuery>
 export type ListVatPeriodsQuery = z.infer<typeof listVatPeriodsQuery>
 export type FileVatReturnBody = z.infer<typeof fileVatReturnBody>
 

@@ -36,8 +36,10 @@ import { eInvoiceTransport } from '../e-invoice.js'
 import { schematron } from '../schematron.js'
 import { etagOf } from '../etag.js'
 import type {
+  ContactsQuery,
   CreateContactBody,
   DraftInvoiceBody,
+  InvoicesQuery,
   IssueInvoiceBody,
   SendInvoiceBody,
   SendReminderBody,
@@ -95,13 +97,10 @@ function serialisePriced(priced: PricedInvoice) {
   }
 }
 
-export async function handleListContacts(
-  context: RequestContext,
-  query: { readonly customersOnly: boolean },
-) {
+export async function handleListContacts(context: RequestContext, query: ContactsQuery) {
   requirePermission(context, 'ledger:read')
   const rows = await withSalesRead(context.database, (repository) =>
-    repository.listContacts(context.entityId, query.customersOnly),
+    repository.listContacts(context.entityId, query.customersOnly, query.updatedSince),
   )
 
   return {
@@ -118,6 +117,9 @@ export async function handleListContacts(
         countryCode: contact.countryCode,
         paymentTermsDays: contact.paymentTermsDays,
         isBlocked: contact.isBlocked,
+        // RFC 3339, because a client passes this straight back as
+        // `updatedSince` and Postgres's own rendering is not that (ADR 0053).
+        updatedAt: new Date(contact.updatedAt).toISOString(),
       })),
     },
   }
@@ -570,10 +572,7 @@ export async function handleGetInvoice(context: RequestContext, invoiceId: strin
   }
 }
 
-export async function handleListInvoices(
-  context: RequestContext,
-  query: { readonly status: 'draft' | 'issued' | 'cancelled' | null; readonly limit: number },
-) {
+export async function handleListInvoices(context: RequestContext, query: InvoicesQuery) {
   requirePermission(context, 'ledger:read')
 
   const rows = await withSalesRead(context.database, (repository) =>
@@ -581,6 +580,7 @@ export async function handleListInvoices(
       entityId: context.entityId,
       status: query.status,
       limit: query.limit,
+      updatedSince: query.updatedSince,
     }),
   )
 
@@ -590,6 +590,7 @@ export async function handleListInvoices(
       invoices: rows.map((invoice) => ({
         ...invoice,
         total: invoice.total.toString(),
+        updatedAt: new Date(invoice.updatedAt).toISOString(),
       })),
     },
   }

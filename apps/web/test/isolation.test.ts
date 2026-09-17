@@ -79,6 +79,7 @@ import {
   capturePurchaseInvoiceBody,
   createBankAccountBody,
   createBatchBody,
+  contactsQuery,
   createContactBody,
   discardInboxItemBody,
   draftInvoiceBody,
@@ -412,9 +413,9 @@ describe('a list shows one administration only its own rows', () => {
       [
         'contacts',
         async () =>
-          (await handleListContacts(at, { customersOnly: false })).body.contacts.map(
-            (row) => row.number,
-          ),
+          (
+            await handleListContacts(at, contactsQuery.parse({ customersOnly: 'false' }))
+          ).body.contacts.map((row) => row.number),
       ],
       [
         'sales invoices',

@@ -48,6 +48,9 @@ export const listContacts = createServerFn({ method: 'GET' })
         (
           await handleListContacts(await contextFromRequest(), {
             customersOnly: data.customersOnly ?? false,
+            // The screen reads everything; incremental sync is for a client
+            // keeping a mirror, and a page render is not one.
+            updatedSince: null,
           })
         ).body,
     ),
@@ -78,6 +81,7 @@ export const listInvoices = createServerFn({ method: 'GET' })
           await handleListInvoices(await contextFromRequest(), {
             status: data.status ?? null,
             limit: data.limit ?? 100,
+            updatedSince: null,
           })
         ).body,
     ),

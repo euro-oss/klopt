@@ -22,6 +22,7 @@ import { handleCreateBankAccount } from '../src/api/handlers/bank.js'
 import { handleUpdateEntity } from '../src/api/handlers/setup.js'
 import {
   createBankAccountBody,
+  contactsQuery,
   createContactBody,
   draftInvoiceBody,
   issueInvoiceBody,
@@ -82,7 +83,10 @@ async function aCustomer(): Promise<{ number: string; id: string }> {
     }),
   )
 
-  const contacts = await handleListContacts(await contextFor(), { customersOnly: false })
+  const contacts = await handleListContacts(
+    await contextFor(),
+    contactsQuery.parse({ customersOnly: 'false' }),
+  )
   const created = contacts.body.contacts.find((row) => row.number === number)
   if (created === undefined) throw new Error('The contact was not created.')
   return { number, id: created.id }
@@ -229,7 +233,10 @@ describe('erasing a contact', () => {
     expect(erased.body.name).toBe(`Gewist contact ${customer.number}`)
 
     // The address book is gone.
-    const contacts = await handleListContacts(await contextFor(), { customersOnly: false })
+    const contacts = await handleListContacts(
+      await contextFor(),
+      contactsQuery.parse({ customersOnly: 'false' }),
+    )
     const row = contacts.body.contacts.find((entry) => entry.id === customer.id)!
     expect(row.name).toBe(`Gewist contact ${customer.number}`)
     expect(row.email).toBeNull()

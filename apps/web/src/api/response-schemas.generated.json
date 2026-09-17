@@ -681,6 +681,9 @@
                 "amount": {
                   "type": "string"
                 },
+                "updatedAt": {
+                  "type": "string"
+                },
                 "id": {
                   "type": "string"
                 },
@@ -739,6 +742,7 @@
               },
               "required": [
                 "amount",
+                "updatedAt",
                 "id",
                 "bankAccountId",
                 "currency",
@@ -7179,6 +7183,9 @@
             "items": {
               "type": "object",
               "properties": {
+                "updatedAt": {
+                  "type": "string"
+                },
                 "id": {
                   "type": "string"
                 },
@@ -7256,6 +7263,7 @@
                 }
               },
               "required": [
+                "updatedAt",
                 "id",
                 "status",
                 "statusLabel",
@@ -8656,6 +8664,9 @@
                 },
                 "isBlocked": {
                   "type": "boolean"
+                },
+                "updatedAt": {
+                  "type": "string"
                 }
               },
               "required": [
@@ -8668,7 +8679,8 @@
                 "vatNumber",
                 "countryCode",
                 "paymentTermsDays",
-                "isBlocked"
+                "isBlocked",
+                "updatedAt"
               ]
             }
           }
@@ -8782,6 +8794,9 @@
                 "total": {
                   "type": "string"
                 },
+                "updatedAt": {
+                  "type": "string"
+                },
                 "id": {
                   "type": "string"
                 },
@@ -8822,6 +8837,7 @@
               },
               "required": [
                 "total",
+                "updatedAt",
                 "id",
                 "kind",
                 "status",

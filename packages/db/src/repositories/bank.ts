@@ -8,7 +8,7 @@ import {
   type MatchRule,
   type StatementProblem,
 } from '@klopt/core'
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import {
   accounts,
@@ -267,8 +267,12 @@ export class BankRepository {
     readonly bankAccountId: string | null
     readonly status: 'unmatched' | 'matched' | 'ignored' | null
     readonly limit: number
+    readonly updatedSince?: string | null
   }) {
     const conditions = [eq(bankTransactions.entityId, request.entityId)]
+    if (request.updatedSince != null) {
+      conditions.push(gte(bankTransactions.updatedAt, request.updatedSince))
+    }
     if (request.bankAccountId !== null) {
       conditions.push(eq(bankTransactions.bankAccountId, request.bankAccountId))
     }
@@ -289,6 +293,8 @@ export class BankRepository {
         remittanceReference: bankTransactions.remittanceReference,
         status: bankTransactions.status,
         journalEntryId: bankTransactions.journalEntryId,
+        // What a client passes back as `updatedSince` next time (ADR 0053).
+        updatedAt: bankTransactions.updatedAt,
       })
       .from(bankTransactions)
       .where(and(...conditions))

@@ -91,12 +91,16 @@ export async function handleListPurchaseInvoices(
     const rows = await repository.list(context.entityId, {
       ...(query.status === null ? {} : { status: query.status }),
       openOnly: query.openOnly,
+      updatedSince: query.updatedSince,
     })
 
     return {
       status: 200,
       body: {
         invoices: rows.map((row) => ({
+          // RFC 3339, because a client passes this straight back as
+          // `updatedSince` and Postgres's own rendering is not that (ADR 0053).
+          updatedAt: row.updatedAt.toISOString(),
           id: row.id,
           status: row.status,
           statusLabel: purchaseStatusLabel(row.status),

@@ -18,6 +18,7 @@ import {
 } from '../src/api/handlers/sales.js'
 import { handleUpdateEntity } from '../src/api/handlers/setup.js'
 import {
+  contactsQuery,
   createContactBody,
   draftInvoiceBody,
   issueInvoiceBody,
@@ -197,7 +198,10 @@ describe('an administration that has been', () => {
     const first = await handleGetInvoiceUbl(await contextFor(), invoiceId)
     expect(first.xml).toContain('Grote Klant N.V.')
 
-    const contacts = await handleListContacts(await contextFor(), { customersOnly: false })
+    const contacts = await handleListContacts(
+      await contextFor(),
+      contactsQuery.parse({ customersOnly: 'false' }),
+    )
     const customer = contacts.body.contacts.find((row) => row.number === number)!
     await handleUpdateContact(
       await contextFor(uuidv7()),
@@ -223,7 +227,10 @@ describe('an administration that has been', () => {
     const number = await aCustomer()
     const invoiceId = await anIssuedInvoice(number)
 
-    const contacts = await handleListContacts(await contextFor(), { customersOnly: false })
+    const contacts = await handleListContacts(
+      await contextFor(),
+      contactsQuery.parse({ customersOnly: 'false' }),
+    )
     const customer = contacts.body.contacts.find((row) => row.number === number)!
     await handleUpdateContact(
       await contextFor(uuidv7()),

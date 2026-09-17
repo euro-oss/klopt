@@ -305,7 +305,11 @@ export async function handleListBankTransactions(
   return {
     status: 200,
     body: {
-      transactions: rows.map((row) => ({ ...row, amount: row.amount.toString() })),
+      transactions: rows.map((row) => ({
+        ...row,
+        amount: row.amount.toString(),
+        updatedAt: new Date(row.updatedAt).toISOString(),
+      })),
     },
   }
 }

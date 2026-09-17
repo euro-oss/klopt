@@ -11,7 +11,7 @@ import {
   type UblInvoiceSource,
   type VatRounding,
 } from '@klopt/core'
-import { and, asc, desc, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import {
   accounts,
@@ -781,9 +781,15 @@ export class SalesRepository {
     readonly entityId: string
     readonly status: 'draft' | 'issued' | 'cancelled' | null
     readonly limit: number
+    readonly updatedSince?: string | null
   }) {
     const conditions = [eq(salesInvoices.entityId, request.entityId)]
     if (request.status !== null) conditions.push(eq(salesInvoices.status, request.status))
+    // Inclusive: a client resumes from the newest `updatedAt` it saw and
+    // deduplicates by id, which is one row of overlap rather than a gap.
+    if (request.updatedSince != null) {
+      conditions.push(gte(salesInvoices.updatedAt, request.updatedSince))
+    }
 
     return this.tx
       .select({
@@ -797,6 +803,8 @@ export class SalesRepository {
         currency: salesInvoices.currency,
         contactNumber: contacts.number,
         contactName: contacts.name,
+        // What a client passes back as `updatedSince` next time (ADR 0053).
+        updatedAt: salesInvoices.updatedAt,
       })
       .from(salesInvoices)
       .innerJoin(contacts, eq(contacts.id, salesInvoices.contactId))
@@ -867,9 +875,12 @@ export class SalesRepository {
       .filter((row) => row.total > 0n)
   }
 
-  async listContacts(entityId: string, onlyCustomers: boolean) {
+  async listContacts(entityId: string, onlyCustomers: boolean, updatedSince: string | null = null) {
     const conditions = [eq(contacts.entityId, entityId)]
     if (onlyCustomers) conditions.push(eq(contacts.isCustomer, true))
+    // Inclusive: a client resumes from the newest `updatedAt` it saw and
+    // deduplicates by id, which is one row of overlap rather than a gap.
+    if (updatedSince !== null) conditions.push(gte(contacts.updatedAt, updatedSince))
 
     return this.tx
       .select()

@@ -2449,6 +2449,9 @@
                           "amount": {
                             "type": "string"
                           },
+                          "updatedAt": {
+                            "type": "string"
+                          },
                           "id": {
                             "type": "string"
                           },
@@ -2507,6 +2510,7 @@
                         },
                         "required": [
                           "amount",
+                          "updatedAt",
                           "id",
                           "bankAccountId",
                           "currency",
@@ -2544,6 +2548,25 @@
           }
         },
         "parameters": [
+          {
+            "name": "updatedSince",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": null,
+              "description": "RFC 3339. Only rows whose updatedAt is at or after this.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
           {
             "name": "bankAccountId",
             "in": "query",
@@ -3135,6 +3158,9 @@
                           },
                           "isBlocked": {
                             "type": "boolean"
+                          },
+                          "updatedAt": {
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -3147,7 +3173,8 @@
                           "vatNumber",
                           "countryCode",
                           "paymentTermsDays",
-                          "isBlocked"
+                          "isBlocked",
+                          "updatedAt"
                         ]
                       }
                     }
@@ -3173,6 +3200,25 @@
           }
         },
         "parameters": [
+          {
+            "name": "updatedSince",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": null,
+              "description": "RFC 3339. Only rows whose updatedAt is at or after this.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
           {
             "name": "customersOnly",
             "in": "query",
@@ -15042,6 +15088,9 @@
                       "items": {
                         "type": "object",
                         "properties": {
+                          "updatedAt": {
+                            "type": "string"
+                          },
                           "id": {
                             "type": "string"
                           },
@@ -15119,6 +15168,7 @@
                           }
                         },
                         "required": [
+                          "updatedAt",
                           "id",
                           "status",
                           "statusLabel",
@@ -15171,6 +15221,25 @@
           }
         },
         "parameters": [
+          {
+            "name": "updatedSince",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": null,
+              "description": "RFC 3339. Only rows whose updatedAt is at or after this.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
           {
             "name": "status",
             "in": "query",
@@ -16893,7 +16962,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": "2026-09-16",
+              "default": "2026-09-17",
               "$ref": "#/components/schemas/IsoDate"
             }
           }
@@ -17005,7 +17074,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": "2026-09-16",
+              "default": "2026-09-17",
               "$ref": "#/components/schemas/IsoDate"
             }
           }
@@ -18549,6 +18618,9 @@
                           "total": {
                             "type": "string"
                           },
+                          "updatedAt": {
+                            "type": "string"
+                          },
                           "id": {
                             "type": "string"
                           },
@@ -18589,6 +18661,7 @@
                         },
                         "required": [
                           "total",
+                          "updatedAt",
                           "id",
                           "kind",
                           "status",
@@ -18623,6 +18696,25 @@
           }
         },
         "parameters": [
+          {
+            "name": "updatedSince",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": null,
+              "description": "RFC 3339. Only rows whose updatedAt is at or after this.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
           {
             "name": "status",
             "in": "query",
@@ -20019,7 +20111,7 @@
                     ]
                   },
                   "asOf": {
-                    "default": "2026-09-16",
+                    "default": "2026-09-17",
                     "$ref": "#/components/schemas/IsoDate"
                   }
                 }
