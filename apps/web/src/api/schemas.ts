@@ -110,6 +110,22 @@ export const postJournalEntryBody = z.object({
   dryRun: z.boolean().default(false),
 })
 
+/**
+ * Import-shaped posting (spec 10.2, ADR 0054).
+ *
+ * > Bulk endpoints for import-shaped work, with per-item results rather than
+ * > all-or-nothing.
+ *
+ * Bounded at 500. An importer with ten thousand entries sends twenty requests
+ * and can see progress; one request that runs for four minutes is one a proxy
+ * kills at three with nothing to show for it.
+ */
+export const postJournalEntriesBody = z.object({
+  entries: z.array(postJournalEntryBody).min(1).max(500),
+  /** Validate every entry and commit none of them. */
+  dryRun: z.boolean().default(false),
+})
+
 export const reverseJournalEntryBody = z.object({
   bookingDate: isoDate,
   description: z.string().nullable().default(null),
@@ -133,6 +149,7 @@ export const listEntriesQuery = z.object({
 })
 
 export type PostJournalEntryBody = z.infer<typeof postJournalEntryBody>
+export type PostJournalEntriesBody = z.infer<typeof postJournalEntriesBody>
 export type ReverseJournalEntryBody = z.infer<typeof reverseJournalEntryBody>
 
 export const statementQuery = z.object({

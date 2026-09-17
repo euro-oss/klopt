@@ -55,6 +55,13 @@ export const routeManifest: readonly RouteBinding[] = [
     request: { body: 'postJournalEntryBody' },
   },
   {
+    operationId: 'ledger.postJournalEntries',
+    method: 'POST',
+    path: '/journal-entries/batch',
+    module: 'api/v1/journal-entries.batch.ts',
+    request: { body: 'postJournalEntriesBody' },
+  },
+  {
     operationId: 'ledger.listJournalEntries',
     method: 'GET',
     path: '/journal-entries',

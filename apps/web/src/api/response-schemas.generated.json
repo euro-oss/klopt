@@ -5056,6 +5056,364 @@
         ]
       }
     },
+    "ledger.postJournalEntries": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dryRun": {
+            "type": "boolean"
+          },
+          "posted": {
+            "type": "number"
+          },
+          "replayed": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "number"
+                },
+                "status": {
+                  "enum": [
+                    "posted",
+                    "replayed",
+                    "failed"
+                  ]
+                },
+                "entry": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "entityId": {
+                          "type": "string"
+                        },
+                        "journalCode": {
+                          "type": "string"
+                        },
+                        "entryNumber": {
+                          "type": "number"
+                        },
+                        "chainSequence": {
+                          "type": "string"
+                        },
+                        "fiscalYear": {
+                          "type": "string"
+                        },
+                        "period": {
+                          "type": "number"
+                        },
+                        "bookingDate": {
+                          "type": "string"
+                        },
+                        "documentDate": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "sourceDocumentRef": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reversesEntryId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "functionalCurrency": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "actor": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "$ref": "#/components/schemas/ActorKind"
+                            },
+                            "id": {
+                              "type": "string"
+                            },
+                            "principalId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id",
+                            "principalId"
+                          ]
+                        },
+                        "previousHash": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "hash": {
+                          "type": "string"
+                        },
+                        "lines": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "lineNumber": {
+                                "type": "number"
+                              },
+                              "accountNumber": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "debit": {
+                                "type": "string"
+                              },
+                              "credit": {
+                                "type": "string"
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "functionalDebit": {
+                                "type": "string"
+                              },
+                              "functionalCredit": {
+                                "type": "string"
+                              },
+                              "exchangeRate": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "exchangeRateSource": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "taxCode": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "taxRole": {
+                                "enum": [
+                                  "base",
+                                  "tax",
+                                  null
+                                ]
+                              },
+                              "taxAmount": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "dimensions": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "value"
+                                  ]
+                                }
+                              },
+                              "subledgerKind": {
+                                "enum": [
+                                  "customer",
+                                  "supplier",
+                                  "asset",
+                                  "project",
+                                  null
+                                ]
+                              },
+                              "subledgerId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "lineNumber",
+                              "accountNumber",
+                              "description",
+                              "debit",
+                              "credit",
+                              "currency",
+                              "functionalDebit",
+                              "functionalCredit",
+                              "exchangeRate",
+                              "exchangeRateSource",
+                              "taxCode",
+                              "taxRole",
+                              "taxAmount",
+                              "dimensions",
+                              "subledgerKind",
+                              "subledgerId"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "entityId",
+                        "journalCode",
+                        "entryNumber",
+                        "chainSequence",
+                        "fiscalYear",
+                        "period",
+                        "bookingDate",
+                        "documentDate",
+                        "description",
+                        "sourceDocumentRef",
+                        "reversesEntryId",
+                        "functionalCurrency",
+                        "createdAt",
+                        "actor",
+                        "previousHash",
+                        "hash",
+                        "lines"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "problem": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "detail": {
+                          "type": "string"
+                        },
+                        "requestId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "violations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "code": {
+                                "type": "string"
+                              },
+                              "path": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "message": {
+                                "type": "string"
+                              },
+                              "messageKey": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "detail": {
+                                "type": "object",
+                                "properties": {},
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "code",
+                              "path",
+                              "message"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "title",
+                        "status",
+                        "code",
+                        "detail",
+                        "requestId",
+                        "violations"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "index",
+                "status",
+                "entry",
+                "problem"
+              ]
+            }
+          }
+        },
+        "required": [
+          "dryRun",
+          "posted",
+          "replayed",
+          "failed",
+          "results"
+        ]
+      }
+    },
     "ledger.postJournalEntry": {
       "schema": {
         "type": "object",
@@ -11731,11 +12089,11 @@
     },
     "RunState": {
       "enum": [
+        "failed",
         "done",
         "pending",
         "running",
-        "paused",
-        "failed"
+        "paused"
       ]
     },
     "SnapshotDriftCode": {

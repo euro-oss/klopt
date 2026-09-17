@@ -95,6 +95,7 @@ import { Route as ApiV1FiscalYearsCloseRouteImport } from './routes/api/v1/fisca
 import { Route as ApiV1ImportsAuditFileRouteImport } from './routes/api/v1/imports.audit-file'
 import { Route as ApiV1InboxSourcesRouteImport } from './routes/api/v1/inbox.sources'
 import { Route as ApiV1JournalEntriesEntryIdRouteImport } from './routes/api/v1/journal-entries.$entryId'
+import { Route as ApiV1JournalEntriesBatchRouteImport } from './routes/api/v1/journal-entries.batch'
 import { Route as ApiV1LedgerChainVerificationRouteImport } from './routes/api/v1/ledger.chain-verification'
 import { Route as ApiV1MembersMemberIdRouteImport } from './routes/api/v1/members.$memberId'
 import { Route as ApiV1OauthClientsClientIdRouteImport } from './routes/api/v1/oauth-clients.$clientId'
@@ -587,6 +588,12 @@ const ApiV1JournalEntriesEntryIdRoute =
     path: '/$entryId',
     getParentRoute: () => ApiV1JournalEntriesRoute,
   } as any)
+const ApiV1JournalEntriesBatchRoute =
+  ApiV1JournalEntriesBatchRouteImport.update({
+    id: '/batch',
+    path: '/batch',
+    getParentRoute: () => ApiV1JournalEntriesRoute,
+  } as any)
 const ApiV1LedgerChainVerificationRoute =
   ApiV1LedgerChainVerificationRouteImport.update({
     id: '/api/v1/ledger/chain-verification',
@@ -985,6 +992,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
   '/api/v1/inbox/sources': typeof ApiV1InboxSourcesRouteWithChildren
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
+  '/api/v1/journal-entries/batch': typeof ApiV1JournalEntriesBatchRoute
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
   '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
@@ -1127,6 +1135,7 @@ export interface FileRoutesByTo {
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
   '/api/v1/inbox/sources': typeof ApiV1InboxSourcesRouteWithChildren
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
+  '/api/v1/journal-entries/batch': typeof ApiV1JournalEntriesBatchRoute
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
   '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
@@ -1271,6 +1280,7 @@ export interface FileRoutesById {
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
   '/api/v1/inbox/sources': typeof ApiV1InboxSourcesRouteWithChildren
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
+  '/api/v1/journal-entries/batch': typeof ApiV1JournalEntriesBatchRoute
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
   '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
@@ -1415,6 +1425,7 @@ export interface FileRouteTypes {
     | '/api/v1/imports/audit-file'
     | '/api/v1/inbox/sources'
     | '/api/v1/journal-entries/$entryId'
+    | '/api/v1/journal-entries/batch'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
     | '/api/v1/oauth-clients/$clientId'
@@ -1557,6 +1568,7 @@ export interface FileRouteTypes {
     | '/api/v1/imports/audit-file'
     | '/api/v1/inbox/sources'
     | '/api/v1/journal-entries/$entryId'
+    | '/api/v1/journal-entries/batch'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
     | '/api/v1/oauth-clients/$clientId'
@@ -1700,6 +1712,7 @@ export interface FileRouteTypes {
     | '/api/v1/imports/audit-file'
     | '/api/v1/inbox/sources'
     | '/api/v1/journal-entries/$entryId'
+    | '/api/v1/journal-entries/batch'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
     | '/api/v1/oauth-clients/$clientId'
@@ -2427,6 +2440,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1JournalEntriesEntryIdRouteImport
       parentRoute: typeof ApiV1JournalEntriesRoute
     }
+    '/api/v1/journal-entries/batch': {
+      id: '/api/v1/journal-entries/batch'
+      path: '/batch'
+      fullPath: '/api/v1/journal-entries/batch'
+      preLoaderRoute: typeof ApiV1JournalEntriesBatchRouteImport
+      parentRoute: typeof ApiV1JournalEntriesRoute
+    }
     '/api/v1/ledger/chain-verification': {
       id: '/api/v1/ledger/chain-verification'
       path: '/api/v1/ledger/chain-verification'
@@ -3045,10 +3065,12 @@ const ApiV1JournalEntriesEntryIdRouteWithChildren =
 
 interface ApiV1JournalEntriesRouteChildren {
   ApiV1JournalEntriesEntryIdRoute: typeof ApiV1JournalEntriesEntryIdRouteWithChildren
+  ApiV1JournalEntriesBatchRoute: typeof ApiV1JournalEntriesBatchRoute
 }
 
 const ApiV1JournalEntriesRouteChildren: ApiV1JournalEntriesRouteChildren = {
   ApiV1JournalEntriesEntryIdRoute: ApiV1JournalEntriesEntryIdRouteWithChildren,
+  ApiV1JournalEntriesBatchRoute: ApiV1JournalEntriesBatchRoute,
 }
 
 const ApiV1JournalEntriesRouteWithChildren =

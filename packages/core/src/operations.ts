@@ -20,6 +20,19 @@ export const ledgerOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  postJournalEntries: defineOperation({
+    id: 'ledger.postJournalEntries',
+    kind: 'write',
+    permission: 'ledger:post',
+    summary:
+      'Post many journal entries, each in its own transaction, with a result per entry. ' +
+      'Supports dry run.',
+    // Same category as posting one. A batch is not a lighter act because it is
+    // larger — it is the same act repeated, and an agent proposes it.
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
   reverseJournalEntry: defineOperation({
     id: 'ledger.reverseJournalEntry',
     kind: 'write',

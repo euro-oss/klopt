@@ -10,8 +10,12 @@ import {
 } from '@klopt/core'
 import { withLedger, withReporting } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
-import { ApiError } from '../errors.js'
-import type { PostJournalEntryBody, ReverseJournalEntryBody } from '../schemas.js'
+import { ApiError, toProblem, type ProblemDocument } from '../errors.js'
+import type {
+  PostJournalEntriesBody,
+  PostJournalEntryBody,
+  ReverseJournalEntryBody,
+} from '../schemas.js'
 
 /**
  * Ledger handlers.
@@ -124,6 +128,99 @@ export async function handlePostJournalEntry(context: RequestContext, body: Post
       entry: serialiseEntry(result.entry),
       replayed: result.replayed,
       dryRun: result.dryRun,
+    },
+  }
+}
+
+/**
+ * Posting many entries, each on its own (spec 10.2, ADR 0054).
+ *
+ * > Bulk endpoints for import-shaped work, with per-item results rather than
+ * > all-or-nothing.
+ *
+ * Per-item is the whole requirement, and it is a statement about transactions
+ * rather than about the response shape. Each entry is posted in its own
+ * transaction, so entry 400 failing its balance check leaves 1 to 399 posted.
+ * The alternative — one transaction for the batch — means an importer with one
+ * bad row out of ten thousand gets nothing, fixes the row, and starts again,
+ * which is how an import becomes an afternoon.
+ *
+ * The response is a 200 with a result per item, not a 207. Multi-Status is for
+ * a body whose parts are separately addressable resources; this is one
+ * resource — the outcome of a batch — and a client reading `results[i]` is
+ * better served than one parsing a status per part.
+ *
+ * ## Idempotency
+ *
+ * Each item derives its key from the batch's, suffixed with its index. A
+ * retried batch therefore replays entry by entry: the ones that posted come
+ * back as `replayed`, and the ones that failed are tried again. Deriving from
+ * the index rather than the content is deliberate — two identical entries in
+ * one batch are two entries, and hashing the content would silently make them
+ * one.
+ */
+export async function handlePostJournalEntries(
+  context: RequestContext,
+  body: PostJournalEntriesBody,
+) {
+  requirePermission(context, 'ledger:post')
+  const idempotencyKey = requireIdempotencyKey(context)
+
+  const results: {
+    index: number
+    status: 'posted' | 'replayed' | 'failed'
+    entry: ReturnType<typeof serialiseEntry> | null
+    problem: ProblemDocument | null
+  }[] = []
+
+  for (const [index, entry] of body.entries.entries()) {
+    try {
+      const result = await withLedger(context.database, (repository) =>
+        postJournalEntry(
+          toCommand(context, entry),
+          context.actor,
+          {
+            dryRun: body.dryRun || entry.dryRun,
+            idempotencyKey: `${idempotencyKey}:${String(index)}`,
+            requestId: context.requestId,
+            ip: context.ip,
+            mayPostToSoftClosedPeriod: mayPostToSoftClosedPeriod(context),
+          },
+          { repository, clock: systemClock },
+        ),
+      )
+
+      results.push({
+        index,
+        status: result.replayed ? 'replayed' : 'posted',
+        entry: serialiseEntry(result.entry),
+        problem: null,
+      })
+    } catch (error: unknown) {
+      // The same problem document the single endpoint would have answered
+      // with, so a client has one error shape to understand rather than two.
+      results.push({
+        index,
+        status: 'failed',
+        entry: null,
+        problem: toProblem(error, context.requestId),
+      })
+    }
+  }
+
+  const failed = results.filter((result) => result.status === 'failed').length
+
+  return {
+    status: 200,
+    body: {
+      dryRun: body.dryRun,
+      // Counted here rather than left to the caller: "did all of it work" is
+      // the first question, and making them reduce an array to answer it is
+      // how a client ends up checking only `results[0]`.
+      posted: results.filter((result) => result.status === 'posted').length,
+      replayed: results.filter((result) => result.status === 'replayed').length,
+      failed,
+      results,
     },
   }
 }
