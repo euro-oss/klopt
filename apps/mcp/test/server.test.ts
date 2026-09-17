@@ -100,10 +100,12 @@ describe('what an agent is allowed to reach for', () => {
       'describe_schema',
       'draft_from_inbox_item',
       'draft_sales_invoice',
+      'explain_number',
       'export_xaf',
       'get_balance',
       'list_open_items',
       'list_pending_approvals',
+      'search',
       'vat_return_preview',
     ])
 
@@ -242,6 +244,145 @@ describe('what comes back with an answer', () => {
   })
 })
 
+describe('turning a word into ids', () => {
+  const SEARCH = {
+    ...CHART,
+    '/search': {
+      query: 'zeewaardig',
+      types: ['contact', 'sales-invoice'],
+      limitPerType: 10,
+      counts: { contact: 1, 'sales-invoice': 1 },
+      truncated: ['sales-invoice'],
+      results: [
+        {
+          type: 'sales-invoice',
+          id: '018f0000-0000-7000-8000-000000000001',
+          title: '2026-0001',
+          subtitle: 'Zeewaardig Advies B.V.',
+          date: '2026-01-20',
+          amountMinorUnits: '121000',
+          currency: 'EUR',
+          path: '/sales-invoices/018f0000-0000-7000-8000-000000000001',
+          rank: 2,
+        },
+        {
+          type: 'contact',
+          id: '018f0000-0000-7000-8000-000000000002',
+          title: 'DEB-0001 Zeewaardig Advies B.V.',
+          subtitle: null,
+          date: null,
+          amountMinorUnits: null,
+          currency: null,
+          path: '/contacts/018f0000-0000-7000-8000-000000000002',
+          rank: 2,
+        },
+      ],
+    },
+  }
+
+  const call = async () => {
+    const client = await connect(api(SEARCH))
+    const result = await client.callTool({
+      name: 'search',
+      arguments: { query: 'zeewaardig' },
+    })
+    return JSON.parse((result.content as { text: string }[])[0]!.text) as {
+      data: { results: { drillDown: string; amount: string | null }[] }
+      truncated?: { more: string }
+    }
+  }
+
+  it('gives every hit a route the agent can follow', async () => {
+    // The tool exists to turn a word into ids the other tools take. A hit with
+    // no drill-down is a title, and answering from titles is the failure the
+    // whole provenance rule is about.
+    const payload = await call()
+
+    for (const hit of payload.data.results) {
+      expect(hit.drillDown).toMatch(/^GET \/api\/v1\/[a-z-]+\/[0-9a-f-]{36}$/)
+    }
+  })
+
+  it('shows money as a decimal, not as minor units', async () => {
+    // €1.210,00, not one hundred and twenty-one thousand euro.
+    const payload = await call()
+    expect(payload.data.results[0]?.amount).toBe('1210.00')
+    expect(payload.data.results[1]?.amount).toBeNull()
+  })
+
+  it('names the resource whose list was cut short', async () => {
+    // An agent that does not know a list was cut reasons about the part it can
+    // see as though it were the whole.
+    const payload = await call()
+    expect(payload.truncated?.more).toContain('sales-invoice')
+  })
+})
+
+describe('citing a number rather than paraphrasing it', () => {
+  const EXPLAIN = {
+    ...CHART,
+    '/explain': {
+      figure: { kind: 'vat-rubriek', label: '1a Leveringen/diensten belast met hoog tarief (vat)' },
+      currency: 'EUR',
+      period: { from: '2026-01-01', to: '2026-03-31', asOf: null },
+      basis: 'journal-lines',
+      amountMinorUnits: '29400',
+      openingMinorUnits: null,
+      explainedMinorUnits: '21000',
+      unexplainedMinorUnits: '8400',
+      ties: false,
+      lineCount: 1,
+      truncated: false,
+      lines: [
+        {
+          ref: 'VRK 1',
+          date: '2026-01-20',
+          accountNumber: '1500',
+          accountName: 'Te betalen btw',
+          description: 'Advies',
+          amountMinorUnits: '21000',
+          entryId: '018f0000-0000-7000-8000-000000000003',
+          path: '/journal-entries/018f0000-0000-7000-8000-000000000003',
+        },
+      ],
+    },
+  }
+
+  it('passes the disagreement through instead of presenting the lines as the answer', async () => {
+    /**
+     * The failure this is about: an agent shown a drill-down that is 84 euro
+     * short reporting it as the explanation. `ties` is the field that stops
+     * that, so it has to survive the trip and it has to be named.
+     */
+    const client = await connect(api(EXPLAIN))
+    const result = await client.callTool({
+      name: 'explain_number',
+      arguments: { figure: 'vat-rubriek', rubriek: '1a', period: '2026-Q1' },
+    })
+
+    const payload = JSON.parse((result.content as { text: string }[])[0]!.text) as {
+      data: {
+        amount: string
+        explained: string
+        unexplained: string
+        ties: boolean
+        lines: { drillDown: string | null }[]
+      }
+      provenance: { period?: { from?: string } }
+    }
+
+    expect(payload.data.ties).toBe(false)
+    expect(payload.data.amount).toBe('294.00')
+    expect(payload.data.explained).toBe('210.00')
+    expect(payload.data.unexplained).toBe('84.00')
+    expect(payload.data.lines[0]?.drillDown).toBe(
+      'GET /api/v1/journal-entries/018f0000-0000-7000-8000-000000000003',
+    )
+    // The period is part of the provenance, not only of the question.
+    expect(payload.provenance.period?.from).toBe('2026-01-01')
+  })
+})
+
 describe('when the API says no', () => {
   it('turns a refusal into something the agent can act on', async () => {
     // A tool that throws tells an agent only that something went wrong. A 403
@@ -264,6 +405,50 @@ describe('when the API says no', () => {
     }
     expect(payload.status).toBe(403)
     expect(payload.hint).toContain('read-only unless deliberately widened')
+  })
+
+  it('names the fields a refused request got wrong', async () => {
+    /**
+     * Found by driving the server over stdio against a real instance: a 422
+     * arrived as "The query string is not valid." and nothing else, which
+     * leaves an agent to guess which of eleven optional parameters the figure
+     * it asked for needed. The API names them; they have to survive the trip.
+     */
+    const fetch = vi.fn(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            code: 'validation_failed',
+            detail: 'The query string is not valid.',
+            violations: [
+              {
+                code: 'invalid_request',
+                path: 'rubriek',
+                message: 'figure=vat-rubriek needs a rubriek, e.g. 1a.',
+              },
+            ],
+          }),
+          { status: 422 },
+        ),
+      ),
+    )
+    const client = await connect(fetch)
+    const result = await client.callTool({
+      name: 'explain_number',
+      arguments: { figure: 'vat-rubriek' },
+    })
+
+    expect(result.isError).toBe(true)
+    const payload = JSON.parse((result.content as { text: string }[])[0]!.text) as {
+      violations?: { path: string; message: string }[]
+    }
+    expect(payload.violations).toEqual([
+      {
+        code: 'invalid_request',
+        path: 'rubriek',
+        message: 'figure=vat-rubriek needs a rubriek, e.g. 1a.',
+      },
+    ])
   })
 
   it('says so plainly when Klopt is not running', async () => {

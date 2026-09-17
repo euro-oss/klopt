@@ -67,6 +67,7 @@ export * from './events/index.js'
 export * from './modules/index.js'
 export * from './retention/index.js'
 export * from './snapshot/index.js'
+export * from './discovery.js'
 export * from './exact/index.js'
 export * from './oauth/index.js'
 export * from './sales/index.js'
@@ -75,6 +76,7 @@ export * from './vat/index.js'
 export {
   bankingOperations,
   complianceOperations,
+  discoveryOperations,
   exactOperations,
   inboxOperations,
   ledgerOperations,

@@ -918,6 +918,336 @@
         ]
       }
     },
+    "discovery.explainNumber": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "figure": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "vat-rubriek",
+                  "account",
+                  "ageing-bucket"
+                ]
+              },
+              "label": {
+                "type": "string"
+              },
+              "rubriek": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "component": {
+                "enum": [
+                  "base",
+                  "vat",
+                  null
+                ]
+              },
+              "accountNumber": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "fiscalYear": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "side": {
+                "enum": [
+                  "debtor",
+                  "creditor",
+                  null
+                ]
+              },
+              "bucket": {
+                "enum": [
+                  "current",
+                  "upTo30",
+                  "upTo60",
+                  "upTo90",
+                  "over90",
+                  "total",
+                  null
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "label",
+              "rubriek",
+              "component",
+              "accountNumber",
+              "fiscalYear",
+              "side",
+              "bucket"
+            ]
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "period": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "to": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "asOf": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "from",
+              "to",
+              "asOf"
+            ]
+          },
+          "basis": {
+            "enum": [
+              "journal-lines",
+              "open-items",
+              "rubrieken"
+            ]
+          },
+          "amountMinorUnits": {
+            "type": "string"
+          },
+          "openingMinorUnits": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "explainedMinorUnits": {
+            "type": "string"
+          },
+          "unexplainedMinorUnits": {
+            "type": "string"
+          },
+          "ties": {
+            "type": "boolean"
+          },
+          "lineCount": {
+            "type": "number"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ref": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "accountNumber": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "accountName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "description": {
+                  "type": "string"
+                },
+                "amountMinorUnits": {
+                  "type": "string"
+                },
+                "entryId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "path": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "ref",
+                "date",
+                "accountNumber",
+                "accountName",
+                "description",
+                "amountMinorUnits",
+                "entryId",
+                "path"
+              ]
+            }
+          }
+        },
+        "required": [
+          "figure",
+          "entityId",
+          "currency",
+          "period",
+          "basis",
+          "amountMinorUnits",
+          "openingMinorUnits",
+          "explainedMinorUnits",
+          "unexplainedMinorUnits",
+          "ties",
+          "lineCount",
+          "truncated",
+          "lines"
+        ]
+      }
+    },
+    "discovery.search": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "types": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SearchResourceType"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "contact",
+                    "document",
+                    "sales-invoice",
+                    "purchase-invoice",
+                    "journal-entry"
+                  ]
+                }
+              }
+            ]
+          },
+          "limitPerType": {
+            "type": "number"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "$ref": "#/components/schemas/SearchResourceType"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "subtitle": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "date": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "amountMinorUnits": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "currency": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "path": {
+                  "type": "string"
+                },
+                "rank": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "type",
+                "id",
+                "title",
+                "subtitle",
+                "date",
+                "amountMinorUnits",
+                "currency",
+                "path",
+                "rank"
+              ]
+            }
+          },
+          "counts": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "truncated": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchResourceType"
+            }
+          }
+        },
+        "required": [
+          "query",
+          "entityId",
+          "types",
+          "limitPerType",
+          "results",
+          "counts",
+          "truncated"
+        ]
+      }
+    },
     "events.list": {
       "schema": {
         "type": "object",
@@ -12094,6 +12424,15 @@
         "pending",
         "running",
         "paused"
+      ]
+    },
+    "SearchResourceType": {
+      "enum": [
+        "contact",
+        "document",
+        "sales-invoice",
+        "purchase-invoice",
+        "journal-entry"
       ]
     },
     "SnapshotDriftCode": {

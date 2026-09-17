@@ -647,6 +647,20 @@ export const routeManifest: readonly RouteBinding[] = [
     request: { query: 'creditorAgeingQuery' },
   },
   {
+    operationId: 'discovery.search',
+    method: 'GET',
+    path: '/search',
+    module: 'api/v1/search.ts',
+    request: { query: 'searchQuery' },
+  },
+  {
+    operationId: 'discovery.explainNumber',
+    method: 'GET',
+    path: '/explain',
+    module: 'api/v1/explain.ts',
+    request: { query: 'explainQuery' },
+  },
+  {
     operationId: 'inbox.receiveDocument',
     method: 'POST',
     path: '/inbox',

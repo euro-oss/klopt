@@ -841,7 +841,20 @@ export class SalesRepository {
       .as('allocated')
   }
 
+  /** Issued, uncredited, not yet paid off. What the debtors ledger holds. */
   async overdueInvoices(entityId: string, asOf: string) {
+    return this.openInvoices(entityId, asOf)
+  }
+
+  /**
+   * The same query with the due date left open.
+   *
+   * `explain` has to account for a debtor ageing bucket, and the first of the
+   * five is the invoices that are *not* yet due. Filtering them out in SQL and
+   * then bucketing what is left would leave that bucket permanently empty and
+   * the total short by exactly it.
+   */
+  async openInvoices(entityId: string, dueOnOrBefore: string | null) {
     const allocated = this.allocatedPerInvoice(entityId)
 
     const rows = await this.tx
@@ -863,7 +876,7 @@ export class SalesRepository {
           eq(salesInvoices.entityId, entityId),
           eq(salesInvoices.status, 'issued'),
           eq(salesInvoices.kind, 'invoice'),
-          lte(salesInvoices.dueDate, asOf),
+          dueOnOrBefore === null ? undefined : lte(salesInvoices.dueDate, dueOnOrBefore),
           isNull(salesInvoices.creditsInvoiceId),
         ),
       )

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PURCHASE_INVOICE_STATUSES } from '@klopt/core'
+import { PURCHASE_INVOICE_STATUSES, SEARCH_RESOURCE_TYPES } from '@klopt/core'
 
 /**
  * One schema per concept, three consumers: the REST routes, the server
@@ -1166,3 +1166,111 @@ export const issueTokenBody = z.object({
 })
 
 export type IssueTokenBody = z.infer<typeof issueTokenBody>
+
+/**
+ * Search and explain (spec 10.3).
+ *
+ * Both are reads, so both take a query string rather than a body: an agent can
+ * hold on to the URL, and a bookkeeper can paste it into a browser.
+ */
+
+export const searchQuery = z.object({
+  /**
+   * Two characters, not one.
+   *
+   * A single letter matches most of an administration, and the answer to
+   * "which of these four thousand rows did you mean" is not a search result.
+   */
+  q: z.string().trim().min(2, 'Search for at least two characters.').max(120),
+  /**
+   * Which resources to look in, comma-separated. Empty means all five.
+   *
+   * A named list rather than a free filter: the MCP safety model rests on
+   * there being no generic query tool, and a widening parameter would be one.
+   */
+  types: z
+    .string()
+    .trim()
+    .default('')
+    .transform((value) => value.split(',').filter((part) => part !== ''))
+    .pipe(z.array(z.enum(SEARCH_RESOURCE_TYPES)).max(SEARCH_RESOURCE_TYPES.length)),
+  /** Per type, so one noisy resource cannot crowd out the other four. */
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+})
+
+export type SearchQuery = z.infer<typeof searchQuery>
+
+/**
+ * Explaining a reported figure (spec 10.3).
+ *
+ * > Given a reported figure (a rubriek, a P&L line, an aged total), return the
+ * > journal lines that produced it.
+ *
+ * One flat query rather than a discriminated union, because this is a query
+ * string: `figure` names which of the other fields are required and the refine
+ * below says so in a sentence rather than leaving a caller to guess from a
+ * missing-field error on a field they had no reason to send.
+ */
+export const explainQuery = z
+  .object({
+    figure: z.enum(['vat-rubriek', 'account', 'ageing-bucket']),
+
+    /** vat-rubriek */
+    rubriek: z.string().trim().min(1).max(4).nullable().default(null),
+    period: z.string().trim().min(4).max(10).nullable().default(null),
+    /** Which of the box's two figures. A rubriek carries a base and its VAT. */
+    component: z.enum(['vat', 'base']).default('vat'),
+
+    /** account */
+    accountNumber: z.string().trim().min(1).max(20).nullable().default(null),
+    fiscalYear: z.string().trim().min(1).max(10).nullable().default(null),
+    fromPeriod: z.coerce.number().int().min(1).max(13).default(1),
+    toPeriod: z.coerce.number().int().min(1).max(13).default(13),
+    currency: currencyCode.default('EUR'),
+
+    /** ageing-bucket */
+    side: z.enum(['debtor', 'creditor']).nullable().default(null),
+    bucket: z
+      .enum(['current', 'upTo30', 'upTo60', 'upTo90', 'over90', 'total'])
+      .nullable()
+      .default(null),
+    asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+
+    /** Token discipline: never dump a ledger into a context window. */
+    limit: z.coerce.number().int().min(1).max(1000).default(200),
+  })
+  .superRefine((query, context) => {
+    // Not `require`: dependency-cruiser reads `require('rubriek')` as an
+    // import of a package called rubriek, and fails the boundary check.
+    const mustHave = (field: keyof typeof query, needed: string) => {
+      if (query[field] === null) {
+        context.addIssue({
+          code: 'custom',
+          path: [field],
+          message: `figure=${query.figure} needs ${needed}.`,
+        })
+      }
+    }
+
+    if (query.figure === 'vat-rubriek') {
+      mustHave('rubriek', 'a rubriek, e.g. 1a')
+      mustHave('period', 'a period, e.g. 2026-Q1')
+    }
+    if (query.figure === 'account') {
+      mustHave('accountNumber', 'an account number')
+      mustHave('fiscalYear', 'a fiscal year')
+      if (query.toPeriod < query.fromPeriod) {
+        context.addIssue({
+          code: 'custom',
+          path: ['toPeriod'],
+          message: 'The range ends before it begins.',
+        })
+      }
+    }
+    if (query.figure === 'ageing-bucket') {
+      mustHave('side', 'a side: debtor or creditor')
+      mustHave('bucket', 'a bucket, e.g. over90 or total')
+    }
+  })
+
+export type ExplainQuery = z.infer<typeof explainQuery>

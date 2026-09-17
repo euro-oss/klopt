@@ -1280,3 +1280,38 @@ export const exactOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 }
+
+/**
+ * The two questions that are not about one resource (spec 10.3).
+ *
+ * `search` and `explainNumber` are the tools the spec names and the MCP server
+ * refused to fake. Both live here rather than in one module's group because
+ * neither belongs to a module: search crosses five tables and an explanation
+ * starts from a reported figure rather than from a row.
+ *
+ * They are REST operations first and MCP tools second, which is the
+ * architectural rule of 10.3 — "the MCP server is a client of the public API,
+ * not a privileged path". A capability an agent has and a script cannot get is
+ * exactly the second path that rule forbids.
+ */
+export const discoveryOperations: Readonly<Record<string, OperationDefinition>> = {
+  search: defineOperation({
+    id: 'discovery.search',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary:
+      'One substring search across contacts, sales invoices, purchase invoices, journal entries and documents, ranked, each result carrying the path to read it in full.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  explainNumber: defineOperation({
+    id: 'discovery.explainNumber',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary:
+      'Given a reported figure — a BTW-rubriek, an account line on a statement, an ageing bucket — the lines behind it, and whether they add up to it.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+}

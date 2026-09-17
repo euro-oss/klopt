@@ -15,12 +15,28 @@ import { randomUUID } from 'node:crypto'
  * a script would call.
  */
 
+/** One rule the request broke, as RFC 9457's problem document carries it. */
+export interface Violation {
+  readonly code: string | null
+  readonly path: string | null
+  readonly message: string
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
     readonly code: string | null,
     readonly path: string,
+    /**
+     * Which fields, and why.
+     *
+     * A 422 whose body says only "the query string is not valid" leaves an
+     * agent guessing at a field it had no reason to send. The API already
+     * names them; dropping them here is the difference between one retry and
+     * several.
+     */
+    readonly violations: readonly Violation[] = [],
   ) {
     super(message)
     this.name = 'ApiError'
@@ -41,6 +57,23 @@ interface Problem {
   readonly code?: unknown
   readonly detail?: unknown
   readonly title?: unknown
+  readonly violations?: unknown
+}
+
+function readViolations(value: unknown): readonly Violation[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry: unknown) => {
+    if (typeof entry !== 'object' || entry === null) return []
+    const row = entry as Record<string, unknown>
+    if (typeof row['message'] !== 'string') return []
+    return [
+      {
+        code: typeof row['code'] === 'string' ? row['code'] : null,
+        path: typeof row['path'] === 'string' ? row['path'] : null,
+        message: row['message'],
+      },
+    ]
+  })
 }
 
 export class ApiClient {
@@ -139,7 +172,7 @@ export class ApiClient {
       }
       const detail = typeof problem.detail === 'string' ? problem.detail : text.slice(0, 300)
       const code = typeof problem.code === 'string' ? problem.code : null
-      throw new ApiError(detail, response.status, code, path)
+      throw new ApiError(detail, response.status, code, path, readViolations(problem.violations))
     }
 
     return text

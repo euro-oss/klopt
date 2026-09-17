@@ -15,6 +15,7 @@ import { RetentionRepository } from './repositories/retention.js'
 import { SnapshotRepository } from './repositories/snapshots.js'
 import { PurchaseRepository } from './repositories/purchase.js'
 import { SalesRepository } from './repositories/sales.js'
+import { SearchRepository } from './repositories/search.js'
 import { SetupRepository } from './repositories/setup.js'
 import { VatRepository } from './repositories/vat.js'
 import { XafExportRepository } from './repositories/xaf.js'
@@ -44,6 +45,24 @@ export async function withReporting<T>(
   work: (repository: ReportingRepository) => Promise<T>,
 ): Promise<T> {
   return database.transaction(async (tx) => work(new ReportingRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
+  })
+}
+
+/**
+ * Search, in a snapshot.
+ *
+ * Five queries across five tables, and the answer is one ranked list. Without
+ * a snapshot an invoice issued mid-search could appear under its draft title
+ * from one query and its number from another, which is a confusing way to be
+ * told the same thing twice.
+ */
+export async function withSearch<T>(
+  database: Database,
+  work: (repository: SearchRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new SearchRepository(tx)), {
     accessMode: 'read only',
     isolationLevel: 'repeatable read',
   })

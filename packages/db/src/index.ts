@@ -45,6 +45,12 @@ export {
   type RegisteredClientRow,
 } from './repositories/oauth.js'
 export { XafExportRepository, type XafExportRequest } from './repositories/xaf.js'
+export {
+  SearchRepository,
+  type SearchHit,
+  type SearchQuery,
+  type SearchResult,
+} from './repositories/search.js'
 export { RgsRepository } from './repositories/rgs.js'
 export { type InboxItemRow, InboxRepository } from './repositories/inbox.js'
 export { type AuditQuery, type AuditRow, AuditRepository } from './repositories/audit.js'
@@ -140,6 +146,7 @@ export {
 export {
   withLedger,
   withReporting,
+  withSearch,
   withRgs,
   withSales,
   withSalesRead,

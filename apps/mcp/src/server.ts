@@ -6,6 +6,8 @@ import { getBalance, getBalanceInput } from './tools/balance.js'
 import { listOpenItems, listOpenItemsInput } from './tools/open-items.js'
 import { vatReturnPreview, vatReturnPreviewInput } from './tools/vat.js'
 import { listPendingApprovals, listPendingApprovalsInput } from './tools/approvals.js'
+import { explainNumber, explainNumberInput } from './tools/explain.js'
+import { search, searchInput } from './tools/search.js'
 import { exportXaf, exportXafInput } from './tools/export.js'
 import {
   capturePurchaseInvoice,
@@ -24,7 +26,7 @@ import {
  * ## Read is broad, write is narrow
  *
  * "Never expose a generic query or SQL tool. Every write tool is a named domain
- * operation with a typed argument set." Six read tools, each one a named
+ * operation with a typed argument set." Eight read tools, each one a named
  * question a bookkeeper actually asks, and four write tools, each one a named
  * thing an agent may propose. There is no `query`, no `sql`, no `call_endpoint`
  * escape hatch, and adding one later would undo the entire safety model in a
@@ -44,17 +46,16 @@ import {
  * do the whole thing, and then the proposal model is a description of a habit
  * rather than a property of the system.
  *
- * ## Two tools the spec names and this does not have
+ * ## The two that took a REST route first
  *
- * `search` and `explain_number` are missing on purpose. Both need REST
- * endpoints that do not exist yet — there is no cross-entity search, and no
- * route that takes a reported figure and returns the lines behind it.
- *
- * The tempting shortcut is to build them *here*, fanning out across list
- * endpoints and filtering in this process. That would break the rule this
- * server exists under: "the MCP server is a client of the public API, not a
+ * `search` and `explain_number` are the tools the spec names that this server
+ * went without the longest, because neither had an endpoint. The tempting
+ * shortcut was to build them *here*, fanning out across list endpoints and
+ * filtering in this process — which would have broken the rule this server
+ * exists under: "the MCP server is a client of the public API, not a
  * privileged path". A capability an agent has and a script cannot get is
- * exactly the second path the rule forbids. They arrive when the endpoints do.
+ * exactly the second path the rule forbids. So `GET /api/v1/search` and
+ * `GET /api/v1/explain` were built first, and these two are thin over them.
  */
 
 export interface ServerOptions {
@@ -89,6 +90,9 @@ function failure(error: unknown) {
               status: error.status,
               code: error.code,
               path: error.path,
+              // Which fields, and why. "The query string is not valid" on its
+              // own is a sentence an agent can only respond to by guessing.
+              violations: error.violations.length === 0 ? undefined : error.violations,
               hint:
                 error.status === 401 || error.status === 403
                   ? 'The token is missing a permission this tool needs. Tokens are read-only unless deliberately widened.'
@@ -167,6 +171,17 @@ export function createServer(options: ServerOptions): McpServer {
   )
 
   server.registerTool(
+    'search',
+    {
+      description:
+        'Find contacts, sales invoices, purchase invoices, journal entries and documents by a word or a number. Returns ids and a drill-down route for each hit. Use this when you have a name or a reference rather than an id; do not answer from the titles it returns.',
+      inputSchema: searchInput.shape,
+      annotations: readOnly,
+    },
+    guard((args) => search(context, args)),
+  )
+
+  server.registerTool(
     'get_balance',
     {
       description:
@@ -175,6 +190,17 @@ export function createServer(options: ServerOptions): McpServer {
       annotations: readOnly,
     },
     guard((args) => getBalance(context, args)),
+  )
+
+  server.registerTool(
+    'explain_number',
+    {
+      description:
+        'The lines behind a reported figure — a BTW-rubriek, an account line on a statement, an ageing bucket — and whether they add up to it. Read `ties` before quoting anything: false means the evidence does not account for the figure, which is a finding, not a detail.',
+      inputSchema: explainNumberInput.shape,
+      annotations: readOnly,
+    },
+    guard((args) => explainNumber(context, args)),
   )
 
   server.registerTool(

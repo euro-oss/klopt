@@ -18,6 +18,9 @@
       "name": "bank"
     },
     {
+      "name": "discovery"
+    },
+    {
       "name": "events"
     },
     {
@@ -520,6 +523,15 @@
           "pending",
           "running",
           "paused"
+        ]
+      },
+      "SearchResourceType": {
+        "enum": [
+          "contact",
+          "document",
+          "sales-invoice",
+          "purchase-invoice",
+          "journal-entry"
         ]
       },
       "SnapshotDriftCode": {
@@ -7563,6 +7575,444 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/explain": {
+      "get": {
+        "operationId": "discovery.explainNumber",
+        "summary": "Given a reported figure — a BTW-rubriek, an account line on a statement, an ageing bucket — the lines behind it, and whether they add up to it.",
+        "tags": [
+          "discovery"
+        ],
+        "x-klopt-permission": "ledger:read",
+        "x-klopt-kind": "read",
+        "x-klopt-agent-exposure": "read",
+        "responses": {
+          "200": {
+            "description": "The request succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "figure": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "vat-rubriek",
+                            "account",
+                            "ageing-bucket"
+                          ]
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "rubriek": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "component": {
+                          "enum": [
+                            "base",
+                            "vat",
+                            null
+                          ]
+                        },
+                        "accountNumber": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "fiscalYear": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "side": {
+                          "enum": [
+                            "debtor",
+                            "creditor",
+                            null
+                          ]
+                        },
+                        "bucket": {
+                          "enum": [
+                            "current",
+                            "upTo30",
+                            "upTo60",
+                            "upTo90",
+                            "over90",
+                            "total",
+                            null
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "label",
+                        "rubriek",
+                        "component",
+                        "accountNumber",
+                        "fiscalYear",
+                        "side",
+                        "bucket"
+                      ]
+                    },
+                    "entityId": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "period": {
+                      "type": "object",
+                      "properties": {
+                        "from": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "to": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "asOf": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "from",
+                        "to",
+                        "asOf"
+                      ]
+                    },
+                    "basis": {
+                      "enum": [
+                        "journal-lines",
+                        "open-items",
+                        "rubrieken"
+                      ]
+                    },
+                    "amountMinorUnits": {
+                      "type": "string"
+                    },
+                    "openingMinorUnits": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "explainedMinorUnits": {
+                      "type": "string"
+                    },
+                    "unexplainedMinorUnits": {
+                      "type": "string"
+                    },
+                    "ties": {
+                      "type": "boolean"
+                    },
+                    "lineCount": {
+                      "type": "number"
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ref": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "accountNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "accountName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "amountMinorUnits": {
+                            "type": "string"
+                          },
+                          "entryId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "path": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "ref",
+                          "date",
+                          "accountNumber",
+                          "accountName",
+                          "description",
+                          "amountMinorUnits",
+                          "entryId",
+                          "path"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "figure",
+                    "entityId",
+                    "currency",
+                    "period",
+                    "basis",
+                    "amountMinorUnits",
+                    "openingMinorUnits",
+                    "explainedMinorUnits",
+                    "unexplainedMinorUnits",
+                    "ties",
+                    "lineCount",
+                    "truncated",
+                    "lines"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "figure",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vat-rubriek",
+                "account",
+                "ageing-bucket"
+              ]
+            }
+          },
+          {
+            "name": "rubriek",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": null,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": null,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 4,
+                  "maxLength": 10
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "component",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "vat",
+              "type": "string",
+              "enum": [
+                "vat",
+                "base"
+              ]
+            }
+          },
+          {
+            "name": "accountNumber",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": null,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 20
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "fiscalYear",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": null,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 10
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "fromPeriod",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 13
+            }
+          },
+          {
+            "name": "toPeriod",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 13,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 13
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "EUR",
+              "$ref": "#/components/schemas/CurrencyCode"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": null,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "debtor",
+                    "creditor"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "bucket",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": null,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "current",
+                    "upTo30",
+                    "upTo60",
+                    "upTo90",
+                    "over90",
+                    "total"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "asOf",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "2026-09-17",
+              "$ref": "#/components/schemas/IsoDate"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
             }
           }
         ]
@@ -21330,6 +21780,187 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "operationId": "discovery.search",
+        "summary": "One substring search across contacts, sales invoices, purchase invoices, journal entries and documents, ranked, each result carrying the path to read it in full.",
+        "tags": [
+          "discovery"
+        ],
+        "x-klopt-permission": "ledger:read",
+        "x-klopt-kind": "read",
+        "x-klopt-agent-exposure": "read",
+        "responses": {
+          "200": {
+            "description": "The request succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "query": {
+                      "type": "string"
+                    },
+                    "entityId": {
+                      "type": "string"
+                    },
+                    "types": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SearchResourceType"
+                          }
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "enum": [
+                              "contact",
+                              "document",
+                              "sales-invoice",
+                              "purchase-invoice",
+                              "journal-entry"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "limitPerType": {
+                      "type": "number"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "$ref": "#/components/schemas/SearchResourceType"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "subtitle": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "date": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "amountMinorUnits": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "rank": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "title",
+                          "subtitle",
+                          "date",
+                          "amountMinorUnits",
+                          "currency",
+                          "path",
+                          "rank"
+                        ]
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    },
+                    "truncated": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SearchResourceType"
+                      }
+                    }
+                  },
+                  "required": [
+                    "query",
+                    "entityId",
+                    "types",
+                    "limitPerType",
+                    "results",
+                    "counts",
+                    "truncated"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 120
+            }
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
             }
           }
         ]

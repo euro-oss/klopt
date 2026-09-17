@@ -155,6 +155,73 @@ export class ReportingRepository {
     )
   }
 
+  /**
+   * Every journal line on one account in one period range.
+   *
+   * The drill-down behind a statement line (spec 10.3's `explain_number`).
+   * This reads the journal rather than `account_period_balances`, on purpose:
+   * the balances table is the maintained tally and this is the thing it is a
+   * tally *of*. An explanation assembled from the same table as the figure it
+   * explains proves nothing — the two have to be able to disagree, which is
+   * exactly what the reconciliation check exists to notice.
+   */
+  async accountLines(query: TrialBalanceQuery & { readonly accountNumber: string }): Promise<
+    readonly {
+      readonly entryId: string
+      readonly entryNumber: string
+      readonly journalCode: string
+      readonly bookingDate: string
+      readonly lineNumber: number
+      readonly description: string
+      readonly signedMinorUnits: bigint
+    }[]
+  > {
+    const rows = await this.tx
+      .select({
+        entryId: journalEntries.id,
+        entryNumber: journalEntries.entryNumber,
+        journalCode: journals.code,
+        bookingDate: journalEntries.bookingDate,
+        lineNumber: journalLines.lineNumber,
+        description: journalLines.description,
+        entryDescription: journalEntries.description,
+        debit: journalLines.debitMinorUnits,
+        credit: journalLines.creditMinorUnits,
+      })
+      .from(journalLines)
+      .innerJoin(journalEntries, eq(journalEntries.id, journalLines.entryId))
+      .innerJoin(accounts, eq(accounts.id, journalLines.accountId))
+      .innerJoin(journals, eq(journals.id, journalEntries.journalId))
+      .innerJoin(periods, eq(periods.id, journalEntries.periodId))
+      .innerJoin(fiscalYears, eq(fiscalYears.id, periods.fiscalYearId))
+      .where(
+        and(
+          eq(journalLines.entityId, query.entityId),
+          eq(accounts.number, query.accountNumber),
+          eq(journalLines.currency, query.currency),
+          eq(fiscalYears.code, query.fiscalYearCode),
+          gte(periods.sequence, query.fromPeriod),
+          lte(periods.sequence, query.toPeriod),
+        ),
+      )
+      .orderBy(
+        asc(journalEntries.bookingDate),
+        asc(journalEntries.entryNumber),
+        asc(journalLines.lineNumber),
+      )
+
+    return rows.map((row) => ({
+      entryId: row.entryId,
+      entryNumber: String(row.entryNumber),
+      journalCode: row.journalCode,
+      bookingDate: row.bookingDate,
+      lineNumber: row.lineNumber,
+      // A line need not have its own description; the entry always has one.
+      description: row.description ?? row.entryDescription,
+      signedMinorUnits: row.debit - row.credit,
+    }))
+  }
+
   async entity(entityId: string) {
     const [row] = await this.tx
       .select({

@@ -62,6 +62,7 @@ import { Route as ApiV1BankTransactionsRouteImport } from './routes/api/v1/bank-
 import { Route as ApiV1ContactsRouteImport } from './routes/api/v1/contacts'
 import { Route as ApiV1EntityRouteImport } from './routes/api/v1/entity'
 import { Route as ApiV1EventsRouteImport } from './routes/api/v1/events'
+import { Route as ApiV1ExplainRouteImport } from './routes/api/v1/explain'
 import { Route as ApiV1FiscalYearsRouteImport } from './routes/api/v1/fiscal-years'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
 import { Route as ApiV1InboxRouteImport } from './routes/api/v1/inbox'
@@ -73,6 +74,7 @@ import { Route as ApiV1PaymentBatchesRouteImport } from './routes/api/v1/payment
 import { Route as ApiV1PurchaseInvoicesRouteImport } from './routes/api/v1/purchase-invoices'
 import { Route as ApiV1RetentionRouteImport } from './routes/api/v1/retention'
 import { Route as ApiV1SalesInvoicesRouteImport } from './routes/api/v1/sales-invoices'
+import { Route as ApiV1SearchRouteImport } from './routes/api/v1/search'
 import { Route as ApiV1SnapshotsRouteImport } from './routes/api/v1/snapshots'
 import { Route as ApiV1TaxCodesRouteImport } from './routes/api/v1/tax-codes'
 import { Route as ApiV1TokensRouteImport } from './routes/api/v1/tokens'
@@ -419,6 +421,11 @@ const ApiV1EventsRoute = ApiV1EventsRouteImport.update({
   path: '/api/v1/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1ExplainRoute = ApiV1ExplainRouteImport.update({
+  id: '/api/v1/explain',
+  path: '/api/v1/explain',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1FiscalYearsRoute = ApiV1FiscalYearsRouteImport.update({
   id: '/api/v1/fiscal-years',
   path: '/api/v1/fiscal-years',
@@ -472,6 +479,11 @@ const ApiV1RetentionRoute = ApiV1RetentionRouteImport.update({
 const ApiV1SalesInvoicesRoute = ApiV1SalesInvoicesRouteImport.update({
   id: '/api/v1/sales-invoices',
   path: '/api/v1/sales-invoices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1SearchRoute = ApiV1SearchRouteImport.update({
+  id: '/api/v1/search',
+  path: '/api/v1/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1SnapshotsRoute = ApiV1SnapshotsRouteImport.update({
@@ -951,6 +963,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/contacts': typeof ApiV1ContactsRouteWithChildren
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/events': typeof ApiV1EventsRoute
+  '/api/v1/explain': typeof ApiV1ExplainRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
@@ -962,6 +975,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
+  '/api/v1/search': typeof ApiV1SearchRoute
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
@@ -1094,6 +1108,7 @@ export interface FileRoutesByTo {
   '/api/v1/contacts': typeof ApiV1ContactsRouteWithChildren
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/events': typeof ApiV1EventsRoute
+  '/api/v1/explain': typeof ApiV1ExplainRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
@@ -1105,6 +1120,7 @@ export interface FileRoutesByTo {
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
+  '/api/v1/search': typeof ApiV1SearchRoute
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
@@ -1239,6 +1255,7 @@ export interface FileRoutesById {
   '/api/v1/contacts': typeof ApiV1ContactsRouteWithChildren
   '/api/v1/entity': typeof ApiV1EntityRoute
   '/api/v1/events': typeof ApiV1EventsRoute
+  '/api/v1/explain': typeof ApiV1ExplainRoute
   '/api/v1/fiscal-years': typeof ApiV1FiscalYearsRouteWithChildren
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/inbox': typeof ApiV1InboxRouteWithChildren
@@ -1250,6 +1267,7 @@ export interface FileRoutesById {
   '/api/v1/purchase-invoices': typeof ApiV1PurchaseInvoicesRouteWithChildren
   '/api/v1/retention': typeof ApiV1RetentionRouteWithChildren
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
+  '/api/v1/search': typeof ApiV1SearchRoute
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
   '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
   '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
@@ -1384,6 +1402,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts'
     | '/api/v1/entity'
     | '/api/v1/events'
+    | '/api/v1/explain'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
     | '/api/v1/inbox'
@@ -1395,6 +1414,7 @@ export interface FileRouteTypes {
     | '/api/v1/purchase-invoices'
     | '/api/v1/retention'
     | '/api/v1/sales-invoices'
+    | '/api/v1/search'
     | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
     | '/api/v1/tokens'
@@ -1527,6 +1547,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts'
     | '/api/v1/entity'
     | '/api/v1/events'
+    | '/api/v1/explain'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
     | '/api/v1/inbox'
@@ -1538,6 +1559,7 @@ export interface FileRouteTypes {
     | '/api/v1/purchase-invoices'
     | '/api/v1/retention'
     | '/api/v1/sales-invoices'
+    | '/api/v1/search'
     | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
     | '/api/v1/tokens'
@@ -1671,6 +1693,7 @@ export interface FileRouteTypes {
     | '/api/v1/contacts'
     | '/api/v1/entity'
     | '/api/v1/events'
+    | '/api/v1/explain'
     | '/api/v1/fiscal-years'
     | '/api/v1/health'
     | '/api/v1/inbox'
@@ -1682,6 +1705,7 @@ export interface FileRouteTypes {
     | '/api/v1/purchase-invoices'
     | '/api/v1/retention'
     | '/api/v1/sales-invoices'
+    | '/api/v1/search'
     | '/api/v1/snapshots'
     | '/api/v1/tax-codes'
     | '/api/v1/tokens'
@@ -1791,6 +1815,7 @@ export interface RootRouteChildren {
   ApiV1ContactsRoute: typeof ApiV1ContactsRouteWithChildren
   ApiV1EntityRoute: typeof ApiV1EntityRoute
   ApiV1EventsRoute: typeof ApiV1EventsRoute
+  ApiV1ExplainRoute: typeof ApiV1ExplainRoute
   ApiV1FiscalYearsRoute: typeof ApiV1FiscalYearsRouteWithChildren
   ApiV1HealthRoute: typeof ApiV1HealthRoute
   ApiV1InboxRoute: typeof ApiV1InboxRouteWithChildren
@@ -1802,6 +1827,7 @@ export interface RootRouteChildren {
   ApiV1PurchaseInvoicesRoute: typeof ApiV1PurchaseInvoicesRouteWithChildren
   ApiV1RetentionRoute: typeof ApiV1RetentionRouteWithChildren
   ApiV1SalesInvoicesRoute: typeof ApiV1SalesInvoicesRouteWithChildren
+  ApiV1SearchRoute: typeof ApiV1SearchRoute
   ApiV1SnapshotsRoute: typeof ApiV1SnapshotsRouteWithChildren
   ApiV1TaxCodesRoute: typeof ApiV1TaxCodesRoute
   ApiV1TokensRoute: typeof ApiV1TokensRouteWithChildren
@@ -2209,6 +2235,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/explain': {
+      id: '/api/v1/explain'
+      path: '/api/v1/explain'
+      fullPath: '/api/v1/explain'
+      preLoaderRoute: typeof ApiV1ExplainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/fiscal-years': {
       id: '/api/v1/fiscal-years'
       path: '/api/v1/fiscal-years'
@@ -2284,6 +2317,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/sales-invoices'
       fullPath: '/api/v1/sales-invoices'
       preLoaderRoute: typeof ApiV1SalesInvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/search': {
+      id: '/api/v1/search'
+      path: '/api/v1/search'
+      fullPath: '/api/v1/search'
+      preLoaderRoute: typeof ApiV1SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/snapshots': {
@@ -3326,6 +3366,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ContactsRoute: ApiV1ContactsRouteWithChildren,
   ApiV1EntityRoute: ApiV1EntityRoute,
   ApiV1EventsRoute: ApiV1EventsRoute,
+  ApiV1ExplainRoute: ApiV1ExplainRoute,
   ApiV1FiscalYearsRoute: ApiV1FiscalYearsRouteWithChildren,
   ApiV1HealthRoute: ApiV1HealthRoute,
   ApiV1InboxRoute: ApiV1InboxRouteWithChildren,
@@ -3337,6 +3378,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1PurchaseInvoicesRoute: ApiV1PurchaseInvoicesRouteWithChildren,
   ApiV1RetentionRoute: ApiV1RetentionRouteWithChildren,
   ApiV1SalesInvoicesRoute: ApiV1SalesInvoicesRouteWithChildren,
+  ApiV1SearchRoute: ApiV1SearchRoute,
   ApiV1SnapshotsRoute: ApiV1SnapshotsRouteWithChildren,
   ApiV1TaxCodesRoute: ApiV1TaxCodesRoute,
   ApiV1TokensRoute: ApiV1TokensRouteWithChildren,

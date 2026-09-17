@@ -312,6 +312,14 @@ describe('every collection read matches its published schema', () => {
     'rgs.previewUpgrade': { toVersion: '3.7' },
     'exact.previewImport': { year: FISCAL_YEAR },
     'purchase.getCreditorAgeing': { asOf: `${FISCAL_YEAR}-12-31` },
+    // Both cross-cutting reads start from something the caller names: a word
+    // to look for, and a figure to account for. Neither has a default.
+    'discovery.search': { q: 'zz' },
+    'discovery.explainNumber': {
+      figure: 'account',
+      accountNumber: '1300',
+      fiscalYear: FISCAL_YEAR,
+    },
   }
 
   it('reaches every one of them', async () => {
