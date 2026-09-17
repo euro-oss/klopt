@@ -5,17 +5,23 @@
 _Klopt_ is what a Dutch bookkeeper says when the reconciliation lands: it adds
 up. It is also the pass/fail condition for this software.
 
-> **Status: M0 complete.** An accountant can use this as a shadow ledger today.
-> Immutable journal with a hash chain, gapless numbering, n-dimensional
-> analytics, period control, foreign currency, reversals, the real RGS 3.7
-> scheme with coverage reporting, year close, trial balance, balance sheet and
-> P&L, and **XAF 3.2 export and import** — validated against the published
-> Belastingdienst schema. All of it over a versioned REST API.
+> **Status: 0.1.0 — M0 through M6 complete.** An accountant can keep a Dutch
+> administration in this today: an immutable hash-chained journal, sales with
+> UBL and Peppol validation, CAMT.053 and MT940 banking with a matching engine,
+> the BTW-aangifte and ICP derived from the journal with their reconciliation,
+> the purchase cycle from inbox to payment file, retention and sealed
+> snapshots, multi-entity, and XAF 3.2 export and import validated against the
+> published Belastingdienst schema.
 >
-> There is a UI: sign in, switch between administrations, browse and post
-> journal entries, read the statements, watch RGS coverage and the hash chain.
-> Roles from section 4 map onto the same permissions API tokens carry, so the
-> screens have no privileged path. Next: M1, Sales.
+> All of it over one versioned REST API — 118 operations, the same ones the UI
+> calls — plus an MCP server and a CLI. See [`CHANGELOG.md`](CHANGELOG.md) for
+> what is in this release, including the four things that are specified and not
+> finished, and [`docs/api-stability.md`](docs/api-stability.md) for what will
+> not change without a major version.
+>
+> Electronic filing to Digipoort is the notable gap: the transport is stubbed
+> behind a port because it needs a PKIoverheid certificate. Filing by hand
+> works.
 
 ---
 
