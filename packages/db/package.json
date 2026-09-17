@@ -1,6 +1,6 @@
 {
   "name": "@klopt/db",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Drizzle schema, migrations and repositories. Persistence only.",

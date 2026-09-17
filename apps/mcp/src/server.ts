@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { KLOPT_VERSION } from '@klopt/core'
 import { ApiError, ApiClient } from './client.js'
 import { ToolContext } from './context.js'
 import { describeSchema, describeSchemaInput } from './tools/schema.js'
@@ -122,7 +123,7 @@ export function createServer(options: ServerOptions): McpServer {
     }),
   )
 
-  const server = new McpServer({ name: 'klopt', version: '0.0.0' })
+  const server = new McpServer({ name: 'klopt', version: KLOPT_VERSION })
 
   /**
    * Everything a tool can go wrong with, turned into something an agent can

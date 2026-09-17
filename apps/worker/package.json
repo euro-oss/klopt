@@ -1,6 +1,6 @@
 {
   "name": "@klopt/worker",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Job runner. Imports the same core as the web app and none of the web framework.",

@@ -1,6 +1,6 @@
 {
   "name": "@klopt/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Framework-free accounting domain. Imports nothing from a web framework, a database or an adapter.",

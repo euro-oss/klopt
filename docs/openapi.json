@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Klopt",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "summary": "The Dutch bookkeeping API the Klopt UI is one client of.",
     "description": "Generated from the route manifest, the operation registry, the Zod schemas the\nroutes validate against and the handlers' own return types — never hand-written.\nSee ADR 0043 and ADR 0044.\n\n**Money** crosses this boundary as a string of unsigned integer minor units, never\na number: `\"124950\"` is €1249,50. A float cannot hold a cent exactly and a ledger\nthat is out by a cent is out.\n\n**Dates** are `YYYY-MM-DD`. **Amounts on report responses** are decimal strings.\n\n**Writes require an `idempotency-key` header.** Retrying with the same key and the\nsame body replays the first result. This is not advisory: the request is refused\nwithout one.\n\n**Errors** are RFC 9457 problem documents with a `violations` array carrying the\ndomain's own codes. `400 Bad Request` is not an API.\n\n**Response bodies** are the handlers' own inferred return types, read out of the\nTypeScript program rather than described alongside it. A field that changes shape\nchanges here in the same commit. Endpoints that answer with bytes — a PDF, a UBL\ninvoice, a pain.001 — give a media type and no schema.",
     "license": {

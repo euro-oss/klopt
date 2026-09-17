@@ -1,6 +1,6 @@
 {
   "name": "@klopt/cli",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "The operator's surface. A thin client over the same public API the UI and the MCP server use.",

@@ -1,4 +1,5 @@
 import {
+  KLOPT_VERSION,
   assessUpgradeImpact,
   buildBalanceSheet,
   buildCoverageReport,
@@ -324,7 +325,7 @@ export async function handleExportAuditFile(
         ...(query.fromPeriod === null ? {} : { fromPeriod: query.fromPeriod }),
         ...(query.toPeriod === null ? {} : { toPeriod: query.toPeriod }),
         softwareDesc: 'Klopt',
-        softwareVersion: process.env['KLOPT_VERSION'] ?? '0.0.0',
+        softwareVersion: process.env['KLOPT_VERSION'] ?? KLOPT_VERSION,
         generatedOn: new Date().toISOString().slice(0, 10),
       },
       scheme,

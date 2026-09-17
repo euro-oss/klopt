@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import Ajv2020 from 'ajv/dist/2020.js'
 import { validate } from '@readme/openapi-parser'
 import { describe, expect, it } from 'vitest'
-import { listOperations } from '@klopt/core'
+import { KLOPT_VERSION, listOperations } from '@klopt/core'
 import { routeManifest } from '../src/api/manifest.js'
 import * as schemas from '../src/api/schemas.js'
 import {
@@ -33,7 +33,7 @@ import {
  * they were typed the same way twice.
  */
 
-const document = buildOpenApiDocument({ version: '0.0.0' })
+const document = buildOpenApiDocument({ version: KLOPT_VERSION })
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 
 /**
@@ -280,7 +280,7 @@ describe('the checked-in copies are the current ones', () => {
     // If this fails, run `pnpm --filter @klopt/web run openapi`. It failing is
     // the point: a change to the public contract should appear in a diff that
     // a reviewer sees, not only in a response nobody looked at.
-    expect(onDisk).toBe(openApiJson(buildOpenApiDocument({ version: '0.0.0' })))
+    expect(onDisk).toBe(openApiJson(buildOpenApiDocument({ version: KLOPT_VERSION })))
   })
 
   it('carries no instance-specific server', () => {

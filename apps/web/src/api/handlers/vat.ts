@@ -1,4 +1,5 @@
 import {
+  KLOPT_VERSION,
   generateVatInstance,
   parseVatPeriodCode,
   planFiling,
@@ -26,7 +27,7 @@ import { filingTransport, filingTransports } from '../filing.js'
 import { taxonomyMappings } from '../taxonomy.js'
 
 /** Named in the instance and in the evidence chain, so a bug is traceable. */
-const SOFTWARE_VERSION = '0.0.0'
+const SOFTWARE_VERSION = KLOPT_VERSION
 
 /**
  * The BTW-aangifte over HTTP.

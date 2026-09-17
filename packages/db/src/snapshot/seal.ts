@@ -1,4 +1,5 @@
 import {
+  KLOPT_VERSION,
   generateXaf,
   resourceOf,
   sealSnapshot,
@@ -94,7 +95,7 @@ export async function sealFiscalYear(
         entityId: options.entityId,
         fiscalYearCode: options.fiscalYear,
         softwareDesc: 'Klopt',
-        softwareVersion: process.env['KLOPT_VERSION'] ?? '0.0.0',
+        softwareVersion: process.env['KLOPT_VERSION'] ?? KLOPT_VERSION,
         generatedOn: new Date().toISOString().slice(0, 10),
       },
       scheme,

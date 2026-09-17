@@ -33,8 +33,12 @@ console.log(
     `${String(Object.keys(responses.components).length)} named types`,
 )
 
+const { KLOPT_VERSION } = await import('@klopt/core')
 const { buildOpenApiDocument, openApiJson } = await import('../src/api/openapi.js')
 
 const target = join(REPO_ROOT, 'docs', 'openapi.json')
-writeFileSync(target, openApiJson(buildOpenApiDocument({ version: '0.0.0' })))
+// The product's version, so the checked-in document is the one an instance
+// of this release serves. It changes on a version bump, which is a one-line
+// diff and the honest one.
+writeFileSync(target, openApiJson(buildOpenApiDocument({ version: KLOPT_VERSION })))
 console.log(`wrote ${target}`)

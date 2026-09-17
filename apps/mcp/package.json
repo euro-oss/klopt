@@ -1,6 +1,6 @@
 {
   "name": "@klopt/mcp",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "MCP server. A client of the public API, never a privileged path into the domain.",

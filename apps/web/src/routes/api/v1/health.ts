@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { KLOPT_VERSION } from '@klopt/core'
 
 /**
  * Liveness. Deliberately says nothing about the database: a self-hoster's load
@@ -11,7 +12,7 @@ export const Route = createFileRoute('/api/v1/health')({
       GET: () =>
         Response.json({
           status: 'ok',
-          version: process.env['KLOPT_VERSION'] ?? '0.0.0',
+          version: process.env['KLOPT_VERSION'] ?? KLOPT_VERSION,
         }),
     },
   },

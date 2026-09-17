@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { KLOPT_VERSION } from '@klopt/core'
 import { buildOpenApiDocument } from '~/api/openapi'
 
 /**
@@ -24,7 +25,7 @@ function document(): string {
   // constants, so the document cannot change without the process restarting.
   cached ??= JSON.stringify(
     buildOpenApiDocument({
-      version: process.env['KLOPT_VERSION'] ?? '0.0.0',
+      version: process.env['KLOPT_VERSION'] ?? KLOPT_VERSION,
       baseUrl: process.env['KLOPT_BASE_URL'],
     }),
     null,
