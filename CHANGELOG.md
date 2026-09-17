@@ -185,4 +185,4 @@ cannot be obtained or tested here, and each fails closed rather than guessing:
   refuses, because the TanStack Start plugin accepts `routeFileIgnorePattern`
   and ignores it. The remaining prize is about 1.4 MB of 11 MB (ADR 0042).
 
-[0.1.0]: https://github.com/hiddestokvis/klopt/releases/tag/v0.1.0
+[0.1.0]: https://github.com/euro-oss/klopt/releases/tag/v0.1.0
