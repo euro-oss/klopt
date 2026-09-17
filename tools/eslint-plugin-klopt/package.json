@@ -1,0 +1,24 @@
+{
+  "name": "@klopt/eslint-plugin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Klopt-specific ESLint rules. Plain JS on purpose: it must load before anything is built.",
+  "license": "Apache-2.0",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "rules"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "8.69.0",
+    "eslint": "10.9.1",
+    "vitest": "5.0.0"
+  }
+}

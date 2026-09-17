@@ -1,0 +1,22 @@
+{
+  "name": "@klopt/rgs-import",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Converts the official RGS workbook into Klopt reference data. A maintainer tool, not a runtime dependency.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json",
+    "typecheck": "tsc -b tsconfig.build.json && tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "generate": "node dist/main.js"
+  },
+  "dependencies": {
+    "fflate": "0.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "5.9.3",
+    "vitest": "5.0.0"
+  }
+}

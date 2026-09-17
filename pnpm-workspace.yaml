@@ -1,0 +1,17 @@
+packages:
+  - packages/*
+  - apps/*
+  - tools/*
+  - examples/*
+
+# Workspace packages are linked from source, never fetched from a registry.
+linkWorkspacePackages: true
+preferWorkspacePackages: true
+autoInstallPeers: true
+strictPeerDependencies: false
+
+# Explicit allowlist: pnpm 10 does not run install scripts by default, and a
+# lockfile that quietly executes arbitrary postinstall is not what you want in a
+# repository holding statutory records.
+onlyBuiltDependencies:
+  - esbuild

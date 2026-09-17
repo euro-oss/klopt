@@ -1,0 +1,4 @@
+"Datum";"Naam / Omschrijving";"Rekening";"Tegenrekening";"Code";"Af Bij";"Bedrag (EUR)";"Mutatiesoort";"Mededelingen";"Saldo na mutatie";"Tag"
+"20260302";"Grote Klant N.V.";"NL02ABNA0123456789";"NL91RABO0315273637";"GT";"Bij";"1210,00";"Online bankieren";"Factuur 2026-0001";"2460,00";""
+"20260303";"Telecom B.V.";"NL02ABNA0123456789";"NL20INGB0001234567";"IC";"Af";"45,50";"Incasso";"Abonnement maart";"2414,50";""
+"20260304";"Spaarrekening";"NL02ABNA0123456789";"NL02ABNA0999999999";"GT";"Bij";"500,00";"Online bankieren";"Overboeking spaarrekening";"2914,50";""

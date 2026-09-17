@@ -1,0 +1,143 @@
+{
+  "taxonomy": "klopt.nt-mapping",
+  "version": "NT20",
+  "report": "ob-aangifte",
+  "appliesFrom": "2026-01-01",
+  "appliesTo": "2026-12-31",
+  "verified": false,
+  "provenance": "Hand-authored against public documentation of the Nederlandse Taxonomie's omzetbelasting entrypoint. The element names below, the schemaRef and the dictionary namespace have NOT been checked against the published NT20 schema, and the date segments in both URIs are certainly wrong. Replace them from the entrypoint published by SBR Nederland, set verified to true, and only then can the Digipoort and SBR transports use this mapping. Until then the manual path still works: the figures come from the journal and are correct regardless of what the elements are called. See docs/compliance-calendar.md.",
+  "schemaRef": "http://www.nltaxonomie.nl/nt20/bd/00000000/entrypoints/bd-rpt-ob-aangifte.xsd",
+  "namespaces": {
+    "bd-i": "http://www.nltaxonomie.nl/nt20/bd/00000000/dictionary/bd-data"
+  },
+  "entityScheme": "http://www.belastingdienst.nl/omzetbelastingnummer",
+  "exponent": 0,
+  "facts": [
+    {
+      "rubriek": "1a",
+      "kind": "base",
+      "element": "bd-i:TaxedTurnoverSuppliesServicesGeneral",
+      "label": "Leveringen/diensten belast met hoog tarief"
+    },
+    {
+      "rubriek": "1a",
+      "kind": "vat",
+      "element": "bd-i:ValueAddedTaxSuppliesServicesGeneral",
+      "label": "Omzetbelasting hoog tarief"
+    },
+    {
+      "rubriek": "1b",
+      "kind": "base",
+      "element": "bd-i:TaxedTurnoverSuppliesServicesReduced",
+      "label": "Leveringen/diensten belast met laag tarief"
+    },
+    {
+      "rubriek": "1b",
+      "kind": "vat",
+      "element": "bd-i:ValueAddedTaxSuppliesServicesReduced",
+      "label": "Omzetbelasting laag tarief"
+    },
+    {
+      "rubriek": "1c",
+      "kind": "base",
+      "element": "bd-i:TaxedTurnoverSuppliesServicesOther",
+      "label": "Leveringen/diensten belast met overige tarieven"
+    },
+    {
+      "rubriek": "1c",
+      "kind": "vat",
+      "element": "bd-i:ValueAddedTaxSuppliesServicesOther",
+      "label": "Omzetbelasting overige tarieven"
+    },
+    {
+      "rubriek": "1d",
+      "kind": "base",
+      "element": "bd-i:TaxedTurnoverPrivateUse",
+      "label": "Privégebruik"
+    },
+    {
+      "rubriek": "1d",
+      "kind": "vat",
+      "element": "bd-i:ValueAddedTaxPrivateUse",
+      "label": "Omzetbelasting privégebruik"
+    },
+    {
+      "rubriek": "1e",
+      "kind": "base",
+      "element": "bd-i:SuppliesServicesNotTaxed",
+      "label": "Leveringen/diensten belast met 0% of niet bij u belast"
+    },
+    {
+      "rubriek": "2a",
+      "kind": "base",
+      "element": "bd-i:SuppliesServicesByWhichVATTaxationIsTransferred",
+      "label": "Leveringen/diensten waarbij de omzetbelasting naar u is verlegd"
+    },
+    {
+      "rubriek": "2a",
+      "kind": "vat",
+      "element": "bd-i:ValueAddedTaxSuppliesServicesByWhichVATTaxationIsTransferred",
+      "label": "Omzetbelasting verlegd naar u"
+    },
+    {
+      "rubriek": "3a",
+      "kind": "base",
+      "element": "bd-i:SuppliesToCountriesOutsideTheEC",
+      "label": "Leveringen naar landen buiten de EU"
+    },
+    {
+      "rubriek": "3b",
+      "kind": "base",
+      "element": "bd-i:SuppliesToCountriesWithinTheEC",
+      "label": "Leveringen naar of diensten in landen binnen de EU"
+    },
+    {
+      "rubriek": "3c",
+      "kind": "base",
+      "element": "bd-i:InstallationDistanceSalesWithinTheEC",
+      "label": "Installatie/afstandsverkopen binnen de EU"
+    },
+    {
+      "rubriek": "4a",
+      "kind": "base",
+      "element": "bd-i:SuppliesFromCountriesOutsideTheEC",
+      "label": "Leveringen/diensten uit landen buiten de EU"
+    },
+    {
+      "rubriek": "4a",
+      "kind": "vat",
+      "element": "bd-i:ValueAddedTaxSuppliesFromCountriesOutsideTheEC",
+      "label": "Omzetbelasting invoer buiten de EU"
+    },
+    {
+      "rubriek": "4b",
+      "kind": "base",
+      "element": "bd-i:SuppliesFromCountriesWithinTheEC",
+      "label": "Leveringen/diensten uit landen binnen de EU"
+    },
+    {
+      "rubriek": "4b",
+      "kind": "vat",
+      "element": "bd-i:ValueAddedTaxSuppliesFromCountriesWithinTheEC",
+      "label": "Omzetbelasting verwerving binnen de EU"
+    },
+    {
+      "rubriek": "5a",
+      "kind": "vat",
+      "element": "bd-i:ValueAddedTaxOwed",
+      "label": "Verschuldigde omzetbelasting"
+    },
+    {
+      "rubriek": "5b",
+      "kind": "vat",
+      "element": "bd-i:ValueAddedTaxOnInput",
+      "label": "Voorbelasting"
+    },
+    {
+      "rubriek": "5c",
+      "kind": "vat",
+      "element": "bd-i:ValueAddedTaxPayable",
+      "label": "Totaal te betalen of terug te vragen"
+    }
+  ]
+}

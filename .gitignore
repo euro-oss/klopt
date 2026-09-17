@@ -1,0 +1,32 @@
+node_modules/
+dist/
+build/
+coverage/
+.output/
+.nitro/
+.tanstack/
+.vite/
+*.tsbuildinfo
+
+.env
+.env.*
+!.env.example
+
+playwright-report/
+test-results/
+blob-report/
+
+.DS_Store
+*.log
+.context/
+
+# Scratch files the XAF schema validator writes next to the golden files.
+**/__golden__/.*.tmp.xml
+
+# Playwright
+apps/web/e2e/.outbox/
+apps/web/e2e/.documents/
+
+# The default document store. Content-addressed source documents, which are the
+# administration's own records and never the repository's.
+.klopt/

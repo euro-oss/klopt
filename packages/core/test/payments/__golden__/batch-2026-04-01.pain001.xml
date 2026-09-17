@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <CstmrCdtTrfInitn>
+    <GrpHdr>
+      <MsgId>BATCH-2026-04-01</MsgId>
+      <CreDtTm>2026-04-01T09:00:00</CreDtTm>
+      <NbOfTxs>2</NbOfTxs>
+      <CtrlSum>1255.50</CtrlSum>
+      <InitgPty>
+        <Nm>De Tol Beheer B.V.</Nm>
+      </InitgPty>
+    </GrpHdr>
+    <PmtInf>
+      <PmtInfId>BATCH-2026-04-01</PmtInfId>
+      <PmtMtd>TRF</PmtMtd>
+      <BtchBookg>false</BtchBookg>
+      <NbOfTxs>2</NbOfTxs>
+      <CtrlSum>1255.50</CtrlSum>
+      <PmtTpInf>
+        <SvcLvl>
+          <Cd>SEPA</Cd>
+        </SvcLvl>
+      </PmtTpInf>
+      <ReqdExctnDt>2026-04-03</ReqdExctnDt>
+      <Dbtr>
+        <Nm>De Tol Beheer B.V.</Nm>
+      </Dbtr>
+      <DbtrAcct>
+        <Id>
+          <IBAN>NL02ABNA0123456789</IBAN>
+        </Id>
+      </DbtrAcct>
+      <DbtrAgt>
+        <FinInstnId>
+          <BIC>ABNANL2A</BIC>
+        </FinInstnId>
+      </DbtrAgt>
+      <ChrgBr>SLEV</ChrgBr>
+      <CdtTrfTxInf>
+        <PmtId>
+          <EndToEndId>INK-2026-0007</EndToEndId>
+        </PmtId>
+        <Amt>
+          <InstdAmt Ccy="EUR">45.50</InstdAmt>
+        </Amt>
+        <CdtrAgt>
+          <FinInstnId>
+            <BIC>INGBNL2A</BIC>
+          </FinInstnId>
+        </CdtrAgt>
+        <Cdtr>
+          <Nm>Telecom B.V.</Nm>
+        </Cdtr>
+        <CdtrAcct>
+          <Id>
+            <IBAN>NL20INGB0001234567</IBAN>
+          </Id>
+        </CdtrAcct>
+        <RmtInf>
+          <Ustrd>Factuur INK-2026-0007</Ustrd>
+        </RmtInf>
+      </CdtTrfTxInf>
+      <CdtTrfTxInf>
+        <PmtId>
+          <EndToEndId>INK-2026-0008</EndToEndId>
+        </PmtId>
+        <Amt>
+          <InstdAmt Ccy="EUR">1210.00</InstdAmt>
+        </Amt>
+        <Cdtr>
+          <Nm>Groothandel Van Dam</Nm>
+        </Cdtr>
+        <CdtrAcct>
+          <Id>
+            <IBAN>NL91RABO0315273637</IBAN>
+          </Id>
+        </CdtrAcct>
+        <RmtInf>
+          <Strd>
+            <CdtrRefInf>
+              <Tp>
+                <CdOrPrtry>
+                  <Cd>SCOR</Cd>
+                </CdOrPrtry>
+              </Tp>
+              <Ref>REF-887766</Ref>
+            </CdtrRefInf>
+          </Strd>
+        </RmtInf>
+      </CdtTrfTxInf>
+    </PmtInf>
+  </CstmrCdtTrfInitn>
+</Document>

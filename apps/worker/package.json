@@ -1,0 +1,28 @@
+{
+  "name": "@klopt/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Job runner. Imports the same core as the web app and none of the web framework.",
+  "license": "Apache-2.0",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json",
+    "typecheck": "tsc -b tsconfig.build.json && tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "start": "node dist/main.js",
+    "dev": "tsx watch src/main.ts"
+  },
+  "dependencies": {
+    "@klopt/adapters": "workspace:*",
+    "@klopt/core": "workspace:*",
+    "@klopt/db": "workspace:*",
+    "pg-boss": "12.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "5.0.0"
+  }
+}

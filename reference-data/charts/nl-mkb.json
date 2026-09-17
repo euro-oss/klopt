@@ -1,0 +1,449 @@
+{
+  "chart": "klopt.chart-of-accounts",
+  "version": "1",
+  "code": "nl-mkb",
+  "name": "Nederlands MKB-rekeningschema",
+  "description": "A Dutch small-business chart in the decimal layout everyone recognises, mapped to RGS 3.7 (MKB) out of the box. Spec 6.3: the default chart ships RGS-mapped.",
+  "rgsVersion": "3.7",
+  "rgsVariant": "mkb",
+  "currency": "EUR",
+  "roles": {
+    "receivable": "1300",
+    "payable": "1600",
+    "vatPayable": "1500",
+    "vatReceivable": "1510",
+    "result": "0900",
+    "bank": "1100",
+    "cash": "1000",
+    "revenue": "8000"
+  },
+  "journals": [
+    {
+      "code": "VRK",
+      "name": "Verkoopboek",
+      "type": "verkoop"
+    },
+    {
+      "code": "INK",
+      "name": "Inkoopboek",
+      "type": "inkoop"
+    },
+    {
+      "code": "BNK",
+      "name": "Bank",
+      "type": "bank"
+    },
+    {
+      "code": "KAS",
+      "name": "Kas",
+      "type": "kas"
+    },
+    {
+      "code": "MEM",
+      "name": "Memoriaal",
+      "type": "memoriaal"
+    }
+  ],
+  "taxCodes": [
+    {
+      "code": "H21",
+      "description": "BTW hoog 21%",
+      "rateBasisPoints": 2100,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "S",
+      "baseRubriek": "1a",
+      "vatRubriek": "1a",
+      "scope": "domestic"
+    },
+    {
+      "code": "L9",
+      "description": "BTW laag 9%",
+      "rateBasisPoints": 900,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "S",
+      "baseRubriek": "1b",
+      "vatRubriek": "1b",
+      "scope": "domestic"
+    },
+    {
+      "code": "PRIV21",
+      "description": "Privégebruik 21%",
+      "rateBasisPoints": 2100,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "S",
+      "baseRubriek": "1d",
+      "vatRubriek": "1d",
+      "scope": "private_use"
+    },
+    {
+      "code": "VERL",
+      "description": "BTW verlegd naar afnemer",
+      "rateBasisPoints": 0,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "AE",
+      "baseRubriek": "1e",
+      "scope": "domestic",
+      "reverseCharge": "domestic"
+    },
+    {
+      "code": "GEEN",
+      "description": "Vrijgesteld van BTW",
+      "rateBasisPoints": 0,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "E",
+      "baseRubriek": "1e",
+      "scope": "exempt"
+    },
+    {
+      "code": "NUL",
+      "description": "BTW 0% (export buiten de EU)",
+      "rateBasisPoints": 0,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "G",
+      "baseRubriek": "3a",
+      "scope": "export"
+    },
+    {
+      "code": "ICP",
+      "description": "Intracommunautaire levering goederen 0%",
+      "rateBasisPoints": 0,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "K",
+      "baseRubriek": "3b",
+      "scope": "intra_community_supply",
+      "supplyKind": "goods"
+    },
+    {
+      "code": "ICPD",
+      "description": "Intracommunautaire dienst 0%",
+      "rateBasisPoints": 0,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "K",
+      "baseRubriek": "3b",
+      "scope": "intra_community_supply",
+      "supplyKind": "services"
+    },
+    {
+      "code": "VH21",
+      "description": "Voorbelasting hoog 21%",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "S",
+      "vatRubriek": "5b",
+      "scope": "domestic",
+      "deductibility": "full"
+    },
+    {
+      "code": "VL9",
+      "description": "Voorbelasting laag 9%",
+      "rateBasisPoints": 900,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "S",
+      "vatRubriek": "5b",
+      "scope": "domestic",
+      "deductibility": "full"
+    },
+    {
+      "code": "VERL-ONTV",
+      "description": "BTW verlegd naar u, verschuldigd",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatPayable",
+      "ublCategory": "AE",
+      "baseRubriek": "2a",
+      "vatRubriek": "2a",
+      "scope": "domestic",
+      "reverseCharge": "domestic",
+      "deductionCode": "VERL-VOOR"
+    },
+    {
+      "code": "VERL-VOOR",
+      "description": "BTW verlegd naar u, voorbelasting",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "AE",
+      "vatRubriek": "5b",
+      "scope": "domestic",
+      "deductibility": "full"
+    },
+    {
+      "code": "ICV21",
+      "description": "Intracommunautaire verwerving 21%, verschuldigd",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatPayable",
+      "ublCategory": "K",
+      "baseRubriek": "4b",
+      "vatRubriek": "4b",
+      "scope": "intra_community_acquisition",
+      "supplyKind": "goods",
+      "deductionCode": "ICV21-VOOR"
+    },
+    {
+      "code": "ICV21-VOOR",
+      "description": "Intracommunautaire verwerving 21%, voorbelasting",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "K",
+      "vatRubriek": "5b",
+      "scope": "intra_community_acquisition",
+      "deductibility": "full"
+    },
+    {
+      "code": "INV23",
+      "description": "Invoer met artikel 23-verlegging, verschuldigd",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatPayable",
+      "ublCategory": "S",
+      "baseRubriek": "4a",
+      "vatRubriek": "4a",
+      "scope": "import",
+      "reverseCharge": "import_article_23",
+      "supplyKind": "goods",
+      "deductionCode": "INV23-VOOR"
+    },
+    {
+      "code": "INV23-VOOR",
+      "description": "Invoer met artikel 23-verlegging, voorbelasting",
+      "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "S",
+      "vatRubriek": "5b",
+      "scope": "import",
+      "deductibility": "full"
+    }
+  ],
+  "accounts": [
+    {
+      "number": "0200",
+      "name": "Inventaris",
+      "type": "asset",
+      "normalBalance": "debit",
+      "rgsCode": "BMvaBeiVvp"
+    },
+    {
+      "number": "0209",
+      "name": "Afschrijving inventaris",
+      "type": "asset",
+      "normalBalance": "credit",
+      "rgsCode": "BMvaBeiCae"
+    },
+    {
+      "number": "0500",
+      "name": "Aandelenkapitaal",
+      "type": "equity",
+      "normalBalance": "credit",
+      "rgsCode": "BEivGokGea"
+    },
+    {
+      "number": "0600",
+      "name": "Overige reserves",
+      "type": "equity",
+      "normalBalance": "credit",
+      "rgsCode": "BEivOvrOrs"
+    },
+    {
+      "number": "0900",
+      "name": "Onverdeelde winst",
+      "type": "equity",
+      "normalBalance": "credit",
+      "rgsCode": "BEivOreOvw"
+    },
+    {
+      "number": "1000",
+      "name": "Kas",
+      "type": "asset",
+      "normalBalance": "debit",
+      "rgsCode": "BLimKasKas"
+    },
+    {
+      "number": "1100",
+      "name": "Bank",
+      "type": "asset",
+      "normalBalance": "debit",
+      "rgsCode": "BLimBanRba"
+    },
+    {
+      "number": "1110",
+      "name": "Spaarrekening",
+      "type": "asset",
+      "normalBalance": "debit",
+      "rgsCode": "BLimBanDep"
+    },
+    {
+      "number": "1300",
+      "name": "Debiteuren",
+      "type": "asset",
+      "normalBalance": "debit",
+      "rgsCode": "BVorDebHad"
+    },
+    {
+      "number": "1310",
+      "name": "Voorziening dubieuze debiteuren",
+      "type": "asset",
+      "normalBalance": "credit",
+      "rgsCode": "BVorDebVdd"
+    },
+    {
+      "number": "1400",
+      "name": "Vooruitbetaalde kosten",
+      "type": "asset",
+      "normalBalance": "debit",
+      "rgsCode": "BVorOvaVoa"
+    },
+    {
+      "number": "1500",
+      "name": "Te betalen omzetbelasting",
+      "type": "liability",
+      "normalBalance": "credit",
+      "rgsCode": "BSchBepBtw"
+    },
+    {
+      "number": "1510",
+      "name": "Terug te vorderen omzetbelasting",
+      "type": "asset",
+      "normalBalance": "debit",
+      "rgsCode": "BVorVbkTvo"
+    },
+    {
+      "number": "1600",
+      "name": "Crediteuren",
+      "type": "liability",
+      "normalBalance": "credit",
+      "rgsCode": "BSchCreHac"
+    },
+    {
+      "number": "1700",
+      "name": "Nog te betalen kosten",
+      "type": "liability",
+      "normalBalance": "credit",
+      "rgsCode": "BSchOpaNad"
+    },
+    {
+      "number": "2000",
+      "name": "Tussenrekening",
+      "type": "asset",
+      "normalBalance": "debit",
+      "rgsCode": "BVorTusTin"
+    },
+    {
+      "number": "4000",
+      "name": "Lonen en salarissen",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WPerLesLon"
+    },
+    {
+      "number": "4010",
+      "name": "Sociale lasten",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WPerSolOpr"
+    },
+    {
+      "number": "4020",
+      "name": "Pensioenlasten",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WPerPenPen"
+    },
+    {
+      "number": "4100",
+      "name": "Afschrijving inventaris",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WAfsAmvBei"
+    },
+    {
+      "number": "4200",
+      "name": "Huur bedrijfsruimte",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WBedHuiBeh"
+    },
+    {
+      "number": "4300",
+      "name": "Brandstofkosten",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WBedAutBra"
+    },
+    {
+      "number": "4400",
+      "name": "Kantoorkosten",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WBedKanCea"
+    },
+    {
+      "number": "4410",
+      "name": "Telefoon- en internetkosten",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WBedKanTef"
+    },
+    {
+      "number": "4420",
+      "name": "Boekhouding en administratie",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WBedKanBoe"
+    },
+    {
+      "number": "4500",
+      "name": "Reclame- en advertentiekosten",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WBedVkkRea"
+    },
+    {
+      "number": "4900",
+      "name": "Algemene kosten",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WBedAlkOal"
+    },
+    {
+      "number": "7000",
+      "name": "Inkoopwaarde omzet",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WKprGrpGr1"
+    },
+    {
+      "number": "8000",
+      "name": "Omzet",
+      "type": "revenue",
+      "normalBalance": "credit",
+      "rgsCode": "WOmzGrpGr1"
+    },
+    {
+      "number": "8010",
+      "name": "Omzet groep 2",
+      "type": "revenue",
+      "normalBalance": "credit",
+      "rgsCode": "WOmzGrpGr2"
+    },
+    {
+      "number": "9400",
+      "name": "Rentelasten",
+      "type": "expense",
+      "normalBalance": "debit",
+      "rgsCode": "WFbeOrlOrl"
+    }
+  ]
+}

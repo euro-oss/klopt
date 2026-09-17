@@ -1,0 +1,26 @@
+{
+  "name": "@klopt/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The operator's surface. A thin client over the same public API the UI and the MCP server use.",
+  "license": "Apache-2.0",
+  "bin": {
+    "klopt": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json",
+    "typecheck": "tsc -b tsconfig.build.json && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "clean": "rm -rf dist",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@klopt/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "5.9.3",
+    "vitest": "5.0.0"
+  }
+}

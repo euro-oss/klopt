@@ -1,0 +1,20 @@
+{
+  "name": "@klopt/example-notifier",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A worked example of a module built on Klopt's public API. Imports no Klopt package, on purpose.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json",
+    "typecheck": "tsc -b tsconfig.build.json && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "clean": "rm -rf dist",
+    "start": "node dist/main.js"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "5.9.3",
+    "vitest": "5.0.0"
+  }
+}

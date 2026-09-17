@@ -1,0 +1,44 @@
+{
+  "name": "klopt",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Open bookkeeping for the Dutch market.",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "db:generate": "pnpm --filter @klopt/db run generate",
+    "db:migrate": "pnpm --filter @klopt/db run migrate",
+    "dev": "concurrently -n web,worker -c cyan,magenta \"pnpm --filter @klopt/web run dev\" \"pnpm --filter @klopt/worker run dev\"",
+    "dev:https": "concurrently -n web,worker -c cyan,magenta \"pnpm --filter @klopt/web run dev:https\" \"pnpm --filter @klopt/worker run dev\"",
+    "dev:web": "pnpm --filter @klopt/web run dev",
+    "dev:worker": "pnpm --filter @klopt/worker run dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "lint:boundaries": "depcruise packages apps examples --config .dependency-cruiser.cjs",
+    "lint:fix": "eslint . --fix",
+    "rgs:generate": "pnpm --filter @klopt/rgs-import run build && node tools/rgs-import/dist/main.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "pnpm -r run typecheck",
+    "verify": "pnpm run format:check && pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run lint:boundaries"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@klopt/eslint-plugin": "workspace:*",
+    "concurrently": "^9.2.1",
+    "dependency-cruiser": "18.2.0",
+    "eslint": "10.9.1",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.12.0",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.69.0",
+    "vitest": "5.0.0"
+  }
+}

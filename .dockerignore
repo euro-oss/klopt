@@ -1,0 +1,28 @@
+# Everything the build stage makes for itself. Copying a host `node_modules`
+# into the image is how an arm64 laptop ships an x86 binary to a server.
+node_modules
+**/node_modules
+.output
+**/.output
+dist
+**/dist
+.nitro
+**/.nitro
+.tanstack
+**/.tanstack
+**/*.tsbuildinfo
+
+.git
+.github
+.conductor
+.klopt
+.env
+.env.*
+!.env.example
+
+# Not part of a running instance. `examples/` and `tools/` stay: they are
+# workspace packages, and `pnpm install --frozen-lockfile` fails on a workspace
+# whose members are not all there.
+docs
+test-results
+playwright-report

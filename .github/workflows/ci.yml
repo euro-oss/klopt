@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Correctness beats availability (spec 12). CI is not allowed to be flaky-green.
+  CI: true
+  DATABASE_URL: postgres://klopt:klopt@localhost:5432/klopt
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['24', '26']
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: klopt
+          POSTGRES_PASSWORD: klopt
+          POSTGRES_DB: klopt
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U klopt -d klopt"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # xmllint validates generated auditfiles against the published XSD.
+      # Preinstalled on ubuntu-latest, but pinned here so a runner image change
+      # turns into an install rather than a silently skipped check.
+      - name: Install libxml2-utils
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm run format:check
+
+      # Must come first among the code checks. Type-aware linting resolves
+      # cross-package imports through each package's `exports`, which point at
+      # dist/, so on a clean checkout there is nothing there to resolve until
+      # this step has run.
+      - name: Build
+        run: pnpm run build
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Migrate
+        run: pnpm --filter @klopt/db run migrate
+
+      # The ledger tests run against a real Postgres on purpose. The triggers
+      # are half the guarantee, and a mocked database proves nothing about them.
+      - name: Test
+        run: pnpm run test
+
+      - name: Architecture boundaries
+        run: pnpm run lint:boundaries
+
+  # The compliance treadmill, made survivable (spec 11.4, 16): every generated
+  # artefact validated against the official schema, on every commit, so a spec
+  # change is a red build within days of publication rather than a support
+  # ticket next quarter.
+  #
+  # Separate from `verify` on purpose. When this job goes red on a morning
+  # nobody touched the code, the cause is upstream.
+  artefacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libxml2-utils
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
+
+      - name: XAF 3.2 golden files validate against the published schema
+        run: |
+          for file in packages/core/test/xaf/__golden__/*.xml; do
+            echo "validating $file"
+            xmllint --noout --schema reference-data/xaf/XmlAuditfileFinancieel3.2.xsd "$file"
+          done
+
+      - name: Reference data is well formed
+        run: |
+          node -e "
+            const rgs = require('./reference-data/rgs/rgs-3.7-mkb.json');
+            if (rgs.codes.length !== rgs.codeCount) throw new Error('RGS codeCount disagrees with contents');
+            console.log('RGS ' + rgs.version + ' ' + rgs.variant + ': ' + rgs.codeCount + ' codes');
+            for (const note of rgs.normalisations) console.log('  normalised: ' + note);
+          "

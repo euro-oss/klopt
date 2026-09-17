@@ -1,0 +1,282 @@
+import { LedgerError, forwarded } from '../errors.js'
+import { renderFindingMessage, type FindingMessageKey } from '../finding-messages.js'
+
+/**
+ * Outbound payments (spec 7.4).
+ *
+ * "SEPA `pain.001` batch export for supplier payments, with a two-person
+ * approval flow."
+ *
+ * A batch is a list of instructions and a state. The state is the interesting
+ * part: it exists to make the two-person rule structural rather than a policy
+ * somebody remembers, because a payment file is the one artefact this system
+ * produces that moves real money out of the door.
+ */
+
+export type PaymentBatchState = 'draft' | 'submitted' | 'approved' | 'exported' | 'rejected'
+
+export interface PaymentInstruction {
+  readonly id: string
+  /** BT-equivalent: the reference the payee will see. */
+  readonly endToEndId: string
+  readonly creditorName: string
+  readonly creditorIban: string
+  readonly creditorBic: string | null
+  /** Unsigned minor units. A payment out is always positive here. */
+  readonly amount: bigint
+  readonly currency: string
+  /** What the payee should reconcile it against. */
+  readonly remittanceInformation: string
+  /** A structured creditor reference, when the payee gave one. */
+  readonly remittanceReference: string | null
+}
+
+export interface PaymentBatch {
+  readonly id: string
+  readonly reference: string
+  readonly state: PaymentBatchState
+  /** The account the money leaves from. */
+  readonly debtorName: string
+  readonly debtorIban: string
+  readonly debtorBic: string | null
+  readonly requestedExecutionDate: string
+  /**
+   * When the approval was given, ISO 8601, or null while unapproved.
+   *
+   * This is what `CreDtTm` in the pain.001 is stamped with, so the file is
+   * byte-identical however often it is downloaded. Taking the clock instead
+   * would mean the recorded hash did not reproduce — and "store the exact bytes
+   * sent" (spec 8, rule 3) is not a claim you can make about bytes that change.
+   */
+  readonly approvedAt: string | null
+  readonly instructions: readonly PaymentInstruction[]
+}
+
+/**
+ * IBAN check digits, ISO 13616 / mod-97-10.
+ *
+ * Worth doing rather than pattern-matching the shape: a mistyped IBAN is the
+ * commonest error in a payment file, the bank rejects the whole batch for one
+ * bad account, and the check is fourteen lines. Catching it here saves an
+ * afternoon of "the bank refused it and won't say why".
+ */
+export function isValidIban(value: string): boolean {
+  const iban = value.replace(/\s/g, '').toUpperCase()
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(iban)) return false
+
+  // Move the first four characters to the end, then read letters as numbers.
+  const rearranged = iban.slice(4) + iban.slice(0, 4)
+  let remainder = 0
+
+  for (const character of rearranged) {
+    const value_ =
+      character >= '0' && character <= '9'
+        ? character.charCodeAt(0) - 48
+        : character.charCodeAt(0) - 55
+    // Two digits at a time keeps every intermediate inside a safe integer,
+    // which is the whole reason this is not one big BigInt division.
+    remainder = (remainder * (value_ > 9 ? 100 : 10) + value_) % 97
+  }
+
+  return remainder === 1
+}
+
+/** ISO 9362. Eight or eleven characters, and the shape is all there is to check. */
+export function isValidBic(value: string): boolean {
+  return /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(value.replace(/\s/g, '').toUpperCase())
+}
+
+/**
+ * Characters SEPA accepts in a name or a remittance line.
+ *
+ * The EPC restricts them to a Latin subset, and a bank that receives anything
+ * else either rejects the file or silently transliterates it — after which the
+ * payee cannot match the payment. So it is checked, and the caller is told
+ * which character rather than being handed a rejected batch.
+ */
+const SEPA_CHARACTERS = /^[A-Za-z0-9/\-?:().,'+ ]*$/
+
+export function offendingSepaCharacters(value: string): readonly string[] {
+  return [...new Set([...value].filter((character) => !SEPA_CHARACTERS.test(character)))]
+}
+
+export interface PaymentProblem {
+  readonly code:
+    | 'invalid_iban'
+    | 'invalid_bic'
+    | 'invalid_amount'
+    | 'invalid_currency'
+    | 'invalid_date'
+    | 'invalid_characters'
+    | 'duplicate_end_to_end_id'
+    | 'empty_batch'
+    | 'missing_name'
+  readonly path: string
+  readonly message: string
+  /** Which sentence this is, and the values in it, for a client that translates. */
+  readonly messageKey: FindingMessageKey
+  readonly detail?: Readonly<Record<string, string>>
+}
+
+/**
+ * Everything wrong with a batch, before a bank sees it.
+ *
+ * All of it at once: a batch of forty instructions with three bad IBANs should
+ * report three, not the first one three times over.
+ */
+export function validatePaymentBatch(batch: PaymentBatch): readonly PaymentProblem[] {
+  const problems: PaymentProblem[] = []
+
+  if (batch.instructions.length === 0) {
+    problems.push({
+      code: 'empty_batch',
+      path: 'instructions',
+      message: renderFindingMessage('payment.empty_batch'),
+      messageKey: 'payment.empty_batch',
+    })
+  }
+
+  if (batch.debtorName.trim() === '') {
+    problems.push({
+      code: 'missing_name',
+      path: 'debtorName',
+      message: renderFindingMessage('payment.missing_name.payer'),
+      messageKey: 'payment.missing_name.payer',
+    })
+  }
+  if (!isValidIban(batch.debtorIban)) {
+    problems.push({
+      code: 'invalid_iban',
+      path: 'debtorIban',
+      message: renderFindingMessage('payment.invalid_iban.debtor', {
+        debtorIban: batch.debtorIban,
+      }),
+      messageKey: 'payment.invalid_iban.debtor',
+      detail: { debtorIban: batch.debtorIban },
+    })
+  }
+  if (batch.debtorBic !== null && !isValidBic(batch.debtorBic)) {
+    problems.push({
+      code: 'invalid_bic',
+      path: 'debtorBic',
+      message: renderFindingMessage('payment.invalid_bic.debtor', { debtorBic: batch.debtorBic }),
+      messageKey: 'payment.invalid_bic.debtor',
+      detail: { debtorBic: batch.debtorBic },
+    })
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(batch.requestedExecutionDate)) {
+    problems.push({
+      code: 'invalid_date',
+      path: 'requestedExecutionDate',
+      message: renderFindingMessage('payment.invalid_date'),
+      messageKey: 'payment.invalid_date',
+    })
+  }
+
+  const seen = new Set<string>()
+
+  batch.instructions.forEach((instruction, index) => {
+    const at = `instructions.${String(index)}`
+
+    if (instruction.creditorName.trim() === '') {
+      problems.push({
+        code: 'missing_name',
+        path: `${at}.creditorName`,
+        message: renderFindingMessage('payment.missing_name.payee'),
+        messageKey: 'payment.missing_name.payee',
+      })
+    }
+    if (!isValidIban(instruction.creditorIban)) {
+      problems.push({
+        code: 'invalid_iban',
+        path: `${at}.creditorIban`,
+        message: renderFindingMessage('payment.invalid_iban.creditor', {
+          creditorIban: instruction.creditorIban,
+        }),
+        messageKey: 'payment.invalid_iban.creditor',
+        detail: { creditorIban: instruction.creditorIban },
+      })
+    }
+    if (instruction.creditorBic !== null && !isValidBic(instruction.creditorBic)) {
+      problems.push({
+        code: 'invalid_bic',
+        path: `${at}.creditorBic`,
+        message: renderFindingMessage('payment.invalid_bic.creditor', {
+          creditorBic: instruction.creditorBic,
+        }),
+        messageKey: 'payment.invalid_bic.creditor',
+        detail: { creditorBic: instruction.creditorBic },
+      })
+    }
+    if (instruction.amount <= 0n) {
+      problems.push({
+        code: 'invalid_amount',
+        path: `${at}.amount`,
+        message: renderFindingMessage('payment.invalid_amount'),
+        messageKey: 'payment.invalid_amount',
+      })
+    }
+    if (instruction.currency !== 'EUR') {
+      // SEPA credit transfer is a euro instrument. Anything else needs a
+      // different message type, and pretending otherwise produces a file the
+      // bank rejects.
+      problems.push({
+        code: 'invalid_currency',
+        path: `${at}.currency`,
+        message: renderFindingMessage('payment.invalid_currency'),
+        messageKey: 'payment.invalid_currency',
+      })
+    }
+
+    if (seen.has(instruction.endToEndId)) {
+      problems.push({
+        code: 'duplicate_end_to_end_id',
+        path: `${at}.endToEndId`,
+        message: renderFindingMessage('payment.duplicate_end_to_end_id', {
+          endToEndId: instruction.endToEndId,
+        }),
+        messageKey: 'payment.duplicate_end_to_end_id',
+        detail: { endToEndId: instruction.endToEndId },
+      })
+    }
+    seen.add(instruction.endToEndId)
+
+    for (const [field, value] of [
+      ['creditorName', instruction.creditorName],
+      ['remittanceInformation', instruction.remittanceInformation],
+      ['endToEndId', instruction.endToEndId],
+    ] as const) {
+      const offending = offendingSepaCharacters(value)
+      if (offending.length > 0) {
+        const characters = offending.map((character) => `"${character}"`).join(', ')
+        problems.push({
+          code: 'invalid_characters',
+          path: `${at}.${field}`,
+          message: renderFindingMessage('payment.invalid_characters', { characters }),
+          messageKey: 'payment.invalid_characters',
+          detail: { characters },
+        })
+      }
+    }
+  })
+
+  return problems
+}
+
+/** The total a `CtrlSum` has to agree with. */
+export function batchTotal(batch: PaymentBatch): bigint {
+  return batch.instructions.reduce((sum, instruction) => sum + instruction.amount, 0n)
+}
+
+export function assertPayable(batch: PaymentBatch): void {
+  const problems = validatePaymentBatch(batch)
+  if (problems.length === 0) return
+
+  throw new LedgerError(
+    problems.map((problem) =>
+      forwarded('invalid_payment', problem.path, problem.message, problem.messageKey, {
+        code: problem.code,
+      }),
+    ),
+  )
+}
