@@ -18,6 +18,18 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### The euro.computer palette, of record
+
+- **Eight colours and one typeface**, the same ones the landing page ships:
+  `#5003C0` ground, `#FFFFFF` type, `#FFD51E` for headings and primary
+  actions, `#FF467A` for focus and anything hot, `#AB03A9` structure with
+  `#C44FC3` for lines, `#CEB8ED` for quiet text, `#4C0158` for recessed
+  surfaces — and Ubuntu Sans Variable at 400, 500 and 600. They are named once
+  in `apps/web/src/styles/app.css` and every shadcn token is an alias onto one
+  of them, so nothing in the application picks a colour, it picks a meaning.
+  The neutral shadcn preset that used to live there is gone; re-running
+  `shadcn apply --preset` would throw the brand away, and the file says so.
+
 ### The day's work, on the screen it opens on (alpha 2)
 
 - **The dashboard is a work queue.** What is waiting, in the order the day is

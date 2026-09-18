@@ -126,7 +126,7 @@ function Webhooks() {
         <div className="border-border bg-muted/40 mb-6 max-w-2xl rounded-md border p-4">
           <p className="text-sm font-medium">{t('webhooks.secretTitle')}</p>
           <p className="text-muted-foreground mt-1 text-xs">{t('webhooks.secretOnce')}</p>
-          <code className="mt-2 block overflow-x-auto rounded bg-black/5 p-2 font-mono text-xs">
+          <code className="mt-2 block overflow-x-auto rounded bg-muted p-2 font-mono text-xs">
             {issued.secret}
           </code>
           <button
