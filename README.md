@@ -76,7 +76,7 @@ local stack.
 ```bash
 pnpm install
 cp .env.example .env                       # set KLOPT_AUTH_SECRET
-docker compose up -d                       # Postgres + MinIO with object lock
+docker compose up -d                       # Postgres + MinIO with object lock (dev stack)
 pnpm run build
 pnpm --filter @klopt/db run migrate
 pnpm run dev                               # http://localhost:3000
@@ -348,6 +348,21 @@ Check everything the way CI does:
 ```bash
 pnpm run verify               # format, build, lint, typecheck, test, boundaries
 ```
+
+That needs Postgres and nothing else. The ledger tests run against a real
+database on purpose — the triggers are half the guarantee and a mocked database
+proves nothing about them — but the object-storage tests bring up an
+S3-compatible object-lock bucket inside the test process, so neither `verify`
+nor CI needs MinIO. Point them at the real thing when you want to be sure the
+signer is right:
+
+```bash
+docker compose up -d minio minio-init
+KLOPT_S3_ENDPOINT=http://localhost:9000 pnpm run test
+```
+
+Why it works that way, and what a bucket in-process cannot prove, is in
+[ADR 0059](docs/decisions/0059-a-bucket-close-enough-to-test-against.md).
 
 ## Layout
 

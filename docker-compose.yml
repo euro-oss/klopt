@@ -21,6 +21,11 @@ services:
   # Object lock is a retention requirement (spec 7.6), not a nice-to-have, so
   # the development stack has it on from the start rather than discovering at
   # M5 that the bucket layout cannot support it.
+  #
+  # Running the tests does not need this. They bring up an S3-compatible
+  # object-lock bucket in their own process, and run against this one only when
+  # KLOPT_S3_ENDPOINT points at it (ADR 0059). What it is for is running the
+  # application against real object storage.
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"

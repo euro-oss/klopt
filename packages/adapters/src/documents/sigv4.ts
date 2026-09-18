@@ -15,9 +15,11 @@ import { createHash, createHmac } from 'node:crypto'
  * signature is correct is either verifiable locally or it is not. Digipoort
  * needs a PKIoverheid certificate and a run against Logius's pre-production
  * environment, so an unverified signer there would have been a guess dressed as
- * an implementation. S3 needs MinIO, which is in `compose.yaml` with an
- * object-lock bucket and is what the tests run against. A wrong signature here
- * fails loudly and immediately.
+ * an implementation. S3 needs MinIO, which is in `docker-compose.yml` with an
+ * object-lock bucket; the tests run against a bucket in their own process that
+ * verifies these signatures from the algorithm, and against MinIO itself when
+ * `KLOPT_S3_ENDPOINT` says so (ADR 0059). A wrong signature fails loudly and
+ * immediately either way.
  *
  * The scope is six operations — put, get, head, delete, and setting and reading
  * object retention — and the keys are always lowercase hex sha256, which

@@ -1,15 +1,31 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { supportsWorm } from '@klopt/core'
+import { supportsWorm, type WormDocumentStore } from '@klopt/core'
+import { startFakeS3, type FakeS3 } from '../../src/testing.js'
 import { createS3DocumentStore } from '../../src/documents/s3.js'
+import { signS3Request, type S3Credentials } from '../../src/documents/sigv4.js'
 
 /**
- * The S3 store, against the MinIO in `compose.yaml`.
+ * The S3 store, against a bucket that behaves like one.
  *
- * This is the reason it was acceptable to write SigV4 out by hand rather than
- * pull in the AWS SDK (see the note in `sigv4.ts`, and ADR 0024 for the
- * contrast with the Digipoort signer that was deliberately left unwritten). A
- * wrong signature fails here, loudly, on the first request.
+ * By default that bucket is `startFakeS3` — an S3-compatible object-lock
+ * bucket in this process, on a loopback port. The store, the signer and the
+ * HTTP round trip are the real ones; only the far side of the socket is
+ * standing in, which is what lets this suite run in CI with no MinIO service
+ * (issue #4, ADR 0059).
+ *
+ * Set `KLOPT_S3_ENDPOINT` and it runs against whatever is there instead:
+ *
+ * ```
+ * docker compose up -d minio minio-init
+ * KLOPT_S3_ENDPOINT=http://localhost:9000 pnpm --filter @klopt/adapters exec vitest run
+ * ```
+ *
+ * That is not a formality. The fake verifies signatures from the algorithm
+ * rather than by asking the signer, so a dropped header or a mis-hashed payload
+ * fails here — but a shared misreading of SigV4 would satisfy both sides, and
+ * only a real bucket can rule that out. The specs below are written to pass
+ * against either.
  *
  * The tests that matter are the ones about the lock. Anybody can store and read
  * bytes back; the point of this store is that it **refuses** to delete bytes
@@ -17,20 +33,24 @@ import { createS3DocumentStore } from '../../src/documents/s3.js'
  * the application's into the storage's.
  */
 
-const ENDPOINT = process.env['KLOPT_S3_ENDPOINT'] ?? 'http://localhost:9000'
+const EXTERNAL = process.env['KLOPT_S3_ENDPOINT']?.trim()
+/** Whether the bucket on the other end is one this file can also inspect. */
+const FAKE = EXTERNAL === undefined || EXTERNAL === ''
+
 const BUCKET = process.env['KLOPT_S3_DOCUMENTS_BUCKET'] ?? 'klopt-documents'
+const UNLOCKED_BUCKET = 'klopt-exports'
 
-const store = createS3DocumentStore({
-  endpoint: ENDPOINT,
-  bucket: BUCKET,
-  credentials: {
-    accessKeyId: process.env['KLOPT_S3_ACCESS_KEY_ID'] ?? 'klopt',
-    secretAccessKey: process.env['KLOPT_S3_SECRET_ACCESS_KEY'] ?? 'klopt-dev-secret',
-    region: process.env['KLOPT_S3_REGION'] ?? 'us-east-1',
-  },
-})
+const credentials: S3Credentials = {
+  accessKeyId: process.env['KLOPT_S3_ACCESS_KEY_ID'] ?? 'klopt',
+  secretAccessKey: process.env['KLOPT_S3_SECRET_ACCESS_KEY'] ?? 'klopt-dev-secret',
+  region: process.env['KLOPT_S3_REGION'] ?? 'us-east-1',
+}
 
-/** Unique per run: the store is content-addressed and the bucket persists. */
+let fake: FakeS3 | null = null
+let endpoint: string
+let store: WormDocumentStore
+
+/** Unique per run: the store is content-addressed and a real bucket persists. */
 const bytes = (marker: string): Uint8Array =>
   new TextEncoder().encode(`klopt s3 test ${marker} ${randomUUID()}`)
 
@@ -40,31 +60,44 @@ function soon(days = 1): string {
   return date.toISOString().slice(0, 10)
 }
 
+const keyFor = (sha256: string): string => `${sha256.slice(0, 2)}/${sha256.slice(2, 4)}/${sha256}`
+
 const stored: string[] = []
 
 beforeAll(async () => {
-  // Fail fast and legibly if the stack is not up, rather than fifteen times.
-  const reachable = await fetch(`${ENDPOINT}/minio/health/live`).then(
-    (response) => response.ok,
-    () => false,
-  )
-  if (!reachable) {
-    throw new Error(
-      `No S3 at ${ENDPOINT}. Start the development stack: docker compose up -d minio minio-init`,
+  if (FAKE) {
+    fake = await startFakeS3({ credentials })
+    endpoint = fake.endpoint
+  } else {
+    endpoint = EXTERNAL!
+    // Somebody asked for a real bucket explicitly, so failing to find one is an
+    // error rather than a reason to quietly test something else.
+    const reachable = await fetch(`${endpoint}/minio/health/live`).then(
+      (response) => response.ok,
+      () => false,
     )
+    if (!reachable) {
+      throw new Error(
+        `KLOPT_S3_ENDPOINT points at ${endpoint} and there is no S3 there. Start the development stack: docker compose up -d minio minio-init`,
+      )
+    }
   }
+
+  store = createS3DocumentStore({ endpoint, bucket: BUCKET, credentials })
 }, 30_000)
 
 afterAll(async () => {
   // Best-effort tidy-up. Anything under a lock stays, which is the whole point
   // and is why this does not assert.
   for (const sha256 of stored) await store.delete(sha256).catch(() => undefined)
+  await fake?.close()
 })
 
 describe('storing and reading', () => {
-  it('signs a request MinIO accepts', async () => {
-    // The one assertion that proves the signer. Everything else here depends on
-    // it working, so if this fails nothing below means anything.
+  it('signs a request the bucket accepts', async () => {
+    // The one assertion that proves the signer reaches a bucket at all.
+    // Everything else here depends on it working, so if this fails nothing
+    // below means anything.
     const content = bytes('signature')
     const put = await store.put(content, { contentType: 'text/plain' })
     stored.push(put.sha256)
@@ -190,6 +223,38 @@ describe('the lock', () => {
     stored.push(again.sha256)
     expect(again.existed).toBe(false)
   })
+
+  /**
+   * The trap itself, walked into on purpose.
+   *
+   * ADR 0032 says a plain DELETE on a versioned bucket hides a locked object
+   * instead of removing it, and that a subsequent HEAD answers 404 about bytes
+   * that are still there. That is the whole reason `delete` names versions, so
+   * it is worth a test that would notice if the bucket ever stopped behaving
+   * that way — which is also the standard the fake bucket is held to.
+   */
+  it('a DELETE that names no version hides the bytes rather than removing them', async () => {
+    const put = await store.put(bytes('marker'), { contentType: 'text/plain' })
+    stored.push(put.sha256)
+    await store.retain(put.sha256, soon(4))
+
+    const path = `/${BUCKET}/${keyFor(put.sha256)}`
+    const target = new URL(endpoint)
+    const naive = await fetch(new URL(path, target), {
+      method: 'DELETE',
+      headers: signS3Request({ method: 'DELETE', path, headers: {} }, credentials, target),
+    })
+
+    // It succeeded, on an object under a compliance lock.
+    expect([200, 204]).toContain(naive.status)
+    // And the object now answers 404, which is what made the lie plausible.
+    expect(await store.has(put.sha256)).toBe(false)
+
+    // The store's own delete names the version, so it gets the refusal.
+    const outcome = await store.delete(put.sha256)
+    expect(outcome.outcome).toBe('locked')
+    expect(await store.has(put.sha256)).toBe(true)
+  })
 })
 
 describe('what the bucket actually guarantees', () => {
@@ -206,22 +271,65 @@ describe('what the bucket actually guarantees', () => {
   })
 
   it('says so, with a reason, for a bucket without one', async () => {
-    // `klopt-exports` is created without `--with-lock`, which makes it the
-    // honest fixture for this. It is a fixture and nothing else: no product
-    // setting points at it, because sealed snapshots go to the documents
-    // bucket where they inherit the lock and a retention date (ADR 0032).
+    // `klopt-exports` is created without `--with-lock` — in the compose file and
+    // in the fake alike — which makes it the honest fixture for this. It is a
+    // fixture and nothing else: no product setting points at it, because sealed
+    // snapshots go to the documents bucket where they inherit the lock and a
+    // retention date (ADR 0032).
     const unlocked = createS3DocumentStore({
-      endpoint: ENDPOINT,
-      bucket: 'klopt-exports',
-      credentials: {
-        accessKeyId: process.env['KLOPT_S3_ACCESS_KEY_ID'] ?? 'klopt',
-        secretAccessKey: process.env['KLOPT_S3_SECRET_ACCESS_KEY'] ?? 'klopt-dev-secret',
-        region: process.env['KLOPT_S3_REGION'] ?? 'us-east-1',
-      },
+      endpoint,
+      bucket: UNLOCKED_BUCKET,
+      credentials,
     })
 
     const verified = await unlocked.verifyLock()
     expect(verified.enabled).toBe(false)
     expect(verified.reason).toContain('recreated')
+  })
+})
+
+/**
+ * What the fake bucket can test and a real one cannot.
+ *
+ * A refusal does not have one shape: MinIO answers 400 `InvalidRequest` with
+ * "Object is WORM protected", AWS answers 403 `AccessDenied`. Matching on the
+ * status alone read MinIO's refusal as a fault and threw, and matching on the
+ * body alone would call a 200 containing the word a refusal — so the store
+ * matches on both, and until now only one of the two branches was ever
+ * exercised anywhere.
+ */
+describe.skipIf(!FAKE)('both shapes a refusal comes in', () => {
+  it('reads an AWS-shaped refusal as a refusal', async () => {
+    const aws = await startFakeS3({ credentials, refusal: 'aws' })
+    try {
+      const awsStore = createS3DocumentStore({
+        endpoint: aws.endpoint,
+        bucket: BUCKET,
+        credentials,
+      })
+      const put = await awsStore.put(bytes('aws-refusal'), { contentType: 'text/plain' })
+      await awsStore.retain(put.sha256, soon(3))
+
+      const outcome = await awsStore.delete(put.sha256)
+      expect(outcome.outcome).toBe('locked')
+      expect(outcome.outcome === 'locked' && outcome.until).toBe(soon(3))
+      expect(await awsStore.has(put.sha256)).toBe(true)
+    } finally {
+      await aws.close()
+    }
+  })
+
+  it('refuses a store that signs with the wrong secret', async () => {
+    // Which is what makes the rest of this file mean anything: a bucket that
+    // accepted any signature would let a broken signer pass.
+    const wrong = createS3DocumentStore({
+      endpoint,
+      bucket: BUCKET,
+      credentials: { ...credentials, secretAccessKey: 'not-the-secret' },
+    })
+
+    await expect(wrong.put(bytes('wrong-secret'), { contentType: 'text/plain' })).rejects.toThrow(
+      /403/,
+    )
   })
 })

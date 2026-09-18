@@ -22,6 +22,13 @@ pnpm run verify     # format, build, lint, typecheck, test, boundaries
 
 CI runs the same command. If `verify` is green locally it will be green there.
 
+It needs Postgres — `docker compose up -d postgres` and
+`pnpm --filter @klopt/db run migrate` — and nothing else. Object storage is not
+a test dependency: the S3 store's specs run against an S3-compatible
+object-lock bucket inside the test process, and against MinIO only when you ask
+for it with `KLOPT_S3_ENDPOINT` ([ADR
+0059](docs/decisions/0059-a-bucket-close-enough-to-test-against.md)).
+
 ## The rules that are not negotiable
 
 These are enforced mechanically, so you will find out fast. They are listed here
