@@ -18,7 +18,27 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
-### The keyboard, on the screen (alpha 4, design pass)
+### The keyboard, on the screen (alpha 4, design pass against the Penpot boards)
+
+- **The chrome the boards draw.** A compact strip of keycaps along the bottom of
+  each pane — under the list, and again under the panel that acts on a row of it —
+  and a panel in the corner with the screen's whole keyboard, on het postvak, de
+  koppelwachtrij, de journaalpost and de nieuwe factuur. Panes are numbered
+  (`1 · POSTVAK`, `2 · NAKIJKEN`), because the spine is a sequence and a reader
+  should see which half the keyboard is in without pressing anything. The printed
+  labels are terse now, because a cap with a sentence beside it is a sentence.
+- **Two panes, two cursors, on the koppelscherm.** `j`/`k` move bank lines from
+  the queue and candidates from inside the panel, scoped by where the focus is
+  rather than by a mode. `Enter` books what is pointed at and the panel starts on
+  the best suggestion, so a line whose top answer is right is still the one
+  keystroke section 7.4 asks for. `u` drops the choice the panel is holding — on a
+  queue of unbooked lines that is the only thing there is to undo, and undoing a
+  _booked_ match is a reversal, which stays a button that asks.
+- **The buttons print their keys**, as the boards do: "Concept maken (a)",
+  "Terzijde leggen (s)", "Keuze wissen (u)", "Overslaan (x)". And the invoice form
+  has the Cancel the board shows, which is Escape's visible twin.
+
+### The keyboard, on the screen (alpha 4)
 
 - **Het postvak is worked like the other two lists.** It was a column of cards
   and a `Tab` key, which broke the invoice → koppelen → postvak spine at its last

@@ -225,21 +225,28 @@ The bank matching queue is keyboard-first, because the work is repetitive and
 the whole value is rhythm: a hundred lines should be a hundred keystrokes, not a
 hundred round trips through a mouse.
 
-| Key      | Does                                            |
-| -------- | ----------------------------------------------- |
-| `↑` `k`  | Previous line                                   |
-| `↓` `j`  | Next line                                       |
-| `↵`      | Book the best suggestion                        |
-| `1`–`9`  | Book that suggestion                            |
-| `x`      | Skip: deliberately not booked                   |
-| `Escape` | Drop the choices in the panel, back to the list |
+| Key      | Does                                 |
+| -------- | ------------------------------------ |
+| `↑` `k`  | Previous line                        |
+| `↓` `j`  | Next line                            |
+| `↵`      | Book the best suggestion             |
+| `1`–`9`  | Book that suggestion                 |
+| `x`      | Skip: deliberately not booked        |
+| `u`      | Drop the choice the panel is holding |
+| `Escape` | Close the panel, back to the list    |
 
-**Not bound: `u` to unmatch.** There is no unmatch operation in `/api/v1`, and
-there should not be a key for one: a booked match is a posted entry, and a posted
-entry is undone by a reversal, which principle 4 keeps as a deliberate act with a
-button and a question. The design board asks for `u`; this is the one place the
-map and the board disagree, and the reason is in the ledger rather than in the
-keyboard.
+Two panes and two cursors, scoped by where the focus is: `j`/`k` move lines from
+the queue and candidates from inside the panel. `Enter` books what is pointed at,
+and the panel starts on the best suggestion — so a line whose top answer is right
+is still the one keystroke section 7.4 asks for.
+
+**`u` drops a pending choice, and does not unmatch a booked one.** The board asks
+for "unmatch"; on a queue of lines that have not been booked yet, the only thing
+there is to undo is the choice in the panel, and that is what `u` does. Undoing a
+_booked_ match is a reversal — the entry is posted and the journal is append-only
+— and principle 4 keeps a reversal as a button that asks. There is also no
+unmatch operation in `/api/v1` to call. This is the one place the map and the
+board disagree, and the reason is in the ledger rather than in the keyboard.
 
 The handler is bound on the window rather than on a focused element — the hands
 never leave the keys, so there is nothing to focus first — and it stands down
@@ -318,17 +325,29 @@ either way: it takes a number out of a gapless series and posts an entry.
 
 ## Where the keys are printed
 
-Three places, all generated from the registry:
+Four places, all generated from the registry:
 
-- **On the screen**, as keycaps along the bottom of the thing they work on — the
-  entry form, the invoice form and list, the koppelscherm, het postvak. Yellow
-  outline, because the accent marks where the keyboard is.
+- **A strip along the bottom of the pane the keys work in** — under the list, and
+  again under the panel that acts on a row of it. Yellow outline, because the
+  accent marks where the keyboard is.
+- **A panel in the corner** with the screen's whole keyboard, on the screens the
+  Alpha 4 boards draw it on: het postvak, de koppelwachtrij, de journaalpost and
+  de nieuwe factuur. Hidden on a narrow window, where it would sit on top of the
+  thing it describes.
 - **In the sidebar**, next to every destination. Printed rather than revealed on
   hover: a keyboard user never hovers.
 - **In the `?` sheet and the palette**, as the same caps.
 
 A screen declares binding **ids**, never keys, so it cannot print a key it has
-not registered and cannot print one that has since changed.
+not registered and cannot print one that has since changed. The panes are
+numbered — `1 · POSTVAK`, `2 · NAKIJKEN` — because the spine is a sequence, and a
+reader should be able to see which half the keyboard is in without pressing
+anything.
+
+**Not printed, and not bound: `/` to focus a list filter.** The boards show a
+search box above the invoice list with `/` focusing it. There is no filter field
+on that list yet, and inventing one here would be inventing a feature rather than
+a key; `/` stays unbound until there is something to focus (#6).
 
 ## Moving between screens
 

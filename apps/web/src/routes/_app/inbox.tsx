@@ -6,7 +6,7 @@ import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
-import { ShortcutStrip } from '~/components/ui/keycap'
+import { ShortcutFooter, ShortcutPanel, StepBadge } from '~/components/ui/keycap'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -356,6 +356,12 @@ function Inbox() {
         </p>
       )}
 
+      {items.length > 0 && (
+        <div className="mb-2 max-w-4xl">
+          <StepBadge step={1}>{t('inbox.stepList')}</StepBadge>
+        </div>
+      )}
+
       <ul
         aria-label={t('inbox.queue')}
         className="max-w-4xl space-y-3"
@@ -565,6 +571,9 @@ function Inbox() {
                   }}
                   className="border-border mt-4 border-t pt-4"
                 >
+                  <div className="mb-3">
+                    <StepBadge step={2}>{t('inbox.stepReview')}</StepBadge>
+                  </div>
                   {parsed === null ? (
                     <form
                       onSubmit={(event) => {
@@ -699,7 +708,7 @@ function Inbox() {
                           disabled={!hydrated || busy}
                           className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
                         >
-                          {busy ? t('common.busy') : t('inbox.makeDraft')}
+                          {busy ? t('common.busy') : `${t('inbox.makeDraft')} (a)`}
                         </button>
                         <button
                           type="button"
@@ -709,12 +718,14 @@ function Inbox() {
                           }}
                           className="border-input border px-4 py-2 text-sm disabled:opacity-50"
                         >
-                          {t('inbox.setAside')}
+                          {t('inbox.setAside')} (s)
                         </button>
                         <span className="text-muted-foreground text-xs">
                           {t('inbox.amountsFixed')}
                         </span>
                       </div>
+
+                      <ShortcutFooter ids={['inbox.approve', 'inbox.skip', 'inbox.leave']} />
                     </form>
                   )}
                 </div>
@@ -725,17 +736,14 @@ function Inbox() {
       </ul>
 
       {items.length > 0 && (
-        <ShortcutStrip
-          floating
-          ids={[
-            'inbox.next',
-            'inbox.previous',
-            'inbox.open',
-            'inbox.approve',
-            'inbox.skip',
-            'inbox.leave',
-          ]}
-        />
+        <>
+          <div className="max-w-4xl">
+            <ShortcutFooter ids={['inbox.next', 'inbox.previous', 'inbox.open']} />
+          </div>
+          <ShortcutPanel
+            ids={['inbox.open', 'inbox.approve', 'inbox.skip', 'inbox.leave', 'inbox.next']}
+          />
+        </>
       )}
 
       <InboundSources />

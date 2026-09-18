@@ -217,7 +217,7 @@ test('the help sheet is the keyboard map, generated from the registry', async ({
 
   // Including the screen-local keys, which the palette cannot offer because it
   // cannot run them from here.
-  await expect(help).toContainText('Beste voorstel boeken')
+  await expect(help).toContainText('Voorstel boeken')
   await expect(help).toContainText('Commandopalet')
 
   await page.keyboard.press('Escape')
@@ -552,7 +552,7 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await page.keyboard.press('Enter')
   await expect(account).toHaveValue('4400')
 
-  await tabTo(page, /^BUTTON Concept maken$/)
+  await tabTo(page, /^BUTTON Concept maken/)
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { name: 'Inkoopfactuur F-2026-0042' })).toBeVisible()
   await focusIsSomewhere(page)
@@ -584,11 +584,16 @@ test('the postvak is worked with the same keys as everything else', async ({ pag
   const cards = page.getByRole('list', { name: 'Wat er binnen is gekomen' }).getByRole('listitem')
   await expect(cards).toHaveCount(2)
 
-  // The keys are printed on the screen they work on, not only in the ? sheet.
-  const strip = page.getByLabel('Sneltoetsen').first()
-  await expect(strip).toContainText('Concept maken van dit stuk')
-  await expect(strip.getByText('A', { exact: true })).toBeVisible()
-  await expect(strip.getByText('S', { exact: true })).toBeVisible()
+  // The keys are printed on the screen they work on, not only in the ? sheet:
+  // a panel in the corner with the screen's whole keyboard, and a strip along
+  // the bottom of each pane.
+  const panel = page.getByRole('complementary', { name: 'Sneltoetsen' })
+  await expect(panel).toContainText('Concept maken')
+  await expect(panel.getByText('A', { exact: true })).toBeVisible()
+  await expect(panel.getByText('S', { exact: true })).toBeVisible()
+  // The same key, twice over: once in the corner panel and once in the strip
+  // under the list it moves.
+  await expect(page.getByText('Volgend stuk')).toHaveCount(2)
 
   await tabTo(page, /^LI /)
   const cursor = page.locator('li[aria-current="true"]')

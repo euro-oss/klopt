@@ -231,6 +231,7 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'match.skip', label: 'keys.matchSkip', group: 'keys.group.match', keys: 'x' },
   { id: 'match.next', label: 'keys.matchNext', group: 'keys.group.match', keys: 'j' },
   { id: 'match.previous', label: 'keys.matchPrevious', group: 'keys.group.match', keys: 'k' },
+  { id: 'match.clear', label: 'keys.matchClear', group: 'keys.group.match', keys: 'u' },
   { id: 'match.leave', label: 'keys.matchLeave', group: 'keys.group.match', keys: 'escape' },
 
   // Het postvak, worked with the same four keys as the koppelscherm and the

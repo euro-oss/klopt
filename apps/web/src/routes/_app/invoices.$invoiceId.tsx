@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-r
 import { violationMessage } from '~/i18n/labels'
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
-import { ShortcutStrip } from '~/components/ui/keycap'
+import { ShortcutFooter } from '~/components/ui/keycap'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
@@ -439,7 +439,7 @@ function Invoice() {
         </p>
       )}
 
-      {isDraft && <ShortcutStrip ids={['invoice.issue', 'list.next', 'list.copy']} />}
+      {isDraft && <ShortcutFooter ids={['invoice.issue', 'list.next', 'list.copy']} />}
     </>
   )
 }

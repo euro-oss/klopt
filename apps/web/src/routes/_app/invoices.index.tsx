@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
-import { ShortcutStrip } from '~/components/ui/keycap'
+import { ShortcutFooter, ShortcutPanel, StepBadge } from '~/components/ui/keycap'
 import { Money } from '~/components/finance/money'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
@@ -156,6 +156,10 @@ function Invoices() {
         ))}
       </nav>
 
+      <div className="mb-2">
+        <StepBadge step={1}>{t('invoices.stepList')}</StepBadge>
+      </div>
+
       <LedgerTable
         columns={columns}
         rows={result.data.invoices}
@@ -171,8 +175,17 @@ function Invoices() {
           in this application — `n` then `f` — so that is what is printed: a
           screen that promised a bare `n` would be promising a key the global
           handler takes first. */}
-      <ShortcutStrip
-        ids={['list.next', 'list.previous', 'list.open', 'list.copy', 'new.invoice']}
+      <ShortcutFooter ids={['list.next', 'list.previous', 'list.open', 'new.invoice']} />
+
+      <ShortcutPanel
+        ids={[
+          'list.next',
+          'list.previous',
+          'list.open',
+          'new.invoice',
+          'list.selectAll',
+          'list.copy',
+        ]}
       />
     </>
   )

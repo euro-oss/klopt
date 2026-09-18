@@ -3,7 +3,7 @@ import { violationMessage } from '~/i18n/labels'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { AccountPicker } from '~/components/finance/account-picker'
-import { ShortcutStrip } from '~/components/ui/keycap'
+import { ShortcutFooter, ShortcutPanel } from '~/components/ui/keycap'
 import { Money } from '~/components/finance/money'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
@@ -329,6 +329,9 @@ function NewEntry() {
   return (
     <form
       ref={formRef}
+      // Room for the keyboard panel in the corner, so it never sits on top of
+      // the credit column.
+      className="xl:pr-72"
       onKeyDown={onKeyDown}
       onSubmit={(event) => {
         event.preventDefault()
@@ -535,7 +538,9 @@ function NewEntry() {
         />
       )}
 
-      <ShortcutStrip
+      <ShortcutFooter ids={['entry.post', 'entry.duplicateLine', 'entry.deleteLine']} />
+
+      <ShortcutPanel
         ids={[
           'entry.post',
           'entry.postAndNext',

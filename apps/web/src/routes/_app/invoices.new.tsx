@@ -5,7 +5,7 @@ import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
-import { ShortcutStrip } from '~/components/ui/keycap'
+import { ShortcutFooter, ShortcutPanel, StepBadge } from '~/components/ui/keycap'
 import { useT } from '~/i18n/provider'
 import { multiplyByDecimal, parseMinorUnits, percentOf } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
@@ -197,6 +197,7 @@ function NewInvoice() {
 
   return (
     <form
+      className="xl:pr-72"
       onKeyDown={(event) => {
         const mod = isApple() ? event.metaKey : event.ctrlKey
         if (mod && event.key === 'Enter') {
@@ -249,6 +250,10 @@ function NewInvoice() {
           {t('invoiceNew.noCustomers')}
         </p>
       )}
+
+      <div className="mb-2">
+        <StepBadge step={2}>{t('invoices.stepForm')}</StepBadge>
+      </div>
 
       <div className="mb-6 grid max-w-5xl grid-cols-5 gap-4">
         <SelectField
@@ -493,11 +498,25 @@ function NewInvoice() {
         >
           {busy ? t('common.busy') : t('invoiceNew.saveDraft')}
         </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            void navigate({ to: '/invoices', search: { status: undefined } })
+          }}
+          className="border-input border px-4 py-2 text-sm font-medium disabled:opacity-50"
+        >
+          {t('common.cancel')}
+        </button>
         <span className="text-muted-foreground text-xs">{t('invoiceNew.emptyLinesSkipped')}</span>
       </div>
 
       {/* Only what this form answers to: `j` is a letter here, not a cursor. */}
-      <ShortcutStrip ids={['invoiceForm.save', 'invoiceForm.cancel', 'picker.choose']} />
+      <ShortcutFooter ids={['invoiceForm.save', 'invoiceForm.cancel']} />
+
+      <ShortcutPanel
+        ids={['invoiceForm.save', 'invoiceForm.cancel', 'picker.choose', 'picker.next']}
+      />
     </form>
   )
 }
