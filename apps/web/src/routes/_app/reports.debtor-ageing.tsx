@@ -1,10 +1,12 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import { LedgerTable, type Column } from '~/components/finance/ledger-table'
+import { Button } from '~/components/ui/button'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
-import { DEBTOR_AGEING_BUCKETS, debtorAgeing } from '~/lib/ageing'
+import { DEBTOR_AGEING_BUCKETS, debtorAgeing, type DebtorAgeingRow } from '~/lib/ageing'
 import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { listOverdueInvoices } from '~/server/sales'
 
@@ -68,15 +70,45 @@ function DebtorAgeing() {
   const { asOf, invoices, totalOutstanding } = result.data
   const ageing = debtorAgeing(invoices)
 
+  const columns: readonly Column<DebtorAgeingRow>[] = [
+    {
+      key: 'customer',
+      header: t('debtorAgeing.customer'),
+      cell: (row) => (
+        <>
+          {row.contactName}
+          <span className="text-muted-foreground tabular text-xs">
+            {' '}
+            {t('debtorAgeing.oldest', { days: String(row.oldestDays) })}
+          </span>
+        </>
+      ),
+    },
+    ...DEBTOR_AGEING_BUCKETS.map((bucket) => ({
+      key: bucket,
+      header: t(BUCKET_LABELS[bucket]),
+      align: 'right' as const,
+      width: '9rem',
+      cell: (row: DebtorAgeingRow) => <Money amount={row[bucket]} muteZero />,
+    })),
+    {
+      key: 'total',
+      header: t('report.total'),
+      align: 'right',
+      width: '9rem',
+      cell: (row) => <Money amount={row.total} />,
+    },
+  ]
+
   return (
     <>
       <PageHeader
         title={t('debtorAgeing.title')}
         description={t('debtorAgeing.intro', { date: formatDate(asOf) })}
         actions={
-          <Link to="/dunning" className="border-input rounded-md border px-3 py-1.5 text-sm">
-            {t('nav.dunning')}
-          </Link>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/dunning">{t('nav.dunning')}</Link>
+          </Button>
         }
       />
 
@@ -92,69 +124,29 @@ function DebtorAgeing() {
 
       <p className="text-muted-foreground mb-6 max-w-3xl text-sm">{t('debtorAgeing.note')}</p>
 
-      <table className="border-border w-full max-w-5xl border-collapse text-sm">
-        <caption className="sr-only">{t('debtorAgeing.caption')}</caption>
-        <thead>
-          <tr className="border-border text-muted-foreground border-b text-left text-xs">
-            <th scope="col" className="py-2 pr-2 font-medium">
-              {t('debtorAgeing.customer')}
-            </th>
+      {/* The house table, not a second one written by hand: rows that are
+          focusable, a caption a screen reader reads, and `Cmd`+`C` into a
+          spreadsheet all come with it. */}
+      <LedgerTable
+        columns={columns}
+        rows={ageing.rows}
+        rowKey={(row) => row.contactName}
+        caption={t('debtorAgeing.caption')}
+        empty={t('debtorAgeing.empty')}
+        footer={
+          <tr>
+            <td className="px-3 py-2">{t('report.total')}</td>
             {DEBTOR_AGEING_BUCKETS.map((bucket) => (
-              <th key={bucket} scope="col" className="py-2 pr-2 text-right font-medium">
-                {t(BUCKET_LABELS[bucket])}
-              </th>
+              <td key={bucket} className="px-3 py-2 text-right">
+                <Money amount={ageing.totals[bucket]} />
+              </td>
             ))}
-            <th scope="col" className="py-2 text-right font-medium">
-              {t('report.total')}
-            </th>
+            <td className="px-3 py-2 text-right">
+              <Money amount={ageing.totals.total} />
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {ageing.rows.length === 0 && (
-            <tr>
-              <td colSpan={6} className="text-muted-foreground py-3">
-                {t('debtorAgeing.empty')}
-              </td>
-            </tr>
-          )}
-          {ageing.rows.map((row) => (
-            <tr key={row.contactName} className="border-border/50 border-t">
-              <th scope="row" className="py-1.5 pr-2 text-left font-normal">
-                {row.contactName}
-                <span className="text-muted-foreground tabular text-xs">
-                  {' '}
-                  {t('debtorAgeing.oldest', { days: String(row.oldestDays) })}
-                </span>
-              </th>
-              {DEBTOR_AGEING_BUCKETS.map((bucket) => (
-                <td key={bucket} className="py-1.5 pr-2 text-right">
-                  <Money amount={row[bucket]} muteZero />
-                </td>
-              ))}
-              <td className="py-1.5 text-right font-medium">
-                <Money amount={row.total} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        {ageing.rows.length > 0 && (
-          <tfoot>
-            <tr className="border-border border-t font-medium">
-              <th scope="row" className="py-2 pr-2 text-left">
-                {t('report.total')}
-              </th>
-              {DEBTOR_AGEING_BUCKETS.map((bucket) => (
-                <td key={bucket} className="py-2 pr-2 text-right">
-                  <Money amount={ageing.totals[bucket]} />
-                </td>
-              ))}
-              <td className="py-2 text-right">
-                <Money amount={ageing.totals.total} />
-              </td>
-            </tr>
-          </tfoot>
-        )}
-      </table>
+        }
+      />
     </>
   )
 }

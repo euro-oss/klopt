@@ -1,7 +1,26 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { RiArrowRightLine } from '@remixicon/react'
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '~/components/ui/empty'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from '~/components/ui/item'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
@@ -238,21 +257,22 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
 
   if (items.length === 0) {
     return (
-      <section
-        aria-labelledby="queue-empty"
-        className="border-border rounded-md border border-dashed p-6"
-      >
-        <h2 id="queue-empty" className="font-medium">
-          {t('queue.empty')}
-        </h2>
-        <p className="text-muted-foreground mt-1 text-sm">{t('queue.emptyBody')}</p>
-        <Link
-          to="/invoices/new"
-          className="bg-primary text-primary-foreground mt-4 inline-block rounded-md px-4 py-2 text-sm font-medium"
-        >
-          {t('queue.emptyAction')}
-        </Link>
-      </section>
+      <Empty className="border">
+        <EmptyHeader>
+          {/* A heading, said out loud: `EmptyTitle` is a `div`, and "nothing
+              is waiting" is the answer to the question this screen exists to
+              ask. Announcing it as body text buries it. */}
+          <EmptyTitle role="heading" aria-level={2}>
+            {t('queue.empty')}
+          </EmptyTitle>
+          <EmptyDescription>{t('queue.emptyBody')}</EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button asChild>
+            <Link to="/invoices/new">{t('queue.emptyAction')}</Link>
+          </Button>
+        </EmptyContent>
+      </Empty>
     )
   }
 
@@ -270,8 +290,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         {hydrated && <p className="text-muted-foreground text-xs">{t('queue.keyboardHint')}</p>}
       </div>
 
-      <ol
-        className="border-border divide-border divide-y rounded-md border"
+      <ItemGroup
         onKeyDown={(event) => {
           const resolution = resolveListKey(
             event.key,
@@ -295,40 +314,46 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         {items.map((item, index) => {
           const destination = DESTINATIONS[item.kind]
           return (
-            <li key={item.kind}>
-              <Link
-                to={destination.to}
-                // Spread rather than passed: with exactOptionalPropertyTypes a
-                // `search` that might be undefined is not the same as no
-                // `search`, and the rows that filter a list are the minority.
-                {...(destination.search === undefined ? {} : { search: destination.search })}
-                ref={(element: HTMLAnchorElement | null) => {
-                  rows.current[index] = element
-                }}
-                tabIndex={index === cursor ? 0 : -1}
-                onFocus={() => {
-                  setCursor(index)
-                }}
-                className="hover:bg-accent/60 focus:bg-accent flex items-center gap-4 px-4 py-3 outline-none focus:outline-2"
-              >
-                <span className="bg-accent text-accent-foreground tabular flex min-w-9 shrink-0 justify-center rounded px-2 py-1 text-sm font-semibold">
-                  {item.count}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium">{t(destination.title)}</span>
-                  <span className="text-muted-foreground block text-xs">{t(destination.body)}</span>
-                </span>
-                {item.amount !== null && (
-                  <Money amount={item.amount} className="shrink-0 text-sm" />
-                )}
-                <span aria-hidden="true" className="text-muted-foreground shrink-0 text-sm">
-                  →
-                </span>
-              </Link>
-            </li>
+            // The wrapper carries the list semantics `ItemGroup`'s `role="list"`
+            // asks for. Putting `role="listitem"` on the row itself would take
+            // the anchor's own role away, and a work queue whose rows are not
+            // announced as links is a queue somebody cannot navigate.
+            <div key={item.kind} role="listitem">
+              <Item asChild variant="outline">
+                <Link
+                  to={destination.to}
+                  // Spread rather than passed: with exactOptionalPropertyTypes a
+                  // `search` that might be undefined is not the same as no
+                  // `search`, and the rows that filter a list are the minority.
+                  {...(destination.search === undefined ? {} : { search: destination.search })}
+                  ref={(element: HTMLAnchorElement | null) => {
+                    rows.current[index] = element
+                  }}
+                  tabIndex={index === cursor ? 0 : -1}
+                  onFocus={() => {
+                    setCursor(index)
+                  }}
+                >
+                  <ItemMedia>
+                    {/* Tabular, like every other figure in this application
+                      (spec 11.3): a column of counts that jumps about as the
+                      digits change is a column nobody can scan. */}
+                    <Badge className="tabular text-sm">{item.count}</Badge>
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle>{t(destination.title)}</ItemTitle>
+                    <ItemDescription>{t(destination.body)}</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    {item.amount !== null && <Money amount={item.amount} className="text-sm" />}
+                    <RiArrowRightLine aria-hidden="true" className="text-muted-foreground size-4" />
+                  </ItemActions>
+                </Link>
+              </Item>
+            </div>
           )
         })}
-      </ol>
+      </ItemGroup>
     </section>
   )
 }
