@@ -2,6 +2,7 @@ import { Link, Outlet, createFileRoute, redirect, useRouter } from '@tanstack/re
 import { AppShell } from '~/components/app-shell'
 import { useT } from '~/i18n/provider'
 import { getSession } from '~/server/context'
+import { getReportYear, setReportYear } from '~/server/fiscal-year'
 import { switchEntity } from '~/server/ledger'
 
 /**
@@ -20,12 +21,26 @@ export const Route = createFileRoute('/_app')({
     }
     return { session }
   },
-  loader: ({ context }) => ({ session: context.session }),
+  /**
+   * The book year is resolved here, once, for every screen inside the shell.
+   *
+   * Not in each route: the picker is in the chrome, so the list it offers and
+   * the year it shows have to outlive a navigation, and a layout loader is
+   * exactly the thing that does. `router.invalidate()` after a change re-runs
+   * this and every child loader, which is what makes changing the year move
+   * the queue and the reports together.
+   */
+  loader: async ({ context }) => ({
+    session: context.session,
+    // A member of nothing has no books to pick a year from, and asking would
+    // be a 403 on the way to a screen that says "set one up".
+    reportYear: context.session.memberships.length === 0 ? null : await getReportYear(),
+  }),
   component: AppLayout,
 })
 
 function AppLayout() {
-  const { session } = Route.useLoaderData()
+  const { session, reportYear } = Route.useLoaderData()
   const router = useRouter()
   const { t } = useT()
 
@@ -60,6 +75,18 @@ function AppLayout() {
       activeEntityId={session.memberships[0]?.entityId ?? null}
       userName={session.user.name}
       userEmail={session.user.email}
+      fiscalYears={reportYear?.ok === true ? reportYear.data.years : []}
+      activeYear={reportYear?.ok === true ? reportYear.data.scope : null}
+      onSelectYear={(code) => {
+        // Same shape as switching administration: an unhandled rejection here
+        // takes down the layout every screen renders inside, and the year a
+        // reader is looking at is not worth a blank page.
+        void setReportYear({ data: { code } })
+          .then(() => router.invalidate())
+          .catch((cause: unknown) => {
+            console.error('[app] could not change book year', cause)
+          })
+      }}
       onSwitchEntity={(entityId) => {
         // Same shape as the bug in bank.match: an unhandled rejection here
         // takes down the layout every screen renders inside. Switching

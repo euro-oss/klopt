@@ -24,10 +24,11 @@ export const Route = createFileRoute('/_app/reports/creditor-ageing')({
       ? { asOf: search['asOf'] }
       : {},
   loaderDeps: ({ search }) => ({ asOf: search.asOf }),
-  loader: async ({ deps }) => {
-    const asOf = deps.asOf ?? new Date().toISOString().slice(0, 10)
-    return { asOf, ageing: await getCreditorAgeing({ data: { asOf } }) }
-  },
+  // With no date in the URL, the date the shell's book year implies: today
+  // while that year is running, its last day once it is over. Ageing a closed
+  // year as of today would bucket every invoice in it as a year late.
+  loader: async ({ deps }) =>
+    getCreditorAgeing({ data: deps.asOf === undefined ? {} : { asOf: deps.asOf } }),
   component: CreditorAgeing,
 })
 
@@ -40,7 +41,7 @@ const BUCKETS = [
 ] as const satisfies readonly (readonly [string, MessageKey])[]
 
 function CreditorAgeing() {
-  const { ageing, asOf } = Route.useLoaderData()
+  const ageing = Route.useLoaderData()
   const { t } = useT()
 
   if (!ageing.ok) {
@@ -55,6 +56,7 @@ function CreditorAgeing() {
   }
 
   const data = ageing.data
+  const asOf = data.asOf
   const columnTotal = (key: (typeof BUCKETS)[number][0]): bigint =>
     data.buckets.reduce((sum, bucket) => sum + BigInt(bucket[key]), 0n)
 

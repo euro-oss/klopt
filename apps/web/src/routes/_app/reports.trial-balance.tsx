@@ -5,10 +5,9 @@ import { useT } from '~/i18n/provider'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { getTrialBalance } from '~/server/ledger'
 
-const YEAR = String(new Date().getFullYear())
-
+/** The book year comes from the shell. See `reports.balance-sheet`. */
 export const Route = createFileRoute('/_app/reports/trial-balance')({
-  loader: async () => getTrialBalance({ data: { fiscalYear: YEAR } }),
+  loader: async () => getTrialBalance({ data: {} }),
   component: TrialBalance,
 })
 

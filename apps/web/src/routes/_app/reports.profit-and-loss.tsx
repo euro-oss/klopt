@@ -4,10 +4,9 @@ import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
 import { getProfitAndLoss } from '~/server/ledger'
 
-const YEAR = String(new Date().getFullYear())
-
+/** The book year comes from the shell. See `reports.balance-sheet`. */
 export const Route = createFileRoute('/_app/reports/profit-and-loss')({
-  loader: async () => getProfitAndLoss({ data: { fiscalYear: YEAR } }),
+  loader: async () => getProfitAndLoss({ data: {} }),
   component: ProfitAndLoss,
 })
 

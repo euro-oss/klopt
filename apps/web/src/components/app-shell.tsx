@@ -6,6 +6,8 @@ import { setLocale } from '~/server/locale'
 import type { ReactNode } from 'react'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
+import { formatDate } from '~/lib/format'
+import type { FiscalYearOption, FiscalYearScope } from '~/lib/fiscal-year'
 import { BINDINGS_BY_ID, formatBinding } from '~/lib/keyboard'
 import { CommandPalette } from './command-palette'
 
@@ -82,6 +84,18 @@ const NAVIGATION: readonly NavGroup[] = [
       { to: '/payments', key: 'nav.payments', binding: 'go.payments' },
     ],
   },
+  // Ouderdomsanalyse is its own group rather than a line under Rapportages.
+  // Who owes us and who we owe is a daily question — it is the one an
+  // accountant asks before any statement — and the creditor screen spent M4
+  // reachable only from a button on Inkoopfacturen, which is to say: from
+  // nowhere, unless you already knew.
+  {
+    key: 'nav.group.ageing',
+    items: [
+      { to: '/reports/debtor-ageing', key: 'nav.debtorAgeing', binding: 'go.debtorAgeing' },
+      { to: '/reports/creditor-ageing', key: 'nav.creditorAgeing', binding: 'go.creditorAgeing' },
+    ],
+  },
   {
     key: 'nav.group.reports',
     items: [
@@ -153,6 +167,9 @@ export function AppShell({
   userName,
   userEmail,
   onSwitchEntity,
+  fiscalYears,
+  activeYear,
+  onSelectYear,
 }: {
   children: ReactNode
   entities: readonly ShellEntity[]
@@ -160,6 +177,9 @@ export function AppShell({
   userName: string
   userEmail: string
   onSwitchEntity: (entityId: string) => void
+  fiscalYears: readonly FiscalYearOption[]
+  activeYear: FiscalYearScope | null
+  onSelectYear: (code: string) => void
 }) {
   const path = useRouterState({ select: (state) => state.location.pathname })
   // The keys are listened for in an effect, so they do nothing until React has
@@ -222,6 +242,43 @@ export function AppShell({
                   </SelectOption>
                 ))}
               </SelectField>
+            </div>
+          )}
+
+          {/*
+            The book year, next to the administration and above everything it
+            scopes.
+
+            One control for the whole application rather than a picker per
+            report: "which year am I looking at" is a property of the session,
+            not of the screen, and a bookkeeper who set 2025 on the proefbalans
+            and then opened the balans to find 2026 has been told something
+            untrue by the software twice.
+
+            The dates under it are the point of it. A boekjaar labelled 2025
+            may run from July 2025 to June 2026, and a year picker that shows
+            only the label is the same guess as before with a dropdown on it.
+          */}
+          {fiscalYears.length > 0 && activeYear !== null && (
+            <div className="px-4 pb-3">
+              <SelectField
+                label={t('shell.fiscalYear')}
+                value={activeYear.code}
+                onValueChange={onSelectYear}
+                disabled={!hydrated}
+                size="sm"
+              >
+                {fiscalYears.map((year) => (
+                  <SelectOption key={year.code} value={year.code}>
+                    {year.status === 'closed'
+                      ? t('shell.yearClosed', { year: year.code })
+                      : year.code}
+                  </SelectOption>
+                ))}
+              </SelectField>
+              <p className="text-muted-foreground mt-1 text-xs tabular">
+                {formatDate(activeYear.startsOn)} – {formatDate(activeYear.endsOn)}
+              </p>
             </div>
           )}
 

@@ -47,9 +47,13 @@ export const nl = {
   'nav.exact': 'Exact Online',
   'nav.retention': 'Bewaarplicht',
   'nav.snapshots': 'Momentopnames',
+  'nav.debtorAgeing': 'Debiteuren',
+  'nav.creditorAgeing': 'Crediteuren',
 
   'shell.tagline': 'Open boekhouden',
   'shell.administration': 'Administratie',
+  'shell.fiscalYear': 'Boekjaar',
+  'shell.yearClosed': '{year} (afgesloten)',
   'shell.role': 'rol: {role}',
   'shell.signOut': 'Afmelden',
   'shell.help': 'Sneltoetsen',
@@ -122,9 +126,33 @@ export const nl = {
   'common.count_one': '{count} regel',
   'common.count_other': '{count} regels',
 
-  // The dashboard.
+  // The dashboard: what is waiting first, whether the books are sound second.
   'dash.title': 'Dashboard',
-  'dash.intro': 'Boekjaar {year}. De drie getallen die zeggen of de boeken kloppen.',
+  'dash.intro': 'Boekjaar {year}: {from} tot en met {to}.',
+  'dash.introNoYear': 'Nog geen boekjaar in deze administratie.',
+  'dash.healthTitle': 'Kloppen de boeken?',
+  'dash.healthBody': 'Drie getallen die zeggen of het grootboek zelf in orde is.',
+
+  // The work queue. The order is the dagelijkse route: factuur, bank, postvak.
+  'queue.title': 'Nu aan de beurt',
+  'queue.keyboardHint': '↑↓ of j/k om te bewegen · Enter opent · Esc verlaat de lijst',
+  'queue.empty': 'Niets wacht',
+  'queue.emptyBody':
+    'Geen concepten, geen ongekoppelde banktransacties, geen post die op een boeking wacht. Dit is het moment voor de volgende factuur.',
+  'queue.emptyAction': 'Verkoopfactuur maken',
+  'queue.salesDraft': 'Concepten om te versturen',
+  'queue.salesDraftBody': 'Verkoopfacturen zonder nummer: nog niet geboekt, nog niet verstuurd.',
+  'queue.salesOverdue': 'Vervallen verkoopfacturen',
+  'queue.salesOverdueBody': 'Klanten die over hun betaaltermijn heen zijn.',
+  'queue.bankUnmatched': 'Banktransacties zonder tegenboeking',
+  'queue.bankUnmatchedBody': 'Staan in de koppelwachtrij, met voorstellen erbij.',
+  'queue.inboxWaiting': 'Post die op een concept wacht',
+  'queue.inboxWaitingBody': 'Binnengekomen en geüploade documenten in het postvak.',
+  'queue.purchaseBook': 'Inkoopfacturen om te boeken',
+  'queue.purchaseBookBody': 'Vastgelegd, nog geen journaalpost.',
+  'queue.purchaseApprove': 'Inkoopfacturen om te fiatteren',
+  'queue.purchaseApproveBody': 'Geboekt en wachtend op een tweede paar ogen.',
+
   'dash.trialBalance': 'Proefbalans',
   'dash.trialBalanceEqual': 'Debet en credit zijn gelijk.',
   'dash.trialBalanceDifference': 'Verschil tussen debet en credit.',
@@ -188,6 +216,20 @@ export const nl = {
   'profit.expenses': 'Kosten',
   'profit.loss': 'Verlies',
   'profit.result': 'Resultaat',
+
+  // Debtor ageing, from the open items the aanmaningen already read.
+  'debtorAgeing.title': 'Ouderdomsanalyse debiteuren',
+  'debtorAgeing.intro':
+    'Vervallen verkoopfacturen per {date}, ingedeeld naar hoe lang ze te laat zijn.',
+  'debtorAgeing.caption': 'Openstaande bedragen per klant en ouderdom',
+  'debtorAgeing.customer': 'Klant',
+  'debtorAgeing.overdue': 'Totaal te laat',
+  'debtorAgeing.invoices': 'Facturen',
+  'debtorAgeing.over90': 'Langer dan 90 dagen',
+  'debtorAgeing.oldest': 'oudste {days} dagen',
+  'debtorAgeing.empty': 'Geen vervallen verkoopfacturen.',
+  'debtorAgeing.note':
+    'Facturen die nog niet vervallen zijn staan hier niet in: die hebben nog geen ouderdom. Bedragen zijn wat er nog openstaat, na aftrek van wat de bank er al aan heeft toegerekend.',
 
   // Creditor ageing.
   'ageing.title': 'Ouderdomsanalyse crediteuren',
@@ -1183,6 +1225,7 @@ export const nl = {
   'keys.group.goTo': 'Ga naar',
   'keys.group.new': 'Nieuw',
   'keys.group.match': 'Koppelen',
+  'keys.group.queue': 'Werklijst',
   'keys.group.entry': 'Journaalpost',
   'keys.palette': 'Commandopalet',
   'keys.help': 'Sneltoetsen',
@@ -1193,6 +1236,12 @@ export const nl = {
   'keys.matchSkip': 'Regel overslaan',
   'keys.matchNext': 'Volgende regel',
   'keys.matchPrevious': 'Vorige regel',
+  'keys.goDebtorAgeing': 'Ouderdomsanalyse debiteuren',
+  'keys.goCreditorAgeing': 'Ouderdomsanalyse crediteuren',
+  'keys.queueOpen': 'Openen wat geselecteerd is',
+  'keys.queueNext': 'Volgende regel in de werklijst',
+  'keys.queuePrevious': 'Vorige regel in de werklijst',
+  'keys.queueLeave': 'Werklijst verlaten',
   'keys.entryPost': 'Journaalpost boeken',
   'keys.entryPostAndNext': 'Boeken en de volgende beginnen',
   'keys.entryDuplicateLine': 'Regel dupliceren',
@@ -1210,6 +1259,7 @@ export const nl = {
   'nav.group.sales': 'Verkoop',
   'nav.group.purchasing': 'Inkoop',
   'nav.group.money': 'Geld',
+  'nav.group.ageing': 'Ouderdomsanalyse',
   'nav.group.reports': 'Rapporten',
   'nav.group.admin': 'Beheer',
   'shell.profile': 'Profiel',

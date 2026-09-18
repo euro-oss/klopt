@@ -14,7 +14,7 @@ import {
   listPurchaseInvoicesQuery,
   transitionPurchaseInvoiceBody,
 } from '~/api/schemas'
-import { contextFromRequest, run, runWith } from './internal'
+import { contextFromRequest, reportYear, run, runWith } from './internal'
 
 /** The purchase screens' RPC surface. Same handlers as `/api/v1/purchase-*`. */
 
@@ -85,16 +85,13 @@ export const transitionPurchaseInvoice = createServerFn({ method: 'POST' })
     ),
   )
 
+/** With no date, the book year the shell is showing. See `listOverdueInvoices`. */
 export const getCreditorAgeing = createServerFn({ method: 'GET' })
-  .validator((input: { asOf: string }) => input)
+  .validator((input: { asOf?: string } | undefined) => input ?? {})
   .handler(async ({ data }) =>
-    run(
-      async () =>
-        (
-          await handleGetCreditorAgeing(
-            await contextFromRequest(),
-            creditorAgeingQuery.parse({ asOf: data.asOf }),
-          )
-        ).body,
-    ),
+    run(async () => {
+      const context = await contextFromRequest()
+      const asOf = data.asOf ?? (await reportYear(context)).scope.asOf
+      return (await handleGetCreditorAgeing(context, creditorAgeingQuery.parse({ asOf }))).body
+    }),
   )

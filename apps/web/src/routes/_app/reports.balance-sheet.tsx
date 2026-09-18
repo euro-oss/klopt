@@ -6,10 +6,15 @@ import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
 import { getBalanceSheet } from '~/server/ledger'
 
-const YEAR = String(new Date().getFullYear())
-
+/**
+ * The book year comes from the shell, not from the calendar.
+ *
+ * This used to be `new Date().getFullYear()`, which is the right answer for an
+ * administration whose boekjaar starts in January and a wrong one — shown
+ * without a word — for every other administration setup allows.
+ */
 export const Route = createFileRoute('/_app/reports/balance-sheet')({
-  loader: async () => getBalanceSheet({ data: { fiscalYear: YEAR } }),
+  loader: async () => getBalanceSheet({ data: {} }),
   component: BalanceSheet,
 })
 
