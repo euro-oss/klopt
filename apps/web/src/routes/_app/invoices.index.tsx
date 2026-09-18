@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
+import { ShortcutStrip } from '~/components/ui/keycap'
 import { Money } from '~/components/finance/money'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
@@ -131,7 +132,7 @@ function Invoices() {
         actions={
           <Link
             to="/invoices/new"
-            className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
+            className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium"
           >
             {t('invoices.new')}
           </Link>
@@ -146,8 +147,8 @@ function Invoices() {
             search={{ status: filter.value }}
             className={
               status === filter.value
-                ? 'bg-accent text-accent-foreground rounded-md px-3 py-1.5 text-sm font-medium'
-                : 'hover:bg-accent/60 rounded-md px-3 py-1.5 text-sm'
+                ? 'bg-accent text-accent-foreground px-3 py-1.5 text-sm font-medium'
+                : 'hover:bg-accent/60 px-3 py-1.5 text-sm'
             }
           >
             {t(filter.key)}
@@ -164,6 +165,14 @@ function Invoices() {
         }}
         caption={t('invoices.title')}
         empty={t('invoices.empty')}
+      />
+
+      {/* The list keys, and the one that starts a new invoice. `n` is a prefix
+          in this application — `n` then `f` — so that is what is printed: a
+          screen that promised a bare `n` would be promising a key the global
+          handler takes first. */}
+      <ShortcutStrip
+        ids={['list.next', 'list.previous', 'list.open', 'list.copy', 'new.invoice']}
       />
     </>
   )

@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { violationMessage } from '~/i18n/labels'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
+import { ShortcutStrip } from '~/components/ui/keycap'
 import { useT } from '~/i18n/provider'
 import { multiplyByDecimal, parseMinorUnits, percentOf } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
@@ -93,6 +94,10 @@ function NewInvoice() {
   const [lines, setLines] = useState<DraftLine[]>([emptyLine(defaultRevenue, defaultTax)])
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<{ path: string | null; message: string }[]>([])
+  /** Whether the draft has been described, so Escape knows what it would lose. */
+  const [confirming, setConfirming] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const confirmRef = useRef<HTMLButtonElement>(null)
 
   /** One key per attempt. A second click must not draft a second invoice. */
   const idempotencyKey = useRef<string>(crypto.randomUUID())
@@ -162,6 +167,32 @@ function NewInvoice() {
     await navigate({ to: '/invoices/$invoiceId', params: { invoiceId: result.data.id } })
   }
 
+  const typed =
+    contactNumber !== '' || lines.some((line) => line.description !== '' || line.unitPrice !== '')
+
+  /**
+   * Say what will be saved before saving it.
+   *
+   * A draft is not the ledger, so this is a smaller promise than the journaalpost
+   * confirmation — but `Cmd`+`Enter` is a key that writes to the server, and a
+   * key that writes without showing what it writes is the thing the keyboard map
+   * refuses. Same shape as the entry form, so the spine is one habit.
+   */
+  function ask(): void {
+    if (busy) return
+    if (!typed) {
+      setProblems([{ path: null, message: t('invoiceNew.nothingYet') }])
+      return
+    }
+    setProblems([])
+    setLeaving(false)
+    setConfirming(true)
+  }
+
+  useEffect(() => {
+    if (confirming) confirmRef.current?.focus()
+  }, [confirming])
+
   const modLabel = isApple() ? '⌘' : 'Ctrl'
   const { t } = useT()
 
@@ -171,11 +202,44 @@ function NewInvoice() {
         const mod = isApple() ? event.metaKey : event.ctrlKey
         if (mod && event.key === 'Enter') {
           event.preventDefault()
-          void submit()
+          if (event.repeat) return
+          if (confirming) void submit()
+          else ask()
+          return
+        }
+        if (event.key === 'Enter' && !mod) {
+          // "Enter on primary save, not mid-field": a form that submits from the
+          // middle of an amount is a form that saves what somebody was still
+          // typing. On the button itself this handler never sees it — the button
+          // does.
+          const target = event.target as HTMLElement | null
+          if (target !== null && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) {
+            event.preventDefault()
+          }
+          return
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          if (confirming) {
+            setConfirming(false)
+            return
+          }
+          // An untouched form leaves at once. A draft with something in it takes
+          // two presses, and says so in between: Escape abandons the thing you
+          // are in, and it should not be able to throw away typing by surprise.
+          if (!typed || leaving) {
+            void navigate({ to: '/invoices', search: { status: undefined } })
+            return
+          }
+          setLeaving(true)
         }
       }}
       onSubmit={(event) => {
         event.preventDefault()
+        // A click on the button labelled "Concept opslaan" is the confirmation.
+        // What asks first is the keystroke, below: a key that writes without
+        // showing what it writes is the thing the keyboard map refuses, and a
+        // draft is not the ledger, so the button does not ask twice.
         void submit()
       }}
     >
@@ -185,7 +249,7 @@ function NewInvoice() {
       />
 
       {customers.length === 0 && (
-        <p className="border-border text-muted-foreground mb-6 rounded-md border border-dashed p-4 text-sm">
+        <p className="border-border text-muted-foreground mb-6 border border-dashed p-4 text-sm">
           {t('invoiceNew.noCustomers')}
         </p>
       )}
@@ -226,7 +290,7 @@ function NewInvoice() {
             onChange={(event) => {
               setIssueDate(event.target.value)
             }}
-            className="border-input bg-background tabular w-full rounded-md border px-3 py-2 text-sm"
+            className="border-input bg-background tabular w-full border px-3 py-2 text-sm"
           />
         </label>
 
@@ -240,7 +304,7 @@ function NewInvoice() {
               setBuyerReference(event.target.value)
             }}
             placeholder={t('invoiceNew.buyerReferencePlaceholder')}
-            className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+            className="border-input bg-background w-full border px-3 py-2 text-sm"
           />
         </label>
 
@@ -254,7 +318,7 @@ function NewInvoice() {
               setReference(event.target.value)
             }}
             placeholder="PO-1234"
-            className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+            className="border-input bg-background w-full border px-3 py-2 text-sm"
           />
         </label>
       </div>
@@ -287,7 +351,7 @@ function NewInvoice() {
                       setLines((current) => [...current, emptyLine(defaultRevenue, defaultTax)])
                     }
                   }}
-                  className="border-input bg-background w-full rounded-md border px-2 py-1.5"
+                  className="border-input bg-background w-full border px-2 py-1.5"
                 />
               </td>
               <td className="py-1">
@@ -297,7 +361,7 @@ function NewInvoice() {
                   onChange={(event) => {
                     update(index, { quantity: event.target.value })
                   }}
-                  className="border-input bg-background tabular w-full rounded-md border px-2 py-1.5 text-right"
+                  className="border-input bg-background tabular w-full border px-2 py-1.5 text-right"
                 />
               </td>
               <td className="py-1">
@@ -307,7 +371,7 @@ function NewInvoice() {
                   onChange={(event) => {
                     update(index, { unitCode: event.target.value })
                   }}
-                  className="border-input bg-background w-full rounded-md border px-2 py-1.5"
+                  className="border-input bg-background w-full border px-2 py-1.5"
                 />
               </td>
               <td className="py-1">
@@ -317,7 +381,7 @@ function NewInvoice() {
                   onChange={(event) => {
                     update(index, { unitPrice: event.target.value })
                   }}
-                  className="border-input bg-background tabular w-full rounded-md border px-2 py-1.5 text-right"
+                  className="border-input bg-background tabular w-full border px-2 py-1.5 text-right"
                 />
               </td>
               <td className="py-1">
@@ -354,7 +418,7 @@ function NewInvoice() {
         </tbody>
       </table>
 
-      <div className="border-border mb-6 flex max-w-md justify-between gap-8 rounded-md border p-4 text-sm">
+      <div className="border-border mb-6 flex max-w-md justify-between gap-8 border p-4 text-sm">
         <div className="space-y-1">
           <p className="text-muted-foreground">{t('invoice.subtotal')}</p>
           <p className="text-muted-foreground">{t('invoice.vat')}</p>
@@ -379,16 +443,66 @@ function NewInvoice() {
         </ul>
       )}
 
+      {confirming && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('invoiceNew.confirmTitle')}
+          className="border-border mb-6 border p-4"
+        >
+          <h2 className="font-medium">{t('invoiceNew.confirmTitle')}</h2>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {t('invoiceNew.confirmBody', {
+              customer: contactNumber,
+              lines: String(lines.filter((line) => line.description !== '').length),
+            })}{' '}
+            <Money amount={net + tax} />
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              ref={confirmRef}
+              disabled={busy}
+              onClick={() => {
+                void submit()
+              }}
+              className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {busy ? t('common.busy') : t('invoiceNew.confirmSave')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setConfirming(false)
+              }}
+              className="border-input border px-4 py-2 text-sm font-medium"
+            >
+              {t('entryNew.confirmBack')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {leaving && !confirming && (
+        <p role="status" className="text-unreconciled mb-6 text-sm">
+          {t('invoiceNew.escapeAgain')}
+        </p>
+      )}
+
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={busy || !hydrated || contactNumber === ''}
-          className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+          className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
           {busy ? t('common.busy') : t('invoiceNew.saveDraft')}
         </button>
         <span className="text-muted-foreground text-xs">{t('invoiceNew.emptyLinesSkipped')}</span>
       </div>
+
+      <ShortcutStrip
+        ids={['invoiceForm.save', 'invoiceForm.cancel', 'picker.choose', 'list.next']}
+      />
     </form>
   )
 }

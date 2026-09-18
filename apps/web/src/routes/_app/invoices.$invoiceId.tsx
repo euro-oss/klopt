@@ -1,12 +1,14 @@
 import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
 import { violationMessage } from '~/i18n/labels'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
+import { ShortcutStrip } from '~/components/ui/keycap'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
+import { isApple } from '~/lib/keyboard'
 import { draftInvoice, getInvoice, issueInvoice, listDeliveries, sendInvoice } from '~/server/sales'
 
 /**
@@ -49,6 +51,8 @@ function Invoice() {
 
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<{ path: string | null; message: string }[]>([])
+  /** Whether `Cmd`+`Enter` has asked to issue this draft, and is waiting. */
+  const [asking, setAsking] = useState(false)
   const issueKey = useRef<string>(crypto.randomUUID())
   const creditKey = useRef<string>(crypto.randomUUID())
   const sendKey = useRef<string>(crypto.randomUUID())
@@ -217,6 +221,26 @@ function Invoice() {
 
   return (
     <>
+      {/* The key that issues, and the panel it asks in. Issuing posts to the
+          journal and numbers the invoice, neither of which can be taken back, so
+          it shows what it is about to do — the same bargain `Cmd`+`Enter` makes
+          on the journaalpost screen. */}
+      {isDraft && (
+        <IssueKeys
+          asking={asking}
+          onAsk={() => {
+            setAsking(true)
+          }}
+          onCancel={() => {
+            setAsking(false)
+          }}
+          onConfirm={() => {
+            setAsking(false)
+            void issue()
+          }}
+        />
+      )}
+
       <PageHeader
         title={`${invoice.kind === 'credit_note' ? t('invoice.creditNote') : t('invoice.title')} ${title}`}
         description={`${invoice.contact.number} · ${invoice.contact.name} · ${formatDate(invoice.issueDate)}`}
@@ -229,7 +253,7 @@ function Invoice() {
                 onClick={() => {
                   void issue()
                 }}
-                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+                className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
                 {busy ? t('common.busy') : t('invoice.issueAndPost')}
               </button>
@@ -241,7 +265,7 @@ function Invoice() {
                 onClick={() => {
                   void send()
                 }}
-                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+                className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
                 {busy ? t('common.busy') : sentAlready ? t('invoice.sendAgain') : t('invoice.send')}
               </button>
@@ -253,7 +277,7 @@ function Invoice() {
                 onClick={() => {
                   void credit()
                 }}
-                className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+                className="border-input border px-4 py-2 text-sm disabled:opacity-50"
               >
                 {t('invoice.credit')}
               </button>
@@ -264,13 +288,13 @@ function Invoice() {
                     is the legal document and the one a machine reads. */}
                 <a
                   href={`/api/v1/sales-invoices/${invoice.id}/pdf?embedUbl=true`}
-                  className="border-input rounded-md border px-4 py-2 text-sm"
+                  className="border-input border px-4 py-2 text-sm"
                 >
                   {t('invoice.downloadPdf')}
                 </a>
                 <a
                   href={`/api/v1/sales-invoices/${invoice.id}/ubl`}
-                  className="border-input rounded-md border px-4 py-2 text-sm"
+                  className="border-input border px-4 py-2 text-sm"
                 >
                   {t('invoice.downloadUbl')}
                 </a>
@@ -280,8 +304,46 @@ function Invoice() {
         }
       />
 
+      {isDraft && asking && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('invoice.confirmIssueTitle')}
+          className="border-border mb-6 border p-4"
+        >
+          <h2 className="font-medium">{t('invoice.confirmIssueTitle')}</h2>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {t('invoice.confirmIssueBody', { customer: invoice.contact.name })}{' '}
+            <Money amount={invoice.total} />
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              autoFocus
+              disabled={busy}
+              onClick={() => {
+                setAsking(false)
+                void issue()
+              }}
+              className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {busy ? t('common.busy') : t('invoice.issueAndPost')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAsking(false)
+              }}
+              className="border-input border px-4 py-2 text-sm font-medium"
+            >
+              {t('entryNew.confirmBack')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {isDraft && (
-        <p className="border-border text-muted-foreground mb-6 rounded-md border border-dashed p-4 text-sm">
+        <p className="border-border text-muted-foreground mb-6 border border-dashed p-4 text-sm">
           {t('invoice.draftNotice')}
         </p>
       )}
@@ -305,7 +367,7 @@ function Invoice() {
         empty={t('invoice.noLines')}
       />
 
-      <div className="border-border mt-6 flex max-w-md justify-between gap-8 rounded-md border p-4 text-sm">
+      <div className="border-border mt-6 flex max-w-md justify-between gap-8 border p-4 text-sm">
         <div className="space-y-1">
           <p className="text-muted-foreground">{t('invoice.subtotal')}</p>
           <p className="text-muted-foreground">{t('invoice.vat')}</p>
@@ -376,6 +438,60 @@ function Invoice() {
           .
         </p>
       )}
+
+      {isDraft && <ShortcutStrip ids={['invoice.issue', 'list.next', 'list.copy']} />}
     </>
   )
+}
+
+/**
+ * `Cmd`+`Enter` on a draft: ask, then issue.
+ *
+ * Its own component because the listener is an effect and this screen returns
+ * early when the invoice cannot be loaded — and because a screen-local key
+ * belongs next to the thing it does rather than in a handler forty lines from
+ * the button it stands in for.
+ */
+function IssueKeys({
+  asking,
+  onAsk,
+  onCancel,
+  onConfirm,
+}: {
+  readonly asking: boolean
+  readonly onAsk: () => void
+  readonly onCancel: () => void
+  readonly onConfirm: () => void
+}) {
+  const hydrated = useHydrated()
+
+  useEffect(() => {
+    if (!hydrated) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat) return
+
+      const mod = isApple() ? event.metaKey : event.ctrlKey
+      if (mod && event.key === 'Enter') {
+        event.preventDefault()
+        if (asking) onConfirm()
+        else onAsk()
+        return
+      }
+
+      if (event.key === 'Escape' && asking) {
+        const target = event.target as HTMLElement | null
+        if (target !== null && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return
+        event.preventDefault()
+        onCancel()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [asking, hydrated, onAsk, onCancel, onConfirm])
+
+  return null
 }
