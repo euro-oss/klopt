@@ -83,7 +83,7 @@ importers:
   apps/web:
     dependencies:
       '@fontsource-variable/ubuntu-sans':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@klopt/adapters':
         specifier: workspace:*
