@@ -142,9 +142,10 @@ function Dashboard() {
         <WorkQueue items={queue.data.items} />
       )}
 
-      <section className="mt-10">
-        <h2 className="font-medium">{t('dash.healthTitle')}</h2>
-        <p className="text-muted-foreground mt-1 mb-3 text-sm">{t('dash.healthBody')}</p>
+      {/* The heading carries it: three labelled figures do not need a
+          sentence above them saying there are three figures. */}
+      <section className="mt-8">
+        <h2 className="mb-3 font-medium">{t('dash.healthTitle')}</h2>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Stat
@@ -257,7 +258,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
 
   if (items.length === 0) {
     return (
-      <Empty className="border">
+      <Empty className="border p-8">
         <EmptyHeader>
           {/* A heading, said out loud: `EmptyTitle` is a `div`, and "nothing
               is waiting" is the answer to the question this screen exists to
@@ -290,7 +291,12 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         {hydrated && <p className="text-muted-foreground text-xs">{t('queue.keyboardHint')}</p>}
       </div>
 
+      {/* Tighter than the primitive's default spacing: this is a worklist a
+          bookkeeper scans in one look, not a row of cards. Seven rows have to
+          fit above the fold or the queue stops being the answer to "what
+          now". */}
       <ItemGroup
+        className="gap-2"
         onKeyDown={(event) => {
           const resolution = resolveListKey(
             event.key,
@@ -319,7 +325,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
             // the anchor's own role away, and a work queue whose rows are not
             // announced as links is a queue somebody cannot navigate.
             <div key={item.kind} role="listitem">
-              <Item asChild variant="outline">
+              <Item asChild variant="outline" size="sm">
                 <Link
                   to={destination.to}
                   // Spread rather than passed: with exactOptionalPropertyTypes a

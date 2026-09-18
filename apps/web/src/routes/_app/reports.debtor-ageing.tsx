@@ -77,8 +77,7 @@ function DebtorAgeing() {
       cell: (row) => (
         <>
           {row.contactName}
-          <span className="text-muted-foreground tabular text-xs">
-            {' '}
+          <span className="text-muted-foreground tabular ml-2 text-xs">
             {t('debtorAgeing.oldest', { days: String(row.oldestDays) })}
           </span>
         </>

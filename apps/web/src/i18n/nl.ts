@@ -136,29 +136,27 @@ export const nl = {
   'dash.intro': 'Boekjaar {year}: {from} tot en met {to}.',
   'dash.introNoYear': 'Nog geen boekjaar in deze administratie.',
   'dash.healthTitle': 'Kloppen de boeken?',
-  'dash.healthBody': 'Drie getallen die zeggen of het grootboek zelf in orde is.',
 
   // The work queue. The order is the dagelijkse route: factuur, bank, postvak.
   'queue.title': 'Nu aan de beurt',
-  'queue.keyboardHint': '↑↓ of j/k om te bewegen · Enter opent · Esc verlaat de lijst',
+  'queue.keyboardHint': 'j/k bewegen · Enter opent · Esc sluit',
   'queue.empty': 'Niets wacht',
-  'queue.emptyBody':
-    'Geen concepten, geen ongekoppelde banktransacties, geen post die op een boeking wacht. Dit is het moment voor de volgende factuur.',
+  'queue.emptyBody': 'Geen concepten, geen losse banktransacties, geen post.',
   'queue.emptyAction': 'Verkoopfactuur maken',
   'queue.salesDraft': 'Concepten om te versturen',
-  'queue.salesDraftBody': 'Verkoopfacturen zonder nummer: nog niet geboekt, nog niet verstuurd.',
+  'queue.salesDraftBody': 'Nog geen nummer, nog niet geboekt.',
   'queue.salesOverdue': 'Vervallen verkoopfacturen',
-  'queue.salesOverdueBody': 'Klanten die over hun betaaltermijn heen zijn.',
+  'queue.salesOverdueBody': 'Over de betaaltermijn heen.',
   'queue.dunningWaiting': 'Aanmaningen om te versturen',
-  'queue.dunningWaitingBody': 'Facturen waarvoor een herinnering klaarstaat die nog niet uit is.',
+  'queue.dunningWaitingBody': 'Herinnering staat klaar, nog niet verstuurd.',
   'queue.bankUnmatched': 'Banktransacties zonder tegenboeking',
-  'queue.bankUnmatchedBody': 'Staan in de koppelwachtrij, met voorstellen erbij.',
+  'queue.bankUnmatchedBody': 'Wachten in de koppelwachtrij.',
   'queue.inboxWaiting': 'Post die op een concept wacht',
-  'queue.inboxWaitingBody': 'Binnengekomen en geüploade documenten in het postvak.',
+  'queue.inboxWaitingBody': 'Binnengekomen, nog geen concept.',
   'queue.purchaseBook': 'Inkoopfacturen om te boeken',
   'queue.purchaseBookBody': 'Vastgelegd, nog geen journaalpost.',
   'queue.purchaseApprove': 'Inkoopfacturen om te fiatteren',
-  'queue.purchaseApproveBody': 'Geboekt en wachtend op een tweede paar ogen.',
+  'queue.purchaseApproveBody': 'Wacht op een tweede paar ogen.',
 
   'dash.trialBalance': 'Proefbalans',
   'dash.trialBalanceEqual': 'Debet en credit zijn gelijk.',
@@ -226,17 +224,15 @@ export const nl = {
 
   // Debtor ageing, from the open items the aanmaningen already read.
   'debtorAgeing.title': 'Ouderdomsanalyse debiteuren',
-  'debtorAgeing.intro':
-    'Vervallen verkoopfacturen per {date}, ingedeeld naar hoe lang ze te laat zijn.',
+  'debtorAgeing.intro': 'Vervallen verkoopfacturen per {date}.',
   'debtorAgeing.caption': 'Openstaande bedragen per klant en ouderdom',
   'debtorAgeing.customer': 'Klant',
   'debtorAgeing.overdue': 'Totaal te laat',
   'debtorAgeing.invoices': 'Facturen',
   'debtorAgeing.over90': 'Langer dan 90 dagen',
-  'debtorAgeing.oldest': 'oudste {days} dagen',
+  'debtorAgeing.oldest': '{days} d te laat',
   'debtorAgeing.empty': 'Geen vervallen verkoopfacturen.',
-  'debtorAgeing.note':
-    'Facturen die nog niet vervallen zijn staan hier niet in: die hebben nog geen ouderdom. Bedragen zijn wat er nog openstaat, na aftrek van wat de bank er al aan heeft toegerekend.',
+  'debtorAgeing.note': 'Alleen vervallen facturen, en wat er na bankkoppelingen nog openstaat.',
 
   // Creditor ageing.
   'ageing.title': 'Ouderdomsanalyse crediteuren',
