@@ -427,7 +427,10 @@ Round-tripping is tested, not claimed: an export from one administration
 imports into another and produces an identical balance sheet.
 
 Keyboard-first is a contract, not a nice-to-have — see
-[`docs/keyboard-map.md`](docs/keyboard-map.md), written before the screens were.
+[`docs/keyboard-map.md`](docs/keyboard-map.md), written before the screens were
+and now describing them: a row cursor with type-ahead and a TSV copy in every
+table, an account picker that matches on number and name, and an invoice, a bank
+match and the postvak cleared without touching a mouse.
 
 ## Compliance surface
 

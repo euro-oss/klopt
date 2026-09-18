@@ -18,6 +18,55 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### The keyboard, finished (alpha 4)
+
+- **One account picker, on every screen that asks for an account.** Type a number
+  or a word: `1300`, `deb` and `debiteuren` all find Debiteuren, and each match
+  shows both. It replaces a native `<datalist>` over account numbers on the
+  journaalpost screen — perfect for somebody who knows the chart by heart, no use
+  to anybody else — and a `<select>` over two hundred accounts everywhere else.
+  Arrows move, `Enter` takes the highlighted match, `Tab` takes it and moves on,
+  `Escape` leaves the field as it was, and the list opens on focus so a field
+  reached by `Tab` can be typed at. A blocked account is listed, marked and not
+  selectable, because the ledger refuses to post to one and hiding it turns that
+  refusal into "my account is missing"; a number no account answers to is kept as
+  typed and flagged under the field, so nothing is silently replaced and nothing
+  invalid is silently accepted.
+- **Every table has a cursor, type-ahead and a copy.** `↑`/`↓` or `j`/`k` move a
+  visible cursor, any other character jumps to the first row that starts with it,
+  `Space` selects, `Shift` and an arrow extends, `Cmd/Ctrl`+`A` takes every loaded
+  row and `Cmd/Ctrl`+`C` copies the selection as TSV that pastes into a
+  spreadsheet with its columns intact. "Get this into Excel" is a daily move and
+  the answer used to be a mouse drag. One row is in the tab order at a time, and
+  the cursor is remembered as a row rather than a position, so a list that grows
+  underneath it does not jump back to the top.
+- **The journal-entry keys the registry had been printing now work.**
+  `Cmd/Ctrl`+`D` duplicates the line the cursor is in and `Cmd/Ctrl`+`Backspace`
+  removes it — but only where the browser would not have done something with the
+  key itself, so a half-typed amount is cleared rather than a line thrown away.
+  `Cmd/Ctrl`+`Enter` shows the dagboek, the date, the line count and the total
+  with the cursor on the button that posts, and posts on the second press: the
+  journal is append-only, so the key that writes to it asks. An entry that does
+  not balance says so instead, through the same check the button uses.
+- **The dagboek comes from the administration**, not from `MEM/VRK/INK/BNK` in a
+  constant, which omitted the kasboek and anything anybody had added. And the
+  document date is its own field: an invoice received in January and booked in
+  February has two dates, and the form was sending one of them twice.
+- **A navigation moves the focus onto the screen it opened.** Nothing does that
+  by itself in a single-page application: the focus stays on whatever opened the
+  screen, or lands on `<body>` when that control went with it, and the next `Tab`
+  starts at the top of the window. Closing the posting confirmation puts the
+  focus back where it was, and a `Select` no longer opens its menu on
+  `Cmd`+`Enter` — which used to leave the focus in a popup the navigation then
+  removed.
+- **`docs/keyboard-map.md` describes what ships.** It used to say the tables were
+  "the design, not the state of the code"; they are the code now, and the keys
+  that are deliberately unbound — `/` until there is a search to focus, `←`/`→`
+  until a table addresses cells, remapping — say so where the key would be.
+  `apps/web/e2e/keyboard.spec.ts` drives an invoice, a bank match and the postvak
+  with no `click()` anywhere in the flow, which is the only way that claim stays
+  true.
+
 ### A product palette: white, black and yellow
 
 - **Three colours.** `#FFFFFF`, `#000000` and `#FFD51E`, named once in
@@ -72,8 +121,8 @@ the ADR is where the reasoning is.
   publishes, so it reports what is _due_ and says so.
 - **The queue is worked from the keyboard.** Focus lands on the first row,
   `j`/`k` and the arrows move, `Enter` opens, `Escape` hands the keyboard back.
-  `g v` and `g c` go to the two ageing reports. The rest of the list keyboard
-  in `docs/keyboard-map.md` is still Alpha 4's job.
+  `g v` and `g c` go to the two ageing reports. The rest of the list keyboard in
+  `docs/keyboard-map.md` landed in alpha 4, above.
 
 ## [0.1.0] — 2026-09-17
 

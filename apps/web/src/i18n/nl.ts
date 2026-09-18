@@ -1289,8 +1289,11 @@ export const nl = {
   'table.copyRefused': 'De browser gaf het klembord niet vrij.',
 
   // De rekeningkiezer, op elk scherm waar een grootboekrekening wordt gekozen.
+  'picker.options': 'Rekeningen',
   'picker.blocked': 'geblokkeerd',
   'picker.noMatches': 'Geen rekening gevonden.',
+  'picker.unknown': 'Rekening {number} staat niet in dit grootboek.',
+  'picker.blockedAccount': 'Rekening {number} is geblokkeerd en kan niet geboekt worden.',
 
   // Sidebar groups and the profile block.
   'nav.group.books': 'Boekhouden',

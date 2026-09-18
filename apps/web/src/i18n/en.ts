@@ -1287,8 +1287,11 @@ export const en: Record<MessageKey, string> = {
   'table.copyRefused': 'The browser would not release the clipboard.',
 
   // The account picker, on every screen where an account is chosen.
+  'picker.options': 'Accounts',
   'picker.blocked': 'blocked',
   'picker.noMatches': 'No account found.',
+  'picker.unknown': 'Account {number} is not in this chart.',
+  'picker.blockedAccount': 'Account {number} is blocked and cannot be posted to.',
 
   // Sidebar groups and the profile block.
   'nav.group.books': 'Bookkeeping',
