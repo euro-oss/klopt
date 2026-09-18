@@ -266,40 +266,68 @@ subpath**: the package's main entry reads reference data with `node:fs`, so a
 bundler that follows it into the client produces a module that throws on first
 use. One formatter, because the screens and the PDF must agree.
 
-## Not built yet
+## What is built, and what is deliberately not
 
-VAT and purchase are M3 and M4. M1 is complete: invoices go out by email with
-their UBL and PDF attached, and overdue ones are chased on a derived schedule
-([0018](decisions/0018-dunning-stage-is-derived.md)).
+M0 through M6 are complete at 0.1.0. This section used to describe M3 and M4 as
+future work; that was true early and is not any more. Read
+[`CHANGELOG.md`](../CHANGELOG.md) and [`ALPHA_ASSESSMENT.md`](ALPHA_ASSESSMENT.md)
+for the authoritative current picture; what follows is the one-page shape.
 
-M2: CAMT.053, MT940 and a configurable CSV mapper, deduplicated per entry, a
-matching engine with learned rules
-([0019](decisions/0019-matching-suggests.md)), and a keyboard queue to work
-through — `↑↓` moves, `↵` books the best suggestion, `1`–`9` pick one, `x`
-skips, and SEPA `pain.001` with a two-person approval flow
-([0020](decisions/0020-payments-need-two-people.md)).
-
-M2 is complete.
-
-A Peppol access point is not built. It sits behind `EInvoiceTransport` and
-cannot be built without a service provider agreement and issued certificates
-(spec 8) — the port's `reachable()` exists so that choosing the email fallback
-is a decision made before sending rather than a recovery afterwards.
+- **M1 sales.** Invoices go out by email with their UBL and PDF attached, and
+  overdue ones are chased on a derived schedule
+  ([0018](decisions/0018-dunning-stage-is-derived.md)). Reminders are still a
+  human click from the Aanmaningen screen.
+- **M2 banking and payments.** CAMT.053, MT940 and a configurable CSV mapper,
+  deduplicated per entry, a matching engine with learned rules
+  ([0019](decisions/0019-matching-suggests.md)), and a keyboard queue to work
+  through — `↑↓` moves, `↵` books the best suggestion, `1`–`9` pick one, `x`
+  skips, and SEPA `pain.001` with a two-person approval flow
+  ([0020](decisions/0020-payments-need-two-people.md)).
+- **M3 VAT.** A tax-code engine, a BTW-aangifte derived from the journal with
+  control-account reconciliation, ICP + VIES, and an XBRL instance. Manual
+  filing is the default and works ([0024](decisions/0024-the-manual-path-is-the-default.md)).
+- **M4 purchase.** One inbox (upload plus IMAP/maildir poll), inbound UBL parsed
+  to a draft with the original attached, supplier-authoritative totals
+  ([0025](decisions/0025-the-supplier-is-the-authority.md)), and book → approve →
+  payment batch.
+- **M5–M6 hardening and platform.** Retention / WORM, sealed snapshots, a
+  complete audit log, an Exact Online importer, signed and replayable webhooks,
+  a generated OpenAPI 3.1 document, and a module contract with an ownership test.
 
 **Outstanding means outstanding.** An invoice's outstanding amount is its total
 less the bank allocations against it, and every report that asks what is owed
 joins the same subquery. Before matching existed the dunning list could only say
 "issued and not cancelled" and said so on the screen; that disclaimer is gone.
 
+### The worker is not empty
+
+`apps/worker` runs five scheduled jobs: `inbound.poll` (every 5 minutes),
+`snapshot.sealPendingYears` (04:00), `oauth.purgeExpiredCodes` (05:00),
+`exact.importDocuments` (every 2 minutes) and `webhooks.deliver` (every minute).
+The comment in `apps/worker/src/jobs.ts` that lists VAT period close, bank sync
+and subledger recon describes work that is _not_ registered — a future note, not
+a running job.
+
+### In the UI
+
+The command palette (`⌘K`) and the `g`-prefix / `n`-prefix navigation are wired
+to a listener and work; an earlier version of this file said they were in the
+registry but not yet wired, which is no longer true. Contacts can be created
+**and** edited. Dark-mode tokens exist in `app.css` but nothing toggles `.dark`
+yet, and there is no mobile layout — those are alpha polish, tracked in the
+backlog rather than here.
+
+### Deliberately not built (fail closed, off the alpha critical path)
+
+A Peppol access point sits behind `EInvoiceTransport` and cannot be built
+without a service provider agreement and issued certificates (spec 8) — the
+port's `reachable()` exists so that choosing the email fallback is a decision
+made before sending rather than a recovery afterwards. Digipoort's WS-Security
+signer is a seam ([0024](decisions/0024-the-manual-path-is-the-default.md)),
+PSD2 bank feeds need an AISP licence, and electronic filing stays refused while
+the NT taxonomy is `verified: false`. In every case the manual or file path is
+the product.
+
 The PDF is not Factur-X or PDF/A-3: those additionally want an ICC profile, an
 output intent and XMP metadata. The attachment relationship is `Alternative`,
 which is the truthful part of it.
-
-In the UI: the command palette and `g`-prefix navigation are in the keyboard map
-and the binding registry but not yet wired to a listener. Contacts can be
-created but not edited.
-
-Reminders are sent by hand from the Aanmaningen screen. Scheduling them is a
-worker job, which is why `apps/worker` exists and is empty. In the UI: the command palette
-and `g`-prefix navigation are in the keyboard map and the binding registry but
-not yet wired to a listener.

@@ -210,7 +210,7 @@ export const accounts = klopt.table(
     /** RGS reference code. Nullable, and unmapped accounts are a dashboard metric. */
     rgsCode: text('rgs_code'),
     isBlocked: boolean('is_blocked').notNull().default(false),
-    /** Plain text until the tax code engine lands in M3. */
+    /** References a tax code in the M3 tax-code engine, which has landed. */
     defaultTaxCode: text('default_tax_code'),
     ...timestamps,
   },

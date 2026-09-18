@@ -49,6 +49,22 @@ export const isoDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Dates are YYYY-MM-DD.')
   .meta({ id: 'IsoDate', description: 'A calendar date, YYYY-MM-DD. No time, no zone.' })
 
+/**
+ * A date parameter that falls back to today (UTC) when the caller omits it.
+ *
+ * The fallback is applied at parse time, so a handler always receives a date —
+ * but deliberately as an optional input with the default in a transform, not as
+ * `isoDate.default(() => new Date()…)`. A function default is evaluated when the
+ * OpenAPI document is generated, which bakes the generation date into
+ * `docs/openapi.json` as a literal; the checked-in copy then disagrees with a
+ * fresh build every day after it was regenerated, and `openapi.test.ts` goes
+ * red on nobody's change. As an optional input the published contract is a plain
+ * optional date and the document is the same on any day it is built.
+ */
+export const asOfDefaultsToday = isoDate
+  .optional()
+  .transform((value) => value ?? new Date().toISOString().slice(0, 10))
+
 export const currencyCode = z
   .string()
   .regex(/^[A-Z]{3}$/, 'ISO 4217, three uppercase letters.')
@@ -309,7 +325,7 @@ export const invoicesQuery = z.object({
 })
 
 export const overdueQuery = z.object({
-  asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+  asOf: asOfDefaultsToday,
 })
 
 export type CreateContactBody = z.infer<typeof createContactBody>
@@ -334,7 +350,11 @@ export const createEntityBody = z.object({
   firstFiscalYear: z
     .string()
     .regex(/^\d{4}$/, 'A book year is labelled by its four-digit start year.')
-    .default(() => String(new Date().getUTCFullYear())),
+    // Optional-with-transform, not `.default(() => …)`: see `asOfDefaultsToday`.
+    // A function default bakes the generation year into `docs/openapi.json`,
+    // which would make `openapi.test.ts` go red on the first of January.
+    .optional()
+    .transform((value) => value ?? String(new Date().getUTCFullYear())),
   vatRounding: z.enum(['per_invoice', 'per_line']).default('per_invoice'),
 })
 
@@ -483,13 +503,13 @@ export const sendInvoiceBody = z.object({
 })
 
 export const dunningQuery = z.object({
-  asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+  asOf: asOfDefaultsToday,
 })
 
 export const sendReminderBody = z.object({
   /** Refuse unless the caller expected this stage. Guards a stale screen. */
   expectedStage: z.coerce.number().int().min(1).max(9).nullable().default(null),
-  asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+  asOf: asOfDefaultsToday,
 })
 
 export type SendInvoiceBody = z.infer<typeof sendInvoiceBody>
@@ -671,7 +691,10 @@ export const listVatPeriodsQuery = z.object({
     .int()
     .min(1900)
     .max(2999)
-    .default(() => new Date().getUTCFullYear()),
+    // Optional-with-transform, not `.default(() => …)`: see `asOfDefaultsToday`.
+    // A function default bakes the generation year into `docs/openapi.json`.
+    .optional()
+    .transform((value) => value ?? new Date().getUTCFullYear()),
 })
 
 export const fileVatReturnBody = z
@@ -1234,7 +1257,7 @@ export const explainQuery = z
       .enum(['current', 'upTo30', 'upTo60', 'upTo90', 'over90', 'total'])
       .nullable()
       .default(null),
-    asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+    asOf: asOfDefaultsToday,
 
     /** Token discipline: never dump a ledger into a context window. */
     limit: z.coerce.number().int().min(1).max(1000).default(200),

@@ -1,0 +1,11 @@
+# Blank issues are still allowed, but the three forms below carry the context
+# this project needs (surface, artefact, keyboard map) so triage does not have
+# to ask for it every time.
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/euro-oss/klopt/security/advisories/new
+    about: Report a vulnerability privately. Do not open a public issue. See SECURITY.md.
+  - name: Question or discussion
+    url: https://github.com/euro-oss/klopt/discussions
+    about: For usage questions and open-ended discussion rather than a specific defect or task.

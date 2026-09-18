@@ -4275,7 +4275,6 @@
                     "maximum": 12
                   },
                   "firstFiscalYear": {
-                    "default": "2026",
                     "type": "string",
                     "pattern": "^\\d{4}$"
                   },
@@ -8000,7 +7999,6 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": "2026-09-17",
               "$ref": "#/components/schemas/IsoDate"
             }
           },
@@ -18386,7 +18384,6 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": "2026-09-17",
               "$ref": "#/components/schemas/IsoDate"
             }
           }
@@ -18498,7 +18495,6 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": "2026-09-17",
               "$ref": "#/components/schemas/IsoDate"
             }
           }
@@ -21535,7 +21531,6 @@
                     ]
                   },
                   "asOf": {
-                    "default": "2026-09-17",
                     "$ref": "#/components/schemas/IsoDate"
                   }
                 }
@@ -25050,7 +25045,6 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": 2026,
               "type": "integer",
               "minimum": 1900,
               "maximum": 2999

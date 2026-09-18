@@ -73,8 +73,43 @@ jobs:
       - name: Migrate
         run: pnpm --filter @klopt/db run migrate
 
+      # Object storage for the retention/WORM and S3-store tests (spec 7.6).
+      # MinIO needs a `server` command, which a GitHub `services:` container
+      # cannot supply, so it is started here — the same shape as the `minio`
+      # service in docker-compose.yml. The tests reach it at localhost:9000 by
+      # default; nothing else is pointed at S3, so the app keeps its filesystem
+      # document store. Two buckets, matching the compose init: klopt-documents
+      # WITH object lock, and klopt-exports WITHOUT (the fixture verifyLock is
+      # meant to fail honestly against).
+      - name: Start MinIO
+        env:
+          MC_HOST_local: http://klopt:klopt-dev-secret@localhost:9000
+        run: |
+          # quay.io, not Docker Hub: this runner is denied pulling the
+          # minio/minio image from Docker Hub (only official library/* images
+          # are permitted). --network host so the server binds the runner's
+          # :9000 directly. The mc image's entrypoint is `mc`, so bucket
+          # commands run as plain args with MC_HOST_local set inline.
+          docker run -d --name minio --network host \
+            -e MINIO_ROOT_USER=klopt \
+            -e MINIO_ROOT_PASSWORD=klopt-dev-secret \
+            quay.io/minio/minio:latest server /data --console-address :9001
+          echo "Waiting for MinIO to answer…"
+          for _ in $(seq 1 30); do
+            if curl -fsS http://localhost:9000/minio/health/live >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS http://localhost:9000/minio/health/live >/dev/null
+          # klopt-documents WITH object lock; klopt-exports WITHOUT (the fixture
+          # verifyLock is meant to fail honestly against).
+          docker run --rm --network host -e MC_HOST_local quay.io/minio/mc:latest \
+            mb --ignore-existing --with-lock local/klopt-documents
+          docker run --rm --network host -e MC_HOST_local quay.io/minio/mc:latest \
+            mb --ignore-existing local/klopt-exports
+
       # The ledger tests run against a real Postgres on purpose. The triggers
       # are half the guarantee, and a mocked database proves nothing about them.
+      # The web suite sets its own test encryption key (test/setup-encryption-key.ts).
       - name: Test
         run: pnpm run test
 
@@ -111,3 +146,73 @@ jobs:
             console.log('RGS ' + rgs.version + ' ' + rgs.variant + ': ' + rgs.codeCount + ' codes');
             for (const note of rgs.normalisations) console.log('  normalised: ' + note);
           "
+
+  # Browser tests (spec 11.4). The class of bug this repo has already hit —
+  # hydration eating input, a shortcut printed but dead, "the screen did not
+  # change" — is invisible to the domain tests in `verify` and is exactly what
+  # these specs exist to catch. They used to run on nobody's machine.
+  #
+  # This is a real gate, not a decoration: it runs the full Chromium suite
+  # against a live Postgres and fails the job when a spec fails. Green means the
+  # specs passed. If a spec is genuinely flaky it should be fixed or quarantined
+  # in the spec (test.fixme / test.skip with a linked issue), never hidden here
+  # with continue-on-error — spec 12 forbids a flaky-green build. Kept separate
+  # from `verify` so a red run is attributable and the extra ~10 minutes do not
+  # slow the unit-test signal.
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: klopt
+          POSTGRES_PASSWORD: klopt
+          POSTGRES_DB: klopt
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U klopt -d klopt"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The web dev server the suite drives imports the workspace packages
+      # through their `exports`, which point at dist/. Nothing resolves until
+      # they are built, same reason the verify job builds before it lints.
+      - name: Build
+        run: pnpm run build
+
+      - name: Migrate
+        run: pnpm --filter @klopt/db run migrate
+
+      - name: Install Playwright browser
+        run: pnpm --filter @klopt/web exec playwright install --with-deps chromium
+
+      # playwright.config.ts starts `vite dev` on 3399 with the e2e environment
+      # (rate limit off, email to an outbox dir, S3 disabled) and reads
+      # DATABASE_URL from the environment, so the service above is the database.
+      - name: Playwright e2e
+        run: pnpm --filter @klopt/web run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 14
+          if-no-files-found: ignore

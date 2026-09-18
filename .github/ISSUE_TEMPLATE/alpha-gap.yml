@@ -1,0 +1,60 @@
+name: Alpha gap
+description: The API/domain can do it, but the product cannot — a missing screen, a UX hole, or a keyboard flow that is designed but not wired.
+labels: ['enhancement', 'alpha-gap']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when the engine is ahead of the product. The 0.1.0 domain is
+        M0–M6 complete; a credible alpha is closing UI holes and making daily
+        work feel fast. See `docs/ALPHA_ASSESSMENT.md` for the map, and
+        `docs/keyboard-map.md` for the keyboard design.
+  - type: textarea
+    id: gap
+    attributes:
+      label: The gap
+      description: What a user cannot do in the product today.
+      placeholder: |
+        There is no screen to close a book year, even though
+        POST /fiscal-years/close exists and is tested.
+    validations:
+      required: true
+  - type: input
+    id: api
+    attributes:
+      label: API / domain that already exists
+      description: The route, operation, or MCP tool that already does the work. Link it if you can.
+      placeholder: 'POST /api/v1/fiscal-years/close (fiscalYears.close)'
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What "done" looks like. Keep it short and checkable.
+      value: |
+        - [ ] 
+        - [ ] Uses the entity's fiscal year, not `new Date().getFullYear()`, where relevant
+        - [ ] Passes the existing Playwright suite (add a spec if this is a new screen)
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Alpha weight
+      description: See the alpha definition of done in docs/ALPHA_ASSESSMENT.md.
+      options:
+        - Alpha-critical (blocks running a month of books in the browser)
+        - Alpha delta (part of a pleasing, honest alpha)
+        - Nice to have (can wait past alpha)
+    validations:
+      required: true
+  - type: checkboxes
+    id: guardrails
+    attributes:
+      label: Guardrails
+      options:
+        - label: This does not add a new domain operation (alpha closes UI holes; it does not grow the operation list).
+          required: false
+        - label: If keyboard-related, it follows the registry in `docs/keyboard-map.md`, not only the aspirational tables.
+          required: false

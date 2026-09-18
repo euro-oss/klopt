@@ -179,10 +179,14 @@ install. Issue a **read-only** token under **Toegang** and point a client at
 }
 ```
 
-Six tools, all read-only: `describe_schema`, `get_balance`, `list_open_items`,
-`vat_return_preview`, `list_pending_approvals`, `export_xaf`. There is no
-generic query tool and nothing that files, sends, posts or pays — writes arrive
-later as drafts a human releases.
+Twelve tools — nine read, three draft-only writes. Read: `describe_schema`,
+`search`, `get_balance`, `explain_number`, `list_open_items`,
+`vat_return_preview`, `list_pending_approvals`, `export_xaf`,
+`check_journal_entry`. Write, as a draft a human releases:
+`draft_sales_invoice`, `capture_purchase_invoice`, `draft_from_inbox_item`.
+There is no generic query tool and nothing that files, sends, posts or pays.
+A read-only token sees only the read tools; the write tools need a token with
+the matching permission and never post on their own.
 
 The server is a client of the same REST API as everything else, so an agent has
 exactly the permissions its token has, and its actions land in the same audit
