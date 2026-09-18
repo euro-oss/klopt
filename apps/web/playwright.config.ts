@@ -26,8 +26,11 @@ export const OUTBOX = join(import.meta.dirname, 'e2e', '.outbox')
  * test's uploads over the network to MinIO — slower, and a source of timing
  * flakes in tests that are about screens rather than storage. The S3 store has
  * its own tests (`packages/adapters/test/documents/s3.test.ts` and
- * `apps/web/test/retention-worm.test.ts`) which exercise it directly and
- * against a real bucket.
+ * `apps/web/test/retention-worm.test.ts`) which exercise it directly, against a
+ * bucket in their own process and against a real one on demand (ADR 0059).
+ *
+ * So no browser spec needs object storage, which is why none of them had to be
+ * skipped or given a fake of their own when CI stopped depending on MinIO.
  */
 const DOCUMENTS = join(import.meta.dirname, 'e2e', '.documents')
 

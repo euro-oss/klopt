@@ -110,6 +110,14 @@ jobs:
       # The ledger tests run against a real Postgres on purpose. The triggers
       # are half the guarantee, and a mocked database proves nothing about them.
       # The web suite sets its own test encryption key (test/setup-encryption-key.ts).
+      #
+      # Object storage is the other way round, and deliberately so: the S3
+      # store's specs bring up an S3-compatible object-lock bucket inside the
+      # test process, so there is no MinIO service here and nothing to add one
+      # for. A real bucket proves one thing a local one cannot — that MinIO
+      # accepts these signatures — and that is a developer running the same
+      # specs with KLOPT_S3_ENDPOINT set, not a container on every push. See
+      # docs/decisions/0059-a-bucket-close-enough-to-test-against.md.
       - name: Test
         run: pnpm run test
 

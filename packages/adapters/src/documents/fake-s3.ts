@@ -65,7 +65,7 @@ import type { S3Credentials } from './sigv4.js'
  * KLOPT_S3_ENDPOINT=http://localhost:9000 pnpm run test
  * ```
  *
- * See `docs/decisions/0059-ci-does-not-run-minio.md`.
+ * See `docs/decisions/0059-a-bucket-close-enough-to-test-against.md`.
  */
 
 export interface FakeS3BucketOptions {
