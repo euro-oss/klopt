@@ -105,7 +105,9 @@ jobs:
           # The same two buckets as docker-compose.yml. `klopt-documents` has
           # object lock; `klopt-exports` deliberately does not, so verifyLock
           # has something honest to fail against (ADR 0032).
-          docker run --rm --network host minio/mc:latest /bin/sh -c "
+          # `--entrypoint`, because the image's entrypoint is `mc` itself and
+          # the arguments would otherwise be handed to it as a subcommand.
+          docker run --rm --network host --entrypoint /bin/sh minio/mc:latest -c "
             mc alias set local http://localhost:9000 klopt klopt-dev-secret &&
             mc mb --ignore-existing --with-lock local/klopt-documents &&
             mc mb --ignore-existing local/klopt-exports
