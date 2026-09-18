@@ -4275,9 +4275,9 @@
                     "maximum": 12
                   },
                   "firstFiscalYear": {
-                    "default": "2026",
                     "type": "string",
-                    "pattern": "^\\d{4}$"
+                    "pattern": "^\\d{4}$",
+                    "description": "Defaults to the current year."
                   },
                   "vatRounding": {
                     "default": "per_invoice",
@@ -8000,8 +8000,8 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": "2026-09-17",
-              "$ref": "#/components/schemas/IsoDate"
+              "$ref": "#/components/schemas/IsoDate",
+              "description": "Defaults to today."
             }
           },
           {
@@ -18386,8 +18386,8 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": "2026-09-17",
-              "$ref": "#/components/schemas/IsoDate"
+              "$ref": "#/components/schemas/IsoDate",
+              "description": "Defaults to today."
             }
           }
         ]
@@ -18498,8 +18498,8 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": "2026-09-17",
-              "$ref": "#/components/schemas/IsoDate"
+              "$ref": "#/components/schemas/IsoDate",
+              "description": "Defaults to today."
             }
           }
         ]
@@ -21535,8 +21535,8 @@
                     ]
                   },
                   "asOf": {
-                    "default": "2026-09-17",
-                    "$ref": "#/components/schemas/IsoDate"
+                    "$ref": "#/components/schemas/IsoDate",
+                    "description": "Defaults to today."
                   }
                 }
               }
@@ -25050,10 +25050,10 @@
             "in": "query",
             "required": false,
             "schema": {
-              "default": 2026,
               "type": "integer",
               "minimum": 1900,
-              "maximum": 2999
+              "maximum": 2999,
+              "description": "Defaults to the current year."
             }
           }
         ]

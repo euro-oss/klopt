@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { clockDefault } from './clock-default.js'
 import { PURCHASE_INVOICE_STATUSES, SEARCH_RESOURCE_TYPES } from '@klopt/core'
 
 /**
@@ -309,7 +310,10 @@ export const invoicesQuery = z.object({
 })
 
 export const overdueQuery = z.object({
-  asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+  asOf: clockDefault(
+    isoDate.default(() => new Date().toISOString().slice(0, 10)),
+    'today',
+  ),
 })
 
 export type CreateContactBody = z.infer<typeof createContactBody>
@@ -331,10 +335,13 @@ export const createEntityBody = z.object({
     .regex(/^[A-Za-z]{3}$/, 'Use a three-letter ISO 4217 code.')
     .default('EUR'),
   fiscalYearStartMonth: z.coerce.number().int().min(1).max(12).default(1),
-  firstFiscalYear: z
-    .string()
-    .regex(/^\d{4}$/, 'A book year is labelled by its four-digit start year.')
-    .default(() => String(new Date().getUTCFullYear())),
+  firstFiscalYear: clockDefault(
+    z
+      .string()
+      .regex(/^\d{4}$/, 'A book year is labelled by its four-digit start year.')
+      .default(() => String(new Date().getUTCFullYear())),
+    'the current year',
+  ),
   vatRounding: z.enum(['per_invoice', 'per_line']).default('per_invoice'),
 })
 
@@ -483,13 +490,19 @@ export const sendInvoiceBody = z.object({
 })
 
 export const dunningQuery = z.object({
-  asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+  asOf: clockDefault(
+    isoDate.default(() => new Date().toISOString().slice(0, 10)),
+    'today',
+  ),
 })
 
 export const sendReminderBody = z.object({
   /** Refuse unless the caller expected this stage. Guards a stale screen. */
   expectedStage: z.coerce.number().int().min(1).max(9).nullable().default(null),
-  asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+  asOf: clockDefault(
+    isoDate.default(() => new Date().toISOString().slice(0, 10)),
+    'today',
+  ),
 })
 
 export type SendInvoiceBody = z.infer<typeof sendInvoiceBody>
@@ -666,12 +679,15 @@ export const listVatPeriodsQuery = z.object({
    * Defaults to this year, which is what the route did by hand before the
    * schema existed. A VAT screen opened with no year means "the current one".
    */
-  year: z.coerce
-    .number()
-    .int()
-    .min(1900)
-    .max(2999)
-    .default(() => new Date().getUTCFullYear()),
+  year: clockDefault(
+    z.coerce
+      .number()
+      .int()
+      .min(1900)
+      .max(2999)
+      .default(() => new Date().getUTCFullYear()),
+    'the current year',
+  ),
 })
 
 export const fileVatReturnBody = z
@@ -1234,7 +1250,10 @@ export const explainQuery = z
       .enum(['current', 'upTo30', 'upTo60', 'upTo90', 'over90', 'total'])
       .nullable()
       .default(null),
-    asOf: isoDate.default(() => new Date().toISOString().slice(0, 10)),
+    asOf: clockDefault(
+      isoDate.default(() => new Date().toISOString().slice(0, 10)),
+      'today',
+    ),
 
     /** Token discipline: never dump a ledger into a context window. */
     limit: z.coerce.number().int().min(1).max(1000).default(200),

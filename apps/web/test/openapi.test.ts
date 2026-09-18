@@ -256,6 +256,62 @@ describe('the errors it admits to', () => {
   })
 })
 
+describe('nothing in the document depends on the day it was built', () => {
+  /**
+   * The failure this prevents is the nastiest kind: CI going red on a morning
+   * nobody touched the code.
+   *
+   * `asOf` and `year` default to now, and `z.toJSONSchema` evaluates a function
+   * default once — so the published document pinned the date it was generated
+   * on, and the staleness test above started failing at midnight. The document
+   * was wrong and the test was right, which is exactly the pairing that wastes
+   * an afternoon.
+   */
+  it('pins no date or year as a default', () => {
+    const pinned: string[] = []
+
+    const walk = (value: unknown, path: string): void => {
+      if (Array.isArray(value)) {
+        value.forEach((item, index) => {
+          walk(item, `${path}[${String(index)}]`)
+        })
+        return
+      }
+      if (value === null || typeof value !== 'object') return
+
+      for (const [key, nested] of Object.entries(value)) {
+        if (key === 'default' && typeof nested === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(nested)) {
+          pinned.push(`${path}: ${nested}`)
+        }
+        // A four-digit year, which goes stale every January rather than every
+        // midnight — slower, and therefore harder to work out.
+        if (key === 'default' && typeof nested === 'number' && nested >= 1900 && nested <= 2999) {
+          pinned.push(`${path}: ${String(nested)}`)
+        }
+        walk(nested, `${path}.${key}`)
+      }
+    }
+
+    walk(document, 'document')
+    expect(pinned).toEqual([])
+  })
+
+  it('says what the default is instead', () => {
+    // Dropping the value without saying anything would be a regression of its
+    // own: a reader has to know the parameter is optional *and* what happens
+    // when it is left out.
+    const paths = document['paths'] as unknown as Record<
+      string,
+      { get?: { parameters?: { name: string; schema?: { description?: string } }[] } }
+    >
+    const asOf = paths['/api/v1/reports/overdue-invoices']?.get?.parameters?.find(
+      (parameter) => parameter.name === 'asOf',
+    )
+
+    expect(asOf?.schema?.description).toBe('Defaults to today.')
+  })
+})
+
 describe('the checked-in copies are the current ones', () => {
   /**
    * Re-derives every response schema from the TypeScript program.
