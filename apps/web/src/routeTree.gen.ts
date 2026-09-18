@@ -48,6 +48,7 @@ import { Route as AppPurchasesInvoiceIdRouteImport } from './routes/_app/purchas
 import { Route as AppPurchasesNewRouteImport } from './routes/_app/purchases.new'
 import { Route as AppReportsBalanceSheetRouteImport } from './routes/_app/reports.balance-sheet'
 import { Route as AppReportsCreditorAgeingRouteImport } from './routes/_app/reports.creditor-ageing'
+import { Route as AppReportsDebtorAgeingRouteImport } from './routes/_app/reports.debtor-ageing'
 import { Route as AppReportsProfitAndLossRouteImport } from './routes/_app/reports.profit-and-loss'
 import { Route as AppReportsTrialBalanceRouteImport } from './routes/_app/reports.trial-balance'
 import { Route as AppVatIndexRouteImport } from './routes/_app/vat.index'
@@ -352,6 +353,11 @@ const AppReportsCreditorAgeingRoute =
     path: '/reports/creditor-ageing',
     getParentRoute: () => AppRoute,
   } as any)
+const AppReportsDebtorAgeingRoute = AppReportsDebtorAgeingRouteImport.update({
+  id: '/reports/debtor-ageing',
+  path: '/reports/debtor-ageing',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppReportsProfitAndLossRoute = AppReportsProfitAndLossRouteImport.update({
   id: '/reports/profit-and-loss',
   path: '/reports/profit-and-loss',
@@ -957,6 +963,7 @@ export interface FileRoutesByFullPath {
   '/purchases/new': typeof AppPurchasesNewRoute
   '/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
   '/reports/creditor-ageing': typeof AppReportsCreditorAgeingRoute
+  '/reports/debtor-ageing': typeof AppReportsDebtorAgeingRoute
   '/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/vat/$period': typeof AppVatPeriodRoute
@@ -1103,6 +1110,7 @@ export interface FileRoutesByTo {
   '/purchases/new': typeof AppPurchasesNewRoute
   '/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
   '/reports/creditor-ageing': typeof AppReportsCreditorAgeingRoute
+  '/reports/debtor-ageing': typeof AppReportsDebtorAgeingRoute
   '/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/vat/$period': typeof AppVatPeriodRoute
@@ -1251,6 +1259,7 @@ export interface FileRoutesById {
   '/_app/purchases/new': typeof AppPurchasesNewRoute
   '/_app/reports/balance-sheet': typeof AppReportsBalanceSheetRoute
   '/_app/reports/creditor-ageing': typeof AppReportsCreditorAgeingRoute
+  '/_app/reports/debtor-ageing': typeof AppReportsDebtorAgeingRoute
   '/_app/reports/profit-and-loss': typeof AppReportsProfitAndLossRoute
   '/_app/reports/trial-balance': typeof AppReportsTrialBalanceRoute
   '/_app/vat/$period': typeof AppVatPeriodRoute
@@ -1399,6 +1408,7 @@ export interface FileRouteTypes {
     | '/purchases/new'
     | '/reports/balance-sheet'
     | '/reports/creditor-ageing'
+    | '/reports/debtor-ageing'
     | '/reports/profit-and-loss'
     | '/reports/trial-balance'
     | '/vat/$period'
@@ -1545,6 +1555,7 @@ export interface FileRouteTypes {
     | '/purchases/new'
     | '/reports/balance-sheet'
     | '/reports/creditor-ageing'
+    | '/reports/debtor-ageing'
     | '/reports/profit-and-loss'
     | '/reports/trial-balance'
     | '/vat/$period'
@@ -1692,6 +1703,7 @@ export interface FileRouteTypes {
     | '/_app/purchases/new'
     | '/_app/reports/balance-sheet'
     | '/_app/reports/creditor-ageing'
+    | '/_app/reports/debtor-ageing'
     | '/_app/reports/profit-and-loss'
     | '/_app/reports/trial-balance'
     | '/_app/vat/$period'
@@ -2148,6 +2160,13 @@ declare module '@tanstack/react-router' {
       path: '/reports/creditor-ageing'
       fullPath: '/reports/creditor-ageing'
       preLoaderRoute: typeof AppReportsCreditorAgeingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports/debtor-ageing': {
+      id: '/_app/reports/debtor-ageing'
+      path: '/reports/debtor-ageing'
+      fullPath: '/reports/debtor-ageing'
+      preLoaderRoute: typeof AppReportsDebtorAgeingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/reports/profit-and-loss': {
@@ -2918,6 +2937,7 @@ interface AppRouteChildren {
   AppPurchasesNewRoute: typeof AppPurchasesNewRoute
   AppReportsBalanceSheetRoute: typeof AppReportsBalanceSheetRoute
   AppReportsCreditorAgeingRoute: typeof AppReportsCreditorAgeingRoute
+  AppReportsDebtorAgeingRoute: typeof AppReportsDebtorAgeingRoute
   AppReportsProfitAndLossRoute: typeof AppReportsProfitAndLossRoute
   AppReportsTrialBalanceRoute: typeof AppReportsTrialBalanceRoute
   AppVatPeriodRoute: typeof AppVatPeriodRoute
@@ -2955,6 +2975,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPurchasesNewRoute: AppPurchasesNewRoute,
   AppReportsBalanceSheetRoute: AppReportsBalanceSheetRoute,
   AppReportsCreditorAgeingRoute: AppReportsCreditorAgeingRoute,
+  AppReportsDebtorAgeingRoute: AppReportsDebtorAgeingRoute,
   AppReportsProfitAndLossRoute: AppReportsProfitAndLossRoute,
   AppReportsTrialBalanceRoute: AppReportsTrialBalanceRoute,
   AppVatPeriodRoute: AppVatPeriodRoute,
