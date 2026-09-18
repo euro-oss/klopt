@@ -8,7 +8,7 @@ import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { deleteLineIsOurs, whyNotPostable, type NotPostable } from '~/lib/entry-form'
-import { formatMinorUnits, parseMinorUnits } from '~/lib/format'
+import { formatDate, formatMinorUnits, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
 import { cn } from '~/lib/utils'
@@ -612,7 +612,7 @@ function Confirmation({
       <p className="text-muted-foreground mt-1 text-sm">
         {t('entryNew.confirmBody', {
           journal: journalCode,
-          date: bookingDate,
+          date: formatDate(bookingDate),
           lines: String(lineCount),
           description,
         })}{' '}
