@@ -345,7 +345,10 @@ export function AppShell({
                         >
                           {t(item.key)}
                           {binding !== undefined && shortcutsLive && (
-                            <kbd className="text-muted-foreground tabular text-[10px] opacity-0 group-hover:opacity-100">
+                            // Printed, not revealed on hover: a keyboard user
+                            // never hovers, and a key nobody can see is a key
+                            // nobody uses (docs/keyboard-map.md, principle 5).
+                            <kbd className="text-muted-foreground tabular text-[10px]">
                               {formatBinding(binding)}
                             </kbd>
                           )}

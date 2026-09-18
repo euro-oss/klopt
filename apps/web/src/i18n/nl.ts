@@ -324,6 +324,9 @@ export const nl = {
   'invoice.creditNote': 'Creditnota',
   'invoice.draft': 'Concept',
   'invoice.issueAndPost': 'Versturen en boeken',
+  'invoice.confirmIssueTitle': 'Dit wordt verstuurd en geboekt',
+  'invoice.confirmIssueBody':
+    'Factuur voor {customer}, met een nummer uit de doorlopende reeks, voor',
   'invoice.send': 'Versturen',
   'invoice.sendAgain': 'Opnieuw versturen',
   'invoice.sendFailed': 'Versturen mislukt: {reason}',
@@ -371,6 +374,11 @@ export const nl = {
   'invoiceNew.vatNote':
     'Indicatief. De definitieve btw wordt op de server berekend volgens de afrondingsinstelling van deze administratie, en kan een cent afwijken.',
   'invoiceNew.saveDraft': 'Concept opslaan',
+  'invoiceNew.nothingYet': 'Er staat nog niets op deze factuur.',
+  'invoiceNew.confirmTitle': 'Dit wordt opgeslagen',
+  'invoiceNew.confirmBody': 'Concept voor {customer}, {lines} regels, voor in totaal',
+  'invoiceNew.confirmSave': 'Concept aanmaken',
+  'invoiceNew.escapeAgain': 'Nog een keer Escape gooit dit concept weg.',
   'invoiceNew.emptyLinesSkipped': 'Regels zonder omschrijving worden overgeslagen.',
 
   // Contacts — customers and suppliers.
@@ -800,6 +808,9 @@ export const nl = {
   'inbox.filter.new': 'Nieuw',
   'inbox.filter.drafted': 'Verwerkt',
   'inbox.filter.discarded': 'Terzijde gelegd',
+  'inbox.queue': 'Wat er binnen is gekomen',
+  'inbox.nothingToDraft':
+    'Uit dit stuk is niets gelezen, dus er is niets om een concept van te maken.',
   'inbox.empty': 'Niets in het postvak.',
   'inbox.alreadyHeld':
     'Dit bestand was er al. Het staat nu twee keer in het postvak, als één document.',
@@ -1244,6 +1255,9 @@ export const nl = {
   'keys.group.match': 'Koppelen',
   'keys.group.queue': 'Werklijst',
   'keys.group.list': 'Lijsten en tabellen',
+  'keys.group.inbox': 'Postvak',
+  'keys.group.invoiceForm': 'Nieuwe factuur',
+  'keys.group.invoice': 'Verkoopfactuur',
   'keys.group.picker': 'Kiezers',
   'keys.group.entry': 'Journaalpost',
   'keys.palette': 'Commandopalet',
@@ -1271,6 +1285,17 @@ export const nl = {
   'keys.pickerChoose': 'De gemarkeerde rekening kiezen',
   'keys.pickerNext': 'Kiezen en doorgaan naar het volgende veld',
   'keys.pickerClose': 'Sluiten, en laten staan wat er stond',
+  'keys.matchPick': 'Dat voorstel boeken',
+  'keys.matchLeave': 'Terug naar de wachtrij',
+  'keys.inboxNext': 'Volgend stuk (ook ↓)',
+  'keys.inboxPrevious': 'Vorig stuk (ook ↑)',
+  'keys.inboxOpen': 'Stuk openen',
+  'keys.inboxApprove': 'Concept maken van dit stuk',
+  'keys.inboxSkip': 'Terzijde leggen',
+  'keys.inboxLeave': 'Sluiten, terug naar de lijst',
+  'keys.invoiceSave': 'Concept opslaan',
+  'keys.invoiceCancel': 'Concept weggooien',
+  'keys.invoiceIssue': 'Versturen en boeken',
   'keys.entryPost': 'Journaalpost boeken',
   'keys.entryPostAndNext': 'Boeken en de volgende beginnen',
   'keys.entryDuplicateLine': 'Regel dupliceren',
@@ -1281,6 +1306,7 @@ export const nl = {
   'palette.nothingFound': 'Niets gevonden.',
   'palette.escapeNote':
     'Sluiten met Escape. G en N zijn voorvoegsels; na 1,5 seconde vervallen ze.',
+  'shortcuts.title': 'Sneltoetsen',
   'table.empty': 'Niets te tonen.',
   'table.copied_one': '1 regel gekopieerd.',
   'table.copied_other': '{count} regels gekopieerd.',
