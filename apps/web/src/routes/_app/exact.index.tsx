@@ -13,6 +13,7 @@ import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
+import { getReportYear } from '~/server/fiscal-year'
 import {
   chooseExactDivision,
   connectExact,
@@ -52,6 +53,10 @@ export const Route = createFileRoute('/_app/exact/')({
     documents: await exactDocumentStatus(),
     accounts: await listAccounts(),
     journals: await listJournals(),
+    // Which year to import defaults from this administration's book years
+    // rather than from the clock, for the same reason every report does: a
+    // boekjaar is not a calendar year.
+    year: await getReportYear(),
   }),
   component: Exact,
 })
@@ -136,6 +141,7 @@ function Exact() {
     accounts: accountsResult,
     journals: journalsResult,
     documents: documentsResult,
+    year: reportYear,
   } = Route.useLoaderData()
   const { t } = useT()
 
@@ -171,7 +177,7 @@ function Exact() {
   const [note, setNote] = useState<string | null>(null)
   const [divisions, setDivisions] = useState<readonly DivisionOption[] | null>(null)
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
-  const [year, setYear] = useState(String(new Date().getFullYear()))
+  const [year, setYear] = useState(reportYear.ok ? reportYear.data.scope.code : '')
 
   const [baseUrl, setBaseUrl] = useState('https://start.exactonline.nl')
   const [clientId, setClientId] = useState('')
