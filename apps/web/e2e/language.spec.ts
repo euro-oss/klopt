@@ -174,10 +174,8 @@ test('a domain refusal is in the reader’s language, with its numbers intact', 
   await page.getByLabel('Debet regel 1').fill('1000,00')
   await page.getByLabel('Rekening regel 2').fill('0500')
   await page.getByLabel('Credit regel 2').fill('1000,00')
-  await page
-    .getByRole('button', { name: /Boeken/ })
-    .first()
-    .click()
+  await page.getByRole('button', { name: 'Boeken', exact: true }).click()
+  await page.getByRole('button', { name: 'Definitief boeken' }).click()
 
   await expect(page.getByText('Geen rekening 9999.')).toBeVisible()
   await expect(page.getByText('No account 9999.')).toHaveCount(0)
@@ -191,7 +189,8 @@ test('a domain refusal is in the reader’s language, with its numbers intact', 
   await page.getByLabel('Debit line 1').fill('1000,00')
   await page.getByLabel('Account line 2').fill('0500')
   await page.getByLabel('Credit line 2').fill('1000,00')
-  await page.getByRole('button', { name: /Post/ }).first().click()
+  await page.getByRole('button', { name: 'Post', exact: true }).click()
+  await page.getByRole('button', { name: 'Post it', exact: true }).click()
 
   await expect(page.getByText('No account 9999.')).toBeVisible()
 
