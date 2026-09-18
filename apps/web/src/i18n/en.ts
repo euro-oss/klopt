@@ -882,7 +882,7 @@ export const en: Record<MessageKey, string> = {
   'exact.step3': '3. Dry run',
   'exact.step3Intro':
     "Reads the administration and reconciles against Exact's own trial balance. Nothing is brought across.",
-  'exact.fiscalYear': 'Book year',
+  'exact.yearToImport': 'Book year to import',
   'exact.runPreview': 'Run the dry run',
   'exact.step4': '4. Bring it across',
   'exact.step4Intro':
@@ -991,6 +991,7 @@ export const en: Record<MessageKey, string> = {
     'A book year under one hash: the head of the hash chain, a manifest of document hashes and the audit file. Small enough to write down, enough to prove a change anywhere in seven years of books.',
   'snapshots.failed': 'That did not work.',
   'snapshots.seal': 'Seal it',
+  'snapshots.yearToSeal': 'Book year to seal',
   'snapshots.count': 'Snapshots',
   'snapshots.checked': 'Checked',
   'snapshots.drifted': 'Drifted',

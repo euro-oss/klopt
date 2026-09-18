@@ -105,7 +105,11 @@ function Snapshots() {
             }}
           >
             <label>
-              <span className="sr-only">{t('exact.fiscalYear')}</span>
+              {/* Named for what it does, not just "Boekjaar": the shell has a
+                  book-year control of its own now, and a screen reader
+                  announcing two fields with the same name on one page cannot
+                  say which one seals a year. */}
+              <span className="sr-only">{t('snapshots.yearToSeal')}</span>
               <input
                 name="fiscalYear"
                 required

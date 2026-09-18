@@ -884,7 +884,7 @@ export const nl = {
   'exact.step3': '3. Proefimport',
   'exact.step3Intro':
     'Leest de administratie en sluit aan op de proefbalans van Exact zelf. Er wordt niets overgezet.',
-  'exact.fiscalYear': 'Boekjaar',
+  'exact.yearToImport': 'Boekjaar om te importeren',
   'exact.runPreview': 'Proefimport uitvoeren',
   'exact.step4': '4. Overzetten',
   'exact.step4Intro':
@@ -992,6 +992,7 @@ export const nl = {
     'Een boekjaar onder één hash: de kop van de hashketen, een manifest van documenthashes en de auditfile. Klein genoeg om op te schrijven, genoeg om een wijziging in zeven jaar boekhouding aan te tonen.',
   'snapshots.failed': 'Dat is niet gelukt.',
   'snapshots.seal': 'Verzegelen',
+  'snapshots.yearToSeal': 'Boekjaar om te verzegelen',
   'snapshots.count': 'Momentopnames',
   'snapshots.checked': 'Gecontroleerd',
   'snapshots.drifted': 'Afwijkingen',

@@ -509,7 +509,10 @@ function Exact() {
 
           <div className="mb-4 flex items-end gap-3">
             <label className="text-sm">
-              {t('exact.fiscalYear')}
+              {/* "Boekjaar om te importeren" rather than "Boekjaar": the shell
+                  carries the book year the screens are read in, and two
+                  controls of that name on one page is one too many. */}
+              {t('exact.yearToImport')}
               <input
                 value={year}
                 onChange={(event) => setYear(event.target.value)}

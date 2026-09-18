@@ -47,7 +47,7 @@ test('sealing a year puts the seal on screen in full', async ({ page }) => {
 
   const seal = page.getByRole('button', { name: 'Verzegelen' })
   await expect(seal).toBeEnabled()
-  await page.getByLabel('Boekjaar').fill('2026')
+  await page.getByLabel('Boekjaar om te verzegelen').fill('2026')
   await seal.click()
 
   await expect(page.getByRole('heading', { name: 'Boekjaar 2026' })).toBeVisible()
@@ -66,7 +66,7 @@ test('checking one says whether it looked at the auditfile', async ({ page }) =>
   await anAdministrationWithAPosting(page)
   await page.goto('/snapshots')
 
-  await page.getByLabel('Boekjaar').fill('2026')
+  await page.getByLabel('Boekjaar om te verzegelen').fill('2026')
   await page.getByRole('button', { name: 'Verzegelen' }).click()
   await expect(page.getByRole('heading', { name: 'Boekjaar 2026' })).toBeVisible()
 
@@ -82,7 +82,7 @@ test('the manifest downloads as text somebody can hash', async ({ page }) => {
   await anAdministrationWithAPosting(page)
   await page.goto('/snapshots')
 
-  await page.getByLabel('Boekjaar').fill('2026')
+  await page.getByLabel('Boekjaar om te verzegelen').fill('2026')
   await page.getByRole('button', { name: 'Verzegelen' }).click()
   await expect(page.getByRole('heading', { name: 'Boekjaar 2026' })).toBeVisible()
 
@@ -97,7 +97,7 @@ test('a year with nothing in it is refused, not sealed', async ({ page }) => {
   await anAdministrationWithAPosting(page)
   await page.goto('/snapshots')
 
-  await page.getByLabel('Boekjaar').fill('2019')
+  await page.getByLabel('Boekjaar om te verzegelen').fill('2019')
   await page.getByRole('button', { name: 'Verzegelen' }).click()
 
   await expect(page.getByRole('alert')).toBeVisible()
