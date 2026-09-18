@@ -32,11 +32,14 @@ import { cn } from '~/lib/utils'
  * ## What it refuses
  *
  * A blocked account is listed, marked, and not selectable. The ledger will not
- * post to one, so offering it as a valid choice moves the refusal from the
- * field to the end of the form; hiding it altogether turns the refusal into "my
- * account is missing". Free text that resolves to nothing is put back to what
- * the field held before, because a number nobody recognises is a posting that
- * fails after the entry is written rather than while it is being typed.
+ * post to one, so offering it as a valid choice moves the refusal from the field
+ * to the end of the form; hiding it altogether turns the refusal into "my
+ * account is missing".
+ *
+ * A number no account answers to is kept as typed, with a note under the field
+ * saying so. Neither half of that is arbitrary: putting the old value back would
+ * leave somebody reading a number they did not type, and accepting it quietly
+ * would turn a typo into a posting that fails after the entry is written.
  */
 export function AccountPicker({
   label,
@@ -151,11 +154,10 @@ export function AccountPicker({
   /**
    * Take what was typed, resolved if it can be.
    *
-   * A fragment nothing answers to is kept rather than thrown away, and the
-   * field says what is wrong with it. Silently putting `9999` back to the
-   * account that was there before would leave somebody looking at a number they
-   * did not type, and the ledger's own refusal — "geen rekening 9999" — is
-   * clearer than a field that quietly disagrees with them.
+   * A fragment nothing answers to is kept rather than thrown away, and the note
+   * under the field names the number. Putting the previous account back instead
+   * would leave somebody looking at a number they did not type, which is the
+   * kind of disagreement nobody notices until the entry is wrong.
    */
   function commitTyped(): void {
     commitNumber(resolveAccount(accounts, text)?.number ?? text.trim())
