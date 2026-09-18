@@ -148,6 +148,8 @@ export const en: Record<MessageKey, string> = {
   'queue.salesDraftBody': 'Sales invoices with no number: not posted, not sent.',
   'queue.salesOverdue': 'Overdue sales invoices',
   'queue.salesOverdueBody': 'Customers past their payment terms.',
+  'queue.dunningWaiting': 'Reminders to send',
+  'queue.dunningWaitingBody': 'Invoices with a reminder ready that has not gone out.',
   'queue.bankUnmatched': 'Bank lines with no counter-entry',
   'queue.bankUnmatchedBody': 'Waiting in the matching queue, with suggestions ready.',
   'queue.inboxWaiting': 'Post waiting for a draft',

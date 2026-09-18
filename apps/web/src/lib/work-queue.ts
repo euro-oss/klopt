@@ -19,6 +19,7 @@
 export const WORK_QUEUE_ORDER = [
   'sales.draft',
   'sales.overdue',
+  'dunning.waiting',
   'bank.unmatched',
   'inbox.waiting',
   'purchase.book',
@@ -26,6 +27,25 @@ export const WORK_QUEUE_ORDER = [
 ] as const
 
 export type WorkQueueKind = (typeof WORK_QUEUE_ORDER)[number]
+
+/**
+ * What a reader must be allowed to do for a row to be work *they* can do.
+ *
+ * The same rule the sidebar follows: the permission listed is the one the
+ * operation behind the row requires, so an auditor — read and export, nothing
+ * else — is not told to approve four purchase invoices they cannot approve.
+ * Being late is the exception: seeing what is overdue is reading, and the
+ * chasing has a row of its own.
+ */
+export const WORK_QUEUE_PERMISSION: Readonly<Record<WorkQueueKind, string>> = {
+  'sales.draft': 'ledger:post',
+  'sales.overdue': 'ledger:read',
+  'dunning.waiting': 'ledger:post',
+  'bank.unmatched': 'ledger:post',
+  'inbox.waiting': 'ledger:draft',
+  'purchase.book': 'ledger:post',
+  'purchase.approve': 'purchase:approve',
+}
 
 export interface WorkQueueItem {
   readonly kind: WorkQueueKind
@@ -39,21 +59,31 @@ export interface WorkQueueCounts {
   readonly salesOverdue: number
   /** Minor units still owed on the overdue invoices. */
   readonly salesOverdueTotal: string
+  readonly dunningWaiting: number
   readonly bankUnmatched: number
   readonly inboxWaiting: number
   readonly purchaseToBook: number
   readonly purchaseToApprove: number
 }
 
-export function buildWorkQueue(counts: WorkQueueCounts): readonly WorkQueueItem[] {
+/**
+ * @param granted answers "may this reader do that", which is how a row that
+ * would only lead to a 403 is left out. Defaults to yes, so a caller that has
+ * no permissions to check — a test, a screen — gets the whole queue.
+ */
+export function buildWorkQueue(
+  counts: WorkQueueCounts,
+  granted: (permission: string) => boolean = () => true,
+): readonly WorkQueueItem[] {
   const rows: readonly WorkQueueItem[] = [
     { kind: 'sales.draft', count: counts.salesDrafts, amount: null },
     { kind: 'sales.overdue', count: counts.salesOverdue, amount: counts.salesOverdueTotal },
+    { kind: 'dunning.waiting', count: counts.dunningWaiting, amount: null },
     { kind: 'bank.unmatched', count: counts.bankUnmatched, amount: null },
     { kind: 'inbox.waiting', count: counts.inboxWaiting, amount: null },
     { kind: 'purchase.book', count: counts.purchaseToBook, amount: null },
     { kind: 'purchase.approve', count: counts.purchaseToApprove, amount: null },
   ]
 
-  return rows.filter((row) => row.count > 0)
+  return rows.filter((row) => row.count > 0 && granted(WORK_QUEUE_PERMISSION[row.kind]))
 }

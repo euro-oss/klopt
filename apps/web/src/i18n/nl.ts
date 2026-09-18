@@ -144,6 +144,8 @@ export const nl = {
   'queue.salesDraftBody': 'Verkoopfacturen zonder nummer: nog niet geboekt, nog niet verstuurd.',
   'queue.salesOverdue': 'Vervallen verkoopfacturen',
   'queue.salesOverdueBody': 'Klanten die over hun betaaltermijn heen zijn.',
+  'queue.dunningWaiting': 'Aanmaningen om te versturen',
+  'queue.dunningWaitingBody': 'Facturen waarvoor een herinnering klaarstaat die nog niet uit is.',
   'queue.bankUnmatched': 'Banktransacties zonder tegenboeking',
   'queue.bankUnmatchedBody': 'Staan in de koppelwachtrij, met voorstellen erbij.',
   'queue.inboxWaiting': 'Post die op een concept wacht',

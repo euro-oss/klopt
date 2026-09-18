@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { buildWorkQueue, WORK_QUEUE_ORDER, type WorkQueueCounts } from '../../src/lib/work-queue.js'
+import {
+  buildWorkQueue,
+  WORK_QUEUE_ORDER,
+  WORK_QUEUE_PERMISSION,
+  type WorkQueueCounts,
+} from '../../src/lib/work-queue.js'
 import { resolveListKey } from '../../src/lib/list-cursor.js'
+import { permissionsForRole, grants } from '@klopt/core'
 
 /**
  * The dashboard queue, and moving through it.
@@ -13,10 +19,22 @@ const nothing: WorkQueueCounts = {
   salesDrafts: 0,
   salesOverdue: 0,
   salesOverdueTotal: '0',
+  dunningWaiting: 0,
   bankUnmatched: 0,
   inboxWaiting: 0,
   purchaseToBook: 0,
   purchaseToApprove: 0,
+}
+
+const everything: WorkQueueCounts = {
+  salesDrafts: 1,
+  salesOverdue: 9,
+  salesOverdueTotal: '250000',
+  dunningWaiting: 4,
+  bankUnmatched: 40,
+  inboxWaiting: 3,
+  purchaseToBook: 2,
+  purchaseToApprove: 7,
 }
 
 describe('what the queue shows', () => {
@@ -36,17 +54,7 @@ describe('what the queue shows', () => {
   it('keeps the daily order rather than sorting by size', () => {
     // Invoice, then the bank, then what suppliers sent. A queue that reorders
     // itself as the numbers move is a queue nobody can learn.
-    const rows = buildWorkQueue({
-      salesDrafts: 1,
-      salesOverdue: 9,
-      salesOverdueTotal: '250000',
-      bankUnmatched: 40,
-      inboxWaiting: 3,
-      purchaseToBook: 2,
-      purchaseToApprove: 7,
-    })
-
-    expect(rows.map((row) => row.kind)).toEqual([...WORK_QUEUE_ORDER])
+    expect(buildWorkQueue(everything).map((row) => row.kind)).toEqual([...WORK_QUEUE_ORDER])
   })
 
   it('carries the overdue total, because a count of late invoices is not the news', () => {
@@ -57,6 +65,52 @@ describe('what the queue shows', () => {
   it('puts no figure on the rows where a count is the whole story', () => {
     const [row] = buildWorkQueue({ ...nothing, bankUnmatched: 12 })
     expect(row?.amount).toBeNull()
+  })
+
+  it('separates being late from being unchased', () => {
+    // Two jobs, two rows: an invoice a week late has a reminder waiting, and
+    // the same invoice after the letter went out is still late and no longer
+    // anybody's next action.
+    const rows = buildWorkQueue({
+      ...nothing,
+      salesOverdue: 3,
+      salesOverdueTotal: '100',
+      dunningWaiting: 1,
+    })
+    expect(rows.map((row) => row.kind)).toEqual(['sales.overdue', 'dunning.waiting'])
+  })
+})
+
+describe('what a reader is offered', () => {
+  const forRole = (role: 'owner' | 'bookkeeper' | 'accountant' | 'auditor') => {
+    const held = new Set<string>(permissionsForRole(role))
+    return buildWorkQueue(everything, (permission) => grants(held, permission)).map(
+      (row) => row.kind,
+    )
+  }
+
+  it('offers an owner everything that is waiting', () => {
+    expect(forRole('owner')).toEqual([...WORK_QUEUE_ORDER])
+  })
+
+  it('does not tell a bookkeeper to approve what only an owner may approve', () => {
+    // `purchase:approve` is the one the two-person rule turns on, and a row
+    // that leads to a 403 is worse than no row.
+    expect(forRole('bookkeeper')).not.toContain('purchase.approve')
+    expect(forRole('bookkeeper')).toContain('purchase.book')
+  })
+
+  it('leaves an auditor with what an auditor can actually do', () => {
+    // Read and export, and nothing else: looking at what is overdue is
+    // reading; every other row is somebody else's afternoon.
+    expect(forRole('auditor')).toEqual(['sales.overdue'])
+  })
+
+  it('names, for every row, the permission the screen behind it requires', () => {
+    // A row added without one would silently be shown to everybody.
+    for (const kind of WORK_QUEUE_ORDER) {
+      expect(WORK_QUEUE_PERMISSION[kind], kind).toMatch(/^[a-z]+:[a-z-]+$/)
+    }
   })
 })
 

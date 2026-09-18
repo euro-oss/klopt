@@ -46,17 +46,36 @@ const YEAR_SCOPED = [
   'reports.creditor-ageing.tsx',
 ]
 
+/**
+ * The two softer ones: the year is a field somebody fills in rather than a
+ * reporting period, but its default came from the clock all the same, which
+ * offers an administration on a July–June boekjaar a year it does not have.
+ */
+const YEAR_DEFAULTED = ['snapshots.tsx', 'exact.index.tsx']
+
 describe('the screens that are about a book year', () => {
-  for (const file of YEAR_SCOPED) {
+  for (const file of [...YEAR_SCOPED, ...YEAR_DEFAULTED]) {
     it(`${file} does not ask the calendar what year the books are in`, () => {
       expect(read(file)).not.toContain('getFullYear')
     })
+  }
 
+  for (const file of YEAR_SCOPED) {
     it(`${file} does not date itself from the browser either`, () => {
       // `new Date()` for "today" is the same guess wearing a different hat:
       // an ageing report as of today, in a year that closed in June, buckets
       // every invoice in it as a year late.
       expect(read(file)).not.toContain('new Date()')
+    })
+
+    it(`${file} resolves the year per load, not once per module`, () => {
+      // These were module-level constants, so a browser left open over New
+      // Year kept reporting the year it was opened in.
+      expect(read(file)).not.toMatch(/^const YEAR/m)
+    })
+
+    it(`${file} takes the year from the URL, so a report can be sent to somebody`, () => {
+      expect(read(file)).toContain('fiscalYearSearch')
     })
   }
 })

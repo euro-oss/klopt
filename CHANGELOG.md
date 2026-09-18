@@ -21,18 +21,24 @@ the ADR is where the reasoning is.
 ### The day's work, on the screen it opens on (alpha 2)
 
 - **The dashboard is a work queue.** What is waiting, in the order the day is
-  worked — drafts to send, invoices past their terms, bank lines with no
-  counter-entry, post waiting for a draft, purchase invoices to book and to
-  approve. Each row opens the screen where that work is done, and a row with
-  nothing in it is not shown, so an empty queue means an empty desk rather than
-  a wall of zeroes. The three health figures are still here, under it.
+  worked — drafts to send, invoices past their terms, reminders ready to go,
+  bank lines with no counter-entry, post waiting for a draft, purchase invoices
+  to book and to approve. Each row opens the screen where that work is done,
+  and a row with nothing in it is not shown, so an empty queue means an empty
+  desk rather than a wall of zeroes. A row the reader may not act on is left
+  out rather than shown and refused: an auditor is not told to approve four
+  purchase invoices. The three health figures are still here, under it.
 - **One book year for the whole application**, in the shell beside the
   administration, with the dates of the year under its label. The dashboard,
   the proefbalans, the balans, the winst-en-verliesrekening and both ageing
-  reports read it. They each used to call `new Date().getFullYear()`, which is
-  the calendar year and not the boekjaar: for an administration running July to
-  June — which `/setup` offers — that was the wrong year for half of every
-  year, chosen silently.
+  reports read it, and the year they are showing is in the address as well as
+  in a cookie, so a report can be sent to somebody and arrive showing the same
+  figures. Momentopnames and de Exact-import default their year field from the
+  same book years rather than from the clock. They all used to call
+  `new Date().getFullYear()`, which is the calendar year and not the boekjaar:
+  for an administration running July to June — which `/setup` offers — that was
+  the wrong year for half of every year, chosen silently, and as a module-level
+  constant it was also stale for anybody whose browser was open over New Year.
 - **Ouderdomsanalyse is in the navigation**, on both sides. Creditor ageing
   existed and was reachable only from a button on Inkoopfacturen; debtor ageing
   is new, built on the open items `GET /reports/overdue-invoices` already

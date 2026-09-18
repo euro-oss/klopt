@@ -5,6 +5,7 @@ import { Money } from '~/components/finance/money'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
+import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { useHydrated } from '~/lib/hydration'
 import { resolveListKey } from '~/lib/list-cursor'
 import type { WorkQueueItem, WorkQueueKind } from '~/lib/work-queue'
@@ -30,11 +31,14 @@ import { getRgsCoverage, getTrialBalance, verifyChain } from '~/server/ledger'
  * start in January — and setup offers exactly that.
  */
 export const Route = createFileRoute('/_app/')({
-  loader: async () => {
+  validateSearch: fiscalYearSearch,
+  loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
+  loader: async ({ deps }) => {
+    const year = deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) }
     const [queue, coverage, trial, chain] = await Promise.all([
-      getWorkQueue(),
+      getWorkQueue({ data: year }),
       getRgsCoverage({ data: {} }),
-      getTrialBalance({ data: {} }),
+      getTrialBalance({ data: year }),
       verifyChain(),
     ])
     return { queue, coverage, trial, chain }
@@ -58,7 +62,18 @@ const DESTINATIONS: Record<
     title: 'queue.salesDraft',
     body: 'queue.salesDraftBody',
   },
-  'sales.overdue': { to: '/dunning', title: 'queue.salesOverdue', body: 'queue.salesOverdueBody' },
+  // Late and unchased are two different jobs, so they are two rows: what is
+  // overdue opens the ageing, what is due a letter opens Aanmaningen.
+  'sales.overdue': {
+    to: '/reports/debtor-ageing',
+    title: 'queue.salesOverdue',
+    body: 'queue.salesOverdueBody',
+  },
+  'dunning.waiting': {
+    to: '/dunning',
+    title: 'queue.dunningWaiting',
+    body: 'queue.dunningWaitingBody',
+  },
   'bank.unmatched': {
     to: '/bank/match',
     title: 'queue.bankUnmatched',
