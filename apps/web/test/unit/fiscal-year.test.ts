@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   currentFiscalYear,
+  fiscalYearSearch,
   isFiscalYearCode,
+  isYearScopedRoute,
   resolveFiscalYear,
   withinFiscalYear,
   type FiscalYearOption,
@@ -126,6 +128,33 @@ describe('what belongs to the year on screen', () => {
 
   it('treats a missing date as not in the year', () => {
     expect(withinFiscalYear(scope, null)).toBe(false)
+  })
+})
+
+describe('the year in the address', () => {
+  it('takes the number a link carries', () => {
+    expect(fiscalYearSearch({ fiscalYear: 2025 })).toEqual({ fiscalYear: 2025 })
+  })
+
+  it('takes one somebody typed as text, which is what a pasted URL is', () => {
+    expect(fiscalYearSearch({ fiscalYear: '2025' })).toEqual({ fiscalYear: 2025 })
+  })
+
+  it('drops anything that is not a book year label', () => {
+    // Rather than passing it to a report, which would answer with an empty
+    // year nobody asked for.
+    expect(fiscalYearSearch({ fiscalYear: 'vorig jaar' })).toEqual({})
+    expect(fiscalYearSearch({ fiscalYear: 25 })).toEqual({})
+    expect(fiscalYearSearch({})).toEqual({})
+  })
+
+  it('knows which screens read it', () => {
+    // The shell writes the year into the address only where a screen takes it
+    // out again: a URL carrying state nothing honours is a lie that survives
+    // being copied.
+    expect(isYearScopedRoute('/reports/trial-balance')).toBe(true)
+    expect(isYearScopedRoute('/')).toBe(true)
+    expect(isYearScopedRoute('/settings')).toBe(false)
   })
 })
 

@@ -1,6 +1,15 @@
-import { Link, Outlet, createFileRoute, redirect, useRouter } from '@tanstack/react-router'
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  redirect,
+  useNavigate,
+  useRouter,
+  useRouterState,
+} from '@tanstack/react-router'
 import { AppShell } from '~/components/app-shell'
 import { useT } from '~/i18n/provider'
+import { isYearScopedRoute } from '~/lib/fiscal-year'
 import { getSession } from '~/server/context'
 import { getReportYear, setReportYear } from '~/server/fiscal-year'
 import { switchEntity } from '~/server/ledger'
@@ -42,6 +51,8 @@ export const Route = createFileRoute('/_app')({
 function AppLayout() {
   const { session, reportYear } = Route.useLoaderData()
   const router = useRouter()
+  const navigate = useNavigate()
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
   const { t } = useT()
 
   if (session.memberships.length === 0) {
@@ -82,7 +93,17 @@ function AppLayout() {
         // takes down the layout every screen renders inside, and the year a
         // reader is looking at is not worth a blank page.
         void setReportYear({ data: { code } })
-          .then(() => router.invalidate())
+          .then(async () => {
+            // Into the address as well as into the cookie, where the screen
+            // reads it: a report is a thing people send each other, and a link
+            // that shows the sender's year and the reader's figures is worse
+            // than no link. Everywhere else the cookie carries the choice, and
+            // `invalidate` is what makes the screens re-read it.
+            if (isYearScopedRoute(pathname)) {
+              await navigate({ to: pathname, search: { fiscalYear: Number(code) } })
+            }
+            await router.invalidate()
+          })
           .catch((cause: unknown) => {
             console.error('[app] could not change book year', cause)
           })

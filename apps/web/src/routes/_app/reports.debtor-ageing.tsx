@@ -5,6 +5,7 @@ import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
 import { DEBTOR_AGEING_BUCKETS, debtorAgeing } from '~/lib/ageing'
+import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { listOverdueInvoices } from '~/server/sales'
 
 /**
@@ -25,13 +26,20 @@ import { listOverdueInvoices } from '~/server/sales'
  * running, its last day once it is over.
  */
 export const Route = createFileRoute('/_app/reports/debtor-ageing')({
-  validateSearch: (search: Record<string, unknown>): { asOf?: string } =>
-    typeof search['asOf'] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(search['asOf'])
+  validateSearch: (search: Record<string, unknown>): { asOf?: string; fiscalYear?: number } => ({
+    ...(typeof search['asOf'] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(search['asOf'])
       ? { asOf: search['asOf'] }
-      : {},
-  loaderDeps: ({ search }) => ({ asOf: search.asOf }),
+      : {}),
+    ...fiscalYearSearch(search),
+  }),
+  loaderDeps: ({ search }) => ({ asOf: search.asOf, fiscalYear: search.fiscalYear }),
   loader: async ({ deps }) =>
-    listOverdueInvoices({ data: deps.asOf === undefined ? {} : { asOf: deps.asOf } }),
+    listOverdueInvoices({
+      data: {
+        ...(deps.asOf === undefined ? {} : { asOf: deps.asOf }),
+        ...(deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) }),
+      },
+    }),
   component: DebtorAgeing,
 })
 

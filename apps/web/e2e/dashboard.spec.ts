@@ -72,6 +72,11 @@ test('the queue lists what is waiting and opens the screen where it is done', as
 
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/invoices\?status=draft$/)
+
+  // And the count was the truth: one draft on the dashboard, one draft here.
+  // A queue whose numbers disagree with the screens behind them is a queue
+  // people stop believing.
+  await expect(page.getByRole('row')).toHaveCount(2)
 })
 
 test('Escape gives the keyboard back to the rest of the application', async ({ page }) => {
@@ -112,6 +117,39 @@ test('the book year in the shell is the administration’s, and the reports agre
 
   await page.goto('/reports/trial-balance')
   await expect(page.getByText(new RegExp(`Boekjaar ${year}`))).toBeVisible()
+})
+
+test('a report can be pointed at another book year, and the link carries it', async ({ page }) => {
+  await anAdministration(page, 'Twee Boekjaren BV')
+
+  // Opening the next year has an API and no screen yet (that is issue #6), so
+  // the second year is made the way the CLI would make it. The picker offers
+  // whatever the administration has, which is the point of reading it from
+  // `GET /fiscal-years` rather than from the clock.
+  const next = String(new Date().getUTCFullYear() + 1)
+  const created = await page.request.post('/api/v1/fiscal-years', {
+    headers: { 'Idempotency-Key': crypto.randomUUID(), 'Content-Type': 'application/json' },
+    data: { code: next },
+  })
+  expect(created.ok(), await created.text()).toBeTruthy()
+
+  await page.goto('/reports/trial-balance')
+  const thisYear = String(new Date().getUTCFullYear())
+  await expect(page.getByText(new RegExp(`Boekjaar ${thisYear}`))).toBeVisible()
+
+  await chooseOption(page, 'Boekjaar', new RegExp(`^${next}`))
+  await expect(page.getByText(new RegExp(`Boekjaar ${next}`))).toBeVisible()
+
+  // In the address, so the report is a thing somebody can send.
+  await expect(page).toHaveURL(new RegExp(`fiscalYear=${next}`))
+  await page.reload()
+  await expect(page.getByText(new RegExp(`Boekjaar ${next}`))).toBeVisible()
+
+  // And walking to another report keeps the year, though the link carries no
+  // parameter: that is the cookie doing the remembering.
+  await page.getByRole('link', { name: 'Balans', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Balans' })).toBeVisible()
+  await expect(page.getByText(`${next}-12-31`)).toBeVisible()
 })
 
 test('a boekjaar that is not the calendar year is the one the screens use', async ({ page }) => {

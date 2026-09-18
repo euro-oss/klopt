@@ -2,11 +2,17 @@ import { createFileRoute } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
+import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { getProfitAndLoss } from '~/server/ledger'
 
-/** The book year comes from the shell. See `reports.balance-sheet`. */
+/** The book year comes from the URL, or from the shell. See `reports.balance-sheet`. */
 export const Route = createFileRoute('/_app/reports/profit-and-loss')({
-  loader: async () => getProfitAndLoss({ data: {} }),
+  validateSearch: fiscalYearSearch,
+  loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
+  loader: async ({ deps }) =>
+    getProfitAndLoss({
+      data: deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) },
+    }),
   component: ProfitAndLoss,
 })
 

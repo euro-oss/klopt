@@ -3,11 +3,17 @@ import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
+import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { getTrialBalance } from '~/server/ledger'
 
-/** The book year comes from the shell. See `reports.balance-sheet`. */
+/** The book year comes from the URL, or from the shell. See `reports.balance-sheet`. */
 export const Route = createFileRoute('/_app/reports/trial-balance')({
-  loader: async () => getTrialBalance({ data: {} }),
+  validateSearch: fiscalYearSearch,
+  loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
+  loader: async ({ deps }) =>
+    getTrialBalance({
+      data: deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) },
+    }),
   component: TrialBalance,
 })
 

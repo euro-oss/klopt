@@ -4,6 +4,7 @@ import { Money } from '~/components/finance/money'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
+import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { getCreditorAgeing } from '~/server/purchase'
 
 /**
@@ -19,16 +20,23 @@ import { getCreditorAgeing } from '~/server/purchase'
  * who cannot see the number will not trust the alert when it fires.
  */
 export const Route = createFileRoute('/_app/reports/creditor-ageing')({
-  validateSearch: (search: Record<string, unknown>): { asOf?: string } =>
-    typeof search['asOf'] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(search['asOf'])
+  validateSearch: (search: Record<string, unknown>): { asOf?: string; fiscalYear?: number } => ({
+    ...(typeof search['asOf'] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(search['asOf'])
       ? { asOf: search['asOf'] }
-      : {},
-  loaderDeps: ({ search }) => ({ asOf: search.asOf }),
-  // With no date in the URL, the date the shell's book year implies: today
-  // while that year is running, its last day once it is over. Ageing a closed
-  // year as of today would bucket every invoice in it as a year late.
+      : {}),
+    ...fiscalYearSearch(search),
+  }),
+  loaderDeps: ({ search }) => ({ asOf: search.asOf, fiscalYear: search.fiscalYear }),
+  // With no date in the URL, the date the book year implies: today while that
+  // year is running, its last day once it is over. Ageing a closed year as of
+  // today would bucket every invoice in it as a year late.
   loader: async ({ deps }) =>
-    getCreditorAgeing({ data: deps.asOf === undefined ? {} : { asOf: deps.asOf } }),
+    getCreditorAgeing({
+      data: {
+        ...(deps.asOf === undefined ? {} : { asOf: deps.asOf }),
+        ...(deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) }),
+      },
+    }),
   component: CreditorAgeing,
 })
 

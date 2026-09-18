@@ -53,6 +53,52 @@ export function isFiscalYearCode(value: string | null | undefined): value is str
 }
 
 /**
+ * The year in the URL, for the screens that are about one.
+ *
+ * A report is a thing people send each other — "look at this, the debiteuren
+ * in 2025" — so the year a screen is showing belongs in the address as well
+ * as in the cookie. The cookie is the memory; the URL, when it says anything,
+ * is the instruction, and it wins.
+ *
+ * A number rather than a string, because the router's search serialiser
+ * quotes a string that would otherwise parse as a number: `?fiscalYear="2025"`
+ * round-trips correctly and reads like a bug in a link somebody is about to
+ * paste into an email. `?fiscalYear=2025` is the same information.
+ *
+ * Anything that is not a book year label is dropped rather than passed on to
+ * a report, which would answer with an empty year nobody asked for.
+ */
+export function fiscalYearSearch(search: Record<string, unknown>): { fiscalYear?: number } {
+  const value = search['fiscalYear']
+  const text = typeof value === 'number' ? String(value) : typeof value === 'string' ? value : ''
+  if (!isFiscalYearCode(text)) return {}
+  return { fiscalYear: Number(text) }
+}
+
+/**
+ * The screens that take the year in their address.
+ *
+ * Listed because the control in the shell has to know where writing the year
+ * into the URL means something: on Instellingen it would be a parameter
+ * nothing reads, and a URL carrying state no screen honours is a lie that
+ * survives being copied. Everywhere else the cookie carries the choice.
+ */
+export const YEAR_SCOPED_ROUTES = [
+  '/',
+  '/reports/trial-balance',
+  '/reports/balance-sheet',
+  '/reports/profit-and-loss',
+  '/reports/debtor-ageing',
+  '/reports/creditor-ageing',
+] as const
+
+export type YearScopedRoute = (typeof YEAR_SCOPED_ROUTES)[number]
+
+export function isYearScopedRoute(pathname: string): pathname is YearScopedRoute {
+  return (YEAR_SCOPED_ROUTES as readonly string[]).includes(pathname)
+}
+
+/**
  * The year today falls in.
  *
  * Falls back to the most recent year that has already started, and then to the
