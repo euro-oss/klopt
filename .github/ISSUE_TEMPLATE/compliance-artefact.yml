@@ -1,6 +1,6 @@
 name: Compliance artefact
 description: A regulated artefact or reference-data issue — XAF, UBL/NLCIUS, XBRL/NT, pain.001, CAMT/MT940, RGS, Peppol schematron.
-labels: ["bug", "compliance"]
+labels: ['bug', 'compliance']
 body:
   - type: markdown
     attributes:
@@ -41,7 +41,7 @@ body:
     attributes:
       label: Authority
       description: Link the published schema, schematron rule, or specification version this is measured against.
-      placeholder: "e.g. NLCIUS 1.0.3 rule BR-NL-1, or XAF 3.2 XSD"
+      placeholder: 'e.g. NLCIUS 1.0.3 rule BR-NL-1, or XAF 3.2 XSD'
     validations:
       required: false
   - type: textarea

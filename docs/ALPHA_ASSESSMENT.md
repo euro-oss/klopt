@@ -27,19 +27,19 @@ dependency.
 
 ### Languages and frameworks
 
-| Layer | Choice | Pin / notes |
-| --- | --- | --- |
-| Language | TypeScript 5.9.3 | Deliberately not TS 7 (`docs/decisions/0002`) |
-| Runtime | Node ≥22, `.nvmrc` = 24 | CI matrix: Node 24 and 26 |
-| Package manager | pnpm 10.15 | Workspace, frozen lockfile, `onlyBuiltDependencies: esbuild` |
-| Web | TanStack Start 1.168 + Router 1.170 + React 19 | Vite 8, Nitro 3 beta, Tailwind 4, shadcn/Radix |
-| Domain | `@klopt/core` | Framework-free. ESLint + dependency-cruiser enforce the boundary |
-| Persistence | PostgreSQL 17 + Drizzle 0.45 | Schema `klopt`; queue schema `klopt_jobs` |
-| Auth | better-auth 1.7 + email OTP | No passwords. OIDC is a comment, not a plugin |
-| Queue | pg-boss 12 | Worker is required, not optional |
-| Money | `bigint` minor units in process, decimal **string** on the wire | `klopt/no-number-money` lint |
-| Tests | Vitest 5 + Playwright 1.62 | Playwright is **not** in CI |
-| MCP | `@modelcontextprotocol/sdk` 1.30 | Client of REST, not a privileged path |
+| Layer           | Choice                                                          | Pin / notes                                                      |
+| --------------- | --------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Language        | TypeScript 5.9.3                                                | Deliberately not TS 7 (`docs/decisions/0002`)                    |
+| Runtime         | Node ≥22, `.nvmrc` = 24                                         | CI matrix: Node 24 and 26                                        |
+| Package manager | pnpm 10.15                                                      | Workspace, frozen lockfile, `onlyBuiltDependencies: esbuild`     |
+| Web             | TanStack Start 1.168 + Router 1.170 + React 19                  | Vite 8, Nitro 3 beta, Tailwind 4, shadcn/Radix                   |
+| Domain          | `@klopt/core`                                                   | Framework-free. ESLint + dependency-cruiser enforce the boundary |
+| Persistence     | PostgreSQL 17 + Drizzle 0.45                                    | Schema `klopt`; queue schema `klopt_jobs`                        |
+| Auth            | better-auth 1.7 + email OTP                                     | No passwords. OIDC is a comment, not a plugin                    |
+| Queue           | pg-boss 12                                                      | Worker is required, not optional                                 |
+| Money           | `bigint` minor units in process, decimal **string** on the wire | `klopt/no-number-money` lint                                     |
+| Tests           | Vitest 5 + Playwright 1.62                                      | Playwright is **not** in CI                                      |
+| MCP             | `@modelcontextprotocol/sdk` 1.30                                | Client of REST, not a privileged path                            |
 
 Postgres is also the queue, the search index and the cache. Local extras:
 MinIO (S3 + object lock) via `docker-compose.yml`. Production shape: one
@@ -195,18 +195,18 @@ Split by “blocks a bookkeeper this week” vs “blocked on a third party” v
 These operations exist, are tested, and have **no first-class screen** (or the
 screen is unreachable):
 
-| Capability | API | UI | Why it matters for alpha |
-| --- | --- | --- | --- |
-| Close a book year | `POST /fiscal-years/close` | None | Year-end is a first-class accountant act |
-| Open next fiscal year | `POST /fiscal-years` | None | Broken year / next year cannot be opened in-product |
-| Import XAF | `POST /imports/audit-file` | None | Principle 2 is export-only in the product |
-| Global search | `GET /search` | None. `/` deliberately unbound | Keyboard-first claim is incomplete |
-| Explain a figure | `GET /explain` | None (MCP has it) | “Why is this number?” is daily work |
-| Chart of accounts | list + RGS coverage | Read-only table | Cannot add an account or map RGS in the UI |
-| Dimensions | posting + XAF import | None | Cost centre / project analytics is schema-only |
-| Creditor ageing | yes | Screen exists, **not in nav** | Hidden |
-| Debtor ageing | overdue + dunning | No dedicated report | Debtors live only in Aanmaningen |
-| Report year/period | API takes `fiscalYear` | Hardcoded `new Date().getFullYear()` on dashboard, TB, BS, P&L | **Broken for a non-calendar boekjaar** — setup allows one |
+| Capability            | API                        | UI                                                             | Why it matters for alpha                                  |
+| --------------------- | -------------------------- | -------------------------------------------------------------- | --------------------------------------------------------- |
+| Close a book year     | `POST /fiscal-years/close` | None                                                           | Year-end is a first-class accountant act                  |
+| Open next fiscal year | `POST /fiscal-years`       | None                                                           | Broken year / next year cannot be opened in-product       |
+| Import XAF            | `POST /imports/audit-file` | None                                                           | Principle 2 is export-only in the product                 |
+| Global search         | `GET /search`              | None. `/` deliberately unbound                                 | Keyboard-first claim is incomplete                        |
+| Explain a figure      | `GET /explain`             | None (MCP has it)                                              | “Why is this number?” is daily work                       |
+| Chart of accounts     | list + RGS coverage        | Read-only table                                                | Cannot add an account or map RGS in the UI                |
+| Dimensions            | posting + XAF import       | None                                                           | Cost centre / project analytics is schema-only            |
+| Creditor ageing       | yes                        | Screen exists, **not in nav**                                  | Hidden                                                    |
+| Debtor ageing         | overdue + dunning          | No dedicated report                                            | Debtors live only in Aanmaningen                          |
+| Report year/period    | API takes `fiscalYear`     | Hardcoded `new Date().getFullYear()` on dashboard, TB, BS, P&L | **Broken for a non-calendar boekjaar** — setup allows one |
 
 Journal entry form gaps vs the keyboard map and the posting model:
 
@@ -297,19 +297,19 @@ Unit/integration coverage of the domain is a genuine asset. Gaps:
   machine.
 - e2e is Chromium-only, Dutch-locale, single worker.
 - UBL golden test notes the XSD half is present; schematron-on-goldens is
-  “not yet” in that file (runtime send path *does* run schematron).
+  “not yet” in that file (runtime send path _does_ run schematron).
 - Exact cumulative reconciliation cannot be tested without a live
   administration that returns `GLAccountCode` rows (changelog).
 
 ### 3.7 Docs drift (will mis-plan the backlog if believed)
 
-| Document | What it still says | What the code does |
-| --- | --- | --- |
+| Document                                 | What it still says                                                             | What the code does                                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
 | `docs/architecture.md` § “Not built yet” | VAT/purchase not built; worker empty; contacts not editable; palette not wired | M3–M6 present; worker has 5 jobs; contact edit exists; palette + `g` prefixes work |
-| `README.md` MCP | “Six tools, all read-only” | Twelve tools, four writes |
-| `docs/decisions/README.md` | Index stops at ADR 0017 | 58 decision files exist (0001–0058) |
-| ADR 0025 consequences | Inbox not here; payment batch does not draw from approved invoices | Inbox and `addApprovedInvoices` are in the product |
-| `docs/keyboard-map.md` | Honest: tables are the design, registry is the truth | Still the best UX spec; implement against it |
+| `README.md` MCP                          | “Six tools, all read-only”                                                     | Twelve tools, four writes                                                          |
+| `docs/decisions/README.md`               | Index stops at ADR 0017                                                        | 58 decision files exist (0001–0058)                                                |
+| ADR 0025 consequences                    | Inbox not here; payment batch does not draw from approved invoices             | Inbox and `addApprovedInvoices` are in the product                                 |
+| `docs/keyboard-map.md`                   | Honest: tables are the design, registry is the truth                           | Still the best UX spec; implement against it                                       |
 
 `CHANGELOG.md` and `docs/api-stability.md` are the accurate 0.1.0 picture.
 Prefer them over `architecture.md` until that file is rewritten.
@@ -337,21 +337,21 @@ These fail closed. Manual / file paths are the product.
 
 ## 4. Repo hygiene
 
-| Item | State |
-| --- | --- |
-| `LICENSE` | Apache-2.0, complete |
-| `NOTICE`, `TRADEMARK.md`, `GOVERNANCE.md` | Present. Trademark clearance **not run** |
-| `README.md` | Excellent operator onboarding; MCP count stale |
-| `CONTRIBUTING.md` | DCO, `pnpm verify`, area conventions |
-| `CHANGELOG.md` | Honest 0.1.0, including four unfinished items |
-| `SECURITY.md` | Coordinated disclosure process. Contact unset |
-| `MAINTAINERS.md` | **Every area unassigned**, including compliance calendar |
-| `docs/compliance-calendar.md` | Treadmill listed; **dates and owners blank** |
-| CI | `.github/workflows/ci.yml`: format, build, lint, typecheck, migrate, Vitest, depcruise; separate XAF golden job. **No Playwright. No UBL schematron-on-goldens.** |
-| PR template | Yes (DCO, money lint, manifest, golden diffs) |
-| Issue templates | **None** |
-| Code of conduct | None |
-| Branch protection / CODEOWNERS | Not in tree |
+| Item                                      | State                                                                                                                                                             |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LICENSE`                                 | Apache-2.0, complete                                                                                                                                              |
+| `NOTICE`, `TRADEMARK.md`, `GOVERNANCE.md` | Present. Trademark clearance **not run**                                                                                                                          |
+| `README.md`                               | Excellent operator onboarding; MCP count stale                                                                                                                    |
+| `CONTRIBUTING.md`                         | DCO, `pnpm verify`, area conventions                                                                                                                              |
+| `CHANGELOG.md`                            | Honest 0.1.0, including four unfinished items                                                                                                                     |
+| `SECURITY.md`                             | Coordinated disclosure process. Contact unset                                                                                                                     |
+| `MAINTAINERS.md`                          | **Every area unassigned**, including compliance calendar                                                                                                          |
+| `docs/compliance-calendar.md`             | Treadmill listed; **dates and owners blank**                                                                                                                      |
+| CI                                        | `.github/workflows/ci.yml`: format, build, lint, typecheck, migrate, Vitest, depcruise; separate XAF golden job. **No Playwright. No UBL schematron-on-goldens.** |
+| PR template                               | Yes (DCO, money lint, manifest, golden diffs)                                                                                                                     |
+| Issue templates                           | **None**                                                                                                                                                          |
+| Code of conduct                           | None                                                                                                                                                              |
+| Branch protection / CODEOWNERS            | Not in tree                                                                                                                                                       |
 
 For an open-source alpha, the hygiene gap that will hurt is not LICENSE — it
 is **unowned compliance calendar + no issue templates + e2e not in CI**.
@@ -414,7 +414,7 @@ The product already has the data (`list_pending_approvals`, inbox, bank
 unmatched, VAT periods, dunning). Wire it.
 
 - Dashboard: counts + links for inbox, unmatched bank, overdue invoices,
-  VAT deadlines, payment batches waiting on *you*. Keep the three health
+  VAT deadlines, payment batches waiting on _you_. Keep the three health
   stats; they are not enough alone.
 - Year / period picker on dashboard, trial balance, balance sheet, P&L
   (read `listFiscalYears`; stop using `new Date().getFullYear()`).
@@ -555,9 +555,9 @@ and snapshot sub-resources (partial UI).
 
 ### Worker jobs
 
-`webhooks.deliver` (every minute), `inbound.poll` (*/5),
+`webhooks.deliver` (every minute), `inbound.poll` (_/5),
 `snapshot.sealPendingYears` (04:00), `oauth.purgeExpiredCodes` (05:00),
-`exact.importDocuments` (*/2). Comment in `jobs.ts` still mentions VAT
+`exact.importDocuments` (_/2). Comment in `jobs.ts` still mentions VAT
 period close / bank sync / subledger recon as future — those are not
 registered.
 

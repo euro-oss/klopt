@@ -305,7 +305,7 @@ joins the same subquery. Before matching existed the dunning list could only say
 `snapshot.sealPendingYears` (04:00), `oauth.purgeExpiredCodes` (05:00),
 `exact.importDocuments` (every 2 minutes) and `webhooks.deliver` (every minute).
 The comment in `apps/worker/src/jobs.ts` that lists VAT period close, bank sync
-and subledger recon describes work that is *not* registered — a future note, not
+and subledger recon describes work that is _not_ registered — a future note, not
 a running job.
 
 ### In the UI

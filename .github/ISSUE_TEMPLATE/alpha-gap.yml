@@ -1,6 +1,6 @@
 name: Alpha gap
 description: The API/domain can do it, but the product cannot — a missing screen, a UX hole, or a keyboard flow that is designed but not wired.
-labels: ["enhancement", "alpha-gap"]
+labels: ['enhancement', 'alpha-gap']
 body:
   - type: markdown
     attributes:
@@ -24,7 +24,7 @@ body:
     attributes:
       label: API / domain that already exists
       description: The route, operation, or MCP tool that already does the work. Link it if you can.
-      placeholder: "POST /api/v1/fiscal-years/close (fiscalYears.close)"
+      placeholder: 'POST /api/v1/fiscal-years/close (fiscalYears.close)'
     validations:
       required: false
   - type: textarea
