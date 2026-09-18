@@ -3,6 +3,7 @@ import { violationMessage } from '~/i18n/labels'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { AccountPicker } from '~/components/finance/account-picker'
+import { ShortcutStrip } from '~/components/ui/keycap'
 import { Money } from '~/components/finance/money'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
@@ -369,7 +370,7 @@ function NewEntry() {
             onChange={(event) => {
               setBookingDate(event.target.value)
             }}
-            className="border-input bg-background tabular w-full rounded-md border px-2 py-1.5 text-sm"
+            className="border-input bg-background tabular w-full border px-2 py-1.5 text-sm"
           />
         </label>
 
@@ -383,7 +384,7 @@ function NewEntry() {
             onChange={(event) => {
               setDocumentDate(event.target.value)
             }}
-            className="border-input bg-background tabular w-full rounded-md border px-2 py-1.5 text-sm"
+            className="border-input bg-background tabular w-full border px-2 py-1.5 text-sm"
           />
         </label>
 
@@ -398,12 +399,12 @@ function NewEntry() {
               setDescription(event.target.value)
             }}
             autoFocus
-            className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
+            className="border-input bg-background w-full border px-2 py-1.5 text-sm"
           />
         </label>
       </div>
 
-      <table className="border-border w-full border-collapse rounded-md border text-sm">
+      <table className="border-border w-full border-collapse border text-sm">
         <thead>
           <tr className="border-border bg-muted/50 border-b">
             <th scope="col" className="text-muted-foreground w-64 px-3 py-2 text-left font-medium">
@@ -447,7 +448,7 @@ function NewEntry() {
                     update(index, { description: event.target.value })
                   }}
                   aria-label={t('entryNew.descriptionLine', { line: String(index + 1) })}
-                  className="focus:bg-accent w-full rounded bg-transparent px-1 py-1 outline-none"
+                  className="focus:bg-accent w-full bg-transparent px-1 py-1 outline-none"
                 />
               </td>
               {(['debit', 'credit'] as const).map((side) => (
@@ -476,7 +477,7 @@ function NewEntry() {
                         if (index === lines.length - 1) addLine()
                       }
                     }}
-                    className="tabular focus:bg-accent w-full rounded bg-transparent px-1 py-1 text-right outline-none"
+                    className="tabular focus:bg-accent w-full bg-transparent px-1 py-1 text-right outline-none"
                   />
                 </td>
               ))}
@@ -512,7 +513,7 @@ function NewEntry() {
       </table>
 
       {problems.length > 0 && (
-        <ul className="border-destructive/40 bg-destructive/5 mt-4 space-y-1 rounded-md border p-3 text-sm">
+        <ul className="border-destructive/40 bg-destructive/5 mt-4 space-y-1 border p-3 text-sm">
           {problems.map((problem, index) => (
             <li key={index}>
               {problem.path !== null && <span className="tabular text-xs">{problem.path}: </span>}
@@ -539,11 +540,21 @@ function NewEntry() {
         />
       )}
 
+      <ShortcutStrip
+        ids={[
+          'entry.post',
+          'entry.postAndNext',
+          'entry.duplicateLine',
+          'entry.deleteLine',
+          'picker.choose',
+        ]}
+      />
+
       <div className="mt-6 flex gap-2">
         <button
           type="submit"
           disabled={posting || !hydrated}
-          className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+          className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
           {t('entryNew.post')}
         </button>
@@ -553,7 +564,7 @@ function NewEntry() {
           onClick={() => {
             ask(true)
           }}
-          className="border-input rounded-md border px-4 py-2 text-sm font-medium disabled:opacity-50"
+          className="border-input border px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
           {t('entryNew.postAndNext')}
         </button>
@@ -625,14 +636,14 @@ function Confirmation({
           ref={primaryRef}
           disabled={posting}
           onClick={onConfirm}
-          className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+          className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
           {startAnother ? t('entryNew.confirmAndNext') : t('entryNew.confirm')}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="border-input rounded-md border px-4 py-2 text-sm font-medium"
+          className="border-input border px-4 py-2 text-sm font-medium"
         >
           {t('entryNew.confirmBack')}
         </button>

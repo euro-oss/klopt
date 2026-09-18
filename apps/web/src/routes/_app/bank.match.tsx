@@ -5,9 +5,11 @@ import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
 import { AccountPicker } from '~/components/finance/account-picker'
+import { Keycap, ShortcutStrip } from '~/components/ui/keycap'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
+import { cn } from '~/lib/utils'
 import {
   confirmMatch,
   ignoreTransaction,
@@ -108,6 +110,7 @@ function MatchQueue() {
   const [notice, setNotice] = useState<string | null>(null)
   const [manualAccount, setManualAccount] = useState('')
   const keys = useRef<Map<string, string>>(new Map())
+  const rows = useRef<(HTMLButtonElement | null)[]>([])
 
   const line = queue[Math.min(selected, Math.max(0, queue.length - 1))]
   const lineId = line?.id
@@ -289,6 +292,17 @@ function MatchQueue() {
           event.preventDefault()
           void book(chosen, null)
         }
+        return
+      }
+      if (event.key === 'Escape') {
+        // Out of the panel, back to the line: the choices made in it are
+        // dropped and the focus goes to the queue, which is where the next
+        // keystroke belongs. Escape abandons the thing you are in.
+        event.preventDefault()
+        setManualAccount('')
+        setNotice(null)
+        setError(null)
+        rows.current[selected]?.focus()
       }
     }
 
@@ -296,7 +310,7 @@ function MatchQueue() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [hydrated, queue.length, suggestions, book, skip])
+  }, [hydrated, queue.length, selected, suggestions, book, skip])
 
   if (!transactions.ok) {
     return (
@@ -315,16 +329,14 @@ function MatchQueue() {
         title={t('match.title')}
         description={t('match.intro')}
         actions={
-          <Link to="/bank" className="border-input rounded-md border px-4 py-2 text-sm">
+          <Link to="/bank" className="border-input border px-4 py-2 text-sm">
             {t('match.backToBank')}
           </Link>
         }
       />
 
       {notice !== null && (
-        <p className="border-border text-muted-foreground mb-4 rounded-md border p-3 text-sm">
-          {notice}
-        </p>
+        <p className="border-border text-muted-foreground mb-4 border p-3 text-sm">{notice}</p>
       )}
       {error !== null && (
         <p role="alert" className="text-destructive mb-4 text-sm">
@@ -333,26 +345,33 @@ function MatchQueue() {
       )}
 
       {queue.length === 0 ? (
-        <p className="text-muted-foreground border-border rounded-md border border-dashed p-6 text-sm">
+        <p className="text-muted-foreground border-border border border-dashed p-6 text-sm">
           {t('match.nothingToDo')}
         </p>
       ) : (
         <div className="grid grid-cols-[22rem_1fr] gap-6">
           <ol
             aria-label={t('match.queue')}
-            className="border-border max-h-[36rem] overflow-y-auto rounded-md border"
+            className="border-border max-h-[36rem] overflow-y-auto border"
           >
             {queue.map((item, index) => (
               <li key={item.id}>
                 <button
                   type="button"
+                  ref={(element) => {
+                    rows.current[index] = element
+                  }}
                   aria-current={index === selected}
+                  tabIndex={index === selected ? 0 : -1}
                   onClick={() => {
                     setSelected(index)
                   }}
-                  className={`border-border w-full border-b px-3 py-2 text-left text-sm last:border-b-0 ${
-                    index === selected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
-                  }`}
+                  className={cn(
+                    'border-border w-full border-b px-3 py-2 text-left text-sm outline-none last:border-b-0',
+                    index === selected
+                      ? 'outline-primary bg-primary/5 outline-2 -outline-offset-2'
+                      : 'hover:bg-muted/60',
+                  )}
                 >
                   <span className="flex justify-between gap-2">
                     <span className="tabular text-xs">{formatDate(item.bookingDate)}</span>
@@ -369,7 +388,7 @@ function MatchQueue() {
 
           <div>
             {line !== undefined && (
-              <div className="border-border mb-4 rounded-md border p-4">
+              <div className="border-border mb-4 border p-4">
                 <div className="flex items-baseline justify-between gap-4">
                   <div>
                     <p className="font-medium">
@@ -391,7 +410,7 @@ function MatchQueue() {
             {loading && <p className="text-muted-foreground text-sm">{t('match.searching')}</p>}
 
             {suggestions !== null && suggestions.length === 0 && (
-              <p className="text-muted-foreground border-border mb-4 rounded-md border border-dashed p-4 text-sm">
+              <p className="text-muted-foreground border-border mb-4 border border-dashed p-4 text-sm">
                 {t('match.noSuggestion')}
               </p>
             )}
@@ -400,18 +419,16 @@ function MatchQueue() {
               {(suggestions ?? []).map((suggestion, index) => (
                 <li
                   key={`${suggestion.strategy}-${String(index)}`}
-                  className="border-border flex items-start gap-3 rounded-md border p-3"
+                  className="border-border flex items-start gap-3 border p-3"
                 >
                   <span
-                    className={`tabular rounded px-2 py-1 text-xs font-medium ${confidenceClass(suggestion.confidence)}`}
+                    className={`tabular px-2 py-1 text-xs font-medium ${confidenceClass(suggestion.confidence)}`}
                   >
                     {suggestion.confidence}%
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="text-muted-foreground block text-xs">
-                      {index < 9 && (
-                        <kbd className="border-input mr-1 rounded border px-1">{index + 1}</kbd>
-                      )}
+                      {index < 9 && <Keycap className="mr-1.5">{index + 1}</Keycap>}
                       {strategyOf(suggestion.strategy)}
                     </span>
                     <span className="block text-sm">{suggestion.reason}</span>
@@ -427,7 +444,7 @@ function MatchQueue() {
                     onClick={() => {
                       void book(suggestion, null)
                     }}
-                    className="bg-primary text-primary-foreground shrink-0 rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+                    className="bg-primary text-primary-foreground shrink-0 px-3 py-1.5 text-sm font-medium disabled:opacity-50"
                   >
                     {t('match.book')}
                   </button>
@@ -435,7 +452,7 @@ function MatchQueue() {
               ))}
             </ol>
 
-            <div className="border-border flex items-end gap-3 rounded-md border p-4">
+            <div className="border-border flex items-end gap-3 border p-4">
               <AccountPicker
                 label={t('match.chooseYourself')}
                 accounts={postable}
@@ -451,7 +468,7 @@ function MatchQueue() {
                 onClick={() => {
                   void book(null, manualAccount)
                 }}
-                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+                className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
                 {t('match.book')}
               </button>
@@ -461,12 +478,22 @@ function MatchQueue() {
                 onClick={() => {
                   void skip()
                 }}
-                className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+                className="border-input border px-4 py-2 text-sm disabled:opacity-50"
               >
-                {t('match.skip')}{' '}
-                <kbd className="border-input ml-1 rounded border px-1 text-xs">x</kbd>
+                {t('match.skip')} <Keycap className="ml-1.5">x</Keycap>
               </button>
             </div>
+
+            <ShortcutStrip
+              ids={[
+                'match.next',
+                'match.previous',
+                'match.confirm',
+                'match.pick',
+                'match.skip',
+                'match.leave',
+              ]}
+            />
 
             <p className="text-muted-foreground mt-4 max-w-2xl text-xs">{t('match.learnNote')}</p>
           </div>
