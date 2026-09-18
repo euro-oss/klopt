@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
-import { createS3DocumentStore } from '@klopt/adapters'
+import { createMemoryWormStore } from '@klopt/adapters'
 import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
@@ -16,20 +16,35 @@ import { withInbox } from '@klopt/db'
  * The bewaarplicht with storage that enforces it (spec 7.6).
  *
  * `retention.test.ts` covers the application's policy over a directory, which
- * obeys whoever calls it. This covers the half that only object storage can
- * provide: a store that **refuses**, and an application that reports the
- * refusal instead of claiming success.
+ * obeys whoever calls it. This covers the other half: an application that
+ * reports a **refusal** from the storage instead of claiming success.
  *
- * The two together are the whole of "object storage with object lock or WORM
- * mode, with a retention date computed per document from its fiscal year".
+ * ## Why this does not need MinIO
+ *
+ * Two questions get bundled together as "the WORM behaviour", and only one of
+ * them is ours:
+ *
+ *   - *Does the storage refuse?* S3's behaviour, pinned by
+ *     `packages/adapters/test/documents/s3.test.ts` against a real MinIO,
+ *     where a hand-written SigV4 signature and real object-lock semantics can
+ *     actually fail. Nothing can be faked there.
+ *   - *Does the application report the refusal?* Ours, and all it needs is a
+ *     store that refuses.
+ *
+ * This file is the second, so it runs against `createMemoryWormStore`, which
+ * mirrors the S3 contract. Reaching for object storage here coupled a question
+ * about these handlers to somebody else's daemon being up, which is what it
+ * was doing in CI.
+ *
+ * The two files together are the whole of "object storage with object lock or
+ * WORM mode, with a retention date computed per document from its fiscal
+ * year".
  */
 
 const DATABASE_URL =
   process.env['TEST_DATABASE_URL'] ??
   process.env['DATABASE_URL'] ??
   'postgres://klopt:klopt@localhost:5432/klopt'
-
-const ENDPOINT = process.env['KLOPT_S3_ENDPOINT'] ?? 'http://localhost:9000'
 
 let database: Database
 
@@ -103,31 +118,11 @@ const retention = async (token: string) =>
   (await handleGetRetention(await context(token), retentionQuery.parse({}))).body
 
 beforeAll(async () => {
-  const reachable = await fetch(`${ENDPOINT}/minio/health/live`).then(
-    (response) => response.ok,
-    () => false,
-  )
-  if (!reachable) {
-    throw new Error(
-      `No S3 at ${ENDPOINT}. Start the development stack: docker compose up -d minio minio-init`,
-    )
-  }
-
   await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 
-  setDocumentStoreForTest(
-    createS3DocumentStore({
-      endpoint: ENDPOINT,
-      bucket: process.env['KLOPT_S3_DOCUMENTS_BUCKET'] ?? 'klopt-documents',
-      credentials: {
-        accessKeyId: process.env['KLOPT_S3_ACCESS_KEY_ID'] ?? 'klopt',
-        secretAccessKey: process.env['KLOPT_S3_SECRET_ACCESS_KEY'] ?? 'klopt-dev-secret',
-        region: process.env['KLOPT_S3_REGION'] ?? 'us-east-1',
-      },
-    }),
-  )
+  setDocumentStoreForTest(createMemoryWormStore({ name: 's3' }))
 }, 60_000)
 
 afterAll(async () => {
@@ -248,6 +243,50 @@ describe('storage that enforces the term', () => {
       ),
     ).rejects.toMatchObject({ code: 'validation_failed' })
 
+    expect(await store.has(document.sha256)).toBe(true)
+  })
+
+  it('reports bytes the storage kept, rather than counting them destroyed', async () => {
+    /**
+     * The case a WORM bucket exists for: the application's term has run out
+     * and the storage's has not, so the delete is refused and the run has to
+     * say so. Telling a compliance screen that statutory records were
+     * destroyed while they are still sitting there under their lock is the
+     * worst answer available.
+     *
+     * Untested until now, and the previous comment here said why: against a
+     * real bucket the two terms can only disagree if one comes *down*, and a
+     * compliance lock cannot be shortened. So the old test asserted the safe
+     * direction and this path had no coverage at all. A store that can be set
+     * up directly is what makes it reachable — the divergence is built rather
+     * than waited for.
+     */
+    const { entityId, token } = await newEntity()
+    const document = await aDocument(token, entityId, 'kept-by-storage', '2018-06-01')
+
+    const preview = await retention(token)
+    expect(preview.documents.find((entry) => entry.id === document.documentId)?.deletable).toBe(
+      true,
+    )
+
+    // The storage is holding it well past the application's expired 2018 term.
+    const store = documentStore() as unknown as {
+      retain: (sha256: string, until: string) => Promise<void>
+      has: (sha256: string) => Promise<boolean>
+    }
+    await store.retain(document.sha256, '2099-12-31')
+
+    const result = await handleDeleteDocuments(
+      await context(token, uuidv7()),
+      deleteDocumentsBody.parse({
+        documentIds: [document.documentId],
+        reason: 'Bewaartermijn 2018 verlopen.',
+      }),
+    )
+
+    expect(result.body.bytesRemoved).toBe(0)
+    expect(result.body.refusedByStorage).toEqual([{ sha256: document.sha256, until: '2099-12-31' }])
+    // And the bytes really are still there, which is the point.
     expect(await store.has(document.sha256)).toBe(true)
   })
 

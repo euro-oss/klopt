@@ -73,6 +73,44 @@ jobs:
       - name: Migrate
         run: pnpm --filter @klopt/db run migrate
 
+      # MinIO, for the one suite that cannot be faked.
+      #
+      # `packages/adapters/test/documents/s3.test.ts` is where the hand-written
+      # SigV4 signer is proved and where real object-lock semantics are
+      # checked — including that a plain DELETE on a versioned bucket writes a
+      # marker rather than removing anything, which is a bug a real store
+      # revealed and a mock would happily agree was fixed. Everything that only
+      # needs *a* refusing store uses `createMemoryWormStore` instead.
+      #
+      # A step rather than a `services:` entry because the MinIO image takes
+      # `server /data` as a command, and service containers cannot set one.
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=klopt \
+            -e MINIO_ROOT_PASSWORD=klopt-dev-secret \
+            minio/minio:latest server /data
+
+          for attempt in $(seq 1 30); do
+            if curl -sf http://localhost:9000/minio/health/live >/dev/null; then
+              echo "MinIO is up after ${attempt} attempt(s)."
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "MinIO did not come up:" && docker logs minio && exit 1
+            fi
+            sleep 2
+          done
+
+          # The same two buckets as docker-compose.yml. `klopt-documents` has
+          # object lock; `klopt-exports` deliberately does not, so verifyLock
+          # has something honest to fail against (ADR 0032).
+          docker run --rm --network host minio/mc:latest /bin/sh -c "
+            mc alias set local http://localhost:9000 klopt klopt-dev-secret &&
+            mc mb --ignore-existing --with-lock local/klopt-documents &&
+            mc mb --ignore-existing local/klopt-exports
+          "
+
       # The ledger tests run against a real Postgres on purpose. The triggers
       # are half the guarantee, and a mocked database proves nothing about them.
       - name: Test
