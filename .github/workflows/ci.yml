@@ -87,14 +87,20 @@ jobs:
             -e MINIO_ROOT_USER=klopt \
             -e MINIO_ROOT_PASSWORD=klopt-dev-secret \
             minio/minio:latest server /data
+          echo "Waiting for MinIO to answer…"
           for _ in $(seq 1 30); do
             if curl -fsS http://localhost:9000/minio/health/live >/dev/null; then break; fi
             sleep 2
           done
-          docker run --rm --network host --entrypoint /bin/sh minio/mc:latest -c "
-            mc alias set local http://localhost:9000 klopt klopt-dev-secret &&
-            mc mb --ignore-existing --with-lock local/klopt-documents &&
-            mc mb --ignore-existing local/klopt-exports"
+          curl -fsS http://localhost:9000/minio/health/live >/dev/null
+          # Use the mc binary directly rather than the mc container: its image
+          # has no shell to run a multi-command script in, and a per-invocation
+          # `alias set` would not persist. MC_HOST_<alias> configures it inline.
+          curl -fsSLo mc https://dl.min.io/client/mc/release/linux-amd64/mc
+          chmod +x mc
+          export MC_HOST_local=http://klopt:klopt-dev-secret@localhost:9000
+          ./mc mb --ignore-existing --with-lock local/klopt-documents
+          ./mc mb --ignore-existing local/klopt-exports
 
       # The ledger tests run against a real Postgres on purpose. The triggers
       # are half the guarantee, and a mocked database proves nothing about them.
