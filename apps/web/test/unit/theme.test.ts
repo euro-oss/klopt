@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DEFAULT_THEME, isTheme, resolveTheme, themeClass } from '../../src/lib/theme.js'
@@ -87,5 +87,67 @@ describe('the palette', () => {
 
   it('keeps every corner square', () => {
     expect(css).toContain('--radius: 0rem')
+  })
+})
+
+/**
+ * The rules that are not about a token, held to the source.
+ *
+ * Colour lives in one file and is already guarded above. These four are the
+ * ones that come back a class at a time — a `shadow-lg` copied from a
+ * component somewhere, a `font-mono` on a column of figures, a `rounded-full`
+ * avatar, a weight the record does not have. Each is a one-line decision of
+ * record and none of them is visible in a diff unless somebody is looking for
+ * it, which is what a test is for.
+ *
+ * Generated components are in scope on purpose: `shadcn add` is free to
+ * reintroduce any of these, and when it does, this should say so.
+ *
+ * `ring-*` is deliberately not in the list. It draws with a box-shadow and it
+ * is the focus indicator, which the design has rather than forbids.
+ */
+describe('the rules that live in class names', () => {
+  const SRC = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src')
+
+  const sources = (): readonly { path: string; text: string }[] => {
+    const found: { path: string; text: string }[] = []
+    const walk = (directory: string): void => {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const path = join(directory, entry.name)
+        if (entry.isDirectory()) walk(path)
+        else if (/\.(ts|tsx|css)$/.test(entry.name))
+          found.push({ path, text: readFileSync(path, 'utf8') })
+      }
+    }
+    walk(SRC)
+    return found
+  }
+
+  const forbidden = [
+    ['no shadows', /\bshadow-(sm|md|lg|xl|2xl|inner)\b/],
+    ['square corners', /\brounded-full\b/],
+    ['one typeface', /\bfont-mono\b/],
+    ['three weights', /\bfont-(thin|extralight|light|bold|extrabold|black)\b/],
+  ] as const
+
+  for (const [rule, pattern] of forbidden) {
+    it(rule, () => {
+      const offenders = sources()
+        .filter((file) => pattern.test(file.text))
+        .map((file) => file.path.slice(SRC.length + 1))
+
+      expect(offenders, `${rule}: ${offenders.join(', ')}`).toEqual([])
+    })
+  }
+
+  it('picks colour by meaning, not by literal', () => {
+    // Outside the token block there is no such thing as a colour: a hex in a
+    // component is a palette nobody agreed to.
+    const offenders = sources()
+      .filter((file) => !file.path.endsWith(join('styles', 'app.css')))
+      .filter((file) => /#[0-9a-fA-F]{6}\b/.test(file.text))
+      .map((file) => file.path.slice(SRC.length + 1))
+
+    expect(offenders, offenders.join(', ')).toEqual([])
   })
 })
