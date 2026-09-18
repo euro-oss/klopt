@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
 import { createS3DocumentStore } from '@klopt/adapters'
+import { startFakeS3, type FakeS3 } from '@klopt/adapters/testing'
 import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
@@ -22,6 +23,22 @@ import { withInbox } from '@klopt/db'
  *
  * The two together are the whole of "object storage with object lock or WORM
  * mode, with a retention date computed per document from its fiscal year".
+ *
+ * ## Which bucket this runs against
+ *
+ * `startFakeS3` by default: an S3-compatible object-lock bucket in this
+ * process, on a loopback port. The store is the real `createS3DocumentStore` —
+ * this suite is about the application reporting what object storage told it,
+ * and a hand-written stub at the port boundary would be the application marking
+ * its own homework. Only the far side of the socket stands in, which is what
+ * lets CI run it with no MinIO service (issue #4, ADR 0059).
+ *
+ * `KLOPT_S3_ENDPOINT` points it at a real bucket instead:
+ *
+ * ```
+ * docker compose up -d minio minio-init
+ * KLOPT_S3_ENDPOINT=http://localhost:9000 pnpm --filter @klopt/web exec vitest run retention-worm
+ * ```
  */
 
 const DATABASE_URL =
@@ -29,8 +46,9 @@ const DATABASE_URL =
   process.env['DATABASE_URL'] ??
   'postgres://klopt:klopt@localhost:5432/klopt'
 
-const ENDPOINT = process.env['KLOPT_S3_ENDPOINT'] ?? 'http://localhost:9000'
+const EXTERNAL = process.env['KLOPT_S3_ENDPOINT']?.trim()
 
+let fake: FakeS3 | null = null
 let database: Database
 
 /** Unique per run: the bucket persists and the store is content-addressed. */
@@ -103,14 +121,29 @@ const retention = async (token: string) =>
   (await handleGetRetention(await context(token), retentionQuery.parse({}))).body
 
 beforeAll(async () => {
-  const reachable = await fetch(`${ENDPOINT}/minio/health/live`).then(
-    (response) => response.ok,
-    () => false,
-  )
-  if (!reachable) {
-    throw new Error(
-      `No S3 at ${ENDPOINT}. Start the development stack: docker compose up -d minio minio-init`,
+  const credentials = {
+    accessKeyId: process.env['KLOPT_S3_ACCESS_KEY_ID'] ?? 'klopt',
+    secretAccessKey: process.env['KLOPT_S3_SECRET_ACCESS_KEY'] ?? 'klopt-dev-secret',
+    region: process.env['KLOPT_S3_REGION'] ?? 'us-east-1',
+  }
+
+  let endpoint: string
+  if (EXTERNAL === undefined || EXTERNAL === '') {
+    fake = await startFakeS3({ credentials })
+    endpoint = fake.endpoint
+  } else {
+    endpoint = EXTERNAL
+    // Somebody asked for a real bucket explicitly, so failing to find one is an
+    // error rather than a reason to quietly test something else.
+    const reachable = await fetch(`${endpoint}/minio/health/live`).then(
+      (response) => response.ok,
+      () => false,
     )
+    if (!reachable) {
+      throw new Error(
+        `KLOPT_S3_ENDPOINT points at ${endpoint} and there is no S3 there. Start the development stack: docker compose up -d minio minio-init`,
+      )
+    }
   }
 
   await runMigrations(DATABASE_URL)
@@ -119,13 +152,9 @@ beforeAll(async () => {
 
   setDocumentStoreForTest(
     createS3DocumentStore({
-      endpoint: ENDPOINT,
+      endpoint,
       bucket: process.env['KLOPT_S3_DOCUMENTS_BUCKET'] ?? 'klopt-documents',
-      credentials: {
-        accessKeyId: process.env['KLOPT_S3_ACCESS_KEY_ID'] ?? 'klopt',
-        secretAccessKey: process.env['KLOPT_S3_SECRET_ACCESS_KEY'] ?? 'klopt-dev-secret',
-        region: process.env['KLOPT_S3_REGION'] ?? 'us-east-1',
-      },
+      credentials,
     }),
   )
 }, 60_000)
@@ -136,6 +165,7 @@ afterAll(async () => {
   setDatabaseForTest(null)
   setDocumentStoreForTest(null)
   await closeDatabase(database)
+  await fake?.close()
 })
 
 describe('storage that enforces the term', () => {
