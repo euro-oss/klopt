@@ -140,15 +140,22 @@ test('a payment quoting its invoice number is one keystroke', async ({ page }) =
   await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
 })
 
-// Quarantined when Playwright first ran in CI: this spec fails consistently
-// (both attempts) at the assertion below. The "en onthouden voor volgende keer"
-// confirmation shows, so the rule is created, but the "Onthouden regels" row for
-// the IBAN is not present on /bank within the timeout — a learned-rule display
-// or timing gap. Marked fixme rather than deleted or hidden with
-// continue-on-error, so the failure stays visible and the other 81 specs still
-// gate every PR. Un-fixme once the learned-rules view is fixed. Tracked in the
-// alpha hygiene backlog (see PR #3 description).
-test.fixme('booking by hand teaches a rule, and the rule can be switched off', async ({ page }) => {
+/**
+ * Un-quarantined: the cause was in this file, not in the learned-rules view.
+ *
+ * The quarantine note read the symptom correctly — the confirmation appears,
+ * so a rule *is* learned, but no row for the IBAN turns up on `/bank`. The
+ * reason is one line further up: the click that selects the Telecom line
+ * landed before React had taken over, so it selected nothing, and the booking
+ * went to whichever line the queue had opened on. That line is the bank
+ * charges, whose rule is keyed on its description. The screen was right and
+ * the test was booking something else.
+ *
+ * It fails the same way outside CI once the first paint is slow enough, which
+ * is how it was caught. With the wait below it passed twelve consecutive runs
+ * and two full-suite runs locally.
+ */
+test('booking by hand teaches a rule, and the rule can be switched off', async ({ page }) => {
   await withStatement(page, 'Regels BV')
 
   await page.goto('/bank/match')
