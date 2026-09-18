@@ -1,0 +1,63 @@
+name: Bug report
+description: Something behaves incorrectly — a wrong number, a screen that does not change, a failing check.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. If the bug is in a **regulated artefact** (XAF, UBL,
+        XBRL, pain.001, CAMT) or a **compliance schema**, use the *Compliance
+        artefact* form instead — it asks for the schema and sample it needs.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+      placeholder: |
+        Opened the trial balance for a boekjaar that runs 1 Jul–30 Jun and it
+        showed the calendar year instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Sign in, create an administration with a non-calendar book year
+        2. Open /reports/trial-balance
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where
+      description: Which surface is affected. Klopt is one core behind several clients.
+      options:
+        - Web UI
+        - REST API (/api/v1)
+        - MCP
+        - CLI
+        - Worker (scheduled jobs)
+        - Domain / core
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Version or commit, how you run it (dev, Docker, hosted), Node version, browser if relevant.
+      placeholder: |
+        klopt 0.1.0 (commit a77f8c2), Docker image, Chromium 131
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before filing
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: This is not a security vulnerability (those go through SECURITY.md).
+          required: true

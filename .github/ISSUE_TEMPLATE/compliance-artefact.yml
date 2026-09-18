@@ -1,0 +1,62 @@
+name: Compliance artefact
+description: A regulated artefact or reference-data issue — XAF, UBL/NLCIUS, XBRL/NT, pain.001, CAMT/MT940, RGS, Peppol schematron.
+labels: ["bug", "compliance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        These changes are validated against the official schema in CI and are
+        the ones most likely to break on somebody else's schedule. Give the
+        artefact and a sample so the golden-file gate can be reproduced.
+        Reference data lives in `reference-data/` and is loaded at runtime, never
+        compiled — see `docs/architecture.md` and ADR 0011.
+  - type: dropdown
+    id: artefact
+    attributes:
+      label: Artefact
+      options:
+        - XAF 3.2 (audit file)
+        - UBL 2.1 / NLCIUS (e-invoice)
+        - XBRL / Nederlandse Taxonomie (VAT filing)
+        - pain.001 (SEPA payment)
+        - CAMT.053 / MT940 (bank statement)
+        - RGS (reference scheme)
+        - Peppol / NLCIUS schematron
+        - Other reference data
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong
+      description: Which element, rule, or code, and what the official schema or publication says.
+      placeholder: |
+        NT taxonomy is still `verified: false`; element names have not been
+        checked against the published Nederlandse Taxonomie, so electronic
+        filing is refused.
+    validations:
+      required: true
+  - type: input
+    id: reference
+    attributes:
+      label: Authority
+      description: Link the published schema, schematron rule, or specification version this is measured against.
+      placeholder: "e.g. NLCIUS 1.0.3 rule BR-NL-1, or XAF 3.2 XSD"
+    validations:
+      required: false
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sample or golden diff
+      description: A minimal input and the produced artefact, or the failing golden-file diff. Redact real personal or financial data.
+    validations:
+      required: false
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety
+      options:
+        - label: This does not flip a `verified` flag to true without a named human review.
+          required: false
+        - label: The sample contains no real personal or financial data.
+          required: true
