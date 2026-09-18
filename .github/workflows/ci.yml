@@ -83,19 +83,17 @@ jobs:
       # meant to fail honestly against).
       - name: Start MinIO
         env:
-          MINIO_ROOT_USER: klopt
-          MINIO_ROOT_PASSWORD: klopt-dev-secret
           MC_HOST_local: http://klopt:klopt-dev-secret@localhost:9000
         run: |
-          # Native binaries rather than a container: this runner is not allowed
-          # to pull the minio/minio image from Docker Hub (only official
-          # library/* images), and the mc container has no shell. dl.min.io is a
-          # plain HTTPS download.
-          curl -fsSLo minio https://dl.min.io/server/minio/release/linux-amd64/minio
-          curl -fsSLo mc https://dl.min.io/client/mc/release/linux-amd64/mc
-          chmod +x minio mc
-          nohup ./minio server "${RUNNER_TEMP:-/tmp}/minio-data" --address :9000 --console-address :9001 \
-            >"${RUNNER_TEMP:-/tmp}/minio.log" 2>&1 &
+          # quay.io, not Docker Hub: this runner is denied pulling the
+          # minio/minio image from Docker Hub (only official library/* images
+          # are permitted). --network host so the server binds the runner's
+          # :9000 directly. The mc image's entrypoint is `mc`, so bucket
+          # commands run as plain args with MC_HOST_local set inline.
+          docker run -d --name minio --network host \
+            -e MINIO_ROOT_USER=klopt \
+            -e MINIO_ROOT_PASSWORD=klopt-dev-secret \
+            quay.io/minio/minio:latest server /data --console-address :9001
           echo "Waiting for MinIO to answer…"
           for _ in $(seq 1 30); do
             if curl -fsS http://localhost:9000/minio/health/live >/dev/null; then break; fi
@@ -103,10 +101,11 @@ jobs:
           done
           curl -fsS http://localhost:9000/minio/health/live >/dev/null
           # klopt-documents WITH object lock; klopt-exports WITHOUT (the fixture
-          # verifyLock is meant to fail honestly against). MC_HOST_local sets the
-          # alias inline, so no persisted config is needed.
-          ./mc mb --ignore-existing --with-lock local/klopt-documents
-          ./mc mb --ignore-existing local/klopt-exports
+          # verifyLock is meant to fail honestly against).
+          docker run --rm --network host -e MC_HOST_local quay.io/minio/mc:latest \
+            mb --ignore-existing --with-lock local/klopt-documents
+          docker run --rm --network host -e MC_HOST_local quay.io/minio/mc:latest \
+            mb --ignore-existing local/klopt-exports
 
       # The ledger tests run against a real Postgres on purpose. The triggers
       # are half the guarantee, and a mocked database proves nothing about them.
