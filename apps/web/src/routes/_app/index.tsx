@@ -203,7 +203,7 @@ function Dashboard() {
             {coverage.data.unmappedAccounts.map((accountNumber) => (
               <li
                 key={accountNumber}
-                className="bg-unreconciled/15 rounded px-2 py-1 font-mono text-xs"
+                className="bg-unreconciled/15 rounded px-2 py-1 tabular text-xs"
               >
                 {accountNumber}
               </li>

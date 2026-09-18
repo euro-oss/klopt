@@ -51,9 +51,9 @@ function Side({ section, extra }: { section: Section; extra?: { label: string; a
         <tbody>
           {section.lines.map((line) => (
             <tr key={line.accountNumber}>
-              <td className="py-1 font-mono text-xs">{line.accountNumber}</td>
+              <td className="py-1 tabular text-xs">{line.accountNumber}</td>
               <td className="py-1">{line.accountName}</td>
-              <td className="text-muted-foreground py-1 font-mono text-xs">{line.rgsCode ?? ''}</td>
+              <td className="text-muted-foreground py-1 tabular text-xs">{line.rgsCode ?? ''}</td>
               <td className="py-1 text-right">
                 <Money amount={line.amount} />
               </td>

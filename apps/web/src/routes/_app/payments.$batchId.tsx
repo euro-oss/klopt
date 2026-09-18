@@ -606,7 +606,7 @@ function PaymentBatch() {
       {batch.exportedHash !== null && (
         <p className="text-muted-foreground mt-6 text-xs">
           {t('batch.exportedHashBefore')}{' '}
-          <span className="font-mono">{batch.exportedHash.slice(0, 16)}…</span>{' '}
+          <span className="tabular">{batch.exportedHash.slice(0, 16)}…</span>{' '}
           {t('batch.exportedHashAfter')}
         </p>
       )}

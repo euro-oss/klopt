@@ -70,7 +70,7 @@ function EntryDetail() {
         <tbody>
           {entry.lines.map((line) => (
             <tr key={line.lineNumber} className="border-border/60 border-b last:border-0">
-              <td className="px-3 py-1.5 font-mono">{line.accountNumber}</td>
+              <td className="px-3 py-1.5 tabular">{line.accountNumber}</td>
               <td className="px-3 py-1.5">{line.description ?? ''}</td>
               <td className="px-3 py-1.5">
                 {line.dimensions.map((dimension) => (
@@ -97,7 +97,7 @@ function EntryDetail() {
           recompute this from an export and compare (spec 6.2). */}
       <section className="border-border mt-6 rounded-md border p-4">
         <h2 className="text-sm font-medium">{t('entry.chain')}</h2>
-        <dl className="mt-2 space-y-1 font-mono text-xs">
+        <dl className="mt-2 space-y-1 tabular text-xs">
           <div className="flex gap-2">
             <dt className="text-muted-foreground w-24 shrink-0 font-sans">
               {t('entry.chainPosition')}

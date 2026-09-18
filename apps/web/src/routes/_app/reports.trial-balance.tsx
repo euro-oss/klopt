@@ -38,14 +38,14 @@ function TrialBalance() {
       key: 'number',
       header: t('trial.account'),
       width: '5rem',
-      cell: (row) => <span className="font-mono">{row.accountNumber}</span>,
+      cell: (row) => <span className="tabular">{row.accountNumber}</span>,
     },
     { key: 'name', header: t('accounts.description'), cell: (row) => row.accountName },
     {
       key: 'rgs',
       header: 'RGS',
       width: '8rem',
-      cell: (row) => <span className="font-mono text-xs">{row.rgsCode ?? '—'}</span>,
+      cell: (row) => <span className="tabular text-xs">{row.rgsCode ?? '—'}</span>,
     },
     {
       key: 'opening',

@@ -318,7 +318,7 @@ export function AppShell({
                         >
                           {t(item.key)}
                           {binding !== undefined && shortcutsLive && (
-                            <kbd className="text-muted-foreground font-mono text-[10px] opacity-0 group-hover:opacity-100">
+                            <kbd className="text-muted-foreground tabular text-[10px] opacity-0 group-hover:opacity-100">
                               {formatBinding(binding)}
                             </kbd>
                           )}
@@ -376,7 +376,7 @@ function Profile({
       <div className="flex items-center gap-2">
         <span
           aria-hidden="true"
-          className="bg-accent text-accent-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+          className="bg-accent text-accent-foreground flex size-7 shrink-0 items-center justify-center text-xs font-semibold"
         >
           {initialOf(shown)}
         </span>

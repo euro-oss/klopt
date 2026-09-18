@@ -381,7 +381,7 @@ function Exact() {
                 value={clientId}
                 onChange={(event) => setClientId(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
+                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 tabular"
               />
             </label>
             <label className="text-sm">
@@ -391,7 +391,7 @@ function Exact() {
                 value={clientSecret}
                 onChange={(event) => setClientSecret(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
+                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 tabular"
               />
             </label>
             <label className="text-sm">
@@ -400,7 +400,7 @@ function Exact() {
                 value={redirectUri}
                 onChange={(event) => setEditedRedirect(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
+                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 tabular"
               />
             </label>
             <div>
@@ -481,7 +481,7 @@ function Exact() {
                   <tr key={division.code} className="border-border border-b">
                     <td className="py-2">{division.description}</td>
                     <td className="py-2 tabular">{division.code}</td>
-                    <td className="py-2 font-mono text-xs">{division.vatNumber ?? '—'}</td>
+                    <td className="py-2 tabular text-xs">{division.vatNumber ?? '—'}</td>
                     <td className="text-unreconciled py-2">
                       {division.cautions.length === 0
                         ? ''
@@ -801,7 +801,7 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
           ).map(([label, check]) => (
             <tr key={label} className="border-border border-b">
               <td className="py-2">{t(label)}</td>
-              <td className="py-2 font-mono text-xs">
+              <td className="py-2 tabular text-xs">
                 {check.accountCodes.length === 0
                   ? t('exact.noneFound')
                   : check.accountCodes.join(', ')}
@@ -867,7 +867,7 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
             <tbody>
               {requests.map((entry, index) => (
                 <tr key={`${entry.path}-${String(index)}`} className="border-border border-b">
-                  <td className="py-1 font-mono text-xs">{entry.path}</td>
+                  <td className="py-1 tabular text-xs">{entry.path}</td>
                   <td
                     className={`py-1 text-right tabular ${
                       entry.status >= 400 ? 'text-destructive' : ''

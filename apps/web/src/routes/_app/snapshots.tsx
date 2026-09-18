@@ -188,7 +188,7 @@ function Snapshots() {
                 In full, and monospaced. This is the value somebody writes down
                 or reads out; truncating it to look tidy would defeat the point.
               */}
-              <p className="mb-3 font-mono text-xs break-all">
+              <p className="mb-3 tabular text-xs break-all">
                 <span className="text-muted-foreground">{t('snapshots.sealLabel')}</span>
                 {row.seal}
               </p>
@@ -210,12 +210,12 @@ function Snapshots() {
                 </div>
                 <div className="flex gap-2 sm:col-span-2">
                   <dt>{t('snapshots.chainHead')}</dt>
-                  <dd className="font-mono break-all">{row.chainHead ?? '—'}</dd>
+                  <dd className="tabular break-all">{row.chainHead ?? '—'}</dd>
                 </div>
                 {row.previousSeal !== null && (
                   <div className="flex gap-2 sm:col-span-2">
                     <dt>{t('snapshots.previousSeal')}</dt>
-                    <dd className="font-mono break-all">{row.previousSeal}</dd>
+                    <dd className="tabular break-all">{row.previousSeal}</dd>
                   </div>
                 )}
               </dl>
