@@ -326,8 +326,6 @@ function NewEntry() {
     }
   }
 
-  const modLabel = isApple() ? '⌘' : 'Ctrl'
-
   return (
     <form
       ref={formRef}
@@ -337,10 +335,7 @@ function NewEntry() {
         ask(false)
       }}
     >
-      <PageHeader
-        title={t('entryNew.title')}
-        description={t('entryNew.intro', { mod: modLabel })}
-      />
+      <PageHeader title={t('entryNew.title')} description={t('entryNew.intro')} />
 
       <p role="status" aria-live="polite" className="sr-only">
         {announcement}

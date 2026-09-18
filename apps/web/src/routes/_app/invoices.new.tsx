@@ -193,7 +193,6 @@ function NewInvoice() {
     if (confirming) confirmRef.current?.focus()
   }, [confirming])
 
-  const modLabel = isApple() ? '⌘' : 'Ctrl'
   const { t } = useT()
 
   return (
@@ -243,10 +242,7 @@ function NewInvoice() {
         void submit()
       }}
     >
-      <PageHeader
-        title={t('invoices.new')}
-        description={t('invoiceNew.intro', { mod: modLabel })}
-      />
+      <PageHeader title={t('invoices.new')} description={t('invoiceNew.intro')} />
 
       {customers.length === 0 && (
         <p className="border-border text-muted-foreground mb-6 border border-dashed p-4 text-sm">
@@ -333,7 +329,7 @@ function NewInvoice() {
             <th className="py-2 font-medium">{t('entries.description')}</th>
             <th className="w-24 py-2 font-medium">{t('invoice.quantity')}</th>
             <th className="w-20 py-2 font-medium">{t('invoiceNew.unit')}</th>
-            <th className="w-32 py-2 text-right font-medium">{t('invoice.price')}</th>
+            <th className="w-32 py-2 pr-3 text-right font-medium">{t('invoice.price')}</th>
             <th className="w-40 py-2 font-medium">{t('invoice.ledgerAccount')}</th>
             <th className="w-28 py-2 font-medium">{t('invoice.vat')}</th>
           </tr>
@@ -500,9 +496,8 @@ function NewInvoice() {
         <span className="text-muted-foreground text-xs">{t('invoiceNew.emptyLinesSkipped')}</span>
       </div>
 
-      <ShortcutStrip
-        ids={['invoiceForm.save', 'invoiceForm.cancel', 'picker.choose', 'list.next']}
-      />
+      {/* Only what this form answers to: `j` is a letter here, not a cursor. */}
+      <ShortcutStrip ids={['invoiceForm.save', 'invoiceForm.cancel', 'picker.choose']} />
     </form>
   )
 }

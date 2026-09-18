@@ -260,8 +260,7 @@ export const en: Record<MessageKey, string> = {
 
   // Booking an entry, and looking at one.
   'entryNew.title': 'New journal entry',
-  'entryNew.intro':
-    '{mod}+↵ posts, {mod}+⇧+↵ posts and starts the next. {mod}+D duplicates a line, {mod}+⌫ removes it. = in an amount fills in the balancing figure.',
+  'entryNew.intro': 'Immutable once posted. = in an amount fills in the balancing figure.',
   'entryNew.journal': 'Journal',
   'entryNew.account': 'Account',
   'entryNew.accountLine': 'Account line {line}',
@@ -357,7 +356,7 @@ export const en: Record<MessageKey, string> = {
   'invoice.postedAsLink': 'a journal entry',
 
   // Drafting a sales invoice.
-  'invoiceNew.intro': '{mod}+↵ saves the draft. Issuing is a separate step.',
+  'invoiceNew.intro': 'Issuing is a separate step: a draft can still be changed.',
   'invoiceNew.noCustomers': 'There are no customers yet. Create a contact first, under Contacts.',
   'invoiceNew.customer': 'Customer',
   'invoiceNew.issueDate': 'Invoice date',
@@ -576,7 +575,8 @@ export const en: Record<MessageKey, string> = {
 
   // The matching queue.
   'match.title': 'Matching',
-  'match.intro': '↑↓ picks a line · ↵ posts the best suggestion · 1–9 picks a suggestion · x skips',
+  'match.intro':
+    'Every line gets a counter-entry or is skipped. Suggestions are ordered by how sure they are.',
   'match.backToBank': 'Back to bank',
   'match.nothingToDo': 'Nothing to match. Every bank transaction is posted or skipped.',
   'match.queue': 'Queue',

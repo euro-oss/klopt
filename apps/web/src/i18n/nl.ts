@@ -259,7 +259,7 @@ export const nl = {
   // Booking an entry, and looking at one.
   'entryNew.title': 'Nieuwe journaalpost',
   'entryNew.intro':
-    '{mod}+↵ boekt, {mod}+⇧+↵ boekt en begint de volgende. {mod}+D dupliceert een regel, {mod}+⌫ haalt hem weg. = in een bedrag vult het sluitende bedrag in.',
+    'Onveranderlijk zodra hij geboekt is. = in een bedrag vult het sluitende bedrag in.',
   'entryNew.journal': 'Dagboek',
   'entryNew.account': 'Rekening',
   'entryNew.accountLine': 'Rekening regel {line}',
@@ -356,7 +356,7 @@ export const nl = {
   'invoice.postedAsLink': 'journaalpost',
 
   // Drafting a sales invoice.
-  'invoiceNew.intro': '{mod}+↵ maakt het concept. Versturen is een aparte stap.',
+  'invoiceNew.intro': 'Versturen is een aparte stap: een concept kan nog gewijzigd worden.',
   'invoiceNew.noCustomers': 'Er zijn nog geen klanten. Maak eerst een relatie aan onder Relaties.',
   'invoiceNew.customer': 'Klant',
   'invoiceNew.issueDate': 'Factuurdatum',
@@ -576,7 +576,7 @@ export const nl = {
   // The matching queue.
   'match.title': 'Koppelen',
   'match.intro':
-    '↑↓ kiest een regel · ↵ boekt het beste voorstel · 1–9 kiest een voorstel · x slaat over',
+    'Elke regel krijgt een tegenboeking of wordt overgeslagen. Voorstellen staan op volgorde van zekerheid.',
   'match.backToBank': 'Terug naar bank',
   'match.nothingToDo': 'Niets te koppelen. Elke banktransactie is geboekt of overgeslagen.',
   'match.queue': 'Wachtrij',

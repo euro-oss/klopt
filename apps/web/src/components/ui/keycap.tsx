@@ -21,7 +21,7 @@ export function Keycap({ children, className }: { children: ReactNode; className
   return (
     <kbd
       className={cn(
-        'border-primary text-foreground inline-flex min-w-6 items-center justify-center border px-1.5 py-0.5 text-[0.625rem] font-medium tracking-widest uppercase tabular',
+        'border-primary text-foreground inline-flex min-w-6 items-center justify-center border px-1.5 py-0.5 text-[0.625rem] font-medium tracking-wider tabular',
         className,
       )}
     >
