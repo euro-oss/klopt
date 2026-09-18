@@ -115,10 +115,13 @@ function DebtorAgeing() {
       <div className="mb-6 flex flex-wrap gap-8">
         <Stat label={t('debtorAgeing.overdue')} value={<Money amount={totalOutstanding} />} />
         <Stat label={t('debtorAgeing.invoices')} value={String(invoices.length)} />
+        {/* Red rather than the attention colour: money more than ninety days
+            late is not something to look at, it is something that has gone
+            wrong. */}
         <Stat
           label={t('debtorAgeing.over90')}
           value={<Money amount={ageing.totals.over90} />}
-          tone={ageing.totals.over90 === '0' ? 'neutral' : 'warn'}
+          tone={ageing.totals.over90 === '0' ? 'neutral' : 'bad'}
         />
       </div>
 

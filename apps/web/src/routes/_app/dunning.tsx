@@ -27,10 +27,12 @@ export const Route = createFileRoute('/_app/dunning')({
   component: Dunning,
 })
 
+// The last notice before this stops being a conversation, so it is the red
+// rather than the attention colour. A reminder is quiet, a demand is plain.
 const TONE_CLASS: Record<string, string> = {
   reminder: 'text-muted-foreground',
   demand: 'text-foreground',
-  final: 'text-unreconciled',
+  final: 'text-destructive',
 }
 
 function Dunning() {
@@ -107,7 +109,7 @@ function Dunning() {
         <Stat
           label={t('dunning.outstandingAmount')}
           value={<Money amount={totalOverdue} />}
-          tone={BigInt(totalOverdue) > 0n ? 'warn' : 'neutral'}
+          tone={BigInt(totalOverdue) > 0n ? 'bad' : 'neutral'}
           hint={t('dunning.outstandingHint')}
         />
         <Stat

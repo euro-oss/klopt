@@ -461,7 +461,12 @@ export function Stat({
   // `muted` is for a figure that is absent rather than bad: "not read" is not
   // "does not balance", and rendering the two the same reports a gap in our
   // access as a defect in the data.
-  tone?: 'neutral' | 'good' | 'warn' | 'muted' | undefined
+  //
+  // `warn` is "somebody should look at this" and `bad` is "this is money
+  // nobody has been paid". They are different colours because they are
+  // different sentences, and neither is the accent: a figure in the colour of
+  // the primary button is a figure that reads as a suggestion.
+  tone?: 'neutral' | 'good' | 'warn' | 'bad' | 'muted' | undefined
 }) {
   return (
     <div className="border-border rounded-md border p-4">
@@ -471,6 +476,7 @@ export function Stat({
           'mt-1 text-2xl font-semibold tabular',
           tone === 'good' && 'text-foreground',
           tone === 'warn' && 'text-unreconciled',
+          tone === 'bad' && 'text-destructive',
           tone === 'muted' && 'text-muted-foreground',
         )}
       >
