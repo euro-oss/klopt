@@ -2,12 +2,17 @@ import { createFileRoute } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
+import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { getProfitAndLoss } from '~/server/ledger'
 
-const YEAR = String(new Date().getFullYear())
-
+/** The book year comes from the URL, or from the shell. See `reports.balance-sheet`. */
 export const Route = createFileRoute('/_app/reports/profit-and-loss')({
-  loader: async () => getProfitAndLoss({ data: { fiscalYear: YEAR } }),
+  validateSearch: fiscalYearSearch,
+  loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
+  loader: async ({ deps }) =>
+    getProfitAndLoss({
+      data: deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) },
+    }),
   component: ProfitAndLoss,
 })
 
@@ -30,7 +35,7 @@ function ProfitAndLoss() {
         <tbody>
           {lines.map((line) => (
             <tr key={line.accountNumber}>
-              <td className="py-1 font-mono text-xs">{line.accountNumber}</td>
+              <td className="py-1 tabular text-xs">{line.accountNumber}</td>
               <td className="py-1">{line.accountName}</td>
               <td className="py-1 text-right">
                 <Money amount={line.amount} />

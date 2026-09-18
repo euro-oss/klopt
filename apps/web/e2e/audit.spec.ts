@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { chooseOption, DATABASE_URL, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
 
 /**
  * Wie wat deed, in a browser.
@@ -75,7 +75,9 @@ test('a correction leaves a trail with both sides on it', async ({ page }) => {
   await expect(row).toBeVisible()
 
   // Both sides, which is the useful part: "the IBAN went from one to the other"
-  // rather than "a request happened".
+  // rather than "a request happened". The panel is client state, so the click
+  // has to land after React has taken over or it opens nothing.
+  await hydrated(page)
   await row.getByRole('button', { name: 'Wat er veranderde' }).click()
   await expect(row.getByText('NL02ABNA012345678"')).toBeVisible()
   await expect(row.getByText('NL02ABNA0123456789')).toBeVisible()

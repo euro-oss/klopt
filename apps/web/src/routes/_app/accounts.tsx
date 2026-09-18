@@ -50,7 +50,7 @@ function Accounts() {
       key: 'number',
       header: t('accounts.number'),
       width: '6rem',
-      cell: (row) => <span className="tabular font-mono">{row.number}</span>,
+      cell: (row) => <span className="tabular">{row.number}</span>,
     },
     { key: 'name', header: t('accounts.description'), cell: (row) => row.name },
     {
@@ -78,7 +78,7 @@ function Accounts() {
             {t('accounts.unmapped')}
           </span>
         ) : (
-          <span className="font-mono text-xs">{row.rgsCode}</span>
+          <span className="tabular text-xs">{row.rgsCode}</span>
         ),
     },
     {

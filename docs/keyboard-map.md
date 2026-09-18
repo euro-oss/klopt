@@ -47,6 +47,8 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `g` then `h`   | Go to bewaarplicht (be**h**ouden)                       |
 | `g` then `z`   | Go to momentopnames (het **z**egel)                     |
 | `g` then `x`   | Go to Exact Online (E**x**act)                          |
+| `g` then `v`   | Go to ouderdomsanalyse debiteuren (**v**orderingen)     |
+| `g` then `c`   | Go to ouderdomsanalyse crediteuren (**c**rediteuren)    |
 | `n` then `i`   | New inkoopfactuur                                       |
 | `n` then `j`   | New journal entry                                       |
 | `Escape`       | Close overlay, cancel edit, clear focus — in that order |
@@ -172,3 +174,26 @@ hundred round trips through a mouse.
 The handler is bound on the window rather than on a focused element — the hands
 never leave the keys, so there is nothing to focus first — and it stands down
 whenever the event came from an input, a select or a textarea.
+
+## De werklijst op het dashboard
+
+The dashboard queue — what is waiting, in the order the day is worked — is the
+second list with a real keyboard, and it uses the same four keys as koppelen so
+that the two do not have to be learned separately.
+
+| Key     | Does                                        |
+| ------- | ------------------------------------------- |
+| `↑` `k` | Previous row                                |
+| `↓` `j` | Next row                                    |
+| `↵`     | Open the screen where that work is done     |
+| `Esc`   | Leave the list, giving the global keys back |
+
+Focus lands on the first row as soon as the keyboard is live, so the
+application opens with the hands already on the work.
+
+Unlike koppelen, the handler is on the list rather than on the window: these
+are links, the cursor is real focus with a roving `tabindex`, and `Enter` is
+the browser's own — intercepting it would navigate twice for one keystroke.
+Which key means what is decided in `apps/web/src/lib/list-cursor.ts`, so the
+rule is tested by naming keys. The rest of the list table above — type-ahead,
+selection, TSV copy — is still the design rather than the state of the code.

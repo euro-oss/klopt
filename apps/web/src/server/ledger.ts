@@ -71,7 +71,7 @@ import {
 } from '~/api/schemas'
 import { getDatabase } from '~/api/database'
 import { resolveMemberships } from '~/api/auth'
-import { contextFromRequest, run, runWith } from './internal'
+import { contextFromRequest, run, runScoped, runWith } from './internal'
 
 /**
  * The UI's RPC surface. Every one of these is three lines: resolve context,
@@ -152,33 +152,43 @@ export const setRgsMappings = createServerFn({ method: 'POST' })
     ),
   )
 
+/**
+ * The three statements, in the book year the shell is showing.
+ *
+ * `fiscalYear` is optional here and required by the schema, which is the whole
+ * point: a screen that does not name a year gets the one the reader chose,
+ * resolved from this administration's own book years. These three used to be
+ * called with `new Date().getFullYear()`, which is right for four
+ * administrations in five and quietly wrong for the ones whose boekjaar does
+ * not start in January.
+ */
 export const getTrialBalance = createServerFn({ method: 'GET' })
   .validator((input: unknown) => input)
   .handler(async ({ data }) =>
-    runWith(
+    runScoped(
       trialBalanceQuery,
       data,
-      async (body) => (await handleGetTrialBalance(await contextFromRequest(), body)).body,
+      async (context, query) => (await handleGetTrialBalance(context, query)).body,
     ),
   )
 
 export const getBalanceSheet = createServerFn({ method: 'GET' })
   .validator((input: unknown) => input)
   .handler(async ({ data }) =>
-    runWith(
+    runScoped(
       statementQuery,
       data,
-      async (body) => (await handleGetBalanceSheet(await contextFromRequest(), body)).body,
+      async (context, query) => (await handleGetBalanceSheet(context, query)).body,
     ),
   )
 
 export const getProfitAndLoss = createServerFn({ method: 'GET' })
   .validator((input: unknown) => input)
   .handler(async ({ data }) =>
-    runWith(
+    runScoped(
       statementQuery,
       data,
-      async (body) => (await handleGetProfitAndLoss(await contextFromRequest(), body)).body,
+      async (context, query) => (await handleGetProfitAndLoss(context, query)).body,
     ),
   )
 

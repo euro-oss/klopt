@@ -173,7 +173,7 @@ export function CommandPalette() {
             // sensible.
             tabIndex={-1}
             aria-label={open === 'palette' ? t('palette.commands') : t('shell.help')}
-            className="bg-background border-border max-h-[70vh] w-full max-w-xl overflow-hidden rounded-md border shadow-lg"
+            className="bg-background border-border max-h-[70vh] w-full max-w-xl overflow-hidden border"
             onClick={(event) => {
               event.stopPropagation()
             }}

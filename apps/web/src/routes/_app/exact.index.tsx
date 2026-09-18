@@ -13,6 +13,7 @@ import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
+import { getReportYear } from '~/server/fiscal-year'
 import {
   chooseExactDivision,
   connectExact,
@@ -52,6 +53,10 @@ export const Route = createFileRoute('/_app/exact/')({
     documents: await exactDocumentStatus(),
     accounts: await listAccounts(),
     journals: await listJournals(),
+    // Which year to import defaults from this administration's book years
+    // rather than from the clock, for the same reason every report does: a
+    // boekjaar is not a calendar year.
+    year: await getReportYear(),
   }),
   component: Exact,
 })
@@ -136,6 +141,7 @@ function Exact() {
     accounts: accountsResult,
     journals: journalsResult,
     documents: documentsResult,
+    year: reportYear,
   } = Route.useLoaderData()
   const { t } = useT()
 
@@ -171,7 +177,7 @@ function Exact() {
   const [note, setNote] = useState<string | null>(null)
   const [divisions, setDivisions] = useState<readonly DivisionOption[] | null>(null)
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
-  const [year, setYear] = useState(String(new Date().getFullYear()))
+  const [year, setYear] = useState(reportYear.ok ? reportYear.data.scope.code : '')
 
   const [baseUrl, setBaseUrl] = useState('https://start.exactonline.nl')
   const [clientId, setClientId] = useState('')
@@ -375,7 +381,7 @@ function Exact() {
                 value={clientId}
                 onChange={(event) => setClientId(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
+                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 tabular"
               />
             </label>
             <label className="text-sm">
@@ -385,7 +391,7 @@ function Exact() {
                 value={clientSecret}
                 onChange={(event) => setClientSecret(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
+                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 tabular"
               />
             </label>
             <label className="text-sm">
@@ -394,7 +400,7 @@ function Exact() {
                 value={redirectUri}
                 onChange={(event) => setEditedRedirect(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 font-mono"
+                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 tabular"
               />
             </label>
             <div>
@@ -475,7 +481,7 @@ function Exact() {
                   <tr key={division.code} className="border-border border-b">
                     <td className="py-2">{division.description}</td>
                     <td className="py-2 tabular">{division.code}</td>
-                    <td className="py-2 font-mono text-xs">{division.vatNumber ?? '—'}</td>
+                    <td className="py-2 tabular text-xs">{division.vatNumber ?? '—'}</td>
                     <td className="text-unreconciled py-2">
                       {division.cautions.length === 0
                         ? ''
@@ -509,7 +515,10 @@ function Exact() {
 
           <div className="mb-4 flex items-end gap-3">
             <label className="text-sm">
-              {t('exact.fiscalYear')}
+              {/* "Boekjaar om te importeren" rather than "Boekjaar": the shell
+                  carries the book year the screens are read in, and two
+                  controls of that name on one page is one too many. */}
+              {t('exact.yearToImport')}
               <input
                 value={year}
                 onChange={(event) => setYear(event.target.value)}
@@ -792,7 +801,7 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
           ).map(([label, check]) => (
             <tr key={label} className="border-border border-b">
               <td className="py-2">{t(label)}</td>
-              <td className="py-2 font-mono text-xs">
+              <td className="py-2 tabular text-xs">
                 {check.accountCodes.length === 0
                   ? t('exact.noneFound')
                   : check.accountCodes.join(', ')}
@@ -858,7 +867,7 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
             <tbody>
               {requests.map((entry, index) => (
                 <tr key={`${entry.path}-${String(index)}`} className="border-border border-b">
-                  <td className="py-1 font-mono text-xs">{entry.path}</td>
+                  <td className="py-1 tabular text-xs">{entry.path}</td>
                   <td
                     className={`py-1 text-right tabular ${
                       entry.status >= 400 ? 'text-destructive' : ''

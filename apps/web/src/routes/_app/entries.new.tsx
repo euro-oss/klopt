@@ -268,7 +268,7 @@ function NewEntry() {
                     update(index, { accountNumber: event.target.value })
                   }}
                   aria-label={t('entryNew.accountLine', { line: String(index + 1) })}
-                  className="w-full rounded bg-transparent px-1 py-1 font-mono outline-none focus:bg-accent"
+                  className="w-full rounded bg-transparent px-1 py-1 tabular outline-none focus:bg-accent"
                 />
               </td>
               <td className="px-2 py-1">
@@ -346,7 +346,7 @@ function NewEntry() {
         <ul className="border-destructive/40 bg-destructive/5 mt-4 space-y-1 rounded-md border p-3 text-sm">
           {problems.map((problem, index) => (
             <li key={index}>
-              {problem.path !== null && <span className="font-mono text-xs">{problem.path}: </span>}
+              {problem.path !== null && <span className="tabular text-xs">{problem.path}: </span>}
               {problem.message}
             </li>
           ))}

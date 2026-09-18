@@ -4,12 +4,25 @@ import type { StatementSectionKey } from '@klopt/core'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
+import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { getBalanceSheet } from '~/server/ledger'
 
-const YEAR = String(new Date().getFullYear())
-
+/**
+ * The book year comes from the URL or the shell, not from the calendar.
+ *
+ * This used to be `new Date().getFullYear()`, which is the right answer for an
+ * administration whose boekjaar starts in January and a wrong one — shown
+ * without a word — for every other administration setup allows. It was also a
+ * module-level constant, so a browser left open over New Year kept reporting
+ * the year it was opened in.
+ */
 export const Route = createFileRoute('/_app/reports/balance-sheet')({
-  loader: async () => getBalanceSheet({ data: { fiscalYear: YEAR } }),
+  validateSearch: fiscalYearSearch,
+  loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
+  loader: async ({ deps }) =>
+    getBalanceSheet({
+      data: deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) },
+    }),
   component: BalanceSheet,
 })
 
@@ -38,9 +51,9 @@ function Side({ section, extra }: { section: Section; extra?: { label: string; a
         <tbody>
           {section.lines.map((line) => (
             <tr key={line.accountNumber}>
-              <td className="py-1 font-mono text-xs">{line.accountNumber}</td>
+              <td className="py-1 tabular text-xs">{line.accountNumber}</td>
               <td className="py-1">{line.accountName}</td>
-              <td className="text-muted-foreground py-1 font-mono text-xs">{line.rgsCode ?? ''}</td>
+              <td className="text-muted-foreground py-1 tabular text-xs">{line.rgsCode ?? ''}</td>
               <td className="py-1 text-right">
                 <Money amount={line.amount} />
               </td>

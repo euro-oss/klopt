@@ -53,7 +53,7 @@ function Entries() {
       // evidence, and evidence you have to go looking for is evidence nobody
       // checks.
       cell: (row) => (
-        <span className="text-muted-foreground font-mono text-xs">{row.hash.slice(0, 12)}…</span>
+        <span className="text-muted-foreground tabular text-xs">{row.hash.slice(0, 12)}…</span>
       ),
     },
   ]

@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { chooseOption, DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, hydrated, OUTBOX, signIn, uniqueEmail } from './support'
 
 /**
  * The koppelwachtrij, in a browser.
@@ -73,6 +73,10 @@ test('a bookkeeper works through the queue with the keyboard', async ({ page }) 
   // The selected line is the first, and the detail pane follows the selection.
   await expect(page.getByRole('button', { name: /Kosten betalingsverkeer/ })).toBeVisible()
 
+  // The arrow keys are listened for in an effect, so a keystroke sent before
+  // React has taken over is simply lost.
+  await hydrated(page)
+
   // Down and up move the selection, and the detail pane keeps up.
   await page.keyboard.press('ArrowDown')
   await expect(page.getByText('Overboeking spaarrekening').last()).toBeVisible()
@@ -115,10 +119,17 @@ test('a payment quoting its invoice number is one keystroke', async ({ page }) =
   await page.goto('/bank/match')
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
 
+  // The keys are listened for in an effect; before React has taken over a
+  // keystroke is simply lost.
+  await hydrated(page)
+
   // The queue is newest first, so walk down to the payment.
   const suggestion = page.getByText(/staat in de omschrijving en het bedrag klopt precies/)
   for (let step = 0; step < 4 && !(await suggestion.isVisible()); step += 1) {
     await page.keyboard.press('ArrowDown')
+    // Suggestions are fetched for the line that was just selected, so let the
+    // answer arrive before deciding to walk past it.
+    await suggestion.waitFor({ state: 'visible', timeout: 2_000 }).catch(() => undefined)
   }
 
   await expect(suggestion).toBeVisible()
@@ -129,18 +140,31 @@ test('a payment quoting its invoice number is one keystroke', async ({ page }) =
   await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
 })
 
-// Quarantined when Playwright first ran in CI: this spec fails consistently
-// (both attempts) at the assertion below. The "en onthouden voor volgende keer"
-// confirmation shows, so the rule is created, but the "Onthouden regels" row for
-// the IBAN is not present on /bank within the timeout — a learned-rule display
-// or timing gap. Marked fixme rather than deleted or hidden with
-// continue-on-error, so the failure stays visible and the other 81 specs still
-// gate every PR. Un-fixme once the learned-rules view is fixed. Tracked in the
-// alpha hygiene backlog (see PR #3 description).
-test.fixme('booking by hand teaches a rule, and the rule can be switched off', async ({ page }) => {
+/**
+ * Un-quarantined: the cause was in this file, not in the learned-rules view.
+ *
+ * The quarantine note read the symptom correctly — the confirmation appears,
+ * so a rule *is* learned, but no row for the IBAN turns up on `/bank`. The
+ * reason is one line further up: the click that selects the Telecom line
+ * landed before React had taken over, so it selected nothing, and the booking
+ * went to whichever line the queue had opened on. That line is the bank
+ * charges, whose rule is keyed on its description. The screen was right and
+ * the test was booking something else.
+ *
+ * It fails the same way outside CI once the first paint is slow enough, which
+ * is how it was caught. With the wait below it passed twelve consecutive runs
+ * and two full-suite runs locally.
+ */
+test('booking by hand teaches a rule, and the rule can be switched off', async ({ page }) => {
   await withStatement(page, 'Regels BV')
 
   await page.goto('/bank/match')
+
+  // A queue row is a plain button until React has taken over, so a click that
+  // lands before then selects nothing and the booking below goes to whichever
+  // line the queue opened on.
+  await hydrated(page)
+
   // The direct debit from Telecom B.V. has an IBAN, so a choice made here is
   // worth remembering.
   const telecom = page

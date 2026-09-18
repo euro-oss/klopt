@@ -10,7 +10,9 @@ import type { ReactNode } from 'react'
 import appCss from '~/styles/app.css?url'
 import { DEFAULT_LOCALE, intlTag, type Locale } from '~/i18n/locale'
 import { LocaleProvider, useT } from '~/i18n/provider'
+import { DEFAULT_THEME, themeClass, type Theme } from '~/lib/theme'
 import { getLocale } from '~/server/locale'
+import { getTheme } from '~/server/theme'
 
 /**
  * The document, and nothing else.
@@ -39,7 +41,12 @@ export const Route = createRootRoute({
    * settled before anything renders: resolving it lower down would mean the
    * shell rendering in one language and its children in another for a frame.
    */
-  loader: async () => ({ locale: await getLocale() }),
+  /**
+   * The theme rides along for the same reason: it is a class on `<html>`, so
+   * it has to be decided before the document is written or the first paint is
+   * the wrong theme — a white flash in a dark room.
+   */
+  loader: async () => ({ locale: await getLocale(), theme: await getTheme() }),
   errorComponent: RootError,
   head: () => ({
     meta: [
@@ -96,10 +103,10 @@ function RootDocument({ children }: { children: ReactNode }) {
    * root match gives `undefined` instead, and `undefined` has a sensible
    * answer: the default language.
    */
-  const locale = useRouterState({
+  const { locale, theme } = useRouterState({
     select: (state) => {
-      const data = state.matches[0]?.loaderData as { locale?: Locale } | undefined
-      return data?.locale ?? DEFAULT_LOCALE
+      const data = state.matches[0]?.loaderData as { locale?: Locale; theme?: Theme } | undefined
+      return { locale: data?.locale ?? DEFAULT_LOCALE, theme: data?.theme ?? DEFAULT_THEME }
     },
   })
 
@@ -107,7 +114,7 @@ function RootDocument({ children }: { children: ReactNode }) {
     // The real language, for screen readers and for the browser's own
     // translation prompt. The fiscal terminology stays Dutch inside an English
     // UI (spec 12), but the document is in the language the user reads.
-    <html lang={intlTag(locale)}>
+    <html lang={intlTag(locale)} className={themeClass(theme)}>
       <head>
         <HeadContent />
       </head>

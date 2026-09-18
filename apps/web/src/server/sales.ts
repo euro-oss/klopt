@@ -25,7 +25,8 @@ import {
   pseudonymiseContactBody,
   updateContactBody,
 } from '~/api/schemas'
-import { contextFromRequest, run, runWith } from './internal'
+import { isFiscalYearCode } from '~/lib/fiscal-year'
+import { contextFromRequest, reportYear, run, runWith } from './internal'
 
 /**
  * The sales screens' RPC surface. Same handlers as `/api/v1/sales-invoices`.
@@ -122,17 +123,25 @@ export const issueInvoice = createServerFn({ method: 'POST' })
     ),
   )
 
+/**
+ * What is still owed, as of a date.
+ *
+ * With no date it is the book year asked for — or, with no year either, the
+ * one the shell is showing: today while that year is running, and its last day
+ * once it is over. Ageing a closed year as of today would report every invoice
+ * in it as a year late.
+ */
 export const listOverdueInvoices = createServerFn({ method: 'GET' })
-  .validator((input: { asOf?: string }) => input)
+  .validator((input: { asOf?: string; fiscalYear?: string } | undefined) => input ?? {})
   .handler(async ({ data }) =>
-    run(
-      async () =>
-        (
-          await handleListOverdueInvoices(await contextFromRequest(), {
-            asOf: data.asOf ?? new Date().toISOString().slice(0, 10),
-          })
-        ).body,
-    ),
+    run(async () => {
+      const context = await contextFromRequest()
+      const asOf =
+        data.asOf ??
+        (await reportYear(context, isFiscalYearCode(data.fiscalYear) ? data.fiscalYear : null))
+          .scope.asOf
+      return (await handleListOverdueInvoices(context, { asOf })).body
+    }),
   )
 
 export const sendInvoice = createServerFn({ method: 'POST' })

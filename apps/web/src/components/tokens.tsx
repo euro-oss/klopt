@@ -134,7 +134,7 @@ export function TokenSection({ result }: { result: Result }) {
         <div className="border-border bg-muted/40 mb-4 rounded-md border p-4">
           <p className="text-sm font-medium">{t('tokens.issued', { name: issued.name })}</p>
           <p className="text-muted-foreground mt-1 text-xs">{t('tokens.issuedOnce')}</p>
-          <code className="mt-2 block overflow-x-auto rounded bg-black/5 p-2 font-mono text-xs">
+          <code className="mt-2 block overflow-x-auto rounded bg-muted p-2 tabular text-xs">
             {issued.token}
           </code>
           <button
@@ -198,7 +198,7 @@ export function TokenSection({ result }: { result: Result }) {
               <tr key={token.id} className="border-border border-b">
                 <td className="py-2">
                   {token.oauthClientName ?? token.name}
-                  <span className="text-muted-foreground ml-2 font-mono text-xs">
+                  <span className="text-muted-foreground ml-2 tabular text-xs">
                     {token.prefix}…
                   </span>
                   {token.oauthClientName !== null && (

@@ -353,7 +353,7 @@ function Invoice() {
                       </span>
                     )}
                   </td>
-                  <td className="text-muted-foreground py-2 font-mono text-xs">
+                  <td className="text-muted-foreground py-2 tabular text-xs">
                     {item.documentHash === null ? '' : `${item.documentHash.slice(0, 12)}…`}
                   </td>
                 </tr>

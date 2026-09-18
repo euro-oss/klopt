@@ -71,7 +71,18 @@ function replyTo(request: Uint8Array): Uint8Array {
   // leading zero DER adds to keep it positive.
   const after = imprintAt + 64
   const length = Number.parseInt(hex.slice(after + 2, after + 4), 16)
-  const nonce = hex.slice(after + 4, after + 4 + length * 2).replace(/^00/, '')
+  const value = hex.slice(after + 4, after + 4 + length * 2).replace(/^00/, '')
+
+  /**
+   * Back to eight bytes before it is echoed.
+   *
+   * DER drops a leading zero byte, so about one nonce in 256 arrives seven
+   * bytes wide — and `replyAbout` overwrites the fixture's nonce field byte
+   * for byte, which would leave the fixture's last byte standing and send
+   * back a different number. The client is right to reject that, so the test
+   * failed once every few hundred runs on a fault of its own making.
+   */
+  const nonce = value.padStart(FIXTURE_NONCE.length, '0')
 
   return replyAbout(sha256, nonce)
 }

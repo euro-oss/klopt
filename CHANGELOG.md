@@ -16,6 +16,65 @@ Decisions live in [`docs/decisions`](docs/decisions), one file per decision,
 never edited after acceptance. Where an entry below says something surprising,
 the ADR is where the reasoning is.
 
+## Unreleased
+
+### A product palette: white, black and yellow
+
+- **Three colours.** `#FFFFFF`, `#000000` and `#FFD51E`, named once in
+  `apps/web/src/styles/app.css` with every shadcn token an alias onto one of
+  them. Yellow is the accent and nothing else claims that job. Greys are the
+  two neutrals mixed — written as `color-mix`, so the file says "black at a
+  quarter strength" rather than hiding a fourth colour in a hex. The
+  marketing site keeps its own purple; product and site diverged on colour on
+  purpose.
+- **Two themes, light first.** `:root` is light and `.dark` restates only what
+  differs. The theme is a cookie resolved on the server and written into
+  `<html>` before the first paint, so switching is not a white flash, and it
+  is in the sidebar beside the language — the other "how this looks to me"
+  choice.
+- **Square, and flat.** The radius scale is zero at every step and there are
+  no shadows anywhere, including the two floating panels — the command palette
+  and the select listbox — which are separated by a border instead.
+- **Status is not the accent.** An error is not "look here", so `destructive`
+  and a negative amount take a red of their own, and the "nobody has checked
+  this yet" state takes an amber. Both are `--status-*`, both have a value per
+  theme, and neither is the yellow: a screen where the button, the warning and
+  the error are one colour says nothing three times.
+- **One typeface, no monospace.** Ubuntu Sans Variable at 400, 500 and 600.
+  Account numbers, RGS codes, hashes and amounts use `tabular-nums`, which is
+  what a column of figures actually needs; whether anything here wants a mono
+  face is a later decision.
+
+### The day's work, on the screen it opens on (alpha 2)
+
+- **The dashboard is a work queue.** What is waiting, in the order the day is
+  worked — drafts to send, invoices past their terms, reminders ready to go,
+  bank lines with no counter-entry, post waiting for a draft, purchase invoices
+  to book and to approve. Each row opens the screen where that work is done,
+  and a row with nothing in it is not shown, so an empty queue means an empty
+  desk rather than a wall of zeroes. A row the reader may not act on is left
+  out rather than shown and refused: an auditor is not told to approve four
+  purchase invoices. The three health figures are still here, under it.
+- **One book year for the whole application**, in the shell beside the
+  administration, with the dates of the year under its label. The dashboard,
+  the proefbalans, the balans, the winst-en-verliesrekening and both ageing
+  reports read it, and the year they are showing is in the address as well as
+  in a cookie, so a report can be sent to somebody and arrive showing the same
+  figures. Momentopnames and de Exact-import default their year field from the
+  same book years rather than from the clock. They all used to call
+  `new Date().getFullYear()`, which is the calendar year and not the boekjaar:
+  for an administration running July to June — which `/setup` offers — that was
+  the wrong year for half of every year, chosen silently, and as a module-level
+  constant it was also stale for anybody whose browser was open over New Year.
+- **Ouderdomsanalyse is in the navigation**, on both sides. Creditor ageing
+  existed and was reachable only from a button on Inkoopfacturen; debtor ageing
+  is new, built on the open items `GET /reports/overdue-invoices` already
+  publishes, so it reports what is _due_ and says so.
+- **The queue is worked from the keyboard.** Focus lands on the first row,
+  `j`/`k` and the arrows move, `Enter` opens, `Escape` hands the keyboard back.
+  `g v` and `g c` go to the two ageing reports. The rest of the list keyboard
+  in `docs/keyboard-map.md` is still Alpha 4's job.
+
 ## [0.1.0] — 2026-09-17
 
 The first version worth a number. Milestones M0 through M6 of the specification

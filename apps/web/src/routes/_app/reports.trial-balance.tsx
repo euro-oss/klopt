@@ -3,12 +3,17 @@ import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
+import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { getTrialBalance } from '~/server/ledger'
 
-const YEAR = String(new Date().getFullYear())
-
+/** The book year comes from the URL, or from the shell. See `reports.balance-sheet`. */
 export const Route = createFileRoute('/_app/reports/trial-balance')({
-  loader: async () => getTrialBalance({ data: { fiscalYear: YEAR } }),
+  validateSearch: fiscalYearSearch,
+  loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
+  loader: async ({ deps }) =>
+    getTrialBalance({
+      data: deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) },
+    }),
   component: TrialBalance,
 })
 
@@ -33,14 +38,14 @@ function TrialBalance() {
       key: 'number',
       header: t('trial.account'),
       width: '5rem',
-      cell: (row) => <span className="font-mono">{row.accountNumber}</span>,
+      cell: (row) => <span className="tabular">{row.accountNumber}</span>,
     },
     { key: 'name', header: t('accounts.description'), cell: (row) => row.accountName },
     {
       key: 'rgs',
       header: 'RGS',
       width: '8rem',
-      cell: (row) => <span className="font-mono text-xs">{row.rgsCode ?? '—'}</span>,
+      cell: (row) => <span className="tabular text-xs">{row.rgsCode ?? '—'}</span>,
     },
     {
       key: 'opening',

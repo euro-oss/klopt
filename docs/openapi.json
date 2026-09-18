@@ -364,8 +364,8 @@
       "PaymentBatchState": {
         "enum": [
           "draft",
-          "submitted",
           "approved",
+          "submitted",
           "exported",
           "rejected"
         ]
@@ -481,8 +481,8 @@
         "enum": [
           "draft",
           "cancelled",
-          "approved",
           "booked",
+          "approved",
           "disputed"
         ]
       },
@@ -16520,8 +16520,8 @@
                             "enum": [
                               "draft",
                               "cancelled",
-                              "approved",
                               "booked",
+                              "approved",
                               "disputed"
                             ]
                           },
@@ -17200,8 +17200,8 @@
                       "enum": [
                         "draft",
                         "cancelled",
-                        "approved",
                         "booked",
+                        "approved",
                         "disputed"
                       ]
                     },

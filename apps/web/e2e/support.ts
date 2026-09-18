@@ -48,6 +48,24 @@ export async function codeFor(email: string): Promise<string> {
   throw new Error(`No sign-in code was delivered to ${email}.`)
 }
 
+/**
+ * Resolves once React has taken over the page.
+ *
+ * Every screen in the shell renders server-side first, and until hydration a
+ * button is a button that does nothing: a click is swallowed, a keystroke is
+ * lost, and the assertion afterwards fails somewhere else entirely — which is
+ * the most expensive kind of flake to read. Several specs already wait for a
+ * control that is `disabled` until hydration; this is the same wait for the
+ * screens that have no such control.
+ *
+ * The signal is the sidebar's shortcut hints, which the shell prints only
+ * once the keys work. That is deliberate (see `AppShell`), and it makes the
+ * hint the one honest, screen-independent "the page is live now".
+ */
+export async function hydrated(page: Page): Promise<void> {
+  await expect(page.getByRole('link', { name: /Journaalposten/ }).locator('kbd')).toHaveCount(1)
+}
+
 /** Take a brand-new address all the way to a signed-in session. */
 export async function signIn(page: Page, email: string): Promise<void> {
   await page.getByLabel('E-mail').fill(email)
