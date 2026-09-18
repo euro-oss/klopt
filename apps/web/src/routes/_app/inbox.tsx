@@ -1,14 +1,17 @@
 import { Link, createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { findingMessage, violationMessage } from '~/i18n/labels'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
+import { ShortcutStrip } from '~/components/ui/keycap'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
+import { resolveListKey } from '~/lib/list-cursor'
+import { cn } from '~/lib/utils'
 import {
   addInboundSource,
   discardInboxItem,
@@ -81,10 +84,38 @@ function Inbox() {
   }
 
   const [open, setOpen] = useState<string | null>(null)
+  /** The item whose "why set aside" panel is open, if any. */
+  const [aside, setAside] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<string[]>([])
   const [note, setNote] = useState<string | null>(null)
   const key = useRef<string>(crypto.randomUUID())
+
+  /**
+   * The cursor, and the cards it moves through.
+   *
+   * The postvak is the third list in this application worked from the keyboard,
+   * and it uses the same four keys as the koppelscherm and the werklijst plus
+   * the two that are its own work: `a` makes the draft and `s` sets the document
+   * aside. Without this the screen was a column of cards and a Tab key, which is
+   * the one place the invoice → koppelen → postvak spine went missing.
+   */
+  const [cursor, setCursor] = useState(0)
+  const cards = useRef<(HTMLLIElement | null)[]>([])
+  const panels = useRef<Map<string, HTMLDivElement | null>>(new Map())
+
+  /**
+   * Put the focus where the work is.
+   *
+   * Opening a document lands on the first field of its panel rather than leaving
+   * the focus on the card: the next thing somebody does is check the coding, and
+   * `Tab` from a card would walk them past it.
+   */
+  useEffect(() => {
+    if (open === null) return
+    const panel = panels.current.get(open)
+    panel?.querySelector<HTMLElement>('input:not([disabled]), button:not([disabled])')?.focus()
+  }, [open])
 
   if (!inbox.ok) {
     return (
@@ -205,6 +236,34 @@ function Inbox() {
     await navigate({ to: '/purchases/$invoiceId', params: { invoiceId: result.data.id } })
   }
 
+  function focusCard(index: number): void {
+    setCursor(index)
+    cards.current[index]?.focus()
+  }
+
+  /** The primary action: make a draft of what the cursor is on. */
+  function approve(itemId: string): void {
+    const item = items.find((entry) => entry.id === itemId)
+    if (item === undefined || item.state !== 'new') return
+
+    if (item.parsed === null) {
+      // Nothing was read out of it, so there is nothing to book. Said out loud,
+      // because a key that silently does nothing reads as a broken key.
+      setNote(t('inbox.nothingToDraft'))
+      setOpen(itemId)
+      return
+    }
+
+    // Opened first, booked second: the coding is what is being approved, so the
+    // first `a` shows it and the second submits the panel that shows it.
+    if (open !== itemId) {
+      setOpen(itemId)
+      return
+    }
+
+    panels.current.get(itemId)?.querySelector('form')?.requestSubmit()
+  }
+
   async function discard(itemId: string, reason: string): Promise<void> {
     setBusy(true)
     setProblems([])
@@ -228,7 +287,7 @@ function Inbox() {
         title={t('inbox.title')}
         description={t('inbox.intro')}
         actions={
-          <label className="bg-primary text-primary-foreground cursor-pointer rounded-md px-4 py-2 text-sm font-medium">
+          <label className="bg-primary text-primary-foreground cursor-pointer px-4 py-2 text-sm font-medium">
             {busy ? t('common.busy') : t('inbox.addFile')}
             <input
               type="file"
@@ -271,8 +330,8 @@ function Inbox() {
             }}
             className={
               state === value
-                ? 'bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm'
-                : 'border-input rounded-md border px-3 py-1.5 text-sm disabled:opacity-50'
+                ? 'bg-primary text-primary-foreground px-3 py-1.5 text-sm'
+                : 'border-input border px-3 py-1.5 text-sm disabled:opacity-50'
             }
           >
             {t(label)}
@@ -281,9 +340,7 @@ function Inbox() {
       </div>
 
       {note !== null && (
-        <p className="border-border mb-4 max-w-2xl rounded-md border border-dashed p-3 text-sm">
-          {note}
-        </p>
+        <p className="border-border mb-4 max-w-2xl border border-dashed p-3 text-sm">{note}</p>
       )}
       {problems.length > 0 && (
         <ul role="alert" className="text-destructive mb-4 max-w-2xl space-y-1 text-sm">
@@ -294,18 +351,94 @@ function Inbox() {
       )}
 
       {items.length === 0 && (
-        <p className="text-muted-foreground border-border max-w-2xl rounded-md border border-dashed p-4 text-sm">
+        <p className="text-muted-foreground border-border max-w-2xl border border-dashed p-4 text-sm">
           {t('inbox.empty')}
         </p>
       )}
 
-      <ul className="max-w-4xl space-y-3">
-        {items.map((item) => {
+      <ul
+        aria-label={t('inbox.queue')}
+        className="max-w-4xl space-y-3"
+        onKeyDown={(event) => {
+          if (event.defaultPrevented) return
+          if (event.metaKey || event.ctrlKey || event.altKey) return
+
+          const here = items[cursor]
+          if (here === undefined) return
+
+          // Escape is the one key that has to work from inside the panel: it is
+          // how somebody gets back out of it. A picker with its own Escape stops
+          // this one reaching the list, which is right — the field is the
+          // innermost thing you are in.
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            if (aside !== null) {
+              setAside(null)
+              cards.current[cursor]?.focus()
+              return
+            }
+            if (open !== null) {
+              setOpen(null)
+              cards.current[cursor]?.focus()
+              return
+            }
+            cards.current[cursor]?.blur()
+            return
+          }
+
+          // Every other key stands down for a field, a button or a link: the
+          // panel below a card is a form, and `a` is a letter in every
+          // supplier's name.
+          const target = event.target as HTMLElement | null
+          if (target !== null && /^(INPUT|SELECT|TEXTAREA|BUTTON|A)$/.test(target.tagName)) return
+
+          if (event.key === 'a') {
+            event.preventDefault()
+            approve(here.id)
+            return
+          }
+          if (event.key === 's') {
+            event.preventDefault()
+            if (here.state === 'new') setAside(here.id)
+            return
+          }
+
+          const resolution = resolveListKey(event.key, { index: cursor, count: items.length })
+
+          if (resolution.action === 'move') {
+            event.preventDefault()
+            focusCard(resolution.index)
+            return
+          }
+          if (resolution.action === 'open') {
+            event.preventDefault()
+            if (here.state === 'new') setOpen(open === here.id ? null : here.id)
+            return
+          }
+        }}
+      >
+        {items.map((item, index) => {
           const parsed = item.parsed
           const expanded = open === item.id
 
           return (
-            <li key={item.id} className="border-border rounded-md border p-4">
+            <li
+              key={item.id}
+              ref={(element) => {
+                cards.current[index] = element
+              }}
+              tabIndex={index === cursor ? 0 : -1}
+              aria-current={index === cursor ? true : undefined}
+              onFocus={() => {
+                setCursor(index)
+              }}
+              className={cn(
+                'border-border border p-4 outline-none',
+                // The cursor is a yellow line round the card, the same mark the
+                // tables and the pickers use for "the keyboard is here".
+                index === cursor && 'border-primary outline-primary outline-2 -outline-offset-2',
+              )}
+            >
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <div>
                   <p className="font-medium">
@@ -341,7 +474,7 @@ function Inbox() {
                       onClick={() => {
                         setOpen(expanded ? null : item.id)
                       }}
-                      className="border-input rounded-md border px-3 py-1.5 disabled:opacity-50"
+                      className="border-input border px-3 py-1.5 disabled:opacity-50"
                     >
                       {expanded ? t('inbox.close') : t('inbox.handle')}
                     </button>
@@ -388,8 +521,50 @@ function Inbox() {
                 </ul>
               )}
 
+              {aside === item.id && (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    const reason = field(new FormData(event.currentTarget), 'reason')
+                    setAside(null)
+                    if (reason !== '') void discard(item.id, reason)
+                  }}
+                  className="border-border mt-4 flex flex-wrap items-end gap-3 border-t pt-4"
+                >
+                  {/* A field rather than `prompt()`, which is a dialogue the
+                      screen does not control: it cannot be styled, it cannot be
+                      escaped back to the card, and a blocking browser dialogue
+                      in the middle of a keyboard flow is a stop rather than a
+                      step. */}
+                  <label className="block flex-1">
+                    <span className="text-muted-foreground mb-1 block text-xs font-medium">
+                      {t('inbox.whySetAside')}
+                    </span>
+                    <input
+                      name="reason"
+                      required
+                      autoFocus
+                      aria-label={t('inbox.whySetAside')}
+                      className="border-input bg-background w-full border px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={!hydrated || busy}
+                    className="border-input border px-4 py-2 text-sm disabled:opacity-50"
+                  >
+                    {t('inbox.setAside')}
+                  </button>
+                </form>
+              )}
+
               {expanded && (
-                <div className="border-border mt-4 border-t pt-4">
+                <div
+                  ref={(element) => {
+                    panels.current.set(item.id, element)
+                  }}
+                  className="border-border mt-4 border-t pt-4"
+                >
                   {parsed === null ? (
                     <form
                       onSubmit={(event) => {
@@ -413,13 +588,13 @@ function Inbox() {
                           name="reason"
                           required
                           aria-label={t('inbox.whySetAside')}
-                          className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                          className="border-input bg-background w-full border px-3 py-2 text-sm"
                         />
                       </label>
                       <button
                         type="submit"
                         disabled={!hydrated || busy}
-                        className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+                        className="border-input border px-4 py-2 text-sm disabled:opacity-50"
                       >
                         {t('inbox.setAside')}
                       </button>
@@ -522,7 +697,7 @@ function Inbox() {
                         <button
                           type="submit"
                           disabled={!hydrated || busy}
-                          className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+                          className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
                         >
                           {busy ? t('common.busy') : t('inbox.makeDraft')}
                         </button>
@@ -530,10 +705,9 @@ function Inbox() {
                           type="button"
                           disabled={!hydrated || busy}
                           onClick={() => {
-                            const reason = globalThis.prompt(t('inbox.whySetAside'))
-                            if (reason !== null && reason !== '') void discard(item.id, reason)
+                            setAside(item.id)
                           }}
-                          className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+                          className="border-input border px-4 py-2 text-sm disabled:opacity-50"
                         >
                           {t('inbox.setAside')}
                         </button>
@@ -549,6 +723,20 @@ function Inbox() {
           )
         })}
       </ul>
+
+      {items.length > 0 && (
+        <ShortcutStrip
+          floating
+          ids={[
+            'inbox.next',
+            'inbox.previous',
+            'inbox.open',
+            'inbox.approve',
+            'inbox.skip',
+            'inbox.leave',
+          ]}
+        />
+      )}
 
       <InboundSources />
     </>
@@ -658,7 +846,7 @@ function InboundSources() {
   }
 
   return (
-    <section className="border-border mt-10 max-w-3xl rounded-md border p-4">
+    <section className="border-border mt-10 max-w-3xl border p-4">
       <h2 className="mb-1 text-sm font-semibold">{t('sources.title')}</h2>
       <p className="text-muted-foreground mb-3 text-sm">{t('sources.intro')}</p>
 
@@ -740,7 +928,7 @@ function InboundSources() {
         onClick={() => {
           setOpen(!open)
         }}
-        className="border-border rounded-md border px-3 py-1.5 text-sm disabled:opacity-50"
+        className="border-border border px-3 py-1.5 text-sm disabled:opacity-50"
       >
         {open ? t('common.cancel') : t('sources.add')}
       </button>
@@ -775,7 +963,7 @@ function InboundSources() {
               id="source-name"
               name="name"
               required
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+              className="border-input bg-background w-full border px-3 py-2 text-sm"
             />
           </div>
 
@@ -792,7 +980,7 @@ function InboundSources() {
                 name="directory"
                 required
                 placeholder="/var/klopt/postvak"
-                className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                className="border-input bg-background w-full border px-3 py-2 text-sm"
               />
             </div>
           ) : (
@@ -809,7 +997,7 @@ function InboundSources() {
                   name="host"
                   required
                   placeholder="imap.example.nl"
-                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                  className="border-input bg-background w-full border px-3 py-2 text-sm"
                 />
               </div>
               <div>
@@ -823,7 +1011,7 @@ function InboundSources() {
                   id="source-user"
                   name="user"
                   required
-                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                  className="border-input bg-background w-full border px-3 py-2 text-sm"
                 />
               </div>
               <div>
@@ -838,7 +1026,7 @@ function InboundSources() {
                   name="password"
                   type="password"
                   required
-                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                  className="border-input bg-background w-full border px-3 py-2 text-sm"
                 />
               </div>
               <div>
@@ -852,7 +1040,7 @@ function InboundSources() {
                   id="source-processed"
                   name="processedMailbox"
                   placeholder={t('sources.processedPlaceholder')}
-                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                  className="border-input bg-background w-full border px-3 py-2 text-sm"
                 />
               </div>
             </>
@@ -862,7 +1050,7 @@ function InboundSources() {
             <button
               type="submit"
               disabled={!hydrated || busy}
-              className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+              className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
               {busy ? t('common.busy') : t('common.save')}
             </button>
