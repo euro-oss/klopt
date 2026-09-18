@@ -109,7 +109,6 @@ async function connect(token: string, exact: FakeExact) {
 }
 
 beforeAll(async () => {
-  process.env['KLOPT_ENCRYPTION_KEY'] = 'test-key-not-for-production-0123456789'
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   await runMigrations(DATABASE_URL)
   setDatabaseForTest(database)
@@ -123,7 +122,6 @@ afterAll(async () => {
   // Take away the fixtures that would otherwise keep the worker busy.
   await cleanupSeededBackgroundWork(database)
   globalThis.fetch = realFetch
-  delete process.env['KLOPT_ENCRYPTION_KEY']
   await closeDatabase(database)
 })
 

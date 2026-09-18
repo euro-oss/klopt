@@ -31,6 +31,9 @@ module.exports = {
           '^(packages|apps)/[^/]+/src/index\\.ts$',
           // Reached by the generated route tree, which is excluded above.
           '^apps/web/src/(router\\.tsx|routes/)',
+          // Vitest `setupFiles`: loaded by path from the config, so nothing
+          // imports them and nothing should.
+          '(^|/)test/setup/',
         ],
       },
       to: {},

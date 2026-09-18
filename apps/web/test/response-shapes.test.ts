@@ -1460,7 +1460,6 @@ describe('Exact, from connecting to disconnecting', () => {
   })
 
   it('every operation the integration has', async () => {
-    process.env['KLOPT_ENCRYPTION_KEY'] = 'test-key-not-for-production-0123456789'
     // `fakeExact` installs itself on `globalThis.fetch`, the way the handlers
     // reach Exact in production.
     fakeExact()
@@ -1540,8 +1539,6 @@ describe('Exact, from connecting to disconnecting', () => {
       (await handleExactDocumentStatus(await contextFor())).body,
     )
     conforms('exact.disconnect', (await handleDisconnectExact(await contextFor(key()))).body)
-
-    delete process.env['KLOPT_ENCRYPTION_KEY']
   }, 60_000)
 })
 

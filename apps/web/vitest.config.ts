@@ -7,5 +7,6 @@ export default defineConfig({
     name: 'web',
     include: ['test/**/*.test.ts'],
     environment: 'node',
+    setupFiles: ['./test/setup/environment.ts'],
   },
 })
