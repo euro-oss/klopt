@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, signIn, uniqueEmail } from './support'
 
 /**
  * The dashboard as a work queue, in a browser.
@@ -96,13 +96,54 @@ test('the book year in the shell is the administration’s, and the reports agre
 }) => {
   await anAdministration(page, 'Boekjaar BV')
 
-  const picker = page.getByLabel('Boekjaar')
-  await expect(picker).toBeVisible()
-  const year = (await picker.textContent())?.trim() ?? ''
-  expect(year).toMatch(/^\d{4}/)
+  // The control itself, in the chrome rather than on a report.
+  await expect(page.getByLabel('Boekjaar')).toBeVisible()
+
+  // Read the year off the dashboard rather than out of the picker: what
+  // matters is that the screens agree about it, and a Radix trigger's text is
+  // a detail of a component library.
+  const heading = (await page.getByText(/^Boekjaar \d{4}:/).textContent()) ?? ''
+  const year = /Boekjaar (\d{4})/.exec(heading)?.[1] ?? ''
+  expect(year).toMatch(/^\d{4}$/)
+
+  // The dates are shown under the picker, because a boekjaar labelled 2025 may
+  // run into 2026 and a label alone is the guess this replaced.
+  await expect(page.getByText(/\d{2}-\d{2}-\d{4} – \d{2}-\d{2}-\d{4}/)).toBeVisible()
 
   await page.goto('/reports/trial-balance')
-  await expect(page.getByText(new RegExp(`Boekjaar ${year.slice(0, 4)}`))).toBeVisible()
+  await expect(page.getByText(new RegExp(`Boekjaar ${year}`))).toBeVisible()
+})
+
+test('a boekjaar that is not the calendar year is the one the screens use', async ({ page }) => {
+  // The bug this replaces, as directly as a browser can state it: an
+  // administration whose only book year is an earlier one, running July to
+  // June. The calendar year is not that year and has no book year at all, so
+  // the old `new Date().getFullYear()` asked for a year that does not exist.
+  await page.goto('/sign-in')
+  await signIn(page, uniqueEmail())
+  await page.getByRole('link', { name: 'Administratie opzetten' }).click()
+
+  await page.getByLabel('Naam van de administratie').fill('Gebroken Boekjaar BV')
+  const opened = String(new Date().getUTCFullYear() - 1)
+  await page.getByLabel('Boekjaar').fill(opened)
+  await chooseOption(page, 'Begint in', 'juli')
+  await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(page.getByText(`Boekjaar ${opened}:`)).toBeVisible()
+  await expect(
+    page.getByText(`01-07-${opened} – 30-06-${String(Number(opened) + 1)}`),
+  ).toBeVisible()
+
+  await page.goto('/reports/trial-balance')
+  await expect(page.getByText(new RegExp(`Boekjaar ${opened}`))).toBeVisible()
+
+  // And a report about open items ages as of the end of that year rather than
+  // as of today, which would call everything in it a year late.
+  await page.goto('/reports/debtor-ageing')
+  await expect(
+    page.getByText(new RegExp(`Vervallen verkoopfacturen per 30-06-${String(Number(opened) + 1)}`)),
+  ).toBeVisible()
 })
 
 test('ageing is in the navigation, on both sides', async ({ page }) => {
