@@ -73,8 +73,32 @@ jobs:
       - name: Migrate
         run: pnpm --filter @klopt/db run migrate
 
+      # Object storage for the retention/WORM and S3-store tests (spec 7.6).
+      # MinIO needs a `server` command, which a GitHub `services:` container
+      # cannot supply, so it is started here — the same shape as the `minio`
+      # service in docker-compose.yml. The tests reach it at localhost:9000 by
+      # default; nothing else is pointed at S3, so the app keeps its filesystem
+      # document store. Two buckets, matching the compose init: klopt-documents
+      # WITH object lock, and klopt-exports WITHOUT (the fixture verifyLock is
+      # meant to fail honestly against).
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=klopt \
+            -e MINIO_ROOT_PASSWORD=klopt-dev-secret \
+            minio/minio:latest server /data
+          for _ in $(seq 1 30); do
+            if curl -fsS http://localhost:9000/minio/health/live >/dev/null; then break; fi
+            sleep 2
+          done
+          docker run --rm --network host --entrypoint /bin/sh minio/mc:latest -c "
+            mc alias set local http://localhost:9000 klopt klopt-dev-secret &&
+            mc mb --ignore-existing --with-lock local/klopt-documents &&
+            mc mb --ignore-existing local/klopt-exports"
+
       # The ledger tests run against a real Postgres on purpose. The triggers
       # are half the guarantee, and a mocked database proves nothing about them.
+      # The web suite sets its own test encryption key (test/setup-encryption-key.ts).
       - name: Test
         run: pnpm run test
 
