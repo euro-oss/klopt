@@ -8,6 +8,8 @@ import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
 import { formatDate } from '~/lib/format'
 import type { FiscalYearOption, FiscalYearScope } from '~/lib/fiscal-year'
+import { DEFAULT_THEME, type Theme } from '~/lib/theme'
+import { setTheme } from '~/server/theme'
 import { BINDINGS_BY_ID, formatBinding } from '~/lib/keyboard'
 import { CommandPalette } from './command-palette'
 
@@ -394,6 +396,10 @@ function Profile({
         <LanguagePicker />
       </div>
 
+      <div className="mt-3">
+        <ThemePicker />
+      </div>
+
       <form method="post" action="/sign-out" className="mt-2">
         <button
           type="submit"
@@ -509,6 +515,42 @@ function LanguagePicker() {
     >
       <SelectOption value="nl">{t('language.nl')}</SelectOption>
       <SelectOption value="en">{t('language.en')}</SelectOption>
+    </SelectField>
+  )
+}
+
+/**
+ * Light or dark.
+ *
+ * Beside the language, because both are "how this looks to me" rather than
+ * anything about the books. Light is the default and the theme is resolved on
+ * the server, so switching is a cookie and a re-render rather than a flash of
+ * the theme somebody has just left.
+ */
+function ThemePicker() {
+  const { t } = useT()
+  const router = useRouter()
+  const hydrated = useHydrated()
+  const theme = useRouterState({
+    select: (state) => (state.matches[0]?.loaderData as { theme?: Theme } | undefined)?.theme,
+  })
+
+  return (
+    <SelectField
+      label={t('theme.label')}
+      value={theme ?? DEFAULT_THEME}
+      disabled={!hydrated}
+      size="sm"
+      onValueChange={(chosen) => {
+        void setTheme({ data: { theme: chosen } })
+          .then(() => router.invalidate())
+          .catch((cause: unknown) => {
+            console.error('[app] could not change theme', cause)
+          })
+      }}
+    >
+      <SelectOption value="light">{t('theme.light')}</SelectOption>
+      <SelectOption value="dark">{t('theme.dark')}</SelectOption>
     </SelectField>
   )
 }

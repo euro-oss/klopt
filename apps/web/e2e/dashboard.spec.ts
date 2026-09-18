@@ -184,6 +184,25 @@ test('a boekjaar that is not the calendar year is the one the screens use', asyn
   ).toBeVisible()
 })
 
+test('the theme is light to start with, and dark stays dark', async ({ page }) => {
+  await anAdministration(page, 'Weergave BV')
+
+  // Light is the default, and it is the absence of a class rather than a
+  // second set of tokens.
+  await expect(page.locator('html')).not.toHaveClass(/dark/)
+
+  await chooseOption(page, 'Weergave', 'Donker')
+  await expect(page.locator('html')).toHaveClass(/dark/)
+
+  // Through a reload, because a theme resolved only in the browser is a white
+  // flash on every page load.
+  await page.reload()
+  await expect(page.locator('html')).toHaveClass(/dark/)
+
+  await chooseOption(page, 'Weergave', 'Licht')
+  await expect(page.locator('html')).not.toHaveClass(/dark/)
+})
+
 test('ageing is in the navigation, on both sides', async ({ page }) => {
   await anAdministration(page, 'Ouderdom BV')
 

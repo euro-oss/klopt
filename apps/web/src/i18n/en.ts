@@ -77,6 +77,10 @@ export const en: Record<MessageKey, string> = {
   'language.en': 'English',
   'language.saved': 'Language changed.',
 
+  'theme.label': 'Appearance',
+  'theme.light': 'Light',
+  'theme.dark': 'Dark',
+
   'signIn.unreachable': 'The server cannot be reached.',
   'signIn.introEmail': 'Enter your email address. We will send you a code.',
   'signIn.introCode': 'Enter the code we sent you.',

@@ -68,6 +68,11 @@ export const nl = {
   'language.en': 'English',
   'language.saved': 'Taal gewijzigd.',
 
+  // Licht of donker. Naast de taal, want het is hetzelfde soort keuze.
+  'theme.label': 'Weergave',
+  'theme.light': 'Licht',
+  'theme.dark': 'Donker',
+
   // Signing in. The heading is the product name, so it is not translated.
   'signIn.unreachable': 'De server is niet bereikbaar.',
   'signIn.introEmail': 'Vul je e-mailadres in. We sturen je een code.',
