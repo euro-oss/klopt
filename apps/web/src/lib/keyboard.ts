@@ -189,9 +189,38 @@ export const BINDINGS: readonly Binding[] = [
     to: '/purchases/new',
   },
 
+  // Every ledger table. `j`/`k` are printed rather than the arrows because
+  // `formatBinding` renders a key name, and "ARROWDOWN" is not a key anybody
+  // reads — the arrows do the same thing and the map says so.
+  { id: 'list.next', label: 'keys.listNext', group: 'keys.group.list', keys: 'j' },
+  { id: 'list.previous', label: 'keys.listPrevious', group: 'keys.group.list', keys: 'k' },
+  { id: 'list.open', label: 'keys.listOpen', group: 'keys.group.list', keys: 'enter' },
+  { id: 'list.select', label: 'keys.listSelect', group: 'keys.group.list', keys: 'space' },
+  {
+    id: 'list.selectAll',
+    label: 'keys.listSelectAll',
+    group: 'keys.group.list',
+    keys: 'a',
+    modifiers: ['mod'],
+  },
+  {
+    id: 'list.copy',
+    label: 'keys.listCopy',
+    group: 'keys.group.list',
+    keys: 'c',
+    modifiers: ['mod'],
+  },
+  { id: 'list.typeAhead', label: 'keys.listTypeAhead', group: 'keys.group.list', keys: 'a-z' },
+
+  // The pickers. Listed because a control you have to click to discover is a
+  // control somebody reaches for the mouse for (principle 5).
+  { id: 'picker.choose', label: 'keys.pickerChoose', group: 'keys.group.picker', keys: 'enter' },
+  { id: 'picker.next', label: 'keys.pickerNext', group: 'keys.group.picker', keys: 'tab' },
+  { id: 'picker.close', label: 'keys.pickerClose', group: 'keys.group.picker', keys: 'escape' },
+
   // The dashboard queue. Four keys, the same four the koppelscherm uses, so
   // the two lists in this application that are worked from the keyboard are
-  // worked the same way. The rest of the list keyboard is Alpha 4's job.
+  // worked the same way.
   { id: 'queue.open', label: 'keys.queueOpen', group: 'keys.group.queue', keys: 'enter' },
   { id: 'queue.next', label: 'keys.queueNext', group: 'keys.group.queue', keys: 'j' },
   { id: 'queue.previous', label: 'keys.queuePrevious', group: 'keys.group.queue', keys: 'k' },
