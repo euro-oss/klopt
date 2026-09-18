@@ -111,3 +111,73 @@ jobs:
             console.log('RGS ' + rgs.version + ' ' + rgs.variant + ': ' + rgs.codeCount + ' codes');
             for (const note of rgs.normalisations) console.log('  normalised: ' + note);
           "
+
+  # Browser tests (spec 11.4). The class of bug this repo has already hit —
+  # hydration eating input, a shortcut printed but dead, "the screen did not
+  # change" — is invisible to the domain tests in `verify` and is exactly what
+  # these specs exist to catch. They used to run on nobody's machine.
+  #
+  # This is a real gate, not a decoration: it runs the full Chromium suite
+  # against a live Postgres and fails the job when a spec fails. Green means the
+  # specs passed. If a spec is genuinely flaky it should be fixed or quarantined
+  # in the spec (test.fixme / test.skip with a linked issue), never hidden here
+  # with continue-on-error — spec 12 forbids a flaky-green build. Kept separate
+  # from `verify` so a red run is attributable and the extra ~10 minutes do not
+  # slow the unit-test signal.
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: klopt
+          POSTGRES_PASSWORD: klopt
+          POSTGRES_DB: klopt
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U klopt -d klopt"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The web dev server the suite drives imports the workspace packages
+      # through their `exports`, which point at dist/. Nothing resolves until
+      # they are built, same reason the verify job builds before it lints.
+      - name: Build
+        run: pnpm run build
+
+      - name: Migrate
+        run: pnpm --filter @klopt/db run migrate
+
+      - name: Install Playwright browser
+        run: pnpm --filter @klopt/web exec playwright install --with-deps chromium
+
+      # playwright.config.ts starts `vite dev` on 3399 with the e2e environment
+      # (rate limit off, email to an outbox dir, S3 disabled) and reads
+      # DATABASE_URL from the environment, so the service above is the database.
+      - name: Playwright e2e
+        run: pnpm --filter @klopt/web run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 14
+          if-no-files-found: ignore
