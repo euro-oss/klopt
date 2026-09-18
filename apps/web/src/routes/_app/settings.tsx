@@ -3,6 +3,7 @@ import { violationMessage } from '~/i18n/labels'
 import { useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
+import { AccountPicker } from '~/components/finance/account-picker'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -267,21 +268,16 @@ function Settings() {
         <fieldset className="space-y-4">
           <legend className="text-base font-medium">{t('settings.bankCharges')}</legend>
           <p className="text-muted-foreground text-sm">{t('settings.bankChargesIntro')}</p>
-          <SelectField
+          <AccountPicker
             label={t('settings.bankChargesAccount')}
             labelHidden
             name="bankChargesAccountNumber"
+            accounts={expenseAccounts}
             defaultValue={current.bankChargesAccountNumber ?? ''}
             disabled={!hydrated}
+            emptyOption={t('settings.bankChargesNone')}
             className="max-w-md"
-          >
-            <SelectOption value="">{t('settings.bankChargesNone')}</SelectOption>
-            {expenseAccounts.map((account) => (
-              <SelectOption key={account.number} value={account.number}>
-                {account.number} · {account.name}
-              </SelectOption>
-            ))}
-          </SelectField>
+          />
         </fieldset>
 
         <button

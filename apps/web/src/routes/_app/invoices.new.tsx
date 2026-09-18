@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
+import { AccountPicker } from '~/components/finance/account-picker'
 import { useT } from '~/i18n/provider'
 import { multiplyByDecimal, parseMinorUnits, percentOf } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
@@ -320,21 +321,16 @@ function NewInvoice() {
                 />
               </td>
               <td className="py-1">
-                <SelectField
+                <AccountPicker
                   label={t('invoiceNew.accountLine', { line: String(index + 1) })}
                   labelHidden
+                  accounts={revenueAccounts}
                   value={line.revenueAccountNumber}
                   disabled={!hydrated}
                   onValueChange={(next) => {
                     update(index, { revenueAccountNumber: next })
                   }}
-                >
-                  {revenueAccounts.map((account) => (
-                    <SelectOption key={account.number} value={account.number}>
-                      {account.number} {account.name}
-                    </SelectOption>
-                  ))}
-                </SelectField>
+                />
               </td>
               <td className="py-1">
                 <SelectField

@@ -5,6 +5,7 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
+import { AccountPicker } from '~/components/finance/account-picker'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -470,26 +471,21 @@ function Inbox() {
                             <tr key={line.lineNumber}>
                               <td className="py-1 pr-2">{line.description}</td>
                               <td className="py-1 pr-2">
-                                <SelectField
+                                <AccountPicker
                                   label={t('invoiceNew.accountLine', {
                                     line: String(index + 1),
                                   })}
                                   labelHidden
                                   name={`account-${String(index)}`}
+                                  accounts={costAccounts}
                                   defaultValue={line.accountNumber}
                                   disabled={!hydrated}
-                                >
-                                  {/* An explicit empty option, so a line the
-                                      parse could not park anywhere shows as
-                                      unchosen rather than silently taking the
-                                      first cost account. */}
-                                  <SelectOption value="">{t('inbox.choose')}</SelectOption>
-                                  {costAccounts.map((account) => (
-                                    <SelectOption key={account.number} value={account.number}>
-                                      {account.number} {account.name}
-                                    </SelectOption>
-                                  ))}
-                                </SelectField>
+                                  // An explicit empty choice, so a line the
+                                  // parse could not park anywhere shows as
+                                  // unchosen rather than silently taking the
+                                  // first cost account.
+                                  emptyOption={t('inbox.choose')}
+                                />
                               </td>
                               <td className="py-1 pr-2">
                                 <SelectField

@@ -10,6 +10,7 @@ import {
   type JournalOption,
 } from '~/lib/account-options'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
+import { AccountPicker } from '~/components/finance/account-picker'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
@@ -64,12 +65,12 @@ export const Route = createFileRoute('/_app/exact/')({
 /**
  * Pick a grootboekrekening.
  *
- * A `select`, not the `datalist` the journaalpost screen uses, and the
- * difference is who is typing. A bookkeeper entering lines knows the chart and
- * types `4300` faster than any menu; a datalist helps them and stays out of the
- * way. This form is filled in once, by somebody migrating out of another system
- * who has no reason to know these numbers yet — and a datalist still accepts
- * whatever you type, so it guides without constraining.
+ * The same control as every other account field in the application now: type a
+ * number or a word, arrows move, `Enter` takes it. It used to be a `select`
+ * here and a `datalist` on the journaalpost screen, on the theory that the two
+ * kinds of user want different things — but what a bookkeeper who types `4300`
+ * and somebody migrating who types `deb` both want is a field that matches on
+ * the number *and* the name, which is what `AccountPicker` is.
  *
  * Only balance-sheet accounts are offered. That is not a convenience: the
  * debtors position, the creditors position and the counter to them are all
@@ -99,21 +100,15 @@ function AccountSelect({
   const offered = balanceSheetAccounts(accounts)
 
   return (
-    <SelectField
+    <AccountPicker
       label={label}
+      accounts={offered}
       value={value}
       onValueChange={onChange}
       disabled={disabled}
-      hint={hint}
-    >
-      <SelectOption value="">{t('exact.chooseAccount')}</SelectOption>
-      {offered.map((account) => (
-        <SelectOption key={account.number} value={account.number}>
-          {account.number} — {account.name}
-          {account.isBlocked ? t('exact.blockedSuffix') : ''}
-        </SelectOption>
-      ))}
-    </SelectField>
+      emptyOption={t('exact.chooseAccount')}
+      {...(hint === undefined ? {} : { hint })}
+    />
   )
 }
 
