@@ -102,6 +102,8 @@ function NewEntry() {
 
   const formRef = useRef<HTMLFormElement>(null)
   const confirmRef = useRef<HTMLButtonElement>(null)
+  /** What had the focus when the confirmation opened, to give it back. */
+  const returnFocus = useRef<HTMLElement | null>(null)
   /**
    * The amount fields are controlled and parsed as they are typed, so before
    * hydration anything entered is discarded and the submit reloads the page.
@@ -234,10 +236,21 @@ function NewEntry() {
         return
       }
       setProblems([])
+      // Where to put the focus back if this is abandoned. Without it, closing
+      // the confirmation leaves the focus on `<body>` and the next Tab starts
+      // at the top of the page rather than in the line somebody was typing.
+      returnFocus.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null
       setConfirming({ startAnother })
     },
     [posting, refusal, t],
   )
+
+  const abandonPosting = useCallback(() => {
+    setConfirming(null)
+    const back = returnFocus.current
+    if (back !== null && back.isConnected) back.focus()
+  }, [])
 
   useEffect(() => {
     if (confirming !== null) confirmRef.current?.focus()
@@ -522,9 +535,7 @@ function NewEntry() {
           onConfirm={() => {
             void submit(confirming.startAnother)
           }}
-          onCancel={() => {
-            setConfirming(null)
-          }}
+          onCancel={abandonPosting}
         />
       )}
 

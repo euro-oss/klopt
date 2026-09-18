@@ -255,6 +255,13 @@ function MatchQueue() {
       if (target !== null && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return
       if (event.metaKey || event.ctrlKey || event.altKey) return
 
+      // Nor from a focused control. `Enter` on a button is the button, and a
+      // window handler that took it would leave somebody who tabbed to "Boeken"
+      // pressing a key that books something else — or, with no suggestion to
+      // book, nothing at all.
+      const onControl = target !== null && /^(BUTTON|A)$/.test(target.tagName)
+      if (onControl && (event.key === 'Enter' || event.key === ' ')) return
+
       if (event.key === 'ArrowDown' || event.key === 'j') {
         event.preventDefault()
         setSelected((current) => Math.min(current + 1, queue.length - 1))

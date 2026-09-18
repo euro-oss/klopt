@@ -104,26 +104,61 @@ export function AccountPicker({
   const chosen = accounts.find((account) => account.number === current) ?? null
   const showName = chosen !== null && !typing
 
+  /**
+   * Whether "no account" is on offer.
+   *
+   * Only while nothing has been typed. Somebody typing `4400` is looking for an
+   * account, and leaving the empty choice at the top of the list would make
+   * Enter clear the field — which is the opposite of what they asked for.
+   */
+  const offerEmpty = emptyOption !== undefined && !typing
+
   /** The rows arrows can land on: the empty choice, then the postable matches. */
   const reachable: (PickableAccount | null)[] = [
-    ...(emptyOption === undefined ? [] : [null]),
+    ...(offerEmpty ? [null] : []),
     ...matches.filter(isPostable),
   ]
   const activeAccount = reachable[Math.min(active, reachable.length - 1)]
   const activeId = reachable.length === 0 ? undefined : `${id}-option-${String(active)}`
+
+  /** What is wrong with the value the field is holding, if anything. */
+  const complaint =
+    current === '' || typing
+      ? null
+      : chosen === null
+        ? t('picker.unknown', { number: current })
+        : isPostable(chosen)
+          ? null
+          : t('picker.blockedAccount', { number: current })
 
   useEffect(() => {
     if (!open) return
     list.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' })
   }, [open, active])
 
-  function commit(account: PickableAccount | null): void {
-    const next = account?.number ?? ''
+  function commitNumber(next: string): void {
     if (value === undefined) setUncontrolled(next)
     onValueChange?.(next)
     setQuery(null)
     setOpen(false)
     setActive(0)
+  }
+
+  function commit(account: PickableAccount | null): void {
+    commitNumber(account?.number ?? '')
+  }
+
+  /**
+   * Take what was typed, resolved if it can be.
+   *
+   * A fragment nothing answers to is kept rather than thrown away, and the
+   * field says what is wrong with it. Silently putting `9999` back to the
+   * account that was there before would leave somebody looking at a number they
+   * did not type, and the ledger's own refusal — "geen rekening 9999" — is
+   * clearer than a field that quietly disagrees with them.
+   */
+  function commitTyped(): void {
+    commitNumber(resolveAccount(accounts, text)?.number ?? text.trim())
   }
 
   /** Put the field back to the value it held, which is what Escape promises. */
@@ -144,6 +179,32 @@ export function AccountPicker({
     // field is on, and `Cmd`+`K` opens the palette.
     if (event.metaKey || event.ctrlKey || event.altKey) return
 
+    /**
+     * The first character typed at a chosen account replaces it.
+     *
+     * A field showing `2000` is showing an account, not text somebody is
+     * editing, so typing `4` at it means 4400 rather than 42000. Done here
+     * rather than by selecting the text on focus, because a re-render can
+     * collapse that selection and the behaviour has to be the same every time.
+     */
+    if (query === null && event.key.length === 1) {
+      event.preventDefault()
+      setQuery(event.key)
+      setOpen(true)
+      setActive(0)
+      return
+    }
+
+    // And the first Backspace empties it, rather than nibbling at a number
+    // that is not being edited.
+    if (query === null && event.key === 'Backspace') {
+      event.preventDefault()
+      setQuery('')
+      setOpen(true)
+      setActive(0)
+      return
+    }
+
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault()
@@ -163,13 +224,17 @@ export function AccountPicker({
         event.preventDefault()
         move(reachable.length - 1)
         return
-      case 'Enter':
+      case 'Enter': {
         // Never let it submit the form from here: `Enter` commits the thing you
         // are in (principle 2), and the thing you are in is this field.
         event.preventDefault()
-        if (open && activeAccount !== undefined) commit(activeAccount)
-        else commit(resolveAccount(accounts, text))
+        if (open && activeAccount !== undefined) {
+          commit(activeAccount)
+          return
+        }
+        commitTyped()
         return
+      }
       case 'Escape':
         if (!open && text === current) return
         // Taken, so the shell does not also read it as "clear the focus".
@@ -227,21 +292,14 @@ export function AccountPicker({
               setOpen(true)
               setActive(0)
             }}
-            onFocus={(event) => {
-              // Type-ahead on focus, not on click: reaching a field by Tab and
-              // typing has to work without a pointer anywhere near it.
+            onFocus={() => {
+              // Open on focus, not on click: reaching a field by Tab and typing
+              // has to work without a pointer anywhere near it.
               setOpen(true)
-              event.target.select()
             }}
             onBlur={() => {
               setOpen(false)
-              if (!typing) return
-              // Leaving a field half-typed keeps the account it had. Anything
-              // else stores a number the ledger will refuse later.
-              const resolved = resolveAccount(accounts, text)
-              if (text.trim() === '' && emptyOption !== undefined) commit(null)
-              else if (resolved !== null) commit(resolved)
-              else abandon()
+              if (typing) commitTyped()
             }}
             onKeyDown={onKeyDown}
             className={cn(
@@ -268,10 +326,13 @@ export function AccountPicker({
             ref={list}
             id={listId}
             role="listbox"
-            aria-label={label}
+            // Its own name rather than the field's. A listbox that answers to
+            // the label of the input above it is two things with one name, and
+            // "the account field" then means either of them.
+            aria-label={t('picker.options')}
             className="bg-background border-border absolute z-50 mt-1 max-h-64 w-full min-w-64 overflow-y-auto border"
           >
-            {emptyOption !== undefined && (
+            {offerEmpty && (
               <Option
                 id={`${id}-option-0`}
                 active={active === 0}
@@ -315,6 +376,15 @@ export function AccountPicker({
           </ul>
         )}
       </div>
+
+      {/* What is wrong with what is in the field, next to the field.
+          `9999` is not thrown away and it is not accepted either: the note
+          carries the number, in the same words the ledger would refuse it in. */}
+      {complaint !== null && (
+        <span role="alert" className="text-destructive mt-1 block text-xs">
+          {complaint}
+        </span>
+      )}
 
       {hint !== undefined && (
         <span className="text-muted-foreground mt-1 block text-xs">{hint}</span>
