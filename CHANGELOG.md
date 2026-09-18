@@ -18,6 +18,40 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### The keyboard, on the screen (alpha 4, design pass)
+
+- **Het postvak is worked like the other two lists.** It was a column of cards
+  and a `Tab` key, which broke the invoice → koppelen → postvak spine at its last
+  screen. `j`/`k` or the arrows move a cursor, `↵` opens a document, `a` makes the
+  draft — once to show the coding, again to book it, because what is approved is
+  the coding — `s` sets it aside and `Escape` closes the panel and then leaves the
+  list. Setting aside asks for its reason in a field rather than a browser
+  `prompt()`, which could not be escaped back to the card.
+- **The keys are printed on the screens they work on.** Keycaps with a yellow
+  outline along the bottom of the entry form, the invoice form and list, the
+  koppelscherm and het postvak, and floating above the postvak queue. They are
+  declared as binding ids, so a screen cannot print a key it has not registered.
+  The sidebar prints its shortcuts instead of revealing them on hover — a
+  keyboard user never hovers — and the `?` sheet and the palette use the same
+  caps, so `SPACE` and `A-Z` are `Space` and `A–Z` now.
+- **One mark for "the keyboard is here": a yellow line.** The row cursor, the
+  selected koppel-line and the focused postvak card are outlined in the accent
+  rather than filled with it; a selected table row is marked at its edge. A
+  column of forty filled rows was a colour swatch, not a ledger.
+- **The invoice screens got the rest of their keyboard.** In the form, `Enter` in
+  a field no longer saves (that is "Enter on primary save, not mid-field"),
+  `Cmd`+`Enter` shows what will be saved and saves on the second press, and
+  `Escape` leaves — twice, if there is something to lose. On a draft invoice,
+  `Cmd`+`Enter` issues it after showing what that means: a number out of a gapless
+  series and an entry in the chain.
+- **Square, everywhere on the spine.** The radius utilities are gone from the
+  screens and components the keyboard spine runs through. The scale has been zero
+  since the palette landed, so they described a curve that does not exist.
+- **`u` to unmatch is not bound, and the map says why.** There is no unmatch
+  operation in `/api/v1`, and a booked match is undone by a reversal — which
+  principle 4 keeps as a button that asks. It is the one place the map and the
+  design board disagree on purpose.
+
 ### The keyboard, finished (alpha 4)
 
 - **One account picker, on every screen that asks for an account.** Type a number

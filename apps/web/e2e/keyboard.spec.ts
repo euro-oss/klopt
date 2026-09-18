@@ -117,6 +117,17 @@ async function tabTo(page: Page, name: RegExp, presses = 80): Promise<void> {
   throw new Error(`Tab never reached ${String(name)} — focus ended on ${await focused(page)}.`)
 }
 
+/** The same, backwards: out of a panel and back to the thing that opened it. */
+async function shiftTabTo(page: Page, name: RegExp, presses = 20): Promise<void> {
+  for (let press = 0; press < presses; press += 1) {
+    if (name.test(await focused(page))) return
+    await page.keyboard.press('Shift+Tab')
+  }
+  throw new Error(
+    `Shift-Tab never reached ${String(name)} — focus ended on ${await focused(page)}.`,
+  )
+}
+
 /** Nothing on this screen may leave the focus on the document body. */
 async function focusIsSomewhere(page: Page): Promise<void> {
   expect(await focused(page)).not.toMatch(/^BODY/)
@@ -497,6 +508,9 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await page.keyboard.press('Tab')
   await expect(revenue).toHaveValue('8000')
 
+  // The keystroke shows what it is about to save, and saves on the second press.
+  await page.keyboard.press('ControlOrMeta+Enter')
+  await expect(page.getByRole('dialog', { name: 'Dit wordt opgeslagen' })).toBeVisible()
   await page.keyboard.press('ControlOrMeta+Enter')
   await expect(page.getByRole('heading', { name: /Factuur/ })).toBeVisible()
   // After a navigation the focus is on the screen that just opened, not on the
@@ -528,7 +542,9 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await expect(page.getByRole('heading', { name: 'Postvak' })).toBeVisible()
   await focusIsSomewhere(page)
 
-  await tabTo(page, /^BUTTON Verwerken$/)
+  // The cursor is on the first document, `Enter` opens it, and the focus lands
+  // in the panel rather than on the card.
+  await tabTo(page, /^LI /)
   await page.keyboard.press('Enter')
 
   const account = page.getByRole('combobox', { name: 'Grootboek regel 1' })
@@ -540,4 +556,71 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { name: 'Inkoopfactuur F-2026-0042' })).toBeVisible()
   await focusIsSomewhere(page)
+})
+
+test('the postvak is worked with the same keys as everything else', async ({ page }) => {
+  // The gap this closes: the postvak was a column of cards and a Tab key, which
+  // broke the invoice → koppelen → postvak spine at its last screen.
+  await anAdministration(page)
+
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('CRE-0001')
+  await page.getByLabel('Naam', { exact: true }).fill('Leverancier B.V.')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
+  await page.getByRole('checkbox', { name: /Leverancier/ }).check()
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('cell', { name: 'Leverancier B.V.' })).toBeVisible()
+
+  await page.goto('/inbox')
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
+  for (const name of ['een.xml', 'twee.xml']) {
+    await page.locator('input[type="file"]').setInputFiles({
+      name,
+      mimeType: 'application/xml',
+      buffer: Buffer.from(UBL.replace('F-2026-0042', `F-${name.slice(0, 4)}`), 'utf8'),
+    })
+  }
+  const cards = page.getByRole('list', { name: 'Wat er binnen is gekomen' }).getByRole('listitem')
+  await expect(cards).toHaveCount(2)
+
+  // The keys are printed on the screen they work on, not only in the ? sheet.
+  const strip = page.getByLabel('Sneltoetsen').first()
+  await expect(strip).toContainText('Concept maken van dit stuk')
+  await expect(strip.getByText('A', { exact: true })).toBeVisible()
+  await expect(strip.getByText('S', { exact: true })).toBeVisible()
+
+  await tabTo(page, /^LI /)
+  const cursor = page.locator('li[aria-current="true"]')
+  const first = await cursor.textContent()
+
+  await page.keyboard.press('j')
+  await expect(cursor).not.toHaveText(first ?? '')
+  await page.keyboard.press('k')
+  await expect(cursor).toHaveText(first ?? '')
+
+  // `s` sets the document aside, with the reason field focused — a field rather
+  // than a browser dialogue, so the flow never leaves the keyboard.
+  await page.keyboard.press('s')
+  await expect(page.getByLabel('Waarom terzijde?')).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(page.getByLabel('Waarom terzijde?')).toHaveCount(0)
+  await focusIsSomewhere(page)
+
+  // `a` opens the coding first and books the second time: nothing is approved
+  // without being looked at.
+  await page.keyboard.press('a')
+  // The focus lands in the panel, on its first field, rather than staying on the
+  // card: the next thing to do is check the coding.
+  expect(await focused(page)).toMatch(/Leverancier/)
+
+  await tabTo(page, /Grootboek regel 1/)
+  const account = page.getByRole('combobox', { name: 'Grootboek regel 1' }).first()
+  await account.pressSequentially('4400')
+  await page.keyboard.press('Enter')
+
+  // Back out to the card the panel belongs to, and `a` again books it.
+  await shiftTabTo(page, /^LI /)
+  await page.keyboard.press('a')
+  await expect(page.getByRole('heading', { name: /^Inkoopfactuur F-/ })).toBeVisible()
 })

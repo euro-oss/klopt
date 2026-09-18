@@ -225,13 +225,21 @@ The bank matching queue is keyboard-first, because the work is repetitive and
 the whole value is rhythm: a hundred lines should be a hundred keystrokes, not a
 hundred round trips through a mouse.
 
-| Key     | Does                          |
-| ------- | ----------------------------- |
-| `↑` `k` | Previous line                 |
-| `↓` `j` | Next line                     |
-| `↵`     | Book the best suggestion      |
-| `1`–`9` | Book that suggestion          |
-| `x`     | Skip: deliberately not booked |
+| Key      | Does                                            |
+| -------- | ----------------------------------------------- |
+| `↑` `k`  | Previous line                                   |
+| `↓` `j`  | Next line                                       |
+| `↵`      | Book the best suggestion                        |
+| `1`–`9`  | Book that suggestion                            |
+| `x`      | Skip: deliberately not booked                   |
+| `Escape` | Drop the choices in the panel, back to the list |
+
+**Not bound: `u` to unmatch.** There is no unmatch operation in `/api/v1`, and
+there should not be a key for one: a booked match is a posted entry, and a posted
+entry is undone by a reversal, which principle 4 keeps as a deliberate act with a
+button and a question. The design board asks for `u`; this is the one place the
+map and the board disagree, and the reason is in the ledger rather than in the
+keyboard.
 
 The handler is bound on the window rather than on a focused element — the hands
 never leave the keys, so there is nothing to focus first — and it stands down
@@ -262,6 +270,65 @@ Which key means what is decided in `apps/web/src/lib/list-cursor.ts`, so the
 rule is tested by naming keys. The fuller list keyboard — type-ahead, selection,
 TSV copy — lives in `apps/web/src/lib/table-keyboard.ts` and serves the tables;
 the queue is four keys on purpose, because there is nothing here to copy.
+
+## Het postvak
+
+The third list with a real keyboard, and the last screen of the
+invoice → koppelen → postvak spine. Same four keys as the other two, plus the two
+that are this screen's own work.
+
+| Key      | Does                                                      |
+| -------- | --------------------------------------------------------- |
+| `↑` `k`  | Previous document                                         |
+| `↓` `j`  | Next document                                             |
+| `↵`      | Open the document, or close it again                      |
+| `a`      | Make the draft: once to show the coding, again to book it |
+| `s`      | Set aside, with the reason field focused                  |
+| `Escape` | Close the panel, then leave the list                      |
+
+`a` twice rather than once on purpose: what is being approved is the coding, so
+the first press shows it and the second submits the panel that shows it. A
+document nothing could be read out of says so instead of doing nothing.
+
+`s` opens a field rather than a browser `prompt()`. A blocking dialogue the
+screen does not own cannot be escaped back to the card, and in the middle of a
+keyboard flow it is a stop rather than a step.
+
+## Verkoopfacturen
+
+| Key               | Does                                                  |
+| ----------------- | ----------------------------------------------------- |
+| `n` then `f`      | New invoice, from anywhere                            |
+| `↑` `↓` / `j` `k` | The list cursor, as in every table                    |
+| `↵` on the list   | Open the invoice the cursor is on                     |
+| `Cmd/Ctrl` `↵`    | In the form: show what will be saved; again, save it  |
+| `Escape`          | In the form: leave, or twice to throw a draft away    |
+| `Cmd/Ctrl` `↵`    | On a draft: show what will be issued; again, issue it |
+
+The bare `n` on the board is `n` then `f` here, because `n` is a prefix in this
+application and a screen that claimed it would be claiming a key the global
+handler takes first.
+
+In the form, `Enter` in a field does **not** save: "Enter on primary save, not
+mid-field" — a form that submits from the middle of an amount saves what somebody
+was still typing. The button saves without asking, because a click on
+"Concept opslaan" is the confirmation; the keystroke asks, because a key that
+writes without showing what it writes is what principle 4 is about. Issuing asks
+either way: it takes a number out of a gapless series and posts an entry.
+
+## Where the keys are printed
+
+Three places, all generated from the registry:
+
+- **On the screen**, as keycaps along the bottom of the thing they work on — the
+  entry form, the invoice form and list, the koppelscherm, het postvak. Yellow
+  outline, because the accent marks where the keyboard is.
+- **In the sidebar**, next to every destination. Printed rather than revealed on
+  hover: a keyboard user never hovers.
+- **In the `?` sheet and the palette**, as the same caps.
+
+A screen declares binding **ids**, never keys, so it cannot print a key it has
+not registered and cannot print one that has since changed.
 
 ## Moving between screens
 
