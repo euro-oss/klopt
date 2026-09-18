@@ -150,6 +150,22 @@ export const BINDINGS: readonly Binding[] = [
   },
   // `g x` for E**x**act. `g e` is the postvak and `g o` the koppelscherm.
   { id: 'go.exact', label: 'nav.exact', group: 'keys.group.goTo', keys: 'g x', to: '/exact' },
+  // `g v` for **v**orderingen and `g c` for **c**rediteuren: `g d` is the
+  // dashboard and `g r` the relaties.
+  {
+    id: 'go.debtorAgeing',
+    label: 'keys.goDebtorAgeing',
+    group: 'keys.group.goTo',
+    keys: 'g v',
+    to: '/reports/debtor-ageing',
+  },
+  {
+    id: 'go.creditorAgeing',
+    label: 'keys.goCreditorAgeing',
+    group: 'keys.group.goTo',
+    keys: 'g c',
+    to: '/reports/creditor-ageing',
+  },
 
   {
     id: 'new.entry',
@@ -172,6 +188,14 @@ export const BINDINGS: readonly Binding[] = [
     keys: 'n i',
     to: '/purchases/new',
   },
+
+  // The dashboard queue. Four keys, the same four the koppelscherm uses, so
+  // the two lists in this application that are worked from the keyboard are
+  // worked the same way. The rest of the list keyboard is Alpha 4's job.
+  { id: 'queue.open', label: 'keys.queueOpen', group: 'keys.group.queue', keys: 'enter' },
+  { id: 'queue.next', label: 'keys.queueNext', group: 'keys.group.queue', keys: 'j' },
+  { id: 'queue.previous', label: 'keys.queuePrevious', group: 'keys.group.queue', keys: 'k' },
+  { id: 'queue.leave', label: 'keys.queueLeave', group: 'keys.group.queue', keys: 'escape' },
 
   { id: 'match.confirm', label: 'keys.matchConfirm', group: 'keys.group.match', keys: 'enter' },
   { id: 'match.skip', label: 'keys.matchSkip', group: 'keys.group.match', keys: 'x' },
@@ -225,7 +249,15 @@ export function formatBinding(binding: Binding): string {
   )
   const keys = binding.keys
     .split(' ')
-    .map((key) => (key === 'enter' ? '↵' : key === 'backspace' ? '⌫' : key.toUpperCase()))
+    .map((key) =>
+      key === 'enter'
+        ? '↵'
+        : key === 'backspace'
+          ? '⌫'
+          : key === 'escape'
+            ? 'Esc'
+            : key.toUpperCase(),
+    )
     .join(' then ')
   return [...parts, keys].join(binding.modifiers?.length ? '' : ' ')
 }
