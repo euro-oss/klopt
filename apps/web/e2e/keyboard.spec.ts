@@ -217,7 +217,7 @@ test('the help sheet is the keyboard map, generated from the registry', async ({
 
   // Including the screen-local keys, which the palette cannot offer because it
   // cannot run them from here.
-  await expect(help).toContainText('Voorstel boeken')
+  await expect(help).toContainText('Paneel openen / voorstel boeken')
   await expect(help).toContainText('Commandopalet')
 
   await page.keyboard.press('Escape')
