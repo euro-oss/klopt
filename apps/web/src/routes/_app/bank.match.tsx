@@ -254,12 +254,21 @@ function MatchQueue() {
   }, [line, busy, keyFor, router, t])
 
   /**
-   * The keyboard is the point.
+   * The keyboard is the point, and it confirms rather than guesses.
    *
-   * Bound on the window rather than a focused element: the hands never leave
-   * the keys, so there is nothing to focus first. `Enter` takes the best
-   * suggestion because that is what it is for; a number takes a specific one,
-   * which matters when the top two are close.
+   * Bound on the window rather than a focused element: the hands never leave the
+   * keys, so there is nothing to focus first.
+   *
+   * Four keys, which is the Alpha 4 oracle and a product decision rather than a
+   * simplification. `Enter` from the queue moves into the panel and lands on the
+   * candidate that will be booked; `Enter` there books *that* candidate. It used
+   * to book the top suggestion straight from the queue — one keystroke, and the
+   * thing a bookkeeper was agreeing to was off to the side of the key they
+   * pressed. Two keystrokes, and the second one is aimed.
+   *
+   * `1`–`9` and `x` are gone with it: a digit booked a suggestion the eye had not
+   * settled on, and `x` skipped a line as fast as `Enter` booked one. Skipping is
+   * a button now, which is what a deliberate "not this one" should cost.
    */
   useEffect(() => {
     if (!hydrated) return
@@ -303,13 +312,21 @@ function MatchQueue() {
       }
       if (event.key === 'Enter') {
         event.preventDefault()
-        const chosen = offered[inPanel ? here : 0]
+
+        // From the queue: into the panel, onto the candidate that would be
+        // booked. Nothing is posted by this press, which is the whole point of
+        // it — the next one is aimed at something the reader can see.
+        if (!inPanel) {
+          if (offered.length > 0) moveCandidate(here)
+          else
+            panel.current
+              ?.querySelector<HTMLElement>('input:not([disabled]), button:not([disabled])')
+              ?.focus()
+          return
+        }
+
+        const chosen = offered[here]
         if (chosen !== undefined) void book(chosen, null)
-        return
-      }
-      if (event.key === 'x') {
-        event.preventDefault()
-        void skip()
         return
       }
       if (event.key === 'u') {
@@ -321,15 +338,6 @@ function MatchQueue() {
         setManualAccount('')
         setCandidate(0)
         setNotice(null)
-        return
-      }
-      if (/^[1-9]$/.test(event.key)) {
-        const chosen = offered[Number(event.key) - 1]
-        if (chosen !== undefined) {
-          event.preventDefault()
-          setCandidate(Number(event.key) - 1)
-          void book(chosen, null)
-        }
         return
       }
       if (event.key === 'Escape') {
@@ -349,7 +357,7 @@ function MatchQueue() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [hydrated, candidate, moveCandidate, queue.length, selected, suggestions, book, skip])
+  }, [hydrated, candidate, moveCandidate, queue.length, selected, suggestions, book])
 
   if (!transactions.ok) {
     return (
@@ -490,7 +498,6 @@ function MatchQueue() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="text-muted-foreground block text-xs">
-                      {index < 9 && <Keycap className="mr-1.5">{index + 1}</Keycap>}
                       {strategyOf(suggestion.strategy)}
                     </span>
                     <span className="block text-sm">{suggestion.reason}</span>
@@ -553,25 +560,16 @@ function MatchQueue() {
                 }}
                 className="border-input border px-4 py-2 text-sm disabled:opacity-50"
               >
-                {t('match.skip')} <Keycap className="ml-1.5">x</Keycap>
+                {t('match.skip')}
               </button>
             </div>
 
-            <ShortcutFooter
-              ids={['match.next', 'match.confirm', 'match.pick', 'match.clear', 'match.leave']}
-            />
+            <ShortcutFooter ids={['match.next', 'match.confirm', 'match.clear', 'match.leave']} />
 
             <p className="text-muted-foreground mt-4 max-w-2xl text-xs">{t('match.learnNote')}</p>
 
             <ShortcutPanel
-              ids={[
-                'match.confirm',
-                'match.next',
-                'match.pick',
-                'match.clear',
-                'match.skip',
-                'match.leave',
-              ]}
+              ids={['match.confirm', 'match.next', 'match.previous', 'match.clear', 'match.leave']}
             />
           </div>
         </div>

@@ -226,9 +226,11 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'queue.previous', label: 'keys.queuePrevious', group: 'keys.group.queue', keys: 'k' },
   { id: 'queue.leave', label: 'keys.queueLeave', group: 'keys.group.queue', keys: 'escape' },
 
+  // Four keys, by the Alpha 4 oracle: `Enter` opens the panel and then confirms
+  // the candidate the cursor is on. `1`–`9` and `x` were here and are gone — a
+  // digit booked a suggestion nobody had looked at, and `x` made skipping as
+  // cheap as booking. Skipping is a button (docs/keyboard-map.md).
   { id: 'match.confirm', label: 'keys.matchConfirm', group: 'keys.group.match', keys: 'enter' },
-  { id: 'match.pick', label: 'keys.matchPick', group: 'keys.group.match', keys: '1-9' },
-  { id: 'match.skip', label: 'keys.matchSkip', group: 'keys.group.match', keys: 'x' },
   { id: 'match.next', label: 'keys.matchNext', group: 'keys.group.match', keys: 'j' },
   { id: 'match.previous', label: 'keys.matchPrevious', group: 'keys.group.match', keys: 'k' },
   { id: 'match.clear', label: 'keys.matchClear', group: 'keys.group.match', keys: 'u' },
@@ -320,8 +322,6 @@ function keyLabel(key: string): string {
       return 'Tab'
     case 'a-z':
       return 'A–Z'
-    case '1-9':
-      return '1–9'
     default:
       return key.toUpperCase()
   }

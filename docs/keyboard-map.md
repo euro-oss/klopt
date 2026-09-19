@@ -221,24 +221,32 @@ session. Accepting only one is a papercut a hundred times a day.
 
 ## Koppelen
 
-The bank matching queue is keyboard-first, because the work is repetitive and
-the whole value is rhythm: a hundred lines should be a hundred keystrokes, not a
-hundred round trips through a mouse.
+The bank matching queue is keyboard-first, because the work is repetitive and the
+whole value is rhythm. Four keys, and the rhythm is two presses per line rather
+than one: open the panel, then confirm the candidate it is pointing at.
 
-| Key      | Does                                 |
-| -------- | ------------------------------------ |
-| `↑` `k`  | Previous line                        |
-| `↓` `j`  | Next line                            |
-| `↵`      | Book the best suggestion             |
-| `1`–`9`  | Book that suggestion                 |
-| `x`      | Skip: deliberately not booked        |
-| `u`      | Drop the choice the panel is holding |
-| `Escape` | Close the panel, back to the list    |
+| Key      | Does                                                                         |
+| -------- | ---------------------------------------------------------------------------- |
+| `↑` `k`  | Previous — line in the queue, candidate in the panel                         |
+| `↓` `j`  | Next — line in the queue, candidate in the panel                             |
+| `↵`      | From the queue: open the panel. In the panel: book the highlighted candidate |
+| `u`      | Drop the choice the panel is holding                                         |
+| `Escape` | Close the panel, back to the list                                            |
 
-Two panes and two cursors, scoped by where the focus is: `j`/`k` move lines from
-the queue and candidates from inside the panel. `Enter` books what is pointed at,
-and the panel starts on the best suggestion — so a line whose top answer is right
-is still the one keystroke section 7.4 asks for.
+Two panes and two cursors, scoped by where the focus is, so `j`/`k` mean "next
+thing in the pane I am in" on both sides of the screen.
+
+**`↵` no longer books the top suggestion from the queue, and that is deliberate**
+(Alpha 4 oracle, product decision). It used to: one keystroke, and the line being
+agreed to was off to the side of the key being pressed. Section 7.4 asks for "a
+one-keystroke confirm" and this is one keystroke to confirm — the press before it
+is what aims it, and it posts nothing.
+
+**`1`–`9` and `x` are gone.** A digit booked a suggestion the eye had not settled
+on, and `x` skipped a line as cheaply as `Enter` booked one. Skipping is a button
+now, reachable with `Tab` like any other, which is what a deliberate "not this
+one" should cost. Neither key is bound, printed or listed, because a key that is
+half-there is the thing this document exists to prevent.
 
 **`u` drops a pending choice, and does not unmatch a booked one.** The board asks
 for "unmatch"; on a queue of lines that have not been booked yet, the only thing
@@ -252,7 +260,7 @@ The handler is bound on the window rather than on a focused element — the hand
 never leave the keys, so there is nothing to focus first — and it stands down
 whenever the event came from an input, a select or a textarea. It also stands
 down on `Enter` and `Space` when a button or a link has the focus: somebody who
-tabbed to "Boeken" means that button, not the best suggestion.
+tabbed to "Boeken" means that button.
 
 ## De werklijst op het dashboard
 

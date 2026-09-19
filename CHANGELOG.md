@@ -18,6 +18,20 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Koppelen confirms rather than guesses (alpha 4, product call)
+
+- **`↵` no longer books the top suggestion from the queue.** It opens the panel
+  and lands on the candidate that would be booked; the next `↵` books _that_ one.
+  One keystroke was faster and the line being agreed to was off to the side of the
+  key being pressed — section 7.4's "one-keystroke confirm" is now one keystroke to
+  confirm, with the press before it aiming and posting nothing.
+- **`1`–`9` and `x` are gone**, from the behaviour, the footers, the corner panel
+  and the registry. A digit booked a suggestion the eye had not settled on, and `x`
+  skipped a line as cheaply as `Enter` booked one. Skipping is a button, reachable
+  with `Tab`, which is what a deliberate "not this one" should cost.
+- **`j`/`k`, `↵`, `u` and `Esc`** are the whole keyboard on that screen now, which
+  is what the Alpha 4 board draws.
+
 ### The keyboard, on the screen (alpha 4, design pass against the Penpot boards)
 
 - **The chrome the boards draw.** A compact strip of keycaps along the bottom of
@@ -29,13 +43,12 @@ the ADR is where the reasoning is.
   labels are terse now, because a cap with a sentence beside it is a sentence.
 - **Two panes, two cursors, on the koppelscherm.** `j`/`k` move bank lines from
   the queue and candidates from inside the panel, scoped by where the focus is
-  rather than by a mode. `Enter` books what is pointed at and the panel starts on
-  the best suggestion, so a line whose top answer is right is still the one
-  keystroke section 7.4 asks for. `u` drops the choice the panel is holding — on a
-  queue of unbooked lines that is the only thing there is to undo, and undoing a
-  _booked_ match is a reversal, which stays a button that asks.
+  rather than by a mode. `u` drops the choice the panel is holding — on a queue of
+  unbooked lines that is the only thing there is to undo, and undoing a _booked_
+  match is a reversal, which stays a button that asks. (What `Enter` does was
+  settled a revision later; see above.)
 - **The buttons print their keys**, as the boards do: "Concept maken (a)",
-  "Terzijde leggen (s)", "Keuze wissen (u)", "Overslaan (x)". And the invoice form
+  "Terzijde leggen (s)", "Keuze wissen (u)". And the invoice form
   has the Cancel the board shows, which is Escape's visible twin.
 
 ### The keyboard, on the screen (alpha 4)

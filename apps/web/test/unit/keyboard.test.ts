@@ -71,7 +71,6 @@ describe('the keyboard map', () => {
 
     expect(chips('list.select')).toEqual(['Space'])
     expect(chips('list.typeAhead')).toEqual(['A–Z'])
-    expect(chips('match.pick')).toEqual(['1–9'])
     expect(chips('picker.next')).toEqual(['Tab'])
     expect(chips('inbox.leave')).toEqual(['Esc'])
   })
