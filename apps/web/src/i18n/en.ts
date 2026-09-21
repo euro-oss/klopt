@@ -303,7 +303,7 @@ export const en: Record<MessageKey, string> = {
   'auditFile.chartMismatch':
     'This file names {accounts} accounts and {journals} journals this administration does not have.',
   'auditFile.chartMismatchWhat':
-    'This version imports only a file whose accounts and journals all exist here already. An audit file does not extend the chart: that changes the books, and that step should be its own decision.',
+    'Pick a file that matches this chart: this version imports only a file whose accounts and journals all exist here already. Extending the chart from an audit file changes the books and is a decision of its own; that comes later.',
   'auditFile.unknownVatCodes': 'Unknown VAT codes',
   'auditFile.warnings': 'Worth a look',
   'auditFile.import': 'Import',

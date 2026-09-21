@@ -307,7 +307,7 @@ export const nl = {
   'auditFile.chartMismatch':
     'Dit bestand noemt {accounts} rekeningen en {journals} dagboeken die deze administratie niet heeft.',
   'auditFile.chartMismatchWhat':
-    'Deze versie importeert alleen een bestand waarvan alle rekeningen en dagboeken hier al bestaan. Een auditfile breidt het grootboek niet uit: dat verandert de boeken, en die stap hoort een eigen beslissing te zijn.',
+    'Kies een bestand dat bij dit grootboek past: deze versie importeert alleen een bestand waarvan alle rekeningen en dagboeken hier al bestaan. Het grootboek uitbreiden uit een auditfile verandert de boeken en is een eigen beslissing; dat komt later.',
   'auditFile.unknownVatCodes': 'Onbekende btw-codes',
   'auditFile.warnings': 'Aandachtspunten',
   'auditFile.import': 'Importeren',
