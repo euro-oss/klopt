@@ -141,6 +141,15 @@ test('a close shows the entries first, is gated on the acknowledgement, and happ
   await close.click()
   await expect(page.getByText(`Boekjaar ${thisYear} is afgesloten.`)).toBeVisible()
 
+  // And the table says so. The third cell used to echo the `status` field from
+  // `GET /fiscal-years`, which the close does not write to, so the row for the
+  // year just closed read "open" — an answer, and the wrong one.
+  const closedCell = page
+    .getByRole('row', { name: new RegExp(`^${thisYear} `) })
+    .getByRole('cell')
+    .nth(2)
+  await expect(closedCell).toHaveText('afgesloten')
+
   // The two entries are in the journal, dated the last day of the year and the
   // first of the next, and they are ordinary entries — which is why there is no
   // reopen button anywhere on that screen.
@@ -152,9 +161,9 @@ test('a close shows the entries first, is gated on the acknowledgement, and happ
     page.getByRole('cell', { name: `Beginbalans na afsluiting ${thisYear}` }),
   ).toBeVisible()
 
-  // Asked again, the screen says the year is closed and does not offer the
-  // action a second time. That state comes from the API rather than from
-  // anything this screen remembers.
+  // Asked again — on a fresh load, so nothing is remembered from before — the
+  // screen says the year is closed and does not offer the action a second time.
+  // The state comes from the API refusing the dry run.
   await page.goto('/fiscal-years')
   await hydrated(page)
   await chooseOption(page, 'Boekjaar om af te sluiten', new RegExp(`^${thisYear} `))
@@ -163,9 +172,28 @@ test('a close shows the entries first, is gated on the acknowledgement, and happ
   await page.keyboard.press('Enter')
   await page.getByRole('button', { name: 'Toon wat er geboekt wordt' }).click()
 
-  await expect(page.getByText(/is already closed/)).toBeVisible()
+  await expect(
+    page.getByText(
+      `Boekjaar ${thisYear} is al afgesloten. Afsluiten gebeurt één keer; hier zit geen knop om dat terug te draaien.`,
+    ),
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: 'Toon wat er geboekt wordt' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Boekjaar afsluiten' })).toHaveCount(0)
+
+  // The screen never tells anybody to reverse anything. The API's own sentence
+  // for this state does — "Reverse the close first" — which is true of the ledger
+  // and false of this screen, and printing it beside an acknowledgement that says
+  // there is no undo button would have the screen contradict itself.
+  await expect(page.getByText(/[Rr]everse/)).toHaveCount(0)
+  await expect(page.getByText(/ongedaan|terugdraaien/)).toHaveCount(0)
+
+  // And the row for it reads closed on a load that learned it from the refusal.
+  await expect(
+    page
+      .getByRole('row', { name: new RegExp(`^${thisYear} `) })
+      .getByRole('cell')
+      .nth(2),
+  ).toHaveText('afgesloten')
 })
 
 test('a result account the domain refuses is reported in the API’s own words', async ({ page }) => {

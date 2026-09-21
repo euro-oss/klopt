@@ -219,14 +219,15 @@ export const en: Record<MessageKey, string> = {
   'fiscalYears.empty': 'This administration has no book years yet.',
   'fiscalYears.year': 'Book year',
   'fiscalYears.range': 'Runs from – to',
-  'fiscalYears.statusHeader': 'Status',
+  'fiscalYears.closedHeader': 'Closed',
+  'fiscalYears.isClosed': 'closed',
+  'fiscalYears.closedNote':
+    'A dash under Closed means “not established here”, not “open”: closing is recorded separately and cannot be read back per book year.',
   'fiscalYears.periods': 'Periods',
   'fiscalYears.current': 'current',
   'fiscalYears.count': 'Book years',
   'fiscalYears.firstDay': 'First day',
   'fiscalYears.lastDay': 'Last day',
-  'fiscalYears.status.open': 'open',
-  'fiscalYears.status.closed': 'closed',
   'fiscalYears.period.open': 'open',
   'fiscalYears.period.softClosed': 'soft-closed',
   'fiscalYears.period.hardClosed': 'hard-closed',
@@ -268,6 +269,8 @@ export const en: Record<MessageKey, string> = {
   'fiscalYears.ack': 'Posts two real entries; no undo button here.',
   'fiscalYears.close': 'Close the book year',
   'fiscalYears.closedNotice': 'Book year {year} is closed.',
+  'fiscalYears.alreadyClosed':
+    'Book year {year} is already closed. Closing happens once; there is no undo button here.',
 
   // The audit file: out, and back in.
   'auditFile.title': 'Audit file',
@@ -285,7 +288,7 @@ export const en: Record<MessageKey, string> = {
     'Pick a file and see what it would do first. Nothing is posted until you confirm it.',
   'auditFile.file': 'XAF file',
   'auditFile.matchChartNote':
-    'This administration’s chart has to cover the file already. Creating accounts from an audit file is not possible here yet.',
+    'This administration’s chart has to cover the file already. An audit file does not extend the chart here.',
   'auditFile.refused': 'This file cannot be imported as it stands',
   'auditFile.wouldDo': 'What this file would do',
   'auditFile.company': 'Company',
@@ -300,7 +303,7 @@ export const en: Record<MessageKey, string> = {
   'auditFile.chartMismatch':
     'This file names {accounts} accounts and {journals} journals this administration does not have.',
   'auditFile.chartMismatchWhat':
-    'Create them in the chart of accounts first, or import a file that matches this chart. An audit file may not create accounts here yet: that changes the chart, and that step should be its own decision.',
+    'This version imports only a file whose accounts and journals all exist here already. An audit file does not extend the chart: that changes the books, and that step should be its own decision.',
   'auditFile.unknownVatCodes': 'Unknown VAT codes',
   'auditFile.warnings': 'Worth a look',
   'auditFile.import': 'Import',

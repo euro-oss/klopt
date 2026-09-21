@@ -218,14 +218,15 @@ export const nl = {
   'fiscalYears.empty': 'Deze administratie heeft nog geen boekjaren.',
   'fiscalYears.year': 'Boekjaar',
   'fiscalYears.range': 'Loopt van – tot',
-  'fiscalYears.statusHeader': 'Status',
+  'fiscalYears.closedHeader': 'Afsluiting',
+  'fiscalYears.isClosed': 'afgesloten',
+  'fiscalYears.closedNote':
+    'Een streepje onder Afsluiting betekent “hier niet vastgesteld”, niet “open”: het afsluiten wordt apart vastgelegd en is niet per boekjaar uit te lezen.',
   'fiscalYears.periods': 'Perioden',
   'fiscalYears.current': 'huidig',
   'fiscalYears.count': 'Boekjaren',
   'fiscalYears.firstDay': 'Eerste dag',
   'fiscalYears.lastDay': 'Laatste dag',
-  'fiscalYears.status.open': 'open',
-  'fiscalYears.status.closed': 'afgesloten',
   'fiscalYears.period.open': 'open',
   'fiscalYears.period.softClosed': 'zacht gesloten',
   'fiscalYears.period.hardClosed': 'hard gesloten',
@@ -269,6 +270,11 @@ export const nl = {
   'fiscalYears.ack': 'Boekt twee echte journaalposten; hier zit geen knop om dat terug te draaien.',
   'fiscalYears.close': 'Boekjaar afsluiten',
   'fiscalYears.closedNotice': 'Boekjaar {year} is afgesloten.',
+  // Niet de zin van de API. Die zegt "Reverse the close first", en dat klopt voor
+  // het grootboek en niet voor dit scherm: hier zit geen knop om het terug te
+  // draaien, net zoals de bevestiging hierboven zegt.
+  'fiscalYears.alreadyClosed':
+    'Boekjaar {year} is al afgesloten. Afsluiten gebeurt één keer; hier zit geen knop om dat terug te draaien.',
 
   // De auditfile: eruit en er weer in.
   'auditFile.title': 'Auditfile',

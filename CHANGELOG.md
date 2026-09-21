@@ -47,8 +47,18 @@ already there.
 - **A year that is already closed says so and is not offered again.** Closing
   records a row in `year_closes` and the only thing that reads it is the check
   `POST /fiscal-years/close` makes before it does anything, dry run included. So
-  the dry run _is_ the question, a `conflict` is its answer, and it arrives in the
-  API's own words.
+  the dry run _is_ the question "is this year closed" and a `conflict` is its
+  answer. The words are ours rather than the API's, for one reason: its sentence
+  ends "Reverse the close first", which is true of the ledger and false of this
+  screen, which offers no such button. A screen that says both things in two
+  paragraphs sends somebody looking for a control that is not there.
+- **The list reports the close it knows about, and admits the rest.** There was a
+  Status column echoing `fiscal_years.status`, which the close does not write to —
+  so the row for a year closed on that very screen read "open". It reports what
+  has actually been established instead: a close that succeeded here, or one the
+  API refused because it had already happened. Everything else is a dash, and the
+  note under the table says a dash means "not established here" rather than
+  "open". An empty cell that admits it beats a word that is false.
 - **De auditfile, er weer in (`/audit-file`, `g q`).** XAF 3.2 has gone out since
   M2 and could not come back, which made "your books are yours" a one-way claim.
   Export and import share the screen, and the dashboard points at both. Two steps

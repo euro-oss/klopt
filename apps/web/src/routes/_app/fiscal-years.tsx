@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { AccountPicker } from '~/components/finance/account-picker'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
@@ -86,11 +86,6 @@ type CloseAnswer = Awaited<ReturnType<typeof closeYear>>
 type ClosePlan = Extract<CloseAnswer, { ok: true }>['data']
 type Problem = Extract<CloseAnswer, { ok: false }>['problem']
 
-const STATUS_KEY: Record<string, MessageKey> = {
-  open: 'fiscalYears.status.open',
-  closed: 'fiscalYears.status.closed',
-}
-
 const PERIOD_STATUS_KEY: Record<string, MessageKey> = {
   open: 'fiscalYears.period.open',
   soft_closed: 'fiscalYears.period.softClosed',
@@ -121,6 +116,27 @@ function yearToClose(years: readonly FiscalYearOption[], now: string): string {
 function FiscalYears() {
   const { years, accounts, journals } = Route.useLoaderData()
   const { t } = useT()
+
+  /**
+   * The years this screen has *established* are closed.
+   *
+   * `GET /fiscal-years` carries a `status` field that the close does not write
+   * to: closing records a row in `year_closes`, and `fiscal_years.status` stays
+   * `open` forever. A column echoing it said "open" about a year that had just
+   * been closed on this very screen, which is the worst kind of wrong — it looked
+   * like an answer.
+   *
+   * So the column reports what is known instead, and the two things that are
+   * known both come from the API: a close that succeeded here, and a close the
+   * API refused with `conflict` because it had already happened. Anything else is
+   * blank, and the note under the table says blank means "not established here"
+   * rather than "open". An empty cell that admits it is an empty cell beats a
+   * word that is false.
+   */
+  const [closedYears, setClosedYears] = useState<ReadonlySet<string>>(new Set())
+  const noteClosed = useCallback((code: string): void => {
+    setClosedYears((current) => new Set(current).add(code))
+  }, [])
 
   if (!years.ok) {
     return (
@@ -153,13 +169,17 @@ function FiscalYears() {
       ),
     },
     {
-      key: 'status',
-      header: t('fiscalYears.statusHeader'),
+      key: 'closed',
+      header: t('fiscalYears.closedHeader'),
       width: '8rem',
-      cell: (row) => {
-        const key = STATUS_KEY[row.status]
-        return key === undefined ? row.status : t(key)
-      },
+      // `status` is still read, for the day something writes it. Until then the
+      // only true answers come from the close itself.
+      cell: (row) =>
+        row.status === 'closed' || closedYears.has(row.code) ? (
+          <span className="text-xs">{t('fiscalYears.isClosed')}</span>
+        ) : (
+          <span className="text-muted-foreground text-xs">—</span>
+        ),
     },
     {
       key: 'periods',
@@ -236,6 +256,8 @@ function FiscalYears() {
         empty={t('fiscalYears.empty')}
       />
 
+      <p className="text-muted-foreground mt-2 text-xs">{t('fiscalYears.closedNote')}</p>
+
       <OpenNextYear years={rows} />
 
       <CloseYear
@@ -243,6 +265,7 @@ function FiscalYears() {
         accounts={accounts.ok ? accounts.data.accounts : []}
         journals={journals.ok ? journals.data.journals : []}
         now={now}
+        onClosed={noteClosed}
       />
     </>
   )
@@ -391,6 +414,7 @@ function CloseYear({
   accounts,
   journals,
   now,
+  onClosed,
 }: {
   years: readonly FiscalYearOption[]
   accounts: readonly {
@@ -401,6 +425,8 @@ function CloseYear({
   }[]
   journals: readonly { code: string; name: string; type: string }[]
   now: string
+  /** Told about every year this screen establishes is closed, for the table. */
+  onClosed: (code: string) => void
 }) {
   const { t } = useT()
   const router = useRouter()
@@ -421,7 +447,7 @@ function CloseYear({
   const [ack, setAck] = useState(false)
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<readonly string[] | null>(null)
-  /** The API's sentence for a year that is already closed. */
+  /** The year this screen has found is already closed, if it found one. */
   const [closed, setClosed] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -461,11 +487,23 @@ function CloseYear({
     setPlan(null)
     setAck(false)
 
-    // A year that is already closed is not a form error. It is the state of the
-    // books, and the screen stops offering the action rather than inviting a
-    // second attempt that will fail the same way.
+    /**
+     * A year that is already closed is not a form error. It is the state of the
+     * books, and the screen stops offering the action rather than inviting a
+     * second attempt that will fail the same way.
+     *
+     * The API's own sentence is **not** what is shown, and this is the one place
+     * on the screen where that is deliberate. It reads "Reverse the close first",
+     * which is true of the ledger — a close is two ordinary entries and undoing
+     * it is a reversal — and false of this screen, which offers no such button.
+     * Printing it beside an acknowledgement that says "hier zit geen knop om dat
+     * terug te draaien" would have the screen contradict itself in two
+     * paragraphs, and would send somebody looking for a control that is not
+     * there. So the state gets copy that matches what the product does.
+     */
     if (problem.code === 'conflict') {
-      setClosed(problem.detail)
+      setClosed(code)
+      onClosed(code)
       return
     }
 
@@ -525,6 +563,8 @@ function CloseYear({
     setPlan(null)
     setAck(false)
     setNotice(t('fiscalYears.closedNotice', { year: code }))
+    // The table cannot read this out of `GET /fiscal-years`, so it is told.
+    onClosed(code)
     await router.invalidate()
   }
 
@@ -585,7 +625,7 @@ function CloseYear({
 
       {closed !== null && (
         <p role="status" className="border-border mt-4 border p-3 text-sm">
-          {closed}
+          {t('fiscalYears.alreadyClosed', { year: closed })}
         </p>
       )}
 
