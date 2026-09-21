@@ -1,9 +1,11 @@
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
+import { RiArrowRightSLine } from '@remixicon/react'
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { setLocale } from '~/server/locale'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
 import { formatDate } from '~/lib/format'
@@ -404,16 +406,24 @@ export function AppShell({
 }
 
 /**
- * Who you are, at the bottom of the sidebar.
+ * Who you are, at the bottom of the sidebar — one row of it.
  *
- * Its own block with a rule above it, because "which administration am I in
- * and as what" is the question somebody asks before they believe a number, and
- * it was previously three lines of small grey text under the sign-out link.
+ * The block used to print everything it had: an avatar, a name, a role, a
+ * language picker, a theme picker and a sign-out link, five controls stacked
+ * against the bottom of a rail that already carries twenty destinations. Only
+ * one of them answers a question anybody asks daily ("whose books am I in"),
+ * and the other four are settled once and then sit there being read every time
+ * the eye reaches the end of the navigation. So the row is now the answer —
+ * initial, name, chevron — and the four settings are behind it.
  *
- * The language picker lives here rather than in Instellingen: somebody who has
+ * The menu opens *upward*, because the trigger is the last thing on the screen
+ * and a panel below it would be off the bottom of the viewport.
+ *
+ * The language picker is in this menu rather than in Instellingen, which is
+ * the one thing that got harder and is still the right place: somebody who has
  * landed in the wrong language cannot read the word for "language" to go and
- * find it, so it sits where the eye already goes for account things — and it
- * is labelled in both languages for the same reason.
+ * find it, so it lives where the eye already goes for account things, one
+ * click in, labelled in both languages.
  */
 function Profile({
   userName,
@@ -425,6 +435,10 @@ function Profile({
   role: string
 }) {
   const { t } = useT()
+  // A trigger that opens nothing is the failure `select.tsx` describes: this
+  // is a Radix popover, so it does nothing at all until React has attached.
+  const hydrated = useHydrated()
+  const [open, setOpen] = useState(false)
 
   // Signing in never asks for a name — it is an address and a code — so for
   // most people `name` is empty and the address is the only thing they would
@@ -433,40 +447,64 @@ function Profile({
   const shown = userName.trim() === '' ? userEmail : userName
 
   return (
-    <section aria-label={t('shell.profile')} className="border-border border-t p-4">
-      <div className="flex items-center gap-2">
-        <span
-          aria-hidden="true"
-          className="bg-accent text-accent-foreground flex size-7 shrink-0 items-center justify-center text-xs font-semibold"
+    <section aria-label={t('shell.profile')} className="border-border border-t p-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          disabled={!hydrated}
+          // The accessible name is the name on the row rather than an
+          // `aria-label` saying "account menu": what you can see is what you
+          // can say, and a label that replaces the visible text is a label a
+          // voice user cannot guess.
+          className="group focus-visible:ring-ring data-[state=open]:bg-accent data-[state=open]:text-accent-foreground hover:bg-accent/60 flex w-full items-center gap-2 px-2 py-1.5 text-left focus-visible:ring-2 focus-visible:outline-none"
         >
-          {initialOf(shown)}
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-medium" title={shown}>
+          <span
+            aria-hidden="true"
+            className="bg-accent text-accent-foreground group-data-[state=open]:bg-background group-data-[state=open]:text-foreground flex size-7 shrink-0 items-center justify-center text-xs font-semibold"
+          >
+            {initialOf(shown)}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium" title={shown}>
             {shown}
           </span>
-          {role !== '' && (
-            <span className="text-muted-foreground block text-xs">{t('shell.role', { role })}</span>
-          )}
-        </span>
-      </div>
+          {/* Points along the row when shut and up the way the panel comes
+              when open, so the affordance is not lying about the direction. */}
+          <RiArrowRightSLine
+            aria-hidden="true"
+            className="text-muted-foreground group-data-[state=open]:text-accent-foreground size-4 shrink-0 transition-transform group-data-[state=open]:-rotate-90"
+          />
+        </PopoverTrigger>
 
-      <div className="mt-3">
-        <LanguagePicker />
-      </div>
+        <PopoverContent side="top" align="start" sideOffset={8} className="w-56 p-0">
+          {/* The name again, and the role with it. "As what am I in these
+              books" is worth an answer, just not one printed at all times. */}
+          <div className="border-border border-b px-3 py-2">
+            <span className="block truncate text-sm font-medium" title={shown}>
+              {shown}
+            </span>
+            {role !== '' && (
+              <span className="text-muted-foreground block text-xs">
+                {t('shell.role', { role })}
+              </span>
+            )}
+          </div>
 
-      <div className="mt-3">
-        <ThemePicker />
-      </div>
+          <div className="px-3 py-2">
+            <LanguagePicker />
+            <div className="mt-2">
+              <ThemePicker />
+            </div>
+          </div>
 
-      <form method="post" action="/sign-out" className="mt-2">
-        <button
-          type="submit"
-          className="text-muted-foreground hover:text-foreground text-xs underline"
-        >
-          {t('shell.signOut')}
-        </button>
-      </form>
+          <form method="post" action="/sign-out" className="border-border border-t">
+            <button
+              type="submit"
+              className="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring block w-full px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:outline-none"
+            >
+              {t('shell.signOut')}
+            </button>
+          </form>
+        </PopoverContent>
+      </Popover>
     </section>
   )
 }
@@ -549,7 +587,7 @@ export function Stat({
 /**
  * Changing the language.
  *
- * In the sidebar rather than buried in Instellingen, and labelled in both
+ * In the account menu rather than buried in Instellingen, and labelled in both
  * languages, because somebody who has landed in the wrong one cannot read the
  * word for "language" to go and find it.
  *
