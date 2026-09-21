@@ -22,6 +22,7 @@ import {
   handleGetBalanceSheet,
   handleGetProfitAndLoss,
   handleGetRgsCoverage,
+  handleImportAuditFile,
   handleSetRgsMappings,
 } from '~/api/handlers/compliance'
 import { handleListAuditLog } from '~/api/handlers/audit'
@@ -49,6 +50,7 @@ import {
   handleVerifySnapshot,
 } from '~/api/handlers/snapshots'
 import {
+  auditFileImportBody,
   auditLogQuery,
   chooseExactDivisionBody,
   completeExactBody,
@@ -149,6 +151,34 @@ export const setRgsMappings = createServerFn({ method: 'POST' })
       rgsMappingsBody,
       data,
       async (body) => (await handleSetRgsMappings(await contextFromRequest(), body)).body,
+    ),
+  )
+
+/**
+ * Reading an XAF 3.2 auditfile back in.
+ *
+ * The body carries the whole file as a string, which is what `POST
+ * /imports/audit-file` takes. A `FormData` upload would mean a second transport
+ * for one screen; an auditfile is text, and `File.text()` in the browser is the
+ * whole of the difference.
+ *
+ * Dry run and commit are the same operation with a flag, deliberately — see the
+ * handler. The key is per attempt, so a confirm that is clicked twice imports
+ * once.
+ */
+export const importAuditFile = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      auditFileImportBody,
+      data,
+      async (body) =>
+        (
+          await handleImportAuditFile(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            body,
+          )
+        ).body,
     ),
   )
 

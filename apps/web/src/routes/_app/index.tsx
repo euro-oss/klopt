@@ -219,12 +219,22 @@ function Dashboard() {
       <section className="mt-6">
         <h2 className="font-medium">{t('dash.exportTitle')}</h2>
         <p className="text-muted-foreground mt-1 text-sm">{t('dash.exportBody')}</p>
-        <a
-          href={`/api/v1/exports/audit-file?fiscalYear=${year?.code ?? ''}`}
-          className="border-input mt-3 inline-block rounded-md border px-3 py-2 text-sm font-medium"
-        >
-          {t('dash.exportAction')}
-        </a>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <a
+            href={`/api/v1/exports/audit-file?fiscalYear=${year?.code ?? ''}`}
+            className="border-input inline-block rounded-md border px-3 py-2 text-sm font-medium"
+          >
+            {t('dash.exportAction')}
+          </a>
+          {/* Beside the export, because reading one back in is the same door and
+              a one-way converter is a lock-in wearing a portability label. */}
+          <Link
+            to="/audit-file"
+            className="border-input inline-block rounded-md border px-3 py-2 text-sm font-medium"
+          >
+            {t('dash.importAction')}
+          </Link>
+        </div>
       </section>
     </>
   )
