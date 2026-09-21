@@ -18,6 +18,63 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Screens for the operations that had none (alpha 3)
+
+Five operations were implemented, tested and exposed over REST, and reachable
+only from a terminal (`docs/ALPHA_ASSESSMENT.md` §3.1). The product was strictly
+less capable than its own API, which is an odd thing to hand to an alpha user.
+Nothing in this section is a new domain operation — the API is the one that was
+already there.
+
+- **Boekjaren (`/fiscal-years`, `g s`).** What is open, what comes next, and
+  closing one. The two live on one screen because they are one act in a
+  particular order: the year that follows has to exist before the year before it
+  can carry its balances forward. When it does not, the screen names the date
+  that is missing and offers the year, with the alternative — closing without an
+  opening balance — beside it as a checkbox.
+- **Opening the next year is one field.** `POST /fiscal-years` takes a four-digit
+  label and derives the dates from the administration's own starting month, so
+  the dates are shown rather than asked for. A date input the server ignores is a
+  date input that lies. The new year turns up in the shell's year picker, which
+  is where #5's readers look for it.
+- **A close shows both entries, line by line, before it posts either.**
+  `closeYear` has always taken `dryRun` and answered in the same shape either
+  way; the screen always asks that question first. The acknowledgement says what
+  happens rather than "are you sure": _"Boekt twee echte journaalposten; hier zit
+  geen knop om dat terug te draaien."_ There is no reopen operation by design —
+  undoing a close is a reversal like any other — and no button here pretends
+  otherwise.
+- **A year that is already closed says so and is not offered again.** Closing
+  records a row in `year_closes` and the only thing that reads it is the check
+  `POST /fiscal-years/close` makes before it does anything, dry run included. So
+  the dry run _is_ the question, a `conflict` is its answer, and it arrives in the
+  API's own words.
+- **De auditfile, er weer in (`/audit-file`, `g q`).** XAF 3.2 has gone out since
+  M2 and could not come back, which made "your books are yours" a one-way claim.
+  Export and import share the screen, and the dashboard points at both. Two steps
+  on purpose, like the bank import: pick a file, read what it would do, confirm.
+- **An XAF file has to match the chart, and the screen says so instead of
+  failing.** There is no chart-of-accounts create operation in the API and adding
+  one is a domain change with its own review (#15), so a file naming accounts
+  this administration does not have gets a specific message, a count, and no
+  import button — rather than a stack trace, or a partial import.
+- **Zoeken in het palet.** `Cmd/Ctrl`+`K` has two halves now: **Navigatie**,
+  filtered from the registry in memory, and **Inhoud**, which is `GET /search`
+  across relaties, verkoop- en inkoopfacturen, journaalposten en documenten. The
+  MCP `search` tool has been reading that operation since M6, so the agent could
+  find a relatie by name and the bookkeeper could not. The arrows walk both halves
+  as one list and `Enter` opens the record, not a list it might be on.
+- **`/` is still unbound**, now on purpose rather than for want of a search:
+  `Cmd`+`K` opens the palette with the cursor already in the field, and a second
+  key meaning "open the thing `Cmd`+`K` opens" is not a shortcut.
+- **RGS-codes are changed from `/accounts`.** The dashboard has reported coverage
+  as a percentage since M0 with no way to act on the number. The code is a
+  validated text field, not a picker: nothing publishes the codes in a scheme
+  (#15), and a picker over a list we cannot fetch would be a fiction. An unknown
+  or withdrawn code is refused in the mapper's own words; an aggregate code or a
+  debit/credit mismatch saves and says so. Refusals in the status red, the rest in
+  the attention colour — never the accent.
+
 ### Koppelen confirms rather than guesses (alpha 4, product call)
 
 - **`↵` no longer books the top suggestion from the queue.** It opens the panel
