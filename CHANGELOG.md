@@ -18,6 +18,22 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### A quieter bottom to the side menu (alpha 5, design pass against the Penpot boards)
+
+- **The account block is one row.** An initial, the name and a chevron —
+  `[H] Hidde ›` — where there used to be an avatar, a name, a role, a language
+  picker, an appearance picker and a sign-out link stacked against the bottom of a
+  rail that already carries twenty destinations. Four of those five controls are
+  settled once and then read every time the eye reaches the end of the navigation.
+- **Taal, Weergave and Afmelden are in a menu that opens upward** from that row,
+  with the role line, because the row is the last thing on the screen and a panel
+  below it would be off the bottom of the viewport. `Esc` closes it and the focus
+  goes back to the row.
+- **`?` and `⌘K` stay where they were.** They are global, and a global key that
+  lives in somebody's account menu is a key nobody finds.
+- The rail is still `w-60`, both themes are still light-default, and the panel is
+  square and unshadowed like every other floating thing here.
+
 ### Screens for the operations that had none (alpha 3)
 
 Five operations were implemented, tested and exposed over REST, and reachable
