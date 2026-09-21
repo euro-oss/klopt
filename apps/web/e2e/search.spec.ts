@@ -91,7 +91,7 @@ test('a journaalpost is found by its description and opens the entry', async ({ 
   await page.keyboard.press('Enter')
   await page.getByLabel('Credit regel 2').fill('99,00')
   await page.getByRole('button', { name: 'Boeken', exact: true }).click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Boeken', exact: true }).click()
+  await page.getByRole('button', { name: 'Definitief boeken', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Dit wordt geboekt' })).toBeHidden()
 
   await page.goto('/')

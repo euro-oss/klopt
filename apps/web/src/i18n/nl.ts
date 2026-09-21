@@ -241,7 +241,7 @@ export const nl = {
   'fiscalYears.closeTitle': 'Boekjaar afsluiten',
   'fiscalYears.closeBody':
     'Eerst zien wat er geboekt wordt, dan afsluiten. De resultaatbestemming vlakt de winst-en-verliesrekeningen af tegen een eigen-vermogenrekening; de beginbalans zet de balansposten in het volgende jaar.',
-  'fiscalYears.yearToClose': 'Boekjaar',
+  'fiscalYears.yearToClose': 'Boekjaar om af te sluiten',
   'fiscalYears.pickYear': 'Kies een boekjaar',
   'fiscalYears.resultAccount': 'Resultaatrekening',
   'fiscalYears.resultAccountHint': 'Een eigen-vermogenrekening; andere worden geweigerd.',
@@ -277,6 +277,7 @@ export const nl = {
   'auditFile.exportTitle': 'Exporteren',
   'auditFile.exportBody':
     'Een volledig boekjaar met RGS-codes, gevalideerd tegen het gepubliceerde schema.',
+  'auditFile.exportYear': 'Boekjaar om te exporteren',
   'auditFile.year': 'Boekjaar',
   'auditFile.pickYear': 'Kies een boekjaar',
   'auditFile.export': 'Auditfile downloaden',

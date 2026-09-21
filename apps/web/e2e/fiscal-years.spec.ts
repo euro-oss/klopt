@@ -48,7 +48,7 @@ async function anExpense(page: Page, amount: string): Promise<void> {
 
   await page.getByRole('button', { name: 'Boeken', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Dit wordt geboekt' })).toBeVisible()
-  await page.getByRole('dialog').getByRole('button', { name: 'Boeken', exact: true }).click()
+  await page.getByRole('button', { name: 'Definitief boeken', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Dit wordt geboekt' })).toBeHidden()
 }
 
@@ -79,12 +79,10 @@ test('the next book year is opened from one field, and turns up in the shell', a
   // In the table, and — the acceptance criterion that spans two issues — in the
   // year picker every report reads, which is a different component entirely.
   await expect(page.getByRole('cell', { name: next, exact: true })).toBeVisible()
-  await page
-    .getByRole('combobox', { name: /Boekjaar/ })
-    .first()
-    .click()
-  await expect(page.getByRole('option', { name: new RegExp(`^${next} `) })).toBeVisible()
+  await page.getByRole('navigation', { name: 'Hoofdnavigatie' }).getByLabel('Boekjaar').click()
+  await expect(page.getByRole('option', { name: next, exact: true })).toBeVisible()
   await page.keyboard.press('Escape')
+  await expect(page.getByRole('listbox')).toBeHidden()
 
   // A label that is already a book year is not offered again, rather than being
   // offered and then refused.
@@ -107,12 +105,12 @@ test('a close shows the entries first, is gated on the acknowledgement, and happ
   // The balances have nowhere to land yet: setup made one year. The screen says
   // which date is missing and offers the year, rather than letting the request
   // fail and reporting that.
-  await chooseOption(page, 'Boekjaar', new RegExp(`^${thisYear} `))
-  await expect(page.getByText(/heeft geen periode die/)).toBeVisible()
+  await chooseOption(page, 'Boekjaar om af te sluiten', new RegExp(`^${thisYear} `))
+  await expect(page.getByText(/geen periode die/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Toon wat er geboekt wordt' })).toBeDisabled()
 
   await page.getByRole('button', { name: `Boekjaar ${next} openen` }).click()
-  await expect(page.getByText(/heeft geen periode die/)).toBeHidden()
+  await expect(page.getByText(/geen periode die/)).toBeHidden()
 
   // The result goes to an eigen-vermogenrekening, chosen by typing at the
   // picker. A cost account is not on offer here at all.
@@ -159,7 +157,7 @@ test('a close shows the entries first, is gated on the acknowledgement, and happ
   // anything this screen remembers.
   await page.goto('/fiscal-years')
   await hydrated(page)
-  await chooseOption(page, 'Boekjaar', new RegExp(`^${thisYear} `))
+  await chooseOption(page, 'Boekjaar om af te sluiten', new RegExp(`^${thisYear} `))
   const again = page.getByRole('combobox', { name: 'Resultaatrekening' })
   await again.pressSequentially('0900')
   await page.keyboard.press('Enter')
@@ -178,7 +176,7 @@ test('a result account the domain refuses is reported in the API’s own words',
   await page.goto('/fiscal-years')
   await hydrated(page)
 
-  await chooseOption(page, 'Boekjaar', new RegExp(`^${thisYear} `))
+  await chooseOption(page, 'Boekjaar om af te sluiten', new RegExp(`^${thisYear} `))
   // Closing without carrying balances forward: the other way past a missing
   // next year, and a checkbox rather than a dialogue — the BTW-aangifte's
   // precedent.
@@ -188,7 +186,11 @@ test('a result account the domain refuses is reported in the API’s own words',
   // A number no account answers to. The picker keeps what was typed rather than
   // silently replacing it, and the refusal comes from the ledger.
   const result = page.getByRole('combobox', { name: 'Resultaatrekening' })
-  await result.fill('9999')
+  await result.pressSequentially('9999')
+  // Tab commits what was typed, which for an unresolvable number is the number.
+  await page.keyboard.press('Tab')
+  await expect(result).toHaveValue('9999')
+
   await page.getByRole('button', { name: 'Toon wat er geboekt wordt' }).click()
 
   await expect(page.getByRole('alert')).toContainText('9999')

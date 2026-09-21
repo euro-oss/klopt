@@ -242,7 +242,7 @@ export const en: Record<MessageKey, string> = {
   'fiscalYears.closeTitle': 'Close a book year',
   'fiscalYears.closeBody':
     'See what will be posted first, then close. The appropriation flattens the profit-and-loss accounts against an equity account; the opening balance puts the balance-sheet positions into the next year.',
-  'fiscalYears.yearToClose': 'Book year',
+  'fiscalYears.yearToClose': 'Book year to close',
   'fiscalYears.pickYear': 'Pick a book year',
   'fiscalYears.resultAccount': 'Result account',
   'fiscalYears.resultAccountHint': 'An equity account; anything else is refused.',
@@ -276,6 +276,7 @@ export const en: Record<MessageKey, string> = {
   'auditFile.exportTitle': 'Export',
   'auditFile.exportBody':
     'A whole book year with its RGS codes, validated against the published schema.',
+  'auditFile.exportYear': 'Book year to export',
   'auditFile.year': 'Book year',
   'auditFile.pickYear': 'Pick a book year',
   'auditFile.export': 'Download the audit file',

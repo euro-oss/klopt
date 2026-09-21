@@ -38,7 +38,7 @@ test('a code is changed from the table, and the dashboard figure follows', async
 
   // Enter on the focused row opens the editor: the table's own key, and the
   // reason this is not an input inside a cell fighting the type-ahead.
-  await page.getByRole('cell', { name: '1000' }).click()
+  await page.getByRole('cell', { name: '1000', exact: true }).click()
   await expect(page.getByRole('heading', { name: /RGS-code voor 1000/ })).toBeVisible()
 
   const field = page.getByLabel('RGS-code')
@@ -61,7 +61,7 @@ test('a code is changed from the table, and the dashboard figure follows', async
   // thing you are in.
   await page.goto('/accounts')
   await hydrated(page)
-  await page.getByRole('cell', { name: '1000' }).click()
+  await page.getByRole('cell', { name: '1000', exact: true }).click()
   await page.getByLabel('RGS-code').fill('BLimKasKas')
   await page.getByLabel('RGS-code').press('Enter')
   await expect(page.getByText('1000 rapporteert nu onder BLimKasKas.')).toBeVisible()
@@ -73,7 +73,7 @@ test('a code that is not in the scheme is refused where it was typed', async ({ 
   await page.goto('/accounts')
   await hydrated(page)
 
-  await page.getByRole('cell', { name: '4400' }).click()
+  await page.getByRole('cell', { name: '4400', exact: true }).click()
   await page.getByLabel('RGS-code').fill('NietEenCode')
   await page.getByRole('button', { name: 'Opslaan' }).click()
 

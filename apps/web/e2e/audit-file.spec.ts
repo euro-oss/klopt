@@ -22,7 +22,20 @@ test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
 
+/**
+ * A fresh session, even when one is already open.
+ *
+ * The round-trip tests want two administrations and one browser, and `/sign-in`
+ * bounces a signed-in visitor to the dashboard — so the way to the form is
+ * through the sidebar's own sign-out.
+ */
 async function anAdministration(page: Page, name: string): Promise<void> {
+  await page.goto('/')
+  if ((await page.getByRole('button', { name: 'Afmelden' }).count()) > 0) {
+    await page.getByRole('button', { name: 'Afmelden' }).click()
+    await expect(page.getByLabel('E-mail')).toBeVisible()
+  }
+
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
@@ -46,7 +59,7 @@ async function anEntry(page: Page, description: string, amount: string): Promise
   await page.getByLabel('Credit regel 2').fill(amount)
 
   await page.getByRole('button', { name: 'Boeken', exact: true }).click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Boeken', exact: true }).click()
+  await page.getByRole('button', { name: 'Definitief boeken', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Dit wordt geboekt' })).toBeHidden()
 }
 

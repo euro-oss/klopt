@@ -438,8 +438,15 @@ function CloseYear({
    * same thing out here means the screen can offer the year that is missing
    * instead of only repeating the refusal — and it is the reason the year to
    * open and the year to close share one screen.
+   *
+   * Two conditions rather than one: the year that is missing is a *fact*, and
+   * only being stopped by it depends on still wanting an opening balance. Making
+   * the panel itself depend on `carryForward` meant that ticking "close without
+   * one" unmounted the checkbox that had just been ticked, which is a control
+   * that vanishes when it is used.
    */
-  const blocked = chosen !== null && carryForward && !hasYearAfter(years, chosen)
+  const noNextYear = chosen !== null && !hasYearAfter(years, chosen)
+  const blocked = noNextYear && carryForward
   const openingDate = chosen === null ? null : dayAfter(chosen.endsOn)
 
   function reset(): void {
@@ -583,7 +590,7 @@ function CloseYear({
       )}
 
       {/* The year that has to exist first, and the two honest ways past it. */}
-      {blocked && chosen !== null && closed === null && (
+      {noNextYear && chosen !== null && closed === null && (
         <div className="border-border mt-4 border border-dashed p-3">
           <p className="text-sm">
             {t('fiscalYears.blocked', {

@@ -165,7 +165,7 @@ function AuditFile() {
 
           <div className="mt-4 flex flex-wrap items-end gap-3">
             <SelectField
-              label={t('auditFile.year')}
+              label={t('auditFile.exportYear')}
               value={exportYear}
               onValueChange={setExportYear}
               disabled={!hydrated}
