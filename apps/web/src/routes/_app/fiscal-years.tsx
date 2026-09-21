@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { useCallback, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { AccountPicker } from '~/components/finance/account-picker'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
@@ -51,13 +51,10 @@ import { createFiscalYear, listFiscalYears } from '~/server/setup'
  *
  * ## How "already closed" is known
  *
- * `GET /fiscal-years` reports a `status` the close does not write to: closing a
- * year records a row in `year_closes`, and the only thing that reads it is
- * `rgs.findOpenClose`, which `POST /fiscal-years/close` consults before it does
- * anything — including on a dry run. So the dry run *is* the question "is this
- * year closed", and a `conflict` is its answer, carrying the API's own sentence.
- * Asking it that way needs no new endpoint; the alternative is a read-side
- * enrichment, which Product deferred for the alpha.
+ * Closing records a row in `year_closes` and sets `fiscal_years.status` to
+ * `closed`. `GET /fiscal-years` derives `status` from those facts, so a hard
+ * reload still shows the year as closed — and a dry-run of
+ * `POST /fiscal-years/close` still answers `conflict` when asked again.
  */
 export const Route = createFileRoute('/_app/fiscal-years')({
   loader: async ({ context }) => {
@@ -132,27 +129,6 @@ function FiscalYears() {
   const { years, accounts, journals, role } = Route.useLoaderData()
   const { t } = useT()
 
-  /**
-   * The years this screen has *established* are closed.
-   *
-   * `GET /fiscal-years` carries a `status` field that the close does not write
-   * to: closing records a row in `year_closes`, and `fiscal_years.status` stays
-   * `open` forever. A column echoing it said "open" about a year that had just
-   * been closed on this very screen, which is the worst kind of wrong — it looked
-   * like an answer.
-   *
-   * So the column reports what is known instead, and the two things that are
-   * known both come from the API: a close that succeeded here, and a close the
-   * API refused with `conflict` because it had already happened. Anything else is
-   * blank, and the note under the table says blank means "not established here"
-   * rather than "open". An empty cell that admits it is an empty cell beats a
-   * word that is false.
-   */
-  const [closedYears, setClosedYears] = useState<ReadonlySet<string>>(new Set())
-  const noteClosed = useCallback((code: string): void => {
-    setClosedYears((current) => new Set(current).add(code))
-  }, [])
-
   if (!years.ok) {
     return (
       <>
@@ -187,10 +163,10 @@ function FiscalYears() {
       key: 'closed',
       header: t('fiscalYears.closedHeader'),
       width: '8rem',
-      // `status` is still read, for the day something writes it. Until then the
-      // only true answers come from the close itself.
+      // `GET /fiscal-years` derives this from `year_closes` (and the status
+      // column the close now writes). Session memory is not involved.
       cell: (row) =>
-        row.status === 'closed' || closedYears.has(row.code) ? (
+        row.status === 'closed' ? (
           <span className="text-xs">{t('fiscalYears.isClosed')}</span>
         ) : (
           <span className="text-muted-foreground text-xs">—</span>
@@ -271,8 +247,6 @@ function FiscalYears() {
         empty={t('fiscalYears.empty')}
       />
 
-      <p className="text-muted-foreground mt-2 text-xs">{t('fiscalYears.closedNote')}</p>
-
       {may(MAY_OPEN_YEAR, role) ? (
         <OpenNextYear years={rows} />
       ) : (
@@ -285,7 +259,6 @@ function FiscalYears() {
           accounts={accounts.ok ? accounts.data.accounts : []}
           journals={journals.ok ? journals.data.journals : []}
           now={now}
-          onClosed={noteClosed}
         />
       ) : (
         <Withheld title={t('fiscalYears.closeTitle')} why={t('fiscalYears.mayNotClose')} />
@@ -456,7 +429,6 @@ function CloseYear({
   accounts,
   journals,
   now,
-  onClosed,
 }: {
   years: readonly FiscalYearOption[]
   accounts: readonly {
@@ -467,8 +439,6 @@ function CloseYear({
   }[]
   journals: readonly { code: string; name: string; type: string }[]
   now: string
-  /** Told about every year this screen establishes is closed, for the table. */
-  onClosed: (code: string) => void
 }) {
   const { t } = useT()
   const router = useRouter()
@@ -545,7 +515,6 @@ function CloseYear({
      */
     if (problem.code === 'conflict') {
       setClosed(code)
-      onClosed(code)
       return
     }
 
@@ -605,8 +574,8 @@ function CloseYear({
     setPlan(null)
     setAck(false)
     setNotice(t('fiscalYears.closedNotice', { year: code }))
-    // The table cannot read this out of `GET /fiscal-years`, so it is told.
-    onClosed(code)
+    // Reload the list so the table and shell pick up `status: closed` from
+    // the server — not from anything this screen remembered.
     await router.invalidate()
   }
 

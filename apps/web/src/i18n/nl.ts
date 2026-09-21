@@ -220,8 +220,6 @@ export const nl = {
   'fiscalYears.range': 'Loopt van – tot',
   'fiscalYears.closedHeader': 'Afsluiting',
   'fiscalYears.isClosed': 'afgesloten',
-  'fiscalYears.closedNote':
-    'Een streepje onder Afsluiting betekent “hier niet vastgesteld”, niet “open”: het afsluiten wordt apart vastgelegd en is niet per boekjaar uit te lezen.',
   'fiscalYears.periods': 'Perioden',
   'fiscalYears.current': 'huidig',
   'fiscalYears.count': 'Boekjaren',

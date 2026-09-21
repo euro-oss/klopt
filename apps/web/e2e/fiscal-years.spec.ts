@@ -141,9 +141,8 @@ test('a close shows the entries first, is gated on the acknowledgement, and happ
   await close.click()
   await expect(page.getByText(`Boekjaar ${thisYear} is afgesloten.`)).toBeVisible()
 
-  // And the table says so. The third cell used to echo the `status` field from
-  // `GET /fiscal-years`, which the close does not write to, so the row for the
-  // year just closed read "open" — an answer, and the wrong one.
+  // And the table says so — from GET /fiscal-years, which now derives closed
+  // from year_closes (and the status column the close writes).
   const closedCell = page
     .getByRole('row', { name: new RegExp(`^${thisYear} `) })
     .getByRole('cell')
@@ -187,13 +186,40 @@ test('a close shows the entries first, is gated on the acknowledgement, and happ
   await expect(page.getByText(/[Rr]everse/)).toHaveCount(0)
   await expect(page.getByText(/ongedaan|terugdraaien/)).toHaveCount(0)
 
-  // And the row for it reads closed on a load that learned it from the refusal.
+  // And the row for it reads closed on a load that learned it from GET, not
+  // from a React Set that died with the previous document.
   await expect(
     page
       .getByRole('row', { name: new RegExp(`^${thisYear} `) })
       .getByRole('cell')
       .nth(2),
   ).toHaveText('afgesloten')
+
+  // Hard reload: drop every bit of client state. The table, the shell picker,
+  // and GET /fiscal-years must still say closed — not open.
+  await page.reload()
+  await hydrated(page)
+  await expect(
+    page
+      .getByRole('row', { name: new RegExp(`^${thisYear} `) })
+      .getByRole('cell')
+      .nth(2),
+  ).toHaveText('afgesloten')
+  await page.getByRole('navigation', { name: 'Hoofdnavigatie' }).getByLabel('Boekjaar').click()
+  await expect(
+    page.getByRole('option', { name: `${thisYear} (afgesloten)`, exact: true }),
+  ).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  const listed = await page.request.get('/api/v1/fiscal-years')
+  expect(listed.ok()).toBe(true)
+  const body = (await listed.json()) as {
+    fiscalYears: readonly { code: string; status: string }[]
+  }
+  expect(body.fiscalYears.find((year) => year.code === thisYear)?.status).toBe('closed')
+  expect(body.fiscalYears.every((year) => year.status === 'open' || year.status === 'closed')).toBe(
+    true,
+  )
 })
 
 test('a result account the domain refuses is reported in the API’s own words', async ({ page }) => {

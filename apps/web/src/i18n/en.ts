@@ -221,8 +221,6 @@ export const en: Record<MessageKey, string> = {
   'fiscalYears.range': 'Runs from – to',
   'fiscalYears.closedHeader': 'Closed',
   'fiscalYears.isClosed': 'closed',
-  'fiscalYears.closedNote':
-    'A dash under Closed means “not established here”, not “open”: closing is recorded separately and cannot be read back per book year.',
   'fiscalYears.periods': 'Periods',
   'fiscalYears.current': 'current',
   'fiscalYears.count': 'Book years',

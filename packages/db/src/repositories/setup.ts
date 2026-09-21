@@ -5,10 +5,10 @@ import {
   type FiscalYearLayout,
   type Role,
 } from '@klopt/core'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import type { Database } from '../client.js'
 import { entityMembers } from '../schema/auth.js'
-import { accounts, entities, fiscalYears, journals, periods } from '../schema/ledger.js'
+import { accounts, entities, fiscalYears, journals, periods, yearCloses } from '../schema/ledger.js'
 import { taxCodes } from '../schema/sales.js'
 
 /**
@@ -327,11 +327,24 @@ export class SetupRepository {
       .where(eq(periods.entityId, entityId))
       .orderBy(asc(periods.sequence))
 
+    /**
+     * Closing writes `year_closes`, not (historically) `fiscal_years.status`.
+     * Callers of GET/list need a truthful `status`, including after a hard
+     * reload with no session memory of the close — so an open close row wins
+     * over the column, and a column already set to `closed` still counts.
+     */
+    const closes = await this.database
+      .select({ fiscalYearId: yearCloses.fiscalYearId })
+      .from(yearCloses)
+      .where(and(eq(yearCloses.entityId, entityId), isNull(yearCloses.reversedAt)))
+
+    const closedIds = new Set(closes.map((close) => close.fiscalYearId))
+
     return years.map((year) => ({
       code: year.code,
       startsOn: year.startsOn,
       endsOn: year.endsOn,
-      status: year.status,
+      status: closedIds.has(year.id) || year.status === 'closed' ? 'closed' : 'open',
       periods: rows
         .filter((period) => period.fiscalYearId === year.id)
         .map((period) => ({
