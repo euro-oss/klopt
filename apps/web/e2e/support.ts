@@ -125,6 +125,12 @@ export async function chooseOption(
   await expect(page.getByRole('listbox')).toBeHidden()
 }
 
+/** Sign out from the shell, which is now one click inside the account menu. */
+export async function signOut(page: Page): Promise<void> {
+  await openAccountMenu(page)
+  await page.getByRole('button', { name: 'Afmelden' }).click()
+}
+
 /**
  * Change a preference that lives in the account menu, and put the menu away.
  *
