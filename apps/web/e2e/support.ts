@@ -77,6 +77,30 @@ export async function signIn(page: Page, email: string): Promise<void> {
 }
 
 /**
+ * Open the account menu at the bottom of the sidebar.
+ *
+ * Language, appearance and sign-out used to be printed against the bottom of
+ * the rail and could be clicked where they stood. They now live one click in,
+ * behind the `[H] Hidde ›` row, so every spec that touches one opens this
+ * first. Idempotent, because a spec that changes two settings in a row finds
+ * the menu already open — Radix keeps it open through the re-render.
+ *
+ * The section is labelled in the reader's language, hence the alternation: the
+ * language spec switches to English halfway through and then comes back here.
+ */
+export async function openAccountMenu(page: Page): Promise<void> {
+  const trigger = page.getByRole('region', { name: /^(Profiel|Profile)$/ }).getByRole('button')
+
+  if ((await trigger.getAttribute('aria-expanded')) === 'true') return
+
+  // Disabled until React attaches: the menu is a Radix popover, so before
+  // hydration the row is a button that opens nothing.
+  await expect(trigger).toBeEnabled()
+  await trigger.click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+}
+
+/**
  * Choose an option from a shadcn/Radix select.
  *
  * `selectOption` only drives a real `<select>`, and these are a button and a
@@ -99,4 +123,24 @@ export async function chooseOption(
   // The listbox animates out. Waiting for it to go means the next interaction
   // cannot land on an overlay that is still swallowing clicks.
   await expect(page.getByRole('listbox')).toBeHidden()
+}
+
+/**
+ * Change a preference that lives in the account menu, and put the menu away.
+ *
+ * The closing is not tidiness. The panel opens upward over the bottom of the
+ * navigation, so a spec that changed the language and then clicked a nav link
+ * would be clicking at an overlay — the "element intercepts pointer events"
+ * flake, arriving a screen later than its cause.
+ */
+export async function chooseInAccountMenu(
+  page: Page,
+  label: string | RegExp,
+  option: string | RegExp,
+): Promise<void> {
+  await openAccountMenu(page)
+  await chooseOption(page, label, option)
+
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toBeHidden()
 }

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { chooseOption, DATABASE_URL, signIn, uniqueEmail } from './support'
+import { chooseInAccountMenu, chooseOption, DATABASE_URL, signIn, uniqueEmail } from './support'
 
 /**
  * The dashboard as a work queue, in a browser.
@@ -191,7 +191,7 @@ test('the theme is light to start with, and dark stays dark', async ({ page }) =
   // second set of tokens.
   await expect(page.locator('html')).not.toHaveClass(/dark/)
 
-  await chooseOption(page, 'Weergave', 'Donker')
+  await chooseInAccountMenu(page, 'Weergave', 'Donker')
   await expect(page.locator('html')).toHaveClass(/dark/)
 
   // Through a reload, because a theme resolved only in the browser is a white
@@ -199,7 +199,7 @@ test('the theme is light to start with, and dark stays dark', async ({ page }) =
   await page.reload()
   await expect(page.locator('html')).toHaveClass(/dark/)
 
-  await chooseOption(page, 'Weergave', 'Licht')
+  await chooseInAccountMenu(page, 'Weergave', 'Licht')
   await expect(page.locator('html')).not.toHaveClass(/dark/)
 })
 
