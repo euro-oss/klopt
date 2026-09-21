@@ -67,7 +67,11 @@ already there.
   failing.** There is no chart-of-accounts create operation in the API and adding
   one is a domain change with its own review (#15), so a file naming accounts
   this administration does not have gets a specific message, a count, and no
-  import button — rather than a stack trace, or a partial import.
+  import button — rather than a stack trace, or a partial import. And it does not
+  tell anybody to create the accounts first: there is no way to create one here,
+  by API or by screen, so that would be sending somebody after a button that does
+  not exist. What it says is what is true — this version imports a file that
+  already matches, and an auditfile does not extend the chart.
 - **Zoeken in het palet.** `Cmd/Ctrl`+`K` has two halves now: **Navigatie**,
   filtered from the registry in memory, and **Inhoud**, which is `GET /search`
   across relaties, verkoop- en inkoopfacturen, journaalposten en documenten. The

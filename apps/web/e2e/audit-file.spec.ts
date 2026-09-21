@@ -137,6 +137,13 @@ test('a file naming an account this chart does not have is refused, in words', a
   await expect(
     page.getByText(/rekeningen en .* dagboeken die deze administratie niet heeft/),
   ).toBeVisible()
-  await expect(page.getByText(/Maak ze eerst aan in het grootboek/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Importeren', exact: true })).toHaveCount(0)
+
+  // What it must *not* say. There is no way to create a grootboekrekening in this
+  // product — no API operation and no screen — so telling somebody to make one
+  // first is sending them after a button that does not exist. The alpha imports a
+  // file that already matches, and says exactly that.
+  await expect(page.getByText(/breidt het grootboek niet uit/).first()).toBeVisible()
+  await expect(page.getByText(/[Mm]aak ze eerst aan/)).toHaveCount(0)
+  await expect(page.getByText(/rekeningen aanmaken/i)).toHaveCount(0)
 })

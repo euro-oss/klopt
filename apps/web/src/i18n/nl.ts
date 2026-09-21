@@ -292,7 +292,7 @@ export const nl = {
     'Kies een bestand en zie eerst wat het zou doen. Er wordt niets geboekt voordat je het bevestigt.',
   'auditFile.file': 'XAF-bestand',
   'auditFile.matchChartNote':
-    'Het grootboek van deze administratie moet het bestand al dekken. Rekeningen aanmaken uit een auditfile kan hier nog niet.',
+    'Het grootboek van deze administratie moet het bestand al dekken. Een auditfile breidt het grootboek hier niet uit.',
   'auditFile.refused': 'Dit bestand kan zo niet geïmporteerd worden',
   'auditFile.wouldDo': 'Wat dit bestand zou doen',
   'auditFile.company': 'Onderneming',
@@ -307,7 +307,7 @@ export const nl = {
   'auditFile.chartMismatch':
     'Dit bestand noemt {accounts} rekeningen en {journals} dagboeken die deze administratie niet heeft.',
   'auditFile.chartMismatchWhat':
-    'Maak ze eerst aan in het grootboek, of importeer een bestand dat bij dit grootboek past. Een auditfile mag hier nog geen rekeningen aanmaken: dat verandert het grootboek, en die stap hoort een eigen beslissing te zijn.',
+    'Deze versie importeert alleen een bestand waarvan alle rekeningen en dagboeken hier al bestaan. Een auditfile breidt het grootboek niet uit: dat verandert de boeken, en die stap hoort een eigen beslissing te zijn.',
   'auditFile.unknownVatCodes': 'Onbekende btw-codes',
   'auditFile.warnings': 'Aandachtspunten',
   'auditFile.import': 'Importeren',
