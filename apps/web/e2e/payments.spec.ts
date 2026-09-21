@@ -2,7 +2,7 @@ import { rmSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { createDatabase, closeDatabase, runMigrations } from '@klopt/db'
 import { findUserIdByEmail } from '@klopt/db/testing'
-import { chooseOption, DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, hydrated, OUTBOX, signIn, uniqueEmail } from './support'
 
 /**
  * The two-person payment flow, in a browser.
@@ -103,6 +103,10 @@ test('one person prepares, another approves, and the file comes out', async ({ b
 
     await bobPage.goto('/payments')
     await expect(bobPage.getByRole('cell', { name: 'BETAAL-0001' })).toBeVisible()
+    // A row opens through a React handler, so it opens nothing at all until the
+    // keys work — and the row is *visible* long before then, which is what made
+    // this the flakiest click in the suite.
+    await hydrated(bobPage)
     await bobPage.getByRole('cell', { name: 'BETAAL-0001' }).click()
 
     await expect(bobPage.getByRole('heading', { name: /Betaalbatch BETAAL-0001/ })).toBeVisible()

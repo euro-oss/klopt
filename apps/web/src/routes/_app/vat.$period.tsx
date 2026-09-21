@@ -696,6 +696,14 @@ function VatReturnScreen() {
                 <input
                   type="checkbox"
                   checked={accept}
+                  // Disabled until the keys work, like every other control that
+                  // cannot work without them (`~/lib/hydration`). This one had
+                  // been missed, and the miss is visible: ticking it before
+                  // hydration checks the box in the DOM, React then renders from
+                  // `accept`, which is still false, and the tick disappears
+                  // under the pointer. Somebody ticks it twice and reads the
+                  // second one as the bug.
+                  disabled={!hydrated}
                   onChange={(event) => {
                     setAccept(event.target.checked)
                   }}
