@@ -7,6 +7,7 @@ import { useT } from '~/i18n/provider'
 import { currentFiscalYear, type FiscalYearOption } from '~/lib/fiscal-year'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
+import { may, MAY_EXPORT_AUDIT_FILE, MAY_IMPORT_AUDIT_FILE } from '~/lib/roles'
 import { importAuditFile } from '~/server/ledger'
 import { listFiscalYears } from '~/server/setup'
 
@@ -41,7 +42,14 @@ import { listFiscalYears } from '~/server/setup'
  * dangerous call is the one that had to be spelled out.
  */
 export const Route = createFileRoute('/_app/audit-file')({
-  loader: async () => ({ years: await listFiscalYears() }),
+  loader: async ({ context }) => ({
+    years: await listFiscalYears(),
+    // Export needs `ledger:export` and import needs `ledger:import`, and the
+    // auditor and the bookkeeper hold the first and not the second. So the two
+    // halves are gated separately, and the withheld one says which role it
+    // needs rather than offering a file picker that ends in a 403.
+    role: context.session.memberships[0]?.role ?? '',
+  }),
   component: AuditFile,
 })
 
@@ -57,7 +65,7 @@ export const Route = createFileRoute('/_app/audit-file')({
 type ImportReport = Extract<Awaited<ReturnType<typeof importAuditFile>>, { ok: true }>['data']
 
 function AuditFile() {
-  const { years } = Route.useLoaderData()
+  const { years, role } = Route.useLoaderData()
   const { t } = useT()
   const router = useRouter()
   const hydrated = useHydrated()
@@ -75,8 +83,8 @@ function AuditFile() {
   const [preview, setPreview] = useState<{ xml: string; report: ImportReport } | null>(null)
   const file = useRef<HTMLInputElement>(null)
 
-  /** One key per attempt: a confirm clicked twice imports the file once. */
-  const importKey = useRef(crypto.randomUUID())
+  const mayImport = may(MAY_IMPORT_AUDIT_FILE, role)
+  const mayExport = may(MAY_EXPORT_AUDIT_FILE, role)
 
   /**
    * Whether the chart can take the file as it stands.
@@ -98,9 +106,9 @@ function AuditFile() {
     clear()
 
     const xml = await chosen.text()
-    const result = await importAuditFile({
-      data: { xml, dryRun: true, idempotencyKey: importKey.current },
-    })
+    // No key from here. The server derives one from the file, so importing the
+    // same auditfile twice is one import rather than two — see `~/server/ledger`.
+    const result = await importAuditFile({ data: { xml, dryRun: true } })
     setBusy(false)
 
     if (!result.ok) {
@@ -120,9 +128,7 @@ function AuditFile() {
     setBusy(true)
     setProblems(null)
 
-    const result = await importAuditFile({
-      data: { xml: preview.xml, dryRun: false, idempotencyKey: importKey.current },
-    })
+    const result = await importAuditFile({ data: { xml: preview.xml, dryRun: false } })
     setBusy(false)
 
     if (!result.ok) {
@@ -135,8 +141,6 @@ function AuditFile() {
     }
 
     const report = result.data
-    // A fresh key: the next file is a different import, not a retry of this one.
-    importKey.current = crypto.randomUUID()
     setPreview(null)
     if (file.current !== null) file.current.value = ''
     setNotice(
@@ -163,58 +167,79 @@ function AuditFile() {
           <h2 className="text-base font-medium">{t('auditFile.exportTitle')}</h2>
           <p className="text-muted-foreground mt-1 text-sm">{t('auditFile.exportBody')}</p>
 
-          <div className="mt-4 flex flex-wrap items-end gap-3">
-            <SelectField
-              label={t('auditFile.exportYear')}
-              value={exportYear}
-              onValueChange={setExportYear}
-              disabled={!hydrated}
-              placeholder={t('auditFile.pickYear')}
-              className="w-56"
-            >
-              {options.map((year) => (
-                <SelectOption key={year.code} value={year.code}>
-                  {`${year.code} (${formatDate(year.startsOn)} – ${formatDate(year.endsOn)})`}
-                </SelectOption>
-              ))}
-            </SelectField>
+          {!mayExport && (
+            <p role="status" className="text-muted-foreground mt-3 text-sm">
+              {t('auditFile.mayNotExport')}
+            </p>
+          )}
 
-            {/* A link rather than a fetch: the response is XML with a filename
+          {mayExport && (
+            <div className="mt-4 flex flex-wrap items-end gap-3">
+              <SelectField
+                label={t('auditFile.exportYear')}
+                value={exportYear}
+                onValueChange={setExportYear}
+                disabled={!hydrated}
+                placeholder={t('auditFile.pickYear')}
+                className="w-56"
+              >
+                {options.map((year) => (
+                  <SelectOption key={year.code} value={year.code}>
+                    {`${year.code} (${formatDate(year.startsOn)} – ${formatDate(year.endsOn)})`}
+                  </SelectOption>
+                ))}
+              </SelectField>
+
+              {/* A link rather than a fetch: the response is XML with a filename
                 on it, and the browser already knows what to do with that. */}
-            <a
-              href={`/api/v1/exports/audit-file?fiscalYear=${exportYear}`}
-              className="border-input border px-4 py-2 text-sm font-medium"
-            >
-              {t('auditFile.export')}
-            </a>
-          </div>
+              <a
+                href={`/api/v1/exports/audit-file?fiscalYear=${exportYear}`}
+                className="border-input border px-4 py-2 text-sm font-medium"
+              >
+                {t('auditFile.export')}
+              </a>
+            </div>
+          )}
         </section>
 
         <section className="border-border border p-4">
           <h2 className="text-base font-medium">{t('auditFile.importTitle')}</h2>
           <p className="text-muted-foreground mt-1 text-sm">{t('auditFile.importBody')}</p>
 
-          <label className="mt-4 block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              {t('auditFile.file')}
-            </span>
-            <input
-              ref={file}
-              type="file"
-              accept=".xml,text/xml,application/xml"
-              disabled={!hydrated || busy}
-              onChange={(event) => {
-                const chosen = event.currentTarget.files?.[0]
-                if (chosen !== undefined) void chooseFile(chosen)
-              }}
-              className="border-input bg-background w-full border px-3 py-2 text-sm"
-            />
-          </label>
+          {/* Refused here rather than after a file has been chosen and read. The
+              handler refuses too — that is the gate — but being told which role
+              this needs beats watching a 403 arrive after the upload. */}
+          {!mayImport && (
+            <p role="status" className="text-muted-foreground mt-3 text-sm">
+              {t('auditFile.mayNotImport')}
+            </p>
+          )}
 
-          <p className="text-muted-foreground mt-2 text-xs">{t('auditFile.matchChartNote')}</p>
+          {mayImport && (
+            <>
+              <label className="mt-4 block">
+                <span className="text-muted-foreground mb-1 block text-xs font-medium">
+                  {t('auditFile.file')}
+                </span>
+                <input
+                  ref={file}
+                  type="file"
+                  accept=".xml,text/xml,application/xml"
+                  disabled={!hydrated || busy}
+                  onChange={(event) => {
+                    const chosen = event.currentTarget.files?.[0]
+                    if (chosen !== undefined) void chooseFile(chosen)
+                  }}
+                  className="border-input bg-background w-full border px-3 py-2 text-sm"
+                />
+              </label>
 
-          {busy && preview === null && (
-            <p className="text-muted-foreground mt-3 text-sm">{t('common.busy')}</p>
+              <p className="text-muted-foreground mt-2 text-xs">{t('auditFile.matchChartNote')}</p>
+
+              {busy && preview === null && (
+                <p className="text-muted-foreground mt-3 text-sm">{t('common.busy')}</p>
+              )}
+            </>
           )}
         </section>
       </div>

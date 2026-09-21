@@ -20,6 +20,7 @@ import {
 } from '~/lib/fiscal-year'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
+import { may, MAY_CLOSE_YEAR, MAY_OPEN_YEAR } from '~/lib/roles'
 import { closeYear, listAccounts, listJournals } from '~/server/ledger'
 import { createFiscalYear, listFiscalYears } from '~/server/setup'
 
@@ -59,13 +60,27 @@ import { createFiscalYear, listFiscalYears } from '~/server/setup'
  * enrichment, which Product deferred for the alpha.
  */
 export const Route = createFileRoute('/_app/fiscal-years')({
-  loader: async () => {
+  loader: async ({ context }) => {
     const [years, accounts, journals] = await Promise.all([
       listFiscalYears(),
       listAccounts(),
       listJournals(),
     ])
-    return { years, accounts, journals }
+    /**
+     * The role, read from the session the layout already resolved.
+     *
+     * The two halves of this screen need different permissions, so it cannot be
+     * gated as one: `ledger:configure` opens the next year and `ledger:close`
+     * closes one, and the bookkeeper holds the first and not the second. A
+     * screen refused whole would take the year-opening away from the role #6 was
+     * written for; a screen offered whole would print a close button whose only
+     * outcome is 403, after somebody had chosen a year and an account and ticked
+     * an acknowledgement.
+     *
+     * The handler refuses either way — that is where the gate is. This decides
+     * what is worth offering.
+     */
+    return { years, accounts, journals, role: context.session.memberships[0]?.role ?? '' }
   },
   component: FiscalYears,
 })
@@ -114,7 +129,7 @@ function yearToClose(years: readonly FiscalYearOption[], now: string): string {
 }
 
 function FiscalYears() {
-  const { years, accounts, journals } = Route.useLoaderData()
+  const { years, accounts, journals, role } = Route.useLoaderData()
   const { t } = useT()
 
   /**
@@ -258,16 +273,43 @@ function FiscalYears() {
 
       <p className="text-muted-foreground mt-2 text-xs">{t('fiscalYears.closedNote')}</p>
 
-      <OpenNextYear years={rows} />
+      {may(MAY_OPEN_YEAR, role) ? (
+        <OpenNextYear years={rows} />
+      ) : (
+        <Withheld title={t('fiscalYears.openTitle')} why={t('fiscalYears.mayNotOpen')} />
+      )}
 
-      <CloseYear
-        years={rows}
-        accounts={accounts.ok ? accounts.data.accounts : []}
-        journals={journals.ok ? journals.data.journals : []}
-        now={now}
-        onClosed={noteClosed}
-      />
+      {may(MAY_CLOSE_YEAR, role) ? (
+        <CloseYear
+          years={rows}
+          accounts={accounts.ok ? accounts.data.accounts : []}
+          journals={journals.ok ? journals.data.journals : []}
+          now={now}
+          onClosed={noteClosed}
+        />
+      ) : (
+        <Withheld title={t('fiscalYears.closeTitle')} why={t('fiscalYears.mayNotClose')} />
+      )}
     </>
+  )
+}
+
+/**
+ * A panel this role may not use, named rather than removed.
+ *
+ * Dropping it silently would make the screen look different to two people
+ * looking at the same books, with nothing to say why — and "the button is
+ * missing" is the report that follows. The heading stays so the shape of the
+ * screen is the same, and a sentence says which role this needs.
+ */
+function Withheld({ title, why }: { title: string; why: string }) {
+  return (
+    <section className="border-border mt-8 border border-dashed p-4">
+      <h2 className="text-muted-foreground text-base font-medium">{title}</h2>
+      <p role="status" className="text-muted-foreground mt-1 text-sm">
+        {why}
+      </p>
+    </section>
   )
 }
 

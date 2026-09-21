@@ -106,11 +106,30 @@ test('a file the chart already covers is previewed and then imported', async ({ 
   await expect(doIt).toBeEnabled()
 
   await doIt.click()
-  await expect(page.getByText(new RegExp(`geïmporteerd in boekjaar ${year}`))).toBeVisible()
+  await expect(page.getByText(new RegExp(`journaalposten in boekjaar ${year}`))).toBeVisible()
 
   // Really posted, into the receiving administration's journal.
   await page.goto('/entries')
-  await expect(page.getByRole('cell', { name: 'Kantoorbenodigdheden' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Kantoorbenodigdheden' })).toHaveCount(1)
+
+  // The same file again, all the way through: chosen, previewed, confirmed. It
+  // must post nothing the second time. The idempotency key is derived from the
+  // file rather than minted per attempt, so the second import replays the first
+  // one instead of writing a second set of the same entries — which is what a
+  // fresh key used to do, `sourceDocumentRef` and all.
+  await page.goto('/audit-file')
+  await hydrated(page)
+  await page
+    .getByLabel('XAF-bestand')
+    .setInputFiles({ name: 'auditfile.xml', mimeType: 'text/xml', buffer: Buffer.from(xml) })
+  await expect(page.getByText('Wat dit bestand zou doen')).toBeVisible()
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
+  await expect(
+    page.getByText(/Hetzelfde bestand nog een keer aanbieden boekt niets extra/),
+  ).toBeVisible()
+
+  await page.goto('/entries')
+  await expect(page.getByRole('cell', { name: 'Kantoorbenodigdheden' })).toHaveCount(1)
 })
 
 test('a file naming an account this chart does not have is refused, in words', async ({ page }) => {

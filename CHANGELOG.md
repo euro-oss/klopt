@@ -72,6 +72,28 @@ already there.
   by API or by screen, so that would be sending somebody after a button that does
   not exist. What it says is what is true — this version imports a file that
   already matches, and an auditfile does not extend the chart.
+- **The same auditfile twice is one import.** The idempotency key for an import is
+  derived from the **file** rather than minted per attempt. An attempt is the right
+  unit when the thing being written is something somebody just typed; for an import
+  it is not, and the identity of "import this auditfile" is the auditfile. With a
+  fresh key the handler's per-entry keys were fresh too, so the same file went in
+  twice as two sets of the same entries, `sourceDocumentRef` and all. Keyed on the
+  content it replays instead — a double-click, a second trip through the file
+  picker, a reload, another browser. The success line says so rather than claiming
+  a second import: "Dit bestand staat in de boeken … Hetzelfde bestand nog een keer
+  aanbieden boekt niets extra."
+- **A role that may not do a thing is told before the form, not after it.**
+  `/fiscal-years` needs two different permissions — `ledger:configure` to open the
+  next year, `ledger:close` to close one — so it is gated in halves rather than
+  whole. A bookkeeper gets the year-opening, which is the capability #6 was written
+  for, and the close panel says which role it needs instead of offering a button
+  whose only outcome is 403 after a year, an account and an acknowledgement have
+  been filled in. The auditfile screen splits the same way on export and import.
+  The handlers still refuse regardless — that is where the gate is; this is what
+  stops the screen promising something it cannot do. Which roles hold which
+  permission is written down once in `~/lib/roles` and checked against
+  `permissionsForRole` by a test, because a copy nobody checks is a copy that
+  drifts.
 - **Zoeken in het palet.** `Cmd/Ctrl`+`K` has two halves now: **Navigatie**,
   filtered from the registry in memory, and **Inhoud**, which is `GET /search`
   across relaties, verkoop- en inkoopfacturen, journaalposten en documenten. The

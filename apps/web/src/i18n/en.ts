@@ -241,6 +241,10 @@ export const en: Record<MessageKey, string> = {
   'fiscalYears.opened': 'Book year {year} is open: {from} – {to}.',
   'fiscalYears.alreadyOpen': 'Book year {year} already exists.',
   'fiscalYears.closeTitle': 'Close a book year',
+  'fiscalYears.mayNotClose':
+    'Closing a book year posts two journal entries and happens once. That needs the owner or accountant role.',
+  'fiscalYears.mayNotOpen':
+    'Opening a book year belongs to a role that may change the setup: owner, accountant or bookkeeper.',
   'fiscalYears.closeBody':
     'See what will be posted first, then close. The appropriation flattens the profit-and-loss accounts against an equity account; the opening balance puts the balance-sheet positions into the next year.',
   'fiscalYears.yearToClose': 'Book year to close',
@@ -307,7 +311,11 @@ export const en: Record<MessageKey, string> = {
   'auditFile.unknownVatCodes': 'Unknown VAT codes',
   'auditFile.warnings': 'Worth a look',
   'auditFile.import': 'Import',
-  'auditFile.imported': '{entries} journal entries imported into book year {year}.',
+  'auditFile.imported':
+    'This file is in the books: {entries} journal entries in book year {year}. Offering the same file again posts nothing extra.',
+  'auditFile.mayNotImport':
+    'Reading an audit file in posts journal entries. That needs the owner or accountant role.',
+  'auditFile.mayNotExport': 'Downloading an audit file belongs to a role that may read the books.',
 
   // The three statements.
   'trial.title': 'Trial balance',

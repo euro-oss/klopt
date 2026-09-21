@@ -240,6 +240,10 @@ export const nl = {
   'fiscalYears.opened': 'Boekjaar {year} staat open: {from} – {to}.',
   'fiscalYears.alreadyOpen': 'Boekjaar {year} bestaat al.',
   'fiscalYears.closeTitle': 'Boekjaar afsluiten',
+  'fiscalYears.mayNotClose':
+    'Een boekjaar afsluiten boekt twee journaalposten en gebeurt één keer. Daarvoor is de rol eigenaar of accountant nodig.',
+  'fiscalYears.mayNotOpen':
+    'Een boekjaar openen hoort bij een rol die de inrichting mag wijzigen: eigenaar, accountant of boekhouder.',
   'fiscalYears.closeBody':
     'Eerst zien wat er geboekt wordt, dan afsluiten. De resultaatbestemming vlakt de winst-en-verliesrekeningen af tegen een eigen-vermogenrekening; de beginbalans zet de balansposten in het volgende jaar.',
   'fiscalYears.yearToClose': 'Boekjaar om af te sluiten',
@@ -311,7 +315,14 @@ export const nl = {
   'auditFile.unknownVatCodes': 'Onbekende btw-codes',
   'auditFile.warnings': 'Aandachtspunten',
   'auditFile.import': 'Importeren',
-  'auditFile.imported': '{entries} journaalposten geïmporteerd in boekjaar {year}.',
+  // Waar, of dit de keer was die ze boekte of een eerdere: de sleutel is het
+  // bestand, dus hetzelfde bestand nog eens aanbieden boekt niets extra.
+  'auditFile.imported':
+    'Dit bestand staat in de boeken: {entries} journaalposten in boekjaar {year}. Hetzelfde bestand nog een keer aanbieden boekt niets extra.',
+  'auditFile.mayNotImport':
+    'Een auditfile inlezen boekt journaalposten. Daarvoor is de rol eigenaar of accountant nodig.',
+  'auditFile.mayNotExport':
+    'Een auditfile downloaden hoort bij een rol met leesrecht op de boeken.',
 
   // The three statements.
   'trial.title': 'Proefbalans',

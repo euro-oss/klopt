@@ -224,3 +224,56 @@ test('a result account the domain refuses is reported in the API’s own words',
   await expect(page.getByRole('alert')).toContainText('9999')
   await expect(page.getByRole('button', { name: 'Boekjaar afsluiten' })).toHaveCount(0)
 })
+
+test('a bookkeeper may open the next year and is not offered the close', async ({ browser }) => {
+  // The two halves of this screen need different permissions — `ledger:configure`
+  // opens a year and `ledger:close` closes one — and the bookkeeper holds the
+  // first and not the second. Gating the screen as one would either take the
+  // year-opening away from the role #6 was written for, or print a close button
+  // whose only outcome is a 403 after the form has been filled in.
+  const owner = await browser.newContext()
+  const keeper = await browser.newContext()
+
+  try {
+    const ownerPage = await owner.newPage()
+    await anAdministration(ownerPage, 'Gedeelde Boeken BV')
+
+    const keeperPage = await keeper.newPage()
+    const keeperEmail = uniqueEmail()
+    await keeperPage.goto('/sign-in')
+    await signIn(keeperPage, keeperEmail)
+    await expect(keeperPage.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+
+    await ownerPage.goto('/members')
+    const invite = ownerPage.locator('form', {
+      has: ownerPage.getByRole('button', { name: 'Uitnodigen' }),
+    })
+    await invite.getByLabel('E-mail').fill(keeperEmail)
+    await chooseOption(ownerPage, 'Rol', 'Boekhouder', invite)
+    await ownerPage.getByRole('button', { name: 'Uitnodigen' }).click()
+    await expect(ownerPage.getByText(new RegExp(`${keeperEmail} heeft nu toegang`))).toBeVisible()
+
+    // The screen is reachable, because half of it is theirs.
+    await keeperPage.goto('/fiscal-years')
+    await expect(keeperPage.getByRole('heading', { name: 'Boekjaren' })).toBeVisible()
+    await hydrated(keeperPage)
+
+    // Refused before submit, not after: there is no year to choose, no account to
+    // pick and no acknowledgement to tick, and the panel says which role it needs.
+    await expect(keeperPage.getByRole('button', { name: 'Toon wat er geboekt wordt' })).toHaveCount(
+      0,
+    )
+    await expect(keeperPage.getByRole('button', { name: 'Boekjaar afsluiten' })).toHaveCount(0)
+    await expect(keeperPage.getByLabel('Boekjaar om af te sluiten')).toHaveCount(0)
+    await expect(keeperPage.getByText(/rol eigenaar of accountant nodig/)).toBeVisible()
+
+    // And the half that is theirs works.
+    const next = String(new Date().getUTCFullYear() + 1)
+    await expect(keeperPage.getByLabel('Jaartal')).toHaveValue(next)
+    await keeperPage.getByRole('button', { name: 'Boekjaar openen' }).click()
+    await expect(keeperPage.getByText(`Boekjaar ${next} staat open`)).toBeVisible()
+  } finally {
+    await owner.close()
+    await keeper.close()
+  }
+})
