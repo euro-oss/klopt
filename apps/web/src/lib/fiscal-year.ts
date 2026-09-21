@@ -160,3 +160,93 @@ export function withinFiscalYear(scope: FiscalYearScope, date: string | null): b
   const day = date.slice(0, 10)
   return scope.startsOn <= day && day <= scope.endsOn
 }
+
+/** The year with the latest start, which is the one the next one follows. */
+export function latestFiscalYear(years: readonly FiscalYearOption[]): FiscalYearOption | undefined {
+  return years.reduce<FiscalYearOption | undefined>(
+    (latest, year) => (latest === undefined || year.startsOn > latest.startsOn ? year : latest),
+    undefined,
+  )
+}
+
+/**
+ * The book year that comes next, label and dates.
+ *
+ * `POST /fiscal-years` takes a four-digit `code` and nothing else: the dates
+ * come from the administration's own starting month, through `planFiscalYear`
+ * in @klopt/core. So the form asks for the label and shows the dates rather
+ * than offering them — a date field the server ignores is a field that lies.
+ *
+ * The arithmetic is repeated here rather than imported because `@klopt/core` is
+ * built around `node:crypto` and `node:fs` and this runs in a browser.
+ * `test/unit/fiscal-year.test.ts` holds the two to each other by asking
+ * `planFiscalYear` the same questions, so the copy cannot drift in silence.
+ *
+ * Nothing at all when the administration has no years, which setup cannot
+ * produce: with no starting month to read there is nothing honest to show.
+ */
+export function nextFiscalYear(years: readonly FiscalYearOption[]): FiscalYearOption | null {
+  const latest = latestFiscalYear(years)
+  if (latest === undefined) return null
+
+  const code = String(Number(latest.code) + 1)
+  if (!isFiscalYearCode(code)) return null
+
+  return { ...plannedFiscalYear(code, startingMonth(latest)), status: 'open' }
+}
+
+/** The month a book year opens in, 1–12, read off the year itself. */
+export function startingMonth(year: FiscalYearOption): number {
+  return Number(year.startsOn.slice(5, 7))
+}
+
+/**
+ * Where a four-digit label and a starting month put a book year.
+ *
+ * Twelve periods, the first opening on the first of `startMonth` in `code` and
+ * the last ending on the day before that date a year later. Day 0 of the month
+ * after the twelfth is that day, so February and the leap day stay the
+ * calendar's problem — the same trick `planFiscalYear` uses, for the same
+ * reason.
+ */
+export function plannedFiscalYear(
+  code: string,
+  startMonth: number,
+): { readonly code: string; readonly startsOn: string; readonly endsOn: string } {
+  const year = Number(code)
+  const starts = new Date(Date.UTC(year, startMonth - 1, 1))
+  const ends = new Date(Date.UTC(year, startMonth - 1 + 12, 0))
+
+  return {
+    code,
+    startsOn: starts.toISOString().slice(0, 10),
+    endsOn: ends.toISOString().slice(0, 10),
+  }
+}
+
+/**
+ * The first day of the year after this one, which is where an opening balance
+ * lands.
+ *
+ * `POST /fiscal-years/close` refuses to carry balances forward when no period
+ * contains this date, and says so with the date in it. The screen works out the
+ * same date so that it can offer the year that is missing rather than only
+ * repeating the refusal.
+ */
+export function dayAfter(date: string): string {
+  const next = new Date(`${date}T00:00:00Z`)
+  next.setUTCDate(next.getUTCDate() + 1)
+  return next.toISOString().slice(0, 10)
+}
+
+/**
+ * Whether the administration has a period for the day after `year` ends.
+ *
+ * The condition the close checks before it posts anything. Read here off the
+ * years the screen already has, so "you have no next year" is answered before
+ * the request rather than by it.
+ */
+export function hasYearAfter(years: readonly FiscalYearOption[], year: FiscalYearOption): boolean {
+  const opening = dayAfter(year.endsOn)
+  return years.some((other) => other.startsOn <= opening && opening <= other.endsOn)
+}
