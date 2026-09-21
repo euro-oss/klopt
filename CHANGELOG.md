@@ -25,10 +25,14 @@ the ADR is where the reasoning is.
   picker, an appearance picker and a sign-out link stacked against the bottom of a
   rail that already carries twenty destinations. Four of those five controls are
   settled once and then read every time the eye reaches the end of the navigation.
-- **Taal, Weergave and Afmelden are in a menu that opens upward** from that row,
+- **Taal, Weergave and Uitloggen are in a menu that opens upward** from that row,
   with the role line, because the row is the last thing on the screen and a panel
   below it would be off the bottom of the viewport. `Esc` closes it and the focus
   goes back to the row.
+- **Short rows, not SelectFields:** `NL | EN` and `Licht | Donker | Systeem`, with
+  the selected option and keyboard focus taking the accent yellow fill. Systeem
+  follows the OS; a boot script in `<head>` settles it before the body paints so a
+  dark OS does not flash white.
 - **`?` and `⌘K` stay where they were.** They are global, and a global key that
   lives in somebody's account menu is a key nobody finds.
 - The rail is still `w-60`, both themes are still light-default, and the panel is

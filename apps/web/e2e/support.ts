@@ -128,7 +128,7 @@ export async function chooseOption(
 /** Sign out from the shell, which is now one click inside the account menu. */
 export async function signOut(page: Page): Promise<void> {
   await openAccountMenu(page)
-  await page.getByRole('button', { name: 'Afmelden' }).click()
+  await page.getByRole('button', { name: 'Uitloggen' }).click()
 }
 
 /**
@@ -138,6 +138,10 @@ export async function signOut(page: Page): Promise<void> {
  * navigation, so a spec that changed the language and then clicked a nav link
  * would be clicking at an overlay — the "element intercepts pointer events"
  * flake, arriving a screen later than its cause.
+ *
+ * The preferences are short button rows (NL|EN, Licht|Donker|Systeem), not
+ * SelectFields, so this clicks a pressed-style button inside the labelled
+ * group rather than opening a listbox.
  */
 export async function chooseInAccountMenu(
   page: Page,
@@ -145,7 +149,7 @@ export async function chooseInAccountMenu(
   option: string | RegExp,
 ): Promise<void> {
   await openAccountMenu(page)
-  await chooseOption(page, label, option)
+  await page.getByRole('group', { name: label }).getByRole('button', { name: option }).click()
 
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toBeHidden()

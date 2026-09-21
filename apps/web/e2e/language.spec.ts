@@ -66,7 +66,7 @@ test('choosing a language sticks, and outranks the browser', async ({ browser })
 
   await expect(page.getByRole('link', { name: 'Journaalposten' })).toBeVisible()
 
-  await chooseInAccountMenu(page, 'Taal / Language', 'English')
+  await chooseInAccountMenu(page, 'Taal', 'EN')
 
   // The navigation changes without a reload.
   await expect(page.getByRole('link', { name: 'Journal entries' })).toBeVisible()
@@ -85,7 +85,7 @@ test('the choice survives a new tab on the same browser', async ({ browser }) =>
   const page = await context.newPage()
   await anAdministration(page)
 
-  await chooseInAccountMenu(page, 'Taal / Language', 'English')
+  await chooseInAccountMenu(page, 'Taal', 'EN')
   await expect(page.getByRole('link', { name: 'Journal entries' })).toBeVisible()
 
   const second = await context.newPage()
@@ -111,7 +111,7 @@ test('a server-computed label follows the reader, not the server', async ({ brow
   const page = await context.newPage()
   await anAdministration(page)
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
-  await chooseInAccountMenu(page, 'Taal / Language', 'English')
+  await chooseInAccountMenu(page, 'Taal', 'EN')
   await expect(page.getByRole('link', { name: 'Journal entries' })).toBeVisible()
 
   await page.goto('/reports/balance-sheet')
@@ -180,7 +180,7 @@ test('a domain refusal is in the reader’s language, with its numbers intact', 
   await expect(page.getByText('No account 9999.')).toHaveCount(0)
 
   // And the same refusal in English, for somebody who asked for English.
-  await chooseInAccountMenu(page, 'Taal / Language', 'English')
+  await chooseInAccountMenu(page, 'Taal', 'EN')
   await page.getByRole('link', { name: 'Journal entries' }).click()
   await page.getByRole('link', { name: /New journal entry/ }).click()
   await page.getByLabel('Description', { exact: true }).fill('Wrong account')

@@ -30,6 +30,7 @@ describe('the bottom of the sidebar', () => {
       '<ThemePicker />',
       'action="/sign-out"',
       'shell.role',
+      'shell.account.signOut',
     ]) {
       expect(menu, inside).toContain(inside)
     }
@@ -37,6 +38,11 @@ describe('the bottom of the sidebar', () => {
 
   it('opens upward, because the trigger is the last thing on the screen', () => {
     expect(menu).toContain('side="top"')
+  })
+
+  it('offers Systeem beside Licht and Donker', () => {
+    expect(shell).toContain("value: 'system'")
+    expect(shell).toContain("t('theme.system')")
   })
 
   it('does not go live before React does', () => {

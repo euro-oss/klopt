@@ -2,50 +2,78 @@ import { describe, expect, it } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DEFAULT_THEME, isTheme, resolveTheme, themeClass } from '../../src/lib/theme.js'
+import {
+  DEFAULT_THEME_PREFERENCE,
+  isThemePreference,
+  resolveAppearance,
+  resolveThemePreference,
+  THEME_BOOT_SCRIPT,
+  THEME_COOKIE,
+  themeClass,
+} from '../../src/lib/theme.js'
 
 /**
- * Two themes, light first.
+ * Three preferences, light first.
  *
  * The rules are small enough to state: what was chosen wins, anything else is
- * light, and dark is the only one that puts a class on the document. They are
- * worth a test anyway, because "the default" is the kind of thing that drifts
- * into "whatever the operating system says" the first time somebody reaches
- * for `matchMedia`.
+ * light, and dark is the only one that puts a class on the document. System
+ * defers to the OS and is settled before first paint by a boot script, not by
+ * a `matchMedia` call during render — which would disagree with the server and
+ * throw the tree away.
  */
 
-describe('which theme a request gets', () => {
+describe('which preference a request gets', () => {
   it('is light when nobody has chosen', () => {
-    expect(resolveTheme(null)).toBe('light')
-    expect(resolveTheme(undefined)).toBe('light')
-    expect(DEFAULT_THEME).toBe('light')
+    expect(resolveThemePreference(null)).toBe('light')
+    expect(resolveThemePreference(undefined)).toBe('light')
+    expect(DEFAULT_THEME_PREFERENCE).toBe('light')
   })
 
   it('is what was chosen', () => {
-    expect(resolveTheme('dark')).toBe('dark')
-    expect(resolveTheme('light')).toBe('light')
+    expect(resolveThemePreference('dark')).toBe('dark')
+    expect(resolveThemePreference('light')).toBe('light')
+    expect(resolveThemePreference('system')).toBe('system')
   })
 
   it('is light when the cookie says something else entirely', () => {
-    // A stale or hand-edited cookie should not be able to produce a third
-    // theme, or none.
-    expect(resolveTheme('midnight')).toBe('light')
-    expect(resolveTheme('')).toBe('light')
+    // A stale or hand-edited cookie should not be able to produce a fourth
+    // preference, or none — and must not silently become system.
+    expect(resolveThemePreference('midnight')).toBe('light')
+    expect(resolveThemePreference('')).toBe('light')
   })
 
-  it('knows a theme from a word', () => {
-    expect(isTheme('dark')).toBe(true)
-    expect(isTheme('Dark')).toBe(false)
-    expect(isTheme(null)).toBe(false)
+  it('knows a preference from a word', () => {
+    expect(isThemePreference('dark')).toBe(true)
+    expect(isThemePreference('system')).toBe(true)
+    expect(isThemePreference('Dark')).toBe(false)
+    expect(isThemePreference(null)).toBe(false)
   })
 })
 
-describe('what the document carries', () => {
+describe('what the document ends up looking like', () => {
+  it('honours light and dark as themselves', () => {
+    expect(resolveAppearance('light', true)).toBe('light')
+    expect(resolveAppearance('dark', false)).toBe('dark')
+  })
+
+  it('asks the OS only when the preference is system', () => {
+    expect(resolveAppearance('system', true)).toBe('dark')
+    expect(resolveAppearance('system', false)).toBe('light')
+  })
+
   it('marks dark and leaves light unmarked', () => {
     // Light being the absence of a class is what makes it the default in the
     // stylesheet as well as in the resolver.
     expect(themeClass('dark')).toBe('dark')
     expect(themeClass('light')).toBeUndefined()
+  })
+})
+
+describe('the boot script that settles system before paint', () => {
+  it('reads the same cookie the server does', () => {
+    expect(THEME_BOOT_SCRIPT).toContain(THEME_COOKIE)
+    expect(THEME_BOOT_SCRIPT).toContain('prefers-color-scheme: dark')
+    expect(THEME_BOOT_SCRIPT).toContain("p==='system'")
   })
 })
 

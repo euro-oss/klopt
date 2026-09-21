@@ -201,6 +201,13 @@ test('the theme is light to start with, and dark stays dark', async ({ page }) =
 
   await chooseInAccountMenu(page, 'Weergave', 'Licht')
   await expect(page.locator('html')).not.toHaveClass(/dark/)
+
+  // Systeem is a preference the cookie can hold; the appearance then follows
+  // the OS. Chromium in these specs is light, so the class comes off.
+  await chooseInAccountMenu(page, 'Weergave', 'Systeem')
+  await expect(page.locator('html')).not.toHaveClass(/dark/)
+  await page.reload()
+  await expect(page.locator('html')).not.toHaveClass(/dark/)
 })
 
 test('ageing is in the navigation, on both sides', async ({ page }) => {

@@ -58,22 +58,27 @@ export const nl = {
   'shell.yearClosed': '{year} (afgesloten)',
   'shell.role': 'rol: {role}',
   'shell.signOut': 'Afmelden',
+  // The account menu says Uitloggen; the no-administration and setup screens
+  // keep Afmelden. Same act, different chrome — Design wants the short verb
+  // where the eye already is.
+  'shell.account.signOut': 'Uitloggen',
   'shell.help': 'Sneltoetsen',
   'shell.skipToContent': 'Naar de inhoud',
   'shell.navigation': 'Hoofdnavigatie',
   'shell.newEntry': 'Nieuwe journaalpost',
 
-  // Language, which is the one setting that has to be findable in a language
-  // you cannot read — so it is labelled in both.
-  'language.label': 'Taal / Language',
-  'language.nl': 'Nederlands',
-  'language.en': 'English',
+  // Short rows in the account menu: NL | EN, not bilingual SelectFields.
+  'language.label': 'Taal',
+  'language.nl': 'NL',
+  'language.en': 'EN',
   'language.saved': 'Taal gewijzigd.',
 
-  // Licht of donker. Naast de taal, want het is hetzelfde soort keuze.
+  // Licht | Donker | Systeem. Systeem volgt het besturingssysteem.
   'theme.label': 'Weergave',
   'theme.light': 'Licht',
   'theme.dark': 'Donker',
+  'theme.system': 'Systeem',
+  'theme.systemHint': 'Volgt het besturingssysteem',
 
   // Signing in. The heading is the product name, so it is not translated.
   'signIn.unreachable': 'De server is niet bereikbaar.',

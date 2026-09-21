@@ -37,16 +37,19 @@ test('the bottom of the rail is one row, not a settings panel', async ({ page })
   await expect(profile.getByRole('button')).toHaveCount(1)
 
   // The four that moved. None of them is on the screen until somebody asks.
-  await expect(page.getByLabel('Taal / Language')).toHaveCount(0)
+  await expect(page.getByLabel('Taal')).toHaveCount(0)
   await expect(page.getByLabel('Weergave')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Afmelden' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Uitloggen' })).toHaveCount(0)
   await expect(page.getByText(/^rol: /)).toHaveCount(0)
 
   await openAccountMenu(page)
 
-  await expect(page.getByLabel('Taal / Language')).toBeVisible()
+  await expect(page.getByLabel('Taal')).toBeVisible()
   await expect(page.getByLabel('Weergave')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Afmelden' })).toBeVisible()
+  await expect(
+    page.getByRole('group', { name: 'Weergave' }).getByRole('button', { name: 'Systeem' }),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Uitloggen' })).toBeVisible()
   await expect(page.getByText(/^rol: /)).toBeVisible()
 })
 
@@ -93,10 +96,10 @@ test('the row is reachable by keyboard, and opens on Enter', async ({ page }) =>
 })
 
 test('signing out from the menu still signs you out', async ({ page }) => {
-  await anAdministration(page, 'Afmelden BV')
+  await anAdministration(page, 'Uitloggen BV')
 
   await openAccountMenu(page)
-  await page.getByRole('button', { name: 'Afmelden' }).click()
+  await page.getByRole('button', { name: 'Uitloggen' }).click()
 
   await expect(page).toHaveURL(/\/sign-in$/)
   await expect(page.getByRole('button', { name: 'Stuur me een code' })).toBeVisible()
