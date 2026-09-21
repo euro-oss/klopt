@@ -5,6 +5,7 @@ import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatMinorUnits, parseMinorUnits, percentOf } from '~/lib/format'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
+import { AccountPicker } from '~/components/finance/account-picker'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { capturePurchaseInvoice } from '~/server/purchase'
@@ -366,21 +367,16 @@ function NewPurchaseInvoice() {
                 />
               </td>
               <td className="py-1">
-                <SelectField
+                <AccountPicker
                   label={t('invoiceNew.accountLine', { line: String(index + 1) })}
                   labelHidden
+                  accounts={costAccounts}
                   value={line.accountNumber}
                   disabled={!hydrated}
                   onValueChange={(next) => {
                     update(index, { accountNumber: next })
                   }}
-                >
-                  {costAccounts.map((account) => (
-                    <SelectOption key={account.number} value={account.number}>
-                      {account.number} {account.name}
-                    </SelectOption>
-                  ))}
-                </SelectField>
+                />
               </td>
               <td className="py-1">
                 <SelectField

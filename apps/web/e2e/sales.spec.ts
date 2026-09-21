@@ -176,10 +176,10 @@ test('a posted journal entry goes through, which it could not before', async ({ 
   await page.getByLabel('Rekening regel 2').fill('0500')
   await page.getByLabel('Credit regel 2').fill('1000,00')
 
-  await page
-    .getByRole('button', { name: /Boeken/ })
-    .first()
-    .click()
+  // Posting asks first: the journal is append-only, so the form shows what it is
+  // about to write before it writes it (docs/keyboard-map.md, principle 4).
+  await page.getByRole('button', { name: 'Boeken', exact: true }).click()
+  await page.getByRole('button', { name: 'Definitief boeken' }).click()
 
   // Not "Every write needs an Idempotency-Key header", which is what this did
   // before the key was threaded through the payload.

@@ -49,30 +49,29 @@ test('an owner fills in the details an e-invoice needs, and they stick', async (
   await expect(page.getByLabel('IBAN')).toHaveValue('NL02ABNA0123456789')
 })
 
-test('a select set back to its empty option clears the field, not sets a sentinel', async ({
-  page,
-}) => {
-  // The selects are Radix, which refuses an option whose value is the empty
-  // string, so `SelectField` carries `''` under an assumed name and swaps it
-  // back for the hidden input the form actually submits. If that ever stopped
-  // round-tripping, "Niet afsplitsen" would save a literal sentinel and the
-  // handler would reject it — or worse, store it.
+test('an account field set back to "no account" clears it, and stays cleared', async ({ page }) => {
+  // The account field is a combobox over a hidden input, which is what the form
+  // actually submits. "Niet afsplitsen" has to arrive as an empty string: if it
+  // ever carried a placeholder of its own the handler would reject it — or
+  // worse, store it and split bank charges to an account nobody has.
   await anOwner(page, 'Bankkosten BV')
   await page.goto('/settings')
+
+  const account = page.getByRole('combobox', { name: 'Rekening voor bankkosten' })
 
   await chooseOption(page, 'Rekening voor bankkosten', /^4300 /)
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 
   await page.reload()
-  await expect(page.getByLabel('Rekening voor bankkosten')).toHaveText(/^4300 /)
+  await expect(account).toHaveValue('4300')
 
   await chooseOption(page, 'Rekening voor bankkosten', 'Niet afsplitsen')
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 
   await page.reload()
-  await expect(page.getByLabel('Rekening voor bankkosten')).toHaveText('Niet afsplitsen')
+  await expect(account).toHaveValue('')
 })
 
 test('a bad country code is reported instead of silently dropped', async ({ page }) => {

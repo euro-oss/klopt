@@ -89,13 +89,17 @@ test('a bookkeeper works through the queue with the keyboard', async ({ page }) 
   await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
   await expect(queue).toHaveCount(3)
 
-  // `x` skips the next one, which is the other half of getting through a queue.
-  await page.keyboard.press('x')
+  // Skipping is the other half of getting through a queue, and it is a button:
+  // `x` used to do it in one keystroke, which made "not this one" as cheap as
+  // booking (Alpha 4 oracle, docs/keyboard-map.md).
+  await page.getByRole('button', { name: 'Overslaan' }).click()
   await expect(page.getByText('Overgeslagen.')).toBeVisible()
   await expect(queue).toHaveCount(2)
 })
 
-test('a payment quoting its invoice number is one keystroke', async ({ page }) => {
+test('a payment is booked by confirming the candidate, not by trusting the top one', async ({
+  page,
+}) => {
   await withStatement(page, 'Koppelen Factuur BV')
 
   // The fixture's first line says "Factuur 2026-0001" and is 1210,00 — the
@@ -135,9 +139,39 @@ test('a payment quoting its invoice number is one keystroke', async ({ page }) =
   await expect(suggestion).toBeVisible()
   await expect(page.getByText('99%')).toBeVisible()
 
-  // One keystroke. That is the whole feature.
+  // Two keystrokes, and the second one is aimed. `Enter` from the queue moves
+  // into the panel and lands on the candidate that would be booked — it does not
+  // book the top suggestion from the queue, which is the thing Alpha 4 took out:
+  // the line being agreed to was off to the side of the key being pressed.
+  await page.keyboard.press('Enter')
+  await expect(page.locator('li[aria-current="true"]').filter({ hasText: '99%' })).toBeFocused()
+  await expect(page.getByText(/Geboekt als journaalpost/)).toHaveCount(0)
+
   await page.keyboard.press('Enter')
   await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
+})
+
+test('the keys the match screen prints are the keys it answers to', async ({ page }) => {
+  // The registry is the source of the chrome, so this is really a check that the
+  // screen stopped promising `1`–`9` and `x` when it stopped listening for them.
+  await withStatement(page, 'Toetsen BV')
+  await page.goto('/bank/match')
+  await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
+  await hydrated(page)
+
+  const panel = page.getByRole('complementary', { name: 'Sneltoetsen' })
+  await expect(panel).toContainText('Paneel openen / voorstel boeken')
+  await expect(panel).toContainText('Keuze in het paneel wissen')
+  await expect(panel).toContainText('Paneel sluiten')
+  await expect(panel.getByText('1–9')).toHaveCount(0)
+  await expect(panel.getByText('X', { exact: true })).toHaveCount(0)
+
+  // And a digit no longer books anything.
+  const queue = page.getByRole('list', { name: 'Wachtrij' }).getByRole('listitem')
+  await expect(queue).toHaveCount(4)
+  await page.keyboard.press('1')
+  await expect(page.getByText(/Geboekt als journaalpost/)).toHaveCount(0)
+  await expect(queue).toHaveCount(4)
 })
 
 /**

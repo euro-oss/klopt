@@ -35,6 +35,8 @@ async function anAdministrationWithAPosting(page: Page): Promise<void> {
   await page.getByLabel('Rekening regel 2').fill('1000')
   await page.getByLabel('Credit regel 2').fill('100,00')
   await post.click()
+  // The form asks before it posts; the journal cannot be edited afterwards.
+  await page.getByRole('button', { name: 'Definitief boeken' }).click()
 
   await expect(page).toHaveURL(/\/entries\/[0-9a-f-]+$/)
 }

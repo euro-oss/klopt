@@ -18,6 +18,122 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Koppelen confirms rather than guesses (alpha 4, product call)
+
+- **`↵` no longer books the top suggestion from the queue.** It opens the panel
+  and lands on the candidate that would be booked; the next `↵` books _that_ one.
+  One keystroke was faster and the line being agreed to was off to the side of the
+  key being pressed — section 7.4's "one-keystroke confirm" is now one keystroke to
+  confirm, with the press before it aiming and posting nothing.
+- **`1`–`9` and `x` are gone**, from the behaviour, the footers, the corner panel
+  and the registry. A digit booked a suggestion the eye had not settled on, and `x`
+  skipped a line as cheaply as `Enter` booked one. Skipping is a button, reachable
+  with `Tab`, which is what a deliberate "not this one" should cost.
+- **`j`/`k`, `↵`, `u` and `Esc`** are the whole keyboard on that screen now, which
+  is what the Alpha 4 board draws.
+
+### The keyboard, on the screen (alpha 4, design pass against the Penpot boards)
+
+- **The chrome the boards draw.** A compact strip of keycaps along the bottom of
+  each pane — under the list, and again under the panel that acts on a row of it —
+  and a panel in the corner with the screen's whole keyboard, on het postvak, de
+  koppelwachtrij, de journaalpost and de nieuwe factuur. Panes are numbered
+  (`1 · POSTVAK`, `2 · NAKIJKEN`), because the spine is a sequence and a reader
+  should see which half the keyboard is in without pressing anything. The printed
+  labels are terse now, because a cap with a sentence beside it is a sentence.
+- **Two panes, two cursors, on the koppelscherm.** `j`/`k` move bank lines from
+  the queue and candidates from inside the panel, scoped by where the focus is
+  rather than by a mode. `u` drops the choice the panel is holding — on a queue of
+  unbooked lines that is the only thing there is to undo, and undoing a _booked_
+  match is a reversal, which stays a button that asks. (What `Enter` does was
+  settled a revision later; see above.)
+- **The buttons print their keys**, as the boards do: "Concept maken (a)",
+  "Terzijde leggen (s)", "Keuze wissen (u)". And the invoice form
+  has the Cancel the board shows, which is Escape's visible twin.
+
+### The keyboard, on the screen (alpha 4)
+
+- **Het postvak is worked like the other two lists.** It was a column of cards
+  and a `Tab` key, which broke the invoice → koppelen → postvak spine at its last
+  screen. `j`/`k` or the arrows move a cursor, `↵` opens a document, `a` makes the
+  draft — once to show the coding, again to book it, because what is approved is
+  the coding — `s` sets it aside and `Escape` closes the panel and then leaves the
+  list. Setting aside asks for its reason in a field rather than a browser
+  `prompt()`, which could not be escaped back to the card.
+- **The keys are printed on the screens they work on.** Keycaps with a yellow
+  outline along the bottom of the entry form, the invoice form and list, the
+  koppelscherm and het postvak, and floating above the postvak queue. They are
+  declared as binding ids, so a screen cannot print a key it has not registered.
+  The sidebar prints its shortcuts instead of revealing them on hover — a
+  keyboard user never hovers — and the `?` sheet and the palette use the same
+  caps, so `SPACE` and `A-Z` are `Space` and `A–Z` now.
+- **One mark for "the keyboard is here": a yellow line.** The row cursor, the
+  selected koppel-line and the focused postvak card are outlined in the accent
+  rather than filled with it; a selected table row is marked at its edge. A
+  column of forty filled rows was a colour swatch, not a ledger.
+- **The invoice screens got the rest of their keyboard.** In the form, `Enter` in
+  a field no longer saves (that is "Enter on primary save, not mid-field"),
+  `Cmd`+`Enter` shows what will be saved and saves on the second press, and
+  `Escape` leaves — twice, if there is something to lose. On a draft invoice,
+  `Cmd`+`Enter` issues it after showing what that means: a number out of a gapless
+  series and an entry in the chain.
+- **Square, everywhere on the spine.** The radius utilities are gone from the
+  screens and components the keyboard spine runs through. The scale has been zero
+  since the palette landed, so they described a curve that does not exist.
+- **`u` to unmatch is not bound, and the map says why.** There is no unmatch
+  operation in `/api/v1`, and a booked match is undone by a reversal — which
+  principle 4 keeps as a button that asks. It is the one place the map and the
+  design board disagree on purpose.
+
+### The keyboard, finished (alpha 4)
+
+- **One account picker, on every screen that asks for an account.** Type a number
+  or a word: `1300`, `deb` and `debiteuren` all find Debiteuren, and each match
+  shows both. It replaces a native `<datalist>` over account numbers on the
+  journaalpost screen — perfect for somebody who knows the chart by heart, no use
+  to anybody else — and a `<select>` over two hundred accounts everywhere else.
+  Arrows move, `Enter` takes the highlighted match, `Tab` takes it and moves on,
+  `Escape` leaves the field as it was, and the list opens on focus so a field
+  reached by `Tab` can be typed at. A blocked account is listed, marked and not
+  selectable, because the ledger refuses to post to one and hiding it turns that
+  refusal into "my account is missing"; a number no account answers to is kept as
+  typed and flagged under the field, so nothing is silently replaced and nothing
+  invalid is silently accepted.
+- **Every table has a cursor, type-ahead and a copy.** `↑`/`↓` or `j`/`k` move a
+  visible cursor, any other character jumps to the first row that starts with it,
+  `Space` selects, `Shift` and an arrow extends, `Cmd/Ctrl`+`A` takes every loaded
+  row and `Cmd/Ctrl`+`C` copies the selection as TSV that pastes into a
+  spreadsheet with its columns intact. "Get this into Excel" is a daily move and
+  the answer used to be a mouse drag. One row is in the tab order at a time, and
+  the cursor is remembered as a row rather than a position, so a list that grows
+  underneath it does not jump back to the top.
+- **The journal-entry keys the registry had been printing now work.**
+  `Cmd/Ctrl`+`D` duplicates the line the cursor is in and `Cmd/Ctrl`+`Backspace`
+  removes it — but only where the browser would not have done something with the
+  key itself, so a half-typed amount is cleared rather than a line thrown away.
+  `Cmd/Ctrl`+`Enter` shows the dagboek, the date, the line count and the total
+  with the cursor on the button that posts, and posts on the second press: the
+  journal is append-only, so the key that writes to it asks. An entry that does
+  not balance says so instead, through the same check the button uses.
+- **The dagboek comes from the administration**, not from `MEM/VRK/INK/BNK` in a
+  constant, which omitted the kasboek and anything anybody had added. And the
+  document date is its own field: an invoice received in January and booked in
+  February has two dates, and the form was sending one of them twice.
+- **A navigation moves the focus onto the screen it opened.** Nothing does that
+  by itself in a single-page application: the focus stays on whatever opened the
+  screen, or lands on `<body>` when that control went with it, and the next `Tab`
+  starts at the top of the window. Closing the posting confirmation puts the
+  focus back where it was, and a `Select` no longer opens its menu on
+  `Cmd`+`Enter` — which used to leave the focus in a popup the navigation then
+  removed.
+- **`docs/keyboard-map.md` describes what ships.** It used to say the tables were
+  "the design, not the state of the code"; they are the code now, and the keys
+  that are deliberately unbound — `/` until there is a search to focus, `←`/`→`
+  until a table addresses cells, remapping — say so where the key would be.
+  `apps/web/e2e/keyboard.spec.ts` drives an invoice, a bank match and the postvak
+  with no `click()` anywhere in the flow, which is the only way that claim stays
+  true.
+
 ### A product palette: white, black and yellow
 
 - **Three colours.** `#FFFFFF`, `#000000` and `#FFD51E`, named once in
@@ -72,8 +188,8 @@ the ADR is where the reasoning is.
   publishes, so it reports what is _due_ and says so.
 - **The queue is worked from the keyboard.** Focus lands on the first row,
   `j`/`k` and the arrows move, `Enter` opens, `Escape` hands the keyboard back.
-  `g v` and `g c` go to the two ageing reports. The rest of the list keyboard
-  in `docs/keyboard-map.md` is still Alpha 4's job.
+  `g v` and `g c` go to the two ageing reports. The rest of the list keyboard in
+  `docs/keyboard-map.md` landed in alpha 4, above.
 
 ## [0.1.0] — 2026-09-17
 

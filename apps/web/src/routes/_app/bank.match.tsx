@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
-import { SelectField, SelectOption } from '~/components/ui/select-field'
+import { AccountPicker } from '~/components/finance/account-picker'
+import { Keycap, ShortcutFooter, ShortcutPanel, StepBadge } from '~/components/ui/keycap'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
+import { cn } from '~/lib/utils'
 import {
   confirmMatch,
   ignoreTransaction,
@@ -107,7 +109,25 @@ function MatchQueue() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [manualAccount, setManualAccount] = useState('')
+  /**
+   * Which candidate the panel is pointing at.
+   *
+   * Two panes, two cursors, scoped by where the focus is: `j`/`k` move lines
+   * from the queue and candidates from inside the panel, which is the model the
+   * Alpha 4 board draws. `Enter` books what is pointed at, and the panel starts
+   * on the best suggestion — so a line whose top answer is right is still the
+   * one keystroke spec 7.4 asks for.
+   */
+  const [candidate, setCandidate] = useState(0)
   const keys = useRef<Map<string, string>>(new Map())
+  const rows = useRef<(HTMLButtonElement | null)[]>([])
+  const panel = useRef<HTMLDivElement | null>(null)
+  const candidates = useRef<(HTMLLIElement | null)[]>([])
+
+  const moveCandidate = useCallback((to: number): void => {
+    setCandidate(to)
+    candidates.current[to]?.focus()
+  }, [])
 
   const line = queue[Math.min(selected, Math.max(0, queue.length - 1))]
   const lineId = line?.id
@@ -234,12 +254,21 @@ function MatchQueue() {
   }, [line, busy, keyFor, router, t])
 
   /**
-   * The keyboard is the point.
+   * The keyboard is the point, and it confirms rather than guesses.
    *
-   * Bound on the window rather than a focused element: the hands never leave
-   * the keys, so there is nothing to focus first. `Enter` takes the best
-   * suggestion because that is what it is for; a number takes a specific one,
-   * which matters when the top two are close.
+   * Bound on the window rather than a focused element: the hands never leave the
+   * keys, so there is nothing to focus first.
+   *
+   * Four keys, which is the Alpha 4 oracle and a product decision rather than a
+   * simplification. `Enter` from the queue moves into the panel and lands on the
+   * candidate that will be booked; `Enter` there books *that* candidate. It used
+   * to book the top suggestion straight from the queue — one keystroke, and the
+   * thing a bookkeeper was agreeing to was off to the side of the key they
+   * pressed. Two keystrokes, and the second one is aimed.
+   *
+   * `1`–`9` and `x` are gone with it: a digit booked a suggestion the eye had not
+   * settled on, and `x` skipped a line as fast as `Enter` booked one. Skipping is
+   * a button now, which is what a deliberate "not this one" should cost.
    */
   useEffect(() => {
     if (!hydrated) return
@@ -255,33 +284,72 @@ function MatchQueue() {
       if (target !== null && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return
       if (event.metaKey || event.ctrlKey || event.altKey) return
 
+      // Nor from a focused control. `Enter` on a button is the button, and a
+      // window handler that took it would leave somebody who tabbed to "Boeken"
+      // pressing a key that books something else — or, with no suggestion to
+      // book, nothing at all.
+      const onControl = target !== null && /^(BUTTON|A)$/.test(target.tagName)
+      if (onControl && (event.key === 'Enter' || event.key === ' ')) return
+
+      const offered = suggestions ?? []
+      // Which pane the keyboard is in, asked of the DOM rather than kept as a
+      // mode: the focus already knows, and a mode would be a second answer that
+      // can disagree with it.
+      const inPanel = target !== null && (panel.current?.contains(target) ?? false)
+      const here = Math.min(candidate, Math.max(offered.length - 1, 0))
+
       if (event.key === 'ArrowDown' || event.key === 'j') {
         event.preventDefault()
-        setSelected((current) => Math.min(current + 1, queue.length - 1))
+        if (inPanel) moveCandidate(Math.min(here + 1, Math.max(offered.length - 1, 0)))
+        else setSelected((current) => Math.min(current + 1, queue.length - 1))
         return
       }
       if (event.key === 'ArrowUp' || event.key === 'k') {
         event.preventDefault()
-        setSelected((current) => Math.max(current - 1, 0))
+        if (inPanel) moveCandidate(Math.max(here - 1, 0))
+        else setSelected((current) => Math.max(current - 1, 0))
         return
       }
       if (event.key === 'Enter') {
         event.preventDefault()
-        const best = suggestions?.[0]
-        if (best !== undefined) void book(best, null)
-        return
-      }
-      if (event.key === 'x') {
-        event.preventDefault()
-        void skip()
-        return
-      }
-      if (/^[1-9]$/.test(event.key)) {
-        const chosen = suggestions?.[Number(event.key) - 1]
-        if (chosen !== undefined) {
-          event.preventDefault()
-          void book(chosen, null)
+
+        // From the queue: into the panel, onto the candidate that would be
+        // booked. Nothing is posted by this press, which is the whole point of
+        // it — the next one is aimed at something the reader can see.
+        if (!inPanel) {
+          if (offered.length > 0) moveCandidate(here)
+          else
+            panel.current
+              ?.querySelector<HTMLElement>('input:not([disabled]), button:not([disabled])')
+              ?.focus()
+          return
         }
+
+        const chosen = offered[here]
+        if (chosen !== undefined) void book(chosen, null)
+        return
+      }
+      if (event.key === 'u') {
+        // What "unmatch" can honestly mean on a queue of *unbooked* lines: drop
+        // the choice the panel is holding. A booked match is a posted entry, and
+        // the way back from one is a reversal — a deliberate act with a button
+        // that asks (docs/keyboard-map.md, principle 4).
+        event.preventDefault()
+        setManualAccount('')
+        setCandidate(0)
+        setNotice(null)
+        return
+      }
+      if (event.key === 'Escape') {
+        // Out of the panel, back to the line: what the panel was holding is
+        // dropped and the focus goes to the queue, which is where the next
+        // keystroke belongs. Escape abandons the thing you are in.
+        event.preventDefault()
+        setCandidate(0)
+        setManualAccount('')
+        setNotice(null)
+        setError(null)
+        rows.current[selected]?.focus()
       }
     }
 
@@ -289,7 +357,7 @@ function MatchQueue() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [hydrated, queue.length, suggestions, book, skip])
+  }, [hydrated, candidate, moveCandidate, queue.length, selected, suggestions, book])
 
   if (!transactions.ok) {
     return (
@@ -308,16 +376,14 @@ function MatchQueue() {
         title={t('match.title')}
         description={t('match.intro')}
         actions={
-          <Link to="/bank" className="border-input rounded-md border px-4 py-2 text-sm">
+          <Link to="/bank" className="border-input border px-4 py-2 text-sm">
             {t('match.backToBank')}
           </Link>
         }
       />
 
       {notice !== null && (
-        <p className="border-border text-muted-foreground mb-4 rounded-md border p-3 text-sm">
-          {notice}
-        </p>
+        <p className="border-border text-muted-foreground mb-4 border p-3 text-sm">{notice}</p>
       )}
       {error !== null && (
         <p role="alert" className="text-destructive mb-4 text-sm">
@@ -326,43 +392,61 @@ function MatchQueue() {
       )}
 
       {queue.length === 0 ? (
-        <p className="text-muted-foreground border-border rounded-md border border-dashed p-6 text-sm">
+        <p className="text-muted-foreground border-border border border-dashed p-6 text-sm">
           {t('match.nothingToDo')}
         </p>
       ) : (
-        <div className="grid grid-cols-[22rem_1fr] gap-6">
-          <ol
-            aria-label={t('match.queue')}
-            className="border-border max-h-[36rem] overflow-y-auto rounded-md border"
-          >
-            {queue.map((item, index) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  aria-current={index === selected}
-                  onClick={() => {
-                    setSelected(index)
-                  }}
-                  className={`border-border w-full border-b px-3 py-2 text-left text-sm last:border-b-0 ${
-                    index === selected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
-                  }`}
-                >
-                  <span className="flex justify-between gap-2">
-                    <span className="tabular text-xs">{formatDate(item.bookingDate)}</span>
-                    <Money amount={item.amount} className="text-xs" />
-                  </span>
-                  <span className="mt-0.5 block truncate">
-                    {item.counterpartyName ??
-                      (item.description === '' ? t('match.noCounterparty') : item.description)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ol>
-
+        <div className="grid grid-cols-[22rem_1fr] gap-6 xl:mr-72">
           <div>
+            <div className="mb-2">
+              <StepBadge step={1}>{t('match.stepQueue')}</StepBadge>
+            </div>
+            <ol
+              aria-label={t('match.queue')}
+              className="border-border max-h-[36rem] overflow-y-auto border"
+            >
+              {queue.map((item, index) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    ref={(element) => {
+                      rows.current[index] = element
+                    }}
+                    aria-current={index === selected}
+                    tabIndex={index === selected ? 0 : -1}
+                    onClick={() => {
+                      setSelected(index)
+                      setCandidate(0)
+                    }}
+                    className={cn(
+                      'border-border w-full border-b px-3 py-2 text-left text-sm outline-none last:border-b-0',
+                      index === selected
+                        ? 'outline-primary bg-primary/5 outline-2 -outline-offset-2'
+                        : 'hover:bg-muted/60',
+                    )}
+                  >
+                    <span className="flex justify-between gap-2">
+                      <span className="tabular text-xs">{formatDate(item.bookingDate)}</span>
+                      <Money amount={item.amount} className="text-xs" />
+                    </span>
+                    <span className="mt-0.5 block truncate">
+                      {item.counterpartyName ??
+                        (item.description === '' ? t('match.noCounterparty') : item.description)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+
+            <ShortcutFooter ids={['match.next', 'match.previous', 'match.confirm']} />
+          </div>
+
+          <div ref={panel}>
+            <div className="mb-2">
+              <StepBadge step={2}>{t('match.stepPanel')}</StepBadge>
+            </div>
             {line !== undefined && (
-              <div className="border-border mb-4 rounded-md border p-4">
+              <div className="border-border mb-4 border p-4">
                 <div className="flex items-baseline justify-between gap-4">
                   <div>
                     <p className="font-medium">
@@ -384,7 +468,7 @@ function MatchQueue() {
             {loading && <p className="text-muted-foreground text-sm">{t('match.searching')}</p>}
 
             {suggestions !== null && suggestions.length === 0 && (
-              <p className="text-muted-foreground border-border mb-4 rounded-md border border-dashed p-4 text-sm">
+              <p className="text-muted-foreground border-border mb-4 border border-dashed p-4 text-sm">
                 {t('match.noSuggestion')}
               </p>
             )}
@@ -393,18 +477,27 @@ function MatchQueue() {
               {(suggestions ?? []).map((suggestion, index) => (
                 <li
                   key={`${suggestion.strategy}-${String(index)}`}
-                  className="border-border flex items-start gap-3 rounded-md border p-3"
+                  ref={(element) => {
+                    candidates.current[index] = element
+                  }}
+                  tabIndex={index === candidate ? 0 : -1}
+                  aria-current={index === candidate ? true : undefined}
+                  onFocus={() => {
+                    setCandidate(index)
+                  }}
+                  className={cn(
+                    'border-border flex items-start gap-3 border p-3 outline-none',
+                    index === candidate &&
+                      'outline-primary bg-primary/5 outline-2 -outline-offset-2',
+                  )}
                 >
                   <span
-                    className={`tabular rounded px-2 py-1 text-xs font-medium ${confidenceClass(suggestion.confidence)}`}
+                    className={`tabular px-2 py-1 text-xs font-medium ${confidenceClass(suggestion.confidence)}`}
                   >
                     {suggestion.confidence}%
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="text-muted-foreground block text-xs">
-                      {index < 9 && (
-                        <kbd className="border-input mr-1 rounded border px-1">{index + 1}</kbd>
-                      )}
                       {strategyOf(suggestion.strategy)}
                     </span>
                     <span className="block text-sm">{suggestion.reason}</span>
@@ -420,7 +513,7 @@ function MatchQueue() {
                     onClick={() => {
                       void book(suggestion, null)
                     }}
-                    className="bg-primary text-primary-foreground shrink-0 rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+                    className="bg-primary text-primary-foreground shrink-0 px-3 py-1.5 text-sm font-medium disabled:opacity-50"
                   >
                     {t('match.book')}
                   </button>
@@ -428,30 +521,36 @@ function MatchQueue() {
               ))}
             </ol>
 
-            <div className="border-border flex items-end gap-3 rounded-md border p-4">
-              <SelectField
+            <div className="border-border flex items-end gap-3 border p-4">
+              <AccountPicker
                 label={t('match.chooseYourself')}
+                accounts={postable}
                 value={manualAccount}
                 onValueChange={setManualAccount}
+                emptyOption={t('match.choosePlaceholder')}
                 disabled={!hydrated}
                 className="flex-1"
-              >
-                <SelectOption value="">{t('match.choosePlaceholder')}</SelectOption>
-                {postable.map((account) => (
-                  <SelectOption key={account.number} value={account.number}>
-                    {account.number} {account.name}
-                  </SelectOption>
-                ))}
-              </SelectField>
+              />
               <button
                 type="button"
                 disabled={busy || !hydrated || manualAccount === ''}
                 onClick={() => {
                   void book(null, manualAccount)
                 }}
-                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+                className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
                 {t('match.book')}
+              </button>
+              <button
+                type="button"
+                disabled={busy || !hydrated || (manualAccount === '' && candidate === 0)}
+                onClick={() => {
+                  setManualAccount('')
+                  setCandidate(0)
+                }}
+                className="border-input border px-4 py-2 text-sm disabled:opacity-50"
+              >
+                {t('match.clearChoice')} <Keycap className="ml-1.5">u</Keycap>
               </button>
               <button
                 type="button"
@@ -459,14 +558,19 @@ function MatchQueue() {
                 onClick={() => {
                   void skip()
                 }}
-                className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+                className="border-input border px-4 py-2 text-sm disabled:opacity-50"
               >
-                {t('match.skip')}{' '}
-                <kbd className="border-input ml-1 rounded border px-1 text-xs">x</kbd>
+                {t('match.skip')}
               </button>
             </div>
 
+            <ShortcutFooter ids={['match.next', 'match.confirm', 'match.clear', 'match.leave']} />
+
             <p className="text-muted-foreground mt-4 max-w-2xl text-xs">{t('match.learnNote')}</p>
+
+            <ShortcutPanel
+              ids={['match.confirm', 'match.next', 'match.previous', 'match.clear', 'match.leave']}
+            />
           </div>
         </div>
       )}

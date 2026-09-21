@@ -191,6 +191,7 @@ test('a hand-typed movement on a BTW account has to be accepted, with a reason',
   await page.getByLabel('Rekening regel 2').fill('1100')
   await page.getByLabel('Credit regel 2').fill('180,00')
   await page.getByRole('button', { name: 'Boeken', exact: true }).click()
+  await page.getByRole('button', { name: 'Definitief boeken' }).click()
   await expect(page.getByRole('heading', { name: /BNK 1/ })).toBeVisible()
 
   await withVatNumber(page)

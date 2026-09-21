@@ -310,9 +310,11 @@ invoice behind it teaches a rule for next time
 journal entry through the same API a manual entry uses, so period control and
 the hash chain apply without banking knowing they exist.
 
-In the browser that queue is keyboard-first: `↑↓` moves, `↵` books the best
-suggestion, `1`–`9` pick one, `x` skips. A hundred lines should be a hundred
-keystrokes.
+In the browser that queue is keyboard-first and confirms rather than guesses:
+`↑↓` or `j`/`k` move — lines in the queue, candidates in the panel — `↵` opens the
+panel and then books the candidate it is pointing at, `u` drops that choice and
+`Esc` closes it. Two keystrokes a line, and the second one is aimed at something
+the reader can see.
 
 Pay your suppliers, if somebody else agrees:
 
@@ -427,7 +429,10 @@ Round-tripping is tested, not claimed: an export from one administration
 imports into another and produces an identical balance sheet.
 
 Keyboard-first is a contract, not a nice-to-have — see
-[`docs/keyboard-map.md`](docs/keyboard-map.md), written before the screens were.
+[`docs/keyboard-map.md`](docs/keyboard-map.md), written before the screens were
+and now describing them: a row cursor with type-ahead and a TSV copy in every
+table, an account picker that matches on number and name, and an invoice, a bank
+match and the postvak cleared without touching a mouse.
 
 ## Compliance surface
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { en } from '../../src/i18n/en.js'
 import { nl } from '../../src/i18n/nl.js'
-import { BINDINGS, BINDINGS_BY_ID, formatBinding } from '../../src/lib/keyboard.js'
+import { BINDINGS, BINDINGS_BY_ID, bindingChips, formatBinding } from '../../src/lib/keyboard.js'
 
 /**
  * The keyboard map is a contract (spec 11.3), and nothing was enforcing the one
@@ -62,6 +62,25 @@ describe('the keyboard map', () => {
       expect(en[binding.label], binding.id).toBeTruthy()
       expect(en[binding.group], binding.id).toBeTruthy()
     }
+  })
+
+  it('prints a key the way a keycap does', () => {
+    // The chrome on the screens is built from these, so `SPACE` and `A-Z` in
+    // raw upper case are not a detail: they are what somebody reads.
+    const chips = (id: string) => bindingChips(BINDINGS_BY_ID.get(id)!)
+
+    expect(chips('list.select')).toEqual(['Space'])
+    expect(chips('list.typeAhead')).toEqual(['A–Z'])
+    expect(chips('picker.next')).toEqual(['Tab'])
+    expect(chips('inbox.leave')).toEqual(['Esc'])
+  })
+
+  it('gives a chord one cap and a sequence two', () => {
+    // `Ctrl` rather than `⌘`, because the tests run where `navigator.platform`
+    // is not a Mac — which is the same resolution the screens get.
+    expect(bindingChips(BINDINGS_BY_ID.get('entry.post')!)).toEqual(['Ctrl↵'])
+    expect(bindingChips(BINDINGS_BY_ID.get('entry.postAndNext')!)).toEqual(['Ctrl⇧↵'])
+    expect(bindingChips(BINDINGS_BY_ID.get('go.dashboard')!)).toEqual(['G', 'D'])
   })
 
   it('indexes every binding by id', () => {

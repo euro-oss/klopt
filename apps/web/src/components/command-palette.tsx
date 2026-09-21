@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { BINDINGS, formatBinding, type Binding } from '~/lib/keyboard'
+import { BINDINGS, bindingChips, type Binding } from '~/lib/keyboard'
+import { Keycap } from '~/components/ui/keycap'
 import { useShortcuts } from '~/lib/use-shortcuts'
 import { cn } from '~/lib/utils'
 import type { MessageKey } from '~/i18n/nl'
@@ -151,7 +152,7 @@ export function CommandPalette() {
       {prefix !== null && (
         <div
           aria-live="polite"
-          className="bg-foreground text-background fixed bottom-4 left-4 z-50 rounded-md px-3 py-1.5 text-sm tabular"
+          className="bg-foreground text-background fixed bottom-4 left-4 z-50 px-3 py-1.5 text-sm tabular"
         >
           {prefix.toUpperCase()} …
         </div>
@@ -223,9 +224,11 @@ export function CommandPalette() {
                           </span>
                           {t(binding.label)}
                         </span>
-                        <kbd className="text-muted-foreground text-xs">
-                          {formatBinding(binding)}
-                        </kbd>
+                        <span className="flex shrink-0 items-center gap-1">
+                          {bindingChips(binding).map((chip, position) => (
+                            <Keycap key={`${binding.id}-${String(position)}`}>{chip}</Keycap>
+                          ))}
+                        </span>
                       </button>
                     </li>
                   ))}
@@ -239,10 +242,15 @@ export function CommandPalette() {
                     <h3 className="text-muted-foreground mb-1 text-xs font-medium">{t(group)}</h3>
                     <dl className="space-y-1">
                       {BINDINGS.filter((binding) => binding.group === group).map((binding) => (
-                        <div key={binding.id} className="flex justify-between text-sm">
+                        <div
+                          key={binding.id}
+                          className="flex items-baseline justify-between gap-4 text-sm"
+                        >
                           <dt>{t(binding.label)}</dt>
-                          <dd className="text-muted-foreground tabular text-xs">
-                            {formatBinding(binding)}
+                          <dd className="flex shrink-0 items-center gap-1">
+                            {bindingChips(binding).map((chip, position) => (
+                              <Keycap key={`${binding.id}-${String(position)}`}>{chip}</Keycap>
+                            ))}
                           </dd>
                         </div>
                       ))}

@@ -189,18 +189,83 @@ export const BINDINGS: readonly Binding[] = [
     to: '/purchases/new',
   },
 
+  // Every ledger table. `j`/`k` are printed rather than the arrows because
+  // `formatBinding` renders a key name, and "ARROWDOWN" is not a key anybody
+  // reads — the arrows do the same thing and the map says so.
+  { id: 'list.next', label: 'keys.listNext', group: 'keys.group.list', keys: 'j' },
+  { id: 'list.previous', label: 'keys.listPrevious', group: 'keys.group.list', keys: 'k' },
+  { id: 'list.open', label: 'keys.listOpen', group: 'keys.group.list', keys: 'enter' },
+  { id: 'list.select', label: 'keys.listSelect', group: 'keys.group.list', keys: 'space' },
+  {
+    id: 'list.selectAll',
+    label: 'keys.listSelectAll',
+    group: 'keys.group.list',
+    keys: 'a',
+    modifiers: ['mod'],
+  },
+  {
+    id: 'list.copy',
+    label: 'keys.listCopy',
+    group: 'keys.group.list',
+    keys: 'c',
+    modifiers: ['mod'],
+  },
+  { id: 'list.typeAhead', label: 'keys.listTypeAhead', group: 'keys.group.list', keys: 'a-z' },
+
+  // The pickers. Listed because a control you have to click to discover is a
+  // control somebody reaches for the mouse for (principle 5).
+  { id: 'picker.choose', label: 'keys.pickerChoose', group: 'keys.group.picker', keys: 'enter' },
+  { id: 'picker.next', label: 'keys.pickerNext', group: 'keys.group.picker', keys: 'tab' },
+  { id: 'picker.close', label: 'keys.pickerClose', group: 'keys.group.picker', keys: 'escape' },
+
   // The dashboard queue. Four keys, the same four the koppelscherm uses, so
   // the two lists in this application that are worked from the keyboard are
-  // worked the same way. The rest of the list keyboard is Alpha 4's job.
+  // worked the same way.
   { id: 'queue.open', label: 'keys.queueOpen', group: 'keys.group.queue', keys: 'enter' },
   { id: 'queue.next', label: 'keys.queueNext', group: 'keys.group.queue', keys: 'j' },
   { id: 'queue.previous', label: 'keys.queuePrevious', group: 'keys.group.queue', keys: 'k' },
   { id: 'queue.leave', label: 'keys.queueLeave', group: 'keys.group.queue', keys: 'escape' },
 
+  // Four keys, by the Alpha 4 oracle: `Enter` opens the panel and then confirms
+  // the candidate the cursor is on. `1`–`9` and `x` were here and are gone — a
+  // digit booked a suggestion nobody had looked at, and `x` made skipping as
+  // cheap as booking. Skipping is a button (docs/keyboard-map.md).
   { id: 'match.confirm', label: 'keys.matchConfirm', group: 'keys.group.match', keys: 'enter' },
-  { id: 'match.skip', label: 'keys.matchSkip', group: 'keys.group.match', keys: 'x' },
   { id: 'match.next', label: 'keys.matchNext', group: 'keys.group.match', keys: 'j' },
   { id: 'match.previous', label: 'keys.matchPrevious', group: 'keys.group.match', keys: 'k' },
+  { id: 'match.clear', label: 'keys.matchClear', group: 'keys.group.match', keys: 'u' },
+  { id: 'match.leave', label: 'keys.matchLeave', group: 'keys.group.match', keys: 'escape' },
+
+  // Het postvak, worked with the same four keys as the koppelscherm and the
+  // werklijst, plus the two that are this screen's own work: approve and
+  // set aside.
+  { id: 'inbox.next', label: 'keys.inboxNext', group: 'keys.group.inbox', keys: 'j' },
+  { id: 'inbox.previous', label: 'keys.inboxPrevious', group: 'keys.group.inbox', keys: 'k' },
+  { id: 'inbox.open', label: 'keys.inboxOpen', group: 'keys.group.inbox', keys: 'enter' },
+  { id: 'inbox.approve', label: 'keys.inboxApprove', group: 'keys.group.inbox', keys: 'a' },
+  { id: 'inbox.skip', label: 'keys.inboxSkip', group: 'keys.group.inbox', keys: 's' },
+  { id: 'inbox.leave', label: 'keys.inboxLeave', group: 'keys.group.inbox', keys: 'escape' },
+
+  {
+    id: 'invoiceForm.save',
+    label: 'keys.invoiceSave',
+    group: 'keys.group.invoiceForm',
+    keys: 'enter',
+    modifiers: ['mod'],
+  },
+  {
+    id: 'invoiceForm.cancel',
+    label: 'keys.invoiceCancel',
+    group: 'keys.group.invoiceForm',
+    keys: 'escape',
+  },
+  {
+    id: 'invoice.issue',
+    label: 'keys.invoiceIssue',
+    group: 'keys.group.invoice',
+    keys: 'enter',
+    modifiers: ['mod'],
+  },
 
   {
     id: 'entry.post',
@@ -242,24 +307,49 @@ export function isApple(): boolean {
   return /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
 }
 
+/** What a key is called on a keycap. `SPACE` is not what is printed on one. */
+function keyLabel(key: string): string {
+  switch (key) {
+    case 'enter':
+      return '↵'
+    case 'backspace':
+      return '⌫'
+    case 'escape':
+      return 'Esc'
+    case 'space':
+      return 'Space'
+    case 'tab':
+      return 'Tab'
+    case 'a-z':
+      return 'A–Z'
+    default:
+      return key.toUpperCase()
+  }
+}
+
 export function formatBinding(binding: Binding): string {
   const mod = isApple() ? '⌘' : 'Ctrl'
   const parts = (binding.modifiers ?? []).map((modifier) =>
     modifier === 'mod' ? mod : modifier === 'shift' ? '⇧' : '⌥',
   )
-  const keys = binding.keys
-    .split(' ')
-    .map((key) =>
-      key === 'enter'
-        ? '↵'
-        : key === 'backspace'
-          ? '⌫'
-          : key === 'escape'
-            ? 'Esc'
-            : key.toUpperCase(),
-    )
-    .join(' then ')
+  const keys = binding.keys.split(' ').map(keyLabel).join(' then ')
   return [...parts, keys].join(binding.modifiers?.length ? '' : ' ')
+}
+
+/**
+ * The binding as separate keycaps.
+ *
+ * `formatBinding` is one string for a sentence; this is what goes on the chrome,
+ * where each key is its own printed cap: `⌘↵` is one chord and therefore one
+ * cap, while `g` then `d` is two caps with a gap between them, because that is
+ * what the hands do.
+ */
+export function bindingChips(binding: Binding): readonly string[] {
+  const mod = isApple() ? '⌘' : 'Ctrl'
+  const held = (binding.modifiers ?? [])
+    .map((modifier) => (modifier === 'mod' ? mod : modifier === 'shift' ? '⇧' : '⌥'))
+    .join('')
+  return binding.keys.split(' ').map((key, index) => (index === 0 ? held : '') + keyLabel(key))
 }
 
 export function matches(binding: Binding, event: KeyboardEvent): boolean {

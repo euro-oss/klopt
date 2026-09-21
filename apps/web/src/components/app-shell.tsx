@@ -3,7 +3,7 @@ import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { setLocale } from '~/server/locale'
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
 import { formatDate } from '~/lib/format'
@@ -23,6 +23,30 @@ import { CommandPalette } from './command-palette'
  * half of the same problem: a shortcut shown and not implemented is a promise
  * the application breaks the first time somebody believes it.
  */
+
+/**
+ * Move the focus onto the screen that just opened.
+ *
+ * Not on the first render: the focus is wherever the page put it, which on a
+ * form screen is the first field, and dragging it to the heading would undo
+ * that. Only when the path changes, which is the moment a real page load would
+ * have reset it — and the moment a dialog or a row that had the focus stops
+ * existing, leaving it on `<body>` with `Tab` starting over from the top.
+ */
+function useFocusOnRoute(path: string): React.RefObject<HTMLElement | null> {
+  const main = useRef<HTMLElement | null>(null)
+  const first = useRef(true)
+
+  useEffect(() => {
+    if (first.current) {
+      first.current = false
+      return
+    }
+    main.current?.focus()
+  }, [path])
+
+  return main
+}
 
 /**
  * The sidebar, in groups.
@@ -184,6 +208,7 @@ export function AppShell({
   onSelectYear: (code: string) => void
 }) {
   const path = useRouterState({ select: (state) => state.location.pathname })
+  const main = useFocusOnRoute(path)
   // The keys are listened for in an effect, so they do nothing until React has
   // taken over. Advertising them before then is the same broken promise as
   // advertising them with no listener at all, only shorter — so the hint
@@ -320,7 +345,10 @@ export function AppShell({
                         >
                           {t(item.key)}
                           {binding !== undefined && shortcutsLive && (
-                            <kbd className="text-muted-foreground tabular text-[10px] opacity-0 group-hover:opacity-100">
+                            // Printed, not revealed on hover: a keyboard user
+                            // never hovers, and a key nobody can see is a key
+                            // nobody uses (docs/keyboard-map.md, principle 5).
+                            <kbd className="text-muted-foreground tabular text-[10px]">
                               {formatBinding(binding)}
                             </kbd>
                           )}
@@ -336,7 +364,16 @@ export function AppShell({
           <Profile userName={userName} userEmail={userEmail} role={role} />
         </nav>
 
-        <main id="main" className="min-w-0 flex-1 p-8">
+        {/*
+          Focusable, and focused on every route change (see `useFocusOnRoute`).
+          In a single-page application a navigation moves nothing: the old screen
+          is replaced and the focus stays on whatever opened it, or lands on
+          `<body>` when that element has gone with the screen. Either way the
+          next `Tab` starts from the wrong place and a screen reader says
+          nothing at all — so the new screen takes the focus, which is what a
+          browser does for a real page load.
+        */}
+        <main id="main" ref={main} tabIndex={-1} className="min-w-0 flex-1 p-8 outline-none">
           {children}
         </main>
       </div>
