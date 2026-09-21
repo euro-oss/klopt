@@ -150,6 +150,26 @@ export const BINDINGS: readonly Binding[] = [
   },
   // `g x` for E**x**act. `g e` is the postvak and `g o` the koppelscherm.
   { id: 'go.exact', label: 'nav.exact', group: 'keys.group.goTo', keys: 'g x', to: '/exact' },
+  // `s` for **s**luiten. Every letter in *boekjaren* was taken by the time this
+  // screen arrived, which is what happens when a keyboard map is real, and
+  // closing a year is what people come here to do.
+  {
+    id: 'go.fiscalYears',
+    label: 'nav.fiscalYears',
+    group: 'keys.group.goTo',
+    keys: 'g s',
+    to: '/fiscal-years',
+  },
+  // `g q` has no mnemonic and is not pretending to: the Product call on #6 left
+  // `c`, `q`, `s` and `v` free, #9 took `c` and `v` for the ouderdomsanalyses,
+  // and *auditfile* shares no free letter with anything. The palette prints it.
+  {
+    id: 'go.auditFile',
+    label: 'nav.auditFile',
+    group: 'keys.group.goTo',
+    keys: 'g q',
+    to: '/audit-file',
+  },
   // `g v` for **v**orderingen and `g c` for **c**rediteuren: `g d` is the
   // dashboard and `g r` the relaties.
   {

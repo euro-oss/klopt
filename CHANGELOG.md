@@ -18,6 +18,99 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Screens for the operations that had none (alpha 3)
+
+Five operations were implemented, tested and exposed over REST, and reachable
+only from a terminal (`docs/ALPHA_ASSESSMENT.md` §3.1). The product was strictly
+less capable than its own API, which is an odd thing to hand to an alpha user.
+Nothing in this section is a new domain operation — the API is the one that was
+already there.
+
+- **Boekjaren (`/fiscal-years`, `g s`).** What is open, what comes next, and
+  closing one. The two live on one screen because they are one act in a
+  particular order: the year that follows has to exist before the year before it
+  can carry its balances forward. When it does not, the screen names the date
+  that is missing and offers the year, with the alternative — closing without an
+  opening balance — beside it as a checkbox.
+- **Opening the next year is one field.** `POST /fiscal-years` takes a four-digit
+  label and derives the dates from the administration's own starting month, so
+  the dates are shown rather than asked for. A date input the server ignores is a
+  date input that lies. The new year turns up in the shell's year picker, which
+  is where #5's readers look for it.
+- **A close shows both entries, line by line, before it posts either.**
+  `closeYear` has always taken `dryRun` and answered in the same shape either
+  way; the screen always asks that question first. The acknowledgement says what
+  happens rather than "are you sure": _"Boekt twee echte journaalposten; hier zit
+  geen knop om dat terug te draaien."_ There is no reopen operation by design —
+  undoing a close is a reversal like any other — and no button here pretends
+  otherwise.
+- **A year that is already closed says so and is not offered again.** Closing
+  records a row in `year_closes` and the only thing that reads it is the check
+  `POST /fiscal-years/close` makes before it does anything, dry run included. So
+  the dry run _is_ the question "is this year closed" and a `conflict` is its
+  answer. The words are ours rather than the API's, for one reason: its sentence
+  ends "Reverse the close first", which is true of the ledger and false of this
+  screen, which offers no such button. A screen that says both things in two
+  paragraphs sends somebody looking for a control that is not there.
+- **The list reports the close it knows about, and admits the rest.** There was a
+  Status column echoing `fiscal_years.status`, which the close does not write to —
+  so the row for a year closed on that very screen read "open". It reports what
+  has actually been established instead: a close that succeeded here, or one the
+  API refused because it had already happened. Everything else is a dash, and the
+  note under the table says a dash means "not established here" rather than
+  "open". An empty cell that admits it beats a word that is false.
+- **De auditfile, er weer in (`/audit-file`, `g q`).** XAF 3.2 has gone out since
+  M2 and could not come back, which made "your books are yours" a one-way claim.
+  Export and import share the screen, and the dashboard points at both. Two steps
+  on purpose, like the bank import: pick a file, read what it would do, confirm.
+- **An XAF file has to match the chart, and the screen says so instead of
+  failing.** There is no chart-of-accounts create operation in the API and adding
+  one is a domain change with its own review (#15), so a file naming accounts
+  this administration does not have gets a specific message, a count, and no
+  import button — rather than a stack trace, or a partial import. And it does not
+  tell anybody to create the accounts first: there is no way to create one here,
+  by API or by screen, so that would be sending somebody after a button that does
+  not exist. What it says is what is true — this version imports a file that
+  already matches, and an auditfile does not extend the chart.
+- **The same auditfile twice is one import.** The idempotency key for an import is
+  derived from the **file** rather than minted per attempt. An attempt is the right
+  unit when the thing being written is something somebody just typed; for an import
+  it is not, and the identity of "import this auditfile" is the auditfile. With a
+  fresh key the handler's per-entry keys were fresh too, so the same file went in
+  twice as two sets of the same entries, `sourceDocumentRef` and all. Keyed on the
+  content it replays instead — a double-click, a second trip through the file
+  picker, a reload, another browser. The success line says so rather than claiming
+  a second import: "Dit bestand staat in de boeken … Hetzelfde bestand nog een keer
+  aanbieden boekt niets extra."
+- **A role that may not do a thing is told before the form, not after it.**
+  `/fiscal-years` needs two different permissions — `ledger:configure` to open the
+  next year, `ledger:close` to close one — so it is gated in halves rather than
+  whole. A bookkeeper gets the year-opening, which is the capability #6 was written
+  for, and the close panel says which role it needs instead of offering a button
+  whose only outcome is 403 after a year, an account and an acknowledgement have
+  been filled in. The auditfile screen splits the same way on export and import.
+  The handlers still refuse regardless — that is where the gate is; this is what
+  stops the screen promising something it cannot do. Which roles hold which
+  permission is written down once in `~/lib/roles` and checked against
+  `permissionsForRole` by a test, because a copy nobody checks is a copy that
+  drifts.
+- **Zoeken in het palet.** `Cmd/Ctrl`+`K` has two halves now: **Navigatie**,
+  filtered from the registry in memory, and **Inhoud**, which is `GET /search`
+  across relaties, verkoop- en inkoopfacturen, journaalposten en documenten. The
+  MCP `search` tool has been reading that operation since M6, so the agent could
+  find a relatie by name and the bookkeeper could not. The arrows walk both halves
+  as one list and `Enter` opens the record, not a list it might be on.
+- **`/` is still unbound**, now on purpose rather than for want of a search:
+  `Cmd`+`K` opens the palette with the cursor already in the field, and a second
+  key meaning "open the thing `Cmd`+`K` opens" is not a shortcut.
+- **RGS-codes are changed from `/accounts`.** The dashboard has reported coverage
+  as a percentage since M0 with no way to act on the number. The code is a
+  validated text field, not a picker: nothing publishes the codes in a scheme
+  (#15), and a picker over a list we cannot fetch would be a fiction. An unknown
+  or withdrawn code is refused in the mapper's own words; an aggregate code or a
+  debit/credit mismatch saves and says so. Refusals in the status red, the rest in
+  the attention colour — never the accent.
+
 ### Koppelen confirms rather than guesses (alpha 4, product call)
 
 - **`↵` no longer books the top suggestion from the queue.** It opens the panel

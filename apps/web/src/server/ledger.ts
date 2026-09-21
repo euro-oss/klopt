@@ -22,6 +22,7 @@ import {
   handleGetBalanceSheet,
   handleGetProfitAndLoss,
   handleGetRgsCoverage,
+  handleImportAuditFile,
   handleSetRgsMappings,
 } from '~/api/handlers/compliance'
 import { handleListAuditLog } from '~/api/handlers/audit'
@@ -49,6 +50,7 @@ import {
   handleVerifySnapshot,
 } from '~/api/handlers/snapshots'
 import {
+  auditFileImportBody,
   auditLogQuery,
   chooseExactDivisionBody,
   completeExactBody,
@@ -150,6 +152,55 @@ export const setRgsMappings = createServerFn({ method: 'POST' })
       data,
       async (body) => (await handleSetRgsMappings(await contextFromRequest(), body)).body,
     ),
+  )
+
+/**
+ * Reading an XAF 3.2 auditfile back in.
+ *
+ * The body carries the whole file as a string, which is what `POST
+ * /imports/audit-file` takes. A `FormData` upload would mean a second transport
+ * for one screen; an auditfile is text, and `File.text()` in the browser is the
+ * whole of the difference.
+ *
+ * Dry run and commit are the same operation with a flag, deliberately — see the
+ * handler.
+ *
+ * ## The key is the file
+ *
+ * Not a fresh UUID per attempt, which is what every other write here uses. An
+ * attempt is the right unit when the thing being written is something somebody
+ * just typed; for an import it is not. The identity of "import this auditfile"
+ * **is the auditfile**, and a random key made the same file imported twice into
+ * two sets of the same entries: the handler derives one key per entry from the
+ * caller's (`${key}:${index}`), so a new key meant new entries with the same
+ * `sourceDocumentRef`, posted again.
+ *
+ * Keyed on the content, the second attempt replays instead. `postJournalEntry`
+ * finds the idempotency record, checks the request hash matches — it does, the
+ * file is the same — and returns the entry it wrote the first time without
+ * writing anything. A double-click, a second file-picker round, a reload, a
+ * different browser: all of them are the same import now, which is what the
+ * acceptance criterion on #6 asks for in as many words.
+ *
+ * Derived here rather than in the browser on purpose. `crypto.subtle` is
+ * undefined outside a secure context, and a self-hosted Klopt reached over plain
+ * HTTP on a LAN address is exactly that — the import would have failed on the
+ * installations least able to debug it.
+ */
+export const importAuditFile = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(auditFileImportBody, data, async (body) => {
+      const { createHash } = await import('node:crypto')
+      const digest = createHash('sha256').update(body.xml, 'utf8').digest('hex')
+
+      return (
+        await handleImportAuditFile(
+          await contextFromRequest({ idempotencyKey: keyOf(data) ?? `xaf:${digest}` }),
+          body,
+        )
+      ).body
+    }),
   )
 
 /**

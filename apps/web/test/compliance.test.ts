@@ -18,6 +18,7 @@ import {
   handlePreviewRgsUpgrade,
   handleSetRgsMappings,
 } from '../src/api/handlers/compliance.js'
+import { handleListFiscalYears } from '../src/api/handlers/setup.js'
 import { handleGetVatReturn } from '../src/api/handlers/vat.js'
 import { postJournalEntryBody } from '../src/api/schemas.js'
 
@@ -408,6 +409,23 @@ describe('year close', () => {
     await expect(handleCloseYear(await context(token, uuidv7()), closeBody)).rejects.toMatchObject({
       code: 'conflict',
     })
+  })
+
+  it('lists the closed year as closed, not open', async () => {
+    const { token } = await closable()
+    await postTradingYear(token)
+
+    const before = await handleListFiscalYears(await context(token))
+    expect(before.body.fiscalYears.find((year) => year.code === '2026')?.status).toBe('open')
+
+    await handleCloseYear(await context(token, uuidv7()), closeBody)
+
+    // GET must survive a cold read: status comes from year_closes / the
+    // status column the close writes, not from anything a client remembered.
+    const after = await handleListFiscalYears(await context(token))
+    const closed = after.body.fiscalYears.find((year) => year.code === '2026')
+    expect(closed?.status).toBe('closed')
+    expect(after.body.fiscalYears.find((year) => year.code === '2027')?.status).toBe('open')
   })
 
   it('refuses to appropriate the result to something that is not equity', async () => {

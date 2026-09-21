@@ -49,6 +49,8 @@ export const nl = {
   'nav.snapshots': 'Momentopnames',
   'nav.debtorAgeing': 'Debiteuren',
   'nav.creditorAgeing': 'Crediteuren',
+  'nav.fiscalYears': 'Boekjaren',
+  'nav.auditFile': 'Auditfile',
 
   'shell.tagline': 'Open boekhouden',
   'shell.administration': 'Administratie',
@@ -174,6 +176,7 @@ export const nl = {
   'dash.exportBody':
     'Een volledige XAF 3.2-auditfile met RGS-codes, gevalideerd tegen het gepubliceerde schema.',
   'dash.exportAction': 'Auditfile downloaden',
+  'dash.importAction': 'Auditfile importeren',
 
   // Journal entries and the chart of accounts.
   'entries.title': 'Journaalposten',
@@ -197,6 +200,127 @@ export const nl = {
   'accounts.type.equity': 'Eigen vermogen',
   'accounts.type.revenue': 'Opbrengsten',
   'accounts.type.expense': 'Kosten',
+  'accounts.mapHint':
+    'Kies een rekening — Enter of een klik — om haar RGS-code te zetten of te wijzigen.',
+  'accounts.rgsFor': 'RGS-code voor {account} {name}',
+  'accounts.rgsScheme':
+    'Gecontroleerd tegen RGS {version} {variant}. Een onbekende of ingetrokken code wordt geweigerd.',
+  'accounts.rgsSchemeUnknown': 'Het RGS-schema van deze administratie is nu niet te lezen.',
+  'accounts.rgsCode': 'RGS-code',
+  'accounts.rgsSaved': '{account} rapporteert nu onder {code}.',
+  'accounts.rgsCleared': '{account} heeft geen RGS-code meer.',
+
+  // Boekjaren: wat er open staat, het volgende openen, en er een afsluiten.
+  'fiscalYears.title': 'Boekjaren',
+  'fiscalYears.intro':
+    'Een boekjaar openen kan altijd. Afsluiten is twee gewone journaalposten en gebeurt één keer.',
+  'fiscalYears.caption': 'Boekjaren met hun perioden',
+  'fiscalYears.empty': 'Deze administratie heeft nog geen boekjaren.',
+  'fiscalYears.year': 'Boekjaar',
+  'fiscalYears.range': 'Loopt van – tot',
+  'fiscalYears.closedHeader': 'Afsluiting',
+  'fiscalYears.isClosed': 'afgesloten',
+  'fiscalYears.periods': 'Perioden',
+  'fiscalYears.current': 'huidig',
+  'fiscalYears.count': 'Boekjaren',
+  'fiscalYears.firstDay': 'Eerste dag',
+  'fiscalYears.lastDay': 'Laatste dag',
+  'fiscalYears.period.open': 'open',
+  'fiscalYears.period.softClosed': 'zacht gesloten',
+  'fiscalYears.period.hardClosed': 'hard gesloten',
+  'fiscalYears.openTitle': 'Volgend boekjaar openen',
+  'fiscalYears.openBody':
+    'Een boekjaar heet naar het jaar waarin het begint. De data volgen uit de startmaand van deze administratie, dus je typt alleen het jaartal.',
+  'fiscalYears.code': 'Jaartal',
+  'fiscalYears.derivedDates': 'Loopt dan van – tot',
+  'fiscalYears.open': 'Boekjaar openen',
+  'fiscalYears.openNow': 'Boekjaar {year} openen',
+  'fiscalYears.opened': 'Boekjaar {year} staat open: {from} – {to}.',
+  'fiscalYears.alreadyOpen': 'Boekjaar {year} bestaat al.',
+  'fiscalYears.closeTitle': 'Boekjaar afsluiten',
+  'fiscalYears.mayNotClose':
+    'Een boekjaar afsluiten boekt twee journaalposten en gebeurt één keer. Daarvoor is de rol eigenaar of accountant nodig.',
+  'fiscalYears.mayNotOpen':
+    'Een boekjaar openen hoort bij een rol die de inrichting mag wijzigen: eigenaar, accountant of boekhouder.',
+  'fiscalYears.closeBody':
+    'Eerst zien wat er geboekt wordt, dan afsluiten. De resultaatbestemming vlakt de winst-en-verliesrekeningen af tegen een eigen-vermogenrekening; de beginbalans zet de balansposten in het volgende jaar.',
+  'fiscalYears.yearToClose': 'Boekjaar om af te sluiten',
+  'fiscalYears.pickYear': 'Kies een boekjaar',
+  'fiscalYears.resultAccount': 'Resultaatrekening',
+  'fiscalYears.resultAccountHint': 'Een eigen-vermogenrekening; andere worden geweigerd.',
+  'fiscalYears.journal': 'Dagboek',
+  'fiscalYears.pickJournal': 'Kies een dagboek',
+  'fiscalYears.showPlan': 'Toon wat er geboekt wordt',
+  'fiscalYears.blocked':
+    'Boekjaar {year} kan zijn balans nergens naartoe meesturen: er is geen periode die {date} bevat. Open eerst het volgende boekjaar, of sluit af zonder beginbalans.',
+  'fiscalYears.withoutCarryForward': 'Afsluiten zonder beginbalans',
+  'fiscalYears.noOpeningBalance':
+    'Er wordt geen beginbalans geboekt. Alleen de resultaatbestemming gaat door.',
+  'fiscalYears.wouldPost': 'Wat het afsluiten van {year} boekt',
+  'fiscalYears.result': 'Resultaat',
+  'fiscalYears.plAccounts': 'W&V-rekeningen',
+  'fiscalYears.bsAccounts': 'Balansrekeningen',
+  'fiscalYears.openingDate': 'Beginbalans per',
+  'fiscalYears.appropriation': 'Resultaatbestemming {year}',
+  'fiscalYears.openingBalance': 'Beginbalans',
+  'fiscalYears.nothingToPost': 'Niets te boeken.',
+  'fiscalYears.account': 'Rekening',
+  'fiscalYears.debit': 'Debet',
+  'fiscalYears.credit': 'Credit',
+  // De formulering die Product heeft vastgelegd. Geen «weet je het zeker»: het
+  // zegt wat er gebeurt en dat dit scherm het niet terugdraait.
+  'fiscalYears.ack': 'Boekt twee echte journaalposten; hier zit geen knop om dat terug te draaien.',
+  'fiscalYears.close': 'Boekjaar afsluiten',
+  'fiscalYears.closedNotice': 'Boekjaar {year} is afgesloten.',
+  // Niet de zin van de API. Die zegt "Reverse the close first", en dat klopt voor
+  // het grootboek en niet voor dit scherm: hier zit geen knop om het terug te
+  // draaien, net zoals de bevestiging hierboven zegt.
+  'fiscalYears.alreadyClosed':
+    'Boekjaar {year} is al afgesloten. Afsluiten gebeurt één keer; hier zit geen knop om dat terug te draaien.',
+
+  // De auditfile: eruit en er weer in.
+  'auditFile.title': 'Auditfile',
+  'auditFile.intro':
+    'XAF 3.2 eruit en er weer in. Hetzelfde bestand dat de Belastingdienst en je accountant vragen.',
+  'auditFile.exportTitle': 'Exporteren',
+  'auditFile.exportBody':
+    'Een volledig boekjaar met RGS-codes, gevalideerd tegen het gepubliceerde schema.',
+  'auditFile.exportYear': 'Boekjaar om te exporteren',
+  'auditFile.year': 'Boekjaar',
+  'auditFile.pickYear': 'Kies een boekjaar',
+  'auditFile.export': 'Auditfile downloaden',
+  'auditFile.importTitle': 'Importeren',
+  'auditFile.importBody':
+    'Kies een bestand en zie eerst wat het zou doen. Er wordt niets geboekt voordat je het bevestigt.',
+  'auditFile.file': 'XAF-bestand',
+  'auditFile.matchChartNote':
+    'Het grootboek van deze administratie moet het bestand al dekken. Een auditfile breidt het grootboek hier niet uit.',
+  'auditFile.refused': 'Dit bestand kan zo niet geïmporteerd worden',
+  'auditFile.wouldDo': 'Wat dit bestand zou doen',
+  'auditFile.company': 'Onderneming',
+  'auditFile.entries': 'Journaalposten',
+  'auditFile.lines': 'Regels',
+  'auditFile.accountsInFile': 'Rekeningen in bestand',
+  'auditFile.newAccounts': 'Nieuwe rekeningen',
+  'auditFile.newJournals': 'Nieuwe dagboeken',
+  'auditFile.unmatchedContacts': 'Onbekende relaties',
+  'auditFile.controlTotalsDiffer':
+    'Het bestand noemt zelf {declared} regels en er zijn er {actual} gelezen. Controleer of dit het hele boekjaar is.',
+  'auditFile.chartMismatch':
+    'Dit bestand noemt {accounts} rekeningen en {journals} dagboeken die deze administratie niet heeft.',
+  'auditFile.chartMismatchWhat':
+    'Kies een bestand dat bij dit grootboek past: deze versie importeert alleen een bestand waarvan alle rekeningen en dagboeken hier al bestaan. Het grootboek uitbreiden uit een auditfile verandert de boeken en is een eigen beslissing; dat komt later.',
+  'auditFile.unknownVatCodes': 'Onbekende btw-codes',
+  'auditFile.warnings': 'Aandachtspunten',
+  'auditFile.import': 'Importeren',
+  // Waar, of dit de keer was die ze boekte of een eerdere: de sleutel is het
+  // bestand, dus hetzelfde bestand nog eens aanbieden boekt niets extra.
+  'auditFile.imported':
+    'Dit bestand staat in de boeken: {entries} journaalposten in boekjaar {year}. Hetzelfde bestand nog een keer aanbieden boekt niets extra.',
+  'auditFile.mayNotImport':
+    'Een auditfile inlezen boekt journaalposten. Daarvoor is de rol eigenaar of accountant nodig.',
+  'auditFile.mayNotExport':
+    'Een auditfile downloaden hoort bij een rol met leesrecht op de boeken.',
 
   // The three statements.
   'trial.title': 'Proefbalans',
@@ -1307,11 +1431,20 @@ export const nl = {
   'keys.entryDuplicateLine': 'Regel dupliceren',
   'keys.entryDeleteLine': 'Regel verwijderen',
   'palette.commands': 'Commando’s',
-  'palette.search': 'Zoek een scherm',
-  'palette.searchPlaceholder': 'Waar wil je heen?',
+  'palette.search': 'Zoek een scherm of een boeking',
+  'palette.searchPlaceholder': 'Waar wil je heen, of wat zoek je?',
   'palette.nothingFound': 'Niets gevonden.',
   'palette.escapeNote':
     'Sluiten met Escape. G en N zijn voorvoegsels; na 1,5 seconde vervallen ze.',
+  'palette.navigation': 'Navigatie',
+  'palette.content': 'Inhoud',
+  'palette.searching': 'Zoeken…',
+  'palette.firstOnly': 'eerste tien',
+  'search.group.contact': 'Relaties',
+  'search.group.salesInvoice': 'Verkoopfacturen',
+  'search.group.purchaseInvoice': 'Inkoopfacturen',
+  'search.group.journalEntry': 'Journaalposten',
+  'search.group.document': 'Documenten',
   'shortcuts.title': 'Sneltoetsen',
   'table.empty': 'Niets te tonen.',
   'table.copied_one': '1 regel gekopieerd.',

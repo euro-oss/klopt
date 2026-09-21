@@ -60,6 +60,8 @@ export const en: Record<MessageKey, string> = {
   'nav.snapshots': 'Sealed snapshots',
   'nav.debtorAgeing': 'Debtors',
   'nav.creditorAgeing': 'Creditors',
+  'nav.fiscalYears': 'Book years',
+  'nav.auditFile': 'Audit file',
 
   'shell.tagline': 'Open bookkeeping',
   'shell.administration': 'Administration',
@@ -176,6 +178,7 @@ export const en: Record<MessageKey, string> = {
   'dash.exportBody':
     'A complete XAF 3.2 audit file with RGS codes, validated against the published schema.',
   'dash.exportAction': 'Download the audit file',
+  'dash.importAction': 'Import an audit file',
 
   // Journal entries and the chart of accounts.
   'entries.title': 'Journal entries',
@@ -199,6 +202,118 @@ export const en: Record<MessageKey, string> = {
   'accounts.type.equity': 'Equity',
   'accounts.type.revenue': 'Revenue',
   'accounts.type.expense': 'Expenses',
+  'accounts.mapHint': 'Open an account — Enter, or a click — to set or change its RGS code.',
+  'accounts.rgsFor': 'RGS code for {account} {name}',
+  'accounts.rgsScheme':
+    'Checked against RGS {version} {variant}. An unknown or withdrawn code is refused.',
+  'accounts.rgsSchemeUnknown': 'This administration’s RGS scheme cannot be read right now.',
+  'accounts.rgsCode': 'RGS code',
+  'accounts.rgsSaved': '{account} now reports under {code}.',
+  'accounts.rgsCleared': '{account} no longer has an RGS code.',
+
+  // Book years: what is open, opening the next one, closing one.
+  'fiscalYears.title': 'Book years',
+  'fiscalYears.intro':
+    'Opening a book year is always available. Closing one is two ordinary journal entries, and happens once.',
+  'fiscalYears.caption': 'Book years and their periods',
+  'fiscalYears.empty': 'This administration has no book years yet.',
+  'fiscalYears.year': 'Book year',
+  'fiscalYears.range': 'Runs from – to',
+  'fiscalYears.closedHeader': 'Closed',
+  'fiscalYears.isClosed': 'closed',
+  'fiscalYears.periods': 'Periods',
+  'fiscalYears.current': 'current',
+  'fiscalYears.count': 'Book years',
+  'fiscalYears.firstDay': 'First day',
+  'fiscalYears.lastDay': 'Last day',
+  'fiscalYears.period.open': 'open',
+  'fiscalYears.period.softClosed': 'soft-closed',
+  'fiscalYears.period.hardClosed': 'hard-closed',
+  'fiscalYears.openTitle': 'Open the next book year',
+  'fiscalYears.openBody':
+    'A book year is named after the year it starts in. The dates follow from this administration’s starting month, so the label is all you type.',
+  'fiscalYears.code': 'Year',
+  'fiscalYears.derivedDates': 'Will then run from – to',
+  'fiscalYears.open': 'Open the book year',
+  'fiscalYears.openNow': 'Open book year {year}',
+  'fiscalYears.opened': 'Book year {year} is open: {from} – {to}.',
+  'fiscalYears.alreadyOpen': 'Book year {year} already exists.',
+  'fiscalYears.closeTitle': 'Close a book year',
+  'fiscalYears.mayNotClose':
+    'Closing a book year posts two journal entries and happens once. That needs the owner or accountant role.',
+  'fiscalYears.mayNotOpen':
+    'Opening a book year belongs to a role that may change the setup: owner, accountant or bookkeeper.',
+  'fiscalYears.closeBody':
+    'See what will be posted first, then close. The appropriation flattens the profit-and-loss accounts against an equity account; the opening balance puts the balance-sheet positions into the next year.',
+  'fiscalYears.yearToClose': 'Book year to close',
+  'fiscalYears.pickYear': 'Pick a book year',
+  'fiscalYears.resultAccount': 'Result account',
+  'fiscalYears.resultAccountHint': 'An equity account; anything else is refused.',
+  'fiscalYears.journal': 'Journal',
+  'fiscalYears.pickJournal': 'Pick a journal',
+  'fiscalYears.showPlan': 'Show what will be posted',
+  'fiscalYears.blocked':
+    'Book year {year} has nowhere to carry its balances to: no period contains {date}. Open the next book year first, or close without an opening balance.',
+  'fiscalYears.withoutCarryForward': 'Close without an opening balance',
+  'fiscalYears.noOpeningBalance':
+    'No opening balance will be posted. Only the appropriation goes through.',
+  'fiscalYears.wouldPost': 'What closing {year} posts',
+  'fiscalYears.result': 'Result',
+  'fiscalYears.plAccounts': 'P&L accounts',
+  'fiscalYears.bsAccounts': 'Balance-sheet accounts',
+  'fiscalYears.openingDate': 'Opening balance as at',
+  'fiscalYears.appropriation': 'Appropriation {year}',
+  'fiscalYears.openingBalance': 'Opening balance',
+  'fiscalYears.nothingToPost': 'Nothing to post.',
+  'fiscalYears.account': 'Account',
+  'fiscalYears.debit': 'Debit',
+  'fiscalYears.credit': 'Credit',
+  'fiscalYears.ack': 'Posts two real entries; no undo button here.',
+  'fiscalYears.close': 'Close the book year',
+  'fiscalYears.closedNotice': 'Book year {year} is closed.',
+  'fiscalYears.alreadyClosed':
+    'Book year {year} is already closed. Closing happens once; there is no undo button here.',
+
+  // The audit file: out, and back in.
+  'auditFile.title': 'Audit file',
+  'auditFile.intro':
+    'XAF 3.2 out, and back in. The same file the Belastingdienst and your accountant ask for.',
+  'auditFile.exportTitle': 'Export',
+  'auditFile.exportBody':
+    'A whole book year with its RGS codes, validated against the published schema.',
+  'auditFile.exportYear': 'Book year to export',
+  'auditFile.year': 'Book year',
+  'auditFile.pickYear': 'Pick a book year',
+  'auditFile.export': 'Download the audit file',
+  'auditFile.importTitle': 'Import',
+  'auditFile.importBody':
+    'Pick a file and see what it would do first. Nothing is posted until you confirm it.',
+  'auditFile.file': 'XAF file',
+  'auditFile.matchChartNote':
+    'This administration’s chart has to cover the file already. An audit file does not extend the chart here.',
+  'auditFile.refused': 'This file cannot be imported as it stands',
+  'auditFile.wouldDo': 'What this file would do',
+  'auditFile.company': 'Company',
+  'auditFile.entries': 'Journal entries',
+  'auditFile.lines': 'Lines',
+  'auditFile.accountsInFile': 'Accounts in the file',
+  'auditFile.newAccounts': 'New accounts',
+  'auditFile.newJournals': 'New journals',
+  'auditFile.unmatchedContacts': 'Unmatched contacts',
+  'auditFile.controlTotalsDiffer':
+    'The file declares {declared} lines and {actual} were read. Check that this is the whole book year.',
+  'auditFile.chartMismatch':
+    'This file names {accounts} accounts and {journals} journals this administration does not have.',
+  'auditFile.chartMismatchWhat':
+    'Pick a file that matches this chart: this version imports only a file whose accounts and journals all exist here already. Extending the chart from an audit file changes the books and is a decision of its own; that comes later.',
+  'auditFile.unknownVatCodes': 'Unknown VAT codes',
+  'auditFile.warnings': 'Worth a look',
+  'auditFile.import': 'Import',
+  'auditFile.imported':
+    'This file is in the books: {entries} journal entries in book year {year}. Offering the same file again posts nothing extra.',
+  'auditFile.mayNotImport':
+    'Reading an audit file in posts journal entries. That needs the owner or accountant role.',
+  'auditFile.mayNotExport': 'Downloading an audit file belongs to a role that may read the books.',
 
   // The three statements.
   'trial.title': 'Trial balance',
@@ -1304,10 +1419,19 @@ export const en: Record<MessageKey, string> = {
   'keys.entryDuplicateLine': 'Duplicate the line',
   'keys.entryDeleteLine': 'Delete the line',
   'palette.commands': 'Commands',
-  'palette.search': 'Search for a screen',
-  'palette.searchPlaceholder': 'Where do you want to go?',
+  'palette.search': 'Search for a screen or a record',
+  'palette.searchPlaceholder': 'Where do you want to go, or what are you looking for?',
   'palette.nothingFound': 'Nothing found.',
   'palette.escapeNote': 'Close with Escape. G and N are prefixes; they lapse after 1.5 seconds.',
+  'palette.navigation': 'Navigation',
+  'palette.content': 'Content',
+  'palette.searching': 'Searching…',
+  'palette.firstOnly': 'first ten',
+  'search.group.contact': 'Contacts',
+  'search.group.salesInvoice': 'Sales invoices',
+  'search.group.purchaseInvoice': 'Purchase invoices',
+  'search.group.journalEntry': 'Journal entries',
+  'search.group.document': 'Documents',
   'shortcuts.title': 'Keyboard shortcuts',
   'table.empty': 'Nothing to show.',
   'table.copied_one': '1 row copied.',

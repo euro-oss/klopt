@@ -8,6 +8,7 @@ import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
 import { formatDate } from '~/lib/format'
 import type { FiscalYearOption, FiscalYearScope } from '~/lib/fiscal-year'
+import { MAY_EXPORT_AUDIT_FILE, MAY_OPEN_YEAR } from '~/lib/roles'
 import { DEFAULT_THEME, type Theme } from '~/lib/theme'
 import { setTheme } from '~/server/theme'
 import { BINDINGS_BY_ID, formatBinding } from '~/lib/keyboard'
@@ -140,6 +141,27 @@ const NAVIGATION: readonly NavGroup[] = [
         roles: ['owner', 'accountant', 'bookkeeper'],
       },
       { to: '/members', key: 'nav.members', binding: 'go.members', roles: ['owner'] },
+      // The **looser** of the screen's two permissions, not the stricter one.
+      // Closing needs `ledger:close` and opening the next year needs
+      // `ledger:configure`, which the bookkeeper holds as well — and a
+      // bookkeeper who cannot reach this screen cannot post into a rolled-over
+      // year without operator help, which is the sentence #6 exists because of.
+      // The screen withholds the close panel from them and says why.
+      {
+        to: '/fiscal-years',
+        key: 'nav.fiscalYears',
+        binding: 'go.fiscalYears',
+        roles: MAY_OPEN_YEAR,
+      },
+      // Same shape: `ledger:export` reads one out and `ledger:import` reads one
+      // back in. Everybody who may read the books may take them with them, and
+      // the screen withholds the import half from the two roles that may not.
+      {
+        to: '/audit-file',
+        key: 'nav.auditFile',
+        binding: 'go.auditFile',
+        roles: MAY_EXPORT_AUDIT_FILE,
+      },
       // `tokens:manage`, like the tokens it sits beside: a webhook is a
       // standing grant of information to a third party.
       { to: '/webhooks', key: 'nav.webhooks', binding: 'go.webhooks', roles: ['owner'] },

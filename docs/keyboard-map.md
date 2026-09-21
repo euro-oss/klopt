@@ -50,6 +50,8 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `g` then `x`   | Go to Exact Online (E**x**act)                          |
 | `g` then `v`   | Go to ouderdomsanalyse debiteuren (**v**orderingen)     |
 | `g` then `c`   | Go to ouderdomsanalyse crediteuren (**c**rediteuren)    |
+| `g` then `s`   | Go to boekjaren (**s**luiten)                           |
+| `g` then `q`   | Go to de auditfile                                      |
 | `n` then `i`   | New inkoopfactuur                                       |
 | `n` then `j`   | New journal entry                                       |
 | `Escape`       | Close overlay, cancel edit, clear focus — in that order |
@@ -62,8 +64,19 @@ the registry the palette and the `?` sheet are generated from. That is what
 principle 5 means in practice: a binding that is not in the registry does not
 appear anywhere, and one that is appears everywhere.
 
-`/` for "focus search" was in this table for two milestones with nothing behind
-it, and stays out until there is a global search to focus — see "What is
+`g q` is the one binding here with no mnemonic, and is not pretending to have
+one: every letter in _auditfile_ was taken by the time the screen arrived. The
+palette prints the key beside the label, which is what makes that survivable.
+
+**The `g` alphabet is full.** Twenty-six destinations, twenty-six letters, and
+Alpha 3 took the last two. The next screen that wants a key needs a second prefix
+or a different scheme rather than a letter somebody else is using.
+`test/unit/shortcuts.test.ts` asserts the alphabet is exhausted, so that decision
+arrives as a failing test rather than as a collision.
+
+`/` for "focus search" was in this table for three milestones with nothing behind
+it. There is a global search now — it lives in the palette, where `Cmd/Ctrl` `K`
+already puts the cursor in a field — and `/` stays out anyway. See "What is
 deliberately not bound" below.
 
 ## What is built, and what is not
@@ -195,9 +208,12 @@ session. Accepting only one is a papercut a hundred times a day.
 - **Posting without confirmation.** `Cmd`+`Enter` shows what it is about to post
   and puts the cursor on the button that posts it. Posting is irreversible by
   design, so the key that does it asks — twice deliberate, still no mouse.
-- **`/` for "focus search".** In this document for two milestones with nothing
-  behind it, and out until there is a global search to focus (#6). A map that
-  documents keys nobody implemented is the thing this document exists to prevent.
+- **`/` for "focus search".** In this document for three milestones with nothing
+  behind it, and still out now that there is something. Search lives in the
+  palette (#6): `Cmd/Ctrl`+`K` opens it with the cursor already in the field, so
+  `/` would be a second key meaning "open the thing `Cmd`+`K` opens", aimed at a
+  field that only exists inside a dialogue this key would have to open first.
+  One way in, and it is the one that was already there.
 - **A column cursor in tables.** `←` `→` are unbound because no table addresses
   individual cells.
 - **Remapping.** One keyboard, the same on every installation. A remappable one
@@ -354,8 +370,29 @@ anything.
 
 **Not printed, and not bound: `/` to focus a list filter.** The boards show a
 search box above the invoice list with `/` focusing it. There is no filter field
-on that list yet, and inventing one here would be inventing a feature rather than
-a key; `/` stays unbound until there is something to focus (#6).
+on that list, and inventing one here would be inventing a feature rather than a
+key. Searching the books is a palette job (see below), not a per-list one.
+
+## Zoeken in het palet
+
+`Cmd/Ctrl`+`K` opens two halves, and the arrows walk them as one list.
+
+| Key            | Action                                                                        |
+| -------------- | ----------------------------------------------------------------------------- |
+| `Cmd/Ctrl` `K` | Open the palette, cursor in the field                                         |
+| type           | Filter **Navigatie** as you type; search **Inhoud** from the second character |
+| `↑` `↓`        | Move through both halves in order                                             |
+| `Enter`        | Open the screen, or the record                                                |
+| `Escape`       | Close, changing nothing                                                       |
+
+Navigatie is the registry, filtered in memory on every keystroke. Inhoud is
+`GET /search` across relaties, verkoop- en inkoopfacturen, journaalposten and
+documenten, asked once the typing settles — two characters is what the operation
+requires, so one character searches the navigation and nothing else.
+
+`Enter` on a hit opens the **screen that shows the record**, which is not the API
+path the hit carries: `~/lib/palette-search` decides which, and a document — which
+has no screen of its own — opens as the file, the way het postvak opens one.
 
 ## Moving between screens
 

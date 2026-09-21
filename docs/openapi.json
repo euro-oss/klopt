@@ -528,10 +528,10 @@
       "SearchResourceType": {
         "enum": [
           "contact",
-          "document",
           "sales-invoice",
           "purchase-invoice",
-          "journal-entry"
+          "journal-entry",
+          "document"
         ]
       },
       "SnapshotDriftCode": {
@@ -21817,10 +21817,10 @@
                           "items": {
                             "enum": [
                               "contact",
-                              "document",
                               "sales-invoice",
                               "purchase-invoice",
-                              "journal-entry"
+                              "journal-entry",
+                              "document"
                             ]
                           }
                         }

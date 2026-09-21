@@ -6,6 +6,7 @@ import {
   accounts,
   auditLog,
   entities,
+  fiscalYears,
   journalEntries,
   yearCloses,
 } from '../schema/index.js'
@@ -148,6 +149,12 @@ export class RgsRepository {
       resultCurrency: request.currency,
       closedBy: request.closedBy,
     })
+    // Same fact, on the year row: list/GET readers that look only at
+    // `fiscal_years.status` must not keep saying `open` after a close.
+    await this.tx
+      .update(fiscalYears)
+      .set({ status: 'closed', updatedAt: new Date().toISOString() })
+      .where(eq(fiscalYears.id, request.fiscalYearId))
     return id
   }
 

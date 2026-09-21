@@ -17,8 +17,10 @@ import { Route as DotwellKnownOauthAuthorizationServerRouteImport } from './rout
 import { Route as DotwellKnownOauthProtectedResourceRouteImport } from './routes/[.]well-known.oauth-protected-resource'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
+import { Route as AppAuditFileRouteImport } from './routes/_app/audit-file'
 import { Route as AppAuditLogRouteImport } from './routes/_app/audit-log'
 import { Route as AppDunningRouteImport } from './routes/_app/dunning'
+import { Route as AppFiscalYearsRouteImport } from './routes/_app/fiscal-years'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppRetentionRouteImport } from './routes/_app/retention'
@@ -197,6 +199,11 @@ const AppAccountsRoute = AppAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAuditFileRoute = AppAuditFileRouteImport.update({
+  id: '/audit-file',
+  path: '/audit-file',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAuditLogRoute = AppAuditLogRouteImport.update({
   id: '/audit-log',
   path: '/audit-log',
@@ -205,6 +212,11 @@ const AppAuditLogRoute = AppAuditLogRouteImport.update({
 const AppDunningRoute = AppDunningRouteImport.update({
   id: '/dunning',
   path: '/dunning',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFiscalYearsRoute = AppFiscalYearsRouteImport.update({
+  id: '/fiscal-years',
+  path: '/fiscal-years',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInboxRoute = AppInboxRouteImport.update({
@@ -939,8 +951,10 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
   '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   '/accounts': typeof AppAccountsRoute
+  '/audit-file': typeof AppAuditFileRoute
   '/audit-log': typeof AppAuditLogRoute
   '/dunning': typeof AppDunningRoute
+  '/fiscal-years': typeof AppFiscalYearsRoute
   '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
   '/retention': typeof AppRetentionRoute
@@ -1085,8 +1099,10 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
   '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   '/accounts': typeof AppAccountsRoute
+  '/audit-file': typeof AppAuditFileRoute
   '/audit-log': typeof AppAuditLogRoute
   '/dunning': typeof AppDunningRoute
+  '/fiscal-years': typeof AppFiscalYearsRoute
   '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
   '/retention': typeof AppRetentionRoute
@@ -1234,8 +1250,10 @@ export interface FileRoutesById {
   '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
   '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   '/_app/accounts': typeof AppAccountsRoute
+  '/_app/audit-file': typeof AppAuditFileRoute
   '/_app/audit-log': typeof AppAuditLogRoute
   '/_app/dunning': typeof AppDunningRoute
+  '/_app/fiscal-years': typeof AppFiscalYearsRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/retention': typeof AppRetentionRoute
@@ -1384,8 +1402,10 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-authorization-server'
     | '/.well-known/oauth-protected-resource'
     | '/accounts'
+    | '/audit-file'
     | '/audit-log'
     | '/dunning'
+    | '/fiscal-years'
     | '/inbox'
     | '/members'
     | '/retention'
@@ -1530,8 +1550,10 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-authorization-server'
     | '/.well-known/oauth-protected-resource'
     | '/accounts'
+    | '/audit-file'
     | '/audit-log'
     | '/dunning'
+    | '/fiscal-years'
     | '/inbox'
     | '/members'
     | '/retention'
@@ -1678,8 +1700,10 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-authorization-server'
     | '/.well-known/oauth-protected-resource'
     | '/_app/accounts'
+    | '/_app/audit-file'
     | '/_app/audit-log'
     | '/_app/dunning'
+    | '/_app/fiscal-years'
     | '/_app/inbox'
     | '/_app/members'
     | '/_app/retention'
@@ -1945,6 +1969,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/audit-file': {
+      id: '/_app/audit-file'
+      path: '/audit-file'
+      fullPath: '/audit-file'
+      preLoaderRoute: typeof AppAuditFileRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/audit-log': {
       id: '/_app/audit-log'
       path: '/audit-log'
@@ -1957,6 +1988,13 @@ declare module '@tanstack/react-router' {
       path: '/dunning'
       fullPath: '/dunning'
       preLoaderRoute: typeof AppDunningRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/fiscal-years': {
+      id: '/_app/fiscal-years'
+      path: '/fiscal-years'
+      fullPath: '/fiscal-years'
+      preLoaderRoute: typeof AppFiscalYearsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/inbox': {
@@ -2916,8 +2954,10 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAccountsRoute: typeof AppAccountsRoute
+  AppAuditFileRoute: typeof AppAuditFileRoute
   AppAuditLogRoute: typeof AppAuditLogRoute
   AppDunningRoute: typeof AppDunningRoute
+  AppFiscalYearsRoute: typeof AppFiscalYearsRoute
   AppInboxRoute: typeof AppInboxRoute
   AppMembersRoute: typeof AppMembersRoute
   AppRetentionRoute: typeof AppRetentionRoute
@@ -2954,8 +2994,10 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAccountsRoute: AppAccountsRoute,
+  AppAuditFileRoute: AppAuditFileRoute,
   AppAuditLogRoute: AppAuditLogRoute,
   AppDunningRoute: AppDunningRoute,
+  AppFiscalYearsRoute: AppFiscalYearsRoute,
   AppInboxRoute: AppInboxRoute,
   AppMembersRoute: AppMembersRoute,
   AppRetentionRoute: AppRetentionRoute,

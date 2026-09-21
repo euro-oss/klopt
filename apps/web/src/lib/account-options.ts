@@ -38,6 +38,22 @@ export function balanceSheetAccounts(accounts: readonly AccountOption[]): readon
 }
 
 /**
+ * The accounts a year's result can be appropriated to.
+ *
+ * `planYearClose` refuses anything that is not equity, and says so with the
+ * account type in the message. Filtering here means the field offers what the
+ * domain accepts rather than letting somebody pick a bank account and read
+ * about it afterwards — the refusal is still there, it just has nothing left to
+ * refuse.
+ *
+ * Blocked accounts are kept for the same reason as everywhere else: the picker
+ * marks them and will not take them.
+ */
+export function equityAccounts(accounts: readonly AccountOption[]): readonly AccountOption[] {
+  return accounts.filter((account) => account.type === 'equity')
+}
+
+/**
  * The dagboeken an opening entry belongs in.
  *
  * A memoriaal, and only that. An overname is not a sale or a purchase, and

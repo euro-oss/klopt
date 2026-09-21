@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest'
+import { planFiscalYear } from '@klopt/core'
 import {
   currentFiscalYear,
+  dayAfter,
   fiscalYearSearch,
+  hasYearAfter,
   isFiscalYearCode,
   isYearScopedRoute,
+  nextFiscalYear,
+  plannedFiscalYear,
   resolveFiscalYear,
+  startingMonth,
   withinFiscalYear,
   type FiscalYearOption,
 } from '../../src/lib/fiscal-year.js'
@@ -164,5 +170,85 @@ describe('what counts as a book year label', () => {
     expect(isFiscalYearCode('26')).toBe(false)
     expect(isFiscalYearCode('2026-2027')).toBe(false)
     expect(isFiscalYearCode(null)).toBe(false)
+  })
+})
+
+describe('the next book year', () => {
+  it('is labelled by the year after the latest one, and keeps its months', () => {
+    // A July–June administration's 2026 is followed by 2027, running July 2027
+    // to June 2028. Labelling the next one 2027 and dating it from January
+    // would be two different years wearing one label.
+    expect(nextFiscalYear([broken('2025'), broken('2026')])).toEqual({
+      code: '2027',
+      startsOn: '2027-07-01',
+      endsOn: '2028-06-30',
+      status: 'open',
+    })
+
+    expect(nextFiscalYear([calendar('2026')])).toEqual({
+      code: '2027',
+      startsOn: '2027-01-01',
+      endsOn: '2027-12-31',
+      status: 'open',
+    })
+  })
+
+  it('follows the latest year rather than the last one listed', () => {
+    expect(nextFiscalYear([broken('2026'), broken('2024'), broken('2025')])?.code).toBe('2027')
+  })
+
+  it('is nothing at all when there are no years to follow', () => {
+    // No starting month to read, so there is nothing honest to show. The form
+    // offers no label rather than guessing January.
+    expect(nextFiscalYear([])).toBeNull()
+  })
+
+  /**
+   * The dates the screen shows read-only are the dates the server will create.
+   *
+   * `POST /fiscal-years` takes a label and derives the rest through
+   * `planFiscalYear`, which lives in a package built around `node:crypto` and
+   * cannot reach a browser — so the arithmetic is written out twice. This is
+   * what stops the copy drifting: the same questions, asked of both.
+   */
+  it('agrees with planFiscalYear, month by month', () => {
+    for (let month = 1; month <= 12; month += 1) {
+      for (const code of ['2024', '2025', '2026', '2027', '2100']) {
+        const planned = planFiscalYear(code, month)
+        expect(plannedFiscalYear(code, month)).toEqual({
+          code,
+          startsOn: planned.startsOn,
+          endsOn: planned.endsOn,
+        })
+      }
+    }
+  })
+
+  it('reads the starting month off the year itself', () => {
+    expect(startingMonth(broken('2026'))).toBe(7)
+    expect(startingMonth(calendar('2026'))).toBe(1)
+  })
+})
+
+describe('whether a close has anywhere to carry balances to', () => {
+  it('is a period containing the day after the year ends', () => {
+    // The condition `POST /fiscal-years/close` checks before it posts anything.
+    // Answering it here is what lets the screen offer the missing year instead
+    // of only repeating the refusal.
+    const years = [calendar('2025'), calendar('2026')]
+    expect(hasYearAfter(years, calendar('2025'))).toBe(true)
+    expect(hasYearAfter(years, calendar('2026'))).toBe(false)
+  })
+
+  it('does not assume the next year starts in January', () => {
+    const years = [broken('2025'), broken('2026')]
+    expect(dayAfter(broken('2025').endsOn)).toBe('2026-07-01')
+    expect(hasYearAfter(years, broken('2025'))).toBe(true)
+    expect(hasYearAfter(years, broken('2026'))).toBe(false)
+  })
+
+  it('steps over a month end and a leap day', () => {
+    expect(dayAfter('2026-12-31')).toBe('2027-01-01')
+    expect(dayAfter('2024-02-28')).toBe('2024-02-29')
   })
 })
