@@ -140,6 +140,24 @@ const NAVIGATION: readonly NavGroup[] = [
         roles: ['owner', 'accountant', 'bookkeeper'],
       },
       { to: '/members', key: 'nav.members', binding: 'go.members', roles: ['owner'] },
+      // `ledger:close` is what the screen is for and only the owner and the
+      // accountant hold it; opening the next year needs `ledger:configure`,
+      // which the bookkeeper has as well. The stricter of the two decides who
+      // is offered the screen, because closing is the reason to come here.
+      {
+        to: '/fiscal-years',
+        key: 'nav.fiscalYears',
+        binding: 'go.fiscalYears',
+        roles: ['owner', 'accountant'],
+      },
+      // `ledger:export` reads one out and `ledger:import` reads one back in.
+      // The auditor can only do the first, and gets the screen for it.
+      {
+        to: '/audit-file',
+        key: 'nav.auditFile',
+        binding: 'go.auditFile',
+        roles: ['owner', 'accountant', 'auditor'],
+      },
       // `tokens:manage`, like the tokens it sits beside: a webhook is a
       // standing grant of information to a third party.
       { to: '/webhooks', key: 'nav.webhooks', binding: 'go.webhooks', roles: ['owner'] },

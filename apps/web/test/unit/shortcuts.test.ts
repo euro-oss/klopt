@@ -40,7 +40,22 @@ describe('resolving a keystroke', () => {
     // Not passed on. The user was mid-shortcut, and `g` then `1` reaching the
     // koppelscherm would book suggestion one.
     expect(resolveKeystroke(stroke('1'), 'g')).toEqual({ action: 'swallow' })
-    expect(resolveKeystroke(stroke('q'), 'g')).toEqual({ action: 'swallow' })
+
+    // This used to be `g` then `q`, until Alpha 3 gave `q` the auditfile. A
+    // punctuation mark rather than another letter, because there is no letter
+    // left — see below.
+    expect(resolveKeystroke(stroke('.'), 'g')).toEqual({ action: 'swallow' })
+  })
+
+  it('has run out of letters after `g`, which is worth knowing before the next screen', () => {
+    // Not a rule, an observation with teeth: Alpha 3 took the last two (`q` for
+    // de auditfile, `s` for boekjaren) and the alphabet is now full. The next
+    // destination needs a second prefix or a different scheme, and the honest
+    // place to find that out is here rather than in review.
+    const taken = new Set(
+      BINDINGS.filter((binding) => binding.keys.startsWith('g ')).map((binding) => binding.keys[2]),
+    )
+    expect([...'abcdefghijklmnopqrstuvwxyz'].filter((letter) => !taken.has(letter))).toEqual([])
   })
 
   it('never fires a bare letter while somebody is typing', () => {
