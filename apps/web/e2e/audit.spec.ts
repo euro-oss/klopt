@@ -90,11 +90,16 @@ test('the log filters to one kind of thing', async ({ page }) => {
 
   await page.goto('/audit-log')
   await expect(page.getByText('setup.updateEntity')).toBeVisible()
+  // The chips navigate through React; a click before hydration is swallowed and
+  // the empty-state assertion then times out on the unfiltered list.
+  await hydrated(page)
 
   await page.getByRole('button', { name: 'Relaties' }).click()
+  await expect(page).toHaveURL(/resourceType=contact/)
   await expect(page.getByText('Nog niets vastgelegd.')).toBeVisible()
 
   await page.getByRole('button', { name: 'Instellingen' }).click()
+  await expect(page).toHaveURL(/resourceType=entity/)
   await expect(page.getByText('setup.updateEntity')).toBeVisible()
 })
 
