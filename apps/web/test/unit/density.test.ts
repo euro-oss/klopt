@@ -35,7 +35,9 @@ describe('Alpha 5 density and dark mode', () => {
     expect(palette).not.toContain('bg-black/30')
     expect(palette).toContain('bg-popover')
     // Cursor must not be bg-muted on bg-popover — invisible in Donker.
+    // Selected chrome (keycaps, muted prefixes) follows accent-foreground.
     expect(palette).toContain('bg-accent text-accent-foreground')
+    expect(palette).toContain('border-accent-foreground text-accent-foreground')
     expect(palette).not.toMatch(/index === cursor && 'bg-muted'/)
   })
 

@@ -355,19 +355,37 @@ export function CommandPalette() {
                               className={cn(
                                 'flex w-full items-center justify-between px-4 py-2 text-left text-sm',
                                 // Yellow fill + black text: `bg-muted` on
-                                // `bg-popover` disappears in Donker.
+                                // `bg-popover` disappears in Donker. Selected
+                                // chrome (prefix, keycaps) follows the fill —
+                                // ring/muted on yellow is ~1.4–2:1.
                                 index === cursor && 'bg-accent text-accent-foreground',
                               )}
                             >
                               <span>
-                                <span className="text-muted-foreground text-xs">
+                                <span
+                                  className={cn(
+                                    'text-xs',
+                                    index === cursor
+                                      ? 'text-accent-foreground'
+                                      : 'text-muted-foreground',
+                                  )}
+                                >
                                   {t(binding.group)} ·{' '}
                                 </span>
                                 {t(binding.label)}
                               </span>
                               <span className="flex shrink-0 items-center gap-1">
                                 {bindingChips(binding).map((chip, position) => (
-                                  <Keycap key={`${binding.id}-${String(position)}`}>{chip}</Keycap>
+                                  <Keycap
+                                    key={`${binding.id}-${String(position)}`}
+                                    className={
+                                      index === cursor
+                                        ? 'border-accent-foreground text-accent-foreground'
+                                        : undefined
+                                    }
+                                  >
+                                    {chip}
+                                  </Keycap>
                                 ))}
                               </span>
                             </button>
@@ -422,13 +440,27 @@ export function CommandPalette() {
                                     <span className="min-w-0">
                                       <span className="block truncate">{hit.title}</span>
                                       {hit.subtitle !== null && hit.subtitle !== '' && (
-                                        <span className="text-muted-foreground block truncate text-xs">
+                                        <span
+                                          className={cn(
+                                            'block truncate text-xs',
+                                            index === cursor
+                                              ? 'text-accent-foreground'
+                                              : 'text-muted-foreground',
+                                          )}
+                                        >
                                           {hit.subtitle}
                                         </span>
                                       )}
                                     </span>
                                     {hit.date !== null && (
-                                      <span className="text-muted-foreground shrink-0 tabular text-xs">
+                                      <span
+                                        className={cn(
+                                          'shrink-0 tabular text-xs',
+                                          index === cursor
+                                            ? 'text-accent-foreground'
+                                            : 'text-muted-foreground',
+                                        )}
+                                      >
                                         {formatDate(hit.date)}
                                       </span>
                                     )}
