@@ -1,12 +1,12 @@
 # Maintainers
 
-| Area                    | Maintainer                 | Contact |
-| ----------------------- | -------------------------- | ------- |
-| Overall                 | Hidde Stokvis (interim)    |         |
-| Ledger and posting      | _unassigned_               |         |
-| **Compliance calendar** | Hidde Stokvis (interim)    |         |
-| Adapters                | _unassigned_               |         |
-| Web app                 | _unassigned_               |         |
+| Area                    | Maintainer              | Contact |
+| ----------------------- | ----------------------- | ------- |
+| Overall                 | Hidde Stokvis (interim) |         |
+| Ledger and posting      | _unassigned_            |         |
+| **Compliance calendar** | Hidde Stokvis (interim) |         |
+| Adapters                | _unassigned_            |         |
+| Web app                 | _unassigned_            |         |
 
 Security reports: `security@euro.computer`. See `SECURITY.md`.
 
