@@ -54,26 +54,29 @@ for it with `KLOPT_S3_ENDPOINT` ([ADR
 
 ### Who may merge
 
-**Only appointed maintainers may merge pull requests into `main`.**
+**Only appointed people may merge pull requests into `main`.** For now that
+means **only Hidde** may merge to `main`. Additional appointed maintainers may
+be added later; until they are, nobody else presses Merge.
 
 Anyone may open a PR. Opening a PR, getting CI green, or collecting informal
 review does **not** grant merge rights. There is no “open merge” implication
 for a public or soon-public repository.
 
 - **People / roles:** listed in [`MAINTAINERS.md`](MAINTAINERS.md) when
-  assigned. Cross-link only — do not infer merge rights from an empty or
-  interim row.
-- **GitHub accounts that may press Merge:** **TBD — pending Hidde’s pick** of
-  who holds merge rights on this repository (likely only him for now). Do not
-  treat invented or guessed `@username` values as final.
+  assigned. Cross-link only — do not infer a GitHub merge button from an empty
+  or interim area row. Area maintainers (when filled) review; **merge to
+  `main` stays with Hidde until further appointment**.
+- **GitHub account that may press Merge:** Hidde’s GitHub account
+  (**username placeholder — fill when applying the ruleset; do not invent a
+  handle here**). Widen the allow-list only when further maintainers are
+  explicitly appointed.
 - **Enforcement:** GitHub branch protection / ruleset on `main`. Eng cannot
   always apply org settings; the click-through checklist lives in
   [`docs/github-branch-protection.md`](docs/github-branch-protection.md) and
-  must be applied by someone with admin on the repo (Hidde or delegate).
+  must be applied by someone with admin on the repo (Hidde).
 
-Until those accounts are named **and** the ruleset is applied, treat merge to
-`main` as closed to everyone who is not already an appointed maintainer with
-explicit GitHub merge permission.
+Until that ruleset is applied, treat merge to `main` as closed to everyone
+other than Hidde.
 
 ## The rules that are not negotiable
 

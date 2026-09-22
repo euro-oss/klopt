@@ -6,7 +6,8 @@ admin on `euro-oss/klopt`) must click these in GitHub Settings**. Until they are
 on, the prose in `CONTRIBUTING.md` is aspirational rather than enforced.
 
 Do **not** treat an open or public repository as an open merge path. Merge to
-`main` stays with appointed maintainers only.
+`main` stays with appointed people only — **for now, only Hidde**. Further
+appointed maintainers may be added later.
 
 ## Where to click
 
@@ -24,21 +25,20 @@ A ruleset targeting `main` is enough. Keep it required, not advisory.
       “no direct pushes; PR only”.
 - [ ] **Require a pull request before merging**.
 - [ ] **Required approvals: at least 1.** Approvals must come from people with
-      write/maintain rights who are appointed maintainers (see
-      `MAINTAINERS.md`), not from a random collaborator.
+      write/maintain rights who are appointed (see `MAINTAINERS.md`), not from
+      a random collaborator. For now, treat Hidde as the approving merger.
 - [ ] **Dismiss stale pull request approvals when new commits are pushed.**
 - [ ] **Require review from Code Owners** — leave **off** until a real
       `CODEOWNERS` file exists with appointed GitHub handles (none yet; do not
       invent them).
 - [ ] **Do not allow bypassing** the above for ordinary writers. If a bypass
       list is unavoidable for emergencies, keep it to repository admins only
-      and treat every bypass as exceptional.
-- [ ] **Restrict who can dismiss pull request reviews** to administrators /
-      appointed maintainers — not every writer.
-- [ ] **Restrict who can merge** pull requests to appointed maintainer
-      accounts only. GitHub usernames for that allow-list are **TBD —
-      pending Hidde’s pick** (likely only him for now). Fill the list when
-      those accounts are named; until then, do not widen merge rights.
+      (Hidde) and treat every bypass as exceptional.
+- [ ] **Restrict who can dismiss pull request reviews** to repository admins /
+      Hidde — not every writer.
+- [ ] **Restrict who can merge** pull requests to **Hidde only** for now
+      (his GitHub username — fill in Settings; do not invent it in-repo).
+      Widen later only when further maintainers are explicitly appointed.
 - [ ] **Require status checks to pass before merging**, and list at least:
       - `verify (24)`
       - `verify (26)`
@@ -53,10 +53,12 @@ A ruleset targeting `main` is enough. Keep it required, not advisory.
 
 ## After the checklist
 
-1. Name the merge-capable GitHub accounts (Hidde’s pick) and put them on the
-   restrict-who-can-merge allow-list.
+1. Put **Hidde’s** GitHub account on the restrict-who-can-merge allow-list
+   (and on dismiss-review / admin bypass as needed). Username is entered in
+   GitHub Settings, not invented in this repository.
 2. Keep `MAINTAINERS.md` aligned with who is appointed (people / roles). That
-   file is the human record; this ruleset is the enforcement.
+   file is the human record; this ruleset is the enforcement. When further
+   maintainers are appointed, widen the allow-list then — not before.
 3. Only then consider a minimal `CODEOWNERS` for critical paths
    (`packages/core/**`, regulated reference data, `docs/compliance-calendar.md`,
    licence / governance files). Skip `CODEOWNERS` until those GitHub handles
