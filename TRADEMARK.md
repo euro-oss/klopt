@@ -12,6 +12,23 @@ the only exclusivity the project retains.
 > holding entity or a foundation — is open decision 17.1 and determines who can
 > enforce this policy.
 
+## Clearance checklist
+
+Public-repo Legal track for decision 17.7. Status cells stay empty or marked
+**not cleared / TBD** until Legal records an outcome. This table is a working
+list only — it does not claim clearance is done.
+
+| Check                                    | Status            |
+| ---------------------------------------- | ----------------- |
+| TMview / BOIP — Nice class 9             | not cleared / TBD |
+| TMview / BOIP — Nice class 35            | not cleared / TBD |
+| TMview / BOIP — Nice class 36            | not cleared / TBD |
+| TMview / BOIP — Nice class 42            | not cleared / TBD |
+| KvK handelsregister (trade name)         | not cleared / TBD |
+| GitHub organisation                      | not cleared / TBD |
+| npm scope                                | not cleared / TBD |
+| Domains                                  | not cleared / TBD |
+
 ## You may, without asking
 
 - Fork the project and distribute your fork under a **different** name.
