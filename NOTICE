@@ -1,14 +1,16 @@
 Klopt
-Copyright 2026 The Klopt Contributors
+Copyright 2026 Hidde Stokvis
 
-This product includes software developed by The Klopt Contributors.
+This product includes software developed for the Klopt project.
 
 Licensed under the Apache License, Version 2.0. See LICENSE.
 
-Note: the copyright holder named above is a placeholder. Open decision 17.1 in
-the requirements — whether the name and copyright sit with an individual, a
-holding entity or a foundation — has not been answered, and it determines who
-can enforce the trademark. Settle it before this repository is made public.
+Copyright is held by Hidde Stokvis on an interim basis. The intended
+long-term holder is a foundation that is not yet formed; assignment of
+this copyright (and related trademark rights in the name “Klopt”) to
+that foundation is planned when it exists. Until then, Hidde Stokvis is
+the copyright holder named in this NOTICE. Contributor inbound licences
+remain Apache-2.0 via DCO (see CONTRIBUTING.md).
 
 This product includes UI components derived from shadcn/ui
 (https://ui.shadcn.com/), under the MIT License. The attribution below covers
