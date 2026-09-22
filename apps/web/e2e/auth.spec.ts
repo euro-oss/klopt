@@ -2,7 +2,7 @@ import { rmSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 import { addMember, closeDatabase, createDatabase, runMigrations } from '@klopt/db'
 import { findUserIdByEmail, seedEntity } from '@klopt/db/testing'
-import { DATABASE_URL, OUTBOX, codeFor, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, OUTBOX, codeFor, signIn, signOut, uniqueEmail } from './support'
 
 /**
  * The signed-out journey, in a real browser.
@@ -121,7 +121,7 @@ test('a member lands on the dashboard, and signing out returns to the form', asy
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     await expect(page.getByText('RGS-dekking')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Afmelden' }).click()
+    await signOut(page)
     await expect(page).toHaveURL(/\/sign-in/)
     await expect(page.getByLabel('E-mail')).toBeVisible()
   } finally {

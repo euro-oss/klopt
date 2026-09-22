@@ -2,7 +2,7 @@ import { rmSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 import { closeDatabase, createDatabase, membershipsFor, runMigrations } from '@klopt/db'
 import { findUserIdByEmail } from '@klopt/db/testing'
-import { DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, openAccountMenu, OUTBOX, signIn, uniqueEmail } from './support'
 
 /**
  * From nothing to a working set of books, in a browser.
@@ -46,7 +46,12 @@ test('a new user signs in, sets up an administration and lands in it', async ({ 
     await expect(page.getByRole('combobox', { name: /Administratie/ })).toHaveText(
       'Speelgoedwinkel De Tol',
     )
+    // Which role you hold went behind the account menu with the rest of the
+    // chrome. Still an answer, just not one printed against the bottom of the
+    // rail at all times.
+    await openAccountMenu(page)
     await expect(page.getByText('rol: owner')).toBeVisible()
+    await page.keyboard.press('Escape')
 
     const userId = await findUserIdByEmail(database, email)
     if (userId === null) throw new Error('The sign-in did not create a user.')

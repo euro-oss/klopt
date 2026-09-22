@@ -1,15 +1,17 @@
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
+import { RiArrowRightSLine } from '@remixicon/react'
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { setLocale } from '~/server/locale'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
 import { formatDate } from '~/lib/format'
 import type { FiscalYearOption, FiscalYearScope } from '~/lib/fiscal-year'
 import { MAY_EXPORT_AUDIT_FILE, MAY_OPEN_YEAR } from '~/lib/roles'
-import { DEFAULT_THEME, type Theme } from '~/lib/theme'
+import { DEFAULT_THEME_PREFERENCE, type ThemePreference } from '~/lib/theme'
 import { setTheme } from '~/server/theme'
 import { BINDINGS_BY_ID, formatBinding } from '~/lib/keyboard'
 import { CommandPalette } from './command-palette'
@@ -404,16 +406,24 @@ export function AppShell({
 }
 
 /**
- * Who you are, at the bottom of the sidebar.
+ * Who you are, at the bottom of the sidebar — one row of it.
  *
- * Its own block with a rule above it, because "which administration am I in
- * and as what" is the question somebody asks before they believe a number, and
- * it was previously three lines of small grey text under the sign-out link.
+ * The block used to print everything it had: an avatar, a name, a role, a
+ * language picker, a theme picker and a sign-out link, five controls stacked
+ * against the bottom of a rail that already carries twenty destinations. Only
+ * one of them answers a question anybody asks daily ("whose books am I in"),
+ * and the other four are settled once and then sit there being read every time
+ * the eye reaches the end of the navigation. So the row is now the answer —
+ * initial, name, chevron — and the four settings are behind it.
  *
- * The language picker lives here rather than in Instellingen: somebody who has
+ * The menu opens *upward*, because the trigger is the last thing on the screen
+ * and a panel below it would be off the bottom of the viewport.
+ *
+ * The language picker is in this menu rather than in Instellingen, which is
+ * the one thing that got harder and is still the right place: somebody who has
  * landed in the wrong language cannot read the word for "language" to go and
- * find it, so it sits where the eye already goes for account things — and it
- * is labelled in both languages for the same reason.
+ * find it, so it lives where the eye already goes for account things, one
+ * click in, labelled in both languages.
  */
 function Profile({
   userName,
@@ -425,6 +435,10 @@ function Profile({
   role: string
 }) {
   const { t } = useT()
+  // A trigger that opens nothing is the failure `select.tsx` describes: this
+  // is a Radix popover, so it does nothing at all until React has attached.
+  const hydrated = useHydrated()
+  const [open, setOpen] = useState(false)
 
   // Signing in never asks for a name — it is an address and a code — so for
   // most people `name` is empty and the address is the only thing they would
@@ -433,40 +447,67 @@ function Profile({
   const shown = userName.trim() === '' ? userEmail : userName
 
   return (
-    <section aria-label={t('shell.profile')} className="border-border border-t p-4">
-      <div className="flex items-center gap-2">
-        <span
-          aria-hidden="true"
-          className="bg-accent text-accent-foreground flex size-7 shrink-0 items-center justify-center text-xs font-semibold"
+    <section aria-label={t('shell.profile')} className="border-border border-t p-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          disabled={!hydrated}
+          // The accessible name is the name on the row rather than an
+          // `aria-label` saying "account menu": what you can see is what you
+          // can say, and a label that replaces the visible text is a label a
+          // voice user cannot guess.
+          //
+          // Focus and open both take the accent yellow fill — the black ring
+          // on white was invisible against the page and against the design.
+          className="group hover:bg-accent/60 focus-visible:bg-accent focus-visible:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex w-full items-center gap-2 px-2 py-1.5 text-left outline-none"
         >
-          {initialOf(shown)}
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-medium" title={shown}>
+          <span
+            aria-hidden="true"
+            // Soft yellow at rest; the open/focus fill on the row is the loud
+            // one, so the initial steps back to the page colour then.
+            className="bg-accent/50 text-foreground group-focus-visible:bg-background group-data-[state=open]:bg-background group-focus-visible:text-foreground group-data-[state=open]:text-foreground flex size-7 shrink-0 items-center justify-center text-xs font-semibold"
+          >
+            {initialOf(shown)}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium" title={shown}>
             {shown}
           </span>
-          {role !== '' && (
-            <span className="text-muted-foreground block text-xs">{t('shell.role', { role })}</span>
-          )}
-        </span>
-      </div>
+          {/* Points along the row when shut and up the way the panel comes
+              when open, so the affordance is not lying about the direction. */}
+          <RiArrowRightSLine
+            aria-hidden="true"
+            className="text-muted-foreground group-focus-visible:text-accent-foreground group-data-[state=open]:text-accent-foreground size-4 shrink-0 transition-transform group-data-[state=open]:-rotate-90"
+          />
+        </PopoverTrigger>
 
-      <div className="mt-3">
-        <LanguagePicker />
-      </div>
+        <PopoverContent side="top" align="start" sideOffset={8} className="w-56 p-0">
+          {/* The name again, and the role with it. "As what am I in these
+              books" is worth an answer, just not one printed at all times. */}
+          <div className="border-border border-b px-3 py-2">
+            <span className="block truncate text-sm font-medium" title={shown}>
+              {shown}
+            </span>
+            {role !== '' && (
+              <span className="text-muted-foreground block text-xs">
+                {t('shell.role', { role })}
+              </span>
+            )}
+          </div>
 
-      <div className="mt-3">
-        <ThemePicker />
-      </div>
+          <div className="space-y-3 px-3 py-3">
+            <LanguagePicker />
+            <ThemePicker />
+          </div>
 
-      <form method="post" action="/sign-out" className="mt-2">
-        <button
-          type="submit"
-          className="text-muted-foreground hover:text-foreground text-xs underline"
-        >
-          {t('shell.signOut')}
-        </button>
-      </form>
+          <form method="post" action="/sign-out" className="border-border border-t">
+            <button
+              type="submit"
+              className="hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground block w-full px-3 py-2 text-left text-sm outline-none"
+            >
+              {t('shell.account.signOut')}
+            </button>
+          </form>
+        </PopoverContent>
+      </Popover>
     </section>
   )
 }
@@ -549,12 +590,14 @@ export function Stat({
 /**
  * Changing the language.
  *
- * In the sidebar rather than buried in Instellingen, and labelled in both
- * languages, because somebody who has landed in the wrong one cannot read the
- * word for "language" to go and find it.
+ * Short rows — NL | EN — rather than a bilingual SelectField. The menu is
+ * already one click in; a second click into a listbox for a two-option choice
+ * is a click too many, and "Taal / Language" / "Nederlands" was the wall of
+ * chrome this block was built to get rid of.
  *
- * A `select` that submits on change: this is a two-option choice, and a save
- * button would be a second thing to find.
+ * Still findable in the wrong language: the label is the short word for
+ * "language" in the current locale, and the options are the language codes
+ * themselves, which do not need translating.
  */
 function LanguagePicker() {
   const { locale, t } = useT()
@@ -562,12 +605,15 @@ function LanguagePicker() {
   const hydrated = useHydrated()
 
   return (
-    <SelectField
+    <ChoiceRow
       label={t('language.label')}
       value={locale}
       disabled={!hydrated}
-      size="sm"
-      onValueChange={(chosen) => {
+      options={[
+        { value: 'nl', label: t('language.nl') },
+        { value: 'en', label: t('language.en') },
+      ]}
+      onChange={(chosen) => {
         void setLocale({ data: { locale: chosen } })
           // The whole tree re-renders from the root loader, which is where the
           // language is resolved — so no reload, and no flash of the language
@@ -577,45 +623,97 @@ function LanguagePicker() {
             console.error('[app] could not change language', cause)
           })
       }}
-    >
-      <SelectOption value="nl">{t('language.nl')}</SelectOption>
-      <SelectOption value="en">{t('language.en')}</SelectOption>
-    </SelectField>
+    />
   )
 }
 
 /**
- * Light or dark.
+ * Licht, Donker, or Systeem.
  *
  * Beside the language, because both are "how this looks to me" rather than
- * anything about the books. Light is the default and the theme is resolved on
- * the server, so switching is a cookie and a re-render rather than a flash of
- * the theme somebody has just left.
+ * anything about the books. The preference is a cookie; light and dark paint
+ * from the server, and Systeem is settled by a boot script in `<head>` so a
+ * dark OS does not flash white on the way in.
  */
 function ThemePicker() {
   const { t } = useT()
   const router = useRouter()
   const hydrated = useHydrated()
   const theme = useRouterState({
-    select: (state) => (state.matches[0]?.loaderData as { theme?: Theme } | undefined)?.theme,
+    select: (state) =>
+      (state.matches[0]?.loaderData as { theme?: ThemePreference } | undefined)?.theme,
   })
 
   return (
-    <SelectField
+    <ChoiceRow
       label={t('theme.label')}
-      value={theme ?? DEFAULT_THEME}
+      value={theme ?? DEFAULT_THEME_PREFERENCE}
       disabled={!hydrated}
-      size="sm"
-      onValueChange={(chosen) => {
+      options={[
+        { value: 'light', label: t('theme.light') },
+        { value: 'dark', label: t('theme.dark') },
+        { value: 'system', label: t('theme.system'), title: t('theme.systemHint') },
+      ]}
+      onChange={(chosen) => {
         void setTheme({ data: { theme: chosen } })
           .then(() => router.invalidate())
           .catch((cause: unknown) => {
             console.error('[app] could not change theme', cause)
           })
       }}
-    >
-      <SelectOption value="light">{t('theme.light')}</SelectOption>
-      <SelectOption value="dark">{t('theme.dark')}</SelectOption>
-    </SelectField>
+    />
+  )
+}
+
+/**
+ * A short row of mutually exclusive choices.
+ *
+ * Used for the two preferences in the account menu. A SelectField would open a
+ * listbox for a two- or three-option pick that already fits on one line, and
+ * the selected option takes the accent yellow fill — the same signal the open
+ * chip uses — rather than a black focus ring that disappears on white.
+ */
+function ChoiceRow({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  label: string
+  value: string
+  options: readonly { value: string; label: string; title?: string }[]
+  onChange: (value: string) => void
+  disabled: boolean
+}) {
+  return (
+    <div role="group" aria-label={label}>
+      <div className="text-muted-foreground mb-1 text-xs font-medium">{label}</div>
+      <div className="border-border flex border">
+        {options.map((option) => {
+          const selected = option.value === value
+          return (
+            <button
+              key={option.value}
+              type="button"
+              disabled={disabled}
+              aria-pressed={selected}
+              title={option.title}
+              onClick={() => {
+                if (!selected) onChange(option.value)
+              }}
+              className={cn(
+                'flex-1 px-2 py-1.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50',
+                selected
+                  ? 'bg-accent text-accent-foreground'
+                  : 'hover:bg-accent/60 focus-visible:bg-accent focus-visible:text-accent-foreground',
+              )}
+            >
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }

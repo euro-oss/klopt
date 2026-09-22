@@ -6,11 +6,17 @@ import {
   useRouter,
   useRouterState,
 } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
+import { useSyncExternalStore, type ReactNode } from 'react'
 import appCss from '~/styles/app.css?url'
 import { DEFAULT_LOCALE, intlTag, type Locale } from '~/i18n/locale'
 import { LocaleProvider, useT } from '~/i18n/provider'
-import { DEFAULT_THEME, themeClass, type Theme } from '~/lib/theme'
+import {
+  DEFAULT_THEME_PREFERENCE,
+  resolveAppearance,
+  THEME_BOOT_SCRIPT,
+  themeClass,
+  type ThemePreference,
+} from '~/lib/theme'
 import { getLocale } from '~/server/locale'
 import { getTheme } from '~/server/theme'
 
@@ -105,23 +111,55 @@ function RootDocument({ children }: { children: ReactNode }) {
    */
   const { locale, theme } = useRouterState({
     select: (state) => {
-      const data = state.matches[0]?.loaderData as { locale?: Locale; theme?: Theme } | undefined
-      return { locale: data?.locale ?? DEFAULT_LOCALE, theme: data?.theme ?? DEFAULT_THEME }
+      const data = state.matches[0]?.loaderData as
+        { locale?: Locale; theme?: ThemePreference } | undefined
+      return {
+        locale: data?.locale ?? DEFAULT_LOCALE,
+        theme: data?.theme ?? DEFAULT_THEME_PREFERENCE,
+      }
     },
   })
+
+  // Server snapshot is light; the client snapshot is the OS. The boot script
+  // below has already painted the right class before hydration, and this hook
+  // keeps React's `className` in agreement with it — and with later OS flips.
+  const systemDark = useSystemDark()
+  const appearance = resolveAppearance(theme, systemDark)
 
   return (
     // The real language, for screen readers and for the browser's own
     // translation prompt. The fiscal terminology stays Dutch inside an English
     // UI (spec 12), but the document is in the language the user reads.
-    <html lang={intlTag(locale)} className={themeClass(theme)}>
+    <html lang={intlTag(locale)} className={themeClass(appearance)} suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body>
         <LocaleProvider locale={locale}>{children}</LocaleProvider>
         <Scripts />
       </body>
     </html>
+  )
+}
+
+/**
+ * Whether the operating system is currently asking for dark.
+ *
+ * Only consulted when the preference is `system`. The server snapshot is
+ * `false` (light) so SSR markup stays deterministic; the client snapshot is
+ * live, and the subscription re-renders if the OS flips while the tab is open.
+ */
+function useSystemDark(): boolean {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const media = window.matchMedia('(prefers-color-scheme: dark)')
+      media.addEventListener('change', onStoreChange)
+      return () => {
+        media.removeEventListener('change', onStoreChange)
+      }
+    },
+    () => window.matchMedia('(prefers-color-scheme: dark)').matches,
+    () => false,
   )
 }

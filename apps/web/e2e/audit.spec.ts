@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { chooseOption, DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, hydrated, signIn, signOut, uniqueEmail } from './support'
 
 /**
  * Wie wat deed, in a browser.
@@ -126,7 +126,7 @@ test('signing in is on the log, once there are books to have opened', async ({ p
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
 
   // Out and back in, now that the address reaches something.
-  await page.getByRole('button', { name: 'Afmelden' }).click()
+  await signOut(page)
   await expect(page.getByRole('button', { name: 'Stuur me een code' })).toBeVisible()
   await signIn(page, email)
   // Signing in ends in a document navigation. Going somewhere else before it

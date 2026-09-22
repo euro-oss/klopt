@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, hydrated, signIn, signOut, uniqueEmail } from './support'
 
 /**
  * De auditfile, er weer in.
@@ -27,11 +27,16 @@ test.beforeAll(async () => {
  *
  * The round-trip tests want two administrations and one browser, and `/sign-in`
  * bounces a signed-in visitor to the dashboard — so the way to the form is
- * through the sidebar's own sign-out.
+ * through the sidebar's own sign-out (one click inside the account menu when
+ * there is a shell, or the plain Afmelden button on the no-administration
+ * screen).
  */
 async function anAdministration(page: Page, name: string): Promise<void> {
   await page.goto('/')
-  if ((await page.getByRole('button', { name: 'Afmelden' }).count()) > 0) {
+  if ((await page.getByRole('region', { name: 'Profiel' }).count()) > 0) {
+    await signOut(page)
+    await expect(page.getByLabel('E-mail')).toBeVisible()
+  } else if ((await page.getByRole('button', { name: 'Afmelden' }).count()) > 0) {
     await page.getByRole('button', { name: 'Afmelden' }).click()
     await expect(page.getByLabel('E-mail')).toBeVisible()
   }
