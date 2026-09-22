@@ -7,8 +7,8 @@ disclosing.
 ## Reporting a vulnerability
 
 Report privately through GitHub's **Report a vulnerability** button on the
-Security tab, or by email to the address in `MAINTAINERS.md`. Do not open a
-public issue.
+Security tab, or by email to `security@euro.computer`. Do not open a public
+issue.
 
 Include: what you found, how to reproduce it, the version or commit, and what an
 attacker gets out of it.
