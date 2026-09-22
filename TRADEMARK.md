@@ -8,9 +8,9 @@ the only exclusivity the project retains.
 > 17.7). Needed before anything is printed or this repository goes public:
 > TMview and BOIP in classes 9, 35, 36 and 42; the KvK handelsregister, because
 > Dutch trade-name rights arise from use rather than registration; and the GitHub
-> organisation, npm scope and domains. Who holds the mark — an individual, a
-> holding entity or a foundation — is open decision 17.1 and determines who can
-> enforce this policy.
+> organisation, npm scope and domains. Until a foundation is assigned (open
+> decision 17.1), the mark is enforced on an interim personal basis by Hidde
+> Stokvis.
 
 ## Clearance checklist
 
