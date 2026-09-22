@@ -68,7 +68,7 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
 
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
-  await expect(page.getByText(/Dit is een concept/)).toBeVisible()
+  await expect(page.getByText(/Concept\. Nog geen nummer en niets geboekt/)).toBeVisible()
 
   // Issuing. This is the write that was impossible before the key was threaded
   // through: it allocates a gapless number and posts to the ledger.
