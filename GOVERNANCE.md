@@ -27,7 +27,11 @@ it withholds one, principle 4 is dead and the community notices the same week.
 ## Contribution model
 
 - **DCO sign-off, not a CLA.** See `CONTRIBUTING.md`.
-- Pull requests need one maintainer approval, and CI green.
+- Pull requests need one **appointed** maintainer approval, and CI green.
+- **Only appointed maintainers may merge to `main`.** Opening a PR or a green
+  CI run does not grant merge rights. GitHub accounts on the merge allow-list
+  are named separately (pending appointment); see `CONTRIBUTING.md` and
+  `docs/github-branch-protection.md`.
 - A change to a regulated artefact needs a maintainer who owns that part of the
   compliance calendar.
 
