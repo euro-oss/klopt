@@ -5,13 +5,7 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from '~/components/ui/empty'
+import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from '~/components/ui/empty'
 import {
   Item,
   ItemActions,
@@ -264,16 +258,13 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
   }, [hydrated])
 
   if (items.length === 0) {
+    // One line and the next action — not a title, a paragraph, and a button.
     return (
       <Empty className="border">
         <EmptyHeader>
-          {/* A heading, said out loud: `EmptyTitle` is a `div`, and "nothing
-              is waiting" is the answer to the question this screen exists to
-              ask. Announcing it as body text buries it. */}
           <EmptyTitle role="heading" aria-level={2}>
             {t('queue.empty')}
           </EmptyTitle>
-          <EmptyDescription>{t('queue.emptyBody')}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button asChild>

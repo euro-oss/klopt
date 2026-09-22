@@ -354,7 +354,9 @@ export function CommandPalette() {
                               }}
                               className={cn(
                                 'flex w-full items-center justify-between px-4 py-2 text-left text-sm',
-                                index === cursor && 'bg-muted',
+                                // Yellow fill + black text: `bg-muted` on
+                                // `bg-popover` disappears in Donker.
+                                index === cursor && 'bg-accent text-accent-foreground',
                               )}
                             >
                               <span>
@@ -414,7 +416,7 @@ export function CommandPalette() {
                                     }}
                                     className={cn(
                                       'flex w-full items-baseline justify-between gap-3 px-4 py-2 text-left text-sm',
-                                      index === cursor && 'bg-muted',
+                                      index === cursor && 'bg-accent text-accent-foreground',
                                     )}
                                   >
                                     <span className="min-w-0">

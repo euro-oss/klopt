@@ -34,6 +34,9 @@ describe('Alpha 5 density and dark mode', () => {
     expect(palette).toContain('bg-foreground/30')
     expect(palette).not.toContain('bg-black/30')
     expect(palette).toContain('bg-popover')
+    // Cursor must not be bg-muted on bg-popover — invisible in Donker.
+    expect(palette).toContain('bg-accent text-accent-foreground')
+    expect(palette).not.toMatch(/index === cursor && 'bg-muted'/)
   })
 
   it('marks the keyboard with --ring, not yellow type or a primary hairline', () => {
@@ -55,5 +58,11 @@ describe('Alpha 5 density and dark mode', () => {
     expect(empty).not.toContain('p-12')
     expect(empty).not.toContain('tracking-wider uppercase')
     expect(empty).not.toContain('text-primary')
+
+    // Home empty: one line + next action, no body paragraph.
+    const home = read('routes/_app/index.tsx')
+    expect(home).toContain("t('queue.empty')")
+    expect(home).toContain("t('queue.emptyAction')")
+    expect(home).not.toContain("t('queue.emptyBody')")
   })
 })
