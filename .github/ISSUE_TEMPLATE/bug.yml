@@ -8,11 +8,13 @@ body:
         Thanks for the report. If the bug is in a **regulated artefact** (XAF, UBL,
         XBRL, pain.001, CAMT) or a **compliance schema**, use the *Compliance
         artefact* form instead — it asks for the schema and sample it needs.
+        Redact real personal or financial data before pasting samples, logs, or
+        screenshots.
   - type: textarea
     id: what-happened
     attributes:
       label: What happened
-      description: What you saw, and what you expected instead.
+      description: What you saw, and what you expected instead. Redact real personal or financial data.
       placeholder: |
         Opened the trial balance for a boekjaar that runs 1 Jul–30 Jun and it
         showed the calendar year instead.
@@ -22,6 +24,7 @@ body:
     id: steps
     attributes:
       label: Steps to reproduce
+      description: Include only what is needed to reproduce. Redact real personal or financial data.
       placeholder: |
         1. Sign in, create an administration with a non-calendar book year
         2. Open /reports/trial-balance

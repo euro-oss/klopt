@@ -9,11 +9,13 @@ body:
         M0–M6 complete; a credible alpha is closing UI holes and making daily
         work feel fast. See `docs/ALPHA_ASSESSMENT.md` for the map, and
         `docs/keyboard-map.md` for the keyboard design.
+        Redact real personal or financial data before pasting samples, logs, or
+        screenshots.
   - type: textarea
     id: gap
     attributes:
       label: The gap
-      description: What a user cannot do in the product today.
+      description: What a user cannot do in the product today. Redact real personal or financial data.
       placeholder: |
         There is no screen to close a book year, even though
         POST /fiscal-years/close exists and is tested.

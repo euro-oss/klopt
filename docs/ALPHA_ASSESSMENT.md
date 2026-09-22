@@ -166,7 +166,7 @@ README. A bookkeeper can keep a Dutch administration through these paths today.
 - Webhooks: 11 versioned event types, signed, retried, replayable.
 - Generated OpenAPI 3.1 (`GET /api/v1/openapi.json` and `docs/openapi.json`).
 - Module contract with ownership test; `examples/notifier` is the worked module.
-- MCP: 12 tools (8 read, 4 draft-only writes). README still says six — stale.
+- MCP: 12 tools (9 read, 3 draft-only writes).
 - CLI: `login`, `check`, `export`, `bank-import`, `webhooks-replay`, `events`.
 - Headless mode: non-`/api` paths 404.
 
@@ -181,7 +181,7 @@ README. A bookkeeper can keep a Dutch administration through these paths today.
 
 A determined user can: sign in → create books → invoice → import a statement →
 match → pay a supplier (two people) → file BTW by hand → export XAF. That is
-already a legal self-hosted bookkeeping loop.
+already a workable self-hosted bookkeeping loop.
 
 ---
 
@@ -276,7 +276,7 @@ engine lands in M3” — the engine has landed.
 
 API is the most finished surface. Treat it as alpha-ready for integrators.
 
-MCP is **12 tools**, not the six in the README:
+MCP is **12 tools** (9 read, 3 draft-only writes):
 
 Read: `describe_schema`, `search`, `get_balance`, `explain_number`,
 `list_open_items`, `vat_return_preview`, `list_pending_approvals`,
@@ -306,7 +306,6 @@ Unit/integration coverage of the domain is a genuine asset. Gaps:
 | Document                                 | What it still says                                                             | What the code does                                                                 |
 | ---------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
 | `docs/architecture.md` § “Not built yet” | VAT/purchase not built; worker empty; contacts not editable; palette not wired | M3–M6 present; worker has 5 jobs; contact edit exists; palette + `g` prefixes work |
-| `README.md` MCP                          | “Six tools, all read-only”                                                     | Twelve tools, four writes                                                          |
 | `docs/decisions/README.md`               | Index stops at ADR 0017                                                        | 58 decision files exist (0001–0058)                                                |
 | ADR 0025 consequences                    | Inbox not here; payment batch does not draw from approved invoices             | Inbox and `addApprovedInvoices` are in the product                                 |
 | `docs/keyboard-map.md`                   | Honest: tables are the design, registry is the truth                           | Still the best UX spec; implement against it                                       |
@@ -399,7 +398,7 @@ schedule Digipoort, Peppol AP, or PSD2 as alpha gates.
 ### WS1 — Stop the docs from lying; put e2e in CI — **S**
 
 - Rewrite `docs/architecture.md` “Not built yet” to match 0.1.0.
-- Fix README MCP tool count (12, four writes).
+- Align MCP tool count to 9 read / 3 draft-only writes (README already correct).
 - Extend `docs/decisions/README.md` through ADR 0058 (or generate it).
 - Add GitHub issue templates: bug, alpha-gap, compliance-artefact.
 - Run Playwright on CI (Postgres service already there; add a job or a
