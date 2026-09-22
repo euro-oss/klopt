@@ -39,11 +39,7 @@ A ruleset targeting `main` is enough. Keep it required, not advisory.
 - [ ] **Restrict who can merge** pull requests to **Hidde only** for now
       (his GitHub username — fill in Settings; do not invent it in-repo).
       Widen later only when further maintainers are explicitly appointed.
-- [ ] **Require status checks to pass before merging**, and list at least:
-      - `verify (24)`
-      - `verify (26)`
-      - `artefacts`
-      - `e2e`
+- [ ] **Require status checks to pass before merging**, and list at least: - `verify (24)` - `verify (26)` - `artefacts` - `e2e`
       Require the tip of the PR to be up to date with `main` if the UI offers
       that option and it does not block legitimate work.
 - [ ] **Block force pushes** to `main`.
