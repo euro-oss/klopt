@@ -287,7 +287,6 @@ describe('what gets written down', () => {
   })
 
   it('keeps the credential out of it when a mailbox is configured', async () => {
-    process.env['KLOPT_ENCRYPTION_KEY'] = 'test-key-not-for-production-0123456789'
     const { token } = await newEntity()
 
     const { handleAddInboundSource } = await import('../src/api/handlers/inbound-sources.js')

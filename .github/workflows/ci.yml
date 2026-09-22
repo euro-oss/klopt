@@ -75,7 +75,9 @@ jobs:
 
       # The ledger tests run against a real Postgres on purpose. The triggers
       # are half the guarantee, and a mocked database proves nothing about them.
-      # The web suite sets its own test encryption key (test/setup-encryption-key.ts).
+      # The web suite sets its own test encryption key (test/setup/environment.ts)
+      # — a committed fixture literal, not a repository secret — so fork PRs and
+      # local `pnpm run verify` see the same key CI does.
       #
       # Object storage is the other way round, and deliberately so. There was a
       # `Start MinIO` step here — a container, a health poll and two buckets
