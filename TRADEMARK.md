@@ -18,16 +18,16 @@ Public-repo Legal track for decision 17.7. Status cells stay empty or marked
 **not cleared / TBD** until Legal records an outcome. This table is a working
 list only — it does not claim clearance is done.
 
-| Check                                    | Status            |
-| ---------------------------------------- | ----------------- |
-| TMview / BOIP — Nice class 9             | not cleared / TBD |
-| TMview / BOIP — Nice class 35            | not cleared / TBD |
-| TMview / BOIP — Nice class 36            | not cleared / TBD |
-| TMview / BOIP — Nice class 42            | not cleared / TBD |
-| KvK handelsnaam                          | not cleared / TBD |
-| GitHub organisation                      | not cleared / TBD |
-| npm scope                                | not cleared / TBD |
-| Domains                                  | not cleared / TBD |
+| Check                         | Status            |
+| ----------------------------- | ----------------- |
+| TMview / BOIP — Nice class 9  | not cleared / TBD |
+| TMview / BOIP — Nice class 35 | not cleared / TBD |
+| TMview / BOIP — Nice class 36 | not cleared / TBD |
+| TMview / BOIP — Nice class 42 | not cleared / TBD |
+| KvK handelsnaam               | not cleared / TBD |
+| GitHub organisation           | not cleared / TBD |
+| npm scope                     | not cleared / TBD |
+| Domains                       | not cleared / TBD |
 
 ## You may, without asking
 
