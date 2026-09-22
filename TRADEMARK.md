@@ -24,7 +24,7 @@ list only — it does not claim clearance is done.
 | TMview / BOIP — Nice class 35            | not cleared / TBD |
 | TMview / BOIP — Nice class 36            | not cleared / TBD |
 | TMview / BOIP — Nice class 42            | not cleared / TBD |
-| KvK handelsregister (trade name)         | not cleared / TBD |
+| KvK handelsnaam                          | not cleared / TBD |
 | GitHub organisation                      | not cleared / TBD |
 | npm scope                                | not cleared / TBD |
 | Domains                                  | not cleared / TBD |
