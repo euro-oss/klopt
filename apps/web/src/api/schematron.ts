@@ -8,8 +8,9 @@ import { fileURLToPath } from 'node:url'
  *
  * Parsing the artefacts costs about a quarter of a second and validating a
  * document about a tenth, so the parse is cached and the validation is not. A
- * new BIS release is a new file in `reference-data/peppol/` and a restart
- * (principle 6) — there is nothing generated and nothing to compile.
+ * new BIS release is a new file under `reference-data/peppol/` (fetched via
+ * `pnpm run peppol:fetch`, not committed) and a restart (principle 6) — there
+ * is nothing generated and nothing to compile.
  */
 
 let validator: SchematronValidator | null = null

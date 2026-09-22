@@ -54,6 +54,18 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # OpenPeppol BIS Schematron is not in the tree (redistribution restricted).
+      # Cache by the fetch script so a pin bump busts the cache; fetch is a no-op
+      # when both .sch files are already present.
+      - name: Cache Peppol BIS-3 Schematron
+        uses: actions/cache@v4
+        with:
+          path: reference-data/peppol/bis-3/*.sch
+          key: peppol-bis3-${{ hashFiles('tools/fetch-peppol-bis3.sh') }}
+
+      - name: Fetch Peppol BIS-3 Schematron
+        run: pnpm run peppol:fetch
+
       - name: Format
         run: pnpm run format:check
 
@@ -112,11 +124,27 @@ jobs:
       - name: Install libxml2-utils
         run: sudo apt-get update && sudo apt-get install -y libxml2-utils
 
+      - name: Cache Peppol BIS-3 Schematron
+        uses: actions/cache@v4
+        with:
+          path: reference-data/peppol/bis-3/*.sch
+          key: peppol-bis3-${{ hashFiles('tools/fetch-peppol-bis3.sh') }}
+
+      - name: Fetch Peppol BIS-3 Schematron
+        run: bash tools/fetch-peppol-bis3.sh
+
       - name: XAF 3.2 golden files validate against the published schema
         run: |
           for file in packages/core/test/xaf/__golden__/*.xml; do
             echo "validating $file"
             xmllint --noout --schema reference-data/xaf/XmlAuditfileFinancieel3.2.xsd "$file"
+          done
+
+      - name: Peppol BIS-3 Schematron is well formed
+        run: |
+          for file in reference-data/peppol/bis-3/*.sch; do
+            echo "checking $file"
+            xmllint --noout "$file"
           done
 
       - name: Reference data is well formed
@@ -168,6 +196,15 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Cache Peppol BIS-3 Schematron
+        uses: actions/cache@v4
+        with:
+          path: reference-data/peppol/bis-3/*.sch
+          key: peppol-bis3-${{ hashFiles('tools/fetch-peppol-bis3.sh') }}
+
+      - name: Fetch Peppol BIS-3 Schematron
+        run: pnpm run peppol:fetch
 
       # The web dev server the suite drives imports the workspace packages
       # through their `exports`, which point at dist/. Nothing resolves until

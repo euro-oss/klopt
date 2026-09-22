@@ -18,6 +18,14 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Peppol Schematron is fetched, not redistributed
+
+OpenPeppol BIS Billing 3 `.sch` files are no longer in the published tree.
+`pnpm run peppol:fetch` (`tools/fetch-peppol-bis3.sh`) pulls the pinned release
+from [OpenPEPPOL/peppol-bis-invoice-3](https://github.com/OpenPEPPOL/peppol-bis-invoice-3);
+see [`reference-data/peppol/README.md`](reference-data/peppol/README.md). CI
+caches the download for verify / artefacts / e2e.
+
 ### A quieter bottom to the side menu (alpha 5, design pass against the Penpot boards)
 
 - **The account block is one row.** An initial, the name and a chevron —

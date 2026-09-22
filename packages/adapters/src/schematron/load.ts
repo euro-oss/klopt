@@ -21,12 +21,16 @@ export function loadSchematronFromDirectory(directory: string): readonly Schemat
   } catch (error: unknown) {
     throw new SchematronError(
       `Cannot read ${directory}: ${error instanceof Error ? error.message : String(error)}. ` +
-        'Schematron artefacts are reference data — see docs/compliance-calendar.md.',
+        'Schematron artefacts are fetched, not shipped in-repo — run `pnpm run peppol:fetch` ' +
+        '(see reference-data/peppol/README.md).',
     )
   }
 
   if (files.length === 0) {
-    throw new SchematronError(`${directory} contains no .sch artefacts.`)
+    throw new SchematronError(
+      `${directory} contains no .sch artefacts. ` +
+        'Obtain them with `pnpm run peppol:fetch` — see reference-data/peppol/README.md.',
+    )
   }
 
   return files.map((name) => parseSchematron(readFileSync(join(directory, name), 'utf8'), name))

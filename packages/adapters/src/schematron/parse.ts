@@ -17,9 +17,9 @@ import {
  *
  * The artefacts are treated as data all the way through: nothing is compiled
  * ahead of time, nothing is generated into the repository, and a new Peppol
- * release is a new file in `reference-data/peppol/` (principle 6). The cost is
- * that this parser has to understand Schematron, which is the trade ADR 0017
- * argues for.
+ * release is a new file under `reference-data/peppol/` obtained with
+ * `pnpm run peppol:fetch` (principle 6). The cost is that this parser has to
+ * understand Schematron, which is the trade ADR 0017 argues for.
  */
 
 const SCH = 'http://purl.oclc.org/dsdl/schematron'

@@ -22,6 +22,7 @@
     "lint": "eslint .",
     "lint:boundaries": "depcruise packages apps examples --config .dependency-cruiser.cjs",
     "lint:fix": "eslint . --fix",
+    "peppol:fetch": "bash tools/fetch-peppol-bis3.sh",
     "rgs:generate": "pnpm --filter @klopt/rgs-import run build && node tools/rgs-import/dist/main.js",
     "test": "vitest run",
     "test:watch": "vitest",
