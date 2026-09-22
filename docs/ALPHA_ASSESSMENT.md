@@ -181,7 +181,7 @@ README. A bookkeeper can keep a Dutch administration through these paths today.
 
 A determined user can: sign in → create books → invoice → import a statement →
 match → pay a supplier (two people) → file BTW by hand → export XAF. That is
-already a legal self-hosted bookkeeping loop.
+already a workable self-hosted bookkeeping loop.
 
 ---
 
