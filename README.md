@@ -404,7 +404,7 @@ Version policy, and why TypeScript is pinned to 5.9 rather than the 7.x that
 | **M0**    | Entities, chart of accounts, RGS mapping, manual journal entries, immutable journal with hash chain, trial balance, balance sheet, P&L, **XAF 3.2 export and import** | An accountant can use it as a shadow ledger |
 | **M1**    | Sales: invoices, credit notes, UBL with NLCIUS validation, PDF, dunning                                                                                               | You can invoice for real                    |
 | **M2**    | Banking: CAMT.053 / MT940 import, matching engine, learned rules, pain.001. MCP server, read-only                                                                     | The daily grind is handled                  |
-| **M3**    | VAT: tax code engine, BTW-aangifte with reconciliation, ICP with VIES, XBRL, manual filing, then Digipoort                                                            | It is a legal bookkeeping system            |
+| **M3**    | VAT: tax code engine, BTW-aangifte with reconciliation, ICP with VIES, XBRL, manual filing, then Digipoort                                                            | VAT and ICP returns can be prepared         |
 | **M4**    | Purchase: supplier invoice inbox, approval flow, inbound Peppol. MCP write tools, behind the proposal model                                                           | The full cycle closes                       |
 | **M5**    | Retention and WORM, sealed snapshots, audit log export, Exact importer, multi-entity, permissions                                                                     | Adoptable by someone who is not us          |
 | **M6**    | API stability commitment, webhooks, module contract, first external module                                                                                            | An ecosystem is possible                    |
@@ -446,8 +446,8 @@ match and the postvak cleared without touching a mouse.
 | Peppol access point                | NPa agreement + OpenPeppol membership | Adapter — **email UBL fallback**                   |
 
 Every adapter has an implementation that needs no third party, and that
-implementation is the default in a fresh install. A self-hosted instance is
-complete and legal on its own. See
+implementation is the default in a fresh install. A self-hosted instance can
+run on those defaults without third-party licences or access points. See
 [`docs/decisions/0008`](docs/decisions/0008-adapter-ports-deferred.md).
 
 ## Licence and governance
