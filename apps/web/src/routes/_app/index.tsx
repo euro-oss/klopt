@@ -202,10 +202,7 @@ function Dashboard() {
           <p className="text-muted-foreground mt-1 text-sm">{t('dash.unmappedBody')}</p>
           <ul className="mt-3 flex flex-wrap gap-2">
             {coverage.data.unmappedAccounts.map((accountNumber) => (
-              <li
-                key={accountNumber}
-                className="bg-unreconciled/15 px-2 py-1 tabular text-xs"
-              >
+              <li key={accountNumber} className="bg-unreconciled/15 px-2 py-1 tabular text-xs">
                 {accountNumber}
               </li>
             ))}

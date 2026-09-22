@@ -487,8 +487,7 @@ function MatchQueue() {
                   }}
                   className={cn(
                     'border-border flex items-start gap-3 border p-3 outline-none',
-                    index === candidate &&
-                      'outline-ring outline-2 -outline-offset-2',
+                    index === candidate && 'outline-ring outline-2 -outline-offset-2',
                   )}
                 >
                   <span

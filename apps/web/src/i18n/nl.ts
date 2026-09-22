@@ -463,8 +463,7 @@ export const nl = {
   'invoice.credit': 'Crediteren',
   'invoice.downloadPdf': 'PDF downloaden',
   'invoice.downloadUbl': 'UBL downloaden',
-  'invoice.draftNotice':
-    'Concept. Nog geen nummer en niets geboekt. Versturen is definitief.',
+  'invoice.draftNotice': 'Concept. Nog geen nummer en niets geboekt. Versturen is definitief.',
   'invoice.lines': 'Factuurregels',
   'invoice.noLines': 'Geen regels.',
   'invoice.quantity': 'Aantal',
@@ -493,8 +492,7 @@ export const nl = {
   'invoiceNew.buyerReference': 'Referentie klant',
   'invoiceNew.buyerReferencePlaceholder': 'Kostenplaats',
   'invoiceNew.purchaseOrder': 'Inkoopnummer',
-  'invoiceNew.referenceNote':
-    'Een e-factuur heeft een bestel- of contractreferentie nodig.',
+  'invoiceNew.referenceNote': 'Een e-factuur heeft een bestel- of contractreferentie nodig.',
   'invoiceNew.unit': 'Eenheid',
   'invoiceNew.quantityLine': 'Aantal regel {line}',
   'invoiceNew.unitLine': 'Eenheid regel {line}',

@@ -339,9 +339,7 @@ function Inbox() {
         ))}
       </div>
 
-      {note !== null && (
-        <p className="border-border mb-4 max-w-2xl border p-3 text-sm">{note}</p>
-      )}
+      {note !== null && <p className="border-border mb-4 max-w-2xl border p-3 text-sm">{note}</p>}
       {problems.length > 0 && (
         <ul role="alert" className="text-destructive mb-4 max-w-2xl space-y-1 text-sm">
           {problems.map((problem) => (
