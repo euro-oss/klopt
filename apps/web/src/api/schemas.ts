@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { PURCHASE_INVOICE_STATUSES, SEARCH_RESOURCE_TYPES } from '@klopt/core'
+import { clockDefault } from './clock-default.js'
 
 /**
  * One schema per concept, three consumers: the REST routes, the server
@@ -52,18 +53,17 @@ export const isoDate = z
 /**
  * A date parameter that falls back to today (UTC) when the caller omits it.
  *
- * The fallback is applied at parse time, so a handler always receives a date —
- * but deliberately as an optional input with the default in a transform, not as
- * `isoDate.default(() => new Date()…)`. A function default is evaluated when the
- * OpenAPI document is generated, which bakes the generation date into
- * `docs/openapi.json` as a literal; the checked-in copy then disagrees with a
- * fresh build every day after it was regenerated, and `openapi.test.ts` goes
- * red on nobody's change. As an optional input the published contract is a plain
- * optional date and the document is the same on any day it is built.
+ * The default is a function of the clock, which is right at parse time and wrong
+ * in a published document: `z.toJSONSchema` evaluates it once and would bake the
+ * generation date into `docs/openapi.json`. `clockDefault` marks that so
+ * `openapi.ts` can drop the pinned value and write "Defaults to today." instead
+ * — the document stays the same on any day it is built, and a reader still learns
+ * what happens when the parameter is left out.
  */
-export const asOfDefaultsToday = isoDate
-  .optional()
-  .transform((value) => value ?? new Date().toISOString().slice(0, 10))
+export const asOfDefaultsToday = clockDefault(
+  isoDate.default(() => new Date().toISOString().slice(0, 10)),
+  'today',
+)
 
 export const currencyCode = z
   .string()
@@ -347,14 +347,13 @@ export const createEntityBody = z.object({
     .regex(/^[A-Za-z]{3}$/, 'Use a three-letter ISO 4217 code.')
     .default('EUR'),
   fiscalYearStartMonth: z.coerce.number().int().min(1).max(12).default(1),
-  firstFiscalYear: z
-    .string()
-    .regex(/^\d{4}$/, 'A book year is labelled by its four-digit start year.')
-    // Optional-with-transform, not `.default(() => …)`: see `asOfDefaultsToday`.
-    // A function default bakes the generation year into `docs/openapi.json`,
-    // which would make `openapi.test.ts` go red on the first of January.
-    .optional()
-    .transform((value) => value ?? String(new Date().getUTCFullYear())),
+  firstFiscalYear: clockDefault(
+    z
+      .string()
+      .regex(/^\d{4}$/, 'A book year is labelled by its four-digit start year.')
+      .default(() => String(new Date().getUTCFullYear())),
+    'the current year',
+  ),
   vatRounding: z.enum(['per_invoice', 'per_line']).default('per_invoice'),
 })
 
@@ -686,15 +685,15 @@ export const listVatPeriodsQuery = z.object({
    * Defaults to this year, which is what the route did by hand before the
    * schema existed. A VAT screen opened with no year means "the current one".
    */
-  year: z.coerce
-    .number()
-    .int()
-    .min(1900)
-    .max(2999)
-    // Optional-with-transform, not `.default(() => …)`: see `asOfDefaultsToday`.
-    // A function default bakes the generation year into `docs/openapi.json`.
-    .optional()
-    .transform((value) => value ?? new Date().getUTCFullYear()),
+  year: clockDefault(
+    z.coerce
+      .number()
+      .int()
+      .min(1900)
+      .max(2999)
+      .default(() => new Date().getUTCFullYear()),
+    'the current year',
+  ),
 })
 
 export const fileVatReturnBody = z
