@@ -4276,7 +4276,8 @@
                   },
                   "firstFiscalYear": {
                     "type": "string",
-                    "pattern": "^\\d{4}$"
+                    "pattern": "^\\d{4}$",
+                    "description": "Defaults to the current year."
                   },
                   "vatRounding": {
                     "default": "per_invoice",
@@ -7999,7 +8000,8 @@
             "in": "query",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/IsoDate"
+              "$ref": "#/components/schemas/IsoDate",
+              "description": "Defaults to today."
             }
           },
           {
@@ -18384,7 +18386,8 @@
             "in": "query",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/IsoDate"
+              "$ref": "#/components/schemas/IsoDate",
+              "description": "Defaults to today."
             }
           }
         ]
@@ -18495,7 +18498,8 @@
             "in": "query",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/IsoDate"
+              "$ref": "#/components/schemas/IsoDate",
+              "description": "Defaults to today."
             }
           }
         ]
@@ -21531,7 +21535,8 @@
                     ]
                   },
                   "asOf": {
-                    "$ref": "#/components/schemas/IsoDate"
+                    "$ref": "#/components/schemas/IsoDate",
+                    "description": "Defaults to today."
                   }
                 }
               }
@@ -25047,7 +25052,8 @@
             "schema": {
               "type": "integer",
               "minimum": 1900,
-              "maximum": 2999
+              "maximum": 2999,
+              "description": "Defaults to the current year."
             }
           }
         ]

@@ -3,6 +3,7 @@ import { getOperation, type OperationDefinition } from '@klopt/core'
 import { routeManifest, type HttpMethod, type RouteBinding } from './manifest.js'
 import { STATUS, type ApiErrorCode } from './errors.js'
 import * as schemas from './schemas.js'
+import { CLOCK_DEFAULT } from './clock-default.js'
 import responseSchemas from './response-schemas.generated.json' with { type: 'json' }
 
 /**
@@ -162,9 +163,39 @@ function toJsonSchema(schema: z.ZodType, components: Record<string, JsonValue>):
 
   const { $schema: _ignored, $defs, ...rest } = generated
   for (const [name, definition] of Object.entries(asObject($defs) ?? {})) {
-    components[name] = rewriteRefs(definition)
+    components[name] = describeClockDefaults(rewriteRefs(definition))
   }
-  return rewriteRefs(rest) as JsonObject
+  return describeClockDefaults(rewriteRefs(rest)) as JsonObject
+}
+
+/**
+ * Turn a default that means "now" into a sentence, not a date.
+ *
+ * `z.toJSONSchema` evaluates a function default once, so `asOf` came out as the
+ * day the document was generated — and the checked-in copy then disagreed with
+ * a freshly generated one from the next morning onwards. The test that refuses
+ * a stale copy was right; the document was wrong.
+ *
+ * The schema marks these with `CLOCK_DEFAULT` (see `clock-default.ts`). Here the
+ * pinned value goes and the behaviour is written down, which is what a reader
+ * needed in the first place: "the default is today" rather than "the default is
+ * 17 September 2026".
+ */
+function describeClockDefaults(value: JsonValue): JsonValue {
+  if (Array.isArray(value)) return value.map(describeClockDefaults)
+  if (value === null || typeof value !== 'object') return value
+
+  const out: JsonObject = {}
+  for (const [key, nested] of Object.entries(value)) out[key] = describeClockDefaults(nested)
+
+  const meaning = out[CLOCK_DEFAULT]
+  if (typeof meaning !== 'string') return out
+
+  delete out[CLOCK_DEFAULT]
+  delete out['default']
+  const existing = typeof out['description'] === 'string' ? `${out['description']} ` : ''
+  out['description'] = `${existing}Defaults to ${meaning}.`
+  return out
 }
 
 /** `#/$defs/X` is Zod's; `#/components/schemas/X` is OpenAPI's. */
