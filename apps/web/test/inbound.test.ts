@@ -342,7 +342,6 @@ describe('configuring where post comes from', () => {
   })
 
   it('never returns the password', async () => {
-    process.env['KLOPT_ENCRYPTION_KEY'] = 'test-key-not-for-production-0123456789'
     const { token } = await newEntity()
 
     await handleAddInboundSource(
@@ -364,23 +363,30 @@ describe('configuring where post comes from', () => {
   it('refuses a password rather than storing it in the clear', async () => {
     // Falling back to plaintext is the kind of quiet degradation somebody else
     // discovers later, in a dump.
+    const key = process.env['KLOPT_ENCRYPTION_KEY']
     delete process.env['KLOPT_ENCRYPTION_KEY']
     const { token } = await newEntity()
 
-    await expect(
-      handleAddInboundSource(
-        await context(token, uuidv7()),
-        addInboundSourceBody.parse({
-          kind: 'imap',
-          name: 'Mailbox',
-          host: 'imap.example.test',
-          user: 'facturen@example.test',
-          password: 'geheim',
-        }),
-      ),
-    ).rejects.toMatchObject({ code: 'validation_failed' })
+    try {
+      await expect(
+        handleAddInboundSource(
+          await context(token, uuidv7()),
+          addInboundSourceBody.parse({
+            kind: 'imap',
+            name: 'Mailbox',
+            host: 'imap.example.test',
+            user: 'facturen@example.test',
+            password: 'geheim',
+          }),
+        ),
+      ).rejects.toMatchObject({ code: 'validation_failed' })
 
-    expect((await handleListInboundSources(await context(token))).body.canStoreSecrets).toBe(false)
+      expect((await handleListInboundSources(await context(token))).body.canStoreSecrets).toBe(
+        false,
+      )
+    } finally {
+      process.env['KLOPT_ENCRYPTION_KEY'] = key
+    }
   })
 
   it('refuses a mailbox with no server, at the point it is set up', () => {

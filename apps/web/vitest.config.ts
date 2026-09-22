@@ -10,6 +10,6 @@ export default defineConfig({
     // Runs before every test file: guarantees an encryption key is present for
     // the suites that store secrets, without depending on the shell or the file
     // order. See the file for why this is not a single ambient variable.
-    setupFiles: ['./test/setup-encryption-key.ts'],
+    setupFiles: ['./test/setup/environment.ts'],
   },
 })

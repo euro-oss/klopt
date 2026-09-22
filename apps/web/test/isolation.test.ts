@@ -381,8 +381,8 @@ let a: Administration
 let b: Administration
 
 beforeAll(async () => {
-  // The Exact connection in each fixture holds an encrypted client secret.
-  process.env['KLOPT_ENCRYPTION_KEY'] ??= 'test-key-not-for-production-0123456789'
+  // The Exact connection in each fixture holds an encrypted client secret;
+  // the vitest setup file supplies KLOPT_ENCRYPTION_KEY.
   await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
