@@ -65,7 +65,7 @@ function ProfitAndLoss() {
         })}
       />
 
-      <div className="max-w-2xl space-y-8">
+      <div className="max-w-2xl space-y-4">
         {section(t('profit.revenue'), statement.revenue.lines, statement.revenue.total)}
         {section(t('profit.expenses'), statement.expenses.lines, statement.expenses.total)}
 

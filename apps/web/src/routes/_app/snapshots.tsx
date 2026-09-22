@@ -255,7 +255,7 @@ function Snapshots() {
                 </button>
                 <a
                   href={`/api/v1/snapshots/${row.id}/manifest`}
-                  className="text-primary self-center text-sm underline"
+                  className="text-foreground self-center text-sm underline"
                 >
                   {t('snapshots.manifest')}
                 </a>

@@ -255,7 +255,7 @@ export function AppShell({
       <CommandPalette />
       <a
         href="#main"
-        className="focus:bg-primary focus:text-primary-foreground sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded focus:px-3 focus:py-2"
+        className="focus:bg-primary focus:text-primary-foreground sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:px-3 focus:py-2"
       >
         {t('shell.skipToContent')}
       </a>
@@ -271,7 +271,7 @@ export function AppShell({
           aria-label={t('shell.navigation')}
           className="border-border sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r"
         >
-          <div className="p-4 pb-3">
+          <div className="px-3 pb-2">
             <Link to="/" className="text-lg font-semibold tracking-tight">
               Klopt
             </Link>
@@ -279,7 +279,7 @@ export function AppShell({
           </div>
 
           {entities.length > 0 && (
-            <div className="px-4 pb-3">
+            <div className="px-3 pb-2">
               <SelectField
                 label={t('shell.administration')}
                 value={active?.entityId ?? ''}
@@ -311,7 +311,7 @@ export function AppShell({
             only the label is the same guess as before with a dropdown on it.
           */}
           {fiscalYears.length > 0 && activeYear !== null && (
-            <div className="px-4 pb-3">
+            <div className="px-3 pb-2">
               <SelectField
                 label={t('shell.fiscalYear')}
                 value={activeYear.code}
@@ -335,7 +335,7 @@ export function AppShell({
 
           {/* Above the scrolling list, not below it: the commonest action in
               the application should never be behind a scroll. */}
-          <div className="px-4 pb-3">
+          <div className="px-3 pb-2">
             <Link
               to="/entries/new"
               className="bg-primary text-primary-foreground hover:bg-primary/90 block rounded-md px-3 py-2 text-center text-sm font-medium"
@@ -397,7 +397,7 @@ export function AppShell({
           nothing at all — so the new screen takes the focus, which is what a
           browser does for a real page load.
         */}
-        <main id="main" ref={main} tabIndex={-1} className="min-w-0 flex-1 p-8 outline-none">
+        <main id="main" ref={main} tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none">
           {children}
         </main>
       </div>
@@ -537,9 +537,9 @@ export function PageHeader({
   actions?: ReactNode | undefined
 }) {
   return (
-    <header className="mb-6 flex items-start justify-between gap-4">
+    <header className="mb-4 flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
         {description !== undefined && (
           <p className="text-muted-foreground mt-1 text-sm">{description}</p>
         )}

@@ -88,9 +88,9 @@ function BalanceSheet() {
         description={t('balance.intro', { date: sheet.asOf, currency: sheet.currency })}
       />
 
-      <div className="grid gap-10 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Side section={sheet.assets} />
-        <div className="space-y-8">
+        <div className="space-y-4">
           <Side section={sheet.liabilities} />
           <Side
             section={sheet.equity}
@@ -101,7 +101,7 @@ function BalanceSheet() {
         </div>
       </div>
 
-      <div className="border-border mt-8 grid gap-10 border-t pt-3 lg:grid-cols-2">
+      <div className="border-border mt-4 grid gap-4 border-t pt-3 lg:grid-cols-2">
         <div className="flex justify-between font-medium">
           <span>{t('balance.totalAssets')}</span>
           <Money amount={sheet.totalAssets} />

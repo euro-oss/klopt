@@ -292,7 +292,7 @@ export function CommandPalette() {
 
       {open !== null && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 p-4 pt-[10vh]"
+          className="bg-foreground/30 fixed inset-0 z-50 flex items-start justify-center p-4 pt-[10vh]"
           onClick={() => {
             setOpen(null)
           }}
@@ -306,7 +306,7 @@ export function CommandPalette() {
             // sensible.
             tabIndex={-1}
             aria-label={open === 'palette' ? t('palette.commands') : t('shell.help')}
-            className="bg-background border-border max-h-[70vh] w-full max-w-xl overflow-hidden border"
+            className="bg-popover border-border max-h-[70vh] w-full max-w-xl overflow-hidden border"
             onClick={(event) => {
               event.stopPropagation()
             }}

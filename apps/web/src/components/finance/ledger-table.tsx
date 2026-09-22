@@ -165,7 +165,7 @@ export function LedgerTable<TRow>({
 
   if (rows.length === 0) {
     return (
-      <p className="text-muted-foreground border-border border border-dashed p-6 text-sm">
+      <p className="text-muted-foreground border-border border p-4 text-sm">
         {empty ?? t('table.empty')}
       </p>
     )
@@ -326,14 +326,13 @@ export function LedgerTable<TRow>({
                   className={cn(
                     'border-border/60 border-b last:border-0 outline-none',
                     onRowActivate !== undefined && 'hover:bg-muted/60 cursor-pointer',
-                    // The cursor is a yellow line drawn round the row: the
-                    // accent marks where the keyboard is, here and in the
-                    // pickers, and an outline reads as "this one" without
-                    // repainting the row or relying on two greys apart.
-                    index === cursor && 'outline-primary bg-primary/5 outline-2 -outline-offset-2',
+                    // The cursor uses `--ring` (black in light, yellow in dark):
+                    // yellow-on-white is too thin for a hairline, so selection
+                    // is a yellow fill with black text when the row is chosen.
+                    index === cursor && 'outline-ring outline-2 -outline-offset-2',
                     // A selected row is marked at its edge rather than filled,
                     // so a selection of forty rows is still a table of figures.
-                    selected && 'border-l-primary bg-primary/10 border-l-2 font-medium',
+                    selected && 'border-l-ring bg-muted/60 border-l-2 font-medium',
                   )}
                 >
                   {columns.map((column) => (

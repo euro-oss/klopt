@@ -247,8 +247,7 @@ export const nl = {
     'Een boekjaar afsluiten boekt twee journaalposten en gebeurt één keer. Daarvoor is de rol eigenaar of accountant nodig.',
   'fiscalYears.mayNotOpen':
     'Een boekjaar openen hoort bij een rol die de inrichting mag wijzigen: eigenaar, accountant of boekhouder.',
-  'fiscalYears.closeBody':
-    'Eerst zien wat er geboekt wordt, dan afsluiten. De resultaatbestemming vlakt de winst-en-verliesrekeningen af tegen een eigen-vermogenrekening; de beginbalans zet de balansposten in het volgende jaar.',
+  'fiscalYears.closeBody': 'Eerst het voorstel, dan afsluiten. Dit kan niet terug.',
   'fiscalYears.yearToClose': 'Boekjaar om af te sluiten',
   'fiscalYears.pickYear': 'Kies een boekjaar',
   'fiscalYears.resultAccount': 'Resultaatrekening',
@@ -465,7 +464,7 @@ export const nl = {
   'invoice.downloadPdf': 'PDF downloaden',
   'invoice.downloadUbl': 'UBL downloaden',
   'invoice.draftNotice':
-    'Dit is een concept. Er is nog geen nummer uitgegeven en er is niets geboekt. Versturen is definitief: corrigeren gaat daarna met een creditnota.',
+    'Concept. Nog geen nummer en niets geboekt. Versturen is definitief.',
   'invoice.lines': 'Factuurregels',
   'invoice.noLines': 'Geen regels.',
   'invoice.quantity': 'Aantal',
@@ -495,15 +494,14 @@ export const nl = {
   'invoiceNew.buyerReferencePlaceholder': 'Kostenplaats',
   'invoiceNew.purchaseOrder': 'Inkoopnummer',
   'invoiceNew.referenceNote':
-    'Een e-factuur heeft een van beide referenties nodig — Peppol weigert een factuur zonder (PEPPOL-EN16931-R003). Welke van de twee maakt niet uit.',
+    'Een e-factuur heeft een bestel- of contractreferentie nodig.',
   'invoiceNew.unit': 'Eenheid',
   'invoiceNew.quantityLine': 'Aantal regel {line}',
   'invoiceNew.unitLine': 'Eenheid regel {line}',
   'invoiceNew.priceLine': 'Prijs regel {line}',
   'invoiceNew.accountLine': 'Grootboek regel {line}',
   'invoiceNew.vatLine': 'Btw regel {line}',
-  'invoiceNew.vatNote':
-    'Indicatief. De definitieve btw wordt op de server berekend volgens de afrondingsinstelling van deze administratie, en kan een cent afwijken.',
+  'invoiceNew.vatNote': 'Indicatief. De btw wordt bij versturen definitief.',
   'invoiceNew.saveDraft': 'Concept opslaan',
   'invoiceNew.nothingYet': 'Er staat nog niets op deze factuur.',
   'invoiceNew.confirmTitle': 'Dit wordt opgeslagen',
@@ -723,8 +721,7 @@ export const nl = {
   'match.choosePlaceholder': 'Kies een grootboekrekening…',
   'match.skip': 'Overslaan',
   'match.skipped': 'Overgeslagen.',
-  'match.learnNote':
-    'Zelf kiezen zonder factuur wordt onthouden: de volgende keer dat er geld van dezelfde tegenpartij komt, staat deze rekening als voorstel bovenaan. Die regels staan onder Bank en kun je uitzetten.',
+  'match.learnNote': 'Een eigen rekening onthouden we voor deze tegenpartij.',
   'match.suggestionsFailed': 'De suggesties konden niet geladen worden.',
   'match.suggestionsFailedWhy': 'De suggesties konden niet geladen worden: {reason}',
   'match.posted': 'Geboekt als journaalpost {number}',
@@ -912,8 +909,7 @@ export const nl = {
   'settings.contactAndPayment': 'Contact en betaling',
   'settings.ibanHint': 'Komt op de factuur als betaalinstructie.',
   'settings.eInvoicing': 'E-facturatie',
-  'settings.eInvoicingIntro':
-    'Het elektronische adres waarop deze administratie te bereiken is. Peppol vereist het, ook als je de factuur per e-mail verstuurt.',
+  'settings.eInvoicingIntro': 'Elektronisch adres van deze administratie.',
   'settings.electronicAddress': 'Elektronisch adres',
   'settings.electronicAddressHint': 'Leeg laten om het KvK-nummer te gebruiken.',
   'settings.scheme': 'Schema',
@@ -922,20 +918,17 @@ export const nl = {
   'settings.scheme.0190': '0190 — OIN',
   'settings.scheme.9944': '9944 — btw-nummer',
   'settings.vatRounding': 'Btw-afronding',
-  'settings.vatRoundingIntro':
-    'Per factuur of per regel. De twee geven andere uitkomsten — drie regels van 33,33 bij 21% worden 7,00 per regel en 6,99 op het totaal — en dit is een keuze, geen detail.',
+  'settings.vatRoundingIntro': 'Btw afronden per factuur of per regel.',
   'settings.perInvoice': 'Per factuur',
   'settings.perLine': 'Per regel',
   'settings.bankCharges': 'Bankkosten',
-  'settings.bankChargesIntro':
-    'Waar bankkosten heen gaan als een betaling net te laag binnenkomt. Zonder rekening wordt het afsplitsen niet aangeboden — dan is het handmatig boeken, wat beter is dan een voorstel dat niet geboekt kan worden.',
+  'settings.bankChargesIntro': 'Rekening voor bankkosten bij een te lage betaling.',
   'settings.bankChargesAccount': 'Rekening voor bankkosten',
   'settings.bankChargesNone': 'Niet afsplitsen',
 
   // Postvak — the inbound queue, and where post comes from.
   'inbox.title': 'Postvak',
-  'inbox.intro':
-    'Alles wat binnenkomt — geüpload, per e-mail, via Peppol — staat in één rij. Wat gelezen kan worden is al ingevuld; de rest wacht op iemand.',
+  'inbox.intro': 'Binnenkomende documenten. Wat gelezen kan worden, is ingevuld.',
   'inbox.addFile': 'Bestand toevoegen',
   'inbox.waiting': 'Wacht op behandeling',
   'inbox.showing': 'In beeld',

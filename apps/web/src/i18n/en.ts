@@ -246,8 +246,7 @@ export const en: Record<MessageKey, string> = {
     'Closing a book year posts two journal entries and happens once. That needs the owner or accountant role.',
   'fiscalYears.mayNotOpen':
     'Opening a book year belongs to a role that may change the setup: owner, accountant or bookkeeper.',
-  'fiscalYears.closeBody':
-    'See what will be posted first, then close. The appropriation flattens the profit-and-loss accounts against an equity account; the opening balance puts the balance-sheet positions into the next year.',
+  'fiscalYears.closeBody': 'The proposal first, then close. This cannot be undone.',
   'fiscalYears.yearToClose': 'Book year to close',
   'fiscalYears.pickYear': 'Pick a book year',
   'fiscalYears.resultAccount': 'Result account',
@@ -453,8 +452,7 @@ export const en: Record<MessageKey, string> = {
   'invoice.credit': 'Credit',
   'invoice.downloadPdf': 'Download the PDF',
   'invoice.downloadUbl': 'Download the UBL',
-  'invoice.draftNotice':
-    'This is a draft. No number has been issued and nothing has been posted. Issuing is final: after that, correcting means a credit note.',
+  'invoice.draftNotice': 'Draft. No number yet and nothing posted. Sending is final.',
   'invoice.lines': 'Invoice lines',
   'invoice.noLines': 'No lines.',
   'invoice.quantity': 'Quantity',
@@ -483,16 +481,14 @@ export const en: Record<MessageKey, string> = {
   'invoiceNew.buyerReference': 'Buyer reference',
   'invoiceNew.buyerReferencePlaceholder': 'Cost centre',
   'invoiceNew.purchaseOrder': 'Purchase order',
-  'invoiceNew.referenceNote':
-    'An e-invoice needs one of the two references — Peppol rejects an invoice without one (PEPPOL-EN16931-R003). Which of the two does not matter.',
+  'invoiceNew.referenceNote': 'An e-invoice needs an order or contract reference.',
   'invoiceNew.unit': 'Unit',
   'invoiceNew.quantityLine': 'Quantity line {line}',
   'invoiceNew.unitLine': 'Unit line {line}',
   'invoiceNew.priceLine': 'Price line {line}',
   'invoiceNew.accountLine': 'Ledger line {line}',
   'invoiceNew.vatLine': 'VAT line {line}',
-  'invoiceNew.vatNote':
-    "Indicative. The final VAT is computed on the server using this administration's rounding setting, and may differ by a cent.",
+  'invoiceNew.vatNote': 'Indicative. VAT is final when the invoice is sent.',
   'invoiceNew.saveDraft': 'Save the draft',
   'invoiceNew.nothingYet': 'There is nothing on this invoice yet.',
   'invoiceNew.confirmTitle': 'This is what will be saved',
@@ -712,8 +708,7 @@ export const en: Record<MessageKey, string> = {
   'match.choosePlaceholder': 'Pick a ledger account…',
   'match.skip': 'Skip',
   'match.skipped': 'Skipped.',
-  'match.learnNote':
-    'Picking one yourself without an invoice is remembered: the next time money arrives from the same counterparty, this account is the top suggestion. Those rules are listed under Bank and can be turned off.',
+  'match.learnNote': 'A ledger account of our own is remembered for this counterparty.',
   'match.suggestionsFailed': 'The suggestions could not be loaded.',
   'match.suggestionsFailedWhy': 'The suggestions could not be loaded: {reason}',
   'match.posted': 'Posted as journal entry {number}',
@@ -900,8 +895,7 @@ export const en: Record<MessageKey, string> = {
   'settings.contactAndPayment': 'Contact and payment',
   'settings.ibanHint': 'Appears on the invoice as the payment instruction.',
   'settings.eInvoicing': 'E-invoicing',
-  'settings.eInvoicingIntro':
-    'The electronic address this administration can be reached at. Peppol requires one, even if you send the invoice by email.',
+  'settings.eInvoicingIntro': 'Electronic address of this administration.',
   'settings.electronicAddress': 'Electronic address',
   'settings.electronicAddressHint': 'Leave it empty to use the Chamber of Commerce number.',
   'settings.scheme': 'Scheme',
@@ -910,20 +904,17 @@ export const en: Record<MessageKey, string> = {
   'settings.scheme.0190': '0190 — OIN',
   'settings.scheme.9944': '9944 — VAT number',
   'settings.vatRounding': 'VAT rounding',
-  'settings.vatRoundingIntro':
-    'Per invoice or per line. The two give different answers — three lines of 33.33 at 21% come to 7.00 per line and 6.99 on the total — and this is a choice, not a detail.',
+  'settings.vatRoundingIntro': 'Round VAT per invoice or per line.',
   'settings.perInvoice': 'Per invoice',
   'settings.perLine': 'Per line',
   'settings.bankCharges': 'Bank charges',
-  'settings.bankChargesIntro':
-    'Where bank charges go when a payment arrives just short. Without an account, splitting them off is not offered — then it is a manual posting, which is better than a suggestion that cannot be posted.',
+  'settings.bankChargesIntro': 'Account for bank charges when a payment arrives short.',
   'settings.bankChargesAccount': 'Account for bank charges',
   'settings.bankChargesNone': 'Do not split them off',
 
   // Postvak — the inbound queue, and where post comes from.
   'inbox.title': 'Inbox',
-  'inbox.intro':
-    'Everything that arrives — uploaded, by email, over Peppol — sits in one queue. What could be read is filled in already; the rest waits for somebody.',
+  'inbox.intro': 'Incoming documents. What can be read is already filled in.',
   'inbox.addFile': 'Add a file',
   'inbox.waiting': 'Waiting to be handled',
   'inbox.showing': 'Showing',

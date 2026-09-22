@@ -246,7 +246,7 @@ function NewInvoice() {
       <PageHeader title={t('invoices.new')} description={t('invoiceNew.intro')} />
 
       {customers.length === 0 && (
-        <p className="border-border text-muted-foreground mb-6 border border-dashed p-4 text-sm">
+        <p className="border-border text-muted-foreground mb-4 border p-4 text-sm">
           {t('invoiceNew.noCustomers')}
         </p>
       )}
@@ -255,7 +255,7 @@ function NewInvoice() {
         <StepBadge step={2}>{t('invoices.stepForm')}</StepBadge>
       </div>
 
-      <div className="mb-6 grid max-w-5xl grid-cols-5 gap-4">
+      <div className="mb-4 grid max-w-5xl grid-cols-5 gap-3">
         <SelectField
           label={t('invoiceNew.customer')}
           value={contactNumber}
@@ -324,7 +324,7 @@ function NewInvoice() {
         </label>
       </div>
 
-      <p className="text-muted-foreground mb-6 max-w-3xl text-xs">
+      <p className="text-muted-foreground mb-4 max-w-3xl text-xs">
         {t('invoiceNew.referenceNote')}
       </p>
 
@@ -419,7 +419,7 @@ function NewInvoice() {
         </tbody>
       </table>
 
-      <div className="border-border mb-6 flex max-w-md justify-between gap-8 border p-4 text-sm">
+      <div className="border-border mb-4 flex max-w-md justify-between gap-4 border p-4 text-sm">
         <div className="space-y-1">
           <p className="text-muted-foreground">{t('invoice.subtotal')}</p>
           <p className="text-muted-foreground">{t('invoice.vat')}</p>
@@ -431,10 +431,10 @@ function NewInvoice() {
           <Money amount={net + tax} className="block font-medium" />
         </div>
       </div>
-      <p className="text-muted-foreground mb-6 max-w-md text-xs">{t('invoiceNew.vatNote')}</p>
+      <p className="text-muted-foreground mb-4 max-w-md text-xs">{t('invoiceNew.vatNote')}</p>
 
       {problems.length > 0 && (
-        <ul role="alert" className="text-destructive mb-6 space-y-1 text-sm">
+        <ul role="alert" className="text-destructive mb-4 space-y-1 text-sm">
           {problems.map((problem, index) => (
             <li key={index}>
               {problem.path === null ? '' : `${problem.path}: `}
@@ -449,7 +449,7 @@ function NewInvoice() {
           role="dialog"
           aria-modal="true"
           aria-label={t('invoiceNew.confirmTitle')}
-          className="border-border mb-6 border p-4"
+          className="border-border mb-4 border p-4"
         >
           <h2 className="font-medium">{t('invoiceNew.confirmTitle')}</h2>
           <p className="text-muted-foreground mt-1 text-sm">
@@ -485,7 +485,7 @@ function NewInvoice() {
       )}
 
       {leaving && !confirming && (
-        <p role="status" className="text-unreconciled mb-6 text-sm">
+        <p role="status" className="text-unreconciled mb-4 text-sm">
           {t('invoiceNew.escapeAgain')}
         </p>
       )}

@@ -392,11 +392,11 @@ function MatchQueue() {
       )}
 
       {queue.length === 0 ? (
-        <p className="text-muted-foreground border-border border border-dashed p-6 text-sm">
+        <p className="text-muted-foreground border-border border p-4 text-sm">
           {t('match.nothingToDo')}
         </p>
       ) : (
-        <div className="grid grid-cols-[22rem_1fr] gap-6 xl:mr-72">
+        <div className="grid grid-cols-[22rem_1fr] gap-4 xl:mr-72">
           <div>
             <div className="mb-2">
               <StepBadge step={1}>{t('match.stepQueue')}</StepBadge>
@@ -421,7 +421,7 @@ function MatchQueue() {
                     className={cn(
                       'border-border w-full border-b px-3 py-2 text-left text-sm outline-none last:border-b-0',
                       index === selected
-                        ? 'outline-primary bg-primary/5 outline-2 -outline-offset-2'
+                        ? 'outline-ring outline-2 -outline-offset-2'
                         : 'hover:bg-muted/60',
                     )}
                   >
@@ -468,12 +468,12 @@ function MatchQueue() {
             {loading && <p className="text-muted-foreground text-sm">{t('match.searching')}</p>}
 
             {suggestions !== null && suggestions.length === 0 && (
-              <p className="text-muted-foreground border-border mb-4 border border-dashed p-4 text-sm">
+              <p className="text-muted-foreground border-border mb-4 border p-4 text-sm">
                 {t('match.noSuggestion')}
               </p>
             )}
 
-            <ol className="mb-6 space-y-2">
+            <ol className="mb-4 space-y-2">
               {(suggestions ?? []).map((suggestion, index) => (
                 <li
                   key={`${suggestion.strategy}-${String(index)}`}
@@ -488,7 +488,7 @@ function MatchQueue() {
                   className={cn(
                     'border-border flex items-start gap-3 border p-3 outline-none',
                     index === candidate &&
-                      'outline-primary bg-primary/5 outline-2 -outline-offset-2',
+                      'outline-ring outline-2 -outline-offset-2',
                   )}
                 >
                   <span
