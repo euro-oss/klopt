@@ -21,7 +21,15 @@ import { cn } from '~/lib/utils'
  * not registered, a key that changes in the registry changes wherever it is
  * printed, and `Cmd` versus `Ctrl` is resolved in the one place that resolves it.
  */
-export function Keycap({ children, className }: { children: ReactNode; className?: string }) {
+export function Keycap({
+  children,
+  className,
+}: {
+  children: ReactNode
+  // Explicit `| undefined`: callers often pass a computed `string | undefined`,
+  // and exactOptionalPropertyTypes rejects that for a plain `?` prop.
+  className?: string | undefined
+}) {
   return (
     <kbd
       className={cn(
