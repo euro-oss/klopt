@@ -365,9 +365,7 @@ export function CommandPalette() {
                                 <span
                                   className={cn(
                                     'text-xs',
-                                    index === cursor
-                                      ? 'text-accent-foreground'
-                                      : 'text-muted-foreground',
+                                    index === cursor ? 'text-black' : 'text-muted-foreground',
                                   )}
                                 >
                                   {t(binding.group)} ·{' '}
@@ -379,9 +377,7 @@ export function CommandPalette() {
                                   <Keycap
                                     key={`${binding.id}-${String(position)}`}
                                     className={
-                                      index === cursor
-                                        ? 'border-accent-foreground text-accent-foreground'
-                                        : undefined
+                                      index === cursor ? '!border-black !text-black' : undefined
                                     }
                                   >
                                     {chip}
@@ -444,7 +440,7 @@ export function CommandPalette() {
                                           className={cn(
                                             'block truncate text-xs',
                                             index === cursor
-                                              ? 'text-accent-foreground'
+                                              ? 'text-black'
                                               : 'text-muted-foreground',
                                           )}
                                         >
@@ -456,9 +452,7 @@ export function CommandPalette() {
                                       <span
                                         className={cn(
                                           'shrink-0 tabular text-xs',
-                                          index === cursor
-                                            ? 'text-accent-foreground'
-                                            : 'text-muted-foreground',
+                                          index === cursor ? 'text-black' : 'text-muted-foreground',
                                         )}
                                       >
                                         {formatDate(hit.date)}
