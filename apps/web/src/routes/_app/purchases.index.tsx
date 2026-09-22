@@ -194,7 +194,7 @@ function PurchaseInvoices() {
         }
       />
 
-      <div className="mb-8 flex flex-wrap gap-8">
+      <div className="mb-4 flex flex-wrap gap-4">
         <Stat label={t('purchases.drafts')} value={String(invoices.data.drafts)} />
         <Stat
           label={t('purchases.awaitingApproval')}
@@ -219,7 +219,7 @@ function PurchaseInvoices() {
         />
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((option) => {
           const active =
             (option.status ?? undefined) === filter.status && option.open === filter.open

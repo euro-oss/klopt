@@ -5,13 +5,7 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from '~/components/ui/empty'
+import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from '~/components/ui/empty'
 import {
   Item,
   ItemActions,
@@ -144,7 +138,7 @@ function Dashboard() {
 
       {/* The heading carries it: three labelled figures do not need a
           sentence above them saying there are three figures. */}
-      <section className="mt-8">
+      <section className="mt-4">
         <h2 className="mb-3 font-medium">{t('dash.healthTitle')}</h2>
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -197,15 +191,12 @@ function Dashboard() {
       </section>
 
       {coverage.ok && coverage.data.unmappedCount > 0 && (
-        <section className="border-border mt-6 rounded-md border p-4">
+        <section className="border-border mt-4 rounded-md border p-4">
           <h2 className="font-medium">{t('dash.unmapped')}</h2>
           <p className="text-muted-foreground mt-1 text-sm">{t('dash.unmappedBody')}</p>
           <ul className="mt-3 flex flex-wrap gap-2">
             {coverage.data.unmappedAccounts.map((accountNumber) => (
-              <li
-                key={accountNumber}
-                className="bg-unreconciled/15 rounded px-2 py-1 tabular text-xs"
-              >
+              <li key={accountNumber} className="bg-unreconciled/15 px-2 py-1 tabular text-xs">
                 {accountNumber}
               </li>
             ))}
@@ -216,7 +207,7 @@ function Dashboard() {
         </section>
       )}
 
-      <section className="mt-6">
+      <section className="mt-4">
         <h2 className="font-medium">{t('dash.exportTitle')}</h2>
         <p className="text-muted-foreground mt-1 text-sm">{t('dash.exportBody')}</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -267,16 +258,13 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
   }, [hydrated])
 
   if (items.length === 0) {
+    // One line and the next action — not a title, a paragraph, and a button.
     return (
-      <Empty className="border p-8">
+      <Empty className="border">
         <EmptyHeader>
-          {/* A heading, said out loud: `EmptyTitle` is a `div`, and "nothing
-              is waiting" is the answer to the question this screen exists to
-              ask. Announcing it as body text buries it. */}
           <EmptyTitle role="heading" aria-level={2}>
             {t('queue.empty')}
           </EmptyTitle>
-          <EmptyDescription>{t('queue.emptyBody')}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button asChild>
@@ -335,7 +323,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
             // the anchor's own role away, and a work queue whose rows are not
             // announced as links is a queue somebody cannot navigate.
             <div key={item.kind} role="listitem">
-              <Item asChild variant="outline" size="sm">
+              <Item asChild variant="outline" size="xs">
                 <Link
                   to={destination.to}
                   // Spread rather than passed: with exactOptionalPropertyTypes a

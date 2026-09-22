@@ -292,7 +292,7 @@ export function CommandPalette() {
 
       {open !== null && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 p-4 pt-[10vh]"
+          className="bg-foreground/30 fixed inset-0 z-50 flex items-start justify-center p-4 pt-[10vh]"
           onClick={() => {
             setOpen(null)
           }}
@@ -306,7 +306,7 @@ export function CommandPalette() {
             // sensible.
             tabIndex={-1}
             aria-label={open === 'palette' ? t('palette.commands') : t('shell.help')}
-            className="bg-background border-border max-h-[70vh] w-full max-w-xl overflow-hidden border"
+            className="bg-popover border-border max-h-[70vh] w-full max-w-xl overflow-hidden border"
             onClick={(event) => {
               event.stopPropagation()
             }}
@@ -354,18 +354,34 @@ export function CommandPalette() {
                               }}
                               className={cn(
                                 'flex w-full items-center justify-between px-4 py-2 text-left text-sm',
-                                index === cursor && 'bg-muted',
+                                // Yellow fill + black text: `bg-muted` on
+                                // `bg-popover` disappears in Donker. Selected
+                                // chrome (prefix, keycaps) follows the fill —
+                                // ring/muted on yellow is ~1.4–2:1.
+                                index === cursor && 'bg-accent text-accent-foreground',
                               )}
                             >
                               <span>
-                                <span className="text-muted-foreground text-xs">
+                                <span
+                                  className={cn(
+                                    'text-xs',
+                                    index === cursor ? 'text-black' : 'text-muted-foreground',
+                                  )}
+                                >
                                   {t(binding.group)} ·{' '}
                                 </span>
                                 {t(binding.label)}
                               </span>
                               <span className="flex shrink-0 items-center gap-1">
                                 {bindingChips(binding).map((chip, position) => (
-                                  <Keycap key={`${binding.id}-${String(position)}`}>{chip}</Keycap>
+                                  <Keycap
+                                    key={`${binding.id}-${String(position)}`}
+                                    className={
+                                      index === cursor ? '!border-black !text-black' : undefined
+                                    }
+                                  >
+                                    {chip}
+                                  </Keycap>
                                 ))}
                               </span>
                             </button>
@@ -414,19 +430,31 @@ export function CommandPalette() {
                                     }}
                                     className={cn(
                                       'flex w-full items-baseline justify-between gap-3 px-4 py-2 text-left text-sm',
-                                      index === cursor && 'bg-muted',
+                                      index === cursor && 'bg-accent text-accent-foreground',
                                     )}
                                   >
                                     <span className="min-w-0">
                                       <span className="block truncate">{hit.title}</span>
                                       {hit.subtitle !== null && hit.subtitle !== '' && (
-                                        <span className="text-muted-foreground block truncate text-xs">
+                                        <span
+                                          className={cn(
+                                            'block truncate text-xs',
+                                            index === cursor
+                                              ? 'text-black'
+                                              : 'text-muted-foreground',
+                                          )}
+                                        >
                                           {hit.subtitle}
                                         </span>
                                       )}
                                     </span>
                                     {hit.date !== null && (
-                                      <span className="text-muted-foreground shrink-0 tabular text-xs">
+                                      <span
+                                        className={cn(
+                                          'shrink-0 tabular text-xs',
+                                          index === cursor ? 'text-black' : 'text-muted-foreground',
+                                        )}
+                                      >
                                         {formatDate(hit.date)}
                                       </span>
                                     )}

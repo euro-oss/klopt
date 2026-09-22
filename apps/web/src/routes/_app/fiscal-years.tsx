@@ -208,7 +208,7 @@ function FiscalYears() {
     <>
       <PageHeader title={t('fiscalYears.title')} description={t('fiscalYears.intro')} />
 
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Stat label={t('fiscalYears.count')} value={String(rows.length)} />
         <Stat
           label={t('fiscalYears.firstDay')}
@@ -277,7 +277,7 @@ function FiscalYears() {
  */
 function Withheld({ title, why }: { title: string; why: string }) {
   return (
-    <section className="border-border mt-8 border border-dashed p-4">
+    <section className="border-border mt-4 border p-4">
       <h2 className="text-muted-foreground text-base font-medium">{title}</h2>
       <p role="status" className="text-muted-foreground mt-1 text-sm">
         {why}
@@ -348,7 +348,7 @@ function OpenNextYear({ years }: { years: readonly FiscalYearOption[] }) {
   }
 
   return (
-    <section className="border-border mt-8 border p-4">
+    <section className="border-border mt-4 border p-4">
       <h2 className="text-base font-medium">{t('fiscalYears.openTitle')}</h2>
       <p className="text-muted-foreground mt-1 text-sm">{t('fiscalYears.openBody')}</p>
 
@@ -582,7 +582,7 @@ function CloseYear({
   const ready = code !== '' && resultAccountNumber !== ''
 
   return (
-    <section className="border-border mt-8 border p-4">
+    <section className="border-border mt-4 border p-4">
       <h2 className="text-base font-medium">{t('fiscalYears.closeTitle')}</h2>
       <p className="text-muted-foreground mt-1 text-sm">{t('fiscalYears.closeBody')}</p>
 
@@ -642,7 +642,7 @@ function CloseYear({
 
       {/* The year that has to exist first, and the two honest ways past it. */}
       {noNextYear && chosen !== null && closed === null && (
-        <div className="border-border mt-4 border border-dashed p-3">
+        <div className="border-border mt-4 border p-3">
           <p className="text-sm">
             {t('fiscalYears.blocked', {
               year: chosen.code,
@@ -733,7 +733,7 @@ function CloseYear({
 
           {/* The acknowledgement, in the words Product locked: it says what is
               posted and that nothing on this screen takes it back. */}
-          <div className="border-border mt-4 border border-dashed p-3">
+          <div className="border-border mt-4 border p-3">
             <label className="flex items-start gap-2 text-sm">
               <input
                 type="checkbox"

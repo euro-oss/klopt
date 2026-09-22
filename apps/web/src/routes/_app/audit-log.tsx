@@ -152,7 +152,7 @@ function AuditLog() {
                     onClick={() => {
                       setOpen((current) => (current === entry.id ? null : entry.id))
                     }}
-                    className="text-primary ml-auto text-xs underline"
+                    className="text-foreground ml-auto text-xs underline"
                   >
                     {open === entry.id ? t('audit.hide') : t('audit.whatChanged')}
                   </button>

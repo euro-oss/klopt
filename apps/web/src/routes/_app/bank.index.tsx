@@ -354,7 +354,7 @@ function Bank() {
           onSubmit={(event) => {
             void addAccount(event)
           }}
-          className="border-border mb-8 grid max-w-3xl grid-cols-[1fr_1fr_10rem_auto] items-end gap-4 rounded-md border p-4"
+          className="border-border mb-4 grid max-w-3xl grid-cols-[1fr_1fr_10rem_auto] items-end gap-4 rounded-md border p-4"
         >
           <label className="block">
             <span className="text-muted-foreground mb-1 block text-xs font-medium">IBAN</span>
@@ -397,11 +397,11 @@ function Bank() {
       )}
 
       {bankAccounts.length === 0 ? (
-        <p className="text-muted-foreground border-border mb-8 rounded-md border border-dashed p-6 text-sm">
+        <p className="text-muted-foreground border-border mb-4 rounded-md border p-4 text-sm">
           {t('bank.noAccounts')}
         </p>
       ) : (
-        <div className="mb-8 grid grid-cols-3 gap-4">
+        <div className="mb-4 grid grid-cols-3 gap-4">
           {bankAccounts.map((account) => (
             <div key={account.id} className="border-border rounded-md border p-4">
               <p className="text-sm font-medium">{account.name}</p>
@@ -462,7 +462,7 @@ function Bank() {
       )}
 
       {preview !== null && preview.report.needsMapping && mapping !== null && (
-        <div className="border-border mb-8 rounded-md border p-4">
+        <div className="border-border mb-4 rounded-md border p-4">
           <h2 className="text-base font-medium">{t('bank.columns')}</h2>
           {/* A guess to correct, not a form to fill in: spec 7.4 asks for a
               configurable mapper, and eleven empty dropdowns is a mapper
@@ -573,7 +573,7 @@ function Bank() {
       )}
 
       {preview !== null && !preview.report.needsMapping && (
-        <div className="border-border mb-8 rounded-md border p-4">
+        <div className="border-border mb-4 rounded-md border p-4">
           <h2 className="text-base font-medium">{t('bank.wouldDo')}</h2>
           <dl className="mt-3 grid grid-cols-4 gap-4 text-sm">
             <div>
@@ -638,7 +638,7 @@ function Bank() {
       )}
 
       {learnedRules.length > 0 && (
-        <section className="mb-8">
+        <section className="mb-4">
           <h2 className="mb-1 text-base font-medium">{t('bank.rules')}</h2>
           {/* Spec 7.4: "visible and editable, never a black box". A rule you
               cannot read is one you cannot disagree with. */}

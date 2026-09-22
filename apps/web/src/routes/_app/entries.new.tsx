@@ -344,7 +344,7 @@ function NewEntry() {
         {announcement}
       </p>
 
-      <div className="mb-4 grid gap-4 sm:grid-cols-4">
+      <div className="mb-4 grid gap-3 sm:grid-cols-4">
         <SelectField
           label={t('entryNew.journal')}
           value={journalCode}
@@ -550,7 +550,7 @@ function NewEntry() {
         ]}
       />
 
-      <div className="mt-6 flex gap-2">
+      <div className="mt-4 flex gap-2">
         <button
           type="submit"
           disabled={posting || !hydrated}

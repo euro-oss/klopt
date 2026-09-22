@@ -187,11 +187,11 @@ function Settings() {
         onSubmit={(event) => {
           void submit(event)
         }}
-        className="max-w-2xl space-y-6"
+        className="max-w-2xl space-y-4"
       >
         <fieldset className="space-y-4">
           <legend className="text-base font-medium">{t('settings.registration')}</legend>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {field('name', t('settings.tradeName'), current.name)}
             {field('legalName', t('contacts.legalName'), current.legalName)}
             {field('kvkNumber', t('contacts.kvkNumber'), current.kvkNumber, t('settings.kvkHint'))}
@@ -201,11 +201,11 @@ function Settings() {
 
         <fieldset className="space-y-4">
           <legend className="text-base font-medium">{t('settings.address')}</legend>
-          <div className="grid grid-cols-[1fr_8rem] gap-4">
+          <div className="grid grid-cols-[1fr_8rem] gap-3">
             {field('street', t('contacts.street'), current.street)}
             {field('houseNumber', t('settings.houseNumber'), current.houseNumber)}
           </div>
-          <div className="grid grid-cols-[8rem_1fr_6rem] gap-4">
+          <div className="grid grid-cols-[8rem_1fr_6rem] gap-3">
             {field('postalCode', t('contacts.postalCode'), current.postalCode)}
             {field('city', t('contacts.city'), current.city)}
             {field('countryCode', t('contacts.country'), current.countryCode, undefined, {
@@ -216,7 +216,7 @@ function Settings() {
 
         <fieldset className="space-y-4">
           <legend className="text-base font-medium">{t('settings.contactAndPayment')}</legend>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {field('email', t('contacts.email'), current.email, undefined, { type: 'email' })}
             {field('phone', t('contacts.phone'), current.phone)}
             {field('iban', 'IBAN', current.iban, t('settings.ibanHint'))}
@@ -227,7 +227,7 @@ function Settings() {
         <fieldset className="space-y-4">
           <legend className="text-base font-medium">{t('settings.eInvoicing')}</legend>
           <p className="text-muted-foreground text-sm">{t('settings.eInvoicingIntro')}</p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {field(
               'electronicAddress',
               t('settings.electronicAddress'),

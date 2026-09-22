@@ -13,7 +13,7 @@ import { cn } from '~/lib/utils'
  * strip along the bottom of the pane the keys work in, and a panel in the corner
  * listing the screen's whole keyboard.
  *
- * Yellow outline, square, no fill and no shadow: the accent marks "this is the
+ * Ring outline, square, no fill and no shadow: `--ring` marks "this is the
  * keyboard" the way it marks the cursor, and an outline says "key" without
  * competing with the row or the figure beside it.
  *
@@ -21,11 +21,19 @@ import { cn } from '~/lib/utils'
  * not registered, a key that changes in the registry changes wherever it is
  * printed, and `Cmd` versus `Ctrl` is resolved in the one place that resolves it.
  */
-export function Keycap({ children, className }: { children: ReactNode; className?: string }) {
+export function Keycap({
+  children,
+  className,
+}: {
+  children: ReactNode
+  // Explicit `| undefined`: callers often pass a computed `string | undefined`,
+  // and exactOptionalPropertyTypes rejects that for a plain `?` prop.
+  className?: string | undefined
+}) {
   return (
     <kbd
       className={cn(
-        'border-primary text-foreground inline-flex min-w-6 items-center justify-center border px-1.5 py-0.5 text-[0.625rem] font-medium tracking-wider tabular',
+        'border-ring text-foreground inline-flex min-w-6 items-center justify-center border px-1.5 py-0.5 text-[0.625rem] font-medium tracking-wider tabular',
         className,
       )}
     >

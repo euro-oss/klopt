@@ -90,6 +90,9 @@ test('the log filters to one kind of thing', async ({ page }) => {
 
   await page.goto('/audit-log')
   await expect(page.getByText('setup.updateEntity')).toBeVisible()
+  // The chips navigate through React; a click before hydration is swallowed and
+  // the empty-state assertion then times out on the unfiltered list.
+  await hydrated(page)
 
   // The chips call navigate({ search }) in the client. Clicking before React
   // has taken over changes nothing — the page stays on the unfiltered log and

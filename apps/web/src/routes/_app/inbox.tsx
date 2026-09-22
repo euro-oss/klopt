@@ -301,7 +301,7 @@ function Inbox() {
         }
       />
 
-      <div className="mb-6 flex flex-wrap gap-8">
+      <div className="mb-4 flex flex-wrap gap-4">
         <Stat
           label={t('inbox.waiting')}
           value={String(inbox.data.waiting)}
@@ -310,7 +310,7 @@ function Inbox() {
         <Stat label={t('inbox.showing')} value={String(items.length)} />
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         {(
           [
             ['inbox.filter.new', undefined],
@@ -339,9 +339,7 @@ function Inbox() {
         ))}
       </div>
 
-      {note !== null && (
-        <p className="border-border mb-4 max-w-2xl border border-dashed p-3 text-sm">{note}</p>
-      )}
+      {note !== null && <p className="border-border mb-4 max-w-2xl border p-3 text-sm">{note}</p>}
       {problems.length > 0 && (
         <ul role="alert" className="text-destructive mb-4 max-w-2xl space-y-1 text-sm">
           {problems.map((problem) => (
@@ -351,7 +349,7 @@ function Inbox() {
       )}
 
       {items.length === 0 && (
-        <p className="text-muted-foreground border-border max-w-2xl border border-dashed p-4 text-sm">
+        <p className="text-muted-foreground border-border max-w-2xl border p-4 text-sm">
           {t('inbox.empty')}
         </p>
       )}
@@ -364,7 +362,7 @@ function Inbox() {
 
       <ul
         aria-label={t('inbox.queue')}
-        className="max-w-4xl space-y-3"
+        className="max-w-4xl space-y-2"
         onKeyDown={(event) => {
           if (event.defaultPrevented) return
           if (event.metaKey || event.ctrlKey || event.altKey) return
@@ -439,10 +437,9 @@ function Inbox() {
                 setCursor(index)
               }}
               className={cn(
-                'border-border border p-4 outline-none',
-                // The cursor is a yellow line round the card, the same mark the
-                // tables and the pickers use for "the keyboard is here".
-                index === cursor && 'border-primary outline-primary outline-2 -outline-offset-2',
+                'border-border border px-3 py-2 outline-none',
+                // The cursor uses `--ring` (black in light, yellow in dark).
+                index === cursor && 'outline-ring outline-2 -outline-offset-2',
               )}
             >
               <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -901,7 +898,7 @@ function InboundSources() {
                       onClick={() => {
                         void poll(row.id)
                       }}
-                      className="text-primary mr-3 text-xs underline disabled:opacity-50"
+                      className="text-foreground mr-3 text-xs underline disabled:opacity-50"
                     >
                       {t('sources.pollNow')}
                     </button>

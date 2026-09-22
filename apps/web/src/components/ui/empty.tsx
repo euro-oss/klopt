@@ -6,7 +6,7 @@ function Empty({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="empty"
       className={cn(
-        'flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 border-dashed p-12 text-center text-balance',
+        'border-border flex w-full min-w-0 flex-1 flex-col items-start gap-2 border p-4 text-left',
         className,
       )}
       {...props}
@@ -18,7 +18,7 @@ function EmptyHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="empty-header"
-      className={cn('flex max-w-sm flex-col items-center gap-2', className)}
+      className={cn('flex max-w-sm flex-col items-start gap-2', className)}
       {...props}
     />
   )
@@ -58,7 +58,7 @@ function EmptyTitle({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="empty-title"
-      className={cn('font-heading text-lg font-semibold tracking-wider uppercase', className)}
+      className={cn('font-heading text-base font-semibold', className)}
       {...props}
     />
   )
@@ -69,7 +69,7 @@ function EmptyDescription({ className, ...props }: React.ComponentProps<'p'>) {
     <div
       data-slot="empty-description"
       className={cn(
-        'mt-0.5 text-sm/relaxed text-muted-foreground [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary',
+        'text-muted-foreground mt-0.5 text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-foreground',
         className,
       )}
       {...props}
@@ -81,10 +81,7 @@ function EmptyContent({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="empty-content"
-      className={cn(
-        'flex w-full max-w-sm min-w-0 flex-col items-center gap-4 text-sm text-balance',
-        className,
-      )}
+      className={cn('flex w-full max-w-sm min-w-0 flex-col items-start gap-2 text-sm', className)}
       {...props}
     />
   )
