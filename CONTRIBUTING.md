@@ -29,6 +29,55 @@ object-lock bucket inside the test process, and against MinIO only when you ask
 for it with `KLOPT_S3_ENDPOINT` ([ADR
 0059](docs/decisions/0059-a-bucket-close-enough-to-test-against.md)).
 
+## Pull requests
+
+1. Branch from current `main` as `<area>/<short-description>` (see conventions
+   below).
+2. Open the PR against `main` and fill the template. One logical change per PR.
+3. Every commit on the branch must carry a DCO sign-off (`git commit -s`).
+4. Wait for CI on the tip: `verify` (Node 24), `verify` (Node 26), `artefacts`,
+   and `e2e`. A red tip is not ready for review, let alone merge.
+5. A regulated-artefact change (XAF, UBL, XBRL, pain.001, CAMT, taxonomies,
+   schematrons) must include the golden-file or data diff, explained in the
+   description.
+
+### Review expectations
+
+- Expect at least one review from an **appointed maintainer** before anything
+  reaches `main`. A thumbs-up from someone who is not appointed does not count.
+- Reviewers check the non-negotiable rules below, the DCO line on every commit,
+  and CI green on the tip. Regulated-artefact PRs need a maintainer who owns
+  that part of the compliance calendar (see `GOVERNANCE.md` and
+  `MAINTAINERS.md`).
+- Answer review comments, or say why not. Prefer additive commits while review
+  is open; rebase when the reviewer asks for a clean history against `main`.
+
+### Who may merge
+
+**Only appointed people may merge pull requests into `main`.** For now that
+means **only Hidde** may merge to `main`. Additional appointed maintainers may
+be added later; until they are, nobody else presses Merge.
+
+Anyone may open a PR. Opening a PR, getting CI green, or collecting informal
+review does **not** grant merge rights. There is no “open merge” implication
+for a public or soon-public repository.
+
+- **People / roles:** listed in [`MAINTAINERS.md`](MAINTAINERS.md) when
+  assigned. Cross-link only — do not infer a GitHub merge button from an empty
+  or interim area row. Area maintainers (when filled) review; **merge to
+  `main` stays with Hidde until further appointment**.
+- **GitHub account that may press Merge:** Hidde’s GitHub account
+  (**username placeholder — fill when applying the ruleset; do not invent a
+  handle here**). Widen the allow-list only when further maintainers are
+  explicitly appointed.
+- **Enforcement:** GitHub branch protection / ruleset on `main`. Eng cannot
+  always apply org settings; the click-through checklist lives in
+  [`docs/github-branch-protection.md`](docs/github-branch-protection.md) and
+  must be applied by someone with admin on the repo (Hidde).
+
+Until that ruleset is applied, treat merge to `main` as closed to everyone
+other than Hidde.
+
 ## The rules that are not negotiable
 
 These are enforced mechanically, so you will find out fast. They are listed here
@@ -69,3 +118,11 @@ so you find out sooner.
 | Routes, server functions, UI, REST                  | `apps/web`                  |
 | Scheduled and queued work                           | `apps/worker`               |
 | Lint rules specific to this project                 | `tools/eslint-plugin-klopt` |
+
+## Related
+
+- Governance and roles: [`GOVERNANCE.md`](GOVERNANCE.md)
+- Appointed maintainers (when filled): [`MAINTAINERS.md`](MAINTAINERS.md)
+- Branch-protection checklist for `main`:
+  [`docs/github-branch-protection.md`](docs/github-branch-protection.md)
+- Security reports: [`SECURITY.md`](SECURITY.md)
