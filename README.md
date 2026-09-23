@@ -75,12 +75,17 @@ local stack.
 
 ```bash
 pnpm install
+pnpm run peppol:fetch                  # OpenPeppol BIS Schematron (not in git)
 cp .env.example .env                       # set KLOPT_AUTH_SECRET
 docker compose up -d                       # Postgres + MinIO with object lock (dev stack)
 pnpm run build
 pnpm --filter @klopt/db run migrate
 pnpm run dev                               # http://localhost:3000
 ```
+
+Peppol BIS Billing 3 Schematron files are obtained from OpenPeppol and are
+**not** redistributed in this repository — see
+[`reference-data/peppol/README.md`](reference-data/peppol/README.md).
 
 That starts two processes: the web app, and the **worker**. The worker is not
 optional scenery — it empties mailboxes into the purchase inbox, seals book

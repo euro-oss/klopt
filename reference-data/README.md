@@ -5,13 +5,18 @@ Compliance artefacts, as **versioned data loaded at runtime, never code**
 [`docs/compliance-calendar.md`](../docs/compliance-calendar.md) — and updating
 one must be a data release, not a deploy.
 
-| Directory | Artefact                        | Source                                                                   | Regenerate with                                         |
-| --------- | ------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------- |
-| `rgs/`    | RGS reference chart of accounts | [referentiegrootboekschema.nl](https://www.referentiegrootboekschema.nl) | `pnpm rgs:generate <workbook.xlsx> <version> [variant]` |
-| `xaf/`    | XML Auditfile Financieel schema | Belastingdienst ODB / auditfiles.nl                                      | Downloaded verbatim; never edited                       |
+| Directory | Artefact                        | Source                                                                   | Regenerate with                                                  |
+| --------- | ------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `rgs/`    | RGS reference chart of accounts | [referentiegrootboekschema.nl](https://www.referentiegrootboekschema.nl) | `pnpm rgs:generate <workbook.xlsx> <version> [variant]`          |
+| `xaf/`    | XML Auditfile Financieel schema | Belastingdienst ODB / auditfiles.nl                                      | Downloaded verbatim; never edited                                |
+| `peppol/` | Peppol BIS Billing 3 Schematron | [OpenPeppol](https://docs.peppol.eu/poacc/billing/3.0/) — **not in git** | `pnpm peppol:fetch` (see [`peppol/README.md`](peppol/README.md)) |
 
 The runtime reads this directory. `KLOPT_REFERENCE_DATA_DIR` overrides the
 location; the container image ships it at `/app/reference-data`.
+
+Peppol `.sch` files are fetched from OpenPeppol and kept locally (or in CI
+cache). They are not redistributed in this repository — see
+[`peppol/README.md`](peppol/README.md).
 
 ## rgs/
 

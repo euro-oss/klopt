@@ -17,10 +17,12 @@ Read the certificate you are signing at <https://developercertificate.org>.
 
 ```
 pnpm install
-pnpm run verify     # format, build, lint, typecheck, test, boundaries
+pnpm run peppol:fetch   # OpenPeppol BIS Schematron — not committed; see reference-data/peppol/README.md
+pnpm run verify         # format, build, lint, typecheck, test, boundaries
 ```
 
-CI runs the same command. If `verify` is green locally it will be green there.
+CI runs the same checks (and fetches the Schematron into a cache). If `verify`
+is green locally it will be green there.
 
 It needs Postgres — `docker compose up -d postgres` and
 `pnpm --filter @klopt/db run migrate` — and nothing else. Object storage is not

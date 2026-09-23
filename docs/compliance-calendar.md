@@ -9,16 +9,16 @@ landing before it is mandatory, not for noticing afterwards.
 
 ## The treadmill
 
-| Artefact                   | Publisher                    | Cadence                                   | Notes                                                                     |
-| -------------------------- | ---------------------------- | ----------------------------------------- | ------------------------------------------------------------------------- |
-| Nederlandse Taxonomie (NT) | SBR / Belastingdienst        | Annual, through alpha → beta → definitive | Filing selects the taxonomy by **reporting period**, never "latest"       |
-| Peppol BIS Billing 3.0     | OpenPeppol                   | Roughly twice a year                      | Replace the `.sch` and restart; nothing is compiled (ADR 0017)            |
-| NLCIUS / SI-UBL            | Nederlandse Peppolautoriteit | Follows BIS                               | The NL-R rules ship inside the BIS schematron, not separately             |
-| UBL 2.1 schemas            | OASIS                        | Frozen; 2.1 is what BIS 3.0 profiles      | Committed verbatim under `reference-data/ubl/`                            |
-| RGS scheme                 | referentiegrootboekschema.nl | Irregular, roughly annual                 | A version upgrade is a migration with a diff report, never a silent remap |
-| XAF                        | Belastingdienst ODB          | Rare; 3.2 is current                      | RGS lead codes are the part under active push                             |
-| PSD2 → PSD3 / PSR          | EU                           | Multi-year                                | Affects the bank feed adapter, not the file import path                   |
-| ViDA                       | European Commission          | Mandate lands 2030                        | Assume every invoice becomes structured                                   |
+| Artefact                   | Publisher                    | Cadence                                   | Notes                                                                                 |
+| -------------------------- | ---------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| Nederlandse Taxonomie (NT) | SBR / Belastingdienst        | Annual, through alpha → beta → definitive | Filing selects the taxonomy by **reporting period**, never "latest"                   |
+| Peppol BIS Billing 3.0     | OpenPeppol                   | Roughly twice a year                      | Bump fetch pin, `pnpm peppol:fetch -- --force`, restart (ADR 0017); `.sch` not in git |
+| NLCIUS / SI-UBL            | Nederlandse Peppolautoriteit | Follows BIS                               | The NL-R rules ship inside the BIS schematron, not separately                         |
+| UBL 2.1 schemas            | OASIS                        | Frozen; 2.1 is what BIS 3.0 profiles      | Committed verbatim under `reference-data/ubl/`                                        |
+| RGS scheme                 | referentiegrootboekschema.nl | Irregular, roughly annual                 | A version upgrade is a migration with a diff report, never a silent remap             |
+| XAF                        | Belastingdienst ODB          | Rare; 3.2 is current                      | RGS lead codes are the part under active push                                         |
+| PSD2 → PSD3 / PSR          | EU                           | Multi-year                                | Affects the bank feed adapter, not the file import path                               |
+| ViDA                       | European Commission          | Mandate lands 2030                        | Assume every invoice becomes structured                                               |
 
 ## Dates to fill in
 
