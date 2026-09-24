@@ -1,5 +1,7 @@
 # Contributing to Klopt
 
+Start at the [README](README.md) for what Klopt is and how to run it.
+
 ## Licence and sign-off
 
 Klopt is Apache-2.0. Section 5 of that licence already aligns inbound
