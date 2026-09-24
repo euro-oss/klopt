@@ -28,10 +28,23 @@ export function isInlineSafeContentType(contentType: string): boolean {
  * ASCII fallback.
  */
 export function sanitizeContentDispositionFilename(filename: string): string {
-  const stripped = filename
-    .replace(/["\\\r\n]/g, '_')
-    .replace(/[\u0000-\u001f\u007f]/g, '_')
-    .trim()
+  let stripped = ''
+  for (const char of filename) {
+    const code = char.charCodeAt(0)
+    if (
+      char === '"' ||
+      char === '\\' ||
+      char === '\r' ||
+      char === '\n' ||
+      code < 32 ||
+      code === 127
+    ) {
+      stripped += '_'
+    } else {
+      stripped += char
+    }
+  }
+  stripped = stripped.trim()
   return stripped === '' ? 'document' : stripped.slice(0, 200)
 }
 

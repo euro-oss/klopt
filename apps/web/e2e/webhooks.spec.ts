@@ -31,7 +31,7 @@ test('a webhook is added, shows its secret once, and can be removed', async ({ p
   await expect(page.getByText('Nog geen webhooks.')).toBeVisible()
 
   await page.getByRole('button', { name: 'Webhook toevoegen' }).click()
-  await page.getByLabel('URL').fill('https://example.test/klopt/hook')
+  await page.getByLabel('URL').fill('https://example.com/klopt/hook')
   await page.getByRole('button', { name: 'Aanmaken' }).click()
 
   // Once, and only once. There is no screen that could show it again, because
@@ -44,7 +44,7 @@ test('a webhook is added, shows its secret once, and can be removed', async ({ p
   await expect(page.getByText(secret)).toBeHidden()
 
   await page.reload()
-  await expect(page.getByText('https://example.test/klopt/hook')).toBeVisible()
+  await expect(page.getByText('https://example.com/klopt/hook')).toBeVisible()
   await expect(page.getByText(secret)).toBeHidden()
 
   await page.getByRole('button', { name: 'Verwijderen' }).click()

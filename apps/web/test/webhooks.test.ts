@@ -212,9 +212,7 @@ describe('delivering', () => {
         expect(init.redirect).toBe('manual')
         return target.fetch(url, init)
       },
-      assertUrl: async () => {
-        throw new Error('Refusing to reach https://127.0.0.1/: private')
-      },
+      assertUrl: () => Promise.reject(new Error('Refusing to reach https://127.0.0.1/: private')),
     })
 
     expect(target.seen.filter((attempt) => attempt.url === endpoint.url)).toHaveLength(0)
