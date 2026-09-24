@@ -4,6 +4,20 @@
 
 **Open-source Dutch bookkeeping, and the start of an organisation backbone.**
 
+## Demo
+
+Demo video coming in a follow-up.
+
+<!--
+Drop the clip at docs/demo/klopt-alpha-demo.mp4
+(or docs/demo/klopt-alpha-demo.gif if it lands as a GIF)
+and replace the line above with the matching embed:
+
+<video src="docs/demo/klopt-alpha-demo.mp4" controls width="720"></video>
+
+![Klopt alpha walkthrough](docs/demo/klopt-alpha-demo.gif)
+-->
+
 [Klopt](https://github.com/euro-oss/klopt) is the bookkeeping starter from
 [euro.computer](https://euro.computer). The name is what a Dutch bookkeeper says
 when the reconciliation lands: it adds up. The software is that same test,
