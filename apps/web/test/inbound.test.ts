@@ -349,7 +349,7 @@ describe('configuring where post comes from', () => {
       addInboundSourceBody.parse({
         kind: 'imap',
         name: 'Mailbox',
-        host: 'imap.example.test',
+        host: '1.1.1.1',
         user: 'facturen@example.test',
         password: 'geheim',
       }),
@@ -357,7 +357,24 @@ describe('configuring where post comes from', () => {
 
     const listed = await handleListInboundSources(await context(token))
     expect(JSON.stringify(listed.body)).not.toContain('geheim')
-    expect(listed.body.sources[0]?.where).toBe('facturen@example.test@imap.example.test')
+    expect(listed.body.sources[0]?.where).toBe('facturen@example.test@1.1.1.1')
+  })
+
+  it('refuses a private IMAP host', async () => {
+    const { token } = await newEntity()
+
+    await expect(
+      handleAddInboundSource(
+        await context(token, uuidv7()),
+        addInboundSourceBody.parse({
+          kind: 'imap',
+          name: 'Mailbox',
+          host: '127.0.0.1',
+          user: 'facturen@example.test',
+          password: 'geheim',
+        }),
+      ),
+    ).rejects.toMatchObject({ code: 'validation_failed' })
   })
 
   it('refuses a password rather than storing it in the clear', async () => {
@@ -374,7 +391,7 @@ describe('configuring where post comes from', () => {
           addInboundSourceBody.parse({
             kind: 'imap',
             name: 'Mailbox',
-            host: 'imap.example.test',
+            host: '1.1.1.1',
             user: 'facturen@example.test',
             password: 'geheim',
           }),
