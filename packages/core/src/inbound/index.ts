@@ -1,4 +1,5 @@
 export {
+  MAX_DOCUMENT_BYTES,
   nothingFiledReason,
   selectInboundAttachments,
   type AttachmentSelection,

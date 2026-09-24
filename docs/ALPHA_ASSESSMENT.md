@@ -1,5 +1,10 @@
 # Klopt alpha codebase assessment
 
+> **Superseded for planning.** This assessment (2026-09-18) is a historical
+> snapshot. Do not schedule work from it. Prefer [`CHANGELOG.md`](../CHANGELOG.md)
+> and the findings in
+> [`docs/audits/2026-09-alpha-maintainability-security-performance.md`](audits/2026-09-alpha-maintainability-security-performance.md).
+
 Status: assessment only. No product work in this change.
 Date: 2026-09-18
 Scope: `euro-oss/klopt` at `main` (`a77f8c2`, 0.1.0).

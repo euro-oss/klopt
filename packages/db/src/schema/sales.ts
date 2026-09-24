@@ -244,6 +244,7 @@ export const salesInvoices = klopt.table(
     unique('sales_invoices_entity_number').on(table.entityId, table.number),
     index('sales_invoices_contact').on(table.entityId, table.contactId),
     index('sales_invoices_due').on(table.entityId, table.dueDate),
+    index('sales_invoices_status').on(table.entityId, table.status),
     check('sales_invoices_dates', sql`${table.dueDate} >= ${table.issueDate}`),
     // An issued invoice has a number and an entry; a draft has neither.
     check(

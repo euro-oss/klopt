@@ -23,12 +23,18 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:
  * is visible at the moment somebody sets the mailbox up, which is when it can
  * still be fixed, and it costs nothing in a default install: the drop-directory
  * source that ships as the default has no credential at all.
+ *
+ * A key shorter than 32 bytes of material is refused the same way (audit M6):
+ * `.env.example` asks for `openssl rand -base64 32`, and anything shorter is
+ * not that.
  */
 
 const VERSION = 'v1'
 const KEY_BYTES = 32
 const SALT_BYTES = 16
 const IV_BYTES = 12
+/** Minimum UTF-8 byte length of `KLOPT_ENCRYPTION_KEY`. */
+export const MIN_ENCRYPTION_KEY_BYTES = 32
 
 export class SecretKeyMissingError extends Error {
   constructor() {
@@ -39,19 +45,37 @@ export class SecretKeyMissingError extends Error {
   }
 }
 
+export class SecretKeyTooShortError extends Error {
+  constructor() {
+    super(
+      `KLOPT_ENCRYPTION_KEY is shorter than ${String(MIN_ENCRYPTION_KEY_BYTES)} bytes. Generate one with \`openssl rand -base64 32\`.`,
+    )
+    this.name = 'SecretKeyTooShortError'
+  }
+}
+
 function keyMaterial(): string | null {
   const value = process.env['KLOPT_ENCRYPTION_KEY'] ?? ''
   return value.trim() === '' ? null : value
 }
 
+function requireKeyMaterial(): string {
+  const material = keyMaterial()
+  if (material === null) throw new SecretKeyMissingError()
+  if (Buffer.byteLength(material, 'utf8') < MIN_ENCRYPTION_KEY_BYTES) {
+    throw new SecretKeyTooShortError()
+  }
+  return material
+}
+
 /** Whether a secret can be stored at all. What a settings screen asks first. */
 export function secretsAvailable(): boolean {
-  return keyMaterial() !== null
+  const material = keyMaterial()
+  return material !== null && Buffer.byteLength(material, 'utf8') >= MIN_ENCRYPTION_KEY_BYTES
 }
 
 export function encryptSecret(plaintext: string): string {
-  const material = keyMaterial()
-  if (material === null) throw new SecretKeyMissingError()
+  const material = requireKeyMaterial()
 
   const salt = randomBytes(SALT_BYTES)
   const iv = randomBytes(IV_BYTES)
@@ -82,8 +106,12 @@ export function encryptSecret(plaintext: string): string {
 export function decryptSecret(stored: string | null): string | null {
   if (stored === null || stored === '') return null
 
-  const material = keyMaterial()
-  if (material === null) return null
+  let material: string
+  try {
+    material = requireKeyMaterial()
+  } catch {
+    return null
+  }
 
   const parts = stored.split('.')
   if (parts.length !== 5 || parts[0] !== VERSION) return null

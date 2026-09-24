@@ -67,7 +67,14 @@ export {
   type SealOptions,
   type SealResult,
 } from './snapshot/seal.js'
-export { SecretKeyMissingError, decryptSecret, encryptSecret, secretsAvailable } from './secrets.js'
+export {
+  MIN_ENCRYPTION_KEY_BYTES,
+  SecretKeyMissingError,
+  SecretKeyTooShortError,
+  decryptSecret,
+  encryptSecret,
+  secretsAvailable,
+} from './secrets.js'
 export {
   backoffFor,
   InboundSourceRepository,

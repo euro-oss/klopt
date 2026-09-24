@@ -66,13 +66,16 @@ export interface AttachmentSelection {
 }
 
 /**
- * The biggest attachment worth storing.
+ * The biggest attachment / upload worth storing.
  *
  * A scanned invoice from a badly configured copier is genuinely 20 MB, so the
  * limit has to be well above what looks reasonable. Above this it is not an
- * invoice; it is somebody sending the whole year's archive.
+ * invoice; it is somebody sending the whole year's archive. The same cap is
+ * applied to the inbox HTTP upload before the body is buffered (audit M5).
  */
-const MAX_BYTES = 30 * 1024 * 1024
+export const MAX_DOCUMENT_BYTES = 30 * 1024 * 1024
+
+const MAX_BYTES = MAX_DOCUMENT_BYTES
 
 /** Below this an image is a logo, not a photograph of a document. */
 const MIN_IMAGE_BYTES = 20 * 1024

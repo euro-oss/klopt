@@ -1,5 +1,11 @@
 import { randomBytes } from 'node:crypto'
-import { EVENT_TYPES, PERMISSIONS, type EventType } from '@klopt/core'
+import {
+  assertSafeHttpsUrl,
+  EVENT_TYPES,
+  PERMISSIONS,
+  PrivateOutboundError,
+  type EventType,
+} from '@klopt/core'
 import { encryptSecret, secretsAvailable, withWebhooks, withWebhooksRead } from '@klopt/db'
 import { hasPermission, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
@@ -67,6 +73,17 @@ export async function handleCreateWebhook(context: RequestContext, body: CreateW
       'validation_failed',
       'There is no KLOPT_ENCRYPTION_KEY, so a signing secret cannot be stored encrypted. Set one first; this system does not keep credentials in the clear.',
     )
+  }
+
+  try {
+    await assertSafeHttpsUrl(body.url)
+  } catch (error: unknown) {
+    if (error instanceof PrivateOutboundError) {
+      throw new ApiError('validation_failed', error.message, [
+        { code: 'private_url', path: 'url', message: error.message },
+      ])
+    }
+    throw error
   }
 
   const unknown = body.eventTypes.filter((type) => !(type in EVENT_TYPES))

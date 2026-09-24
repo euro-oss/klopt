@@ -18,6 +18,7 @@ import {
 } from '@klopt/adapters'
 import {
   SecretKeyMissingError,
+  SecretKeyTooShortError,
   commitExactImport,
   secretsAvailable,
   withExactConnection,
@@ -147,7 +148,7 @@ export async function handleConnectExact(context: RequestContext, body: ConnectE
       await repository.beginHandshake(context.entityId, state)
     })
   } catch (error: unknown) {
-    if (error instanceof SecretKeyMissingError) {
+    if (error instanceof SecretKeyMissingError || error instanceof SecretKeyTooShortError) {
       // Refused rather than stored as typed. A client secret in a database
       // dump is discovered by somebody else, later.
       throw new ApiError('validation_failed', error.message, [

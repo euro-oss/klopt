@@ -1,10 +1,12 @@
 import { createInboundSource } from '@klopt/adapters'
+import { assertSafeHostname, PrivateOutboundError } from '@klopt/core'
 import {
   decryptSecret,
   encryptSecret,
   runInboundPoll,
   secretsAvailable,
   SecretKeyMissingError,
+  SecretKeyTooShortError,
   withInboundSources,
   withInboundSourcesRead,
 } from '@klopt/db'
@@ -84,6 +86,19 @@ export async function handleListInboundSources(context: RequestContext) {
 export async function handleAddInboundSource(context: RequestContext, body: AddInboundSourceBody) {
   requirePermission(context, 'ledger:configure')
 
+  if (body.kind === 'imap' && (body.host ?? '') !== '') {
+    try {
+      await assertSafeHostname(body.host!)
+    } catch (error: unknown) {
+      if (error instanceof PrivateOutboundError) {
+        throw new ApiError('validation_failed', error.message, [
+          { code: 'private_host', path: 'host', message: error.message },
+        ])
+      }
+      throw error
+    }
+  }
+
   const config: Record<string, unknown> =
     body.kind === 'maildir'
       ? { directory: body.directory }
@@ -105,7 +120,7 @@ export async function handleAddInboundSource(context: RequestContext, body: AddI
     } catch (error: unknown) {
       // Refused rather than stored as typed. A password in a database dump is
       // discovered by somebody else, later.
-      if (error instanceof SecretKeyMissingError) {
+      if (error instanceof SecretKeyMissingError || error instanceof SecretKeyTooShortError) {
         throw new ApiError('validation_failed', error.message, [
           { code: 'no_secret_key', path: 'password', message: error.message },
         ])

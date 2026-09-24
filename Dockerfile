@@ -76,6 +76,8 @@ RUN node /tmp/prune-store.mjs /app apps/worker apps/cli packages/db packages/cor
 # rather than a rebuild.
 FROM base AS runtime
 ENV NODE_ENV=production
+# Production also requires KLOPT_BASE_URL=https://… (session cookie Secure) and
+# SMTP or KLOPT_EMAIL_OUTBOX_DIR (log transport refused). See .env.example.
 ENV KLOPT_SERVER_ENTRY=/app/apps/web/.output/server/index.mjs
 ENV KLOPT_WORKER_ENTRY=/app/apps/worker/dist/main.js
 ENV PORT=3000

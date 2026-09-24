@@ -296,7 +296,7 @@ describe('what gets written down', () => {
       addInboundSourceBody.parse({
         kind: 'imap',
         name: 'Mailbox',
-        host: 'imap.example.test',
+        host: '1.1.1.1',
         user: 'facturen@example.test',
         password: 'geheim',
       }),

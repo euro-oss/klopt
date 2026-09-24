@@ -1420,7 +1420,7 @@ describe('every write, to the end of the list', () => {
     const created = await handleCreateWebhook(
       await contextFor(key()),
       schemas.createWebhookBody.parse({
-        url: 'https://example.test/klopt',
+        url: 'https://example.com/klopt',
         eventTypes: ['ledger.entry.posted'],
       }),
     )

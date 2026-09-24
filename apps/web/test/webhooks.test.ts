@@ -104,7 +104,7 @@ async function anEvent(): Promise<string> {
 async function anEndpoint(
   eventTypes: string[] = [],
 ): Promise<{ id: string; secret: string; url: string }> {
-  const url = `https://example.test/hook/${randomUUID()}`
+  const url = `https://example.com/hook/${randomUUID()}`
   const created = await handleCreateWebhook(
     await contextFor(uuidv7()),
     createWebhookBody.parse({ url, eventTypes }),
@@ -113,6 +113,9 @@ async function anEndpoint(
 }
 
 beforeAll(async () => {
+  // Delivery and registration tests use synthetic hosts; the real check is
+  // covered by the private-URL case below and by packages/core outbound tests.
+  process.env['KLOPT_ALLOW_PRIVATE_OUTBOUND'] = '1'
   await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
@@ -166,7 +169,23 @@ describe('subscribing', () => {
   it('refuses a URL that is not https', () => {
     // The signature proves who sent it, not who read it on the way. Over plain
     // http the resource ids travel in the clear.
-    expect(() => createWebhookBody.parse({ url: 'http://example.test/hook' })).toThrow()
+    expect(() => createWebhookBody.parse({ url: 'http://example.com/hook' })).toThrow()
+  })
+
+  it('refuses a private https URL at registration', async () => {
+    const previous = process.env['KLOPT_ALLOW_PRIVATE_OUTBOUND']
+    delete process.env['KLOPT_ALLOW_PRIVATE_OUTBOUND']
+    try {
+      await expect(
+        handleCreateWebhook(
+          await contextFor(uuidv7()),
+          createWebhookBody.parse({ url: 'https://127.0.0.1/hook' }),
+        ),
+      ).rejects.toMatchObject({ code: 'validation_failed' })
+    } finally {
+      if (previous === undefined) delete process.env['KLOPT_ALLOW_PRIVATE_OUTBOUND']
+      else process.env['KLOPT_ALLOW_PRIVATE_OUTBOUND'] = previous
+    }
   })
 
   it('refuses an event type that is not in the catalogue', async () => {
@@ -174,7 +193,7 @@ describe('subscribing', () => {
       handleCreateWebhook(
         await contextFor(uuidv7()),
         createWebhookBody.parse({
-          url: 'https://example.test/hook',
+          url: 'https://example.com/hook',
           eventTypes: ['sales.invoice.exploded'],
         }),
       ),
@@ -183,6 +202,26 @@ describe('subscribing', () => {
 })
 
 describe('delivering', () => {
+  it('does not follow redirects and records the check failure without dialling', async () => {
+    const endpoint = await anEndpoint()
+    await anEvent()
+    const target = subscriber(() => ({ status: 200 }))
+
+    await deliverWebhooks(database, {
+      fetch: (url, init) => {
+        expect(init.redirect).toBe('manual')
+        return target.fetch(url, init)
+      },
+      assertUrl: () => Promise.reject(new Error('Refusing to reach https://127.0.0.1/: private')),
+    })
+
+    expect(target.seen.filter((attempt) => attempt.url === endpoint.url)).toHaveLength(0)
+
+    const listed = await handleListWebhooks(await contextFor())
+    const row = listed.body.endpoints.find((entry) => entry.id === endpoint.id)
+    expect(row?.attempts[0]?.error).toMatch(/private/i)
+  })
+
   it('signs what it sends, verifiably, with the secret the subscriber was given', async () => {
     const endpoint = await anEndpoint()
     const resourceId = await anEvent()
