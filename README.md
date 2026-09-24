@@ -118,7 +118,8 @@ Those files are not in git. See
 Set `KLOPT_AUTH_SECRET` in `.env` before `pnpm run dev`
 (`openssl rand -base64 32`). Every other variable is explained in
 [`.env.example`](.env.example). With no SMTP configured, the sign-in code is
-written to the web process log.
+written to the web process log. A production process (`NODE_ENV=production`)
+refuses that log transport: set SMTP or `KLOPT_EMAIL_OUTBOX_DIR`.
 
 `pnpm run dev` starts the web app and the worker together. The worker polls
 mailboxes into the purchase inbox, delivers webhooks, seals book years, and
@@ -131,7 +132,9 @@ bucket. `.env.example` points the `KLOPT_S3_*` variables at that MinIO. Leave
 set without the bucket name and credentials is refused at boot.
 
 On a fresh install, sign-in leads to creating an administration: a name, an
-optional KvK number, and a book year. That account is the owner.
+optional KvK number, and a book year. That account is the owner. Once the firm
+is on the instance, set `KLOPT_SIGNUP=closed` so a new mailbox cannot provision
+its own books. People still join from **Toegang**.
 
 ### Docker
 
@@ -144,8 +147,11 @@ docker run --rm -p 3000:3000 --env-file .env klopt
 
 Migrate is its own command. The image does not migrate on boot. `DATABASE_URL`
 has to be reachable from inside the container — `localhost` there is the
-container. The headless target serves the API and the worker and sets
-`KLOPT_HEADLESS=1`. See the [`Dockerfile`](Dockerfile).
+container. The image sets `NODE_ENV=production`, so it refuses to boot unless
+`KLOPT_BASE_URL` is an `https://` origin (that keeps the session cookie
+`Secure`) and mail is SMTP or `KLOPT_EMAIL_OUTBOX_DIR`. Local `pnpm run dev`
+stays on `http://localhost:3000`. The headless target serves the API and the
+worker and sets `KLOPT_HEADLESS=1`. See the [`Dockerfile`](Dockerfile).
 
 ### Exact Online on a laptop
 
@@ -213,9 +219,7 @@ Background, kept off the product pitch above.
 - [`docs/api-stability.md`](docs/api-stability.md) — the narrow promises that
   take a major version to break.
 - [`docs/architecture.md`](docs/architecture.md) — layout and package
-  boundaries. Deeper reading. A few paragraphs still describe an older
-  bank-match keyboard and a missing theme toggle; the changelog is ahead of
-  them.
+  boundaries. Deeper reading, not the product pitch.
 - [`docs/ALPHA_ASSESSMENT.md`](docs/ALPHA_ASSESSMENT.md) — snapshot from
   2026-09-18. Historical. Planning uses the changelog and the beta-firm audit.
 - [`docs/decisions/`](docs/decisions/) — accepted decisions, one file each.
