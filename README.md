@@ -1,476 +1,225 @@
 # Klopt
 
-**Open bookkeeping for the Dutch market.**
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-_Klopt_ is what a Dutch bookkeeper says when the reconciliation lands: it adds
-up. It is also the pass/fail condition for this software.
+**Open-source Dutch bookkeeping, and the start of an organisation backbone.**
 
-> **Status: 0.1.0 — M0 through M6 complete.** An accountant can keep a Dutch
-> administration in this today: an immutable hash-chained journal, sales with
-> UBL and Peppol validation, CAMT.053 and MT940 banking with a matching engine,
-> the BTW-aangifte and ICP derived from the journal with their reconciliation,
-> the purchase cycle from inbox to payment file, retention and sealed
-> snapshots, multi-entity, and XAF 3.2 export and import validated against the
-> published Belastingdienst schema.
->
-> All of it over one versioned REST API — 118 operations, the same ones the UI
-> calls — plus an MCP server and a CLI. See [`CHANGELOG.md`](CHANGELOG.md) for
-> what is in this release, including the four things that are specified and not
-> finished, and [`docs/api-stability.md`](docs/api-stability.md) for what will
-> not change without a major version.
->
-> Electronic filing to Digipoort is the notable gap: the transport is stubbed
-> behind a port because it needs a PKIoverheid certificate. Filing by hand
-> works.
+## Demo
 
----
+Short walkthrough of the self-hosted Alpha: sign-in, dashboard, a sales invoice, the journal, bank and purchase-inbox chrome, then settings and access.
 
-## Why
+![Klopt Alpha demo](docs/demo/klopt-alpha-demo.gif)
 
-Dutch SMBs run their books on Exact Online, AFAS, Twinfield or Visma: entrenched,
-expensive per user, slow to change, unpleasant to use. Nobody switches, because
-the lock-in is the accountant's workflow and the compliance plumbing, not the
-ledger.
+[Download MP4 (~53s)](docs/demo/klopt-alpha-demo.mp4)
 
-The open-source landscape has a hole in exactly the right shape. Modern tools
-(Midday, Bigcapital) have no EU VAT localisation and no Peppol. Real accounting
-tools (Dolibarr, LedgerSMB, Odoo Community) are dated or have accounting behind
-an Enterprise licence. ERPNext has no BTW-aangifte, no RGS, no auditfile. EekBoek
-is abandoned.
+[Klopt](https://github.com/euro-oss/klopt) is the bookkeeping starter from
+[euro.computer](https://euro.computer). The name is what a Dutch bookkeeper says
+when the reconciliation lands: it adds up. The software is that same test,
+built so a Dutch administration can be kept, exported, and automated.
 
-Nothing is both modern and Dutch-compliant.
+It is **API-first** (the UI is a client of `/api/v1`), **AI-first** (an MCP
+server on that same API), and **keyboard-first** (the daily screens are worked
+from the keyboard). The licence is [Apache-2.0](LICENSE). Anyone may fork it,
+host it, or sell a competing service. The repository belongs to
+[euro-oss](https://github.com/euro-oss).
 
-**The thesis:** the ledger is commodity. The moat is the compliance surface and
-the accountant's trust. Build the boring compliance edges first and correctly,
-then win on the parts the incumbents are worst at — speed, API, and not charging
-per seat.
+**Status: 0.1.0 Alpha**, self-hosted. You can keep a Dutch administration in
+this today. `main` also carries unreleased interface work on top of that
+release; the record is [`CHANGELOG.md`](CHANGELOG.md). A hosted EU service is
+not part of this repository.
 
-## Principles
+## Features
 
-These are testable design constraints, not slogans. Most of them are enforced by
-something in CI.
+What is in 0.1.0, plus the unreleased screens already on `main`.
 
-1. **The journal is immutable.** Nothing is updated or deleted. Corrections are
-   reversals. Every report derives from the journal alone.
-2. **Your data leaves whenever you want.** A valid XAF 3.2 export with RGS codes,
-   one click, always.
-3. **The API is the product.** The UI is a client of it. If the UI can do it, a
-   script can do it — see `GET /api/v1/openapi.json` on any instance, or
-   [`docs/openapi.json`](docs/openapi.json) here, both generated from the
-   schemas the code validates against.
-4. **Self-hosted is complete, not crippled.** No feature is withheld. The hosted
-   offering sells credentials and operations, never features.
-5. **One instance, few dependencies.** One container, Postgres, S3-compatible
-   storage.
-6. **Compliance is versioned and swappable.** Taxonomies and schematrons are data
-   loaded at runtime, never code. All of them change annually.
-7. **The accountant is a first-class user**, not a read-only login.
-8. **Headless is a first-class mode.** Everything works over REST, MCP and CLI
-   with no UI running.
+- **Ledger.** An append-only, hash-chained journal. Gapless numbering, period
+  control, multi-currency, reversals, and year close. Trial balance, balance
+  sheet, and profit and loss come from the same figures.
+- **Dutch reference data.** RGS 3.7, loaded as data. XAF 3.2 export and import,
+  checked against the published Belastingdienst schema. A new administration
+  starts from a Dutch MKB chart under `reference-data/charts/`.
+- **Sales.** Contacts, drafts, issued invoices, credit notes, UBL 2.1 validated
+  as Peppol BIS Billing 3 with the NLCIUS rules, PDF, email, and dunning. A
+  document that fails the schematron is not sent.
+- **Purchases.** A document inbox for uploads and email, supplier invoices that
+  keep the supplier's totals as stated, and an approval a person has to give.
+- **Banking by file.** CAMT.053, MT940, and CSV import. A matching queue that
+  suggests a booking and waits for confirmation. SEPA `pain.001` files that
+  need two people, and neither of them a script.
+- **VAT.** A BTW-aangifte derived from the journal, with a reconciliation on
+  the report, and an ICP opgaaf with VIES checks. XBRL is generated. The
+  filing path that works is the manual one.
+- **Ready for a second person.** Several entities on one login, roles and
+  permissions, an audit log, retention, sealed snapshots, and an Exact Online
+  import that includes the document archive. Document storage is a local
+  directory unless you point it at an S3 bucket; object lock is what that
+  bucket is for.
+- **One API, 118 operations** under `/api/v1` — the same operations the UI
+  calls. OpenAPI is `GET /api/v1/openapi.json` on a running instance, and
+  [`docs/openapi.json`](docs/openapi.json) in this tree. Scoped bearer tokens,
+  an idempotency key on every write, and `application/problem+json` errors.
+  Webhooks carry the event stream. Operators also get a CLI
+  ([`apps/cli/README.md`](apps/cli/README.md)).
+- **MCP, twelve tools.** Nine read: `describe_schema`, `search`, `get_balance`,
+  `explain_number`, `list_open_items`, `vat_return_preview`,
+  `list_pending_approvals`, `export_xaf`, `check_journal_entry`. Three draft a
+  human still has to release: `draft_sales_invoice`,
+  `capture_purchase_invoice`, `draft_from_inbox_item`. Nothing in the server
+  posts, sends, files, or pays. A read-only token sees only the read tools.
+  Point a client at `https://<your-host>/api/mcp` with
+  `Authorization: Bearer klopt_…`, or run `apps/mcp` over stdio with
+  `KLOPT_API_URL` and `KLOPT_TOKEN`. Issue the token under **Toegang**.
+- **Keyboard-first UI**, in Dutch and English, light and dark. The keys that
+  ship are [`docs/keyboard-map.md`](docs/keyboard-map.md).
 
-## Quick start
+Amounts on the wire are integer minor units **as strings**. A JSON number on a
+money field is rejected.
 
-Requires Node 22+ (24 recommended, see `.nvmrc`), pnpm 10, and Docker for the
-local stack.
+### Not in this release
+
+- **Digipoort.** Electronic filing to the Belastingdienst needs a PKIoverheid
+  certificate and a signer this tree does not include. The transport stays
+  unavailable; file the prepared return by hand. XBRL element names are still
+  `verified: false` against the published Nederlandse Taxonomie, so electronic
+  filing stays refused while that is true.
+- **Peppol access point.** Outbound e-invoices leave by email, UBL and PDF
+  attached. An access point needs a service-provider agreement and is not
+  installed here.
+- **PSD2 bank feed.** Statements come in as files: CAMT.053, MT940, or CSV.
+  There is no bank-aggregator connection.
+- **Hosted EU.** You run Klopt yourself. A hosted preview is a later milestone
+  ([hosted-eu](https://github.com/euro-oss/klopt/milestone/3)), and it is not a
+  service in this repository.
+
+## Install and run
+
+Node 22 or newer (`.nvmrc` is 24; CI also runs 26), pnpm 10 (`packageManager`
+in `package.json`), and Docker for the local database.
 
 ```bash
+git clone https://github.com/euro-oss/klopt.git
+cd klopt
+corepack enable
 pnpm install
-pnpm run peppol:fetch                  # OpenPeppol BIS Schematron (not in git)
-cp .env.example .env                       # set KLOPT_AUTH_SECRET
-docker compose up -d                       # Postgres + MinIO with object lock (dev stack)
+pnpm run peppol:fetch
+cp .env.example .env
+docker compose up -d
 pnpm run build
 pnpm --filter @klopt/db run migrate
-pnpm run dev                               # http://localhost:3000
+pnpm run dev
 ```
 
-Peppol BIS Billing 3 Schematron files are obtained from OpenPeppol and are
-**not** redistributed in this repository — see
+Open <http://localhost:3000>.
+
+`pnpm run peppol:fetch` downloads the OpenPeppol BIS Billing 3 Schematron.
+Those files are not in git. See
 [`reference-data/peppol/README.md`](reference-data/peppol/README.md).
 
-That starts two processes: the web app, and the **worker**. The worker is not
-optional scenery — it empties mailboxes into the purchase inbox, seals book
-years overnight, and pulls the Exact document archive across. Without it those
-things silently never happen, which is exactly how it looks: a status that
-says "waiting for the worker" and stays there.
+Set `KLOPT_AUTH_SECRET` in `.env` before `pnpm run dev`
+(`openssl rand -base64 32`). Every other variable is explained in
+[`.env.example`](.env.example). With no SMTP configured, the sign-in code is
+written to the web process log. A production process (`NODE_ENV=production`)
+refuses that log transport: set SMTP or `KLOPT_EMAIL_OUTBOX_DIR`.
 
-`pnpm run dev:web` and `pnpm run dev:worker` run them separately when one is in
-the way.
+`pnpm run dev` starts the web app and the worker together. The worker polls
+mailboxes into the purchase inbox, delivers webhooks, seals book years, and
+pulls an Exact document archive when an import was asked for.
+`pnpm run dev:web` and `pnpm run dev:worker` run them apart.
 
-### Running it as a container
+`docker compose up -d` starts Postgres 17 and MinIO, including an object-lock
+bucket. `.env.example` points the `KLOPT_S3_*` variables at that MinIO. Leave
+`KLOPT_S3_ENDPOINT` unset and documents stay in a local directory. An endpoint
+set without the bucket name and credentials is refused at boot.
 
-```bash
-docker build -t klopt .                          # the whole thing
-docker build -t klopt:headless --target headless .   # API and worker, no UI
+On a fresh install, sign-in leads to creating an administration: a name, an
+optional KvK number, and a book year. That account is the owner. Once the firm
+is on the instance, set `KLOPT_SIGNUP=closed` so a new mailbox cannot provision
+its own books. People still join from **Toegang**.
 
-docker run --rm klopt migrate                    # explicit, never on boot
-docker run -p 3000:3000 klopt                    # the same two processes
-docker run --rm --entrypoint klopt klopt help    # the operator's surface
-```
-
-Both images run `klopt serve`, which spawns the server and the worker and stops
-one when the other goes. The headless image ships no client bundle and sets
-`KLOPT_HEADLESS=1`, so every path but `/api` and `/.well-known` answers 404 —
-what that is and is not worth is in [ADR
-0042](docs/decisions/0042-headless-is-a-switch-not-a-second-build.md).
-
-Open it and enter your email address. With no SMTP configured the sign-in code
-is written to the process log, so a fresh install works with no mail server —
-find the code and type it in. In production (`NODE_ENV=production`) that log
-transport is refused: set SMTP or `KLOPT_EMAIL_OUTBOX_DIR` instead.
-
-The first account to sign in has no books yet, so it is offered a way to make
-some: a name, and optionally a KvK number and a book year that need not be a
-calendar year. That provisions a Dutch MKB chart of accounts — 31 accounts,
-five dagboeken and eight BTW-codes, every account already mapped to RGS 3.7 —
-and lands you in it as owner. The chart is reference data under
-`reference-data/charts/`, so shipping your own is a file, not a fork.
-
-Once the firm is on the instance, set `KLOPT_SIGNUP=closed` so a new mailbox
-cannot provision its own books. Bring in your bookkeeper or your accountant
-from **Toegang**: type an address, pick a role, and they are in as soon as they
-sign in with it. There is no invitation link to lose — the code that proves the
-mailbox is the same code that signs them in.
-
-A production container also needs `KLOPT_BASE_URL=https://…` (the origin
-browsers actually use). Without an https origin the process refuses to boot, so
-the session cookie cannot quietly lose its `Secure` flag.
-
-### Serving it over https
-
-Only needed to connect **Exact Online**, whose OAuth redirect URI must be
-https — plain `http://localhost` is refused at their end. [portless][portless]
-fronts the dev server with a locally-trusted certificate on a stable
-`.localhost` name:
+### Docker
 
 ```bash
-npm install -g portless
-portless proxy start                       # once; sudo, to bind 443
-pnpm run dev:https                         # https://klopt.localhost
+docker build -t klopt .
+docker build -t klopt:headless --target headless .
+docker run --rm --env-file .env klopt migrate
+docker run --rm -p 3000:3000 --env-file .env klopt
 ```
 
-Same two processes as `pnpm run dev`; only the web half moves behind the proxy.
-The worker speaks to Postgres and to other people's APIs and serves no HTTP of
-its own, so it needs no hostname.
+Migrate is its own command. The image does not migrate on boot. `DATABASE_URL`
+has to be reachable from inside the container — `localhost` there is the
+container. The image sets `NODE_ENV=production`, so it refuses to boot unless
+`KLOPT_BASE_URL` is an `https://` origin (that keeps the session cookie
+`Secure`) and mail is SMTP or `KLOPT_EMAIL_OUTBOX_DIR`. Local `pnpm run dev`
+stays on `http://localhost:3000`. The headless target serves the API and the
+worker and sets `KLOPT_HEADLESS=1`. See the [`Dockerfile`](Dockerfile).
 
-Then set `KLOPT_BASE_URL=https://klopt.localhost` so the session cookie is
-issued `secure` and sign-in links point at the right host, and register
-`https://klopt.localhost/exact/callback` as the redirect URI of your Exact app.
-`portless service install` starts the proxy at boot so the sudo prompt happens
-once.
+### Exact Online on a laptop
 
-The name is pinned to `klopt` in the script. A bare `portless` prefixes the git
-branch onto the host, which would move the URL every time the branch changed —
-and Exact compares its redirect URI literally.
+Exact refuses a plain `http` redirect URI. The local HTTPS path (portless,
+`pnpm run dev:https`, `KLOPT_BASE_URL`) is the Exact section of
+[`.env.example`](.env.example).
 
-[portless]: https://portless.sh
+### The same checks CI runs
 
-### Driving it from an agent
-
-Klopt ships an MCP server, so an assistant can read the books without anybody
-pasting figures into a chat window.
-
-**Hosted** — the endpoint is wherever Klopt already is, so there is nothing to
-install. Issue a **read-only** token under **Toegang** and point a client at
-`https://your-klopt/api/mcp` with `Authorization: Bearer klopt_…`.
-
-**Local** — over stdio, if the agent runs on the same machine as the books:
-
-```json
-{
-  "mcpServers": {
-    "klopt": {
-      "command": "node",
-      "args": ["/path/to/klopt/apps/mcp/dist/main.js"],
-      "env": {
-        "KLOPT_API_URL": "http://localhost:3000",
-        "KLOPT_TOKEN": "klopt_…"
-      }
-    }
-  }
-}
-```
-
-Twelve tools — nine read, three draft-only writes. Read: `describe_schema`,
-`search`, `get_balance`, `explain_number`, `list_open_items`,
-`vat_return_preview`, `list_pending_approvals`, `export_xaf`,
-`check_journal_entry`. Write, as a draft a human releases:
-`draft_sales_invoice`, `capture_purchase_invoice`, `draft_from_inbox_item`.
-There is no generic query tool and nothing that files, sends, posts or pays.
-A read-only token sees only the read tools; the write tools need a token with
-the matching permission and never post on their own.
-
-The server is a client of the same REST API as everything else, so an agent has
-exactly the permissions its token has, and its actions land in the same audit
-log under a distinct actor kind. See
-[ADR 0035](docs/decisions/0035-an-agent-is-a-client-not-a-shortcut.md).
-
-Or skip the browser entirely; the UI is a client of the same API:
-
-Then post something. Issue a token, and:
+Postgres up, Schematron fetched, migrations applied, then:
 
 ```bash
-curl -X POST localhost:3000/api/v1/journal-entries \
-  -H "authorization: Bearer $KLOPT_TOKEN" \
-  -H "idempotency-key: $(uuidgen)" \
-  -H 'content-type: application/json' \
-  -d '{
-        "journalCode": "VRK",
-        "bookingDate": "2026-03-15",
-        "documentDate": "2026-03-15",
-        "description": "Factuur 2026-001",
-        "lines": [
-          { "accountNumber": "1300", "debit":  "121000" },
-          { "accountNumber": "8000", "credit": "100000" },
-          { "accountNumber": "1500", "credit":  "21000" }
-        ]
-      }'
+pnpm run verify
 ```
 
-Amounts are integer minor units **as strings**. A JSON number in the money path
-is rejected, because by the time it reached us it would already have been
-rounded.
-
-Invoice somebody from **Verkoopfacturen** — record the customer, draft, then
-issue, which is the deliberate second click that allocates a gapless number and
-posts the entry. Corrections are credit notes; there is no edit and no delete,
-for the same reason the journal has neither.
-
-Or take the XML:
-
-```bash
-curl -O -J "localhost:3000/api/v1/sales-invoices/$INVOICE_ID/ubl" \
-  -H "authorization: Bearer $KLOPT_TOKEN"
-
-xmllint --noout --schema reference-data/ubl/2.1/maindoc/UBL-Invoice-2.1.xsd *.ubl.xml
-```
-
-That is UBL 2.1 in the Peppol BIS Billing 3.0 shape with the NLCIUS rules
-applied — the legal invoice, of which a PDF would be a rendering. Nothing comes
-out of that endpoint that has not passed the **published** BIS and NLCIUS
-schematron, run as data by an evaluator in the box: no JVM, no proprietary
-runtime, nothing compiled ahead of time
-([ADR 0017](docs/decisions/0017-schematron-in-process.md)). An invoice that
-breaks a rule comes back as a 422 naming each one by its official identifier
-(`NL-R-002`, `BR-S-09`, `BR-CL-14`) rather than as a document your customer's
-system rejects next week.
-
-And the rendering, with the XML inside it:
-
-```bash
-curl -O -J "localhost:3000/api/v1/sales-invoices/$INVOICE_ID/pdf?embedUbl=true" \
-  -H "authorization: Bearer $KLOPT_TOKEN"
-```
-
-One file with both invoices in it — the one a person reads and the one their
-software parses, built from the same source so they cannot disagree. The bare
-PDF is available whatever the schematron thinks, because somebody printing a
-copy for a customer who wants paper should not be stopped by a code-list rule;
-attach the XML and the rules apply again.
-
-Then send it:
-
-```bash
-curl -X POST "localhost:3000/api/v1/sales-invoices/$INVOICE_ID/send" \
-  -H "authorization: Bearer $KLOPT_TOKEN" \
-  -H "idempotency-key: $(uuidgen)" \
-  -H 'content-type: application/json' -d '{}'
-```
-
-Email, with the UBL and the PDF attached — spec 7.5's fallback transport, and
-the one that needs no third party. With no SMTP configured the message goes to a
-directory or the log, and the receipt says so rather than pretending. A Peppol
-access point slots in behind the same interface; it needs a service provider
-agreement, which is the part you cannot install.
-
-Nothing is sent that has not passed the schematron, and every attempt — sent or
-bounced — leaves a row with the hash of the exact document. Overdue invoices
-turn up under **Aanmaningen** with the reminder each one is due: one per stage,
-ever, and never a courtesy after a final demand
-([ADR 0018](docs/decisions/0018-dunning-stage-is-derived.md)).
-
-Read a bank statement in — CAMT.053 or MT940, whichever your bank gives you:
-
-```bash
-curl -X POST localhost:3000/api/v1/bank-statements \
-  -H "authorization: Bearer $KLOPT_TOKEN" \
-  -H 'content-type: application/json' \
-  -d "$(jq -n --arg c "$(cat statement.940)" \
-        '{bankAccountId: $ENV.ACCOUNT_ID, content: $c, dryRun: true}')"
-```
-
-A CSV works the same way, except the first one comes back with a guessed column
-mapping to check rather than an error — every bank invents its own columns, so
-the layout is configuration, and once corrected the account remembers it.
-
-`dryRun` says what it would do and writes nothing: how many lines are new, how
-many are already there, and whether a statement is missing from the sequence. A
-file whose entries do not add up to its closing balance is refused outright,
-because a truncated statement becomes a wrong balance that everybody trusts.
-Then ask what a line might be:
-
-```bash
-curl "localhost:3000/api/v1/bank-transactions/$TX_ID/suggestions" \
-  -H "authorization: Bearer $KLOPT_TOKEN"
-```
-
-Each suggestion comes with a confidence and a reason in Dutch you can check at
-a glance — "Factuurnummer 2026-0001 staat in de omschrijving en het bedrag
-klopt precies". Nothing is posted until you confirm, and a confirmation with no
-invoice behind it teaches a rule for next time
-([ADR 0019](docs/decisions/0019-matching-suggests.md)). Confirming posts a
-journal entry through the same API a manual entry uses, so period control and
-the hash chain apply without banking knowing they exist.
-
-In the browser that queue is keyboard-first and confirms rather than guesses:
-`↑↓` or `j`/`k` move — lines in the queue, candidates in the panel — `↵` opens the
-panel and then books the candidate it is pointing at, `u` drops that choice and
-`Esc` closes it. Two keystrokes a line, and the second one is aimed at something
-the reader can see.
-
-Pay your suppliers, if somebody else agrees:
-
-```bash
-curl -X POST "localhost:3000/api/v1/payment-batches/$BATCH/transitions" \
-  -H "authorization: Bearer $ALICE" -H "idempotency-key: $(uuidgen)" \
-  -H 'content-type: application/json' -d '{"action":"submit"}'
-
-# The same person approving their own batch is refused, and so is a script.
-curl -O -J "localhost:3000/api/v1/payment-batches/$BATCH/pain001" \
-  -H "authorization: Bearer $BOB"
-```
-
-A SEPA `pain.001` needs two people and neither of them can be a machine
-([ADR 0020](docs/decisions/0020-payments-need-two-people.md)). The IBANs are
-check-digit validated before anybody is asked to approve, because a bank
-rejects the whole batch for one bad account.
-
-Then leave with your data:
-
-```bash
-curl -O -J "localhost:3000/api/v1/exports/audit-file?fiscalYear=2026" \
-  -H "authorization: Bearer $KLOPT_TOKEN"
-
-xmllint --noout --schema reference-data/xaf/XmlAuditfileFinancieel3.2.xsd xaf-*.xml
-```
-
-That is a complete XAF 3.2 auditfile with RGS lead codes, validated against the
-published schema. Principle 2, in one request.
-
-Check everything the way CI does:
-
-```bash
-pnpm run verify               # format, build, lint, typecheck, test, boundaries
-```
-
-That needs Postgres and nothing else. The ledger tests run against a real
-database on purpose — the triggers are half the guarantee and a mocked database
-proves nothing about them — but the object-storage tests bring up an
-S3-compatible object-lock bucket inside the test process, so neither `verify`
-nor CI needs MinIO. Point them at the real thing when you want to be sure the
-signer is right:
-
-```bash
-docker compose up -d minio minio-init
-KLOPT_S3_ENDPOINT=http://localhost:9000 pnpm run test
-```
-
-Why it works that way, and what a bucket in-process cannot prove, is in
-[ADR 0059](docs/decisions/0059-a-bucket-close-enough-to-test-against.md).
-
-## Layout
-
-```
-packages/core        framework-free accounting domain
-packages/db          Drizzle schema, migrations, repositories
-packages/adapters    filing, bank feed, e-invoice, payments
-apps/web             TanStack Start: UI + versioned REST API
-apps/worker          scheduled and queued work
-tools/               project-specific lint rules
-```
-
-`@klopt/core` imports no web framework, no database and no adapter — enforced by
-the linter, not by good intentions. It is the part that survives if the
-framework choice turns out wrong. See [`docs/architecture.md`](docs/architecture.md).
-
-## On the stack
-
-TypeScript, PostgreSQL, TanStack Start, shadcn/ui, Drizzle. Postgres is also the
-queue, the search index and the cache, because every extra service is a
-self-hosting tax.
-
-**TanStack Start** was chosen before it was stable, on the reasoning that Vite
-and plain Node underneath is worth more to self-hostable software than framework
-popularity. It has since shipped stable. The residual cost is that the pool of
-contributors who have shipped production TanStack Start is smaller than the
-Next.js one — which is a real cost for an open-source project, and is bounded by
-the `packages/core` boundary above.
-
-Version policy, and why TypeScript is pinned to 5.9 rather than the 7.x that
-`npm` calls `latest`: [`docs/decisions`](docs/decisions/).
+That is format, build, lint, typecheck, test, and the architecture-boundary
+check. The sequence, and what CI adds around it, is
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Roadmap
 
-| Milestone | Content                                                                                                                                                               | Proves                                      |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| **M0**    | Entities, chart of accounts, RGS mapping, manual journal entries, immutable journal with hash chain, trial balance, balance sheet, P&L, **XAF 3.2 export and import** | An accountant can use it as a shadow ledger |
-| **M1**    | Sales: invoices, credit notes, UBL with NLCIUS validation, PDF, dunning                                                                                               | You can invoice for real                    |
-| **M2**    | Banking: CAMT.053 / MT940 import, matching engine, learned rules, pain.001. MCP server, read-only                                                                     | The daily grind is handled                  |
-| **M3**    | VAT: tax code engine, BTW-aangifte with reconciliation, ICP with VIES, XBRL, manual filing, then Digipoort                                                            | VAT and ICP returns can be prepared         |
-| **M4**    | Purchase: supplier invoice inbox, approval flow, inbound Peppol. MCP write tools, behind the proposal model                                                           | The full cycle closes                       |
-| **M5**    | Retention and WORM, sealed snapshots, audit log export, Exact importer, multi-entity, permissions                                                                     | Adoptable by someone who is not us          |
-| **M6**    | API stability commitment, webhooks, module contract, first external module                                                                                            | An ecosystem is possible                    |
+After this alpha, in this order. No dates.
 
-M0 through M3 is the credible minimum. Anything less is another invoicing tool.
+1. **[beta-firm](https://github.com/euro-oss/klopt/milestone/1)** — listen to
+   an accounting firm and stabilize: firm-feedback fixes and contributor
+   governance. The pass written for that work is
+   [`docs/audits/2026-09-alpha-maintainability-security-performance.md`](docs/audits/2026-09-alpha-maintainability-security-performance.md).
+2. **[collaborators](https://github.com/euro-oss/klopt/milestone/2)** — deeper
+   Dutch practice, and MCP and keyboard parity, with contributors outside the
+   original authors.
+3. **[hosted-eu](https://github.com/euro-oss/klopt/milestone/3)** — a hosted EU
+   preview. It is not running. [`GOVERNANCE.md`](GOVERNANCE.md) records the
+   intent for when it is: hosting sells operations and credentials, and the
+   self-hosted build keeps the features.
 
-The REST API is not a milestone: it exists from M0 by construction, enforced by
-the contract test.
+0.1.0 is the original M0–M6 specification. The forward plan is the three
+milestones above. [`CHANGELOG.md`](CHANGELOG.md) is the record of what landed.
 
-## What M0 gives you
+## Contribute
 
-|                |                                                                                                                                           |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Ledger**     | Immutable journal, hash chain per entity, gapless numbering, n-dimensional analytics, period control, multi-currency, reversals           |
-| **RGS 3.7**    | The real published scheme — 3691 MKB codes — as versioned reference data, with coverage reporting, mapping validation and an upgrade diff |
-| **Reports**    | Trial balance, balance sheet, profit and loss, all derived from the same figures and asserted to agree                                    |
-| **Year close** | Result appropriation and opening balance, as two ordinary reversible entries                                                              |
-| **XAF 3.2**    | Export with RGS lead codes, validated against the published XSD; import with a reconciliation dry run                                     |
-| **API**        | 15 operations under `/api/v1`, scoped bearer tokens, idempotency keys, cursor pagination, problem+json errors                             |
+Start here, then read [`CONTRIBUTING.md`](CONTRIBUTING.md) before a pull
+request.
 
-Round-tripping is tested, not claimed: an export from one administration
-imports into another and produces an identical balance sheet.
+- **DCO, no CLA.** Every commit carries `Signed-off-by` (`git commit -s`).
+  The text you are signing is <https://developercertificate.org>.
+- **One logical change per pull request**, branched from current `main`,
+  opened against `main`. Use the pull request template. The tip has to be
+  green: `verify` on Node 24 and Node 26, `artefacts`, and `e2e`.
+- **Review.** An appointed maintainer reviews. For now only Hidde merges to
+  `main`. Names are in [`MAINTAINERS.md`](MAINTAINERS.md).
+- **Security** goes through [`SECURITY.md`](SECURITY.md)
+  (`security@euro.computer`), as a private report.
+- This repository has no `CODE_OF_CONDUCT` file.
 
-Keyboard-first is a contract, not a nice-to-have — see
-[`docs/keyboard-map.md`](docs/keyboard-map.md), written before the screens were
-and now describing them: a row cursor with type-ahead and a TSV copy in every
-table, an account picker that matches on number and name, and an invoice, a bank
-match and the postvak cleared without touching a mouse.
+The code is free under Apache-2.0. The name is separate, and trademark
+clearance has not been run: [`TRADEMARK.md`](TRADEMARK.md). Why the licence
+stays Apache-2.0 is [`GOVERNANCE.md`](GOVERNANCE.md). Interim copyright is
+[`NOTICE`](NOTICE).
 
-## Compliance surface
+### Further reading
 
-| Requirement                        | Gatekeeper                            | How Klopt handles it                               |
-| ---------------------------------- | ------------------------------------- | -------------------------------------------------- |
-| RGS mapping                        | none                                  | Core feature                                       |
-| XAF 3.2 auditfile                  | none                                  | Core feature, built first                          |
-| 7-year retention and audit trail   | none                                  | Core feature                                       |
-| BTW-aangifte and ICP via Digipoort | PKIoverheid certificate               | Adapter — **manual filing is the default**         |
-| PSD2 bank feeds                    | AISP licence                          | Adapter — **CAMT.053 / MT940 import always works** |
-| Peppol access point                | NPa agreement + OpenPeppol membership | Adapter — **email UBL fallback**                   |
+Background, kept off the product pitch above.
 
-Every adapter has an implementation that needs no third party, and that
-implementation is the default in a fresh install. A self-hosted instance can
-run on those defaults without third-party licences or access points. See
-[`docs/decisions/0008`](docs/decisions/0008-adapter-ports-deferred.md).
-
-## Licence and governance
-
-[Apache-2.0](LICENSE). Anyone may fork this, sell it, or run a competing hosted
-service. That was decided deliberately and is not up for discussion — see
-[GOVERNANCE.md](GOVERNANCE.md) for why, and why there will never be an
-enterprise edition.
-
-Contributions take a [DCO sign-off](CONTRIBUTING.md), not a CLA.
-
-The code is free; the name is not. See [TRADEMARK.md](TRADEMARK.md) — including
-the part where trademark clearance has not yet been run.
-
-Security policy and coordinated disclosure: [SECURITY.md](SECURITY.md).
+- [`CHANGELOG.md`](CHANGELOG.md) — 0.1.0, and the unreleased work on `main`.
+- [`docs/api-stability.md`](docs/api-stability.md) — the narrow promises that
+  take a major version to break.
+- [`docs/architecture.md`](docs/architecture.md) — layout and package
+  boundaries. Deeper reading, not the product pitch.
+- [`docs/ALPHA_ASSESSMENT.md`](docs/ALPHA_ASSESSMENT.md) — snapshot from
+  2026-09-18. Historical. Planning uses the changelog and the beta-firm audit.
+- [`docs/decisions/`](docs/decisions/) — accepted decisions, one file each.
