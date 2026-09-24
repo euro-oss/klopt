@@ -1,0 +1,1 @@
+Local Alpha walkthrough (sign-in, dashboard, a sales invoice, the journal, bank and purchase-inbox chrome, then settings and access): `klopt-alpha-demo.mp4`, `klopt-alpha-demo.gif`, and `poster.png`. These frames do not show Digipoort, a Peppol access point, a PSD2 bank feed, or a hosted EU service.

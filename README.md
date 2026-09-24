@@ -6,17 +6,11 @@
 
 ## Demo
 
-Demo video coming in a follow-up.
+Short walkthrough of the self-hosted Alpha: sign-in, dashboard, a sales invoice, the journal, bank and purchase-inbox chrome, then settings and access.
 
-<!--
-Drop the clip at docs/demo/klopt-alpha-demo.mp4
-(or docs/demo/klopt-alpha-demo.gif if it lands as a GIF)
-and replace the line above with the matching embed:
+![Klopt Alpha demo](docs/demo/klopt-alpha-demo.gif)
 
-<video src="docs/demo/klopt-alpha-demo.mp4" controls width="720"></video>
-
-![Klopt alpha walkthrough](docs/demo/klopt-alpha-demo.gif)
--->
+[Download MP4 (~53s)](docs/demo/klopt-alpha-demo.mp4)
 
 [Klopt](https://github.com/euro-oss/klopt) is the bookkeeping starter from
 [euro.computer](https://euro.computer). The name is what a Dutch bookkeeper says
