@@ -23,7 +23,7 @@ import { useHydrated } from '~/lib/hydration'
 import { resolveListKey } from '~/lib/list-cursor'
 import type { WorkQueueItem, WorkQueueKind } from '~/lib/work-queue'
 import { getWorkQueue } from '~/server/dashboard'
-import { getRgsCoverage, getTrialBalance, verifyChain } from '~/server/ledger'
+import { getRgsCoverage, getTrialBalance } from '~/server/ledger'
 
 /**
  * The dashboard: what to do next, then whether the books are sound.
@@ -38,6 +38,11 @@ import { getRgsCoverage, getTrialBalance, verifyChain } from '~/server/ledger'
  * because "treat unmapped accounts as a first-class health metric on the
  * dashboard" (spec 7.1) is right — it is just not the first question.
  *
+ * The hash chain is no longer verified on every load (audit H2): that walked
+ * every journal entry and every line. Trial balance already reads period
+ * balances. Chain verification stays on `GET /api/v1/ledger/chain-verification`
+ * for when somebody asks.
+ *
  * Everything on this screen reads the book year chosen in the shell, including
  * the auditfile link. It used to read `new Date().getFullYear()`, which is a
  * different year from the books for any administration whose boekjaar does not
@@ -48,13 +53,12 @@ export const Route = createFileRoute('/_app/')({
   loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
   loader: async ({ deps }) => {
     const year = deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) }
-    const [queue, coverage, trial, chain] = await Promise.all([
+    const [queue, coverage, trial] = await Promise.all([
       getWorkQueue({ data: year }),
       getRgsCoverage({ data: {} }),
       getTrialBalance({ data: year }),
-      verifyChain(),
     ])
-    return { queue, coverage, trial, chain }
+    return { queue, coverage, trial }
   },
   component: Dashboard,
 })
@@ -108,7 +112,7 @@ const DESTINATIONS: Record<
 }
 
 function Dashboard() {
-  const { queue, coverage, trial, chain } = Route.useLoaderData()
+  const { queue, coverage, trial } = Route.useLoaderData()
   const { t } = useT()
 
   const year = queue.ok ? queue.data.fiscalYear : null
@@ -136,12 +140,12 @@ function Dashboard() {
         <WorkQueue items={queue.data.items} />
       )}
 
-      {/* The heading carries it: three labelled figures do not need a
-          sentence above them saying there are three figures. */}
+      {/* The heading carries it: two labelled figures do not need a
+          sentence above them saying there are two figures. */}
       <section className="mt-4">
         <h2 className="mb-3 font-medium">{t('dash.healthTitle')}</h2>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Stat
             label={t('dash.trialBalance')}
             value={trial.ok ? <Money amount={trial.data.difference} /> : '—'}
@@ -151,26 +155,6 @@ function Dashboard() {
                 : t('dash.trialBalanceDifference')
             }
             tone={trial.ok && trial.data.difference === '0' ? 'good' : 'warn'}
-          />
-
-          <Stat
-            label={t('dash.chain')}
-            value={
-              chain.ok
-                ? chain.data.verified
-                  ? t('dash.chainVerified')
-                  : t('dash.chainBroken')
-                : '—'
-            }
-            hint={
-              chain.ok
-                ? t('dash.chainHint', {
-                    count: String(chain.data.entryCount),
-                    head: chain.data.headHash?.slice(0, 12) ?? '—',
-                  })
-                : undefined
-            }
-            tone={chain.ok && chain.data.verified ? 'good' : 'warn'}
           />
 
           <Stat

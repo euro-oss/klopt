@@ -114,8 +114,9 @@ what that is and is not worth is in [ADR
 0042](docs/decisions/0042-headless-is-a-switch-not-a-second-build.md).
 
 Open it and enter your email address. With no SMTP configured the sign-in code
-is written to the container log, so a fresh install works with no mail server —
-find the code and type it in.
+is written to the process log, so a fresh install works with no mail server —
+find the code and type it in. In production (`NODE_ENV=production`) that log
+transport is refused: set SMTP or `KLOPT_EMAIL_OUTBOX_DIR` instead.
 
 The first account to sign in has no books yet, so it is offered a way to make
 some: a name, and optionally a KvK number and a book year that need not be a
@@ -124,10 +125,15 @@ five dagboeken and eight BTW-codes, every account already mapped to RGS 3.7 —
 and lands you in it as owner. The chart is reference data under
 `reference-data/charts/`, so shipping your own is a file, not a fork.
 
-Bring in your bookkeeper or your accountant from **Toegang**: type an address,
-pick a role, and they are in as soon as they sign in with it. There is no
-invitation link to lose — the code that proves the mailbox is the same code that
-signs them in.
+Once the firm is on the instance, set `KLOPT_SIGNUP=closed` so a new mailbox
+cannot provision its own books. Bring in your bookkeeper or your accountant
+from **Toegang**: type an address, pick a role, and they are in as soon as they
+sign in with it. There is no invitation link to lose — the code that proves the
+mailbox is the same code that signs them in.
+
+A production container also needs `KLOPT_BASE_URL=https://…` (the origin
+browsers actually use). Without an https origin the process refuses to boot, so
+the session cookie cannot quietly lose its `Secure` flag.
 
 ### Serving it over https
 

@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { MAX_DOCUMENT_BYTES } from '@klopt/core'
 import { handleListInbox, handleReceiveDocument } from '~/api/handlers/inbox'
 import { inboxQuery } from '~/api/schemas'
+import { ApiError } from '~/api/errors'
 import { handle, parse, searchParams } from '~/api/runtime'
 
 /**
@@ -16,6 +18,10 @@ import { handle, parse, searchParams } from '~/api/runtime'
  * second one answers 200 with `alreadyTaken` rather than filing the invoice a
  * second time. An access point that retries on a timeout, which they all do,
  * needs that.
+ *
+ * The size is checked against `File.size` before `arrayBuffer()` so one request
+ * cannot allocate until the process dies (audit M5). The same cap lives in
+ * `receiveDocument`.
  */
 export const Route = createFileRoute('/api/v1/inbox')({
   server: {
@@ -30,6 +36,20 @@ export const Route = createFileRoute('/api/v1/inbox')({
           const file = form.get('file')
           if (!(file instanceof File)) {
             throw new Error('Send the document as a `file` part in multipart/form-data.')
+          }
+
+          if (file.size > MAX_DOCUMENT_BYTES) {
+            throw new ApiError(
+              'validation_failed',
+              `That file is larger than ${String(MAX_DOCUMENT_BYTES)} bytes, which is more than this inbox will take.`,
+              [
+                {
+                  code: 'file_too_large',
+                  path: 'file',
+                  message: `Maximum size is ${String(MAX_DOCUMENT_BYTES)} bytes.`,
+                },
+              ],
+            )
           }
 
           const text = (name: string): string | null => {

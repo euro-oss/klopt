@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { contentDispositionHeader } from '@klopt/core'
 import { handleGetDocument } from '~/api/handlers/inbox'
 import { getDatabase } from '~/api/database'
 import { resolveRequestContext } from '~/api/auth'
@@ -7,9 +8,10 @@ import { problemResponse } from '~/api/errors'
 /**
  * A source document, as stored.
  *
- * The bytes come back with their own content type, so a browser shows a PDF and
- * downloads a UBL. Content-addressed storage means what comes out is byte for
- * byte what went in — the address is the hash of the answer.
+ * Only PDF, PNG and JPEG are served `inline` — everything else is an
+ * attachment with `nosniff`, so an HTML or SVG upload cannot run on this
+ * origin as the signed-in bookkeeper (audit H1, L2). Content-addressed
+ * storage means what comes out is byte for byte what went in.
  */
 export const Route = createFileRoute('/api/v1/documents/$documentId')({
   server: {
@@ -21,11 +23,16 @@ export const Route = createFileRoute('/api/v1/documents/$documentId')({
           requestId = context.requestId
 
           const found = await handleGetDocument(context, params.documentId)
+          const { header: contentDisposition } = contentDispositionHeader(
+            found.contentType,
+            found.filename,
+          )
           return new Response(found.bytes as BodyInit, {
             status: 200,
             headers: {
               'content-type': found.contentType,
-              'content-disposition': `inline; filename="${found.filename}"`,
+              'content-disposition': contentDisposition,
+              'x-content-type-options': 'nosniff',
               'x-request-id': context.requestId,
             },
           })

@@ -1,6 +1,7 @@
 import {
   contentTypeFor,
   looksLikeXml,
+  MAX_DOCUMENT_BYTES,
   nothingFiledReason,
   parseUblInvoice,
   selectInboundAttachments,
@@ -103,6 +104,12 @@ export async function receiveDocument(
   store: DocumentStore,
   request: ReceiveDocumentRequest,
 ): Promise<ReceivedDocument> {
+  if (request.bytes.byteLength > MAX_DOCUMENT_BYTES) {
+    throw new Error(
+      `That document is larger than ${String(MAX_DOCUMENT_BYTES)} bytes, which is more than this inbox will take.`,
+    )
+  }
+
   const contentType =
     request.contentType ??
     (request.filename === null ? 'application/octet-stream' : contentTypeFor(request.filename))

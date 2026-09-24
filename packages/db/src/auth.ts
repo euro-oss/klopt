@@ -56,6 +56,12 @@ export interface AuthConfig {
     readonly clientSecret: string
   }
   /**
+   * When true, emailOTP will not create an account for an unknown address.
+   * Open by default so a fresh install can create the first user; set
+   * `KLOPT_SIGNUP=closed` once the firm is on the instance (audit M3).
+   */
+  readonly disableSignUp?: boolean
+  /**
    * Switches rate limiting off. For the test suites, which sign in far more
    * often in three minutes than a person does in a year and would otherwise
    * spend their time exercising the limiter.
@@ -201,10 +207,11 @@ export function createAuth(config: AuthConfig) {
         // Three guesses. Enough for a typo, not enough to brute-force six
         // digits.
         allowedAttempts: 3,
-        // A first-time address gets an account. There is nothing to protect by
-        // refusing — the code still has to arrive in that mailbox — and the
-        // alternative is a self-hoster with no way to create the first user.
-        disableSignUp: false,
+        // A first-time address gets an account unless signup is closed.
+        // Closing it after the firm is on the instance stops strangers from
+        // provisioning their own books on a URL that was meant to be private
+        // (audit M3). Invite-by-address still adds people to an existing entity.
+        disableSignUp: config.disableSignUp ?? false,
         sendVerificationOTP: async ({ email, otp, type }) => {
           const { subject, text } = otpMessage(config.productName ?? 'Klopt', otp, type)
           await config.email.send({ to: email, subject, text })

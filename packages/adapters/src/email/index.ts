@@ -17,4 +17,4 @@ export {
 
 export { createFileEmailTransport } from './file.js'
 
-export { resolveEmailTransport } from './resolve.js'
+export { resolveEmailTransport, ProductionLogEmailError } from './resolve.js'

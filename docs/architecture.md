@@ -273,8 +273,9 @@ use. One formatter, because the screens and the PDF must agree.
 
 M0 through M6 are complete at 0.1.0. This section used to describe M3 and M4 as
 future work; that was true early and is not any more. Read
-[`CHANGELOG.md`](../CHANGELOG.md) and [`ALPHA_ASSESSMENT.md`](ALPHA_ASSESSMENT.md)
-for the authoritative current picture; what follows is the one-page shape.
+[`CHANGELOG.md`](../CHANGELOG.md) for the authoritative current picture;
+[`ALPHA_ASSESSMENT.md`](ALPHA_ASSESSMENT.md) is a superseded September snapshot
+(see its banner). What follows is the one-page shape.
 
 - **M1 sales.** Invoices go out by email with their UBL and PDF attached, and
   overdue ones are chased on a derived schedule
@@ -283,9 +284,10 @@ for the authoritative current picture; what follows is the one-page shape.
 - **M2 banking and payments.** CAMT.053, MT940 and a configurable CSV mapper,
   deduplicated per entry, a matching engine with learned rules
   ([0019](decisions/0019-matching-suggests.md)), and a keyboard queue to work
-  through — `↑↓` moves, `↵` books the best suggestion, `1`–`9` pick one, `x`
-  skips, and SEPA `pain.001` with a two-person approval flow
+  through — `j`/`k` or arrows move, `↵` books the best suggestion, and SEPA
+  `pain.001` with a two-person approval flow
   ([0020](decisions/0020-payments-need-two-people.md)).
+  (The earlier `1`–`9` / `x` keys were removed; see the unreleased changelog.)
 - **M3 VAT.** A tax-code engine, a BTW-aangifte derived from the journal with
   control-account reconciliation, ICP + VIES, and an XBRL instance. Manual
   filing is the default and works ([0024](decisions/0024-the-manual-path-is-the-default.md)).
@@ -316,9 +318,10 @@ a running job.
 The command palette (`⌘K`) and the `g`-prefix / `n`-prefix navigation are wired
 to a listener and work; an earlier version of this file said they were in the
 registry but not yet wired, which is no longer true. Contacts can be created
-**and** edited. Dark-mode tokens exist in `app.css` but nothing toggles `.dark`
-yet, and there is no mobile layout — those are alpha polish, tracked in the
-backlog rather than here.
+**and** edited. Theme is a cookie resolved on the server
+(`apps/web/src/server/theme.ts`) and applied as `.dark` from the account menu;
+light remains the default. There is no mobile layout yet — that is alpha polish,
+tracked in the backlog rather than here.
 
 ### Deliberately not built (fail closed, off the alpha critical path)
 

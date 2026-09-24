@@ -11,7 +11,20 @@ import { createSmtpEmailTransport, smtpConfigFromEnvironment } from './smtp.js'
  * default in a fresh install, and the instance stays usable without it — a
  * self-hoster with no relay can still read their sign-in code out of the
  * container log and get in.
+ *
+ * Production refuses the log transport (audit M2): OTP bodies in a log
+ * collector are credentials. Configure SMTP or `KLOPT_EMAIL_OUTBOX_DIR`.
  */
+
+export class ProductionLogEmailError extends Error {
+  constructor() {
+    super(
+      'NODE_ENV=production refuses the log email transport: sign-in codes would be written to the process log. Configure SMTP (KLOPT_SMTP_HOST and KLOPT_SMTP_FROM) or set KLOPT_EMAIL_OUTBOX_DIR.',
+    )
+    this.name = 'ProductionLogEmailError'
+  }
+}
+
 export function resolveEmailTransport(
   environment: Record<string, string | undefined> = process.env,
 ): EmailTransport {
@@ -20,6 +33,10 @@ export function resolveEmailTransport(
 
   const outbox = environment['KLOPT_EMAIL_OUTBOX_DIR']
   if (outbox !== undefined && outbox !== '') return createFileEmailTransport(outbox)
+
+  if (environment['NODE_ENV'] === 'production') {
+    throw new ProductionLogEmailError()
+  }
 
   return createLogEmailTransport()
 }

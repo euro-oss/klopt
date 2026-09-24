@@ -212,8 +212,47 @@ export class InboxRepository {
   }
 
   async get(entityId: string, itemId: string): Promise<InboxItemRow | null> {
-    const rows = await this.list(entityId)
-    return rows.find((row) => row.id === itemId) ?? null
+    // Point query rather than list-everything-and-find (audit H3 sharp edge).
+    const [row] = await this.tx
+      .select({
+        id: inboxItems.id,
+        state: inboxItems.state,
+        source: inboxItems.source,
+        receivedFrom: inboxItems.receivedFrom,
+        subject: inboxItems.subject,
+        parsed: inboxItems.parsed,
+        parseError: inboxItems.parseError,
+        contactId: inboxItems.contactId,
+        purchaseInvoiceId: inboxItems.purchaseInvoiceId,
+        discardedReason: inboxItems.discardedReason,
+        externalId: inboxItems.externalId,
+        receivedAt: inboxItems.receivedAt,
+        documentId: documents.id,
+        sha256: documents.sha256,
+        sizeBytes: documents.sizeBytes,
+        contentType: documents.contentType,
+        filename: documents.filename,
+        contactNumber: contacts.number,
+        contactName: contacts.name,
+      })
+      .from(inboxItems)
+      .innerJoin(documents, eq(documents.id, inboxItems.documentId))
+      .leftJoin(contacts, eq(contacts.id, inboxItems.contactId))
+      .where(and(eq(inboxItems.entityId, entityId), eq(inboxItems.id, itemId)))
+      .limit(1)
+
+    if (row === undefined) return null
+
+    const siblings = await this.tx
+      .select({ id: inboxItems.id })
+      .from(inboxItems)
+      .where(and(eq(inboxItems.entityId, entityId), eq(inboxItems.documentId, row.documentId)))
+
+    return {
+      ...row,
+      receivedAt: row.receivedAt.toISOString(),
+      duplicateOfCount: siblings.length - 1,
+    }
   }
 
   /**

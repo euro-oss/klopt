@@ -1,4 +1,4 @@
-import { checkPurchaseInvoice, type PurchaseInvoiceInput } from '@klopt/core'
+import { checkPurchaseInvoice, MAX_DOCUMENT_BYTES, type PurchaseInvoiceInput } from '@klopt/core'
 import {
   receiveDocument,
   withInbox,
@@ -80,6 +80,20 @@ export async function handleReceiveDocument(
 
   if (request.bytes.byteLength === 0) {
     throw new ApiError('validation_failed', 'There is nothing in this file.')
+  }
+
+  if (request.bytes.byteLength > MAX_DOCUMENT_BYTES) {
+    throw new ApiError(
+      'validation_failed',
+      `That file is larger than ${String(MAX_DOCUMENT_BYTES)} bytes, which is more than this inbox will take.`,
+      [
+        {
+          code: 'file_too_large',
+          path: 'file',
+          message: `Maximum size is ${String(MAX_DOCUMENT_BYTES)} bytes.`,
+        },
+      ],
+    )
   }
 
   const received = await receiveDocument(context.database, documentStore(), {
