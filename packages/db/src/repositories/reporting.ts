@@ -344,9 +344,7 @@ export class ReportingRepository {
     }
   }
 
-  async taxRules(
-    entityId: string,
-  ): Promise<
+  async taxRules(entityId: string): Promise<
     readonly {
       readonly code: string
       readonly rateBasisPoints: number

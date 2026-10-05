@@ -7,7 +7,6 @@ import {
   parseJournalDocument,
   parseLedgerAccount,
   parsePurchaseInvoice,
-  parseReceipt,
   parseSalesInvoice,
   parseTaxRate,
   type MoneybirdSnapshot,

@@ -356,7 +356,7 @@ async function planFor(context: RequestContext, client: ReturnType<typeof create
   const here = await context.database.transaction(async (tx) => {
     const reporting = new ReportingRepository(tx)
     const imported = new MoneybirdImportRepository(tx)
-    const setup = new SetupRepository(tx as never)
+    const setup = new SetupRepository(tx)
     const [entity, resolutions, accounts, years, rules, externalIds] = await Promise.all([
       reporting.entity(context.entityId),
       reporting.importResolutions(context.entityId),
@@ -479,6 +479,89 @@ export async function handleDisconnectMoneybird(context: RequestContext) {
 
 const WORKER_SILENCE_MS = 5 * 60_000
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function asNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+function asString(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function asStringOrNull(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
+}
+
+function asFindings(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value.filter(isRecord).map((row) => ({
+    code: asString(row['code']),
+    path: asStringOrNull(row['path']),
+    message: asString(row['message']),
+  }))
+}
+
+function asReconciliation(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value.filter(isRecord).map((row) => ({
+    year: asNumber(row['year']),
+    source: asString(row['source']),
+    moneybirdDebit: asStringOrNull(row['moneybirdDebit']),
+    moneybirdCredit: asStringOrNull(row['moneybirdCredit']),
+    kloptDebit: asStringOrNull(row['kloptDebit']),
+    kloptCredit: asStringOrNull(row['kloptCredit']),
+    differences: Array.isArray(row['differences'])
+      ? row['differences'].filter(isRecord).map((diff) => ({
+          accountNumber: asString(diff['accountNumber']),
+          moneybird: asString(diff['moneybird']),
+          klopt: asString(diff['klopt']),
+          difference: asString(diff['difference']),
+        }))
+      : [],
+  }))
+}
+
+/** jsonb from the worker, reduced to what JSON Schema can name. */
+function serialiseStoredReport(report: unknown) {
+  if (!isRecord(report)) return null
+  const commit = isRecord(report['commit']) ? report['commit'] : {}
+  const counts = isRecord(report['counts']) ? report['counts'] : {}
+  if (report['dryRun'] !== false) {
+    return {
+      imported: false as const,
+      problems: asFindings(report['problems']),
+      warnings: asFindings(report['warnings']),
+    }
+  }
+  return {
+    imported: true as const,
+    dryRun: false as const,
+    accountsCreated: asNumber(commit['accountsCreated']),
+    contactsCreated: asNumber(commit['contactsCreated']),
+    entriesPosted: asNumber(commit['entriesPosted']),
+    entriesReplayed: asNumber(commit['entriesReplayed']),
+    entriesSkipped: asNumber(commit['entriesSkipped']),
+    bankAccountsCreated: asNumber(commit['bankAccountsCreated']),
+    bankTransactionsCreated: asNumber(commit['bankTransactionsCreated']),
+    invoicesImported: asNumber(commit['invoicesImported']),
+    attachmentsStored: asNumber(report['attachmentsStored']),
+    attachmentsSkipped: asNumber(report['attachmentsSkipped']),
+    skipped: Array.isArray(commit['skipped']) ? commit['skipped'].map(asString) : [],
+    counts: {
+      accounts: asNumber(counts['accounts']),
+      contacts: asNumber(counts['contacts']),
+      entries: asNumber(counts['entries']),
+    },
+    reconciliation: asReconciliation(report['reconciliation']),
+    notImported: Array.isArray(report['notImported']) ? report['notImported'].map(asString) : [],
+    problems: asFindings(report['problems']),
+    warnings: asFindings(report['warnings']),
+  }
+}
+
 function serialiseRun(run: MoneybirdImportRunRow) {
   const waiting =
     run.state === 'pending' &&
@@ -489,7 +572,7 @@ function serialiseRun(run: MoneybirdImportRunRow) {
     state: run.state,
     workerSilent: waiting,
     administrationId: run.administrationId,
-    report: run.report,
+    report: serialiseStoredReport(run.report),
     lastError: run.lastError,
     requestedAt: run.requestedAt,
     startedAt: run.startedAt,

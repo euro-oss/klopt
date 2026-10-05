@@ -40,10 +40,10 @@ import { Route as AppEntriesEntryIdRouteImport } from './routes/_app/entries.$en
 import { Route as AppEntriesNewRouteImport } from './routes/_app/entries.new'
 import { Route as AppExactIndexRouteImport } from './routes/_app/exact.index'
 import { Route as AppExactCallbackRouteImport } from './routes/_app/exact.callback'
-import { Route as AppMoneybirdIndexRouteImport } from './routes/_app/moneybird.index'
 import { Route as AppInvoicesIndexRouteImport } from './routes/_app/invoices.index'
 import { Route as AppInvoicesInvoiceIdRouteImport } from './routes/_app/invoices.$invoiceId'
 import { Route as AppInvoicesNewRouteImport } from './routes/_app/invoices.new'
+import { Route as AppMoneybirdIndexRouteImport } from './routes/_app/moneybird.index'
 import { Route as AppPaymentsIndexRouteImport } from './routes/_app/payments.index'
 import { Route as AppPaymentsBatchIdRouteImport } from './routes/_app/payments.$batchId'
 import { Route as AppPurchasesIndexRouteImport } from './routes/_app/purchases.index'
@@ -96,11 +96,6 @@ import { Route as ApiV1ExactDivisionRouteImport } from './routes/api/v1/exact.di
 import { Route as ApiV1ExactDivisionsRouteImport } from './routes/api/v1/exact.divisions'
 import { Route as ApiV1ExactDocumentsRouteImport } from './routes/api/v1/exact.documents'
 import { Route as ApiV1ExactImportRouteImport } from './routes/api/v1/exact.import'
-import { Route as ApiV1MoneybirdAdministrationRouteImport } from './routes/api/v1/moneybird.administration'
-import { Route as ApiV1MoneybirdAdministrationsRouteImport } from './routes/api/v1/moneybird.administrations'
-import { Route as ApiV1MoneybirdConnectionRouteImport } from './routes/api/v1/moneybird.connection'
-import { Route as ApiV1MoneybirdImportRouteImport } from './routes/api/v1/moneybird.import'
-import { Route as ApiV1MoneybirdMappingsRouteImport } from './routes/api/v1/moneybird.mappings'
 import { Route as ApiV1ExportsAuditFileRouteImport } from './routes/api/v1/exports.audit-file'
 import { Route as ApiV1FiscalYearsCloseRouteImport } from './routes/api/v1/fiscal-years.close'
 import { Route as ApiV1ImportsAuditFileRouteImport } from './routes/api/v1/imports.audit-file'
@@ -109,6 +104,11 @@ import { Route as ApiV1JournalEntriesEntryIdRouteImport } from './routes/api/v1/
 import { Route as ApiV1JournalEntriesBatchRouteImport } from './routes/api/v1/journal-entries.batch'
 import { Route as ApiV1LedgerChainVerificationRouteImport } from './routes/api/v1/ledger.chain-verification'
 import { Route as ApiV1MembersMemberIdRouteImport } from './routes/api/v1/members.$memberId'
+import { Route as ApiV1MoneybirdAdministrationRouteImport } from './routes/api/v1/moneybird.administration'
+import { Route as ApiV1MoneybirdAdministrationsRouteImport } from './routes/api/v1/moneybird.administrations'
+import { Route as ApiV1MoneybirdConnectionRouteImport } from './routes/api/v1/moneybird.connection'
+import { Route as ApiV1MoneybirdImportRouteImport } from './routes/api/v1/moneybird.import'
+import { Route as ApiV1MoneybirdMappingsRouteImport } from './routes/api/v1/moneybird.mappings'
 import { Route as ApiV1OauthClientsClientIdRouteImport } from './routes/api/v1/oauth-clients.$clientId'
 import { Route as ApiV1PaymentBatchesBatchIdRouteImport } from './routes/api/v1/payment-batches.$batchId'
 import { Route as ApiV1PurchaseInvoicesInvoiceIdRouteImport } from './routes/api/v1/purchase-invoices.$invoiceId'
@@ -136,11 +136,11 @@ import { Route as ApiV1BankTransactionsTransactionIdMatchRouteImport } from './r
 import { Route as ApiV1BankTransactionsTransactionIdSuggestionsRouteImport } from './routes/api/v1/bank-transactions.$transactionId.suggestions'
 import { Route as ApiV1ContactsContactIdPseudonymiseRouteImport } from './routes/api/v1/contacts.$contactId.pseudonymise'
 import { Route as ApiV1ExactImportPreviewRouteImport } from './routes/api/v1/exact.import.preview'
-import { Route as ApiV1MoneybirdImportPreviewRouteImport } from './routes/api/v1/moneybird.import.preview'
 import { Route as ApiV1InboxItemIdDiscardRouteImport } from './routes/api/v1/inbox.$itemId.discard'
 import { Route as ApiV1InboxItemIdDraftRouteImport } from './routes/api/v1/inbox.$itemId.draft'
 import { Route as ApiV1InboxSourcesSourceIdRouteImport } from './routes/api/v1/inbox.sources.$sourceId'
 import { Route as ApiV1JournalEntriesEntryIdReversalRouteImport } from './routes/api/v1/journal-entries.$entryId.reversal'
+import { Route as ApiV1MoneybirdImportPreviewRouteImport } from './routes/api/v1/moneybird.import.preview'
 import { Route as ApiV1PaymentBatchesBatchIdInstructionsRouteImport } from './routes/api/v1/payment-batches.$batchId.instructions'
 import { Route as ApiV1PaymentBatchesBatchIdPain001RouteImport } from './routes/api/v1/payment-batches.$batchId.pain001'
 import { Route as ApiV1PaymentBatchesBatchIdRunRouteImport } from './routes/api/v1/payment-batches.$batchId.run'
@@ -321,11 +321,6 @@ const AppExactCallbackRoute = AppExactCallbackRouteImport.update({
   path: '/exact/callback',
   getParentRoute: () => AppRoute,
 } as any)
-const AppMoneybirdIndexRoute = AppMoneybirdIndexRouteImport.update({
-  id: '/moneybird/',
-  path: '/moneybird/',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppInvoicesIndexRoute = AppInvoicesIndexRouteImport.update({
   id: '/invoices/',
   path: '/invoices/',
@@ -339,6 +334,11 @@ const AppInvoicesInvoiceIdRoute = AppInvoicesInvoiceIdRouteImport.update({
 const AppInvoicesNewRoute = AppInvoicesNewRouteImport.update({
   id: '/invoices/new',
   path: '/invoices/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMoneybirdIndexRoute = AppMoneybirdIndexRouteImport.update({
+  id: '/moneybird/',
+  path: '/moneybird/',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPaymentsIndexRoute = AppPaymentsIndexRouteImport.update({
@@ -605,31 +605,6 @@ const ApiV1ExactImportRoute = ApiV1ExactImportRouteImport.update({
   path: '/api/v1/exact/import',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1MoneybirdAdministrationRoute = ApiV1MoneybirdAdministrationRouteImport.update({
-  id: '/api/v1/moneybird/administration',
-  path: '/api/v1/moneybird/administration',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1MoneybirdAdministrationsRoute = ApiV1MoneybirdAdministrationsRouteImport.update({
-  id: '/api/v1/moneybird/administrations',
-  path: '/api/v1/moneybird/administrations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1MoneybirdConnectionRoute = ApiV1MoneybirdConnectionRouteImport.update({
-  id: '/api/v1/moneybird/connection',
-  path: '/api/v1/moneybird/connection',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1MoneybirdImportRoute = ApiV1MoneybirdImportRouteImport.update({
-  id: '/api/v1/moneybird/import',
-  path: '/api/v1/moneybird/import',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1MoneybirdMappingsRoute = ApiV1MoneybirdMappingsRouteImport.update({
-  id: '/api/v1/moneybird/mappings',
-  path: '/api/v1/moneybird/mappings',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiV1ExportsAuditFileRoute = ApiV1ExportsAuditFileRouteImport.update({
   id: '/api/v1/exports/audit-file',
   path: '/api/v1/exports/audit-file',
@@ -672,6 +647,34 @@ const ApiV1MembersMemberIdRoute = ApiV1MembersMemberIdRouteImport.update({
   id: '/$memberId',
   path: '/$memberId',
   getParentRoute: () => ApiV1MembersRoute,
+} as any)
+const ApiV1MoneybirdAdministrationRoute =
+  ApiV1MoneybirdAdministrationRouteImport.update({
+    id: '/api/v1/moneybird/administration',
+    path: '/api/v1/moneybird/administration',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1MoneybirdAdministrationsRoute =
+  ApiV1MoneybirdAdministrationsRouteImport.update({
+    id: '/api/v1/moneybird/administrations',
+    path: '/api/v1/moneybird/administrations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1MoneybirdConnectionRoute =
+  ApiV1MoneybirdConnectionRouteImport.update({
+    id: '/api/v1/moneybird/connection',
+    path: '/api/v1/moneybird/connection',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1MoneybirdImportRoute = ApiV1MoneybirdImportRouteImport.update({
+  id: '/api/v1/moneybird/import',
+  path: '/api/v1/moneybird/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1MoneybirdMappingsRoute = ApiV1MoneybirdMappingsRouteImport.update({
+  id: '/api/v1/moneybird/mappings',
+  path: '/api/v1/moneybird/mappings',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1OauthClientsClientIdRoute =
   ApiV1OauthClientsClientIdRouteImport.update({
@@ -821,11 +824,6 @@ const ApiV1ExactImportPreviewRoute = ApiV1ExactImportPreviewRouteImport.update({
   path: '/preview',
   getParentRoute: () => ApiV1ExactImportRoute,
 } as any)
-const ApiV1MoneybirdImportPreviewRoute = ApiV1MoneybirdImportPreviewRouteImport.update({
-  id: '/preview',
-  path: '/preview',
-  getParentRoute: () => ApiV1MoneybirdImportRoute,
-} as any)
 const ApiV1InboxItemIdDiscardRoute = ApiV1InboxItemIdDiscardRouteImport.update({
   id: '/$itemId/discard',
   path: '/$itemId/discard',
@@ -847,6 +845,12 @@ const ApiV1JournalEntriesEntryIdReversalRoute =
     id: '/reversal',
     path: '/reversal',
     getParentRoute: () => ApiV1JournalEntriesEntryIdRoute,
+  } as any)
+const ApiV1MoneybirdImportPreviewRoute =
+  ApiV1MoneybirdImportPreviewRouteImport.update({
+    id: '/preview',
+    path: '/preview',
+    getParentRoute: () => ApiV1MoneybirdImportRoute,
   } as any)
 const ApiV1PaymentBatchesBatchIdInstructionsRoute =
   ApiV1PaymentBatchesBatchIdInstructionsRouteImport.update({
@@ -1054,8 +1058,8 @@ export interface FileRoutesByFullPath {
   '/contacts/': typeof AppContactsIndexRoute
   '/entries/': typeof AppEntriesIndexRoute
   '/exact/': typeof AppExactIndexRoute
-  '/moneybird/': typeof AppMoneybirdIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
+  '/moneybird/': typeof AppMoneybirdIndexRoute
   '/payments/': typeof AppPaymentsIndexRoute
   '/purchases/': typeof AppPurchasesIndexRoute
   '/vat/': typeof AppVatIndexRoute
@@ -1072,11 +1076,6 @@ export interface FileRoutesByFullPath {
   '/api/v1/exact/divisions': typeof ApiV1ExactDivisionsRoute
   '/api/v1/exact/documents': typeof ApiV1ExactDocumentsRoute
   '/api/v1/exact/import': typeof ApiV1ExactImportRouteWithChildren
-  '/api/v1/moneybird/administration': typeof ApiV1MoneybirdAdministrationRoute
-  '/api/v1/moneybird/administrations': typeof ApiV1MoneybirdAdministrationsRoute
-  '/api/v1/moneybird/connection': typeof ApiV1MoneybirdConnectionRoute
-  '/api/v1/moneybird/import': typeof ApiV1MoneybirdImportRouteWithChildren
-  '/api/v1/moneybird/mappings': typeof ApiV1MoneybirdMappingsRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
@@ -1085,6 +1084,11 @@ export interface FileRoutesByFullPath {
   '/api/v1/journal-entries/batch': typeof ApiV1JournalEntriesBatchRoute
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
+  '/api/v1/moneybird/administration': typeof ApiV1MoneybirdAdministrationRoute
+  '/api/v1/moneybird/administrations': typeof ApiV1MoneybirdAdministrationsRoute
+  '/api/v1/moneybird/connection': typeof ApiV1MoneybirdConnectionRoute
+  '/api/v1/moneybird/import': typeof ApiV1MoneybirdImportRouteWithChildren
+  '/api/v1/moneybird/mappings': typeof ApiV1MoneybirdMappingsRoute
   '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
   '/api/v1/payment-batches/$batchId': typeof ApiV1PaymentBatchesBatchIdRouteWithChildren
   '/api/v1/purchase-invoices/$invoiceId': typeof ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren
@@ -1112,11 +1116,11 @@ export interface FileRoutesByFullPath {
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
   '/api/v1/contacts/$contactId/pseudonymise': typeof ApiV1ContactsContactIdPseudonymiseRoute
   '/api/v1/exact/import/preview': typeof ApiV1ExactImportPreviewRoute
-  '/api/v1/moneybird/import/preview': typeof ApiV1MoneybirdImportPreviewRoute
   '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
   '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
   '/api/v1/inbox/sources/$sourceId': typeof ApiV1InboxSourcesSourceIdRouteWithChildren
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
+  '/api/v1/moneybird/import/preview': typeof ApiV1MoneybirdImportPreviewRoute
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
   '/api/v1/payment-batches/$batchId/run': typeof ApiV1PaymentBatchesBatchIdRunRoute
@@ -1210,8 +1214,8 @@ export interface FileRoutesByTo {
   '/contacts': typeof AppContactsIndexRoute
   '/entries': typeof AppEntriesIndexRoute
   '/exact': typeof AppExactIndexRoute
-  '/moneybird': typeof AppMoneybirdIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
+  '/moneybird': typeof AppMoneybirdIndexRoute
   '/payments': typeof AppPaymentsIndexRoute
   '/purchases': typeof AppPurchasesIndexRoute
   '/vat': typeof AppVatIndexRoute
@@ -1228,11 +1232,6 @@ export interface FileRoutesByTo {
   '/api/v1/exact/divisions': typeof ApiV1ExactDivisionsRoute
   '/api/v1/exact/documents': typeof ApiV1ExactDocumentsRoute
   '/api/v1/exact/import': typeof ApiV1ExactImportRouteWithChildren
-  '/api/v1/moneybird/administration': typeof ApiV1MoneybirdAdministrationRoute
-  '/api/v1/moneybird/administrations': typeof ApiV1MoneybirdAdministrationsRoute
-  '/api/v1/moneybird/connection': typeof ApiV1MoneybirdConnectionRoute
-  '/api/v1/moneybird/import': typeof ApiV1MoneybirdImportRouteWithChildren
-  '/api/v1/moneybird/mappings': typeof ApiV1MoneybirdMappingsRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
@@ -1241,6 +1240,11 @@ export interface FileRoutesByTo {
   '/api/v1/journal-entries/batch': typeof ApiV1JournalEntriesBatchRoute
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
+  '/api/v1/moneybird/administration': typeof ApiV1MoneybirdAdministrationRoute
+  '/api/v1/moneybird/administrations': typeof ApiV1MoneybirdAdministrationsRoute
+  '/api/v1/moneybird/connection': typeof ApiV1MoneybirdConnectionRoute
+  '/api/v1/moneybird/import': typeof ApiV1MoneybirdImportRouteWithChildren
+  '/api/v1/moneybird/mappings': typeof ApiV1MoneybirdMappingsRoute
   '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
   '/api/v1/payment-batches/$batchId': typeof ApiV1PaymentBatchesBatchIdRouteWithChildren
   '/api/v1/purchase-invoices/$invoiceId': typeof ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren
@@ -1268,11 +1272,11 @@ export interface FileRoutesByTo {
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
   '/api/v1/contacts/$contactId/pseudonymise': typeof ApiV1ContactsContactIdPseudonymiseRoute
   '/api/v1/exact/import/preview': typeof ApiV1ExactImportPreviewRoute
-  '/api/v1/moneybird/import/preview': typeof ApiV1MoneybirdImportPreviewRoute
   '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
   '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
   '/api/v1/inbox/sources/$sourceId': typeof ApiV1InboxSourcesSourceIdRouteWithChildren
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
+  '/api/v1/moneybird/import/preview': typeof ApiV1MoneybirdImportPreviewRoute
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
   '/api/v1/payment-batches/$batchId/run': typeof ApiV1PaymentBatchesBatchIdRunRoute
@@ -1368,8 +1372,8 @@ export interface FileRoutesById {
   '/_app/contacts/': typeof AppContactsIndexRoute
   '/_app/entries/': typeof AppEntriesIndexRoute
   '/_app/exact/': typeof AppExactIndexRoute
-  '/_app/moneybird/': typeof AppMoneybirdIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
+  '/_app/moneybird/': typeof AppMoneybirdIndexRoute
   '/_app/payments/': typeof AppPaymentsIndexRoute
   '/_app/purchases/': typeof AppPurchasesIndexRoute
   '/_app/vat/': typeof AppVatIndexRoute
@@ -1386,11 +1390,6 @@ export interface FileRoutesById {
   '/api/v1/exact/divisions': typeof ApiV1ExactDivisionsRoute
   '/api/v1/exact/documents': typeof ApiV1ExactDocumentsRoute
   '/api/v1/exact/import': typeof ApiV1ExactImportRouteWithChildren
-  '/api/v1/moneybird/administration': typeof ApiV1MoneybirdAdministrationRoute
-  '/api/v1/moneybird/administrations': typeof ApiV1MoneybirdAdministrationsRoute
-  '/api/v1/moneybird/connection': typeof ApiV1MoneybirdConnectionRoute
-  '/api/v1/moneybird/import': typeof ApiV1MoneybirdImportRouteWithChildren
-  '/api/v1/moneybird/mappings': typeof ApiV1MoneybirdMappingsRoute
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
@@ -1399,6 +1398,11 @@ export interface FileRoutesById {
   '/api/v1/journal-entries/batch': typeof ApiV1JournalEntriesBatchRoute
   '/api/v1/ledger/chain-verification': typeof ApiV1LedgerChainVerificationRoute
   '/api/v1/members/$memberId': typeof ApiV1MembersMemberIdRoute
+  '/api/v1/moneybird/administration': typeof ApiV1MoneybirdAdministrationRoute
+  '/api/v1/moneybird/administrations': typeof ApiV1MoneybirdAdministrationsRoute
+  '/api/v1/moneybird/connection': typeof ApiV1MoneybirdConnectionRoute
+  '/api/v1/moneybird/import': typeof ApiV1MoneybirdImportRouteWithChildren
+  '/api/v1/moneybird/mappings': typeof ApiV1MoneybirdMappingsRoute
   '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
   '/api/v1/payment-batches/$batchId': typeof ApiV1PaymentBatchesBatchIdRouteWithChildren
   '/api/v1/purchase-invoices/$invoiceId': typeof ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren
@@ -1426,11 +1430,11 @@ export interface FileRoutesById {
   '/api/v1/bank-transactions/$transactionId/suggestions': typeof ApiV1BankTransactionsTransactionIdSuggestionsRoute
   '/api/v1/contacts/$contactId/pseudonymise': typeof ApiV1ContactsContactIdPseudonymiseRoute
   '/api/v1/exact/import/preview': typeof ApiV1ExactImportPreviewRoute
-  '/api/v1/moneybird/import/preview': typeof ApiV1MoneybirdImportPreviewRoute
   '/api/v1/inbox/$itemId/discard': typeof ApiV1InboxItemIdDiscardRoute
   '/api/v1/inbox/$itemId/draft': typeof ApiV1InboxItemIdDraftRoute
   '/api/v1/inbox/sources/$sourceId': typeof ApiV1InboxSourcesSourceIdRouteWithChildren
   '/api/v1/journal-entries/$entryId/reversal': typeof ApiV1JournalEntriesEntryIdReversalRoute
+  '/api/v1/moneybird/import/preview': typeof ApiV1MoneybirdImportPreviewRoute
   '/api/v1/payment-batches/$batchId/instructions': typeof ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren
   '/api/v1/payment-batches/$batchId/pain001': typeof ApiV1PaymentBatchesBatchIdPain001Route
   '/api/v1/payment-batches/$batchId/run': typeof ApiV1PaymentBatchesBatchIdRunRoute
@@ -1526,8 +1530,8 @@ export interface FileRouteTypes {
     | '/contacts/'
     | '/entries/'
     | '/exact/'
-    | '/moneybird/'
     | '/invoices/'
+    | '/moneybird/'
     | '/payments/'
     | '/purchases/'
     | '/vat/'
@@ -1544,11 +1548,6 @@ export interface FileRouteTypes {
     | '/api/v1/exact/divisions'
     | '/api/v1/exact/documents'
     | '/api/v1/exact/import'
-    | '/api/v1/moneybird/import'
-    | '/api/v1/moneybird/administration'
-    | '/api/v1/moneybird/administrations'
-    | '/api/v1/moneybird/connection'
-    | '/api/v1/moneybird/mappings'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
     | '/api/v1/imports/audit-file'
@@ -1557,6 +1556,11 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/batch'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
+    | '/api/v1/moneybird/administration'
+    | '/api/v1/moneybird/administrations'
+    | '/api/v1/moneybird/connection'
+    | '/api/v1/moneybird/import'
+    | '/api/v1/moneybird/mappings'
     | '/api/v1/oauth-clients/$clientId'
     | '/api/v1/payment-batches/$batchId'
     | '/api/v1/purchase-invoices/$invoiceId'
@@ -1584,11 +1588,11 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/suggestions'
     | '/api/v1/contacts/$contactId/pseudonymise'
     | '/api/v1/exact/import/preview'
-    | '/api/v1/moneybird/import/preview'
     | '/api/v1/inbox/$itemId/discard'
     | '/api/v1/inbox/$itemId/draft'
     | '/api/v1/inbox/sources/$sourceId'
     | '/api/v1/journal-entries/$entryId/reversal'
+    | '/api/v1/moneybird/import/preview'
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
     | '/api/v1/payment-batches/$batchId/run'
@@ -1682,8 +1686,8 @@ export interface FileRouteTypes {
     | '/contacts'
     | '/entries'
     | '/exact'
-    | '/moneybird'
     | '/invoices'
+    | '/moneybird'
     | '/payments'
     | '/purchases'
     | '/vat'
@@ -1700,11 +1704,6 @@ export interface FileRouteTypes {
     | '/api/v1/exact/divisions'
     | '/api/v1/exact/documents'
     | '/api/v1/exact/import'
-    | '/api/v1/moneybird/import'
-    | '/api/v1/moneybird/administration'
-    | '/api/v1/moneybird/administrations'
-    | '/api/v1/moneybird/connection'
-    | '/api/v1/moneybird/mappings'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
     | '/api/v1/imports/audit-file'
@@ -1713,6 +1712,11 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/batch'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
+    | '/api/v1/moneybird/administration'
+    | '/api/v1/moneybird/administrations'
+    | '/api/v1/moneybird/connection'
+    | '/api/v1/moneybird/import'
+    | '/api/v1/moneybird/mappings'
     | '/api/v1/oauth-clients/$clientId'
     | '/api/v1/payment-batches/$batchId'
     | '/api/v1/purchase-invoices/$invoiceId'
@@ -1740,11 +1744,11 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/suggestions'
     | '/api/v1/contacts/$contactId/pseudonymise'
     | '/api/v1/exact/import/preview'
-    | '/api/v1/moneybird/import/preview'
     | '/api/v1/inbox/$itemId/discard'
     | '/api/v1/inbox/$itemId/draft'
     | '/api/v1/inbox/sources/$sourceId'
     | '/api/v1/journal-entries/$entryId/reversal'
+    | '/api/v1/moneybird/import/preview'
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
     | '/api/v1/payment-batches/$batchId/run'
@@ -1839,8 +1843,8 @@ export interface FileRouteTypes {
     | '/_app/contacts/'
     | '/_app/entries/'
     | '/_app/exact/'
-    | '/_app/moneybird/'
     | '/_app/invoices/'
+    | '/_app/moneybird/'
     | '/_app/payments/'
     | '/_app/purchases/'
     | '/_app/vat/'
@@ -1857,11 +1861,6 @@ export interface FileRouteTypes {
     | '/api/v1/exact/divisions'
     | '/api/v1/exact/documents'
     | '/api/v1/exact/import'
-    | '/api/v1/moneybird/import'
-    | '/api/v1/moneybird/administration'
-    | '/api/v1/moneybird/administrations'
-    | '/api/v1/moneybird/connection'
-    | '/api/v1/moneybird/mappings'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
     | '/api/v1/imports/audit-file'
@@ -1870,6 +1869,11 @@ export interface FileRouteTypes {
     | '/api/v1/journal-entries/batch'
     | '/api/v1/ledger/chain-verification'
     | '/api/v1/members/$memberId'
+    | '/api/v1/moneybird/administration'
+    | '/api/v1/moneybird/administrations'
+    | '/api/v1/moneybird/connection'
+    | '/api/v1/moneybird/import'
+    | '/api/v1/moneybird/mappings'
     | '/api/v1/oauth-clients/$clientId'
     | '/api/v1/payment-batches/$batchId'
     | '/api/v1/purchase-invoices/$invoiceId'
@@ -1897,11 +1901,11 @@ export interface FileRouteTypes {
     | '/api/v1/bank-transactions/$transactionId/suggestions'
     | '/api/v1/contacts/$contactId/pseudonymise'
     | '/api/v1/exact/import/preview'
-    | '/api/v1/moneybird/import/preview'
     | '/api/v1/inbox/$itemId/discard'
     | '/api/v1/inbox/$itemId/draft'
     | '/api/v1/inbox/sources/$sourceId'
     | '/api/v1/journal-entries/$entryId/reversal'
+    | '/api/v1/moneybird/import/preview'
     | '/api/v1/payment-batches/$batchId/instructions'
     | '/api/v1/payment-batches/$batchId/pain001'
     | '/api/v1/payment-batches/$batchId/run'
@@ -1973,14 +1977,14 @@ export interface RootRouteChildren {
   ApiV1ExactDivisionsRoute: typeof ApiV1ExactDivisionsRoute
   ApiV1ExactDocumentsRoute: typeof ApiV1ExactDocumentsRoute
   ApiV1ExactImportRoute: typeof ApiV1ExactImportRouteWithChildren
+  ApiV1ExportsAuditFileRoute: typeof ApiV1ExportsAuditFileRoute
+  ApiV1ImportsAuditFileRoute: typeof ApiV1ImportsAuditFileRoute
+  ApiV1LedgerChainVerificationRoute: typeof ApiV1LedgerChainVerificationRoute
   ApiV1MoneybirdAdministrationRoute: typeof ApiV1MoneybirdAdministrationRoute
   ApiV1MoneybirdAdministrationsRoute: typeof ApiV1MoneybirdAdministrationsRoute
   ApiV1MoneybirdConnectionRoute: typeof ApiV1MoneybirdConnectionRoute
   ApiV1MoneybirdImportRoute: typeof ApiV1MoneybirdImportRouteWithChildren
   ApiV1MoneybirdMappingsRoute: typeof ApiV1MoneybirdMappingsRoute
-  ApiV1ExportsAuditFileRoute: typeof ApiV1ExportsAuditFileRoute
-  ApiV1ImportsAuditFileRoute: typeof ApiV1ImportsAuditFileRoute
-  ApiV1LedgerChainVerificationRoute: typeof ApiV1LedgerChainVerificationRoute
   ApiV1OauthClientsClientIdRoute: typeof ApiV1OauthClientsClientIdRoute
   ApiV1ReportsBalanceSheetRoute: typeof ApiV1ReportsBalanceSheetRoute
   ApiV1ReportsCreditorAgeingRoute: typeof ApiV1ReportsCreditorAgeingRoute
@@ -2212,13 +2216,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExactIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/moneybird/': {
-      id: '/_app/moneybird/'
-      path: '/moneybird'
-      fullPath: '/moneybird/'
-      preLoaderRoute: typeof AppMoneybirdIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/exact/callback': {
       id: '/_app/exact/callback'
       path: '/exact/callback'
@@ -2245,6 +2242,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices/new'
       fullPath: '/invoices/new'
       preLoaderRoute: typeof AppInvoicesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/moneybird/': {
+      id: '/_app/moneybird/'
+      path: '/moneybird'
+      fullPath: '/moneybird/'
+      preLoaderRoute: typeof AppMoneybirdIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/payments/': {
@@ -2611,41 +2615,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1ExactImportRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/moneybird/administration': {
-      id: '/api/v1/moneybird/administration'
-      path: '/api/v1/moneybird/administration'
-      fullPath: '/api/v1/moneybird/administration'
-      preLoaderRoute: typeof ApiV1MoneybirdAdministrationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/moneybird/administrations': {
-      id: '/api/v1/moneybird/administrations'
-      path: '/api/v1/moneybird/administrations'
-      fullPath: '/api/v1/moneybird/administrations'
-      preLoaderRoute: typeof ApiV1MoneybirdAdministrationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/moneybird/connection': {
-      id: '/api/v1/moneybird/connection'
-      path: '/api/v1/moneybird/connection'
-      fullPath: '/api/v1/moneybird/connection'
-      preLoaderRoute: typeof ApiV1MoneybirdConnectionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/moneybird/import': {
-      id: '/api/v1/moneybird/import'
-      path: '/api/v1/moneybird/import'
-      fullPath: '/api/v1/moneybird/import'
-      preLoaderRoute: typeof ApiV1MoneybirdImportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/moneybird/mappings': {
-      id: '/api/v1/moneybird/mappings'
-      path: '/api/v1/moneybird/mappings'
-      fullPath: '/api/v1/moneybird/mappings'
-      preLoaderRoute: typeof ApiV1MoneybirdMappingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/v1/exports/audit-file': {
       id: '/api/v1/exports/audit-file'
       path: '/api/v1/exports/audit-file'
@@ -2701,6 +2670,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/members/$memberId'
       preLoaderRoute: typeof ApiV1MembersMemberIdRouteImport
       parentRoute: typeof ApiV1MembersRoute
+    }
+    '/api/v1/moneybird/administration': {
+      id: '/api/v1/moneybird/administration'
+      path: '/api/v1/moneybird/administration'
+      fullPath: '/api/v1/moneybird/administration'
+      preLoaderRoute: typeof ApiV1MoneybirdAdministrationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/moneybird/administrations': {
+      id: '/api/v1/moneybird/administrations'
+      path: '/api/v1/moneybird/administrations'
+      fullPath: '/api/v1/moneybird/administrations'
+      preLoaderRoute: typeof ApiV1MoneybirdAdministrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/moneybird/connection': {
+      id: '/api/v1/moneybird/connection'
+      path: '/api/v1/moneybird/connection'
+      fullPath: '/api/v1/moneybird/connection'
+      preLoaderRoute: typeof ApiV1MoneybirdConnectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/moneybird/import': {
+      id: '/api/v1/moneybird/import'
+      path: '/api/v1/moneybird/import'
+      fullPath: '/api/v1/moneybird/import'
+      preLoaderRoute: typeof ApiV1MoneybirdImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/moneybird/mappings': {
+      id: '/api/v1/moneybird/mappings'
+      path: '/api/v1/moneybird/mappings'
+      fullPath: '/api/v1/moneybird/mappings'
+      preLoaderRoute: typeof ApiV1MoneybirdMappingsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/v1/oauth-clients/$clientId': {
       id: '/api/v1/oauth-clients/$clientId'
@@ -2891,13 +2895,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1ExactImportPreviewRouteImport
       parentRoute: typeof ApiV1ExactImportRoute
     }
-    '/api/v1/moneybird/import/preview': {
-      id: '/api/v1/moneybird/import/preview'
-      path: '/preview'
-      fullPath: '/api/v1/moneybird/import/preview'
-      preLoaderRoute: typeof ApiV1MoneybirdImportPreviewRouteImport
-      parentRoute: typeof ApiV1MoneybirdImportRoute
-    }
     '/api/v1/inbox/$itemId/discard': {
       id: '/api/v1/inbox/$itemId/discard'
       path: '/$itemId/discard'
@@ -2925,6 +2922,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/journal-entries/$entryId/reversal'
       preLoaderRoute: typeof ApiV1JournalEntriesEntryIdReversalRouteImport
       parentRoute: typeof ApiV1JournalEntriesEntryIdRoute
+    }
+    '/api/v1/moneybird/import/preview': {
+      id: '/api/v1/moneybird/import/preview'
+      path: '/preview'
+      fullPath: '/api/v1/moneybird/import/preview'
+      preLoaderRoute: typeof ApiV1MoneybirdImportPreviewRouteImport
+      parentRoute: typeof ApiV1MoneybirdImportRoute
     }
     '/api/v1/payment-batches/$batchId/instructions': {
       id: '/api/v1/payment-batches/$batchId/instructions'
@@ -3123,8 +3127,8 @@ interface AppRouteChildren {
   AppContactsIndexRoute: typeof AppContactsIndexRoute
   AppEntriesIndexRoute: typeof AppEntriesIndexRoute
   AppExactIndexRoute: typeof AppExactIndexRoute
-  AppMoneybirdIndexRoute: typeof AppMoneybirdIndexRoute
   AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
+  AppMoneybirdIndexRoute: typeof AppMoneybirdIndexRoute
   AppPaymentsIndexRoute: typeof AppPaymentsIndexRoute
   AppPurchasesIndexRoute: typeof AppPurchasesIndexRoute
   AppVatIndexRoute: typeof AppVatIndexRoute
@@ -3164,8 +3168,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppContactsIndexRoute: AppContactsIndexRoute,
   AppEntriesIndexRoute: AppEntriesIndexRoute,
   AppExactIndexRoute: AppExactIndexRoute,
-  AppMoneybirdIndexRoute: AppMoneybirdIndexRoute,
   AppInvoicesIndexRoute: AppInvoicesIndexRoute,
+  AppMoneybirdIndexRoute: AppMoneybirdIndexRoute,
   AppPaymentsIndexRoute: AppPaymentsIndexRoute,
   AppPurchasesIndexRoute: AppPurchasesIndexRoute,
   AppVatIndexRoute: AppVatIndexRoute,
@@ -3628,14 +3632,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ExactDivisionsRoute: ApiV1ExactDivisionsRoute,
   ApiV1ExactDocumentsRoute: ApiV1ExactDocumentsRoute,
   ApiV1ExactImportRoute: ApiV1ExactImportRouteWithChildren,
+  ApiV1ExportsAuditFileRoute: ApiV1ExportsAuditFileRoute,
+  ApiV1ImportsAuditFileRoute: ApiV1ImportsAuditFileRoute,
+  ApiV1LedgerChainVerificationRoute: ApiV1LedgerChainVerificationRoute,
   ApiV1MoneybirdAdministrationRoute: ApiV1MoneybirdAdministrationRoute,
   ApiV1MoneybirdAdministrationsRoute: ApiV1MoneybirdAdministrationsRoute,
   ApiV1MoneybirdConnectionRoute: ApiV1MoneybirdConnectionRoute,
   ApiV1MoneybirdImportRoute: ApiV1MoneybirdImportRouteWithChildren,
   ApiV1MoneybirdMappingsRoute: ApiV1MoneybirdMappingsRoute,
-  ApiV1ExportsAuditFileRoute: ApiV1ExportsAuditFileRoute,
-  ApiV1ImportsAuditFileRoute: ApiV1ImportsAuditFileRoute,
-  ApiV1LedgerChainVerificationRoute: ApiV1LedgerChainVerificationRoute,
   ApiV1OauthClientsClientIdRoute: ApiV1OauthClientsClientIdRoute,
   ApiV1ReportsBalanceSheetRoute: ApiV1ReportsBalanceSheetRoute,
   ApiV1ReportsCreditorAgeingRoute: ApiV1ReportsCreditorAgeingRoute,

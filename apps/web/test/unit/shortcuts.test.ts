@@ -41,10 +41,10 @@ describe('resolving a keystroke', () => {
     // koppelscherm would book suggestion one.
     expect(resolveKeystroke(stroke('1'), 'g')).toEqual({ action: 'swallow' })
 
-    // This used to be `g` then `q`, until Alpha 3 gave `q` the auditfile. A
+    // This used to be `g` then `.`, until Moneybird took the period. A
     // punctuation mark rather than another letter, because there is no letter
     // left — see below.
-    expect(resolveKeystroke(stroke('.'), 'g')).toEqual({ action: 'swallow' })
+    expect(resolveKeystroke(stroke(','), 'g')).toEqual({ action: 'swallow' })
   })
 
   it('has run out of letters after `g`, which is worth knowing before the next screen', () => {

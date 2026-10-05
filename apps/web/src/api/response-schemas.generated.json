@@ -2962,6 +2962,20 @@
                     "xaf.unknown_party",
                     "xaf.unknown_period",
                     "xaf.unknown_vat_code",
+                    "moneybird.unknown_currency",
+                    "moneybird.unmapped_account",
+                    "moneybird.unmapped_tax_rate",
+                    "moneybird.account_number_collision",
+                    "moneybird.contact_number_collision",
+                    "moneybird.resource_unreadable",
+                    "moneybird.trial_balance_empty",
+                    "moneybird.trial_balance_unbalanced",
+                    "moneybird.trial_balance_account_missing",
+                    "moneybird.period_locked",
+                    "moneybird.unbalanced_document",
+                    "moneybird.attachment_without_url",
+                    "moneybird.draft_skipped",
+                    "moneybird.derived_account_type",
                     "invalid_currency",
                     "entry_unbalanced_functional",
                     "line_debit_and_credit",
@@ -3260,7 +3274,21 @@
                     "xaf.unknown_offset_account",
                     "xaf.unknown_party",
                     "xaf.unknown_period",
-                    "xaf.unknown_vat_code"
+                    "xaf.unknown_vat_code",
+                    "moneybird.unknown_currency",
+                    "moneybird.unmapped_account",
+                    "moneybird.unmapped_tax_rate",
+                    "moneybird.account_number_collision",
+                    "moneybird.contact_number_collision",
+                    "moneybird.resource_unreadable",
+                    "moneybird.trial_balance_empty",
+                    "moneybird.trial_balance_unbalanced",
+                    "moneybird.trial_balance_account_missing",
+                    "moneybird.period_locked",
+                    "moneybird.unbalanced_document",
+                    "moneybird.attachment_without_url",
+                    "moneybird.draft_skipped",
+                    "moneybird.derived_account_type"
                   ]
                 },
                 "detail": {
@@ -3444,8 +3472,8 @@
                             },
                             "kind": {
                               "enum": [
-                                "invoice",
-                                "credit_note"
+                                "credit_note",
+                                "invoice"
                               ]
                             },
                             "invoiceDate": {
@@ -3615,7 +3643,21 @@
                                   "xaf.unknown_offset_account",
                                   "xaf.unknown_party",
                                   "xaf.unknown_period",
-                                  "xaf.unknown_vat_code"
+                                  "xaf.unknown_vat_code",
+                                  "moneybird.unknown_currency",
+                                  "moneybird.unmapped_account",
+                                  "moneybird.unmapped_tax_rate",
+                                  "moneybird.account_number_collision",
+                                  "moneybird.contact_number_collision",
+                                  "moneybird.resource_unreadable",
+                                  "moneybird.trial_balance_empty",
+                                  "moneybird.trial_balance_unbalanced",
+                                  "moneybird.trial_balance_account_missing",
+                                  "moneybird.period_locked",
+                                  "moneybird.unbalanced_document",
+                                  "moneybird.attachment_without_url",
+                                  "moneybird.draft_skipped",
+                                  "moneybird.derived_account_type"
                                 ]
                               },
                               "detail": {
@@ -3922,8 +3964,8 @@
                       },
                       "kind": {
                         "enum": [
-                          "invoice",
-                          "credit_note"
+                          "credit_note",
+                          "invoice"
                         ]
                       },
                       "invoiceDate": {
@@ -4093,7 +4135,21 @@
                             "xaf.unknown_offset_account",
                             "xaf.unknown_party",
                             "xaf.unknown_period",
-                            "xaf.unknown_vat_code"
+                            "xaf.unknown_vat_code",
+                            "moneybird.unknown_currency",
+                            "moneybird.unmapped_account",
+                            "moneybird.unmapped_tax_rate",
+                            "moneybird.account_number_collision",
+                            "moneybird.contact_number_collision",
+                            "moneybird.resource_unreadable",
+                            "moneybird.trial_balance_empty",
+                            "moneybird.trial_balance_unbalanced",
+                            "moneybird.trial_balance_account_missing",
+                            "moneybird.period_locked",
+                            "moneybird.unbalanced_document",
+                            "moneybird.attachment_without_url",
+                            "moneybird.draft_skipped",
+                            "moneybird.derived_account_type"
                           ]
                         },
                         "detail": {
@@ -6606,6 +6662,1598 @@
         ]
       }
     },
+    "moneybird.chooseAdministration": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "administrationId": {
+            "type": "string"
+          },
+          "administrationName": {
+            "type": "string"
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "administrationId",
+          "administrationName",
+          "currency",
+          "label"
+        ]
+      }
+    },
+    "moneybird.connect": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "connected"
+        ]
+      }
+    },
+    "moneybird.disconnect": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "disconnected": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "disconnected"
+        ]
+      }
+    },
+    "moneybird.getConnection": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "connection": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "baseUrl": {
+                    "type": "string"
+                  },
+                  "administrationId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "administrationName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "administrationCurrency": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "accountMappings": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "taxMappings": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "connected": {
+                    "type": "boolean"
+                  },
+                  "ready": {
+                    "type": "boolean"
+                  },
+                  "lastImportAt": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "lastError": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "baseUrl",
+                  "administrationId",
+                  "administrationName",
+                  "administrationCurrency",
+                  "accountMappings",
+                  "taxMappings",
+                  "connected",
+                  "ready",
+                  "lastImportAt",
+                  "lastError"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "canStoreSecrets": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "connection",
+          "canStoreSecrets"
+        ]
+      }
+    },
+    "moneybird.importStatus": {
+      "schema": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "requested": {
+                "const": true
+              },
+              "state": {
+                "$ref": "#/components/schemas/MoneybirdRunState"
+              },
+              "workerSilent": {
+                "type": "boolean"
+              },
+              "administrationId": {
+                "type": "string"
+              },
+              "report": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "imported": {
+                        "const": false
+                      },
+                      "problems": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "path",
+                            "message"
+                          ]
+                        }
+                      },
+                      "warnings": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "path",
+                            "message"
+                          ]
+                        }
+                      },
+                      "dryRun": {
+                        "type": "null"
+                      },
+                      "accountsCreated": {
+                        "type": "null"
+                      },
+                      "contactsCreated": {
+                        "type": "null"
+                      },
+                      "entriesPosted": {
+                        "type": "null"
+                      },
+                      "entriesReplayed": {
+                        "type": "null"
+                      },
+                      "entriesSkipped": {
+                        "type": "null"
+                      },
+                      "bankAccountsCreated": {
+                        "type": "null"
+                      },
+                      "bankTransactionsCreated": {
+                        "type": "null"
+                      },
+                      "invoicesImported": {
+                        "type": "null"
+                      },
+                      "attachmentsStored": {
+                        "type": "null"
+                      },
+                      "attachmentsSkipped": {
+                        "type": "null"
+                      },
+                      "skipped": {
+                        "type": "null"
+                      },
+                      "counts": {
+                        "type": "null"
+                      },
+                      "reconciliation": {
+                        "type": "null"
+                      },
+                      "notImported": {
+                        "type": "null"
+                      }
+                    },
+                    "required": [
+                      "imported",
+                      "problems",
+                      "warnings"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "imported": {
+                        "const": true
+                      },
+                      "dryRun": {
+                        "const": false
+                      },
+                      "accountsCreated": {
+                        "type": "number"
+                      },
+                      "contactsCreated": {
+                        "type": "number"
+                      },
+                      "entriesPosted": {
+                        "type": "number"
+                      },
+                      "entriesReplayed": {
+                        "type": "number"
+                      },
+                      "entriesSkipped": {
+                        "type": "number"
+                      },
+                      "bankAccountsCreated": {
+                        "type": "number"
+                      },
+                      "bankTransactionsCreated": {
+                        "type": "number"
+                      },
+                      "invoicesImported": {
+                        "type": "number"
+                      },
+                      "attachmentsStored": {
+                        "type": "number"
+                      },
+                      "attachmentsSkipped": {
+                        "type": "number"
+                      },
+                      "skipped": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "counts": {
+                        "type": "object",
+                        "properties": {
+                          "accounts": {
+                            "type": "number"
+                          },
+                          "contacts": {
+                            "type": "number"
+                          },
+                          "entries": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "accounts",
+                          "contacts",
+                          "entries"
+                        ]
+                      },
+                      "reconciliation": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "year": {
+                              "type": "number"
+                            },
+                            "source": {
+                              "type": "string"
+                            },
+                            "moneybirdDebit": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "moneybirdCredit": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "kloptDebit": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "kloptCredit": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "differences": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "accountNumber": {
+                                    "type": "string"
+                                  },
+                                  "moneybird": {
+                                    "type": "string"
+                                  },
+                                  "klopt": {
+                                    "type": "string"
+                                  },
+                                  "difference": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "accountNumber",
+                                  "moneybird",
+                                  "klopt",
+                                  "difference"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "year",
+                            "source",
+                            "moneybirdDebit",
+                            "moneybirdCredit",
+                            "kloptDebit",
+                            "kloptCredit",
+                            "differences"
+                          ]
+                        }
+                      },
+                      "notImported": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "problems": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "path",
+                            "message"
+                          ]
+                        }
+                      },
+                      "warnings": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "path",
+                            "message"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "imported",
+                      "dryRun",
+                      "accountsCreated",
+                      "contactsCreated",
+                      "entriesPosted",
+                      "entriesReplayed",
+                      "entriesSkipped",
+                      "bankAccountsCreated",
+                      "bankTransactionsCreated",
+                      "invoicesImported",
+                      "attachmentsStored",
+                      "attachmentsSkipped",
+                      "skipped",
+                      "counts",
+                      "reconciliation",
+                      "notImported",
+                      "problems",
+                      "warnings"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastError": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "requestedAt": {
+                "type": "string"
+              },
+              "startedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "finishedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "requested",
+              "state",
+              "workerSilent",
+              "administrationId",
+              "report",
+              "lastError",
+              "requestedAt",
+              "startedAt",
+              "finishedAt"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "requested": {
+                "const": false
+              }
+            },
+            "required": [
+              "requested"
+            ]
+          }
+        ]
+      }
+    },
+    "moneybird.listAdministrations": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "chosen": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "administrations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "currency": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "country": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "label",
+                "currency",
+                "country"
+              ]
+            }
+          }
+        },
+        "required": [
+          "chosen",
+          "administrations"
+        ]
+      }
+    },
+    "moneybird.previewImport": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "requests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "method": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                },
+                "durationMs": {
+                  "type": "number"
+                },
+                "rows": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "path",
+                "status",
+                "durationMs",
+                "rows"
+              ]
+            }
+          },
+          "administration": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "currency": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "country": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "currency",
+              "country"
+            ]
+          },
+          "years": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "number"
+              },
+              "contacts": {
+                "type": "number"
+              },
+              "salesInvoices": {
+                "type": "number"
+              },
+              "creditNotes": {
+                "type": "number"
+              },
+              "purchaseInvoices": {
+                "type": "number"
+              },
+              "receipts": {
+                "type": "number"
+              },
+              "financialAccounts": {
+                "type": "number"
+              },
+              "bankMutations": {
+                "type": "number"
+              },
+              "journalDocuments": {
+                "type": "number"
+              },
+              "taxRates": {
+                "type": "number"
+              },
+              "documents": {
+                "type": "number"
+              },
+              "attachments": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "accounts",
+              "contacts",
+              "salesInvoices",
+              "creditNotes",
+              "purchaseInvoices",
+              "receipts",
+              "financialAccounts",
+              "bankMutations",
+              "journalDocuments",
+              "taxRates",
+              "documents",
+              "attachments"
+            ]
+          },
+          "accounts": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "number"
+              },
+              "new": {
+                "type": "number"
+              },
+              "sample": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "moneybirdId": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "proposedNumber": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "$ref": "#/components/schemas/AccountType"
+                    },
+                    "exists": {
+                      "type": "boolean"
+                    },
+                    "mapped": {
+                      "type": "boolean"
+                    },
+                    "rgsCode": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "moneybirdId",
+                    "number",
+                    "proposedNumber",
+                    "name",
+                    "type",
+                    "exists",
+                    "mapped",
+                    "rgsCode"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "count",
+              "new",
+              "sample"
+            ]
+          },
+          "taxRates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "moneybirdId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "percentage": {
+                  "type": "string"
+                },
+                "taxRateType": {
+                  "type": "string"
+                },
+                "proposedCode": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "mappedCode": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "mapped": {
+                  "type": "boolean"
+                },
+                "used": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "moneybirdId",
+                "name",
+                "percentage",
+                "taxRateType",
+                "proposedCode",
+                "mappedCode",
+                "mapped",
+                "used"
+              ]
+            }
+          },
+          "contacts": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "number"
+              },
+              "new": {
+                "type": "number"
+              },
+              "customers": {
+                "type": "number"
+              },
+              "suppliers": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "count",
+              "new",
+              "customers",
+              "suppliers"
+            ]
+          },
+          "reconciliation": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "year": {
+                  "type": "number"
+                },
+                "source": {
+                  "enum": [
+                    "read",
+                    "empty",
+                    "unreadable"
+                  ]
+                },
+                "totalDebit": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "totalCredit": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "balanced": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "accountCount": {
+                  "type": "number"
+                },
+                "lines": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "accountNumber": {
+                        "type": "string"
+                      },
+                      "debit": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "credit": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "accountNumber",
+                      "debit",
+                      "credit"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "year",
+                "source",
+                "totalDebit",
+                "totalCredit",
+                "balanced",
+                "accountCount",
+                "lines"
+              ]
+            }
+          },
+          "notImported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "$ref": "#/components/schemas/MoneybirdProblemCode"
+                },
+                "path": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "messageKey": {
+                  "enum": [
+                    "icp.counterparty_without_vat_number",
+                    "icp.icp_mismatch",
+                    "icp.proof_predates_period",
+                    "icp.supply_without_counterparty",
+                    "icp.vat_number_invalid",
+                    "icp.vat_number_malformed",
+                    "icp.vat_number_not_eu",
+                    "icp.vat_number_unproven",
+                    "inbound.credit_note",
+                    "inbound.currency_not_functional",
+                    "inbound.no_due_date",
+                    "inbound.no_invoice_number",
+                    "inbound.no_supplier_identifier",
+                    "inbound.no_tax_category",
+                    "inbound.totals_disagree_with_lines",
+                    "inbound.unmapped_tax_category",
+                    "payment.duplicate_end_to_end_id",
+                    "payment.empty_batch",
+                    "payment.invalid_amount",
+                    "payment.invalid_bic.creditor",
+                    "payment.invalid_bic.debtor",
+                    "payment.invalid_characters",
+                    "payment.invalid_currency",
+                    "payment.invalid_date",
+                    "payment.invalid_iban.creditor",
+                    "payment.invalid_iban.debtor",
+                    "payment.missing_name.payee",
+                    "payment.missing_name.payer",
+                    "paymentRun.credit_exceeds_invoices",
+                    "paymentRun.invalid_iban",
+                    "paymentRun.mixed_currencies",
+                    "paymentRun.no_iban",
+                    "paymentRun.nothing_owed",
+                    "purchase.duplicate_invoice_number",
+                    "purchase.lines_do_not_sum_to_net",
+                    "purchase.lines_do_not_sum_to_tax",
+                    "purchase.net_plus_tax_is_not_total",
+                    "purchase.no_rule_in_force",
+                    "purchase.unknown_tax_code.no_such_code",
+                    "purchase.not_deductible",
+                    "purchase.pro_rata",
+                    "purchase.rate_mismatch",
+                    "purchase.reverse_charge_with_tax",
+                    "purchase.unknown_tax_code",
+                    "vat.code_declares_no_base",
+                    "vat.code_declares_no_vat",
+                    "vat.control_account_difference",
+                    "vat.no_rule_in_force",
+                    "vat.rate_mismatch",
+                    "vat.unknown_tax_code",
+                    "vat.untagged_control_movement",
+                    "xaf.accounts_without_rgs",
+                    "xaf.date_outside_fiscal_year",
+                    "xaf.duplicate_account",
+                    "xaf.duplicate_journal",
+                    "xaf.duplicate_transaction",
+                    "xaf.field_too_long",
+                    "xaf.file_unbalanced",
+                    "xaf.invalid_country",
+                    "xaf.invalid_currency",
+                    "xaf.invalid_date",
+                    "xaf.negative_amount",
+                    "xaf.opening_balance_unbalanced",
+                    "xaf.period_reversed",
+                    "xaf.transaction_unbalanced",
+                    "xaf.transaction_without_lines",
+                    "xaf.unknown_account",
+                    "xaf.unknown_offset_account",
+                    "xaf.unknown_party",
+                    "xaf.unknown_period",
+                    "xaf.unknown_vat_code",
+                    "moneybird.unknown_currency",
+                    "moneybird.unmapped_account",
+                    "moneybird.unmapped_tax_rate",
+                    "moneybird.account_number_collision",
+                    "moneybird.contact_number_collision",
+                    "moneybird.resource_unreadable",
+                    "moneybird.trial_balance_empty",
+                    "moneybird.trial_balance_unbalanced",
+                    "moneybird.trial_balance_account_missing",
+                    "moneybird.period_locked",
+                    "moneybird.unbalanced_document",
+                    "moneybird.attachment_without_url",
+                    "moneybird.draft_skipped",
+                    "moneybird.derived_account_type"
+                  ]
+                },
+                "detail": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "code",
+                "path",
+                "message",
+                "messageKey",
+                "detail"
+              ]
+            }
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "$ref": "#/components/schemas/MoneybirdProblemCode"
+                },
+                "path": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "messageKey": {
+                  "enum": [
+                    "icp.counterparty_without_vat_number",
+                    "icp.icp_mismatch",
+                    "icp.proof_predates_period",
+                    "icp.supply_without_counterparty",
+                    "icp.vat_number_invalid",
+                    "icp.vat_number_malformed",
+                    "icp.vat_number_not_eu",
+                    "icp.vat_number_unproven",
+                    "inbound.credit_note",
+                    "inbound.currency_not_functional",
+                    "inbound.no_due_date",
+                    "inbound.no_invoice_number",
+                    "inbound.no_supplier_identifier",
+                    "inbound.no_tax_category",
+                    "inbound.totals_disagree_with_lines",
+                    "inbound.unmapped_tax_category",
+                    "payment.duplicate_end_to_end_id",
+                    "payment.empty_batch",
+                    "payment.invalid_amount",
+                    "payment.invalid_bic.creditor",
+                    "payment.invalid_bic.debtor",
+                    "payment.invalid_characters",
+                    "payment.invalid_currency",
+                    "payment.invalid_date",
+                    "payment.invalid_iban.creditor",
+                    "payment.invalid_iban.debtor",
+                    "payment.missing_name.payee",
+                    "payment.missing_name.payer",
+                    "paymentRun.credit_exceeds_invoices",
+                    "paymentRun.invalid_iban",
+                    "paymentRun.mixed_currencies",
+                    "paymentRun.no_iban",
+                    "paymentRun.nothing_owed",
+                    "purchase.duplicate_invoice_number",
+                    "purchase.lines_do_not_sum_to_net",
+                    "purchase.lines_do_not_sum_to_tax",
+                    "purchase.net_plus_tax_is_not_total",
+                    "purchase.no_rule_in_force",
+                    "purchase.unknown_tax_code.no_such_code",
+                    "purchase.not_deductible",
+                    "purchase.pro_rata",
+                    "purchase.rate_mismatch",
+                    "purchase.reverse_charge_with_tax",
+                    "purchase.unknown_tax_code",
+                    "vat.code_declares_no_base",
+                    "vat.code_declares_no_vat",
+                    "vat.control_account_difference",
+                    "vat.no_rule_in_force",
+                    "vat.rate_mismatch",
+                    "vat.unknown_tax_code",
+                    "vat.untagged_control_movement",
+                    "xaf.accounts_without_rgs",
+                    "xaf.date_outside_fiscal_year",
+                    "xaf.duplicate_account",
+                    "xaf.duplicate_journal",
+                    "xaf.duplicate_transaction",
+                    "xaf.field_too_long",
+                    "xaf.file_unbalanced",
+                    "xaf.invalid_country",
+                    "xaf.invalid_currency",
+                    "xaf.invalid_date",
+                    "xaf.negative_amount",
+                    "xaf.opening_balance_unbalanced",
+                    "xaf.period_reversed",
+                    "xaf.transaction_unbalanced",
+                    "xaf.transaction_without_lines",
+                    "xaf.unknown_account",
+                    "xaf.unknown_offset_account",
+                    "xaf.unknown_party",
+                    "xaf.unknown_period",
+                    "xaf.unknown_vat_code",
+                    "moneybird.unknown_currency",
+                    "moneybird.unmapped_account",
+                    "moneybird.unmapped_tax_rate",
+                    "moneybird.account_number_collision",
+                    "moneybird.contact_number_collision",
+                    "moneybird.resource_unreadable",
+                    "moneybird.trial_balance_empty",
+                    "moneybird.trial_balance_unbalanced",
+                    "moneybird.trial_balance_account_missing",
+                    "moneybird.period_locked",
+                    "moneybird.unbalanced_document",
+                    "moneybird.attachment_without_url",
+                    "moneybird.draft_skipped",
+                    "moneybird.derived_account_type"
+                  ]
+                },
+                "detail": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "code",
+                "path",
+                "message",
+                "messageKey",
+                "detail"
+              ]
+            }
+          },
+          "dryRun": {
+            "const": true
+          }
+        },
+        "required": [
+          "requests",
+          "administration",
+          "years",
+          "counts",
+          "accounts",
+          "taxRates",
+          "contacts",
+          "reconciliation",
+          "notImported",
+          "warnings",
+          "problems",
+          "dryRun"
+        ]
+      }
+    },
+    "moneybird.runImport": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "requested": {
+            "const": true
+          },
+          "state": {
+            "$ref": "#/components/schemas/MoneybirdRunState"
+          },
+          "workerSilent": {
+            "type": "boolean"
+          },
+          "administrationId": {
+            "type": "string"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "imported": {
+                    "const": false
+                  },
+                  "problems": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "path",
+                        "message"
+                      ]
+                    }
+                  },
+                  "warnings": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "path",
+                        "message"
+                      ]
+                    }
+                  },
+                  "dryRun": {
+                    "type": "null"
+                  },
+                  "accountsCreated": {
+                    "type": "null"
+                  },
+                  "contactsCreated": {
+                    "type": "null"
+                  },
+                  "entriesPosted": {
+                    "type": "null"
+                  },
+                  "entriesReplayed": {
+                    "type": "null"
+                  },
+                  "entriesSkipped": {
+                    "type": "null"
+                  },
+                  "bankAccountsCreated": {
+                    "type": "null"
+                  },
+                  "bankTransactionsCreated": {
+                    "type": "null"
+                  },
+                  "invoicesImported": {
+                    "type": "null"
+                  },
+                  "attachmentsStored": {
+                    "type": "null"
+                  },
+                  "attachmentsSkipped": {
+                    "type": "null"
+                  },
+                  "skipped": {
+                    "type": "null"
+                  },
+                  "counts": {
+                    "type": "null"
+                  },
+                  "reconciliation": {
+                    "type": "null"
+                  },
+                  "notImported": {
+                    "type": "null"
+                  }
+                },
+                "required": [
+                  "imported",
+                  "problems",
+                  "warnings"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "imported": {
+                    "const": true
+                  },
+                  "dryRun": {
+                    "const": false
+                  },
+                  "accountsCreated": {
+                    "type": "number"
+                  },
+                  "contactsCreated": {
+                    "type": "number"
+                  },
+                  "entriesPosted": {
+                    "type": "number"
+                  },
+                  "entriesReplayed": {
+                    "type": "number"
+                  },
+                  "entriesSkipped": {
+                    "type": "number"
+                  },
+                  "bankAccountsCreated": {
+                    "type": "number"
+                  },
+                  "bankTransactionsCreated": {
+                    "type": "number"
+                  },
+                  "invoicesImported": {
+                    "type": "number"
+                  },
+                  "attachmentsStored": {
+                    "type": "number"
+                  },
+                  "attachmentsSkipped": {
+                    "type": "number"
+                  },
+                  "skipped": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "counts": {
+                    "type": "object",
+                    "properties": {
+                      "accounts": {
+                        "type": "number"
+                      },
+                      "contacts": {
+                        "type": "number"
+                      },
+                      "entries": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "accounts",
+                      "contacts",
+                      "entries"
+                    ]
+                  },
+                  "reconciliation": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "year": {
+                          "type": "number"
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "moneybirdDebit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "moneybirdCredit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "kloptDebit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "kloptCredit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "differences": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "accountNumber": {
+                                "type": "string"
+                              },
+                              "moneybird": {
+                                "type": "string"
+                              },
+                              "klopt": {
+                                "type": "string"
+                              },
+                              "difference": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "accountNumber",
+                              "moneybird",
+                              "klopt",
+                              "difference"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "year",
+                        "source",
+                        "moneybirdDebit",
+                        "moneybirdCredit",
+                        "kloptDebit",
+                        "kloptCredit",
+                        "differences"
+                      ]
+                    }
+                  },
+                  "notImported": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "problems": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "path",
+                        "message"
+                      ]
+                    }
+                  },
+                  "warnings": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "path",
+                        "message"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "imported",
+                  "dryRun",
+                  "accountsCreated",
+                  "contactsCreated",
+                  "entriesPosted",
+                  "entriesReplayed",
+                  "entriesSkipped",
+                  "bankAccountsCreated",
+                  "bankTransactionsCreated",
+                  "invoicesImported",
+                  "attachmentsStored",
+                  "attachmentsSkipped",
+                  "skipped",
+                  "counts",
+                  "reconciliation",
+                  "notImported",
+                  "problems",
+                  "warnings"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requestedAt": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "finishedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "requested",
+          "state",
+          "workerSilent",
+          "administrationId",
+          "report",
+          "lastError",
+          "requestedAt",
+          "startedAt",
+          "finishedAt"
+        ]
+      }
+    },
+    "moneybird.saveMappings": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "saved": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "saved"
+        ]
+      }
+    },
     "payments.addApprovedInvoices": {
       "schema": {
         "type": "object",
@@ -6901,7 +8549,21 @@
                     "xaf.unknown_offset_account",
                     "xaf.unknown_party",
                     "xaf.unknown_period",
-                    "xaf.unknown_vat_code"
+                    "xaf.unknown_vat_code",
+                    "moneybird.unknown_currency",
+                    "moneybird.unmapped_account",
+                    "moneybird.unmapped_tax_rate",
+                    "moneybird.account_number_collision",
+                    "moneybird.contact_number_collision",
+                    "moneybird.resource_unreadable",
+                    "moneybird.trial_balance_empty",
+                    "moneybird.trial_balance_unbalanced",
+                    "moneybird.trial_balance_account_missing",
+                    "moneybird.period_locked",
+                    "moneybird.unbalanced_document",
+                    "moneybird.attachment_without_url",
+                    "moneybird.draft_skipped",
+                    "moneybird.derived_account_type"
                   ]
                 },
                 "detail": {
@@ -7070,8 +8732,8 @@
                       },
                       "kind": {
                         "enum": [
-                          "invoice",
-                          "credit_note"
+                          "credit_note",
+                          "invoice"
                         ]
                       },
                       "amount": {
@@ -7185,7 +8847,21 @@
                     "xaf.unknown_offset_account",
                     "xaf.unknown_party",
                     "xaf.unknown_period",
-                    "xaf.unknown_vat_code"
+                    "xaf.unknown_vat_code",
+                    "moneybird.unknown_currency",
+                    "moneybird.unmapped_account",
+                    "moneybird.unmapped_tax_rate",
+                    "moneybird.account_number_collision",
+                    "moneybird.contact_number_collision",
+                    "moneybird.resource_unreadable",
+                    "moneybird.trial_balance_empty",
+                    "moneybird.trial_balance_unbalanced",
+                    "moneybird.trial_balance_account_missing",
+                    "moneybird.period_locked",
+                    "moneybird.unbalanced_document",
+                    "moneybird.attachment_without_url",
+                    "moneybird.draft_skipped",
+                    "moneybird.derived_account_type"
                   ]
                 },
                 "detail": {
@@ -7416,7 +9092,21 @@
                     "xaf.unknown_offset_account",
                     "xaf.unknown_party",
                     "xaf.unknown_period",
-                    "xaf.unknown_vat_code"
+                    "xaf.unknown_vat_code",
+                    "moneybird.unknown_currency",
+                    "moneybird.unmapped_account",
+                    "moneybird.unmapped_tax_rate",
+                    "moneybird.account_number_collision",
+                    "moneybird.contact_number_collision",
+                    "moneybird.resource_unreadable",
+                    "moneybird.trial_balance_empty",
+                    "moneybird.trial_balance_unbalanced",
+                    "moneybird.trial_balance_account_missing",
+                    "moneybird.period_locked",
+                    "moneybird.unbalanced_document",
+                    "moneybird.attachment_without_url",
+                    "moneybird.draft_skipped",
+                    "moneybird.derived_account_type"
                   ]
                 },
                 "detail": {
@@ -7580,8 +9270,8 @@
           },
           "kind": {
             "enum": [
-              "invoice",
-              "credit_note"
+              "credit_note",
+              "invoice"
             ]
           },
           "supplierInvoiceNumber": {
@@ -7786,7 +9476,21 @@
                     "xaf.unknown_offset_account",
                     "xaf.unknown_party",
                     "xaf.unknown_period",
-                    "xaf.unknown_vat_code"
+                    "xaf.unknown_vat_code",
+                    "moneybird.unknown_currency",
+                    "moneybird.unmapped_account",
+                    "moneybird.unmapped_tax_rate",
+                    "moneybird.account_number_collision",
+                    "moneybird.contact_number_collision",
+                    "moneybird.resource_unreadable",
+                    "moneybird.trial_balance_empty",
+                    "moneybird.trial_balance_unbalanced",
+                    "moneybird.trial_balance_account_missing",
+                    "moneybird.period_locked",
+                    "moneybird.unbalanced_document",
+                    "moneybird.attachment_without_url",
+                    "moneybird.draft_skipped",
+                    "moneybird.derived_account_type"
                   ]
                 },
                 "detail": {
@@ -7891,8 +9595,8 @@
                 },
                 "kind": {
                   "enum": [
-                    "invoice",
-                    "credit_note"
+                    "credit_note",
+                    "invoice"
                   ]
                 },
                 "supplierInvoiceNumber": {
@@ -9004,8 +10708,8 @@
               },
               "kind": {
                 "enum": [
-                  "invoice",
-                  "credit_note"
+                  "credit_note",
+                  "invoice"
                 ]
               },
               "status": {
@@ -9490,8 +11194,8 @@
                 },
                 "kind": {
                   "enum": [
-                    "invoice",
-                    "credit_note"
+                    "credit_note",
+                    "invoice"
                   ]
                 },
                 "status": {
@@ -11011,7 +12715,21 @@
                     "xaf.unknown_offset_account",
                     "xaf.unknown_party",
                     "xaf.unknown_period",
-                    "xaf.unknown_vat_code"
+                    "xaf.unknown_vat_code",
+                    "moneybird.unknown_currency",
+                    "moneybird.unmapped_account",
+                    "moneybird.unmapped_tax_rate",
+                    "moneybird.account_number_collision",
+                    "moneybird.contact_number_collision",
+                    "moneybird.resource_unreadable",
+                    "moneybird.trial_balance_empty",
+                    "moneybird.trial_balance_unbalanced",
+                    "moneybird.trial_balance_account_missing",
+                    "moneybird.period_locked",
+                    "moneybird.unbalanced_document",
+                    "moneybird.attachment_without_url",
+                    "moneybird.draft_skipped",
+                    "moneybird.derived_account_type"
                   ]
                 },
                 "detail": {
@@ -11592,7 +13310,21 @@
                     "xaf.unknown_offset_account",
                     "xaf.unknown_party",
                     "xaf.unknown_period",
-                    "xaf.unknown_vat_code"
+                    "xaf.unknown_vat_code",
+                    "moneybird.unknown_currency",
+                    "moneybird.unmapped_account",
+                    "moneybird.unmapped_tax_rate",
+                    "moneybird.account_number_collision",
+                    "moneybird.contact_number_collision",
+                    "moneybird.resource_unreadable",
+                    "moneybird.trial_balance_empty",
+                    "moneybird.trial_balance_unbalanced",
+                    "moneybird.trial_balance_account_missing",
+                    "moneybird.period_locked",
+                    "moneybird.unbalanced_document",
+                    "moneybird.attachment_without_url",
+                    "moneybird.draft_skipped",
+                    "moneybird.derived_account_type"
                   ]
                 },
                 "detail": {
@@ -12486,6 +14218,33 @@
         "learned_rule",
         "fuzzy_name",
         "oldest_first"
+      ]
+    },
+    "MoneybirdProblemCode": {
+      "enum": [
+        "trial_balance_unbalanced",
+        "trial_balance_account_missing",
+        "account_number_collision",
+        "contact_number_collision",
+        "unknown_currency",
+        "derived_account_type",
+        "attachment_without_url",
+        "resource_unreadable",
+        "trial_balance_empty",
+        "unmapped_account",
+        "unmapped_tax_rate",
+        "period_locked",
+        "unbalanced_document",
+        "draft_skipped"
+      ]
+    },
+    "MoneybirdRunState": {
+      "enum": [
+        "failed",
+        "done",
+        "pending",
+        "running",
+        "paused"
       ]
     },
     "PaymentBatchState": {

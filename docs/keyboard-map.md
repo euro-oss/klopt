@@ -65,13 +65,13 @@ the registry the palette and the `?` sheet are generated from. That is what
 principle 5 means in practice: a binding that is not in the registry does not
 appear anywhere, and one that is appears everywhere.
 
-`g q` is the one binding here with no mnemonic, and is not pretending to have
-one: every letter in _auditfile_ was taken by the time the screen arrived. The
-palette prints the key beside the label, which is what makes that survivable.
+`g q` and `g .` are the two bindings here with no mnemonic, and are not pretending
+to have one: every letter was taken by the time those screens arrived. The palette
+prints the key beside the label, which is what makes that survivable.
 
-**The `g` alphabet is full.** Twenty-six destinations, twenty-six letters, and
-Alpha 3 took the last two. The next screen that wants a key needs a second prefix
-or a different scheme rather than a letter somebody else is using.
+**The `g` alphabet is full.** Twenty-six letter destinations plus Moneybird on
+`g .`. The next screen that wants a letter needs a second prefix or a different
+scheme rather than a letter somebody else is using.
 `test/unit/shortcuts.test.ts` asserts the alphabet is exhausted, so that decision
 arrives as a failing test rather than as a collision.
 

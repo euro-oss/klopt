@@ -94,7 +94,7 @@ export function createMoneybirdClient(options: MoneybirdClientOptions): Moneybir
 
     const text = await response.text()
     const durationMs = Date.now() - started
-    let body: unknown = text
+    let body: unknown
     try {
       body = text === '' ? null : JSON.parse(text)
     } catch {

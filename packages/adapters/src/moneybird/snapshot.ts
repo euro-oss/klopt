@@ -11,7 +11,7 @@ import {
   parseTaxRate,
   type MoneybirdClient,
   type MoneybirdSnapshot,
-  type UnreadableResource,
+  type MoneybirdUnreadableResource,
 } from '@klopt/core'
 import { collectAll, MoneybirdApiError } from './client.js'
 
@@ -39,7 +39,7 @@ export async function readAdministration(
 ): Promise<MoneybirdSnapshot> {
   const { client } = request
   const progress = request.onProgress ?? (() => {})
-  const unreadable: UnreadableResource[] = []
+  const unreadable: MoneybirdUnreadableResource[] = []
 
   const administrations = await client.administrations()
   const administration = administrations.find((item) => item.id === request.administrationId)

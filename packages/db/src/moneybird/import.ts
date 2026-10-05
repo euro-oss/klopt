@@ -170,9 +170,18 @@ async function runImport(
       continue
     }
 
+    // Subledger kind and id travel as a pair (DB check). A planned kind without
+    // a contact we can resolve — bank mutations linked only by invoice id —
+    // posts as a plain GL line rather than half a subledger.
     const lines = entry.lines.map((item) => {
-      if (item.subledgerKind === null || entry.contactNumber === null) return item
+      if (item.subledgerKind === null) return item
+      if (entry.contactNumber === null) {
+        return { ...item, subledgerKind: null, subledgerId: null }
+      }
       const contactId = contactIdByNumber.get(entry.contactNumber) ?? null
+      if (contactId === null) {
+        return { ...item, subledgerKind: null, subledgerId: null }
+      }
       return { ...item, subledgerId: contactId }
     })
 

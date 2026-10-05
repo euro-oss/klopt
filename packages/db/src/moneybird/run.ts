@@ -71,7 +71,7 @@ export async function executeMoneybirdImport(
     const reporting = new ReportingRepository(tx)
     const imported = new MoneybirdImportRepository(tx)
     const connection = new MoneybirdConnectionRepository(tx)
-    const setup = new SetupRepository(tx as never)
+    const setup = new SetupRepository(tx)
     const [entity, resolutions, accounts, connectionRow, externalIds, years, rules] =
       await Promise.all([
         reporting.entity(entityId),

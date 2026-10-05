@@ -7,7 +7,7 @@ import {
   readMinor,
   readString,
   requireId,
-} from '../../src/index.js'
+} from '../../src/moneybird/index.js'
 
 describe('reading ids', () => {
   it('accepts the integer JSON actually sends', () => {

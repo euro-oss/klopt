@@ -1,3 +1,6 @@
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
@@ -226,9 +229,6 @@ describe('the import job', () => {
 
     const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
     const { createFilesystemDocumentStore } = await import('@klopt/adapters')
-    const { mkdtempSync } = await import('node:fs')
-    const { tmpdir } = await import('node:os')
-    const { join } = await import('node:path')
     const directory = mkdtempSync(join(tmpdir(), 'mb-docs-'))
     const outcome = await importMoneybirdAdministration(
       database,
@@ -237,8 +237,10 @@ describe('the import job', () => {
     expect(outcome.state).toBe('done')
 
     const status = (await handleMoneybirdImportStatus(await context(token))).body
+    expect(status.requested).toBe(true)
+    if (!status.requested) throw new Error('expected a Moneybird import run')
     expect(status.state).toBe('done')
-    expect(status.report).toMatchObject({ dryRun: false })
+    expect(status.report).toMatchObject({ imported: true, dryRun: false })
 
     const again = await importMoneybirdAdministration(
       database,

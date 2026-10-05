@@ -877,6 +877,17 @@ export function planMoneybirdImport(
   )
   const financialById = new Map(financialAccounts.map((account) => [account.moneybirdId, account]))
 
+  const salesContactByInvoiceId = new Map(
+    snapshot.salesInvoices
+      .filter((invoice) => invoice.contactId !== null)
+      .map((invoice) => [invoice.id, invoice.contactId!]),
+  )
+  const purchaseContactByInvoiceId = new Map(
+    [...snapshot.purchaseInvoices, ...snapshot.receipts]
+      .filter((document) => document.contactId !== null)
+      .map((document) => [document.id, document.contactId!]),
+  )
+
   for (const mutation of snapshot.financialMutations) {
     const financial = financialById.get(mutation.financialAccountId)
     const bankAccountNumber = financial?.ledgerAccountNumber ?? '1100'
@@ -891,6 +902,7 @@ export function planMoneybirdImport(
       ),
     ]
 
+    let contactNumber: string | null = null
     if (mutation.payments.length === 0) {
       lines.push(
         line(
@@ -905,13 +917,24 @@ export function planMoneybirdImport(
         const payMagnitude = payment.price < 0n ? -payment.price : payment.price
         const sales = (payment.invoiceType ?? '').toLowerCase().includes('sales')
         const accountNumber = sales ? receivableAccount : payableAccount
+        const contactId =
+          payment.invoiceId === null
+            ? null
+            : sales
+              ? (salesContactByInvoiceId.get(payment.invoiceId) ?? null)
+              : (purchaseContactByInvoiceId.get(payment.invoiceId) ?? null)
+        const paymentContact =
+          contactId === null ? null : (contactNumberById.get(contactId) ?? null)
+        if (contactNumber === null) contactNumber = paymentContact
         lines.push(
           line(
             accountNumber,
             incoming ? 0n : payMagnitude,
             incoming ? payMagnitude : 0n,
             payment.invoiceId ?? mutation.id,
-            { subledgerKind: sales ? 'customer' : 'supplier', subledgerId: null },
+            paymentContact === null
+              ? {}
+              : { subledgerKind: sales ? 'customer' : 'supplier', subledgerId: null },
           ),
         )
       }
@@ -941,7 +964,7 @@ export function planMoneybirdImport(
       documentDate: mutation.date,
       description: mutation.message ?? `Bankmutatie ${mutation.id}`,
       sourceDocumentRef: `moneybird:${snapshot.administration.id}:${externalId}`,
-      contactNumber: null,
+      contactNumber,
       documentNumber: mutation.id,
       outstanding: mutation.amount,
       currency: options.currency,
@@ -998,12 +1021,10 @@ export function planMoneybirdImport(
 
   const years = [
     ...new Set(
-      entries
-        .map((entry) => entry.year)
-        .concat(
-          documents.map((document) => (document.date === null ? null : yearOf(document.date))),
-        )
-        .filter((year): year is number => year !== null),
+      [
+        ...entries.map((entry) => entry.year),
+        ...documents.map((document) => (document.date === null ? null : yearOf(document.date))),
+      ].filter((year): year is number => year !== null),
     ),
   ].sort((a, b) => a - b)
 
