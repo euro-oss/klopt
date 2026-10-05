@@ -344,8 +344,14 @@ export class ReportingRepository {
     }
   }
 
-  async taxRules(entityId: string): Promise<
-    readonly { readonly code: string; readonly rateBasisPoints: number; readonly direction: 'input' | 'output' }[]
+  async taxRules(
+    entityId: string,
+  ): Promise<
+    readonly {
+      readonly code: string
+      readonly rateBasisPoints: number
+      readonly direction: 'input' | 'output'
+    }[]
   > {
     const rows = await this.tx
       .select({

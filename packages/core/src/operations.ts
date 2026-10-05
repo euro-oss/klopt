@@ -1313,7 +1313,8 @@ export const moneybirdOperations: Readonly<Record<string, OperationDefinition>> 
     id: 'moneybird.connect',
     kind: 'write',
     permission: 'ledger:configure',
-    summary: 'Store a Moneybird personal API token (encrypted) and list the administrations it can reach.',
+    summary:
+      'Store a Moneybird personal API token (encrypted) and list the administrations it can reach.',
     agentExposure: 'none',
     idempotent: true,
   }),
@@ -1369,7 +1370,8 @@ export const moneybirdOperations: Readonly<Record<string, OperationDefinition>> 
     id: 'moneybird.importStatus',
     kind: 'read',
     permission: 'ledger:read',
-    summary: 'How far the Moneybird import has got, and the machine-readable report when it is done.',
+    summary:
+      'How far the Moneybird import has got, and the machine-readable report when it is done.',
     agentExposure: 'read',
     idempotent: true,
   }),

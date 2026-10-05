@@ -31,9 +31,9 @@ describe('the chart of accounts', () => {
 
   it('says which accounts already exist here', () => {
     const plan = planMoneybirdImport(snapshot(), options({ existingAccountNumbers: ['1300'] }))
-    expect(plan.accounts.filter((account) => account.exists).map((account) => account.number)).toEqual([
-      '1300',
-    ])
+    expect(
+      plan.accounts.filter((account) => account.exists).map((account) => account.number),
+    ).toEqual(['1300'])
   })
 })
 
@@ -76,7 +76,9 @@ describe('booked history', () => {
       snapshot(),
       options({ existingExternalIds: ['sales_invoice:301'] }),
     )
-    expect(plan.entries.find((entry) => entry.externalId === 'sales_invoice:301')?.exists).toBe(true)
+    expect(plan.entries.find((entry) => entry.externalId === 'sales_invoice:301')?.exists).toBe(
+      true,
+    )
   })
 })
 
@@ -91,7 +93,11 @@ describe('the reconciliation', () => {
     const plan = planMoneybirdImport(
       snapshot({
         unreadable: [
-          { resource: 'sales_invoices.json', status: 403, message: 'Moneybird refused this token (403).' },
+          {
+            resource: 'sales_invoices.json',
+            status: 403,
+            message: 'Moneybird refused this token (403).',
+          },
         ],
       }),
       options(),

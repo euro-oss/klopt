@@ -72,7 +72,9 @@ export async function readAdministration(
     parsePurchaseInvoice,
   )
   const receipts = ((await read('documents/receipts.json')) ?? []).map(parseReceipt)
-  const financialAccounts = ((await read('financial_accounts.json')) ?? []).map(parseFinancialAccount)
+  const financialAccounts = ((await read('financial_accounts.json')) ?? []).map(
+    parseFinancialAccount,
+  )
   const financialMutations = ((await read('financial_mutations.json')) ?? []).map(
     parseFinancialMutation,
   )

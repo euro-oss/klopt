@@ -19,7 +19,11 @@ export async function importMoneybirdAdministration(
   database: Database,
   store = storeFor(),
   fetchImpl?: typeof globalThis.fetch,
-): Promise<{ readonly entityId: string | null; readonly state: string; readonly failure: string | null }> {
+): Promise<{
+  readonly entityId: string | null
+  readonly state: string
+  readonly failure: string | null
+}> {
   const run = await withMoneybirdImport(database, (repository) => repository.claim(new Date()))
   if (run === null) return { entityId: null, state: 'idle', failure: null }
 

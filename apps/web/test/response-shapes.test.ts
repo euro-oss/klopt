@@ -1612,14 +1612,8 @@ describe('Moneybird, from connecting to disconnecting', () => {
       'moneybird.previewImport',
       (await handlePreviewMoneybirdImport(await contextFor())).body,
     )
-    conforms(
-      'moneybird.runImport',
-      (await handleRunMoneybirdImport(await contextFor(key()))).body,
-    )
-    conforms(
-      'moneybird.importStatus',
-      (await handleMoneybirdImportStatus(await contextFor())).body,
-    )
+    conforms('moneybird.runImport', (await handleRunMoneybirdImport(await contextFor(key()))).body)
+    conforms('moneybird.importStatus', (await handleMoneybirdImportStatus(await contextFor())).body)
     conforms(
       'moneybird.disconnect',
       (await handleDisconnectMoneybird(await contextFor(key()))).body,

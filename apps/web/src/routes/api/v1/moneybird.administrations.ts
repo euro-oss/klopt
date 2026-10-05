@@ -5,7 +5,8 @@ import { handle } from '~/api/runtime'
 export const Route = createFileRoute('/api/v1/moneybird/administrations')({
   server: {
     handlers: {
-      GET: ({ request }) => handle(request, (context) => handleListMoneybirdAdministrations(context)),
+      GET: ({ request }) =>
+        handle(request, (context) => handleListMoneybirdAdministrations(context)),
     },
   },
 })

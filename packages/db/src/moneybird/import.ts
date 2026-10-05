@@ -208,7 +208,16 @@ async function runImport(
       journalEntryId: posted.entry.id,
     })
 
-    await rememberDocument(sales, purchase, contactIdByNumber, request.actor.id, entityId, entry, posted.entry.id, note)
+    await rememberDocument(
+      sales,
+      purchase,
+      contactIdByNumber,
+      request.actor.id,
+      entityId,
+      entry,
+      posted.entry.id,
+      note,
+    )
 
     if (entry.kind === 'bank_mutation') {
       const bankAccountId =

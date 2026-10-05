@@ -41,9 +41,9 @@ describe('the Moneybird client', () => {
       token: 'mb-token',
       fetch: fetch as unknown as typeof globalThis.fetch,
     })
-    await expect(client.page({ administrationId: '1', path: 'contacts.json' })).rejects.toBeInstanceOf(
-      MoneybirdApiError,
-    )
+    await expect(
+      client.page({ administrationId: '1', path: 'contacts.json' }),
+    ).rejects.toBeInstanceOf(MoneybirdApiError)
     expect(client.log[0]).toMatchObject({ status: 403 })
   })
 })

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { findAdministration, parseAdministration, selectableAdministrations } from '../../src/index.js'
+import {
+  findAdministration,
+  parseAdministration,
+  selectableAdministrations,
+} from '../../src/index.js'
 
 describe('choosing a Moneybird administration', () => {
   const rows = [

@@ -635,11 +635,8 @@ export const runMoneybirdImport = createServerFn({ method: 'POST' })
   .handler(async ({ data }) =>
     run(
       async () =>
-        (
-          await handleRunMoneybirdImport(
-            await contextFromRequest({ idempotencyKey: keyOf(data) }),
-          )
-        ).body,
+        (await handleRunMoneybirdImport(await contextFromRequest({ idempotencyKey: keyOf(data) })))
+          .body,
     ),
   )
 

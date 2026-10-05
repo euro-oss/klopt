@@ -165,12 +165,7 @@ export interface MoneybirdPlannedContact {
 export interface MoneybirdPlannedEntry {
   readonly externalId: string
   readonly kind:
-    | 'sales_invoice'
-    | 'credit_note'
-    | 'purchase_invoice'
-    | 'receipt'
-    | 'journal'
-    | 'bank_mutation'
+    'sales_invoice' | 'credit_note' | 'purchase_invoice' | 'receipt' | 'journal' | 'bank_mutation'
   readonly journalCode: string
   readonly bookingDate: string
   readonly documentDate: string
@@ -287,13 +282,12 @@ function percentageText(value: number): string {
   return value.toFixed(value % 1 === 0 ? 0 : 1)
 }
 
-function proposeTaxCode(
-  rate: MoneybirdTaxRate,
-  rules: readonly ExistingTaxRule[],
-): string | null {
+function proposeTaxCode(rate: MoneybirdTaxRate, rules: readonly ExistingTaxRule[]): string | null {
   const bps = Math.round(rate.percentage * 100)
   const direction = rate.taxRateType === 'purchase_invoice' ? 'input' : 'output'
-  const matches = rules.filter((rule) => rule.rateBasisPoints === bps && rule.direction === direction)
+  const matches = rules.filter(
+    (rule) => rule.rateBasisPoints === bps && rule.direction === direction,
+  )
   return matches[0]?.code ?? null
 }
 
@@ -471,14 +465,18 @@ export function planMoneybirdImport(
     }
   }
 
-  const numberByMoneybirdId = new Map(accounts.map((account) => [account.moneybirdId, account.number]))
+  const numberByMoneybirdId = new Map(
+    accounts.map((account) => [account.moneybirdId, account.number]),
+  )
 
   const seenContactNumbers = new Set<string>()
   const contacts: MoneybirdPlannedContact[] = []
   const contactNumberById = new Map<string, string>()
 
   const salesContactIds = new Set(
-    snapshot.salesInvoices.map((invoice) => invoice.contactId).filter((id): id is string => id !== null),
+    snapshot.salesInvoices
+      .map((invoice) => invoice.contactId)
+      .filter((id): id is string => id !== null),
   )
   const purchaseContactIds = new Set(
     [...snapshot.purchaseInvoices, ...snapshot.receipts]
@@ -614,7 +612,10 @@ export function planMoneybirdImport(
     entries.push(entry)
   }
 
-  const noteAttachment = (attachments: readonly MoneybirdAttachment[], path: string): readonly string[] => {
+  const noteAttachment = (
+    attachments: readonly MoneybirdAttachment[],
+    path: string,
+  ): readonly string[] => {
     const ids: string[] = []
     for (const attachment of attachments) {
       if (attachment.downloadUrl === null) {
@@ -642,7 +643,8 @@ export function planMoneybirdImport(
     }
 
     const isCredit = invoice.totalExcl < 0n || invoice.originalSalesInvoiceId !== null
-    const contactNumber = invoice.contactId === null ? null : (contactNumberById.get(invoice.contactId) ?? null)
+    const contactNumber =
+      invoice.contactId === null ? null : (contactNumberById.get(invoice.contactId) ?? null)
     const revenueIsCredit = !isCredit
     const lines: JournalLineInput[] = []
 
@@ -667,7 +669,8 @@ export function planMoneybirdImport(
       }
       if (net < 0n) net = -net
       if (net === 0n) continue
-      const taxCode = detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
+      const taxCode =
+        detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
       const tax = percent === 0 ? 0n : (net * BigInt(Math.round(percent * 100))) / 10000n
       const accountNumber = resolveAccount(
         detail.ledgerAccountId,
@@ -746,7 +749,8 @@ export function planMoneybirdImport(
       let net = detail.price * BigInt(Math.round(quantity))
       if (net < 0n) net = -net
       if (net === 0n) continue
-      const taxCode = detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
+      const taxCode =
+        detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
       const percent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
       const tax = percent === 0 ? 0n : (net * BigInt(Math.round(percent * 100))) / 10000n
       const accountNumber = resolveAccount(
@@ -798,7 +802,8 @@ export function planMoneybirdImport(
       journalCode: purchaseJournal,
       bookingDate: document.date,
       documentDate: document.date,
-      description: document.kind === 'receipt' ? `Bon ${document.reference}` : `Inkoop ${document.reference}`,
+      description:
+        document.kind === 'receipt' ? `Bon ${document.reference}` : `Inkoop ${document.reference}`,
       sourceDocumentRef: `moneybird:${snapshot.administration.id}:${externalId}`,
       contactNumber,
       documentNumber: document.reference,
@@ -821,12 +826,19 @@ export function planMoneybirdImport(
         '0500',
         `journal.${journal.id}.${detail.id}`,
       )
-      const taxCode = detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
-      return line(accountNumber, detail.debit, detail.credit, detail.description || journal.reference, {
-        taxCode,
-        taxRole: taxCode === null ? null : 'base',
-        taxAmount: taxCode === null ? null : 0n,
-      })
+      const taxCode =
+        detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
+      return line(
+        accountNumber,
+        detail.debit,
+        detail.credit,
+        detail.description || journal.reference,
+        {
+          taxCode,
+          taxRole: taxCode === null ? null : 'base',
+          taxAmount: taxCode === null ? null : 0n,
+        },
+      )
     })
     const externalId = `journal:${journal.id}`
     pushEntry({
@@ -988,7 +1000,9 @@ export function planMoneybirdImport(
     ...new Set(
       entries
         .map((entry) => entry.year)
-        .concat(documents.map((document) => (document.date === null ? null : yearOf(document.date))))
+        .concat(
+          documents.map((document) => (document.date === null ? null : yearOf(document.date))),
+        )
         .filter((year): year is number => year !== null),
     ),
   ].sort((a, b) => a - b)
@@ -1052,10 +1066,14 @@ export function planMoneybirdImport(
         accounts.some((account) => account.number === line.accountNumber)
       if (!known) {
         problems.push(
-          problem('trial_balance_account_missing', `reconciliation.${String(year)}.${line.accountNumber}`, {
-            year: String(year),
-            number: line.accountNumber,
-          }),
+          problem(
+            'trial_balance_account_missing',
+            `reconciliation.${String(year)}.${line.accountNumber}`,
+            {
+              year: String(year),
+              number: line.accountNumber,
+            },
+          ),
         )
       }
     }

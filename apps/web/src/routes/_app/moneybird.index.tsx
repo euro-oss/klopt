@@ -101,7 +101,9 @@ function Moneybird() {
 
   const loadAdministrations = () =>
     run(listMoneybirdAdministrations, (data) => {
-      setAdministrations((data as { administrations: readonly AdministrationOption[] }).administrations)
+      setAdministrations(
+        (data as { administrations: readonly AdministrationOption[] }).administrations,
+      )
     })
 
   const choose = (id: string) =>
@@ -122,8 +124,9 @@ function Moneybird() {
       const report = data as Record<string, unknown>
       setPreview(report)
       setImported(null)
-      const accounts = (report['accounts'] as { sample: { moneybirdId: string; proposedNumber: string }[] })
-        .sample
+      const accounts = (
+        report['accounts'] as { sample: { moneybirdId: string; proposedNumber: string }[] }
+      ).sample
       const nextAccounts: Record<string, string> = {}
       for (const account of accounts) {
         nextAccounts[account.moneybirdId] = account.proposedNumber
@@ -334,7 +337,9 @@ function Moneybird() {
                 onAccountChange={(id, value) =>
                   setAccountMappings((current) => ({ ...current, [id]: value }))
                 }
-                onTaxChange={(id, value) => setTaxMappings((current) => ({ ...current, [id]: value }))}
+                onTaxChange={(id, value) =>
+                  setTaxMappings((current) => ({ ...current, [id]: value }))
+                }
                 onSave={() => void saveMappings()}
                 busy={busy}
                 hydrated={hydrated}
@@ -441,7 +446,9 @@ function MappingReview({
               </td>
               <td className="py-2">
                 <input
-                  value={taxMappings[rate.moneybirdId] ?? rate.mappedCode ?? rate.proposedCode ?? ''}
+                  value={
+                    taxMappings[rate.moneybirdId] ?? rate.mappedCode ?? rate.proposedCode ?? ''
+                  }
                   onChange={(event) => onTaxChange(rate.moneybirdId, event.target.value)}
                   disabled={!hydrated}
                   className="border-border w-32 rounded-md border px-2 py-1 tabular"

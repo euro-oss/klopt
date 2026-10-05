@@ -1180,8 +1180,7 @@ export const en: Record<MessageKey, string> = {
   'moneybird.unmappedCount': '{count} still to map',
   'moneybird.status': 'Status:',
   'moneybird.refresh': 'Refresh',
-  'moneybird.workerSilent':
-    'The job is waiting, but the worker has not claimed it. Run',
+  'moneybird.workerSilent': 'The job is waiting, but the worker has not claimed it. Run',
 
   // Chasing what is overdue.
   'dunning.title': 'Reminders',

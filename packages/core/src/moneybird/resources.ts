@@ -199,13 +199,17 @@ export function parseAttachment(row: Record<string, unknown>): MoneybirdAttachme
 
 function parseAttachments(row: Record<string, unknown>): readonly MoneybirdAttachment[] {
   return readArray(row, 'attachments')
-    .filter((value): value is Record<string, unknown> => typeof value === 'object' && value !== null)
+    .filter(
+      (value): value is Record<string, unknown> => typeof value === 'object' && value !== null,
+    )
     .map(parseAttachment)
 }
 
 function parseDetails(row: Record<string, unknown>): readonly MoneybirdDocumentDetail[] {
   return readArray(row, 'details')
-    .filter((value): value is Record<string, unknown> => typeof value === 'object' && value !== null)
+    .filter(
+      (value): value is Record<string, unknown> => typeof value === 'object' && value !== null,
+    )
     .map(parseDetail)
 }
 

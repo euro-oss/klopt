@@ -459,7 +459,9 @@ export const moneybirdImportedIds = klopt.table(
     journalEntryId: uuid('journal_entry_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [primaryKey({ name: 'moneybird_imported_ids_pk', columns: [table.entityId, table.externalId] })],
+  (table) => [
+    primaryKey({ name: 'moneybird_imported_ids_pk', columns: [table.entityId, table.externalId] }),
+  ],
 )
 
 export const moneybirdAttachments = klopt.table(

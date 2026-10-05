@@ -465,7 +465,9 @@ export async function handleMoneybirdImportStatus(context: RequestContext) {
 
 export async function handleDisconnectMoneybird(context: RequestContext) {
   requirePermission(context, 'ledger:configure')
-  await withMoneybirdConnection(context.database, (repository) => repository.remove(context.entityId))
+  await withMoneybirdConnection(context.database, (repository) =>
+    repository.remove(context.entityId),
+  )
   await recordAudit(context, {
     action: 'moneybird.disconnect',
     resourceType: 'moneybird_connection',

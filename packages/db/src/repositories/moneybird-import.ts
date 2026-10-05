@@ -138,10 +138,7 @@ export class MoneybirdImportRepository {
       .onConflictDoNothing()
   }
 
-  async knownAttachments(
-    entityId: string,
-    ids: readonly string[],
-  ): Promise<ReadonlySet<string>> {
+  async knownAttachments(entityId: string, ids: readonly string[]): Promise<ReadonlySet<string>> {
     if (ids.length === 0) return new Set()
     const rows = await this.tx
       .select({ id: moneybirdAttachments.moneybirdAttachmentId })

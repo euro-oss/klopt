@@ -1,11 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import {
-  closeDatabase,
-  createDatabase,
-  issueToken,
-  runMigrations,
-  type Database,
-} from '@klopt/db'
+import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { ApiError } from '../src/api/errors.js'
@@ -139,7 +133,9 @@ describe('choosing an administration', () => {
     await choose(token)
     const log = (
       await handleListAuditLog(await context(token), auditLogQuery.parse({}))
-    ).body.entries.find((row: { action: string }) => row.action === 'moneybird.chooseAdministration')
+    ).body.entries.find(
+      (row: { action: string }) => row.action === 'moneybird.chooseAdministration',
+    )
     expect(log?.after).toMatchObject({ administrationName: 'Voorbeeld BV' })
   })
 
