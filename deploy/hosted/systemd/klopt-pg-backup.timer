@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly Klopt Postgres base backup
+
+[Timer]
+OnCalendar=*-*-* 02:17:00
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

@@ -25,8 +25,8 @@ host it, or sell a competing service. The repository belongs to
 
 **Status: 0.1.0 Alpha**, self-hosted. You can keep a Dutch administration in
 this today. `main` also carries unreleased interface work on top of that
-release; the record is [`CHANGELOG.md`](CHANGELOG.md). A hosted EU service is
-not part of this repository.
+release; the record is [`CHANGELOG.md`](CHANGELOG.md). There is no public
+hosted product in this repository.
 
 ## Features
 
@@ -87,9 +87,11 @@ money field is rejected.
   installed here.
 - **PSD2 bank feed.** Statements come in as files: CAMT.053, MT940, or CSV.
   There is no bank-aggregator connection.
-- **Hosted EU.** You run Klopt yourself. A hosted preview is a later milestone
-  ([hosted-eu](https://github.com/euro-oss/klopt/milestone/3)), and it is not a
-  service in this repository.
+- **Public hosted EU.** You run Klopt yourself. A later milestone
+  ([hosted-eu](https://github.com/euro-oss/klopt/milestone/3)) covers a private
+  single-tenant operator layout for one administration on one dedicated
+  server — see [`deploy/hosted/`](deploy/hosted/). That is not a public
+  multi-tenant service.
 
 ## Install and run
 
@@ -153,6 +155,10 @@ container. The image sets `NODE_ENV=production`, so it refuses to boot unless
 stays on `http://localhost:3000`. The headless target serves the API and the
 worker and sets `KLOPT_HEADLESS=1`. See the [`Dockerfile`](Dockerfile).
 
+A private single-tenant production layout (Caddy, Postgres 17, WAL-G,
+Scaleway Object Storage) is [`deploy/hosted/`](deploy/hosted/). It is one
+administration on one server, not a public hosted product.
+
 ### Exact Online on a laptop
 
 Exact refuses a plain `http` redirect URI. The local HTTPS path (portless,
@@ -182,10 +188,11 @@ After this alpha, in this order. No dates.
 2. **[collaborators](https://github.com/euro-oss/klopt/milestone/2)** — deeper
    Dutch practice, and MCP and keyboard parity, with contributors outside the
    original authors.
-3. **[hosted-eu](https://github.com/euro-oss/klopt/milestone/3)** — a hosted EU
-   preview. It is not running. [`GOVERNANCE.md`](GOVERNANCE.md) records the
-   intent for when it is: hosting sells operations and credentials, and the
-   self-hosted build keeps the features.
+3. **[hosted-eu](https://github.com/euro-oss/klopt/milestone/3)** — operator
+   layout for a private EU single-tenant instance. It is not a public service.
+   [`deploy/hosted/`](deploy/hosted/) is the working copy.
+   [`GOVERNANCE.md`](GOVERNANCE.md) still records the longer-term intent:
+   operations and credentials, never withheld features.
 
 0.1.0 is the original M0–M6 specification. The forward plan is the three
 milestones above. [`CHANGELOG.md`](CHANGELOG.md) is the record of what landed.
@@ -220,6 +227,8 @@ Background, kept off the product pitch above.
   take a major version to break.
 - [`docs/architecture.md`](docs/architecture.md) — layout and package
   boundaries. Deeper reading, not the product pitch.
+- [`docs/hosted-single-tenant.md`](docs/hosted-single-tenant.md) — pointer to
+  the private single-tenant operator layout.
 - [`docs/ALPHA_ASSESSMENT.md`](docs/ALPHA_ASSESSMENT.md) — snapshot from
   2026-09-18. Historical. Planning uses the changelog and the beta-firm audit.
 - [`docs/decisions/`](docs/decisions/) — accepted decisions, one file each.

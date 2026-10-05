@@ -1,0 +1,159 @@
+# Repeatable hardening for the Elastic Metal box.
+#   ansible-playbook -i inventory.ini playbook.yml
+#
+# inventory.ini is gitignored. Copy inventory.example.ini.
+# Uses only ansible.builtin modules (no extra collections).
+
+- name: Harden the single-tenant Klopt host
+  hosts: klopt
+  become: true
+  vars:
+    klopt_user: klopt
+    klopt_home: /opt/klopt
+
+  tasks:
+    - name: Base packages
+      ansible.builtin.apt:
+        update_cache: true
+        name:
+          - ufw
+          - fail2ban
+          - unattended-upgrades
+          - apt-listchanges
+          - ca-certificates
+          - curl
+          - gnupg
+          - jq
+          - git
+        state: present
+
+    - name: Unattended upgrades
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        mode: '0644'
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+          APT::Periodic::AutocleanInterval "7";
+
+    - name: SSH keys only
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/99-klopt-hardening.conf
+        mode: '0644'
+        content: |
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          ChallengeResponseAuthentication no
+          PermitRootLogin no
+          X11Forwarding no
+          AllowTcpForwarding no
+          AllowUsers {{ klopt_user }}
+      notify: Reload ssh
+
+    - name: fail2ban sshd jail
+      ansible.builtin.copy:
+        dest: /etc/fail2ban/jail.d/sshd.local
+        mode: '0644'
+        content: |
+          [sshd]
+          enabled = true
+          mode = aggressive
+          port = ssh
+          filter = sshd
+          maxretry = 4
+          bantime = 1h
+          findtime = 10m
+      notify: Restart fail2ban
+
+    - name: UFW defaults and rules
+      ansible.builtin.shell: |
+        ufw default deny incoming
+        ufw default allow outgoing
+        ufw allow OpenSSH
+        ufw allow 80/tcp
+        ufw allow 443/tcp
+        ufw allow 443/udp
+        ufw --force enable
+      changed_when: true
+
+    - name: Docker apt keyrings directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Docker apt key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    - name: Docker apt source
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch={{ ansible_architecture | replace('x86_64','amd64') }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        filename: docker
+        state: present
+
+    - name: Docker engine
+      ansible.builtin.apt:
+        update_cache: true
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+          - docker-buildx-plugin
+        state: present
+
+    - name: Operator user
+      ansible.builtin.user:
+        name: '{{ klopt_user }}'
+        shell: /bin/bash
+        groups: [sudo, docker]
+        append: true
+        password_lock: true
+        create_home: true
+
+    - name: App directory
+      ansible.builtin.file:
+        path: '{{ klopt_home }}'
+        state: directory
+        owner: '{{ klopt_user }}'
+        group: '{{ klopt_user }}'
+        mode: '0750'
+
+    - name: Nightly backup unit
+      ansible.builtin.copy:
+        src: '{{ playbook_dir }}/../../systemd/klopt-pg-backup.service'
+        dest: /etc/systemd/system/klopt-pg-backup.service
+        mode: '0644'
+
+    - name: Nightly backup timer
+      ansible.builtin.copy:
+        src: '{{ playbook_dir }}/../../systemd/klopt-pg-backup.timer'
+        dest: /etc/systemd/system/klopt-pg-backup.timer
+        mode: '0644'
+
+    - name: Enable services
+      ansible.builtin.systemd:
+        name: '{{ item }}'
+        enabled: true
+        state: started
+        daemon_reload: true
+      loop:
+        - fail2ban
+        - unattended-upgrades
+        - docker
+        - klopt-pg-backup.timer
+
+  handlers:
+    - name: Reload ssh
+      ansible.builtin.service:
+        name: ssh
+        state: reloaded
+
+    - name: Restart fail2ban
+      ansible.builtin.service:
+        name: fail2ban
+        state: restarted

@@ -1,0 +1,47 @@
+# Isolated WAL-G restore rehearsal. Uses WAL-G's file storage so the drill
+# does not need Scaleway credentials or a second object store. Production
+# compose still archives to the separate Scaleway backups bucket.
+
+name: klopt-walg-drill
+
+services:
+  postgres:
+    build:
+      context: ./postgres
+    image: klopt-postgres:17-walg
+    environment:
+      POSTGRES_USER: klopt
+      POSTGRES_PASSWORD: drill
+      POSTGRES_DB: klopt
+      WALG_FILE_PREFIX: /backups
+      WALG_LIBSODIUM_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      WALG_COMPRESSION_METHOD: lz4
+      PGHOST: /var/run/postgresql
+      PGUSER: klopt
+      PGDATABASE: klopt
+    volumes:
+      - drill_pg:/var/lib/postgresql/data
+      - drill_backups:/backups
+    command:
+      - postgres
+      - -c
+      - listen_addresses=*
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_timeout=60
+      - -c
+      - archive_command=wal-g wal-push %p
+      - -c
+      - restore_command=wal-g wal-fetch %f %p
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U klopt -d klopt']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  drill_pg:
+  drill_backups:

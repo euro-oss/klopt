@@ -1,0 +1,148 @@
+# Single-tenant production stack for one administration on one Elastic Metal
+# box. This is not a multi-tenant product and not a public hosted service.
+#
+# Run from this directory, with a `.env` copied from `env.example`.
+# Postgres is not published. Only Caddy binds 80/443.
+
+name: klopt
+
+services:
+  postgres:
+    build:
+      context: ./postgres
+    image: klopt-postgres:17-walg
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: klopt
+      POSTGRES_DB: klopt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # WAL-G reads these; they are also in `.env`. Repeated here so a missing
+      # file cannot silently disable archiving.
+      AWS_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY}
+      AWS_ENDPOINT: ${BACKUP_S3_ENDPOINT}
+      AWS_REGION: ${BACKUP_S3_REGION}
+      AWS_S3_FORCE_PATH_STYLE: 'true'
+      WALG_S3_PREFIX: ${WALG_S3_PREFIX}
+      WALG_LIBSODIUM_KEY: ${WALG_LIBSODIUM_KEY}
+      WALG_COMPRESSION_METHOD: ${WALG_COMPRESSION_METHOD:-lz4}
+      PGHOST: /var/run/postgresql
+      PGUSER: klopt
+      PGDATABASE: klopt
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command:
+      - postgres
+      - -c
+      - listen_addresses=*
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_timeout=300
+      - -c
+      - archive_command=wal-g wal-push %p
+      - -c
+      - restore_command=wal-g wal-fetch %f %p
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - max_wal_size=1GB
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U klopt -d klopt']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    mem_limit: 2g
+    cpus: 2.0
+    networks:
+      - internal
+
+  web:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: ${KLOPT_IMAGE:-klopt:hosted}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      DATABASE_URL: postgres://klopt:${POSTGRES_PASSWORD}@postgres:5432/klopt
+      KLOPT_REFERENCE_DATA_DIR: /app/reference-data
+    command: ['serve', '--no-worker']
+    volumes:
+      - ../../reference-data:/app/reference-data:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://127.0.0.1:3000/api/v1/health\").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    mem_limit: 768m
+    cpus: 1.0
+    networks:
+      - internal
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: ${KLOPT_IMAGE:-klopt:hosted}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://klopt:${POSTGRES_PASSWORD}@postgres:5432/klopt
+      KLOPT_REFERENCE_DATA_DIR: /app/reference-data
+    # The image entrypoint wraps `klopt`. The worker has no CLI verb; run it
+    # directly so this container is not also an API process.
+    entrypoint: ['node', '/app/apps/worker/dist/main.js']
+    volumes:
+      - ../../reference-data:/app/reference-data:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 512m
+    cpus: 1.0
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    mem_limit: 128m
+    cpus: 0.5
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge

@@ -1,0 +1,6 @@
+.env
+*.pem
+*.key
+id_*
+cloud-init.secret.yaml
+inventory.ini

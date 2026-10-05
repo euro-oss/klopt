@@ -1,0 +1,10 @@
+[Unit]
+Description=Klopt Postgres WAL-G base backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=klopt
+WorkingDirectory=/opt/klopt/repo/deploy/hosted
+ExecStart=/opt/klopt/repo/deploy/hosted/scripts/backup-now.sh
