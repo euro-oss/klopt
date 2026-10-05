@@ -105,6 +105,29 @@ export {
   type DocumentBatchResult,
 } from './exact/documents.js'
 export {
+  commitMoneybirdImport,
+  type MoneybirdCommitRequest,
+  type MoneybirdCommitResult,
+} from './moneybird/import.js'
+export {
+  executeMoneybirdImport,
+  MoneybirdPlanRefused,
+  type MoneybirdRunReport,
+  type MoneybirdRunRequest,
+  type MoneybirdYearReconciliation,
+} from './moneybird/run.js'
+export {
+  type MoneybirdConnectionCredentials,
+  type MoneybirdConnectionRow,
+  MoneybirdConnectionRepository,
+} from './repositories/moneybird.js'
+export {
+  MoneybirdImportRepository,
+  withMoneybirdImport,
+  type MoneybirdImportRunRow,
+  type MoneybirdRunState,
+} from './repositories/moneybird-import.js'
+export {
   ExactDocumentRepository,
   withExactDocuments,
   type DocumentRunRow,
@@ -176,6 +199,8 @@ export {
   withSnapshotsRead,
   withExactConnection,
   withExactConnectionRead,
+  withMoneybirdConnection,
+  withMoneybirdConnectionRead,
   withInboundSources,
   withInboundSourcesRead,
   withInbox,

@@ -40,13 +40,16 @@ describe('the keyboard map', () => {
   it('never puts two navigations on the same keys, whatever their group', () => {
     // A `g`-prefixed key resolves globally, so two of them collide even if
     // somebody files them under different headings.
-    const navigations = BINDINGS.filter((binding) => binding.to !== undefined)
+    const navigations = BINDINGS.filter(
+      (binding) => binding.to !== undefined && binding.keys !== undefined && binding.keys !== '',
+    )
     const keys = navigations.map((binding) => binding.keys)
     expect(new Set(keys).size, keys.join(', ')).toBe(keys.length)
   })
 
   it('gives every binding a label and keys somebody could read out', () => {
     for (const binding of BINDINGS) {
+      if (binding.keys === undefined || binding.keys === '') continue
       expect(binding.keys.length, binding.id).toBeGreaterThan(0)
       expect(formatBinding(binding).length, binding.id).toBeGreaterThan(0)
     }

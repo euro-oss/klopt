@@ -18,6 +18,20 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Moneybird importer (issue #32)
+
+A Moneybird administration can be brought across the same way Exact is: connect
+(personal API token, encrypted), choose which administration, dry-run with a
+machine-readable report, mapping review, then a worker job. Unlike Exact, booked
+history is in the import — sales, purchases, bank mutations, general journal —
+because Moneybird has no XAF-equivalent audit file (ADR 0060). Everything posts
+through `postJournalEntry`. Foreign-currency administrations are refused.
+Out-of-scope surfaces are listed on the report as not imported.
+
+- Routes: `moneybird.*` under `/api/v1/moneybird/…`
+- Screen: `/moneybird` (command palette and settings; no `g` chord)
+- Worker job: `moneybird.import` every two minutes
+
 ### Peppol Schematron is fetched, not redistributed
 
 OpenPeppol BIS Billing 3 `.sch` files are no longer in the published tree.

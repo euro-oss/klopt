@@ -42,6 +42,15 @@ export * from './filing/index.js'
 export * from './documents/index.js'
 export * from './inbound/index.js'
 export * from './exact/index.js'
+export {
+  MONEYBIRD_API_BASE,
+  MoneybirdApiError,
+  collectAll as collectMoneybirdAll,
+  createMoneybirdClient,
+  readAdministration,
+  type MoneybirdClientOptions,
+  type ReadAdministrationRequest,
+} from './moneybird/index.js'
 export { createNoTimestampWitness } from './timestamp/none.js'
 export { createRfc3161Witness, type Rfc3161Options } from './timestamp/rfc3161.js'
 export { resolveTimestampWitness, type TimestampEnvironment } from './timestamp/resolve.js'

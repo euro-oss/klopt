@@ -1172,6 +1172,37 @@ export const runExactImportBody = z.object({
 
 export type RunExactImportBody = z.infer<typeof runExactImportBody>
 
+export const connectMoneybirdBody = z.object({
+  apiToken: z.string().trim().min(1).max(400),
+  baseUrl: z
+    .string()
+    .trim()
+    .url()
+    .refine(
+      (value) =>
+        value.startsWith('https://') ||
+        value.startsWith('http://localhost') ||
+        value.startsWith('http://127.0.0.1'),
+      'The Moneybird host must be https, or localhost for a stand-in.',
+    )
+    .default('https://moneybird.com/api/v2'),
+})
+
+export type ConnectMoneybirdBody = z.infer<typeof connectMoneybirdBody>
+
+export const chooseMoneybirdAdministrationBody = z.object({
+  administrationId: z.string().trim().min(1).max(40),
+})
+
+export type ChooseMoneybirdAdministrationBody = z.infer<typeof chooseMoneybirdAdministrationBody>
+
+export const saveMoneybirdMappingsBody = z.object({
+  accountMappings: z.record(z.string(), z.string().trim().min(1).max(20)),
+  taxMappings: z.record(z.string(), z.string().trim().min(1).max(20)),
+})
+
+export type SaveMoneybirdMappingsBody = z.infer<typeof saveMoneybirdMappingsBody>
+
 /**
  * Issuing an API token.
  *

@@ -70,7 +70,8 @@ palette prints the key beside the label, which is what makes that survivable.
 
 **The `g` alphabet is full.** Twenty-six destinations, twenty-six letters, and
 Alpha 3 took the last two. The next screen that wants a key needs a second prefix
-or a different scheme rather than a letter somebody else is using.
+or a different scheme rather than a letter somebody else is using. Moneybird is
+reached from the command palette and settings, without a `g` chord.
 `test/unit/shortcuts.test.ts` asserts the alphabet is exhausted, so that decision
 arrives as a failing test rather than as a collision.
 

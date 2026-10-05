@@ -8,6 +8,7 @@ import {
   index,
   integer,
   jsonb,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -405,3 +406,79 @@ export const exactAttachments = klopt.table('exact_attachments', {
   documentDate: date('document_date'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const moneybirdConnections = klopt.table(
+  'moneybird_connections',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    baseUrl: text('base_url').notNull(),
+    apiToken: text('api_token').notNull(),
+    administrationId: text('administration_id'),
+    administrationName: text('administration_name'),
+    administrationCurrency: text('administration_currency'),
+    accountMappings: jsonb('account_mappings').notNull().default({}),
+    taxMappings: jsonb('tax_mappings').notNull().default({}),
+    lastImportAt: timestamp('last_import_at', { withTimezone: true }),
+    lastError: text('last_error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex('moneybird_connections_entity').on(table.entityId)],
+)
+
+export const moneybirdImportRuns = klopt.table(
+  'moneybird_import_runs',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    administrationId: text('administration_id').notNull(),
+    state: text('state').notNull().default('pending'),
+    report: jsonb('report'),
+    requestedBy: text('requested_by'),
+    requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    lastError: text('last_error'),
+  },
+  (table) => [uniqueIndex('moneybird_import_runs_entity').on(table.entityId)],
+)
+
+export const moneybirdImportedIds = klopt.table(
+  'moneybird_imported_ids',
+  {
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    externalId: text('external_id').notNull(),
+    kind: text('kind').notNull(),
+    journalEntryId: uuid('journal_entry_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ name: 'moneybird_imported_ids_pk', columns: [table.entityId, table.externalId] }),
+  ],
+)
+
+export const moneybirdAttachments = klopt.table(
+  'moneybird_attachments',
+  {
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    moneybirdAttachmentId: text('moneybird_attachment_id').notNull(),
+    moneybirdDocumentId: text('moneybird_document_id').notNull(),
+    documentId: uuid('document_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: 'moneybird_attachments_pk',
+      columns: [table.entityId, table.moneybirdAttachmentId],
+    }),
+  ],
+)

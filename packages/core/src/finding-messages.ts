@@ -130,6 +130,36 @@ export const FINDING_MESSAGES = {
   'xaf.unknown_party': 'References unknown party {custSupID}.',
   'xaf.unknown_period': 'Period {periodNumber} is not declared.',
   'xaf.unknown_vat_code': 'References unknown VAT code {vatID}.',
+  'moneybird.unknown_currency':
+    'This administration is kept in {currency} and these books are in {functionalCurrency}. Importing would convert every amount at a rate nobody has chosen.',
+  'moneybird.unmapped_account':
+    'Ledger account {name} ({number}) has no confirmed Klopt account. Map it before importing.',
+  'moneybird.unmapped_tax_rate':
+    'Tax rate {name} ({percentage}%) has no confirmed Klopt VAT code. Map it before importing.',
+  'moneybird.account_number_collision': 'Moneybird returned ledger number {number} twice ({name}).',
+  'moneybird.contact_number_collision':
+    'Moneybird returned contact number {number} twice ({name}).',
+  'moneybird.resource_unreadable':
+    'Moneybird refused {resource} (HTTP {status}): {detail}. Unreadable is not empty, so this is not reported as reconciled.',
+  'moneybird.trial_balance_empty':
+    'No booked history was read for year {year}. That is not a balanced empty year.',
+  'moneybird.trial_balance_unbalanced':
+    'The Moneybird history for {year} does not balance: {debit} debit against {credit} credit (minor units).',
+  'moneybird.trial_balance_account_missing':
+    'Year {year} has a balance on {number}, which is not in the chart being imported.',
+  'moneybird.period_locked':
+    '{reference} is dated in {year}, which is locked here. It is reported rather than posted.',
+  'moneybird.unbalanced_document':
+    '{reference} does not balance: {debit} debit against {credit} credit (minor units).',
+  'moneybird.attachment_without_url':
+    'Attachment {filename} has no download URL, so the file cannot be stored.',
+  'moneybird.draft_skipped': '{reference} is still {state} in Moneybird and is not imported.',
+  'moneybird.derived_account_type':
+    '{number} ({name}) has Moneybird type {accountType}, which is not a known account type. It is being read as an asset. Check it before posting to it.',
+  'moneybird.fiscal_year_start_mismatch':
+    'Moneybird starts the year in month {moneybirdMonth} and these books start in month {entityMonth}. Importing would post into the wrong periods.',
+  'moneybird.fiscal_year_start_unknown':
+    'Moneybird did not say which month the year starts (no period_start_date). Check the year start before trusting the imported periods.',
 } as const satisfies Readonly<Record<string, string>>
 
 export type FindingMessageKey = keyof typeof FINDING_MESSAGES

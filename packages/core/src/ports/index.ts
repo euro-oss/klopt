@@ -65,3 +65,9 @@ export type {
   ExactUser,
 } from './exact.js'
 export type { TimestampOutcome, TimestampWitness } from './timestamp.js'
+export type {
+  MoneybirdAdministration,
+  MoneybirdClient,
+  MoneybirdPage,
+  MoneybirdRequestLog,
+} from './moneybird.js'

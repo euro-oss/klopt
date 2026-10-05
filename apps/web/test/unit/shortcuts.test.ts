@@ -53,7 +53,9 @@ describe('resolving a keystroke', () => {
     // destination needs a second prefix or a different scheme, and the honest
     // place to find that out is here rather than in review.
     const taken = new Set(
-      BINDINGS.filter((binding) => binding.keys.startsWith('g ')).map((binding) => binding.keys[2]),
+      BINDINGS.filter((binding) => binding.keys?.startsWith('g ')).map(
+        (binding) => binding.keys![2],
+      ),
     )
     expect([...'abcdefghijklmnopqrstuvwxyz'].filter((letter) => !taken.has(letter))).toEqual([])
   })
@@ -124,8 +126,10 @@ describe('what the global listener claims', () => {
     // The guarantee behind "every shortcut appears in the palette with its
     // key". A binding printed in the sidebar and unreachable here is the bug
     // this whole change exists to fix.
-    for (const binding of BINDINGS.filter((entry) => entry.to !== undefined)) {
-      const [first, second] = binding.keys.split(' ')
+    for (const binding of BINDINGS.filter(
+      (entry) => entry.to !== undefined && entry.keys !== undefined && entry.keys !== '',
+    )) {
+      const [first, second] = binding.keys!.split(' ')
       const resolved =
         second === undefined
           ? resolveKeystroke(stroke(first!), null)

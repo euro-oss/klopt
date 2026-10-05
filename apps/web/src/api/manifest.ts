@@ -480,6 +480,64 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/exact.documents.ts',
   },
 
+  {
+    operationId: 'moneybird.getConnection',
+    method: 'GET',
+    path: '/moneybird/connection',
+    module: 'api/v1/moneybird.connection.ts',
+  },
+  {
+    operationId: 'moneybird.connect',
+    method: 'POST',
+    path: '/moneybird/connection',
+    module: 'api/v1/moneybird.connection.ts',
+    request: { body: 'connectMoneybirdBody' },
+  },
+  {
+    operationId: 'moneybird.disconnect',
+    method: 'DELETE',
+    path: '/moneybird/connection',
+    module: 'api/v1/moneybird.connection.ts',
+  },
+  {
+    operationId: 'moneybird.listAdministrations',
+    method: 'GET',
+    path: '/moneybird/administrations',
+    module: 'api/v1/moneybird.administrations.ts',
+  },
+  {
+    operationId: 'moneybird.chooseAdministration',
+    method: 'POST',
+    path: '/moneybird/administration',
+    module: 'api/v1/moneybird.administration.ts',
+    request: { body: 'chooseMoneybirdAdministrationBody' },
+  },
+  {
+    operationId: 'moneybird.saveMappings',
+    method: 'POST',
+    path: '/moneybird/mappings',
+    module: 'api/v1/moneybird.mappings.ts',
+    request: { body: 'saveMoneybirdMappingsBody' },
+  },
+  {
+    operationId: 'moneybird.previewImport',
+    method: 'GET',
+    path: '/moneybird/import/preview',
+    module: 'api/v1/moneybird.import.preview.ts',
+  },
+  {
+    operationId: 'moneybird.runImport',
+    method: 'POST',
+    path: '/moneybird/import',
+    module: 'api/v1/moneybird.import.ts',
+  },
+  {
+    operationId: 'moneybird.importStatus',
+    method: 'GET',
+    path: '/moneybird/import',
+    module: 'api/v1/moneybird.import.ts',
+  },
+
   // Sales (M1).
   {
     operationId: 'sales.listContacts',

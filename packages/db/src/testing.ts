@@ -72,6 +72,10 @@ export async function cleanupSeededBackgroundWork(database: Database): Promise<v
 
   await database.execute(sql`delete from klopt.inbound_sources where entity_id in (${ids})`)
   await database.execute(sql`delete from klopt.exact_document_runs where entity_id in (${ids})`)
+  await database.execute(sql`delete from klopt.moneybird_attachments where entity_id in (${ids})`)
+  await database.execute(sql`delete from klopt.moneybird_imported_ids where entity_id in (${ids})`)
+  await database.execute(sql`delete from klopt.moneybird_import_runs where entity_id in (${ids})`)
+  await database.execute(sql`delete from klopt.moneybird_connections where entity_id in (${ids})`)
 
   seeded.length = 0
 }
