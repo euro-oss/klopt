@@ -29,7 +29,7 @@ through `postJournalEntry`. Foreign-currency administrations are refused.
 Out-of-scope surfaces are listed on the report as not imported.
 
 - Routes: `moneybird.*` under `/api/v1/moneybird/…`
-- Screen: `/moneybird` (`g .`)
+- Screen: `/moneybird` (command palette and settings; no `g` chord)
 - Worker job: `moneybird.import` every two minutes
 
 ### Peppol Schematron is fetched, not redistributed

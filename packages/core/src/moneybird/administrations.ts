@@ -1,5 +1,25 @@
 import type { MoneybirdAdministration } from '../ports/moneybird.js'
-import { readString, requireId } from './read.js'
+import { readNumber, readString, requireId } from './read.js'
+
+/** Month 1–12 from a Moneybird administration row; January when they omit it. */
+export function fiscalYearStartMonthOf(row: Record<string, unknown>): number {
+  const numeric =
+    readNumber(row, 'fiscal_year_start_month') ?? readNumber(row, 'financial_year_start_month')
+  if (numeric !== null && numeric >= 1 && numeric <= 12) return Math.trunc(numeric)
+
+  const dated =
+    readString(row, 'fiscal_year_start') ??
+    readString(row, 'financial_year_start') ??
+    readString(row, 'start_date')
+  if (dated !== null) {
+    const match = /(?:\d{4}-)?(\d{1,2})-\d{1,2}/.exec(dated)
+    if (match?.[1] !== undefined) {
+      const month = Number(match[1])
+      if (month >= 1 && month <= 12) return month
+    }
+  }
+  return 1
+}
 
 /**
  * Choosing which Moneybird administration to import.
@@ -21,6 +41,7 @@ export function parseAdministration(row: Record<string, unknown>): MoneybirdAdmi
     currency: readString(row, 'currency'),
     country: readString(row, 'country'),
     timeZone: readString(row, 'time_zone'),
+    fiscalYearStartMonth: fiscalYearStartMonthOf(row),
   }
 }
 

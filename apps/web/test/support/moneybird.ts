@@ -13,6 +13,8 @@ export interface FakeMoneybird {
   forbidden: Set<string>
   otherCurrency: boolean
   malformed: boolean
+  /** When set, every administration starts its year in this month (1–12). */
+  fiscalYearStartMonth: number | null
 }
 
 const LEDGER = [
@@ -124,7 +126,15 @@ const PURCHASES = [
         ledger_account_id: 6,
       },
     ],
-    attachments: [],
+    attachments: [
+      {
+        id: 903,
+        filename: 'bon-lev-88.pdf',
+        content_type: 'application/pdf',
+        size: 8,
+        download_url: 'https://moneybird.test/files/903',
+      },
+    ],
   },
 ]
 
@@ -210,6 +220,7 @@ export function fakeMoneybird(): FakeMoneybird {
     forbidden: new Set(),
     otherCurrency: false,
     malformed: false,
+    fiscalYearStartMonth: null,
     administrations: [
       {
         id: 123456,
@@ -246,13 +257,18 @@ export function fakeMoneybird(): FakeMoneybird {
     }
 
     if (url.includes('/files/')) {
-      return Promise.resolve(new Response(new Uint8Array([37, 80, 68, 70]), { status: 200 }))
+      const stamp = Number((url.split('/').pop() ?? '0').replace(/\D/g, '')) % 256
+      return Promise.resolve(new Response(new Uint8Array([37, 80, 68, 70, stamp]), { status: 200 }))
     }
 
     if (url.includes('/administrations.json')) {
-      const rows = state.otherCurrency
-        ? state.administrations.map((row) => ({ ...row, currency: 'GBP' }))
-        : state.administrations
+      const rows = state.administrations.map((row) => ({
+        ...row,
+        ...(state.otherCurrency ? { currency: 'GBP' } : {}),
+        ...(state.fiscalYearStartMonth === null
+          ? {}
+          : { fiscal_year_start_month: state.fiscalYearStartMonth }),
+      }))
       return Promise.resolve(json(rows))
     }
 

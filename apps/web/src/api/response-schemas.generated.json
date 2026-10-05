@@ -2976,6 +2976,7 @@
                     "moneybird.attachment_without_url",
                     "moneybird.draft_skipped",
                     "moneybird.derived_account_type",
+                    "moneybird.fiscal_year_start_mismatch",
                     "invalid_currency",
                     "entry_unbalanced_functional",
                     "line_debit_and_credit",
@@ -3288,7 +3289,8 @@
                     "moneybird.unbalanced_document",
                     "moneybird.attachment_without_url",
                     "moneybird.draft_skipped",
-                    "moneybird.derived_account_type"
+                    "moneybird.derived_account_type",
+                    "moneybird.fiscal_year_start_mismatch"
                   ]
                 },
                 "detail": {
@@ -3657,7 +3659,8 @@
                                   "moneybird.unbalanced_document",
                                   "moneybird.attachment_without_url",
                                   "moneybird.draft_skipped",
-                                  "moneybird.derived_account_type"
+                                  "moneybird.derived_account_type",
+                                  "moneybird.fiscal_year_start_mismatch"
                                 ]
                               },
                               "detail": {
@@ -4149,7 +4152,8 @@
                             "moneybird.unbalanced_document",
                             "moneybird.attachment_without_url",
                             "moneybird.draft_skipped",
-                            "moneybird.derived_account_type"
+                            "moneybird.derived_account_type",
+                            "moneybird.fiscal_year_start_mismatch"
                           ]
                         },
                         "detail": {
@@ -6925,6 +6929,9 @@
                       "reconciliation": {
                         "type": "null"
                       },
+                      "opening": {
+                        "type": "null"
+                      },
                       "notImported": {
                         "type": "null"
                       }
@@ -7034,6 +7041,38 @@
                                 "null"
                               ]
                             },
+                            "balanced": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "accounts": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "accountNumber": {
+                                    "type": "string"
+                                  },
+                                  "moneybird": {
+                                    "type": "string"
+                                  },
+                                  "klopt": {
+                                    "type": "string"
+                                  },
+                                  "difference": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "accountNumber",
+                                  "moneybird",
+                                  "klopt",
+                                  "difference"
+                                ]
+                              }
+                            },
                             "differences": {
                               "type": "array",
                               "items": {
@@ -7068,9 +7107,56 @@
                             "moneybirdCredit",
                             "kloptDebit",
                             "kloptCredit",
+                            "balanced",
+                            "accounts",
                             "differences"
                           ]
                         }
+                      },
+                      "opening": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "year": {
+                                "type": "number"
+                              },
+                              "accounts": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "accountNumber": {
+                                      "type": "string"
+                                    },
+                                    "moneybird": {
+                                      "type": "string"
+                                    },
+                                    "klopt": {
+                                      "type": "string"
+                                    },
+                                    "difference": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "accountNumber",
+                                    "moneybird",
+                                    "klopt",
+                                    "difference"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "year",
+                              "accounts"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       },
                       "notImported": {
                         "type": "array",
@@ -7145,6 +7231,7 @@
                       "skipped",
                       "counts",
                       "reconciliation",
+                      "opening",
                       "notImported",
                       "problems",
                       "warnings"
@@ -7697,7 +7784,8 @@
                     "moneybird.unbalanced_document",
                     "moneybird.attachment_without_url",
                     "moneybird.draft_skipped",
-                    "moneybird.derived_account_type"
+                    "moneybird.derived_account_type",
+                    "moneybird.fiscal_year_start_mismatch"
                   ]
                 },
                 "detail": {
@@ -7820,7 +7908,8 @@
                     "moneybird.unbalanced_document",
                     "moneybird.attachment_without_url",
                     "moneybird.draft_skipped",
-                    "moneybird.derived_account_type"
+                    "moneybird.derived_account_type",
+                    "moneybird.fiscal_year_start_mismatch"
                   ]
                 },
                 "detail": {
@@ -7976,6 +8065,9 @@
                   "reconciliation": {
                     "type": "null"
                   },
+                  "opening": {
+                    "type": "null"
+                  },
                   "notImported": {
                     "type": "null"
                   }
@@ -8085,6 +8177,38 @@
                             "null"
                           ]
                         },
+                        "balanced": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "accounts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "accountNumber": {
+                                "type": "string"
+                              },
+                              "moneybird": {
+                                "type": "string"
+                              },
+                              "klopt": {
+                                "type": "string"
+                              },
+                              "difference": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "accountNumber",
+                              "moneybird",
+                              "klopt",
+                              "difference"
+                            ]
+                          }
+                        },
                         "differences": {
                           "type": "array",
                           "items": {
@@ -8119,9 +8243,56 @@
                         "moneybirdCredit",
                         "kloptDebit",
                         "kloptCredit",
+                        "balanced",
+                        "accounts",
                         "differences"
                       ]
                     }
+                  },
+                  "opening": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "year": {
+                            "type": "number"
+                          },
+                          "accounts": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "accountNumber": {
+                                  "type": "string"
+                                },
+                                "moneybird": {
+                                  "type": "string"
+                                },
+                                "klopt": {
+                                  "type": "string"
+                                },
+                                "difference": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "accountNumber",
+                                "moneybird",
+                                "klopt",
+                                "difference"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "year",
+                          "accounts"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "notImported": {
                     "type": "array",
@@ -8196,6 +8367,7 @@
                   "skipped",
                   "counts",
                   "reconciliation",
+                  "opening",
                   "notImported",
                   "problems",
                   "warnings"
@@ -8563,7 +8735,8 @@
                     "moneybird.unbalanced_document",
                     "moneybird.attachment_without_url",
                     "moneybird.draft_skipped",
-                    "moneybird.derived_account_type"
+                    "moneybird.derived_account_type",
+                    "moneybird.fiscal_year_start_mismatch"
                   ]
                 },
                 "detail": {
@@ -8861,7 +9034,8 @@
                     "moneybird.unbalanced_document",
                     "moneybird.attachment_without_url",
                     "moneybird.draft_skipped",
-                    "moneybird.derived_account_type"
+                    "moneybird.derived_account_type",
+                    "moneybird.fiscal_year_start_mismatch"
                   ]
                 },
                 "detail": {
@@ -9106,7 +9280,8 @@
                     "moneybird.unbalanced_document",
                     "moneybird.attachment_without_url",
                     "moneybird.draft_skipped",
-                    "moneybird.derived_account_type"
+                    "moneybird.derived_account_type",
+                    "moneybird.fiscal_year_start_mismatch"
                   ]
                 },
                 "detail": {
@@ -9490,7 +9665,8 @@
                     "moneybird.unbalanced_document",
                     "moneybird.attachment_without_url",
                     "moneybird.draft_skipped",
-                    "moneybird.derived_account_type"
+                    "moneybird.derived_account_type",
+                    "moneybird.fiscal_year_start_mismatch"
                   ]
                 },
                 "detail": {
@@ -12729,7 +12905,8 @@
                     "moneybird.unbalanced_document",
                     "moneybird.attachment_without_url",
                     "moneybird.draft_skipped",
-                    "moneybird.derived_account_type"
+                    "moneybird.derived_account_type",
+                    "moneybird.fiscal_year_start_mismatch"
                   ]
                 },
                 "detail": {
@@ -13324,7 +13501,8 @@
                     "moneybird.unbalanced_document",
                     "moneybird.attachment_without_url",
                     "moneybird.draft_skipped",
-                    "moneybird.derived_account_type"
+                    "moneybird.derived_account_type",
+                    "moneybird.fiscal_year_start_mismatch"
                   ]
                 },
                 "detail": {
@@ -14235,7 +14413,8 @@
         "unmapped_tax_rate",
         "period_locked",
         "unbalanced_document",
-        "draft_skipped"
+        "draft_skipped",
+        "fiscal_year_start_mismatch"
       ]
     },
     "MoneybirdRunState": {

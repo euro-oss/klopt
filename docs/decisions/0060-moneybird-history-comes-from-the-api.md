@@ -39,7 +39,9 @@ redesign.
 scope and listed as not imported. One token reaches every administration the
 user belongs to, so choosing an administration is its own step, as with Exact.
 
-A foreign-currency administration is refused rather than converted.
+A foreign-currency administration is refused rather than converted. A Moneybird
+fiscal year that does not start in the same month as the Klopt entity is refused
+(`fiscal_year_start_mismatch`) rather than posting into the wrong periods.
 
 ## Consequences
 

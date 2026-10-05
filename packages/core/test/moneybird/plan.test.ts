@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { planMoneybirdImport, type MoneybirdImportOptions } from '../../src/index.js'
-import { snapshot } from './fixture.js'
+import { snapshot, snapshotV2 } from './fixture.js'
 
 const options = (overrides: Partial<MoneybirdImportOptions> = {}): MoneybirdImportOptions => ({
   entityId: 'entity-1',
@@ -15,6 +15,7 @@ const options = (overrides: Partial<MoneybirdImportOptions> = {}): MoneybirdImpo
   confirmedTaxMappings: {},
   existingExternalIds: [],
   lockedYears: [],
+  entityFiscalYearStartMonth: 1,
   ...overrides,
 })
 
@@ -79,6 +80,33 @@ describe('booked history', () => {
     expect(plan.entries.find((entry) => entry.externalId === 'sales_invoice:301')?.exists).toBe(
       true,
     )
+  })
+
+  it('plans only the new invoice and mutation after v1 is imported', () => {
+    const first = planMoneybirdImport(snapshot(), options())
+    const known = first.entries.map((entry) => entry.externalId)
+    const second = planMoneybirdImport(snapshotV2(), options({ existingExternalIds: known }))
+    expect(
+      second.entries
+        .filter((entry) => !entry.exists)
+        .map((entry) => entry.externalId)
+        .sort(),
+    ).toEqual(['bank_mutation:602', 'sales_invoice:302'])
+  })
+
+  it('refuses a Moneybird year that does not start with this entity', () => {
+    const plan = planMoneybirdImport(
+      snapshot({
+        administration: { ...snapshot().administration, fiscalYearStartMonth: 4 },
+      }),
+      options(),
+    )
+    const mismatch = plan.problems.find((problem) => problem.code === 'fiscal_year_start_mismatch')
+    expect(mismatch).toBeDefined()
+    expect(mismatch?.messageKey).toBe('moneybird.fiscal_year_start_mismatch')
+    expect(mismatch?.message).toContain('month 4')
+    expect(mismatch?.message).toContain('month 1')
+    expect(mismatch?.detail).toEqual({ moneybirdMonth: '4', entityMonth: '1' })
   })
 })
 

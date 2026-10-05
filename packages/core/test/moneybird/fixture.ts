@@ -168,7 +168,15 @@ const PURCHASES = [
         ledger_account_id: 6,
       },
     ],
-    attachments: [],
+    attachments: [
+      {
+        id: 903,
+        filename: 'bon-lev-88.pdf',
+        content_type: 'application/pdf',
+        size: 8,
+        download_url: 'https://moneybird.test/files/903',
+      },
+    ],
   },
 ]
 
@@ -267,6 +275,65 @@ export function snapshot(overrides: Partial<MoneybirdSnapshot> = {}): MoneybirdS
     unreadable: [],
     ...overrides,
   }
+}
+
+const EXTRA_SALE = {
+  id: 302,
+  contact_id: 100,
+  invoice_id: '2026-002',
+  state: 'open',
+  invoice_date: '2026-03-15',
+  due_date: '2026-04-14',
+  reference: null,
+  currency: 'EUR',
+  prices_are_incl_tax: false,
+  total_price_excl_tax: '50.00',
+  total_price_incl_tax: '60.50',
+  total_tax: '10.50',
+  original_sales_invoice_id: null,
+  details: [
+    {
+      id: 3021,
+      description: 'Naslag',
+      amount: '1',
+      price: '50.00',
+      tax_rate_id: 21,
+      ledger_account_id: 7,
+    },
+  ],
+  attachments: [],
+}
+
+const EXTRA_MUTATION = {
+  id: 602,
+  financial_account_id: 501,
+  date: '2026-03-16',
+  message: 'Betaling 2026-002',
+  amount: '60.50',
+  contra_account_name: 'Klant BV',
+  contra_account_number: null,
+  batch_reference: null,
+  amount_open: '0.0',
+  state: 'processed',
+  payments: [
+    {
+      id: 6021,
+      invoice_type: 'SalesInvoice',
+      invoice_id: 302,
+      price: '60.50',
+      payment_date: '2026-03-16',
+    },
+  ],
+}
+
+/** Fixture after more activity in Moneybird: one extra invoice and mutation. */
+export function snapshotV2(overrides: Partial<MoneybirdSnapshot> = {}): MoneybirdSnapshot {
+  const base = snapshot()
+  return snapshot({
+    salesInvoices: [...base.salesInvoices, parseSalesInvoice(EXTRA_SALE)],
+    financialMutations: [...base.financialMutations, parseFinancialMutation(EXTRA_MUTATION)],
+    ...overrides,
+  })
 }
 
 export const RAW = {

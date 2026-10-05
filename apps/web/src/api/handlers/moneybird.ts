@@ -385,6 +385,7 @@ async function planFor(context: RequestContext, client: ReturnType<typeof create
     confirmedTaxMappings: connection.taxMappings,
     existingExternalIds: here.externalIds,
     lockedYears: here.years.filter((year) => year.status === 'closed').map((year) => year.code),
+    entityFiscalYearStartMonth: here.entity.fiscalYearStartMonth,
   })
 
   return { plan, snapshot, connection }
@@ -504,6 +505,20 @@ function asFindings(value: unknown) {
   }))
 }
 
+function asAccountBalances(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value.filter(isRecord).map((row) => ({
+    accountNumber: asString(row['accountNumber']),
+    moneybird: asString(row['moneybird']),
+    klopt: asString(row['klopt']),
+    difference: asString(row['difference']),
+  }))
+}
+
+function asBooleanOrNull(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null
+}
+
 function asReconciliation(value: unknown) {
   if (!Array.isArray(value)) return []
   return value.filter(isRecord).map((row) => ({
@@ -513,15 +528,18 @@ function asReconciliation(value: unknown) {
     moneybirdCredit: asStringOrNull(row['moneybirdCredit']),
     kloptDebit: asStringOrNull(row['kloptDebit']),
     kloptCredit: asStringOrNull(row['kloptCredit']),
-    differences: Array.isArray(row['differences'])
-      ? row['differences'].filter(isRecord).map((diff) => ({
-          accountNumber: asString(diff['accountNumber']),
-          moneybird: asString(diff['moneybird']),
-          klopt: asString(diff['klopt']),
-          difference: asString(diff['difference']),
-        }))
-      : [],
+    balanced: asBooleanOrNull(row['balanced']),
+    accounts: asAccountBalances(row['accounts']),
+    differences: asAccountBalances(row['differences']),
   }))
+}
+
+function asOpening(value: unknown) {
+  if (!isRecord(value)) return null
+  return {
+    year: asNumber(value['year']),
+    accounts: asAccountBalances(value['accounts']),
+  }
 }
 
 /** jsonb from the worker, reduced to what JSON Schema can name. */
@@ -556,6 +574,7 @@ function serialiseStoredReport(report: unknown) {
       entries: asNumber(counts['entries']),
     },
     reconciliation: asReconciliation(report['reconciliation']),
+    opening: asOpening(report['opening']),
     notImported: Array.isArray(report['notImported']) ? report['notImported'].map(asString) : [],
     problems: asFindings(report['problems']),
     warnings: asFindings(report['warnings']),

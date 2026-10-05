@@ -36,6 +36,13 @@ export interface MoneybirdAdministration {
   readonly currency: string | null
   readonly country: string | null
   readonly timeZone: string | null
+  /**
+   * Month the Moneybird year starts (1–12).
+   *
+   * Absent on the public administrations list, so the reader defaults to
+   * January — and the planner refuses when that is not this entity's start.
+   */
+  readonly fiscalYearStartMonth: number
 }
 
 /** A page of rows. Moneybird paginates with `page` / `per_page`, not a next URL. */

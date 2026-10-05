@@ -71,7 +71,7 @@ function useFocusOnRoute(path: string): React.RefObject<HTMLElement | null> {
 interface NavItem {
   readonly to: string
   readonly key: MessageKey
-  readonly binding: string
+  readonly binding?: string
   readonly roles?: readonly string[]
 }
 
@@ -203,7 +203,6 @@ const NAVIGATION: readonly NavGroup[] = [
       {
         to: '/moneybird',
         key: 'nav.moneybird',
-        binding: 'go.moneybird',
         roles: ['owner', 'accountant', 'bookkeeper'],
       },
     ],
@@ -360,7 +359,8 @@ export function AppShell({
                 )}
                 <ul className="space-y-0.5">
                   {group.items.map((item) => {
-                    const binding = BINDINGS_BY_ID.get(item.binding)
+                    const binding =
+                      item.binding === undefined ? undefined : BINDINGS_BY_ID.get(item.binding)
                     const isActive = item.to === '/' ? path === '/' : path.startsWith(item.to)
                     return (
                       <li key={item.to}>

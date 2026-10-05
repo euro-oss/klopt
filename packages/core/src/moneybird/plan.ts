@@ -42,6 +42,7 @@ export type MoneybirdProblemCode =
   | 'attachment_without_url'
   | 'draft_skipped'
   | 'derived_account_type'
+  | 'fiscal_year_start_mismatch'
 
 export interface MoneybirdProblem {
   readonly code: MoneybirdProblemCode
@@ -105,6 +106,8 @@ export interface MoneybirdImportOptions {
   readonly existingExternalIds: readonly string[]
   /** Hard-closed fiscal year codes. Posting into one is a problem, not a silent post. */
   readonly lockedYears: readonly string[]
+  /** This entity's fiscal year start month (1–12). Moneybird must match it. */
+  readonly entityFiscalYearStartMonth: number
   readonly receivableAccount?: string
   readonly payableAccount?: string
   readonly vatPayableAccount?: string
@@ -332,6 +335,15 @@ export function planMoneybirdImport(
       problem('unknown_currency', 'administration.currency', {
         currency: snapshot.administration.currency,
         functionalCurrency: options.currency,
+      }),
+    )
+  }
+
+  if (snapshot.administration.fiscalYearStartMonth !== options.entityFiscalYearStartMonth) {
+    problems.push(
+      problem('fiscal_year_start_mismatch', 'administration.fiscalYearStartMonth', {
+        moneybirdMonth: String(snapshot.administration.fiscalYearStartMonth),
+        entityMonth: String(options.entityFiscalYearStartMonth),
       }),
     )
   }

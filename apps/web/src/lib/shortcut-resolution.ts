@@ -27,8 +27,8 @@ export const GLOBAL_BINDINGS: readonly Binding[] = BINDINGS.filter(
 /** The distinct first keys of every two-key binding: `g` and `n`. */
 export const PREFIXES: readonly string[] = [
   ...new Set(
-    GLOBAL_BINDINGS.filter((binding) => binding.keys.includes(' ')).map(
-      (binding) => binding.keys.split(' ')[0]!,
+    GLOBAL_BINDINGS.filter((binding) => binding.keys?.includes(' ')).map(
+      (binding) => binding.keys!.split(' ')[0]!,
     ),
   ),
 ]
@@ -72,6 +72,7 @@ export function resolveKeystroke(stroke: Keystroke, armed: string | null): Resol
     // way. A prefix cannot survive one.
     const binding = GLOBAL_BINDINGS.find(
       (entry) =>
+        entry.keys !== undefined &&
         !entry.keys.includes(' ') &&
         (entry.modifiers?.includes('mod') ?? false) &&
         (entry.modifiers?.includes('shift') ?? false) === stroke.shiftKey &&
@@ -94,7 +95,10 @@ export function resolveKeystroke(stroke: Keystroke, armed: string | null): Resol
 
   const binding = GLOBAL_BINDINGS.find(
     (entry) =>
-      !entry.keys.includes(' ') && entry.modifiers === undefined && entry.keys === stroke.key,
+      entry.keys !== undefined &&
+      !entry.keys.includes(' ') &&
+      entry.modifiers === undefined &&
+      entry.keys === stroke.key,
   )
   return binding === undefined ? { action: 'ignore' } : { action: 'trigger', binding }
 }

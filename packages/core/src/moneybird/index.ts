@@ -16,6 +16,7 @@ export {
 export {
   describeAdministration,
   findAdministration,
+  fiscalYearStartMonthOf,
   parseAdministration,
   selectableAdministrations,
   type SelectableAdministration,

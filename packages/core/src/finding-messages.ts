@@ -156,6 +156,8 @@ export const FINDING_MESSAGES = {
   'moneybird.draft_skipped': '{reference} is still {state} in Moneybird and is not imported.',
   'moneybird.derived_account_type':
     '{number} ({name}) has Moneybird type {accountType}, which is not a known account type. It is being read as an asset. Check it before posting to it.',
+  'moneybird.fiscal_year_start_mismatch':
+    'Moneybird starts the year in month {moneybirdMonth} and these books start in month {entityMonth}. Importing would post into the wrong periods.',
 } as const satisfies Readonly<Record<string, string>>
 
 export type FindingMessageKey = keyof typeof FINDING_MESSAGES

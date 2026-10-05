@@ -113,6 +113,20 @@ export class MoneybirdImportRepository {
       .where(eq(moneybirdImportRuns.id, request.id))
   }
 
+  async journalEntryId(entityId: string, externalId: string): Promise<string | null> {
+    const [row] = await this.tx
+      .select({ journalEntryId: moneybirdImportedIds.journalEntryId })
+      .from(moneybirdImportedIds)
+      .where(
+        and(
+          eq(moneybirdImportedIds.entityId, entityId),
+          eq(moneybirdImportedIds.externalId, externalId),
+        ),
+      )
+      .limit(1)
+    return row?.journalEntryId ?? null
+  }
+
   async knownExternalIds(entityId: string): Promise<readonly string[]> {
     const rows = await this.tx
       .select({ externalId: moneybirdImportedIds.externalId })

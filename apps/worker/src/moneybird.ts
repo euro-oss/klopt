@@ -75,6 +75,7 @@ export async function importMoneybirdAdministration(
           attachmentsStored: report.attachmentsStored,
           attachmentsSkipped: report.attachmentsSkipped,
           reconciliation: report.reconciliation,
+          opening: report.opening,
           counts: {
             accounts: report.plan.accounts.length,
             contacts: report.plan.contacts.length,

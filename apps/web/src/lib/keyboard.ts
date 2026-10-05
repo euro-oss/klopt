@@ -19,8 +19,13 @@ export interface Binding {
   /** Message keys, not words: the palette is read in the reader's language. */
   readonly label: MessageKey
   readonly group: MessageKey
-  /** Lowercase key, or a two-key sequence like `g d`. */
-  readonly keys: string
+  /**
+   * Lowercase key, or a two-key sequence like `g d`.
+   *
+   * Absent for palette-only destinations (a one-time setup screen that must
+   * stay findable without claiming a global chord).
+   */
+  readonly keys?: string
   readonly modifiers?: readonly Modifier[]
   /** Absent for navigation entries, which the palette resolves to a route. */
   readonly to?: string
@@ -150,15 +155,8 @@ export const BINDINGS: readonly Binding[] = [
   },
   // `g x` for E**x**act. `g e` is the postvak and `g o` the koppelscherm.
   { id: 'go.exact', label: 'nav.exact', group: 'keys.group.goTo', keys: 'g x', to: '/exact' },
-  // `g .` has no mnemonic: every letter was taken by the time Moneybird
-  // arrived. The palette prints it, next to Exact.
-  {
-    id: 'go.moneybird',
-    label: 'nav.moneybird',
-    group: 'keys.group.goTo',
-    keys: 'g .',
-    to: '/moneybird',
-  },
+  // Palette-only: a one-time migration does not get a global go-to chord.
+  { id: 'go.moneybird', label: 'nav.moneybird', group: 'keys.group.goTo', to: '/moneybird' },
   // `s` for **s**luiten. Every letter in *boekjaren* was taken by the time this
   // screen arrived, which is what happens when a keyboard map is real, and
   // closing a year is what people come here to do.
@@ -361,8 +359,8 @@ export function formatBinding(binding: Binding): string {
   const parts = (binding.modifiers ?? []).map((modifier) =>
     modifier === 'mod' ? mod : modifier === 'shift' ? '⇧' : '⌥',
   )
-  const keys = binding.keys.split(' ').map(keyLabel).join(' then ')
-  return [...parts, keys].join(binding.modifiers?.length ? '' : ' ')
+  const keys = (binding.keys ?? '').split(' ').filter(Boolean).map(keyLabel).join(' then ')
+  return [...parts, keys].filter(Boolean).join(binding.modifiers?.length ? '' : ' ')
 }
 
 /**
@@ -378,11 +376,12 @@ export function bindingChips(binding: Binding): readonly string[] {
   const held = (binding.modifiers ?? [])
     .map((modifier) => (modifier === 'mod' ? mod : modifier === 'shift' ? '⇧' : '⌥'))
     .join('')
+  if (binding.keys === undefined || binding.keys === '') return held === '' ? [] : [held]
   return binding.keys.split(' ').map((key, index) => (index === 0 ? held : '') + keyLabel(key))
 }
 
 export function matches(binding: Binding, event: KeyboardEvent): boolean {
-  if (binding.keys.includes(' ')) return false
+  if (binding.keys === undefined || binding.keys === '' || binding.keys.includes(' ')) return false
 
   const wantsMod = binding.modifiers?.includes('mod') ?? false
   const wantsShift = binding.modifiers?.includes('shift') ?? false

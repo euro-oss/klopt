@@ -78,6 +78,7 @@ export {
   contactName,
   describeAdministration,
   findAdministration,
+  fiscalYearStartMonthOf,
   minorFromMoneybirdAmount,
   parseAdministration,
   parseContact,

@@ -68,7 +68,7 @@ function search(translate: (key: MessageKey) => string, query: string): readonly
     (binding) =>
       translate(binding.label).toLowerCase().includes(needle) ||
       translate(binding.group).toLowerCase().includes(needle) ||
-      binding.keys.replace(' ', '').includes(needle),
+      (binding.keys ?? '').replace(' ', '').includes(needle),
   )
 }
 

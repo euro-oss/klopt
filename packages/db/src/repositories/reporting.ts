@@ -229,6 +229,7 @@ export class ReportingRepository {
         name: entities.name,
         legalName: entities.legalName,
         functionalCurrency: entities.functionalCurrency,
+        fiscalYearStartMonth: entities.fiscalYearStartMonth,
         rgsVersion: entities.rgsVersion,
         rgsVariant: entities.rgsVariant,
       })

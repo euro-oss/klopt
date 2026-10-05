@@ -48,7 +48,6 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `g` then `h`   | Go to bewaarplicht (be**h**ouden)                       |
 | `g` then `z`   | Go to momentopnames (het **z**egel)                     |
 | `g` then `x`   | Go to Exact Online (E**x**act)                          |
-| `g` then `.`   | Go to Moneybird                                         |
 | `g` then `v`   | Go to ouderdomsanalyse debiteuren (**v**orderingen)     |
 | `g` then `c`   | Go to ouderdomsanalyse crediteuren (**c**rediteuren)    |
 | `g` then `s`   | Go to boekjaren (**s**luiten)                           |
@@ -65,13 +64,14 @@ the registry the palette and the `?` sheet are generated from. That is what
 principle 5 means in practice: a binding that is not in the registry does not
 appear anywhere, and one that is appears everywhere.
 
-`g q` and `g .` are the two bindings here with no mnemonic, and are not pretending
-to have one: every letter was taken by the time those screens arrived. The palette
-prints the key beside the label, which is what makes that survivable.
+`g q` is the one binding here with no mnemonic, and is not pretending to have
+one: every letter in _auditfile_ was taken by the time the screen arrived. The
+palette prints the key beside the label, which is what makes that survivable.
 
-**The `g` alphabet is full.** Twenty-six letter destinations plus Moneybird on
-`g .`. The next screen that wants a letter needs a second prefix or a different
-scheme rather than a letter somebody else is using.
+**The `g` alphabet is full.** Twenty-six destinations, twenty-six letters, and
+Alpha 3 took the last two. The next screen that wants a key needs a second prefix
+or a different scheme rather than a letter somebody else is using. Moneybird is
+reached from the command palette and settings, without a `g` chord.
 `test/unit/shortcuts.test.ts` asserts the alphabet is exhausted, so that decision
 arrives as a failing test rather than as a collision.
 

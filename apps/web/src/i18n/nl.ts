@@ -1225,6 +1225,8 @@ export const nl = {
     '{reference} staat in Moneybird nog op {state} en wordt niet geïmporteerd.',
   'finding.moneybird.derived_account_type':
     '{number} ({name}) heeft Moneybird-type {accountType}, geen bekend rekeningtype. Wordt als activa gelezen. Controleer voordat je erop boekt.',
+  'finding.moneybird.fiscal_year_start_mismatch':
+    'Moneybird start het jaar in maand {moneybirdMonth} en deze boeken in maand {entityMonth}. Importeren zou in de verkeerde periodes boeken.',
 
   // Chasing what is overdue.
   'dunning.title': 'Aanmaningen',
