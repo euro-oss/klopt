@@ -1181,6 +1181,13 @@ export const en: Record<MessageKey, string> = {
   'moneybird.status': 'Status:',
   'moneybird.refresh': 'Refresh',
   'moneybird.workerSilent': 'The job is waiting, but the worker has not claimed it. Run',
+  'moneybird.plannedColumn': 'planned from Moneybird',
+  'moneybird.kloptColumn': 'Klopt',
+  'moneybird.differenceColumn': 'Difference',
+  'moneybird.accountColumn': 'Account',
+  'moneybird.reconciliationIntro':
+    'Per account: what the plan from Moneybird would post, against what is here. That is not Moneybird’s own trial balance.',
+  'moneybird.openingLabel': 'Opening balance {year}',
 
   // Chasing what is overdue.
   'dunning.title': 'Reminders',

@@ -1,24 +1,33 @@
 import type { MoneybirdAdministration } from '../ports/moneybird.js'
 import { readNumber, readString, requireId } from './read.js'
 
-/** Month 1–12 from a Moneybird administration row; January when they omit it. */
-export function fiscalYearStartMonthOf(row: Record<string, unknown>): number {
-  const numeric =
-    readNumber(row, 'fiscal_year_start_month') ?? readNumber(row, 'financial_year_start_month')
-  if (numeric !== null && numeric >= 1 && numeric <= 12) return Math.trunc(numeric)
-
+/**
+ * Month 1–12 from a Moneybird administration row.
+ *
+ * Moneybird's real field is `period_start_date` (e.g. `"2026-01-01"`). Older
+ * or invented names stay as fallbacks. `null` when nothing readable — the
+ * planner warns rather than silently assuming January.
+ */
+export function fiscalYearStartMonthOf(row: Record<string, unknown>): number | null {
   const dated =
+    readString(row, 'period_start_date') ??
     readString(row, 'fiscal_year_start') ??
     readString(row, 'financial_year_start') ??
     readString(row, 'start_date')
   if (dated !== null) {
-    const match = /(?:\d{4}-)?(\d{1,2})-\d{1,2}/.exec(dated)
+    const match =
+      /^\d{4}-(\d{1,2})-\d{1,2}$/.exec(dated) ?? /(?:\d{4}-)?(\d{1,2})-\d{1,2}/.exec(dated)
     if (match?.[1] !== undefined) {
       const month = Number(match[1])
       if (month >= 1 && month <= 12) return month
     }
   }
-  return 1
+
+  const numeric =
+    readNumber(row, 'fiscal_year_start_month') ?? readNumber(row, 'financial_year_start_month')
+  if (numeric !== null && numeric >= 1 && numeric <= 12) return Math.trunc(numeric)
+
+  return null
 }
 
 /**

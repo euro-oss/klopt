@@ -41,7 +41,10 @@ user belongs to, so choosing an administration is its own step, as with Exact.
 
 A foreign-currency administration is refused rather than converted. A Moneybird
 fiscal year that does not start in the same month as the Klopt entity is refused
-(`fiscal_year_start_mismatch`) rather than posting into the wrong periods.
+(`fiscal_year_start_mismatch`) rather than posting into the wrong periods. The
+start month is read from Moneybird's `period_start_date`; when that field is
+absent the planner warns (`fiscal_year_start_unknown`) instead of assuming
+January.
 
 ## Consequences
 

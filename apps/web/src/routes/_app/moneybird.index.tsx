@@ -660,6 +660,18 @@ function ImportProgress({
   const run = status.ok ? (status.data as Record<string, unknown>) : result
   const state = typeof run['state'] === 'string' ? run['state'] : 'pending'
   const key = RUN_KEY[state]
+  const report =
+    run['report'] !== null && typeof run['report'] === 'object'
+      ? (run['report'] as Record<string, unknown>)
+      : null
+  const years =
+    report !== null && Array.isArray(report['reconciliation'])
+      ? (report['reconciliation'] as CommitYear[])
+      : []
+  const opening =
+    report !== null && report['opening'] !== null && typeof report['opening'] === 'object'
+      ? (report['opening'] as { year: number; accounts: CommitAccount[] })
+      : null
 
   return (
     <div>
@@ -671,6 +683,88 @@ function ImportProgress({
       <p role="status" className="mb-4 text-sm">
         {t('moneybird.status')} <strong>{key === undefined ? state : t(key)}</strong>
       </p>
+      {years.length > 0 && (
+        <div className="mt-4">
+          <p className="text-muted-foreground mb-3 text-sm">{t('moneybird.reconciliationIntro')}</p>
+          {years.map((year) => (
+            <div key={year.year} className="mb-4">
+              <h3 className="mb-2 text-sm font-semibold">
+                {t('moneybird.trialBalanceLabel', { year: String(year.year) })}
+                {year.source === 'unreadable'
+                  ? ` — ${t('moneybird.notRead')}`
+                  : year.balanced === true
+                    ? ` — ${t('moneybird.balances')}`
+                    : year.balanced === false
+                      ? ` — ${t('moneybird.doesNotBalance')}`
+                      : ''}
+              </h3>
+              {year.accounts.length > 0 && (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-border text-muted-foreground border-b text-left">
+                      <th className="py-2">{t('moneybird.accountColumn')}</th>
+                      <th className="py-2 text-right">{t('moneybird.plannedColumn')}</th>
+                      <th className="py-2 text-right">{t('moneybird.kloptColumn')}</th>
+                      <th className="py-2 text-right">{t('moneybird.differenceColumn')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {year.accounts.map((row) => (
+                      <tr key={row.accountNumber} className="border-border border-b">
+                        <td className="py-1.5 tabular-nums">{row.accountNumber}</td>
+                        <td className="py-1.5 text-right tabular-nums">{row.planned}</td>
+                        <td className="py-1.5 text-right tabular-nums">{row.klopt}</td>
+                        <td className="py-1.5 text-right tabular-nums">{row.difference}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          ))}
+          {opening !== null && opening.accounts.length > 0 && (
+            <div className="mb-4">
+              <h3 className="mb-2 text-sm font-semibold">
+                {t('moneybird.openingLabel', { year: String(opening.year) })}
+              </h3>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-border text-muted-foreground border-b text-left">
+                    <th className="py-2">{t('moneybird.accountColumn')}</th>
+                    <th className="py-2 text-right">{t('moneybird.plannedColumn')}</th>
+                    <th className="py-2 text-right">{t('moneybird.kloptColumn')}</th>
+                    <th className="py-2 text-right">{t('moneybird.differenceColumn')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {opening.accounts.map((row) => (
+                    <tr key={row.accountNumber} className="border-border border-b">
+                      <td className="py-1.5 tabular-nums">{row.accountNumber}</td>
+                      <td className="py-1.5 text-right tabular-nums">{row.planned}</td>
+                      <td className="py-1.5 text-right tabular-nums">{row.klopt}</td>
+                      <td className="py-1.5 text-right tabular-nums">{row.difference}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
+}
+
+interface CommitAccount {
+  readonly accountNumber: string
+  readonly planned: string
+  readonly klopt: string
+  readonly difference: string
+}
+
+interface CommitYear {
+  readonly year: number
+  readonly source: string
+  readonly balanced: boolean | null
+  readonly accounts: readonly CommitAccount[]
 }

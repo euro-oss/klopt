@@ -26,6 +26,7 @@ export const ADMINISTRATION = parseAdministration({
   currency: 'EUR',
   country: 'NL',
   time_zone: 'Europe/Amsterdam',
+  period_start_date: '2026-01-01',
 })
 
 const account = (

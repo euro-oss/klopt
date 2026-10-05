@@ -42,7 +42,8 @@ export interface MoneybirdRunRequest {
 
 export interface MoneybirdAccountBalance {
   readonly accountNumber: string
-  readonly moneybird: string
+  /** Planned from Moneybird history — not Moneybird's own trial balance. */
+  readonly planned: string
   readonly klopt: string
   readonly difference: string
 }
@@ -50,8 +51,8 @@ export interface MoneybirdAccountBalance {
 export interface MoneybirdYearReconciliation {
   readonly year: number
   readonly source: string
-  readonly moneybirdDebit: string | null
-  readonly moneybirdCredit: string | null
+  readonly plannedDebit: string | null
+  readonly plannedCredit: string | null
   readonly kloptDebit: string | null
   readonly kloptCredit: string | null
   /** Null when the Moneybird source was unreadable — that is not reconciled. */
@@ -243,21 +244,21 @@ export async function executeMoneybirdImport(
       },
       rows,
     )
-    const moneybirdByAccount = new Map(
+    const plannedByAccount = new Map(
       year.lines.map((line) => [line.accountNumber, line.debit - line.credit]),
     )
     const kloptByAccount = new Map(
       klopt.lines.map((line) => [line.accountNumber, line.debit - line.credit]),
     )
-    const numbers = [...new Set([...moneybirdByAccount.keys(), ...kloptByAccount.keys()])].sort()
+    const numbers = [...new Set([...plannedByAccount.keys(), ...kloptByAccount.keys()])].sort()
     const accounts = numbers.map((accountNumber) => {
-      const moneybird = moneybirdByAccount.get(accountNumber) ?? 0n
+      const planned = plannedByAccount.get(accountNumber) ?? 0n
       const ours = kloptByAccount.get(accountNumber) ?? 0n
       return {
         accountNumber,
-        moneybird: amount(moneybird) ?? '0.00',
+        planned: amount(planned) ?? '0.00',
         klopt: amount(ours) ?? '0.00',
-        difference: amount(ours - moneybird) ?? '0.00',
+        difference: amount(ours - planned) ?? '0.00',
       }
     })
 
@@ -267,8 +268,8 @@ export async function executeMoneybirdImport(
     reconciliation.push({
       year: year.year,
       source: year.source,
-      moneybirdDebit: amount(year.totalDebit),
-      moneybirdCredit: amount(year.totalCredit),
+      plannedDebit: amount(year.totalDebit),
+      plannedCredit: amount(year.totalCredit),
       kloptDebit: amount(klopt.totalDebit),
       kloptCredit: amount(klopt.totalCredit),
       balanced: year.source === 'unreadable' ? null : differences.length === 0,
@@ -303,16 +304,13 @@ async function openingBalance(
 
   const year = Math.min(...openings.map((document) => yearOf(document.date)))
   const numberById = new Map(plan.accounts.map((account) => [account.moneybirdId, account.number]))
-  const moneybirdByAccount = new Map<string, bigint>()
+  const plannedByAccount = new Map<string, bigint>()
   for (const document of openings) {
     for (const line of document.details) {
       const number =
         line.ledgerAccountId === null ? null : (numberById.get(line.ledgerAccountId) ?? null)
       if (number === null) continue
-      moneybirdByAccount.set(
-        number,
-        (moneybirdByAccount.get(number) ?? 0n) + line.debit - line.credit,
-      )
+      plannedByAccount.set(number, (plannedByAccount.get(number) ?? 0n) + line.debit - line.credit)
     }
   }
 
@@ -336,17 +334,17 @@ async function openingBalance(
     kloptByAccount.set(row.number, (kloptByAccount.get(row.number) ?? 0n) + row.debit - row.credit)
   }
 
-  const numbers = [...new Set([...moneybirdByAccount.keys(), ...kloptByAccount.keys()])].sort()
+  const numbers = [...new Set([...plannedByAccount.keys(), ...kloptByAccount.keys()])].sort()
   return {
     year,
     accounts: numbers.map((accountNumber) => {
-      const moneybird = moneybirdByAccount.get(accountNumber) ?? 0n
+      const planned = plannedByAccount.get(accountNumber) ?? 0n
       const ours = kloptByAccount.get(accountNumber) ?? 0n
       return {
         accountNumber,
-        moneybird: amount(moneybird) ?? '0.00',
+        planned: amount(planned) ?? '0.00',
         klopt: amount(ours) ?? '0.00',
-        difference: amount(ours - moneybird) ?? '0.00',
+        difference: amount(ours - planned) ?? '0.00',
       }
     }),
   }

@@ -380,7 +380,8 @@
           "period_locked",
           "unbalanced_document",
           "draft_skipped",
-          "fiscal_year_start_mismatch"
+          "fiscal_year_start_mismatch",
+          "fiscal_year_start_unknown"
         ]
       },
       "MoneybirdRunState": {
@@ -8921,6 +8922,7 @@
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
                               "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown",
                               "invalid_currency",
                               "entry_unbalanced_functional",
                               "line_debit_and_credit",
@@ -9333,6 +9335,7 @@
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
                               "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown",
                               "invalid_currency",
                               "entry_unbalanced_functional",
                               "line_debit_and_credit",
@@ -9866,7 +9869,8 @@
                                             "moneybird.attachment_without_url",
                                             "moneybird.draft_skipped",
                                             "moneybird.derived_account_type",
-                                            "moneybird.fiscal_year_start_mismatch"
+                                            "moneybird.fiscal_year_start_mismatch",
+                                            "moneybird.fiscal_year_start_unknown"
                                           ]
                                         },
                                         "detail": {
@@ -10283,7 +10287,8 @@
                                       "moneybird.attachment_without_url",
                                       "moneybird.draft_skipped",
                                       "moneybird.derived_account_type",
-                                      "moneybird.fiscal_year_start_mismatch"
+                                      "moneybird.fiscal_year_start_mismatch",
+                                      "moneybird.fiscal_year_start_unknown"
                                     ]
                                   },
                                   "detail": {
@@ -10640,7 +10645,8 @@
                                       "moneybird.attachment_without_url",
                                       "moneybird.draft_skipped",
                                       "moneybird.derived_account_type",
-                                      "moneybird.fiscal_year_start_mismatch"
+                                      "moneybird.fiscal_year_start_mismatch",
+                                      "moneybird.fiscal_year_start_unknown"
                                     ]
                                   },
                                   "detail": {
@@ -11014,7 +11020,8 @@
                               "moneybird.attachment_without_url",
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
-                              "moneybird.fiscal_year_start_mismatch"
+                              "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown"
                             ]
                           },
                           "detail": {
@@ -11192,7 +11199,8 @@
                               "moneybird.attachment_without_url",
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
-                              "moneybird.fiscal_year_start_mismatch"
+                              "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown"
                             ]
                           },
                           "detail": {
@@ -15861,13 +15869,13 @@
                                       "source": {
                                         "type": "string"
                                       },
-                                      "moneybirdDebit": {
+                                      "plannedDebit": {
                                         "type": [
                                           "string",
                                           "null"
                                         ]
                                       },
-                                      "moneybirdCredit": {
+                                      "plannedCredit": {
                                         "type": [
                                           "string",
                                           "null"
@@ -15899,7 +15907,7 @@
                                             "accountNumber": {
                                               "type": "string"
                                             },
-                                            "moneybird": {
+                                            "planned": {
                                               "type": "string"
                                             },
                                             "klopt": {
@@ -15911,7 +15919,7 @@
                                           },
                                           "required": [
                                             "accountNumber",
-                                            "moneybird",
+                                            "planned",
                                             "klopt",
                                             "difference"
                                           ]
@@ -15925,7 +15933,7 @@
                                             "accountNumber": {
                                               "type": "string"
                                             },
-                                            "moneybird": {
+                                            "planned": {
                                               "type": "string"
                                             },
                                             "klopt": {
@@ -15937,7 +15945,7 @@
                                           },
                                           "required": [
                                             "accountNumber",
-                                            "moneybird",
+                                            "planned",
                                             "klopt",
                                             "difference"
                                           ]
@@ -15947,8 +15955,8 @@
                                     "required": [
                                       "year",
                                       "source",
-                                      "moneybirdDebit",
-                                      "moneybirdCredit",
+                                      "plannedDebit",
+                                      "plannedCredit",
                                       "kloptDebit",
                                       "kloptCredit",
                                       "balanced",
@@ -15973,7 +15981,7 @@
                                               "accountNumber": {
                                                 "type": "string"
                                               },
-                                              "moneybird": {
+                                              "planned": {
                                                 "type": "string"
                                               },
                                               "klopt": {
@@ -15985,7 +15993,7 @@
                                             },
                                             "required": [
                                               "accountNumber",
-                                              "moneybird",
+                                              "planned",
                                               "klopt",
                                               "difference"
                                             ]
@@ -16367,13 +16375,13 @@
                                   "source": {
                                     "type": "string"
                                   },
-                                  "moneybirdDebit": {
+                                  "plannedDebit": {
                                     "type": [
                                       "string",
                                       "null"
                                     ]
                                   },
-                                  "moneybirdCredit": {
+                                  "plannedCredit": {
                                     "type": [
                                       "string",
                                       "null"
@@ -16405,7 +16413,7 @@
                                         "accountNumber": {
                                           "type": "string"
                                         },
-                                        "moneybird": {
+                                        "planned": {
                                           "type": "string"
                                         },
                                         "klopt": {
@@ -16417,7 +16425,7 @@
                                       },
                                       "required": [
                                         "accountNumber",
-                                        "moneybird",
+                                        "planned",
                                         "klopt",
                                         "difference"
                                       ]
@@ -16431,7 +16439,7 @@
                                         "accountNumber": {
                                           "type": "string"
                                         },
-                                        "moneybird": {
+                                        "planned": {
                                           "type": "string"
                                         },
                                         "klopt": {
@@ -16443,7 +16451,7 @@
                                       },
                                       "required": [
                                         "accountNumber",
-                                        "moneybird",
+                                        "planned",
                                         "klopt",
                                         "difference"
                                       ]
@@ -16453,8 +16461,8 @@
                                 "required": [
                                   "year",
                                   "source",
-                                  "moneybirdDebit",
-                                  "moneybirdCredit",
+                                  "plannedDebit",
+                                  "plannedCredit",
                                   "kloptDebit",
                                   "kloptCredit",
                                   "balanced",
@@ -16479,7 +16487,7 @@
                                           "accountNumber": {
                                             "type": "string"
                                           },
-                                          "moneybird": {
+                                          "planned": {
                                             "type": "string"
                                           },
                                           "klopt": {
@@ -16491,7 +16499,7 @@
                                         },
                                         "required": [
                                           "accountNumber",
-                                          "moneybird",
+                                          "planned",
                                           "klopt",
                                           "difference"
                                         ]
@@ -16836,13 +16844,13 @@
                                   "source": {
                                     "type": "string"
                                   },
-                                  "moneybirdDebit": {
+                                  "plannedDebit": {
                                     "type": [
                                       "string",
                                       "null"
                                     ]
                                   },
-                                  "moneybirdCredit": {
+                                  "plannedCredit": {
                                     "type": [
                                       "string",
                                       "null"
@@ -16874,7 +16882,7 @@
                                         "accountNumber": {
                                           "type": "string"
                                         },
-                                        "moneybird": {
+                                        "planned": {
                                           "type": "string"
                                         },
                                         "klopt": {
@@ -16886,7 +16894,7 @@
                                       },
                                       "required": [
                                         "accountNumber",
-                                        "moneybird",
+                                        "planned",
                                         "klopt",
                                         "difference"
                                       ]
@@ -16900,7 +16908,7 @@
                                         "accountNumber": {
                                           "type": "string"
                                         },
-                                        "moneybird": {
+                                        "planned": {
                                           "type": "string"
                                         },
                                         "klopt": {
@@ -16912,7 +16920,7 @@
                                       },
                                       "required": [
                                         "accountNumber",
-                                        "moneybird",
+                                        "planned",
                                         "klopt",
                                         "difference"
                                       ]
@@ -16922,8 +16930,8 @@
                                 "required": [
                                   "year",
                                   "source",
-                                  "moneybirdDebit",
-                                  "moneybirdCredit",
+                                  "plannedDebit",
+                                  "plannedCredit",
                                   "kloptDebit",
                                   "kloptCredit",
                                   "balanced",
@@ -16948,7 +16956,7 @@
                                           "accountNumber": {
                                             "type": "string"
                                           },
-                                          "moneybird": {
+                                          "planned": {
                                             "type": "string"
                                           },
                                           "klopt": {
@@ -16960,7 +16968,7 @@
                                         },
                                         "required": [
                                           "accountNumber",
-                                          "moneybird",
+                                          "planned",
                                           "klopt",
                                           "difference"
                                         ]
@@ -17587,7 +17595,8 @@
                               "moneybird.attachment_without_url",
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
-                              "moneybird.fiscal_year_start_mismatch"
+                              "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown"
                             ]
                           },
                           "detail": {
@@ -17711,7 +17720,8 @@
                               "moneybird.attachment_without_url",
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
-                              "moneybird.fiscal_year_start_mismatch"
+                              "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown"
                             ]
                           },
                           "detail": {
@@ -18448,7 +18458,8 @@
                               "moneybird.attachment_without_url",
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
-                              "moneybird.fiscal_year_start_mismatch"
+                              "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown"
                             ]
                           },
                           "detail": {
@@ -19011,7 +19022,8 @@
                               "moneybird.attachment_without_url",
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
-                              "moneybird.fiscal_year_start_mismatch"
+                              "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown"
                             ]
                           },
                           "detail": {
@@ -19743,7 +19755,8 @@
                               "moneybird.attachment_without_url",
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
-                              "moneybird.fiscal_year_start_mismatch"
+                              "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown"
                             ]
                           },
                           "detail": {
@@ -19921,7 +19934,8 @@
                               "moneybird.attachment_without_url",
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
-                              "moneybird.fiscal_year_start_mismatch"
+                              "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown"
                             ]
                           },
                           "detail": {
@@ -20373,7 +20387,8 @@
                               "moneybird.attachment_without_url",
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
-                              "moneybird.fiscal_year_start_mismatch"
+                              "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown"
                             ]
                           },
                           "detail": {
@@ -27515,7 +27530,8 @@
                               "moneybird.attachment_without_url",
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
-                              "moneybird.fiscal_year_start_mismatch"
+                              "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown"
                             ]
                           },
                           "detail": {
@@ -28537,7 +28553,8 @@
                               "moneybird.attachment_without_url",
                               "moneybird.draft_skipped",
                               "moneybird.derived_account_type",
-                              "moneybird.fiscal_year_start_mismatch"
+                              "moneybird.fiscal_year_start_mismatch",
+                              "moneybird.fiscal_year_start_unknown"
                             ]
                           },
                           "detail": {

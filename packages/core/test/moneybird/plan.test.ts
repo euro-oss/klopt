@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { planMoneybirdImport, type MoneybirdImportOptions } from '../../src/index.js'
+import {
+  planMoneybirdImport,
+  parseAdministration,
+  type MoneybirdImportOptions,
+} from '../../src/index.js'
 import { snapshot, snapshotV2 } from './fixture.js'
 
 const options = (overrides: Partial<MoneybirdImportOptions> = {}): MoneybirdImportOptions => ({
@@ -97,7 +101,15 @@ describe('booked history', () => {
   it('refuses a Moneybird year that does not start with this entity', () => {
     const plan = planMoneybirdImport(
       snapshot({
-        administration: { ...snapshot().administration, fiscalYearStartMonth: 4 },
+        administration: parseAdministration({
+          id: 123456,
+          name: 'Voorbeeld BV',
+          language: 'nl',
+          currency: 'EUR',
+          country: 'NL',
+          time_zone: 'Europe/Amsterdam',
+          period_start_date: '2026-04-01',
+        }),
       }),
       options(),
     )
@@ -107,6 +119,24 @@ describe('booked history', () => {
     expect(mismatch?.message).toContain('month 4')
     expect(mismatch?.message).toContain('month 1')
     expect(mismatch?.detail).toEqual({ moneybirdMonth: '4', entityMonth: '1' })
+  })
+
+  it('warns when Moneybird does not say which month the year starts', () => {
+    const plan = planMoneybirdImport(
+      snapshot({
+        administration: parseAdministration({
+          id: 123456,
+          name: 'Voorbeeld BV',
+          language: 'nl',
+          currency: 'EUR',
+          country: 'NL',
+          time_zone: 'Europe/Amsterdam',
+        }),
+      }),
+      options(),
+    )
+    expect(plan.problems.map((problem) => problem.code)).not.toContain('fiscal_year_start_mismatch')
+    expect(plan.warnings.map((warning) => warning.code)).toContain('fiscal_year_start_unknown')
   })
 })
 
@@ -123,6 +153,24 @@ describe('the reconciliation', () => {
         unreadable: [
           {
             resource: 'sales_invoices.json',
+            status: 403,
+            message: 'Moneybird refused this token (403).',
+          },
+        ],
+      }),
+      options(),
+    )
+    expect(plan.warnings.map((warning) => warning.code)).toContain('resource_unreadable')
+    expect(plan.reconciliation.every((year) => year.source === 'unreadable')).toBe(true)
+    expect(plan.reconciliation.every((year) => year.balanced === null)).toBe(true)
+  })
+
+  it('does not call an unreadable purchase source reconciled either', () => {
+    const plan = planMoneybirdImport(
+      snapshot({
+        unreadable: [
+          {
+            resource: 'documents/purchase_invoices.json',
             status: 403,
             message: 'Moneybird refused this token (403).',
           },

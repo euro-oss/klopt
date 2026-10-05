@@ -509,7 +509,7 @@ function asAccountBalances(value: unknown) {
   if (!Array.isArray(value)) return []
   return value.filter(isRecord).map((row) => ({
     accountNumber: asString(row['accountNumber']),
-    moneybird: asString(row['moneybird']),
+    planned: asString(row['planned'] ?? row['moneybird']),
     klopt: asString(row['klopt']),
     difference: asString(row['difference']),
   }))
@@ -524,8 +524,8 @@ function asReconciliation(value: unknown) {
   return value.filter(isRecord).map((row) => ({
     year: asNumber(row['year']),
     source: asString(row['source']),
-    moneybirdDebit: asStringOrNull(row['moneybirdDebit']),
-    moneybirdCredit: asStringOrNull(row['moneybirdCredit']),
+    plannedDebit: asStringOrNull(row['plannedDebit'] ?? row['moneybirdDebit']),
+    plannedCredit: asStringOrNull(row['plannedCredit'] ?? row['moneybirdCredit']),
     kloptDebit: asStringOrNull(row['kloptDebit']),
     kloptCredit: asStringOrNull(row['kloptCredit']),
     balanced: asBooleanOrNull(row['balanced']),

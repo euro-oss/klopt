@@ -43,6 +43,7 @@ export type MoneybirdProblemCode =
   | 'draft_skipped'
   | 'derived_account_type'
   | 'fiscal_year_start_mismatch'
+  | 'fiscal_year_start_unknown'
 
 export interface MoneybirdProblem {
   readonly code: MoneybirdProblemCode
@@ -339,9 +340,11 @@ export function planMoneybirdImport(
     )
   }
 
-  if (snapshot.administration.fiscalYearStartMonth !== options.entityFiscalYearStartMonth) {
+  if (snapshot.administration.fiscalYearStartMonth === null) {
+    warnings.push(problem('fiscal_year_start_unknown', 'administration.period_start_date'))
+  } else if (snapshot.administration.fiscalYearStartMonth !== options.entityFiscalYearStartMonth) {
     problems.push(
-      problem('fiscal_year_start_mismatch', 'administration.fiscalYearStartMonth', {
+      problem('fiscal_year_start_mismatch', 'administration.period_start_date', {
         moneybirdMonth: String(snapshot.administration.fiscalYearStartMonth),
         entityMonth: String(options.entityFiscalYearStartMonth),
       }),
@@ -1040,8 +1043,13 @@ export function planMoneybirdImport(
     ),
   ].sort((a, b) => a - b)
 
+  // Every resource that feeds journal entries. Unreadable is not empty and
+  // must not be called reconciled — including purchases, receipts, and the
+  // rest of `documents/*`, not only sales and the general journal.
   const sourceUnreadable = snapshot.unreadable.some((item) =>
-    /ledger_accounts|sales_invoices|financial_mutations|general_journal/.test(item.resource),
+    /ledger_accounts|sales_invoices|purchase_invoices|receipts|financial_mutations|general_journal|documents\//.test(
+      item.resource,
+    ),
   )
 
   const reconciliation: YearTrialBalance[] = years.map((year) => {

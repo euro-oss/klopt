@@ -13,8 +13,12 @@ export interface FakeMoneybird {
   forbidden: Set<string>
   otherCurrency: boolean
   malformed: boolean
-  /** When set, every administration starts its year in this month (1–12). */
+  /**
+   * When set, every administration's `period_start_date` uses this month.
+   * `null` keeps the January default. Set `omitPeriodStart` to leave the field off.
+   */
   fiscalYearStartMonth: number | null
+  omitPeriodStart: boolean
 }
 
 const LEDGER = [
@@ -221,6 +225,7 @@ export function fakeMoneybird(): FakeMoneybird {
     otherCurrency: false,
     malformed: false,
     fiscalYearStartMonth: null,
+    omitPeriodStart: false,
     administrations: [
       {
         id: 123456,
@@ -229,6 +234,7 @@ export function fakeMoneybird(): FakeMoneybird {
         currency: 'EUR',
         country: 'NL',
         time_zone: 'Europe/Amsterdam',
+        period_start_date: '2026-01-01',
       },
       {
         id: 654321,
@@ -237,6 +243,7 @@ export function fakeMoneybird(): FakeMoneybird {
         currency: 'EUR',
         country: 'NL',
         time_zone: 'Europe/Amsterdam',
+        period_start_date: '2026-01-01',
       },
     ],
   }
@@ -262,13 +269,20 @@ export function fakeMoneybird(): FakeMoneybird {
     }
 
     if (url.includes('/administrations.json')) {
-      const rows = state.administrations.map((row) => ({
-        ...row,
-        ...(state.otherCurrency ? { currency: 'GBP' } : {}),
-        ...(state.fiscalYearStartMonth === null
-          ? {}
-          : { fiscal_year_start_month: state.fiscalYearStartMonth }),
-      }))
+      const rows = state.administrations.map((row) => {
+        const next: Record<string, unknown> = {
+          ...row,
+          ...(state.otherCurrency ? { currency: 'GBP' } : {}),
+        }
+        if (state.omitPeriodStart) {
+          delete next['period_start_date']
+          delete next['fiscal_year_start_month']
+        } else if (state.fiscalYearStartMonth !== null) {
+          next['period_start_date'] =
+            `2026-${String(state.fiscalYearStartMonth).padStart(2, '0')}-01`
+        }
+        return next
+      })
       return Promise.resolve(json(rows))
     }
 

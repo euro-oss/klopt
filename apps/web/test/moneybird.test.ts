@@ -226,6 +226,21 @@ describe('the dry run', () => {
     expect(mismatch?.message).toContain('month 1')
   })
 
+  it('warns when Moneybird omits the year start', async () => {
+    const { token } = await newEntity()
+    const moneybird = fakeMoneybird()
+    moneybird.omitPeriodStart = true
+    await connect(token)
+    await choose(token)
+    const preview = (await handlePreviewMoneybirdImport(await context(token))).body
+    expect(preview.problems.map((problem: { code: string }) => problem.code)).not.toContain(
+      'fiscal_year_start_mismatch',
+    )
+    expect(preview.warnings.map((warning: { code: string }) => warning.code)).toContain(
+      'fiscal_year_start_unknown',
+    )
+  })
+
   it('does not call an unreadable resource reconciled', async () => {
     const { token } = await newEntity()
     const moneybird = fakeMoneybird()
@@ -281,7 +296,7 @@ describe('the import job', () => {
     const year = status.report.reconciliation[0]
     expect(year).toMatchObject({ year: 2026, source: 'read', balanced: true })
     expect(year?.accounts.length).toBeGreaterThan(0)
-    expect(year?.accounts.every((row) => /^-?\d+\.\d{2}$/.test(row.moneybird))).toBe(true)
+    expect(year?.accounts.every((row) => /^-?\d+\.\d{2}$/.test(row.planned))).toBe(true)
     expect(year?.accounts.every((row) => /^-?\d+\.\d{2}$/.test(row.klopt))).toBe(true)
     expect(year?.differences).toEqual([])
 
@@ -289,15 +304,16 @@ describe('the import job', () => {
     const opening = Object.fromEntries(
       (status.report.opening?.accounts ?? []).map((row) => [row.accountNumber, row]),
     )
-    expect(opening['1300']).toMatchObject({ moneybird: '1000.00', klopt: '1000.00' })
-    expect(opening['0500']).toMatchObject({ moneybird: '-1000.00', klopt: '-1000.00' })
+    expect(opening['1300']).toMatchObject({ planned: '1000.00', klopt: '1000.00' })
+    expect(opening['0500']).toMatchObject({ planned: '-1000.00', klopt: '-1000.00' })
     expect(status.report.opening?.accounts.every((row) => row.difference === '0.00')).toBe(true)
 
     expect(status.report.attachmentsStored).toBeGreaterThan(0)
-    const [purchase] = await database.execute<{ id: string }>(
-      `select id from klopt.purchase_invoices where entity_id = '${entityId}'`,
+    const [purchase] = await database.execute<{ id: string; journal_entry_id: string | null }>(
+      `select id, journal_entry_id from klopt.purchase_invoices where entity_id = '${entityId}'`,
     )
     expect(purchase).toBeDefined()
+    expect(purchase!.journal_entry_id).toBeTruthy()
     const purchaseLinks = await database.execute<{
       document_id: string
       subject_kind: string
@@ -310,7 +326,12 @@ describe('the import job', () => {
         (row) => row.subject_kind === 'purchase_invoice' && row.subject_id === purchase!.id,
       ),
     ).toBe(true)
-    expect(purchaseLinks.some((row) => row.subject_kind === 'journal_entry')).toBe(true)
+    expect(
+      purchaseLinks.some(
+        (row) =>
+          row.subject_kind === 'journal_entry' && row.subject_id === purchase!.journal_entry_id,
+      ),
+    ).toBe(true)
 
     const first = await counts(entityId)
     expect(first.journalEntries).toBeGreaterThan(0)
@@ -360,6 +381,33 @@ describe('the import job', () => {
     expect(status.report.reconciliation.every((year) => year.source === 'unreadable')).toBe(true)
     expect(status.report.reconciliation.every((year) => year.balanced === null)).toBe(true)
     expect(status.report.reconciliation.every((year) => year.kloptDebit !== null)).toBe(true)
+  })
+
+  it('does not call an unreadable purchase source reconciled on the commit report', async () => {
+    const { token } = await newEntity()
+    const moneybird = fakeMoneybird()
+    moneybird.forbidden.add('documents/purchase_invoices.json')
+    await connect(token)
+    await choose(token)
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse(MAPPINGS),
+    )
+    await handleRunMoneybirdImport(await context(token, crypto.randomUUID()))
+    const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
+    const { createFilesystemDocumentStore } = await import('@klopt/adapters')
+    const directory = mkdtempSync(join(tmpdir(), 'mb-docs-'))
+    const outcome = await importMoneybirdAdministration(
+      database,
+      createFilesystemDocumentStore({ directory }),
+    )
+    expect(outcome.state).toBe('done')
+    const status = (await handleMoneybirdImportStatus(await context(token))).body
+    if (!status.requested || status.report === null || !status.report.imported) {
+      throw new Error('expected a commit report')
+    }
+    expect(status.report.reconciliation.every((year) => year.source === 'unreadable')).toBe(true)
+    expect(status.report.reconciliation.every((year) => year.balanced === null)).toBe(true)
   })
 
   it('refuses to start when the dry run has blocking problems', async () => {

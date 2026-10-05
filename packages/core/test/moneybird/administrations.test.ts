@@ -21,12 +21,13 @@ describe('choosing a Moneybird administration', () => {
     expect(findAdministration(rows, '2')?.name).toBe('Voorbeeld BV')
   })
 
-  it('reads the fiscal year start month, and defaults to January', () => {
-    expect(fiscalYearStartMonthOf({})).toBe(1)
-    expect(fiscalYearStartMonthOf({ fiscal_year_start_month: 4 })).toBe(4)
-    expect(fiscalYearStartMonthOf({ financial_year_start: '2026-07-01' })).toBe(7)
+  it('reads the fiscal year start from period_start_date', () => {
+    expect(fiscalYearStartMonthOf({})).toBeNull()
+    expect(fiscalYearStartMonthOf({ period_start_date: '2026-01-01' })).toBe(1)
+    expect(fiscalYearStartMonthOf({ period_start_date: '2026-04-01' })).toBe(4)
+    expect(fiscalYearStartMonthOf({ fiscal_year_start_month: 7 })).toBe(7)
     expect(
-      parseAdministration({ id: 3, name: 'April BV', fiscal_year_start_month: 4 }),
+      parseAdministration({ id: 3, name: 'April BV', period_start_date: '2026-04-01' }),
     ).toMatchObject({ fiscalYearStartMonth: 4 })
   })
 })

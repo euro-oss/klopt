@@ -1197,6 +1197,13 @@ export const nl = {
   'moneybird.refresh': 'Vernieuwen',
   'moneybird.workerSilent':
     'De opdracht staat klaar, maar de worker heeft hem niet opgepakt. Draai',
+  'moneybird.plannedColumn': 'gepland uit Moneybird',
+  'moneybird.kloptColumn': 'Klopt',
+  'moneybird.differenceColumn': 'Verschil',
+  'moneybird.accountColumn': 'Rekening',
+  'moneybird.reconciliationIntro':
+    'Per rekening: wat het plan uit Moneybird zou boeken, tegen wat hier staat. Dat is geen Moneybird-proefbalans.',
+  'moneybird.openingLabel': 'Openingsbalans {year}',
   'finding.moneybird.unknown_currency':
     'Deze administratie is in {currency} en deze boeken zijn in {functionalCurrency}. Importeren zou elk bedrag omrekenen tegen een koers die niemand heeft gekozen.',
   'finding.moneybird.unmapped_account':
@@ -1227,6 +1234,8 @@ export const nl = {
     '{number} ({name}) heeft Moneybird-type {accountType}, geen bekend rekeningtype. Wordt als activa gelezen. Controleer voordat je erop boekt.',
   'finding.moneybird.fiscal_year_start_mismatch':
     'Moneybird start het jaar in maand {moneybirdMonth} en deze boeken in maand {entityMonth}. Importeren zou in de verkeerde periodes boeken.',
+  'finding.moneybird.fiscal_year_start_unknown':
+    'Moneybird zegt niet in welke maand het jaar start (geen period_start_date). Controleer de jaaraanvang voordat je de geïmporteerde periodes vertrouwt.',
 
   // Chasing what is overdue.
   'dunning.title': 'Aanmaningen',
