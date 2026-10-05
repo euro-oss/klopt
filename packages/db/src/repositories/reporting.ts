@@ -344,6 +344,24 @@ export class ReportingRepository {
     }
   }
 
+  async taxRules(entityId: string): Promise<
+    readonly { readonly code: string; readonly rateBasisPoints: number; readonly direction: 'input' | 'output' }[]
+  > {
+    const rows = await this.tx
+      .select({
+        code: taxCodes.code,
+        rateBasisPoints: taxCodes.rateBasisPoints,
+        direction: taxCodes.direction,
+      })
+      .from(taxCodes)
+      .where(eq(taxCodes.entityId, entityId))
+    return rows.map((row) => ({
+      code: row.code,
+      rateBasisPoints: row.rateBasisPoints,
+      direction: row.direction,
+    }))
+  }
+
   /** Cursor-paginated by chain sequence, which is dense and monotonic per entity. */
   async listEntries(request: {
     readonly entityId: string

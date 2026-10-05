@@ -51,10 +51,11 @@ What is in 0.1.0, plus the unreleased screens already on `main`.
   filing path that works is the manual one.
 - **Ready for a second person.** Several entities on one login, roles and
   permissions, an audit log, retention, sealed snapshots, and an Exact Online
-  import that includes the document archive. Document storage is a local
+  import that includes the document archive, and a Moneybird import that
+  includes booked history. Document storage is a local
   directory unless you point it at an S3 bucket; object lock is what that
   bucket is for.
-- **One API, 118 operations** under `/api/v1` — the same operations the UI
+- **One API, 127 operations** under `/api/v1` — the same operations the UI
   calls. OpenAPI is `GET /api/v1/openapi.json` on a running instance, and
   [`docs/openapi.json`](docs/openapi.json) in this tree. Scoped bearer tokens,
   an idempotency key on every write, and `application/problem+json` errors.
@@ -158,6 +159,12 @@ worker and sets `KLOPT_HEADLESS=1`. See the [`Dockerfile`](Dockerfile).
 Exact refuses a plain `http` redirect URI. The local HTTPS path (portless,
 `pnpm run dev:https`, `KLOPT_BASE_URL`) is the Exact section of
 [`.env.example`](.env.example).
+
+### Moneybird
+
+A personal API token (Settings → Developers in Moneybird), stored encrypted.
+OAuth is out of scope. Pick the administration if the token can reach more than
+one. See [ADR 0060](docs/decisions/0060-moneybird-history-comes-from-the-api.md).
 
 ### The same checks CI runs
 

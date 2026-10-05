@@ -45,6 +45,17 @@ import {
   handleRunExactImport,
 } from '~/api/handlers/exact'
 import {
+  handleChooseMoneybirdAdministration,
+  handleConnectMoneybird,
+  handleDisconnectMoneybird,
+  handleGetMoneybirdConnection,
+  handleListMoneybirdAdministrations,
+  handleMoneybirdImportStatus,
+  handlePreviewMoneybirdImport,
+  handleRunMoneybirdImport,
+  handleSaveMoneybirdMappings,
+} from '~/api/handlers/moneybird'
+import {
   handleListSnapshots,
   handleSealSnapshot,
   handleVerifySnapshot,
@@ -53,8 +64,11 @@ import {
   auditFileImportBody,
   auditLogQuery,
   chooseExactDivisionBody,
+  chooseMoneybirdAdministrationBody,
   completeExactBody,
   connectExactBody,
+  connectMoneybirdBody,
+  saveMoneybirdMappingsBody,
   deleteDocumentsBody,
   exactPreviewQuery,
   issueTokenBody,
@@ -554,4 +568,85 @@ export const exactDocumentStatus = createServerFn({ method: 'GET' }).handler(asy
 
 export const disconnectExact = createServerFn({ method: 'POST' }).handler(async () =>
   run(async () => (await handleDisconnectExact(await contextFromRequest())).body),
+)
+
+export const getMoneybirdConnection = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handleGetMoneybirdConnection(await contextFromRequest())).body),
+)
+
+export const connectMoneybird = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      connectMoneybirdBody,
+      data,
+      async (body) =>
+        (
+          await handleConnectMoneybird(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            body,
+          )
+        ).body,
+    ),
+  )
+
+export const listMoneybirdAdministrations = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handleListMoneybirdAdministrations(await contextFromRequest())).body),
+)
+
+export const chooseMoneybirdAdministration = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      chooseMoneybirdAdministrationBody,
+      data,
+      async (body) =>
+        (
+          await handleChooseMoneybirdAdministration(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            body,
+          )
+        ).body,
+    ),
+  )
+
+export const saveMoneybirdMappings = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      saveMoneybirdMappingsBody,
+      data,
+      async (body) =>
+        (
+          await handleSaveMoneybirdMappings(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            body,
+          )
+        ).body,
+    ),
+  )
+
+export const previewMoneybirdImport = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handlePreviewMoneybirdImport(await contextFromRequest())).body),
+)
+
+export const runMoneybirdImport = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    run(
+      async () =>
+        (
+          await handleRunMoneybirdImport(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+          )
+        ).body,
+    ),
+  )
+
+export const moneybirdImportStatus = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handleMoneybirdImportStatus(await contextFromRequest())).body),
+)
+
+export const disconnectMoneybird = createServerFn({ method: 'POST' }).handler(async () =>
+  run(async () => (await handleDisconnectMoneybird(await contextFromRequest())).body),
 )

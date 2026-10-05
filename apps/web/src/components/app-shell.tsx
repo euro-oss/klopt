@@ -200,6 +200,12 @@ const NAVIGATION: readonly NavGroup[] = [
         binding: 'go.exact',
         roles: ['owner', 'accountant', 'bookkeeper'],
       },
+      {
+        to: '/moneybird',
+        key: 'nav.moneybird',
+        binding: 'go.moneybird',
+        roles: ['owner', 'accountant', 'bookkeeper'],
+      },
     ],
   },
 ]

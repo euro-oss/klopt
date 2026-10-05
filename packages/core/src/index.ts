@@ -72,6 +72,7 @@ export * from './snapshot/index.js'
 export * from './discovery.js'
 export { KLOPT_VERSION } from './version.js'
 export * from './exact/index.js'
+export * from './moneybird/index.js'
 export * from './oauth/index.js'
 export * from './sales/index.js'
 export * from './setup/index.js'
@@ -81,6 +82,7 @@ export {
   complianceOperations,
   discoveryOperations,
   exactOperations,
+  moneybirdOperations,
   inboxOperations,
   ledgerOperations,
   membershipOperations,

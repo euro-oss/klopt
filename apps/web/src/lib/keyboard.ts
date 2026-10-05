@@ -150,6 +150,15 @@ export const BINDINGS: readonly Binding[] = [
   },
   // `g x` for E**x**act. `g e` is the postvak and `g o` the koppelscherm.
   { id: 'go.exact', label: 'nav.exact', group: 'keys.group.goTo', keys: 'g x', to: '/exact' },
+  // `g .` has no mnemonic: every letter was taken by the time Moneybird
+  // arrived. The palette prints it, next to Exact.
+  {
+    id: 'go.moneybird',
+    label: 'nav.moneybird',
+    group: 'keys.group.goTo',
+    keys: 'g .',
+    to: '/moneybird',
+  },
   // `s` for **s**luiten. Every letter in *boekjaren* was taken by the time this
   // screen arrived, which is what happens when a keyboard map is real, and
   // closing a year is what people come here to do.

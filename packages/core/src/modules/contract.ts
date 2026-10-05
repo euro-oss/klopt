@@ -247,11 +247,24 @@ const platform: ModuleContract = {
 /** Migrating in from somewhere else (spec 13). */
 const migration: ModuleContract = {
   name: 'migration',
-  summary: 'Bringing an administration across from Exact Online, documents included.',
-  tables: ['exact_connections', 'exact_document_runs', 'exact_attachments'],
+  summary: 'Bringing an administration across from Exact Online or Moneybird, documents included.',
+  tables: [
+    'exact_connections',
+    'exact_document_runs',
+    'exact_attachments',
+    'moneybird_connections',
+    'moneybird_import_runs',
+    'moneybird_imported_ids',
+    'moneybird_attachments',
+  ],
   emits: [],
   consumes: [],
-  posting: [{ journal: 'MEM', when: 'The opening balance: every open item as one entry.' }],
+  posting: [
+    { journal: 'MEM', when: 'The opening balance: every open item as one entry.' },
+    { journal: 'VRK', when: 'Imported Moneybird sales invoices and credit notes.' },
+    { journal: 'INK', when: 'Imported Moneybird purchase invoices and receipts.' },
+    { journal: 'BNK', when: 'Imported Moneybird bank mutations.' },
+  ],
   permissions: ['ledger:read', 'ledger:configure', 'ledger:import', 'ledger:post'],
 }
 

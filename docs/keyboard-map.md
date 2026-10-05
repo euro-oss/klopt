@@ -48,6 +48,7 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `g` then `h`   | Go to bewaarplicht (be**h**ouden)                       |
 | `g` then `z`   | Go to momentopnames (het **z**egel)                     |
 | `g` then `x`   | Go to Exact Online (E**x**act)                          |
+| `g` then `.`   | Go to Moneybird                                         |
 | `g` then `v`   | Go to ouderdomsanalyse debiteuren (**v**orderingen)     |
 | `g` then `c`   | Go to ouderdomsanalyse crediteuren (**c**rediteuren)    |
 | `g` then `s`   | Go to boekjaren (**s**luiten)                           |

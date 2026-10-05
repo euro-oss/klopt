@@ -69,6 +69,7 @@ status here to match the file.
 | [0057](0057-a-hundred-and-nine-of-a-hundred-and-nine.md)                   | A hundred and nine of a hundred and nine                                             | Accepted |
 | [0058](0058-a-seal-somebody-else-has-seen.md)                              | A seal somebody else has seen                                                        | Accepted |
 | [0059](0059-a-bucket-close-enough-to-test-against.md)                      | A bucket close enough to test against                                                | Accepted |
+| [0060](0060-moneybird-history-comes-from-the-api.md)                       | Moneybird history comes from the API                                                 | Accepted |
 
 ## Template
 

@@ -71,6 +71,17 @@ import {
   handleRunExactImport,
 } from '../src/api/handlers/exact.js'
 import {
+  handleChooseMoneybirdAdministration,
+  handleConnectMoneybird,
+  handleDisconnectMoneybird,
+  handleGetMoneybirdConnection,
+  handleListMoneybirdAdministrations,
+  handleMoneybirdImportStatus,
+  handlePreviewMoneybirdImport,
+  handleRunMoneybirdImport,
+  handleSaveMoneybirdMappings,
+} from '../src/api/handlers/moneybird.js'
+import {
   handleDiscardInboxItem,
   handleDraftFromInbox,
   handleListInbox,
@@ -140,6 +151,7 @@ import {
 } from '../src/api/schemas.js'
 import * as schemas from '../src/api/schemas.js'
 import { fakeExact } from './support/exact-online.js'
+import { fakeMoneybird } from './support/moneybird.js'
 import { routeManifest } from '../src/api/manifest.js'
 import { pathParameters } from '../src/api/openapi.js'
 import { BINARY_RESPONSES, handlersIn } from '../scripts/build-response-schemas.js'
@@ -490,6 +502,8 @@ describe('every collection read matches its published schema', () => {
     // against the same fake Exact the behaviour suite uses.
     'exact.listDivisions': 'Checked against a connected administration instead.',
     'exact.previewImport': 'Checked against a connected administration instead.',
+    'moneybird.listAdministrations': 'Checked against a connected administration instead.',
+    'moneybird.previewImport': 'Checked against a connected administration instead.',
   }
 
   /**
@@ -1539,6 +1553,77 @@ describe('Exact, from connecting to disconnecting', () => {
       (await handleExactDocumentStatus(await contextFor())).body,
     )
     conforms('exact.disconnect', (await handleDisconnectExact(await contextFor(key()))).body)
+  }, 60_000)
+})
+
+describe('Moneybird, from connecting to disconnecting', () => {
+  const realFetch = globalThis.fetch
+
+  afterAll(() => {
+    globalThis.fetch = realFetch
+  })
+
+  it('every operation the integration has', async () => {
+    fakeMoneybird()
+
+    conforms(
+      'moneybird.connect',
+      (
+        await handleConnectMoneybird(
+          await contextFor(key()),
+          schemas.connectMoneybirdBody.parse({
+            apiToken: 'mb-test-token',
+            baseUrl: 'https://moneybird.com/api/v2',
+          }),
+        )
+      ).body,
+    )
+
+    conforms(
+      'moneybird.getConnection',
+      (await handleGetMoneybirdConnection(await contextFor())).body,
+    )
+    conforms(
+      'moneybird.listAdministrations',
+      (await handleListMoneybirdAdministrations(await contextFor())).body,
+    )
+    conforms(
+      'moneybird.chooseAdministration',
+      (
+        await handleChooseMoneybirdAdministration(
+          await contextFor(key()),
+          schemas.chooseMoneybirdAdministrationBody.parse({ administrationId: '123456' }),
+        )
+      ).body,
+    )
+    conforms(
+      'moneybird.saveMappings',
+      (
+        await handleSaveMoneybirdMappings(
+          await contextFor(key()),
+          schemas.saveMoneybirdMappingsBody.parse({
+            accountMappings: { '1': '1100' },
+            taxMappings: { '21': 'H21' },
+          }),
+        )
+      ).body,
+    )
+    conforms(
+      'moneybird.previewImport',
+      (await handlePreviewMoneybirdImport(await contextFor())).body,
+    )
+    conforms(
+      'moneybird.runImport',
+      (await handleRunMoneybirdImport(await contextFor(key()))).body,
+    )
+    conforms(
+      'moneybird.importStatus',
+      (await handleMoneybirdImportStatus(await contextFor())).body,
+    )
+    conforms(
+      'moneybird.disconnect',
+      (await handleDisconnectMoneybird(await contextFor(key()))).body,
+    )
   }, 60_000)
 })
 

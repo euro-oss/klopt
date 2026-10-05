@@ -1121,6 +1121,111 @@ export const nl = {
   'exactCallback.startOver': 'Begin opnieuw op de',
   'exactCallback.exactPage': 'Exact-pagina',
 
+  'nav.moneybird': 'Moneybird',
+  'moneybird.title': 'Moneybird',
+  'moneybird.intro':
+    'Zet een Moneybird-administratie over: grootboek, relaties, geboekte historie, bankmutaties en documenten.',
+  'moneybird.disconnect': 'Verbinding verbreken',
+  'moneybird.step1Connect': '1. Verbinden',
+  'moneybird.step1Intro':
+    'Een persoonlijk API-token uit Moneybird (Instellingen → Ontwikkelaars). Het token wordt versleuteld bewaard, net als andere geheimen.',
+  'moneybird.noEncryptionKey':
+    'Er is geen KLOPT_ENCRYPTION_KEY ingesteld, dus een token kan niet versleuteld worden opgeslagen. Zet die eerst; onversleuteld bewaren doet dit systeem niet.',
+  'moneybird.apiToken': 'Persoonlijk API-token',
+  'moneybird.connect': 'Verbinden met Moneybird',
+  'moneybird.step1Connected': '1. Verbonden',
+  'moneybird.lastImported': ' · laatst overgezet {date}',
+  'moneybird.step2': '2. Welke administratie',
+  'moneybird.step2Intro':
+    'Eén token bereikt élke Moneybird-administratie waar deze gebruiker bij hoort. Kies de juiste: achteraf is aan de cijfers niet te zien welke het was.',
+  'moneybird.fetchAdministrations': 'Administraties ophalen',
+  'moneybird.fetchAgain': 'Opnieuw ophalen',
+  'moneybird.administration': 'Administratie',
+  'moneybird.chooseThis': 'kies deze',
+  'moneybird.isChosen': 'gekozen',
+  'moneybird.chosen': 'Gekozen:',
+  'moneybird.step3': '3. Proefimport',
+  'moneybird.step3Intro':
+    'Leest de administratie, toont de mapping van rekeningen en btw-codes, en sluit aan op de proefbalans. Er wordt niets overgezet.',
+  'moneybird.runPreview': 'Proefimport uitvoeren',
+  'moneybird.mapping': 'Mapping controleren',
+  'moneybird.mappingIntro':
+    'Elke Moneybird-rekening en elk tarief moet een Klopt-rekening of btw-code hebben voordat er geboekt wordt.',
+  'moneybird.saveMappings': 'Mapping bewaren',
+  'moneybird.kloptAccount': 'Klopt-rekening',
+  'moneybird.kloptTax': 'Klopt-btw-code',
+  'moneybird.step4': '4. Overzetten',
+  'moneybird.step4Intro':
+    'Zet de administratie over via de worker. Alles gaat door postJournalEntry. Opnieuw draaien voegt alleen nieuwe posten toe.',
+  'moneybird.commit': 'Definitief overzetten',
+  'moneybird.imported':
+    'Opdracht geplaatst. De worker zet {accounts} rekeningen, {contacts} relaties en de geboekte historie over.',
+  'moneybird.notImported': 'Niet overgezet',
+  'moneybird.counts': 'Aantallen',
+  'moneybird.ledgerAccounts': 'Grootboekrekeningen',
+  'moneybird.contacts': 'Relaties',
+  'moneybird.salesInvoices': 'Verkoopfacturen',
+  'moneybird.creditNotes': 'Creditfacturen',
+  'moneybird.purchaseInvoices': 'Inkoopfacturen',
+  'moneybird.receipts': 'Bonnen',
+  'moneybird.financialAccounts': 'Financiële rekeningen',
+  'moneybird.bankMutations': 'Bankmutaties',
+  'moneybird.journalDocuments': 'Memoriaal',
+  'moneybird.taxRates': 'Btw-tarieven',
+  'moneybird.documents': 'Documenten',
+  'moneybird.trialBalanceLabel': 'Proefbalans {year}',
+  'moneybird.notRead': 'niet gelezen',
+  'moneybird.noBalances': 'geen saldi',
+  'moneybird.doesNotBalance': 'sluit niet',
+  'moneybird.balances': 'sluit',
+  'moneybird.debitCredit': '{debit} debet / {credit} credit',
+  'moneybird.baseUrl': 'API-adres',
+  'moneybird.currency': 'Valuta',
+  'moneybird.unknownUser': 'verbonden',
+  'moneybird.administrationChosen': '{name} is gekozen.',
+  'moneybird.blocking': '{count} blokkerende bevindingen',
+  'moneybird.warnings': '{count} waarschuwingen',
+  'moneybird.nothingToReport': 'Niets te melden.',
+  'moneybird.requests': '{count} verzoeken, {rows} rijen, {seconds} s',
+  'moneybird.resource': 'Bron',
+  'moneybird.statusColumn': 'Status',
+  'moneybird.rowsColumn': 'Rijen',
+  'moneybird.durationColumn': 'Duur',
+  'moneybird.years': 'Boekjaren',
+  'moneybird.unmappedCount': '{count} nog te mappen',
+  'moneybird.status': 'Status:',
+  'moneybird.refresh': 'Vernieuwen',
+  'moneybird.workerSilent':
+    'De opdracht staat klaar, maar de worker heeft hem niet opgepakt. Draai',
+  'finding.moneybird.unknown_currency':
+    'Deze administratie is in {currency} en deze boeken zijn in {functionalCurrency}. Importeren zou elk bedrag omrekenen tegen een koers die niemand heeft gekozen.',
+  'finding.moneybird.unmapped_account':
+    'Grootboekrekening {name} ({number}) heeft geen bevestigde Klopt-rekening. Map hem voordat je importeert.',
+  'finding.moneybird.unmapped_tax_rate':
+    'Btw-tarief {name} ({percentage}%) heeft geen bevestigde Klopt-btw-code. Map hem voordat je importeert.',
+  'finding.moneybird.account_number_collision':
+    'Moneybird gaf grootboeknummer {number} twee keer terug ({name}).',
+  'finding.moneybird.contact_number_collision':
+    'Moneybird gaf relatienummer {number} twee keer terug ({name}).',
+  'finding.moneybird.resource_unreadable':
+    'Moneybird weigerde {resource} (HTTP {status}): {detail}. Onleesbaar is niet leeg, dus dit telt niet als aangesloten.',
+  'finding.moneybird.trial_balance_empty':
+    'Geen geboekte historie gelezen voor jaar {year}. Dat is geen sluitend leeg jaar.',
+  'finding.moneybird.trial_balance_unbalanced':
+    'De Moneybird-historie voor {year} sluit niet: {debit} debet tegen {credit} credit (centen).',
+  'finding.moneybird.trial_balance_account_missing':
+    'Jaar {year} heeft een saldo op {number}, dat niet in het over te zetten schema zit.',
+  'finding.moneybird.period_locked':
+    '{reference} is gedateerd in {year}, dat hier op slot zit. Gemeld, niet geboekt.',
+  'finding.moneybird.unbalanced_document':
+    '{reference} sluit niet: {debit} debet tegen {credit} credit (centen).',
+  'finding.moneybird.attachment_without_url':
+    'Bijlage {filename} heeft geen download-URL, dus het bestand kan niet worden bewaard.',
+  'finding.moneybird.draft_skipped':
+    '{reference} staat in Moneybird nog op {state} en wordt niet geïmporteerd.',
+  'finding.moneybird.derived_account_type':
+    '{number} ({name}) heeft Moneybird-type {accountType}, geen bekend rekeningtype. Wordt als activa gelezen. Controleer voordat je erop boekt.',
+
   // Chasing what is overdue.
   'dunning.title': 'Aanmaningen',
   'dunning.intro': 'Openstaande facturen per {date}, met de herinnering die elk nu verdient.',

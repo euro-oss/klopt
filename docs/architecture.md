@@ -296,7 +296,7 @@ future work; that was true early and is not any more. Read
   ([0025](decisions/0025-the-supplier-is-the-authority.md)), and book → approve →
   payment batch.
 - **M5–M6 hardening and platform.** Retention / WORM, sealed snapshots, a
-  complete audit log, an Exact Online importer, signed and replayable webhooks,
+  complete audit log, Exact Online and Moneybird importers, signed and replayable webhooks,
   a generated OpenAPI 3.1 document, and a module contract with an ownership test.
 
 **Outstanding means outstanding.** An invoice's outstanding amount is its total
@@ -306,9 +306,10 @@ joins the same subquery. Before matching existed the dunning list could only say
 
 ### The worker is not empty
 
-`apps/worker` runs five scheduled jobs: `inbound.poll` (every 5 minutes),
+`apps/worker` runs six scheduled jobs: `inbound.poll` (every 5 minutes),
 `snapshot.sealPendingYears` (04:00), `oauth.purgeExpiredCodes` (05:00),
-`exact.importDocuments` (every 2 minutes) and `webhooks.deliver` (every minute).
+`exact.importDocuments` (every 2 minutes), `moneybird.import` (every 2 minutes)
+and `webhooks.deliver` (every minute).
 The comment in `apps/worker/src/jobs.ts` that lists VAT period close, bank sync
 and subledger recon describes work that is _not_ registered — a future note, not
 a running job.

@@ -2,6 +2,7 @@ import type { Job, PgBoss } from 'pg-boss'
 import { pollInboundSourcesJob } from './inbound.js'
 import { deliverWebhooksJob } from './webhooks.js'
 import { importExactDocumentsJob } from './exact.js'
+import { importMoneybirdJob } from './moneybird.js'
 import { purgeExpiredCodesJob } from './oauth.js'
 import { sealPendingYearsJob } from './snapshots.js'
 
@@ -96,6 +97,20 @@ function exactDocumentsJob(databaseUrl: string): JobDefinition {
 }
 
 /**
+ * Importing a Moneybird administration, including booked history.
+ *
+ * Every two minutes; each tick claims one pending run. The work lives in the
+ * worker because a full administration is too large to finish inside a request.
+ */
+function moneybirdImportJob(databaseUrl: string): JobDefinition {
+  return {
+    name: 'moneybird.import',
+    schedule: '*/2 * * * *',
+    handler: () => importMoneybirdJob(databaseUrl),
+  }
+}
+
+/**
  * Pushing the event stream out (spec 10.2).
  *
  * Every half minute, because a webhook that arrives ten minutes late is one an
@@ -117,6 +132,7 @@ export function jobsFor(databaseUrl: string): readonly JobDefinition[] {
     snapshotJob(databaseUrl),
     oauthPurgeJob(databaseUrl),
     exactDocumentsJob(databaseUrl),
+    moneybirdImportJob(databaseUrl),
   ]
 }
 

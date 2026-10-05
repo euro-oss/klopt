@@ -1292,6 +1292,99 @@ export const exactOperations: Readonly<Record<string, OperationDefinition>> = {
 }
 
 /**
+ * Moving an administration out of Moneybird (issue #32).
+ *
+ * Same shape as Exact: connecting, choosing an administration and previewing
+ * are separate acts, because one personal API token reaches every
+ * administration the user belongs to. The commit itself is a job — booked
+ * history is too large to finish inside a request.
+ */
+export const moneybirdOperations: Readonly<Record<string, OperationDefinition>> = {
+  getConnection: defineOperation({
+    id: 'moneybird.getConnection',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Whether this administration is connected to Moneybird, and to which administration.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  connect: defineOperation({
+    id: 'moneybird.connect',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Store a Moneybird personal API token (encrypted) and list the administrations it can reach.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  listAdministrations: defineOperation({
+    id: 'moneybird.listAdministrations',
+    kind: 'read',
+    permission: 'ledger:configure',
+    summary: 'Every Moneybird administration this token can reach.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  chooseAdministration: defineOperation({
+    id: 'moneybird.chooseAdministration',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Record which Moneybird administration this entity imports from.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  saveMappings: defineOperation({
+    id: 'moneybird.saveMappings',
+    kind: 'write',
+    permission: 'ledger:import',
+    summary: 'Confirm ledger-account and VAT-code mappings for the next Moneybird import.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  previewImport: defineOperation({
+    id: 'moneybird.previewImport',
+    kind: 'read',
+    permission: 'ledger:import',
+    summary:
+      'What importing the chosen Moneybird administration would bring across, including booked history, without posting.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  runImport: defineOperation({
+    id: 'moneybird.runImport',
+    kind: 'write',
+    permission: 'ledger:import',
+    summary:
+      'Start importing the chosen Moneybird administration in the background. Posts only through postJournalEntry.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
+  importStatus: defineOperation({
+    id: 'moneybird.importStatus',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'How far the Moneybird import has got, and the machine-readable report when it is done.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  disconnect: defineOperation({
+    id: 'moneybird.disconnect',
+    kind: 'write',
+    permission: 'ledger:configure',
+    summary: 'Forget the Moneybird connection. What was already imported is untouched.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+}
+
+/**
  * The two questions that are not about one resource (spec 10.3).
  *
  * `search` and `explainNumber` are the tools the spec names and the MCP server

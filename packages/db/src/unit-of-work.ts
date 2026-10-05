@@ -7,6 +7,7 @@ import { MembersRepository } from './repositories/members.js'
 import { PaymentsRepository } from './repositories/payments.js'
 import { InboxRepository } from './repositories/inbox.js'
 import { ExactConnectionRepository } from './repositories/exact.js'
+import { MoneybirdConnectionRepository } from './repositories/moneybird.js'
 import { InboundSourceRepository } from './repositories/inbound-sources.js'
 import { AuditRepository } from './repositories/audit.js'
 import { EventRepository } from './repositories/events.js'
@@ -406,6 +407,23 @@ export async function withExactConnection<T>(
   work: (repository: ExactConnectionRepository) => Promise<T>,
 ): Promise<T> {
   return database.transaction(async (tx) => work(new ExactConnectionRepository(tx)))
+}
+
+export async function withMoneybirdConnectionRead<T>(
+  database: Database,
+  work: (repository: MoneybirdConnectionRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new MoneybirdConnectionRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
+  })
+}
+
+export async function withMoneybirdConnection<T>(
+  database: Database,
+  work: (repository: MoneybirdConnectionRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new MoneybirdConnectionRepository(tx)))
 }
 
 /**
