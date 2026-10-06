@@ -65,6 +65,7 @@ export const nl = {
   'shell.help': 'Sneltoetsen',
   'shell.skipToContent': 'Naar de inhoud',
   'shell.navigation': 'Hoofdnavigatie',
+  'shell.openMenu': 'Menu openen',
   'shell.newEntry': 'Nieuwe journaalpost',
 
   // Short rows in the account menu: NL | EN, not bilingual SelectFields.
@@ -124,6 +125,7 @@ export const nl = {
   // Things every screen says.
   'common.save': 'Opslaan',
   'common.cancel': 'Annuleren',
+  'common.close': 'Sluiten',
   'common.busy': 'Bezig…',
   'common.unknownError': 'Onbekende fout.',
   'common.none': 'geen',

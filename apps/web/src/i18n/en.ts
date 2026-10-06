@@ -73,6 +73,7 @@ export const en: Record<MessageKey, string> = {
   'shell.help': 'Keyboard shortcuts',
   'shell.skipToContent': 'Skip to content',
   'shell.navigation': 'Main navigation',
+  'shell.openMenu': 'Open menu',
   'shell.newEntry': 'New journal entry',
 
   'language.label': 'Language',
@@ -126,6 +127,7 @@ export const en: Record<MessageKey, string> = {
 
   'common.save': 'Save',
   'common.cancel': 'Cancel',
+  'common.close': 'Close',
   'common.busy': 'Working…',
   'common.unknownError': 'Something went wrong.',
   'common.none': 'none',

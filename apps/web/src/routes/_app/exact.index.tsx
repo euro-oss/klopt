@@ -367,7 +367,7 @@ function Exact() {
                 value={baseUrl}
                 onChange={(event) => setBaseUrl(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
+                className="field-control mt-1"
               />
             </label>
             <label className="text-sm">
@@ -376,7 +376,7 @@ function Exact() {
                 value={clientId}
                 onChange={(event) => setClientId(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 tabular"
+                className="field-control mt-1 tabular"
               />
             </label>
             <label className="text-sm">
@@ -386,7 +386,7 @@ function Exact() {
                 value={clientSecret}
                 onChange={(event) => setClientSecret(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 tabular"
+                className="field-control mt-1 tabular"
               />
             </label>
             <label className="text-sm">
@@ -395,10 +395,10 @@ function Exact() {
                 value={redirectUri}
                 onChange={(event) => setEditedRedirect(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 tabular"
+                className="field-control mt-1 tabular"
               />
             </label>
-            <div>
+            <div className="form-actions">
               <button
                 type="button"
                 disabled={
@@ -410,7 +410,7 @@ function Exact() {
                   clientSecret === ''
                 }
                 onClick={() => void connect()}
-                className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
+                className="touch-cta touch-cta-primary"
               >
                 {t('exact.signIn')}
               </button>
@@ -525,7 +525,7 @@ function Exact() {
               type="button"
               disabled={busy}
               onClick={() => void runPreview()}
-              className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
+              className="touch-cta touch-cta-primary"
             >
               {busy ? t('common.busy') : t('exact.runPreview')}
             </button>
@@ -558,7 +558,7 @@ function Exact() {
                     value={openingDate}
                     onChange={(event) => setOpeningDate(event.target.value)}
                     disabled={!hydrated}
-                    className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
+                    className="field-control mt-1"
                   />
                 </label>
                 <SelectField
@@ -613,7 +613,7 @@ function Exact() {
                   journalCode === ''
                 }
                 onClick={() => void runImport()}
-                className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
+                className="touch-cta touch-cta-primary"
               >
                 {busy ? t('common.busy') : t('exact.commit')}
               </button>
@@ -709,7 +709,7 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
 
   return (
     <div>
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         {/*
           Three states, not two. "Niet gelezen" is not "sluit niet": Exact
           refusing to show us the proefbalans says nothing about whether it

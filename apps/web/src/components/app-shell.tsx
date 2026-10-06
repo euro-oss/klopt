@@ -1,11 +1,20 @@
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
-import { RiArrowRightSLine } from '@remixicon/react'
+import { RiArrowRightSLine, RiMenuLine } from '@remixicon/react'
+import { Button } from '~/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '~/components/ui/sheet'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { setLocale } from '~/server/locale'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
 import { formatDate } from '~/lib/format'
@@ -257,6 +266,13 @@ export function AppShell({
   const { t } = useT()
   const active = entities.find((entity) => entity.entityId === activeEntityId) ?? entities[0]
   const role = active?.role ?? ''
+  // Phone Sheet (<768). Closed from the link click itself so a destination
+  // does not leave the drawer covering the screen it just opened (#38).
+  const [navOpen, setNavOpen] = useState(false)
+  // One chrome instance only: mounting the rail and the Sheet together would
+  // duplicate SelectField ids the moment the drawer opened. SSR assumes the
+  // desktop rail; the phone top bar mounts once the media query says so.
+  const phone = usePhoneViewport()
 
   // A group with nothing left in it loses its heading too, rather than leaving
   // "Beheer" standing over empty space for an auditor.
@@ -265,8 +281,27 @@ export function AppShell({
     items: group.items.filter((item) => item.roles === undefined || item.roles.includes(role)),
   })).filter((group) => group.items.length > 0)
 
+  const chrome = (
+    <ShellNavChrome
+      path={path}
+      groups={groups}
+      entities={entities}
+      activeEntityId={active?.entityId ?? ''}
+      onSwitchEntity={onSwitchEntity}
+      fiscalYears={fiscalYears}
+      activeYear={activeYear}
+      onSelectYear={onSelectYear}
+      userName={userName}
+      userEmail={userEmail}
+      role={role}
+      shortcutsLive={shortcutsLive}
+      hydrated={hydrated}
+      onNavigate={phone ? () => setNavOpen(false) : undefined}
+    />
+  )
+
   return (
-    <div className="bg-background text-foreground min-h-screen">
+    <div className="bg-background text-foreground min-h-screen overflow-x-clip">
       <CommandPalette />
       <a
         href="#main"
@@ -275,134 +310,70 @@ export function AppShell({
         {t('shell.skipToContent')}
       </a>
 
-      <div className="flex min-h-screen">
-        {/*
-          A column that fills the viewport and stays put, so the profile block
-          is at the bottom of the screen rather than the bottom of a list that
-          scrolls away. Only the navigation scrolls; the administration above it
-          and the profile below it are always reachable.
-        */}
-        <nav
-          aria-label={t('shell.navigation')}
-          className="border-border sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r"
-        >
-          <div className="px-3 pb-2">
-            <Link to="/" className="text-lg font-semibold tracking-tight">
-              Klopt
-            </Link>
-            <p className="text-muted-foreground text-xs">{t('shell.tagline')}</p>
-          </div>
-
-          {entities.length > 0 && (
-            <div className="px-3 pb-2">
-              <SelectField
-                label={t('shell.administration')}
-                value={active?.entityId ?? ''}
-                onValueChange={onSwitchEntity}
+      {/*
+        Phone chrome (#38): a thin top bar and a left Sheet. Destinations are
+        the same list as the desktop rail — including Importeren — so the two
+        surfaces cannot drift. No bottom tab bar; desktop keyboard chords stay
+        the only map.
+      */}
+      {phone && (
+        <header className="border-border bg-background sticky top-0 z-40 flex h-12 items-center gap-2 border-b px-2">
+          <Sheet open={navOpen} onOpenChange={setNavOpen}>
+            <SheetTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
                 disabled={!hydrated}
-                size="sm"
+                aria-label={t('shell.openMenu')}
               >
-                {entities.map((entity) => (
-                  <SelectOption key={entity.entityId} value={entity.entityId}>
-                    {entity.entityName}
-                  </SelectOption>
-                ))}
-              </SelectField>
-            </div>
-          )}
-
-          {/*
-            The book year, next to the administration and above everything it
-            scopes.
-
-            One control for the whole application rather than a picker per
-            report: "which year am I looking at" is a property of the session,
-            not of the screen, and a bookkeeper who set 2025 on the proefbalans
-            and then opened the balans to find 2026 has been told something
-            untrue by the software twice.
-
-            The dates under it are the point of it. A boekjaar labelled 2025
-            may run from July 2025 to June 2026, and a year picker that shows
-            only the label is the same guess as before with a dropdown on it.
-          */}
-          {fiscalYears.length > 0 && activeYear !== null && (
-            <div className="px-3 pb-2">
-              <SelectField
-                label={t('shell.fiscalYear')}
-                value={activeYear.code}
-                onValueChange={onSelectYear}
-                disabled={!hydrated}
-                size="sm"
-              >
-                {fiscalYears.map((year) => (
-                  <SelectOption key={year.code} value={year.code}>
-                    {year.status === 'closed'
-                      ? t('shell.yearClosed', { year: year.code })
-                      : year.code}
-                  </SelectOption>
-                ))}
-              </SelectField>
-              <p className="text-muted-foreground mt-1 text-xs tabular">
-                {formatDate(activeYear.startsOn)} – {formatDate(activeYear.endsOn)}
-              </p>
-            </div>
-          )}
-
-          {/* Above the scrolling list, not below it: the commonest action in
-              the application should never be behind a scroll. */}
-          <div className="px-3 pb-2">
-            <Link
-              to="/entries/new"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 block rounded-md px-3 py-2 text-center text-sm font-medium"
+                <RiMenuLine />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-72 max-w-[85vw] p-0"
+              closeLabel={t('common.close')}
             >
-              {t('shell.newEntry')}
-            </Link>
-          </div>
+              <SheetHeader className="border-border border-b p-3 pr-12">
+                <SheetTitle className="text-left text-lg font-semibold tracking-tight normal-case">
+                  Klopt
+                </SheetTitle>
+                <SheetDescription className="sr-only">{t('shell.navigation')}</SheetDescription>
+              </SheetHeader>
+              <nav aria-label={t('shell.navigation')} className="flex min-h-0 flex-1 flex-col">
+                {chrome}
+              </nav>
+            </SheetContent>
+          </Sheet>
+          <Link to="/" className="text-base font-semibold tracking-tight">
+            Klopt
+          </Link>
+        </header>
+      )}
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-            {groups.map((group, index) => (
-              <div key={group.key ?? 'start'} className={cn(index > 0 && 'mt-5')}>
-                {group.key !== undefined && (
-                  <h2 className="text-muted-foreground mb-1 px-2 text-[11px] font-semibold tracking-wide uppercase">
-                    {t(group.key)}
-                  </h2>
-                )}
-                <ul className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const binding =
-                      item.binding === undefined ? undefined : BINDINGS_BY_ID.get(item.binding)
-                    const isActive = item.to === '/' ? path === '/' : path.startsWith(item.to)
-                    return (
-                      <li key={item.to}>
-                        <Link
-                          to={item.to}
-                          className={cn(
-                            'group flex items-center justify-between rounded-md px-2 py-1.5 text-sm',
-                            isActive
-                              ? 'bg-accent text-accent-foreground font-medium'
-                              : 'hover:bg-accent/60',
-                          )}
-                        >
-                          {t(item.key)}
-                          {binding !== undefined && shortcutsLive && (
-                            // Printed, not revealed on hover: a keyboard user
-                            // never hovers, and a key nobody can see is a key
-                            // nobody uses (docs/keyboard-map.md, principle 5).
-                            <kbd className="text-muted-foreground tabular text-[10px]">
-                              {formatBinding(binding)}
-                            </kbd>
-                          )}
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <Profile userName={userName} userEmail={userEmail} role={role} />
-        </nav>
+      <div className="flex min-h-screen md:min-h-0">
+        {/*
+          Desktop / tablet rail (≥768). A column that fills the viewport and
+          stays put, so the profile block is at the bottom of the screen rather
+          than the bottom of a list that scrolls away. Only the navigation
+          scrolls; the administration above it and the profile below it are
+          always reachable. Absent on the phone, where the Sheet owns the list.
+        */}
+        {!phone && (
+          <nav
+            aria-label={t('shell.navigation')}
+            className="border-border sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r"
+          >
+            <div className="px-3 pb-2">
+              <Link to="/" className="text-lg font-semibold tracking-tight">
+                Klopt
+              </Link>
+              <p className="text-muted-foreground text-xs">{t('shell.tagline')}</p>
+            </div>
+            {chrome}
+          </nav>
+        )}
 
         {/*
           Focusable, and focused on every route change (see `useFocusOnRoute`).
@@ -418,6 +389,181 @@ export function AppShell({
         </main>
       </div>
     </div>
+  )
+}
+
+/** `true` below 768px. SSR and the first client paint assume the desktop rail. */
+function usePhoneViewport(): boolean {
+  return useSyncExternalStore(
+    subscribePhoneViewport,
+    () => window.matchMedia(PHONE_QUERY).matches,
+    () => false,
+  )
+}
+
+const PHONE_QUERY = '(max-width: 767px)'
+
+function subscribePhoneViewport(onChange: () => void): () => void {
+  const query = window.matchMedia(PHONE_QUERY)
+  query.addEventListener('change', onChange)
+  return () => {
+    query.removeEventListener('change', onChange)
+  }
+}
+
+/**
+ * The shared body of the side-nav and the phone Sheet.
+ *
+ * One list, two hosts: the desktop rail shows the brand above this block, the
+ * Sheet puts it in the dialog title. Keeping the destinations here is what
+ * stops Importeren (and every other group) from existing in only one surface.
+ */
+function ShellNavChrome({
+  path,
+  groups,
+  entities,
+  activeEntityId,
+  onSwitchEntity,
+  fiscalYears,
+  activeYear,
+  onSelectYear,
+  userName,
+  userEmail,
+  role,
+  shortcutsLive,
+  hydrated,
+  onNavigate,
+}: {
+  path: string
+  groups: readonly NavGroup[]
+  entities: readonly ShellEntity[]
+  activeEntityId: string
+  onSwitchEntity: (entityId: string) => void
+  fiscalYears: readonly FiscalYearOption[]
+  activeYear: FiscalYearScope | null
+  onSelectYear: (code: string) => void
+  userName: string
+  userEmail: string
+  role: string
+  shortcutsLive: boolean
+  hydrated: boolean
+  /** Phone Sheet: dismiss the drawer as soon as a destination is chosen. */
+  onNavigate?: (() => void) | undefined
+}) {
+  const { t } = useT()
+
+  return (
+    <>
+      {entities.length > 0 && (
+        <div className="px-3 pb-2">
+          <SelectField
+            label={t('shell.administration')}
+            value={activeEntityId}
+            onValueChange={onSwitchEntity}
+            disabled={!hydrated}
+            size="sm"
+          >
+            {entities.map((entity) => (
+              <SelectOption key={entity.entityId} value={entity.entityId}>
+                {entity.entityName}
+              </SelectOption>
+            ))}
+          </SelectField>
+        </div>
+      )}
+
+      {/*
+        The book year, next to the administration and above everything it
+        scopes.
+
+        One control for the whole application rather than a picker per
+        report: "which year am I looking at" is a property of the session,
+        not of the screen, and a bookkeeper who set 2025 on the proefbalans
+        and then opened the balans to find 2026 has been told something
+        untrue by the software twice.
+
+        The dates under it are the point of it. A boekjaar labelled 2025
+        may run from July 2025 to June 2026, and a year picker that shows
+        only the label is the same guess as before with a dropdown on it.
+      */}
+      {fiscalYears.length > 0 && activeYear !== null && (
+        <div className="px-3 pb-2">
+          <SelectField
+            label={t('shell.fiscalYear')}
+            value={activeYear.code}
+            onValueChange={onSelectYear}
+            disabled={!hydrated}
+            size="sm"
+          >
+            {fiscalYears.map((year) => (
+              <SelectOption key={year.code} value={year.code}>
+                {year.status === 'closed' ? t('shell.yearClosed', { year: year.code }) : year.code}
+              </SelectOption>
+            ))}
+          </SelectField>
+          <p className="text-muted-foreground mt-1 text-xs tabular">
+            {formatDate(activeYear.startsOn)} – {formatDate(activeYear.endsOn)}
+          </p>
+        </div>
+      )}
+
+      {/* Above the scrolling list, not below it: the commonest action in
+          the application should never be behind a scroll. */}
+      <div className="px-3 pb-2">
+        <Link
+          to="/entries/new"
+          onClick={onNavigate}
+          className="touch-cta touch-cta-primary w-full text-center text-sm"
+        >
+          {t('shell.newEntry')}
+        </Link>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+        {groups.map((group, index) => (
+          <div key={group.key ?? 'start'} className={cn(index > 0 && 'mt-5')}>
+            {group.key !== undefined && (
+              <h2 className="text-muted-foreground mb-1 px-2 text-[11px] font-semibold tracking-wide uppercase">
+                {t(group.key)}
+              </h2>
+            )}
+            <ul className="space-y-0.5">
+              {group.items.map((item) => {
+                const binding =
+                  item.binding === undefined ? undefined : BINDINGS_BY_ID.get(item.binding)
+                const isActive = item.to === '/' ? path === '/' : path.startsWith(item.to)
+                return (
+                  <li key={item.to}>
+                    <Link
+                      to={item.to}
+                      onClick={onNavigate}
+                      className={cn(
+                        'group flex min-h-11 items-center justify-between rounded-md px-2 py-1.5 text-sm md:min-h-0',
+                        isActive
+                          ? 'bg-accent text-accent-foreground font-medium'
+                          : 'hover:bg-accent/60',
+                      )}
+                    >
+                      {t(item.key)}
+                      {binding !== undefined && shortcutsLive && (
+                        // Printed, not revealed on hover: a keyboard user
+                        // never hovers, and a key nobody can see is a key
+                        // nobody uses (docs/keyboard-map.md, principle 5).
+                        <kbd className="text-muted-foreground tabular text-[10px]">
+                          {formatBinding(binding)}
+                        </kbd>
+                      )}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <Profile userName={userName} userEmail={userEmail} role={role} />
+    </>
   )
 }
 
@@ -474,7 +620,7 @@ function Profile({
           //
           // Focus and open both take the accent yellow fill — the black ring
           // on white was invisible against the page and against the design.
-          className="group hover:bg-accent/60 focus-visible:bg-accent focus-visible:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex w-full items-center gap-2 px-2 py-1.5 text-left outline-none"
+          className="group hover:bg-accent/60 focus-visible:bg-accent focus-visible:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex min-h-11 w-full items-center gap-2 px-2 py-1.5 text-left outline-none md:min-h-0"
         >
           <span
             aria-hidden="true"

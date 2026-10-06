@@ -255,7 +255,7 @@ function NewInvoice() {
         <StepBadge step={2}>{t('invoices.stepForm')}</StepBadge>
       </div>
 
-      <div className="mb-4 grid max-w-5xl grid-cols-5 gap-3">
+      <div className="mb-4 grid max-w-5xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <SelectField
           label={t('invoiceNew.customer')}
           value={contactNumber}
@@ -291,7 +291,7 @@ function NewInvoice() {
             onChange={(event) => {
               setIssueDate(event.target.value)
             }}
-            className="border-input bg-background tabular w-full border px-3 py-2 text-sm"
+            className="field-control tabular"
           />
         </label>
 
@@ -305,7 +305,7 @@ function NewInvoice() {
               setBuyerReference(event.target.value)
             }}
             placeholder={t('invoiceNew.buyerReferencePlaceholder')}
-            className="border-input bg-background w-full border px-3 py-2 text-sm"
+            className="field-control"
           />
         </label>
 
@@ -319,7 +319,7 @@ function NewInvoice() {
               setReference(event.target.value)
             }}
             placeholder="PO-1234"
-            className="border-input bg-background w-full border px-3 py-2 text-sm"
+            className="field-control"
           />
         </label>
       </div>
@@ -352,7 +352,7 @@ function NewInvoice() {
                       setLines((current) => [...current, emptyLine(defaultRevenue, defaultTax)])
                     }
                   }}
-                  className="border-input bg-background w-full border px-2 py-1.5"
+                  className="field-control"
                 />
               </td>
               <td className="py-1">
@@ -362,7 +362,7 @@ function NewInvoice() {
                   onChange={(event) => {
                     update(index, { quantity: event.target.value })
                   }}
-                  className="border-input bg-background tabular w-full border px-2 py-1.5 text-right"
+                  className="field-control tabular text-right"
                 />
               </td>
               <td className="py-1">
@@ -372,7 +372,7 @@ function NewInvoice() {
                   onChange={(event) => {
                     update(index, { unitCode: event.target.value })
                   }}
-                  className="border-input bg-background w-full border px-2 py-1.5"
+                  className="field-control"
                 />
               </td>
               <td className="py-1">
@@ -382,7 +382,7 @@ function NewInvoice() {
                   onChange={(event) => {
                     update(index, { unitPrice: event.target.value })
                   }}
-                  className="border-input bg-background tabular w-full border px-2 py-1.5 text-right"
+                  className="field-control tabular text-right"
                 />
               </td>
               <td className="py-1">
@@ -467,7 +467,7 @@ function NewInvoice() {
               onClick={() => {
                 void submit()
               }}
-              className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
+              className="touch-cta touch-cta-primary"
             >
               {busy ? t('common.busy') : t('invoiceNew.confirmSave')}
             </button>
@@ -476,7 +476,7 @@ function NewInvoice() {
               onClick={() => {
                 setConfirming(false)
               }}
-              className="border-input border px-4 py-2 text-sm font-medium"
+              className="touch-cta touch-cta-secondary"
             >
               {t('entryNew.confirmBack')}
             </button>
@@ -490,11 +490,11 @@ function NewInvoice() {
         </p>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="form-actions items-center">
         <button
           type="submit"
           disabled={busy || !hydrated || contactNumber === ''}
-          className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
+          className="touch-cta touch-cta-primary"
         >
           {busy ? t('common.busy') : t('invoiceNew.saveDraft')}
         </button>
@@ -504,7 +504,7 @@ function NewInvoice() {
           onClick={() => {
             void navigate({ to: '/invoices', search: { status: undefined } })
           }}
-          className="border-input border px-4 py-2 text-sm font-medium disabled:opacity-50"
+          className="touch-cta touch-cta-secondary"
         >
           {t('common.cancel')}
         </button>

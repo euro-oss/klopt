@@ -134,7 +134,7 @@ function SignIn() {
   }
 
   return (
-    <main className="bg-background text-foreground flex min-h-screen items-center justify-center p-8">
+    <main className="bg-background text-foreground flex min-h-screen items-center justify-center overflow-x-clip p-4 sm:p-8">
       <div className="w-full max-w-sm">
         <h1 className="text-2xl font-semibold tracking-tight">Klopt</h1>
         <p className="text-muted-foreground mt-1 text-sm">
@@ -153,7 +153,7 @@ function SignIn() {
                 autoComplete="email"
                 required
                 defaultValue={email}
-                className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                className="field-control"
               />
             </label>
 
@@ -163,13 +163,15 @@ function SignIn() {
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={busy || !hydrated}
-              className="bg-primary text-primary-foreground mt-6 w-full rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-            >
-              {busy ? t('common.busy') : t('signIn.sendCode')}
-            </button>
+            <div className="form-actions">
+              <button
+                type="submit"
+                disabled={busy || !hydrated}
+                className="touch-cta touch-cta-primary w-full"
+              >
+                {busy ? t('common.busy') : t('signIn.sendCode')}
+              </button>
+            </div>
           </form>
         ) : (
           <form
@@ -188,7 +190,7 @@ function SignIn() {
                   setError(null)
                   setNotice(null)
                 }}
-                className="underline"
+                className="min-h-11 underline"
               >
                 {t('signIn.change')}
               </button>
@@ -213,7 +215,7 @@ function SignIn() {
                 onChange={(event) => {
                   setCode(event.target.value.replace(/\D/g, ''))
                 }}
-                className="border-input bg-background tabular w-full rounded-md border px-3 py-2 text-center text-lg tracking-[0.4em]"
+                className="field-control tabular text-center text-lg tracking-[0.4em]"
               />
             </label>
 
@@ -226,24 +228,26 @@ function SignIn() {
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={busy || !hydrated || code.length !== CODE_LENGTH}
-              className="bg-primary text-primary-foreground mt-6 w-full rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-            >
-              {busy ? t('common.busy') : t('signIn.verify')}
-            </button>
+            <div className="form-actions flex-col">
+              <button
+                type="submit"
+                disabled={busy || !hydrated || code.length !== CODE_LENGTH}
+                className="touch-cta touch-cta-primary w-full"
+              >
+                {busy ? t('common.busy') : t('signIn.verify')}
+              </button>
 
-            <button
-              type="button"
-              disabled={busy || !hydrated}
-              onClick={() => {
-                void requestCode(email)
-              }}
-              className="text-muted-foreground hover:text-foreground mt-3 w-full text-center text-xs underline"
-            >
-              {t('signIn.resend')}
-            </button>
+              <button
+                type="button"
+                disabled={busy || !hydrated}
+                onClick={() => {
+                  void requestCode(email)
+                }}
+                className="text-muted-foreground hover:text-foreground min-h-11 w-full text-center text-sm underline"
+              >
+                {t('signIn.resend')}
+              </button>
+            </div>
           </form>
         )}
 

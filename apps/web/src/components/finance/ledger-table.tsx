@@ -265,6 +265,12 @@ export function LedgerTable<TRow>({
     }
   }
 
+  // Wide ledgers scroll inside the table, not the page (#38). Three or more
+  // data columns pin the first (label / account / number) so the row still
+  // reads while the figures move. Stacked cards stay out — density and the
+  // keyboard scan are the point of a ledger.
+  const stickyFirst = columns.length >= 3
+
   return (
     <div>
       {/* What the keyboard just did, said out loud: a selection or a copy that
@@ -279,12 +285,12 @@ export function LedgerTable<TRow>({
         {hydrated ? (status ?? '') : ''}
       </p>
 
-      <div className="border-border overflow-x-auto border">
-        <table className="w-full border-collapse text-sm">
+      <div className="border-border overflow-x-auto border" data-ledger-scroll="">
+        <table className="w-full min-w-max border-collapse text-sm">
           {caption !== undefined && <caption className="sr-only">{caption}</caption>}
           <thead>
             <tr className="border-border bg-muted/50 border-b">
-              {columns.map((column) => (
+              {columns.map((column, columnIndex) => (
                 <th
                   key={column.key}
                   scope="col"
@@ -292,6 +298,9 @@ export function LedgerTable<TRow>({
                   className={cn(
                     'text-muted-foreground px-3 py-2 font-medium',
                     column.align === 'right' ? 'text-right' : 'text-left',
+                    stickyFirst &&
+                      columnIndex === 0 &&
+                      'bg-muted/50 sticky left-0 z-20 border-r border-border',
                   )}
                 >
                   {column.header}
@@ -324,7 +333,7 @@ export function LedgerTable<TRow>({
                         }
                   }
                   className={cn(
-                    'border-border/60 border-b last:border-0 outline-none',
+                    'border-border/60 group border-b last:border-0 outline-none',
                     onRowActivate !== undefined && 'hover:bg-muted/60 cursor-pointer',
                     // The cursor uses `--ring` (black in light, yellow in dark):
                     // yellow-on-white is too thin for a hairline, so selection
@@ -335,10 +344,20 @@ export function LedgerTable<TRow>({
                     selected && 'border-l-ring bg-muted/60 border-l-2 font-medium',
                   )}
                 >
-                  {columns.map((column) => (
+                  {columns.map((column, columnIndex) => (
                     <td
                       key={column.key}
-                      className={cn('px-3 py-1.5', column.align === 'right' && 'text-right')}
+                      className={cn(
+                        'px-3 py-1.5',
+                        column.align === 'right' && 'text-right',
+                        stickyFirst &&
+                          columnIndex === 0 &&
+                          cn(
+                            'bg-background sticky left-0 z-10 border-r border-border',
+                            onRowActivate !== undefined && 'group-hover:bg-muted/60',
+                            selected && 'bg-muted/60',
+                          ),
+                      )}
                     >
                       {column.cell(row)}
                     </td>

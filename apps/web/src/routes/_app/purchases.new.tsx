@@ -219,7 +219,7 @@ function NewPurchaseInvoice() {
     >
       <PageHeader title={t('purchaseNew.title')} description={t('purchaseNew.intro')} />
 
-      <div className="mb-6 grid max-w-5xl grid-cols-4 gap-4">
+      <div className="mb-6 grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SelectField
           label={t('contacts.supplierLabel')}
           value={contactNumber}
@@ -246,7 +246,7 @@ function NewPurchaseInvoice() {
             required
             maxLength={64}
             placeholder="F-2026-0042"
-            className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+            className="field-control"
           />
         </label>
 
@@ -273,7 +273,7 @@ function NewPurchaseInvoice() {
               setPaymentReference(event.target.value)
             }}
             placeholder="0123456789012345"
-            className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+            className="field-control"
           />
         </label>
 
@@ -289,7 +289,7 @@ function NewPurchaseInvoice() {
               setInvoiceDate(event.target.value)
               setDueDate(addDays(event.target.value, 30))
             }}
-            className="border-input bg-background tabular w-full rounded-md border px-3 py-2 text-sm"
+            className="field-control tabular"
           />
         </label>
 
@@ -304,13 +304,13 @@ function NewPurchaseInvoice() {
             onChange={(event) => {
               setDueDate(event.target.value)
             }}
-            className="border-input bg-background tabular w-full rounded-md border px-3 py-2 text-sm"
+            className="field-control tabular"
           />
         </label>
       </div>
 
       <h2 className="mb-2 text-sm font-semibold">{t('purchaseNew.asOnDocument')}</h2>
-      <div className="mb-6 grid max-w-2xl grid-cols-3 gap-4">
+      <div className="mb-6 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-3">
         {(
           [
             [t('purchaseNew.netAmount'), statedNet, setStatedNet, netMatches],
@@ -330,7 +330,7 @@ function NewPurchaseInvoice() {
               placeholder="0,00"
               className={
                 matches
-                  ? 'border-input bg-background tabular w-full rounded-md border px-3 py-2 text-right text-sm'
+                  ? 'field-control tabular text-right'
                   : 'border-destructive bg-background tabular w-full rounded-md border px-3 py-2 text-right text-sm'
               }
             />
@@ -363,7 +363,7 @@ function NewPurchaseInvoice() {
                       setLines((current) => [...current, emptyLine(defaultAccount, defaultTax)])
                     }
                   }}
-                  className="border-input bg-background w-full rounded-md border px-2 py-1.5"
+                  className="field-control"
                 />
               </td>
               <td className="py-1">
@@ -402,7 +402,7 @@ function NewPurchaseInvoice() {
                   onChange={(event) => {
                     update(index, { net: event.target.value })
                   }}
-                  className="border-input bg-background tabular w-full rounded-md border px-2 py-1.5 text-right"
+                  className="field-control tabular text-right"
                 />
               </td>
               <td className="py-1">
@@ -412,7 +412,7 @@ function NewPurchaseInvoice() {
                   onChange={(event) => {
                     update(index, { tax: event.target.value })
                   }}
-                  className="border-input bg-background tabular w-full rounded-md border px-2 py-1.5 text-right"
+                  className="field-control tabular text-right"
                 />
               </td>
               <td className="py-1 text-center">
@@ -468,13 +468,15 @@ function NewPurchaseInvoice() {
         </ul>
       )}
 
-      <button
-        type="submit"
-        disabled={!hydrated || busy || filled.length === 0 || supplierInvoiceNumber === ''}
-        className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-      >
-        {busy ? t('common.busy') : t('invoiceNew.saveDraft')}
-      </button>
+      <div className="form-actions">
+        <button
+          type="submit"
+          disabled={!hydrated || busy || filled.length === 0 || supplierInvoiceNumber === ''}
+          className="touch-cta touch-cta-primary"
+        >
+          {busy ? t('common.busy') : t('invoiceNew.saveDraft')}
+        </button>
+      </div>
       <p className="text-muted-foreground mt-2 max-w-2xl text-xs">{t('purchaseNew.saveNote')}</p>
     </form>
   )
