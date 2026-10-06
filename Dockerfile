@@ -57,19 +57,29 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 COPY . .
 RUN pnpm run build
 
-# Prod-only, and only for what runs: the worker, the CLI, and the migrator.
-# `...` is pnpm for "and everything it depends on", which is how `@klopt/core`
-# and `@klopt/adapters` get here without being named.
+# Prod-only, and only for what runs: the worker, the CLI, the migrator, and
+# the Nitro SSR server (both image targets copy `.output/server`). `...` is
+# pnpm for "and everything it depends on", which is how `@klopt/core`,
+# `@klopt/adapters` and `@klopt/mcp` get here without being named.
+#
+# The server bundle is almost self-contained, but it is not quite. MCP's
+# `ajv-formats` still `__require("ajv")` at runtime, from a file under
+# `apps/web/.output/server` — outside the SDK's pnpm isolation. Web must be
+# a prod importer so `apps/web/node_modules/ajv` exists for that lookup.
+# Prune still walks from `apps/mcp`, not `apps/web`: walking web would keep
+# React/TanStack/radix in the store, which `.output` already carries. Headless
+# runs the same server, so this layer is shared on purpose.
 FROM manifests AS deps
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prod --ignore-scripts \
-      --filter @klopt/worker... --filter @klopt/cli... --filter @klopt/db...
+      --filter @klopt/worker... --filter @klopt/cli... --filter @klopt/db... \
+      --filter @klopt/web...
 
 # Filters select importers, not store entries, so the install above leaves the
 # whole lockfile's worth of packages in `node_modules/.pnpm` — Rolldown, React,
 # drizzle-kit, Prettier — none of which anything in a runtime image can reach.
 COPY tools/container/prune-store.mjs /tmp/
-RUN node /tmp/prune-store.mjs /app apps/worker apps/cli packages/db packages/core packages/adapters
+RUN node /tmp/prune-store.mjs /app apps/worker apps/cli apps/mcp packages/db packages/core packages/adapters
 
 # Everything both images run. Not the web server — that is the one layer they
 # differ in, and it is the last thing added so that the difference is a layer

@@ -115,6 +115,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: 3.14.10
         version: 3.14.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
       class-variance-authority:
         specifier: 0.7.1
         version: 0.7.1
@@ -167,9 +170,6 @@ importers:
       '@vitejs/plugin-react':
         specifier: 6.1.1
         version: 6.1.1(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))
-      ajv:
-        specifier: ^8.20.0
-        version: 8.20.0
       nitro:
         specifier: 3.0.260903-beta
         version: 3.0.260903-beta
