@@ -1499,7 +1499,7 @@ export const en: Record<MessageKey, string> = {
   'palette.search': 'Search for a screen or a record',
   'palette.searchPlaceholder': 'Where do you want to go, or what are you looking for?',
   'palette.nothingFound': 'Nothing found.',
-  'palette.escapeNote': 'Close with Escape. G and N are prefixes; they lapse after 1.5 seconds.',
+  'palette.escapeNote': 'Close with Escape. G, I and N are prefixes; they lapse after 1.5 seconds.',
   'palette.navigation': 'Navigation',
   'palette.content': 'Content',
   'palette.searching': 'Searching…',
@@ -1531,6 +1531,7 @@ export const en: Record<MessageKey, string> = {
   'nav.group.money': 'Money',
   'nav.group.ageing': 'Ageing',
   'nav.group.reports': 'Reports',
+  'nav.group.import': 'Import',
   'nav.group.admin': 'Administration',
   'shell.profile': 'Profile',
 

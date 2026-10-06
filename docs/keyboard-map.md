@@ -47,17 +47,20 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `g` then `l`   | Go to wie wat deed (het **l**og)                        |
 | `g` then `h`   | Go to bewaarplicht (be**h**ouden)                       |
 | `g` then `z`   | Go to momentopnames (het **z**egel)                     |
-| `g` then `x`   | Go to Exact Online (E**x**act)                          |
+| `g` then `x`   | Go to Exact Online (E**x**act) — muscle-memory alias    |
 | `g` then `v`   | Go to ouderdomsanalyse debiteuren (**v**orderingen)     |
 | `g` then `c`   | Go to ouderdomsanalyse crediteuren (**c**rediteuren)    |
 | `g` then `s`   | Go to boekjaren (**s**luiten)                           |
 | `g` then `q`   | Go to de auditfile                                      |
+| `i` then `x`   | Go to Exact Online (E**x**act)                          |
+| `i` then `m`   | Go to Moneybird (**M**oneybird)                         |
 | `n` then `i`   | New inkoopfactuur                                       |
 | `n` then `j`   | New journal entry                                       |
 | `Escape`       | Close overlay, cancel edit, clear focus — in that order |
 
-`g` and `n` are prefixes, following the convention people already know from
-GitHub and Linear. A prefix times out after 1.5 seconds.
+`g`, `i` and `n` are prefixes. `g` and `n` follow the convention people already
+know from GitHub and Linear; `i` is **i**mporteren, the second prefix space that
+arrived when the `g` alphabet filled up. A prefix times out after 1.5 seconds.
 
 Everything in this table is wired to `apps/web/src/lib/keyboard.ts`, which is
 the registry the palette and the `?` sheet are generated from. That is what
@@ -69,11 +72,12 @@ one: every letter in _auditfile_ was taken by the time the screen arrived. The
 palette prints the key beside the label, which is what makes that survivable.
 
 **The `g` alphabet is full.** Twenty-six destinations, twenty-six letters, and
-Alpha 3 took the last two. The next screen that wants a key needs a second prefix
-or a different scheme rather than a letter somebody else is using. Moneybird is
-reached from the command palette and settings, without a `g` chord.
-`test/unit/shortcuts.test.ts` asserts the alphabet is exhausted, so that decision
-arrives as a failing test rather than as a collision.
+Alpha 3 took the last two. Importers use the `i` prefix rather than freeing a
+`g` letter: `i x` and `i m` are the printed chords under Importeren, and
+`g x` remains as a documented muscle-memory alias for Exact.
+`test/unit/shortcuts.test.ts` asserts the `g` alphabet is still exhausted and
+that the `i` prefix resolves both importers, so a stolen letter or a missing
+chord arrives as a failing test rather than as a collision.
 
 `/` for "focus search" was in this table for three milestones with nothing behind
 it. There is a global search now — it lives in the palette, where `Cmd/Ctrl` `K`

@@ -153,10 +153,24 @@ export const BINDINGS: readonly Binding[] = [
     keys: 'g z',
     to: '/snapshots',
   },
-  // `g x` for E**x**act. `g e` is the postvak and `g o` the koppelscherm.
-  { id: 'go.exact', label: 'nav.exact', group: 'keys.group.goTo', keys: 'g x', to: '/exact' },
-  // Palette-only: a one-time migration does not get a global go-to chord.
-  { id: 'go.moneybird', label: 'nav.moneybird', group: 'keys.group.goTo', to: '/moneybird' },
+  // `i` is the second prefix — **i**mporteren — because the `g` alphabet is
+  // full (docs/keyboard-map.md). `i x` / `i m` are the printed chords; `g x`
+  // stays as a muscle-memory alias for Exact and must not free a `g` letter.
+  { id: 'go.exact', label: 'nav.exact', group: 'keys.group.goTo', keys: 'i x', to: '/exact' },
+  {
+    id: 'go.exactAlias',
+    label: 'nav.exact',
+    group: 'keys.group.goTo',
+    keys: 'g x',
+    to: '/exact',
+  },
+  {
+    id: 'go.moneybird',
+    label: 'nav.moneybird',
+    group: 'keys.group.goTo',
+    keys: 'i m',
+    to: '/moneybird',
+  },
   // `s` for **s**luiten. Every letter in *boekjaren* was taken by the time this
   // screen arrived, which is what happens when a keyboard map is real, and
   // closing a year is what people come here to do.

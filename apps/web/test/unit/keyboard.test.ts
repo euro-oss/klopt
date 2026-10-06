@@ -84,6 +84,11 @@ describe('the keyboard map', () => {
     expect(bindingChips(BINDINGS_BY_ID.get('entry.post')!)).toEqual(['Ctrl↵'])
     expect(bindingChips(BINDINGS_BY_ID.get('entry.postAndNext')!)).toEqual(['Ctrl⇧↵'])
     expect(bindingChips(BINDINGS_BY_ID.get('go.dashboard')!)).toEqual(['G', 'D'])
+    // Importeren prefix (#37): printed chords are `i` then …; `g x` stays as
+    // the Exact alias and still renders as its own two caps.
+    expect(bindingChips(BINDINGS_BY_ID.get('go.exact')!)).toEqual(['I', 'X'])
+    expect(bindingChips(BINDINGS_BY_ID.get('go.exactAlias')!)).toEqual(['G', 'X'])
+    expect(bindingChips(BINDINGS_BY_ID.get('go.moneybird')!)).toEqual(['I', 'M'])
   })
 
   it('indexes every binding by id', () => {

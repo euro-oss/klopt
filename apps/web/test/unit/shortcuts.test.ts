@@ -36,6 +36,21 @@ describe('resolving a keystroke', () => {
     expect(resolved.action === 'trigger' && resolved.binding.to).toBe('/purchases/new')
   })
 
+  it('arms `i` for the importers, without stealing a `g` letter', () => {
+    // #37: Moneybird could not claim a `g` chord because the alphabet is full.
+    // `i` (importeren) is the second prefix; Exact keeps `g x` as an alias.
+    expect(resolveKeystroke(stroke('i'), null)).toEqual({ action: 'arm', prefix: 'i' })
+
+    const moneybird = resolveKeystroke(stroke('m'), 'i')
+    expect(moneybird.action === 'trigger' && moneybird.binding.to).toBe('/moneybird')
+
+    const exact = resolveKeystroke(stroke('x'), 'i')
+    expect(exact.action === 'trigger' && exact.binding.to).toBe('/exact')
+
+    const alias = resolveKeystroke(stroke('x'), 'g')
+    expect(alias.action === 'trigger' && alias.binding.to).toBe('/exact')
+  })
+
   it('swallows a second key that means nothing', () => {
     // Not passed on. The user was mid-shortcut, and `g` then `1` reaching the
     // koppelscherm would book suggestion one.
@@ -49,9 +64,9 @@ describe('resolving a keystroke', () => {
 
   it('has run out of letters after `g`, which is worth knowing before the next screen', () => {
     // Not a rule, an observation with teeth: Alpha 3 took the last two (`q` for
-    // de auditfile, `s` for boekjaren) and the alphabet is now full. The next
-    // destination needs a second prefix or a different scheme, and the honest
-    // place to find that out is here rather than in review.
+    // de auditfile, `s` for boekjaren) and the alphabet is now full. Importers
+    // took a second prefix (`i`) rather than freeing a `g` letter — #37 — and
+    // this assertion is what keeps that decision honest.
     const taken = new Set(
       BINDINGS.filter((binding) => binding.keys?.startsWith('g ')).map(
         (binding) => binding.keys![2],
@@ -141,6 +156,6 @@ describe('what the global listener claims', () => {
   })
 
   it('derives its prefixes from the registry rather than hard-coding them', () => {
-    expect([...PREFIXES].sort()).toEqual(['g', 'n'])
+    expect([...PREFIXES].sort()).toEqual(['g', 'i', 'n'])
   })
 })

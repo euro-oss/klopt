@@ -133,6 +133,29 @@ const NAVIGATION: readonly NavGroup[] = [
       { to: '/reports/profit-and-loss', key: 'nav.profitAndLoss', binding: 'go.profit' },
     ],
   },
+  // Importers sit above Beheer: bringing books in is a daily-path question for
+  // a firm that still lives in Exact or Moneybird, not a settings chore. XAF
+  // and bank statement import stay where they are — those are file flows, not
+  // administration importers (#37).
+  {
+    key: 'nav.group.import',
+    items: [
+      // Connecting needs `ledger:configure`; the dry run needs `ledger:import`.
+      // An auditor holds neither, so the nav does not offer them a 403.
+      {
+        to: '/exact',
+        key: 'nav.exact',
+        binding: 'go.exact',
+        roles: ['owner', 'accountant', 'bookkeeper'],
+      },
+      {
+        to: '/moneybird',
+        key: 'nav.moneybird',
+        binding: 'go.moneybird',
+        roles: ['owner', 'accountant', 'bookkeeper'],
+      },
+    ],
+  },
   {
     key: 'nav.group.admin',
     items: [
@@ -191,19 +214,6 @@ const NAVIGATION: readonly NavGroup[] = [
         key: 'nav.snapshots',
         binding: 'go.snapshots',
         roles: ['owner', 'accountant', 'auditor', 'bookkeeper'],
-      },
-      // Connecting needs `ledger:configure`; the dry run needs `ledger:import`.
-      // An auditor holds neither, so the nav does not offer them a 403.
-      {
-        to: '/exact',
-        key: 'nav.exact',
-        binding: 'go.exact',
-        roles: ['owner', 'accountant', 'bookkeeper'],
-      },
-      {
-        to: '/moneybird',
-        key: 'nav.moneybird',
-        roles: ['owner', 'accountant', 'bookkeeper'],
       },
     ],
   },
