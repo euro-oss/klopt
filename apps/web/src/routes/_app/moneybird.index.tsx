@@ -215,7 +215,7 @@ function Moneybird() {
                 value={baseUrl}
                 onChange={(event) => setBaseUrl(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5"
+                className="field-control mt-1"
               />
             </label>
             <label className="text-sm">
@@ -225,15 +225,15 @@ function Moneybird() {
                 value={apiToken}
                 onChange={(event) => setApiToken(event.target.value)}
                 disabled={!hydrated}
-                className="border-border mt-1 w-full rounded-md border px-2 py-1.5 tabular"
+                className="field-control mt-1 tabular"
               />
             </label>
-            <div>
+            <div className="form-actions">
               <button
                 type="button"
                 disabled={busy || !hydrated || !canStoreSecrets || apiToken === ''}
                 onClick={() => void connect()}
-                className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
+                className="touch-cta touch-cta-primary"
               >
                 {t('moneybird.connect')}
               </button>
@@ -322,7 +322,7 @@ function Moneybird() {
             type="button"
             disabled={busy}
             onClick={() => void runPreview()}
-            className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
+            className="touch-cta touch-cta-primary"
           >
             {busy ? t('common.busy') : t('moneybird.runPreview')}
           </button>
@@ -358,7 +358,7 @@ function Moneybird() {
               type="button"
               disabled={busy || !hydrated}
               onClick={() => void commit()}
-              className="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50"
+              className="touch-cta touch-cta-primary"
             >
               {busy ? t('common.busy') : t('moneybird.commit')}
             </button>
@@ -504,7 +504,7 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
 
   return (
     <div className="mt-6">
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         <Stat
           label={
             first === undefined

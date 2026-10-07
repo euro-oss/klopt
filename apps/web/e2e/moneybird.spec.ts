@@ -48,3 +48,19 @@ test('connecting is refused until there is a token', async ({ page }) => {
   await page.getByLabel('Persoonlijk API-token').fill('not-a-real-token')
   await expect(button).toBeEnabled()
 })
+
+test('i m reaches Moneybird under Importeren', async ({ page }) => {
+  await anAdministration(page)
+
+  // Same hydration wait as Exact: the sidebar only prints a chord once the
+  // listener is live (#37).
+  await expect(page.getByRole('link', { name: /Journaalposten/ }).locator('kbd')).toHaveCount(1)
+  await expect(page.getByRole('navigation').getByText('Importeren')).toBeVisible()
+  await expect(page.getByRole('link', { name: /Moneybird/ }).locator('kbd')).toContainText(/I/)
+
+  await page.keyboard.press('i')
+  await expect(page.getByText('I …')).toBeVisible()
+  await page.keyboard.press('m')
+
+  await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
+})

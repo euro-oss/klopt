@@ -24,7 +24,7 @@ export const GLOBAL_BINDINGS: readonly Binding[] = BINDINGS.filter(
   (binding) => binding.to !== undefined || binding.id === 'palette' || binding.id === 'help',
 )
 
-/** The distinct first keys of every two-key binding: `g` and `n`. */
+/** The distinct first keys of every two-key binding: `g`, `i` and `n`. */
 export const PREFIXES: readonly string[] = [
   ...new Set(
     GLOBAL_BINDINGS.filter((binding) => binding.keys?.includes(' ')).map(

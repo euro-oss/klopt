@@ -65,6 +65,7 @@ export const nl = {
   'shell.help': 'Sneltoetsen',
   'shell.skipToContent': 'Naar de inhoud',
   'shell.navigation': 'Hoofdnavigatie',
+  'shell.openMenu': 'Menu openen',
   'shell.newEntry': 'Nieuwe journaalpost',
 
   // Short rows in the account menu: NL | EN, not bilingual SelectFields.
@@ -124,6 +125,7 @@ export const nl = {
   // Things every screen says.
   'common.save': 'Opslaan',
   'common.cancel': 'Annuleren',
+  'common.close': 'Sluiten',
   'common.busy': 'Bezig…',
   'common.unknownError': 'Onbekende fout.',
   'common.none': 'geen',
@@ -1547,7 +1549,7 @@ export const nl = {
   'palette.searchPlaceholder': 'Waar wil je heen, of wat zoek je?',
   'palette.nothingFound': 'Niets gevonden.',
   'palette.escapeNote':
-    'Sluiten met Escape. G en N zijn voorvoegsels; na 1,5 seconde vervallen ze.',
+    'Sluiten met Escape. G, I en N zijn voorvoegsels; na 1,5 seconde vervallen ze.',
   'palette.navigation': 'Navigatie',
   'palette.content': 'Inhoud',
   'palette.searching': 'Zoeken…',
@@ -1579,6 +1581,7 @@ export const nl = {
   'nav.group.money': 'Geld',
   'nav.group.ageing': 'Ouderdomsanalyse',
   'nav.group.reports': 'Rapporten',
+  'nav.group.import': 'Importeren',
   'nav.group.admin': 'Beheer',
   'shell.profile': 'Profiel',
 

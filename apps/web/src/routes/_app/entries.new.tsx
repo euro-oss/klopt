@@ -368,7 +368,7 @@ function NewEntry() {
             onChange={(event) => {
               setBookingDate(event.target.value)
             }}
-            className="border-input bg-background tabular w-full border px-2 py-1.5 text-sm"
+            className="field-control tabular"
           />
         </label>
 
@@ -382,7 +382,7 @@ function NewEntry() {
             onChange={(event) => {
               setDocumentDate(event.target.value)
             }}
-            className="border-input bg-background tabular w-full border px-2 py-1.5 text-sm"
+            className="field-control tabular"
           />
         </label>
 
@@ -397,118 +397,132 @@ function NewEntry() {
               setDescription(event.target.value)
             }}
             autoFocus
-            className="border-input bg-background w-full border px-2 py-1.5 text-sm"
+            className="field-control"
           />
         </label>
       </div>
 
-      <table className="border-border w-full border-collapse border text-sm">
-        <thead>
-          <tr className="border-border bg-muted/50 border-b">
-            <th scope="col" className="text-muted-foreground w-64 px-3 py-2 text-left font-medium">
-              {t('entryNew.account')}
-            </th>
-            <th scope="col" className="text-muted-foreground px-3 py-2 text-left font-medium">
-              {t('entries.description')}
-            </th>
-            <th scope="col" className="text-muted-foreground w-36 px-3 py-2 text-right font-medium">
-              {t('trial.debit')}
-            </th>
-            <th scope="col" className="text-muted-foreground w-36 px-3 py-2 text-right font-medium">
-              {t('trial.credit')}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((line, index) => (
-            <tr
-              key={line.key}
-              data-line={index}
-              className="border-border/60 border-b last:border-0"
-            >
-              <td className="px-2 py-1">
-                <AccountPicker
-                  label={t('entryNew.accountLine', { line: String(index + 1) })}
-                  labelHidden
-                  accounts={accounts}
-                  value={line.accountNumber}
-                  onValueChange={(next) => {
-                    update(index, { accountNumber: next })
-                  }}
-                  disabled={!hydrated}
-                  inputClassName="border-0 bg-transparent px-1 py-1"
-                />
-              </td>
-              <td className="px-2 py-1">
-                <input
-                  value={line.description}
-                  onChange={(event) => {
-                    update(index, { description: event.target.value })
-                  }}
-                  aria-label={t('entryNew.descriptionLine', { line: String(index + 1) })}
-                  className="focus:bg-accent w-full bg-transparent px-1 py-1 outline-none"
-                />
-              </td>
-              {(['debit', 'credit'] as const).map((side) => (
-                <td key={side} className="px-2 py-1">
-                  <input
-                    inputMode="decimal"
-                    value={line[side]}
-                    aria-label={t(side === 'debit' ? 'entryNew.debitLine' : 'entryNew.creditLine', {
-                      line: String(index + 1),
-                    })}
-                    onChange={(event) => {
-                      update(index, {
-                        [side]: event.target.value,
-                        // One side or the other, never both.
-                        [side === 'debit' ? 'credit' : 'debit']: '',
-                      })
+      <div className="overflow-x-auto">
+        <table className="border-border w-full min-w-max border-collapse border text-sm">
+          <thead>
+            <tr className="border-border bg-muted/50 border-b">
+              <th
+                scope="col"
+                className="text-muted-foreground w-64 px-3 py-2 text-left font-medium"
+              >
+                {t('entryNew.account')}
+              </th>
+              <th scope="col" className="text-muted-foreground px-3 py-2 text-left font-medium">
+                {t('entries.description')}
+              </th>
+              <th
+                scope="col"
+                className="text-muted-foreground w-36 px-3 py-2 text-right font-medium"
+              >
+                {t('trial.debit')}
+              </th>
+              <th
+                scope="col"
+                className="text-muted-foreground w-36 px-3 py-2 text-right font-medium"
+              >
+                {t('trial.credit')}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((line, index) => (
+              <tr
+                key={line.key}
+                data-line={index}
+                className="border-border/60 border-b last:border-0"
+              >
+                <td className="px-2 py-1">
+                  <AccountPicker
+                    label={t('entryNew.accountLine', { line: String(index + 1) })}
+                    labelHidden
+                    accounts={accounts}
+                    value={line.accountNumber}
+                    onValueChange={(next) => {
+                      update(index, { accountNumber: next })
                     }}
-                    onKeyDown={(event) => {
-                      if (event.key === '=') {
-                        event.preventDefault()
-                        update(index, { [side]: balancingAmount(index, side) })
-                        return
-                      }
-                      if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey) {
-                        event.preventDefault()
-                        if (index === lines.length - 1) addLine()
-                      }
-                    }}
-                    className="tabular focus:bg-accent w-full bg-transparent px-1 py-1 text-right outline-none"
+                    disabled={!hydrated}
+                    inputClassName="border-0 bg-transparent px-1 py-1"
                   />
                 </td>
-              ))}
+                <td className="px-2 py-1">
+                  <input
+                    value={line.description}
+                    onChange={(event) => {
+                      update(index, { description: event.target.value })
+                    }}
+                    aria-label={t('entryNew.descriptionLine', { line: String(index + 1) })}
+                    className="focus:bg-accent w-full bg-transparent px-1 py-1 outline-none"
+                  />
+                </td>
+                {(['debit', 'credit'] as const).map((side) => (
+                  <td key={side} className="px-2 py-1">
+                    <input
+                      inputMode="decimal"
+                      value={line[side]}
+                      aria-label={t(
+                        side === 'debit' ? 'entryNew.debitLine' : 'entryNew.creditLine',
+                        {
+                          line: String(index + 1),
+                        },
+                      )}
+                      onChange={(event) => {
+                        update(index, {
+                          [side]: event.target.value,
+                          // One side or the other, never both.
+                          [side === 'debit' ? 'credit' : 'debit']: '',
+                        })
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === '=') {
+                          event.preventDefault()
+                          update(index, { [side]: balancingAmount(index, side) })
+                          return
+                        }
+                        if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey) {
+                          event.preventDefault()
+                          if (index === lines.length - 1) addLine()
+                        }
+                      }}
+                      className="tabular focus:bg-accent w-full bg-transparent px-1 py-1 text-right outline-none"
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot className="border-border bg-muted/30 border-t">
+            <tr>
+              <td colSpan={2} className="px-3 py-2">
+                <button type="button" onClick={addLine} className="text-sm underline">
+                  {t('entryNew.addLine')}
+                </button>
+              </td>
+              <td className="px-3 py-2 text-right font-medium">
+                <Money amount={totalDebit} />
+              </td>
+              <td className="px-3 py-2 text-right font-medium">
+                <Money amount={totalCredit} />
+              </td>
             </tr>
-          ))}
-        </tbody>
-        <tfoot className="border-border bg-muted/30 border-t">
-          <tr>
-            <td colSpan={2} className="px-3 py-2">
-              <button type="button" onClick={addLine} className="text-sm underline">
-                {t('entryNew.addLine')}
-              </button>
-            </td>
-            <td className="px-3 py-2 text-right font-medium">
-              <Money amount={totalDebit} />
-            </td>
-            <td className="px-3 py-2 text-right font-medium">
-              <Money amount={totalCredit} />
-            </td>
-          </tr>
-          <tr>
-            <td colSpan={2} className="text-muted-foreground px-3 pb-2 text-xs">
-              {difference === 0n ? t('entryNew.balances') : t('entryNew.difference')}
-            </td>
-            <td
-              colSpan={2}
-              className={cn('px-3 pb-2 text-right', difference !== 0n && 'text-amount-negative')}
-            >
-              {difference === 0n ? null : <Money amount={difference} />}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+            <tr>
+              <td colSpan={2} className="text-muted-foreground px-3 pb-2 text-xs">
+                {difference === 0n ? t('entryNew.balances') : t('entryNew.difference')}
+              </td>
+              <td
+                colSpan={2}
+                className={cn('px-3 pb-2 text-right', difference !== 0n && 'text-amount-negative')}
+              >
+                {difference === 0n ? null : <Money amount={difference} />}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
 
       {problems.length > 0 && (
         <ul className="border-destructive/40 bg-destructive/5 mt-4 space-y-1 border p-3 text-sm">
@@ -550,11 +564,11 @@ function NewEntry() {
         ]}
       />
 
-      <div className="mt-4 flex gap-2">
+      <div className="form-actions">
         <button
           type="submit"
           disabled={posting || !hydrated}
-          className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
+          className="touch-cta touch-cta-primary"
         >
           {t('entryNew.post')}
         </button>
@@ -564,7 +578,7 @@ function NewEntry() {
           onClick={() => {
             ask(true)
           }}
-          className="border-input border px-4 py-2 text-sm font-medium disabled:opacity-50"
+          className="touch-cta touch-cta-secondary"
         >
           {t('entryNew.postAndNext')}
         </button>

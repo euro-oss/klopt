@@ -131,6 +131,21 @@ test('g x reaches the Exact screen', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Exact Online' })).toBeVisible()
 })
 
+test('i x reaches Exact under Importeren', async ({ page }) => {
+  await anAdministration(page)
+
+  await expect(page.getByRole('link', { name: /Journaalposten/ }).locator('kbd')).toHaveCount(1)
+  // Printed chord under Importeren is `i` then `x`; `g x` stays as the alias.
+  await expect(page.getByRole('navigation').getByText('Importeren')).toBeVisible()
+  await expect(page.getByRole('link', { name: /Exact Online/ }).locator('kbd')).toContainText(/I/)
+
+  await page.keyboard.press('i')
+  await expect(page.getByText('I …')).toBeVisible()
+  await page.keyboard.press('x')
+
+  await expect(page.getByRole('heading', { name: 'Exact Online' })).toBeVisible()
+})
+
 test('the pickers have real data behind them', async ({ page }) => {
   /**
    * The account fields on the Exact screen were free text, and the cost showed
