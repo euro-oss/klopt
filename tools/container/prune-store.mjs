@@ -2,10 +2,15 @@
 /**
  * Removes the packages a runtime image does not reach.
  *
- * `pnpm install --prod --filter @klopt/worker...` links the right things into
- * the right `node_modules` — and still materialises every package the lockfile
- * mentions into the shared virtual store. Filters select importers, not store
- * entries.
+ * `pnpm install --prod --filter @klopt/worker...` (and the CLI, db, and web
+ * filters in the Dockerfile) links the right things into the right
+ * `node_modules` — and still materialises every package the lockfile mentions
+ * into the shared virtual store. Filters select importers, not store entries.
+ *
+ * Web is a prod importer so the SSR server can `require('ajv')` from
+ * `apps/web/node_modules` (MCP's ajv-formats, after Nitro bundles the SDK).
+ * Do not pass `apps/web` as a prune root: that walk would keep the UI stack.
+ * `apps/mcp` reaches `ajv` without React, Vite or Rolldown.
  *
  * Most of what is left over arrives through optional peer dependencies, which
  * this workspace installs (`autoInstallPeers: true`). `better-auth` names

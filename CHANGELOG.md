@@ -18,6 +18,15 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Container image: `ajv` at web runtime
+
+The production `deps` stage now installs `@klopt/web`'s production graph and
+prunes from `@klopt/mcp`, so `require('ajv')` from the Nitro SSR bundle
+resolves. Without it the web container booted, returned 500, and failed its
+healthcheck — Caddy never started. Headless is unchanged in layout: both
+targets run that server, and prune still drops the UI packages that live in
+`.output`.
+
 ### Moneybird importer (issue #32)
 
 A Moneybird administration can be brought across the same way Exact is: connect
