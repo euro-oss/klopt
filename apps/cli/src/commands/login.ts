@@ -8,9 +8,10 @@ import { optionOf } from './registry.js'
  * Spec 10.4 lists creating the first user as a thing a self-hoster needs at
  * 23:00. The tempting way to do that is to reach into the database, and this
  * does not: it drives the same two endpoints the sign-in screen drives. A new
- * address gets an account because `disableSignUp` is false — the code still
- * has to arrive in that mailbox — so the first `klopt login` on an empty
- * instance creates the first user without a privileged path existing at all.
+ * address gets an account when signup is open — the code still has to arrive
+ * in that mailbox — so the first `klopt login` on an empty instance creates
+ * the first user without a privileged path existing at all. With
+ * `KLOPT_SIGNUP=closed`, only a live invitation unlocks a new address.
  *
  * With no SMTP configured the code goes to the server log, which is the
  * documented fresh-install path and exactly what you have at 23:00.

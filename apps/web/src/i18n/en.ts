@@ -175,9 +175,14 @@ export const en: Record<MessageKey, string> = {
   'setup.needOne': 'No administration yet',
   'setup.needOneBody':
     'You are signed in as {email}. Set up an administration, or ask an owner to invite you to one that exists.',
+  'setup.needOneClosedBody':
+    'You are signed in as {email}. This instance is closed: ask an owner to invite you to an administration that already exists.',
   'setup.start': 'Set up an administration',
   'setup.title': 'New administration',
   'setup.intro': 'You are signed in as {email}. Fill in a name — the rest you can change later.',
+  'setup.closedTitle': 'No new administration',
+  'setup.closedBody':
+    'This instance is closed. Only an instance admin can create a new administration. Ask an owner to invite you to one that already exists.',
   'setup.chartsFailed': 'The charts of accounts could not be loaded: {detail}',
   'setup.name': 'Name of the administration',
   'setup.namePlaceholder': 'My Company',

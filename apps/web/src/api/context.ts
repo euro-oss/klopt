@@ -37,6 +37,10 @@ export interface RequestContext {
  * and letting it create another would put a second tenant behind the first
  * one's credential. So this resolves from a session and nothing else, and the
  * only permission it can ever hold is `entity:create`.
+ *
+ * When `KLOPT_SIGNUP=closed`, that permission is granted only to addresses in
+ * `KLOPT_INSTANCE_ADMINS` — not to every signed-in human, and not to Eigenaars
+ * of other administrations (`apps/web/src/api/instance-access.ts`).
  */
 export interface SetupContext {
   readonly database: Database
