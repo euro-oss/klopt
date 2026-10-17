@@ -227,7 +227,7 @@ export function entityPiiSubjects(): readonly DemoPiiSubject[] {
     {
       kind: 'entity',
       name: DEMO_ENTITY_NAME,
-      email: 'administratie@demo.invalid',
+      email: 'administratie@example.nl',
       iban: DEMO_IBAN,
       kvkNumber: DEMO_KVK,
       vatNumber: DEMO_VAT,
@@ -256,7 +256,7 @@ export function entityAddress() {
     postalCode: '1000 AA',
     city: 'Amsterdam',
     countryCode: 'NL' as const,
-    email: 'administratie@demo.invalid',
+    email: 'administratie@example.nl',
     phone: null,
     website: 'https://demo.example.nl',
     iban: DEMO_IBAN,

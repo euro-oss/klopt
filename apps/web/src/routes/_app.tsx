@@ -83,7 +83,7 @@ function AppLayout() {
   return (
     <AppShell
       entities={session.memberships}
-      activeEntityId={session.memberships[0]?.entityId ?? null}
+      activeEntityId={session.activeEntityId}
       userName={session.user.name}
       userEmail={session.user.email}
       fiscalYears={reportYear?.ok === true ? reportYear.data.years : []}

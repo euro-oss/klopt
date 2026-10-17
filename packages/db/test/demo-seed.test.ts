@@ -11,8 +11,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { closeDatabase, createDatabase, type Database } from '../src/client.js'
 import {
   assertDemoDatasetIsFictional,
+  assertFictionalDataset,
   DEMO_ENTITY_ID,
+  DEMO_ENTITY_NAME,
   DEMO_FISCAL_YEAR,
+  DEMO_LEGAL_NAME,
+  isValidBsn,
   parseDemoRole,
   seedDemo,
 } from '../src/demo/index.js'
@@ -22,6 +26,7 @@ import { entities } from '../src/schema/index.js'
 import {
   withBankRead,
   withLedger,
+  withPurchaseRead,
   withReporting,
   withSetup,
   withVatRead,
@@ -40,12 +45,51 @@ describe('demo seeder', () => {
     await closeDatabase(database)
   })
 
+  it('isValidBsn implements the Dutch 11-proef', () => {
+    // Known-valid nine-digit BSNs (checksum passes).
+    expect(isValidBsn('111222333')).toBe(true)
+    expect(isValidBsn('123456782')).toBe(true)
+    // Wrong length, non-digits, or failing checksum.
+    expect(isValidBsn('12345678')).toBe(false)
+    expect(isValidBsn('123456789')).toBe(false)
+    expect(isValidBsn('abcdefghi')).toBe(false)
+  })
+
   it('rejects a dataset that looks real', () => {
     expect(() => assertDemoDatasetIsFictional()).not.toThrow()
 
-    expect(() => {
-      throw new DemoPiiError(['customer:X: IBAN must use the NL..TEST reserved pattern'])
-    }).toThrow(DemoPiiError)
+    expect(() =>
+      assertFictionalDataset([
+        {
+          kind: 'customer',
+          name: 'Realistic Person',
+          email: 'jan.jansen@gmail.com',
+          iban: 'NL91ABNA0417164300',
+          kvkNumber: '34182361',
+          notes: 'BSN 111222333 on file',
+        },
+      ]),
+    ).toThrow(DemoPiiError)
+
+    try {
+      assertFictionalDataset([
+        {
+          kind: 'customer',
+          name: 'Realistic Person',
+          email: 'jan.jansen@gmail.com',
+          iban: 'NL91ABNA0417164300',
+          kvkNumber: '34182361',
+          notes: 'BSN 111222333 on file',
+        },
+      ])
+    } catch (error) {
+      expect(error).toBeInstanceOf(DemoPiiError)
+      const findings = (error as DemoPiiError).findings.join('\n')
+      expect(findings).toMatch(/IBAN/)
+      expect(findings).toMatch(/KvK/)
+      expect(findings).toMatch(/email|gmail/i)
+      expect(findings).toMatch(/BSN/)
+    }
   })
 
   it('accepts eigenaar as a role alias for owner', () => {
@@ -70,10 +114,12 @@ describe('demo seeder', () => {
       expect(first.created).toBe(false)
       expect(first.entityId).toBe(prior.id)
     }
-    expect(first.name).toContain('Demo')
+    expect(first.name).toBe(DEMO_ENTITY_NAME)
     expect(first.trialBalanceDifference).toBe('0')
     expect(first.chainVerified).toBe(true)
     expect(first.counts.contacts).toBeGreaterThanOrEqual(20)
+    expect(first.counts.customers).toBeGreaterThanOrEqual(10)
+    expect(first.counts.suppliers).toBeGreaterThanOrEqual(10)
     expect(first.counts.salesInvoices).toBeGreaterThanOrEqual(40)
     expect(first.counts.purchaseInvoices).toBeGreaterThanOrEqual(40)
     expect(first.counts.journalEntries).toBeGreaterThanOrEqual(30)
@@ -88,8 +134,15 @@ describe('demo seeder', () => {
 
     const entity = await withSetup(database, (setup) => setup.findEntity(first.entityId))
     expect(entity?.isDemo).toBe(true)
-    expect(entity?.name).toContain('(demo)')
-    expect(entity?.legalName).toContain('(demo)')
+    expect(entity?.name).toBe(DEMO_ENTITY_NAME)
+    expect(entity?.legalName).toBe(DEMO_LEGAL_NAME)
+
+    // Open payables must reconcile with the 1600 supplier subledger.
+    const payables = await withPurchaseRead(database, async (purchase) =>
+      purchase.reconcileToControlAccount(first.entityId, '1600'),
+    )
+    expect(payables.difference).toBe(0n)
+    expect(payables.subledger).toBe(payables.control)
 
     // Trial balance and hash chain via the same helpers production uses.
     const trial = await withReporting(database, async (reporting) => {
@@ -139,7 +192,8 @@ describe('demo seeder', () => {
     // Suggestions may be empty for noise lines; the call itself must succeed.
     expect(Array.isArray(suggestions)).toBe(true)
 
-    // One VAT period that previews (and Q1 is filed).
+    // Q1 VAT return reconciles with 1500/1510-style control accounts and has no
+    // warnings that needed accepting at filing time.
     const vat = await withVatRead(database, async (repository) => {
       const period = parseVatPeriodCode(`${DEMO_FISCAL_YEAR}-Q1`)
       const preview = await repository.buildReturn({
@@ -148,10 +202,25 @@ describe('demo seeder', () => {
         to: period.to,
       })
       const filings = await repository.filings(first.entityId)
-      return { preview, filings }
+      const summary = filings.find(
+        (row) => row.periodFrom === period.from && row.periodTo === period.to,
+      )
+      const filed =
+        summary === undefined ? null : await repository.filing(first.entityId, summary.id)
+      return { preview, filings, filed }
     })
     expect(vat.preview.periodFrom).toBe(`${DEMO_FISCAL_YEAR}-01-01`)
     expect(vat.filings.length).toBeGreaterThanOrEqual(1)
+    expect(vat.preview.findings.filter((finding) => finding.severity === 'warning')).toEqual([])
+    expect(vat.preview.findings.filter((finding) => finding.severity === 'blocking')).toEqual([])
+    expect(vat.preview.blocked).toBe(false)
+    for (const account of vat.preview.reconciliation) {
+      expect(account.differenceMinorUnits, account.accountNumber).toBe(0n)
+    }
+    expect(vat.filed).not.toBeNull()
+    expect(vat.filed!.acceptedWarningsBy).toBeNull()
+    expect(vat.filed!.owedMinorUnits).toBe(vat.preview.owedMinorUnits)
+    expect(vat.filed!.deductibleMinorUnits).toBe(vat.preview.deductibleMinorUnits)
 
     // Idempotent: a second run does not create another demo administration.
     const second = await seedDemo(database, {

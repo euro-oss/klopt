@@ -27,14 +27,22 @@ import {
   requireRole,
   suggestMatches,
   systemClock,
-  uuidv7,
+  taxOn,
   verifyHashChain,
   type Actor,
+  type JournalLineInput,
+  type PostJournalEntryCommand,
   type Role,
 } from '@klopt/core'
 import { eq, sql } from 'drizzle-orm'
 import type { Database } from '../client.js'
-import { contacts, documents, documentLinks, journalEntries, users } from '../schema/index.js'
+import {
+  contacts,
+  journalEntries,
+  purchaseInvoices,
+  salesInvoices,
+  users,
+} from '../schema/index.js'
 import { invoiceEntryFor, priceDraft } from '../repositories/sales.js'
 import {
   withBank,
@@ -115,6 +123,8 @@ export interface SeedDemoResult {
   } | null
   readonly counts: {
     readonly contacts: number
+    readonly customers: number
+    readonly suppliers: number
     readonly salesInvoices: number
     readonly purchaseInvoices: number
     readonly journalEntries: number
@@ -147,13 +157,85 @@ function loadNlMkbChart() {
 }
 
 function taxOf(net: bigint, taxCode: string): bigint {
+  // Same half-up path sales pricing uses (`taxOn`), so purchase VAT does not
+  // drift from the rate the BTW-aangifte expects within one cent per line.
   const rate =
-    taxCode === 'L9' || taxCode === 'VL9'
-      ? 900n
-      : taxCode === 'H21' || taxCode === 'VH21'
-        ? 2100n
-        : 0n
-  return (net * rate) / 10_000n
+    taxCode === 'L9' || taxCode === 'VL9' ? 900 : taxCode === 'H21' || taxCode === 'VH21' ? 2100 : 0
+  return taxOn(net, rate)
+}
+
+/** Empty tax/dimension fields shared by hand-built bank match lines. */
+function bareLine(
+  accountNumber: string,
+  amount: bigint,
+  isDebit: boolean,
+  description: string,
+  extra: Partial<JournalLineInput> = {},
+): JournalLineInput {
+  return {
+    accountNumber,
+    description,
+    debit: isDebit ? amount : 0n,
+    credit: isDebit ? 0n : amount,
+    currency: null,
+    exchangeRate: null,
+    exchangeRateSource: null,
+    taxCode: null,
+    taxRole: null,
+    taxAmount: null,
+    dimensions: [],
+    subledgerKind: null,
+    subledgerId: null,
+    ...extra,
+  }
+}
+
+/**
+ * Supplier payment: Dr crediteuren (supplier subledger) / Cr bank.
+ *
+ * `buildBankMatchEntry` hardcodes the customer subledger, so purchase
+ * settlements are built here and still posted through `postJournalEntry`.
+ */
+function buildSupplierPaymentEntry(request: {
+  readonly entityId: string
+  readonly journalCode: string
+  readonly bookingDate: string
+  readonly valueDate: string
+  readonly bankAccountNumber: string
+  readonly amount: bigint
+  readonly counterpartyName: string | null
+  readonly description: string
+  readonly payableAccountNumber: string
+  readonly contactId: string
+  readonly contactNumber: string
+  readonly contactName: string
+  readonly invoiceNumber: string
+}): PostJournalEntryCommand {
+  const magnitude = request.amount < 0n ? -request.amount : request.amount
+  return {
+    entityId: request.entityId,
+    journalCode: request.journalCode,
+    bookingDate: request.bookingDate,
+    documentDate: request.valueDate,
+    description: `Betaling ${request.invoiceNumber}`,
+    sourceDocumentRef: request.invoiceNumber,
+    reversesEntryId: null,
+    lines: [
+      bareLine(
+        request.bankAccountNumber,
+        magnitude,
+        false,
+        request.counterpartyName ?? request.description.slice(0, 120),
+      ),
+      bareLine(
+        request.payableAccountNumber,
+        magnitude,
+        true,
+        `${request.contactNumber} ${request.contactName} · ${request.invoiceNumber}`,
+        { subledgerKind: 'supplier', subledgerId: request.contactId },
+      ),
+    ],
+  }
 }
 
 function dueDate(iso: string, days: number): string {
@@ -170,6 +252,10 @@ async function ensureOwnerUser(database: Database): Promise<string> {
     .limit(1)
   if (existing !== undefined) return existing.id
 
+  // Mirrors better-auth's drizzle adapter insert into `klopt.users`
+  // (`packages/db/src/schema/auth.ts`, `packages/db/src/auth.ts`): same columns
+  // (id, name, email, emailVerified). The seeder cannot call sign-up without a
+  // real OTP delivery path, so it writes the same row shape the auth layer would.
   await database.insert(users).values({
     id: DEMO_OWNER_USER_ID,
     name: 'Demo Seed Owner',
@@ -481,9 +567,12 @@ async function populateDemo(
     readonly id: string
     readonly total: bigint
     readonly invoiceDate: string
+    readonly contactId: string
+    readonly contactNumber: string
     readonly contactName: string
     readonly contactIban: string
     readonly accountNumber: string
+    readonly payableAccountNumber: string
     readonly supplierInvoiceNumber: string
   }[] = []
 
@@ -495,6 +584,9 @@ async function populateDemo(
     const booked = await withPurchase(database, async ({ purchase: repo, ledger }) => {
       const context = await repo.loadContext(entityId, purchase.contactNumber)
       if (context === null) throw new Error(`No contact ${purchase.contactNumber}`)
+      if (context.payableAccountNumber === null) {
+        throw new Error(`No payable account for ${purchase.contactNumber}`)
+      }
 
       const invoice = {
         supplierInvoiceNumber: purchase.supplierInvoiceNumber,
@@ -565,42 +657,27 @@ async function populateDemo(
         actorId: ownerUserId,
       })
 
-      return { id: draftId, total, withAttachment: purchase.withAttachment }
+      return {
+        id: draftId,
+        total,
+        contactId: context.contact.id,
+        payableAccountNumber: context.payableAccountNumber,
+      }
     })
 
-    if (booked.withAttachment) {
-      const bytes = Buffer.from(
-        `Demo bijlage (fictief)\n${purchase.supplierInvoiceNumber}\n`,
-        'utf8',
-      )
-      const sha256 = createHash('sha256').update(bytes).digest('hex')
-      const documentId = uuidv7()
-      await database.insert(documents).values({
-        id: documentId,
-        entityId,
-        sha256,
-        sizeBytes: bytes.byteLength,
-        contentType: 'application/pdf',
-        filename: `${purchase.supplierInvoiceNumber}.pdf`,
-        retentionFiscalYear: DEMO_FISCAL_YEAR,
-      })
-      await database.insert(documentLinks).values({
-        id: uuidv7(),
-        entityId,
-        documentId,
-        subjectKind: 'purchase_invoice',
-        subjectId: booked.id,
-        role: 'attachment',
-      })
-    }
-
+    // Attachments omitted on purpose: the seeder has no DocumentStore, and a
+    // documents row without a stored blob would break when opened. Prefer no
+    // attachment over a fake PDF.
     bookedPurchases.push({
       id: booked.id,
       total: booked.total,
       invoiceDate: purchase.invoiceDate,
+      contactId: booked.contactId,
+      contactNumber: purchase.contactNumber,
       contactName: supplier.name,
       contactIban: supplier.iban,
       accountNumber: purchase.accountNumber,
+      payableAccountNumber: booked.payableAccountNumber,
       supplierInvoiceNumber: purchase.supplierInvoiceNumber,
     })
   }
@@ -704,9 +781,12 @@ async function populateDemo(
     await bank.applyImport({ entityId, bankAccountId, plan, sourceHash })
   })
 
-  // Match customer receipts that quote an invoice number; book supplier
-  // payments to creditors; leave the open-noise lines unmatched.
+  // Match customer receipts that quote an invoice number; allocate supplier
+  // payments to purchase invoices; leave the open-noise lines unmatched.
   const saleByNumber = new Map(issuedSales.map((sale) => [sale.number, sale]))
+  const purchaseByNumber = new Map(
+    bookedPurchases.map((purchase) => [purchase.supplierInvoiceNumber, purchase]),
+  )
 
   const transactions = await withBankRead(database, (bank) =>
     bank.listTransactions({
@@ -813,7 +893,65 @@ async function populateDemo(
       continue
     }
 
-    if (description.includes('INK-DEMO-') || description.includes('Periodieke demo-kosten')) {
+    const purchaseMatch = /INK-DEMO-\d{4}-\d{4}/.exec(description)
+    if (purchaseMatch !== null) {
+      const purchaseNumber = purchaseMatch[0]
+      const purchase = purchaseByNumber.get(purchaseNumber)
+      if (purchase === undefined) continue
+
+      await withBankMatch(database, async ({ bank, ledger, purchase: purchases }) => {
+        const transaction = await bank.findTransaction(entityId, row.id)
+        if (transaction === null || transaction.bankLedgerAccountNumber === null) return
+
+        const command = buildSupplierPaymentEntry({
+          entityId,
+          journalCode: 'BNK',
+          bookingDate: transaction.bookingDate,
+          valueDate: transaction.valueDate,
+          bankAccountNumber: transaction.bankLedgerAccountNumber,
+          amount: transaction.amount,
+          counterpartyName: transaction.counterpartyName,
+          description: transaction.description,
+          payableAccountNumber: purchase.payableAccountNumber,
+          contactId: purchase.contactId,
+          contactNumber: purchase.contactNumber,
+          contactName: purchase.contactName,
+          invoiceNumber: purchase.supplierInvoiceNumber,
+        })
+
+        const posted = await postJournalEntry(
+          command,
+          SCRIPT_ACTOR,
+          {
+            dryRun: false,
+            idempotencyKey: `demo-seed:${entityId}:match:purchase:${String(matchIndex)}`,
+            requestId: null,
+            ip: null,
+            mayPostToSoftClosedPeriod: false,
+          },
+          { repository: ledger, clock: systemClock },
+        )
+
+        // Sales allocations live on bank_transaction_allocations; purchase
+        // settlements use purchase_invoice_allocations via recordBankPayment.
+        await bank.recordMatch({
+          entityId,
+          transactionId: row.id,
+          journalEntryId: posted.entry.id,
+          allocations: [],
+        })
+        await purchases.recordBankPayment({
+          entityId,
+          transactionId: row.id,
+          invoiceId: purchase.id,
+          amount: purchase.total,
+        })
+      })
+      matchIndex += 1
+      continue
+    }
+
+    if (description.includes('Periodieke demo-kosten')) {
       await withBankMatch(database, async ({ bank, ledger }) => {
         const transaction = await bank.findTransaction(entityId, row.id)
         if (transaction === null || transaction.bankLedgerAccountNumber === null) return
@@ -830,7 +968,7 @@ async function populateDemo(
           description: transaction.description,
           receivableAccountNumber: '1600',
           allocations: [],
-          remainderAccountNumber: description.includes('INK-DEMO-') ? '1600' : '4900',
+          remainderAccountNumber: '4900',
           chargesAmount: 0n,
           chargesAccountNumber: null,
         })
@@ -859,7 +997,7 @@ async function populateDemo(
     }
   }
 
-  // File Q1 2025. Accept warnings so a thin reconciliation note does not block.
+  // File Q1 without accepting warnings — the return must already reconcile.
   await withVatFiling(database, async ({ vat }) => {
     const period = parseVatPeriodCode(`${DEMO_FISCAL_YEAR}-Q1`)
     const vatReturn = await vat.buildReturn({
@@ -871,8 +1009,8 @@ async function populateDemo(
       vatReturn,
       kind: period.kind,
       existing: null,
-      acceptWarnings: true,
-      acceptedReason: 'Demo seed: fictional filing for the trial administration.',
+      acceptWarnings: false,
+      acceptedReason: null,
       transport: 'manual',
     })
     await vat.recordFiling({
@@ -884,8 +1022,8 @@ async function populateDemo(
       filedBy: ownerUserId,
       transport: plan.transport,
       transportReference: 'DEMO-FILE-Q1',
-      acceptedWarningsBy: ownerUserId,
-      acceptedWarningsReason: 'Demo seed: fictional filing for the trial administration.',
+      acceptedWarningsBy: null,
+      acceptedWarningsReason: null,
     })
     await vat.lockPeriods(entityId, period.from, period.to)
   })
@@ -918,9 +1056,25 @@ async function verifyDemo(database: Database, entityId: string) {
     return verifyHashChain(entries)
   })
 
-  const contacts = DEMO_CONTACTS.length
-  const salesInvoices = planSales().length
-  const purchaseInvoices = planPurchases().length
+  const [contactStats] = await database
+    .select({
+      contacts: sql<number>`count(*)::int`,
+      customers: sql<number>`count(*) filter (where ${contacts.isCustomer})::int`,
+      suppliers: sql<number>`count(*) filter (where ${contacts.isSupplier})::int`,
+    })
+    .from(contacts)
+    .where(eq(contacts.entityId, entityId))
+
+  const [salesCount] = await database
+    .select({ count: sql<number>`count(*)::int` })
+    .from(salesInvoices)
+    .where(eq(salesInvoices.entityId, entityId))
+
+  const [purchaseCount] = await database
+    .select({ count: sql<number>`count(*)::int` })
+    .from(purchaseInvoices)
+    .where(eq(purchaseInvoices.entityId, entityId))
+
   const journalEntriesCount = await entryCount(database, entityId)
 
   const bankStats = await withBankRead(database, async (bank) => {
@@ -970,9 +1124,11 @@ async function verifyDemo(database: Database, entityId: string) {
 
   return {
     counts: {
-      contacts,
-      salesInvoices,
-      purchaseInvoices,
+      contacts: contactStats?.contacts ?? 0,
+      customers: contactStats?.customers ?? 0,
+      suppliers: contactStats?.suppliers ?? 0,
+      salesInvoices: salesCount?.count ?? 0,
+      purchaseInvoices: purchaseCount?.count ?? 0,
       journalEntries: journalEntriesCount,
       ...bankStats,
       filedPeriods,

@@ -12,10 +12,11 @@ export const DEMO_ENTITY_ID = '01948a00-d000-7000-8000-00000000d001'
 /** better-auth user id for the synthetic owner the seeder provisions under. */
 export const DEMO_OWNER_USER_ID = 'demo-seed-owner'
 
+/** Synthetic owner; holds Eigenaar on the demo BV. */
 export const DEMO_OWNER_EMAIL = 'owner@demo.invalid'
 
-export const DEMO_ENTITY_NAME = 'Demo BV (demo)'
-export const DEMO_LEGAL_NAME = 'Demo Beheer B.V. (demo)'
+export const DEMO_ENTITY_NAME = 'Demo BV (fictief)'
+export const DEMO_LEGAL_NAME = 'Demo Beheer B.V. (fictief)'
 
 /** Obviously fictional — eight zeros and a one, never a live KvK. */
 export const DEMO_KVK = '00000001'
