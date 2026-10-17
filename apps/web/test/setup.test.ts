@@ -114,7 +114,9 @@ describe('a signed-in user with no administration', () => {
     expect(created.status).toBe(201)
 
     const memberships = await membershipsFor(database, userId)
-    expect(memberships).toEqual([{ entityId, entityName: 'Nieuwe Zaak', role: 'owner' }])
+    expect(memberships).toEqual([
+      { entityId, entityName: 'Nieuwe Zaak', role: 'owner', isDemo: false },
+    ])
 
     // The session now resolves to the new entity with an owner's permissions,
     // through exactly the same path as any other request.

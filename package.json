@@ -13,6 +13,7 @@
     "build": "pnpm -r run build",
     "db:generate": "pnpm --filter @klopt/db run generate",
     "db:migrate": "pnpm --filter @klopt/db run migrate",
+    "db:seed:demo": "pnpm --filter @klopt/db run seed:demo",
     "dev": "concurrently -n web,worker -c cyan,magenta \"pnpm --filter @klopt/web run dev\" \"pnpm --filter @klopt/worker run dev\"",
     "dev:https": "concurrently -n web,worker -c cyan,magenta \"pnpm --filter @klopt/web run dev:https\" \"pnpm --filter @klopt/worker run dev\"",
     "dev:web": "pnpm --filter @klopt/web run dev",

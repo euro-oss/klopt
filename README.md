@@ -137,6 +137,22 @@ optional KvK number, and a book year. That account is the owner. Once the firm
 is on the instance, set `KLOPT_SIGNUP=closed` so a new mailbox cannot provision
 its own books. People still join from **Toegang**.
 
+### Try it with demo data
+
+Load a fictional Dutch BV with a year of sales, purchases, a bank statement and
+a filed VAT quarter — through the same posting paths as production. Never runs
+automatically; refuses any administration that is not marked demo.
+
+```bash
+pnpm db:seed:demo
+# optional invite (role may be eigenaar / owner / accountant / …)
+pnpm db:seed:demo -- --invite accountant@example.nl --role accountant
+```
+
+On a hosted instance the same binary is `node packages/db/dist/bin/seed-demo.js`
+with `DATABASE_URL` set. Re-running is idempotent: one demo administration per
+instance.
+
 ### Docker
 
 ```bash

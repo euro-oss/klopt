@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router'
 import { RiArrowRightLine } from '@remixicon/react'
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
@@ -111,16 +111,21 @@ const DESTINATIONS: Record<
   },
 }
 
+const appRoute = getRouteApi('/_app')
+
 function Dashboard() {
   const { queue, coverage, trial } = Route.useLoaderData()
+  const { session } = appRoute.useLoaderData()
   const { t } = useT()
 
   const year = queue.ok ? queue.data.fiscalYear : null
+  const active = session.memberships[0]
+  const isDemo = active?.isDemo === true
 
   return (
     <>
       <PageHeader
-        title={t('dash.title')}
+        title={isDemo ? `${t('dash.title')} · ${t('shell.demoBadge')}` : t('dash.title')}
         description={
           year === null
             ? t('dash.introNoYear')

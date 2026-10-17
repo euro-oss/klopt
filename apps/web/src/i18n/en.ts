@@ -68,6 +68,10 @@ export const en: Record<MessageKey, string> = {
   'shell.fiscalYear': 'Book year',
   'shell.yearClosed': '{year} (closed)',
   'shell.role': 'role: {role}',
+  'shell.demoEntity': '{name} · demo',
+  'shell.demoBanner':
+    "Demo environment: use fictional data only. Don't enter real bookkeeping records or personal data.",
+  'shell.demoBadge': 'Demo',
   'shell.signOut': 'Sign out',
   'shell.account.signOut': 'Log out',
   'shell.help': 'Keyboard shortcuts',

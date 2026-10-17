@@ -57,6 +57,10 @@ export const nl = {
   'shell.fiscalYear': 'Boekjaar',
   'shell.yearClosed': '{year} (afgesloten)',
   'shell.role': 'rol: {role}',
+  'shell.demoEntity': '{name} · demo',
+  'shell.demoBanner':
+    'Demo-omgeving: gebruik alleen fictieve gegevens. Voer geen echte boekhouding of persoonsgegevens in.',
+  'shell.demoBadge': 'Demo',
   'shell.signOut': 'Afmelden',
   // The account menu says Uitloggen; the no-administration and setup screens
   // keep Afmelden. Same act, different chrome — Design wants the short verb
