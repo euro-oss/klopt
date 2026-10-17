@@ -104,10 +104,15 @@ export const nl = {
   'setup.needOne': 'Nog geen administratie',
   'setup.needOneBody':
     'Je bent aangemeld als {email}. Zet een administratie op, of vraag een eigenaar om je uit te nodigen voor een bestaande.',
+  'setup.needOneClosedBody':
+    'Je bent aangemeld als {email}. Deze installatie is gesloten: vraag een eigenaar om je uit te nodigen voor een bestaande administratie.',
   'setup.start': 'Administratie opzetten',
   'setup.title': 'Nieuwe administratie',
   'setup.intro':
     'Je bent aangemeld als {email}. Vul een naam in — de rest kun je later nog wijzigen.',
+  'setup.closedTitle': 'Geen nieuwe administratie',
+  'setup.closedBody':
+    'Deze installatie is gesloten. Alleen een instantie-beheerder kan een nieuwe administratie aanmaken. Vraag een eigenaar om je uit te nodigen voor een bestaande administratie.',
   'setup.chartsFailed': 'De rekeningschema’s konden niet worden geladen: {detail}',
   'setup.name': 'Naam van de administratie',
   'setup.namePlaceholder': 'Mijn Bedrijf',
@@ -1225,13 +1230,13 @@ export const nl = {
   'finding.moneybird.trial_balance_empty':
     'Geen geboekte historie gelezen voor jaar {year}. Dat is geen sluitend leeg jaar.',
   'finding.moneybird.trial_balance_unbalanced':
-    'De Moneybird-historie voor {year} sluit niet: {debit} debet tegen {credit} credit (centen).',
+    'De Moneybird-historie voor {year} sluit niet: {debit} debet tegen {credit} credit.',
   'finding.moneybird.trial_balance_account_missing':
     'Jaar {year} heeft een saldo op {number}, dat niet in het over te zetten schema zit.',
   'finding.moneybird.period_locked':
     '{reference} is gedateerd in {year}, dat hier op slot zit. Gemeld, niet geboekt.',
   'finding.moneybird.unbalanced_document':
-    '{reference} sluit niet: {debit} debet tegen {credit} credit (centen).',
+    '{reference} sluit niet: {debit} debet tegen {credit} credit.',
   'finding.moneybird.attachment_without_url':
     'Bijlage {filename} heeft geen download-URL, dus het bestand kan niet worden bewaard.',
   'finding.moneybird.draft_skipped':
@@ -1242,6 +1247,77 @@ export const nl = {
     'Moneybird start het jaar in maand {moneybirdMonth} en deze boeken in maand {entityMonth}. Importeren zou in de verkeerde periodes boeken.',
   'finding.moneybird.fiscal_year_start_unknown':
     'Moneybird zegt niet in welke maand het jaar start (geen period_start_date). Controleer de jaaraanvang voordat je de geïmporteerde periodes vertrouwt.',
+
+  // Why each finding matters (FindingCard "Waarom dit telt", #41).
+  'finding.why.moneybird.unknown_currency':
+    'Zonder gekozen koers zou elk bedrag stilzwijgend worden omgerekend. Dat verandert de boeken.',
+  'finding.why.moneybird.unmapped_account':
+    'Een rekening zonder mapping komt niet in Klopt terecht; boeken erop zou later ontbreken.',
+  'finding.why.moneybird.unmapped_tax_rate':
+    'Zonder btw-code kan de aangifte die regels niet plaatsen.',
+  'finding.why.moneybird.account_number_collision':
+    'Twee rekeningen met hetzelfde nummer kunnen niet naast elkaar in één schema.',
+  'finding.why.moneybird.contact_number_collision':
+    'Twee relaties met hetzelfde nummer zouden elkaar overschrijven.',
+  'finding.why.moneybird.resource_unreadable':
+    'Ongelezen is niet leeg: importeren alsof het klopt zou een gat verbergen.',
+  'finding.why.moneybird.trial_balance_empty':
+    'Geen historie gelezen betekent niet dat het jaar sluit. Dat zijn twee claims.',
+  'finding.why.moneybird.trial_balance_unbalanced':
+    'Een historie die niet sluit kan niet als beginsaldo worden overgenomen.',
+  'finding.why.moneybird.trial_balance_account_missing':
+    'Een saldo zonder rekening in het schema heeft geen plek om naartoe te gaan.',
+  'finding.why.moneybird.period_locked':
+    'In een afgesloten periode boeken is hier niet toegestaan.',
+  'finding.why.moneybird.unbalanced_document':
+    'Een document dat niet sluit mag niet stilzwijgend worden geboekt.',
+  'finding.why.moneybird.attachment_without_url':
+    'Zonder bestand is er niets om te bewaren bij de boeking.',
+  'finding.why.moneybird.draft_skipped':
+    'Concepten zijn nog geen boekingen; meenemen zou concept en werkelijkheid mengen.',
+  'finding.why.moneybird.derived_account_type':
+    'Een geraden type kan de balans of de winst-en-verlies verkeerd indelen.',
+  'finding.why.moneybird.fiscal_year_start_mismatch':
+    'Verkeerde jaaraanvang zet elke boeking in de verkeerde periode.',
+  'finding.why.moneybird.fiscal_year_start_unknown':
+    'Zonder bekende jaaraanvang is niet te controleren of periodes kloppen.',
+  'finding.why.inbound.credit_note':
+    'Een creditnota omgekeerd boeken voorkomt dat hij als gewone factuur wordt betaald.',
+  'finding.why.inbound.currency_not_functional':
+    'Omrekenen zonder gekozen koers zou bedragen stilzwijgend veranderen.',
+  'finding.why.inbound.no_due_date':
+    'Zonder vervaldatum weet de betaalwachtrij niet wanneer iets te laat is.',
+  'finding.why.inbound.no_invoice_number': 'Zonder nummer kun je dubbele facturen niet herkennen.',
+  'finding.why.inbound.no_supplier_identifier':
+    'Zonder identiteit van de leverancier kan hij niet veilig worden gekoppeld.',
+  'finding.why.inbound.no_tax_category':
+    'Zonder btw-categorie kan geen code worden voorgesteld voor de aangifte.',
+  'finding.why.inbound.totals_disagree_with_lines':
+    'Verschil tussen kop en regels is vaak een toeslag; negeren verbergt het.',
+  'finding.why.inbound.unmapped_tax_category':
+    'Een ongemapte categorie komt niet in de juiste btw-rubriek.',
+
+  // FindingCard chrome (#41 Phase 1; copy aligned with Design Phase 2 boards).
+  'findingCard.blocking': 'Blokkeert import',
+  'findingCard.warning': 'Let op',
+  'findingCard.whyItMatters': 'Waarom dit telt',
+  'findingCard.whyFallback':
+    'Deze bevinding moet je zien voordat je verdergaat; negeren zou de boeken stilzwijgend veranderen of een gat verbergen.',
+  'findingCard.openExplain': 'Uitleg',
+  'findingCard.explainOnlyBody': 'Dit los je niet hier op.',
+  'findingCard.oneClickSafe': 'Wijzigt niets in je boekhouding',
+  'findingCard.guidedSteps': '{count} stappen',
+  'findingCard.guidedHint': 'Volg de stappen hierboven. Escape sluit dit paneel.',
+  'findingCard.preview': 'Dit verandert de boeken',
+  'findingCard.confirmFix': 'Toepassen',
+  'findingCard.close': 'Sluiten',
+  'findingCard.listLabel': 'Bevindingen',
+  'findingCard.honesty.unread': 'Niet gelezen',
+  'findingCard.honesty.empty': 'Leeg (bevestigd)',
+  'findingCard.honesty.reconciled': 'Klopt',
+  'findingCard.honesty.unreadHint': 'Opnieuw lezen',
+  'findingCard.honesty.emptyHint': 'Niet gecontroleerd',
+  'findingCard.honesty.reconciledHint': 'Aansluiting klopt',
 
   // Chasing what is overdue.
   'dunning.title': 'Aanmaningen',
@@ -1509,6 +1585,11 @@ export const nl = {
   'keys.group.invoice': 'Verkoopfactuur',
   'keys.group.picker': 'Kiezers',
   'keys.group.entry': 'Journaalpost',
+  'keys.group.findings': 'Bevindingen',
+  'keys.findingNext': 'Volgende bevinding',
+  'keys.findingPrevious': 'Vorige bevinding',
+  'keys.findingOpenFix': 'Fix openen',
+  'keys.findingCloseFix': 'Fix sluiten',
   'keys.palette': 'Commandopalet',
   'keys.help': 'Sneltoetsen',
   'keys.goProfitAndLoss': 'Winst- en verliesrekening',

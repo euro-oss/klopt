@@ -55,8 +55,9 @@ export function getAuth(): Auth {
     // install with no mail server can still be signed into. Production refuses
     // the log transport (see resolveEmailTransport).
     email: resolveEmailTransport(),
-    // Open until the operator closes it: `KLOPT_SIGNUP=closed` after the firm
-    // is on the instance (audit M3).
+    // Open until the operator closes it: `KLOPT_SIGNUP=closed` means
+    // invite-only sign-in (live invitation required for a new address) and
+    // entity creation only for KLOPT_INSTANCE_ADMINS (audit M3 / #47).
     disableSignUp: process.env['KLOPT_SIGNUP'] === 'closed',
     // The suites sign in far more often than a person does. Nothing else sets
     // this, and `createAuth` warns on the way past when it is set.

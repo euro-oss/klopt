@@ -139,6 +139,27 @@ function Setup() {
       </p>
     )
 
+  // Closed signup without instance-admin rights: clear Dutch copy, no form.
+  // Charts failure on an open instance still shows the form's error path below.
+  const createRefused = !setup.ok && setup.problem.status === 403
+
+  if (createRefused) {
+    return (
+      <main className="bg-background text-foreground mx-auto min-h-screen max-w-xl p-8">
+        <h1 className="text-2xl font-semibold tracking-tight">{t('setup.closedTitle')}</h1>
+        <p className="text-muted-foreground mt-2 text-sm">{t('setup.closedBody')}</p>
+        <form method="post" action="/sign-out" className="mt-8">
+          <button
+            type="submit"
+            className="text-muted-foreground hover:text-foreground text-sm underline"
+          >
+            {t('shell.signOut')}
+          </button>
+        </form>
+      </main>
+    )
+  }
+
   return (
     <main className="bg-background text-foreground mx-auto min-h-screen max-w-xl p-8">
       <h1 className="text-2xl font-semibold tracking-tight">{t('setup.title')}</h1>

@@ -10,6 +10,7 @@ import {
 import { ApiError } from './errors.js'
 import type { RequestContext, SetupContext } from './context.js'
 import { getAuth } from './auth-instance.js'
+import { mayCreateEntity } from './instance-access.js'
 
 /**
  * Two ways in, one shape out.
@@ -160,6 +161,16 @@ export async function resolveSetupContext(options: ResolveOptions): Promise<Setu
 
   if (session === null) throw new ApiError('unauthenticated', 'Sign in first.')
 
+  // Closed signup: only instance admins (KLOPT_INSTANCE_ADMINS) may create
+  // administrations. Holding Eigenaar on another entity is not enough — that
+  // role is entity-scoped and must not become an instance-wide power.
+  if (!mayCreateEntity(session.user.email)) {
+    throw new ApiError(
+      'forbidden',
+      'Signup is closed on this instance. Only an instance admin can create a new administration.',
+    )
+  }
+
   return {
     database: options.database,
     user: { id: session.user.id, email: session.user.email },
@@ -181,6 +192,9 @@ export async function resolveMemberships(database: Database, request: Request) {
     memberships,
     /** The administration this session is looking at — not memberships[0]. */
     activeEntityId: remembered ?? memberships[0]?.entityId ?? null,
+    /** Whether `/setup` and `PUT /entities/{id}` are available to this session. */
+    mayCreateEntity: mayCreateEntity(session.user.email),
+    signupClosed: process.env['KLOPT_SIGNUP'] === 'closed',
   }
 }
 

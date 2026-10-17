@@ -330,6 +330,28 @@ document nothing could be read out of says so instead of doing nothing.
 screen does not own cannot be escaped back to the card, and in the middle of a
 keyboard flow it is a stop rather than a step.
 
+## Bevindingen (import and inbound)
+
+Findings on Moneybird / Exact dry-runs and on inbound documents share one
+keyboard. The same four keys as the werklijst and het postvak, so a findings
+list does not invent a fifth way to move.
+
+| Key      | Does                                                       |
+| -------- | ---------------------------------------------------------- |
+| `↑` `k`  | Previous finding                                           |
+| `↓` `j`  | Next finding                                               |
+| `↵`      | Open the fix (one-click preview, guided steps, or explain) |
+| `Escape` | Close the fix; pressed again, leave the list               |
+
+A one-click fix that would change the books never posts on the first `↵`: it
+shows a preview first, and only confirming after that applies (principle 4).
+Yellow is the accent that marks the keyboard strip; it is never severity —
+blocking findings are red, warnings are neutral.
+
+Registered as `finding.next` / `finding.previous` / `finding.openFix` /
+`finding.closeFix` in `apps/web/src/lib/keyboard.ts`. The rule itself lives in
+`apps/web/src/lib/finding-card.ts` (`resolveFindingKey`), tested by naming keys.
+
 ## Verkoopfacturen
 
 | Key               | Does                                                  |

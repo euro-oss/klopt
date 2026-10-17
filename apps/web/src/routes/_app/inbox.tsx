@@ -1,7 +1,8 @@
 import { Link, createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
-import { findingMessage, violationMessage } from '~/i18n/labels'
+import { violationMessage } from '~/i18n/labels'
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
+import { FindingsList, asExplainOnlyFinding } from '~/components/findings/finding-card'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
@@ -517,11 +518,22 @@ function Inbox() {
               )}
 
               {parsed !== null && parsed.findings.length > 0 && (
-                <ul className="text-muted-foreground mt-2 space-y-1 text-xs">
-                  {parsed.findings.map((finding, index) => (
-                    <li key={`${finding.code}-${String(index)}`}>{findingMessage(t, finding)}</li>
-                  ))}
-                </ul>
+                <FindingsList
+                  className="mt-3"
+                  showShortcuts={false}
+                  aria-label={t('findingCard.listLabel')}
+                  findings={parsed.findings.map((finding) =>
+                    asExplainOnlyFinding(
+                      {
+                        code: finding.code,
+                        message: finding.message,
+                        messageKey: finding.messageKey,
+                        detail: finding.detail ?? {},
+                      },
+                      finding.severity === 'blocking' ? 'blocking' : 'warning',
+                    ),
+                  )}
+                />
               )}
 
               {aside === item.id && (
