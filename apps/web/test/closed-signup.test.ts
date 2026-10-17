@@ -227,7 +227,12 @@ describe('invite-only OTP when KLOPT_SIGNUP=closed', () => {
     const body = (await signed.json()) as { user: { id: string } }
 
     expect(await membershipsFor(database, body.user.id)).toEqual([
-      { entityId: owner.entityId, entityName: 'InviteOnly BV', role: 'accountant' },
+      {
+        entityId: owner.entityId,
+        entityName: 'InviteOnly BV',
+        role: 'accountant',
+        isDemo: false,
+      },
     ])
 
     const list = await handleListMembers(context)
@@ -479,7 +484,7 @@ describe('invited Eigenaar of B stays scoped to B', () => {
     if ('refused' in joined) throw new Error('Eigenaar of B could not sign in')
 
     expect(await membershipsFor(database, joined.userId)).toEqual([
-      { entityId: entityB, entityName: 'Demo B', role: 'owner' },
+      { entityId: entityB, entityName: 'Demo B', role: 'owner', isDemo: false },
     ])
 
     return {
