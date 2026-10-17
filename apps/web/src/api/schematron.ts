@@ -1,7 +1,12 @@
-import { loadSchematronFromDirectory, createSchematronValidator } from '@klopt/adapters'
+import {
+  loadSchematronFromDirectory,
+  createSchematronValidator,
+  SchematronError,
+} from '@klopt/adapters'
 import type { SchematronValidator } from '@klopt/core'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ApiError } from './errors.js'
 
 /**
  * The Peppol BIS and NLCIUS rules, parsed once at first use.
@@ -11,6 +16,10 @@ import { fileURLToPath } from 'node:url'
  * new BIS release is a new file under `reference-data/peppol/` (fetched via
  * `pnpm run peppol:fetch`, not committed) and a restart (principle 6) — there
  * is nothing generated and nothing to compile.
+ *
+ * Missing artefacts are an error, not a skip: a successful UBL response means
+ * the published rules ran. `SchematronError` is rethrown as `ApiError` so the
+ * problem detail names the gap instead of collapsing into a generic 500.
  */
 
 let validator: SchematronValidator | null = null
@@ -27,7 +36,20 @@ function defaultDirectory(): string {
 }
 
 export function schematron(): SchematronValidator {
-  validator ??= createSchematronValidator(loadSchematronFromDirectory(defaultDirectory()))
+  if (validator !== null) return validator
+
+  try {
+    validator = createSchematronValidator(loadSchematronFromDirectory(defaultDirectory()))
+  } catch (error: unknown) {
+    if (error instanceof SchematronError) {
+      throw new ApiError(
+        'internal_error',
+        `Peppol Schematron artefacts are not available: ${error.message}`,
+      )
+    }
+    throw error
+  }
+
   return validator
 }
 
