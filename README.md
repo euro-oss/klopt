@@ -134,8 +134,14 @@ set without the bucket name and credentials is refused at boot.
 
 On a fresh install, sign-in leads to creating an administration: a name, an
 optional KvK number, and a book year. That account is the owner. Once the firm
-is on the instance, set `KLOPT_SIGNUP=closed` so a new mailbox cannot provision
-its own books. People still join from **Toegang**.
+is on the instance, set `KLOPT_SIGNUP=closed`. Closed means **invite-only**: an
+unknown address may receive a sign-in code only when it has a live invitation
+from **Toegang** (not expired, not revoked, not already accepted). Everyone
+else gets a silent no-op — the send endpoint does not reveal who is invited.
+Creating further administrations is closed too: only addresses listed in
+`KLOPT_INSTANCE_ADMINS` (comma-separated emails) may use `/setup`. Holding
+Eigenaar on an existing administration is not enough. With the list empty,
+nobody can create entities (fail closed).
 
 ### Docker
 

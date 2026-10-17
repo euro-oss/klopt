@@ -10,13 +10,13 @@ The typed contract and pure helpers live in `apps/web/src/lib/finding-card.ts`.
 
 Every card renders from the wire shape already on Moneybird / inbound findings:
 
-| Field        | Role                                                                  |
-| ------------ | --------------------------------------------------------------------- |
-| `code`       | Machine code (branching, keys, tests)                                 |
-| `path`       | Optional locator in the source                                        |
-| `messageKey` | Catalogue key; explanation is `t('finding.' + messageKey, detail)`    |
-| `detail`     | Placeholder values; amount fields are shown as **euros**, never cents |
-| `message`    | English fallback from the API when no translation exists              |
+| Field        | Role                                                                                     |
+| ------------ | ---------------------------------------------------------------------------------------- |
+| `code`       | Machine code (branching, keys, tests)                                                    |
+| `path`       | Optional locator in the source                                                           |
+| `messageKey` | Catalogue key; explanation is `t('finding.' + messageKey, detail)`                       |
+| `detail`     | Placeholder values; amount fields as `€ 1.234,56` (finding currency, nl-NL), never cents |
+| `message`    | English fallback from the API when no translation exists                                 |
 
 Exact dry-run problems today ship `{ code, path, message }` only. Until #46
 adds `messageKey`, callers pass a stable placeholder key and rely on `message`.

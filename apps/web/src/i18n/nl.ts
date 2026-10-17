@@ -100,10 +100,15 @@ export const nl = {
   'setup.needOne': 'Nog geen administratie',
   'setup.needOneBody':
     'Je bent aangemeld als {email}. Zet een administratie op, of vraag een eigenaar om je uit te nodigen voor een bestaande.',
+  'setup.needOneClosedBody':
+    'Je bent aangemeld als {email}. Deze installatie is gesloten: vraag een eigenaar om je uit te nodigen voor een bestaande administratie.',
   'setup.start': 'Administratie opzetten',
   'setup.title': 'Nieuwe administratie',
   'setup.intro':
     'Je bent aangemeld als {email}. Vul een naam in — de rest kun je later nog wijzigen.',
+  'setup.closedTitle': 'Geen nieuwe administratie',
+  'setup.closedBody':
+    'Deze installatie is gesloten. Alleen een instantie-beheerder kan een nieuwe administratie aanmaken. Vraag een eigenaar om je uit te nodigen voor een bestaande administratie.',
   'setup.chartsFailed': 'De rekeningschema’s konden niet worden geladen: {detail}',
   'setup.name': 'Naam van de administratie',
   'setup.namePlaceholder': 'Mijn Bedrijf',

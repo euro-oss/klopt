@@ -247,7 +247,10 @@ test('a result account the domain refuses is reported in the API’s own words',
 
   await page.getByRole('button', { name: 'Toon wat er geboekt wordt' }).click()
 
-  await expect(page.getByRole('alert')).toContainText('9999')
+  // The picker may also flag the unknown number under the field; both alerts
+  // mention 9999, so target the domain refusal rather than `getByRole('alert')`
+  // alone (strict mode refuses when two match).
+  await expect(page.getByRole('alert').filter({ hasText: /9999/ }).first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Boekjaar afsluiten' })).toHaveCount(0)
 })
 

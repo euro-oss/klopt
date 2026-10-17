@@ -95,7 +95,7 @@ export interface FindingCardModel extends FindingData {
   readonly honesty?: FindingHonesty
 }
 
-/** Keys in `detail` that are minor-unit amounts and must render as euros. */
+/** Keys in `detail` that are minor-unit amounts and must render with a currency. */
 export const AMOUNT_DETAIL_KEYS: ReadonlySet<string> = new Set([
   'debit',
   'credit',
@@ -110,18 +110,69 @@ export const AMOUNT_DETAIL_KEYS: ReadonlySet<string> = new Set([
 ])
 
 /**
+ * ISO 4217 code for amounts in a finding's detail.
+ *
+ * Prefers the document/source `currency`, then the books' `functionalCurrency`,
+ * then EUR — inbound findings can be USD (or anything else) while Moneybird
+ * trial-balance amounts are usually functional currency.
+ */
+export function currencyFromDetail(detail: FindingDetail | null | undefined): string {
+  if (detail === null || detail === undefined) return 'EUR'
+  for (const key of ['currency', 'functionalCurrency'] as const) {
+    const value = detail[key]
+    if (typeof value === 'string' && /^[A-Za-z]{3}$/.test(value) && value.toUpperCase() !== 'NON') {
+      return value.toUpperCase()
+    }
+  }
+  return 'EUR'
+}
+
+/**
+ * Currency symbol for `nl-NL` display, e.g. `€` or `US$`.
+ *
+ * Falls back to the ISO code when Intl does not know the currency — never
+ * invents a glyph, and never hard-codes euro.
+ */
+export function currencySymbol(code: string): string {
+  try {
+    const parts = new Intl.NumberFormat('nl-NL', {
+      style: 'currency',
+      currency: code,
+      currencyDisplay: 'symbol',
+    }).formatToParts(0)
+    const symbol = parts.find((part) => part.type === 'currency')?.value
+    return symbol !== undefined && symbol !== '' ? symbol : code
+  } catch {
+    return code
+  }
+}
+
+/**
+ * One amount for a finding sentence: `€ 1.234,56` (nl-NL, symbol then figure).
+ *
+ * Number shape comes from `formatMinorUnits` (grouping `.`, decimal `,`); the
+ * symbol is taken from the finding's currency. Tabular presentation is the
+ * caller's job via the `.tabular` class — the string itself is stable.
+ */
+export function formatFindingAmount(minorUnits: bigint, currencyCode: string): string {
+  return `${currencySymbol(currencyCode)} ${formatMinorUnits(minorUnits)}`
+}
+
+/**
  * Detail values ready for `t('finding.' + messageKey, detail)`.
  *
- * Amount fields become euro strings with tabular presentation in mind; other
- * keys pass through. Never leaves "minor units" or "centen" for the reader.
+ * Amount fields become `€ 1.234,56`-style strings in the finding's currency;
+ * other keys pass through. Never leaves "minor units" or "centen" for the
+ * reader.
  */
 export function detailForDisplay(detail: FindingDetail | null | undefined): FindingDetail {
   if (detail === null || detail === undefined) return {}
+  const currency = currencyFromDetail(detail)
   const out: Record<string, string> = {}
   for (const [key, value] of Object.entries(detail)) {
     if (AMOUNT_DETAIL_KEYS.has(key) && /^-?\d+$/.test(value)) {
       try {
-        out[key] = formatMinorUnits(BigInt(value))
+        out[key] = formatFindingAmount(BigInt(value), currency)
       } catch {
         out[key] = value
       }
