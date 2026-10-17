@@ -160,6 +160,22 @@ export function findingMessage(t: Translate, finding: TranslatableFinding): stri
   return lookUp(t, `finding.${finding.messageKey}`, finding.detail ?? undefined) ?? finding.message
 }
 
+/**
+ * "Waarom dit telt" for a finding, or undefined when no why-key exists yet.
+ *
+ * Looked up without forcing placeholders when the catalogue has no entry —
+ * `translate` only tolerates a missing key when no `values` are passed.
+ */
+export function findingWhy(
+  t: Translate,
+  messageKey: string,
+  detail?: Readonly<Record<string, string>> | null,
+): string | undefined {
+  const key = `finding.why.${messageKey}`
+  if (lookUp(t, key) === undefined) return undefined
+  return lookUp(t, key, detail ?? undefined)
+}
+
 /** As much of a finding as translating one needs. */
 export interface TranslatableFinding {
   readonly message: string

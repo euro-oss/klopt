@@ -287,6 +287,29 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'inbox.skip', label: 'keys.inboxSkip', group: 'keys.group.inbox', keys: 's' },
   { id: 'inbox.leave', label: 'keys.inboxLeave', group: 'keys.group.inbox', keys: 'escape' },
 
+  // Import / inbound findings (#41). Same four keys as the other lists: j/k
+  // move, Enter opens the fix, Escape closes it. One-click fixes that would
+  // change the books still show a preview first (principle 4).
+  { id: 'finding.next', label: 'keys.findingNext', group: 'keys.group.findings', keys: 'j' },
+  {
+    id: 'finding.previous',
+    label: 'keys.findingPrevious',
+    group: 'keys.group.findings',
+    keys: 'k',
+  },
+  {
+    id: 'finding.openFix',
+    label: 'keys.findingOpenFix',
+    group: 'keys.group.findings',
+    keys: 'enter',
+  },
+  {
+    id: 'finding.closeFix',
+    label: 'keys.findingCloseFix',
+    group: 'keys.group.findings',
+    keys: 'escape',
+  },
+
   {
     id: 'invoiceForm.save',
     label: 'keys.invoiceSave',

@@ -1,6 +1,12 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
+import {
+  FindingsList,
+  FindingHonestyState,
+  asExplainOnlyFinding,
+  honestyFromReconciliation,
+} from '~/components/findings/finding-card'
 import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
@@ -491,8 +497,22 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
   const counts = report['counts'] as Record<string, number>
   const years = (report['years'] as number[]) ?? []
   const reconciliation = (report['reconciliation'] as ReconciliationYear[]) ?? []
-  const warnings = (report['warnings'] as { code: string; message: string }[]) ?? []
-  const problems = (report['problems'] as { code: string; message: string }[]) ?? []
+  const warnings =
+    (report['warnings'] as {
+      code: string
+      path: string | null
+      message: string
+      messageKey: string
+      detail: Record<string, string>
+    }[]) ?? []
+  const problems =
+    (report['problems'] as {
+      code: string
+      path: string | null
+      message: string
+      messageKey: string
+      detail: Record<string, string>
+    }[]) ?? []
   const notImported = (report['notImported'] as string[]) ?? []
   const requests = (report['requests'] ?? []) as {
     path: string
@@ -501,6 +521,8 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
     durationMs: number
   }[]
   const first = reconciliation[0]
+  const honesty =
+    first === undefined ? null : honestyFromReconciliation(first.source, first.balanced)
 
   return (
     <div className="mt-6">
@@ -555,30 +577,57 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
         />
       </div>
 
+      {/* Unread ≠ empty ≠ reconciled — three claims, three looks (#41). */}
+      {honesty !== null && (
+        <div className="mb-6 max-w-md">
+          <FindingHonestyState honesty={honesty} />
+        </div>
+      )}
+
       {problems.length > 0 && (
-        <>
+        <div className="mb-6">
           <h3 className="text-destructive mb-2 text-sm font-semibold">
             {t('moneybird.blocking', { count: String(problems.length) })}
           </h3>
-          <ul className="text-destructive mb-6 list-disc pl-5 text-sm">
-            {problems.map((problem, index) => (
-              <li key={`${problem.code}-${String(index)}`}>{problem.message}</li>
-            ))}
-          </ul>
-        </>
+          <FindingsList
+            aria-label={t('moneybird.blocking', { count: String(problems.length) })}
+            findings={problems.map((problem) =>
+              asExplainOnlyFinding(
+                {
+                  code: problem.code,
+                  path: problem.path,
+                  message: problem.message,
+                  messageKey: problem.messageKey,
+                  detail: problem.detail,
+                },
+                'blocking',
+              ),
+            )}
+          />
+        </div>
       )}
 
       {warnings.length > 0 && (
-        <>
+        <div className="mb-6">
           <h3 className="mb-2 text-sm font-semibold">
             {t('moneybird.warnings', { count: String(warnings.length) })}
           </h3>
-          <ul className="text-muted-foreground mb-6 list-disc pl-5 text-sm">
-            {warnings.map((warning, index) => (
-              <li key={`${warning.code}-${String(index)}`}>{warning.message}</li>
-            ))}
-          </ul>
-        </>
+          <FindingsList
+            aria-label={t('moneybird.warnings', { count: String(warnings.length) })}
+            findings={warnings.map((warning) =>
+              asExplainOnlyFinding(
+                {
+                  code: warning.code,
+                  path: warning.path,
+                  message: warning.message,
+                  messageKey: warning.messageKey,
+                  detail: warning.detail,
+                },
+                'warning',
+              ),
+            )}
+          />
+        </div>
       )}
 
       {notImported.length > 0 && (
