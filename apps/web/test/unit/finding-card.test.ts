@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   AMOUNT_DETAIL_KEYS,
+  currencyFromDetail,
+  currencySymbol,
   detailForDisplay,
   explainOnlyFix,
+  formatFindingAmount,
   honestyClasses,
   honestyFromReconciliation,
   oneClickMayApplyImmediately,
@@ -27,18 +30,34 @@ const t = (key: MessageKey, values?: Record<string, string | number>) =>
   translate('nl', key, values)
 
 describe('finding detail amounts', () => {
-  it('formats known amount keys as euros, never as minor units', () => {
+  it('formats known amount keys with the currency symbol, never as minor units', () => {
     const detail = detailForDisplay({
       debit: '121000',
       credit: '100050',
       year: '2026',
       reference: 'F-1',
     })
-    expect(detail['debit']).toBe('1.210,00')
-    expect(detail['credit']).toBe('1.000,50')
+    // Glossary / #41: `€ 1.234,56`, nl-NL, never a bare figure or "centen".
+    expect(detail['debit']).toBe('€ 1.210,00')
+    expect(detail['credit']).toBe('€ 1.000,50')
     expect(detail['year']).toBe('2026')
     expect(detail['debit']).not.toMatch(/cent/i)
     expect(AMOUNT_DETAIL_KEYS.has('debit')).toBe(true)
+  })
+
+  it('takes the symbol from the finding currency, including non-EUR', () => {
+    // Inbound findings can be USD (e2e fixture); do not hard-code euro.
+    const detail = detailForDisplay({
+      currency: 'USD',
+      declared: '123456',
+      fromLines: '100000',
+    })
+    const usd = currencySymbol('USD')
+    expect(detail['declared']).toBe(`${usd} 1.234,56`)
+    expect(detail['fromLines']).toBe(`${usd} 1.000,00`)
+    expect(detail['declared']).not.toMatch(/^€/)
+    expect(currencyFromDetail({ currency: 'USD' })).toBe('USD')
+    expect(formatFindingAmount(123456n, 'USD')).toBe(`${usd} 1.234,56`)
   })
 
   it('leaves non-numeric amount-looking values alone', () => {
@@ -159,8 +178,8 @@ describe('finding copy', () => {
       detail: detailForDisplay({ year: '2026', debit: '10000', credit: '9000' }),
     })
     expect(text).toContain('2026')
-    expect(text).toContain('100,00')
-    expect(text).toContain('90,00')
+    expect(text).toContain('€ 100,00')
+    expect(text).toContain('€ 90,00')
     expect(text).not.toMatch(/centen|minor units/i)
   })
 
