@@ -96,3 +96,15 @@ Documented in `docs/keyboard-map.md`, registered in `apps/web/src/lib/keyboard.t
 - Explanation: `finding.<messageKey>` (NL in `nl.ts`, EN from core + overrides)
 - Why it matters: `finding.why.<messageKey>`, label `findingCard.whyItMatters`
 - Chrome: `findingCard.*` in both locales
+
+## Phase 2 visual deltas (Design Penpot boards)
+
+Phase 1 matched cheap naming/layout from the Design comment on #41. Left for
+the visual reskin (props stay stable):
+
+- Full board fidelity for light/dark desktop cards
+- Phone boards (390 wide, #38): Sheet ☰ nav, 44×44 targets, stacked cards
+- Dark-mode focus tint (yellow accent on the 2px focus border)
+- Green “Klopt” honesty badge (Phase 1 uses foreground, not a new status colour)
+- Honesty action affordances (“Opnieuw lezen” as a control, not only a hint)
+- Thicker status bars / badge chrome polish beyond the leading `border-l-4`
