@@ -56,7 +56,12 @@ test('a new user signs in, sets up an administration and lands in it', async ({ 
     const userId = await findUserIdByEmail(database, email)
     if (userId === null) throw new Error('The sign-in did not create a user.')
     expect(await membershipsFor(database, userId)).toEqual([
-      { entityId: expect.any(String), entityName: 'Speelgoedwinkel De Tol', role: 'owner' },
+      {
+        entityId: expect.any(String),
+        entityName: 'Speelgoedwinkel De Tol',
+        role: 'owner',
+        isDemo: false,
+      },
     ])
 
     // The books are usable, not merely present: the chart of accounts is there.

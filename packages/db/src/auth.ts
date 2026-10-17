@@ -422,6 +422,8 @@ export interface EntityMembership {
    * type checker, which is how a real check gets deleted as dead code.
    */
   readonly role: string
+  /** Fictional trial books (issue #48). Drives the demo banner and picker mark. */
+  readonly isDemo: boolean
 }
 
 /** Which books this user may open, and as what. */
@@ -434,6 +436,7 @@ export async function membershipsFor(
       entityId: entityMembers.entityId,
       entityName: entities.name,
       role: entityMembers.role,
+      isDemo: entities.isDemo,
     })
     .from(entityMembers)
     .innerJoin(entities, eq(entities.id, entityMembers.entityId))
@@ -453,6 +456,7 @@ export async function membershipFor(
       entityId: entityMembers.entityId,
       entityName: entities.name,
       role: entityMembers.role,
+      isDemo: entities.isDemo,
     })
     .from(entityMembers)
     .innerJoin(entities, eq(entities.id, entityMembers.entityId))

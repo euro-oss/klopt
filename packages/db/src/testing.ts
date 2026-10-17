@@ -18,12 +18,10 @@ import {
 /**
  * A fictional Dutch BV to post against (spec 11.4).
  *
- * This is the seed of the reference dataset: a fictional Dutch BV that every
- * export will eventually run against in CI, and that ships as demo data. It
- * lives in the package rather than in a test folder because apps/web's tests
- * and the demo seeder both need it.
- *
- * Built through the same code paths as production, so a schema change that
+ * This is the thin test fixture: a fictional Dutch BV that every export runs
+ * against in CI. The operator-facing demo administration with a year of data
+ * lives in `demo/seed.ts` (`pnpm db:seed:demo`). Both share the rule that
+ * books are built through production posting paths, so a schema change that
  * breaks setup breaks the tests too.
  */
 
