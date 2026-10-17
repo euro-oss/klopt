@@ -240,6 +240,20 @@ describe('entity scoping for humans', () => {
     expect(memberships).toHaveLength(2)
     expect(memberships.map((membership) => membership.role).sort()).toEqual(['accountant', 'owner'])
   })
+
+  it('an Eigenaar of one administration does not see another in the picker', async () => {
+    // Product AC on #47: invited Eigenaar of a demo admin stays scoped to it.
+    // Closed-signup invite flow is in closed-signup.test.ts; the picker rule
+    // is the same with a direct membership.
+    const mine = await seedEntity(database)
+    const theirs = await seedEntity(database)
+    const { userId } = await signUp()
+    await addMember(database, { entityId: mine, userId, role: 'owner' })
+
+    const memberships = await membershipsFor(database, userId)
+    expect(memberships.map((m) => m.entityId)).toEqual([mine])
+    expect(memberships.some((m) => m.entityId === theirs)).toBe(false)
+  })
 })
 
 describe('a token and a session are the same thing downstream', () => {

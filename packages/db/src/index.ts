@@ -157,6 +157,7 @@ export {
   type MemberRow,
   MembersRepository,
   claimInvitations,
+  hasLiveInvitation,
 } from './repositories/members.js'
 export {
   type EntityPatch,

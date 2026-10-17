@@ -8,7 +8,7 @@ import {
   type Member,
   type Role,
 } from '@klopt/core'
-import { and, asc, eq, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { Database } from '../client.js'
 import { entityInvitations, entityMembers, users } from '../schema/auth.js'
 import { auditLog } from '../schema/ledger.js'
@@ -404,6 +404,35 @@ export class MembersRepository {
 
     return { removed: 'member' }
   }
+}
+
+/**
+ * Whether this address has at least one invitation that can still be claimed.
+ *
+ * Used when signup is closed (invite-only): an unknown address may receive a
+ * sign-in code only when this is true. Expired, revoked and already-accepted
+ * invitations do not count — the same rules `claimInvitations` applies.
+ */
+export async function hasLiveInvitation(
+  database: Database,
+  email: string,
+  now: Date = new Date(),
+): Promise<boolean> {
+  const address = normaliseEmail(email)
+  const [row] = await database
+    .select({ id: entityInvitations.id })
+    .from(entityInvitations)
+    .where(
+      and(
+        eq(entityInvitations.email, address),
+        isNull(entityInvitations.acceptedAt),
+        isNull(entityInvitations.revokedAt),
+        gt(entityInvitations.expiresAt, now),
+      ),
+    )
+    .limit(1)
+
+  return row !== undefined
 }
 
 /**
