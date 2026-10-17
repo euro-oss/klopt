@@ -29,8 +29,10 @@
     "clean": "rm -rf dist",
     "generate": "node dist/bin/generate.js",
     "migrate": "node dist/bin/migrate.js",
+    "seed:demo": "node dist/bin/seed-demo.js",
     "studio": "drizzle-kit studio",
     "migrate:dev": "node --experimental-strip-types src/bin/migrate.ts",
+    "seed:demo:dev": "node --experimental-strip-types src/bin/seed-demo.ts",
     "test": "vitest run",
     "generate:dev": "node --experimental-strip-types src/bin/generate.ts"
   },

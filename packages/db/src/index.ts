@@ -170,6 +170,16 @@ export {
   SetupRepository,
 } from './repositories/setup.js'
 export {
+  DEMO_ENTITY_ID,
+  DEMO_ENTITY_NAME,
+  assertDemoDatasetIsFictional,
+  assertFictionalDataset,
+  parseDemoRole,
+  seedDemo,
+  type SeedDemoOptions,
+  type SeedDemoResult,
+} from './demo/index.js'
+export {
   type DraftInvoiceRequest,
   type InvoiceContext,
   SalesRepository,

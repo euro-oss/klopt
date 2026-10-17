@@ -184,10 +184,14 @@ export async function resolveSetupContext(options: ResolveOptions): Promise<Setu
 export async function resolveMemberships(database: Database, request: Request) {
   const session = await getAuth().api.getSession({ headers: request.headers })
   if (session === null) return null
+  const memberships = await membershipsFor(database, session.user.id)
+  const remembered = await activeEntityFor(database, session.session.token)
   return {
     user: { id: session.user.id, name: session.user.name, email: session.user.email },
     sessionToken: session.session.token,
-    memberships: await membershipsFor(database, session.user.id),
+    memberships,
+    /** The administration this session is looking at — not memberships[0]. */
+    activeEntityId: remembered ?? memberships[0]?.entityId ?? null,
     /** Whether `/setup` and `PUT /entities/{id}` are available to this session. */
     mayCreateEntity: mayCreateEntity(session.user.email),
     signupClosed: process.env['KLOPT_SIGNUP'] === 'closed',

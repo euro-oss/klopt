@@ -23,6 +23,7 @@ import { useHydrated } from '~/lib/hydration'
 import { resolveListKey } from '~/lib/list-cursor'
 import type { WorkQueueItem, WorkQueueKind } from '~/lib/work-queue'
 import { getWorkQueue } from '~/server/dashboard'
+import { getEntity } from '~/server/entity'
 import { getRgsCoverage, getTrialBalance } from '~/server/ledger'
 
 /**
@@ -53,12 +54,13 @@ export const Route = createFileRoute('/_app/')({
   loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
   loader: async ({ deps }) => {
     const year = deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) }
-    const [queue, coverage, trial] = await Promise.all([
+    const [queue, coverage, trial, entity] = await Promise.all([
       getWorkQueue({ data: year }),
       getRgsCoverage({ data: {} }),
       getTrialBalance({ data: year }),
+      getEntity(),
     ])
-    return { queue, coverage, trial }
+    return { queue, coverage, trial, entity }
   },
   component: Dashboard,
 })
@@ -112,15 +114,18 @@ const DESTINATIONS: Record<
 }
 
 function Dashboard() {
-  const { queue, coverage, trial } = Route.useLoaderData()
+  const { queue, coverage, trial, entity } = Route.useLoaderData()
   const { t } = useT()
 
   const year = queue.ok ? queue.data.fiscalYear : null
+  // Active administration via getEntity (request context), not the first
+  // alphabetical membership — wrong when the user has several books open.
+  const isDemo = entity.ok && entity.data.isDemo === true
 
   return (
     <>
       <PageHeader
-        title={t('dash.title')}
+        title={isDemo ? `${t('dash.title')} · ${t('shell.demoBadge')}` : t('dash.title')}
         description={
           year === null
             ? t('dash.introNoYear')

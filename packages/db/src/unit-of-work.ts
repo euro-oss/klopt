@@ -211,10 +211,18 @@ export async function withBankRead<T>(
  */
 export async function withBankMatch<T>(
   database: Database,
-  work: (repositories: { bank: BankRepository; ledger: DrizzleLedgerRepository }) => Promise<T>,
+  work: (repositories: {
+    bank: BankRepository
+    ledger: DrizzleLedgerRepository
+    purchase: PurchaseRepository
+  }) => Promise<T>,
 ): Promise<T> {
   return database.transaction(async (tx) =>
-    work({ bank: new BankRepository(tx), ledger: new DrizzleLedgerRepository(tx) }),
+    work({
+      bank: new BankRepository(tx),
+      ledger: new DrizzleLedgerRepository(tx),
+      purchase: new PurchaseRepository(tx),
+    }),
   )
 }
 

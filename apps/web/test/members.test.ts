@@ -142,7 +142,7 @@ describe('inviting somebody who has no account yet', () => {
     // would check.
     const joined = await signUp(invitee)
     expect(await membershipsFor(database, joined.userId)).toEqual([
-      { entityId: owner.entityId, entityName: 'Toegang BV', role: 'accountant' },
+      { entityId: owner.entityId, entityName: 'Toegang BV', role: 'accountant', isDemo: false },
     ])
 
     const theirContext = await resolveRequestContext({

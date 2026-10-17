@@ -143,6 +143,22 @@ Creating further administrations is closed too: only addresses listed in
 Eigenaar on an existing administration is not enough. With the list empty,
 nobody can create entities (fail closed).
 
+### Try it with demo data
+
+Load a fictional Dutch BV with a year of sales, purchases, a bank statement and
+a filed VAT quarter — through the same posting paths as production. Never runs
+automatically; refuses any administration that is not marked demo.
+
+```bash
+pnpm db:seed:demo
+# optional invite (role may be eigenaar / owner / accountant / …)
+pnpm db:seed:demo -- --invite accountant@example.nl --role accountant
+```
+
+On a hosted instance the same binary is `node packages/db/dist/bin/seed-demo.js`
+with `DATABASE_URL` set. Re-running is idempotent: one demo administration per
+instance.
+
 ### Docker
 
 ```bash

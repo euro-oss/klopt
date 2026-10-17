@@ -33,6 +33,11 @@ export interface ProvisionEntityRequest {
   readonly entityId: string
   readonly ownerUserId: string
   readonly plan: EntitySetupPlan
+  /**
+   * Fictional trial books (issue #48). Default false so ordinary setup cannot
+   * accidentally mark a real administration as demo.
+   */
+  readonly isDemo?: boolean
 }
 
 export interface PeriodSummary {
@@ -120,6 +125,7 @@ export class SetupRepository {
       rgsVersion: plan.entity.rgsVersion,
       rgsVariant: plan.entity.rgsVariant,
       vatRounding: plan.entity.vatRounding,
+      isDemo: request.isDemo === true,
       // The chart being installed is ours, so the account for bank charges is
       // knowable now rather than guessed at on every match. Somebody bringing
       // their own chart sets it in Instellingen.
@@ -231,6 +237,7 @@ export class SetupRepository {
         rgsVariant: entities.rgsVariant,
         vatRounding: entities.vatRounding,
         bankChargesAccountNumber: entities.bankChargesAccountNumber,
+        isDemo: entities.isDemo,
         street: entities.street,
         houseNumber: entities.houseNumber,
         postalCode: entities.postalCode,
@@ -248,6 +255,16 @@ export class SetupRepository {
       .where(eq(entities.id, entityId))
       .limit(1)
 
+    return row ?? null
+  }
+
+  /** The singleton demo administration, if one exists on this instance. */
+  async findDemoEntity(): Promise<{ id: string; name: string; isDemo: boolean } | null> {
+    const [row] = await this.database
+      .select({ id: entities.id, name: entities.name, isDemo: entities.isDemo })
+      .from(entities)
+      .where(eq(entities.isDemo, true))
+      .limit(1)
     return row ?? null
   }
 

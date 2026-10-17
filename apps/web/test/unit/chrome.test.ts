@@ -52,3 +52,46 @@ describe('the bottom of the sidebar', () => {
     expect(shell).toMatch(/<PopoverTrigger\s+disabled=\{!hydrated\}/)
   })
 })
+
+const nl = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'i18n', 'nl.ts'),
+  'utf8',
+)
+const en = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'i18n', 'en.ts'),
+  'utf8',
+)
+const dashboard = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'routes', '_app', 'index.tsx'),
+  'utf8',
+)
+
+describe('demo administration markers (issue #48)', () => {
+  it('shows a neutral status banner with the exact NL and EN copy', () => {
+    expect(shell).toMatch(/active\?\.isDemo === true/)
+    expect(shell).toContain('role="status"')
+    expect(shell).toContain('bg-muted')
+    expect(shell).toContain("t('shell.demoBanner')")
+    expect(nl).toContain(
+      'Demo-omgeving: gebruik alleen fictieve gegevens. Voer geen echte boekhouding of persoonsgegevens in.',
+    )
+    expect(en).toContain(
+      "Demo environment: use fictional data only. Don't enter real bookkeeping records or personal data.",
+    )
+  })
+
+  it('marks demo administrations in the picker', () => {
+    expect(shell).toContain("t('shell.demoEntity', { name: entity.entityName })")
+    expect(nl).toContain("'shell.demoEntity': '{name} · demo'")
+    expect(en).toContain("'shell.demoEntity': '{name} · demo'")
+  })
+
+  it('puts the demo badge on the dashboard from the active entity, not memberships[0]', () => {
+    expect(dashboard).toContain('getEntity')
+    expect(dashboard).toContain('entity.data.isDemo')
+    expect(dashboard).toContain("t('shell.demoBadge')")
+    expect(dashboard).not.toMatch(/session\.memberships\[0\]/)
+    expect(nl).toContain("'shell.demoBadge': 'Demo'")
+    expect(en).toContain("'shell.demoBadge': 'Demo'")
+  })
+})

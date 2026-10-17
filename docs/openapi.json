@@ -4401,6 +4401,9 @@
                         "null"
                       ]
                     },
+                    "isDemo": {
+                      "type": "boolean"
+                    },
                     "street": {
                       "type": [
                         "string",
@@ -4483,6 +4486,7 @@
                     "rgsVariant",
                     "vatRounding",
                     "bankChargesAccountNumber",
+                    "isDemo",
                     "street",
                     "houseNumber",
                     "postalCode",
@@ -4589,6 +4593,9 @@
                             "null"
                           ]
                         },
+                        "isDemo": {
+                          "type": "boolean"
+                        },
                         "street": {
                           "type": [
                             "string",
@@ -4671,6 +4678,7 @@
                         "rgsVariant",
                         "vatRounding",
                         "bankChargesAccountNumber",
+                        "isDemo",
                         "street",
                         "houseNumber",
                         "postalCode",
