@@ -182,4 +182,121 @@ describe('the reconciliation', () => {
     expect(plan.reconciliation.every((year) => year.source === 'unreadable')).toBe(true)
     expect(plan.reconciliation.every((year) => year.balanced === null)).toBe(true)
   })
+
+  it('keeps an acknowledged empty year as empty, never reconciled', () => {
+    const plan = planMoneybirdImport(
+      snapshot({
+        salesInvoices: [],
+        purchaseInvoices: [],
+        receipts: [],
+        financialMutations: [],
+        journalDocuments: [],
+        generalDocuments: [],
+        financialAccounts: [],
+      }),
+      options({
+        decisions: { acknowledgedEmptyYears: ['(none)'] },
+      }),
+    )
+    expect(plan.warnings.map((warning) => warning.code)).not.toContain('trial_balance_empty')
+    expect(
+      plan.reconciliation.every((year) => year.source !== 'unreadable' || year.balanced === null),
+    ).toBe(true)
+  })
+})
+
+describe('finding fixes on the plan', () => {
+  it('puts the ledger name in unmapped_account detail, not the raw Moneybird id', () => {
+    const base = snapshot()
+    const emptied = base.ledgerAccounts.map((account) =>
+      account.number === '8000' ? { ...account, number: '' } : account,
+    )
+    const omzetId = emptied.find((account) => account.name === 'Omzet')!.id
+    const plan = planMoneybirdImport(
+      snapshot({
+        ledgerAccounts: emptied,
+        salesInvoices: [
+          {
+            ...base.salesInvoices[0]!,
+            details: base.salesInvoices[0]!.details.map((detail) => ({
+              ...detail,
+              ledgerAccountId: omzetId,
+            })),
+          },
+        ],
+      }),
+      options(),
+    )
+    const unmapped = plan.problems.filter((item) => item.code === 'unmapped_account')
+    expect(unmapped.length).toBeGreaterThan(0)
+    for (const item of unmapped) {
+      expect(item.detail['name']).toBe('Omzet')
+      expect(item.detail['name']).not.toBe(item.detail['moneybirdId'])
+    }
+  })
+
+  it('lists excluded documents under excluded, not as problems', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      base,
+      options({
+        lockedYears: ['2026'],
+        decisions: { excludedLockedYears: ['2026'] },
+      }),
+    )
+    expect(plan.problems.map((item) => item.code)).not.toContain('period_locked')
+    expect(plan.excluded.some((id) => id.startsWith('period_locked:') || id.includes(':'))).toBe(
+      true,
+    )
+  })
+
+  it('applies a confirmed FX rate and stores source+date on the lines', () => {
+    const base = snapshot()
+    const invoice = { ...base.salesInvoices[0]!, currency: 'USD' }
+    const plan = planMoneybirdImport(
+      snapshot({ salesInvoices: [invoice] }),
+      options({
+        decisions: {
+          exchangeRates: {
+            'sales_invoice:301': { rate: '0.9214', source: 'ecb', date: '2026-10-16' },
+          },
+        },
+      }),
+    )
+    const entry = plan.entries.find((item) => item.externalId === 'sales_invoice:301')
+    expect(entry).toBeDefined()
+    expect(entry!.lines.every((line) => line.exchangeRate === '0.9214')).toBe(true)
+    expect(entry!.lines.every((line) => line.exchangeRateSource === 'ecb:2026-10-16')).toBe(true)
+    expect(plan.problems.map((item) => item.code)).not.toContain('unknown_currency')
+  })
+
+  it('silences the missing-currency warning after one-click EUR confirmation', () => {
+    const plan = planMoneybirdImport(
+      snapshot({
+        administration: {
+          ...snapshot().administration,
+          currency: null,
+        },
+      }),
+      options({ decisions: { confirmedCurrencyIsFunctional: true } }),
+    )
+    expect(
+      plan.warnings.filter(
+        (item) => item.code === 'unknown_currency' && item.path === 'administration.currency',
+      ),
+    ).toEqual([])
+  })
+
+  it('silences fiscal_year_start_unknown after confirmation', () => {
+    const plan = planMoneybirdImport(
+      snapshot({
+        administration: {
+          ...snapshot().administration,
+          fiscalYearStartMonth: null,
+        },
+      }),
+      options({ decisions: { confirmedFiscalYearStart: true } }),
+    )
+    expect(plan.warnings.map((item) => item.code)).not.toContain('fiscal_year_start_unknown')
+  })
 })

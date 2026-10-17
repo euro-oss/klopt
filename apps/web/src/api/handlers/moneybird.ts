@@ -1,13 +1,20 @@
 import {
   MoneybirdReadError,
   findAdministration,
+  lookupEcbRate,
   planMoneybirdImport,
   selectableAdministrations,
+  type MoneybirdImportDecisions,
   type MoneybirdImportPlan,
   type MoneybirdRequestLog,
   type YearTrialBalance,
 } from '@klopt/core'
-import { MoneybirdApiError, createMoneybirdClient, readAdministration } from '@klopt/adapters'
+import {
+  MoneybirdApiError,
+  createMoneybirdClient,
+  fetchEcbReferenceRates,
+  readAdministration,
+} from '@klopt/adapters'
 import {
   MoneybirdImportRepository,
   ReportingRepository,
@@ -15,6 +22,8 @@ import {
   SecretKeyTooShortError,
   SetupRepository,
   secretsAvailable,
+  withEcbRates,
+  withEcbRatesRead,
   withMoneybirdConnection,
   withMoneybirdConnectionRead,
   withMoneybirdImport,
@@ -27,6 +36,7 @@ import { recordAudit } from '../audit.js'
 import type {
   ChooseMoneybirdAdministrationBody,
   ConnectMoneybirdBody,
+  MoneybirdFxRateQuery,
   SaveMoneybirdMappingsBody,
 } from '../schemas.js'
 
@@ -50,6 +60,7 @@ function serialiseConnection(row: {
   administrationCurrency: string | null
   accountMappings: Readonly<Record<string, string>>
   taxMappings: Readonly<Record<string, string>>
+  importDecisions: MoneybirdImportDecisions
   connected: boolean
   lastImportAt: string | null
   lastError: string | null
@@ -61,6 +72,17 @@ function serialiseConnection(row: {
     administrationCurrency: row.administrationCurrency,
     accountMappings: row.accountMappings,
     taxMappings: row.taxMappings,
+    importDecisions: {
+      confirmedCurrencyIsFunctional: row.importDecisions.confirmedCurrencyIsFunctional,
+      confirmedFiscalYearStart: row.importDecisions.confirmedFiscalYearStart,
+      acknowledgedEmptyYears: row.importDecisions.acknowledgedEmptyYears,
+      excludedExternalIds: row.importDecisions.excludedExternalIds,
+      excludedLockedYears: row.importDecisions.excludedLockedYears,
+      contactNumberOverrides: row.importDecisions.contactNumberOverrides,
+      accountTypeOverrides: row.importDecisions.accountTypeOverrides,
+      exchangeRates: row.importDecisions.exchangeRates,
+      deferredAttachmentIds: row.importDecisions.deferredAttachmentIds,
+    },
     connected: row.connected,
     ready: row.connected && row.administrationId !== null,
     lastImportAt: row.lastImportAt,
@@ -232,6 +254,36 @@ export async function handleChooseMoneybirdAdministration(
   }
 }
 
+function decisionsFromBody(
+  body: NonNullable<SaveMoneybirdMappingsBody['importDecisions']>,
+): MoneybirdImportDecisions {
+  return {
+    ...(body.confirmedCurrencyIsFunctional === true
+      ? { confirmedCurrencyIsFunctional: true as const }
+      : {}),
+    ...(body.confirmedFiscalYearStart === true ? { confirmedFiscalYearStart: true as const } : {}),
+    ...(body.acknowledgedEmptyYears === undefined
+      ? {}
+      : { acknowledgedEmptyYears: body.acknowledgedEmptyYears }),
+    ...(body.excludedExternalIds === undefined
+      ? {}
+      : { excludedExternalIds: body.excludedExternalIds }),
+    ...(body.excludedLockedYears === undefined
+      ? {}
+      : { excludedLockedYears: body.excludedLockedYears }),
+    ...(body.contactNumberOverrides === undefined
+      ? {}
+      : { contactNumberOverrides: body.contactNumberOverrides }),
+    ...(body.accountTypeOverrides === undefined
+      ? {}
+      : { accountTypeOverrides: body.accountTypeOverrides }),
+    ...(body.exchangeRates === undefined ? {} : { exchangeRates: body.exchangeRates }),
+    ...(body.deferredAttachmentIds === undefined
+      ? {}
+      : { deferredAttachmentIds: body.deferredAttachmentIds }),
+  }
+}
+
 export async function handleSaveMoneybirdMappings(
   context: RequestContext,
   body: SaveMoneybirdMappingsBody,
@@ -243,6 +295,9 @@ export async function handleSaveMoneybirdMappings(
       entityId: context.entityId,
       accountMappings: body.accountMappings,
       taxMappings: body.taxMappings,
+      ...(body.importDecisions === undefined
+        ? {}
+        : { importDecisions: decisionsFromBody(body.importDecisions) }),
     }),
   )
   await recordAudit(context, {
@@ -252,9 +307,72 @@ export async function handleSaveMoneybirdMappings(
     after: {
       accounts: String(Object.keys(body.accountMappings).length),
       taxRates: String(Object.keys(body.taxMappings).length),
+      decisions: body.importDecisions === undefined ? '0' : '1',
     },
   })
   return { status: 200, body: { saved: true } }
+}
+
+/**
+ * Suggest an ECB rate for a foreign-currency document (Koers step).
+ *
+ * Uses the cache first. When the date is missing, fetches the 90-day ECB feed
+ * once, stores it, and looks up again — so a second click never needs the ECB.
+ */
+export async function handleMoneybirdFxRate(context: RequestContext, query: MoneybirdFxRateQuery) {
+  requirePermission(context, 'ledger:import')
+  const currency = query.currency.toUpperCase()
+  const cached = await withEcbRatesRead(context.database, (repository) =>
+    repository.listForCurrency(currency),
+  )
+  let choice = lookupEcbRate(cached, currency, query.documentDate)
+  if (choice === null) {
+    try {
+      const fetched = await fetchEcbReferenceRates()
+      await withEcbRates(context.database, (repository) =>
+        repository.upsertMany(
+          fetched.map((row) => ({
+            currency: row.currency,
+            rateDate: row.rateDate,
+            rate: row.rate,
+          })),
+        ),
+      )
+      const refreshed = await withEcbRatesRead(context.database, (repository) =>
+        repository.listForCurrency(currency),
+      )
+      choice = lookupEcbRate(refreshed, currency, query.documentDate)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      throw new ApiError(
+        'conflict',
+        `No cached ECB rate for ${currency} on or before ${query.documentDate}, and fetching failed: ${message}`,
+      )
+    }
+  }
+  if (choice === null) {
+    throw new ApiError(
+      'not_found',
+      `No ECB reference rate for ${currency} on or before ${query.documentDate}.`,
+    )
+  }
+  return {
+    status: 200,
+    body: {
+      currency,
+      documentDate: query.documentDate,
+      rate: choice.rate,
+      source: choice.source,
+      date: choice.date,
+      /** Field names stored on the posting when the user accepts (or overrides). */
+      postingFields: {
+        exchangeRate: choice.rate,
+        exchangeRateSource: `${choice.source}:${choice.date}`,
+        exchangeRateColumn: 'journal_lines.exchange_rate',
+        exchangeRateSourceColumn: 'journal_lines.exchange_rate_source',
+      },
+    },
+  }
 }
 
 function amount(value: bigint | null): string | null {
@@ -337,6 +455,7 @@ function serialisePlan(plan: MoneybirdImportPlan) {
     },
     reconciliation: plan.reconciliation.map(serialiseYear),
     notImported: plan.notImported,
+    excluded: plan.excluded,
     warnings: plan.warnings,
     problems: plan.problems,
   }
@@ -386,6 +505,7 @@ async function planFor(context: RequestContext, client: ReturnType<typeof create
     existingExternalIds: here.externalIds,
     lockedYears: here.years.filter((year) => year.status === 'closed').map((year) => year.code),
     entityFiscalYearStartMonth: here.entity.fiscalYearStartMonth,
+    decisions: connection.importDecisions,
   })
 
   return { plan, snapshot, connection }
@@ -576,6 +696,7 @@ function serialiseStoredReport(report: unknown) {
     reconciliation: asReconciliation(report['reconciliation']),
     opening: asOpening(report['opening']),
     notImported: Array.isArray(report['notImported']) ? report['notImported'].map(asString) : [],
+    excluded: Array.isArray(report['excluded']) ? report['excluded'].map(asString) : [],
     problems: asFindings(report['problems']),
     warnings: asFindings(report['warnings']),
   }

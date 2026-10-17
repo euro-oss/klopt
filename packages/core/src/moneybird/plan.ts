@@ -1,6 +1,8 @@
 import { renderFindingMessage, type FindingMessageKey } from '../finding-messages.js'
 import type { AccountType, JournalLineInput } from '../ledger/types.js'
 import type { MoneybirdAdministration } from '../ports/moneybird.js'
+import { applyFxToLines, type FxRateChoice } from './fx.js'
+import { nextFreeNumber } from './account-ranker.js'
 import {
   classifyAccount,
   contactName,
@@ -95,6 +97,34 @@ export interface ExistingTaxRule {
   readonly direction: 'input' | 'output'
 }
 
+/**
+ * Decisions taken on the Moneybird import screen (issue #42).
+ *
+ * Persisted on `moneybird_connections.import_decisions`. None of these post
+ * journal entries by themselves — posting still goes through `postJournalEntry`
+ * at commit.
+ */
+export interface MoneybirdImportDecisions {
+  /** One-click "Ja, dit is EUR" when Moneybird sent no currency. */
+  readonly confirmedCurrencyIsFunctional?: boolean
+  /** One-click "Klopt, {maand}" when Moneybird omitted period_start_date. */
+  readonly confirmedFiscalYearStart?: boolean
+  /** Years the user acknowledged as empty — honesty stays `empty`, never reconciled. */
+  readonly acknowledgedEmptyYears?: readonly string[]
+  /** Documents / locked-period entries left out; listed under "Niet overgezet". */
+  readonly excludedExternalIds?: readonly string[]
+  /** Locked years the user chose to leave out entirely. */
+  readonly excludedLockedYears?: readonly string[]
+  /** Contact renumbers after a collision ("Volgend vrij nummer"). */
+  readonly contactNumberOverrides?: Readonly<Record<string, string>>
+  /** Account-type picks after `derived_account_type`. */
+  readonly accountTypeOverrides?: Readonly<Record<string, AccountType>>
+  /** Per-document FX rate from the Koers step. */
+  readonly exchangeRates?: Readonly<Record<string, FxRateChoice>>
+  /** Attachments flagged "Later toevoegen". */
+  readonly deferredAttachmentIds?: readonly string[]
+}
+
 export interface MoneybirdImportOptions {
   readonly entityId: string
   readonly currency: string
@@ -109,6 +139,8 @@ export interface MoneybirdImportOptions {
   readonly lockedYears: readonly string[]
   /** This entity's fiscal year start month (1–12). Moneybird must match it. */
   readonly entityFiscalYearStartMonth: number
+  /** Fix decisions from the finding cards; see `MoneybirdImportDecisions`. */
+  readonly decisions?: MoneybirdImportDecisions
   readonly receivableAccount?: string
   readonly payableAccount?: string
   readonly vatPayableAccount?: string
@@ -229,6 +261,11 @@ export interface MoneybirdImportPlan {
   readonly years: readonly number[]
   readonly reconciliation: readonly YearTrialBalance[]
   readonly notImported: readonly string[]
+  /**
+   * Documents / locked years the user explicitly left out. Shown on the commit
+   * report under "Niet overgezet" — separate from `notImported` (product gaps).
+   */
+  readonly excluded: readonly string[]
   readonly warnings: readonly MoneybirdProblem[]
   readonly problems: readonly MoneybirdProblem[]
 }
@@ -317,6 +354,15 @@ export function planMoneybirdImport(
 ): MoneybirdImportPlan {
   const problems: MoneybirdProblem[] = []
   const warnings: MoneybirdProblem[] = []
+  const decisions = options.decisions ?? {}
+  const excludedExternal = new Set(decisions.excludedExternalIds ?? [])
+  const excludedLockedYears = new Set(decisions.excludedLockedYears ?? [])
+  const acknowledgedEmptyYears = new Set(decisions.acknowledgedEmptyYears ?? [])
+  const deferredAttachments = new Set(decisions.deferredAttachmentIds ?? [])
+  const contactOverrides = decisions.contactNumberOverrides ?? {}
+  const accountTypeOverrides = decisions.accountTypeOverrides ?? {}
+  const exchangeRates = decisions.exchangeRates ?? {}
+  const excluded: string[] = []
 
   const existingAccounts = new Set(options.existingAccountNumbers)
   const existingContacts = new Set(options.existingContactNumbers)
@@ -324,13 +370,27 @@ export function planMoneybirdImport(
   const lockedYears = new Set(options.lockedYears)
   const existingTaxCodes = new Set(options.existingTaxRules.map((rule) => rule.code))
 
+  // Snapshot ledger names by Moneybird id — resolveAccount must never put the
+  // raw id in `detail.name` (issue #42).
+  const ledgerNameById = new Map(
+    snapshot.ledgerAccounts.map((account) => [account.id, account.name] as const),
+  )
+  const ledgerNumberById = new Map(
+    snapshot.ledgerAccounts.map((account) => [account.id, account.number] as const),
+  )
+  const ledgerTypeById = new Map(
+    snapshot.ledgerAccounts.map((account) => [account.id, account.accountType] as const),
+  )
+
   if (snapshot.administration.currency === null) {
-    warnings.push(
-      problem('unknown_currency', 'administration.currency', {
-        currency: '(none)',
-        functionalCurrency: options.currency,
-      }),
-    )
+    if (decisions.confirmedCurrencyIsFunctional !== true) {
+      warnings.push(
+        problem('unknown_currency', 'administration.currency', {
+          currency: '(none)',
+          functionalCurrency: options.currency,
+        }),
+      )
+    }
   } else if (snapshot.administration.currency.toUpperCase() !== options.currency.toUpperCase()) {
     problems.push(
       problem('unknown_currency', 'administration.currency', {
@@ -341,7 +401,13 @@ export function planMoneybirdImport(
   }
 
   if (snapshot.administration.fiscalYearStartMonth === null) {
-    warnings.push(problem('fiscal_year_start_unknown', 'administration.period_start_date'))
+    if (decisions.confirmedFiscalYearStart !== true) {
+      warnings.push(
+        problem('fiscal_year_start_unknown', 'administration.period_start_date', {
+          month: String(options.entityFiscalYearStartMonth),
+        }),
+      )
+    }
   } else if (snapshot.administration.fiscalYearStartMonth !== options.entityFiscalYearStartMonth) {
     problems.push(
       problem('fiscal_year_start_mismatch', 'administration.period_start_date', {
@@ -367,7 +433,9 @@ export function planMoneybirdImport(
 
   for (const account of snapshot.ledgerAccounts) {
     const classified = classifyAccount(account)
-    if (classified.derived) {
+    const typeOverride = accountTypeOverrides[account.id]
+    const derivedUnresolved = classified.derived && typeOverride === undefined
+    if (derivedUnresolved) {
       warnings.push(
         problem('derived_account_type', `accounts.${account.id}`, {
           name: account.name,
@@ -386,6 +454,7 @@ export function planMoneybirdImport(
         problem('account_number_collision', `accounts.${account.id}`, {
           number,
           name: account.name,
+          suggested: nextFreeNumber(number, seenNumbers),
         }),
       )
       continue
@@ -396,12 +465,12 @@ export function planMoneybirdImport(
       moneybirdId: account.id,
       number,
       name: account.name,
-      type: classified.type,
+      type: typeOverride ?? classified.type,
       normalBalance: classified.normalBalance,
       rgsCode: account.rgsCode,
       moneybirdType: account.accountType,
       exists: existingAccounts.has(number),
-      derived: classified.derived,
+      derived: classified.derived && typeOverride === undefined,
       mapped: confirmed !== '' || proposed !== '',
       proposedNumber: proposed,
     }
@@ -500,12 +569,17 @@ export function planMoneybirdImport(
   )
 
   for (const contact of snapshot.contacts) {
-    const number = contact.customerId ?? `MB-${contact.id}`
+    const preferred = contact.customerId ?? `MB-${contact.id}`
+    const overridden = contactOverrides[contact.id]?.trim()
+    const number = overridden !== undefined && overridden !== '' ? overridden : preferred
     if (seenContactNumbers.has(number)) {
+      const suggested = nextFreeNumber(number, [...seenContactNumbers, ...existingContacts])
       problems.push(
         problem('contact_number_collision', `contacts.${contact.id}`, {
           number,
           name: contactName(contact),
+          suggested,
+          moneybirdId: contact.id,
         }),
       )
       continue
@@ -578,11 +652,15 @@ export function planMoneybirdImport(
     if (moneybirdId === null) return fallback
     const number = numberByMoneybirdId.get(moneybirdId)
     if (number === undefined || number === '') {
+      // Never put the raw Moneybird id in `detail.name` (#42). Prefer the
+      // chart name; fall back to a placeholder when the id is not in the chart.
+      const knownName = ledgerNameById.get(moneybirdId)
       problems.push(
         problem('unmapped_account', path, {
-          name: moneybirdId,
-          number: '',
-          accountType: '',
+          name: knownName ?? '(unknown)',
+          number: ledgerNumberById.get(moneybirdId) ?? '',
+          accountType: ledgerTypeById.get(moneybirdId) ?? '',
+          moneybirdId,
         }),
       )
       return fallback
@@ -593,8 +671,16 @@ export function planMoneybirdImport(
   const entries: MoneybirdPlannedEntry[] = []
 
   const pushEntry = (entry: MoneybirdPlannedEntry): void => {
+    if (excludedExternal.has(entry.externalId)) {
+      excluded.push(entry.externalId)
+      return
+    }
     const year = String(entry.year)
     if (lockedYears.has(year)) {
+      if (excludedLockedYears.has(year) || excludedExternal.has(entry.externalId)) {
+        excluded.push(entry.externalId)
+        return
+      }
       problems.push(
         problem('period_locked', entry.externalId, {
           year,
@@ -606,6 +692,10 @@ export function planMoneybirdImport(
     const debit = entry.lines.reduce((sum, item) => sum + item.debit, 0n)
     const credit = entry.lines.reduce((sum, item) => sum + item.credit, 0n)
     if (debit !== credit) {
+      if (excludedExternal.has(entry.externalId)) {
+        excluded.push(entry.externalId)
+        return
+      }
       problems.push(
         problem('unbalanced_document', entry.externalId, {
           reference: entry.documentNumber,
@@ -616,10 +706,20 @@ export function planMoneybirdImport(
       return
     }
     if (entry.currency !== options.currency) {
+      const choice = exchangeRates[entry.externalId]
+      if (choice !== undefined && choice.rate !== '') {
+        entries.push({
+          ...entry,
+          lines: applyFxToLines(entry.lines, entry.currency, choice),
+        })
+        return
+      }
       problems.push(
         problem('unknown_currency', entry.externalId, {
           currency: entry.currency,
           functionalCurrency: options.currency,
+          documentDate: entry.documentDate,
+          reference: entry.documentNumber,
         }),
       )
       return
@@ -634,11 +734,14 @@ export function planMoneybirdImport(
     const ids: string[] = []
     for (const attachment of attachments) {
       if (attachment.downloadUrl === null) {
-        warnings.push(
-          problem('attachment_without_url', `${path}.${attachment.id}`, {
-            filename: attachment.filename,
-          }),
-        )
+        if (!deferredAttachments.has(attachment.id)) {
+          warnings.push(
+            problem('attachment_without_url', `${path}.${attachment.id}`, {
+              filename: attachment.filename,
+              attachmentId: attachment.id,
+            }),
+          )
+        }
         continue
       }
       ids.push(attachment.id)
@@ -1079,9 +1182,15 @@ export function planMoneybirdImport(
     const totalDebit = lines.reduce((sum, item) => sum + item.debit, 0n)
     const totalCredit = lines.reduce((sum, item) => sum + item.credit, 0n)
     if (lines.length === 0) {
-      warnings.push(
-        problem('trial_balance_empty', `reconciliation.${String(year)}`, { year: String(year) }),
-      )
+      // Acknowledging an empty year records the acknowledgement; honesty stays
+      // `empty` and is never promoted to reconciled (issue #42).
+      if (!acknowledgedEmptyYears.has(String(year))) {
+        warnings.push(
+          problem('trial_balance_empty', `reconciliation.${String(year)}`, {
+            year: String(year),
+          }),
+        )
+      }
       return {
         year,
         source: 'empty',
@@ -1130,7 +1239,15 @@ export function planMoneybirdImport(
   })
 
   if (years.length === 0 && !sourceUnreadable) {
-    warnings.push(problem('trial_balance_empty', 'reconciliation', { year: '(none)' }))
+    if (!acknowledgedEmptyYears.has('(none)')) {
+      warnings.push(problem('trial_balance_empty', 'reconciliation', { year: '(none)' }))
+    }
+  }
+
+  // Locked years left out wholesale — list them once on the commit report.
+  for (const year of excludedLockedYears) {
+    const label = `period_locked:${year}`
+    if (!excluded.includes(label)) excluded.push(label)
   }
 
   return {
@@ -1144,6 +1261,7 @@ export function planMoneybirdImport(
     years,
     reconciliation,
     notImported: [...MONEYBIRD_NOT_IMPORTED],
+    excluded,
     warnings,
     problems,
   }

@@ -76,11 +76,13 @@ import {
   handleDisconnectMoneybird,
   handleGetMoneybirdConnection,
   handleListMoneybirdAdministrations,
+  handleMoneybirdFxRate,
   handleMoneybirdImportStatus,
   handlePreviewMoneybirdImport,
   handleRunMoneybirdImport,
   handleSaveMoneybirdMappings,
 } from '../src/api/handlers/moneybird.js'
+import { withEcbRates } from '@klopt/db'
 import {
   handleDiscardInboxItem,
   handleDraftFromInbox,
@@ -504,6 +506,7 @@ describe('every collection read matches its published schema', () => {
     'exact.previewImport': 'Checked against a connected administration instead.',
     'moneybird.listAdministrations': 'Checked against a connected administration instead.',
     'moneybird.previewImport': 'Checked against a connected administration instead.',
+    'moneybird.fxRate': 'Checked against a connected administration with a seeded ECB rate.',
   }
 
   /**
@@ -1604,6 +1607,22 @@ describe('Moneybird, from connecting to disconnecting', () => {
           schemas.saveMoneybirdMappingsBody.parse({
             accountMappings: { '1': '1100' },
             taxMappings: { '21': 'H21' },
+          }),
+        )
+      ).body,
+    )
+    const context = await contextFor()
+    await withEcbRates(context.database, (repository) =>
+      repository.upsertMany([{ currency: 'USD', rateDate: '2026-03-01', rate: '0.9214' }]),
+    )
+    conforms(
+      'moneybird.fxRate',
+      (
+        await handleMoneybirdFxRate(
+          context,
+          schemas.moneybirdFxRateQuery.parse({
+            currency: 'USD',
+            documentDate: '2026-03-15',
           }),
         )
       ).body,

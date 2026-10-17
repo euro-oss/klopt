@@ -520,6 +520,13 @@ export const routeManifest: readonly RouteBinding[] = [
     request: { body: 'saveMoneybirdMappingsBody' },
   },
   {
+    operationId: 'moneybird.fxRate',
+    method: 'GET',
+    path: '/moneybird/fx-rate',
+    module: 'api/v1/moneybird.fx-rate.ts',
+    request: { query: 'moneybirdFxRateQuery' },
+  },
+  {
     operationId: 'moneybird.previewImport',
     method: 'GET',
     path: '/moneybird/import/preview',
