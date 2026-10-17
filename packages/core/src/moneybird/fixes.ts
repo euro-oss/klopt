@@ -8,6 +8,10 @@
  * Honesty: unread ≠ empty ≠ reconciled. Codes that mean "could not read" or
  * "read and vacant" carry an honesty hint so the UI never paints them as
  * reconciled.
+ *
+ * Browser-safe: also exported as `@klopt/core/moneybird-fixes`. This module
+ * must stay free of `node:crypto` / `node:fs` so the Moneybird screen can
+ * import it without pulling the main `@klopt/core` barrel into the client.
  */
 
 import type { MoneybirdProblem, MoneybirdProblemCode } from './plan.js'

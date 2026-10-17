@@ -5,15 +5,14 @@
  * shadcn controls; Phase 2 reskins the guided steps from Design's Penpot boards.
  */
 
+import type { MoneybirdProblem, MoneybirdProblemCode } from '@klopt/core'
 import {
   fixSpecFor,
   fixSpecForProblem,
   honestyForFinding,
   unknownCurrencyVariantOf,
   fixForUnknownCurrency,
-  type MoneybirdProblem,
-  type MoneybirdProblemCode,
-} from '@klopt/core'
+} from '@klopt/core/moneybird-fixes'
 import type {
   FindingCardModel,
   FindingFix,
