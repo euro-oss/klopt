@@ -1,23 +1,32 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { uuidv7 } from '@klopt/core'
+import { challengeFor, uuidv7 } from '@klopt/core'
 import {
   closeDatabase,
   createAuth,
   createDatabase,
   membershipsFor,
   runMigrations,
+  setActiveEntity,
+  withOAuth,
   type Auth,
   type Database,
 } from '@klopt/db'
-import { readAuditLog, seedEntity, cleanupSeededBackgroundWork } from '@klopt/db/testing'
+import {
+  readAuditLog,
+  seedEntity,
+  cleanupSeededBackgroundWork,
+  expireInvitation,
+} from '@klopt/db/testing'
 import { createMemoryEmailTransport } from '@klopt/adapters'
 import { resolveRequestContext, resolveSetupContext } from '../src/api/auth.js'
 import { setAuthForTest } from '../src/api/auth-instance.js'
 import { setDatabaseForTest } from '../src/api/database.js'
 import { setEmailTransportForTest } from '../src/api/email.js'
-import { ApiError } from '../src/api/errors.js'
-import { handleListAuditLog } from '../src/api/handlers/audit.js'
+import { ApiError, problemResponse } from '../src/api/errors.js'
+import { handleExportAuditLog, handleListAuditLog } from '../src/api/handlers/audit.js'
+import { handleExportAuditFile } from '../src/api/handlers/compliance.js'
+import { approveAuthorizationForSession, handleToken } from '../src/api/handlers/oauth.js'
 import { handleGetEntity, handleCreateEntity } from '../src/api/handlers/setup.js'
 import {
   handleInviteMember,
@@ -25,12 +34,20 @@ import {
   handleRemoveMember,
   handleSetMemberRole,
 } from '../src/api/handlers/members.js'
+import {
+  handleGetSnapshotManifest,
+  handleListSnapshots,
+  handleSealSnapshot,
+} from '../src/api/handlers/snapshots.js'
 import { handleIssueToken, handleListTokens } from '../src/api/handlers/tokens.js'
 import {
+  auditFileQuery,
+  auditLogExportQuery,
   auditLogQuery,
   createEntityBody,
   inviteMemberBody,
   issueTokenBody,
+  sealSnapshotBody,
   setMemberRoleBody,
 } from '../src/api/schemas.js'
 
@@ -283,9 +300,7 @@ describe('invite-only OTP when KLOPT_SIGNUP=closed', () => {
     const invitee = `expired-${randomUUID()}@example.nl`
     await handleInviteMember(context, inviteMemberBody.parse({ email: invitee, role: 'auditor' }))
 
-    await database.execute(
-      `update klopt.entity_invitations set expires_at = now() - interval '1 day' where email = '${invitee.replace(/'/g, "''")}'`,
-    )
+    await expireInvitation(database, invitee)
 
     mailbox.sent.length = 0
     await auth.api.sendVerificationOTP({ body: { email: invitee, type: 'sign-in' } })
@@ -320,6 +335,10 @@ describe('invite-only OTP when KLOPT_SIGNUP=closed', () => {
     mailbox.sent.length = 0
     await auth.api.sendVerificationOTP({ body: { email: invitee, type: 'sign-in' } })
     expect(mailbox.sent).toHaveLength(0)
+
+    await expect(
+      auth.api.signInEmailOTP({ body: { email: invitee, otp: '123456' } }),
+    ).rejects.toThrow()
   })
 })
 
@@ -484,17 +503,91 @@ describe('invited Eigenaar of B stays scoped to B', () => {
     ).rejects.toMatchObject({ code: 'not_found' })
   })
 
-  it('cannot export entity A — context for A is not_found before any export runs', async () => {
-    const { entityA, cookieB } = await eigenaarOfBOnly()
-    // Export, audit-file and snapshots all require a RequestContext for A;
-    // without membership the resolver refuses with not_found (not forbidden).
-    await expect(
-      resolveRequestContext({
-        database,
-        request: request({ cookie: cookieB }),
-        entityId: entityA,
-      }),
-    ).rejects.toMatchObject({ code: 'not_found' })
+  it('cannot export A’s XAF, audit-log export or snapshots', async () => {
+    const { entityA, entityB, cookieB, adminCookie } = await eigenaarOfBOnly()
+
+    // Put real artefacts on A so a leak would have something to return.
+    const onA = await resolveRequestContext({
+      database,
+      request: request({ cookie: adminCookie, 'idempotency-key': uuidv7() }),
+      entityId: entityA,
+    })
+    const sealedA = await handleSealSnapshot(onA, sealSnapshotBody.parse({ fiscalYear: '2026' }))
+    expect(sealedA.status).toBe(201)
+
+    const onB = await resolveRequestContext({
+      database,
+      request: request({ cookie: cookieB }),
+    })
+    expect(onB.entityId).toBe(entityB)
+
+    // By-id snapshot route: handler runs, refuses A's id with not_found.
+    await expect(handleGetSnapshotManifest(onB, sealedA.body.id)).rejects.toMatchObject({
+      code: 'not_found',
+    })
+
+    // List must not include A's seal.
+    const listed = await handleListSnapshots(onB)
+    expect(listed.body.snapshots.map((row) => row.id)).not.toContain(sealedA.body.id)
+
+    // XAF export uses context.entityId — B's session exports B, never A.
+    const xaf = await handleExportAuditFile(
+      onB,
+      auditFileQuery.parse({ fiscalYear: '2026', fromPeriod: null, toPeriod: null }),
+    )
+    expect(xaf.xml).toContain('Demo B')
+    expect(xaf.xml).not.toContain('Entity A Holding')
+
+    // Audit-log export is entity-scoped the same way.
+    const log = await handleExportAuditLog(onB, auditLogExportQuery.parse({ format: 'jsonl' }))
+    const chunks: Uint8Array[] = []
+    const reader = log.stream.getReader()
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (value !== undefined) chunks.push(value)
+    }
+    const body = Buffer.concat(chunks).toString('utf8')
+    expect(body).not.toContain(entityA)
+
+    // Aiming the session at A (active entity / resolver) — route glue returns 404.
+    const session = await auth.api.getSession({ headers: new Headers({ cookie: cookieB }) })
+    await setActiveEntity(database, session!.session.token, entityA)
+
+    const aimed = async (
+      work: (ctx: Awaited<ReturnType<typeof resolveRequestContext>>) => Promise<Response>,
+    ): Promise<Response> => {
+      try {
+        const ctx = await resolveRequestContext({
+          database,
+          request: request({ cookie: cookieB }),
+        })
+        return await work(ctx)
+      } catch (error: unknown) {
+        return problemResponse(error, null)
+      }
+    }
+
+    const auditFileRes = await aimed(async (ctx) => {
+      const result = await handleExportAuditFile(
+        ctx,
+        auditFileQuery.parse({ fiscalYear: '2026', fromPeriod: null, toPeriod: null }),
+      )
+      return new Response(result.xml, { status: 200 })
+    })
+    expect(auditFileRes.status).toBe(404)
+
+    const auditLogRes = await aimed(async (ctx) => {
+      const result = await handleExportAuditLog(ctx, auditLogExportQuery.parse({ format: 'jsonl' }))
+      return new Response(result.stream, { status: 200 })
+    })
+    expect(auditLogRes.status).toBe(404)
+
+    const snapshotsRes = await aimed(async (ctx) => {
+      const result = await handleListSnapshots(ctx)
+      return new Response(JSON.stringify(result.body), { status: result.status })
+    })
+    expect(snapshotsRes.status).toBe(404)
   })
 
   it('cannot invite into entity A or change roles there', async () => {
@@ -572,13 +665,106 @@ describe('invited Eigenaar of B stays scoped to B', () => {
     expect(asToken.entityId).toBe(entityB)
   })
 
-  it('cannot grant MCP/OAuth for entity A — consent only lists B', async () => {
-    const { entityA, entityB, userIdB } = await eigenaarOfBOnly()
+  it('refuses OAuth approval for A; a grant on B yields a token bound to B', async () => {
+    process.env['KLOPT_BASE_URL'] = BASE
+    const { entityA, entityB, cookieB, userIdB, adminCookie } = await eigenaarOfBOnly()
+
+    // Artefact on A so a B-bound token using A's snapshot id would leak if it could.
+    const onA = await resolveRequestContext({
+      database,
+      request: request({ cookie: adminCookie, 'idempotency-key': uuidv7() }),
+      entityId: entityA,
+    })
+    const sealedA = await handleSealSnapshot(onA, sealSnapshotBody.parse({ fiscalYear: '2026' }))
+
     const memberships = await membershipsFor(database, userIdB)
     expect(memberships.map((m) => m.entityId)).toEqual([entityB])
-    expect(memberships.some((m) => m.entityId === entityA)).toBe(false)
-    // approveAuthorizationRequest rejects any entityId not in this list
-    // (apps/web/src/server/oauth.ts); the picker never offers A.
+
+    const client = await withOAuth(database, (repository) =>
+      repository.registerClient({
+        clientName: 'Trial MCP',
+        redirectUris: ['http://127.0.0.1:9876/callback'],
+        registeredBy: userIdB,
+      }),
+    )
+
+    const verifier = `v${randomUUID().replace(/-/g, '')}${'x'.repeat(32)}`.slice(0, 64)
+    const challenge = challengeFor(verifier)
+    const resource = `${BASE}/api/mcp`
+    const query = new URLSearchParams({
+      response_type: 'code',
+      client_id: client.clientId,
+      redirect_uri: client.redirectUris[0]!,
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+      scope: 'ledger:read ledger:export',
+      state: 'trial',
+      resource,
+    }).toString()
+
+    const authorizeUrl = new URL(`${BASE}/oauth/authorize?${query}`)
+    const consentRequest = new Request(authorizeUrl, {
+      headers: new Headers({ cookie: cookieB }),
+    })
+
+    // The same gate approveAuthorizationRequest uses: Eigenaar of B cannot
+    // approve a grant for A.
+    await expect(
+      approveAuthorizationForSession(
+        consentRequest,
+        authorizeUrl,
+        { userId: userIdB, memberships },
+        entityA,
+      ),
+    ).rejects.toThrow(/not a member of that administration/)
+
+    // Approving for B succeeds and the redeemed token stays on B.
+    const approved = await approveAuthorizationForSession(
+      consentRequest,
+      authorizeUrl,
+      { userId: userIdB, memberships },
+      entityB,
+    )
+    expect(approved.entityId).toBe(entityB)
+
+    const code = new URL(approved.redirectTo).searchParams.get('code')
+    expect(code).toBeTruthy()
+
+    const tokenRequest = new Request(`${BASE}/oauth/token`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code!,
+        client_id: client.clientId,
+        redirect_uri: client.redirectUris[0]!,
+        code_verifier: verifier,
+        resource,
+      }),
+    })
+    const tokenResponse = await handleToken(tokenRequest)
+    expect(tokenResponse.status).toBe(200)
+    const tokenBody = (await tokenResponse.json()) as { access_token: string }
+    expect(tokenBody.access_token).toMatch(/^klopt_/)
+
+    const asAgent = await resolveRequestContext({
+      database,
+      request: request({ authorization: `Bearer ${tokenBody.access_token}` }),
+      entityId: entityA,
+    })
+    expect(asAgent.entityId).toBe(entityB)
+    expect(asAgent.actor.kind).toBe('agent')
+
+    await expect(handleGetSnapshotManifest(asAgent, sealedA.body.id)).rejects.toMatchObject({
+      code: 'not_found',
+    })
+
+    const xaf = await handleExportAuditFile(
+      asAgent,
+      auditFileQuery.parse({ fiscalYear: '2026', fromPeriod: null, toPeriod: null }),
+    )
+    expect(xaf.xml).toContain('Demo B')
+    expect(xaf.xml).not.toContain('Entity A Holding')
   })
 
   it('cannot create administrations or reach A’s audit log / entity settings / tokens', async () => {

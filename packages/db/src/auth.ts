@@ -15,6 +15,7 @@ import {
   verifications,
 } from './schema/auth.js'
 import { claimInvitations, hasLiveInvitation } from './repositories/members.js'
+import { floorElapsed, SEND_OTP_SILENT_FLOOR_MS } from './timing.js'
 import { entities } from './schema/ledger.js'
 
 /**
@@ -329,11 +330,15 @@ export function createAuth(config: AuthConfig) {
          * invited.
          */
         if (config.disableSignUp === true && ctx.path === '/email-otp/send-verification-otp') {
+          const started = Date.now()
           const raw = (ctx.body as { email?: unknown } | undefined)?.email
           const email = typeof raw === 'string' ? raw.trim().toLowerCase() : ''
           if (email !== '') {
             const existing = await ctx.context.internalAdapter.findUserByEmail(email)
             if (!existing && !(await hasLiveInvitation(config.database, email))) {
+              // Floor so a silent refusal is not obviously faster than the
+              // lookup work that precedes a real send (invite timing oracle).
+              await floorElapsed(started, SEND_OTP_SILENT_FLOOR_MS)
               return ctx.json({ success: true })
             }
           }

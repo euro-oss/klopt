@@ -38,7 +38,7 @@ export const approveAuthorizationRequest = createServerFn({ method: 'POST' })
   .validator((input: { query: string; entityId: string }) => input)
   .handler(async ({ data }) => {
     const { getRequest } = await import('@tanstack/react-start/server')
-    const { approveAuthorization } = await import('~/api/handlers/oauth')
+    const { approveAuthorizationForSession } = await import('~/api/handlers/oauth')
     const { resolveMemberships } = await import('~/api/auth')
     const { getDatabase } = await import('~/api/database')
     const { recordAuthorizationGrant } = await import('~/api/handlers/oauth-audit')
@@ -48,24 +48,26 @@ export const approveAuthorizationRequest = createServerFn({ method: 'POST' })
     const session = await resolveMemberships(database, request)
     if (session === null) throw new Error('Sign in first.')
 
-    // The administration comes from the signed-in user's own memberships, not
-    // from anything the client sent. A client asking for one set of books and
-    // being handed another is the confusion this whole flow exists to prevent.
-    const membership = session.memberships.find((m) => m.entityId === data.entityId)
-    if (membership === undefined) throw new Error('You are not a member of that administration.')
-
+    // Membership is checked inside approveAuthorizationForSession — the entity
+    // comes from the signed-in user's own memberships, not from anything the
+    // client sent.
     const url = new URL(`${new URL(request.url).origin}/oauth/authorize?${data.query}`)
-    const redirectTo = await approveAuthorization(request, url, {
-      userId: session.user.id,
-      entityId: membership.entityId,
-    })
+    const approved = await approveAuthorizationForSession(
+      request,
+      url,
+      {
+        userId: session.user.id,
+        memberships: session.memberships,
+      },
+      data.entityId,
+    )
 
     await recordAuthorizationGrant(database, {
-      entityId: membership.entityId,
+      entityId: approved.entityId,
       userId: session.user.id,
       request,
       query: data.query,
     })
 
-    return { redirectTo }
+    return { redirectTo: approved.redirectTo }
   })

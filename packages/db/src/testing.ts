@@ -419,6 +419,17 @@ export interface AuthAuditEntry extends AuditEntry {
  * land against several administrations at once, or against none at all, and
  * the question a test asks about it is "what was recorded for this address".
  */
+/** Force a pending invitation past its expiry (test seam). */
+export async function expireInvitation(database: Database, email: string): Promise<void> {
+  await database.execute(
+    sql`update klopt.entity_invitations
+        set expires_at = now() - interval '1 day'
+        where email = ${email.trim().toLowerCase()}
+          and accepted_at is null
+          and revoked_at is null`,
+  )
+}
+
 export async function readAuditLogForActor(
   database: Database,
   actorId: string,
