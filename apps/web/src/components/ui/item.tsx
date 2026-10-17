@@ -5,6 +5,9 @@ import { Slot } from 'radix-ui'
 
 import { Separator } from '~/components/ui/separator'
 
+// forwardRef on Item: FindingsList (and any roving-tabindex list) needs a
+// stable handle to focus the row the cursor is on.
+
 function ItemGroup({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -52,16 +55,17 @@ const itemVariants = cva(
   },
 )
 
-function Item({
-  className,
-  variant = 'default',
-  size = 'default',
-  asChild = false,
-  ...props
-}: React.ComponentProps<'div'> & VariantProps<typeof itemVariants> & { asChild?: boolean }) {
+const Item = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<'div'> & VariantProps<typeof itemVariants> & { asChild?: boolean }
+>(function Item(
+  { className, variant = 'default', size = 'default', asChild = false, ...props },
+  ref,
+) {
   const Comp = asChild ? Slot.Root : 'div'
   return (
     <Comp
+      ref={ref}
       data-slot="item"
       data-variant={variant}
       data-size={size}
@@ -69,7 +73,7 @@ function Item({
       {...props}
     />
   )
-}
+})
 
 const itemMediaVariants = cva(
   'flex shrink-0 items-center justify-center gap-2 group-has-data-[slot=item-description]/item:translate-y-0.5 group-has-data-[slot=item-description]/item:self-start [&_svg]:pointer-events-none',

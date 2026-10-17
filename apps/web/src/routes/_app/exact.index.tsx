@@ -1,6 +1,12 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
+import {
+  FindingsList,
+  FindingHonestyState,
+  asExplainOnlyFinding,
+  honestyFromReconciliation,
+} from '~/components/findings/finding-card'
 import { formatDate } from '~/lib/format'
 import {
   balanceSheetAccounts,
@@ -698,14 +704,23 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
     receivable: { count: number; total: string }
     payable: { count: number; total: string }
   }
-  const warnings = report['warnings'] as readonly { code: string; message: string }[]
-  const problems = report['problems'] as readonly { code: string; message: string }[]
+  const warnings = report['warnings'] as readonly {
+    code: string
+    path: string | null
+    message: string
+  }[]
+  const problems = report['problems'] as readonly {
+    code: string
+    path: string | null
+    message: string
+  }[]
   const requests = (report['requests'] ?? []) as readonly {
     path: string
     status: number
     rows: number
     durationMs: number
   }[]
+  const honesty = honestyFromReconciliation(reconciliation.source, reconciliation.balanced)
 
   return (
     <div>
@@ -820,17 +835,36 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
         </tbody>
       </table>
 
+      {/* Unread ≠ empty ≠ reconciled (#41). */}
+      {honesty !== null && (
+        <div className="mb-6 max-w-md">
+          <FindingHonestyState honesty={honesty} />
+        </div>
+      )}
+
       {problems.length > 0 && (
-        <>
+        <div className="mb-6">
           <h3 className="text-destructive mb-2 text-sm font-semibold">
             {t('exact.blocking', { count: String(problems.length) })}
           </h3>
-          <ul className="text-destructive mb-6 list-disc pl-5 text-sm">
-            {problems.map((problem, index) => (
-              <li key={`${problem.code}-${String(index)}`}>{problem.message}</li>
-            ))}
-          </ul>
-        </>
+          <FindingsList
+            aria-label={t('exact.blocking', { count: String(problems.length) })}
+            findings={problems.map((problem) =>
+              asExplainOnlyFinding(
+                {
+                  code: problem.code,
+                  path: problem.path,
+                  // Exact problems still ship English `message` only (#46 will
+                  // add messageKey). Placeholder key falls through to message.
+                  messageKey: `exact.${problem.code}`,
+                  message: problem.message,
+                  detail: {},
+                },
+                'blocking',
+              ),
+            )}
+          />
+        </div>
       )}
 
       {/*
@@ -880,16 +914,26 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
       )}
 
       {warnings.length > 0 && (
-        <>
+        <div className="mb-6">
           <h3 className="mb-2 text-sm font-semibold">
             {t('exact.warnings', { count: String(warnings.length) })}
           </h3>
-          <ul className="text-muted-foreground list-disc pl-5 text-sm">
-            {warnings.map((warning, index) => (
-              <li key={`${warning.code}-${String(index)}`}>{warning.message}</li>
-            ))}
-          </ul>
-        </>
+          <FindingsList
+            aria-label={t('exact.warnings', { count: String(warnings.length) })}
+            findings={warnings.map((warning) =>
+              asExplainOnlyFinding(
+                {
+                  code: warning.code,
+                  path: warning.path,
+                  messageKey: `exact.${warning.code}`,
+                  message: warning.message,
+                  detail: {},
+                },
+                'warning',
+              ),
+            )}
+          />
+        </div>
       )}
 
       {problems.length === 0 && warnings.length === 0 && (

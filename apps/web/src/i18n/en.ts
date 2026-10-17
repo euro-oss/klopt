@@ -38,6 +38,77 @@ const findingsInEnglish = Object.fromEntries(
 export const en: Record<MessageKey, string> = {
   ...violationsInEnglish,
   ...findingsInEnglish,
+
+  // Why each finding matters (FindingCard, #41).
+  'finding.why.moneybird.unknown_currency':
+    'Without a chosen rate every amount would be converted silently. That changes the books.',
+  'finding.why.moneybird.unmapped_account':
+    'An account without a mapping never lands in Klopt; postings to it would be missing later.',
+  'finding.why.moneybird.unmapped_tax_rate':
+    'Without a tax code the return cannot place those lines.',
+  'finding.why.moneybird.account_number_collision':
+    'Two accounts with the same number cannot sit side by side in one chart.',
+  'finding.why.moneybird.contact_number_collision':
+    'Two contacts with the same number would overwrite each other.',
+  'finding.why.moneybird.resource_unreadable':
+    'Unread is not empty: importing as if it were fine would hide a gap.',
+  'finding.why.moneybird.trial_balance_empty':
+    'No history read is not the same claim as a balanced empty year.',
+  'finding.why.moneybird.trial_balance_unbalanced':
+    'History that does not balance cannot be taken as an opening balance.',
+  'finding.why.moneybird.trial_balance_account_missing':
+    'A balance with no account in the chart has nowhere to go.',
+  'finding.why.moneybird.period_locked': 'Posting into a locked period is not allowed here.',
+  'finding.why.moneybird.unbalanced_document':
+    'A document that does not balance must not be posted quietly.',
+  'finding.why.moneybird.attachment_without_url':
+    'Without a file there is nothing to keep with the posting.',
+  'finding.why.moneybird.draft_skipped':
+    'Drafts are not postings yet; importing them would mix draft and reality.',
+  'finding.why.moneybird.derived_account_type':
+    'A guessed type can put the balance sheet or P&L in the wrong place.',
+  'finding.why.moneybird.fiscal_year_start_mismatch':
+    'The wrong year start puts every posting in the wrong period.',
+  'finding.why.moneybird.fiscal_year_start_unknown':
+    'Without a known year start the periods cannot be checked.',
+  'finding.why.inbound.credit_note':
+    'Booking a credit note the other way round stops it being paid as an invoice.',
+  'finding.why.inbound.currency_not_functional':
+    'Converting without a chosen rate would change amounts silently.',
+  'finding.why.inbound.no_due_date':
+    'Without a due date the payment queue cannot tell when something is late.',
+  'finding.why.inbound.no_invoice_number':
+    'Without a number duplicate invoices cannot be recognised.',
+  'finding.why.inbound.no_supplier_identifier':
+    'Without the supplier’s identity it cannot be matched safely.',
+  'finding.why.inbound.no_tax_category':
+    'Without a VAT category no code can be suggested for the return.',
+  'finding.why.inbound.totals_disagree_with_lines':
+    'A gap between header and lines is often a charge; ignoring it hides it.',
+  'finding.why.inbound.unmapped_tax_category':
+    'An unmapped category does not land in the right VAT box.',
+
+  'findingCard.blocking': 'Blocks import',
+  'findingCard.warning': 'Watch out',
+  'findingCard.whyItMatters': 'Why this matters',
+  'findingCard.whyFallback':
+    'This finding has to be seen before you continue; ignoring it would change the books quietly or hide a gap.',
+  'findingCard.openExplain': 'Explain',
+  'findingCard.explainOnlyBody': 'You cannot fix this here.',
+  'findingCard.oneClickSafe': 'Does not change your books',
+  'findingCard.guidedSteps': '{count} steps',
+  'findingCard.guidedHint': 'Follow the steps above. Escape closes this panel.',
+  'findingCard.preview': 'This changes the books',
+  'findingCard.confirmFix': 'Apply',
+  'findingCard.close': 'Close',
+  'findingCard.listLabel': 'Findings',
+  'findingCard.honesty.unread': 'Not read',
+  'findingCard.honesty.empty': 'Empty (confirmed)',
+  'findingCard.honesty.reconciled': 'Checks out',
+  'findingCard.honesty.unreadHint': 'Read again',
+  'findingCard.honesty.emptyHint': 'Not verified',
+  'findingCard.honesty.reconciledHint': 'Reconciliation matches',
+
   'nav.dashboard': 'Dashboard',
   'nav.entries': 'Journal entries',
   'nav.accounts': 'Chart of accounts',
@@ -1458,6 +1529,11 @@ export const en: Record<MessageKey, string> = {
   'keys.group.invoice': 'Sales invoice',
   'keys.group.picker': 'Pickers',
   'keys.group.entry': 'Journal entry',
+  'keys.group.findings': 'Findings',
+  'keys.findingNext': 'Next finding',
+  'keys.findingPrevious': 'Previous finding',
+  'keys.findingOpenFix': 'Open the fix',
+  'keys.findingCloseFix': 'Close the fix',
   'keys.palette': 'Command palette',
   'keys.help': 'Keyboard help',
   'keys.goProfitAndLoss': 'Profit and loss account',
