@@ -111,7 +111,7 @@ export function ShortcutPanel({ ids }: { readonly ids: readonly string[] }) {
   return (
     <aside
       aria-label={t('shortcuts.title')}
-      className="bg-background border-border fixed top-24 right-6 z-30 hidden max-w-64 border px-3 py-2 xl:block"
+      className="bg-background border-border pointer-events-none fixed top-24 right-6 z-30 hidden max-w-64 border px-3 py-2 xl:block"
     >
       <p className="text-muted-foreground mb-1.5 text-[0.625rem] font-semibold tracking-widest uppercase">
         {t('shortcuts.title')}

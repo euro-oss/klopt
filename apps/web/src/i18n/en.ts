@@ -150,6 +150,8 @@ export const en: Record<MessageKey, string> = {
   'shell.yearSummary': 'Book year {year} · {range}',
   // Desktop ⌘K trigger in the top bar.
   'shell.searchTrigger': 'Search or command',
+  // Phone icon button — must not reuse palette.search (duplicate accessible name).
+  'shell.openSearch': 'Search',
   'shell.themeToLight': 'Light theme',
   'shell.themeToDark': 'Dark theme',
   'shell.demoEntity': '{name} · demo',

@@ -1,6 +1,13 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { chooseOption, DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import {
+  chooseOption,
+  DATABASE_URL,
+  hydrated,
+  openEntitySwitcher,
+  signIn,
+  uniqueEmail,
+} from './support'
 
 /**
  * Boekjaren, in a browser: opening the next one and closing the last one.
@@ -79,7 +86,8 @@ test('the next book year is opened from one field, and turns up in the shell', a
   // In the table, and — the acceptance criterion that spans two issues — in the
   // year picker every report reads, which is a different component entirely.
   await expect(page.getByRole('cell', { name: next, exact: true })).toBeVisible()
-  await page.getByRole('navigation', { name: 'Hoofdnavigatie' }).getByLabel('Boekjaar').click()
+  await openEntitySwitcher(page)
+  await page.getByRole('combobox', { name: 'Boekjaar' }).click()
   await expect(page.getByRole('option', { name: next, exact: true })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('listbox')).toBeHidden()
@@ -205,7 +213,8 @@ test('a close shows the entries first, is gated on the acknowledgement, and happ
       .getByRole('cell')
       .nth(2),
   ).toHaveText('afgesloten')
-  await page.getByRole('navigation', { name: 'Hoofdnavigatie' }).getByLabel('Boekjaar').click()
+  await openEntitySwitcher(page)
+  await page.getByRole('combobox', { name: 'Boekjaar' }).click()
   await expect(
     page.getByRole('option', { name: `${thisYear} (afgesloten)`, exact: true }),
   ).toBeVisible()

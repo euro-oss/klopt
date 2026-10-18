@@ -66,6 +66,8 @@ export const nl = {
   'shell.yearSummary': 'Boekjaar {year} · {range}',
   // Desktop ⌘K trigger in the top bar.
   'shell.searchTrigger': 'Zoeken of opdracht',
+  // Phone icon button — must not reuse palette.search (duplicate accessible name).
+  'shell.openSearch': 'Zoeken',
   'shell.themeToLight': 'Licht thema',
   'shell.themeToDark': 'Donker thema',
   'shell.demoEntity': '{name} · demo',

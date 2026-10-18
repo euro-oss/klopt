@@ -277,7 +277,7 @@ export function AppShell({
               variant="ghost"
               size="icon"
               disabled={!hydrated}
-              aria-label={t('palette.search')}
+              aria-label={t('shell.openSearch')}
               onClick={() => {
                 window.dispatchEvent(new Event('klopt:open-palette'))
               }}
