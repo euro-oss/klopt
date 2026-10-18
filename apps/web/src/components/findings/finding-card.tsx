@@ -83,12 +83,12 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
   },
   ref,
 ) {
-  const { t } = useT()
+  const { t, tag } = useT()
   const panelId = useId()
   const [confirming, setConfirming] = useState(false)
   const confirmRef = useRef<HTMLButtonElement>(null)
   const classes = severityClasses(severity)
-  const displayDetail = detailForDisplay(detail)
+  const displayDetail = detailForDisplay(detail, tag)
   const explanation = findingMessage(t, { message, messageKey, detail: displayDetail })
   const why = findingWhy(t, messageKey, displayDetail) ?? t('findingCard.whyFallback')
   // Preview only while the fix panel is open — closing abandons confirm without

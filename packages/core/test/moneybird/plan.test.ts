@@ -294,12 +294,17 @@ describe('finding fixes on the plan', () => {
       {
         ...base,
         ledgerAccounts: base.ledgerAccounts.map((account) =>
-          account.id === omzetId ? { ...account, accountType: 'something_unknown' } : account,
+          account.id === omzetId
+            ? { ...account, accountType: 'something_unknown', rgsCode: 'WOmzDi' }
+            : account,
         ),
       },
       options(),
     )
     expect(withoutOverride.warnings.map((item) => item.code)).toContain('derived_account_type')
+    const derived = withoutOverride.warnings.find((item) => item.code === 'derived_account_type')
+    // RGS WOmz* → revenue suggestion for the type picker (PM follow-up).
+    expect(derived?.detail['suggestedType']).toBe('revenue')
 
     const plan = planMoneybirdImport(
       {
@@ -315,6 +320,15 @@ describe('finding fixes on the plan', () => {
     const omzet = plan.accounts.find((account) => account.name === 'Omzet')
     expect(omzet?.type).toBe('revenue')
     expect(plan.warnings.map((item) => item.code)).not.toContain('derived_account_type')
+  })
+
+  it('uses a per-document unknown_currency message, not the administration one', () => {
+    const base = snapshot()
+    const invoice = { ...base.salesInvoices[0]!, currency: 'USD' }
+    const plan = planMoneybirdImport(snapshot({ salesInvoices: [invoice] }), options())
+    const finding = plan.problems.find((item) => item.code === 'unknown_currency')
+    expect(finding?.messageKey).toBe('moneybird.unknown_currency_document')
+    expect(finding?.message).toMatch(/2026-001|is in USD/)
   })
 
   it('defers an attachment without a URL after acknowledgement', () => {

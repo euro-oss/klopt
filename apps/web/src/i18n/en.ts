@@ -42,6 +42,8 @@ export const en: Record<MessageKey, string> = {
   // Why each finding matters (FindingCard, #41).
   'finding.why.moneybird.unknown_currency':
     'Without a chosen rate every amount would be converted silently. That changes the books.',
+  'finding.why.moneybird.unknown_currency_document':
+    'Without a chosen rate this document would be converted silently. That changes the books.',
   'finding.why.moneybird.unmapped_account':
     'An account without a mapping never lands in Klopt; postings to it would be missing later.',
   'finding.why.moneybird.unmapped_tax_rate':
@@ -1267,6 +1269,8 @@ export const en: Record<MessageKey, string> = {
   'moneybird.side.income': 'Income',
   'moneybird.side.out': 'Out',
   'moneybird.side.in': 'In',
+  'moneybird.moneybirdName': 'Moneybird',
+  'moneybird.drillNoDocuments': 'No documents in this year in the plan.',
   'moneybird.typePicker': 'Account type',
   'moneybird.typeSave': 'Save type',
   'moneybird.unbalancedPanel': 'This document does not balance',

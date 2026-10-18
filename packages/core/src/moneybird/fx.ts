@@ -22,8 +22,9 @@
  * `node:crypto` / `node:fs` (only pulls ledger currency bigint maths).
  */
 
-import { multiplyByRate } from '../ledger/currency.js'
+import { convertToFunctional, multiplyByRate } from '../ledger/currency.js'
 import type { JournalLineInput } from '../ledger/types.js'
+import type { CurrencyCode } from '../money.js'
 
 export type FxRateSourceKind = 'ecb' | 'override'
 
@@ -162,16 +163,69 @@ export function convertMinorWithRate(foreignMinor: bigint, rate: string): bigint
 export interface FxPreviewLine {
   readonly label: string
   readonly foreignMinor: bigint
+  readonly functionalDebit: bigint
+  readonly functionalCredit: bigint
+  /** @deprecated Prefer functionalDebit/functionalCredit; kept for single-side callers. */
   readonly functionalMinor: bigint
 }
 
+/**
+ * Per-line foreign×rate preview (no side redistribution). Prefer
+ * {@link previewFxEntry} when showing a full entry that must match posting.
+ */
 export function previewFxConversion(
   lines: readonly { readonly label: string; readonly amountMinor: bigint }[],
   rate: string,
 ): readonly FxPreviewLine[] {
-  return lines.map((line) => ({
+  return lines.map((line) => {
+    const functional = convertMinorWithRate(line.amountMinor, rate)
+    return {
+      label: line.label,
+      foreignMinor: line.amountMinor,
+      functionalDebit: functional,
+      functionalCredit: 0n,
+      functionalMinor: functional,
+    }
+  })
+}
+
+export interface FxEntryPreviewLine {
+  readonly label: string
+  readonly foreignDebit: bigint
+  readonly foreignCredit: bigint
+  readonly functionalDebit: bigint
+  readonly functionalCredit: bigint
+}
+
+/**
+ * Koers entry preview that matches `postJournalEntry` to the cent.
+ *
+ * Uses the same {@link convertToFunctional} path as posting (side totals +
+ * largest remainder), so the UI never shows a different split than the books.
+ */
+export function previewFxEntry(
+  lines: readonly {
+    readonly label: string
+    readonly debit: bigint
+    readonly credit: bigint
+  }[],
+  currency: string,
+  rate: string,
+): readonly FxEntryPreviewLine[] {
+  const code = currency.toUpperCase() as CurrencyCode
+  const convertible = lines.map((line, index) => ({
+    lineNumber: index + 1,
+    currency: code,
+    debit: line.debit,
+    credit: line.credit,
+    exchangeRate: rate,
+  }))
+  const { amounts } = convertToFunctional(convertible)
+  return lines.map((line, index) => ({
     label: line.label,
-    foreignMinor: line.amountMinor,
-    functionalMinor: convertMinorWithRate(line.amountMinor, rate),
+    foreignDebit: line.debit,
+    foreignCredit: line.credit,
+    functionalDebit: amounts[index]!.functionalDebit,
+    functionalCredit: amounts[index]!.functionalCredit,
   }))
 }

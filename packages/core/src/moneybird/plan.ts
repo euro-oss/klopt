@@ -59,8 +59,9 @@ function problem(
   code: MoneybirdProblemCode,
   path: string | null,
   detail: Readonly<Record<string, string>> = {},
+  messageKeyOverride?: FindingMessageKey,
 ): MoneybirdProblem {
-  const messageKey = `moneybird.${code}` as FindingMessageKey
+  const messageKey = messageKeyOverride ?? (`moneybird.${code}` as FindingMessageKey)
   return {
     code,
     path,
@@ -446,6 +447,9 @@ export function planMoneybirdImport(
           name: account.name,
           number: account.number,
           accountType: account.accountType,
+          suggestedType: classified.type,
+          ...(account.rgsCode === null ? {} : { rgsCode: account.rgsCode }),
+          moneybirdId: account.id,
         }),
       )
     }
@@ -722,12 +726,17 @@ export function planMoneybirdImport(
       }
       pendingFx.push(entry)
       problems.push(
-        problem('unknown_currency', entry.externalId, {
-          currency: entry.currency,
-          functionalCurrency: options.currency,
-          documentDate: entry.documentDate,
-          reference: entry.documentNumber,
-        }),
+        problem(
+          'unknown_currency',
+          entry.externalId,
+          {
+            currency: entry.currency,
+            functionalCurrency: options.currency,
+            documentDate: entry.documentDate,
+            reference: entry.documentNumber,
+          },
+          'moneybird.unknown_currency_document',
+        ),
       )
       return
     }

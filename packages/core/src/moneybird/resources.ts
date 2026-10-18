@@ -78,6 +78,21 @@ export interface ClassifiedAccount {
   readonly derived: boolean
 }
 
+/**
+ * Suggest a Klopt account type from an RGS lead code (same lead prefixes as
+ * XAF import). Used when Moneybird's own type is unknown (`derived_account_type`).
+ */
+export function inferAccountTypeFromRgs(rgsCode: string | null | undefined): AccountType | null {
+  if (rgsCode === null || rgsCode === undefined || rgsCode === '') return null
+  const lead = rgsCode.trim().toUpperCase()
+  if (lead.startsWith('WOMZ')) return 'revenue'
+  if (lead.startsWith('W')) return 'expense'
+  if (lead.startsWith('BEIV')) return 'equity'
+  if (lead.startsWith('BSCH') || lead.startsWith('BVRZ')) return 'liability'
+  if (lead.startsWith('B')) return 'asset'
+  return null
+}
+
 export function classifyAccount(account: MoneybirdLedgerAccount): ClassifiedAccount {
   const mapped = TYPE_BY_MONEYBIRD[account.accountType]
   if (mapped !== undefined) {
@@ -85,6 +100,15 @@ export function classifyAccount(account: MoneybirdLedgerAccount): ClassifiedAcco
       type: mapped,
       normalBalance: DEBIT_TYPES.has(mapped) ? 'debit' : 'credit',
       derived: false,
+    }
+  }
+  const fromRgs = inferAccountTypeFromRgs(account.rgsCode)
+  if (fromRgs !== null) {
+    return {
+      type: fromRgs,
+      normalBalance: DEBIT_TYPES.has(fromRgs) ? 'debit' : 'credit',
+      // Still derived: Moneybird type was unknown; RGS is a suggestion to confirm.
+      derived: true,
     }
   }
   // Unknown type: treat as an asset so the chart still imports, and warn.

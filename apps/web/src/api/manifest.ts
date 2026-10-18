@@ -527,6 +527,13 @@ export const routeManifest: readonly RouteBinding[] = [
     request: { query: 'moneybirdFxRateQuery' },
   },
   {
+    operationId: 'moneybird.refreshFxRate',
+    method: 'POST',
+    path: '/moneybird/fx-rate',
+    module: 'api/v1/moneybird.fx-rate.ts',
+    request: { query: 'moneybirdFxRateQuery' },
+  },
+  {
     operationId: 'moneybird.previewImport',
     method: 'GET',
     path: '/moneybird/import/preview',

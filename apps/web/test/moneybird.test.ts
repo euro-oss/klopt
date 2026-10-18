@@ -13,8 +13,10 @@ import {
   handleDisconnectMoneybird,
   handleGetMoneybirdConnection,
   handleListMoneybirdAdministrations,
+  handleMoneybirdFxRate,
   handleMoneybirdImportStatus,
   handlePreviewMoneybirdImport,
+  handleRefreshMoneybirdFxRate,
   handleRunMoneybirdImport,
   handleSaveMoneybirdMappings,
 } from '../src/api/handlers/moneybird.js'
@@ -23,8 +25,10 @@ import {
   auditLogQuery,
   chooseMoneybirdAdministrationBody,
   connectMoneybirdBody,
+  moneybirdFxRateQuery,
   saveMoneybirdMappingsBody,
 } from '../src/api/schemas.js'
+import { withEcbRates } from '@klopt/db'
 import { fakeMoneybird } from './support/moneybird.js'
 
 /**
@@ -419,6 +423,129 @@ describe('the import job', () => {
     await expect(
       handleRunMoneybirdImport(await context(token, crypto.randomUUID())),
     ).rejects.toMatchObject({ code: 'validation_failed' })
+  })
+})
+
+describe('FX rate and mapping decisions', () => {
+  it('GET fx-rate is cache-only and returns not_found without a seed', async () => {
+    const { token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+    // Rare ISO code so a prior suite seed of USD/EUR cannot satisfy the lookup.
+    await expect(
+      handleMoneybirdFxRate(
+        await context(token),
+        moneybirdFxRateQuery.parse({ currency: 'XTS', documentDate: '2026-03-15' }),
+      ),
+    ).rejects.toMatchObject({ code: 'not_found' })
+  })
+
+  it('GET fx-rate returns a seeded cache row without fetching', async () => {
+    const { token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+    const ctx = await context(token)
+    await withEcbRates(ctx.database, (repository) =>
+      repository.upsertMany([{ currency: 'USD', rateDate: '2026-03-14', rate: '0.9214' }]),
+    )
+    const body = (
+      await handleMoneybirdFxRate(
+        ctx,
+        moneybirdFxRateQuery.parse({ currency: 'USD', documentDate: '2026-03-15' }),
+      )
+    ).body
+    expect(body.source).toBe('ecb')
+    expect(body.date).toBe('2026-03-14')
+    expect(Number(body.rate)).toBeCloseTo(0.9214, 6)
+  })
+
+  it('refresh fx-rate surfaces a conflict when ECB fetch fails', async () => {
+    const { token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+    const previous = globalThis.fetch
+    globalThis.fetch = (async () => {
+      throw new Error('ECB unreachable')
+    }) as typeof fetch
+    try {
+      await expect(
+        handleRefreshMoneybirdFxRate(
+          await context(token),
+          moneybirdFxRateQuery.parse({ currency: 'USD', documentDate: '2026-03-15' }),
+        ),
+      ).rejects.toMatchObject({ code: 'conflict' })
+    } finally {
+      globalThis.fetch = previous
+    }
+  })
+
+  it('rejects a bad override rate at save and records audit fields for a good one', async () => {
+    const { token, entityId } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+
+    // Schema rejects non-positive rates before the handler runs.
+    expect(() =>
+      saveMoneybirdMappingsBody.parse({
+        accountMappings: MAPPINGS.accountMappings,
+        taxMappings: MAPPINGS.taxMappings,
+        importDecisions: {
+          exchangeRates: {
+            'sales_invoice:301': { rate: '0', source: 'override', date: '2026-03-01' },
+          },
+        },
+      }),
+    ).toThrow(/positive number/)
+
+    // Handler defense-in-depth: same check if a bad rate slips past the schema.
+    await expect(
+      handleSaveMoneybirdMappings(await context(token, crypto.randomUUID()), {
+        accountMappings: MAPPINGS.accountMappings,
+        taxMappings: MAPPINGS.taxMappings,
+        importDecisions: {
+          exchangeRates: {
+            'sales_invoice:301': { rate: '0', source: 'override', date: '2026-03-01' },
+          },
+        },
+      } as ReturnType<typeof saveMoneybirdMappingsBody.parse>),
+    ).rejects.toMatchObject({ code: 'validation_failed' })
+
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse({
+        accountMappings: MAPPINGS.accountMappings,
+        taxMappings: MAPPINGS.taxMappings,
+        importDecisions: {
+          exchangeRates: {
+            'sales_invoice:301': { rate: '0,9214', source: 'override', date: '2026-03-01' },
+          },
+          excludedExternalIds: ['sales_invoice:999'],
+          acknowledgedEmptyYears: ['2025'],
+        },
+      }),
+    )
+
+    const audit = (
+      await handleListAuditLog(
+        await context(token),
+        auditLogQuery.parse({ resourceType: 'moneybird_connection' }),
+      )
+    ).body
+    const save = audit.entries.find(
+      (row: { action: string }) => row.action === 'moneybird.saveMappings',
+    )
+    expect(save?.after).toMatchObject({
+      'fx.sales_invoice:301.rate': '0.9214',
+      'fx.sales_invoice:301.source': 'override',
+      'fx.sales_invoice:301.date': '2026-03-01',
+      excludedExternalIds: 'sales_invoice:999',
+      acknowledgedEmptyYears: '2025',
+    })
+    expect(entityId).toBeTruthy()
   })
 })
 

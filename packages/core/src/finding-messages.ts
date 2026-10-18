@@ -132,6 +132,8 @@ export const FINDING_MESSAGES = {
   'xaf.unknown_vat_code': 'References unknown VAT code {vatID}.',
   'moneybird.unknown_currency':
     'This administration is kept in {currency} and these books are in {functionalCurrency}. Importing would convert every amount at a rate nobody has chosen.',
+  'moneybird.unknown_currency_document':
+    '{reference} is in {currency} and these books are in {functionalCurrency}. Choose an exchange rate before importing it.',
   'moneybird.unmapped_account':
     'Ledger account {name} ({number}) has no confirmed Klopt account. Map it before importing.',
   'moneybird.unmapped_tax_rate':
@@ -148,7 +150,7 @@ export const FINDING_MESSAGES = {
   'moneybird.trial_balance_account_missing':
     'Year {year} has a balance on {number}, which is not in the chart being imported.',
   'moneybird.period_locked':
-    '{reference} is dated in {year}, which is locked here. It is reported rather than posted.',
+    '{reference} is dated in {year}. This year is closed ({year}). It is reported rather than posted.',
   'moneybird.unbalanced_document':
     '{reference} does not balance: {debit} debit against {credit} credit.',
   'moneybird.attachment_without_url':

@@ -23,6 +23,7 @@ export {
 } from './administrations.js'
 export {
   classifyAccount,
+  inferAccountTypeFromRgs,
   contactName,
   parseAttachment,
   parseContact,
@@ -109,7 +110,9 @@ export {
   normalizeFxRateInput,
   parseExchangeRateSource,
   previewFxConversion,
+  previewFxEntry,
   type EcbRateRow,
+  type FxEntryPreviewLine,
   type FxPreviewLine,
   type FxRateChoice,
   type FxRateSourceKind,
