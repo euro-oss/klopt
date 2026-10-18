@@ -294,12 +294,17 @@ describe('finding fixes on the plan', () => {
       {
         ...base,
         ledgerAccounts: base.ledgerAccounts.map((account) =>
-          account.id === omzetId ? { ...account, accountType: 'something_unknown' } : account,
+          account.id === omzetId
+            ? { ...account, accountType: 'something_unknown', rgsCode: 'WOmzDi' }
+            : account,
         ),
       },
       options(),
     )
     expect(withoutOverride.warnings.map((item) => item.code)).toContain('derived_account_type')
+    const derived = withoutOverride.warnings.find((item) => item.code === 'derived_account_type')
+    // RGS WOmz* → revenue suggestion for the type picker (PM follow-up).
+    expect(derived?.detail['suggestedType']).toBe('revenue')
 
     const plan = planMoneybirdImport(
       {
@@ -315,6 +320,32 @@ describe('finding fixes on the plan', () => {
     const omzet = plan.accounts.find((account) => account.name === 'Omzet')
     expect(omzet?.type).toBe('revenue')
     expect(plan.warnings.map((item) => item.code)).not.toContain('derived_account_type')
+  })
+
+  it('uses a per-document unknown_currency message, not the administration one', () => {
+    const base = snapshot()
+    const invoice = { ...base.salesInvoices[0]!, currency: 'USD' }
+    const plan = planMoneybirdImport(snapshot({ salesInvoices: [invoice] }), options())
+    const finding = plan.problems.find((item) => item.code === 'unknown_currency')
+    expect(finding?.messageKey).toBe('moneybird.unknown_currency_document')
+    expect(finding?.message).toMatch(/2026-001|is in USD/)
+  })
+
+  it('lists unbalanced year documents for TB drill-down, not only balanced entries', () => {
+    const base = snapshot()
+    const journal = {
+      ...base.journalDocuments[0]!,
+      details: base.journalDocuments[0]!.details.map((line, index) =>
+        index === 1 ? { ...line, credit: 90000n, debit: 0n } : line,
+      ),
+    }
+    const plan = planMoneybirdImport(snapshot({ journalDocuments: [journal] }), options())
+    expect(plan.problems.map((item) => item.code)).toContain('unbalanced_document')
+    const behind = plan.yearDocuments.filter((doc) => !doc.balanced)
+    expect(behind).toHaveLength(1)
+    expect(behind[0]?.externalId).toBe('journal:701')
+    expect(behind[0]?.year).toBe(2026)
+    expect(plan.yearDocuments.some((doc) => doc.balanced)).toBe(true)
   })
 
   it('defers an attachment without a URL after acknowledgement', () => {

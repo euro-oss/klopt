@@ -4,7 +4,7 @@ import type { AccountType, MoneybirdImportDecisions, MoneybirdProblem } from '@k
 import {
   formatFxRateForDisplay,
   normalizeFxRateInput,
-  previewFxConversion,
+  previewFxEntry,
 } from '@klopt/core/moneybird-fx'
 import { PageHeader, Stat } from '~/components/app-shell'
 import {
@@ -12,7 +12,7 @@ import {
   FindingHonestyState,
   honestyFromReconciliation,
 } from '~/components/findings/finding-card'
-import { detailForDisplay, formatFindingAmount } from '~/lib/finding-card'
+import { detailForDisplay, formatFindingAmount, formatMonthName } from '~/lib/finding-card'
 import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
@@ -46,9 +46,24 @@ import {
   moneybirdFxRate,
   moneybirdImportStatus,
   previewMoneybirdImport,
+  refreshMoneybirdFxRate,
   runMoneybirdImport,
   saveMoneybirdMappings,
 } from '~/server/ledger'
+
+const ACCOUNT_TYPES_SET = new Set<AccountType>([
+  'asset',
+  'liability',
+  'equity',
+  'revenue',
+  'expense',
+])
+
+function suggestedAccountType(detail: Readonly<Record<string, string>>): AccountType {
+  const raw = detail['suggestedType']
+  if (raw !== undefined && ACCOUNT_TYPES_SET.has(raw as AccountType)) return raw as AccountType
+  return 'asset'
+}
 
 /**
  * Overzetten uit Moneybird (issue #32).
@@ -94,7 +109,7 @@ interface AdministrationOption {
 
 function Moneybird() {
   const { connection, run: runResult, role } = Route.useLoaderData()
-  const { t } = useT()
+  const { t, tag } = useT()
   const router = useRouter()
   const hydrated = useHydrated()
 
@@ -136,6 +151,9 @@ function Moneybird() {
   } | null>(null)
   const [unbalancedDraft, setUnbalancedDraft] = useState<MoneybirdProblem | null>(null)
   const [drillNote, setDrillNote] = useState<string | null>(null)
+  const [drillDocuments, setDrillDocuments] = useState<
+    readonly { reference: string; description: string; documentDate: string; externalId: string }[]
+  >([])
   const [fxRateError, setFxRateError] = useState<string | null>(null)
   const [advanced, setAdvanced] = useState(() => resolveAdvancedMode(readAdvancedCookie(), role))
 
@@ -286,7 +304,7 @@ function Moneybird() {
       setTypeDraft({
         moneybirdId,
         name: problem.detail['name'] ?? moneybirdId,
-        type: 'asset',
+        type: suggestedAccountType(problem.detail),
       })
     },
     onConfirmCurrencyEur: () => applyDecisions(withConfirmedCurrency(decisions)),
@@ -306,23 +324,7 @@ function Moneybird() {
         loading: true,
         error: null,
       })
-      void moneybirdFxRate({ data: { currency, documentDate } }).then((result) => {
-        if (!result.ok) {
-          setFxDraft((current) =>
-            current === null || current.externalId !== externalId
-              ? current
-              : {
-                  ...current,
-                  rate: '',
-                  ecbRate: '',
-                  source: 'override',
-                  loading: false,
-                  error: result.problem.detail ?? t('moneybird.fx.noEcb'),
-                },
-          )
-          return
-        }
-        const body = result.data
+      const applyOk = (body: { rate: string; date: string }) => {
         setFxDraft((current) =>
           current === null || current.externalId !== externalId
             ? current
@@ -336,6 +338,41 @@ function Moneybird() {
                 error: null,
               },
         )
+      }
+      const applyFail = (message: string) => {
+        setFxDraft((current) =>
+          current === null || current.externalId !== externalId
+            ? current
+            : {
+                ...current,
+                rate: '',
+                ecbRate: '',
+                source: 'override',
+                loading: false,
+                error: message,
+              },
+        )
+      }
+      // GET is cache-only; on miss POST refreshes ECB then returns the rate.
+      void moneybirdFxRate({ data: { currency, documentDate } }).then((cached) => {
+        if (cached.ok) {
+          applyOk(cached.data)
+          return
+        }
+        void refreshMoneybirdFxRate({ data: { currency, documentDate } }).then((refreshed) => {
+          if (refreshed.ok) {
+            applyOk(refreshed.data)
+            return
+          }
+          const code =
+            'problem' in refreshed &&
+            typeof refreshed.problem === 'object' &&
+            refreshed.problem !== null &&
+            'code' in refreshed.problem
+              ? String((refreshed.problem as { code?: string }).code ?? '')
+              : ''
+          applyFail(code === 'conflict' ? t('moneybird.fx.refreshFailed') : t('moneybird.fx.noEcb'))
+        })
       })
     },
     onConfirmFiscalYearStart: () => applyDecisions(withConfirmedFiscalYearStart(decisions)),
@@ -369,7 +406,7 @@ function Moneybird() {
       if (href !== null) window.open(href, '_blank', 'noopener,noreferrer')
     },
     onDrillUnbalanced: (problem) => {
-      const detail = detailForDisplay(problem.detail)
+      const detail = detailForDisplay(problem.detail, tag)
       setDrillNote(
         t('moneybird.drillUnbalancedHint', {
           year: detail['year'] ?? '—',
@@ -377,6 +414,33 @@ function Moneybird() {
           credit: detail['credit'] ?? '—',
         }),
       )
+      const year = Number(problem.detail['year'])
+      // Only documents behind the difference (debit ≠ credit), not every doc in the year.
+      const docs =
+        preview === null
+          ? []
+          : (
+              (preview['yearDocuments'] as
+                | {
+                    year: number
+                    externalId: string
+                    reference: string
+                    description: string
+                    documentDate: string
+                    debit: string
+                    credit: string
+                    balanced: boolean
+                  }[]
+                | undefined) ?? []
+            )
+              .filter((doc) => doc.year === year && !doc.balanced)
+              .map((doc) => ({
+                reference: doc.reference,
+                description: doc.description,
+                documentDate: doc.documentDate,
+                externalId: doc.externalId,
+              }))
+      setDrillDocuments(docs)
       document.getElementById('moneybird-reconciliation')?.scrollIntoView({ behavior: 'smooth' })
     },
     onReviewUnbalanced: (problem) => setUnbalancedDraft(problem),
@@ -387,6 +451,7 @@ function Moneybird() {
         problem.path,
       ),
     labels: {
+      formatMonth: (month) => formatMonthName(month, tag),
       mapAccount: t('moneybird.fix.mapAccount'),
       mapTax: t('moneybird.fix.mapTax'),
       renumberAccount: t('moneybird.fix.renumberAccount'),
@@ -607,6 +672,7 @@ function Moneybird() {
                 typeDraft={typeDraft}
                 unbalancedDraft={unbalancedDraft}
                 drillNote={drillNote}
+                drillDocuments={drillDocuments}
                 fxRateError={fxRateError}
                 onFxRateChange={(rate) =>
                   setFxDraft((current) => {
@@ -671,7 +737,10 @@ function Moneybird() {
                   findingActions.onOpenMoneybird(unbalancedDraft)
                 }}
                 onUnbalancedDismiss={() => setUnbalancedDraft(null)}
-                onDrillDismiss={() => setDrillNote(null)}
+                onDrillDismiss={() => {
+                  setDrillNote(null)
+                  setDrillDocuments([])
+                }}
               />
               <MappingReview
                 report={preview}
@@ -744,7 +813,8 @@ function MappingReview({
       .length +
     taxRates.filter((rate) => rate.used && (taxMappings[rate.moneybirdId] ?? '').trim() === '')
       .length
-  // Simple mode: Categorie. Geavanceerd: Grootboek / Klopt-rekening (#42 / PRD #40).
+  // Simple mode: Moneybird name → Klopt Categorie. Geavanceerd: Grootboek → Klopt-rekening.
+  const sourceColumn = advanced ? t('moneybird.ledgerAccounts') : t('moneybird.moneybirdName')
   const accountColumn = advanced ? t('moneybird.kloptAccount') : t('moneybird.category')
 
   return (
@@ -757,9 +827,7 @@ function MappingReview({
       <table className="mb-4 w-full text-sm">
         <thead>
           <tr className="border-border border-b text-left">
-            <th className="py-2">
-              {advanced ? t('moneybird.ledgerAccounts') : t('moneybird.category')}
-            </th>
+            <th className="py-2">{sourceColumn}</th>
             <th className="py-2">{accountColumn}</th>
           </tr>
         </thead>
@@ -874,6 +942,7 @@ function PreviewReport({
   typeDraft,
   unbalancedDraft,
   drillNote,
+  drillDocuments,
   fxRateError,
   onFxRateChange,
   onFxAccept,
@@ -903,6 +972,12 @@ function PreviewReport({
   typeDraft: { moneybirdId: string; name: string; type: AccountType } | null
   unbalancedDraft: MoneybirdProblem | null
   drillNote: string | null
+  drillDocuments: readonly {
+    reference: string
+    description: string
+    documentDate: string
+    externalId: string
+  }[]
   fxRateError: string | null
   onFxRateChange: (rate: string) => void
   onFxAccept: () => void
@@ -916,9 +991,14 @@ function PreviewReport({
   onDrillDismiss: () => void
 }) {
   const { t } = useT()
-  // Forms: Uitgave/Inkomst in simple mode; Debet/Credit only under Geavanceerd (#43).
-  const debitLabel = advanced ? t('moneybird.side.debit') : t('moneybird.side.expense')
-  const creditLabel = advanced ? t('moneybird.side.credit') : t('moneybird.side.income')
+  // Entry/preview tables: Bij/Af in simple mode; Debet/Credit under Geavanceerd (#43 product call).
+  // Uitgave/Inkomst is reserved for expense/income entry forms, not these columns.
+  const debitLabel = advanced ? t('moneybird.side.debit') : t('moneybird.side.in')
+  const creditLabel = advanced ? t('moneybird.side.credit') : t('moneybird.side.out')
+  const functionalCurrency =
+    typeof report['functionalCurrency'] === 'string' && report['functionalCurrency'] !== ''
+      ? report['functionalCurrency']
+      : 'EUR'
   const counts = report['counts'] as Record<string, number>
   const years = (report['years'] as number[]) ?? []
   const reconciliation = (report['reconciliation'] as ReconciliationYear[]) ?? []
@@ -943,13 +1023,15 @@ function PreviewReport({
       : pendingFx.find((entry) => entry.externalId === fxDraft.externalId)
   const fxNormalized = fxDraft === null ? null : normalizeFxRateInput(fxDraft.rate)
   const fxPreviewLines =
-    fxEntry === undefined || fxNormalized === null
+    fxEntry === undefined || fxNormalized === null || fxDraft === null
       ? []
-      : previewFxConversion(
+      : previewFxEntry(
           fxEntry.lines.map((line) => ({
             label: `${line.accountNumber} ${line.description}`,
-            amountMinor: BigInt(line.debitMinor !== '0' ? line.debitMinor : line.creditMinor),
+            debit: BigInt(line.debitMinor),
+            credit: BigInt(line.creditMinor),
           })),
+          fxDraft.currency,
           fxNormalized,
         )
 
@@ -1050,60 +1132,48 @@ function PreviewReport({
             <div className="mt-4">
               <p className="mb-2 text-sm font-semibold">{t('moneybird.fx.entryPreview')}</p>
               <ul className="mb-2 space-y-1 text-sm tabular-nums">
-                {fxPreviewLines.map((line) => (
-                  <li key={line.label}>
-                    {t('moneybird.fx.conversion', {
-                      foreign: formatFindingAmount(line.foreignMinor, fxDraft.currency),
-                      rate: formatFxRateForDisplay(fxNormalized),
-                      functional: formatFindingAmount(line.functionalMinor, 'EUR'),
-                    })}{' '}
-                    <span className="text-muted-foreground">— {line.label}</span>
-                  </li>
-                ))}
+                {fxPreviewLines.map((line) => {
+                  const foreign = line.foreignDebit > 0n ? line.foreignDebit : line.foreignCredit
+                  const functional =
+                    line.functionalDebit > 0n ? line.functionalDebit : line.functionalCredit
+                  return (
+                    <li key={line.label}>
+                      {t('moneybird.fx.conversion', {
+                        foreign: formatFindingAmount(foreign, fxDraft.currency),
+                        rate: formatFxRateForDisplay(fxNormalized),
+                        functional: formatFindingAmount(functional, functionalCurrency),
+                      })}{' '}
+                      <span className="text-muted-foreground">— {line.label}</span>
+                    </li>
+                  )
+                })}
               </ul>
-              {fxEntry !== undefined && (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-border border-b text-left">
-                      <th className="py-1">{t('moneybird.category')}</th>
-                      <th className="py-1 text-right">{debitLabel}</th>
-                      <th className="py-1 text-right">{creditLabel}</th>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-border border-b text-left">
+                    <th className="py-1">{t('moneybird.category')}</th>
+                    <th className="py-1 text-right">{debitLabel}</th>
+                    <th className="py-1 text-right">{creditLabel}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fxPreviewLines.map((line) => (
+                    <tr key={line.label} className="border-border border-b">
+                      <td className="py-1">{line.label}</td>
+                      <td className="py-1 text-right tabular-nums">
+                        {line.functionalDebit > 0n
+                          ? formatFindingAmount(line.functionalDebit, functionalCurrency)
+                          : '—'}
+                      </td>
+                      <td className="py-1 text-right tabular-nums">
+                        {line.functionalCredit > 0n
+                          ? formatFindingAmount(line.functionalCredit, functionalCurrency)
+                          : '—'}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {fxEntry.lines.map((line) => {
-                      const foreign = BigInt(
-                        line.debitMinor !== '0' ? line.debitMinor : line.creditMinor,
-                      )
-                      const functional =
-                        fxNormalized === null
-                          ? 0n
-                          : previewFxConversion(
-                              [{ label: line.accountNumber, amountMinor: foreign }],
-                              fxNormalized,
-                            )[0]!.functionalMinor
-                      return (
-                        <tr
-                          key={`${line.accountNumber}-${line.description}`}
-                          className="border-border border-b"
-                        >
-                          <td className="py-1">
-                            {line.accountNumber} — {line.description}
-                          </td>
-                          <td className="py-1 text-right tabular-nums">
-                            {line.debitMinor !== '0' ? formatFindingAmount(functional, 'EUR') : '—'}
-                          </td>
-                          <td className="py-1 text-right tabular-nums">
-                            {line.creditMinor !== '0'
-                              ? formatFindingAmount(functional, 'EUR')
-                              : '—'}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              )}
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
           <div className="mt-3 flex gap-2">
@@ -1213,6 +1283,21 @@ function PreviewReport({
         >
           <p className="mb-1 text-sm font-semibold">{t('moneybird.drillUnbalanced')}</p>
           <p className="text-muted-foreground mb-3 text-sm">{drillNote}</p>
+          {drillDocuments.length > 0 ? (
+            <ul className="mb-3 space-y-1 text-sm">
+              {drillDocuments.map((doc) => (
+                <li key={doc.externalId} className="tabular-nums">
+                  <span className="font-medium">{doc.reference}</span>
+                  <span className="text-muted-foreground">
+                    {' '}
+                    · {doc.documentDate} — {doc.description}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground mb-3 text-sm">{t('moneybird.drillNoDocuments')}</p>
+          )}
           <button
             type="button"
             onClick={onDrillDismiss}

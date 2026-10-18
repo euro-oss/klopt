@@ -59,8 +59,9 @@ function problem(
   code: MoneybirdProblemCode,
   path: string | null,
   detail: Readonly<Record<string, string>> = {},
+  messageKeyOverride?: FindingMessageKey,
 ): MoneybirdProblem {
-  const messageKey = `moneybird.${code}` as FindingMessageKey
+  const messageKey = messageKeyOverride ?? (`moneybird.${code}` as FindingMessageKey)
   return {
     code,
     path,
@@ -250,6 +251,19 @@ export interface YearTrialBalance {
   }[]
 }
 
+/** One source document considered for a year — used by TB drill-down. */
+export interface MoneybirdYearDocument {
+  readonly year: number
+  readonly externalId: string
+  readonly kind: MoneybirdPlannedEntry['kind']
+  readonly reference: string
+  readonly documentDate: string
+  readonly description: string
+  readonly debit: string
+  readonly credit: string
+  readonly balanced: boolean
+}
+
 export interface MoneybirdImportPlan {
   readonly administration: MoneybirdAdministration
   readonly accounts: readonly MoneybirdPlannedAccount[]
@@ -263,6 +277,11 @@ export interface MoneybirdImportPlan {
   readonly pendingFx: readonly MoneybirdPlannedEntry[]
   readonly financialAccounts: readonly MoneybirdPlannedFinancialAccount[]
   readonly documents: readonly MoneybirdPlannedDocument[]
+  /**
+   * Documents evaluated per year (including unbalanced ones). Drill-down for
+   * an unbalanced trial balance filters to `balanced === false`.
+   */
+  readonly yearDocuments: readonly MoneybirdYearDocument[]
   readonly years: readonly number[]
   readonly reconciliation: readonly YearTrialBalance[]
   readonly notImported: readonly string[]
@@ -446,6 +465,9 @@ export function planMoneybirdImport(
           name: account.name,
           number: account.number,
           accountType: account.accountType,
+          suggestedType: classified.type,
+          ...(account.rgsCode === null ? {} : { rgsCode: account.rgsCode }),
+          moneybirdId: account.id,
         }),
       )
     }
@@ -675,6 +697,7 @@ export function planMoneybirdImport(
 
   const entries: MoneybirdPlannedEntry[] = []
   const pendingFx: MoneybirdPlannedEntry[] = []
+  const yearDocuments: MoneybirdYearDocument[] = []
 
   const pushEntry = (entry: MoneybirdPlannedEntry): void => {
     if (excludedExternal.has(entry.externalId)) {
@@ -697,6 +720,17 @@ export function planMoneybirdImport(
     }
     const debit = entry.lines.reduce((sum, item) => sum + item.debit, 0n)
     const credit = entry.lines.reduce((sum, item) => sum + item.credit, 0n)
+    yearDocuments.push({
+      year: entry.year,
+      externalId: entry.externalId,
+      kind: entry.kind,
+      reference: entry.documentNumber,
+      documentDate: entry.documentDate,
+      description: entry.description,
+      debit: debit.toString(),
+      credit: credit.toString(),
+      balanced: debit === credit,
+    })
     if (debit !== credit) {
       if (excludedExternal.has(entry.externalId)) {
         excluded.push(entry.externalId)
@@ -704,6 +738,7 @@ export function planMoneybirdImport(
       }
       problems.push(
         problem('unbalanced_document', entry.externalId, {
+          year,
           reference: entry.documentNumber,
           debit: debit.toString(),
           credit: credit.toString(),
@@ -722,12 +757,17 @@ export function planMoneybirdImport(
       }
       pendingFx.push(entry)
       problems.push(
-        problem('unknown_currency', entry.externalId, {
-          currency: entry.currency,
-          functionalCurrency: options.currency,
-          documentDate: entry.documentDate,
-          reference: entry.documentNumber,
-        }),
+        problem(
+          'unknown_currency',
+          entry.externalId,
+          {
+            currency: entry.currency,
+            functionalCurrency: options.currency,
+            documentDate: entry.documentDate,
+            reference: entry.documentNumber,
+          },
+          'moneybird.unknown_currency_document',
+        ),
       )
       return
     }
@@ -1267,6 +1307,7 @@ export function planMoneybirdImport(
     pendingFx,
     financialAccounts,
     documents,
+    yearDocuments,
     years,
     reconciliation,
     notImported: [...MONEYBIRD_NOT_IMPORTED],

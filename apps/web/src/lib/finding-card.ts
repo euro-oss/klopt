@@ -109,6 +109,22 @@ export const AMOUNT_DETAIL_KEYS: ReadonlySet<string> = new Set([
   'salesOverdueTotal',
 ])
 
+/** Detail keys that are calendar months 1–12 and should show as a localised name. */
+export const MONTH_DETAIL_KEYS: ReadonlySet<string> = new Set([
+  'month',
+  'moneybirdMonth',
+  'entityMonth',
+])
+
+/** Locale-aware month name for finding detail (`1` → `januari` / `January`). */
+export function formatMonthName(month: string, localeTag = 'nl-NL'): string {
+  const n = Number(month)
+  if (!Number.isInteger(n) || n < 1 || n > 12) return month
+  return new Intl.DateTimeFormat(localeTag, { month: 'long', timeZone: 'UTC' }).format(
+    new Date(Date.UTC(2000, n - 1, 1)),
+  )
+}
+
 /**
  * ISO 4217 code for amounts in a finding's detail.
  *
@@ -165,7 +181,10 @@ export function formatFindingAmount(minorUnits: bigint, currencyCode: string): s
  * other keys pass through. Never leaves "minor units" or "centen" for the
  * reader.
  */
-export function detailForDisplay(detail: FindingDetail | null | undefined): FindingDetail {
+export function detailForDisplay(
+  detail: FindingDetail | null | undefined,
+  localeTag = 'nl-NL',
+): FindingDetail {
   if (detail === null || detail === undefined) return {}
   const currency = currencyFromDetail(detail)
   const out: Record<string, string> = {}
@@ -176,6 +195,8 @@ export function detailForDisplay(detail: FindingDetail | null | undefined): Find
       } catch {
         out[key] = value
       }
+    } else if (MONTH_DETAIL_KEYS.has(key) && /^\d{1,2}$/.test(value)) {
+      out[key] = formatMonthName(value, localeTag)
     } else {
       out[key] = value
     }

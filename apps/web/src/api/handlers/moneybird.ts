@@ -389,70 +389,106 @@ export async function handleSaveMoneybirdMappings(
   return { status: 200, body: { saved: true } }
 }
 
+function fxRateBody(
+  currency: string,
+  documentDate: string,
+  choice: { rate: string; source: 'ecb' | 'override'; date: string },
+) {
+  return {
+    currency,
+    documentDate,
+    rate: choice.rate,
+    source: choice.source,
+    date: choice.date,
+    /** Field names stored on the posting when the user accepts (or overrides). */
+    postingFields: {
+      exchangeRate: choice.rate,
+      exchangeRateSource: `${choice.source}:${choice.date}`,
+      exchangeRateColumn: 'journal_lines.exchange_rate',
+      exchangeRateSourceColumn: 'journal_lines.exchange_rate_source',
+    },
+  }
+}
+
 /**
- * Suggest an ECB rate for a foreign-currency document (Koers step).
+ * Read a cached ECB rate for a foreign-currency document (Koers step).
  *
- * Cache first, then fetch. Walk-back is capped at 7 calendar days so a stale
- * cached row is never labelled ECB. Document dates older than ~90 days pull
- * eurofxref-hist.xml; otherwise the 90-day feed + daily snapshot suffice.
+ * GET never hits the network — that belongs to {@link handleRefreshMoneybirdFxRate}.
+ * Walk-back is capped at 7 calendar days so a stale cached row is never labelled ECB.
  */
 export async function handleMoneybirdFxRate(context: RequestContext, query: MoneybirdFxRateQuery) {
   requirePermission(context, 'ledger:import')
   const currency = query.currency.toUpperCase()
-  const today = new Date().toISOString().slice(0, 10)
-  const needFullHistory = isOlderThanDays(query.documentDate, ECB_HIST_FULL_AFTER_DAYS, today)
-
   const cached = await withEcbRatesRead(context.database, (repository) =>
     repository.listForCurrency(currency),
   )
-  let choice = lookupEcbRate(cached, currency, query.documentDate)
+  const choice = lookupEcbRate(cached, currency, query.documentDate)
   if (choice === null) {
-    try {
-      const fetched = await fetchEcbReferenceRates({ includeFullHistory: needFullHistory })
-      await withEcbRates(context.database, (repository) =>
-        repository.upsertMany(
-          fetched.map((row) => ({
-            currency: row.currency,
-            rateDate: row.rateDate,
-            rate: row.rate,
-          })),
-        ),
-      )
-      const refreshed = await withEcbRatesRead(context.database, (repository) =>
-        repository.listForCurrency(currency),
-      )
-      choice = lookupEcbRate(refreshed, currency, query.documentDate)
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error)
-      throw new ApiError(
-        'conflict',
-        `No ECB rate within 7 days of ${query.documentDate} for ${currency}, and fetching failed: ${message}`,
-      )
-    }
+    throw new ApiError(
+      'not_found',
+      `No ECB reference rate for ${currency} within 7 days on or before ${query.documentDate}. Refresh from ECB or enter a rate manually.`,
+    )
   }
+  return { status: 200, body: fxRateBody(currency, query.documentDate, choice) }
+}
+
+/**
+ * Fetch ECB reference rates into the cache, then return the rate for the query.
+ *
+ * Document dates older than ~90 days pull eurofxref-hist.xml; otherwise the
+ * 90-day feed + daily snapshot suffice. Separated from GET so a read never
+ * writes or calls outside.
+ */
+export async function handleRefreshMoneybirdFxRate(
+  context: RequestContext,
+  query: MoneybirdFxRateQuery,
+) {
+  requirePermission(context, 'ledger:import')
+  const currency = query.currency.toUpperCase()
+  const today = new Date().toISOString().slice(0, 10)
+  const needFullHistory = isOlderThanDays(query.documentDate, ECB_HIST_FULL_AFTER_DAYS, today)
+  const feed = needFullHistory ? 'full' : '90d'
+
+  let fetched: Awaited<ReturnType<typeof fetchEcbReferenceRates>>
+  try {
+    fetched = await fetchEcbReferenceRates({ includeFullHistory: needFullHistory })
+    await withEcbRates(context.database, (repository) =>
+      repository.upsertMany(
+        fetched.map((row) => ({
+          currency: row.currency,
+          rateDate: row.rateDate,
+          rate: row.rate,
+        })),
+      ),
+    )
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new ApiError('conflict', `Fetching ECB rates failed: ${message}`)
+  }
+
+  await recordAudit(context, {
+    action: 'moneybird.refreshFxRate',
+    resourceType: 'moneybird_connection',
+    resourceId: context.entityId,
+    after: {
+      currency,
+      documentDate: query.documentDate,
+      feed,
+      rows: String(fetched.length),
+    },
+  })
+
+  const refreshed = await withEcbRatesRead(context.database, (repository) =>
+    repository.listForCurrency(currency),
+  )
+  const choice = lookupEcbRate(refreshed, currency, query.documentDate)
   if (choice === null) {
     throw new ApiError(
       'not_found',
       `No ECB reference rate for ${currency} within 7 days on or before ${query.documentDate}. Enter a rate manually.`,
     )
   }
-  return {
-    status: 200,
-    body: {
-      currency,
-      documentDate: query.documentDate,
-      rate: choice.rate,
-      source: choice.source,
-      date: choice.date,
-      /** Field names stored on the posting when the user accepts (or overrides). */
-      postingFields: {
-        exchangeRate: choice.rate,
-        exchangeRateSource: `${choice.source}:${choice.date}`,
-        exchangeRateColumn: 'journal_lines.exchange_rate',
-        exchangeRateSourceColumn: 'journal_lines.exchange_rate_source',
-      },
-    },
-  }
+  return { status: 200, body: fxRateBody(currency, query.documentDate, choice) }
 }
 
 function amount(value: bigint | null): string | null {
@@ -497,8 +533,20 @@ function serialiseEntryLines(entry: MoneybirdImportPlan['entries'][number]) {
   }
 }
 
-function serialisePlan(plan: MoneybirdImportPlan) {
+function serialisePlan(plan: MoneybirdImportPlan, functionalCurrency: string) {
   const ofKind = (kind: string) => plan.entries.filter((entry) => entry.kind === kind)
+  /** Documents evaluated per year (including unbalanced) for TB drill-down. */
+  const yearDocuments = plan.yearDocuments.map((doc) => ({
+    year: doc.year,
+    externalId: doc.externalId,
+    kind: doc.kind,
+    reference: doc.reference,
+    documentDate: doc.documentDate,
+    description: doc.description,
+    debit: doc.debit,
+    credit: doc.credit,
+    balanced: doc.balanced,
+  }))
   return {
     administration: {
       id: plan.administration.id,
@@ -506,6 +554,7 @@ function serialisePlan(plan: MoneybirdImportPlan) {
       currency: plan.administration.currency,
       country: plan.administration.country,
     },
+    functionalCurrency,
     years: plan.years,
     counts: {
       accounts: plan.accounts.length,
@@ -553,6 +602,7 @@ function serialisePlan(plan: MoneybirdImportPlan) {
     },
     /** Foreign docs waiting on a Koers decision — lines for the preview table. */
     pendingFx: plan.pendingFx.map(serialiseEntryLines),
+    yearDocuments,
     reconciliation: plan.reconciliation.map(serialiseYear),
     notImported: plan.notImported,
     excluded: plan.excluded,
@@ -608,20 +658,29 @@ async function planFor(context: RequestContext, client: ReturnType<typeof create
     decisions: connection.importDecisions,
   })
 
-  return { plan, snapshot, connection }
+  return {
+    plan,
+    snapshot,
+    connection,
+    functionalCurrency: here.entity.functionalCurrency,
+  }
 }
 
 export async function handlePreviewMoneybirdImport(context: RequestContext) {
   requirePermission(context, 'ledger:import')
   const { client } = await clientFor(context)
   try {
-    const { plan } = await planFor(context, client)
+    const { plan, functionalCurrency } = await planFor(context, client)
     await withMoneybirdConnection(context.database, (repository) =>
       repository.recordSuccess(context.entityId),
     )
     return {
       status: 200,
-      body: { dryRun: true as const, ...serialisePlan(plan), requests: client.log },
+      body: {
+        dryRun: true as const,
+        ...serialisePlan(plan, functionalCurrency),
+        requests: client.log,
+      },
     }
   } catch (error: unknown) {
     if (error instanceof ApiError) throw error

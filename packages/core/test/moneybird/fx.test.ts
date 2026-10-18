@@ -4,6 +4,7 @@ import {
   applyFxToLines,
   calendarDaysBetween,
   convertMinorWithRate,
+  convertToFunctional,
   formatExchangeRateSource,
   formatFxRateForDisplay,
   isOlderThanDays,
@@ -12,6 +13,7 @@ import {
   normalizeFxRateInput,
   parseExchangeRateSource,
   previewFxConversion,
+  previewFxEntry,
   type JournalLineInput,
 } from '../../src/index.js'
 
@@ -117,8 +119,37 @@ describe('applying FX to planned lines', () => {
     expect(previewFxConversion([{ label: 'Omzet', amountMinor: 125000n }], '0.9214')[0]).toEqual({
       label: 'Omzet',
       foreignMinor: 125000n,
+      functionalDebit: 115175n,
+      functionalCredit: 0n,
       functionalMinor: 115175n,
     })
+  })
+
+  it('matches postJournalEntry convertToFunctional to the cent on multi-line sides', () => {
+    // Classic largest-remainder case: three USD lines @ 0.335 must stay balanced.
+    const lines = [
+      { label: 'a', debit: 333n, credit: 0n },
+      { label: 'b', debit: 333n, credit: 0n },
+      { label: 'c', debit: 334n, credit: 0n },
+      { label: 'bank', debit: 0n, credit: 1000n },
+    ]
+    const preview = previewFxEntry(lines, 'USD', '0.335')
+    const viaPosting = convertToFunctional(
+      lines.map((line, index) => ({
+        lineNumber: index + 1,
+        currency: 'USD' as const,
+        debit: line.debit,
+        credit: line.credit,
+        exchangeRate: '0.335',
+      })),
+    )
+    expect(preview.map((line) => [line.functionalDebit, line.functionalCredit])).toEqual(
+      viaPosting.amounts.map((amount) => [amount.functionalDebit, amount.functionalCredit]),
+    )
+    const debitSum = preview.reduce((sum, line) => sum + line.functionalDebit, 0n)
+    const creditSum = preview.reduce((sum, line) => sum + line.functionalCredit, 0n)
+    expect(debitSum).toBe(creditSum)
+    expect(viaPosting.residual).toBe(0n)
   })
 
   it('rejects a non-positive rate', () => {
