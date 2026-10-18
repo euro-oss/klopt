@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Klopt · Redesign-prototype</title>
+    <script>
+      // Theme before first paint: ?theme= wins, then the stored choice, then light.
+      ;(function () {
+        var m = location.hash.match(/[?&]theme=(light|dark)/)
+        var t = m ? m[1] : localStorage.getItem('klopt-proto-theme') || 'light'
+        if (t === 'dark') document.documentElement.classList.add('dark')
+      })()
+    </script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="min-h-dvh">
+    <div id="app"></div>
+    <div id="overlay"></div>
+    <div id="toast" aria-live="polite"></div>
+    <script src="./js/icons.js"></script>
+    <script src="./js/data.js"></script>
+    <script src="./js/app.js"></script>
+  </body>
+</html>
