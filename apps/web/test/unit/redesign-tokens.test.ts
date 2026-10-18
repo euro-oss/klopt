@@ -150,7 +150,7 @@ function resolveColorToken(css: string, block: ':root' | '.dark', name: string):
     const key = `${b}:${n}`
     expect(seen.has(key), `cycle at ${key}`).toBe(false)
     seen.add(key)
-    let value = lookup(n, b)
+    const value = lookup(n, b)
     if (value.startsWith('var(')) {
       const ref = value.match(/^var\((--[a-z0-9-]+)\)$/i)
       expect(ref, `var() parse: ${value}`).toBeTruthy()
