@@ -193,19 +193,30 @@ const NAVIGATION: readonly NavGroup[] = [
         binding: 'go.auditFile',
         roles: MAY_EXPORT_AUDIT_FILE,
       },
+      // `tokens:manage`, like the tokens it sits beside: a webhook is a
+      // standing grant of information to a third party. Spelled as `owner`
+      // here because there is no MAY_* list for tokens yet — do not copy this
+      // pattern onto screens that already share a list with ~/lib/roles.
       { to: '/webhooks', key: 'nav.webhooks', binding: 'go.webhooks', roles: ['owner'] },
+      // `ledger:export` is what the operation needs, and the roles that hold it
+      // are the ones who would be asked for the log.
       {
         to: '/audit-log',
         key: 'nav.auditLog',
         binding: 'go.audit',
         roles: ['owner', 'accountant', 'auditor'],
       },
+      // The preview needs `ledger:export`; changing anything needs
+      // `retention:manage`, which only the owner holds. Both are on this screen
+      // and the screen says which is which.
       {
         to: '/retention',
         key: 'nav.retention',
         binding: 'go.retention',
         roles: ['owner', 'accountant', 'auditor'],
       },
+      // `ledger:read` sees them, `ledger:export` makes them. A seal nobody can
+      // see is a seal nobody checks, so the bookkeeper gets the screen too.
       {
         to: '/snapshots',
         key: 'nav.snapshots',
@@ -334,7 +345,7 @@ export function AppShell({
                 <SheetTitle className="flex items-center gap-2 text-left text-[15px] font-semibold tracking-tight normal-case">
                   <span
                     aria-hidden="true"
-                    className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-bold"
+                    className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-semibold"
                   >
                     {t('shell.brandMark')}
                   </span>
@@ -380,7 +391,7 @@ export function AppShell({
               >
                 <span
                   aria-hidden="true"
-                  className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-bold"
+                  className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-semibold"
                 >
                   {t('shell.brandMark')}
                 </span>
