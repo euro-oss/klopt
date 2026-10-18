@@ -1,14 +1,13 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, enableAdvancedMode, openAccountMenu, signIn, uniqueEmail } from './support'
 
 /**
- * Phone viewport smoke for #38.
+ * Phone viewport smoke for #38 / redesign shell (#61 slice 2).
  *
- * Desktop keyboard-first stays the contract; this suite only checks that a
- * phone can open the Sheet nav (including Importeren), sign in without a zoom
- * trap, and scroll a ledger with a sticky first column — without inventing a
- * second keyboard map.
+ * Desktop keyboard-first stays the contract; this suite checks that a phone
+ * can open the Sheet nav (including Importeren), toggle Geavanceerd, sign in
+ * without a zoom trap, and scroll a ledger with a sticky first column.
  */
 test.use({ viewport: { width: 390, height: 844 } })
 
@@ -58,18 +57,41 @@ test('the Sheet opens Importeren and navigates', async ({ page }) => {
   await open.click()
 
   const sheetNav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
+  await expect(sheetNav.getByText('Verkoop')).toBeVisible()
   await expect(sheetNav.getByText('Importeren')).toBeVisible()
   await expect(sheetNav.getByRole('link', { name: /Exact Online/ })).toBeVisible()
   await expect(sheetNav.getByRole('link', { name: /Moneybird/ })).toBeVisible()
+  // Eigenaar default: Journaalposten stays out of the nav (#44).
+  await expect(sheetNav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
 
-  await sheetNav.getByRole('link', { name: /Journaalposten/ }).click()
-  await expect(page.getByRole('heading', { name: 'Journaalposten' })).toBeVisible()
+  await sheetNav.getByRole('link', { name: /Verkoopfacturen/ }).click()
+  await expect(page.getByRole('heading', { name: 'Verkoopfacturen' })).toBeVisible()
   // Closed on navigate: the drawer must not cover the destination.
   await expect(sheetNav).toBeHidden()
 })
 
+test('Geavanceerd in the Sheet profile reveals Journaalposten', async ({ page }) => {
+  await anAdministration(page)
+
+  await page.getByRole('button', { name: 'Menu openen' }).click()
+  const sheetNav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
+  await expect(sheetNav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
+
+  await openAccountMenu(page)
+  await page.getByRole('switch', { name: /Geavanceerd/ }).click()
+  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  )
+  await page.keyboard.press('Escape')
+
+  await expect(sheetNav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+  await expect(sheetNav.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
+})
+
 test('a ledger table scrolls inside itself with a sticky first column', async ({ page }) => {
   await anAdministration(page)
+  await enableAdvancedMode(page)
 
   await page.getByRole('button', { name: 'Menu openen' }).click()
   await page
@@ -89,8 +111,6 @@ test('a ledger table scrolls inside itself with a sticky first column', async ({
     node.scrollLeft = Math.min(node.scrollWidth, node.clientWidth + 80)
   })
   const after = await scroller.evaluate((node) => node.scrollLeft)
-  // Either the table is wide enough to move, or it already fits — both are
-  // fine as long as the page itself is not the scroller.
   expect(after).toBeGreaterThanOrEqual(before)
 
   const pageScroll = await page.evaluate(

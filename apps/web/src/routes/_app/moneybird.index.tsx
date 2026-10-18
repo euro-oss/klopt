@@ -17,10 +17,9 @@ import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import {
-  ADVANCED_MODE_COOKIE,
-  ADVANCED_MODE_MAX_AGE_SECONDS,
-  advancedModeCookieValue,
+  readAdvancedModeCookie,
   resolveAdvancedMode,
+  writeAdvancedModeCookie,
 } from '~/lib/advanced-mode'
 import { useHydrated } from '~/lib/hydration'
 import {
@@ -73,16 +72,6 @@ export const Route = createFileRoute('/_app/moneybird/')({
 })
 
 const ACCOUNT_TYPES: readonly AccountType[] = ['asset', 'liability', 'equity', 'revenue', 'expense']
-
-function readAdvancedCookie(): string | null {
-  if (typeof document === 'undefined') return null
-  const match = document.cookie.match(/(?:^|;\s*)klopt_advanced=([^;]*)/)
-  return match?.[1] === undefined ? null : decodeURIComponent(match[1])
-}
-
-function writeAdvancedCookie(enabled: boolean): void {
-  document.cookie = `${ADVANCED_MODE_COOKIE}=${encodeURIComponent(advancedModeCookieValue(enabled))};path=/;max-age=${String(ADVANCED_MODE_MAX_AGE_SECONDS)};samesite=lax`
-}
 
 interface AdministrationOption {
   readonly id: string
@@ -137,7 +126,9 @@ function Moneybird() {
   const [unbalancedDraft, setUnbalancedDraft] = useState<MoneybirdProblem | null>(null)
   const [drillNote, setDrillNote] = useState<string | null>(null)
   const [fxRateError, setFxRateError] = useState<string | null>(null)
-  const [advanced, setAdvanced] = useState(() => resolveAdvancedMode(readAdvancedCookie(), role))
+  const [advanced, setAdvanced] = useState(() =>
+    resolveAdvancedMode(readAdvancedModeCookie(), role),
+  )
 
   if (!connection.ok) {
     return (
@@ -279,7 +270,7 @@ function Moneybird() {
     },
     onPickAccountType: (problem) => {
       setAdvanced(true)
-      writeAdvancedCookie(true)
+      writeAdvancedModeCookie(true)
       const moneybirdId =
         problem.detail['moneybirdId'] ?? problem.path?.replace(/^accounts\./, '') ?? ''
       if (moneybirdId === '') return
@@ -591,7 +582,7 @@ function Moneybird() {
                     checked={advanced}
                     onChange={(event) => {
                       setAdvanced(event.target.checked)
-                      writeAdvancedCookie(event.target.checked)
+                      writeAdvancedModeCookie(event.target.checked)
                     }}
                     className="border-border size-4 rounded-none"
                   />

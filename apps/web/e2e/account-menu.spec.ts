@@ -36,11 +36,12 @@ test('the bottom of the rail is one row, not a settings panel', async ({ page })
   const profile = page.getByRole('region', { name: 'Profiel' })
   await expect(profile.getByRole('button')).toHaveCount(1)
 
-  // The four that moved. None of them is on the screen until somebody asks.
+  // Settings stay behind the row until somebody asks. The closed row may show
+  // a one-line "rol · Geavanceerd …" summary; the switch and pickers do not.
   await expect(page.getByLabel('Taal')).toHaveCount(0)
   await expect(page.getByLabel('Weergave')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Uitloggen' })).toHaveCount(0)
-  await expect(page.getByText(/^rol: /)).toHaveCount(0)
+  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveCount(0)
 
   await openAccountMenu(page)
 
@@ -50,7 +51,8 @@ test('the bottom of the rail is one row, not a settings panel', async ({ page })
     page.getByRole('group', { name: 'Weergave' }).getByRole('button', { name: 'Systeem' }),
   ).toBeVisible()
   await expect(page.getByRole('button', { name: 'Uitloggen' })).toBeVisible()
-  await expect(page.getByText(/^rol: /)).toBeVisible()
+  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toBeVisible()
+  await expect(page.getByText(/^rol: /).first()).toBeVisible()
 })
 
 test('the menu opens upward, because there is nothing below it', async ({ page }) => {

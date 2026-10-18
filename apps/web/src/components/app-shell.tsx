@@ -1,6 +1,7 @@
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
-import { RiArrowRightSLine, RiMenuLine } from '@remixicon/react'
+import { RiArrowRightSLine, RiMenuLine, RiSearchLine } from '@remixicon/react'
 import { Button } from '~/components/ui/button'
+import { Keycap } from '~/components/ui/keycap'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import {
@@ -15,6 +16,7 @@ import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { setLocale } from '~/server/locale'
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
 import { formatDate } from '~/lib/format'
@@ -22,7 +24,7 @@ import type { FiscalYearOption, FiscalYearScope } from '~/lib/fiscal-year'
 import { MAY_EXPORT_AUDIT_FILE, MAY_OPEN_YEAR } from '~/lib/roles'
 import { DEFAULT_THEME_PREFERENCE, type ThemePreference } from '~/lib/theme'
 import { setTheme } from '~/server/theme'
-import { BINDINGS_BY_ID, formatBinding } from '~/lib/keyboard'
+import { BINDINGS_BY_ID, bindingChips } from '~/lib/keyboard'
 import { CommandPalette } from './command-palette'
 
 /**
@@ -63,25 +65,27 @@ function useFocusOnRoute(path: string): React.RefObject<HTMLElement | null> {
 /**
  * The sidebar, in groups.
  *
- * Twenty destinations in one flat list is a list nobody reads; they scan it
- * once, learn where three things are and use the palette for the rest. The
- * groups are the ones a bookkeeper already has in their head — the books
- * themselves, then the two sides of trade, then the money, then what you hand
- * to somebody else.
+ * Daily work first (#61 slice 2 / #57): Verkoop, Inkoop, Geld, then
+ * Boekhouden, Rapporten, Importeren, Beheer. Dashboard sits above the groups,
+ * ungrouped, because it is the way back.
  *
- * Dashboard sits above the groups, ungrouped, because it is the way back.
+ * `advancedOnly` items (Journaalposten, Proefbalans) leave the nav when
+ * Geavanceerd is off (#44) but stay in ⌘K. `advancedKey` swaps the plain-language
+ * label for the ledger term when Geavanceerd is on.
  *
  * `roles` marks a destination not everybody may open, so the nav does not
- * offer a screen that answers 403. The list mirrors the permission the
- * operation behind it requires — settings needs `ledger:configure`, membership
- * needs `members:manage`. A group whose every item is filtered out disappears
- * with them, header and all.
+ * offer a screen that answers 403. A group whose every item is filtered out
+ * disappears with them, header and all.
  */
 interface NavItem {
   readonly to: string
   readonly key: MessageKey
+  /** Label when Geavanceerd is on; `key` is the simple-mode word. */
+  readonly advancedKey?: MessageKey
   readonly binding?: string
   readonly roles?: readonly string[]
+  /** Hidden from the nav when Geavanceerd is off; still in ⌘K. */
+  readonly advancedOnly?: boolean
 }
 
 interface NavGroup {
@@ -92,14 +96,6 @@ interface NavGroup {
 
 const NAVIGATION: readonly NavGroup[] = [
   { items: [{ to: '/', key: 'nav.dashboard', binding: 'go.dashboard' }] },
-  {
-    key: 'nav.group.books',
-    items: [
-      { to: '/entries', key: 'nav.entries', binding: 'go.journal' },
-      { to: '/accounts', key: 'nav.accounts', binding: 'go.accounts' },
-      { to: '/vat', key: 'nav.vat', binding: 'go.vat' },
-    ],
-  },
   {
     key: 'nav.group.sales',
     items: [
@@ -119,38 +115,48 @@ const NAVIGATION: readonly NavGroup[] = [
     key: 'nav.group.money',
     items: [
       { to: '/bank', key: 'nav.bank', binding: 'go.bank' },
+      { to: '/bank/match', key: 'nav.match', binding: 'go.match' },
       { to: '/payments', key: 'nav.payments', binding: 'go.payments' },
     ],
   },
-  // Ouderdomsanalyse is its own group rather than a line under Rapportages.
-  // Who owes us and who we owe is a daily question — it is the one an
-  // accountant asks before any statement — and the creditor screen spent M4
-  // reachable only from a button on Inkoopfacturen, which is to say: from
-  // nowhere, unless you already knew.
   {
-    key: 'nav.group.ageing',
+    key: 'nav.group.books',
     items: [
-      { to: '/reports/debtor-ageing', key: 'nav.debtorAgeing', binding: 'go.debtorAgeing' },
-      { to: '/reports/creditor-ageing', key: 'nav.creditorAgeing', binding: 'go.creditorAgeing' },
+      { to: '/vat', key: 'nav.vat', binding: 'go.vat' },
+      {
+        to: '/accounts',
+        key: 'nav.categories',
+        advancedKey: 'nav.accounts',
+        binding: 'go.accounts',
+      },
+      { to: '/entries', key: 'nav.entries', binding: 'go.journal', advancedOnly: true },
     ],
   },
   {
     key: 'nav.group.reports',
     items: [
-      { to: '/reports/trial-balance', key: 'nav.trialBalance', binding: 'go.trial' },
-      { to: '/reports/balance-sheet', key: 'nav.balanceSheet', binding: 'go.balance' },
       { to: '/reports/profit-and-loss', key: 'nav.profitAndLoss', binding: 'go.profit' },
+      { to: '/reports/balance-sheet', key: 'nav.balanceSheet', binding: 'go.balance' },
+      {
+        to: '/reports/debtor-ageing',
+        key: 'nav.debtorsPlain',
+        advancedKey: 'nav.debtorAgeing',
+        binding: 'go.debtorAgeing',
+      },
+      { to: '/reports/creditor-ageing', key: 'nav.creditorAgeing', binding: 'go.creditorAgeing' },
+      {
+        to: '/reports/trial-balance',
+        key: 'nav.trialBalance',
+        binding: 'go.trial',
+        advancedOnly: true,
+      },
     ],
   },
   // Importers sit above Beheer: bringing books in is a daily-path question for
-  // a firm that still lives in Exact or Moneybird, not a settings chore. XAF
-  // and bank statement import stay where they are — those are file flows, not
-  // administration importers (#37).
+  // a firm that still lives in Exact or Moneybird, not a settings chore (#37).
   {
     key: 'nav.group.import',
     items: [
-      // Connecting needs `ledger:configure`; the dry run needs `ledger:import`.
-      // An auditor holds neither, so the nav does not offer them a 403.
       {
         to: '/exact',
         key: 'nav.exact',
@@ -175,49 +181,31 @@ const NAVIGATION: readonly NavGroup[] = [
         roles: ['owner', 'accountant', 'bookkeeper'],
       },
       { to: '/members', key: 'nav.members', binding: 'go.members', roles: ['owner'] },
-      // The **looser** of the screen's two permissions, not the stricter one.
-      // Closing needs `ledger:close` and opening the next year needs
-      // `ledger:configure`, which the bookkeeper holds as well — and a
-      // bookkeeper who cannot reach this screen cannot post into a rolled-over
-      // year without operator help, which is the sentence #6 exists because of.
-      // The screen withholds the close panel from them and says why.
       {
         to: '/fiscal-years',
         key: 'nav.fiscalYears',
         binding: 'go.fiscalYears',
         roles: MAY_OPEN_YEAR,
       },
-      // Same shape: `ledger:export` reads one out and `ledger:import` reads one
-      // back in. Everybody who may read the books may take them with them, and
-      // the screen withholds the import half from the two roles that may not.
       {
         to: '/audit-file',
         key: 'nav.auditFile',
         binding: 'go.auditFile',
         roles: MAY_EXPORT_AUDIT_FILE,
       },
-      // `tokens:manage`, like the tokens it sits beside: a webhook is a
-      // standing grant of information to a third party.
       { to: '/webhooks', key: 'nav.webhooks', binding: 'go.webhooks', roles: ['owner'] },
-      // `ledger:export` is what the operation needs, and the roles that hold it
-      // are the ones who would be asked for the log.
       {
         to: '/audit-log',
         key: 'nav.auditLog',
         binding: 'go.audit',
         roles: ['owner', 'accountant', 'auditor'],
       },
-      // The preview needs `ledger:export`; changing anything needs
-      // `retention:manage`, which only the owner holds. Both are on this screen
-      // and the screen says which is which.
       {
         to: '/retention',
         key: 'nav.retention',
         binding: 'go.retention',
         roles: ['owner', 'accountant', 'auditor'],
       },
-      // `ledger:read` sees them, `ledger:export` makes them. A seal nobody can
-      // see is a seal nobody checks, so the bookkeeper gets the screen too.
       {
         to: '/snapshots',
         key: 'nav.snapshots',
@@ -266,6 +254,7 @@ export function AppShell({
   const shortcutsLive = useHydrated()
   const hydrated = useHydrated()
   const { t } = useT()
+  const { advanced } = useAdvancedMode()
   const active = entities.find((entity) => entity.entityId === activeEntityId) ?? entities[0]
   const role = active?.role ?? ''
   // Phone Sheet (<768). Closed from the link click itself so a destination
@@ -276,17 +265,22 @@ export function AppShell({
   // desktop rail; the phone top bar mounts once the media query says so.
   const phone = usePhoneViewport()
 
-  // A group with nothing left in it loses its heading too, rather than leaving
-  // "Beheer" standing over empty space for an auditor.
+  // Role filter, then Geavanceerd: Journaalposten / Proefbalans leave the nav
+  // when the toggle is off but stay in ⌘K (#44). Empty groups drop out.
   const groups = NAVIGATION.map((group) => ({
     ...group,
-    items: group.items.filter((item) => item.roles === undefined || item.roles.includes(role)),
+    items: group.items.filter(
+      (item) =>
+        (item.roles === undefined || item.roles.includes(role)) &&
+        (item.advancedOnly !== true || advanced),
+    ),
   })).filter((group) => group.items.length > 0)
 
   const chrome = (
     <ShellNavChrome
       path={path}
       groups={groups}
+      advanced={advanced}
       entities={entities}
       activeEntityId={active?.entityId ?? ''}
       onSwitchEntity={onSwitchEntity}
@@ -313,13 +307,11 @@ export function AppShell({
       </a>
 
       {/*
-        Phone chrome (#38): a thin top bar and a left Sheet. Destinations are
-        the same list as the desktop rail — including Importeren — so the two
-        surfaces cannot drift. No bottom tab bar; desktop keyboard chords stay
-        the only map.
+        Phone chrome (#38 / #57): 48 px top bar, menu → left Sheet, search opens
+        ⌘K. Destinations are the same list as the desktop rail. No bottom tab bar.
       */}
       {phone && (
-        <header className="border-border bg-background sticky top-0 z-40 flex h-12 items-center gap-2 border-b px-2">
+        <header className="border-border bg-background sticky top-0 z-40 flex h-12 items-center gap-1 border-b px-1">
           <Sheet open={navOpen} onOpenChange={setNavOpen}>
             <SheetTrigger asChild>
               <Button
@@ -328,17 +320,24 @@ export function AppShell({
                 size="icon"
                 disabled={!hydrated}
                 aria-label={t('shell.openMenu')}
+                aria-expanded={navOpen}
               >
                 <RiMenuLine />
               </Button>
             </SheetTrigger>
             <SheetContent
               side="left"
-              className="w-72 max-w-[85vw] p-0"
+              className="bg-sidebar text-sidebar-foreground w-72 max-w-[85vw] p-0"
               closeLabel={t('common.close')}
             >
-              <SheetHeader className="border-border border-b p-3 pr-12">
-                <SheetTitle className="text-left text-lg font-semibold tracking-tight normal-case">
+              <SheetHeader className="border-sidebar-border border-b p-3 pr-12">
+                <SheetTitle className="flex items-center gap-2 text-left text-[15px] font-semibold tracking-tight normal-case">
+                  <span
+                    aria-hidden="true"
+                    className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-bold"
+                  >
+                    {t('shell.brandMark')}
+                  </span>
                   Klopt
                 </SheetTitle>
                 <SheetDescription className="sr-only">{t('shell.navigation')}</SheetDescription>
@@ -348,30 +347,45 @@ export function AppShell({
               </nav>
             </SheetContent>
           </Sheet>
-          <Link to="/" className="text-base font-semibold tracking-tight">
-            Klopt
-          </Link>
+          <span className="min-w-0 flex-1 truncate text-[15px] font-medium">Klopt</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            disabled={!hydrated}
+            aria-label={t('palette.search')}
+            onClick={() => {
+              window.dispatchEvent(new Event('klopt:open-palette'))
+            }}
+          >
+            <RiSearchLine className="size-[18px]" />
+          </Button>
         </header>
       )}
 
       <div className="flex min-h-screen md:min-h-0">
         {/*
-          Desktop / tablet rail (≥768). A column that fills the viewport and
-          stays put, so the profile block is at the bottom of the screen rather
-          than the bottom of a list that scrolls away. Only the navigation
-          scrolls; the administration above it and the profile below it are
-          always reachable. Absent on the phone, where the Sheet owns the list.
+          Desktop / tablet rail (≥768). Yellow is the left bar on the current
+          item only — never a large fill (#57). Profile stays at the bottom.
         */}
         {!phone && (
           <nav
             aria-label={t('shell.navigation')}
-            className="border-border sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r"
+            className="border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r"
           >
-            <div className="px-3 pb-2">
-              <Link to="/" className="text-lg font-semibold tracking-tight">
+            <div className="flex h-12 items-center gap-2 px-4">
+              <Link
+                to="/"
+                className="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
+              >
+                <span
+                  aria-hidden="true"
+                  className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-bold"
+                >
+                  {t('shell.brandMark')}
+                </span>
                 Klopt
               </Link>
-              <p className="text-muted-foreground text-xs">{t('shell.tagline')}</p>
             </div>
             {chrome}
           </nav>
@@ -386,7 +400,7 @@ export function AppShell({
           nothing at all — so the new screen takes the focus, which is what a
           browser does for a real page load.
         */}
-        <main id="main" ref={main} tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none">
+        <main id="main" ref={main} tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none md:p-8">
           {active?.isDemo === true && (
             <div
               role="status"
@@ -421,6 +435,19 @@ function subscribePhoneViewport(onChange: () => void): () => void {
   }
 }
 
+/** Prefer the longest matching destination so `/bank` does not steal `/bank/match`. */
+function isNavActive(path: string, to: string): boolean {
+  if (to === '/') return path === '/'
+  if (path !== to && !path.startsWith(`${to}/`)) return false
+  const destinations = NAVIGATION.flatMap((group) => group.items.map((item) => item.to))
+  return !destinations.some(
+    (other) =>
+      other !== to &&
+      other.startsWith(`${to}/`) &&
+      (path === other || path.startsWith(`${other}/`)),
+  )
+}
+
 /**
  * The shared body of the side-nav and the phone Sheet.
  *
@@ -431,6 +458,7 @@ function subscribePhoneViewport(onChange: () => void): () => void {
 function ShellNavChrome({
   path,
   groups,
+  advanced,
   entities,
   activeEntityId,
   onSwitchEntity,
@@ -446,6 +474,7 @@ function ShellNavChrome({
 }: {
   path: string
   groups: readonly NavGroup[]
+  advanced: boolean
   entities: readonly ShellEntity[]
   activeEntityId: string
   onSwitchEntity: (entityId: string) => void
@@ -465,7 +494,7 @@ function ShellNavChrome({
   return (
     <>
       {entities.length > 0 && (
-        <div className="px-3 pb-2">
+        <div className="mx-2 mb-2">
           <SelectField
             label={t('shell.administration')}
             value={activeEntityId}
@@ -486,20 +515,11 @@ function ShellNavChrome({
 
       {/*
         The book year, next to the administration and above everything it
-        scopes.
-
-        One control for the whole application rather than a picker per
-        report: "which year am I looking at" is a property of the session,
-        not of the screen, and a bookkeeper who set 2025 on the proefbalans
-        and then opened the balans to find 2026 has been told something
-        untrue by the software twice.
-
-        The dates under it are the point of it. A boekjaar labelled 2025
-        may run from July 2025 to June 2026, and a year picker that shows
-        only the label is the same guess as before with a dropdown on it.
+        scopes. One control for the whole application rather than a picker per
+        report. The dates under it are the point of it.
       */}
       {fiscalYears.length > 0 && activeYear !== null && (
-        <div className="px-3 pb-2">
+        <div className="mx-2 mb-2">
           <SelectField
             label={t('shell.fiscalYear')}
             value={activeYear.code}
@@ -519,51 +539,58 @@ function ShellNavChrome({
         </div>
       )}
 
-      {/* Above the scrolling list, not below it: the commonest action in
-          the application should never be behind a scroll. */}
-      <div className="px-3 pb-2">
-        <Link
-          to="/entries/new"
-          onClick={onNavigate}
-          className="touch-cta touch-cta-primary w-full text-center text-sm"
-        >
-          {t('shell.newEntry')}
-        </Link>
-      </div>
+      {/* Nieuwe journaalpost is a Geavanceerd action; Eigenaar finds invoices
+          on the dashboard instead (#44 / #57). */}
+      {advanced && (
+        <div className="mx-2 mb-2">
+          <Link
+            to="/entries/new"
+            onClick={onNavigate}
+            className="touch-cta touch-cta-primary w-full text-center text-sm"
+          >
+            {t('shell.newEntry')}
+          </Link>
+        </div>
+      )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
         {groups.map((group, index) => (
-          <div key={group.key ?? 'start'} className={cn(index > 0 && 'mt-5')}>
+          <div key={group.key ?? 'start'} className={cn(index > 0 ? 'mt-2' : 'mt-0.5')}>
             {group.key !== undefined && (
-              <h2 className="text-muted-foreground mb-1 px-2 text-[11px] font-semibold tracking-wide uppercase">
+              <p className="text-muted-foreground px-3 pb-0.5 text-[11px] font-medium tracking-wide uppercase">
                 {t(group.key)}
-              </h2>
+              </p>
             )}
-            <ul className="space-y-0.5">
+            <ul role="list">
               {group.items.map((item) => {
                 const binding =
                   item.binding === undefined ? undefined : BINDINGS_BY_ID.get(item.binding)
-                const isActive = item.to === '/' ? path === '/' : path.startsWith(item.to)
+                const isActive = isNavActive(path, item.to)
+                const labelKey =
+                  advanced && item.advancedKey !== undefined ? item.advancedKey : item.key
                 return (
                   <li key={item.to}>
                     <Link
                       to={item.to}
                       onClick={onNavigate}
+                      aria-current={isActive ? 'page' : undefined}
                       className={cn(
-                        'group flex min-h-11 items-center justify-between rounded-md px-2 py-1.5 text-sm md:min-h-0',
+                        'flex items-center gap-2 border-l-[3px] px-3 text-sm',
+                        'min-h-11 md:h-7 md:min-h-0',
                         isActive
-                          ? 'bg-accent text-accent-foreground font-medium'
-                          : 'hover:bg-accent/60',
+                          ? 'border-accent bg-background font-medium'
+                          : 'text-sidebar-foreground/85 border-transparent hover:bg-background/70',
                       )}
                     >
-                      {t(item.key)}
+                      <span className="min-w-0 flex-1 truncate">{t(labelKey)}</span>
                       {binding !== undefined && shortcutsLive && (
-                        // Printed, not revealed on hover: a keyboard user
-                        // never hovers, and a key nobody can see is a key
-                        // nobody uses (docs/keyboard-map.md, principle 5).
-                        <kbd className="text-muted-foreground tabular text-[10px]">
-                          {formatBinding(binding)}
-                        </kbd>
+                        // Printed keycaps on desktop only (#57): a phone has
+                        // no chord keyboard, and crowding the Sheet helps nobody.
+                        <span className="hidden items-center gap-0.5 md:inline-flex">
+                          {bindingChips(binding).map((chip, position) => (
+                            <Keycap key={`${item.to}-${String(position)}`}>{chip}</Keycap>
+                          ))}
+                        </span>
                       )}
                     </Link>
                   </li>
@@ -609,6 +636,7 @@ function Profile({
   role: string
 }) {
   const { t } = useT()
+  const { advanced, setAdvanced } = useAdvancedMode()
   // A trigger that opens nothing is the failure `select.tsx` describes: this
   // is a Radix popover, so it does nothing at all until React has attached.
   const hydrated = useHydrated()
@@ -616,46 +644,41 @@ function Profile({
 
   // Signing in never asks for a name — it is an address and a code — so for
   // most people `name` is empty and the address is the only thing they would
-  // recognise as themselves. An empty circle over a blank line is what this
-  // block showed before.
+  // recognise as themselves.
   const shown = userName.trim() === '' ? userEmail : userName
 
   return (
-    <section aria-label={t('shell.profile')} className="border-border border-t p-2">
+    <section aria-label={t('shell.profile')} className="border-sidebar-border border-t p-2">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           disabled={!hydrated}
-          // The accessible name is the name on the row rather than an
-          // `aria-label` saying "account menu": what you can see is what you
-          // can say, and a label that replaces the visible text is a label a
-          // voice user cannot guess.
-          //
-          // Focus and open both take the accent yellow fill — the black ring
-          // on white was invisible against the page and against the design.
-          className="group hover:bg-accent/60 focus-visible:bg-accent focus-visible:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex min-h-11 w-full items-center gap-2 px-2 py-1.5 text-left outline-none md:min-h-0"
+          className={cn(
+            'group flex min-h-11 w-full items-center gap-2 px-2 py-1.5 text-left outline-none md:min-h-0',
+            'hover:bg-background/70 data-[state=open]:bg-background',
+          )}
         >
           <span
             aria-hidden="true"
-            // Soft yellow at rest; the open/focus fill on the row is the loud
-            // one, so the initial steps back to the page colour then.
-            className="bg-accent/50 text-foreground group-focus-visible:bg-background group-data-[state=open]:bg-background group-focus-visible:text-foreground group-data-[state=open]:text-foreground flex size-7 shrink-0 items-center justify-center text-xs font-semibold"
+            className="bg-foreground text-background flex size-7 shrink-0 items-center justify-center text-xs font-semibold"
           >
             {initialOf(shown)}
           </span>
-          <span className="min-w-0 flex-1 truncate text-sm font-medium" title={shown}>
-            {shown}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium" title={shown}>
+              {shown}
+            </span>
+            <span className="text-muted-foreground block truncate text-xs">
+              {role !== '' ? `${t('shell.role', { role })} · ` : ''}
+              {advanced ? t('shell.advancedOn') : t('shell.advancedOff')}
+            </span>
           </span>
-          {/* Points along the row when shut and up the way the panel comes
-              when open, so the affordance is not lying about the direction. */}
           <RiArrowRightSLine
             aria-hidden="true"
-            className="text-muted-foreground group-focus-visible:text-accent-foreground group-data-[state=open]:text-accent-foreground size-4 shrink-0 transition-transform group-data-[state=open]:-rotate-90"
+            className="text-muted-foreground size-4 shrink-0 -rotate-90"
           />
         </PopoverTrigger>
 
-        <PopoverContent side="top" align="start" sideOffset={8} className="w-56 p-0">
-          {/* The name again, and the role with it. "As what am I in these
-              books" is worth an answer, just not one printed at all times. */}
+        <PopoverContent side="top" align="start" sideOffset={8} className="w-72 p-0">
           <div className="border-border border-b px-3 py-2">
             <span className="block truncate text-sm font-medium" title={shown}>
               {shown}
@@ -667,7 +690,35 @@ function Profile({
             )}
           </div>
 
-          <div className="space-y-3 px-3 py-3">
+          {/* Geavanceerd (#44): no shortcut — Shift+letter is table type-ahead. */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={advanced}
+            disabled={!hydrated}
+            onClick={() => {
+              setAdvanced(!advanced)
+            }}
+            className="hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left outline-none"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">{t('shell.advanced')}</span>
+              <span className="block text-xs opacity-70">{t('shell.advancedHint')}</span>
+            </span>
+            <span
+              aria-hidden="true"
+              className={cn(
+                'mt-0.5 flex h-6 w-10 shrink-0 items-center border px-0.5 transition-colors',
+                advanced
+                  ? 'border-foreground bg-foreground justify-end'
+                  : 'border-input justify-start',
+              )}
+            >
+              <span className={cn('size-4', advanced ? 'bg-background' : 'bg-muted-foreground')} />
+            </span>
+          </button>
+
+          <div className="border-border space-y-3 border-t px-3 py-3">
             <LanguagePicker />
             <ThemePicker />
           </div>

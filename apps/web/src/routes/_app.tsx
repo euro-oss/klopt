@@ -9,7 +9,9 @@ import {
 } from '@tanstack/react-router'
 import { AppShell } from '~/components/app-shell'
 import { useT } from '~/i18n/provider'
+import { AdvancedModeProvider } from '~/lib/advanced-mode-context'
 import { isYearScopedRoute } from '~/lib/fiscal-year'
+import { getAdvancedMode } from '~/server/advanced-mode'
 import { getSession } from '~/server/context'
 import { getReportYear, setReportYear } from '~/server/fiscal-year'
 import { switchEntity } from '~/server/ledger'
@@ -39,17 +41,25 @@ export const Route = createFileRoute('/_app')({
    * this and every child loader, which is what makes changing the year move
    * the queue and the reports together.
    */
-  loader: async ({ context }) => ({
-    session: context.session,
+  loader: async ({ context }) => {
+    const session = context.session
     // A member of nothing has no books to pick a year from, and asking would
     // be a 403 on the way to a screen that says "set one up".
-    reportYear: context.session.memberships.length === 0 ? null : await getReportYear(),
-  }),
+    const reportYear = session.memberships.length === 0 ? null : await getReportYear()
+    const active =
+      session.memberships.find((m) => m.entityId === session.activeEntityId) ??
+      session.memberships[0]
+    const advanced =
+      session.memberships.length === 0
+        ? false
+        : await getAdvancedMode({ data: { role: active?.role ?? '' } })
+    return { session, reportYear, advanced }
+  },
   component: AppLayout,
 })
 
 function AppLayout() {
-  const { session, reportYear } = Route.useLoaderData()
+  const { session, reportYear, advanced } = Route.useLoaderData()
   const router = useRouter()
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
@@ -91,47 +101,49 @@ function AppLayout() {
   }
 
   return (
-    <AppShell
-      entities={session.memberships}
-      activeEntityId={session.activeEntityId}
-      userName={session.user.name}
-      userEmail={session.user.email}
-      fiscalYears={reportYear?.ok === true ? reportYear.data.years : []}
-      activeYear={reportYear?.ok === true ? reportYear.data.scope : null}
-      onSelectYear={(code) => {
-        // Same shape as switching administration: an unhandled rejection here
-        // takes down the layout every screen renders inside, and the year a
-        // reader is looking at is not worth a blank page.
-        void setReportYear({ data: { code } })
-          .then(async () => {
-            // Into the address as well as into the cookie, where the screen
-            // reads it: a report is a thing people send each other, and a link
-            // that shows the sender's year and the reader's figures is worse
-            // than no link. Everywhere else the cookie carries the choice, and
-            // `invalidate` is what makes the screens re-read it.
-            if (isYearScopedRoute(pathname)) {
-              await navigate({ to: pathname, search: { fiscalYear: Number(code) } })
-            }
-            await router.invalidate()
-          })
-          .catch((cause: unknown) => {
-            console.error('[app] could not change book year', cause)
-          })
-      }}
-      onSwitchEntity={(entityId) => {
-        // Same shape as the bug in bank.match: an unhandled rejection here
-        // takes down the layout every screen renders inside. Switching
-        // administrations is exactly when somebody is about to look at
-        // numbers, and blanking the page is the worst available answer —
-        // staying put on the administration they were already in is not.
-        void switchEntity({ data: { entityId } })
-          .then(() => router.invalidate())
-          .catch((cause: unknown) => {
-            console.error('[app] could not switch administration', cause)
-          })
-      }}
-    >
-      <Outlet />
-    </AppShell>
+    <AdvancedModeProvider initial={advanced}>
+      <AppShell
+        entities={session.memberships}
+        activeEntityId={session.activeEntityId}
+        userName={session.user.name}
+        userEmail={session.user.email}
+        fiscalYears={reportYear?.ok === true ? reportYear.data.years : []}
+        activeYear={reportYear?.ok === true ? reportYear.data.scope : null}
+        onSelectYear={(code) => {
+          // Same shape as switching administration: an unhandled rejection here
+          // takes down the layout every screen renders inside, and the year a
+          // reader is looking at is not worth a blank page.
+          void setReportYear({ data: { code } })
+            .then(async () => {
+              // Into the address as well as into the cookie, where the screen
+              // reads it: a report is a thing people send each other, and a link
+              // that shows the sender's year and the reader's figures is worse
+              // than no link. Everywhere else the cookie carries the choice, and
+              // `invalidate` is what makes the screens re-read it.
+              if (isYearScopedRoute(pathname)) {
+                await navigate({ to: pathname, search: { fiscalYear: Number(code) } })
+              }
+              await router.invalidate()
+            })
+            .catch((cause: unknown) => {
+              console.error('[app] could not change book year', cause)
+            })
+        }}
+        onSwitchEntity={(entityId) => {
+          // Same shape as the bug in bank.match: an unhandled rejection here
+          // takes down the layout every screen renders inside. Switching
+          // administrations is exactly when somebody is about to look at
+          // numbers, and blanking the page is the worst available answer —
+          // staying put on the administration they were already in is not.
+          void switchEntity({ data: { entityId } })
+            .then(() => router.invalidate())
+            .catch((cause: unknown) => {
+              console.error('[app] could not switch administration', cause)
+            })
+        }}
+      >
+        <Outlet />
+      </AppShell>
+    </AdvancedModeProvider>
   )
 }

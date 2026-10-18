@@ -97,9 +97,17 @@ describe('the shell', () => {
     expect(shell).toContain('activeYear.endsOn')
   })
 
-  it('offers ageing in the navigation rather than under reports', () => {
+  it('offers ageing under Rapporten (redesign IA, #61 slice 2)', () => {
     expect(shell).toContain('/reports/debtor-ageing')
     expect(shell).toContain('/reports/creditor-ageing')
-    expect(shell).toContain('nav.group.ageing')
+    expect(shell).toContain('nav.group.reports')
+    // Daily work first: Verkoop before Boekhouden; no separate ageing group.
+    const sales = shell.indexOf("key: 'nav.group.sales'")
+    const books = shell.indexOf("key: 'nav.group.books'")
+    const reports = shell.indexOf("key: 'nav.group.reports'")
+    expect(sales).toBeGreaterThan(-1)
+    expect(books).toBeGreaterThan(sales)
+    expect(reports).toBeGreaterThan(books)
+    expect(shell).not.toContain("key: 'nav.group.ageing'")
   })
 })

@@ -54,7 +54,12 @@ test('i m reaches Moneybird under Importeren', async ({ page }) => {
 
   // Same hydration wait as Exact: the sidebar only prints a chord once the
   // listener is live (#37).
-  await expect(page.getByRole('link', { name: /Journaalposten/ }).locator('kbd')).toHaveCount(1)
+  await expect(
+    page
+      .getByRole('link', { name: /^Dashboard/ })
+      .locator('kbd')
+      .first(),
+  ).toBeVisible()
   await expect(page.getByRole('navigation').getByText('Importeren')).toBeVisible()
   await expect(page.getByRole('link', { name: /Moneybird/ }).locator('kbd')).toContainText(/I/)
 

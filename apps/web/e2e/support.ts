@@ -61,9 +61,29 @@ export async function codeFor(email: string): Promise<string> {
  * The signal is the sidebar's shortcut hints, which the shell prints only
  * once the keys work. That is deliberate (see `AppShell`), and it makes the
  * hint the one honest, screen-independent "the page is live now".
+ *
+ * Waits on Dashboard rather than Journaalposten: Eigenaar has Geavanceerd off
+ * by default (#44), so journal entries are absent from the nav until the toggle
+ * is on — but they stay reachable via ⌘K and `g j`.
  */
 export async function hydrated(page: Page): Promise<void> {
-  await expect(page.getByRole('link', { name: /Journaalposten/ }).locator('kbd')).toHaveCount(1)
+  await expect(
+    page
+      .getByRole('link', { name: /^Dashboard/ })
+      .locator('kbd')
+      .first(),
+  ).toBeVisible()
+}
+
+/** Turn Geavanceerd on from the account menu (owner default is off). */
+export async function enableAdvancedMode(page: Page): Promise<void> {
+  await openAccountMenu(page)
+  const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
+  if ((await toggle.getAttribute('aria-checked')) !== 'true') {
+    await toggle.click()
+  }
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await page.keyboard.press('Escape')
 }
 
 /** Take a brand-new address all the way to a signed-in session. */

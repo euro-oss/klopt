@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BINDINGS, bindingChips, type Binding } from '~/lib/keyboard'
 import { Keycap } from '~/components/ui/keycap'
+import { useOptionalAdvancedMode } from '~/lib/advanced-mode-context'
 import { useShortcuts } from '~/lib/use-shortcuts'
 import { cn } from '~/lib/utils'
 import {
@@ -72,14 +73,16 @@ function search(translate: (key: MessageKey) => string, query: string): readonly
   )
 }
 
-/** One row the cursor can be on, from either half. */
+/** One row the cursor can be on: an action, a binding, or a content hit. */
 type Row =
+  | { readonly kind: 'action'; readonly id: 'toggle-advanced' }
   | { readonly kind: 'binding'; readonly binding: Binding }
   | { readonly kind: 'hit'; readonly hit: SearchHit }
 
 export function CommandPalette() {
   const navigate = useNavigate()
   const { t } = useT()
+  const advancedMode = useOptionalAdvancedMode()
   const [open, setOpen] = useState<'palette' | 'help' | null>(null)
   const [cursor, setCursor] = useState(0)
   const input = useRef<HTMLInputElement | null>(null)
@@ -87,6 +90,20 @@ export function CommandPalette() {
 
   const [query, setQuery] = useState('')
   const navigation = useMemo(() => search(t, query), [t, query])
+
+  const showAdvancedAction = useMemo(() => {
+    if (advancedMode === null) return false
+    const needle = query.trim().toLowerCase()
+    if (needle === '') return true
+    const labels = [
+      t('shell.advancedToggleOn'),
+      t('shell.advancedToggleOff'),
+      t('shell.advanced'),
+      'geavanceerd',
+      'advanced',
+    ]
+    return labels.some((label) => label.toLowerCase().includes(needle))
+  }, [advancedMode, query, t])
 
   /**
    * The server's last answer, and **which question it answers**.
@@ -118,13 +135,15 @@ export function CommandPalette() {
   const searching = open === 'palette' && isSearchable(needle) && current === null
 
   const groups: readonly SearchGroup[] = useMemo(() => groupHits(current?.hits ?? []), [current])
-  const rows: readonly Row[] = useMemo(
-    () => [
+  const rows: readonly Row[] = useMemo(() => {
+    const actionRows: Row[] = showAdvancedAction ? [{ kind: 'action', id: 'toggle-advanced' }] : []
+    return [
+      ...actionRows,
       ...navigation.map((binding): Row => ({ kind: 'binding', binding })),
       ...flattenGroups(groups).map((hit): Row => ({ kind: 'hit', hit })),
-    ],
-    [navigation, groups],
-  )
+    ]
+  }, [showAdvancedAction, navigation, groups])
+  const actionCount = showAdvancedAction ? 1 : 0
 
   /**
    * Ask the server, once the typing settles.
@@ -201,6 +220,19 @@ export function CommandPalette() {
     if (open === 'help') sheet.current?.focus()
   }, [open])
 
+  // Phone top-bar search (and anything else) opens the palette without a chord.
+  useEffect(() => {
+    const onOpen = (): void => {
+      setQuery('')
+      setCursor(0)
+      setOpen('palette')
+    }
+    window.addEventListener('klopt:open-palette', onOpen)
+    return () => {
+      window.removeEventListener('klopt:open-palette', onOpen)
+    }
+  }, [])
+
   /**
    * Escape closes whichever overlay is up.
    *
@@ -239,6 +271,14 @@ export function CommandPalette() {
    */
   const go = (row: Row | undefined): void => {
     if (row === undefined) return
+
+    if (row.kind === 'action') {
+      if (row.id === 'toggle-advanced' && advancedMode !== null) {
+        advancedMode.toggleAdvanced()
+        setOpen(null)
+      }
+      return
+    }
 
     if (row.kind === 'binding') {
       if (row.binding.to === undefined) return
@@ -329,64 +369,111 @@ export function CommandPalette() {
                   onKeyDown={onKeyDown}
                   className="border-border w-full border-b bg-transparent px-4 py-3 text-sm outline-none"
                 />
-                <div className="max-h-[50vh] overflow-y-auto py-1">
+                <div
+                  id="pal-list"
+                  role="listbox"
+                  aria-label={t('palette.commands')}
+                  className="max-h-[50vh] overflow-y-auto py-1"
+                >
                   {rows.length === 0 && !searching && refusal === null && (
                     <p className="text-muted-foreground px-4 py-3 text-sm">
                       {t('palette.nothingFound')}
                     </p>
                   )}
 
+                  {showAdvancedAction && advancedMode !== null && (
+                    <section>
+                      <h3 className="text-muted-foreground px-4 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">
+                        {t('palette.actions')}
+                      </h3>
+                      <ul>
+                        <li>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={cursor === 0}
+                            onMouseEnter={() => {
+                              setCursor(0)
+                            }}
+                            onClick={() => {
+                              go({ kind: 'action', id: 'toggle-advanced' })
+                            }}
+                            className={cn(
+                              'flex w-full items-center justify-between px-4 py-2 text-left text-sm',
+                              cursor === 0 && 'bg-accent text-accent-foreground',
+                            )}
+                          >
+                            <span>
+                              {advancedMode.advanced
+                                ? t('shell.advancedToggleOff')
+                                : t('shell.advancedToggleOn')}
+                            </span>
+                            <span
+                              className={cn(
+                                'text-xs',
+                                cursor === 0 ? 'text-black' : 'text-muted-foreground',
+                              )}
+                            >
+                              {t('shell.advancedNoShortcut')}
+                            </span>
+                          </button>
+                        </li>
+                      </ul>
+                    </section>
+                  )}
+
                   {navigation.length > 0 && (
                     <section>
-                      <h3 className="text-muted-foreground px-4 pt-2 pb-1 text-xs font-medium">
+                      <h3 className="text-muted-foreground px-4 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">
                         {t('palette.navigation')}
                       </h3>
                       <ul>
-                        {navigation.map((binding, index) => (
-                          <li key={binding.id}>
-                            <button
-                              type="button"
-                              onMouseEnter={() => {
-                                setCursor(index)
-                              }}
-                              onClick={() => {
-                                go({ kind: 'binding', binding })
-                              }}
-                              className={cn(
-                                'flex w-full items-center justify-between px-4 py-2 text-left text-sm',
-                                // Yellow fill + black text: `bg-muted` on
-                                // `bg-popover` disappears in Donker. Selected
-                                // chrome (prefix, keycaps) follows the fill —
-                                // ring/muted on yellow is ~1.4–2:1.
-                                index === cursor && 'bg-accent text-accent-foreground',
-                              )}
-                            >
-                              <span>
-                                <span
-                                  className={cn(
-                                    'text-xs',
-                                    index === cursor ? 'text-black' : 'text-muted-foreground',
-                                  )}
-                                >
-                                  {t(binding.group)} ·{' '}
-                                </span>
-                                {t(binding.label)}
-                              </span>
-                              <span className="flex shrink-0 items-center gap-1">
-                                {bindingChips(binding).map((chip, position) => (
-                                  <Keycap
-                                    key={`${binding.id}-${String(position)}`}
-                                    className={
-                                      index === cursor ? '!border-black !text-black' : undefined
-                                    }
+                        {navigation.map((binding, navIndex) => {
+                          const index = actionCount + navIndex
+                          return (
+                            <li key={binding.id}>
+                              <button
+                                type="button"
+                                role="option"
+                                aria-selected={index === cursor}
+                                onMouseEnter={() => {
+                                  setCursor(index)
+                                }}
+                                onClick={() => {
+                                  go({ kind: 'binding', binding })
+                                }}
+                                className={cn(
+                                  'flex w-full items-center justify-between px-4 py-2 text-left text-sm',
+                                  index === cursor && 'bg-accent text-accent-foreground',
+                                )}
+                              >
+                                <span>
+                                  <span
+                                    className={cn(
+                                      'text-xs',
+                                      index === cursor ? 'text-black' : 'text-muted-foreground',
+                                    )}
                                   >
-                                    {chip}
-                                  </Keycap>
-                                ))}
-                              </span>
-                            </button>
-                          </li>
-                        ))}
+                                    {t(binding.group)} ·{' '}
+                                  </span>
+                                  {t(binding.label)}
+                                </span>
+                                <span className="flex shrink-0 items-center gap-1">
+                                  {bindingChips(binding).map((chip, position) => (
+                                    <Keycap
+                                      key={`${binding.id}-${String(position)}`}
+                                      className={
+                                        index === cursor ? '!border-black !text-black' : undefined
+                                      }
+                                    >
+                                      {chip}
+                                    </Keycap>
+                                  ))}
+                                </span>
+                              </button>
+                            </li>
+                          )
+                        })}
                       </ul>
                     </section>
                   )}
@@ -405,7 +492,7 @@ export function CommandPalette() {
 
                   {groups.length > 0 && (
                     <section>
-                      <h3 className="border-border text-muted-foreground mt-1 border-t px-4 pt-2 pb-1 text-xs font-medium">
+                      <h3 className="border-border text-muted-foreground mt-1 border-t px-4 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">
                         {t('palette.content')}
                       </h3>
                       {groups.map((group) => (
@@ -416,12 +503,14 @@ export function CommandPalette() {
                           </h4>
                           <ul>
                             {group.hits.map((hit) => {
-                              // The row's place in the one list the arrows walk.
-                              const index = navigation.length + flattenGroups(groups).indexOf(hit)
+                              const index =
+                                actionCount + navigation.length + flattenGroups(groups).indexOf(hit)
                               return (
                                 <li key={`${hit.type}-${hit.id}`}>
                                   <button
                                     type="button"
+                                    role="option"
+                                    aria-selected={index === cursor}
                                     onMouseEnter={() => {
                                       setCursor(index)
                                     }}
@@ -493,6 +582,7 @@ export function CommandPalette() {
                   </section>
                 ))}
                 <p className="text-muted-foreground text-xs">{t('palette.escapeNote')}</p>
+                <p className="text-muted-foreground mt-2 text-xs">{t('palette.advancedNote')}</p>
               </div>
             )}
           </div>

@@ -227,6 +227,11 @@ session. Accepting only one is a papercut a hundred times a day.
   accounting act. It is a button, and it asks.
 - **Closing a year.** Same reasoning, more so.
 - **Deleting anything.** There is nothing to delete. The journal is append-only.
+- **Geavanceerd (Advanced mode).** Deliberately unbound (#44). `Shift`+letter is
+  table type-ahead on the sort column (`Shift`+`K` reaches "Kantoorkosten" in
+  one stroke); a `⇧G` toggle would steal every "G…" row. Reach it from the user
+  menu (switch row) or from ⌘K ("Geavanceerd aanzetten" / "uitzetten"). When it
+  is off, Journaalposten and Proefbalans leave the nav but stay in the palette.
 
 ## Implementation notes
 

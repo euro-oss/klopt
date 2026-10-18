@@ -120,7 +120,12 @@ test('g x reaches the Exact screen', async ({ page }) => {
   // The listener lives in an effect, so it exists only after hydration — and
   // the sidebar prints a key only once it works, which makes the hint the
   // honest thing to wait for. Pressing before then loses the keystroke.
-  await expect(page.getByRole('link', { name: /Journaalposten/ }).locator('kbd')).toHaveCount(1)
+  await expect(
+    page
+      .getByRole('link', { name: /^Dashboard/ })
+      .locator('kbd')
+      .first(),
+  ).toBeVisible()
 
   await page.keyboard.press('g')
   // The armed prefix is shown: a shortcut that silently waits is one people
@@ -134,7 +139,12 @@ test('g x reaches the Exact screen', async ({ page }) => {
 test('i x reaches Exact under Importeren', async ({ page }) => {
   await anAdministration(page)
 
-  await expect(page.getByRole('link', { name: /Journaalposten/ }).locator('kbd')).toHaveCount(1)
+  await expect(
+    page
+      .getByRole('link', { name: /^Dashboard/ })
+      .locator('kbd')
+      .first(),
+  ).toBeVisible()
   // Printed chord under Importeren is `i` then `x`; `g x` stays as the alias.
   await expect(page.getByRole('navigation').getByText('Importeren')).toBeVisible()
   await expect(page.getByRole('link', { name: /Exact Online/ }).locator('kbd')).toContainText(/I/)

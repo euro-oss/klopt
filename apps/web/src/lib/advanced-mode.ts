@@ -1,9 +1,10 @@
 /**
- * Geavanceerd toggle (PRD #40 / issue #42).
+ * Geavanceerd toggle (PRD #40 / issue #44).
  *
  * Remembered per browser as a cookie. Defaults: off for Eigenaar (owner), on
- * for Boekhouder / Accountant / Controleur. In simple mode, Grootboek is
- * labelled Categorie.
+ * for Boekhouder / Accountant / Controleur. When it is off, Journaalposten and
+ * Proefbalans leave the nav but stay in ⌘K. There is deliberately no shortcut
+ * (Shift+letter is table type-ahead) — docs/keyboard-map.md.
  */
 
 export const ADVANCED_MODE_COOKIE = 'klopt_advanced'
@@ -38,4 +39,17 @@ export function resolveAdvancedMode(
 
 export function advancedModeCookieValue(enabled: boolean): string {
   return enabled ? '1' : '0'
+}
+
+/** Read the preference from `document.cookie`. Null on the server. */
+export function readAdvancedModeCookie(): string | null {
+  if (typeof document === 'undefined') return null
+  const match = new RegExp(`(?:^|;\\s*)${ADVANCED_MODE_COOKIE}=([^;]*)`).exec(document.cookie)
+  return match?.[1] === undefined ? null : decodeURIComponent(match[1])
+}
+
+/** Persist the preference for a year. Client-only. */
+export function writeAdvancedModeCookie(enabled: boolean): void {
+  if (typeof document === 'undefined') return
+  document.cookie = `${ADVANCED_MODE_COOKIE}=${encodeURIComponent(advancedModeCookieValue(enabled))};path=/;max-age=${String(ADVANCED_MODE_MAX_AGE_SECONDS)};samesite=lax`
 }

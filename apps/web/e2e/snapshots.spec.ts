@@ -25,7 +25,8 @@ async function anAdministrationWithAPosting(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
 
   // A book year with nothing in it has nothing worth sealing.
-  await page.getByRole('link', { name: /Nieuwe journaalpost/ }).click()
+  // Route stays reachable when Geavanceerd is off; the sidebar CTA does not.
+  await page.goto('/entries/new')
   const post = page.getByRole('button', { name: /Boeken/ }).first()
   await expect(post).toBeEnabled()
 

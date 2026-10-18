@@ -31,6 +31,8 @@ describe('the bottom of the sidebar', () => {
       'action="/sign-out"',
       'shell.role',
       'shell.account.signOut',
+      'shell.advanced',
+      'role="switch"',
     ]) {
       expect(menu, inside).toContain(inside)
     }
