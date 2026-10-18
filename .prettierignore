@@ -15,3 +15,6 @@ apps/web/src/routeTree.gen.ts
 # nobody hand-edits either of them.
 docs/openapi.json
 apps/web/src/api/response-schemas.generated.json
+
+# Built by `npm run build:css` in the prototype folder.
+prototypes/redesign/styles.css
