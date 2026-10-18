@@ -2,14 +2,25 @@ import { describe, expect, it } from 'vitest'
 import { inferAccountTypeFromRgs } from '../../src/moneybird/resources.js'
 
 describe('inferAccountTypeFromRgs', () => {
-  it('maps revenue and other/financial income leads as revenue', () => {
+  it('maps revenue and other operating/investment income leads as revenue', () => {
     expect(inferAccountTypeFromRgs('WOmz')).toBe('revenue')
     expect(inferAccountTypeFromRgs('WOmzDi')).toBe('revenue')
     expect(inferAccountTypeFromRgs('WOvb')).toBe('revenue')
     expect(inferAccountTypeFromRgs('WOvbDi')).toBe('revenue')
     expect(inferAccountTypeFromRgs('WOvt')).toBe('revenue')
-    expect(inferAccountTypeFromRgs('WFbe')).toBe('revenue')
-    expect(inferAccountTypeFromRgs('WFbeBa')).toBe('revenue')
+  })
+
+  it('maps WFbe by sub-code: Rlm revenue, Rls/Orl expense, bare/unknown null', () => {
+    expect(inferAccountTypeFromRgs('WFbeRlm')).toBe('revenue')
+    expect(inferAccountTypeFromRgs('WFbeRlmObr')).toBe('revenue')
+    expect(inferAccountTypeFromRgs('WFbeRls')).toBe('expense')
+    expect(inferAccountTypeFromRgs('WFbeRlsRhl')).toBe('expense')
+    expect(inferAccountTypeFromRgs('WFbeOrl')).toBe('expense')
+    expect(inferAccountTypeFromRgs('WFbeOrlRkb')).toBe('expense')
+    // Parent and unknown children: no suggestion (interest expense must not look like revenue).
+    expect(inferAccountTypeFromRgs('WFbe')).toBeNull()
+    expect(inferAccountTypeFromRgs('WFbeWis')).toBeNull()
+    expect(inferAccountTypeFromRgs('WFbeKba')).toBeNull()
   })
 
   it('maps cost leads as expense', () => {
