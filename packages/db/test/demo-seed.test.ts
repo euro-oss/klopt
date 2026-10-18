@@ -5,13 +5,30 @@
  * asserts every acceptance criterion the issue lists.
  */
 
-import { buildTrialBalance, parseVatPeriodCode, suggestMatches, verifyHashChain } from '@klopt/core'
-import { eq } from 'drizzle-orm'
+import { existsSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import {
+  loadSchematronFromDirectory,
+  REQUIRED_PEPPOL_SCHEMATRON_FILES,
+  validateAgainst,
+} from '@klopt/adapters'
+import {
+  buildTrialBalance,
+  checkUblRules,
+  generateUbl,
+  parseVatPeriodCode,
+  suggestMatches,
+  toUblDocument,
+  verifyHashChain,
+} from '@klopt/core'
+import { and, eq, isNull } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { closeDatabase, createDatabase, type Database } from '../src/client.js'
 import {
   assertDemoDatasetIsFictional,
   assertFictionalDataset,
+  DEMO_BUYER_REFERENCE_PREFIX,
   DEMO_ENTITY_ID,
   DEMO_ENTITY_NAME,
   DEMO_FISCAL_YEAR,
@@ -22,16 +39,31 @@ import {
 } from '../src/demo/index.js'
 import { DemoPiiError } from '../src/demo/pii.js'
 import { runMigrations } from '../src/migrate.js'
-import { entities } from '../src/schema/index.js'
+import { entities, salesInvoices } from '../src/schema/index.js'
 import {
   withBankRead,
   withLedger,
   withPurchaseRead,
   withReporting,
+  withSalesRead,
   withSetup,
   withVatRead,
 } from '../src/unit-of-work.js'
 import { TEST_DATABASE_URL } from './support/fixture.js'
+
+const PEPPOL_ARTEFACTS = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  'reference-data',
+  'peppol',
+  'bis-3',
+)
+
+const hasPeppolSchematron = REQUIRED_PEPPOL_SCHEMATRON_FILES.every((name) =>
+  existsSync(join(PEPPOL_ARTEFACTS, name)),
+)
 
 describe('demo seeder', () => {
   let database: Database
@@ -127,6 +159,23 @@ describe('demo seeder', () => {
     expect(first.counts.bankMatched).toBeGreaterThan(0)
     expect(first.counts.bankUnmatched).toBeGreaterThan(0)
     expect(first.counts.filedPeriods).toBeGreaterThanOrEqual(1)
+
+    // PEPPOL-EN16931-R003: every demo sales invoice must carry a BT-10 buyer
+    // reference (or BT-13 order reference). Without it, UBL export fails.
+    const missingBuyerRef = await database
+      .select({ id: salesInvoices.id })
+      .from(salesInvoices)
+      .where(and(eq(salesInvoices.entityId, first.entityId), isNull(salesInvoices.buyerReference)))
+    expect(missingBuyerRef).toEqual([])
+
+    const buyerRefs = await database
+      .select({ buyerReference: salesInvoices.buyerReference })
+      .from(salesInvoices)
+      .where(eq(salesInvoices.entityId, first.entityId))
+    expect(buyerRefs.length).toBeGreaterThanOrEqual(40)
+    for (const row of buyerRefs) {
+      expect(row.buyerReference).toMatch(new RegExp(`^${DEMO_BUYER_REFERENCE_PREFIX}-\\d{4}$`))
+    }
     expect(first.invite).toMatchObject({
       email: 'accountant@example.nl',
       role: 'accountant',
@@ -254,4 +303,47 @@ describe('demo seeder', () => {
 
     await database.delete(entities).where(eq(entities.id, live!.id))
   })
+
+  it('emits UBL with BuyerReference for every seeded demo sales invoice', async () => {
+    // Relies on the seed from the previous test (same DB). Idempotent seed
+    // keeps the entity when already present.
+    const seeded = await seedDemo(database)
+    const listed = await withSalesRead(database, (sales) =>
+      sales.listInvoices({
+        entityId: seeded.entityId,
+        status: 'issued',
+        limit: 100,
+      }),
+    )
+    expect(listed.length).toBeGreaterThanOrEqual(40)
+
+    // Official .sch files are fetched, not in git (same pattern as pain.001 /
+    // xmllint). CI runs `pnpm peppol:fetch` first; without them we still assert
+    // BT-10 via checkUblRules and the BuyerReference element.
+    const schemas = hasPeppolSchematron ? loadSchematronFromDirectory(PEPPOL_ARTEFACTS) : null
+
+    for (const row of listed) {
+      const source = await withSalesRead(database, (sales) =>
+        sales.loadUblSource(seeded.entityId, row.id),
+      )
+      expect(source, row.number ?? row.id).not.toBeNull()
+      expect(source!.buyerReference).toMatch(new RegExp(`^${DEMO_BUYER_REFERENCE_PREFIX}-\\d{4}$`))
+
+      const document = toUblDocument(source!)
+      const ruleCodes = checkUblRules(document).map((violation) => violation.rule)
+      expect(ruleCodes, row.number ?? row.id).not.toContain('PEPPOL-EN16931-R003')
+
+      const xml = generateUbl(document)
+      expect(xml).toContain(`<cbc:BuyerReference>${source!.buyerReference}</cbc:BuyerReference>`)
+
+      if (schemas !== null) {
+        const result = validateAgainst(schemas, xml)
+        const rules = [...new Set(result.failures.map((failure) => failure.rule))]
+        expect(rules, `${row.number ?? row.id}: ${rules.join(', ')}`).not.toContain(
+          'PEPPOL-EN16931-R003',
+        )
+        expect(result.valid, `${row.number ?? row.id}: ${rules.join(', ')}`).toBe(true)
+      }
+    }
+  }, 180_000)
 })

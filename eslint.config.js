@@ -88,6 +88,18 @@ export default tseslint.config(
   },
 
   {
+    // Demo-seed integration tests generate UBL and run the published Peppol
+    // Schematron (adapters). Production db code must still not import adapters.
+    files: ['packages/db/test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': forbid(
+        [...FRAMEWORK],
+        'packages/db tests stay free of UI frameworks; adapters are allowed only to validate seeded UBL.',
+      ),
+    },
+  },
+
+  {
     files: ['packages/adapters/**/*.ts'],
     rules: {
       '@typescript-eslint/no-restricted-imports': forbid(
