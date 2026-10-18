@@ -818,6 +818,31 @@ export class PurchaseRepository {
       )
   }
 
+  /**
+   * Record that a bank payment settled (part of) a purchase invoice.
+   *
+   * Mirrors `BankRepository.recordMatch` for sales: the journal entry is posted
+   * by the caller through `postJournalEntry`; this writes the subledger link so
+   * open payables reconcile with account 1600.
+   */
+  async recordBankPayment(request: {
+    readonly entityId: string
+    readonly transactionId: string
+    readonly invoiceId: string
+    readonly amount: bigint
+  }): Promise<void> {
+    const amount = request.amount < 0n ? -request.amount : request.amount
+    if (amount === 0n) return
+
+    await this.tx.insert(purchaseInvoiceAllocations).values({
+      id: uuidv7(),
+      entityId: request.entityId,
+      transactionId: request.transactionId,
+      invoiceId: request.invoiceId,
+      amountMinorUnits: amount,
+    })
+  }
+
   async transition(request: {
     readonly entityId: string
     readonly invoiceId: string

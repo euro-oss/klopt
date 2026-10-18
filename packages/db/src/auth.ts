@@ -14,7 +14,8 @@ import {
   users,
   verifications,
 } from './schema/auth.js'
-import { claimInvitations } from './repositories/members.js'
+import { claimInvitations, hasLiveInvitation } from './repositories/members.js'
+import { floorElapsed, SEND_OTP_SILENT_FLOOR_MS } from './timing.js'
 import { entities } from './schema/ledger.js'
 
 /**
@@ -56,9 +57,19 @@ export interface AuthConfig {
     readonly clientSecret: string
   }
   /**
-   * When true, emailOTP will not create an account for an unknown address.
+   * When true, signup is **invite-only**: an unknown address may receive a
+   * code and create an account only when it has a live invitation in
+   * `entity_invitations`. Everyone else gets today's silent no-op on
+   * send-verification-otp (identical response, no code mailed), so the
+   * endpoint does not reveal who is invited.
+   *
    * Open by default so a fresh install can create the first user; set
    * `KLOPT_SIGNUP=closed` once the firm is on the instance (audit M3).
+   *
+   * better-auth's `emailOTP({ disableSignUp })` is boolean-only and would
+   * block invited first-time addresses entirely, so this flag is enforced
+   * with a before-hook on send plus a `user.create` database hook rather
+   * than passed through to the plugin.
    */
   readonly disableSignUp?: boolean
   /**
@@ -207,11 +218,10 @@ export function createAuth(config: AuthConfig) {
         // Three guesses. Enough for a typo, not enough to brute-force six
         // digits.
         allowedAttempts: 3,
-        // A first-time address gets an account unless signup is closed.
-        // Closing it after the firm is on the instance stops strangers from
-        // provisioning their own books on a URL that was meant to be private
-        // (audit M3). Invite-by-address still adds people to an existing entity.
-        disableSignUp: config.disableSignUp ?? false,
+        // Always false for the plugin. When `config.disableSignUp` is true we
+        // gate ourselves (before-hook + user.create) so a live invitation can
+        // still create an account; the plugin's hard close cannot.
+        disableSignUp: false,
         sendVerificationOTP: async ({ email, otp, type }) => {
           const { subject, text } = otpMessage(config.productName ?? 'Klopt', otp, type)
           await config.email.send({ to: email, subject, text })
@@ -246,6 +256,24 @@ export function createAuth(config: AuthConfig) {
      * arrive with no books, which the next sign-in fixes.
      */
     databaseHooks: {
+      user: {
+        create: {
+          /**
+           * Defence in depth for invite-only signup.
+           *
+           * The send hook already withholds a code from uninvited addresses, so
+           * this path should not see one. If it does — a leftover verification,
+           * a future plugin change — refuse the account unless a live
+           * invitation still exists. Returning `false` makes createUser yield
+           * null and the sign-in fails.
+           */
+          before: async (user): Promise<false | void> => {
+            if (config.disableSignUp !== true) return
+            if (await hasLiveInvitation(config.database, user.email)) return
+            return false
+          },
+        },
+      },
       session: {
         create: {
           after: async (session) => {
@@ -290,13 +318,45 @@ export function createAuth(config: AuthConfig) {
      */
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
-        if (ctx.path !== '/sign-out') return
-        // The library's own resolution rather than reading the cookie here:
-        // it knows how the token is signed and which name it goes under.
-        // Swallowed, because observing a sign-out must never prevent one.
-        const session = await getSessionFromCtx(ctx).catch(() => null)
-        if (session === null) return
-        signingOut.set(requestOf(ctx), { email: session.user.email, userId: session.user.id })
+        /**
+         * Invite-only send gate (when `disableSignUp` is set).
+         *
+         * Returning `{ success: true }` here short-circuits the endpoint
+         * before an OTP is stored or mailed — the same silent no-op
+         * better-auth uses for unknown addresses when its own
+         * `disableSignUp` is true. Existing users and live-invited
+         * addresses fall through and get a code as usual. The HTTP body is
+         * identical either way, so the endpoint does not reveal who is
+         * invited.
+         */
+        if (config.disableSignUp === true && ctx.path === '/email-otp/send-verification-otp') {
+          const started = Date.now()
+          const raw = (ctx.body as { email?: unknown } | undefined)?.email
+          const email = typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+          if (email !== '') {
+            const existing = await ctx.context.internalAdapter.findUserByEmail(email)
+            if (!existing && !(await hasLiveInvitation(config.database, email))) {
+              // Floor so a silent refusal is not obviously faster than the
+              // lookup work that precedes a real send (invite timing oracle).
+              await floorElapsed(started, SEND_OTP_SILENT_FLOOR_MS)
+              return ctx.json({ success: true })
+            }
+          }
+        }
+
+        if (ctx.path === '/sign-out') {
+          // The library's own resolution rather than reading the cookie here:
+          // it knows how the token is signed and which name it goes under.
+          // Swallowed, because observing a sign-out must never prevent one.
+          const session = await getSessionFromCtx(ctx).catch(() => null)
+          if (session !== null) {
+            signingOut.set(requestOf(ctx), {
+              email: session.user.email,
+              userId: session.user.id,
+            })
+          }
+        }
+        return undefined
       }),
       after: createAuthMiddleware(async (ctx) => {
         const key = requestOf(ctx)
@@ -362,6 +422,8 @@ export interface EntityMembership {
    * type checker, which is how a real check gets deleted as dead code.
    */
   readonly role: string
+  /** Fictional trial books (issue #48). Drives the demo banner and picker mark. */
+  readonly isDemo: boolean
 }
 
 /** Which books this user may open, and as what. */
@@ -374,6 +436,7 @@ export async function membershipsFor(
       entityId: entityMembers.entityId,
       entityName: entities.name,
       role: entityMembers.role,
+      isDemo: entities.isDemo,
     })
     .from(entityMembers)
     .innerJoin(entities, eq(entities.id, entityMembers.entityId))
@@ -393,6 +456,7 @@ export async function membershipFor(
       entityId: entityMembers.entityId,
       entityName: entities.name,
       role: entityMembers.role,
+      isDemo: entities.isDemo,
     })
     .from(entityMembers)
     .innerJoin(entities, eq(entities.id, entityMembers.entityId))

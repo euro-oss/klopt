@@ -143,6 +143,12 @@ export const entities = klopt.table(
      */
     legalHold: boolean('legal_hold').notNull().default(false),
     legalHoldReason: text('legal_hold_reason'),
+    /**
+     * Fictional trial books (issue #48). The demo seeder refuses to write into
+     * any administration that is not marked this way, and the UI shows a banner
+     * on every page of one that is.
+     */
+    isDemo: boolean('is_demo').notNull().default(false),
     ...timestamps,
   },
   (table) => [
@@ -150,6 +156,11 @@ export const entities = klopt.table(
       'entities_fiscal_year_start_month_range',
       sql`${table.fiscalYearStartMonth} between 1 and 12`,
     ),
+    // At most one demo administration per instance. Re-running the seeder must
+    // land on the same books rather than invent a second set of fictional ones.
+    uniqueIndex('entities_one_demo')
+      .on(table.isDemo)
+      .where(sql`${table.isDemo} = true`),
   ],
 )
 

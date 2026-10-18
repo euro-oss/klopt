@@ -134,8 +134,30 @@ set without the bucket name and credentials is refused at boot.
 
 On a fresh install, sign-in leads to creating an administration: a name, an
 optional KvK number, and a book year. That account is the owner. Once the firm
-is on the instance, set `KLOPT_SIGNUP=closed` so a new mailbox cannot provision
-its own books. People still join from **Toegang**.
+is on the instance, set `KLOPT_SIGNUP=closed`. Closed means **invite-only**: an
+unknown address may receive a sign-in code only when it has a live invitation
+from **Toegang** (not expired, not revoked, not already accepted). Everyone
+else gets a silent no-op — the send endpoint does not reveal who is invited.
+Creating further administrations is closed too: only addresses listed in
+`KLOPT_INSTANCE_ADMINS` (comma-separated emails) may use `/setup`. Holding
+Eigenaar on an existing administration is not enough. With the list empty,
+nobody can create entities (fail closed).
+
+### Try it with demo data
+
+Load a fictional Dutch BV with a year of sales, purchases, a bank statement and
+a filed VAT quarter — through the same posting paths as production. Never runs
+automatically; refuses any administration that is not marked demo.
+
+```bash
+pnpm db:seed:demo
+# optional invite (role may be eigenaar / owner / accountant / …)
+pnpm db:seed:demo -- --invite accountant@example.nl --role accountant
+```
+
+On a hosted instance the same binary is `node packages/db/dist/bin/seed-demo.js`
+with `DATABASE_URL` set. Re-running is idempotent: one demo administration per
+instance.
 
 ### Docker
 

@@ -12,11 +12,12 @@ one must be a data release, not a deploy.
 | `peppol/` | Peppol BIS Billing 3 Schematron | [OpenPeppol](https://docs.peppol.eu/poacc/billing/3.0/) — **not in git** | `pnpm peppol:fetch` (see [`peppol/README.md`](peppol/README.md)) |
 
 The runtime reads this directory. `KLOPT_REFERENCE_DATA_DIR` overrides the
-location; the container image ships it at `/app/reference-data`.
+location; the container image ships it at `/app/reference-data` and sets that
+env var in the Dockerfile.
 
-Peppol `.sch` files are fetched from OpenPeppol and kept locally (or in CI
-cache). They are not redistributed in this repository — see
-[`peppol/README.md`](peppol/README.md).
+Peppol `.sch` files are fetched from OpenPeppol (pinned + checksum-verified)
+during local setup, CI, and the image build. They are not redistributed in this
+repository — see [`peppol/README.md`](peppol/README.md).
 
 ## rgs/
 

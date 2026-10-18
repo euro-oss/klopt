@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PURCHASE_INVOICE_STATUSES, SEARCH_RESOURCE_TYPES } from '@klopt/core'
+import { PURCHASE_INVOICE_STATUSES, SEARCH_RESOURCE_TYPES, normalizeFxRateInput } from '@klopt/core'
 import { clockDefault } from './clock-default.js'
 
 /**
@@ -1196,12 +1196,57 @@ export const chooseMoneybirdAdministrationBody = z.object({
 
 export type ChooseMoneybirdAdministrationBody = z.infer<typeof chooseMoneybirdAdministrationBody>
 
+const fxRateChoice = z.object({
+  rate: z
+    .string()
+    .trim()
+    .min(1)
+    .max(32)
+    .transform((value, ctx) => {
+      const normalized = normalizeFxRateInput(value)
+      if (normalized === null) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Rate must be a positive number (0.9214 or 0,9214).',
+        })
+        return z.NEVER
+      }
+      return normalized
+    }),
+  source: z.enum(['ecb', 'override']),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+})
+
+const moneybirdImportDecisions = z
+  .object({
+    confirmedCurrencyIsFunctional: z.boolean().optional(),
+    confirmedFiscalYearStart: z.boolean().optional(),
+    acknowledgedEmptyYears: z.array(z.string().trim().min(1).max(16)).optional(),
+    excludedExternalIds: z.array(z.string().trim().min(1).max(80)).optional(),
+    excludedLockedYears: z.array(z.string().trim().min(1).max(16)).optional(),
+    contactNumberOverrides: z.record(z.string(), z.string().trim().min(1).max(40)).optional(),
+    accountTypeOverrides: z
+      .record(z.string(), z.enum(['asset', 'liability', 'equity', 'revenue', 'expense']))
+      .optional(),
+    exchangeRates: z.record(z.string(), fxRateChoice).optional(),
+    deferredAttachmentIds: z.array(z.string().trim().min(1).max(40)).optional(),
+  })
+  .strict()
+
 export const saveMoneybirdMappingsBody = z.object({
   accountMappings: z.record(z.string(), z.string().trim().min(1).max(20)),
   taxMappings: z.record(z.string(), z.string().trim().min(1).max(20)),
+  importDecisions: moneybirdImportDecisions.optional(),
 })
 
 export type SaveMoneybirdMappingsBody = z.infer<typeof saveMoneybirdMappingsBody>
+
+export const moneybirdFxRateQuery = z.object({
+  currency: z.string().trim().length(3),
+  documentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+})
+
+export type MoneybirdFxRateQuery = z.infer<typeof moneybirdFxRateQuery>
 
 /**
  * Issuing an API token.

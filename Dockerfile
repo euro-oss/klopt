@@ -52,9 +52,18 @@ COPY tools/eslint-plugin-klopt/package.json ./tools/eslint-plugin-klopt/
 COPY tools/rgs-import/package.json ./tools/rgs-import/
 
 FROM manifests AS build
+# bash + curl for `peppol:fetch` (OpenPeppol Schematron is not in git — see
+# reference-data/peppol/README.md). The fetch script is bash; Alpine's ash is
+# not enough. curl is what the script prefers (wget is the fallback).
+RUN apk add --no-cache bash curl
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 COPY . .
+# Deterministic, checksum-verified fetch into the build tree. The `.sch` files
+# stay out of git (OpenPeppol redistribution terms); the image obtains them
+# from the pinned upstream during build so a hosted deploy cannot silently
+# under-validate.
+RUN pnpm run peppol:fetch
 RUN pnpm run build
 
 # Prod-only, and only for what runs: the worker, the CLI, the migrator, and
@@ -101,6 +110,12 @@ COPY --from=build /app/packages/db/dist ./packages/db/dist
 COPY --from=build /app/packages/db/migrations ./packages/db/migrations
 COPY --from=build /app/apps/worker/dist ./apps/worker/dist
 COPY --from=build /app/apps/cli/dist ./apps/cli/dist
+# Compliance artefacts (principle 6). Includes RGS / UBL / XAF / charts and the
+# Peppol `.sch` files fetched in the build stage. Runtime path resolution for
+# the Nitro bundle is unreliable relative to `import.meta.url`, so the env pin
+# is the contract — see reference-data/README.md.
+COPY --from=build /app/reference-data ./reference-data
+ENV KLOPT_REFERENCE_DATA_DIR=/app/reference-data
 
 # `klopt` on the path, because an operator exec-ing into a container to run a
 # backup at 23:00 should not have to know where the binary lives (spec 10.4).

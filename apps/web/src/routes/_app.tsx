@@ -59,20 +59,30 @@ function AppLayout() {
     // Signed in and a member of nothing. This used to be a dead end, which
     // made principle 4 false in the most literal way available: a fresh
     // install had no route to a first set of books that did not involve SQL.
+    // When signup is closed, only instance admins may create — everyone else
+    // needs an invitation, so the create link stays off the screen.
+    const canCreate = session.mayCreateEntity !== false
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-8">
         <h1 className="text-2xl font-semibold">{t('setup.needOne')}</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          {t('setup.needOneBody', { email: session.user.email })}
+          {t(canCreate ? 'setup.needOneBody' : 'setup.needOneClosedBody', {
+            email: session.user.email,
+          })}
         </p>
-        <Link
-          to="/setup"
-          className="bg-primary text-primary-foreground mt-6 rounded-md px-4 py-2 text-center text-sm font-medium"
-        >
-          {t('setup.start')}
-        </Link>
-        <form method="post" action="/sign-out" className="mt-3">
-          <button type="submit" className="border-input w-full rounded-md border px-4 py-2 text-sm">
+        {canCreate && (
+          <Link
+            to="/setup"
+            className="bg-primary text-primary-foreground mt-6 rounded-none px-4 py-2 text-center text-sm font-medium"
+          >
+            {t('setup.start')}
+          </Link>
+        )}
+        <form method="post" action="/sign-out" className={canCreate ? 'mt-3' : 'mt-6'}>
+          <button
+            type="submit"
+            className="border-input w-full rounded-none border px-4 py-2 text-sm"
+          >
             {t('shell.signOut')}
           </button>
         </form>
@@ -83,7 +93,7 @@ function AppLayout() {
   return (
     <AppShell
       entities={session.memberships}
-      activeEntityId={session.memberships[0]?.entityId ?? null}
+      activeEntityId={session.activeEntityId}
       userName={session.user.name}
       userEmail={session.user.email}
       fiscalYears={reportYear?.ok === true ? reportYear.data.years : []}

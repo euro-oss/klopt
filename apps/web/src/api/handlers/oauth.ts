@@ -292,6 +292,35 @@ export async function approveAuthorization(
   return target.href
 }
 
+/**
+ * The consent-screen approval: membership is checked here, not trusted from
+ * the client. `approveAuthorization` alone would mint a code for any entityId
+ * the caller named — this is the gate the server function and the tests share.
+ */
+export async function approveAuthorizationForSession(
+  request: Request,
+  url: URL,
+  session: {
+    readonly userId: string
+    readonly memberships: readonly { readonly entityId: string }[]
+  },
+  entityId: string,
+  now: Date = new Date(),
+): Promise<{ readonly redirectTo: string; readonly entityId: string }> {
+  const membership = session.memberships.find((row) => row.entityId === entityId)
+  if (membership === undefined) {
+    throw new Error('You are not a member of that administration.')
+  }
+
+  const redirectTo = await approveAuthorization(
+    request,
+    url,
+    { userId: session.userId, entityId: membership.entityId },
+    now,
+  )
+  return { redirectTo, entityId: membership.entityId }
+}
+
 const tokenError = (error: string, description: string, status = 400): Response =>
   json({ error, error_description: description }, status, {
     // RFC 6749: the token endpoint must not be cached.

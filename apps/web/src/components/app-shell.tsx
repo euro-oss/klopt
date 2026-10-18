@@ -232,6 +232,8 @@ export interface ShellEntity {
   readonly entityId: string
   readonly entityName: string
   readonly role: string
+  /** Fictional trial books (issue #48). */
+  readonly isDemo: boolean
 }
 
 export function AppShell({
@@ -385,6 +387,14 @@ export function AppShell({
           browser does for a real page load.
         */}
         <main id="main" ref={main} tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none">
+          {active?.isDemo === true && (
+            <div
+              role="status"
+              className="border-border bg-muted text-foreground mb-4 border px-3 py-2 text-sm"
+            >
+              {t('shell.demoBanner')}
+            </div>
+          )}
           {children}
         </main>
       </div>
@@ -465,7 +475,9 @@ function ShellNavChrome({
           >
             {entities.map((entity) => (
               <SelectOption key={entity.entityId} value={entity.entityId}>
-                {entity.entityName}
+                {entity.isDemo
+                  ? t('shell.demoEntity', { name: entity.entityName })
+                  : entity.entityName}
               </SelectOption>
             ))}
           </SelectField>

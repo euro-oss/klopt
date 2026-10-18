@@ -236,9 +236,11 @@ export function honestyFromReconciliation(
   source: 'read' | 'empty' | 'unreadable',
   balanced: boolean | null | undefined,
 ): FindingHonesty | null {
+  // Unread ≠ empty ≠ reconciled (issue #42). An unreadable or empty year must
+  // never paint as reconciled, even if balanced happens to be true.
   if (source === 'unreadable') return 'unread'
   if (source === 'empty') return 'empty'
-  if (balanced === true) return 'reconciled'
+  if (source === 'read' && balanced === true) return 'reconciled'
   return null
 }
 

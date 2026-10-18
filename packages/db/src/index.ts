@@ -121,6 +121,7 @@ export {
   type MoneybirdConnectionRow,
   MoneybirdConnectionRepository,
 } from './repositories/moneybird.js'
+export { EcbRateRepository } from './repositories/ecb-rates.js'
 export {
   MoneybirdImportRepository,
   withMoneybirdImport,
@@ -157,7 +158,9 @@ export {
   type MemberRow,
   MembersRepository,
   claimInvitations,
+  hasLiveInvitation,
 } from './repositories/members.js'
+export { floorElapsed, SEND_OTP_SILENT_FLOOR_MS } from './timing.js'
 export {
   type EntityPatch,
   type FiscalYearSummary,
@@ -166,6 +169,16 @@ export {
   type ProvisionedEntity,
   SetupRepository,
 } from './repositories/setup.js'
+export {
+  DEMO_ENTITY_ID,
+  DEMO_ENTITY_NAME,
+  assertDemoDatasetIsFictional,
+  assertFictionalDataset,
+  parseDemoRole,
+  seedDemo,
+  type SeedDemoOptions,
+  type SeedDemoResult,
+} from './demo/index.js'
 export {
   type DraftInvoiceRequest,
   type InvoiceContext,
@@ -201,6 +214,8 @@ export {
   withExactConnectionRead,
   withMoneybirdConnection,
   withMoneybirdConnectionRead,
+  withEcbRates,
+  withEcbRatesRead,
   withInboundSources,
   withInboundSourcesRead,
   withInbox,
