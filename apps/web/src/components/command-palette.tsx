@@ -525,7 +525,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                             type="button"
                             role="option"
                             aria-selected={cursor === 0}
-                            disabled={advancedMode.saving}
+                            aria-busy={advancedMode.saving || undefined}
                             onMouseEnter={() => {
                               setCursor(0)
                             }}
@@ -533,7 +533,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                               go({ kind: 'action', id: 'toggle-advanced' })
                             }}
                             className={cn(
-                              'flex min-h-11 w-full items-center justify-between px-4 py-2 text-left text-sm md:min-h-0 disabled:opacity-50',
+                              'flex min-h-11 w-full items-center justify-between px-4 py-2 text-left text-sm md:min-h-0',
                               cursor === 0 && 'bg-accent text-accent-foreground',
                             )}
                           >

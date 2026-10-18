@@ -494,11 +494,12 @@ function Moneybird() {
           <input
             type="checkbox"
             checked={advanced}
-            disabled={!hydrated || advancedSaving}
+            disabled={!hydrated}
+            aria-busy={advancedSaving || undefined}
             onChange={(event) => {
               void setAdvanced(event.target.checked)
             }}
-            className="border-border size-4 rounded-none disabled:opacity-50"
+            className="border-border size-4 rounded-none"
           />
           {t('moneybird.advanced')}
         </label>

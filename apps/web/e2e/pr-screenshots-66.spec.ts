@@ -54,9 +54,17 @@ async function forceSaveFail(page: Page): Promise<void> {
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
+  // Avoid mid-transition captures (primary CTA / header icons mid-fade).
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.evaluate((t) => {
     document.documentElement.classList.toggle('dark', t === 'dark')
   }, theme)
+  await page.waitForFunction(
+    (wantDark) => document.documentElement.classList.contains('dark') === wantDark,
+    theme === 'dark',
+  )
+  // Settle even when reducedMotion is imperfectly honoured by a transition.
+  await page.waitForTimeout(250)
 }
 
 async function shoot(page: Page, name: string): Promise<void> {

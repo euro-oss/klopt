@@ -670,20 +670,21 @@ function Profile({
           </div>
 
           {/* Geavanceerd (#44): no shortcut — Shift+letter is table type-ahead.
-              Disabled while a save is in flight so fast double-clicks cannot
-              leave the switch out of sync with the server (#66). Failure is
-              announced once by the fixed toast — not again inline. */}
+              In-flight saves are ignored in setAdvanced (savingRef) without
+              disabling the control — disabled would flash opacity and drop
+              keyboard focus out of the menu in Chromium (#66 design review).
+              Failure is announced once by the fixed toast. */}
           <button
             type="button"
             role="switch"
             aria-checked={advanced}
             aria-busy={saving || undefined}
-            disabled={!hydrated || saving}
+            disabled={!hydrated}
             onClick={() => {
               void setAdvanced(!advanced)
             }}
             className={cn(
-              'hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left disabled:opacity-50',
+              'hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left',
               FOCUS_RING,
             )}
           >

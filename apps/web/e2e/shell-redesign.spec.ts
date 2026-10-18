@@ -159,6 +159,50 @@ test('a failed Geavanceerd save reverts the switch and shows the toast', async (
   await expect(page.getByRole('alert')).toHaveCount(1)
 })
 
+test('double-click while Geavanceerd save is in flight keeps focus in the menu', async ({
+  page,
+}) => {
+  await anAdministration(page, 'Double Toggle BV')
+
+  let release!: () => void
+  const held = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let posts = 0
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    if (request.method() === 'POST' && (request.postData() ?? '').includes('enabled')) {
+      posts += 1
+      await held
+      await route.continue()
+      return
+    }
+    await route.continue()
+  })
+
+  await openAccountMenu(page)
+  const menu = page.getByRole('dialog', { name: 'Profiel' })
+  const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
+  await toggle.focus()
+  await expect(toggle).toBeFocused()
+
+  await toggle.click()
+  // In-flight: busy, still enabled (no dimming), focus stays on the switch.
+  await expect(toggle).toHaveAttribute('aria-busy', 'true')
+  await expect(toggle).toBeEnabled()
+  await expect(toggle).toBeFocused()
+  await expect(menu).toBeVisible()
+
+  // Second click is ignored by savingRef — still one POST, focus retained.
+  await toggle.click()
+  release()
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await expect(toggle).not.toHaveAttribute('aria-busy')
+  await expect(toggle).toBeFocused()
+  await expect(menu).toBeVisible()
+  expect(posts).toBe(1)
+})
+
 test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) => {
   await anAdministration(page, 'Help Volgorde BV')
 
