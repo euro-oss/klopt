@@ -77,6 +77,15 @@ export async function hydrated(page: Page): Promise<void> {
 
 /** Turn Geavanceerd on from the account menu (owner default is off). */
 export async function enableAdvancedMode(page: Page): Promise<void> {
+  // Phone: the profile row lives inside the Sheet, so open that first.
+  const openMenu = page.getByRole('button', { name: /Menu openen|Open menu/ })
+  if (await openMenu.isVisible().catch(() => false)) {
+    await expect(openMenu).toBeEnabled()
+    if ((await openMenu.getAttribute('aria-expanded')) !== 'true') {
+      await openMenu.click()
+    }
+  }
+
   await openAccountMenu(page)
   const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
   if ((await toggle.getAttribute('aria-checked')) !== 'true') {
@@ -109,7 +118,11 @@ export async function signIn(page: Page, email: string): Promise<void> {
  * language spec switches to English halfway through and then comes back here.
  */
 export async function openAccountMenu(page: Page): Promise<void> {
-  const trigger = page.getByRole('region', { name: /^(Profiel|Profile)$/ }).getByRole('button')
+  // On the phone the profile sits in the Sheet; prefer the last (visible) one.
+  const trigger = page
+    .getByRole('region', { name: /^(Profiel|Profile)$/ })
+    .getByRole('button')
+    .last()
 
   if ((await trigger.getAttribute('aria-expanded')) === 'true') return
 
@@ -117,7 +130,8 @@ export async function openAccountMenu(page: Page): Promise<void> {
   // hydration the row is a button that opens nothing.
   await expect(trigger).toBeEnabled()
   await trigger.click()
-  await expect(page.getByRole('dialog')).toBeVisible()
+  // The Sheet is also a dialog — pin the account menu by the Geavanceerd switch.
+  await expect(page.getByRole('switch', { name: /Geavanceerd|Advanced/ })).toBeVisible()
 }
 
 /**
@@ -172,5 +186,5 @@ export async function chooseInAccountMenu(
   await page.getByRole('group', { name: label }).getByRole('button', { name: option }).click()
 
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog')).toBeHidden()
+  await expect(page.getByRole('switch', { name: /Geavanceerd|Advanced/ })).toBeHidden()
 }

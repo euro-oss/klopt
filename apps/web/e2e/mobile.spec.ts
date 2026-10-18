@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, enableAdvancedMode, openAccountMenu, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, openAccountMenu, signIn, uniqueEmail } from './support'
 
 /**
  * Phone viewport smoke for #38 / redesign shell (#61 slice 2).
@@ -57,8 +57,8 @@ test('the Sheet opens Importeren and navigates', async ({ page }) => {
   await open.click()
 
   const sheetNav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
-  await expect(sheetNav.getByText('Verkoop')).toBeVisible()
-  await expect(sheetNav.getByText('Importeren')).toBeVisible()
+  await expect(sheetNav.getByText('Verkoop', { exact: true })).toBeVisible()
+  await expect(sheetNav.getByText('Importeren', { exact: true })).toBeVisible()
   await expect(sheetNav.getByRole('link', { name: /Exact Online/ })).toBeVisible()
   await expect(sheetNav.getByRole('link', { name: /Moneybird/ })).toBeVisible()
   // Eigenaar default: Journaalposten stays out of the nav (#44).
@@ -91,7 +91,13 @@ test('Geavanceerd in the Sheet profile reveals Journaalposten', async ({ page })
 
 test('a ledger table scrolls inside itself with a sticky first column', async ({ page }) => {
   await anAdministration(page)
-  await enableAdvancedMode(page)
+  // Cookie rather than the Sheet profile: this test is about the ledger scroller,
+  // and Geavanceerd-in-the-Sheet is covered above.
+  await page.context().addCookies([
+    { name: 'klopt_advanced', value: '1', url: 'http://localhost:3399' },
+  ])
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Menu openen' })).toBeEnabled()
 
   await page.getByRole('button', { name: 'Menu openen' }).click()
   await page

@@ -34,24 +34,21 @@ test('daily-work groups come first in the rail', async ({ page }) => {
   await anAdministration(page, 'IA BV')
 
   const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
-  const text = await nav.innerText()
-  const sales = text.indexOf('Verkoop')
-  const purchasing = text.indexOf('Inkoop')
-  const money = text.indexOf('Geld')
-  const books = text.indexOf('Boekhouden')
-  const reports = text.indexOf('Rapporten')
-  const imports = text.indexOf('Importeren')
-  const admin = text.indexOf('Beheer')
+  // Exact headings: "Verkoop" is also a prefix of "Verkoopfacturen". Order is
+  // document order — innerText of the rail drops groups that sit below the
+  // scroll fold.
+  const order = await nav.evaluate((root) =>
+    [...root.querySelectorAll('p')].map((el) => el.textContent?.trim() ?? ''),
+  )
+  const expected = ['Verkoop', 'Inkoop', 'Geld', 'Boekhouden', 'Rapporten', 'Importeren', 'Beheer']
+  let previous = -1
+  for (const label of expected) {
+    const at = order.indexOf(label)
+    expect(at, label).toBeGreaterThan(previous)
+    previous = at
+  }
 
-  expect(sales).toBeGreaterThan(-1)
-  expect(purchasing).toBeGreaterThan(sales)
-  expect(money).toBeGreaterThan(purchasing)
-  expect(books).toBeGreaterThan(money)
-  expect(reports).toBeGreaterThan(books)
-  expect(imports).toBeGreaterThan(reports)
-  expect(admin).toBeGreaterThan(imports)
-
-  await expect(nav.getByRole('link', { name: /Koppelen/ })).toBeVisible()
+  await expect(nav.getByRole('link', { name: /^Koppelen/ })).toBeVisible()
 })
 
 test('Geavanceerd hides Journaalposten and Proefbalans from the nav', async ({ page }) => {

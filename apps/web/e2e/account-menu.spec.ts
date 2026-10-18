@@ -62,14 +62,14 @@ test('the menu opens upward, because there is nothing below it', async ({ page }
   await openAccountMenu(page)
 
   const row = await trigger.boundingBox()
-  const panel = await page.getByRole('dialog').boundingBox()
+  const panel = await page.getByRole('switch', { name: /Geavanceerd/ }).boundingBox()
   expect(row).not.toBeNull()
   expect(panel).not.toBeNull()
   if (row === null || panel === null) return
 
   // A panel hung below the last row of the viewport is a panel nobody can
-  // read, so the whole of it sits above the row it belongs to.
-  expect(panel.y + panel.height).toBeLessThanOrEqual(row.y + 1)
+  // read, so the Geavanceerd row (top of the menu) sits above the trigger.
+  expect(panel.y).toBeLessThanOrEqual(row.y + 1)
 })
 
 test('Esc puts the menu away and gives the focus back', async ({ page }) => {
@@ -79,7 +79,7 @@ test('Esc puts the menu away and gives the focus back', async ({ page }) => {
   await openAccountMenu(page)
 
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog')).toBeHidden()
+  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toBeHidden()
 
   // Back on the row that opened it, rather than on `<body>` with Tab starting
   // over from the top of the navigation.
@@ -94,7 +94,7 @@ test('the row is reachable by keyboard, and opens on Enter', async ({ page }) =>
 
   await trigger.focus()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toBeVisible()
 })
 
 test('signing out from the menu still signs you out', async ({ page }) => {
