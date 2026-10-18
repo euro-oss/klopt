@@ -53,6 +53,7 @@ import {
   handleMoneybirdFxRate,
   handleMoneybirdImportStatus,
   handlePreviewMoneybirdImport,
+  handleRefreshMoneybirdFxRate,
   handleRunMoneybirdImport,
   handleSaveMoneybirdMappings,
 } from '~/api/handlers/moneybird'
@@ -635,6 +636,17 @@ export const moneybirdFxRate = createServerFn({ method: 'GET' })
       moneybirdFxRateQuery,
       data,
       async (query) => (await handleMoneybirdFxRate(await contextFromRequest(), query)).body,
+    ),
+  )
+
+/** Fetch ECB into the cache, then return the rate (never done on GET). */
+export const refreshMoneybirdFxRate = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      moneybirdFxRateQuery,
+      data,
+      async (query) => (await handleRefreshMoneybirdFxRate(await contextFromRequest(), query)).body,
     ),
   )
 

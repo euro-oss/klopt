@@ -1218,6 +1218,8 @@ export const nl = {
   'moneybird.fx.accept': 'Koers bewaren',
   'moneybird.fx.invalidRate': 'Voer een positieve koers in (0,9214 of 0.9214).',
   'moneybird.fx.noEcb': 'Geen ECB-koers binnen 7 dagen — voer zelf een koers in.',
+  'moneybird.fx.refreshFailed':
+    'ECB-koersen ophalen lukte niet. Probeer later opnieuw of voer zelf een koers in.',
   'moneybird.fx.conversion': '{foreign} × {rate} = {functional}',
   'moneybird.fx.entryPreview': 'Resulterende boeking',
   'moneybird.fx.loading': 'ECB-koers ophalen…',
@@ -1227,6 +1229,9 @@ export const nl = {
   'moneybird.side.income': 'Inkomst',
   'moneybird.side.out': 'Af',
   'moneybird.side.in': 'Bij',
+  'moneybird.moneybirdName': 'Moneybird',
+  'moneybird.drillNoDocuments':
+    'Geen documenten die bij dit verschil horen (alles in dit jaar sluit op zichzelf).',
   'moneybird.typePicker': 'Rekeningtype',
   'moneybird.typeSave': 'Type bewaren',
   'moneybird.unbalancedPanel': 'Dit document is niet in balans',
@@ -1286,6 +1291,8 @@ export const nl = {
   'moneybird.openingLabel': 'Openingsbalans {year}',
   'finding.moneybird.unknown_currency':
     'Deze administratie is in {currency} en deze boeken zijn in {functionalCurrency}. Importeren zou elk bedrag omrekenen tegen een koers die niemand heeft gekozen.',
+  'finding.moneybird.unknown_currency_document':
+    '{reference} is in {currency} en deze boeken zijn in {functionalCurrency}. Kies een koers voordat je hem importeert.',
   'finding.moneybird.unmapped_account':
     'Grootboekrekening {name} ({number}) heeft geen bevestigde Klopt-rekening. Map hem voordat je importeert.',
   'finding.moneybird.unmapped_tax_rate':
@@ -1299,13 +1306,12 @@ export const nl = {
   'finding.moneybird.trial_balance_empty':
     'Geen geboekte historie gelezen voor jaar {year}. Dat is geen sluitend leeg jaar.',
   'finding.moneybird.trial_balance_unbalanced':
-    'De Moneybird-historie voor {year} sluit niet: {debit} debet tegen {credit} credit.',
+    'De Moneybird-historie voor {year} sluit niet: bij {debit} / af {credit}.',
   'finding.moneybird.trial_balance_account_missing':
     'Jaar {year} heeft een saldo op {number}, dat niet in het over te zetten schema zit.',
   'finding.moneybird.period_locked':
-    '{reference} is gedateerd in {year}, dat hier op slot zit. Gemeld, niet geboekt.',
-  'finding.moneybird.unbalanced_document':
-    '{reference} sluit niet: {debit} debet tegen {credit} credit.',
+    '{reference} is gedateerd in een afgesloten jaar ({year}). Gemeld, niet geboekt.',
+  'finding.moneybird.unbalanced_document': '{reference} sluit niet: bij {debit} / af {credit}.',
   'finding.moneybird.attachment_without_url':
     'Bijlage {filename} heeft geen download-URL, dus het bestand kan niet worden bewaard.',
   'finding.moneybird.draft_skipped':
@@ -1320,6 +1326,8 @@ export const nl = {
   // Why each finding matters (FindingCard "Waarom dit telt", #41).
   'finding.why.moneybird.unknown_currency':
     'Zonder gekozen koers zou elk bedrag stilzwijgend worden omgerekend. Dat verandert de boeken.',
+  'finding.why.moneybird.unknown_currency_document':
+    'Zonder gekozen koers zou dit document stilzwijgend worden omgerekend. Dat verandert de boeken.',
   'finding.why.moneybird.unmapped_account':
     'Een rekening zonder mapping komt niet in Klopt terecht; boeken erop zou later ontbreken.',
   'finding.why.moneybird.unmapped_tax_rate':

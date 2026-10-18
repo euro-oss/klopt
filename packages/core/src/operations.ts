@@ -1356,6 +1356,16 @@ export const moneybirdOperations: Readonly<Record<string, OperationDefinition>> 
     idempotent: true,
   }),
 
+  refreshFxRate: defineOperation({
+    id: 'moneybird.refreshFxRate',
+    kind: 'write',
+    permission: 'ledger:import',
+    summary:
+      'Fetch ECB daily reference rates into the cache, then return the rate for a Moneybird document.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
   previewImport: defineOperation({
     id: 'moneybird.previewImport',
     kind: 'read',

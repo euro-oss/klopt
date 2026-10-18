@@ -41,6 +41,8 @@ export interface MoneybirdFindingActions {
   /** Absolute Moneybird web URL for a problem path, when one exists. */
   readonly moneybirdHrefFor: (problem: MoneybirdProblem) => string | null
   readonly labels: {
+    /** Formats calendar month `1`…`12` for the confirm-year-start button. */
+    readonly formatMonth?: (month: string) => string
     readonly mapAccount: string
     readonly mapTax: string
     readonly renumberAccount: string
@@ -138,7 +140,10 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
     case 'fiscal_year_start_unknown':
       return {
         type: 'oneClick',
-        label: labels.confirmYearStart.replace('{month}', problem.detail['month'] ?? ''),
+        label: labels.confirmYearStart.replace(
+          '{month}',
+          labels.formatMonth?.(problem.detail['month'] ?? '') ?? problem.detail['month'] ?? '',
+        ),
         onApply: () => actions.onConfirmFiscalYearStart(problem),
       }
     case 'fiscal_year_start_mismatch':

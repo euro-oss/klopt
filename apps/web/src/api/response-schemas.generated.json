@@ -2963,6 +2963,7 @@
                     "xaf.unknown_period",
                     "xaf.unknown_vat_code",
                     "moneybird.unknown_currency",
+                    "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
                     "moneybird.account_number_collision",
@@ -3278,6 +3279,7 @@
                     "xaf.unknown_period",
                     "xaf.unknown_vat_code",
                     "moneybird.unknown_currency",
+                    "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
                     "moneybird.account_number_collision",
@@ -3649,6 +3651,7 @@
                                   "xaf.unknown_period",
                                   "xaf.unknown_vat_code",
                                   "moneybird.unknown_currency",
+                                  "moneybird.unknown_currency_document",
                                   "moneybird.unmapped_account",
                                   "moneybird.unmapped_tax_rate",
                                   "moneybird.account_number_collision",
@@ -4143,6 +4146,7 @@
                             "xaf.unknown_period",
                             "xaf.unknown_vat_code",
                             "moneybird.unknown_currency",
+                            "moneybird.unknown_currency_document",
                             "moneybird.unmapped_account",
                             "moneybird.unmapped_tax_rate",
                             "moneybird.account_number_collision",
@@ -6746,7 +6750,10 @@
             "type": "string"
           },
           "source": {
-            "$ref": "#/components/schemas/FxRateSourceKind"
+            "enum": [
+              "ecb",
+              "override"
+            ]
           },
           "date": {
             "type": "string"
@@ -7554,6 +7561,9 @@
               "country"
             ]
           },
+          "functionalCurrency": {
+            "type": "string"
+          },
           "years": {
             "type": "array",
             "items": {
@@ -7828,6 +7838,59 @@
               ]
             }
           },
+          "yearDocuments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "year": {
+                  "type": "number"
+                },
+                "externalId": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "sales_invoice",
+                    "credit_note",
+                    "purchase_invoice",
+                    "receipt",
+                    "journal",
+                    "bank_mutation"
+                  ]
+                },
+                "reference": {
+                  "type": "string"
+                },
+                "documentDate": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "debit": {
+                  "type": "string"
+                },
+                "credit": {
+                  "type": "string"
+                },
+                "balanced": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "year",
+                "externalId",
+                "kind",
+                "reference",
+                "documentDate",
+                "description",
+                "debit",
+                "credit",
+                "balanced"
+              ]
+            }
+          },
           "reconciliation": {
             "type": "array",
             "items": {
@@ -8007,6 +8070,7 @@
                     "xaf.unknown_period",
                     "xaf.unknown_vat_code",
                     "moneybird.unknown_currency",
+                    "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
                     "moneybird.account_number_collision",
@@ -8132,6 +8196,7 @@
                     "xaf.unknown_period",
                     "xaf.unknown_vat_code",
                     "moneybird.unknown_currency",
+                    "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
                     "moneybird.account_number_collision",
@@ -8173,18 +8238,76 @@
         "required": [
           "requests",
           "administration",
+          "functionalCurrency",
           "years",
           "counts",
           "accounts",
           "taxRates",
           "contacts",
           "pendingFx",
+          "yearDocuments",
           "reconciliation",
           "notImported",
           "excluded",
           "warnings",
           "problems",
           "dryRun"
+        ]
+      }
+    },
+    "moneybird.refreshFxRate": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "documentDate": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "ecb",
+              "override"
+            ]
+          },
+          "date": {
+            "type": "string"
+          },
+          "postingFields": {
+            "type": "object",
+            "properties": {
+              "exchangeRate": {
+                "type": "string"
+              },
+              "exchangeRateSource": {
+                "type": "string"
+              },
+              "exchangeRateColumn": {
+                "type": "string"
+              },
+              "exchangeRateSourceColumn": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "exchangeRate",
+              "exchangeRateSource",
+              "exchangeRateColumn",
+              "exchangeRateSourceColumn"
+            ]
+          }
+        },
+        "required": [
+          "currency",
+          "documentDate",
+          "rate",
+          "source",
+          "date",
+          "postingFields"
         ]
       }
     },
@@ -8972,6 +9095,7 @@
                     "xaf.unknown_period",
                     "xaf.unknown_vat_code",
                     "moneybird.unknown_currency",
+                    "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
                     "moneybird.account_number_collision",
@@ -9272,6 +9396,7 @@
                     "xaf.unknown_period",
                     "xaf.unknown_vat_code",
                     "moneybird.unknown_currency",
+                    "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
                     "moneybird.account_number_collision",
@@ -9519,6 +9644,7 @@
                     "xaf.unknown_period",
                     "xaf.unknown_vat_code",
                     "moneybird.unknown_currency",
+                    "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
                     "moneybird.account_number_collision",
@@ -9905,6 +10031,7 @@
                     "xaf.unknown_period",
                     "xaf.unknown_vat_code",
                     "moneybird.unknown_currency",
+                    "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
                     "moneybird.account_number_collision",
@@ -13146,6 +13273,7 @@
                     "xaf.unknown_period",
                     "xaf.unknown_vat_code",
                     "moneybird.unknown_currency",
+                    "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
                     "moneybird.account_number_collision",
@@ -13743,6 +13871,7 @@
                     "xaf.unknown_period",
                     "xaf.unknown_vat_code",
                     "moneybird.unknown_currency",
+                    "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
                     "moneybird.account_number_collision",

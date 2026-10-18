@@ -23,6 +23,7 @@ export {
 } from './administrations.js'
 export {
   classifyAccount,
+  inferAccountTypeFromRgs,
   contactName,
   parseAttachment,
   parseContact,
@@ -58,6 +59,7 @@ export {
   type MoneybirdImportDecisions,
   type MoneybirdImportOptions,
   type MoneybirdImportPlan,
+  type MoneybirdYearDocument,
   type MoneybirdPlannedAccount,
   type MoneybirdPlannedContact,
   type MoneybirdPlannedDocument,
@@ -109,7 +111,9 @@ export {
   normalizeFxRateInput,
   parseExchangeRateSource,
   previewFxConversion,
+  previewFxEntry,
   type EcbRateRow,
+  type FxEntryPreviewLine,
   type FxPreviewLine,
   type FxRateChoice,
   type FxRateSourceKind,
