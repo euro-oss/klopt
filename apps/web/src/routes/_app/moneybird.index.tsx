@@ -371,9 +371,7 @@ function Moneybird() {
             'code' in refreshed.problem
               ? String((refreshed.problem as { code?: string }).code ?? '')
               : ''
-          applyFail(
-            code === 'conflict' ? t('moneybird.fx.refreshFailed') : t('moneybird.fx.noEcb'),
-          )
+          applyFail(code === 'conflict' ? t('moneybird.fx.refreshFailed') : t('moneybird.fx.noEcb'))
         })
       })
     },

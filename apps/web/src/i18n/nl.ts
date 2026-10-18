@@ -1295,8 +1295,7 @@ export const nl = {
     'Jaar {year} heeft een saldo op {number}, dat niet in het over te zetten schema zit.',
   'finding.moneybird.period_locked':
     '{reference} is gedateerd in een afgesloten jaar ({year}). Gemeld, niet geboekt.',
-  'finding.moneybird.unbalanced_document':
-    '{reference} sluit niet: bij {debit} / af {credit}.',
+  'finding.moneybird.unbalanced_document': '{reference} sluit niet: bij {debit} / af {credit}.',
   'finding.moneybird.attachment_without_url':
     'Bijlage {filename} heeft geen download-URL, dus het bestand kan niet worden bewaard.',
   'finding.moneybird.draft_skipped':

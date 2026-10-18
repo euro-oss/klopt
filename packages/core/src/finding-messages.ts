@@ -151,8 +151,7 @@ export const FINDING_MESSAGES = {
     'Year {year} has a balance on {number}, which is not in the chart being imported.',
   'moneybird.period_locked':
     '{reference} is dated in a closed year ({year}). It is reported rather than posted.',
-  'moneybird.unbalanced_document':
-    '{reference} does not balance: in {debit} / out {credit}.',
+  'moneybird.unbalanced_document': '{reference} does not balance: in {debit} / out {credit}.',
   'moneybird.attachment_without_url':
     'Attachment {filename} has no download URL, so the file cannot be stored.',
   'moneybird.draft_skipped': '{reference} is still {state} in Moneybird and is not imported.',
