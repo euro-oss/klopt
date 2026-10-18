@@ -1,12 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
-import {
-  normalizeFxRateInput,
-  previewFxConversion,
-  type AccountType,
-  type MoneybirdImportDecisions,
-  type MoneybirdProblem,
-} from '@klopt/core'
+import type { AccountType, MoneybirdImportDecisions, MoneybirdProblem } from '@klopt/core'
+import { normalizeFxRateInput, previewFxConversion } from '@klopt/core/moneybird-fx'
 import { PageHeader, Stat } from '~/components/app-shell'
 import {
   FindingsList,

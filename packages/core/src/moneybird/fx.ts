@@ -17,6 +17,9 @@
  * Lookup rule (PM #55): prefer the rate on the document date; otherwise the
  * nearest earlier ECB business day within {@link ECB_MAX_LOOKBACK_DAYS}
  * calendar days. Older cached rows must not be returned labelled ECB.
+ *
+ * Browser-safe: also exported as `@klopt/core/moneybird-fx`. Must stay free of
+ * `node:crypto` / `node:fs` (only pulls ledger currency bigint maths).
  */
 
 import { multiplyByRate } from '../ledger/currency.js'
