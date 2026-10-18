@@ -104,13 +104,14 @@ test('help Nieuw hides Nieuwe journaalpost when Geavanceerd is off', async ({ pa
   const help = page.getByRole('dialog', { name: 'Sneltoetsen' })
   await expect(help).toBeVisible()
 
+  // `exact: true` — otherwise "Nieuw" also matches the "Nieuwe factuur" group.
   const nieuw = help
     .locator('section')
-    .filter({ has: page.getByRole('heading', { name: 'Nieuw' }) })
-  await expect(nieuw.getByRole('heading', { name: 'Nieuw' })).toBeVisible()
+    .filter({ has: page.getByRole('heading', { name: 'Nieuw', exact: true }) })
+  await expect(nieuw.getByRole('heading', { name: 'Nieuw', exact: true })).toBeVisible()
   // Same gate as ⌘K: Eigenaar with Geavanceerd off must not see n j here.
   await expect(nieuw.getByText('Nieuwe journaalpost')).toHaveCount(0)
-  await expect(nieuw.getByText('Nieuwe factuur')).toBeVisible()
+  await expect(nieuw.getByText('Nieuwe factuur', { exact: true })).toBeVisible()
 })
 
 test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) => {
