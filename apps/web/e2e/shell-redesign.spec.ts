@@ -6,6 +6,7 @@ import {
   enableAdvancedMode,
   hydrated,
   openAccountMenu,
+  setAdvancedMode,
   signIn,
   signOut,
   uniqueEmail,
@@ -96,6 +97,22 @@ test('? opens keyboard help and mentions Geavanceerd is unbound', async ({ page 
   await expect(help.getByText(/Geavanceerd heeft bewust geen sneltoets/)).toBeVisible()
 })
 
+test('help Nieuw hides Nieuwe journaalpost when Geavanceerd is off', async ({ page }) => {
+  await anAdministration(page, 'Help Nieuw BV')
+
+  await page.keyboard.press('?')
+  const help = page.getByRole('dialog', { name: 'Sneltoetsen' })
+  await expect(help).toBeVisible()
+
+  const nieuw = help
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Nieuw' }) })
+  await expect(nieuw.getByRole('heading', { name: 'Nieuw' })).toBeVisible()
+  // Same gate as ⌘K: Eigenaar with Geavanceerd off must not see n j here.
+  await expect(nieuw.getByText('Nieuwe journaalpost')).toHaveCount(0)
+  await expect(nieuw.getByText('Nieuwe factuur')).toBeVisible()
+})
+
 test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) => {
   await anAdministration(page, 'Help Volgorde BV')
 
@@ -136,13 +153,7 @@ test('turning Geavanceerd off from the menu hides the advanced nav again', async
   const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
   await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
 
-  await openAccountMenu(page)
-  await page.getByRole('switch', { name: /Geavanceerd/ }).click()
-  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-    'aria-checked',
-    'false',
-  )
-  await page.keyboard.press('Escape')
+  await setAdvancedMode(page, false)
 
   await expect(nav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
   await expect(nav.getByRole('link', { name: /Proefbalans/ })).toHaveCount(0)

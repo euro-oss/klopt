@@ -88,4 +88,27 @@ describe('Geavanceerd session-scoped storage', () => {
     expect(await advancedModeFor(database, a.userId)).toBe(false)
     expect(await advancedModeFor(database, b.userId)).toBe(false)
   })
+
+  it('ignores a client-supplied userId: only the session user row changes', async () => {
+    // Mirrors setAdvancedMode: parse strips userId, then the handler writes
+    // session.user.id. Here session = A; a forged B id in the payload must not
+    // touch B.
+    const { parseAdvancedModeWrite } = await import('../src/lib/advanced-mode.js')
+    const a = await signUp()
+    const b = await signUp()
+
+    const payload = parseAdvancedModeWrite({
+      enabled: true,
+      userId: b.userId,
+    })
+    expect(payload).toEqual({ enabled: true })
+    // No userId property survives into the write.
+    expect('userId' in payload).toBe(false)
+
+    // Session user A — never payload.userId.
+    await setAdvancedModeFor(database, a.userId, payload.enabled)
+
+    expect(await advancedModeFor(database, a.userId)).toBe(true)
+    expect(await advancedModeFor(database, b.userId)).toBeNull()
+  })
 })

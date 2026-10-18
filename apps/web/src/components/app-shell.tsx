@@ -607,7 +607,7 @@ function Profile({
   role: string
 }) {
   const { t } = useT()
-  const { advanced, setAdvanced } = useAdvancedMode()
+  const { advanced, setAdvanced, saveFailed } = useAdvancedMode()
   // A trigger that opens nothing is the failure `select.tsx` describes: this
   // is a Radix popover, so it does nothing at all until React has attached.
   const hydrated = useHydrated()
@@ -699,6 +699,11 @@ function Profile({
               <span className={cn('size-4', advanced ? 'bg-background' : 'bg-muted-foreground')} />
             </span>
           </button>
+          {saveFailed && (
+            <p role="alert" className="text-destructive border-border border-t px-3 py-2 text-xs">
+              {t('shell.advancedSaveFailed')}
+            </p>
+          )}
 
           <div className="border-border space-y-3 border-t px-3 py-3">
             <LanguagePicker />

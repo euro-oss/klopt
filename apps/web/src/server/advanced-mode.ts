@@ -2,6 +2,8 @@ import { createServerFn } from '@tanstack/react-start'
 import {
   ADVANCED_MODE_COOKIE_LEGACY,
   ADVANCED_MODE_COOKIE_PREFIX,
+  AdvancedModeValidationError,
+  parseAdvancedModeWrite,
   readCookieValue,
   resolveAdvancedMode,
   retiredAdvancedModeCookieNames,
@@ -17,6 +19,10 @@ import { getSession } from '~/server/context'
  * A one-shot cookie migrate keeps an explicit #64 choice if the column is
  * still null, then every retired cookie name is cleared so user ids never
  * linger in cookie names.
+ *
+ * TODO(#44): remove `clearRetiredCookies` (and the legacy cookie constants /
+ * migrate path) after 1–2 releases once active clients no longer send
+ * `klopt_advanced` / `klopt_advanced_*`. Do not remove yet.
  */
 
 async function clearRetiredCookies(cookieHeader: string): Promise<void> {
@@ -80,7 +86,19 @@ export const getAdvancedMode = createServerFn({ method: 'GET' })
   })
 
 export const setAdvancedMode = createServerFn({ method: 'POST' })
-  .validator((input: { enabled: boolean }) => input)
+  .validator(async (input: unknown) => {
+    try {
+      return parseAdvancedModeWrite(input)
+    } catch (error: unknown) {
+      if (error instanceof AdvancedModeValidationError) {
+        // Map the validation failure to HTTP 400 (Start defaults thrown errors to 500).
+        const { setResponseStatus } = await import('@tanstack/react-start/server')
+        setResponseStatus(400, 'Bad Request')
+        throw error
+      }
+      throw error
+    }
+  })
   .handler(async ({ data }): Promise<{ enabled: boolean }> => {
     const session = await getSession()
     if (session === null) {
@@ -91,6 +109,7 @@ export const setAdvancedMode = createServerFn({ method: 'POST' })
     const { setAdvancedModeFor } = await import('@klopt/db')
     const { getRequest } = await import('@tanstack/react-start/server')
 
+    // Session user only — never a client-supplied userId (stripped by the validator).
     await setAdvancedModeFor(getDatabase(), session.user.id, data.enabled)
     await clearRetiredCookies(getRequest().headers.get('cookie') ?? '')
 

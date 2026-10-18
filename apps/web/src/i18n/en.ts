@@ -175,6 +175,7 @@ export const en: Record<MessageKey, string> = {
   'shell.advancedToggleOn': 'Turn advanced on',
   'shell.advancedToggleOff': 'Turn advanced off',
   'shell.advancedNoShortcut': 'No shortcut',
+  'shell.advancedSaveFailed': 'Advanced mode could not be saved. The switch was reverted.',
   'shell.brandMark': 'K',
 
   'language.label': 'Language',

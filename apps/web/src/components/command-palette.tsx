@@ -154,15 +154,40 @@ function searchNav(
   return rows
 }
 
-function searchExtras(translate: (key: MessageKey) => string, query: string): readonly Binding[] {
+/**
+ * Palette extras (Nieuw …). `new.entry` is Geavanceerd chrome — hide it when
+ * the mode is off, matching the shell CTA and the `?` help sheet.
+ */
+function searchExtras(
+  translate: (key: MessageKey) => string,
+  query: string,
+  advanced: boolean,
+): readonly Binding[] {
+  const source = advanced
+    ? EXTRA_NAVIGABLE
+    : EXTRA_NAVIGABLE.filter((binding) => binding.id !== 'new.entry')
   const needle = query.trim().toLowerCase()
-  if (needle === '') return EXTRA_NAVIGABLE
-  return EXTRA_NAVIGABLE.filter(
+  if (needle === '') return source
+  return source.filter(
     (binding) =>
       translate(binding.label).toLowerCase().includes(needle) ||
       translate(binding.group).toLowerCase().includes(needle) ||
       (binding.keys ?? '').replace(' ', '').includes(needle),
   )
+}
+
+/** Help rows for a group; Geavanceerd gates `new.entry` like ⌘K. */
+function helpRowsForGroup(group: MessageKey, role: string, advanced: boolean): readonly HelpRow[] {
+  if (group === 'keys.group.goTo') return helpGoToRows(role, advanced)
+  return BINDINGS.filter((binding) => {
+    if (binding.group !== group) return false
+    if (!advanced && binding.id === 'new.entry') return false
+    return true
+  }).map((binding) => ({
+    id: binding.id,
+    labelKey: binding.label,
+    binding,
+  }))
 }
 
 /** One row the cursor can be on: an action, a nav destination, an extra, or a hit. */
@@ -184,7 +209,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
   const [query, setQuery] = useState('')
   const advanced = advancedMode?.advanced ?? false
   const navigation = useMemo(() => searchNav(t, role, advanced, query), [t, role, advanced, query])
-  const extras = useMemo(() => searchExtras(t, query), [t, query])
+  const extras = useMemo(() => searchExtras(t, query, advanced), [t, query, advanced])
 
   const showAdvancedAction = useMemo(() => {
     if (advancedMode === null) return false
@@ -302,12 +327,14 @@ export function CommandPalette({ role = '' }: { role?: string }) {
         setOpen((current) => (current === 'help' ? null : 'help'))
         return
       }
+      // `n j` is Geavanceerd chrome — same gate as ⌘K and the help sheet.
+      if (binding.id === 'new.entry' && !advanced) return
       if (binding.to !== undefined) {
         setOpen(null)
         void navigate({ to: binding.to })
       }
     },
-    [navigate],
+    [navigate, advanced],
   )
 
   const { prefix } = useShortcuts(onTrigger)
@@ -739,34 +766,30 @@ export function CommandPalette({ role = '' }: { role?: string }) {
             ) : (
               <div className="max-h-[70vh] overflow-y-auto p-4">
                 <h2 className="mb-3 text-sm font-semibold">{t('shell.help')}</h2>
-                {GROUPS.map((group) => (
-                  <section key={group} className="mb-4">
-                    <h3 className="text-muted-foreground mb-1 text-xs font-medium">{t(group)}</h3>
-                    <dl className="space-y-1">
-                      {(group === 'keys.group.goTo'
-                        ? // Same order and simple/advanced labels as ⌘K (#64).
-                          helpGoToRows(role, advanced)
-                        : BINDINGS.filter((binding) => binding.group === group).map((binding) => ({
-                            id: binding.id,
-                            labelKey: binding.label,
-                            binding,
-                          }))
-                      ).map((row) => (
-                        <div
-                          key={row.id}
-                          className="flex items-baseline justify-between gap-4 text-sm"
-                        >
-                          <dt>{t(row.labelKey)}</dt>
-                          <dd className="flex shrink-0 items-center gap-1">
-                            {bindingChips(row.binding).map((chip, position) => (
-                              <Keycap key={`${row.id}-${String(position)}`}>{chip}</Keycap>
-                            ))}
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </section>
-                ))}
+                {GROUPS.map((group) => {
+                  const rows = helpRowsForGroup(group, role, advanced)
+                  if (rows.length === 0) return null
+                  return (
+                    <section key={group} className="mb-4">
+                      <h3 className="text-muted-foreground mb-1 text-xs font-medium">{t(group)}</h3>
+                      <dl className="space-y-1">
+                        {rows.map((row) => (
+                          <div
+                            key={row.id}
+                            className="flex items-baseline justify-between gap-4 text-sm"
+                          >
+                            <dt>{t(row.labelKey)}</dt>
+                            <dd className="flex shrink-0 items-center gap-1">
+                              {bindingChips(row.binding).map((chip, position) => (
+                                <Keycap key={`${row.id}-${String(position)}`}>{chip}</Keycap>
+                              ))}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </section>
+                  )
+                })}
                 <p className="text-muted-foreground text-xs">{t('palette.escapeNote')}</p>
                 <p className="text-muted-foreground mt-2 text-xs">{t('palette.advancedNote')}</p>
               </div>

@@ -75,8 +75,28 @@ export async function hydrated(page: Page): Promise<void> {
   ).toBeVisible()
 }
 
-/** Turn Geavanceerd on from the account menu (owner default is off). */
-export async function enableAdvancedMode(page: Page): Promise<void> {
+/**
+ * True when this response is the Geavanceerd save POST finishing.
+ *
+ * TanStack Start serialises the payload; matching on `enabled` keeps us from
+ * racing an unrelated POST (language, theme, entity switch).
+ */
+function isAdvancedModeSaveResponse(response: {
+  request: () => { method: () => string; postData: () => string | null }
+  ok: () => boolean
+}): boolean {
+  if (response.request().method() !== 'POST') return false
+  const body = response.request().postData() ?? ''
+  return body.includes('enabled') && response.ok()
+}
+
+/**
+ * Flip Geavanceerd to the given value from the account menu.
+ *
+ * Always waits for the save POST response before returning, so a later reload
+ * or fresh context sees the stored choice rather than the role default.
+ */
+export async function setAdvancedMode(page: Page, enabled: boolean): Promise<void> {
   // Phone: the profile row lives inside the Sheet, so open that first.
   const openMenu = page.getByRole('button', { name: /Menu openen|Open menu/ })
   if (await openMenu.isVisible().catch(() => false)) {
@@ -88,18 +108,19 @@ export async function enableAdvancedMode(page: Page): Promise<void> {
 
   await openAccountMenu(page)
   const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
-  if ((await toggle.getAttribute('aria-checked')) !== 'true') {
-    // Preference is stored on the server; wait for the write so a later
-    // context (or reload) sees the choice rather than the role default.
-    const persisted = page.waitForResponse(
-      (response) => response.request().method() === 'POST' && response.ok(),
-      { timeout: 15_000 },
-    )
+  const want = enabled ? 'true' : 'false'
+  if ((await toggle.getAttribute('aria-checked')) !== want) {
+    const persisted = page.waitForResponse(isAdvancedModeSaveResponse, { timeout: 15_000 })
     await toggle.click()
     await persisted
   }
-  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await expect(toggle).toHaveAttribute('aria-checked', want)
   await page.keyboard.press('Escape')
+}
+
+/** Turn Geavanceerd on from the account menu (owner default is off). */
+export async function enableAdvancedMode(page: Page): Promise<void> {
+  await setAdvancedMode(page, true)
 }
 
 /** Take a brand-new address all the way to a signed-in session. */
