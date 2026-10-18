@@ -23,6 +23,9 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -145,7 +148,7 @@
   }
 
   .touch-cta-primary:hover:not(:disabled) {
-    background-color: color-mix(in oklab, var(--color-primary) 90%, var(--color-foreground));
+    background-color: color-mix(in oklab, var(--color-primary) 82%, var(--color-background));
   }
 
   .touch-cta-secondary {
@@ -180,63 +183,60 @@
   }
 }
 /**
- * Design tokens (spec 11.3).
+ * Design tokens (spec 11.3) — redesign port, slice 1 (#61 / #57).
+ *
+ * Drop-in from `prototypes/redesign/src/tokens.css`. Every name below is either
+ * a stock shadcn/ui variable or one the app already has (`--status-*`,
+ * `--debit`, …), so `shadcn add` components pick them up without a mapping
+ * layer. New names: `--status-success`, `--status-info`, `--line-strong`, and
+ * the shadcn-style aliases `--success`, `--warning`, `--info`.
  *
  * ## White, black and yellow — and two themes, light first
  *
  * The product palette is three colours. Everything that is not one of them is
- * a mix of the two neutrals, written as a `color-mix` rather than a hex, so
- * that "this is black at a quarter strength over white" is readable in the
- * file instead of being a grey somebody has to look up. Yellow is the accent
- * and nothing else claims that job.
+ * a mix of the two neutrals, written as a `color-mix` rather than a hex.
+ * Yellow `#FFD51E` is the accent/highlight only: current nav or row bar,
+ * active option, step underline, keyboard strip. It never means severity or
+ * error, and it is never the fill of a primary button.
  *
- * The marketing site is a different question and keeps its own purple; the
- * two diverged on colour on purpose, and
- * `DESIGN_TOKENS_FROM_LANDING.md` over there is about the site, not this.
+ * `--primary` is ink: black in light, white in dark.
  *
  * ## Status is not the accent
  *
- * An error is not "look here", it is "this is wrong", so it has a colour of
- * its own — and so does the attention state a bookkeeper reads as "nobody has
- * checked this yet". They are the only hues in the file besides the accent,
- * they are named `--status-*` so nothing borrows them for chrome, and each
- * has a value per theme because a red that works on white is too dark on
- * black.
+ * Four status hues, each far enough from yellow to never be read as it: red
+ * (error / destructive), orange-brown attention (`--warning`), green success,
+ * blue info. Named `--status-*` so nothing borrows them for chrome; each has
+ * a value per theme.
  *
  * ## Both themes, one set of names
  *
- * `:root` is light, because light is the default. `.dark` overrides the
- * handful of tokens that actually differ; everything else — the radius, the
- * ledger semantics — is stated once. What puts the class on the document is
- * `~/server/theme`, resolved on the server so the first paint is already the
- * theme the reader chose.
+ * `:root` is light (default). `.dark` overrides what differs. Theme class comes
+ * from `~/server/theme` so the first paint is already correct.
  *
  * This block used to be written by `shadcn apply --preset`, and the CLI will
  * happily rewrite it again. It must not. Re-run component generation
  * (`shadcn add`) freely; re-run the preset and the palette is gone.
  *
- * Unlayered on purpose, which is how the CLI writes them: unlayered rules beat
- * `@layer base`, so a token defined in both places would silently take the
- * value from here. There is only one place.
+ * Unlayered on purpose: unlayered rules beat `@layer base`.
  */
 :root {
-  /* The three. The only colour literals in this file. */
+  /* The three. The only colour literals besides the status hues. */
   --white: #ffffff;
   --black: #000000;
   --yellow: #ffd51e;
 
-  /*
-    Greys are the two neutrals mixed, never a fourth colour. `surface` is the
-    quiet panel, `line` the edge, `quiet` the secondary text — which is the
-    only one of the three that has to clear 4.5:1, and does.
-  */
   --surface: color-mix(in oklab, var(--black) 4%, var(--white));
-  --line: color-mix(in oklab, var(--black) 25%, var(--white));
+  --line: color-mix(in oklab, var(--black) 18%, var(--white));
+  --line-strong: color-mix(in oklab, var(--black) 40%, var(--white));
   --quiet: color-mix(in oklab, var(--black) 55%, var(--white));
 
-  /* Not chrome: the two states that have to mean something on sight. */
+  /*
+    Four status hues. Attention is orange-brown, not a second yellow.
+  */
   --status-error: oklch(0.52 0.2 27);
-  --status-attention: oklch(0.58 0.13 70);
+  --status-attention: oklch(0.56 0.14 55);
+  --status-success: oklch(0.5 0.12 150);
+  --status-info: oklch(0.5 0.14 255);
 
   color-scheme: light;
 
@@ -246,10 +246,9 @@
   --card-foreground: var(--black);
   --popover: var(--white);
   --popover-foreground: var(--black);
-  --primary: var(--yellow);
-  /* Black on yellow, which is 14.7:1 and the reason the accent can carry a
-     button at all. White on yellow would be 1.4:1. */
-  --primary-foreground: var(--black);
+  /* Primary is ink, not yellow. Yellow stays `--accent` (highlight only). */
+  --primary: var(--black);
+  --primary-foreground: var(--white);
   --secondary: var(--surface);
   --secondary-foreground: var(--black);
   --muted: var(--surface);
@@ -258,17 +257,16 @@
   --accent-foreground: var(--black);
   --destructive: var(--status-error);
   --destructive-foreground: var(--white);
+  --success: var(--status-success);
+  --warning: var(--status-attention);
+  --info: var(--status-info);
   --border: var(--line);
-  --input: var(--line);
+  --input: var(--line-strong);
   /*
-    The focus ring is the one place the accent has to stand down in this
-    theme: yellow on white is 1.4:1, which is a focus indicator nobody can
-    see. Black is unambiguous on a white ground, and in the dark theme the
-    yellow takes the job back.
+    Focus ring: yellow on white is 1.4:1. Black is unambiguous on a white
+    ground; in dark the yellow takes the job back.
   */
   --ring: var(--black);
-  /* Nothing draws a chart yet. When something does, these are the accent and
-     four steps of ink rather than a fourth, fifth and sixth colour. */
   --chart-1: var(--yellow);
   --chart-2: var(--black);
   --chart-3: color-mix(in oklab, var(--black) 70%, var(--white));
@@ -278,8 +276,8 @@
   --radius: 0rem;
   --sidebar: var(--surface);
   --sidebar-foreground: var(--black);
-  --sidebar-primary: var(--yellow);
-  --sidebar-primary-foreground: var(--black);
+  --sidebar-primary: var(--black);
+  --sidebar-primary-foreground: var(--white);
   --sidebar-accent: var(--yellow);
   --sidebar-accent-foreground: var(--black);
   --sidebar-border: var(--line);
@@ -290,8 +288,7 @@
     so they are not green and red — they are simply the foreground. A negative
     amount takes the error colour on top of its minus sign, and
     `unreconciled` — "a human has not looked at this yet" — takes the
-    attention colour. Neither is the accent: a screen where the button, the
-    warning and the error are all yellow says nothing three times.
+    attention colour. Neither is the accent.
   */
   --debit: var(--foreground);
   --credit: var(--foreground);
@@ -301,29 +298,31 @@
 /*---break---
  */
 /**
- * Dark, which is the same three colours with the ink and the paper swapped.
+ * Dark: same three colours with ink and paper swapped.
  *
- * Only what differs is restated. The greys mix the other way, the status
- * colours lift — a red that reads on white is mud on black — and the accent
- * takes the focus ring back, because yellow on black is 14.7:1 and black on
- * black is nothing.
+ * Only what differs is restated. Greys mix the other way, status colours lift,
+ * primary follows ink (white), and the accent takes the focus ring back.
  */
 .dark {
-  --surface: color-mix(in oklab, var(--white) 9%, var(--black));
-  --line: color-mix(in oklab, var(--white) 28%, var(--black));
-  --quiet: color-mix(in oklab, var(--white) 68%, var(--black));
+  --surface: color-mix(in oklab, var(--white) 8%, var(--black));
+  --line: color-mix(in oklab, var(--white) 20%, var(--black));
+  --line-strong: color-mix(in oklab, var(--white) 38%, var(--black));
+  --quiet: color-mix(in oklab, var(--white) 66%, var(--black));
 
   --status-error: oklch(0.7 0.19 25);
-  --status-attention: oklch(0.8 0.15 80);
+  --status-attention: oklch(0.74 0.14 55);
+  --status-success: oklch(0.74 0.15 150);
+  --status-info: oklch(0.72 0.13 255);
 
   color-scheme: dark;
 
   --background: var(--black);
   --foreground: var(--white);
-  --card: var(--surface);
+  --card: var(--black);
   --card-foreground: var(--white);
   --popover: var(--surface);
   --popover-foreground: var(--white);
+  --primary: var(--white);
   --primary-foreground: var(--black);
   --secondary-foreground: var(--white);
   --accent-foreground: var(--black);
@@ -334,5 +333,23 @@
   --chart-4: color-mix(in oklab, var(--white) 45%, var(--black));
   --chart-5: color-mix(in oklab, var(--white) 20%, var(--black));
   --sidebar-foreground: var(--white);
+  --sidebar-primary: var(--white);
+  --sidebar-primary-foreground: var(--black);
   --sidebar-ring: var(--yellow);
+}
+
+/**
+ * Motion on primitives follows the redesign prototype: short, functional, and
+ * off under prefers-reduced-motion. Sheet slide (~200ms) and popover/dialog
+ * pop (~100–160ms) live on the components; this rule is the safety net.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
 }
