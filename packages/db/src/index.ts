@@ -121,6 +121,7 @@ export {
   type MoneybirdConnectionRow,
   MoneybirdConnectionRepository,
 } from './repositories/moneybird.js'
+export { EcbRateRepository } from './repositories/ecb-rates.js'
 export {
   MoneybirdImportRepository,
   withMoneybirdImport,
@@ -213,6 +214,8 @@ export {
   withExactConnectionRead,
   withMoneybirdConnection,
   withMoneybirdConnectionRead,
+  withEcbRates,
+  withEcbRatesRead,
   withInboundSources,
   withInboundSourcesRead,
   withInbox,

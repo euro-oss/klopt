@@ -256,6 +256,7 @@ const migration: ModuleContract = {
     'moneybird_import_runs',
     'moneybird_imported_ids',
     'moneybird_attachments',
+    'ecb_reference_rates',
   ],
   emits: [],
   consumes: [],

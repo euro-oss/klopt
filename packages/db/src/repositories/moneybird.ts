@@ -1,4 +1,4 @@
-import { uuidv7 } from '@klopt/core'
+import { uuidv7, type MoneybirdImportDecisions } from '@klopt/core'
 import { eq } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import { moneybirdConnections } from '../schema/documents.js'
@@ -20,6 +20,7 @@ export interface MoneybirdConnectionRow {
   readonly administrationCurrency: string | null
   readonly accountMappings: Readonly<Record<string, string>>
   readonly taxMappings: Readonly<Record<string, string>>
+  readonly importDecisions: MoneybirdImportDecisions
   readonly connected: boolean
   readonly lastImportAt: string | null
   readonly lastError: string | null
@@ -38,6 +39,72 @@ function asStringMap(value: unknown): Record<string, string> {
   return result
 }
 
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string' && item.trim() !== '')
+}
+
+function asImportDecisions(value: unknown): MoneybirdImportDecisions {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {}
+  const row = value as Record<string, unknown>
+  const exchangeRates: Record<string, { rate: string; source: 'ecb' | 'override'; date: string }> =
+    {}
+  if (typeof row['exchangeRates'] === 'object' && row['exchangeRates'] !== null) {
+    for (const [key, item] of Object.entries(row['exchangeRates'] as Record<string, unknown>)) {
+      if (typeof item !== 'object' || item === null) continue
+      const rate = item as Record<string, unknown>
+      if (
+        typeof rate['rate'] === 'string' &&
+        (rate['source'] === 'ecb' || rate['source'] === 'override') &&
+        typeof rate['date'] === 'string'
+      ) {
+        exchangeRates[key] = {
+          rate: rate['rate'],
+          source: rate['source'],
+          date: rate['date'],
+        }
+      }
+    }
+  }
+  const accountTypeOverrides: Record<
+    string,
+    'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
+  > = {}
+  if (typeof row['accountTypeOverrides'] === 'object' && row['accountTypeOverrides'] !== null) {
+    for (const [key, item] of Object.entries(
+      row['accountTypeOverrides'] as Record<string, unknown>,
+    )) {
+      if (
+        item === 'asset' ||
+        item === 'liability' ||
+        item === 'equity' ||
+        item === 'revenue' ||
+        item === 'expense'
+      ) {
+        accountTypeOverrides[key] = item
+      }
+    }
+  }
+  const decisions: MoneybirdImportDecisions = {
+    acknowledgedEmptyYears: asStringArray(row['acknowledgedEmptyYears']),
+    excludedExternalIds: asStringArray(row['excludedExternalIds']),
+    excludedLockedYears: asStringArray(row['excludedLockedYears']),
+    contactNumberOverrides: asStringMap(row['contactNumberOverrides']),
+    accountTypeOverrides,
+    exchangeRates,
+    deferredAttachmentIds: asStringArray(row['deferredAttachmentIds']),
+  }
+  return {
+    ...decisions,
+    ...(row['confirmedCurrencyIsFunctional'] === true
+      ? { confirmedCurrencyIsFunctional: true as const }
+      : {}),
+    ...(row['confirmedFiscalYearStart'] === true
+      ? { confirmedFiscalYearStart: true as const }
+      : {}),
+  }
+}
+
 export class MoneybirdConnectionRepository {
   constructor(private readonly tx: Transaction) {}
 
@@ -52,6 +119,7 @@ export class MoneybirdConnectionRepository {
         administrationCurrency: moneybirdConnections.administrationCurrency,
         accountMappings: moneybirdConnections.accountMappings,
         taxMappings: moneybirdConnections.taxMappings,
+        importDecisions: moneybirdConnections.importDecisions,
         lastImportAt: moneybirdConnections.lastImportAt,
         lastError: moneybirdConnections.lastError,
       })
@@ -64,6 +132,7 @@ export class MoneybirdConnectionRepository {
       ...row,
       accountMappings: asStringMap(row.accountMappings),
       taxMappings: asStringMap(row.taxMappings),
+      importDecisions: asImportDecisions(row.importDecisions),
       connected: true,
       lastImportAt: row.lastImportAt?.toISOString() ?? null,
     }
@@ -137,12 +206,29 @@ export class MoneybirdConnectionRepository {
     readonly entityId: string
     readonly accountMappings: Readonly<Record<string, string>>
     readonly taxMappings: Readonly<Record<string, string>>
+    readonly importDecisions?: MoneybirdImportDecisions
   }): Promise<void> {
     await this.tx
       .update(moneybirdConnections)
       .set({
         accountMappings: request.accountMappings,
         taxMappings: request.taxMappings,
+        ...(request.importDecisions === undefined
+          ? {}
+          : { importDecisions: request.importDecisions }),
+        updatedAt: new Date(),
+      })
+      .where(eq(moneybirdConnections.entityId, request.entityId))
+  }
+
+  async saveImportDecisions(request: {
+    readonly entityId: string
+    readonly importDecisions: MoneybirdImportDecisions
+  }): Promise<void> {
+    await this.tx
+      .update(moneybirdConnections)
+      .set({
+        importDecisions: request.importDecisions,
         updatedAt: new Date(),
       })
       .where(eq(moneybirdConnections.entityId, request.entityId))

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  mayClaimReconciled,
   planMoneybirdImport,
   parseAdministration,
   type MoneybirdImportOptions,
@@ -181,5 +182,220 @@ describe('the reconciliation', () => {
     expect(plan.warnings.map((warning) => warning.code)).toContain('resource_unreadable')
     expect(plan.reconciliation.every((year) => year.source === 'unreadable')).toBe(true)
     expect(plan.reconciliation.every((year) => year.balanced === null)).toBe(true)
+  })
+
+  it('keeps an acknowledged empty year as empty, never reconciled', () => {
+    // A draft sales invoice still contributes a year via documents, but no
+    // journal entry — so reconciliation has a real empty row (not []).
+    const base = snapshot()
+    const draft = { ...base.salesInvoices[0]!, state: 'draft' }
+    const plan = planMoneybirdImport(
+      snapshot({
+        salesInvoices: [draft],
+        purchaseInvoices: [],
+        receipts: [],
+        financialMutations: [],
+        journalDocuments: [],
+        generalDocuments: [],
+        financialAccounts: [],
+      }),
+      options({
+        decisions: { acknowledgedEmptyYears: ['2026'] },
+      }),
+    )
+    expect(plan.warnings.map((warning) => warning.code)).not.toContain('trial_balance_empty')
+    expect(plan.reconciliation).toHaveLength(1)
+    expect(plan.reconciliation[0]).toMatchObject({
+      year: 2026,
+      source: 'empty',
+      balanced: null,
+    })
+    expect(mayClaimReconciled('empty', plan.reconciliation[0]!.balanced)).toBe(false)
+  })
+})
+
+describe('finding fixes on the plan', () => {
+  it('puts the ledger name in unmapped_account detail, not the raw Moneybird id', () => {
+    const base = snapshot()
+    const emptied = base.ledgerAccounts.map((account) =>
+      account.number === '8000' ? { ...account, number: '' } : account,
+    )
+    const omzetId = emptied.find((account) => account.name === 'Omzet')!.id
+    const plan = planMoneybirdImport(
+      snapshot({
+        ledgerAccounts: emptied,
+        salesInvoices: [
+          {
+            ...base.salesInvoices[0]!,
+            details: base.salesInvoices[0]!.details.map((detail) => ({
+              ...detail,
+              ledgerAccountId: omzetId,
+            })),
+          },
+        ],
+      }),
+      options(),
+    )
+    const unmapped = plan.problems.filter((item) => item.code === 'unmapped_account')
+    expect(unmapped.length).toBeGreaterThan(0)
+    for (const item of unmapped) {
+      expect(item.detail['name']).toBe('Omzet')
+      expect(item.detail['name']).not.toBe(item.detail['moneybirdId'])
+    }
+  })
+
+  it('lists excluded documents under excluded, not as problems', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      base,
+      options({
+        lockedYears: ['2026'],
+        decisions: { excludedLockedYears: ['2026'] },
+      }),
+    )
+    expect(plan.problems.map((item) => item.code)).not.toContain('period_locked')
+    expect(plan.excluded).toContain('period_locked:2026')
+    expect(plan.excluded).toContain('sales_invoice:301')
+  })
+
+  it('excludes a single foreign document while others still post', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      base,
+      options({
+        decisions: { excludedExternalIds: ['sales_invoice:301'] },
+      }),
+    )
+    expect(plan.excluded).toContain('sales_invoice:301')
+    expect(plan.entries.every((entry) => entry.externalId !== 'sales_invoice:301')).toBe(true)
+    expect(plan.entries.some((entry) => entry.externalId.startsWith('purchase_invoice:'))).toBe(
+      true,
+    )
+  })
+
+  it('applies a contact renumber override', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      base,
+      options({
+        existingContactNumbers: ['1001'],
+        decisions: { contactNumberOverrides: { '100': '1002' } },
+      }),
+    )
+    const contact = plan.contacts.find((item) => item.moneybirdId === '100')
+    expect(contact?.number).toBe('1002')
+    expect(plan.problems.map((item) => item.code)).not.toContain('contact_number_collision')
+  })
+
+  it('applies an account type override for derived types', () => {
+    const base = snapshot()
+    const omzetId = base.ledgerAccounts.find((account) => account.name === 'Omzet')!.id
+    const withoutOverride = planMoneybirdImport(
+      {
+        ...base,
+        ledgerAccounts: base.ledgerAccounts.map((account) =>
+          account.id === omzetId ? { ...account, accountType: 'something_unknown' } : account,
+        ),
+      },
+      options(),
+    )
+    expect(withoutOverride.warnings.map((item) => item.code)).toContain('derived_account_type')
+
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        ledgerAccounts: base.ledgerAccounts.map((account) =>
+          account.id === omzetId ? { ...account, accountType: 'something_unknown' } : account,
+        ),
+      },
+      options({
+        decisions: { accountTypeOverrides: { [omzetId]: 'revenue' } },
+      }),
+    )
+    const omzet = plan.accounts.find((account) => account.name === 'Omzet')
+    expect(omzet?.type).toBe('revenue')
+    expect(plan.warnings.map((item) => item.code)).not.toContain('derived_account_type')
+  })
+
+  it('defers an attachment without a URL after acknowledgement', () => {
+    const base = snapshot()
+    const invoice = {
+      ...base.salesInvoices[0]!,
+      attachments: [
+        {
+          ...base.salesInvoices[0]!.attachments[0]!,
+          downloadUrl: null,
+        },
+      ],
+    }
+    const attachmentId = invoice.attachments[0]!.id
+    const blocked = planMoneybirdImport(snapshot({ salesInvoices: [invoice] }), options())
+    expect(blocked.warnings.map((item) => item.code)).toContain('attachment_without_url')
+
+    const deferred = planMoneybirdImport(
+      snapshot({ salesInvoices: [invoice] }),
+      options({ decisions: { deferredAttachmentIds: [attachmentId] } }),
+    )
+    expect(deferred.warnings.map((item) => item.code)).not.toContain('attachment_without_url')
+  })
+
+  it('blocks a foreign-currency document until a rate is chosen', () => {
+    const base = snapshot()
+    const invoice = { ...base.salesInvoices[0]!, currency: 'USD' }
+    const plan = planMoneybirdImport(snapshot({ salesInvoices: [invoice] }), options())
+    expect(plan.problems.map((item) => item.code)).toContain('unknown_currency')
+    expect(plan.entries.find((item) => item.externalId === 'sales_invoice:301')).toBeUndefined()
+    expect(plan.pendingFx.some((item) => item.externalId === 'sales_invoice:301')).toBe(true)
+  })
+
+  it('applies a confirmed FX rate and stores source+date on the lines', () => {
+    const base = snapshot()
+    const invoice = { ...base.salesInvoices[0]!, currency: 'USD' }
+    const plan = planMoneybirdImport(
+      snapshot({ salesInvoices: [invoice] }),
+      options({
+        decisions: {
+          exchangeRates: {
+            'sales_invoice:301': { rate: '0.9214', source: 'ecb', date: '2026-10-16' },
+          },
+        },
+      }),
+    )
+    const entry = plan.entries.find((item) => item.externalId === 'sales_invoice:301')
+    expect(entry).toBeDefined()
+    expect(entry!.lines.every((line) => line.exchangeRate === '0.9214')).toBe(true)
+    expect(entry!.lines.every((line) => line.exchangeRateSource === 'ecb:2026-10-16')).toBe(true)
+    expect(plan.problems.map((item) => item.code)).not.toContain('unknown_currency')
+    expect(plan.pendingFx).toEqual([])
+  })
+
+  it('silences the missing-currency warning after one-click EUR confirmation', () => {
+    const plan = planMoneybirdImport(
+      snapshot({
+        administration: {
+          ...snapshot().administration,
+          currency: null,
+        },
+      }),
+      options({ decisions: { confirmedCurrencyIsFunctional: true } }),
+    )
+    expect(
+      plan.warnings.filter(
+        (item) => item.code === 'unknown_currency' && item.path === 'administration.currency',
+      ),
+    ).toEqual([])
+  })
+
+  it('silences fiscal_year_start_unknown after confirmation', () => {
+    const plan = planMoneybirdImport(
+      snapshot({
+        administration: {
+          ...snapshot().administration,
+          fiscalYearStartMonth: null,
+        },
+      }),
+      options({ decisions: { confirmedFiscalYearStart: true } }),
+    )
+    expect(plan.warnings.map((item) => item.code)).not.toContain('fiscal_year_start_unknown')
   })
 })

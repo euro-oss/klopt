@@ -50,6 +50,7 @@ import {
   handleDisconnectMoneybird,
   handleGetMoneybirdConnection,
   handleListMoneybirdAdministrations,
+  handleMoneybirdFxRate,
   handleMoneybirdImportStatus,
   handlePreviewMoneybirdImport,
   handleRunMoneybirdImport,
@@ -68,6 +69,7 @@ import {
   completeExactBody,
   connectExactBody,
   connectMoneybirdBody,
+  moneybirdFxRateQuery,
   saveMoneybirdMappingsBody,
   deleteDocumentsBody,
   exactPreviewQuery,
@@ -623,6 +625,16 @@ export const saveMoneybirdMappings = createServerFn({ method: 'POST' })
             body,
           )
         ).body,
+    ),
+  )
+
+export const moneybirdFxRate = createServerFn({ method: 'GET' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      moneybirdFxRateQuery,
+      data,
+      async (query) => (await handleMoneybirdFxRate(await contextFromRequest(), query)).body,
     ),
   )
 

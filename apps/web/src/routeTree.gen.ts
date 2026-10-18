@@ -107,6 +107,7 @@ import { Route as ApiV1MembersMemberIdRouteImport } from './routes/api/v1/member
 import { Route as ApiV1MoneybirdAdministrationRouteImport } from './routes/api/v1/moneybird.administration'
 import { Route as ApiV1MoneybirdAdministrationsRouteImport } from './routes/api/v1/moneybird.administrations'
 import { Route as ApiV1MoneybirdConnectionRouteImport } from './routes/api/v1/moneybird.connection'
+import { Route as ApiV1MoneybirdFxRateRouteImport } from './routes/api/v1/moneybird.fx-rate'
 import { Route as ApiV1MoneybirdImportRouteImport } from './routes/api/v1/moneybird.import'
 import { Route as ApiV1MoneybirdMappingsRouteImport } from './routes/api/v1/moneybird.mappings'
 import { Route as ApiV1OauthClientsClientIdRouteImport } from './routes/api/v1/oauth-clients.$clientId'
@@ -666,6 +667,11 @@ const ApiV1MoneybirdConnectionRoute =
     path: '/api/v1/moneybird/connection',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1MoneybirdFxRateRoute = ApiV1MoneybirdFxRateRouteImport.update({
+  id: '/api/v1/moneybird/fx-rate',
+  path: '/api/v1/moneybird/fx-rate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1MoneybirdImportRoute = ApiV1MoneybirdImportRouteImport.update({
   id: '/api/v1/moneybird/import',
   path: '/api/v1/moneybird/import',
@@ -1087,6 +1093,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/moneybird/administration': typeof ApiV1MoneybirdAdministrationRoute
   '/api/v1/moneybird/administrations': typeof ApiV1MoneybirdAdministrationsRoute
   '/api/v1/moneybird/connection': typeof ApiV1MoneybirdConnectionRoute
+  '/api/v1/moneybird/fx-rate': typeof ApiV1MoneybirdFxRateRoute
   '/api/v1/moneybird/import': typeof ApiV1MoneybirdImportRouteWithChildren
   '/api/v1/moneybird/mappings': typeof ApiV1MoneybirdMappingsRoute
   '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
@@ -1243,6 +1250,7 @@ export interface FileRoutesByTo {
   '/api/v1/moneybird/administration': typeof ApiV1MoneybirdAdministrationRoute
   '/api/v1/moneybird/administrations': typeof ApiV1MoneybirdAdministrationsRoute
   '/api/v1/moneybird/connection': typeof ApiV1MoneybirdConnectionRoute
+  '/api/v1/moneybird/fx-rate': typeof ApiV1MoneybirdFxRateRoute
   '/api/v1/moneybird/import': typeof ApiV1MoneybirdImportRouteWithChildren
   '/api/v1/moneybird/mappings': typeof ApiV1MoneybirdMappingsRoute
   '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
@@ -1401,6 +1409,7 @@ export interface FileRoutesById {
   '/api/v1/moneybird/administration': typeof ApiV1MoneybirdAdministrationRoute
   '/api/v1/moneybird/administrations': typeof ApiV1MoneybirdAdministrationsRoute
   '/api/v1/moneybird/connection': typeof ApiV1MoneybirdConnectionRoute
+  '/api/v1/moneybird/fx-rate': typeof ApiV1MoneybirdFxRateRoute
   '/api/v1/moneybird/import': typeof ApiV1MoneybirdImportRouteWithChildren
   '/api/v1/moneybird/mappings': typeof ApiV1MoneybirdMappingsRoute
   '/api/v1/oauth-clients/$clientId': typeof ApiV1OauthClientsClientIdRoute
@@ -1559,6 +1568,7 @@ export interface FileRouteTypes {
     | '/api/v1/moneybird/administration'
     | '/api/v1/moneybird/administrations'
     | '/api/v1/moneybird/connection'
+    | '/api/v1/moneybird/fx-rate'
     | '/api/v1/moneybird/import'
     | '/api/v1/moneybird/mappings'
     | '/api/v1/oauth-clients/$clientId'
@@ -1715,6 +1725,7 @@ export interface FileRouteTypes {
     | '/api/v1/moneybird/administration'
     | '/api/v1/moneybird/administrations'
     | '/api/v1/moneybird/connection'
+    | '/api/v1/moneybird/fx-rate'
     | '/api/v1/moneybird/import'
     | '/api/v1/moneybird/mappings'
     | '/api/v1/oauth-clients/$clientId'
@@ -1872,6 +1883,7 @@ export interface FileRouteTypes {
     | '/api/v1/moneybird/administration'
     | '/api/v1/moneybird/administrations'
     | '/api/v1/moneybird/connection'
+    | '/api/v1/moneybird/fx-rate'
     | '/api/v1/moneybird/import'
     | '/api/v1/moneybird/mappings'
     | '/api/v1/oauth-clients/$clientId'
@@ -1983,6 +1995,7 @@ export interface RootRouteChildren {
   ApiV1MoneybirdAdministrationRoute: typeof ApiV1MoneybirdAdministrationRoute
   ApiV1MoneybirdAdministrationsRoute: typeof ApiV1MoneybirdAdministrationsRoute
   ApiV1MoneybirdConnectionRoute: typeof ApiV1MoneybirdConnectionRoute
+  ApiV1MoneybirdFxRateRoute: typeof ApiV1MoneybirdFxRateRoute
   ApiV1MoneybirdImportRoute: typeof ApiV1MoneybirdImportRouteWithChildren
   ApiV1MoneybirdMappingsRoute: typeof ApiV1MoneybirdMappingsRoute
   ApiV1OauthClientsClientIdRoute: typeof ApiV1OauthClientsClientIdRoute
@@ -2690,6 +2703,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/moneybird/connection'
       fullPath: '/api/v1/moneybird/connection'
       preLoaderRoute: typeof ApiV1MoneybirdConnectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/moneybird/fx-rate': {
+      id: '/api/v1/moneybird/fx-rate'
+      path: '/api/v1/moneybird/fx-rate'
+      fullPath: '/api/v1/moneybird/fx-rate'
+      preLoaderRoute: typeof ApiV1MoneybirdFxRateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/moneybird/import': {
@@ -3638,6 +3658,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1MoneybirdAdministrationRoute: ApiV1MoneybirdAdministrationRoute,
   ApiV1MoneybirdAdministrationsRoute: ApiV1MoneybirdAdministrationsRoute,
   ApiV1MoneybirdConnectionRoute: ApiV1MoneybirdConnectionRoute,
+  ApiV1MoneybirdFxRateRoute: ApiV1MoneybirdFxRateRoute,
   ApiV1MoneybirdImportRoute: ApiV1MoneybirdImportRouteWithChildren,
   ApiV1MoneybirdMappingsRoute: ApiV1MoneybirdMappingsRoute,
   ApiV1OauthClientsClientIdRoute: ApiV1OauthClientsClientIdRoute,
