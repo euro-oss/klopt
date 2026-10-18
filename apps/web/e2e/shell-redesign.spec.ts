@@ -228,11 +228,15 @@ test('Moneybird Geavanceerd checkbox shares the shell toggle', async ({ page }) 
 
   await page.goto('/moneybird')
   await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
+  // Full navigation remounts the tree; click before hydration toggles the DOM
+  // without React onChange, so the shell switch stays off.
+  await hydrated(page)
 
   const moneybird = page.getByRole('checkbox', { name: /Geavanceerd|Advanced/ })
   await expect(moneybird).not.toBeChecked()
 
   await moneybird.check()
+  await expect(page.getByRole('region', { name: 'Profiel' })).toContainText(/Geavanceerd aan/)
   await openAccountMenu(page)
   await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
     'aria-checked',

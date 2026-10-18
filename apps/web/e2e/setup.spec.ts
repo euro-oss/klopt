@@ -43,7 +43,7 @@ test('a new user signs in, sets up an administration and lands in it', async ({ 
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     // The picker is on the new administration, not on whichever one sorts
     // first: the session was pointed at it as part of creating it.
-    await expect(page.getByRole('combobox', { name: /Administratie/ })).toHaveText(
+    await expect(page.getByRole('button', { name: /Administratie en boekjaar/ })).toContainText(
       'Speelgoedwinkel De Tol',
     )
     // Which role you hold went behind the account menu with the rest of the
@@ -51,7 +51,7 @@ test('a new user signs in, sets up an administration and lands in it', async ({ 
     // rail at all times.
     await openAccountMenu(page)
     // Trigger summary and menu both show the role once Geavanceerd lives there.
-    await expect(page.getByText(/^rol: owner/).first()).toBeVisible()
+    await expect(page.getByText(/Eigenaar · Geavanceerd uit/).first()).toBeVisible()
     await page.keyboard.press('Escape')
 
     const userId = await findUserIdByEmail(database, email)

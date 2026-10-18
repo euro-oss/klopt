@@ -595,8 +595,8 @@ test('the postvak is worked with the same keys as everything else', async ({ pag
   // the bottom of each pane.
   const panel = page.getByRole('complementary', { name: 'Sneltoetsen' })
   await expect(panel).toContainText('Concept maken')
-  await expect(panel.getByText('A', { exact: true })).toBeVisible()
-  await expect(panel.getByText('S', { exact: true })).toBeVisible()
+  await expect(panel.getByText('a', { exact: true })).toBeVisible()
+  await expect(panel.getByText('s', { exact: true })).toBeVisible()
   // The same key, twice over: once in the corner panel and once in the strip
   // under the list it moves.
   await expect(page.getByText('Volgend stuk')).toHaveCount(2)

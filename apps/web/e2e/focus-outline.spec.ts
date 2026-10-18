@@ -78,5 +78,12 @@ for (const theme of ['light', 'dark'] as const) {
       })
       expect(border, `aria-invalid border (${destructive})`).toBe(expected)
     })
+
+    test('shell-style trigger shows a 2px solid offset outline (no outline-none)', async ({
+      page,
+    }) => {
+      await page.getByTestId('lab-shell-trigger').focus()
+      await assertFocusOutline(page, 'lab-shell-trigger', '2px')
+    })
   })
 }

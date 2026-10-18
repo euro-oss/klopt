@@ -22,7 +22,7 @@ describe('Alpha 5 density and dark mode', () => {
   it('keeps main inset and page headers tight', () => {
     const shell = read('components/app-shell.tsx')
     // Phone keeps p-4; desktop gets the redesign's roomier px/py (#57).
-    expect(shell).toContain('min-w-0 flex-1 p-4 outline-none md:p-8')
+    expect(shell).toContain('min-w-0 flex-1 scroll-mt-12 p-4 outline-none md:p-8')
     expect(shell).toContain('mb-4 flex items-start justify-between gap-4')
     expect(shell).toContain('text-xl font-semibold tracking-tight')
     expect(shell).not.toContain('focus:rounded')
@@ -30,20 +30,28 @@ describe('Alpha 5 density and dark mode', () => {
 
   it('keeps the command palette scrim and panel readable in both themes', () => {
     const palette = read('components/command-palette.tsx')
-    expect(palette).toContain('bg-foreground/30')
+    // Shared --overlay token with Sheet (not foreground/30, not black/20).
+    expect(palette).toContain('bg-overlay')
+    expect(palette).not.toContain('bg-foreground/30')
     expect(palette).not.toContain('bg-black/30')
     expect(palette).toContain('bg-popover')
     // Cursor must not be bg-muted on bg-popover — invisible in Donker.
     // Selected chrome (keycaps, muted prefixes) follows accent-foreground.
     expect(palette).toContain('bg-accent text-accent-foreground')
-    expect(palette).toContain('!border-black !text-black')
-    expect(palette).toContain("'text-black'")
+    expect(palette).toContain('!border-accent-foreground !text-accent-foreground')
+    expect(palette).toContain("'text-accent-foreground'")
+    expect(palette).not.toContain('text-black')
     expect(palette).not.toMatch(/index === cursor && 'bg-muted'/)
   })
 
-  it('marks the keyboard with --ring, not yellow type or a primary hairline', () => {
-    expect(read('components/ui/keycap.tsx')).toContain('border-ring')
-    expect(read('components/ui/keycap.tsx')).not.toContain('border-primary')
+  it('marks the keyboard with prototype keycaps, not yellow ring type', () => {
+    const keycap = read('components/ui/keycap.tsx')
+    expect(keycap).toContain('border-border')
+    expect(keycap).toContain('border-b-2')
+    expect(keycap).toContain('text-muted-foreground')
+    expect(keycap).toContain('text-[11px]')
+    expect(keycap).not.toContain('border-ring')
+    expect(keycap).not.toContain('border-primary')
     expect(read('components/ui/button.tsx')).toMatch(/link:\s*'text-foreground/)
     expect(read('components/finance/ledger-table.tsx')).toContain('outline-ring')
     expect(read('components/finance/ledger-table.tsx')).not.toContain('outline-primary')

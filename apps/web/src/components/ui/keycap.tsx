@@ -7,15 +7,9 @@ import { cn } from '~/lib/utils'
 /**
  * The keyboard, drawn on the screen it works on.
  *
- * It used to be visible in two places: the `?` sheet, which you have to know
- * about, and a hint in the sidebar revealed on hover, which a keyboard user
- * never triggers. The Alpha 4 boards put it in two more, and both are here: a
- * strip along the bottom of the pane the keys work in, and a panel in the corner
- * listing the screen's whole keyboard.
- *
- * Ring outline, square, no fill and no shadow: `--ring` marks "this is the
- * keyboard" the way it marks the cursor, and an outline says "key" without
- * competing with the row or the figure beside it.
+ * Printed keycaps match the #57 prototype: grey border, thicker bottom edge,
+ * muted 11px type. Letter chords stay lowercase (`g d`); named keys (`Esc`,
+ * `Space`) keep their conventional capitals.
  *
  * Every one of these takes binding **ids**. A screen cannot print a key it has
  * not registered, a key that changes in the registry changes wherever it is
@@ -33,7 +27,7 @@ export function Keycap({
   return (
     <kbd
       className={cn(
-        'border-ring text-foreground inline-flex min-w-6 items-center justify-center border px-1.5 py-0.5 text-[0.625rem] font-medium tracking-wider tabular',
+        'border-border bg-background text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center border border-b-2 px-1.5 text-[11px] font-medium tabular',
         className,
       )}
     >
@@ -117,7 +111,7 @@ export function ShortcutPanel({ ids }: { readonly ids: readonly string[] }) {
   return (
     <aside
       aria-label={t('shortcuts.title')}
-      className="bg-background border-border fixed top-24 right-6 z-30 hidden max-w-64 border px-3 py-2 xl:block"
+      className="bg-background border-border pointer-events-none fixed top-24 right-6 z-30 hidden max-w-64 border px-3 py-2 xl:block"
     >
       <p className="text-muted-foreground mb-1.5 text-[0.625rem] font-semibold tracking-widest uppercase">
         {t('shortcuts.title')}

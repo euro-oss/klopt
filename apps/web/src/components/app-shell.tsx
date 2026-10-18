@@ -1,5 +1,12 @@
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
-import { RiArrowRightSLine, RiMenuLine, RiSearchLine } from '@remixicon/react'
+import {
+  RiArrowDownSLine,
+  RiArrowRightSLine,
+  RiMenuLine,
+  RiMoonLine,
+  RiSearchLine,
+  RiSunLine,
+} from '@remixicon/react'
 import { Button } from '~/components/ui/button'
 import { Keycap } from '~/components/ui/keycap'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
@@ -21,11 +28,15 @@ import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
 import { formatDate } from '~/lib/format'
 import type { FiscalYearOption, FiscalYearScope } from '~/lib/fiscal-year'
-import { MAY_EXPORT_AUDIT_FILE, MAY_OPEN_YEAR } from '~/lib/roles'
 import { DEFAULT_THEME_PREFERENCE, type ThemePreference } from '~/lib/theme'
 import { setTheme } from '~/server/theme'
-import { BINDINGS_BY_ID, bindingChips } from '~/lib/keyboard'
+import { BINDINGS_BY_ID, bindingChips, isApple } from '~/lib/keyboard'
+import { NAVIGATION, isNavActive, navLabelKey, pageTitleKey, type NavGroup } from '~/lib/shell-nav'
 import { CommandPalette } from './command-palette'
+
+/** #63 focus ring: solid outline, never outline-none (Tailwind 4 trap). */
+const FOCUS_RING =
+  'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 /**
  * The frame every screen sits in.
@@ -36,6 +47,9 @@ import { CommandPalette } from './command-palette'
  * sidebar from M0 and listened for by nothing until now, which is the worse
  * half of the same problem: a shortcut shown and not implemented is a promise
  * the application breaks the first time somebody believes it.
+ *
+ * Phone versus desktop chrome is pure CSS (`md:hidden` / `hidden md:flex`) so
+ * the first paint on a phone is never the desktop rail (#64 design review).
  */
 
 /**
@@ -62,170 +76,7 @@ function useFocusOnRoute(path: string): React.RefObject<HTMLElement | null> {
   return main
 }
 
-/**
- * The sidebar, in groups.
- *
- * Daily work first (#61 slice 2 / #57): Verkoop, Inkoop, Geld, then
- * Boekhouden, Rapporten, Importeren, Beheer. Dashboard sits above the groups,
- * ungrouped, because it is the way back.
- *
- * `advancedOnly` items (Journaalposten, Proefbalans) leave the nav when
- * Geavanceerd is off (#44) but stay in ⌘K. `advancedKey` swaps the plain-language
- * label for the ledger term when Geavanceerd is on.
- *
- * `roles` marks a destination not everybody may open, so the nav does not
- * offer a screen that answers 403. A group whose every item is filtered out
- * disappears with them, header and all.
- */
-interface NavItem {
-  readonly to: string
-  readonly key: MessageKey
-  /** Label when Geavanceerd is on; `key` is the simple-mode word. */
-  readonly advancedKey?: MessageKey
-  readonly binding?: string
-  readonly roles?: readonly string[]
-  /** Hidden from the nav when Geavanceerd is off; still in ⌘K. */
-  readonly advancedOnly?: boolean
-}
-
-interface NavGroup {
-  /** Absent for the opening group, which needs no heading to be understood. */
-  readonly key?: MessageKey
-  readonly items: readonly NavItem[]
-}
-
-const NAVIGATION: readonly NavGroup[] = [
-  { items: [{ to: '/', key: 'nav.dashboard', binding: 'go.dashboard' }] },
-  {
-    key: 'nav.group.sales',
-    items: [
-      { to: '/invoices', key: 'nav.invoices', binding: 'go.invoices' },
-      { to: '/contacts', key: 'nav.contacts', binding: 'go.contacts' },
-      { to: '/dunning', key: 'nav.dunning', binding: 'go.dunning' },
-    ],
-  },
-  {
-    key: 'nav.group.purchasing',
-    items: [
-      { to: '/inbox', key: 'nav.inbox', binding: 'go.inbox' },
-      { to: '/purchases', key: 'nav.purchases', binding: 'go.purchases' },
-    ],
-  },
-  {
-    key: 'nav.group.money',
-    items: [
-      { to: '/bank', key: 'nav.bank', binding: 'go.bank' },
-      { to: '/bank/match', key: 'nav.match', binding: 'go.match' },
-      { to: '/payments', key: 'nav.payments', binding: 'go.payments' },
-    ],
-  },
-  {
-    key: 'nav.group.books',
-    items: [
-      { to: '/vat', key: 'nav.vat', binding: 'go.vat' },
-      {
-        to: '/accounts',
-        key: 'nav.categories',
-        advancedKey: 'nav.accounts',
-        binding: 'go.accounts',
-      },
-      { to: '/entries', key: 'nav.entries', binding: 'go.journal', advancedOnly: true },
-    ],
-  },
-  {
-    key: 'nav.group.reports',
-    items: [
-      { to: '/reports/profit-and-loss', key: 'nav.profitAndLoss', binding: 'go.profit' },
-      { to: '/reports/balance-sheet', key: 'nav.balanceSheet', binding: 'go.balance' },
-      {
-        to: '/reports/debtor-ageing',
-        key: 'nav.debtorsPlain',
-        advancedKey: 'nav.debtorAgeing',
-        binding: 'go.debtorAgeing',
-      },
-      { to: '/reports/creditor-ageing', key: 'nav.creditorAgeing', binding: 'go.creditorAgeing' },
-      {
-        to: '/reports/trial-balance',
-        key: 'nav.trialBalance',
-        binding: 'go.trial',
-        advancedOnly: true,
-      },
-    ],
-  },
-  // Importers sit above Beheer: bringing books in is a daily-path question for
-  // a firm that still lives in Exact or Moneybird, not a settings chore (#37).
-  {
-    key: 'nav.group.import',
-    items: [
-      {
-        to: '/exact',
-        key: 'nav.exact',
-        binding: 'go.exact',
-        roles: ['owner', 'accountant', 'bookkeeper'],
-      },
-      {
-        to: '/moneybird',
-        key: 'nav.moneybird',
-        binding: 'go.moneybird',
-        roles: ['owner', 'accountant', 'bookkeeper'],
-      },
-    ],
-  },
-  {
-    key: 'nav.group.admin',
-    items: [
-      {
-        to: '/settings',
-        key: 'nav.settings',
-        binding: 'go.settings',
-        roles: ['owner', 'accountant', 'bookkeeper'],
-      },
-      { to: '/members', key: 'nav.members', binding: 'go.members', roles: ['owner'] },
-      {
-        to: '/fiscal-years',
-        key: 'nav.fiscalYears',
-        binding: 'go.fiscalYears',
-        roles: MAY_OPEN_YEAR,
-      },
-      {
-        to: '/audit-file',
-        key: 'nav.auditFile',
-        binding: 'go.auditFile',
-        roles: MAY_EXPORT_AUDIT_FILE,
-      },
-      // `tokens:manage`, like the tokens it sits beside: a webhook is a
-      // standing grant of information to a third party. Spelled as `owner`
-      // here because there is no MAY_* list for tokens yet — do not copy this
-      // pattern onto screens that already share a list with ~/lib/roles.
-      { to: '/webhooks', key: 'nav.webhooks', binding: 'go.webhooks', roles: ['owner'] },
-      // `ledger:export` is what the operation needs, and the roles that hold it
-      // are the ones who would be asked for the log.
-      {
-        to: '/audit-log',
-        key: 'nav.auditLog',
-        binding: 'go.audit',
-        roles: ['owner', 'accountant', 'auditor'],
-      },
-      // The preview needs `ledger:export`; changing anything needs
-      // `retention:manage`, which only the owner holds. Both are on this screen
-      // and the screen says which is which.
-      {
-        to: '/retention',
-        key: 'nav.retention',
-        binding: 'go.retention',
-        roles: ['owner', 'accountant', 'auditor'],
-      },
-      // `ledger:read` sees them, `ledger:export` makes them. A seal nobody can
-      // see is a seal nobody checks, so the bookkeeper gets the screen too.
-      {
-        to: '/snapshots',
-        key: 'nav.snapshots',
-        binding: 'go.snapshots',
-        roles: ['owner', 'accountant', 'auditor', 'bookkeeper'],
-      },
-    ],
-  },
-]
+/** Navigation IA lives in `~/lib/shell-nav` (rail, Sheet, and ⌘K share it). */
 
 export interface ShellEntity {
   readonly entityId: string
@@ -233,6 +84,21 @@ export interface ShellEntity {
   readonly role: string
   /** Fictional trial books (issue #48). */
   readonly isDemo: boolean
+}
+
+function roleMessageKey(role: string): MessageKey | null {
+  switch (role) {
+    case 'owner':
+      return 'members.role.owner'
+    case 'bookkeeper':
+      return 'members.role.bookkeeper'
+    case 'accountant':
+      return 'members.role.accountant'
+    case 'auditor':
+      return 'members.role.auditor'
+    default:
+      return null
+  }
 }
 
 export function AppShell({
@@ -271,10 +137,9 @@ export function AppShell({
   // Phone Sheet (<768). Closed from the link click itself so a destination
   // does not leave the drawer covering the screen it just opened (#38).
   const [navOpen, setNavOpen] = useState(false)
-  // One chrome instance only: mounting the rail and the Sheet together would
-  // duplicate SelectField ids the moment the drawer opened. SSR assumes the
-  // desktop rail; the phone top bar mounts once the media query says so.
-  const phone = usePhoneViewport()
+
+  const titleKey = pageTitleKey(path, advanced)
+  const pageTitle = titleKey !== null ? t(titleKey) : 'Klopt'
 
   // Role filter, then Geavanceerd: Journaalposten / Proefbalans leave the nav
   // when the toggle is off but stay in ⌘K (#44). Empty groups drop out.
@@ -287,7 +152,7 @@ export function AppShell({
     ),
   })).filter((group) => group.items.length > 0)
 
-  const chrome = (
+  const railChrome = (
     <ShellNavChrome
       path={path}
       groups={groups}
@@ -303,13 +168,34 @@ export function AppShell({
       role={role}
       shortcutsLive={shortcutsLive}
       hydrated={hydrated}
-      onNavigate={phone ? () => setNavOpen(false) : undefined}
+    />
+  )
+
+  const sheetChrome = (
+    <ShellNavChrome
+      path={path}
+      groups={groups}
+      advanced={advanced}
+      entities={entities}
+      activeEntityId={active?.entityId ?? ''}
+      onSwitchEntity={onSwitchEntity}
+      fiscalYears={fiscalYears}
+      activeYear={activeYear}
+      onSelectYear={onSelectYear}
+      userName={userName}
+      userEmail={userEmail}
+      role={role}
+      shortcutsLive={shortcutsLive}
+      hydrated={hydrated}
+      onNavigate={() => {
+        setNavOpen(false)
+      }}
     />
   )
 
   return (
     <div className="bg-background text-foreground min-h-screen overflow-x-clip">
-      <CommandPalette />
+      <CommandPalette role={role} />
       <a
         href="#main"
         className="focus:bg-primary focus:text-primary-foreground sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:px-3 focus:py-2"
@@ -317,145 +203,148 @@ export function AppShell({
         {t('shell.skipToContent')}
       </a>
 
-      {/*
-        Phone chrome (#38 / #57): 48 px top bar, menu → left Sheet, search opens
-        ⌘K. Destinations are the same list as the desktop rail. No bottom tab bar.
-      */}
-      {phone && (
-        <header className="border-border bg-background sticky top-0 z-40 flex h-12 items-center gap-1 border-b px-1">
-          <Sheet open={navOpen} onOpenChange={setNavOpen}>
-            <SheetTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={!hydrated}
-                aria-label={t('shell.openMenu')}
-                aria-expanded={navOpen}
-              >
-                <RiMenuLine />
-              </Button>
-            </SheetTrigger>
-            <SheetContent
-              side="left"
-              className="bg-sidebar text-sidebar-foreground w-72 max-w-[85vw] p-0"
-              closeLabel={t('common.close')}
-            >
-              <SheetHeader className="border-sidebar-border border-b p-3 pr-12">
-                <SheetTitle className="flex items-center gap-2 text-left text-[15px] font-semibold tracking-tight normal-case">
-                  <span
-                    aria-hidden="true"
-                    className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-semibold"
-                  >
-                    {t('shell.brandMark')}
-                  </span>
-                  Klopt
-                </SheetTitle>
-                <SheetDescription className="sr-only">{t('shell.navigation')}</SheetDescription>
-              </SheetHeader>
-              <nav aria-label={t('shell.navigation')} className="flex min-h-0 flex-1 flex-col">
-                {chrome}
-              </nav>
-            </SheetContent>
-          </Sheet>
-          <span className="min-w-0 flex-1 truncate text-[15px] font-medium">Klopt</span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            disabled={!hydrated}
-            aria-label={t('palette.search')}
-            onClick={() => {
-              window.dispatchEvent(new Event('klopt:open-palette'))
-            }}
-          >
-            <RiSearchLine className="size-[18px]" />
-          </Button>
-        </header>
-      )}
-
       <div className="flex min-h-screen md:min-h-0">
         {/*
-          Desktop / tablet rail (≥768). Yellow is the left bar on the current
-          item only — never a large fill (#57). Profile stays at the bottom.
+          Desktop / tablet rail (≥768). Always mounted; `hidden md:flex` so a
+          phone never paints the 256px sidebar on first paint (#64 review #1).
+          Yellow is the left bar on the current item only (#57).
         */}
-        {!phone && (
-          <nav
-            aria-label={t('shell.navigation')}
-            className="border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r"
-          >
-            <div className="flex h-12 items-center gap-2 px-4">
-              <Link
-                to="/"
-                className="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
-              >
-                <span
-                  aria-hidden="true"
-                  className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-semibold"
-                >
-                  {t('shell.brandMark')}
-                </span>
-                Klopt
-              </Link>
-            </div>
-            {chrome}
-          </nav>
-        )}
-
-        {/*
-          Focusable, and focused on every route change (see `useFocusOnRoute`).
-          In a single-page application a navigation moves nothing: the old screen
-          is replaced and the focus stays on whatever opened it, or lands on
-          `<body>` when that element has gone with the screen. Either way the
-          next `Tab` starts from the wrong place and a screen reader says
-          nothing at all — so the new screen takes the focus, which is what a
-          browser does for a real page load.
-        */}
-        <main id="main" ref={main} tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none md:p-8">
-          {active?.isDemo === true && (
-            <div
-              role="status"
-              className="border-border bg-muted text-foreground mb-4 border px-3 py-2 text-sm"
+        <nav
+          aria-label={t('shell.navigation')}
+          className="border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r md:flex"
+        >
+          <div className="flex h-12 items-center gap-2 px-4">
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
             >
-              {t('shell.demoBanner')}
-            </div>
-          )}
-          {children}
-        </main>
+              <span
+                aria-hidden="true"
+                className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-semibold"
+              >
+                {t('shell.brandMark')}
+              </span>
+              Klopt
+            </Link>
+          </div>
+          {railChrome}
+        </nav>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/*
+            Phone chrome (#38 / #57): 48 px top bar, menu → left Sheet, page
+            title, search, theme. Always mounted; `md:hidden` hides it on desktop.
+          */}
+          <header className="border-border bg-background sticky top-0 z-40 flex h-12 items-center gap-1 border-b px-1 md:hidden">
+            <Sheet open={navOpen} onOpenChange={setNavOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={!hydrated}
+                  aria-label={t('shell.openMenu')}
+                  aria-expanded={navOpen}
+                >
+                  <RiMenuLine />
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="left"
+                className="bg-sidebar text-sidebar-foreground w-72 max-w-[85vw] p-0"
+                closeLabel={t('common.close')}
+              >
+                <SheetHeader className="border-sidebar-border border-b p-3 pr-12">
+                  <SheetTitle className="flex items-center gap-2 text-left text-[15px] font-semibold tracking-tight normal-case">
+                    <span
+                      aria-hidden="true"
+                      className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-semibold"
+                    >
+                      {t('shell.brandMark')}
+                    </span>
+                    Klopt
+                  </SheetTitle>
+                  <SheetDescription className="sr-only">{t('shell.navigation')}</SheetDescription>
+                </SheetHeader>
+                <nav aria-label={t('shell.navigation')} className="flex min-h-0 flex-1 flex-col">
+                  {sheetChrome}
+                </nav>
+              </SheetContent>
+            </Sheet>
+            <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{pageTitle}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={!hydrated}
+              aria-label={t('shell.openSearch')}
+              onClick={() => {
+                window.dispatchEvent(new Event('klopt:open-palette'))
+              }}
+            >
+              <RiSearchLine className="size-[18px]" />
+            </Button>
+            <ThemeToggleButton hydrated={hydrated} />
+          </header>
+
+          {/*
+            Desktop 48 px top bar: page title, ⌘K search trigger, theme toggle.
+          */}
+          <header className="border-border bg-background sticky top-0 z-30 hidden h-12 items-center gap-4 border-b px-8 md:flex">
+            {/*
+              Not an <h1>: every screen already has its own page heading, and a
+              second one here makes getByRole('heading', { name }) ambiguous.
+            */}
+            <p className="min-w-0 flex-1 truncate text-sm font-medium">{pageTitle}</p>
+            <button
+              type="button"
+              disabled={!hydrated}
+              onClick={() => {
+                window.dispatchEvent(new Event('klopt:open-palette'))
+              }}
+              className={cn(
+                'text-muted-foreground hover:bg-muted flex h-9 w-72 items-center gap-2 border border-input px-3 text-sm disabled:opacity-50',
+                FOCUS_RING,
+              )}
+            >
+              <RiSearchLine className="size-4 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate text-left">{t('shell.searchTrigger')}</span>
+              <span className="hidden items-center gap-0.5 sm:inline-flex">
+                <Keycap>{isApple() ? '⌘' : 'Ctrl'}</Keycap>
+                <Keycap>k</Keycap>
+              </span>
+            </button>
+            <ThemeToggleButton hydrated={hydrated} />
+          </header>
+
+          {/*
+            Focusable, and focused on every route change (see `useFocusOnRoute`).
+            In a single-page application a navigation moves nothing: the old screen
+            is replaced and the focus stays on whatever opened it, or lands on
+            `<body>` when that element has gone with the screen. Either way the
+            next `Tab` starts from the wrong place and a screen reader says
+            nothing at all — so the new screen takes the focus, which is what a
+            browser does for a real page load.
+          */}
+          <main
+            id="main"
+            ref={main}
+            tabIndex={-1}
+            className="min-w-0 flex-1 scroll-mt-12 p-4 outline-none md:p-8"
+          >
+            {active?.isDemo === true && (
+              <div
+                role="status"
+                className="border-border bg-muted text-foreground mb-4 border px-3 py-2 text-sm"
+              >
+                {t('shell.demoBanner')}
+              </div>
+            )}
+            {children}
+          </main>
+        </div>
       </div>
     </div>
-  )
-}
-
-/** `true` below 768px. SSR and the first client paint assume the desktop rail. */
-function usePhoneViewport(): boolean {
-  return useSyncExternalStore(
-    subscribePhoneViewport,
-    () => window.matchMedia(PHONE_QUERY).matches,
-    () => false,
-  )
-}
-
-const PHONE_QUERY = '(max-width: 767px)'
-
-function subscribePhoneViewport(onChange: () => void): () => void {
-  const query = window.matchMedia(PHONE_QUERY)
-  query.addEventListener('change', onChange)
-  return () => {
-    query.removeEventListener('change', onChange)
-  }
-}
-
-/** Prefer the longest matching destination so `/bank` does not steal `/bank/match`. */
-function isNavActive(path: string, to: string): boolean {
-  if (to === '/') return path === '/'
-  if (path !== to && !path.startsWith(`${to}/`)) return false
-  const destinations = NAVIGATION.flatMap((group) => group.items.map((item) => item.to))
-  return !destinations.some(
-    (other) =>
-      other !== to &&
-      other.startsWith(`${to}/`) &&
-      (path === other || path.startsWith(`${other}/`)),
   )
 }
 
@@ -504,51 +393,15 @@ function ShellNavChrome({
 
   return (
     <>
-      {entities.length > 0 && (
-        <div className="mx-2 mb-2">
-          <SelectField
-            label={t('shell.administration')}
-            value={activeEntityId}
-            onValueChange={onSwitchEntity}
-            disabled={!hydrated}
-            size="sm"
-          >
-            {entities.map((entity) => (
-              <SelectOption key={entity.entityId} value={entity.entityId}>
-                {entity.isDemo
-                  ? t('shell.demoEntity', { name: entity.entityName })
-                  : entity.entityName}
-              </SelectOption>
-            ))}
-          </SelectField>
-        </div>
-      )}
-
-      {/*
-        The book year, next to the administration and above everything it
-        scopes. One control for the whole application rather than a picker per
-        report. The dates under it are the point of it.
-      */}
-      {fiscalYears.length > 0 && activeYear !== null && (
-        <div className="mx-2 mb-2">
-          <SelectField
-            label={t('shell.fiscalYear')}
-            value={activeYear.code}
-            onValueChange={onSelectYear}
-            disabled={!hydrated}
-            size="sm"
-          >
-            {fiscalYears.map((year) => (
-              <SelectOption key={year.code} value={year.code}>
-                {year.status === 'closed' ? t('shell.yearClosed', { year: year.code }) : year.code}
-              </SelectOption>
-            ))}
-          </SelectField>
-          <p className="text-muted-foreground mt-1 text-xs tabular">
-            {formatDate(activeYear.startsOn)} – {formatDate(activeYear.endsOn)}
-          </p>
-        </div>
-      )}
+      <EntitySwitcher
+        entities={entities}
+        activeEntityId={activeEntityId}
+        onSwitchEntity={onSwitchEntity}
+        fiscalYears={fiscalYears}
+        activeYear={activeYear}
+        onSelectYear={onSelectYear}
+        hydrated={hydrated}
+      />
 
       {/* Nieuwe journaalpost is a Geavanceerd action; Eigenaar finds invoices
           on the dashboard instead (#44 / #57). */}
@@ -577,8 +430,7 @@ function ShellNavChrome({
                 const binding =
                   item.binding === undefined ? undefined : BINDINGS_BY_ID.get(item.binding)
                 const isActive = isNavActive(path, item.to)
-                const labelKey =
-                  advanced && item.advancedKey !== undefined ? item.advancedKey : item.key
+                const labelKey = navLabelKey(item, advanced)
                 return (
                   <li key={item.to}>
                     <Link
@@ -614,6 +466,114 @@ function ShellNavChrome({
 
       <Profile userName={userName} userEmail={userEmail} role={role} />
     </>
+  )
+}
+
+/**
+ * One combined Administratie / Boekjaar control (#57 prototype).
+ *
+ * The closed row shows the administration over the year + date range. Opening
+ * it reveals the labelled SelectFields the e2e suite already drives, so
+ * `chooseOption(…, 'Administratie' | 'Boekjaar', …)` keeps working.
+ */
+function EntitySwitcher({
+  entities,
+  activeEntityId,
+  onSwitchEntity,
+  fiscalYears,
+  activeYear,
+  onSelectYear,
+  hydrated,
+}: {
+  entities: readonly ShellEntity[]
+  activeEntityId: string
+  onSwitchEntity: (entityId: string) => void
+  fiscalYears: readonly FiscalYearOption[]
+  activeYear: FiscalYearScope | null
+  onSelectYear: (code: string) => void
+  hydrated: boolean
+}) {
+  const { t } = useT()
+  const [open, setOpen] = useState(false)
+  const active = entities.find((entity) => entity.entityId === activeEntityId) ?? entities[0]
+  if (entities.length === 0 && (fiscalYears.length === 0 || activeYear === null)) return null
+
+  const entityLabel =
+    active === undefined
+      ? ''
+      : active.isDemo
+        ? t('shell.demoEntity', { name: active.entityName })
+        : active.entityName
+  const yearRange =
+    activeYear === null
+      ? ''
+      : t('shell.yearSummary', {
+          year: activeYear.code,
+          range: `${formatDate(activeYear.startsOn)} – ${formatDate(activeYear.endsOn)}`,
+        })
+
+  return (
+    <div className="mx-2 mb-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          disabled={!hydrated}
+          className={cn(
+            'border-sidebar-border bg-background flex min-h-11 w-full items-center gap-2 border px-3 py-1.5 text-left md:min-h-0',
+            'hover:bg-background/70 data-[state=open]:bg-background',
+            FOCUS_RING,
+          )}
+          aria-label={t('shell.entitySwitcher')}
+        >
+          <span className="min-w-0 flex-1">
+            {entityLabel !== '' && (
+              <span className="block truncate text-sm font-medium">{entityLabel}</span>
+            )}
+            {yearRange !== '' && (
+              <span className="text-muted-foreground block truncate text-xs tabular">
+                {yearRange}
+              </span>
+            )}
+          </span>
+          <RiArrowDownSLine aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
+        </PopoverTrigger>
+        <PopoverContent side="bottom" align="start" sideOffset={4} className="w-64 space-y-3 p-3">
+          {entities.length > 0 && (
+            <SelectField
+              label={t('shell.administration')}
+              value={activeEntityId}
+              onValueChange={onSwitchEntity}
+              disabled={!hydrated}
+              size="sm"
+            >
+              {entities.map((entity) => (
+                <SelectOption key={entity.entityId} value={entity.entityId}>
+                  {entity.isDemo
+                    ? t('shell.demoEntity', { name: entity.entityName })
+                    : entity.entityName}
+                </SelectOption>
+              ))}
+            </SelectField>
+          )}
+          {fiscalYears.length > 0 && activeYear !== null && (
+            <SelectField
+              label={t('shell.fiscalYear')}
+              value={activeYear.code}
+              onValueChange={onSelectYear}
+              disabled={!hydrated}
+              size="sm"
+            >
+              {fiscalYears.map((year) => (
+                <SelectOption key={year.code} value={year.code}>
+                  {year.status === 'closed'
+                    ? t('shell.yearClosed', { year: year.code })
+                    : year.code}
+                </SelectOption>
+              ))}
+            </SelectField>
+          )}
+        </PopoverContent>
+      </Popover>
+    </div>
   )
 }
 
@@ -657,6 +617,13 @@ function Profile({
   // most people `name` is empty and the address is the only thing they would
   // recognise as themselves.
   const shown = userName.trim() === '' ? userEmail : userName
+  const roleKey = roleMessageKey(role)
+  const roleLine =
+    roleKey === null
+      ? advanced
+        ? t('shell.advancedOn')
+        : t('shell.advancedOff')
+      : `${t(roleKey)} · ${advanced ? t('shell.advancedOn') : t('shell.advancedOff')}`
 
   return (
     <section aria-label={t('shell.profile')} className="border-sidebar-border border-t p-2">
@@ -664,8 +631,9 @@ function Profile({
         <PopoverTrigger
           disabled={!hydrated}
           className={cn(
-            'group flex min-h-11 w-full items-center gap-2 px-2 py-1.5 text-left outline-none md:min-h-0',
+            'group flex min-h-11 w-full items-center gap-2 px-2 py-1.5 text-left md:min-h-0',
             'hover:bg-background/70 data-[state=open]:bg-background',
+            FOCUS_RING,
           )}
         >
           <span
@@ -678,10 +646,7 @@ function Profile({
             <span className="block truncate text-sm font-medium" title={shown}>
               {shown}
             </span>
-            <span className="text-muted-foreground block truncate text-xs">
-              {role !== '' ? `${t('shell.role', { role })} · ` : ''}
-              {advanced ? t('shell.advancedOn') : t('shell.advancedOff')}
-            </span>
+            <span className="text-muted-foreground block truncate text-xs">{roleLine}</span>
           </span>
           <RiArrowRightSLine
             aria-hidden="true"
@@ -701,11 +666,7 @@ function Profile({
             <span className="block truncate text-sm font-medium" title={shown}>
               {shown}
             </span>
-            {role !== '' && (
-              <span className="text-muted-foreground block text-xs">
-                {t('shell.role', { role })}
-              </span>
-            )}
+            <span className="text-muted-foreground block text-xs">{roleLine}</span>
           </div>
 
           {/* Geavanceerd (#44): no shortcut — Shift+letter is table type-ahead. */}
@@ -717,7 +678,10 @@ function Profile({
             onClick={() => {
               void setAdvanced(!advanced)
             }}
-            className="hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left outline-none"
+            className={cn(
+              'hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left',
+              FOCUS_RING,
+            )}
           >
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium">{t('shell.advanced')}</span>
@@ -744,7 +708,10 @@ function Profile({
           <form method="post" action="/sign-out" className="border-border border-t">
             <button
               type="submit"
-              className="hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground block w-full px-3 py-2 text-left text-sm outline-none"
+              className={cn(
+                'hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground block min-h-11 w-full px-3 py-2 text-left text-sm md:min-h-0',
+                FOCUS_RING,
+              )}
             >
               {t('shell.account.signOut')}
             </button>
@@ -908,6 +875,53 @@ function ThemePicker() {
   )
 }
 
+/** Whether `<html>` currently has `.dark` (for Systeem preference). */
+function useHtmlDark(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const observer = new MutationObserver(onChange)
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+      return () => {
+        observer.disconnect()
+      }
+    },
+    () => document.documentElement.classList.contains('dark'),
+    () => false,
+  )
+}
+
+/** Quick light/dark flip for the top bars (#57 prototype). */
+function ThemeToggleButton({ hydrated }: { hydrated: boolean }) {
+  const { t } = useT()
+  const router = useRouter()
+  const htmlDark = useHtmlDark()
+  const theme = useRouterState({
+    select: (state) =>
+      (state.matches[0]?.loaderData as { theme?: ThemePreference } | undefined)?.theme,
+  })
+  const preference = theme ?? DEFAULT_THEME_PREFERENCE
+  const darkNow = preference === 'dark' || (preference === 'system' && htmlDark)
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      disabled={!hydrated}
+      aria-label={darkNow ? t('shell.themeToLight') : t('shell.themeToDark')}
+      onClick={() => {
+        void setTheme({ data: { theme: darkNow ? 'light' : 'dark' } })
+          .then(() => router.invalidate())
+          .catch((cause: unknown) => {
+            console.error('[app] could not change theme', cause)
+          })
+      }}
+    >
+      {darkNow ? <RiSunLine className="size-[18px]" /> : <RiMoonLine className="size-[18px]" />}
+    </Button>
+  )
+}
+
 /**
  * A short row of mutually exclusive choices.
  *
@@ -946,7 +960,8 @@ function ChoiceRow({
                 if (!selected) onChange(option.value)
               }}
               className={cn(
-                'flex-1 px-2 py-1.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50',
+                'min-h-11 flex-1 px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50 md:min-h-0',
+                FOCUS_RING,
                 selected
                   ? 'bg-accent text-accent-foreground'
                   : 'hover:bg-accent/60 focus-visible:bg-accent focus-visible:text-accent-foreground',

@@ -152,13 +152,44 @@ export async function openAccountMenu(page: Page): Promise<void> {
  * `option` matches the visible text, so pass a RegExp where the test used to
  * pass a value: `selectOption('4400')` becomes `/^4400 /`.
  */
+/**
+ * Open the combined Administratie / Boekjaar switcher (#57 / #64).
+ *
+ * The labelled selects live inside the popover; e2e that still names
+ * `Administratie` or `Boekjaar` opens this first.
+ */
+export async function openEntitySwitcher(page: Page): Promise<void> {
+  const trigger = page.getByRole('button', {
+    name: /Administratie en boekjaar|Administration and book year/,
+  })
+  await expect(trigger).toBeEnabled()
+  if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
+    await trigger.click()
+  }
+  // Comboboxes, not the trigger's aria-label (which also contains "boekjaar").
+  await expect(
+    page.getByRole('combobox', { name: /^(Administratie|Administration)$/ }),
+  ).toBeVisible()
+}
+
 export async function chooseOption(
   page: Page,
   label: string | RegExp,
   option: string | RegExp,
   within?: Locator,
 ): Promise<void> {
-  await (within ?? page).getByLabel(label).click()
+  const shellLabel =
+    typeof label === 'string' && /^(Administratie|Boekjaar|Administration|Book year)$/.test(label)
+  if (shellLabel) {
+    // exact: fiscal-years page also has "Boekjaar om af te sluiten".
+    const field = (within ?? page).getByRole('combobox', { name: label, exact: true })
+    if (!(await field.isVisible().catch(() => false))) {
+      await openEntitySwitcher(page)
+    }
+    await field.click()
+  } else {
+    await (within ?? page).getByLabel(label).click()
+  }
   await page.getByRole('option', { name: option }).click()
 
   // The listbox animates out. Waiting for it to go means the next interaction

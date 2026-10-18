@@ -152,7 +152,7 @@ test('i x reaches Exact under Importeren', async ({ page }) => {
       .getByRole('link', { name: /Exact Online/ })
       .locator('kbd')
       .first(),
-  ).toContainText(/I/)
+  ).toContainText(/i/)
 
   await page.keyboard.press('i')
   await expect(page.getByText('I …')).toBeVisible()
