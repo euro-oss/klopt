@@ -114,6 +114,51 @@ test('help Nieuw hides Nieuwe journaalpost when Geavanceerd is off', async ({ pa
   await expect(nieuw.getByText('Nieuwe factuur', { exact: true })).toBeVisible()
 })
 
+test('⌘K hides Nieuwe journaalpost when Geavanceerd is off', async ({ page }) => {
+  await anAdministration(page, 'Palette Nieuw BV')
+
+  await page.keyboard.press('ControlOrMeta+k')
+  const palette = page.getByRole('dialog', { name: 'Commando’s' })
+  await expect(palette).toBeVisible()
+  await page.keyboard.type('nieuwe journaal')
+  await expect(palette.getByRole('option', { name: /Nieuwe journaalpost/ })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+
+  // Chord is gated the same way — stays on the dashboard rather than opening
+  // /entries/new.
+  await page.keyboard.press('n')
+  await page.keyboard.press('j')
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(page).not.toHaveURL(/\/entries\/new/)
+})
+
+test('a failed Geavanceerd save reverts the switch and shows the toast', async ({ page }) => {
+  await anAdministration(page, 'Save Fail BV')
+
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    if (request.method() === 'POST' && (request.postData() ?? '').includes('enabled')) {
+      await route.fulfill({ status: 500, body: 'save failed' })
+      return
+    }
+    await route.continue()
+  })
+
+  await openAccountMenu(page)
+  const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  await toggle.click()
+
+  // Optimistic flip reverts once the 500 lands.
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  const toast = page.getByTestId('advanced-mode-save-failed')
+  await expect(toast).toBeVisible()
+  await expect(toast).toContainText('Geavanceerd is niet opgeslagen. Probeer het opnieuw.')
+  await expect(toast.getByRole('button', { name: 'Sluiten' })).toBeVisible()
+  // Exactly one live region — the toast, not a second inline alert.
+  await expect(page.getByRole('alert')).toHaveCount(1)
+})
+
 test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) => {
   await anAdministration(page, 'Help Volgorde BV')
 

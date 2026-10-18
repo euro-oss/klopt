@@ -398,6 +398,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
 
     if (row.kind === 'action') {
       if (row.id === 'toggle-advanced' && advancedMode !== null) {
+        if (advancedMode.saving) return
         void advancedMode.toggleAdvanced()
         setOpen(null)
       }
@@ -524,6 +525,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                             type="button"
                             role="option"
                             aria-selected={cursor === 0}
+                            disabled={advancedMode.saving}
                             onMouseEnter={() => {
                               setCursor(0)
                             }}
@@ -531,7 +533,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                               go({ kind: 'action', id: 'toggle-advanced' })
                             }}
                             className={cn(
-                              'flex min-h-11 w-full items-center justify-between px-4 py-2 text-left text-sm md:min-h-0',
+                              'flex min-h-11 w-full items-center justify-between px-4 py-2 text-left text-sm md:min-h-0 disabled:opacity-50',
                               cursor === 0 && 'bg-accent text-accent-foreground',
                             )}
                           >

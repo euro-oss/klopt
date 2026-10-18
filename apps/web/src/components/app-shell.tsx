@@ -607,7 +607,7 @@ function Profile({
   role: string
 }) {
   const { t } = useT()
-  const { advanced, setAdvanced, saveFailed } = useAdvancedMode()
+  const { advanced, setAdvanced, saving } = useAdvancedMode()
   // A trigger that opens nothing is the failure `select.tsx` describes: this
   // is a Radix popover, so it does nothing at all until React has attached.
   const hydrated = useHydrated()
@@ -669,17 +669,21 @@ function Profile({
             <span className="text-muted-foreground block text-xs">{roleLine}</span>
           </div>
 
-          {/* Geavanceerd (#44): no shortcut — Shift+letter is table type-ahead. */}
+          {/* Geavanceerd (#44): no shortcut — Shift+letter is table type-ahead.
+              Disabled while a save is in flight so fast double-clicks cannot
+              leave the switch out of sync with the server (#66). Failure is
+              announced once by the fixed toast — not again inline. */}
           <button
             type="button"
             role="switch"
             aria-checked={advanced}
-            disabled={!hydrated}
+            aria-busy={saving || undefined}
+            disabled={!hydrated || saving}
             onClick={() => {
               void setAdvanced(!advanced)
             }}
             className={cn(
-              'hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left',
+              'hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left disabled:opacity-50',
               FOCUS_RING,
             )}
           >
@@ -699,11 +703,6 @@ function Profile({
               <span className={cn('size-4', advanced ? 'bg-background' : 'bg-muted-foreground')} />
             </span>
           </button>
-          {saveFailed && (
-            <p role="alert" className="text-destructive border-border border-t px-3 py-2 text-xs">
-              {t('shell.advancedSaveFailed')}
-            </p>
-          )}
 
           <div className="border-border space-y-3 border-t px-3 py-3">
             <LanguagePicker />
