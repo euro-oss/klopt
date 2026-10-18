@@ -43,9 +43,9 @@ test('a new user signs in, sets up an administration and lands in it', async ({ 
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     // The picker is on the new administration, not on whichever one sorts
     // first: the session was pointed at it as part of creating it.
-    await expect(
-      page.getByRole('button', { name: /Administratie en boekjaar/ }),
-    ).toContainText('Speelgoedwinkel De Tol')
+    await expect(page.getByRole('button', { name: /Administratie en boekjaar/ })).toContainText(
+      'Speelgoedwinkel De Tol',
+    )
     // Which role you hold went behind the account menu with the rest of the
     // chrome. Still an answer, just not one printed against the bottom of the
     // rail at all times.

@@ -172,8 +172,7 @@ export async function chooseOption(
   within?: Locator,
 ): Promise<void> {
   const shellLabel =
-    typeof label === 'string' &&
-    /^(Administratie|Boekjaar|Administration|Book year)$/.test(label)
+    typeof label === 'string' && /^(Administratie|Boekjaar|Administration|Book year)$/.test(label)
   if (shellLabel) {
     const field = (within ?? page).getByRole('combobox', { name: label })
     if (!(await field.isVisible().catch(() => false))) {

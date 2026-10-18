@@ -31,13 +31,7 @@ import type { FiscalYearOption, FiscalYearScope } from '~/lib/fiscal-year'
 import { DEFAULT_THEME_PREFERENCE, type ThemePreference } from '~/lib/theme'
 import { setTheme } from '~/server/theme'
 import { BINDINGS_BY_ID, bindingChips, isApple } from '~/lib/keyboard'
-import {
-  NAVIGATION,
-  isNavActive,
-  navLabelKey,
-  pageTitleKey,
-  type NavGroup,
-} from '~/lib/shell-nav'
+import { NAVIGATION, isNavActive, navLabelKey, pageTitleKey, type NavGroup } from '~/lib/shell-nav'
 import { CommandPalette } from './command-palette'
 
 /** #63 focus ring: solid outline, never outline-none (Tailwind 4 trap). */
@@ -535,7 +529,9 @@ function EntitySwitcher({
               <span className="block truncate text-sm font-medium">{entityLabel}</span>
             )}
             {yearRange !== '' && (
-              <span className="text-muted-foreground block truncate text-xs tabular">{yearRange}</span>
+              <span className="text-muted-foreground block truncate text-xs tabular">
+                {yearRange}
+              </span>
             )}
           </span>
           <RiArrowDownSLine aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
@@ -568,7 +564,9 @@ function EntitySwitcher({
             >
               {fiscalYears.map((year) => (
                 <SelectOption key={year.code} value={year.code}>
-                  {year.status === 'closed' ? t('shell.yearClosed', { year: year.code }) : year.code}
+                  {year.status === 'closed'
+                    ? t('shell.yearClosed', { year: year.code })
+                    : year.code}
                 </SelectOption>
               ))}
             </SelectField>

@@ -58,11 +58,35 @@ const GROUPS: readonly MessageKey[] = [...new Set(BINDINGS.map((binding) => bind
 const EXTRA_NAVIGABLE: readonly Binding[] = BINDINGS.filter(
   (binding) =>
     binding.to !== undefined &&
-    !['go.dashboard', 'go.journal', 'go.accounts', 'go.balance', 'go.profit', 'go.trial',
-      'go.invoices', 'go.purchases', 'go.inbox', 'go.contacts', 'go.bank', 'go.match',
-      'go.payments', 'go.dunning', 'go.vat', 'go.members', 'go.webhooks', 'go.settings',
-      'go.audit', 'go.retention', 'go.snapshots', 'go.exact', 'go.exactAlias', 'go.moneybird',
-      'go.fiscalYears', 'go.auditFile', 'go.debtorAgeing', 'go.creditorAgeing',
+    ![
+      'go.dashboard',
+      'go.journal',
+      'go.accounts',
+      'go.balance',
+      'go.profit',
+      'go.trial',
+      'go.invoices',
+      'go.purchases',
+      'go.inbox',
+      'go.contacts',
+      'go.bank',
+      'go.match',
+      'go.payments',
+      'go.dunning',
+      'go.vat',
+      'go.members',
+      'go.webhooks',
+      'go.settings',
+      'go.audit',
+      'go.retention',
+      'go.snapshots',
+      'go.exact',
+      'go.exactAlias',
+      'go.moneybird',
+      'go.fiscalYears',
+      'go.auditFile',
+      'go.debtorAgeing',
+      'go.creditorAgeing',
     ].includes(binding.id),
 )
 
@@ -105,10 +129,7 @@ function searchNav(
   return rows
 }
 
-function searchExtras(
-  translate: (key: MessageKey) => string,
-  query: string,
-): readonly Binding[] {
+function searchExtras(translate: (key: MessageKey) => string, query: string): readonly Binding[] {
   const needle = query.trim().toLowerCase()
   if (needle === '') return EXTRA_NAVIGABLE
   return EXTRA_NAVIGABLE.filter(
@@ -469,9 +490,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                             <span
                               className={cn(
                                 'text-xs',
-                                cursor === 0
-                                  ? 'text-accent-foreground'
-                                  : 'text-muted-foreground',
+                                cursor === 0 ? 'text-accent-foreground' : 'text-muted-foreground',
                               )}
                             >
                               {t('shell.advancedNoShortcut')}
@@ -515,9 +534,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                                     <span
                                       className={cn(
                                         'text-xs',
-                                        active
-                                          ? 'text-accent-foreground'
-                                          : 'text-muted-foreground',
+                                        active ? 'text-accent-foreground' : 'text-muted-foreground',
                                       )}
                                     >
                                       {' '}
@@ -578,9 +595,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                                   <span
                                     className={cn(
                                       'text-xs',
-                                      active
-                                        ? 'text-accent-foreground'
-                                        : 'text-muted-foreground',
+                                      active ? 'text-accent-foreground' : 'text-muted-foreground',
                                     )}
                                   >
                                     {' '}
