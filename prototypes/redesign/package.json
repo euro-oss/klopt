@@ -1,0 +1,16 @@
+{
+  "name": "klopt-redesign-prototype",
+  "private": true,
+  "description": "HTML prototype of the Klopt redesign. Not part of the pnpm workspace; open index.html directly.",
+  "scripts": {
+    "build:css": "tailwindcss -i src/app.css -o styles.css --minify",
+    "watch:css": "tailwindcss -i src/app.css -o styles.css --watch",
+    "screenshots": "node tools/screenshots.mjs",
+    "smoke": "node tools/smoke.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "playwright-core": "^1.56.0",
+    "tailwindcss": "4.3.3"
+  }
+}
