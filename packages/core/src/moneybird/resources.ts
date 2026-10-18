@@ -81,14 +81,27 @@ export interface ClassifiedAccount {
 /**
  * Suggest a Klopt account type from an RGS lead code (same lead prefixes as
  * XAF import). Used when Moneybird's own type is unknown (`derived_account_type`).
+ *
+ * Income leads (WOmz omzet, WOvb other operating income, WOvt investment
+ * income, WFbe financial income/expense parent) must not fall through as
+ * expense. BLas is long-term debt → liability.
  */
 export function inferAccountTypeFromRgs(rgsCode: string | null | undefined): AccountType | null {
   if (rgsCode === null || rgsCode === undefined || rgsCode === '') return null
   const lead = rgsCode.trim().toUpperCase()
-  if (lead.startsWith('WOMZ')) return 'revenue'
+  if (
+    lead.startsWith('WOMZ') ||
+    lead.startsWith('WOVB') ||
+    lead.startsWith('WOVT') ||
+    lead.startsWith('WFBE')
+  ) {
+    return 'revenue'
+  }
   if (lead.startsWith('W')) return 'expense'
   if (lead.startsWith('BEIV')) return 'equity'
-  if (lead.startsWith('BSCH') || lead.startsWith('BVRZ')) return 'liability'
+  if (lead.startsWith('BSCH') || lead.startsWith('BVRZ') || lead.startsWith('BLAS')) {
+    return 'liability'
+  }
   if (lead.startsWith('B')) return 'asset'
   return null
 }

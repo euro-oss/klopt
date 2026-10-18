@@ -447,9 +447,12 @@ export async function handleRefreshMoneybirdFxRate(
   const currency = query.currency.toUpperCase()
   const today = new Date().toISOString().slice(0, 10)
   const needFullHistory = isOlderThanDays(query.documentDate, ECB_HIST_FULL_AFTER_DAYS, today)
+  const feed = needFullHistory ? 'full' : '90d'
 
+  let fetchedCount = 0
   try {
     const fetched = await fetchEcbReferenceRates({ includeFullHistory: needFullHistory })
+    fetchedCount = fetched.length
     await withEcbRates(context.database, (repository) =>
       repository.upsertMany(
         fetched.map((row) => ({
@@ -463,6 +466,18 @@ export async function handleRefreshMoneybirdFxRate(
     const message = error instanceof Error ? error.message : String(error)
     throw new ApiError('conflict', `Fetching ECB rates failed: ${message}`)
   }
+
+  await recordAudit(context, {
+    action: 'moneybird.refreshFxRate',
+    resourceType: 'moneybird_connection',
+    resourceId: context.entityId,
+    after: {
+      currency,
+      documentDate: query.documentDate,
+      feed,
+      rows: String(fetchedCount),
+    },
+  })
 
   const refreshed = await withEcbRatesRead(context.database, (repository) =>
     repository.listForCurrency(currency),
@@ -521,14 +536,17 @@ function serialiseEntryLines(entry: MoneybirdImportPlan['entries'][number]) {
 
 function serialisePlan(plan: MoneybirdImportPlan, functionalCurrency: string) {
   const ofKind = (kind: string) => plan.entries.filter((entry) => entry.kind === kind)
-  /** Documents that contributed booked lines, for unbalanced-year drill-down. */
-  const yearDocuments = plan.entries.map((entry) => ({
-    year: entry.year,
-    externalId: entry.externalId,
-    kind: entry.kind,
-    reference: entry.documentNumber,
-    documentDate: entry.documentDate,
-    description: entry.description,
+  /** Documents evaluated per year (including unbalanced) for TB drill-down. */
+  const yearDocuments = plan.yearDocuments.map((doc) => ({
+    year: doc.year,
+    externalId: doc.externalId,
+    kind: doc.kind,
+    reference: doc.reference,
+    documentDate: doc.documentDate,
+    description: doc.description,
+    debit: doc.debit,
+    credit: doc.credit,
+    balanced: doc.balanced,
   }))
   return {
     administration: {

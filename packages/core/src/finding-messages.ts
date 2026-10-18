@@ -146,13 +146,13 @@ export const FINDING_MESSAGES = {
   'moneybird.trial_balance_empty':
     'No booked history was read for year {year}. That is not a balanced empty year.',
   'moneybird.trial_balance_unbalanced':
-    'The Moneybird history for {year} does not balance: {debit} debit against {credit} credit.',
+    'The Moneybird history for {year} does not balance: in {debit} / out {credit}.',
   'moneybird.trial_balance_account_missing':
     'Year {year} has a balance on {number}, which is not in the chart being imported.',
   'moneybird.period_locked':
-    '{reference} is dated in {year}. This year is closed ({year}). It is reported rather than posted.',
+    '{reference} is dated in a closed year ({year}). It is reported rather than posted.',
   'moneybird.unbalanced_document':
-    '{reference} does not balance: {debit} debit against {credit} credit.',
+    '{reference} does not balance: in {debit} / out {credit}.',
   'moneybird.attachment_without_url':
     'Attachment {filename} has no download URL, so the file cannot be stored.',
   'moneybird.draft_skipped': '{reference} is still {state} in Moneybird and is not imported.',

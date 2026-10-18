@@ -7867,6 +7867,15 @@
                 },
                 "description": {
                   "type": "string"
+                },
+                "debit": {
+                  "type": "string"
+                },
+                "credit": {
+                  "type": "string"
+                },
+                "balanced": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -7875,7 +7884,10 @@
                 "kind",
                 "reference",
                 "documentDate",
-                "description"
+                "description",
+                "debit",
+                "credit",
+                "balanced"
               ]
             }
           },

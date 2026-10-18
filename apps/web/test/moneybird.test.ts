@@ -482,6 +482,47 @@ describe('FX rate and mapping decisions', () => {
     }
   })
 
+  it('refresh fx-rate records an audit entry after writing the cache', async () => {
+    const { token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+    const moneybirdFetch = globalThis.fetch
+    const ecbXml = `<?xml version="1.0"?><gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref"><Cube><Cube time="2026-03-14"><Cube currency="USD" rate="1.0853"/></Cube></Cube></gesmes:Envelope>`
+    globalThis.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      if (url.includes('ecb.europa.eu')) {
+        return Promise.resolve(
+          new Response(ecbXml, { status: 200, headers: { 'content-type': 'text/xml' } }),
+        )
+      }
+      return moneybirdFetch(input, init)
+    }
+    try {
+      await handleRefreshMoneybirdFxRate(
+        await context(token),
+        moneybirdFxRateQuery.parse({ currency: 'USD', documentDate: '2026-03-15' }),
+      )
+      const audit = (
+        await handleListAuditLog(
+          await context(token),
+          auditLogQuery.parse({ resourceType: 'moneybird_connection' }),
+        )
+      ).body
+      const refresh = audit.entries.find(
+        (row: { action: string }) => row.action === 'moneybird.refreshFxRate',
+      )
+      expect(refresh?.after).toMatchObject({
+        currency: 'USD',
+        documentDate: '2026-03-15',
+        feed: 'full',
+      })
+      expect(Number((refresh?.after as { rows?: string }).rows ?? '0')).toBeGreaterThan(0)
+    } finally {
+      globalThis.fetch = moneybirdFetch
+    }
+  })
+
   it('rejects a bad override rate at save and records audit fields for a good one', async () => {
     const { token, entityId } = await newEntity()
     fakeMoneybird()

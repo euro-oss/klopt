@@ -331,6 +331,23 @@ describe('finding fixes on the plan', () => {
     expect(finding?.message).toMatch(/2026-001|is in USD/)
   })
 
+  it('lists unbalanced year documents for TB drill-down, not only balanced entries', () => {
+    const base = snapshot()
+    const journal = {
+      ...base.journalDocuments[0]!,
+      details: base.journalDocuments[0]!.details.map((line, index) =>
+        index === 1 ? { ...line, credit: 90000n, debit: 0n } : line,
+      ),
+    }
+    const plan = planMoneybirdImport(snapshot({ journalDocuments: [journal] }), options())
+    expect(plan.problems.map((item) => item.code)).toContain('unbalanced_document')
+    const behind = plan.yearDocuments.filter((doc) => !doc.balanced)
+    expect(behind).toHaveLength(1)
+    expect(behind[0]?.externalId).toBe('journal:701')
+    expect(behind[0]?.year).toBe(2026)
+    expect(plan.yearDocuments.some((doc) => doc.balanced)).toBe(true)
+  })
+
   it('defers an attachment without a URL after acknowledgement', () => {
     const base = snapshot()
     const invoice = {

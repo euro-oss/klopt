@@ -59,6 +59,7 @@ export {
   type MoneybirdImportDecisions,
   type MoneybirdImportOptions,
   type MoneybirdImportPlan,
+  type MoneybirdYearDocument,
   type MoneybirdPlannedAccount,
   type MoneybirdPlannedContact,
   type MoneybirdPlannedDocument,

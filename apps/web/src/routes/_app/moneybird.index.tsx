@@ -364,10 +364,15 @@ function Moneybird() {
             applyOk(refreshed.data)
             return
           }
+          const code =
+            'problem' in refreshed &&
+            typeof refreshed.problem === 'object' &&
+            refreshed.problem !== null &&
+            'code' in refreshed.problem
+              ? String((refreshed.problem as { code?: string }).code ?? '')
+              : ''
           applyFail(
-            'problem' in refreshed && typeof refreshed.problem === 'object'
-              ? ((refreshed.problem as { detail?: string }).detail ?? t('moneybird.fx.noEcb'))
-              : t('moneybird.fx.noEcb'),
+            code === 'conflict' ? t('moneybird.fx.refreshFailed') : t('moneybird.fx.noEcb'),
           )
         })
       })
@@ -412,6 +417,7 @@ function Moneybird() {
         }),
       )
       const year = Number(problem.detail['year'])
+      // Only documents behind the difference (debit ≠ credit), not every doc in the year.
       const docs =
         preview === null
           ? []
@@ -423,10 +429,13 @@ function Moneybird() {
                     reference: string
                     description: string
                     documentDate: string
+                    debit: string
+                    credit: string
+                    balanced: boolean
                   }[]
                 | undefined) ?? []
             )
-              .filter((doc) => doc.year === year)
+              .filter((doc) => doc.year === year && !doc.balanced)
               .map((doc) => ({
                 reference: doc.reference,
                 description: doc.description,

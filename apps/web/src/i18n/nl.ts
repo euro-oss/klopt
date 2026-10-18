@@ -1202,6 +1202,8 @@ export const nl = {
   'moneybird.fx.accept': 'Koers bewaren',
   'moneybird.fx.invalidRate': 'Voer een positieve koers in (0,9214 of 0.9214).',
   'moneybird.fx.noEcb': 'Geen ECB-koers binnen 7 dagen — voer zelf een koers in.',
+  'moneybird.fx.refreshFailed':
+    'ECB-koersen ophalen lukte niet. Probeer later opnieuw of voer zelf een koers in.',
   'moneybird.fx.conversion': '{foreign} × {rate} = {functional}',
   'moneybird.fx.entryPreview': 'Resulterende boeking',
   'moneybird.fx.loading': 'ECB-koers ophalen…',
@@ -1212,7 +1214,8 @@ export const nl = {
   'moneybird.side.out': 'Af',
   'moneybird.side.in': 'Bij',
   'moneybird.moneybirdName': 'Moneybird',
-  'moneybird.drillNoDocuments': 'Geen documenten in dit jaar in het plan.',
+  'moneybird.drillNoDocuments':
+    'Geen documenten die bij dit verschil horen (alles in dit jaar sluit op zichzelf).',
   'moneybird.typePicker': 'Rekeningtype',
   'moneybird.typeSave': 'Type bewaren',
   'moneybird.unbalancedPanel': 'Dit document is niet in balans',
@@ -1287,13 +1290,13 @@ export const nl = {
   'finding.moneybird.trial_balance_empty':
     'Geen geboekte historie gelezen voor jaar {year}. Dat is geen sluitend leeg jaar.',
   'finding.moneybird.trial_balance_unbalanced':
-    'De Moneybird-historie voor {year} sluit niet: {debit} debet tegen {credit} credit.',
+    'De Moneybird-historie voor {year} sluit niet: bij {debit} / af {credit}.',
   'finding.moneybird.trial_balance_account_missing':
     'Jaar {year} heeft een saldo op {number}, dat niet in het over te zetten schema zit.',
   'finding.moneybird.period_locked':
-    '{reference} is gedateerd in {year}. Dit jaar is afgesloten ({year}). Gemeld, niet geboekt.',
+    '{reference} is gedateerd in een afgesloten jaar ({year}). Gemeld, niet geboekt.',
   'finding.moneybird.unbalanced_document':
-    '{reference} sluit niet: {debit} debet tegen {credit} credit.',
+    '{reference} sluit niet: bij {debit} / af {credit}.',
   'finding.moneybird.attachment_without_url':
     'Bijlage {filename} heeft geen download-URL, dus het bestand kan niet worden bewaard.',
   'finding.moneybird.draft_skipped':

@@ -1260,6 +1260,8 @@ export const en: Record<MessageKey, string> = {
   'moneybird.fx.accept': 'Save rate',
   'moneybird.fx.invalidRate': 'Enter a positive rate (0.9214 or 0,9214).',
   'moneybird.fx.noEcb': 'No ECB rate within 7 days — enter a rate yourself.',
+  'moneybird.fx.refreshFailed':
+    'Fetching ECB rates failed. Try again later or enter a rate yourself.',
   'moneybird.fx.conversion': '{foreign} × {rate} = {functional}',
   'moneybird.fx.entryPreview': 'Resulting entry',
   'moneybird.fx.loading': 'Looking up ECB rate…',
@@ -1270,7 +1272,8 @@ export const en: Record<MessageKey, string> = {
   'moneybird.side.out': 'Out',
   'moneybird.side.in': 'In',
   'moneybird.moneybirdName': 'Moneybird',
-  'moneybird.drillNoDocuments': 'No documents in this year in the plan.',
+  'moneybird.drillNoDocuments':
+    'No documents behind this difference (every document in this year balances on its own).',
   'moneybird.typePicker': 'Account type',
   'moneybird.typeSave': 'Save type',
   'moneybird.unbalancedPanel': 'This document does not balance',
