@@ -97,10 +97,12 @@ export {
 } from './account-ranker.js'
 export {
   ECB_MAX_LOOKBACK_DAYS,
+  FX_RATE_MAX_DECIMALS,
   applyFxToLines,
   calendarDaysBetween,
   convertMinorWithRate,
   formatExchangeRateSource,
+  formatFxRateForDisplay,
   isOlderThanDays,
   isValidFxRate,
   lookupEcbRate,

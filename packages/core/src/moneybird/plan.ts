@@ -1203,7 +1203,8 @@ export function planMoneybirdImport(
         source: 'empty',
         totalDebit: 0n,
         totalCredit: 0n,
-        balanced: true,
+        // Empty is not a balanced read — same honesty as unreadable (issue #42).
+        balanced: null,
         accountCount: 0,
         lines,
       }

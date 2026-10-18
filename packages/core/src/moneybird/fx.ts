@@ -62,8 +62,13 @@ export function parseExchangeRateSource(value: string | null | undefined): FxRat
   }
 }
 
+/** Ledger `numeric(24,12)` — more than 12 fractional digits are rejected. */
+export const FX_RATE_MAX_DECIMALS = 12
+
 export function isValidFxRate(rate: string): boolean {
   if (!/^\d+(\.\d+)?$/.test(rate)) return false
+  const dot = rate.indexOf('.')
+  if (dot >= 0 && rate.length - dot - 1 > FX_RATE_MAX_DECIMALS) return false
   const value = Number(rate)
   return Number.isFinite(value) && value > 0
 }
@@ -71,12 +76,21 @@ export function isValidFxRate(rate: string): boolean {
 /**
  * Normalize a user-typed rate (NL `0,9214` or `0.9214`) to a canonical decimal
  * string with `.`. Returns null when empty/invalid after normalization.
+ * At most {@link FX_RATE_MAX_DECIMALS} fractional digits (ledger numeric(24,12)).
  */
 export function normalizeFxRateInput(raw: string): string | null {
   const trimmed = raw.trim().replace(/\s+/g, '').replace(',', '.')
   if (trimmed === '') return null
   if (!isValidFxRate(trimmed)) return null
   return trimmed
+}
+
+/**
+ * NL display for a canonical rate string: `0.9214` → `0,9214`.
+ * Storage and maths stay on the dotted form from {@link normalizeFxRateInput}.
+ */
+export function formatFxRateForDisplay(rate: string): string {
+  return rate.replace('.', ',')
 }
 
 /** Days from `earlier` to `later` (ISO `YYYY-MM-DD`), both treated as UTC dates. */

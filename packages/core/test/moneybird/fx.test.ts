@@ -5,6 +5,7 @@ import {
   calendarDaysBetween,
   convertMinorWithRate,
   formatExchangeRateSource,
+  formatFxRateForDisplay,
   isOlderThanDays,
   isValidFxRate,
   lookupEcbRate,
@@ -126,11 +127,22 @@ describe('applying FX to planned lines', () => {
     expect(isValidFxRate('0.9214')).toBe(true)
   })
 
+  it('caps fractional digits at the ledger numeric(24,12) precision', () => {
+    expect(isValidFxRate('0.123456789012')).toBe(true)
+    expect(isValidFxRate('0.1234567890123')).toBe(false)
+    expect(normalizeFxRateInput('0,1234567890123')).toBeNull()
+  })
+
   it('accepts NL comma decimals and rejects invalid overrides', () => {
     expect(normalizeFxRateInput('0,9214')).toBe('0.9214')
     expect(normalizeFxRateInput(' 0.9214 ')).toBe('0.9214')
     expect(normalizeFxRateInput('0')).toBeNull()
     expect(normalizeFxRateInput('-1,2')).toBeNull()
     expect(normalizeFxRateInput('abc')).toBeNull()
+  })
+
+  it('formats rates for NL display with a comma', () => {
+    expect(formatFxRateForDisplay('0.9214')).toBe('0,9214')
+    expect(formatFxRateForDisplay('1')).toBe('1')
   })
 })

@@ -1,15 +1,19 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { AccountType, MoneybirdImportDecisions, MoneybirdProblem } from '@klopt/core'
-import { normalizeFxRateInput, previewFxConversion } from '@klopt/core/moneybird-fx'
+import {
+  formatFxRateForDisplay,
+  normalizeFxRateInput,
+  previewFxConversion,
+} from '@klopt/core/moneybird-fx'
 import { PageHeader, Stat } from '~/components/app-shell'
 import {
   FindingsList,
   FindingHonestyState,
   honestyFromReconciliation,
 } from '~/components/findings/finding-card'
-import { formatFindingAmount } from '~/lib/finding-card'
-import { formatDate, formatMinorUnits } from '~/lib/format'
+import { detailForDisplay, formatFindingAmount } from '~/lib/finding-card'
+import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import {
@@ -365,11 +369,12 @@ function Moneybird() {
       if (href !== null) window.open(href, '_blank', 'noopener,noreferrer')
     },
     onDrillUnbalanced: (problem) => {
+      const detail = detailForDisplay(problem.detail)
       setDrillNote(
         t('moneybird.drillUnbalancedHint', {
-          year: problem.detail['year'] ?? '—',
-          debit: problem.detail['debit'] ?? '—',
-          credit: problem.detail['credit'] ?? '—',
+          year: detail['year'] ?? '—',
+          debit: detail['debit'] ?? '—',
+          credit: detail['credit'] ?? '—',
         }),
       )
       document.getElementById('moneybird-reconciliation')?.scrollIntoView({ behavior: 'smooth' })
@@ -597,6 +602,7 @@ function Moneybird() {
               <PreviewReport
                 report={preview}
                 actions={findingActions}
+                advanced={advanced}
                 fxDraft={fxDraft}
                 typeDraft={typeDraft}
                 unbalancedDraft={unbalancedDraft}
@@ -863,6 +869,7 @@ interface PendingFxEntry {
 function PreviewReport({
   report,
   actions,
+  advanced,
   fxDraft,
   typeDraft,
   unbalancedDraft,
@@ -881,6 +888,7 @@ function PreviewReport({
 }: {
   report: Record<string, unknown>
   actions: MoneybirdFindingActions
+  advanced: boolean
   fxDraft: {
     externalId: string
     currency: string
@@ -908,6 +916,9 @@ function PreviewReport({
   onDrillDismiss: () => void
 }) {
   const { t } = useT()
+  // Forms: Uitgave/Inkomst in simple mode; Debet/Credit only under Geavanceerd (#43).
+  const debitLabel = advanced ? t('moneybird.side.debit') : t('moneybird.side.expense')
+  const creditLabel = advanced ? t('moneybird.side.credit') : t('moneybird.side.income')
   const counts = report['counts'] as Record<string, number>
   const years = (report['years'] as number[]) ?? []
   const reconciliation = (report['reconciliation'] as ReconciliationYear[]) ?? []
@@ -1043,8 +1054,8 @@ function PreviewReport({
                   <li key={line.label}>
                     {t('moneybird.fx.conversion', {
                       foreign: formatFindingAmount(line.foreignMinor, fxDraft.currency),
-                      rate: fxNormalized,
-                      functional: formatMinorUnits(line.functionalMinor),
+                      rate: formatFxRateForDisplay(fxNormalized),
+                      functional: formatFindingAmount(line.functionalMinor, 'EUR'),
                     })}{' '}
                     <span className="text-muted-foreground">— {line.label}</span>
                   </li>
@@ -1055,8 +1066,8 @@ function PreviewReport({
                   <thead>
                     <tr className="border-border border-b text-left">
                       <th className="py-1">{t('moneybird.category')}</th>
-                      <th className="py-1 text-right">Debet</th>
-                      <th className="py-1 text-right">Credit</th>
+                      <th className="py-1 text-right">{debitLabel}</th>
+                      <th className="py-1 text-right">{creditLabel}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1080,10 +1091,12 @@ function PreviewReport({
                             {line.accountNumber} — {line.description}
                           </td>
                           <td className="py-1 text-right tabular-nums">
-                            {line.debitMinor !== '0' ? formatMinorUnits(functional) : '—'}
+                            {line.debitMinor !== '0' ? formatFindingAmount(functional, 'EUR') : '—'}
                           </td>
                           <td className="py-1 text-right tabular-nums">
-                            {line.creditMinor !== '0' ? formatMinorUnits(functional) : '—'}
+                            {line.creditMinor !== '0'
+                              ? formatFindingAmount(functional, 'EUR')
+                              : '—'}
                           </td>
                         </tr>
                       )
@@ -1155,9 +1168,16 @@ function PreviewReport({
         <div className="border-border mb-6 rounded-none border p-4">
           <p className="mb-2 text-sm font-semibold">{t('moneybird.unbalancedPanel')}</p>
           <p className="text-muted-foreground mb-3 text-sm">
-            {unbalancedDraft.detail['reference'] ?? unbalancedDraft.path} — Debet{' '}
-            {unbalancedDraft.detail['debit'] ?? '—'} / Credit{' '}
-            {unbalancedDraft.detail['credit'] ?? '—'}
+            {(() => {
+              const detail = detailForDisplay(unbalancedDraft.detail)
+              return t('moneybird.unbalancedSides', {
+                reference: detail['reference'] ?? unbalancedDraft.path,
+                debitLabel,
+                debit: detail['debit'] ?? '—',
+                creditLabel,
+                credit: detail['credit'] ?? '—',
+              })
+            })()}
           </p>
           <div className="flex flex-wrap gap-2">
             <button

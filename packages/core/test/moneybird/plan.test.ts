@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  mayClaimReconciled,
   planMoneybirdImport,
   parseAdministration,
   type MoneybirdImportOptions,
@@ -184,9 +185,13 @@ describe('the reconciliation', () => {
   })
 
   it('keeps an acknowledged empty year as empty, never reconciled', () => {
+    // A draft sales invoice still contributes a year via documents, but no
+    // journal entry — so reconciliation has a real empty row (not []).
+    const base = snapshot()
+    const draft = { ...base.salesInvoices[0]!, state: 'draft' }
     const plan = planMoneybirdImport(
       snapshot({
-        salesInvoices: [],
+        salesInvoices: [draft],
         purchaseInvoices: [],
         receipts: [],
         financialMutations: [],
@@ -195,14 +200,17 @@ describe('the reconciliation', () => {
         financialAccounts: [],
       }),
       options({
-        decisions: { acknowledgedEmptyYears: ['(none)'] },
+        decisions: { acknowledgedEmptyYears: ['2026'] },
       }),
     )
     expect(plan.warnings.map((warning) => warning.code)).not.toContain('trial_balance_empty')
-    // No booked years → no reconciliation rows; the acknowledgement is what
-    // keeps honesty off "reconciled". When rows exist they must stay empty.
-    expect(plan.reconciliation.every((year) => year.source === 'empty')).toBe(true)
-    expect(plan.reconciliation.every((year) => year.source !== 'read')).toBe(true)
+    expect(plan.reconciliation).toHaveLength(1)
+    expect(plan.reconciliation[0]).toMatchObject({
+      year: 2026,
+      source: 'empty',
+      balanced: null,
+    })
+    expect(mayClaimReconciled('empty', plan.reconciliation[0]!.balanced)).toBe(false)
   })
 })
 
