@@ -97,6 +97,17 @@
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
   }
+
+  /*
+    One focus style everywhere (redesign #57 / #61): solid 2px --ring, offset.
+    Offset keeps the ring on the page behind an ink primary button so black-on-
+    black (light) and yellow-on-white (dark) never swallow the indicator.
+    Components may set outline-offset-0 (inputs) where the prototype does.
+  */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
 /**
@@ -234,7 +245,7 @@
     Four status hues. Attention is orange-brown, not a second yellow.
   */
   --status-error: oklch(0.52 0.2 27);
-  --status-attention: oklch(0.56 0.14 55);
+  --status-attention: oklch(0.53 0.14 55);
   --status-success: oklch(0.5 0.12 150);
   --status-info: oklch(0.5 0.14 255);
 
@@ -306,7 +317,7 @@
 .dark {
   --surface: color-mix(in oklab, var(--white) 8%, var(--black));
   --line: color-mix(in oklab, var(--white) 20%, var(--black));
-  --line-strong: color-mix(in oklab, var(--white) 38%, var(--black));
+  --line-strong: color-mix(in oklab, var(--white) 48%, var(--black));
   --quiet: color-mix(in oklab, var(--white) 66%, var(--black));
 
   --status-error: oklch(0.7 0.19 25);
