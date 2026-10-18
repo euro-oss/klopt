@@ -12,7 +12,7 @@ import { Slot } from 'radix-ui'
  * success / info / attention / destructive for meaning.
  */
 const badgeVariants = cva(
-  'group/badge inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-none whitespace-nowrap transition-colors outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:outline-destructive motion-reduce:transition-none [&>svg]:pointer-events-none [&>svg]:size-3!',
+  'group/badge inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-none whitespace-nowrap transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:outline-solid aria-invalid:outline-2 aria-invalid:outline-offset-2 aria-invalid:outline-destructive motion-reduce:transition-none [&>svg]:pointer-events-none [&>svg]:size-3!',
   {
     variants: {
       variant: {

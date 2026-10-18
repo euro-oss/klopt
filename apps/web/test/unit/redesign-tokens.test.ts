@@ -100,23 +100,29 @@ function parseOklch(value: string): Rgb {
   return oklchToSrgb(+m![1]!, +m![2]!, +m![3]!)
 }
 
+function parseHex(value: string): Rgb {
+  const m = value.match(/^#([0-9a-f]{6})$/i)
+  expect(m, `hex parse: ${value}`).toBeTruthy()
+  const n = parseInt(m![1]!, 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
 /**
- * `color-mix(in oklab, white|black p%, black|white)` — achromatic oklab mix,
- * then OKLab → sRGB. Matches Chromium for our line-strong tokens.
+ * `color-mix(in oklab, var(--white|black) p%, var(--white|black))` — achromatic
+ * oklab mix, then OKLab → sRGB. Matches Chromium for our line-strong tokens.
  */
-function resolveLineStrong(value: string): Rgb {
+function resolveColorMixAchromatic(value: string, resolveName: (name: string) => Rgb): Rgb {
   const m = value.match(
     /color-mix\(\s*in oklab,\s*var\(--(white|black)\)\s+(\d+(?:\.\d+)?)%,\s*var\(--(white|black)\)\s*\)/,
   )
-  expect(m, `line-strong parse: ${value}`).toBeTruthy()
-  const from = m![1]!
+  expect(m, `color-mix parse: ${value}`).toBeTruthy()
+  const from = resolveName(`--${m![1]!}`)
   const pct = +m![2]! / 100
-  const to = m![3]!
-  // OKLab L: white ≈ 1, black ≈ 0 for achromatic.
-  const Lfrom = from === 'white' ? 1 : 0
-  const Lto = to === 'white' ? 1 : 0
+  const to = resolveName(`--${m![3]!}`)
+  // Achromatic: mix OKLab L (≈ relative for white/black endpoints).
+  const Lfrom = relativeLuminance(from) > 0.5 ? 1 : 0
+  const Lto = relativeLuminance(to) > 0.5 ? 1 : 0
   const L = Lfrom * pct + Lto * (1 - pct)
-  // OKLab achromatic → linear sRGB ≈ L³ under Björn’s LMS, then encode.
   const lin = L * L * L
   const to8 = (c: number): number => {
     const x = c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055
@@ -124,6 +130,40 @@ function resolveLineStrong(value: string): Rgb {
   }
   const ch = to8(lin)
   return [ch, ch, ch]
+}
+
+/**
+ * Resolve a custom property in `:root` or `.dark` to an sRGB triple, following
+ * `var(--…)` chains and the literal forms used in app.css / tokens.css.
+ */
+function resolveColorToken(css: string, block: ':root' | '.dark', name: string): Rgb {
+  const seen = new Set<string>()
+  const lookup = (n: string, b: ':root' | '.dark'): string => {
+    try {
+      return tokenIn(css, b, n)
+    } catch {
+      if (b === '.dark') return tokenIn(css, ':root', n)
+      throw new Error(`missing ${n}`)
+    }
+  }
+  const walk = (n: string, b: ':root' | '.dark'): Rgb => {
+    const key = `${b}:${n}`
+    expect(seen.has(key), `cycle at ${key}`).toBe(false)
+    seen.add(key)
+    let value = lookup(n, b)
+    if (value.startsWith('var(')) {
+      const ref = value.match(/^var\((--[a-z0-9-]+)\)$/i)
+      expect(ref, `var() parse: ${value}`).toBeTruthy()
+      return walk(ref![1]!, b)
+    }
+    if (value.startsWith('#')) return parseHex(value)
+    if (value.startsWith('oklch(')) return parseOklch(value)
+    if (value.startsWith('color-mix(')) {
+      return resolveColorMixAchromatic(value, (inner) => walk(inner, b))
+    }
+    throw new Error(`unsupported colour form for ${n}: ${value}`)
+  }
+  return walk(name, block)
 }
 
 function mixTint(fg: Rgb, bg: Rgb, amount: number): Rgb {
@@ -136,10 +176,6 @@ function mixTint(fg: Rgb, bg: Rgb, amount: number): Rgb {
     Math.round(fg[2] * t + bg[2] * (1 - t)),
   ]
 }
-
-const BLACK: Rgb = [0, 0, 0]
-const WHITE: Rgb = [255, 255, 255]
-const YELLOW: Rgb = [255, 213, 30] // #ffd51e
 
 describe('Redesign tokens and primitives (slice 1)', () => {
   it('keeps app.css :root/.dark in sync with prototypes/redesign/src/tokens.css', () => {
@@ -214,81 +250,81 @@ describe('Redesign tokens and primitives (slice 1)', () => {
     expect(readWeb('components/ui/button.tsx')).toContain('motion-reduce:transition-none')
   })
 
-  it('uses solid offset outline for focus (prototype :focus-visible)', () => {
+  it('uses solid offset outline for focus — and never outline-none', () => {
+    for (const file of [
+      'components/ui/button.tsx',
+      'components/ui/input.tsx',
+      'components/ui/badge.tsx',
+    ]) {
+      const source = readWeb(file)
+      // Tailwind 4: outline-none sets --tw-outline-style:none; outline-2 then
+      // paints width 2px with style none — invisible. See e2e/focus-outline.spec.ts.
+      // Only the class string — comments may mention the trap by name.
+      expect(source, file).not.toMatch(/['"`][^'"`]*\boutline-none\b[^'"`]*['"`]/)
+      expect(source).toContain('focus-visible:outline-solid')
+      expect(source).toContain('focus-visible:outline-2')
+      expect(source).toContain('focus-visible:outline-ring')
+    }
+
     const button = readWeb('components/ui/button.tsx')
-    expect(button).toContain('focus-visible:outline-2')
     expect(button).toContain('focus-visible:outline-offset-2')
-    expect(button).toContain('focus-visible:outline-ring')
     expect(button).not.toContain('focus-visible:ring-ring/30')
-    expect(button).not.toContain('focus-visible:border-ring')
-    // No per-variant focus ring overrides.
     expect(button).not.toMatch(/focus-visible:border-(destructive|success|info|warning)/)
-    expect(button).not.toMatch(/focus-visible:ring-(destructive|success|info|warning)/)
 
     const input = readWeb('components/ui/input.tsx')
-    expect(input).toContain('focus-visible:outline-2')
     expect(input).toContain('focus-visible:outline-offset-0')
-    expect(input).toContain('focus-visible:outline-ring')
+    expect(input).toContain('aria-invalid:border-destructive')
+    expect(input).toContain('aria-invalid:outline-destructive')
 
     const badge = readWeb('components/ui/badge.tsx')
-    expect(badge).toContain('focus-visible:outline-2')
     expect(badge).toContain('focus-visible:outline-offset-2')
-    expect(badge).toContain('focus-visible:outline-ring')
 
     const app = readWeb('styles/app.css')
     expect(app).toMatch(/:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--ring\)/)
   })
 
-  it('A: --ring vs background ≥3:1; offset keeps the ring on the page behind ink primary', () => {
-    // Light: black ring on white page. Dark: yellow ring on black page.
-    // Outline-offset-2 paints the ring against the page, not the ink fill —
-    // so ring-vs-background is the focus-indicator contrast (PM #63).
-    const lightRingVsBg = contrastRatio(BLACK, WHITE)
-    const darkRingVsBg = contrastRatio(YELLOW, BLACK)
+  it('A: --ring vs background ≥3:1 from parsed app.css tokens', () => {
+    const app = readWeb('styles/app.css')
+    // Resolve through the real token chain (e.g. --ring → var(--black) → #000).
+    const lightRing = resolveColorToken(app, ':root', '--ring')
+    const lightBg = resolveColorToken(app, ':root', '--background')
+    const lightPrimary = resolveColorToken(app, ':root', '--primary')
+    const darkRing = resolveColorToken(app, '.dark', '--ring')
+    const darkBg = resolveColorToken(app, '.dark', '--background')
+    const darkPrimary = resolveColorToken(app, '.dark', '--primary')
+
+    const lightRingVsBg = contrastRatio(lightRing, lightBg)
+    const darkRingVsBg = contrastRatio(darkRing, darkBg)
     expect(lightRingVsBg).toBeGreaterThanOrEqual(3)
     expect(darkRingVsBg).toBeGreaterThanOrEqual(3)
 
-    // Token-to-token ring vs primary (same hue as the fill) is 1:1 by design;
-    // the offset is what makes the indicator visible on ink buttons.
-    const lightRingVsPrimary = contrastRatio(BLACK, BLACK)
-    const darkRingVsPrimary = contrastRatio(YELLOW, WHITE)
-    expect(lightRingVsPrimary).toBe(1)
+    // Token-pair ring vs primary stays low by design; outline-offset paints on
+    // the page (covered by ring-vs-background + e2e/focus-outline.spec.ts).
+    const lightRingVsPrimary = contrastRatio(lightRing, lightPrimary)
+    const darkRingVsPrimary = contrastRatio(darkRing, darkPrimary)
+    expect(lightRingVsPrimary).toBeLessThan(3)
     expect(darkRingVsPrimary).toBeLessThan(3)
-
-    // Recorded for the PR report.
-    expect({
-      lightRingVsBackground: Number(lightRingVsBg.toFixed(2)),
-      darkRingVsBackground: Number(darkRingVsBg.toFixed(2)),
-      lightRingVsPrimary: Number(lightRingVsPrimary.toFixed(2)),
-      darkRingVsPrimary: Number(darkRingVsPrimary.toFixed(2)),
-    }).toEqual({
-      lightRingVsBackground: 21,
-      darkRingVsBackground: 14.79,
-      lightRingVsPrimary: 1,
-      darkRingVsPrimary: 1.42,
-    })
   })
 
-  it('B: attention text on /8 tint ≥4.5:1 in light and dark', () => {
+  it('B: attention text on /8 tint ≥4.5:1 in light and dark (parsed tokens)', () => {
     const app = readWeb('styles/app.css')
-    const lightAtt = parseOklch(tokenIn(app, ':root', '--status-attention'))
-    const darkAtt = parseOklch(tokenIn(app, '.dark', '--status-attention'))
-    const lightOnTint = contrastRatio(lightAtt, mixTint(lightAtt, WHITE, 0.08))
-    const darkOnTint = contrastRatio(darkAtt, mixTint(darkAtt, BLACK, 0.08))
+    const lightAtt = resolveColorToken(app, ':root', '--status-attention')
+    const darkAtt = resolveColorToken(app, '.dark', '--status-attention')
+    const lightBg = resolveColorToken(app, ':root', '--background')
+    const darkBg = resolveColorToken(app, '.dark', '--background')
+    const lightOnTint = contrastRatio(lightAtt, mixTint(lightAtt, lightBg, 0.08))
+    const darkOnTint = contrastRatio(darkAtt, mixTint(darkAtt, darkBg, 0.08))
     expect(lightOnTint).toBeGreaterThanOrEqual(4.5)
     expect(darkOnTint).toBeGreaterThanOrEqual(4.5)
-    expect(Number(lightOnTint.toFixed(2))).toBeGreaterThanOrEqual(4.5)
-    expect(Number(darkOnTint.toFixed(2))).toBeGreaterThanOrEqual(4.5)
   })
 
-  it('C: dark --line-strong (input border) ≥3:1 against black; Input uses --input', () => {
+  it('C: dark --line-strong (input border) ≥3:1 against page background; Input uses it', () => {
     const app = readWeb('styles/app.css')
-    const lineStrong = resolveLineStrong(tokenIn(app, '.dark', '--line-strong'))
-    const ratio = contrastRatio(lineStrong, BLACK)
-    expect(ratio).toBeGreaterThanOrEqual(3)
+    const lineStrong = resolveColorToken(app, '.dark', '--line-strong')
+    const darkBg = resolveColorToken(app, '.dark', '--background')
+    expect(contrastRatio(lineStrong, darkBg)).toBeGreaterThanOrEqual(3)
     expect(tokenIn(app, ':root', '--input')).toBe('var(--line-strong)')
     expect(readWeb('components/ui/input.tsx')).toContain('field-control')
-    // field-control borders with --color-input → --input → --line-strong.
     expect(readWeb('styles/app.css')).toContain('border: 1px solid var(--color-input)')
   })
 
