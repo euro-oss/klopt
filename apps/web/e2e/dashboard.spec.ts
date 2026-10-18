@@ -111,7 +111,7 @@ test('the book year in the shell is the administration’s, and the reports agre
   // The combined switcher shows the year on its closed row; the labelled
   // select is one click in.
   await openEntitySwitcher(page)
-  await expect(page.getByRole('combobox', { name: 'Boekjaar' })).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'Boekjaar', exact: true })).toBeVisible()
   await page.keyboard.press('Escape')
 
   // Read the year off the dashboard rather than out of the picker: what

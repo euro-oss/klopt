@@ -174,11 +174,12 @@ export async function chooseOption(
   const shellLabel =
     typeof label === 'string' && /^(Administratie|Boekjaar|Administration|Book year)$/.test(label)
   if (shellLabel) {
-    const field = (within ?? page).getByRole('combobox', { name: label })
+    // exact: fiscal-years page also has "Boekjaar om af te sluiten".
+    const field = (within ?? page).getByRole('combobox', { name: label, exact: true })
     if (!(await field.isVisible().catch(() => false))) {
       await openEntitySwitcher(page)
     }
-    await (within ?? page).getByRole('combobox', { name: label }).click()
+    await field.click()
   } else {
     await (within ?? page).getByLabel(label).click()
   }

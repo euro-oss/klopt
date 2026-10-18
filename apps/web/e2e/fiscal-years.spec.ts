@@ -87,7 +87,7 @@ test('the next book year is opened from one field, and turns up in the shell', a
   // year picker every report reads, which is a different component entirely.
   await expect(page.getByRole('cell', { name: next, exact: true })).toBeVisible()
   await openEntitySwitcher(page)
-  await page.getByRole('combobox', { name: 'Boekjaar' }).click()
+  await page.getByRole('combobox', { name: 'Boekjaar', exact: true }).click()
   await expect(page.getByRole('option', { name: next, exact: true })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('listbox')).toBeHidden()
@@ -214,7 +214,7 @@ test('a close shows the entries first, is gated on the acknowledgement, and happ
       .nth(2),
   ).toHaveText('afgesloten')
   await openEntitySwitcher(page)
-  await page.getByRole('combobox', { name: 'Boekjaar' }).click()
+  await page.getByRole('combobox', { name: 'Boekjaar', exact: true }).click()
   await expect(
     page.getByRole('option', { name: `${thisYear} (afgesloten)`, exact: true }),
   ).toBeVisible()
