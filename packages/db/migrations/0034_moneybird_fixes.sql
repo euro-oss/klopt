@@ -5,13 +5,11 @@
 --    still goes through `postJournalEntry`.
 -- 2. `ecb_reference_rates`: cached ECB daily reference rates so a look-up for
 --    an already-fetched date never depends on the ECB being reachable.
---
--- Idempotent ADD/CREATE so a partially-applied or re-run local DB does not fail.
 
 ALTER TABLE "klopt"."moneybird_connections"
-	ADD COLUMN IF NOT EXISTS "import_decisions" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
+	ADD COLUMN "import_decisions" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
 
-CREATE TABLE IF NOT EXISTS "klopt"."ecb_reference_rates" (
+CREATE TABLE "klopt"."ecb_reference_rates" (
 	"currency" char(3) NOT NULL,
 	"rate_date" date NOT NULL,
 	"rate" numeric(24, 12) NOT NULL,
