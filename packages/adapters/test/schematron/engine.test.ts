@@ -1,11 +1,13 @@
 import { dirname, join } from 'node:path'
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { beforeAll, describe, expect, it } from 'vitest'
 import {
   absoluteContext,
   loadSchematronFromDirectory,
   parseSchematron,
+  REQUIRED_PEPPOL_SCHEMATRON_FILES,
   validateAgainst,
 } from '../../src/schematron/index.js'
 import { SchematronError, type SchematronSchema } from '../../src/schematron/model.js'
@@ -67,6 +69,36 @@ describe('loading the artefacts', () => {
 
   it('refuses a file that is not Schematron', () => {
     expect(() => parseSchematron('<hello/>', 'x.sch')).toThrow(SchematronError)
+  })
+
+  it('refuses an empty directory rather than validating nothing', () => {
+    const empty = mkdtempSync(join(tmpdir(), 'klopt-sch-empty-'))
+    try {
+      expect(() => loadSchematronFromDirectory(empty)).toThrow(/no \.sch artefacts/)
+    } finally {
+      rmSync(empty, { recursive: true, force: true })
+    }
+  })
+
+  it('refuses a partial set rather than under-validating', () => {
+    const partial = mkdtempSync(join(tmpdir(), 'klopt-sch-partial-'))
+    try {
+      writeFileSync(
+        join(partial, 'PEPPOL-EN16931-UBL.sch'),
+        readFileSync(join(ARTEFACTS, 'PEPPOL-EN16931-UBL.sch')),
+      )
+      expect(() => loadSchematronFromDirectory(partial)).toThrow(/missing CEN-EN16931-UBL\.sch/)
+      expect(() => loadSchematronFromDirectory(partial)).toThrow(SchematronError)
+    } finally {
+      rmSync(partial, { recursive: true, force: true })
+    }
+  })
+
+  it('names both required artefacts', () => {
+    expect(REQUIRED_PEPPOL_SCHEMATRON_FILES).toEqual([
+      'CEN-EN16931-UBL.sch',
+      'PEPPOL-EN16931-UBL.sch',
+    ])
   })
 })
 

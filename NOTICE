@@ -37,3 +37,25 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+Peppol BIS Billing 3 Schematron artefacts (runtime data, not Klopt source)
+
+At build / develop time this project may download ISO Schematron rule files
+from OpenPEPPOL/peppol-bis-invoice-3 (pinned release; see
+tools/fetch-peppol-bis3.sh and reference-data/peppol/README.md). Those files
+are not committed to this Apache-2.0 repository and are not relicensed by
+Klopt.
+
+- CEN-EN16931-UBL.sch carries an EUPL-1.2 header from its publisher (CEN /
+  Connecting Europe material redistributed by OpenPeppol). EUPL is the
+  publisher's licence for that artefact, not a licence claim for Klopt.
+- PEPPOL-EN16931-UBL.sch is published by OpenPeppol AISBL. OpenPeppol holds
+  copyright in Peppol BIS and restricts modification / redistribution of the
+  BIS without prior consent; obtain the artefacts from the official provenance
+  named in reference-data/peppol/README.md.
+
+Container images built from this Dockerfile fetch the pinned checksum-verified
+bytes into /app/reference-data for runtime validation only. That is separate
+from redistribution of the artefacts as part of the published source tree.

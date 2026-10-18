@@ -18,6 +18,17 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Peppol Schematron in the container image
+
+Outbound UBL generation and send load `CEN-EN16931-UBL.sch` and
+`PEPPOL-EN16931-UBL.sch` at runtime. Those files stay out of git (OpenPeppol
+redistribution terms) and are obtained by `pnpm peppol:fetch` with a pinned
+SHA-256 check. The Dockerfile now runs that fetch in the build stage, copies
+`reference-data/` into the runtime image at `/app/reference-data`, and sets
+`KLOPT_REFERENCE_DATA_DIR`. Loading refuses a partial or empty `.sch` set
+instead of under-validating; missing artefacts surface as an explicit API error
+rather than a silent skip. See [`NOTICE`](NOTICE) for licence attribution.
+
 ### Container image: `ajv` at web runtime
 
 The production `deps` stage now installs `@klopt/web`'s production graph and

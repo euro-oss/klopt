@@ -8,7 +8,9 @@ Redistributing those files from this tree without consent conflicts with the
 publisher's terms (the CEN EN 16931 UBL artefact ships with an EUPL header —
 that is the publisher's licence statement, not a licence Klopt claims for the
 project). Path A for public readiness is therefore: **fetch from official
-provenance, keep locally / in CI cache, do not redistribute in-repo.**
+provenance, keep locally / in CI cache / the container image build, do not
+redistribute in-repo.** Attribution and licence boundaries are recorded in
+[`NOTICE`](../../NOTICE).
 
 ## Obtain the artefacts
 
@@ -22,8 +24,14 @@ That writes:
 - `bis-3/CEN-EN16931-UBL.sch` — EN 16931 / TC434 rules bound to UBL
 - `bis-3/PEPPOL-EN16931-UBL.sch` — Peppol BIS 3.0 Billing (+ NLCIUS) rules
 
-into this directory. They are gitignored. Re-run with `--force` after bumping
-the pin in `tools/fetch-peppol-bis3.sh` (or set `PEPPOL_BIS3_REF`).
+into this directory. They are gitignored. The fetch is pinned to a release tag
+and **SHA-256 verified** (`CEN_SHA256` / `PEPPOL_SHA256` in the script). Re-run
+with `--force` after bumping the pin and checksums together (or set
+`PEPPOL_BIS3_REF` with `--skip-checksum` only when probing).
+
+The Docker image build runs the same fetch and copies `reference-data/` to
+`/app/reference-data` with `KLOPT_REFERENCE_DATA_DIR` set, so hosted deploys
+cannot ship the tree without the artefacts.
 
 ## Provenance
 
