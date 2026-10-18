@@ -449,10 +449,9 @@ export async function handleRefreshMoneybirdFxRate(
   const needFullHistory = isOlderThanDays(query.documentDate, ECB_HIST_FULL_AFTER_DAYS, today)
   const feed = needFullHistory ? 'full' : '90d'
 
-  let fetchedCount = 0
+  let fetched: Awaited<ReturnType<typeof fetchEcbReferenceRates>>
   try {
-    const fetched = await fetchEcbReferenceRates({ includeFullHistory: needFullHistory })
-    fetchedCount = fetched.length
+    fetched = await fetchEcbReferenceRates({ includeFullHistory: needFullHistory })
     await withEcbRates(context.database, (repository) =>
       repository.upsertMany(
         fetched.map((row) => ({
@@ -475,7 +474,7 @@ export async function handleRefreshMoneybirdFxRate(
       currency,
       documentDate: query.documentDate,
       feed,
-      rows: String(fetchedCount),
+      rows: String(fetched.length),
     },
   })
 
