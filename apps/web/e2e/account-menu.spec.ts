@@ -66,7 +66,7 @@ test('the bottom of the rail is one row, not a settings panel', async ({ page })
   ).toBeVisible()
   await expect(panel.getByRole('button', { name: 'Uitloggen' })).toBeVisible()
   await expect(panel.getByRole('switch', { name: /Geavanceerd/ })).toBeVisible()
-  await expect(panel.getByText(/^rol: /).first()).toBeVisible()
+  await expect(panel.getByText(/Eigenaar · Geavanceerd uit/).first()).toBeVisible()
 })
 
 test('the menu opens upward, because there is nothing below it', async ({ page }) => {

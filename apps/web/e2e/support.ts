@@ -145,12 +145,41 @@ export async function openAccountMenu(page: Page): Promise<void> {
  * `option` matches the visible text, so pass a RegExp where the test used to
  * pass a value: `selectOption('4400')` becomes `/^4400 /`.
  */
+/**
+ * Open the combined Administratie / Boekjaar switcher (#57 / #64).
+ *
+ * The labelled selects live inside the popover; e2e that still names
+ * `Administratie` or `Boekjaar` opens this first.
+ */
+export async function openEntitySwitcher(page: Page): Promise<void> {
+  const trigger = page.getByRole('button', {
+    name: /Administratie en boekjaar|Administration and book year/,
+  })
+  await expect(trigger).toBeEnabled()
+  if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
+    await trigger.click()
+  }
+  await expect(
+    page.getByLabel(/^(Administratie|Administration|Boekjaar|Book year)$/).first(),
+  ).toBeVisible()
+}
+
 export async function chooseOption(
   page: Page,
   label: string | RegExp,
   option: string | RegExp,
   within?: Locator,
 ): Promise<void> {
+  const shellLabel =
+    typeof label === 'string' &&
+    /^(Administratie|Boekjaar|Administration|Book year)$/.test(label)
+  if (shellLabel) {
+    const field = (within ?? page).getByLabel(label)
+    if (!(await field.isVisible().catch(() => false))) {
+      await openEntitySwitcher(page)
+    }
+  }
+
   await (within ?? page).getByLabel(label).click()
   await page.getByRole('option', { name: option }).click()
 

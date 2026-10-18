@@ -387,6 +387,8 @@ function keyLabel(key: string): string {
     case 'a-z':
       return 'A–Z'
     default:
+      // Letter chords print lowercase on the keycap (#57 prototype: `g d`).
+      if (/^[a-z]$/.test(key)) return key
       return key.toUpperCase()
   }
 }

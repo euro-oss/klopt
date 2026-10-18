@@ -61,7 +61,13 @@ export const nl = {
   'shell.administration': 'Administratie',
   'shell.fiscalYear': 'Boekjaar',
   'shell.yearClosed': '{year} (afgesloten)',
-  'shell.role': 'rol: {role}',
+  // Combined Administratie / Boekjaar control (#57 prototype).
+  'shell.entitySwitcher': 'Administratie en boekjaar',
+  'shell.yearSummary': 'Boekjaar {year} · {range}',
+  // Desktop ⌘K trigger in the top bar.
+  'shell.searchTrigger': 'Zoeken of opdracht',
+  'shell.themeToLight': 'Licht thema',
+  'shell.themeToDark': 'Donker thema',
   'shell.demoEntity': '{name} · demo',
   'shell.demoBanner':
     'Demo-omgeving: gebruik alleen fictieve gegevens. Voer geen echte boekhouding of persoonsgegevens in.',

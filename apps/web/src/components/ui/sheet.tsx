@@ -40,7 +40,7 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        'fixed inset-0 z-50 bg-black/20 duration-[200ms] supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 motion-reduce:animate-none motion-reduce:transition-none',
+        'bg-overlay fixed inset-0 z-50 duration-[200ms] supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 motion-reduce:animate-none motion-reduce:transition-none',
         className,
       )}
       {...props}
@@ -84,7 +84,7 @@ function SheetContent({
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close data-slot="sheet-close" asChild>
-            <Button variant="ghost" size="icon-sm" className="bg-secondary absolute top-3 right-3">
+            <Button variant="ghost" size="icon" className="bg-secondary absolute top-3 right-3">
               <RiCloseLine />
               <span className="sr-only">{closeLabel}</span>
             </Button>

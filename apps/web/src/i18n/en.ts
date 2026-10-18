@@ -145,7 +145,13 @@ export const en: Record<MessageKey, string> = {
   'shell.administration': 'Administration',
   'shell.fiscalYear': 'Book year',
   'shell.yearClosed': '{year} (closed)',
-  'shell.role': 'role: {role}',
+  // Combined administration / book-year control (#57 prototype).
+  'shell.entitySwitcher': 'Administration and book year',
+  'shell.yearSummary': 'Book year {year} · {range}',
+  // Desktop ⌘K trigger in the top bar.
+  'shell.searchTrigger': 'Search or command',
+  'shell.themeToLight': 'Light theme',
+  'shell.themeToDark': 'Dark theme',
   'shell.demoEntity': '{name} · demo',
   'shell.demoBanner':
     "Demo environment: use fictional data only. Don't enter real bookkeeping records or personal data.",
