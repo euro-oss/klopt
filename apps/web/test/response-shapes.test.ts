@@ -79,6 +79,7 @@ import {
   handleMoneybirdFxRate,
   handleMoneybirdImportStatus,
   handlePreviewMoneybirdImport,
+  handleRefreshMoneybirdFxRate,
   handleRunMoneybirdImport,
   handleSaveMoneybirdMappings,
 } from '../src/api/handlers/moneybird.js'
@@ -1628,6 +1629,34 @@ describe('Moneybird, from connecting to disconnecting', () => {
         )
       ).body,
     )
+    // POST refresh hits ECB; fakeMoneybird only covers Moneybird hosts.
+    const moneybirdFetch = globalThis.fetch
+    const ecbXml = `<?xml version="1.0"?><gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref"><Cube><Cube time="2026-03-14"><Cube currency="USD" rate="1.0853"/></Cube></Cube></gesmes:Envelope>`
+    globalThis.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      if (url.includes('ecb.europa.eu')) {
+        return Promise.resolve(
+          new Response(ecbXml, { status: 200, headers: { 'content-type': 'text/xml' } }),
+        )
+      }
+      return moneybirdFetch(input, init)
+    }
+    try {
+      conforms(
+        'moneybird.refreshFxRate',
+        (
+          await handleRefreshMoneybirdFxRate(
+            context,
+            schemas.moneybirdFxRateQuery.parse({
+              currency: 'USD',
+              documentDate: '2026-03-15',
+            }),
+          )
+        ).body,
+      )
+    } finally {
+      globalThis.fetch = moneybirdFetch
+    }
     conforms(
       'moneybird.previewImport',
       (await handlePreviewMoneybirdImport(await contextFor())).body,
