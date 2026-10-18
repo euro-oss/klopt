@@ -94,38 +94,53 @@ export interface FetchEcbRatesOptions {
   readonly fetch?: typeof globalThis.fetch
 }
 
+async function fetchOneFeed(
+  fetchFn: typeof globalThis.fetch,
+  url: string,
+  byKey: Map<string, ParsedEcbRate>,
+  options: { readonly required: boolean },
+): Promise<void> {
+  const response = await fetchFn(url, {
+    headers: { Accept: 'application/xml,text/xml,*/*' },
+  })
+  if (!response.ok) {
+    if (options.required) {
+      throw new Error(`ECB rate feed returned HTTP ${String(response.status)} for ${url}`)
+    }
+    return
+  }
+  const xml = await response.text()
+  for (const row of parseEcbEurofxrefXml(xml)) {
+    byKey.set(`${row.currency}:${row.rateDate}`, {
+      currency: row.currency,
+      rateDate: row.rateDate,
+      rate: eurPerForeign(row.rate),
+    })
+  }
+}
+
 /**
  * Fetch and parse ECB rates, returning rows already inverted to EUR-per-foreign
  * for storage in `ecb_reference_rates`.
+ *
+ * The 90-day + daily feeds are required. The full multi-year history file is
+ * best-effort: a 401/5xx there must not block a look-up that the 90-day feed
+ * already covers (PM #55 / CI egress).
  */
 export async function fetchEcbReferenceRates(
   options: FetchEcbRatesOptions = {},
 ): Promise<readonly ParsedEcbRate[]> {
   const fetchFn = options.fetch ?? globalThis.fetch
-  const urls: string[] = [
-    options.hist90dUrl ?? DEFAULT_HIST_90D_URL,
-    options.dailyUrl ?? DEFAULT_DAILY_URL,
-  ]
-  if (options.includeFullHistory === true) {
-    urls.unshift(options.histFullUrl ?? DEFAULT_HIST_FULL_URL)
-  }
   const byKey = new Map<string, ParsedEcbRate>()
 
-  for (const url of urls) {
-    const response = await fetchFn(url, {
-      headers: { Accept: 'application/xml,text/xml,*/*' },
+  await fetchOneFeed(fetchFn, options.hist90dUrl ?? DEFAULT_HIST_90D_URL, byKey, {
+    required: true,
+  })
+  await fetchOneFeed(fetchFn, options.dailyUrl ?? DEFAULT_DAILY_URL, byKey, { required: true })
+  if (options.includeFullHistory === true) {
+    await fetchOneFeed(fetchFn, options.histFullUrl ?? DEFAULT_HIST_FULL_URL, byKey, {
+      required: false,
     })
-    if (!response.ok) {
-      throw new Error(`ECB rate feed returned HTTP ${String(response.status)} for ${url}`)
-    }
-    const xml = await response.text()
-    for (const row of parseEcbEurofxrefXml(xml)) {
-      byKey.set(`${row.currency}:${row.rateDate}`, {
-        currency: row.currency,
-        rateDate: row.rateDate,
-        rate: eurPerForeign(row.rate),
-      })
-    }
   }
 
   return [...byKey.values()].sort(
