@@ -199,7 +199,9 @@ function FiscalYears() {
       width: '7rem',
       cell: (row) =>
         row.startsOn <= now && now <= row.endsOn ? (
-          <span className="bg-primary/15 px-1.5 py-0.5 text-xs">{t('fiscalYears.current')}</span>
+          <span className="bg-accent text-accent-foreground px-1.5 py-0.5 text-xs">
+            {t('fiscalYears.current')}
+          </span>
         ) : null,
     },
   ]
