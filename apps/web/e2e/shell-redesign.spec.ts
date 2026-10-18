@@ -118,8 +118,15 @@ test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) =>
   expect(trimmed.indexOf('Journaalposten')).toBeGreaterThan(trimmed.indexOf('Momentopnames'))
   expect(trimmed.indexOf('Proefbalans')).toBe(trimmed.length - 1)
   // ⌘K is two chips; letter capital after the modifier.
-  await expect(help.getByText('Ctrl', { exact: true })).toBeVisible()
-  await expect(help.locator('kbd', { hasText: 'K' }).first()).toBeVisible()
+  const paletteChips = await help.evaluate((root) => {
+    const dt = [...root.querySelectorAll('dt')].find(
+      (el) => el.textContent?.trim() === 'Commandopalet',
+    )
+    return [...(dt?.parentElement?.querySelectorAll('kbd') ?? [])].map(
+      (kbd) => kbd.textContent ?? '',
+    )
+  })
+  expect(paletteChips).toEqual(['Ctrl', 'K'])
 })
 
 test('turning Geavanceerd off from the menu hides the advanced nav again', async ({ page }) => {
