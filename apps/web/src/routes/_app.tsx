@@ -110,6 +110,7 @@ function AppLayout() {
 
   return (
     <AdvancedModeProvider
+      key={session.user.id}
       userId={session.user.id}
       role={activeRole}
       initial={advanced}

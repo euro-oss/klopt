@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import { defaultAdvancedMode, writeAdvancedModeCookie } from '~/lib/advanced-mode'
 import { setAdvancedMode as persistAdvancedMode } from '~/server/advanced-mode'
 
@@ -25,7 +17,8 @@ const AdvancedModeContext = createContext<AdvancedModeContextValue | null>(null)
  *   administration (Eigenaar off; Boekhouder / Accountant / Controleur on).
  * - After the user toggles → keep that explicit choice across administration
  *   switches (still per user, not per browser).
- * - When the signed-in user changes, re-read that user's cookie.
+ * - Remount with `key={userId}` in the layout when the signed-in user changes,
+ *   so the next account never inherits in-memory state.
  */
 export function AdvancedModeProvider({
   userId,
@@ -44,15 +37,6 @@ export function AdvancedModeProvider({
   const [explicit, setExplicit] = useState<boolean | null>(() =>
     initialHasExplicit ? initial : null,
   )
-  const [activeUserId, setActiveUserId] = useState(userId)
-
-  // Another account signed in on this tab: drop the previous user's choice and
-  // take the loader's value for the new user (cookie is already user-scoped).
-  useEffect(() => {
-    if (userId === activeUserId) return
-    setActiveUserId(userId)
-    setExplicit(initialHasExplicit ? initial : null)
-  }, [userId, activeUserId, initial, initialHasExplicit])
 
   const advanced = explicit !== null ? explicit : defaultAdvancedMode(role)
 
