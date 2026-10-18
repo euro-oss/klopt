@@ -167,7 +167,8 @@ test('crediting an issued invoice drafts a credit note against it', async ({ pag
 test('a posted journal entry goes through, which it could not before', async ({ page }) => {
   await anAdministration(page, 'Memoriaal BV')
 
-  await page.getByRole('link', { name: /Nieuwe journaalpost/ }).click()
+  // Route stays reachable when Geavanceerd is off; the sidebar CTA does not.
+  await page.goto('/entries/new')
   await expect(page.getByRole('button', { name: /Boeken/ }).first()).toBeEnabled()
   await page.getByLabel('Omschrijving', { exact: true }).fill('Openingsbalans')
 

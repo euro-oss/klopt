@@ -39,6 +39,17 @@ function PrimitivesLab() {
       <Badge tabIndex={0} data-testid="lab-badge" variant="success">
         Klopt
       </Badge>
+      {/*
+        Same focus-visible outline pattern as the shell user-menu / ChoiceRow
+        (#64 design review #5) — no outline-none.
+      */}
+      <button
+        type="button"
+        data-testid="lab-shell-trigger"
+        className="border-border hover:bg-muted focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring border px-3 py-2 text-left text-sm"
+      >
+        Profielrij
+      </button>
     </main>
   )
 }

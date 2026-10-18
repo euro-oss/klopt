@@ -81,10 +81,9 @@ describe('the screens that are about a book year', () => {
 })
 
 describe('the shell', () => {
-  const shell = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'components', 'app-shell.tsx'),
-    'utf8',
-  )
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src')
+  const shell = readFileSync(join(root, 'components', 'app-shell.tsx'), 'utf8')
+  const nav = readFileSync(join(root, 'lib', 'shell-nav.ts'), 'utf8')
 
   it('carries the year control, so there is one and not one per report', () => {
     expect(shell).toContain('shell.fiscalYear')
@@ -97,9 +96,17 @@ describe('the shell', () => {
     expect(shell).toContain('activeYear.endsOn')
   })
 
-  it('offers ageing in the navigation rather than under reports', () => {
-    expect(shell).toContain('/reports/debtor-ageing')
-    expect(shell).toContain('/reports/creditor-ageing')
-    expect(shell).toContain('nav.group.ageing')
+  it('offers ageing under Rapporten (redesign IA, #61 slice 2)', () => {
+    expect(nav).toContain('/reports/debtor-ageing')
+    expect(nav).toContain('/reports/creditor-ageing')
+    expect(nav).toContain('nav.group.reports')
+    // Daily work first: Verkoop before Boekhouden; no separate ageing group.
+    const sales = nav.indexOf("key: 'nav.group.sales'")
+    const books = nav.indexOf("key: 'nav.group.books'")
+    const reports = nav.indexOf("key: 'nav.group.reports'")
+    expect(sales).toBeGreaterThan(-1)
+    expect(books).toBeGreaterThan(sales)
+    expect(reports).toBeGreaterThan(books)
+    expect(nav).not.toContain("key: 'nav.group.ageing'")
   })
 })

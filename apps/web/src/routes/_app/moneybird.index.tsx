@@ -16,12 +16,7 @@ import { detailForDisplay, formatFindingAmount, formatMonthName } from '~/lib/fi
 import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
-import {
-  ADVANCED_MODE_COOKIE,
-  ADVANCED_MODE_MAX_AGE_SECONDS,
-  advancedModeCookieValue,
-  resolveAdvancedMode,
-} from '~/lib/advanced-mode'
+import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import {
   emptyDecisions,
@@ -73,31 +68,14 @@ function suggestedAccountType(detail: Readonly<Record<string, string>>): Account
  * dry-run report rather than a later XAF step — see ADR 0060.
  */
 export const Route = createFileRoute('/_app/moneybird/')({
-  loader: async ({ context }) => {
-    const activeId = context.session.activeEntityId
-    const active =
-      context.session.memberships.find((row) => row.entityId === activeId) ??
-      context.session.memberships[0]
-    return {
-      connection: await getMoneybirdConnection(),
-      run: await moneybirdImportStatus(),
-      role: active?.role ?? '',
-    }
-  },
+  loader: async () => ({
+    connection: await getMoneybirdConnection(),
+    run: await moneybirdImportStatus(),
+  }),
   component: Moneybird,
 })
 
 const ACCOUNT_TYPES: readonly AccountType[] = ['asset', 'liability', 'equity', 'revenue', 'expense']
-
-function readAdvancedCookie(): string | null {
-  if (typeof document === 'undefined') return null
-  const match = document.cookie.match(/(?:^|;\s*)klopt_advanced=([^;]*)/)
-  return match?.[1] === undefined ? null : decodeURIComponent(match[1])
-}
-
-function writeAdvancedCookie(enabled: boolean): void {
-  document.cookie = `${ADVANCED_MODE_COOKIE}=${encodeURIComponent(advancedModeCookieValue(enabled))};path=/;max-age=${String(ADVANCED_MODE_MAX_AGE_SECONDS)};samesite=lax`
-}
 
 interface AdministrationOption {
   readonly id: string
@@ -108,10 +86,11 @@ interface AdministrationOption {
 }
 
 function Moneybird() {
-  const { connection, run: runResult, role } = Route.useLoaderData()
+  const { connection, run: runResult } = Route.useLoaderData()
   const { t, tag } = useT()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { advanced, setAdvanced } = useAdvancedMode()
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -155,7 +134,6 @@ function Moneybird() {
     readonly { reference: string; description: string; documentDate: string; externalId: string }[]
   >([])
   const [fxRateError, setFxRateError] = useState<string | null>(null)
-  const [advanced, setAdvanced] = useState(() => resolveAdvancedMode(readAdvancedCookie(), role))
 
   if (!connection.ok) {
     return (
@@ -296,8 +274,8 @@ function Moneybird() {
       }
     },
     onPickAccountType: (problem) => {
+      // Picking a ledger type needs Geavanceerd labels — same shell preference.
       setAdvanced(true)
-      writeAdvancedCookie(true)
       const moneybirdId =
         problem.detail['moneybirdId'] ?? problem.path?.replace(/^accounts\./, '') ?? ''
       if (moneybirdId === '') return
@@ -506,6 +484,26 @@ function Moneybird() {
         }
       />
 
+      {/*
+        Same Geavanceerd preference as the shell (#44). Always on this screen so
+        toggling here updates the account-menu switch without a reload — and so
+        e2e can assert the single source of truth without a live Moneybird token.
+      */}
+      <div className="mb-4 flex items-center gap-3">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={advanced}
+            onChange={(event) => {
+              setAdvanced(event.target.checked)
+            }}
+            className="border-border size-4 rounded-none"
+          />
+          {t('moneybird.advanced')}
+        </label>
+        <span className="text-muted-foreground text-xs">{t('moneybird.advancedHint')}</span>
+      </div>
+
       {error !== null && (
         <p role="alert" className="text-destructive mb-4 text-sm">
           {error}
@@ -649,21 +647,6 @@ function Moneybird() {
 
           {preview !== null && (
             <>
-              <div className="mt-4 mb-2 flex items-center gap-3">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={advanced}
-                    onChange={(event) => {
-                      setAdvanced(event.target.checked)
-                      writeAdvancedCookie(event.target.checked)
-                    }}
-                    className="border-border size-4 rounded-none"
-                  />
-                  {t('moneybird.advanced')}
-                </label>
-                <span className="text-muted-foreground text-xs">{t('moneybird.advancedHint')}</span>
-              </div>
               <PreviewReport
                 report={preview}
                 actions={findingActions}

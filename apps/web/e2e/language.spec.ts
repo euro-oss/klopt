@@ -1,6 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { chooseInAccountMenu, DATABASE_URL, signIn, uniqueEmail } from './support'
+import {
+  chooseInAccountMenu,
+  DATABASE_URL,
+  enableAdvancedMode,
+  signIn,
+  uniqueEmail,
+} from './support'
 
 /**
  * Which language the app speaks (spec 12).
@@ -64,18 +70,25 @@ test('choosing a language sticks, and outranks the browser', async ({ browser })
   const page = await context.newPage()
   await anAdministration(page)
 
-  await expect(page.getByRole('link', { name: 'Journaalposten' })).toBeVisible()
+  // Always-visible destinations (Geavanceerd is off for Eigenaar by default).
+  await expect(page.getByRole('link', { name: 'Verkoopfacturen' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Categorieën' })).toBeVisible()
 
   await chooseInAccountMenu(page, 'Taal', 'EN')
 
   // The navigation changes without a reload.
-  await expect(page.getByRole('link', { name: 'Journal entries' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Trial balance' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Categories' })).toBeVisible()
 
   // And it survives a fresh page, because the choice is a cookie rather than
   // something held in the tab.
   await page.reload()
-  await expect(page.getByRole('link', { name: 'Journal entries' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
+
+  // Advanced destinations keep English labels too (#44 chrome).
+  await enableAdvancedMode(page)
+  await expect(page.getByRole('link', { name: /Journal entries/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Trial balance/ })).toBeVisible()
 
   await context.close()
 })
@@ -86,11 +99,11 @@ test('the choice survives a new tab on the same browser', async ({ browser }) =>
   await anAdministration(page)
 
   await chooseInAccountMenu(page, 'Taal', 'EN')
-  await expect(page.getByRole('link', { name: 'Journal entries' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
 
   const second = await context.newPage()
   await second.goto('/')
-  await expect(second.getByRole('link', { name: 'Journal entries' })).toBeVisible()
+  await expect(second.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
 
   await context.close()
 })
@@ -112,7 +125,7 @@ test('a server-computed label follows the reader, not the server', async ({ brow
   await anAdministration(page)
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
   await chooseInAccountMenu(page, 'Taal', 'EN')
-  await expect(page.getByRole('link', { name: 'Journal entries' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
 
   await page.goto('/reports/balance-sheet')
   // The section titles come off `getBalanceSheet` as `title: 'Activa'`, with
@@ -162,6 +175,8 @@ test('a domain refusal is in the reader’s language, with its numbers intact', 
   const page = await context.newPage()
   await anAdministration(page)
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  // Nieuwe journaalpost is Geavanceerd chrome (#44).
+  await enableAdvancedMode(page)
 
   await page.getByRole('link', { name: /Nieuwe journaalpost/ }).click()
   await expect(page.getByRole('button', { name: /Boeken/ }).first()).toBeEnabled()

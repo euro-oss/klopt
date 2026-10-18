@@ -114,11 +114,14 @@ export const en: Record<MessageKey, string> = {
   'nav.dashboard': 'Dashboard',
   'nav.entries': 'Journal entries',
   'nav.accounts': 'Chart of accounts',
+  // Simple-mode label for the chart of accounts (#43 / #44).
+  'nav.categories': 'Categories',
   'nav.invoices': 'Sales invoices',
   'nav.inbox': 'Inbox',
   'nav.purchases': 'Purchase invoices',
   'nav.contacts': 'Contacts',
   'nav.bank': 'Bank',
+  'nav.match': 'Match',
   'nav.payments': 'Payments',
   'nav.dunning': 'Reminders',
   'nav.vat': 'VAT',
@@ -132,6 +135,8 @@ export const en: Record<MessageKey, string> = {
   'nav.retention': 'Retention',
   'nav.snapshots': 'Sealed snapshots',
   'nav.debtorAgeing': 'Debtors',
+  // Simple-mode label under Reports (#57 prototype).
+  'nav.debtorsPlain': 'Outstanding with customers',
   'nav.creditorAgeing': 'Creditors',
   'nav.fiscalYears': 'Book years',
   'nav.auditFile': 'Audit file',
@@ -140,7 +145,15 @@ export const en: Record<MessageKey, string> = {
   'shell.administration': 'Administration',
   'shell.fiscalYear': 'Book year',
   'shell.yearClosed': '{year} (closed)',
-  'shell.role': 'role: {role}',
+  // Combined administration / book-year control (#57 prototype).
+  'shell.entitySwitcher': 'Administration and book year',
+  'shell.yearSummary': 'Book year {year} · {range}',
+  // Desktop ⌘K trigger in the top bar.
+  'shell.searchTrigger': 'Search or command',
+  // Phone icon button — must not reuse palette.search (duplicate accessible name).
+  'shell.openSearch': 'Search',
+  'shell.themeToLight': 'Light theme',
+  'shell.themeToDark': 'Dark theme',
   'shell.demoEntity': '{name} · demo',
   'shell.demoBanner':
     "Demo environment: use fictional data only. Don't enter real bookkeeping records or personal data.",
@@ -152,6 +165,17 @@ export const en: Record<MessageKey, string> = {
   'shell.navigation': 'Main navigation',
   'shell.openMenu': 'Open menu',
   'shell.newEntry': 'New journal entry',
+  // Advanced lives in the user menu and ⌘K — no dedicated shortcut (#44).
+  'shell.advanced': 'Advanced',
+  'shell.advancedHint': 'Show ledger numbers, VAT codes and journal lines',
+  'shell.advancedOn': 'Advanced on',
+  'shell.advancedOff': 'Advanced off',
+  'shell.advancedEnabled': 'Advanced is on. You now see ledger numbers and VAT codes.',
+  'shell.advancedDisabled': 'Advanced is off.',
+  'shell.advancedToggleOn': 'Turn advanced on',
+  'shell.advancedToggleOff': 'Turn advanced off',
+  'shell.advancedNoShortcut': 'No shortcut',
+  'shell.brandMark': 'K',
 
   'language.label': 'Language',
   'language.nl': 'NL',
@@ -1647,6 +1671,9 @@ export const en: Record<MessageKey, string> = {
   'palette.searchPlaceholder': 'Where do you want to go, or what are you looking for?',
   'palette.nothingFound': 'Nothing found.',
   'palette.escapeNote': 'Close with Escape. G, I and N are prefixes; they lapse after 1.5 seconds.',
+  'palette.advancedNote':
+    'Advanced has deliberately no shortcut: capital letters are for type-ahead in tables. Find it in your user menu and in ⌘K.',
+  'palette.actions': 'Actions',
   'palette.navigation': 'Navigation',
   'palette.content': 'Content',
   'palette.searching': 'Searching…',

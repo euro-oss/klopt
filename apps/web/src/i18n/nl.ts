@@ -30,11 +30,14 @@ export const nl = {
   'nav.dashboard': 'Dashboard',
   'nav.entries': 'Journaalposten',
   'nav.accounts': 'Grootboek',
+  // Simple-mode label for the chart of accounts (#43 / #44).
+  'nav.categories': 'Categorieën',
   'nav.invoices': 'Verkoopfacturen',
   'nav.inbox': 'Postvak',
   'nav.purchases': 'Inkoopfacturen',
   'nav.contacts': 'Relaties',
   'nav.bank': 'Bank',
+  'nav.match': 'Koppelen',
   'nav.payments': 'Betalingen',
   'nav.dunning': 'Aanmaningen',
   'nav.vat': 'BTW',
@@ -48,6 +51,8 @@ export const nl = {
   'nav.retention': 'Bewaarplicht',
   'nav.snapshots': 'Momentopnames',
   'nav.debtorAgeing': 'Debiteuren',
+  // Simple-mode label under Rapporten (#57 prototype).
+  'nav.debtorsPlain': 'Openstaand bij klanten',
   'nav.creditorAgeing': 'Crediteuren',
   'nav.fiscalYears': 'Boekjaren',
   'nav.auditFile': 'Auditfile',
@@ -56,7 +61,15 @@ export const nl = {
   'shell.administration': 'Administratie',
   'shell.fiscalYear': 'Boekjaar',
   'shell.yearClosed': '{year} (afgesloten)',
-  'shell.role': 'rol: {role}',
+  // Combined Administratie / Boekjaar control (#57 prototype).
+  'shell.entitySwitcher': 'Administratie en boekjaar',
+  'shell.yearSummary': 'Boekjaar {year} · {range}',
+  // Desktop ⌘K trigger in the top bar.
+  'shell.searchTrigger': 'Zoeken of opdracht',
+  // Phone icon button — must not reuse palette.search (duplicate accessible name).
+  'shell.openSearch': 'Zoeken',
+  'shell.themeToLight': 'Licht thema',
+  'shell.themeToDark': 'Donker thema',
   'shell.demoEntity': '{name} · demo',
   'shell.demoBanner':
     'Demo-omgeving: gebruik alleen fictieve gegevens. Voer geen echte boekhouding of persoonsgegevens in.',
@@ -71,6 +84,17 @@ export const nl = {
   'shell.navigation': 'Hoofdnavigatie',
   'shell.openMenu': 'Menu openen',
   'shell.newEntry': 'Nieuwe journaalpost',
+  // Geavanceerd lives in the user menu and ⌘K — no dedicated shortcut (#44).
+  'shell.advanced': 'Geavanceerd',
+  'shell.advancedHint': 'Toon grootboeknummers, btw-codes en boekingsregels',
+  'shell.advancedOn': 'Geavanceerd aan',
+  'shell.advancedOff': 'Geavanceerd uit',
+  'shell.advancedEnabled': 'Geavanceerd staat aan. Je ziet nu grootboeknummers en btw-codes.',
+  'shell.advancedDisabled': 'Geavanceerd staat uit.',
+  'shell.advancedToggleOn': 'Geavanceerd aanzetten',
+  'shell.advancedToggleOff': 'Geavanceerd uitzetten',
+  'shell.advancedNoShortcut': 'Geen sneltoets',
+  'shell.brandMark': 'K',
 
   // Short rows in the account menu: NL | EN, not bilingual SelectFields.
   'language.label': 'Taal',
@@ -1696,6 +1720,9 @@ export const nl = {
   'palette.nothingFound': 'Niets gevonden.',
   'palette.escapeNote':
     'Sluiten met Escape. G, I en N zijn voorvoegsels; na 1,5 seconde vervallen ze.',
+  'palette.advancedNote':
+    'Geavanceerd heeft bewust geen sneltoets: hoofdletters zijn voor typen-om-te-zoeken in tabellen. Je vindt het in je gebruikersmenu en in ⌘K.',
+  'palette.actions': 'Acties',
   'palette.navigation': 'Navigatie',
   'palette.content': 'Inhoud',
   'palette.searching': 'Zoeken…',
@@ -1720,7 +1747,7 @@ export const nl = {
   'picker.unknown': 'Rekening {number} staat niet in dit grootboek.',
   'picker.blockedAccount': 'Rekening {number} is geblokkeerd en kan niet geboekt worden.',
 
-  // Sidebar groups and the profile block.
+  // Sidebar groups and the profile block. Daily work first (#61 slice 2).
   'nav.group.books': 'Boekhouden',
   'nav.group.sales': 'Verkoop',
   'nav.group.purchasing': 'Inkoop',

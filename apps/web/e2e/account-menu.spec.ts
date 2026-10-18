@@ -36,21 +36,37 @@ test('the bottom of the rail is one row, not a settings panel', async ({ page })
   const profile = page.getByRole('region', { name: 'Profiel' })
   await expect(profile.getByRole('button')).toHaveCount(1)
 
-  // The four that moved. None of them is on the screen until somebody asks.
+  // Settings stay behind the row until somebody asks. The closed row may show
+  // a one-line "rol · Geavanceerd …" summary; the switch and pickers do not.
   await expect(page.getByLabel('Taal')).toHaveCount(0)
   await expect(page.getByLabel('Weergave')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Uitloggen' })).toHaveCount(0)
-  await expect(page.getByText(/^rol: /)).toHaveCount(0)
+  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveCount(0)
 
   await openAccountMenu(page)
 
-  await expect(page.getByLabel('Taal')).toBeVisible()
-  await expect(page.getByLabel('Weergave')).toBeVisible()
+  const panel = page.getByRole('dialog', { name: 'Profiel' })
+  await expect(panel).toBeVisible()
+  await expect(panel.getByLabel('Taal')).toBeVisible()
   await expect(
-    page.getByRole('group', { name: 'Weergave' }).getByRole('button', { name: 'Systeem' }),
+    panel.getByRole('group', { name: 'Taal' }).getByRole('button', { name: 'NL' }),
   ).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Uitloggen' })).toBeVisible()
-  await expect(page.getByText(/^rol: /)).toBeVisible()
+  await expect(
+    panel.getByRole('group', { name: 'Taal' }).getByRole('button', { name: 'EN' }),
+  ).toBeVisible()
+  await expect(panel.getByLabel('Weergave')).toBeVisible()
+  await expect(
+    panel.getByRole('group', { name: 'Weergave' }).getByRole('button', { name: 'Licht' }),
+  ).toBeVisible()
+  await expect(
+    panel.getByRole('group', { name: 'Weergave' }).getByRole('button', { name: 'Donker' }),
+  ).toBeVisible()
+  await expect(
+    panel.getByRole('group', { name: 'Weergave' }).getByRole('button', { name: 'Systeem' }),
+  ).toBeVisible()
+  await expect(panel.getByRole('button', { name: 'Uitloggen' })).toBeVisible()
+  await expect(panel.getByRole('switch', { name: /Geavanceerd/ })).toBeVisible()
+  await expect(panel.getByText(/Eigenaar · Geavanceerd uit/).first()).toBeVisible()
 })
 
 test('the menu opens upward, because there is nothing below it', async ({ page }) => {
@@ -60,13 +76,14 @@ test('the menu opens upward, because there is nothing below it', async ({ page }
   await openAccountMenu(page)
 
   const row = await trigger.boundingBox()
-  const panel = await page.getByRole('dialog').boundingBox()
+  // Whole panel (aria-labelled Profiel), not only the Geavanceerd row.
+  const panel = await page.getByRole('dialog', { name: 'Profiel' }).boundingBox()
   expect(row).not.toBeNull()
   expect(panel).not.toBeNull()
   if (row === null || panel === null) return
 
   // A panel hung below the last row of the viewport is a panel nobody can
-  // read, so the whole of it sits above the row it belongs to.
+  // read, so the whole menu sits above the trigger.
   expect(panel.y + panel.height).toBeLessThanOrEqual(row.y + 1)
 })
 
@@ -77,7 +94,7 @@ test('Esc puts the menu away and gives the focus back', async ({ page }) => {
   await openAccountMenu(page)
 
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog')).toBeHidden()
+  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toBeHidden()
 
   // Back on the row that opened it, rather than on `<body>` with Tab starting
   // over from the top of the navigation.
@@ -92,7 +109,7 @@ test('the row is reachable by keyboard, and opens on Enter', async ({ page }) =>
 
   await trigger.focus()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toBeVisible()
 })
 
 test('signing out from the menu still signs you out', async ({ page }) => {

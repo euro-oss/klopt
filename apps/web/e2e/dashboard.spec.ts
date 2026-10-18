@@ -1,6 +1,13 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { chooseInAccountMenu, chooseOption, DATABASE_URL, signIn, uniqueEmail } from './support'
+import {
+  chooseInAccountMenu,
+  chooseOption,
+  DATABASE_URL,
+  openEntitySwitcher,
+  signIn,
+  uniqueEmail,
+} from './support'
 
 /**
  * The dashboard as a work queue, in a browser.
@@ -101,8 +108,11 @@ test('the book year in the shell is the administration’s, and the reports agre
 }) => {
   await anAdministration(page, 'Boekjaar BV')
 
-  // The control itself, in the chrome rather than on a report.
-  await expect(page.getByLabel('Boekjaar')).toBeVisible()
+  // The combined switcher shows the year on its closed row; the labelled
+  // select is one click in.
+  await openEntitySwitcher(page)
+  await expect(page.getByRole('combobox', { name: 'Boekjaar', exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
 
   // Read the year off the dashboard rather than out of the picker: what
   // matters is that the screens agree about it, and a Radix trigger's text is
@@ -111,12 +121,12 @@ test('the book year in the shell is the administration’s, and the reports agre
   const year = /Boekjaar (\d{4})/.exec(heading)?.[1] ?? ''
   expect(year).toMatch(/^\d{4}$/)
 
-  // The dates are shown under the picker, because a boekjaar labelled 2025 may
+  // The dates sit on the switcher row, because a boekjaar labelled 2025 may
   // run into 2026 and a label alone is the guess this replaced.
   await expect(page.getByText(/\d{2}-\d{2}-\d{4} – \d{2}-\d{2}-\d{4}/)).toBeVisible()
 
   await page.goto('/reports/trial-balance')
-  await expect(page.getByText(new RegExp(`Boekjaar ${year}`))).toBeVisible()
+  await expect(page.locator('#main').getByText(new RegExp(`Boekjaar ${year}`))).toBeVisible()
 })
 
 test('a report can be pointed at another book year, and the link carries it', async ({ page }) => {
@@ -135,15 +145,16 @@ test('a report can be pointed at another book year, and the link carries it', as
 
   await page.goto('/reports/trial-balance')
   const thisYear = String(new Date().getUTCFullYear())
-  await expect(page.getByText(new RegExp(`Boekjaar ${thisYear}`))).toBeVisible()
+  const main = page.locator('#main')
+  await expect(main.getByText(new RegExp(`Boekjaar ${thisYear}`))).toBeVisible()
 
   await chooseOption(page, 'Boekjaar', new RegExp(`^${next}`))
-  await expect(page.getByText(new RegExp(`Boekjaar ${next}`))).toBeVisible()
+  await expect(main.getByText(new RegExp(`Boekjaar ${next}`))).toBeVisible()
 
   // In the address, so the report is a thing somebody can send.
   await expect(page).toHaveURL(new RegExp(`fiscalYear=${next}`))
   await page.reload()
-  await expect(page.getByText(new RegExp(`Boekjaar ${next}`))).toBeVisible()
+  await expect(main.getByText(new RegExp(`Boekjaar ${next}`))).toBeVisible()
 
   // And walking to another report keeps the year, though the link carries no
   // parameter: that is the cookie doing the remembering.
@@ -174,7 +185,7 @@ test('a boekjaar that is not the calendar year is the one the screens use', asyn
   ).toBeVisible()
 
   await page.goto('/reports/trial-balance')
-  await expect(page.getByText(new RegExp(`Boekjaar ${opened}`))).toBeVisible()
+  await expect(page.locator('#main').getByText(new RegExp(`Boekjaar ${opened}`))).toBeVisible()
 
   // And a report about open items ages as of the end of that year rather than
   // as of today, which would call everything in it a year late.
@@ -213,7 +224,8 @@ test('the theme is light to start with, and dark stays dark', async ({ page }) =
 test('ageing is in the navigation, on both sides', async ({ page }) => {
   await anAdministration(page, 'Ouderdom BV')
 
-  await page.getByRole('link', { name: 'Debiteuren' }).click()
+  // Simple-mode label under Rapporten (#61 slice 2); Geavanceerd renames it Debiteuren.
+  await page.getByRole('link', { name: 'Openstaand bij klanten' }).click()
   await expect(page.getByRole('heading', { name: 'Ouderdomsanalyse debiteuren' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Crediteuren' }).click()

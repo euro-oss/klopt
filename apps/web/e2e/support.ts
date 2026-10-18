@@ -61,9 +61,38 @@ export async function codeFor(email: string): Promise<string> {
  * The signal is the sidebar's shortcut hints, which the shell prints only
  * once the keys work. That is deliberate (see `AppShell`), and it makes the
  * hint the one honest, screen-independent "the page is live now".
+ *
+ * Waits on Dashboard rather than Journaalposten: Eigenaar has Geavanceerd off
+ * by default (#44), so journal entries are absent from the nav until the toggle
+ * is on — but they stay reachable via ⌘K and `g j`.
  */
 export async function hydrated(page: Page): Promise<void> {
-  await expect(page.getByRole('link', { name: /Journaalposten/ }).locator('kbd')).toHaveCount(1)
+  await expect(
+    page
+      .getByRole('link', { name: /^Dashboard/ })
+      .locator('kbd')
+      .first(),
+  ).toBeVisible()
+}
+
+/** Turn Geavanceerd on from the account menu (owner default is off). */
+export async function enableAdvancedMode(page: Page): Promise<void> {
+  // Phone: the profile row lives inside the Sheet, so open that first.
+  const openMenu = page.getByRole('button', { name: /Menu openen|Open menu/ })
+  if (await openMenu.isVisible().catch(() => false)) {
+    await expect(openMenu).toBeEnabled()
+    if ((await openMenu.getAttribute('aria-expanded')) !== 'true') {
+      await openMenu.click()
+    }
+  }
+
+  await openAccountMenu(page)
+  const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
+  if ((await toggle.getAttribute('aria-checked')) !== 'true') {
+    await toggle.click()
+  }
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await page.keyboard.press('Escape')
 }
 
 /** Take a brand-new address all the way to a signed-in session. */
@@ -89,7 +118,11 @@ export async function signIn(page: Page, email: string): Promise<void> {
  * language spec switches to English halfway through and then comes back here.
  */
 export async function openAccountMenu(page: Page): Promise<void> {
-  const trigger = page.getByRole('region', { name: /^(Profiel|Profile)$/ }).getByRole('button')
+  // On the phone the profile sits in the Sheet; prefer the last (visible) one.
+  const trigger = page
+    .getByRole('region', { name: /^(Profiel|Profile)$/ })
+    .getByRole('button')
+    .last()
 
   if ((await trigger.getAttribute('aria-expanded')) === 'true') return
 
@@ -97,7 +130,8 @@ export async function openAccountMenu(page: Page): Promise<void> {
   // hydration the row is a button that opens nothing.
   await expect(trigger).toBeEnabled()
   await trigger.click()
-  await expect(page.getByRole('dialog')).toBeVisible()
+  // The Sheet is also a dialog — pin the account menu by the Geavanceerd switch.
+  await expect(page.getByRole('switch', { name: /Geavanceerd|Advanced/ })).toBeVisible()
 }
 
 /**
@@ -111,13 +145,44 @@ export async function openAccountMenu(page: Page): Promise<void> {
  * `option` matches the visible text, so pass a RegExp where the test used to
  * pass a value: `selectOption('4400')` becomes `/^4400 /`.
  */
+/**
+ * Open the combined Administratie / Boekjaar switcher (#57 / #64).
+ *
+ * The labelled selects live inside the popover; e2e that still names
+ * `Administratie` or `Boekjaar` opens this first.
+ */
+export async function openEntitySwitcher(page: Page): Promise<void> {
+  const trigger = page.getByRole('button', {
+    name: /Administratie en boekjaar|Administration and book year/,
+  })
+  await expect(trigger).toBeEnabled()
+  if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
+    await trigger.click()
+  }
+  // Comboboxes, not the trigger's aria-label (which also contains "boekjaar").
+  await expect(
+    page.getByRole('combobox', { name: /^(Administratie|Administration)$/ }),
+  ).toBeVisible()
+}
+
 export async function chooseOption(
   page: Page,
   label: string | RegExp,
   option: string | RegExp,
   within?: Locator,
 ): Promise<void> {
-  await (within ?? page).getByLabel(label).click()
+  const shellLabel =
+    typeof label === 'string' && /^(Administratie|Boekjaar|Administration|Book year)$/.test(label)
+  if (shellLabel) {
+    // exact: fiscal-years page also has "Boekjaar om af te sluiten".
+    const field = (within ?? page).getByRole('combobox', { name: label, exact: true })
+    if (!(await field.isVisible().catch(() => false))) {
+      await openEntitySwitcher(page)
+    }
+    await field.click()
+  } else {
+    await (within ?? page).getByLabel(label).click()
+  }
   await page.getByRole('option', { name: option }).click()
 
   // The listbox animates out. Waiting for it to go means the next interaction
@@ -152,5 +217,5 @@ export async function chooseInAccountMenu(
   await page.getByRole('group', { name: label }).getByRole('button', { name: option }).click()
 
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog')).toBeHidden()
+  await expect(page.getByRole('switch', { name: /Geavanceerd|Advanced/ })).toBeHidden()
 }

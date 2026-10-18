@@ -29,6 +29,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  /* Shared scrim for Sheet and ⌘K — one token so dark mode does not wash out. */
+  --color-overlay: var(--overlay);
   --color-debit: var(--debit);
   --color-credit: var(--credit);
   --color-amount-negative: var(--amount-negative);
@@ -73,6 +75,15 @@
 @layer base {
   * {
     border-color: var(--color-border);
+  }
+
+  /*
+    Sticky 48px top bars (phone + desktop) sit over the scrollport. Without
+    scroll-padding, scrollIntoView / hash / Playwright clicks land under the
+    bar and hit the chrome instead of the control (#64 design review).
+  */
+  html {
+    scroll-padding-top: 3rem;
   }
 
   body {
@@ -273,6 +284,8 @@
   --info: var(--status-info);
   --border: var(--line);
   --input: var(--line-strong);
+  /* Sheet + palette scrim: black wash in both themes (not foreground/30). */
+  --overlay: color-mix(in oklab, var(--black) 20%, transparent);
   /*
     Focus ring: yellow on white is 1.4:1. Black is unambiguous on a white
     ground; in dark the yellow takes the job back.
@@ -338,6 +351,7 @@
   --secondary-foreground: var(--white);
   --accent-foreground: var(--black);
   --destructive-foreground: var(--black);
+  --overlay: color-mix(in oklab, var(--black) 45%, transparent);
   --ring: var(--yellow);
   --chart-2: var(--white);
   --chart-3: color-mix(in oklab, var(--white) 70%, var(--black));

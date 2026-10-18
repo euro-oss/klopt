@@ -19,7 +19,12 @@ const shell = readFileSync(
   'utf8',
 )
 
-const menu = shell.slice(shell.indexOf('<PopoverContent'), shell.indexOf('</PopoverContent>'))
+// Profile menu (not the entity switcher popover above it).
+const profileStart = shell.indexOf("aria-label={t('shell.profile')}")
+const menu = shell.slice(
+  shell.indexOf('<PopoverContent', profileStart),
+  shell.indexOf('</PopoverContent>', profileStart) + '</PopoverContent>'.length,
+)
 
 describe('the bottom of the sidebar', () => {
   it('keeps the settings behind the row rather than under it', () => {
@@ -29,11 +34,16 @@ describe('the bottom of the sidebar', () => {
       '<LanguagePicker />',
       '<ThemePicker />',
       'action="/sign-out"',
-      'shell.role',
       'shell.account.signOut',
+      'shell.advanced',
+      'role="switch"',
     ]) {
       expect(menu, inside).toContain(inside)
     }
+    // Role line uses members.role.* + Geavanceerd aan/uit (#64 review #7).
+    expect(shell).toContain('members.role.owner')
+    expect(shell).toContain('shell.advancedOn')
+    expect(shell).toContain('shell.advancedOff')
   })
 
   it('opens upward, because the trigger is the last thing on the screen', () => {

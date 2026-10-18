@@ -57,12 +57,12 @@ describe('the roles a screen offers an action to', () => {
 
 describe('the navigation', () => {
   const shell = readFileSync(
-    join(import.meta.dirname, '..', '..', 'src', 'components', 'app-shell.tsx'),
+    join(import.meta.dirname, '..', '..', 'src', 'lib', 'shell-nav.ts'),
     'utf8',
   )
 
   /**
-   * The sidebar reads the lists rather than repeating them.
+   * The shared nav reads the lists rather than repeating them.
    *
    * Asserted on the source because that is where the mistake would be: a nav
    * entry with `roles: ['owner', 'accountant']` spelled out beside a screen that

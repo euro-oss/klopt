@@ -1,7 +1,8 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { BINDINGS, bindingChips, type Binding } from '~/lib/keyboard'
+import { BINDINGS, BINDINGS_BY_ID, bindingChips, type Binding } from '~/lib/keyboard'
 import { Keycap } from '~/components/ui/keycap'
+import { useOptionalAdvancedMode } from '~/lib/advanced-mode-context'
 import { useShortcuts } from '~/lib/use-shortcuts'
 import { cn } from '~/lib/utils'
 import {
@@ -17,6 +18,7 @@ import { searchContent } from '~/server/search'
 import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
+import { navLabelKey, paletteNavItems, type NavItem } from '~/lib/shell-nav'
 
 /**
  * The command palette and the keyboard help, and the listener that opens them.
@@ -50,21 +52,112 @@ import { useT } from '~/i18n/provider'
  * a reader does not know or care which half the row they want came from.
  */
 
-const NAVIGABLE: readonly Binding[] = BINDINGS.filter((binding) => binding.to !== undefined)
-
 const GROUPS: readonly MessageKey[] = [...new Set(BINDINGS.map((binding) => binding.group))]
+
+/** Nav destinations that are not in the shared shell list (Nieuw …, aliases). */
+const EXTRA_NAVIGABLE: readonly Binding[] = BINDINGS.filter(
+  (binding) =>
+    binding.to !== undefined &&
+    ![
+      'go.dashboard',
+      'go.journal',
+      'go.accounts',
+      'go.balance',
+      'go.profit',
+      'go.trial',
+      'go.invoices',
+      'go.purchases',
+      'go.inbox',
+      'go.contacts',
+      'go.bank',
+      'go.match',
+      'go.payments',
+      'go.dunning',
+      'go.vat',
+      'go.members',
+      'go.webhooks',
+      'go.settings',
+      'go.audit',
+      'go.retention',
+      'go.snapshots',
+      'go.exact',
+      'go.exactAlias',
+      'go.moneybird',
+      'go.fiscalYears',
+      'go.auditFile',
+      'go.debtorAgeing',
+      'go.creditorAgeing',
+    ].includes(binding.id),
+)
+
+type NavRow = {
+  readonly item: NavItem
+  readonly groupKey: MessageKey | undefined
+  readonly binding: Binding
+}
+
+type HelpRow = {
+  readonly id: string
+  readonly labelKey: MessageKey
+  readonly binding: Binding
+}
+
+/**
+ * Help "Ga naar" shares `paletteNavItems` so order and simple labels match ⌘K
+ * (Journaalposten / Proefbalans last when Geavanceerd is off).
+ */
+function helpGoToRows(role: string, advanced: boolean): readonly HelpRow[] {
+  const rows: HelpRow[] = []
+  for (const { item } of paletteNavItems(role, advanced)) {
+    if (item.binding === undefined) continue
+    const binding = BINDINGS_BY_ID.get(item.binding)
+    if (binding === undefined) continue
+    rows.push({
+      id: binding.id,
+      labelKey: navLabelKey(item, advanced),
+      binding,
+    })
+  }
+  return rows
+}
 
 /**
  * Match on what is on screen, not on what is in the registry.
  *
- * The labels are message keys now, so searching the key would mean somebody
- * looking for "facturen" matching nothing while the word is right in front of
- * them. The translator is the search index.
+ * Nav rows use the shell's simple/advanced labels and group headings so ⌘K
+ * agrees with the rail (#64 design review).
  */
-function search(translate: (key: MessageKey) => string, query: string): readonly Binding[] {
+function searchNav(
+  translate: (key: MessageKey) => string,
+  role: string,
+  advanced: boolean,
+  query: string,
+): readonly NavRow[] {
   const needle = query.trim().toLowerCase()
-  if (needle === '') return NAVIGABLE
-  return NAVIGABLE.filter(
+  const rows: NavRow[] = []
+  for (const { item, groupKey } of paletteNavItems(role, advanced)) {
+    if (item.binding === undefined) continue
+    const binding = BINDINGS_BY_ID.get(item.binding)
+    if (binding === undefined) continue
+    const label = translate(navLabelKey(item, advanced))
+    const group = groupKey === undefined ? '' : translate(groupKey)
+    if (
+      needle !== '' &&
+      !label.toLowerCase().includes(needle) &&
+      !group.toLowerCase().includes(needle) &&
+      !(binding.keys ?? '').replace(' ', '').includes(needle)
+    ) {
+      continue
+    }
+    rows.push({ item, groupKey, binding })
+  }
+  return rows
+}
+
+function searchExtras(translate: (key: MessageKey) => string, query: string): readonly Binding[] {
+  const needle = query.trim().toLowerCase()
+  if (needle === '') return EXTRA_NAVIGABLE
+  return EXTRA_NAVIGABLE.filter(
     (binding) =>
       translate(binding.label).toLowerCase().includes(needle) ||
       translate(binding.group).toLowerCase().includes(needle) ||
@@ -72,21 +165,40 @@ function search(translate: (key: MessageKey) => string, query: string): readonly
   )
 }
 
-/** One row the cursor can be on, from either half. */
+/** One row the cursor can be on: an action, a nav destination, an extra, or a hit. */
 type Row =
+  | { readonly kind: 'action'; readonly id: 'toggle-advanced' }
+  | { readonly kind: 'nav'; readonly nav: NavRow }
   | { readonly kind: 'binding'; readonly binding: Binding }
   | { readonly kind: 'hit'; readonly hit: SearchHit }
 
-export function CommandPalette() {
+export function CommandPalette({ role = '' }: { role?: string }) {
   const navigate = useNavigate()
   const { t } = useT()
+  const advancedMode = useOptionalAdvancedMode()
   const [open, setOpen] = useState<'palette' | 'help' | null>(null)
   const [cursor, setCursor] = useState(0)
   const input = useRef<HTMLInputElement | null>(null)
   const sheet = useRef<HTMLDivElement | null>(null)
 
   const [query, setQuery] = useState('')
-  const navigation = useMemo(() => search(t, query), [t, query])
+  const advanced = advancedMode?.advanced ?? false
+  const navigation = useMemo(() => searchNav(t, role, advanced, query), [t, role, advanced, query])
+  const extras = useMemo(() => searchExtras(t, query), [t, query])
+
+  const showAdvancedAction = useMemo(() => {
+    if (advancedMode === null) return false
+    const needle = query.trim().toLowerCase()
+    if (needle === '') return true
+    const labels = [
+      t('shell.advancedToggleOn'),
+      t('shell.advancedToggleOff'),
+      t('shell.advanced'),
+      'geavanceerd',
+      'advanced',
+    ]
+    return labels.some((label) => label.toLowerCase().includes(needle))
+  }, [advancedMode, query, t])
 
   /**
    * The server's last answer, and **which question it answers**.
@@ -118,13 +230,17 @@ export function CommandPalette() {
   const searching = open === 'palette' && isSearchable(needle) && current === null
 
   const groups: readonly SearchGroup[] = useMemo(() => groupHits(current?.hits ?? []), [current])
-  const rows: readonly Row[] = useMemo(
-    () => [
-      ...navigation.map((binding): Row => ({ kind: 'binding', binding })),
+  const rows: readonly Row[] = useMemo(() => {
+    const actionRows: Row[] = showAdvancedAction ? [{ kind: 'action', id: 'toggle-advanced' }] : []
+    return [
+      ...actionRows,
+      ...navigation.map((nav): Row => ({ kind: 'nav', nav })),
+      ...extras.map((binding): Row => ({ kind: 'binding', binding })),
       ...flattenGroups(groups).map((hit): Row => ({ kind: 'hit', hit })),
-    ],
-    [navigation, groups],
-  )
+    ]
+  }, [showAdvancedAction, navigation, extras, groups])
+  const actionCount = showAdvancedAction ? 1 : 0
+  const navCount = navigation.length
 
   /**
    * Ask the server, once the typing settles.
@@ -201,6 +317,19 @@ export function CommandPalette() {
     if (open === 'help') sheet.current?.focus()
   }, [open])
 
+  // Phone top-bar search (and anything else) opens the palette without a chord.
+  useEffect(() => {
+    const onOpen = (): void => {
+      setQuery('')
+      setCursor(0)
+      setOpen('palette')
+    }
+    window.addEventListener('klopt:open-palette', onOpen)
+    return () => {
+      window.removeEventListener('klopt:open-palette', onOpen)
+    }
+  }, [])
+
   /**
    * Escape closes whichever overlay is up.
    *
@@ -239,6 +368,21 @@ export function CommandPalette() {
    */
   const go = (row: Row | undefined): void => {
     if (row === undefined) return
+
+    if (row.kind === 'action') {
+      if (row.id === 'toggle-advanced' && advancedMode !== null) {
+        advancedMode.toggleAdvanced()
+        setOpen(null)
+      }
+      return
+    }
+
+    if (row.kind === 'nav') {
+      if (row.nav.binding.to === undefined) return
+      setOpen(null)
+      void navigate({ to: row.nav.binding.to })
+      return
+    }
 
     if (row.kind === 'binding') {
       if (row.binding.to === undefined) return
@@ -292,7 +436,7 @@ export function CommandPalette() {
 
       {open !== null && (
         <div
-          className="bg-foreground/30 fixed inset-0 z-50 flex items-start justify-center p-4 pt-[10vh]"
+          className="bg-overlay fixed inset-0 z-50 flex items-start justify-center p-4 pt-[10vh]"
           onClick={() => {
             setOpen(null)
           }}
@@ -303,10 +447,11 @@ export function CommandPalette() {
             aria-modal="true"
             // Focusable so that opening the sheet moves focus into it, which is
             // what a screen reader needs and what makes Escape land somewhere
-            // sensible.
+            // sensible. `focus:outline-hidden`: the help path focuses this
+            // container, and a 2px ring around the whole dialog is noise (#64).
             tabIndex={-1}
             aria-label={open === 'palette' ? t('palette.commands') : t('shell.help')}
-            className="bg-popover border-border max-h-[70vh] w-full max-w-xl overflow-hidden border"
+            className="bg-popover border-border max-h-[70vh] w-full max-w-xl overflow-hidden border focus:outline-hidden"
             onClick={(event) => {
               event.stopPropagation()
             }}
@@ -327,66 +472,180 @@ export function CommandPalette() {
                     setCursor(0)
                   }}
                   onKeyDown={onKeyDown}
-                  className="border-border w-full border-b bg-transparent px-4 py-3 text-sm outline-none"
+                  className="border-border focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring w-full border-b bg-transparent px-4 py-3 text-base md:text-sm"
                 />
-                <div className="max-h-[50vh] overflow-y-auto py-1">
+                <div
+                  id="pal-list"
+                  role="listbox"
+                  aria-label={t('palette.commands')}
+                  className="max-h-[50vh] overflow-y-auto py-1"
+                >
                   {rows.length === 0 && !searching && refusal === null && (
                     <p className="text-muted-foreground px-4 py-3 text-sm">
                       {t('palette.nothingFound')}
                     </p>
                   )}
 
+                  {showAdvancedAction && advancedMode !== null && (
+                    <section>
+                      <h3 className="text-muted-foreground px-4 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">
+                        {t('palette.actions')}
+                      </h3>
+                      <ul>
+                        <li>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={cursor === 0}
+                            onMouseEnter={() => {
+                              setCursor(0)
+                            }}
+                            onClick={() => {
+                              go({ kind: 'action', id: 'toggle-advanced' })
+                            }}
+                            className={cn(
+                              'flex min-h-11 w-full items-center justify-between px-4 py-2 text-left text-sm md:min-h-0',
+                              cursor === 0 && 'bg-accent text-accent-foreground',
+                            )}
+                          >
+                            <span>
+                              {advancedMode.advanced
+                                ? t('shell.advancedToggleOff')
+                                : t('shell.advancedToggleOn')}
+                            </span>
+                            <span
+                              className={cn(
+                                'text-xs',
+                                cursor === 0 ? 'text-accent-foreground' : 'text-muted-foreground',
+                              )}
+                            >
+                              {t('shell.advancedNoShortcut')}
+                            </span>
+                          </button>
+                        </li>
+                      </ul>
+                    </section>
+                  )}
+
                   {navigation.length > 0 && (
                     <section>
-                      <h3 className="text-muted-foreground px-4 pt-2 pb-1 text-xs font-medium">
+                      <h3 className="text-muted-foreground px-4 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">
                         {t('palette.navigation')}
                       </h3>
                       <ul>
-                        {navigation.map((binding, index) => (
-                          <li key={binding.id}>
-                            <button
-                              type="button"
-                              onMouseEnter={() => {
-                                setCursor(index)
-                              }}
-                              onClick={() => {
-                                go({ kind: 'binding', binding })
-                              }}
-                              className={cn(
-                                'flex w-full items-center justify-between px-4 py-2 text-left text-sm',
-                                // Yellow fill + black text: `bg-muted` on
-                                // `bg-popover` disappears in Donker. Selected
-                                // chrome (prefix, keycaps) follows the fill —
-                                // ring/muted on yellow is ~1.4–2:1.
-                                index === cursor && 'bg-accent text-accent-foreground',
-                              )}
-                            >
-                              <span>
-                                <span
-                                  className={cn(
-                                    'text-xs',
-                                    index === cursor ? 'text-black' : 'text-muted-foreground',
+                        {navigation.map((nav, navIndex) => {
+                          const index = actionCount + navIndex
+                          const label = t(navLabelKey(nav.item, advanced))
+                          const active = index === cursor
+                          return (
+                            <li key={nav.binding.id}>
+                              <button
+                                type="button"
+                                role="option"
+                                aria-selected={active}
+                                onMouseEnter={() => {
+                                  setCursor(index)
+                                }}
+                                onClick={() => {
+                                  go({ kind: 'nav', nav })
+                                }}
+                                className={cn(
+                                  'flex min-h-11 w-full items-center justify-between px-4 py-2 text-left text-sm md:min-h-0',
+                                  active && 'bg-accent text-accent-foreground',
+                                )}
+                              >
+                                <span>
+                                  {label}
+                                  {nav.groupKey !== undefined && (
+                                    <span
+                                      className={cn(
+                                        'text-xs',
+                                        active ? 'text-accent-foreground' : 'text-muted-foreground',
+                                      )}
+                                    >
+                                      {' '}
+                                      · {t(nav.groupKey)}
+                                    </span>
                                   )}
-                                >
-                                  {t(binding.group)} ·{' '}
                                 </span>
-                                {t(binding.label)}
-                              </span>
-                              <span className="flex shrink-0 items-center gap-1">
-                                {bindingChips(binding).map((chip, position) => (
-                                  <Keycap
-                                    key={`${binding.id}-${String(position)}`}
-                                    className={
-                                      index === cursor ? '!border-black !text-black' : undefined
-                                    }
+                                <span className="flex shrink-0 items-center gap-1">
+                                  {bindingChips(nav.binding).map((chip, position) => (
+                                    <Keycap
+                                      key={`${nav.binding.id}-${String(position)}`}
+                                      className={
+                                        active
+                                          ? '!border-accent-foreground !text-accent-foreground'
+                                          : undefined
+                                      }
+                                    >
+                                      {chip}
+                                    </Keycap>
+                                  ))}
+                                </span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </section>
+                  )}
+
+                  {extras.length > 0 && (
+                    <section>
+                      <h3 className="text-muted-foreground px-4 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">
+                        {t('keys.group.new')}
+                      </h3>
+                      <ul>
+                        {extras.map((binding, extraIndex) => {
+                          const index = actionCount + navCount + extraIndex
+                          const active = index === cursor
+                          return (
+                            <li key={binding.id}>
+                              <button
+                                type="button"
+                                role="option"
+                                aria-selected={active}
+                                onMouseEnter={() => {
+                                  setCursor(index)
+                                }}
+                                onClick={() => {
+                                  go({ kind: 'binding', binding })
+                                }}
+                                className={cn(
+                                  'flex min-h-11 w-full items-center justify-between px-4 py-2 text-left text-sm md:min-h-0',
+                                  active && 'bg-accent text-accent-foreground',
+                                )}
+                              >
+                                <span>
+                                  {t(binding.label)}
+                                  <span
+                                    className={cn(
+                                      'text-xs',
+                                      active ? 'text-accent-foreground' : 'text-muted-foreground',
+                                    )}
                                   >
-                                    {chip}
-                                  </Keycap>
-                                ))}
-                              </span>
-                            </button>
-                          </li>
-                        ))}
+                                    {' '}
+                                    · {t(binding.group)}
+                                  </span>
+                                </span>
+                                <span className="flex shrink-0 items-center gap-1">
+                                  {bindingChips(binding).map((chip, position) => (
+                                    <Keycap
+                                      key={`${binding.id}-${String(position)}`}
+                                      className={
+                                        active
+                                          ? '!border-accent-foreground !text-accent-foreground'
+                                          : undefined
+                                      }
+                                    >
+                                      {chip}
+                                    </Keycap>
+                                  ))}
+                                </span>
+                              </button>
+                            </li>
+                          )
+                        })}
                       </ul>
                     </section>
                   )}
@@ -405,7 +664,7 @@ export function CommandPalette() {
 
                   {groups.length > 0 && (
                     <section>
-                      <h3 className="border-border text-muted-foreground mt-1 border-t px-4 pt-2 pb-1 text-xs font-medium">
+                      <h3 className="border-border text-muted-foreground mt-1 border-t px-4 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">
                         {t('palette.content')}
                       </h3>
                       {groups.map((group) => (
@@ -416,12 +675,18 @@ export function CommandPalette() {
                           </h4>
                           <ul>
                             {group.hits.map((hit) => {
-                              // The row's place in the one list the arrows walk.
-                              const index = navigation.length + flattenGroups(groups).indexOf(hit)
+                              const index =
+                                actionCount +
+                                navCount +
+                                extras.length +
+                                flattenGroups(groups).indexOf(hit)
+                              const active = index === cursor
                               return (
                                 <li key={`${hit.type}-${hit.id}`}>
                                   <button
                                     type="button"
+                                    role="option"
+                                    aria-selected={active}
                                     onMouseEnter={() => {
                                       setCursor(index)
                                     }}
@@ -429,8 +694,8 @@ export function CommandPalette() {
                                       go({ kind: 'hit', hit })
                                     }}
                                     className={cn(
-                                      'flex w-full items-baseline justify-between gap-3 px-4 py-2 text-left text-sm',
-                                      index === cursor && 'bg-accent text-accent-foreground',
+                                      'flex min-h-11 w-full items-baseline justify-between gap-3 px-4 py-2 text-left text-sm md:min-h-0',
+                                      active && 'bg-accent text-accent-foreground',
                                     )}
                                   >
                                     <span className="min-w-0">
@@ -439,8 +704,8 @@ export function CommandPalette() {
                                         <span
                                           className={cn(
                                             'block truncate text-xs',
-                                            index === cursor
-                                              ? 'text-black'
+                                            active
+                                              ? 'text-accent-foreground'
                                               : 'text-muted-foreground',
                                           )}
                                         >
@@ -452,7 +717,9 @@ export function CommandPalette() {
                                       <span
                                         className={cn(
                                           'shrink-0 tabular text-xs',
-                                          index === cursor ? 'text-black' : 'text-muted-foreground',
+                                          active
+                                            ? 'text-accent-foreground'
+                                            : 'text-muted-foreground',
                                         )}
                                       >
                                         {formatDate(hit.date)}
@@ -476,15 +743,23 @@ export function CommandPalette() {
                   <section key={group} className="mb-4">
                     <h3 className="text-muted-foreground mb-1 text-xs font-medium">{t(group)}</h3>
                     <dl className="space-y-1">
-                      {BINDINGS.filter((binding) => binding.group === group).map((binding) => (
+                      {(group === 'keys.group.goTo'
+                        ? // Same order and simple/advanced labels as ⌘K (#64).
+                          helpGoToRows(role, advanced)
+                        : BINDINGS.filter((binding) => binding.group === group).map((binding) => ({
+                            id: binding.id,
+                            labelKey: binding.label,
+                            binding,
+                          }))
+                      ).map((row) => (
                         <div
-                          key={binding.id}
+                          key={row.id}
                           className="flex items-baseline justify-between gap-4 text-sm"
                         >
-                          <dt>{t(binding.label)}</dt>
+                          <dt>{t(row.labelKey)}</dt>
                           <dd className="flex shrink-0 items-center gap-1">
-                            {bindingChips(binding).map((chip, position) => (
-                              <Keycap key={`${binding.id}-${String(position)}`}>{chip}</Keycap>
+                            {bindingChips(row.binding).map((chip, position) => (
+                              <Keycap key={`${row.id}-${String(position)}`}>{chip}</Keycap>
                             ))}
                           </dd>
                         </div>
@@ -493,6 +768,7 @@ export function CommandPalette() {
                   </section>
                 ))}
                 <p className="text-muted-foreground text-xs">{t('palette.escapeNote')}</p>
+                <p className="text-muted-foreground mt-2 text-xs">{t('palette.advancedNote')}</p>
               </div>
             )}
           </div>

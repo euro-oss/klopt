@@ -84,7 +84,13 @@ async function anAdministration(page: Page): Promise<void> {
  * an assertion retried afterwards cannot get it back.
  */
 async function theKeyboardIsLive(page: Page): Promise<void> {
-  await expect(page.getByRole('link', { name: /Journaalposten/ }).locator('kbd')).toHaveCount(1)
+  // Dashboard is always in the nav; Journaalposten is Geavanceerd-only for Eigenaar.
+  await expect(
+    page
+      .getByRole('link', { name: /^Dashboard/ })
+      .locator('kbd')
+      .first(),
+  ).toBeVisible()
 }
 
 /**
@@ -589,8 +595,8 @@ test('the postvak is worked with the same keys as everything else', async ({ pag
   // the bottom of each pane.
   const panel = page.getByRole('complementary', { name: 'Sneltoetsen' })
   await expect(panel).toContainText('Concept maken')
-  await expect(panel.getByText('A', { exact: true })).toBeVisible()
-  await expect(panel.getByText('S', { exact: true })).toBeVisible()
+  await expect(panel.getByText('a', { exact: true })).toBeVisible()
+  await expect(panel.getByText('s', { exact: true })).toBeVisible()
   // The same key, twice over: once in the corner panel and once in the strip
   // under the list it moves.
   await expect(page.getByText('Volgend stuk')).toHaveCount(2)
