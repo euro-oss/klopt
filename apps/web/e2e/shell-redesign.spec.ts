@@ -262,3 +262,46 @@ test('⌘K and the URL still reach Proefbalans when Geavanceerd is off', async (
   await page.goto('/reports/trial-balance')
   await expect(page.getByRole('heading', { name: 'Proefbalans' })).toBeVisible()
 })
+
+test('Geavanceerd choice persists across a fresh browser context for the same user', async ({
+  browser,
+}) => {
+  const email = uniqueEmail()
+  const first = await browser.newContext()
+
+  try {
+    const page = await first.newPage()
+    await anAdministration(page, 'Persist BV', email)
+    await enableAdvancedMode(page)
+
+    const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
+    await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+
+    // Reload once so we know the server write landed before we throw the
+    // cookie jar away — the next context has no cookies of its own.
+    await page.reload()
+    await hydrated(page)
+    await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+  } finally {
+    await first.close()
+  }
+
+  const second = await browser.newContext()
+  try {
+    const page = await second.newPage()
+    await page.goto('/sign-in')
+    await signIn(page, email)
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+    await hydrated(page)
+
+    const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
+    await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+    await openAccountMenu(page)
+    await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+  } finally {
+    await second.close()
+  }
+})

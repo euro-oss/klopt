@@ -9,15 +9,15 @@ import { describe, expect, it } from 'vitest'
  *
  * Editing a file that has already run on hosted (or any instance) makes the
  * next deploy throw "Migration … changed after it was applied". Pin the
- * sha256 of every migration through 0034 so a drive-by edit fails CI.
+ * sha256 of every migration through 0035 so a drive-by edit fails CI.
  *
- * When 0035+ merges to main, extend MERGED_THROUGH and add its pin.
+ * When 0036+ merges to main, extend MERGED_THROUGH and add its pin.
  */
 
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations')
 
-/** Highest migration number that has landed on main and must not change. */
-const MERGED_THROUGH = 34
+/** Highest migration number that is pinned and must not change. */
+const MERGED_THROUGH = 35
 
 /**
  * sha256 of each file's full UTF-8 text — same algorithm as
@@ -67,6 +67,7 @@ const PINNED_CHECKSUMS: Readonly<Record<string, string>> = {
   '0032_moneybird.sql': '650b285c2d12f46031d96598f24b2a9240dbecb0abe33a2f8a08beaddf87059d',
   '0033_entities_is_demo.sql': '753f552df5843a92454cb493a640ae54b706a4f1f69366515d31c079abeaa7d5',
   '0034_moneybird_fixes.sql': '872ef07b337ec2f4d656ecb6736ac70c0d666d391952797e294fe2c7dff5197e',
+  '0035_user_advanced_mode.sql': 'b9b9397aba9f029a41684b4afa50a39c1c6ab83d55a21c0c19869010352ca198',
 }
 
 function sha256Utf8(text: string): string {

@@ -1,11 +1,11 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { defaultAdvancedMode, writeAdvancedModeCookie } from '~/lib/advanced-mode'
+import { defaultAdvancedMode } from '~/lib/advanced-mode'
 import { setAdvancedMode as persistAdvancedMode } from '~/server/advanced-mode'
 
 interface AdvancedModeContextValue {
   readonly advanced: boolean
-  readonly setAdvanced: (enabled: boolean) => void
-  readonly toggleAdvanced: () => void
+  readonly setAdvanced: (enabled: boolean) => void | Promise<void>
+  readonly toggleAdvanced: () => void | Promise<void>
 }
 
 const AdvancedModeContext = createContext<AdvancedModeContextValue | null>(null)
@@ -17,17 +17,15 @@ const AdvancedModeContext = createContext<AdvancedModeContextValue | null>(null)
  *   administration (Eigenaar off; Boekhouder / Accountant / Controleur on).
  * - After the user toggles → keep that explicit choice across administration
  *   switches (still per user, not per browser).
- * - Remount with `key={userId}` in the layout when the signed-in user changes,
- *   so the next account never inherits in-memory state.
+ * - Remount with `key={session.user.id}` in the layout when the signed-in user
+ *   changes, so the next account never inherits in-memory state.
  */
 export function AdvancedModeProvider({
-  userId,
   role,
   initial,
   initialHasExplicit,
   children,
 }: {
-  userId: string
   role: string
   initial: boolean
   initialHasExplicit: boolean
@@ -40,19 +38,17 @@ export function AdvancedModeProvider({
 
   const advanced = explicit !== null ? explicit : defaultAdvancedMode(role)
 
-  const setAdvanced = useCallback(
-    (enabled: boolean) => {
-      setExplicit(enabled)
-      writeAdvancedModeCookie(userId, enabled)
-      void persistAdvancedMode({ data: { enabled } }).catch((cause: unknown) => {
-        console.error('[app] could not persist Geavanceerd', cause)
-      })
-    },
-    [userId],
-  )
+  const setAdvanced = useCallback(async (enabled: boolean) => {
+    setExplicit(enabled)
+    try {
+      await persistAdvancedMode({ data: { enabled } })
+    } catch (cause: unknown) {
+      console.error('[app] could not persist Geavanceerd', cause)
+    }
+  }, [])
 
-  const toggleAdvanced = useCallback(() => {
-    setAdvanced(!advanced)
+  const toggleAdvanced = useCallback(async () => {
+    await setAdvanced(!advanced)
   }, [advanced, setAdvanced])
 
   const value = useMemo(

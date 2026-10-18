@@ -715,7 +715,7 @@ function Profile({
             aria-checked={advanced}
             disabled={!hydrated}
             onClick={() => {
-              setAdvanced(!advanced)
+              void setAdvanced(!advanced)
             }}
             className="hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left outline-none"
           >

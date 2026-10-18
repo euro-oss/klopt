@@ -89,7 +89,14 @@ export async function enableAdvancedMode(page: Page): Promise<void> {
   await openAccountMenu(page)
   const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
   if ((await toggle.getAttribute('aria-checked')) !== 'true') {
+    // Preference is stored on the server; wait for the write so a later
+    // context (or reload) sees the choice rather than the role default.
+    const persisted = page.waitForResponse(
+      (response) => response.request().method() === 'POST' && response.ok(),
+      { timeout: 15_000 },
+    )
     await toggle.click()
+    await persisted
   }
   await expect(toggle).toHaveAttribute('aria-checked', 'true')
   await page.keyboard.press('Escape')

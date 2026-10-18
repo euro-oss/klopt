@@ -53,7 +53,7 @@ export const Route = createFileRoute('/_app')({
       session.memberships.length === 0
         ? { enabled: false, hasExplicit: false }
         : await getAdvancedMode({
-            data: { role: active?.role ?? '', userId: session.user.id },
+            data: { role: active?.role ?? '' },
           })
     return {
       session,
@@ -111,7 +111,6 @@ function AppLayout() {
   return (
     <AdvancedModeProvider
       key={session.user.id}
-      userId={session.user.id}
       role={activeRole}
       initial={advanced}
       initialHasExplicit={advancedHasExplicit}

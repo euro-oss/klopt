@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-  advancedModeCookieName,
   defaultAdvancedMode,
   resolveAdvancedMode,
+  retiredAdvancedModeCookieNames,
 } from '../../src/lib/advanced-mode.js'
 
 describe('Geavanceerd defaults', () => {
@@ -13,15 +13,19 @@ describe('Geavanceerd defaults', () => {
     expect(defaultAdvancedMode('auditor')).toBe(true)
   })
 
-  it('honours a remembered cookie over the role default', () => {
-    expect(resolveAdvancedMode('1', 'owner')).toBe(true)
-    expect(resolveAdvancedMode('0', 'bookkeeper')).toBe(false)
+  it('honours an explicit server preference over the role default', () => {
+    expect(resolveAdvancedMode(true, 'owner')).toBe(true)
+    expect(resolveAdvancedMode(false, 'bookkeeper')).toBe(false)
     expect(resolveAdvancedMode(null, 'owner')).toBe(false)
     expect(resolveAdvancedMode(null, 'accountant')).toBe(true)
+    expect(resolveAdvancedMode(undefined, 'auditor')).toBe(true)
   })
 
-  it('scopes the cookie name to the user id', () => {
-    expect(advancedModeCookieName('user-abc')).toBe('klopt_advanced_user-abc')
-    expect(advancedModeCookieName('a/b@c')).toBe('klopt_advanced_a_b_c')
+  it('lists only retired Geavanceerd cookie names for clearing', () => {
+    expect(
+      retiredAdvancedModeCookieNames(
+        'klopt_advanced=1; theme=light; klopt_advanced_user-abc=0; session=x',
+      ),
+    ).toEqual(['klopt_advanced', 'klopt_advanced_user-abc'])
   })
 })

@@ -275,7 +275,7 @@ function Moneybird() {
     },
     onPickAccountType: (problem) => {
       // Picking a ledger type needs Geavanceerd labels — same shell preference.
-      setAdvanced(true)
+      void setAdvanced(true)
       const moneybirdId =
         problem.detail['moneybirdId'] ?? problem.path?.replace(/^accounts\./, '') ?? ''
       if (moneybirdId === '') return
@@ -495,7 +495,7 @@ function Moneybird() {
             type="checkbox"
             checked={advanced}
             onChange={(event) => {
-              setAdvanced(event.target.checked)
+              void setAdvanced(event.target.checked)
             }}
             className="border-border size-4 rounded-none"
           />
