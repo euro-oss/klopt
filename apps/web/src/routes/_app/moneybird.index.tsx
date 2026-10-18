@@ -12,7 +12,7 @@ import {
   FindingHonestyState,
   honestyFromReconciliation,
 } from '~/components/findings/finding-card'
-import { detailForDisplay, formatFindingAmount } from '~/lib/finding-card'
+import { detailForDisplay, formatFindingAmount, formatMonthName } from '~/lib/finding-card'
 import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
@@ -444,7 +444,7 @@ function Moneybird() {
         problem.path,
       ),
     labels: {
-      localeTag: tag,
+      formatMonth: (month) => formatMonthName(month, tag),
       mapAccount: t('moneybird.fix.mapAccount'),
       mapTax: t('moneybird.fix.mapTax'),
       renumberAccount: t('moneybird.fix.renumberAccount'),

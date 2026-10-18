@@ -467,9 +467,9 @@ describe('FX rate and mapping decisions', () => {
     await connect(token)
     await choose(token)
     const previous = globalThis.fetch
-    globalThis.fetch = (async () => {
+    globalThis.fetch = () => {
       throw new Error('ECB unreachable')
-    }) as typeof fetch
+    }
     try {
       await expect(
         handleRefreshMoneybirdFxRate(
@@ -502,16 +502,17 @@ describe('FX rate and mapping decisions', () => {
     ).toThrow(/positive number/)
 
     // Handler defense-in-depth: same check if a bad rate slips past the schema.
-    await expect(
-      handleSaveMoneybirdMappings(await context(token, crypto.randomUUID()), {
-        accountMappings: MAPPINGS.accountMappings,
-        taxMappings: MAPPINGS.taxMappings,
-        importDecisions: {
-          exchangeRates: {
-            'sales_invoice:301': { rate: '0', source: 'override', date: '2026-03-01' },
-          },
+    const badBody: Parameters<typeof handleSaveMoneybirdMappings>[1] = {
+      accountMappings: MAPPINGS.accountMappings,
+      taxMappings: MAPPINGS.taxMappings,
+      importDecisions: {
+        exchangeRates: {
+          'sales_invoice:301': { rate: '0', source: 'override', date: '2026-03-01' },
         },
-      } as ReturnType<typeof saveMoneybirdMappingsBody.parse>),
+      },
+    }
+    await expect(
+      handleSaveMoneybirdMappings(await context(token, crypto.randomUUID()), badBody),
     ).rejects.toMatchObject({ code: 'validation_failed' })
 
     await handleSaveMoneybirdMappings(

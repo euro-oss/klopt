@@ -24,7 +24,6 @@
 
 import { convertToFunctional, multiplyByRate } from '../ledger/currency.js'
 import type { JournalLineInput } from '../ledger/types.js'
-import type { CurrencyCode } from '../money.js'
 
 export type FxRateSourceKind = 'ecb' | 'override'
 
@@ -212,7 +211,7 @@ export function previewFxEntry(
   currency: string,
   rate: string,
 ): readonly FxEntryPreviewLine[] {
-  const code = currency.toUpperCase() as CurrencyCode
+  const code = currency.toUpperCase()
   const convertible = lines.map((line, index) => ({
     lineNumber: index + 1,
     currency: code,

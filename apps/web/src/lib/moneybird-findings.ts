@@ -19,7 +19,6 @@ import type {
   FindingHonesty,
   FindingSeverity,
 } from '~/lib/finding-card'
-import { formatMonthName } from '~/lib/finding-card'
 
 export interface MoneybirdFindingActions {
   readonly onMapAccount: (problem: MoneybirdProblem) => void
@@ -42,8 +41,8 @@ export interface MoneybirdFindingActions {
   /** Absolute Moneybird web URL for a problem path, when one exists. */
   readonly moneybirdHrefFor: (problem: MoneybirdProblem) => string | null
   readonly labels: {
-    /** Intl tag for month names on confirm-year-start (`nl-NL` / `en-GB`). */
-    readonly localeTag?: string
+    /** Formats calendar month `1`…`12` for the confirm-year-start button. */
+    readonly formatMonth?: (month: string) => string
     readonly mapAccount: string
     readonly mapTax: string
     readonly renumberAccount: string
@@ -143,7 +142,7 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'oneClick',
         label: labels.confirmYearStart.replace(
           '{month}',
-          formatMonthName(problem.detail['month'] ?? '', labels.localeTag ?? 'nl-NL'),
+          labels.formatMonth?.(problem.detail['month'] ?? '') ?? problem.detail['month'] ?? '',
         ),
         onApply: () => actions.onConfirmFiscalYearStart(problem),
       }
