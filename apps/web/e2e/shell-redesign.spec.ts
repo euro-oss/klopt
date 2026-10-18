@@ -96,6 +96,32 @@ test('? opens keyboard help and mentions Geavanceerd is unbound', async ({ page 
   await expect(help.getByText(/Geavanceerd heeft bewust geen sneltoets/)).toBeVisible()
 })
 
+test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) => {
+  await anAdministration(page, 'Help Volgorde BV')
+
+  await page.keyboard.press('?')
+  const help = page.getByRole('dialog', { name: 'Sneltoetsen' })
+  await expect(help).toBeVisible()
+
+  const goTo = help
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Ga naar' }) })
+  await expect(goTo.getByRole('heading', { name: 'Ga naar' })).toBeVisible()
+
+  // Simple labels + shell order; advanced destinations last (#64).
+  const labels = await goTo.locator('dt').allTextContents()
+  const trimmed = labels.map((label) => label.trim())
+  expect(trimmed.indexOf('Categorieën')).toBeGreaterThan(-1)
+  expect(trimmed.indexOf('Grootboekrekeningen')).toBe(-1)
+  expect(trimmed.indexOf('Categorieën')).toBeLessThan(trimmed.indexOf('Journaalposten'))
+  expect(trimmed.indexOf('Winst & verlies')).toBeLessThan(trimmed.indexOf('Proefbalans'))
+  expect(trimmed.indexOf('Journaalposten')).toBeGreaterThan(trimmed.indexOf('Momentopnames'))
+  expect(trimmed.indexOf('Proefbalans')).toBe(trimmed.length - 1)
+  // ⌘K is two chips; letter capital after the modifier.
+  await expect(help.getByText('Ctrl', { exact: true })).toBeVisible()
+  await expect(help.locator('kbd', { hasText: 'K' }).first()).toBeVisible()
+})
+
 test('turning Geavanceerd off from the menu hides the advanced nav again', async ({ page }) => {
   await anAdministration(page, 'Toggle BV')
   await enableAdvancedMode(page)

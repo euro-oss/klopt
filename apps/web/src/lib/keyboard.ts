@@ -372,7 +372,7 @@ export function isApple(): boolean {
 }
 
 /** What a key is called on a keycap. `SPACE` is not what is printed on one. */
-function keyLabel(key: string): string {
+function keyLabel(key: string, afterModifier = false): string {
   switch (key) {
     case 'enter':
       return '↵'
@@ -387,8 +387,9 @@ function keyLabel(key: string): string {
     case 'a-z':
       return 'A–Z'
     default:
-      // Letter chords print lowercase on the keycap (#57 prototype: `g d`).
-      if (/^[a-z]$/.test(key)) return key
+      // Bare chords stay lowercase (`g d`); after a modifier the letter is
+      // capital (`Ctrl` `K`, `⌘` `K`) — #57 / #64 design review.
+      if (/^[a-z]$/.test(key)) return afterModifier ? key.toUpperCase() : key
       return key.toUpperCase()
   }
 }
@@ -398,25 +399,31 @@ export function formatBinding(binding: Binding): string {
   const parts = (binding.modifiers ?? []).map((modifier) =>
     modifier === 'mod' ? mod : modifier === 'shift' ? '⇧' : '⌥',
   )
-  const keys = (binding.keys ?? '').split(' ').filter(Boolean).map(keyLabel).join(' then ')
+  const afterModifier = (binding.modifiers?.length ?? 0) > 0
+  const keys = (binding.keys ?? '')
+    .split(' ')
+    .filter(Boolean)
+    .map((key) => keyLabel(key, afterModifier))
+    .join(' then ')
   return [...parts, keys].filter(Boolean).join(binding.modifiers?.length ? '' : ' ')
 }
 
 /**
  * The binding as separate keycaps.
  *
- * `formatBinding` is one string for a sentence; this is what goes on the chrome,
- * where each key is its own printed cap: `⌘↵` is one chord and therefore one
- * cap, while `g` then `d` is two caps with a gap between them, because that is
- * what the hands do.
+ * `formatBinding` is one string for a sentence; this is what goes on the chrome.
+ * Modifiers and the key each get their own cap (`Ctrl` `K`, `Ctrl` `⇧` `↵`);
+ * a bare sequence is one cap per key (`g` then `d`).
  */
 export function bindingChips(binding: Binding): readonly string[] {
   const mod = isApple() ? '⌘' : 'Ctrl'
-  const held = (binding.modifiers ?? [])
-    .map((modifier) => (modifier === 'mod' ? mod : modifier === 'shift' ? '⇧' : '⌥'))
-    .join('')
-  if (binding.keys === undefined || binding.keys === '') return held === '' ? [] : [held]
-  return binding.keys.split(' ').map((key, index) => (index === 0 ? held : '') + keyLabel(key))
+  const modifiers = (binding.modifiers ?? []).map((modifier) =>
+    modifier === 'mod' ? mod : modifier === 'shift' ? '⇧' : '⌥',
+  )
+  if (binding.keys === undefined || binding.keys === '') return modifiers
+  const keys = binding.keys.split(' ').filter(Boolean)
+  const afterModifier = modifiers.length > 0
+  return [...modifiers, ...keys.map((key) => keyLabel(key, afterModifier))]
 }
 
 export function matches(binding: Binding, event: KeyboardEvent): boolean {

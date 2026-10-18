@@ -8,8 +8,9 @@ import { cn } from '~/lib/utils'
  * The keyboard, drawn on the screen it works on.
  *
  * Printed keycaps match the #57 prototype: grey border, thicker bottom edge,
- * muted 11px type. Letter chords stay lowercase (`g d`); named keys (`Esc`,
- * `Space`) keep their conventional capitals.
+ * muted 11px sans type. Bare letter chords stay lowercase (`g d`); letters
+ * after a modifier are capital (`Ctrl` `K`). Named keys (`Esc`, `Space`) keep
+ * their conventional capitals.
  *
  * Every one of these takes binding **ids**. A screen cannot print a key it has
  * not registered, a key that changes in the registry changes wherever it is
@@ -27,7 +28,7 @@ export function Keycap({
   return (
     <kbd
       className={cn(
-        'border-border bg-background text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center border border-b-2 px-1.5 text-[11px] font-medium tabular',
+        'border-border bg-background text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center border border-b-2 px-1.5 font-sans text-[11px] font-medium tabular',
         className,
       )}
     >

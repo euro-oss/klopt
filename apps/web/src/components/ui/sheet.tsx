@@ -84,8 +84,12 @@ function SheetContent({
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close data-slot="sheet-close" asChild>
-            <Button variant="ghost" size="icon" className="bg-secondary absolute top-3 right-3">
-              <RiCloseLine />
+            {/*
+              Sit inside the 48px Sheet header (`top-0.5` + size-11 = 46px), with
+              an 18px × so it does not cover the entity switcher (#64 review).
+            */}
+            <Button variant="ghost" size="icon" className="bg-secondary absolute top-0.5 right-1">
+              <RiCloseLine className="size-[18px]" />
               <span className="sr-only">{closeLabel}</span>
             </Button>
           </SheetPrimitive.Close>

@@ -78,11 +78,13 @@ describe('the keyboard map', () => {
     expect(chips('inbox.leave')).toEqual(['Esc'])
   })
 
-  it('gives a chord one cap and a sequence two', () => {
+  it('gives each modifier and key its own cap', () => {
     // `Ctrl` rather than `⌘`, because the tests run where `navigator.platform`
-    // is not a Mac — which is the same resolution the screens get.
-    expect(bindingChips(BINDINGS_BY_ID.get('entry.post')!)).toEqual(['Ctrl↵'])
-    expect(bindingChips(BINDINGS_BY_ID.get('entry.postAndNext')!)).toEqual(['Ctrl⇧↵'])
+    // is not a Mac — which is the same resolution the screens get. Letters
+    // after a modifier are capital; bare sequences stay lowercase.
+    expect(bindingChips(BINDINGS_BY_ID.get('palette')!)).toEqual(['Ctrl', 'K'])
+    expect(bindingChips(BINDINGS_BY_ID.get('entry.post')!)).toEqual(['Ctrl', '↵'])
+    expect(bindingChips(BINDINGS_BY_ID.get('entry.postAndNext')!)).toEqual(['Ctrl', '⇧', '↵'])
     expect(bindingChips(BINDINGS_BY_ID.get('go.dashboard')!)).toEqual(['g', 'd'])
     // Importeren prefix (#37): printed chords are `i` then …; `g x` stays as
     // the Exact alias and still renders as its own two caps.

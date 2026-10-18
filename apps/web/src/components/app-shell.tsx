@@ -254,7 +254,7 @@ export function AppShell({
                 className="bg-sidebar text-sidebar-foreground w-72 max-w-[85vw] p-0"
                 closeLabel={t('common.close')}
               >
-                <SheetHeader className="border-sidebar-border border-b p-3 pr-12">
+                <SheetHeader className="border-sidebar-border h-12 justify-center border-b px-3 py-0 pr-12">
                   <SheetTitle className="flex items-center gap-2 text-left text-[15px] font-semibold tracking-tight normal-case">
                     <span
                       aria-hidden="true"
@@ -311,7 +311,7 @@ export function AppShell({
               <span className="min-w-0 flex-1 truncate text-left">{t('shell.searchTrigger')}</span>
               <span className="hidden items-center gap-0.5 sm:inline-flex">
                 <Keycap>{isApple() ? '⌘' : 'Ctrl'}</Keycap>
-                <Keycap>k</Keycap>
+                <Keycap>K</Keycap>
               </span>
             </button>
             <ThemeToggleButton hydrated={hydrated} />
