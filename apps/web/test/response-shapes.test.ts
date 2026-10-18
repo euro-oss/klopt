@@ -1612,8 +1612,9 @@ describe('Moneybird, from connecting to disconnecting', () => {
       ).body,
     )
     const context = await contextFor()
+    // Within the 7-day ECB lookback of the document date (PM #55).
     await withEcbRates(context.database, (repository) =>
-      repository.upsertMany([{ currency: 'USD', rateDate: '2026-03-01', rate: '0.9214' }]),
+      repository.upsertMany([{ currency: 'USD', rateDate: '2026-03-14', rate: '0.9214' }]),
     )
     conforms(
       'moneybird.fxRate',
