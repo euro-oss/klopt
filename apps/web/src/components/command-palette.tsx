@@ -96,6 +96,31 @@ type NavRow = {
   readonly binding: Binding
 }
 
+type HelpRow = {
+  readonly id: string
+  readonly labelKey: MessageKey
+  readonly binding: Binding
+}
+
+/**
+ * Help "Ga naar" shares `paletteNavItems` so order and simple labels match ⌘K
+ * (Journaalposten / Proefbalans last when Geavanceerd is off).
+ */
+function helpGoToRows(role: string, advanced: boolean): readonly HelpRow[] {
+  const rows: HelpRow[] = []
+  for (const { item } of paletteNavItems(role, advanced)) {
+    if (item.binding === undefined) continue
+    const binding = BINDINGS_BY_ID.get(item.binding)
+    if (binding === undefined) continue
+    rows.push({
+      id: binding.id,
+      labelKey: navLabelKey(item, advanced),
+      binding,
+    })
+  }
+  return rows
+}
+
 /**
  * Match on what is on screen, not on what is in the registry.
  *
@@ -422,10 +447,11 @@ export function CommandPalette({ role = '' }: { role?: string }) {
             aria-modal="true"
             // Focusable so that opening the sheet moves focus into it, which is
             // what a screen reader needs and what makes Escape land somewhere
-            // sensible.
+            // sensible. `focus:outline-hidden`: the help path focuses this
+            // container, and a 2px ring around the whole dialog is noise (#64).
             tabIndex={-1}
             aria-label={open === 'palette' ? t('palette.commands') : t('shell.help')}
-            className="bg-popover border-border max-h-[70vh] w-full max-w-xl overflow-hidden border"
+            className="bg-popover border-border max-h-[70vh] w-full max-w-xl overflow-hidden border focus:outline-hidden"
             onClick={(event) => {
               event.stopPropagation()
             }}
@@ -717,15 +743,23 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                   <section key={group} className="mb-4">
                     <h3 className="text-muted-foreground mb-1 text-xs font-medium">{t(group)}</h3>
                     <dl className="space-y-1">
-                      {BINDINGS.filter((binding) => binding.group === group).map((binding) => (
+                      {(group === 'keys.group.goTo'
+                        ? // Same order and simple/advanced labels as ⌘K (#64).
+                          helpGoToRows(role, advanced)
+                        : BINDINGS.filter((binding) => binding.group === group).map((binding) => ({
+                            id: binding.id,
+                            labelKey: binding.label,
+                            binding,
+                          }))
+                      ).map((row) => (
                         <div
-                          key={binding.id}
+                          key={row.id}
                           className="flex items-baseline justify-between gap-4 text-sm"
                         >
-                          <dt>{t(binding.label)}</dt>
+                          <dt>{t(row.labelKey)}</dt>
                           <dd className="flex shrink-0 items-center gap-1">
-                            {bindingChips(binding).map((chip, position) => (
-                              <Keycap key={`${binding.id}-${String(position)}`}>{chip}</Keycap>
+                            {bindingChips(row.binding).map((chip, position) => (
+                              <Keycap key={`${row.id}-${String(position)}`}>{chip}</Keycap>
                             ))}
                           </dd>
                         </div>
