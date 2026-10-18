@@ -189,9 +189,7 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
     case 'draft_skipped':
       return {
         type: 'explainOnly',
-        ...(moneybirdHref === null
-          ? {}
-          : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
+        ...(moneybirdHref === null ? {} : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
       }
     default: {
       const _exhaustive: never = problem.code

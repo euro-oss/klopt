@@ -288,8 +288,7 @@ function FixPanel({
 
   if (fix.type === 'explainOnly') {
     const external =
-      fix.href !== undefined &&
-      (fix.href.startsWith('http://') || fix.href.startsWith('https://'))
+      fix.href !== undefined && (fix.href.startsWith('http://') || fix.href.startsWith('https://'))
     return (
       <div className="flex flex-col items-start gap-3">
         <p className="text-muted-foreground text-sm">{t('findingCard.explainOnlyBody')}</p>

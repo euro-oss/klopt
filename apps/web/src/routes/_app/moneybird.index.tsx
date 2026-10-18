@@ -73,13 +73,7 @@ export const Route = createFileRoute('/_app/moneybird/')({
   component: Moneybird,
 })
 
-const ACCOUNT_TYPES: readonly AccountType[] = [
-  'asset',
-  'liability',
-  'equity',
-  'revenue',
-  'expense',
-]
+const ACCOUNT_TYPES: readonly AccountType[] = ['asset', 'liability', 'equity', 'revenue', 'expense']
 
 function readAdvancedCookie(): string | null {
   if (typeof document === 'undefined') return null
@@ -624,9 +618,10 @@ function Moneybird() {
                     return {
                       ...current,
                       rate,
-                      source: sameAsEcb || (current.ecbRate !== '' && rate === current.ecbRate)
-                        ? 'ecb'
-                        : 'override',
+                      source:
+                        sameAsEcb || (current.ecbRate !== '' && rate === current.ecbRate)
+                          ? 'ecb'
+                          : 'override',
                       date: sameAsEcb ? current.date : current.documentDate,
                     }
                   })
@@ -662,9 +657,7 @@ function Moneybird() {
                 }
                 onTypeAccept={() => {
                   if (typeDraft === null) return
-                  applyDecisions(
-                    withAccountType(decisions, typeDraft.moneybirdId, typeDraft.type),
-                  )
+                  applyDecisions(withAccountType(decisions, typeDraft.moneybirdId, typeDraft.type))
                   setTypeDraft(null)
                 }}
                 onTypeDismiss={() => setTypeDraft(null)}
@@ -1077,12 +1070,17 @@ function PreviewReport({
                         line.debitMinor !== '0' ? line.debitMinor : line.creditMinor,
                       )
                       const functional =
-                        fxNormalized === null ? 0n : previewFxConversion(
-                          [{ label: line.accountNumber, amountMinor: foreign }],
-                          fxNormalized,
-                        )[0]!.functionalMinor
+                        fxNormalized === null
+                          ? 0n
+                          : previewFxConversion(
+                              [{ label: line.accountNumber, amountMinor: foreign }],
+                              fxNormalized,
+                            )[0]!.functionalMinor
                       return (
-                        <tr key={`${line.accountNumber}-${line.description}`} className="border-border border-b">
+                        <tr
+                          key={`${line.accountNumber}-${line.description}`}
+                          className="border-border border-b"
+                        >
                           <td className="py-1">
                             {line.accountNumber} — {line.description}
                           </td>
