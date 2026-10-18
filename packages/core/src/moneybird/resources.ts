@@ -83,20 +83,20 @@ export interface ClassifiedAccount {
  * XAF import). Used when Moneybird's own type is unknown (`derived_account_type`).
  *
  * Income leads (WOmz omzet, WOvb other operating income, WOvt investment
- * income, WFbe financial income/expense parent) must not fall through as
- * expense. BLas is long-term debt → liability.
+ * income) must not fall through as expense. WFbe is mixed financial
+ * income/expense — only known sub-codes suggest a type. BLas is long-term debt
+ * → liability.
  */
 export function inferAccountTypeFromRgs(rgsCode: string | null | undefined): AccountType | null {
   if (rgsCode === null || rgsCode === undefined || rgsCode === '') return null
   const lead = rgsCode.trim().toUpperCase()
-  if (
-    lead.startsWith('WOMZ') ||
-    lead.startsWith('WOVB') ||
-    lead.startsWith('WOVT') ||
-    lead.startsWith('WFBE')
-  ) {
+  if (lead.startsWith('WOMZ') || lead.startsWith('WOVB') || lead.startsWith('WOVT')) {
     return 'revenue'
   }
+  // WFbe: rentebaten (Rlm) vs rentelasten (Rls / Orl). Bare / unknown → no guess.
+  if (lead.startsWith('WFBERLM')) return 'revenue'
+  if (lead.startsWith('WFBERLS') || lead.startsWith('WFBEORL')) return 'expense'
+  if (lead === 'WFBE' || lead.startsWith('WFBE')) return null
   if (lead.startsWith('W')) return 'expense'
   if (lead.startsWith('BEIV')) return 'equity'
   if (lead.startsWith('BSCH') || lead.startsWith('BVRZ') || lead.startsWith('BLAS')) {
