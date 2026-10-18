@@ -297,7 +297,11 @@ export function AppShell({
             Desktop 48 px top bar: page title, ⌘K search trigger, theme toggle.
           */}
           <header className="border-border bg-background sticky top-0 z-30 hidden h-12 items-center gap-4 border-b px-8 md:flex">
-            <h1 className="min-w-0 flex-1 truncate text-sm font-medium">{pageTitle}</h1>
+            {/*
+              Not an <h1>: every screen already has its own page heading, and a
+              second one here makes getByRole('heading', { name }) ambiguous.
+            */}
+            <p className="min-w-0 flex-1 truncate text-sm font-medium">{pageTitle}</p>
             <button
               type="button"
               disabled={!hydrated}
@@ -328,7 +332,12 @@ export function AppShell({
             nothing at all — so the new screen takes the focus, which is what a
             browser does for a real page load.
           */}
-          <main id="main" ref={main} tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none md:p-8">
+          <main
+            id="main"
+            ref={main}
+            tabIndex={-1}
+            className="min-w-0 flex-1 scroll-mt-12 p-4 outline-none md:p-8"
+          >
             {active?.isDemo === true && (
               <div
                 role="status"

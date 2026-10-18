@@ -22,7 +22,7 @@ describe('Alpha 5 density and dark mode', () => {
   it('keeps main inset and page headers tight', () => {
     const shell = read('components/app-shell.tsx')
     // Phone keeps p-4; desktop gets the redesign's roomier px/py (#57).
-    expect(shell).toContain('min-w-0 flex-1 p-4 outline-none md:p-8')
+    expect(shell).toContain('min-w-0 flex-1 scroll-mt-12 p-4 outline-none md:p-8')
     expect(shell).toContain('mb-4 flex items-start justify-between gap-4')
     expect(shell).toContain('text-xl font-semibold tracking-tight')
     expect(shell).not.toContain('focus:rounded')

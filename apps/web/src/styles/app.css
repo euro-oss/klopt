@@ -77,6 +77,15 @@
     border-color: var(--color-border);
   }
 
+  /*
+    Sticky 48px top bars (phone + desktop) sit over the scrollport. Without
+    scroll-padding, scrollIntoView / hash / Playwright clicks land under the
+    bar and hit the chrome instead of the control (#64 design review).
+  */
+  html {
+    scroll-padding-top: 3rem;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);

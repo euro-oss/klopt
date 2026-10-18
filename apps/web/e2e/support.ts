@@ -159,8 +159,9 @@ export async function openEntitySwitcher(page: Page): Promise<void> {
   if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
     await trigger.click()
   }
+  // Comboboxes, not the trigger's aria-label (which also contains "boekjaar").
   await expect(
-    page.getByLabel(/^(Administratie|Administration|Boekjaar|Book year)$/).first(),
+    page.getByRole('combobox', { name: /^(Administratie|Administration)$/ }),
   ).toBeVisible()
 }
 
@@ -174,13 +175,14 @@ export async function chooseOption(
     typeof label === 'string' &&
     /^(Administratie|Boekjaar|Administration|Book year)$/.test(label)
   if (shellLabel) {
-    const field = (within ?? page).getByLabel(label)
+    const field = (within ?? page).getByRole('combobox', { name: label })
     if (!(await field.isVisible().catch(() => false))) {
       await openEntitySwitcher(page)
     }
+    await (within ?? page).getByRole('combobox', { name: label }).click()
+  } else {
+    await (within ?? page).getByLabel(label).click()
   }
-
-  await (within ?? page).getByLabel(label).click()
   await page.getByRole('option', { name: option }).click()
 
   // The listbox animates out. Waiting for it to go means the next interaction
