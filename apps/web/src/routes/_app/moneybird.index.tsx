@@ -1171,7 +1171,7 @@ function PreviewReport({
             {(() => {
               const detail = detailForDisplay(unbalancedDraft.detail)
               return t('moneybird.unbalancedSides', {
-                reference: detail['reference'] ?? unbalancedDraft.path,
+                reference: detail['reference'] ?? unbalancedDraft.path ?? '—',
                 debitLabel,
                 debit: detail['debit'] ?? '—',
                 creditLabel,
