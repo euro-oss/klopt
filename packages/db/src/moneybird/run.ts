@@ -120,6 +120,7 @@ export async function executeMoneybirdImport(
     existingExternalIds: here.externalIds,
     lockedYears: here.years.filter((year) => year.status === 'closed').map((year) => year.code),
     entityFiscalYearStartMonth: here.entity.fiscalYearStartMonth,
+    decisions: here.connectionRow?.importDecisions ?? {},
   })
 
   if (plan.problems.length > 0) {

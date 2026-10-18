@@ -84,6 +84,7 @@ export async function importMoneybirdAdministration(
           warnings: report.plan.warnings,
           problems: report.plan.problems,
           notImported: report.plan.notImported,
+          excluded: report.plan.excluded,
         },
         lastError: null,
       }),

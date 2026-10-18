@@ -51,6 +51,14 @@ export {
   type MoneybirdClientOptions,
   type ReadAdministrationRequest,
 } from './moneybird/index.js'
+export {
+  ECB_HIST_FULL_AFTER_DAYS,
+  eurPerForeign,
+  fetchEcbReferenceRates,
+  parseEcbEurofxrefXml,
+  type FetchEcbRatesOptions,
+  type ParsedEcbRate,
+} from './ecb/index.js'
 export { createNoTimestampWitness } from './timestamp/none.js'
 export { createRfc3161Witness, type Rfc3161Options } from './timestamp/rfc3161.js'
 export { resolveTimestampWitness, type TimestampEnvironment } from './timestamp/resolve.js'

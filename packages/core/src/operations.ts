@@ -1346,6 +1346,16 @@ export const moneybirdOperations: Readonly<Record<string, OperationDefinition>> 
     idempotent: true,
   }),
 
+  fxRate: defineOperation({
+    id: 'moneybird.fxRate',
+    kind: 'read',
+    permission: 'ledger:import',
+    summary:
+      'Suggest an ECB daily reference rate for a foreign-currency Moneybird document (Koers step).',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
   previewImport: defineOperation({
     id: 'moneybird.previewImport',
     kind: 'read',

@@ -6732,6 +6732,59 @@
         ]
       }
     },
+    "moneybird.fxRate": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "documentDate": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/FxRateSourceKind"
+          },
+          "date": {
+            "type": "string"
+          },
+          "postingFields": {
+            "type": "object",
+            "properties": {
+              "exchangeRate": {
+                "type": "string"
+              },
+              "exchangeRateSource": {
+                "type": "string"
+              },
+              "exchangeRateColumn": {
+                "type": "string"
+              },
+              "exchangeRateSourceColumn": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "exchangeRate",
+              "exchangeRateSource",
+              "exchangeRateColumn",
+              "exchangeRateSourceColumn"
+            ]
+          }
+        },
+        "required": [
+          "currency",
+          "documentDate",
+          "rate",
+          "source",
+          "date",
+          "postingFields"
+        ]
+      }
+    },
     "moneybird.getConnection": {
       "schema": {
         "type": "object",
@@ -6776,6 +6829,78 @@
                       "type": "string"
                     }
                   },
+                  "importDecisions": {
+                    "type": "object",
+                    "properties": {
+                      "confirmedCurrencyIsFunctional": {
+                        "type": "boolean"
+                      },
+                      "confirmedFiscalYearStart": {
+                        "type": "boolean"
+                      },
+                      "acknowledgedEmptyYears": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "excludedExternalIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "excludedLockedYears": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "contactNumberOverrides": {
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "accountTypeOverrides": {
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": {
+                          "$ref": "#/components/schemas/AccountType"
+                        }
+                      },
+                      "exchangeRates": {
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "rate": {
+                              "type": "string"
+                            },
+                            "source": {
+                              "$ref": "#/components/schemas/FxRateSourceKind"
+                            },
+                            "date": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "rate",
+                            "source",
+                            "date"
+                          ]
+                        }
+                      },
+                      "deferredAttachmentIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
                   "connected": {
                     "type": "boolean"
                   },
@@ -6802,6 +6927,7 @@
                   "administrationCurrency",
                   "accountMappings",
                   "taxMappings",
+                  "importDecisions",
                   "connected",
                   "ready",
                   "lastImportAt",
@@ -6945,6 +7071,9 @@
                         "type": "null"
                       },
                       "notImported": {
+                        "type": "null"
+                      },
+                      "excluded": {
                         "type": "null"
                       }
                     },
@@ -7176,6 +7305,12 @@
                           "type": "string"
                         }
                       },
+                      "excluded": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
                       "problems": {
                         "type": "array",
                         "items": {
@@ -7245,6 +7380,7 @@
                       "reconciliation",
                       "opening",
                       "notImported",
+                      "excluded",
                       "problems",
                       "warnings"
                     ]
@@ -7611,6 +7747,87 @@
               "suppliers"
             ]
           },
+          "pendingFx": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "externalId": {
+                  "type": "string"
+                },
+                "documentNumber": {
+                  "type": "string"
+                },
+                "documentDate": {
+                  "type": "string"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "sales_invoice",
+                    "credit_note",
+                    "purchase_invoice",
+                    "receipt",
+                    "journal",
+                    "bank_mutation"
+                  ]
+                },
+                "lines": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "accountNumber": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "debit": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "credit": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "debitMinor": {
+                        "type": "string"
+                      },
+                      "creditMinor": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "accountNumber",
+                      "description",
+                      "debit",
+                      "credit",
+                      "debitMinor",
+                      "creditMinor"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "externalId",
+                "documentNumber",
+                "documentDate",
+                "currency",
+                "kind",
+                "lines"
+              ]
+            }
+          },
           "reconciliation": {
             "type": "array",
             "items": {
@@ -7688,6 +7905,12 @@
             }
           },
           "notImported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "excluded": {
             "type": "array",
             "items": {
               "type": "string"
@@ -7955,8 +8178,10 @@
           "accounts",
           "taxRates",
           "contacts",
+          "pendingFx",
           "reconciliation",
           "notImported",
+          "excluded",
           "warnings",
           "problems",
           "dryRun"
@@ -8083,6 +8308,9 @@
                     "type": "null"
                   },
                   "notImported": {
+                    "type": "null"
+                  },
+                  "excluded": {
                     "type": "null"
                   }
                 },
@@ -8314,6 +8542,12 @@
                       "type": "string"
                     }
                   },
+                  "excluded": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
                   "problems": {
                     "type": "array",
                     "items": {
@@ -8383,6 +8617,7 @@
                   "reconciliation",
                   "opening",
                   "notImported",
+                  "excluded",
                   "problems",
                   "warnings"
                 ]
@@ -14275,6 +14510,12 @@
         "manual",
         "sbr_provider",
         "digipoort"
+      ]
+    },
+    "FxRateSourceKind": {
+      "enum": [
+        "ecb",
+        "override"
       ]
     },
     "IcpFindingCode": {

@@ -21,6 +21,14 @@
     "./findings": {
       "types": "./dist/finding-messages.d.ts",
       "default": "./dist/finding-messages.js"
+    },
+    "./moneybird-fixes": {
+      "types": "./dist/moneybird/fixes.d.ts",
+      "default": "./dist/moneybird/fixes.js"
+    },
+    "./moneybird-fx": {
+      "types": "./dist/moneybird/fx.d.ts",
+      "default": "./dist/moneybird/fx.js"
     }
   },
   "files": [

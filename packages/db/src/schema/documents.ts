@@ -8,6 +8,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   primaryKey,
   text,
   timestamp,
@@ -421,12 +422,37 @@ export const moneybirdConnections = klopt.table(
     administrationCurrency: text('administration_currency'),
     accountMappings: jsonb('account_mappings').notNull().default({}),
     taxMappings: jsonb('tax_mappings').notNull().default({}),
+    /**
+     * Fix decisions from finding cards (issue #42): currency / year-start
+     * confirmations, exclusions, FX rates, contact renumbers, account types.
+     * Shape: `MoneybirdImportDecisions` in `@klopt/core`.
+     */
+    importDecisions: jsonb('import_decisions').notNull().default({}),
     lastImportAt: timestamp('last_import_at', { withTimezone: true }),
     lastError: text('last_error'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex('moneybird_connections_entity').on(table.entityId)],
+)
+
+/**
+ * Cached ECB daily reference rates (issue #42).
+ *
+ * Looking up an already-fetched (currency, rate_date) never needs the ECB to
+ * be reachable. Rates are EUR per 1 unit of foreign currency.
+ */
+export const ecbReferenceRates = klopt.table(
+  'ecb_reference_rates',
+  {
+    currency: char('currency', { length: 3 }).notNull(),
+    rateDate: date('rate_date').notNull(),
+    rate: numeric('rate', { precision: 24, scale: 12 }).notNull(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ name: 'ecb_reference_rates_pk', columns: [table.currency, table.rateDate] }),
+  ],
 )
 
 export const moneybirdImportRuns = klopt.table(
