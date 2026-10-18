@@ -93,9 +93,9 @@ test('a ledger table scrolls inside itself with a sticky first column', async ({
   await anAdministration(page)
   // Cookie rather than the Sheet profile: this test is about the ledger scroller,
   // and Geavanceerd-in-the-Sheet is covered above.
-  await page.context().addCookies([
-    { name: 'klopt_advanced', value: '1', url: 'http://localhost:3399' },
-  ])
+  await page
+    .context()
+    .addCookies([{ name: 'klopt_advanced', value: '1', url: 'http://localhost:3399' }])
   await page.reload()
   await expect(page.getByRole('button', { name: 'Menu openen' })).toBeEnabled()
 
