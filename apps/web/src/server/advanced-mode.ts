@@ -1,37 +1,81 @@
 import { createServerFn } from '@tanstack/react-start'
 import {
   ADVANCED_MODE_COOKIE_LEGACY,
-  ADVANCED_MODE_MAX_AGE_SECONDS,
-  advancedModeCookieName,
-  advancedModeCookieValue,
-  isAdvancedModePreference,
+  ADVANCED_MODE_COOKIE_PREFIX,
   readCookieValue,
   resolveAdvancedMode,
+  retiredAdvancedModeCookieNames,
 } from '~/lib/advanced-mode'
 import { getSession } from '~/server/context'
 
 /**
  * Reading and setting Geavanceerd on the server.
  *
- * Same shape as theme/locale: the cookie arrives on the request so the first
- * paint of the nav already hides Journaalposten / Proefbalans when they should
- * be hidden, rather than flashing them and yanking them after hydration.
+ * Stored on `klopt.users.advanced_mode` for the signed-in session user. The
+ * client never supplies a user id — both paths take it from the session.
  *
- * The cookie is scoped to the signed-in user id so another account on the same
- * browser never inherits the preference. Cross-device persistence is a #44
- * follow-up (server-side store + migration).
+ * A one-shot cookie migrate keeps an explicit #64 choice if the column is
+ * still null, then every retired cookie name is cleared so user ids never
+ * linger in cookie names.
  */
 
+async function clearRetiredCookies(cookieHeader: string): Promise<void> {
+  const { setCookie } = await import('@tanstack/react-start/server')
+  const names = new Set(retiredAdvancedModeCookieNames(cookieHeader))
+  // Always drop the legacy shared name even when the header omitted it.
+  names.add(ADVANCED_MODE_COOKIE_LEGACY)
+  for (const name of names) {
+    setCookie(name, '', {
+      maxAge: 0,
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: false,
+      secure: false,
+    })
+  }
+}
+
+/**
+ * One-shot: if the DB has no choice yet, lift `'1'`/`'0'` from a retired
+ * cookie into the column. Returns the stored preference afterwards.
+ */
+async function loadPreference(userId: string, cookieHeader: string): Promise<boolean | null> {
+  const { getDatabase } = await import('~/api/database')
+  const { advancedModeFor, setAdvancedModeFor } = await import('@klopt/db')
+  const database = getDatabase()
+
+  const stored = await advancedModeFor(database, userId)
+  if (stored !== null) return stored
+
+  // #64 wrote `klopt_advanced_<userId>`. Migrate once, never write cookies again.
+  const safe = userId.replace(/[^A-Za-z0-9_-]/g, '_')
+  const perUser = `${ADVANCED_MODE_COOKIE_PREFIX}${safe}`
+  const raw = readCookieValue(cookieHeader, perUser)
+  if (raw === '1' || raw === '0') {
+    const enabled = raw === '1'
+    await setAdvancedModeFor(database, userId, enabled)
+    return enabled
+  }
+
+  return null
+}
+
 export const getAdvancedMode = createServerFn({ method: 'GET' })
-  .validator((input: { role: string; userId: string }) => input)
+  .validator((input: { role: string }) => input)
   .handler(async ({ data }): Promise<{ enabled: boolean; hasExplicit: boolean }> => {
+    const session = await getSession()
+    if (session === null) {
+      throw new Error('Geavanceerd needs a signed-in user.')
+    }
+
     const { getRequest } = await import('@tanstack/react-start/server')
     const cookies = getRequest().headers.get('cookie') ?? ''
-    const raw = readCookieValue(cookies, advancedModeCookieName(data.userId))
-    // Ignore the legacy browser-wide cookie — it is not a per-user preference.
+    const preference = await loadPreference(session.user.id, cookies)
+    await clearRetiredCookies(cookies)
+
     return {
-      enabled: resolveAdvancedMode(raw, data.role),
-      hasExplicit: isAdvancedModePreference(raw),
+      enabled: resolveAdvancedMode(preference, data.role),
+      hasExplicit: preference !== null,
     }
   })
 
@@ -43,28 +87,12 @@ export const setAdvancedMode = createServerFn({ method: 'POST' })
       throw new Error('Geavanceerd needs a signed-in user.')
     }
 
-    const { setCookie } = await import('@tanstack/react-start/server')
-    const value = advancedModeCookieValue(data.enabled)
-    if (!isAdvancedModePreference(value)) {
-      throw new Error('Geavanceerd is aan or uit.')
-    }
+    const { getDatabase } = await import('~/api/database')
+    const { setAdvancedModeFor } = await import('@klopt/db')
+    const { getRequest } = await import('@tanstack/react-start/server')
 
-    setCookie(advancedModeCookieName(session.user.id), value, {
-      maxAge: ADVANCED_MODE_MAX_AGE_SECONDS,
-      path: '/',
-      sameSite: 'lax',
-      httpOnly: false,
-      secure: false,
-    })
-
-    // Clear the pre-slice shared cookie so it cannot leak across accounts.
-    setCookie(ADVANCED_MODE_COOKIE_LEGACY, '', {
-      maxAge: 0,
-      path: '/',
-      sameSite: 'lax',
-      httpOnly: false,
-      secure: false,
-    })
+    await setAdvancedModeFor(getDatabase(), session.user.id, data.enabled)
+    await clearRetiredCookies(getRequest().headers.get('cookie') ?? '')
 
     return { enabled: data.enabled }
   })

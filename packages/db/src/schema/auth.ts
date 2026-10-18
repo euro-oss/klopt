@@ -32,6 +32,11 @@ export const users = klopt.table('users', {
   email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').notNull().default(false),
   image: text('image'),
+  /**
+   * Explicit Geavanceerd choice (issue #44). Null means derive from the role
+   * in the active administration — see `defaultAdvancedMode` in the web app.
+   */
+  advancedMode: boolean('advanced_mode'),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 })

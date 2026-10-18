@@ -371,7 +371,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
 
     if (row.kind === 'action') {
       if (row.id === 'toggle-advanced' && advancedMode !== null) {
-        advancedMode.toggleAdvanced()
+        void advancedMode.toggleAdvanced()
         setOpen(null)
       }
       return

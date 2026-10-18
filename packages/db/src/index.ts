@@ -160,6 +160,7 @@ export {
   claimInvitations,
   hasLiveInvitation,
 } from './repositories/members.js'
+export { advancedModeFor, setAdvancedModeFor } from './repositories/advanced-mode.js'
 export { floorElapsed, SEND_OTP_SILENT_FLOOR_MS } from './timing.js'
 export {
   type EntityPatch,
