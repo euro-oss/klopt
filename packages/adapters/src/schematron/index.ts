@@ -10,4 +10,4 @@ export {
 
 export { parseSchematron } from './parse.js'
 export { absoluteContext, createSchematronValidator, validateAgainst } from './engine.js'
-export { loadSchematronFromDirectory } from './load.js'
+export { loadSchematronFromDirectory, REQUIRED_PEPPOL_SCHEMATRON_FILES } from './load.js'

@@ -132,15 +132,18 @@ An RGS release is: download the workbook, `pnpm rgs:generate`, review the diff,
 commit. No deploy, no code change. See
 [0011](decisions/0011-rgs-as-reference-data.md).
 
-A Peppol BIS release is smaller still: bump the pin in
+A Peppol BIS release is smaller still: bump the pin and checksums in
 `tools/fetch-peppol-bis3.sh`, re-fetch, and restart. The `.sch` files are not
 redistributed in this repository (OpenPeppol provenance — see
-[`reference-data/peppol/README.md`](../reference-data/peppol/README.md)); they
-are parsed and evaluated as written, by an ISO Schematron evaluator over an
+[`reference-data/peppol/README.md`](../reference-data/peppol/README.md)); CI and
+the Docker image build fetch the pinned, SHA-256-verified bytes into
+`reference-data/` (and the image copies that tree to `/app/reference-data`).
+They are parsed and evaluated as written, by an ISO Schematron evaluator over an
 XPath 3.1 engine, with nothing compiled and nothing generated
-([0017](decisions/0017-schematron-in-process.md)). The parser throws on any
-construct it cannot translate rather than skipping it — a validator that quietly
-checks less is the one failure mode that would matter.
+([0017](decisions/0017-schematron-in-process.md)). The loader requires both
+named artefacts and the parser throws on any construct it cannot translate
+rather than skipping it — a validator that quietly checks less is the one
+failure mode that would matter.
 
 ## Two ways in, one shape out
 
