@@ -147,7 +147,12 @@ test('i x reaches Exact under Importeren', async ({ page }) => {
   ).toBeVisible()
   // Printed chord under Importeren is `i` then `x`; `g x` stays as the alias.
   await expect(page.getByRole('navigation').getByText('Importeren')).toBeVisible()
-  await expect(page.getByRole('link', { name: /Exact Online/ }).locator('kbd')).toContainText(/I/)
+  await expect(
+    page
+      .getByRole('link', { name: /Exact Online/ })
+      .locator('kbd')
+      .first(),
+  ).toContainText(/I/)
 
   await page.keyboard.press('i')
   await expect(page.getByText('I …')).toBeVisible()

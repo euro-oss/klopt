@@ -50,7 +50,8 @@ test('a new user signs in, sets up an administration and lands in it', async ({ 
     // chrome. Still an answer, just not one printed against the bottom of the
     // rail at all times.
     await openAccountMenu(page)
-    await expect(page.getByText('rol: owner')).toBeVisible()
+    // Trigger summary and menu both show the role once Geavanceerd lives there.
+    await expect(page.getByText(/^rol: owner/).first()).toBeVisible()
     await page.keyboard.press('Escape')
 
     const userId = await findUserIdByEmail(database, email)

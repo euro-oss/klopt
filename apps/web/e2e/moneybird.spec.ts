@@ -61,7 +61,12 @@ test('i m reaches Moneybird under Importeren', async ({ page }) => {
       .first(),
   ).toBeVisible()
   await expect(page.getByRole('navigation').getByText('Importeren')).toBeVisible()
-  await expect(page.getByRole('link', { name: /Moneybird/ }).locator('kbd')).toContainText(/I/)
+  await expect(
+    page
+      .getByRole('link', { name: /Moneybird/ })
+      .locator('kbd')
+      .first(),
+  ).toContainText(/I/)
 
   await page.keyboard.press('i')
   await expect(page.getByText('I …')).toBeVisible()

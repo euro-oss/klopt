@@ -213,7 +213,8 @@ test('the theme is light to start with, and dark stays dark', async ({ page }) =
 test('ageing is in the navigation, on both sides', async ({ page }) => {
   await anAdministration(page, 'Ouderdom BV')
 
-  await page.getByRole('link', { name: 'Debiteuren' }).click()
+  // Simple-mode label under Rapporten (#61 slice 2); Geavanceerd renames it Debiteuren.
+  await page.getByRole('link', { name: 'Openstaand bij klanten' }).click()
   await expect(page.getByRole('heading', { name: 'Ouderdomsanalyse debiteuren' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Crediteuren' }).click()
