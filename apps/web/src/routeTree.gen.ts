@@ -28,6 +28,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSnapshotsRouteImport } from './routes/_app/snapshots'
 import { Route as AppWebhooksRouteImport } from './routes/_app/webhooks'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
+import { Route as LabPrimitivesRouteImport } from './routes/lab.primitives'
 import { Route as OauthAuthorizeRouteImport } from './routes/oauth/authorize'
 import { Route as OauthRegisterRouteImport } from './routes/oauth/register'
 import { Route as OauthTokenRouteImport } from './routes/oauth/token'
@@ -260,6 +261,11 @@ const AppWebhooksRoute = AppWebhooksRouteImport.update({
 const ApiMcpRoute = ApiMcpRouteImport.update({
   id: '/api/mcp',
   path: '/api/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabPrimitivesRoute = LabPrimitivesRouteImport.update({
+  id: '/lab/primitives',
+  path: '/lab/primitives',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OauthAuthorizeRoute = OauthAuthorizeRouteImport.update({
@@ -1014,6 +1020,7 @@ export interface FileRoutesByFullPath {
   '/snapshots': typeof AppSnapshotsRoute
   '/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/lab/primitives': typeof LabPrimitivesRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
   '/oauth/token': typeof OauthTokenRoute
@@ -1170,6 +1177,7 @@ export interface FileRoutesByTo {
   '/snapshots': typeof AppSnapshotsRoute
   '/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/lab/primitives': typeof LabPrimitivesRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
   '/oauth/token': typeof OauthTokenRoute
@@ -1329,6 +1337,7 @@ export interface FileRoutesById {
   '/_app/snapshots': typeof AppSnapshotsRoute
   '/_app/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/lab/primitives': typeof LabPrimitivesRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
   '/oauth/token': typeof OauthTokenRoute
@@ -1489,6 +1498,7 @@ export interface FileRouteTypes {
     | '/snapshots'
     | '/webhooks'
     | '/api/mcp'
+    | '/lab/primitives'
     | '/oauth/authorize'
     | '/oauth/register'
     | '/oauth/token'
@@ -1645,6 +1655,7 @@ export interface FileRouteTypes {
     | '/snapshots'
     | '/webhooks'
     | '/api/mcp'
+    | '/lab/primitives'
     | '/oauth/authorize'
     | '/oauth/register'
     | '/oauth/token'
@@ -1803,6 +1814,7 @@ export interface FileRouteTypes {
     | '/_app/snapshots'
     | '/_app/webhooks'
     | '/api/mcp'
+    | '/lab/primitives'
     | '/oauth/authorize'
     | '/oauth/register'
     | '/oauth/token'
@@ -1951,6 +1963,7 @@ export interface RootRouteChildren {
   DotwellKnownOauthAuthorizationServerRoute: typeof DotwellKnownOauthAuthorizationServerRoute
   DotwellKnownOauthProtectedResourceRoute: typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   ApiMcpRoute: typeof ApiMcpRoute
+  LabPrimitivesRoute: typeof LabPrimitivesRoute
   OauthAuthorizeRoute: typeof OauthAuthorizeRoute
   OauthRegisterRoute: typeof OauthRegisterRoute
   OauthTokenRoute: typeof OauthTokenRoute
@@ -2150,6 +2163,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mcp'
       fullPath: '/api/mcp'
       preLoaderRoute: typeof ApiMcpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab/primitives': {
+      id: '/lab/primitives'
+      path: '/lab/primitives'
+      fullPath: '/lab/primitives'
+      preLoaderRoute: typeof LabPrimitivesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/oauth/authorize': {
@@ -3614,6 +3634,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownOauthProtectedResourceRoute:
     DotwellKnownOauthProtectedResourceRouteWithChildren,
   ApiMcpRoute: ApiMcpRoute,
+  LabPrimitivesRoute: LabPrimitivesRoute,
   OauthAuthorizeRoute: OauthAuthorizeRoute,
   OauthRegisterRoute: OauthRegisterRoute,
   OauthTokenRoute: OauthTokenRoute,

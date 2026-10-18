@@ -1,0 +1,122 @@
+/**
+ * Klopt redesign — tokens to adopt.
+ *
+ * Drop-in replacement for the unlayered `:root` / `.dark` blocks at the bottom
+ * of `apps/web/src/styles/app.css`. Every name below is either a stock
+ * shadcn/ui variable or one the app already has (`--status-*`, `--debit`, …),
+ * so `shadcn add` components pick them up without a mapping layer. The only
+ * new names are `--status-success`, `--status-info` and the three shadcn-style
+ * aliases `--success`, `--warning`, `--info`.
+ *
+ * Deltas from the current app.css are marked "CHANGED" or "NEW".
+ */
+
+:root {
+  /* The three. The only colour literals besides the status hues. */
+  --white: #ffffff;
+  --black: #000000;
+  --yellow: #ffd51e;
+
+  --surface: color-mix(in oklab, var(--black) 4%, var(--white));
+  --line: color-mix(in oklab, var(--black) 18%, var(--white)); /* CHANGED 25% -> 18% */
+  --line-strong: color-mix(in oklab, var(--black) 40%, var(--white)); /* NEW: inputs */
+  --quiet: color-mix(in oklab, var(--black) 55%, var(--white));
+
+  /*
+    Four status hues, each far enough from the yellow accent to never be read
+    as it. Attention is an orange-brown, not a second yellow.
+  */
+  --status-error: oklch(0.52 0.2 27);
+  /* CHANGED: hue 70→55, L 0.56→0.53 for ≥4.5:1 on /8 tint */
+  --status-attention: oklch(0.53 0.14 55);
+  --status-success: oklch(0.5 0.12 150); /* NEW */
+  --status-info: oklch(0.5 0.14 255); /* NEW */
+
+  color-scheme: light;
+
+  --background: var(--white);
+  --foreground: var(--black);
+  --card: var(--white);
+  --card-foreground: var(--black);
+  --popover: var(--white);
+  --popover-foreground: var(--black);
+  /*
+    CHANGED: primary is ink, not yellow. Yellow is a highlight (current nav
+    item, keyboard strip, selected row marker, menu focus), never the default
+    fill of every primary button.
+  */
+  --primary: var(--black);
+  --primary-foreground: var(--white);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--black);
+  --muted: var(--surface);
+  --muted-foreground: var(--quiet);
+  /* Yellow. shadcn uses `accent` for menu-item focus — that is the highlight role. */
+  --accent: var(--yellow);
+  --accent-foreground: var(--black);
+  --destructive: var(--status-error);
+  --destructive-foreground: var(--white);
+  --success: var(--status-success); /* NEW */
+  --warning: var(--status-attention); /* NEW */
+  --info: var(--status-info); /* NEW */
+  --border: var(--line);
+  --input: var(--line-strong); /* CHANGED: inputs one step darker than dividers */
+  --ring: var(--black);
+
+  --chart-1: var(--yellow);
+  --chart-2: var(--black);
+  --chart-3: color-mix(in oklab, var(--black) 70%, var(--white));
+  --chart-4: color-mix(in oklab, var(--black) 45%, var(--white));
+  --chart-5: color-mix(in oklab, var(--black) 20%, var(--white));
+
+  --radius: 0rem;
+
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--black);
+  --sidebar-primary: var(--black); /* CHANGED: follows --primary */
+  --sidebar-primary-foreground: var(--white);
+  --sidebar-accent: var(--yellow);
+  --sidebar-accent-foreground: var(--black);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--black);
+
+  --debit: var(--foreground);
+  --credit: var(--foreground);
+  --amount-negative: var(--status-error);
+  --unreconciled: var(--status-attention);
+}
+
+.dark {
+  --surface: color-mix(in oklab, var(--white) 8%, var(--black));
+  --line: color-mix(in oklab, var(--white) 20%, var(--black));
+  --line-strong: color-mix(in oklab, var(--white) 48%, var(--black)); /* ≥3:1 non-text on black */
+  --quiet: color-mix(in oklab, var(--white) 66%, var(--black));
+
+  --status-error: oklch(0.7 0.19 25);
+  --status-attention: oklch(0.74 0.14 55);
+  --status-success: oklch(0.74 0.15 150);
+  --status-info: oklch(0.72 0.13 255);
+
+  color-scheme: dark;
+
+  --background: var(--black);
+  --foreground: var(--white);
+  --card: var(--black);
+  --card-foreground: var(--white);
+  --popover: var(--surface);
+  --popover-foreground: var(--white);
+  --primary: var(--white);
+  --primary-foreground: var(--black);
+  --secondary-foreground: var(--white);
+  --accent-foreground: var(--black);
+  --destructive-foreground: var(--black);
+  --ring: var(--yellow);
+  --chart-2: var(--white);
+  --chart-3: color-mix(in oklab, var(--white) 70%, var(--black));
+  --chart-4: color-mix(in oklab, var(--white) 45%, var(--black));
+  --chart-5: color-mix(in oklab, var(--white) 20%, var(--black));
+  --sidebar-foreground: var(--white);
+  --sidebar-primary: var(--white);
+  --sidebar-primary-foreground: var(--black);
+  --sidebar-ring: var(--yellow);
+}

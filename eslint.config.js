@@ -30,6 +30,8 @@ export default tseslint.config(
       '**/coverage/**',
       'packages/db/migrations/**',
       'apps/web/src/routeTree.gen.ts',
+      // Design prototype: review drop-in (tokens.css); not shipped app code.
+      'prototypes/**',
     ],
   },
 
