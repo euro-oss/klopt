@@ -305,6 +305,9 @@ importers:
         specifier: 4.5.4
         version: 4.5.4
     devDependencies:
+      '@klopt/adapters':
+        specifier: workspace:*
+        version: link:../adapters
       '@types/node':
         specifier: 24.13.3
         version: 24.13.3

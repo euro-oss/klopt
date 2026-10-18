@@ -34,7 +34,7 @@ import {
   type PostJournalEntryCommand,
   type Role,
 } from '@klopt/core'
-import { eq, sql } from 'drizzle-orm'
+import { asc, eq, sql } from 'drizzle-orm'
 import type { Database } from '../client.js'
 import {
   contacts,
@@ -69,6 +69,7 @@ import {
   DEMO_OWNER_USER_ID,
   DEMO_VAT,
   DEMO_YEAR_START,
+  demoBuyerReference,
 } from './constants.js'
 import {
   assertDemoDatasetIsFictional,
@@ -356,6 +357,11 @@ export async function seedDemo(
   if (!alreadySeeded) {
     await populateDemo(database, entityId, ownerUserId)
     seeded = true
+  } else {
+    // Demo-only repair: older seeds omitted BT-10, so every UBL export failed
+    // PEPPOL-EN16931-R003. Fill missing buyer references deterministically
+    // without rewriting books that already have one.
+    await backfillDemoBuyerReferences(database, entityId)
   }
 
   let invite: SeedDemoResult['invite'] = null
@@ -394,6 +400,36 @@ export async function seedDemo(
     alreadyPresent: alreadySeeded,
     invite,
     ...verification,
+  }
+}
+
+/**
+ * Assign `DEMO-REF-0001`… to sales invoices that still lack a buyer reference.
+ *
+ * Ordered by issue date then number so a re-run is stable. Only touches the
+ * demo entity path (caller already refused non-demo books).
+ */
+async function backfillDemoBuyerReferences(database: Database, entityId: string): Promise<void> {
+  const rows = await database
+    .select({
+      id: salesInvoices.id,
+      buyerReference: salesInvoices.buyerReference,
+      issueDate: salesInvoices.issueDate,
+      number: salesInvoices.number,
+    })
+    .from(salesInvoices)
+    .where(eq(salesInvoices.entityId, entityId))
+    .orderBy(asc(salesInvoices.issueDate), asc(salesInvoices.number))
+
+  let index = 0
+  for (const row of rows) {
+    if (row.buyerReference === null || row.buyerReference === '') {
+      await database
+        .update(salesInvoices)
+        .set({ buyerReference: demoBuyerReference(index) })
+        .where(eq(salesInvoices.id, row.id))
+    }
+    index += 1
   }
 }
 
@@ -508,7 +544,9 @@ async function populateDemo(
         kind: 'invoice' as const,
         issueDate: sale.issueDate,
         reference: null,
-        buyerReference: null,
+        // BT-10 — Peppol R003 requires buyer or order reference; fictional and
+        // deterministic per plan index so a re-seed stays byte-stable.
+        buyerReference: demoBuyerReference(index),
         notes: null,
         creditsInvoiceId: null,
         lines: [

@@ -38,3 +38,16 @@ export const DEMO_YEAR_END = '2025-12-31'
 
 /** Opening bank balance after the memoriaal opening entry (€50.000,00). */
 export const DEMO_OPENING_BANK_MINOR = 5_000_000n
+
+/**
+ * Prefix for the deterministic buyer reference (BT-10) on every demo sales
+ * invoice. Peppol BIS 3 requires a buyer reference or purchase order reference
+ * (PEPPOL-EN16931-R003); the seeder fills BT-10 so UBL export validates.
+ * Obviously fictional — never a live cost centre.
+ */
+export const DEMO_BUYER_REFERENCE_PREFIX = 'DEMO-REF'
+
+/** Deterministic BT-10 for the sales invoice at zero-based `index` in the plan. */
+export function demoBuyerReference(index: number): string {
+  return `${DEMO_BUYER_REFERENCE_PREFIX}-${String(index + 1).padStart(4, '0')}`
+}

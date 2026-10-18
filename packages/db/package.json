@@ -44,6 +44,7 @@
     "zod": "4.5.4"
   },
   "devDependencies": {
+    "@klopt/adapters": "workspace:*",
     "@types/node": "24.13.3",
     "drizzle-kit": "0.31.10",
     "typescript": "5.9.3",

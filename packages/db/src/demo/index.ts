@@ -1,4 +1,5 @@
 export {
+  DEMO_BUYER_REFERENCE_PREFIX,
   DEMO_ENTITY_ID,
   DEMO_ENTITY_NAME,
   DEMO_FISCAL_YEAR,
@@ -9,6 +10,7 @@ export {
   DEMO_OWNER_USER_ID,
   DEMO_SEED,
   DEMO_VAT,
+  demoBuyerReference,
 } from './constants.js'
 export {
   assertDemoDatasetIsFictional,
