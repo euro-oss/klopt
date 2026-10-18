@@ -36,6 +36,10 @@ export interface MoneybirdFindingActions {
   readonly onDeferAttachment: (problem: MoneybirdProblem) => void
   readonly onOpenMoneybird: (problem: MoneybirdProblem) => void
   readonly onDrillUnbalanced: (problem: MoneybirdProblem) => void
+  /** Opens the unbalanced-document panel (exclude + Open in Moneybird). */
+  readonly onReviewUnbalanced: (problem: MoneybirdProblem) => void
+  /** Absolute Moneybird web URL for a problem path, when one exists. */
+  readonly moneybirdHrefFor: (problem: MoneybirdProblem) => string | null
   readonly labels: {
     readonly mapAccount: string
     readonly mapTax: string
@@ -53,6 +57,13 @@ export interface MoneybirdFindingActions {
     readonly openMoneybird: string
     readonly settings: string
     readonly drillDown: string
+    readonly stepRate: string
+    readonly stepPreview: string
+    readonly stepConfirm: string
+    readonly stepPermissions: string
+    readonly stepOpenMoneybird: string
+    readonly stepReread: string
+    readonly stepDoNotTransfer: string
   }
 }
 
@@ -69,6 +80,7 @@ function honestyOf(code: MoneybirdProblemCode): FindingHonesty | undefined {
 function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): FindingFix {
   const spec = fixSpecForProblem(problem)
   const { labels } = actions
+  const moneybirdHref = actions.moneybirdHrefFor(problem)
 
   switch (problem.code) {
     case 'unmapped_account':
@@ -121,7 +133,7 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'guided',
         label: labels.chooseRate,
         onOpen: () => actions.onOpenFxStep(problem),
-        steps: ['Koers', 'Voorbeeld', 'Bevestigen'],
+        steps: [labels.stepRate, labels.stepPreview, labels.stepConfirm],
       }
     case 'fiscal_year_start_unknown':
       return {
@@ -140,7 +152,7 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'guided',
         label: labels.reread,
         onOpen: () => actions.onRereadResource(problem),
-        steps: ['Rechten', 'Moneybird openen', 'Opnieuw lezen'],
+        steps: [labels.stepPermissions, labels.stepOpenMoneybird, labels.stepReread],
       }
     case 'trial_balance_empty':
       return {
@@ -159,12 +171,14 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'guided',
         label: labels.exclude,
         onOpen: () => actions.onExcludeDocument(problem),
-        steps: ['Niet overzetten', labels.reopenYear],
+        steps: [labels.stepDoNotTransfer, labels.reopenYear],
       }
     case 'unbalanced_document':
       return {
-        type: 'explainOnly',
-        linkLabel: labels.openMoneybird,
+        type: 'guided',
+        label: labels.exclude,
+        onOpen: () => actions.onReviewUnbalanced(problem),
+        steps: [labels.stepDoNotTransfer, labels.openMoneybird],
       }
     case 'attachment_without_url':
       return {
@@ -175,7 +189,9 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
     case 'draft_skipped':
       return {
         type: 'explainOnly',
-        linkLabel: labels.openMoneybird,
+        ...(moneybirdHref === null
+          ? {}
+          : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
       }
     default: {
       const _exhaustive: never = problem.code
@@ -191,6 +207,8 @@ export function moneybirdFindingCard(
   actions: MoneybirdFindingActions,
 ): FindingCardModel {
   const honesty = honestyOf(problem.code)
+  // unbalanced_document: guided exclude on open; also surface Moneybird via
+  // steps. draft_skipped keeps explainOnly with an absolute Moneybird href.
   return {
     code: problem.code,
     path: problem.path,
@@ -210,5 +228,8 @@ export function moneybirdFixTypeFor(
   if (problem.code === 'unknown_currency') {
     return fixForUnknownCurrency(unknownCurrencyVariantOf(problem)).fixType
   }
+  // Screen-level: unbalanced_document is guided exclude (PM #55); core catalogue
+  // still documents explainOnly — moneybirdFixTypeFor follows the wired screen.
+  if (problem.code === 'unbalanced_document') return 'guided'
   return fixSpecFor(problem.code).fixType
 }

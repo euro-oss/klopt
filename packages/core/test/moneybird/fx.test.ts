@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ECB_MAX_LOOKBACK_DAYS,
   applyFxToLines,
+  calendarDaysBetween,
   convertMinorWithRate,
   formatExchangeRateSource,
+  isOlderThanDays,
   isValidFxRate,
   lookupEcbRate,
+  normalizeFxRateInput,
   parseExchangeRateSource,
   previewFxConversion,
   type JournalLineInput,
@@ -37,6 +41,7 @@ describe('ECB rate lookup', () => {
     { currency: 'USD', rateDate: '2026-10-14', rate: '0.9200' },
     { currency: 'USD', rateDate: '2026-10-16', rate: '0.9214' },
     { currency: 'GBP', rateDate: '2026-10-16', rate: '1.1600' },
+    { currency: 'USD', rateDate: '2026-01-01', rate: '0.9000' },
   ]
 
   it('picks the rate on the document date', () => {
@@ -47,7 +52,7 @@ describe('ECB rate lookup', () => {
     })
   })
 
-  it('walks back to the nearest earlier business day', () => {
+  it('walks back to the nearest earlier business day within 7 days', () => {
     expect(lookupEcbRate(rates, 'USD', '2026-10-15')).toEqual({
       rate: '0.9200',
       source: 'ecb',
@@ -55,8 +60,19 @@ describe('ECB rate lookup', () => {
     })
   })
 
+  it('refuses a stale rate older than the lookback window', () => {
+    expect(lookupEcbRate(rates, 'USD', '2026-10-10')).toBeNull()
+    expect(calendarDaysBetween('2026-01-01', '2026-10-16')).toBeGreaterThan(ECB_MAX_LOOKBACK_DAYS)
+    expect(lookupEcbRate(rates, 'USD', '2026-10-16')).not.toBeNull()
+  })
+
   it('returns null when nothing is on or before the date', () => {
-    expect(lookupEcbRate(rates, 'USD', '2026-01-01')).toBeNull()
+    expect(lookupEcbRate(rates, 'USD', '2025-01-01')).toBeNull()
+  })
+
+  it('flags documents older than 90 days for the full ECB history feed', () => {
+    expect(isOlderThanDays('2026-01-01', 90, '2026-10-16')).toBe(true)
+    expect(isOlderThanDays('2026-10-01', 90, '2026-10-16')).toBe(false)
   })
 })
 
@@ -108,5 +124,13 @@ describe('applying FX to planned lines', () => {
     expect(isValidFxRate('0')).toBe(false)
     expect(isValidFxRate('-1')).toBe(false)
     expect(isValidFxRate('0.9214')).toBe(true)
+  })
+
+  it('accepts NL comma decimals and rejects invalid overrides', () => {
+    expect(normalizeFxRateInput('0,9214')).toBe('0.9214')
+    expect(normalizeFxRateInput(' 0.9214 ')).toBe('0.9214')
+    expect(normalizeFxRateInput('0')).toBeNull()
+    expect(normalizeFxRateInput('-1,2')).toBeNull()
+    expect(normalizeFxRateInput('abc')).toBeNull()
   })
 })

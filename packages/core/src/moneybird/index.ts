@@ -96,11 +96,15 @@ export {
   type VatMatchRule,
 } from './account-ranker.js'
 export {
+  ECB_MAX_LOOKBACK_DAYS,
   applyFxToLines,
+  calendarDaysBetween,
   convertMinorWithRate,
   formatExchangeRateSource,
+  isOlderThanDays,
   isValidFxRate,
   lookupEcbRate,
+  normalizeFxRateInput,
   parseExchangeRateSource,
   previewFxConversion,
   type EcbRateRow,

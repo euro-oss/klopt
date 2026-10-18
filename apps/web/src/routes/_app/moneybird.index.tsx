@@ -1,13 +1,20 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
-import type { MoneybirdImportDecisions, MoneybirdProblem } from '@klopt/core'
+import {
+  normalizeFxRateInput,
+  previewFxConversion,
+  type AccountType,
+  type MoneybirdImportDecisions,
+  type MoneybirdProblem,
+} from '@klopt/core'
 import { PageHeader, Stat } from '~/components/app-shell'
 import {
   FindingsList,
   FindingHonestyState,
   honestyFromReconciliation,
 } from '~/components/findings/finding-card'
-import { formatDate } from '~/lib/format'
+import { formatFindingAmount } from '~/lib/finding-card'
+import { formatDate, formatMinorUnits } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import {
@@ -19,6 +26,7 @@ import {
 import { useHydrated } from '~/lib/hydration'
 import {
   emptyDecisions,
+  withAccountType,
   withAcknowledgedEmptyYear,
   withConfirmedCurrency,
   withConfirmedFiscalYearStart,
@@ -29,12 +37,14 @@ import {
   withExcludedLockedYear,
 } from '~/lib/moneybird-decisions'
 import { moneybirdFindingCard, type MoneybirdFindingActions } from '~/lib/moneybird-findings'
+import { moneybirdDocumentUrl } from '~/lib/moneybird-urls'
 import {
   chooseMoneybirdAdministration,
   connectMoneybird,
   disconnectMoneybird,
   getMoneybirdConnection,
   listMoneybirdAdministrations,
+  moneybirdFxRate,
   moneybirdImportStatus,
   previewMoneybirdImport,
   runMoneybirdImport,
@@ -49,13 +59,27 @@ import {
  * dry-run report rather than a later XAF step — see ADR 0060.
  */
 export const Route = createFileRoute('/_app/moneybird/')({
-  loader: async ({ context }) => ({
-    connection: await getMoneybirdConnection(),
-    run: await moneybirdImportStatus(),
-    role: context.session.memberships[0]?.role ?? '',
-  }),
+  loader: async ({ context }) => {
+    const activeId = context.session.activeEntityId
+    const active =
+      context.session.memberships.find((row) => row.entityId === activeId) ??
+      context.session.memberships[0]
+    return {
+      connection: await getMoneybirdConnection(),
+      run: await moneybirdImportStatus(),
+      role: active?.role ?? '',
+    }
+  },
   component: Moneybird,
 })
+
+const ACCOUNT_TYPES: readonly AccountType[] = [
+  'asset',
+  'liability',
+  'equity',
+  'revenue',
+  'expense',
+]
 
 function readAdvancedCookie(): string | null {
   if (typeof document === 'undefined') return null
@@ -105,9 +129,21 @@ function Moneybird() {
     currency: string
     documentDate: string
     rate: string
+    /** Rate as last suggested by ECB (empty when none); override only if different. */
+    ecbRate: string
     source: 'ecb' | 'override'
     date: string
+    loading: boolean
+    error: string | null
   } | null>(null)
+  const [typeDraft, setTypeDraft] = useState<{
+    moneybirdId: string
+    name: string
+    type: AccountType
+  } | null>(null)
+  const [unbalancedDraft, setUnbalancedDraft] = useState<MoneybirdProblem | null>(null)
+  const [drillNote, setDrillNote] = useState<string | null>(null)
+  const [fxRateError, setFxRateError] = useState<string | null>(null)
   const [advanced, setAdvanced] = useState(() => resolveAdvancedMode(readAdvancedCookie(), role))
 
   if (!connection.ok) {
@@ -248,19 +284,65 @@ function Moneybird() {
         applyDecisions(withContactNumber(decisions, moneybirdId, suggested))
       }
     },
-    onPickAccountType: () => {
+    onPickAccountType: (problem) => {
       setAdvanced(true)
       writeAdvancedCookie(true)
+      const moneybirdId =
+        problem.detail['moneybirdId'] ?? problem.path?.replace(/^accounts\./, '') ?? ''
+      if (moneybirdId === '') return
+      setTypeDraft({
+        moneybirdId,
+        name: problem.detail['name'] ?? moneybirdId,
+        type: 'asset',
+      })
     },
     onConfirmCurrencyEur: () => applyDecisions(withConfirmedCurrency(decisions)),
     onOpenFxStep: (problem) => {
+      const externalId = problem.path ?? ''
+      const currency = problem.detail['currency'] ?? ''
+      const documentDate = problem.detail['documentDate'] ?? ''
+      setFxRateError(null)
       setFxDraft({
-        externalId: problem.path ?? '',
-        currency: problem.detail['currency'] ?? '',
-        documentDate: problem.detail['documentDate'] ?? '',
+        externalId,
+        currency,
+        documentDate,
         rate: '',
+        ecbRate: '',
         source: 'ecb',
-        date: problem.detail['documentDate'] ?? '',
+        date: documentDate,
+        loading: true,
+        error: null,
+      })
+      void moneybirdFxRate({ data: { currency, documentDate } }).then((result) => {
+        if (!result.ok) {
+          setFxDraft((current) =>
+            current === null || current.externalId !== externalId
+              ? current
+              : {
+                  ...current,
+                  rate: '',
+                  ecbRate: '',
+                  source: 'override',
+                  loading: false,
+                  error: result.problem.detail ?? t('moneybird.fx.noEcb'),
+                },
+          )
+          return
+        }
+        const body = result.data
+        setFxDraft((current) =>
+          current === null || current.externalId !== externalId
+            ? current
+            : {
+                ...current,
+                rate: body.rate,
+                ecbRate: body.rate,
+                source: 'ecb',
+                date: body.date,
+                loading: false,
+                error: null,
+              },
+        )
       })
     },
     onConfirmFiscalYearStart: () => applyDecisions(withConfirmedFiscalYearStart(decisions)),
@@ -276,6 +358,7 @@ function Moneybird() {
       if (problem.path !== null) {
         applyDecisions(withExcludedExternalId(decisions, problem.path))
       }
+      setUnbalancedDraft(null)
     },
     onOpenPeriodSettings: () => {
       void router.navigate({ to: '/fiscal-years' })
@@ -284,8 +367,31 @@ function Moneybird() {
       const id = problem.detail['attachmentId']
       if (id !== undefined) applyDecisions(withDeferredAttachment(decisions, id))
     },
-    onOpenMoneybird: () => undefined,
-    onDrillUnbalanced: () => undefined,
+    onOpenMoneybird: (problem) => {
+      const href = moneybirdDocumentUrl(
+        state?.baseUrl ?? 'https://moneybird.com/api/v2',
+        state?.administrationId,
+        problem.path,
+      )
+      if (href !== null) window.open(href, '_blank', 'noopener,noreferrer')
+    },
+    onDrillUnbalanced: (problem) => {
+      setDrillNote(
+        t('moneybird.drillUnbalancedHint', {
+          year: problem.detail['year'] ?? '—',
+          debit: problem.detail['debit'] ?? '—',
+          credit: problem.detail['credit'] ?? '—',
+        }),
+      )
+      document.getElementById('moneybird-reconciliation')?.scrollIntoView({ behavior: 'smooth' })
+    },
+    onReviewUnbalanced: (problem) => setUnbalancedDraft(problem),
+    moneybirdHrefFor: (problem) =>
+      moneybirdDocumentUrl(
+        state?.baseUrl ?? 'https://moneybird.com/api/v2',
+        state?.administrationId,
+        problem.path,
+      ),
     labels: {
       mapAccount: t('moneybird.fix.mapAccount'),
       mapTax: t('moneybird.fix.mapTax'),
@@ -303,6 +409,13 @@ function Moneybird() {
       openMoneybird: t('moneybird.fix.openMoneybird'),
       settings: t('moneybird.fix.settings'),
       drillDown: t('moneybird.fix.drillDown'),
+      stepRate: t('moneybird.fix.stepRate'),
+      stepPreview: t('moneybird.fix.stepPreview'),
+      stepConfirm: t('moneybird.fix.stepConfirm'),
+      stepPermissions: t('moneybird.fix.stepPermissions'),
+      stepOpenMoneybird: t('moneybird.fix.stepOpenMoneybird'),
+      stepReread: t('moneybird.fix.stepReread'),
+      stepDoNotTransfer: t('moneybird.fix.stepDoNotTransfer'),
     },
   }
 
@@ -496,23 +609,75 @@ function Moneybird() {
                 report={preview}
                 actions={findingActions}
                 fxDraft={fxDraft}
+                typeDraft={typeDraft}
+                unbalancedDraft={unbalancedDraft}
+                drillNote={drillNote}
+                fxRateError={fxRateError}
                 onFxRateChange={(rate) =>
-                  setFxDraft((current) =>
-                    current === null ? null : { ...current, rate, source: 'override' },
-                  )
+                  setFxDraft((current) => {
+                    if (current === null) return null
+                    const normalized = normalizeFxRateInput(rate)
+                    const sameAsEcb =
+                      current.ecbRate !== '' &&
+                      normalized !== null &&
+                      normalized === current.ecbRate
+                    return {
+                      ...current,
+                      rate,
+                      source: sameAsEcb || (current.ecbRate !== '' && rate === current.ecbRate)
+                        ? 'ecb'
+                        : 'override',
+                      date: sameAsEcb ? current.date : current.documentDate,
+                    }
+                  })
                 }
                 onFxAccept={() => {
-                  if (fxDraft === null || fxDraft.rate === '') return
+                  if (fxDraft === null) return
+                  const normalized = normalizeFxRateInput(fxDraft.rate)
+                  if (normalized === null) {
+                    setFxRateError(t('moneybird.fx.invalidRate'))
+                    return
+                  }
+                  setFxRateError(null)
+                  const source: 'ecb' | 'override' =
+                    fxDraft.ecbRate !== '' && normalized === fxDraft.ecbRate ? 'ecb' : 'override'
                   applyDecisions(
                     withExchangeRate(decisions, fxDraft.externalId, {
-                      rate: fxDraft.rate,
-                      source: fxDraft.source,
-                      date: fxDraft.date || fxDraft.documentDate,
+                      rate: normalized,
+                      source,
+                      date:
+                        source === 'ecb'
+                          ? fxDraft.date || fxDraft.documentDate
+                          : fxDraft.documentDate,
                     }),
                   )
                   setFxDraft(null)
                 }}
-                onFxDismiss={() => setFxDraft(null)}
+                onFxDismiss={() => {
+                  setFxDraft(null)
+                  setFxRateError(null)
+                }}
+                onTypeChange={(type) =>
+                  setTypeDraft((current) => (current === null ? null : { ...current, type }))
+                }
+                onTypeAccept={() => {
+                  if (typeDraft === null) return
+                  applyDecisions(
+                    withAccountType(decisions, typeDraft.moneybirdId, typeDraft.type),
+                  )
+                  setTypeDraft(null)
+                }}
+                onTypeDismiss={() => setTypeDraft(null)}
+                onUnbalancedExclude={() => {
+                  if (unbalancedDraft === null) return
+                  findingActions.onExcludeDocument(unbalancedDraft)
+                }}
+                onUnbalancedOpenMoneybird={() => {
+                  if (unbalancedDraft === null) return
+                  findingActions.onOpenMoneybird(unbalancedDraft)
+                }}
+                onUnbalancedDismiss={() => setUnbalancedDraft(null)}
+                onDrillDismiss={() => setDrillNote(null)}
               />
               <MappingReview
                 report={preview}
@@ -691,13 +856,40 @@ interface TaxSample {
   readonly used: boolean
 }
 
+interface PendingFxEntry {
+  readonly externalId: string
+  readonly documentNumber: string
+  readonly documentDate: string
+  readonly currency: string
+  readonly kind: string
+  readonly lines: readonly {
+    readonly accountNumber: string
+    readonly description: string
+    readonly debit: string | null
+    readonly credit: string | null
+    readonly debitMinor: string
+    readonly creditMinor: string
+  }[]
+}
+
 function PreviewReport({
   report,
   actions,
   fxDraft,
+  typeDraft,
+  unbalancedDraft,
+  drillNote,
+  fxRateError,
   onFxRateChange,
   onFxAccept,
   onFxDismiss,
+  onTypeChange,
+  onTypeAccept,
+  onTypeDismiss,
+  onUnbalancedExclude,
+  onUnbalancedOpenMoneybird,
+  onUnbalancedDismiss,
+  onDrillDismiss,
 }: {
   report: Record<string, unknown>
   actions: MoneybirdFindingActions
@@ -706,12 +898,26 @@ function PreviewReport({
     currency: string
     documentDate: string
     rate: string
+    ecbRate: string
     source: 'ecb' | 'override'
     date: string
+    loading: boolean
+    error: string | null
   } | null
+  typeDraft: { moneybirdId: string; name: string; type: AccountType } | null
+  unbalancedDraft: MoneybirdProblem | null
+  drillNote: string | null
+  fxRateError: string | null
   onFxRateChange: (rate: string) => void
   onFxAccept: () => void
   onFxDismiss: () => void
+  onTypeChange: (type: AccountType) => void
+  onTypeAccept: () => void
+  onTypeDismiss: () => void
+  onUnbalancedExclude: () => void
+  onUnbalancedOpenMoneybird: () => void
+  onUnbalancedDismiss: () => void
+  onDrillDismiss: () => void
 }) {
   const { t } = useT()
   const counts = report['counts'] as Record<string, number>
@@ -721,6 +927,7 @@ function PreviewReport({
   const problems = (report['problems'] as MoneybirdProblem[]) ?? []
   const notImported = (report['notImported'] as string[]) ?? []
   const excluded = (report['excluded'] as string[]) ?? []
+  const pendingFx = (report['pendingFx'] as PendingFxEntry[] | undefined) ?? []
   const requests = (report['requests'] ?? []) as {
     path: string
     status: number
@@ -730,6 +937,22 @@ function PreviewReport({
   const first = reconciliation[0]
   const honesty =
     first === undefined ? null : honestyFromReconciliation(first.source, first.balanced)
+
+  const fxEntry =
+    fxDraft === null
+      ? undefined
+      : pendingFx.find((entry) => entry.externalId === fxDraft.externalId)
+  const fxNormalized = fxDraft === null ? null : normalizeFxRateInput(fxDraft.rate)
+  const fxPreviewLines =
+    fxEntry === undefined || fxNormalized === null
+      ? []
+      : previewFxConversion(
+          fxEntry.lines.map((line) => ({
+            label: `${line.accountNumber} ${line.description}`,
+            amountMinor: BigInt(line.debitMinor !== '0' ? line.debitMinor : line.creditMinor),
+          })),
+          fxNormalized,
+        )
 
   return (
     <div className="mt-6">
@@ -793,25 +1016,96 @@ function PreviewReport({
 
       {fxDraft !== null && (
         <div className="border-border mb-6 rounded-none border p-4">
-          <p className="mb-1 text-sm font-semibold">{t('moneybird.fx.badge')}</p>
+          <p className="mb-1 text-sm font-semibold">
+            {fxDraft.ecbRate === '' ? t('moneybird.fx.badgeManual') : t('moneybird.fx.badge')}
+          </p>
           <p className="text-muted-foreground mb-3 text-xs">
-            {t('moneybird.fx.sourceEcb')}
+            {fxDraft.loading
+              ? t('moneybird.fx.loading')
+              : fxDraft.ecbRate === ''
+                ? t('moneybird.fx.noEcb')
+                : t('moneybird.fx.sourceEcbDated', { date: fxDraft.date })}
             {fxDraft.source === 'override' ? ` · ${t('moneybird.fx.override')}` : ''}
           </p>
+          {fxDraft.error !== null && (
+            <p role="alert" className="text-destructive mb-2 text-sm">
+              {fxDraft.error}
+            </p>
+          )}
+          {fxRateError !== null && (
+            <p role="alert" className="text-destructive mb-2 text-sm">
+              {fxRateError}
+            </p>
+          )}
           <label className="text-sm">
             {t('moneybird.fx.rateLabel')} ({fxDraft.currency})
             <input
               value={fxDraft.rate}
               onChange={(event) => onFxRateChange(event.target.value)}
+              disabled={fxDraft.loading}
               className="border-border mt-1 block w-40 rounded-none border px-2 py-2 tabular-nums"
               inputMode="decimal"
             />
           </label>
+          {fxNormalized !== null && fxPreviewLines.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 text-sm font-semibold">{t('moneybird.fx.entryPreview')}</p>
+              <ul className="mb-2 space-y-1 text-sm tabular-nums">
+                {fxPreviewLines.map((line) => (
+                  <li key={line.label}>
+                    {t('moneybird.fx.conversion', {
+                      foreign: formatFindingAmount(line.foreignMinor, fxDraft.currency),
+                      rate: fxNormalized,
+                      functional: formatMinorUnits(line.functionalMinor),
+                    })}{' '}
+                    <span className="text-muted-foreground">— {line.label}</span>
+                  </li>
+                ))}
+              </ul>
+              {fxEntry !== undefined && (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-border border-b text-left">
+                      <th className="py-1">{t('moneybird.category')}</th>
+                      <th className="py-1 text-right">Debet</th>
+                      <th className="py-1 text-right">Credit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fxEntry.lines.map((line) => {
+                      const foreign = BigInt(
+                        line.debitMinor !== '0' ? line.debitMinor : line.creditMinor,
+                      )
+                      const functional =
+                        fxNormalized === null ? 0n : previewFxConversion(
+                          [{ label: line.accountNumber, amountMinor: foreign }],
+                          fxNormalized,
+                        )[0]!.functionalMinor
+                      return (
+                        <tr key={`${line.accountNumber}-${line.description}`} className="border-border border-b">
+                          <td className="py-1">
+                            {line.accountNumber} — {line.description}
+                          </td>
+                          <td className="py-1 text-right tabular-nums">
+                            {line.debitMinor !== '0' ? formatMinorUnits(functional) : '—'}
+                          </td>
+                          <td className="py-1 text-right tabular-nums">
+                            {line.creditMinor !== '0' ? formatMinorUnits(functional) : '—'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
           <div className="mt-3 flex gap-2">
             <button
               type="button"
               onClick={onFxAccept}
-              className="bg-primary text-primary-foreground rounded-none px-3 py-2 text-sm"
+              disabled={fxDraft.loading || fxDraft.rate === ''}
+              className="bg-primary text-primary-foreground rounded-none px-3 py-2 text-sm disabled:opacity-50"
             >
               {t('moneybird.fx.accept')}
             </button>
@@ -823,6 +1117,96 @@ function PreviewReport({
               {t('findingCard.close')}
             </button>
           </div>
+        </div>
+      )}
+
+      {typeDraft !== null && (
+        <div className="border-border mb-6 rounded-none border p-4">
+          <p className="mb-2 text-sm font-semibold">
+            {t('moneybird.typePicker')}: {typeDraft.name}
+          </p>
+          <label className="text-sm">
+            {t('moneybird.typePicker')}
+            <select
+              value={typeDraft.type}
+              onChange={(event) => onTypeChange(event.target.value as AccountType)}
+              className="border-border mt-1 block rounded-none border px-2 py-2"
+            >
+              {ACCOUNT_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {t(`accounts.type.${type}` as MessageKey)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={onTypeAccept}
+              className="bg-primary text-primary-foreground rounded-none px-3 py-2 text-sm"
+            >
+              {t('moneybird.typeSave')}
+            </button>
+            <button
+              type="button"
+              onClick={onTypeDismiss}
+              className="border-border rounded-none border px-3 py-2 text-sm"
+            >
+              {t('findingCard.close')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {unbalancedDraft !== null && (
+        <div className="border-border mb-6 rounded-none border p-4">
+          <p className="mb-2 text-sm font-semibold">{t('moneybird.unbalancedPanel')}</p>
+          <p className="text-muted-foreground mb-3 text-sm">
+            {unbalancedDraft.detail['reference'] ?? unbalancedDraft.path} — Debet{' '}
+            {unbalancedDraft.detail['debit'] ?? '—'} / Credit{' '}
+            {unbalancedDraft.detail['credit'] ?? '—'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onUnbalancedExclude}
+              className="bg-primary text-primary-foreground rounded-none px-3 py-2 text-sm"
+            >
+              {t('moneybird.fix.exclude')}
+            </button>
+            <button
+              type="button"
+              onClick={onUnbalancedOpenMoneybird}
+              className="border-border rounded-none border px-3 py-2 text-sm"
+            >
+              {t('moneybird.fix.openMoneybird')} ↗
+            </button>
+            <button
+              type="button"
+              onClick={onUnbalancedDismiss}
+              className="border-border rounded-none border px-3 py-2 text-sm"
+            >
+              {t('findingCard.close')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {drillNote !== null && (
+        <div
+          id="moneybird-reconciliation"
+          className="border-border mb-6 rounded-none border p-4"
+          role="status"
+        >
+          <p className="mb-1 text-sm font-semibold">{t('moneybird.drillUnbalanced')}</p>
+          <p className="text-muted-foreground mb-3 text-sm">{drillNote}</p>
+          <button
+            type="button"
+            onClick={onDrillDismiss}
+            className="border-border rounded-none border px-3 py-2 text-sm"
+          >
+            {t('findingCard.close')}
+          </button>
         </div>
       )}
 

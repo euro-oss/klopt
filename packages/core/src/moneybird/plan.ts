@@ -256,6 +256,11 @@ export interface MoneybirdImportPlan {
   readonly taxRates: readonly MoneybirdPlannedTaxRate[]
   readonly contacts: readonly MoneybirdPlannedContact[]
   readonly entries: readonly MoneybirdPlannedEntry[]
+  /**
+   * Foreign-currency entries blocked only on a missing rate. The Koers step
+   * previews these lines; they are not posted until an FX decision is saved.
+   */
+  readonly pendingFx: readonly MoneybirdPlannedEntry[]
   readonly financialAccounts: readonly MoneybirdPlannedFinancialAccount[]
   readonly documents: readonly MoneybirdPlannedDocument[]
   readonly years: readonly number[]
@@ -669,6 +674,7 @@ export function planMoneybirdImport(
   }
 
   const entries: MoneybirdPlannedEntry[] = []
+  const pendingFx: MoneybirdPlannedEntry[] = []
 
   const pushEntry = (entry: MoneybirdPlannedEntry): void => {
     if (excludedExternal.has(entry.externalId)) {
@@ -714,6 +720,7 @@ export function planMoneybirdImport(
         })
         return
       }
+      pendingFx.push(entry)
       problems.push(
         problem('unknown_currency', entry.externalId, {
           currency: entry.currency,
@@ -1256,6 +1263,7 @@ export function planMoneybirdImport(
     taxRates,
     contacts,
     entries,
+    pendingFx,
     financialAccounts,
     documents,
     years,

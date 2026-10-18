@@ -142,7 +142,10 @@ const SPECS: Readonly<Record<MoneybirdProblemCode, MoneybirdFixSpec>> = {
   },
   unbalanced_document: {
     code: 'unbalanced_document',
-    fixType: 'explainOnly',
+    // Phase 1 (PM #55): exclude from the screen; Open-in-Moneybird is a sibling
+    // action on the same panel. Design Phase 2 still showed explainOnly — wired
+    // as guided so exclusion is one Enter away.
+    fixType: 'guided',
     severity: 'blocking',
     honesty: null,
     changesBooks: false,

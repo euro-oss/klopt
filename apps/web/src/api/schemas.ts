@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { PURCHASE_INVOICE_STATUSES, SEARCH_RESOURCE_TYPES } from '@klopt/core'
+import {
+  PURCHASE_INVOICE_STATUSES,
+  SEARCH_RESOURCE_TYPES,
+  normalizeFxRateInput,
+} from '@klopt/core'
 import { clockDefault } from './clock-default.js'
 
 /**
@@ -1197,7 +1201,22 @@ export const chooseMoneybirdAdministrationBody = z.object({
 export type ChooseMoneybirdAdministrationBody = z.infer<typeof chooseMoneybirdAdministrationBody>
 
 const fxRateChoice = z.object({
-  rate: z.string().trim().min(1).max(32),
+  rate: z
+    .string()
+    .trim()
+    .min(1)
+    .max(32)
+    .transform((value, ctx) => {
+      const normalized = normalizeFxRateInput(value)
+      if (normalized === null) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Rate must be a positive number (0.9214 or 0,9214).',
+        })
+        return z.NEVER
+      }
+      return normalized
+    }),
   source: z.enum(['ecb', 'override']),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 })

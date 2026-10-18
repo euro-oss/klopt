@@ -7747,6 +7747,87 @@
               "suppliers"
             ]
           },
+          "pendingFx": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "externalId": {
+                  "type": "string"
+                },
+                "documentNumber": {
+                  "type": "string"
+                },
+                "documentDate": {
+                  "type": "string"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "sales_invoice",
+                    "credit_note",
+                    "purchase_invoice",
+                    "receipt",
+                    "journal",
+                    "bank_mutation"
+                  ]
+                },
+                "lines": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "accountNumber": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "debit": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "credit": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "debitMinor": {
+                        "type": "string"
+                      },
+                      "creditMinor": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "accountNumber",
+                      "description",
+                      "debit",
+                      "credit",
+                      "debitMinor",
+                      "creditMinor"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "externalId",
+                "documentNumber",
+                "documentDate",
+                "currency",
+                "kind",
+                "lines"
+              ]
+            }
+          },
           "reconciliation": {
             "type": "array",
             "items": {
@@ -8097,6 +8178,7 @@
           "accounts",
           "taxRates",
           "contacts",
+          "pendingFx",
           "reconciliation",
           "notImported",
           "excluded",

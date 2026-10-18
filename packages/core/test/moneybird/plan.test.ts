@@ -199,9 +199,10 @@ describe('the reconciliation', () => {
       }),
     )
     expect(plan.warnings.map((warning) => warning.code)).not.toContain('trial_balance_empty')
-    expect(
-      plan.reconciliation.every((year) => year.source !== 'unreadable' || year.balanced === null),
-    ).toBe(true)
+    // No booked years → no reconciliation rows; the acknowledgement is what
+    // keeps honesty off "reconciled". When rows exist they must stay empty.
+    expect(plan.reconciliation.every((year) => year.source === 'empty')).toBe(true)
+    expect(plan.reconciliation.every((year) => year.source !== 'read')).toBe(true)
   })
 })
 
@@ -245,9 +246,98 @@ describe('finding fixes on the plan', () => {
       }),
     )
     expect(plan.problems.map((item) => item.code)).not.toContain('period_locked')
-    expect(plan.excluded.some((id) => id.startsWith('period_locked:') || id.includes(':'))).toBe(
+    expect(plan.excluded).toContain('period_locked:2026')
+    expect(plan.excluded).toContain('sales_invoice:301')
+  })
+
+  it('excludes a single foreign document while others still post', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      base,
+      options({
+        decisions: { excludedExternalIds: ['sales_invoice:301'] },
+      }),
+    )
+    expect(plan.excluded).toContain('sales_invoice:301')
+    expect(plan.entries.every((entry) => entry.externalId !== 'sales_invoice:301')).toBe(true)
+    expect(plan.entries.some((entry) => entry.externalId.startsWith('purchase_invoice:'))).toBe(
       true,
     )
+  })
+
+  it('applies a contact renumber override', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      base,
+      options({
+        existingContactNumbers: ['1001'],
+        decisions: { contactNumberOverrides: { '100': '1002' } },
+      }),
+    )
+    const contact = plan.contacts.find((item) => item.moneybirdId === '100')
+    expect(contact?.number).toBe('1002')
+    expect(plan.problems.map((item) => item.code)).not.toContain('contact_number_collision')
+  })
+
+  it('applies an account type override for derived types', () => {
+    const base = snapshot()
+    const omzetId = base.ledgerAccounts.find((account) => account.name === 'Omzet')!.id
+    const withoutOverride = planMoneybirdImport(
+      {
+        ...base,
+        ledgerAccounts: base.ledgerAccounts.map((account) =>
+          account.id === omzetId ? { ...account, accountType: 'something_unknown' } : account,
+        ),
+      },
+      options(),
+    )
+    expect(withoutOverride.warnings.map((item) => item.code)).toContain('derived_account_type')
+
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        ledgerAccounts: base.ledgerAccounts.map((account) =>
+          account.id === omzetId ? { ...account, accountType: 'something_unknown' } : account,
+        ),
+      },
+      options({
+        decisions: { accountTypeOverrides: { [omzetId]: 'revenue' } },
+      }),
+    )
+    const omzet = plan.accounts.find((account) => account.name === 'Omzet')
+    expect(omzet?.type).toBe('revenue')
+    expect(plan.warnings.map((item) => item.code)).not.toContain('derived_account_type')
+  })
+
+  it('defers an attachment without a URL after acknowledgement', () => {
+    const base = snapshot()
+    const invoice = {
+      ...base.salesInvoices[0]!,
+      attachments: [
+        {
+          ...base.salesInvoices[0]!.attachments[0]!,
+          downloadUrl: null,
+        },
+      ],
+    }
+    const attachmentId = invoice.attachments[0]!.id
+    const blocked = planMoneybirdImport(snapshot({ salesInvoices: [invoice] }), options())
+    expect(blocked.warnings.map((item) => item.code)).toContain('attachment_without_url')
+
+    const deferred = planMoneybirdImport(
+      snapshot({ salesInvoices: [invoice] }),
+      options({ decisions: { deferredAttachmentIds: [attachmentId] } }),
+    )
+    expect(deferred.warnings.map((item) => item.code)).not.toContain('attachment_without_url')
+  })
+
+  it('blocks a foreign-currency document until a rate is chosen', () => {
+    const base = snapshot()
+    const invoice = { ...base.salesInvoices[0]!, currency: 'USD' }
+    const plan = planMoneybirdImport(snapshot({ salesInvoices: [invoice] }), options())
+    expect(plan.problems.map((item) => item.code)).toContain('unknown_currency')
+    expect(plan.entries.find((item) => item.externalId === 'sales_invoice:301')).toBeUndefined()
+    expect(plan.pendingFx.some((item) => item.externalId === 'sales_invoice:301')).toBe(true)
   })
 
   it('applies a confirmed FX rate and stores source+date on the lines', () => {
@@ -268,6 +358,7 @@ describe('finding fixes on the plan', () => {
     expect(entry!.lines.every((line) => line.exchangeRate === '0.9214')).toBe(true)
     expect(entry!.lines.every((line) => line.exchangeRateSource === 'ecb:2026-10-16')).toBe(true)
     expect(plan.problems.map((item) => item.code)).not.toContain('unknown_currency')
+    expect(plan.pendingFx).toEqual([])
   })
 
   it('silences the missing-currency warning after one-click EUR confirmation', () => {

@@ -52,6 +52,7 @@ export {
   type ReadAdministrationRequest,
 } from './moneybird/index.js'
 export {
+  ECB_HIST_FULL_AFTER_DAYS,
   eurPerForeign,
   fetchEcbReferenceRates,
   parseEcbEurofxrefXml,

@@ -1,4 +1,5 @@
 export {
+  ECB_HIST_FULL_AFTER_DAYS,
   eurPerForeign,
   fetchEcbReferenceRates,
   parseEcbEurofxrefXml,

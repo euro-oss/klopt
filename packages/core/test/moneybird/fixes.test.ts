@@ -47,7 +47,7 @@ describe('every MoneybirdProblemCode has a fix', () => {
     ['trial_balance_empty', 'oneClick'],
     ['trial_balance_unbalanced', 'guided'],
     ['period_locked', 'guided'],
-    ['unbalanced_document', 'explainOnly'],
+    ['unbalanced_document', 'guided'],
     ['attachment_without_url', 'oneClick'],
     ['draft_skipped', 'explainOnly'],
   ] as const)('%s → %s', (code, fixType) => {

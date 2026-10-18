@@ -13,12 +13,19 @@
  *
  * ECB daily reference rates are cached (see `ecb_reference_rates`); looking up
  * an already-fetched date never needs the ECB to be reachable.
+ *
+ * Lookup rule (PM #55): prefer the rate on the document date; otherwise the
+ * nearest earlier ECB business day within {@link ECB_MAX_LOOKBACK_DAYS}
+ * calendar days. Older cached rows must not be returned labelled ECB.
  */
 
 import { multiplyByRate } from '../ledger/currency.js'
 import type { JournalLineInput } from '../ledger/types.js'
 
 export type FxRateSourceKind = 'ecb' | 'override'
+
+/** Max calendar days to walk back from the document date for an ECB rate. */
+export const ECB_MAX_LOOKBACK_DAYS = 7
 
 export interface FxRateChoice {
   /** Decimal string, e.g. `0.9214` (EUR per 1 USD). */
@@ -59,14 +66,33 @@ export function isValidFxRate(rate: string): boolean {
 }
 
 /**
+ * Normalize a user-typed rate (NL `0,9214` or `0.9214`) to a canonical decimal
+ * string with `.`. Returns null when empty/invalid after normalization.
+ */
+export function normalizeFxRateInput(raw: string): string | null {
+  const trimmed = raw.trim().replace(/\s+/g, '').replace(',', '.')
+  if (trimmed === '') return null
+  if (!isValidFxRate(trimmed)) return null
+  return trimmed
+}
+
+/** Days from `earlier` to `later` (ISO `YYYY-MM-DD`), both treated as UTC dates. */
+export function calendarDaysBetween(earlier: string, later: string): number {
+  const toUtc = (iso: string): number =>
+    Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)))
+  return Math.round((toUtc(later) - toUtc(earlier)) / 86_400_000)
+}
+
+/**
  * The ECB reference rate for `currency` on `documentDate`, or the nearest
- * earlier business day present in `rates`. ECB does not publish on weekends
- * and target holidays; walking backwards covers that.
+ * earlier business day present in `rates` within {@link ECB_MAX_LOOKBACK_DAYS}.
+ * Returns null when nothing qualifies — never a months-old cached rate.
  */
 export function lookupEcbRate(
   rates: readonly EcbRateRow[],
   currency: string,
   documentDate: string,
+  maxLookbackDays: number = ECB_MAX_LOOKBACK_DAYS,
 ): FxRateChoice | null {
   const code = currency.toUpperCase()
   if (code === 'EUR') {
@@ -79,7 +105,16 @@ export function lookupEcbRate(
 
   const hit = forCurrency[0]
   if (hit === undefined) return null
+  if (calendarDaysBetween(hit.rateDate, documentDate) > maxLookbackDays) return null
   return { rate: hit.rate, source: 'ecb', date: hit.rateDate }
+}
+
+/**
+ * Whether `documentDate` is older than `days` calendar days before `today`
+ * (ISO). Used to decide between the 90-day ECB feed and the full history file.
+ */
+export function isOlderThanDays(documentDate: string, days: number, today: string): boolean {
+  return calendarDaysBetween(documentDate, today) > days
 }
 
 /** Apply a confirmed rate to every line of a planned entry (foreign amounts). */

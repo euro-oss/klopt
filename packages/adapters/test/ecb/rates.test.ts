@@ -26,7 +26,11 @@ describe('parseEcbEurofxrefXml', () => {
 })
 
 describe('eurPerForeign', () => {
-  it('inverts the published quote for journal_lines.exchange_rate', () => {
-    expect(Number(eurPerForeign('1.0856'))).toBeCloseTo(1 / 1.0856, 10)
+  it('inverts the published quote for journal_lines.exchange_rate without float maths', () => {
+    const inverted = eurPerForeign('1.0856')
+    expect(inverted).toMatch(/^\d+\.\d+$/)
+    // 1/1.0856 ≈ 0.921149… — integer reciprocal at 12dp.
+    expect(inverted.startsWith('0.921')).toBe(true)
+    expect(Number(inverted)).toBeCloseTo(1 / 1.0856, 10)
   })
 })

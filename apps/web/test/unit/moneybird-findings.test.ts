@@ -57,6 +57,10 @@ describe('moneybird finding fix types', () => {
     ).toBe('explainOnly')
     expect(moneybirdFixTypeFor(problem('unknown_currency', 'sales_invoice:1'))).toBe('guided')
   })
+
+  it('wires unbalanced_document as guided exclude', () => {
+    expect(moneybirdFixTypeFor(problem('unbalanced_document', 'sales_invoice:1'))).toBe('guided')
+  })
 })
 
 describe('honesty from reconciliation', () => {

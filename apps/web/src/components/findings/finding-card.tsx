@@ -287,10 +287,23 @@ function FixPanel({
   const { t } = useT()
 
   if (fix.type === 'explainOnly') {
+    const external =
+      fix.href !== undefined &&
+      (fix.href.startsWith('http://') || fix.href.startsWith('https://'))
     return (
       <div className="flex flex-col items-start gap-3">
         <p className="text-muted-foreground text-sm">{t('findingCard.explainOnlyBody')}</p>
-        {fix.href !== undefined && fix.linkLabel !== undefined && (
+        {fix.href !== undefined && fix.linkLabel !== undefined && external && (
+          <a
+            href={fix.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm underline underline-offset-4"
+          >
+            {fix.linkLabel} ↗
+          </a>
+        )}
+        {fix.href !== undefined && fix.linkLabel !== undefined && !external && (
           <Link to={fix.href} className="text-sm underline underline-offset-4">
             {fix.linkLabel} ↗
           </Link>
