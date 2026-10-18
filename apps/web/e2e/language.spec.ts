@@ -85,6 +85,11 @@ test('choosing a language sticks, and outranks the browser', async ({ browser })
   await page.reload()
   await expect(page.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
 
+  // Advanced destinations keep English labels too (#44 chrome).
+  await enableAdvancedMode(page)
+  await expect(page.getByRole('link', { name: /Journal entries/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Trial balance/ })).toBeVisible()
+
   await context.close()
 })
 

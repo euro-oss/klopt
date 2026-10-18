@@ -1,5 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { writeAdvancedModeCookie } from '~/lib/advanced-mode'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
+import { defaultAdvancedMode, writeAdvancedModeCookie } from '~/lib/advanced-mode'
 import { setAdvancedMode as persistAdvancedMode } from '~/server/advanced-mode'
 
 interface AdvancedModeContextValue {
@@ -11,30 +19,53 @@ interface AdvancedModeContextValue {
 const AdvancedModeContext = createContext<AdvancedModeContextValue | null>(null)
 
 /**
- * Geavanceerd for the shell, the palette, and any screen that asks.
+ * Geavanceerd for the shell, the palette, Moneybird, and any screen that asks.
  *
- * The initial value comes from the layout loader (cookie + role default) so the
- * first paint matches the cookie. Toggles write the cookie on the server and
- * update local state immediately — no full invalidate needed for the nav.
+ * - No explicit choice yet → follow the role default for the *active*
+ *   administration (Eigenaar off; Boekhouder / Accountant / Controleur on).
+ * - After the user toggles → keep that explicit choice across administration
+ *   switches (still per user, not per browser).
+ * - When the signed-in user changes, re-read that user's cookie.
  */
 export function AdvancedModeProvider({
+  userId,
+  role,
   initial,
+  initialHasExplicit,
   children,
 }: {
+  userId: string
+  role: string
   initial: boolean
+  initialHasExplicit: boolean
   children: ReactNode
 }) {
-  const [advanced, setAdvancedState] = useState(initial)
+  // null = use role default; boolean = user has chosen.
+  const [explicit, setExplicit] = useState<boolean | null>(() =>
+    initialHasExplicit ? initial : null,
+  )
+  const [activeUserId, setActiveUserId] = useState(userId)
 
-  const setAdvanced = useCallback((enabled: boolean) => {
-    setAdvancedState(enabled)
-    // Optimistic local write so a screen that still reads document.cookie
-    // (Moneybird) sees the same value before the server round-trip lands.
-    writeAdvancedModeCookie(enabled)
-    void persistAdvancedMode({ data: { enabled } }).catch((cause: unknown) => {
-      console.error('[app] could not persist Geavanceerd', cause)
-    })
-  }, [])
+  // Another account signed in on this tab: drop the previous user's choice and
+  // take the loader's value for the new user (cookie is already user-scoped).
+  useEffect(() => {
+    if (userId === activeUserId) return
+    setActiveUserId(userId)
+    setExplicit(initialHasExplicit ? initial : null)
+  }, [userId, activeUserId, initial, initialHasExplicit])
+
+  const advanced = explicit !== null ? explicit : defaultAdvancedMode(role)
+
+  const setAdvanced = useCallback(
+    (enabled: boolean) => {
+      setExplicit(enabled)
+      writeAdvancedModeCookie(userId, enabled)
+      void persistAdvancedMode({ data: { enabled } }).catch((cause: unknown) => {
+        console.error('[app] could not persist Geavanceerd', cause)
+      })
+    },
+    [userId],
+  )
 
   const toggleAdvanced = useCallback(() => {
     setAdvanced(!advanced)

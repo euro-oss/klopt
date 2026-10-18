@@ -16,11 +16,7 @@ import { detailForDisplay, formatFindingAmount } from '~/lib/finding-card'
 import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
-import {
-  readAdvancedModeCookie,
-  resolveAdvancedMode,
-  writeAdvancedModeCookie,
-} from '~/lib/advanced-mode'
+import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import {
   emptyDecisions,
@@ -57,17 +53,10 @@ import {
  * dry-run report rather than a later XAF step — see ADR 0060.
  */
 export const Route = createFileRoute('/_app/moneybird/')({
-  loader: async ({ context }) => {
-    const activeId = context.session.activeEntityId
-    const active =
-      context.session.memberships.find((row) => row.entityId === activeId) ??
-      context.session.memberships[0]
-    return {
-      connection: await getMoneybirdConnection(),
-      run: await moneybirdImportStatus(),
-      role: active?.role ?? '',
-    }
-  },
+  loader: async () => ({
+    connection: await getMoneybirdConnection(),
+    run: await moneybirdImportStatus(),
+  }),
   component: Moneybird,
 })
 
@@ -82,10 +71,11 @@ interface AdministrationOption {
 }
 
 function Moneybird() {
-  const { connection, run: runResult, role } = Route.useLoaderData()
+  const { connection, run: runResult } = Route.useLoaderData()
   const { t } = useT()
   const router = useRouter()
   const hydrated = useHydrated()
+  const { advanced, setAdvanced } = useAdvancedMode()
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -126,9 +116,6 @@ function Moneybird() {
   const [unbalancedDraft, setUnbalancedDraft] = useState<MoneybirdProblem | null>(null)
   const [drillNote, setDrillNote] = useState<string | null>(null)
   const [fxRateError, setFxRateError] = useState<string | null>(null)
-  const [advanced, setAdvanced] = useState(() =>
-    resolveAdvancedMode(readAdvancedModeCookie(), role),
-  )
 
   if (!connection.ok) {
     return (
@@ -269,8 +256,8 @@ function Moneybird() {
       }
     },
     onPickAccountType: (problem) => {
+      // Picking a ledger type needs Geavanceerd labels — same shell preference.
       setAdvanced(true)
-      writeAdvancedModeCookie(true)
       const moneybirdId =
         problem.detail['moneybirdId'] ?? problem.path?.replace(/^accounts\./, '') ?? ''
       if (moneybirdId === '') return
@@ -432,6 +419,26 @@ function Moneybird() {
         }
       />
 
+      {/*
+        Same Geavanceerd preference as the shell (#44). Always on this screen so
+        toggling here updates the account-menu switch without a reload — and so
+        e2e can assert the single source of truth without a live Moneybird token.
+      */}
+      <div className="mb-4 flex items-center gap-3">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={advanced}
+            onChange={(event) => {
+              setAdvanced(event.target.checked)
+            }}
+            className="border-border size-4 rounded-none"
+          />
+          {t('moneybird.advanced')}
+        </label>
+        <span className="text-muted-foreground text-xs">{t('moneybird.advancedHint')}</span>
+      </div>
+
       {error !== null && (
         <p role="alert" className="text-destructive mb-4 text-sm">
           {error}
@@ -575,21 +582,6 @@ function Moneybird() {
 
           {preview !== null && (
             <>
-              <div className="mt-4 mb-2 flex items-center gap-3">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={advanced}
-                    onChange={(event) => {
-                      setAdvanced(event.target.checked)
-                      writeAdvancedModeCookie(event.target.checked)
-                    }}
-                    className="border-border size-4 rounded-none"
-                  />
-                  {t('moneybird.advanced')}
-                </label>
-                <span className="text-muted-foreground text-xs">{t('moneybird.advancedHint')}</span>
-              </div>
               <PreviewReport
                 report={preview}
                 actions={findingActions}

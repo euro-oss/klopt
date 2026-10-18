@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { defaultAdvancedMode, resolveAdvancedMode } from '../../src/lib/advanced-mode.js'
+import {
+  advancedModeCookieName,
+  defaultAdvancedMode,
+  resolveAdvancedMode,
+} from '../../src/lib/advanced-mode.js'
 
 describe('Geavanceerd defaults', () => {
   it('defaults off for Eigenaar and on for bookkeeping roles', () => {
@@ -14,5 +18,10 @@ describe('Geavanceerd defaults', () => {
     expect(resolveAdvancedMode('0', 'bookkeeper')).toBe(false)
     expect(resolveAdvancedMode(null, 'owner')).toBe(false)
     expect(resolveAdvancedMode(null, 'accountant')).toBe(true)
+  })
+
+  it('scopes the cookie name to the user id', () => {
+    expect(advancedModeCookieName('user-abc')).toBe('klopt_advanced_user-abc')
+    expect(advancedModeCookieName('a/b@c')).toBe('klopt_advanced_a_b_c')
   })
 })

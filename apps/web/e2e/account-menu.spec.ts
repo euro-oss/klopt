@@ -45,14 +45,28 @@ test('the bottom of the rail is one row, not a settings panel', async ({ page })
 
   await openAccountMenu(page)
 
-  await expect(page.getByLabel('Taal')).toBeVisible()
-  await expect(page.getByLabel('Weergave')).toBeVisible()
+  const panel = page.getByRole('dialog', { name: 'Profiel' })
+  await expect(panel).toBeVisible()
+  await expect(panel.getByLabel('Taal')).toBeVisible()
   await expect(
-    page.getByRole('group', { name: 'Weergave' }).getByRole('button', { name: 'Systeem' }),
+    panel.getByRole('group', { name: 'Taal' }).getByRole('button', { name: 'NL' }),
   ).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Uitloggen' })).toBeVisible()
-  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toBeVisible()
-  await expect(page.getByText(/^rol: /).first()).toBeVisible()
+  await expect(
+    panel.getByRole('group', { name: 'Taal' }).getByRole('button', { name: 'EN' }),
+  ).toBeVisible()
+  await expect(panel.getByLabel('Weergave')).toBeVisible()
+  await expect(
+    panel.getByRole('group', { name: 'Weergave' }).getByRole('button', { name: 'Licht' }),
+  ).toBeVisible()
+  await expect(
+    panel.getByRole('group', { name: 'Weergave' }).getByRole('button', { name: 'Donker' }),
+  ).toBeVisible()
+  await expect(
+    panel.getByRole('group', { name: 'Weergave' }).getByRole('button', { name: 'Systeem' }),
+  ).toBeVisible()
+  await expect(panel.getByRole('button', { name: 'Uitloggen' })).toBeVisible()
+  await expect(panel.getByRole('switch', { name: /Geavanceerd/ })).toBeVisible()
+  await expect(panel.getByText(/^rol: /).first()).toBeVisible()
 })
 
 test('the menu opens upward, because there is nothing below it', async ({ page }) => {
@@ -62,14 +76,15 @@ test('the menu opens upward, because there is nothing below it', async ({ page }
   await openAccountMenu(page)
 
   const row = await trigger.boundingBox()
-  const panel = await page.getByRole('switch', { name: /Geavanceerd/ }).boundingBox()
+  // Whole panel (aria-labelled Profiel), not only the Geavanceerd row.
+  const panel = await page.getByRole('dialog', { name: 'Profiel' }).boundingBox()
   expect(row).not.toBeNull()
   expect(panel).not.toBeNull()
   if (row === null || panel === null) return
 
   // A panel hung below the last row of the viewport is a panel nobody can
-  // read, so the Geavanceerd row (top of the menu) sits above the trigger.
-  expect(panel.y).toBeLessThanOrEqual(row.y + 1)
+  // read, so the whole menu sits above the trigger.
+  expect(panel.y + panel.height).toBeLessThanOrEqual(row.y + 1)
 })
 
 test('Esc puts the menu away and gives the focus back', async ({ page }) => {

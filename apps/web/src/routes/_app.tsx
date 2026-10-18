@@ -49,17 +49,25 @@ export const Route = createFileRoute('/_app')({
     const active =
       session.memberships.find((m) => m.entityId === session.activeEntityId) ??
       session.memberships[0]
-    const advanced =
+    const advancedPreference =
       session.memberships.length === 0
-        ? false
-        : await getAdvancedMode({ data: { role: active?.role ?? '' } })
-    return { session, reportYear, advanced }
+        ? { enabled: false, hasExplicit: false }
+        : await getAdvancedMode({
+            data: { role: active?.role ?? '', userId: session.user.id },
+          })
+    return {
+      session,
+      reportYear,
+      advanced: advancedPreference.enabled,
+      advancedHasExplicit: advancedPreference.hasExplicit,
+      activeRole: active?.role ?? '',
+    }
   },
   component: AppLayout,
 })
 
 function AppLayout() {
-  const { session, reportYear, advanced } = Route.useLoaderData()
+  const { session, reportYear, advanced, advancedHasExplicit, activeRole } = Route.useLoaderData()
   const router = useRouter()
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
@@ -101,7 +109,12 @@ function AppLayout() {
   }
 
   return (
-    <AdvancedModeProvider initial={advanced}>
+    <AdvancedModeProvider
+      userId={session.user.id}
+      role={activeRole}
+      initial={advanced}
+      initialHasExplicit={advancedHasExplicit}
+    >
       <AppShell
         entities={session.memberships}
         activeEntityId={session.activeEntityId}

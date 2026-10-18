@@ -689,7 +689,14 @@ function Profile({
           />
         </PopoverTrigger>
 
-        <PopoverContent side="top" align="start" sideOffset={8} className="w-72 p-0">
+        <PopoverContent
+          side="top"
+          align="start"
+          sideOffset={8}
+          className="w-72 p-0"
+          role="dialog"
+          aria-label={t('shell.profile')}
+        >
           <div className="border-border border-b px-3 py-2">
             <span className="block truncate text-sm font-medium" title={shown}>
               {shown}

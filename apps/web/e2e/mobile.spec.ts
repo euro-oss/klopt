@@ -91,15 +91,16 @@ test('Geavanceerd in the Sheet profile reveals Journaalposten', async ({ page })
 
 test('a ledger table scrolls inside itself with a sticky first column', async ({ page }) => {
   await anAdministration(page)
-  // Cookie rather than the Sheet profile: this test is about the ledger scroller,
-  // and Geavanceerd-in-the-Sheet is covered above.
-  await page
-    .context()
-    .addCookies([{ name: 'klopt_advanced', value: '1', url: 'http://localhost:3399' }])
-  await page.reload()
-  await expect(page.getByRole('button', { name: 'Menu openen' })).toBeEnabled()
-
+  // Per-user preference (#44), not a shared cookie — toggle via the Sheet profile.
   await page.getByRole('button', { name: 'Menu openen' }).click()
+  await page.getByRole('region', { name: 'Profiel' }).getByRole('button').click()
+  await page.getByRole('switch', { name: /Geavanceerd/ }).click()
+  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  )
+  await page.keyboard.press('Escape')
+
   await page
     .getByRole('navigation', { name: 'Hoofdnavigatie' })
     .getByRole('link', { name: /Grootboek/ })
