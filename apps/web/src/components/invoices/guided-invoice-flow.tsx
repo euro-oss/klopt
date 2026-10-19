@@ -138,7 +138,7 @@ export function GuidedInvoiceFlow({
   /** Lab / screenshot hook for empty / loading / error chrome. */
   initialPhase?: FlowPhase
 }) {
-  const { t } = useT()
+  const { t, tag } = useT()
   const navigate = useNavigate()
   const hydrated = useHydrated()
   const titleId = useId()
@@ -529,7 +529,7 @@ export function GuidedInvoiceFlow({
         (violation) => typeof violation.code === 'string' && isPeriodLockCode(violation.code),
       )
       if (periodViolation !== undefined) {
-        const periodName = periodLabel(fiscalYears, periodViolation.detail)
+        const periodName = periodLabel(fiscalYears, periodViolation.detail, tag)
         clearReviewDraft()
         setPhase('form')
         setStep(2)

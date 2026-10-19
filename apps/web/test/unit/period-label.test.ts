@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { planFiscalYear } from '@klopt/core'
 import {
   capitalizePeriodLabel,
   periodLabel,
@@ -61,12 +62,35 @@ const years: readonly PeriodLabelYear[] = [
   },
 ]
 
+/** July-start FY 2026 (periods Jul 2026 … Jun 2027), periods 7–9 = Jan–Mar 2027. */
+function julyStartYears(
+  periodStatuses: Record<number, string> = {
+    7: 'hard_closed',
+    8: 'hard_closed',
+    9: 'hard_closed',
+  },
+): readonly PeriodLabelYear[] {
+  const layout = planFiscalYear('2026', 7)
+  return [
+    {
+      code: layout.code,
+      startsOn: layout.startsOn,
+      endsOn: layout.endsOn,
+      status: 'open',
+      periods: layout.periods.map((row) => ({
+        ...row,
+        status: periodStatuses[row.sequence] ?? 'open',
+      })),
+    },
+  ]
+}
+
 describe('periodLabel', () => {
   it('names a single closed month with its year', () => {
     expect(periodLabel(years, { fiscalYear: '2026', period: '10' }, 'nl-NL')).toBe('oktober 2026')
   })
 
-  it('names a fully closed quarter as Qn year', () => {
+  it('names a fully closed quarter as Qn calendar year', () => {
     expect(periodLabel(years, { fiscalYear: '2026', period: '9' }, 'nl-NL')).toBe('Q3 2026')
   })
 
@@ -110,6 +134,113 @@ describe('periodLabel', () => {
       expect(label).not.toMatch(/\s-\s*$/)
     }
   })
+
+  it('uses the calendar year of period start for a July-start fiscal year', () => {
+    const july = julyStartYears()
+    // July-start: periods 7–9 are Jan/Feb/Mar 2027. Labelling period 9 must
+    // read Q1 2027 (calendar year of startsOn), not Q1 2026 from the FY code.
+    expect(july[0]!.periods.find((row) => row.sequence === 7)?.startsOn).toBe('2027-01-01')
+    expect(july[0]!.periods.find((row) => row.sequence === 9)?.startsOn).toBe('2027-03-01')
+    expect(periodLabel(july, { fiscalYear: '2026', period: '9' }, 'nl-NL')).toBe('Q1 2027')
+    expect(periodLabel(july, { fiscalYear: '2026', period: '9' }, 'en-GB')).toBe('Q1 2027')
+  })
+
+  it('names the month when a quarter mixes soft- and hard-closed', () => {
+    const mixed: readonly PeriodLabelYear[] = [
+      {
+        ...years[0]!,
+        periods: years[0]!.periods.map((row) => {
+          if (row.sequence === 7) return { ...row, status: 'soft_closed' }
+          if (row.sequence === 8) return { ...row, status: 'soft_closed' }
+          if (row.sequence === 9) return { ...row, status: 'hard_closed' }
+          return row
+        }),
+      },
+      years[1]!,
+    ]
+    expect(periodLabel(mixed, { fiscalYear: '2026', period: '9' }, 'nl-NL')).toBe('september 2026')
+    expect(periodLabel(mixed, { fiscalYear: '2026', period: '7' }, 'nl-NL')).toBe('juli 2026')
+  })
+
+  it('localises fallback words for English', () => {
+    expect(periodLabel(years, { fiscalYear: '2025', period: '12' }, 'en-GB')).toBe(
+      'fiscal year 2025',
+    )
+    expect(periodLabel([], { fiscalYear: '2026', period: '9' }, 'en-GB')).toBe(
+      'Period 9 of fiscal year 2026',
+    )
+    expect(periodLabel([], { fiscalYear: '2026' }, 'en-GB')).toBe('fiscal year 2026')
+    expect(periodLabel([], { period: '9' }, 'en-GB')).toBe('Period 9')
+    expect(periodLabel(years, undefined, 'en-GB')).toBe('this period')
+    expect(periodLabel(years, { fiscalYear: '2026', period: '10' }, 'en-GB')).toBe('October 2026')
+  })
+
+  it('names the month from violation startsOn when years are missing', () => {
+    // Bookkeeper / API client whose GET /fiscal-years failed still gets a real
+    // name from the posting refusal payload.
+    expect(
+      periodLabel(
+        [],
+        {
+          fiscalYear: '2026',
+          period: '10',
+          startsOn: '2026-10-01',
+          endsOn: '2026-10-31',
+          yearStatus: 'open',
+        },
+        'nl-NL',
+      ),
+    ).toBe('oktober 2026')
+    expect(
+      periodLabel(
+        null,
+        {
+          fiscalYear: '2026',
+          period: '10',
+          startsOn: '2026-10-01',
+          endsOn: '2026-10-31',
+          yearStatus: 'open',
+        },
+        'en-GB',
+      ),
+    ).toBe('October 2026')
+  })
+
+  it('names a closed year from yearStatus when years are missing', () => {
+    expect(
+      periodLabel(
+        [],
+        {
+          fiscalYear: '2025',
+          period: '12',
+          startsOn: '2025-12-01',
+          endsOn: '2025-12-31',
+          yearStatus: 'closed',
+        },
+        'nl-NL',
+      ),
+    ).toBe('boekjaar 2025')
+    expect(
+      periodLabel(
+        undefined,
+        {
+          fiscalYear: '2025',
+          period: '12',
+          startsOn: '2025-12-01',
+          endsOn: '2025-12-31',
+          yearStatus: 'closed',
+        },
+        'en-GB',
+      ),
+    ).toBe('fiscal year 2025')
+  })
+
+  it('uses the missing-detail path when detail has no year, period, or startsOn', () => {
+    expect(periodLabel(years, undefined, 'nl-NL')).toBe('deze periode')
+    expect(periodLabel([], null, 'nl-NL')).toBe('deze periode')
+    expect(periodLabel(undefined, {}, 'en-GB')).toBe('this period')
+    expect(periodLabel(null, { endsOn: '2026-10-31' }, 'nl-NL')).toBe('deze periode')
+  })
 })
 
 describe('sentencePeriodLabel', () => {
@@ -120,5 +251,15 @@ describe('sentencePeriodLabel', () => {
     )
     expect(sentencePeriodLabel(years, undefined)).toBe('Deze periode')
     expect(capitalizePeriodLabel('oktober 2026')).toBe('Oktober 2026')
+  })
+
+  it('capitalises English fiscal-year and this-period labels', () => {
+    expect(sentencePeriodLabel(years, { fiscalYear: '2025', period: '12' }, 'en-GB')).toBe(
+      'Fiscal year 2025',
+    )
+    expect(sentencePeriodLabel(years, undefined, 'en-GB')).toBe('This period')
+    expect(sentencePeriodLabel([], { fiscalYear: '2026', period: '9' }, 'en-GB')).toBe(
+      'Period 9 of fiscal year 2026',
+    )
   })
 })

@@ -1,12 +1,24 @@
 /**
  * Shared period label for closed-period copy (#73 bank match, #74 guided invoice).
  *
- * Pure and self-contained: given fiscal years (possibly empty / undefined) and
- * server violation detail, returns a never-blank Dutch label with the year —
- * `oktober 2026`, `Q3 2026` (whole quarter only), `boekjaar 2026`, or the
- * neutral `Periode 9 van boekjaar 2026` when years failed to load. Missing
- * detail yields `deze periode`. #74 copies this file byte-for-byte.
+ * Pure aside from i18n: given fiscal years (possibly empty / undefined) and
+ * server violation detail, returns a never-blank label with the year —
+ * `oktober 2026` / `October 2026`, `Q3 2026` (whole quarter only, same lock
+ * kind), `boekjaar 2026` / `fiscal year 2026`, or the neutral
+ * `Periode 9 van boekjaar 2026` / `Period 9 of fiscal year 2026` when neither
+ * years nor `startsOn` in detail are available. Missing detail yields
+ * `deze periode` / `this period`.
+ *
+ * Violation detail may carry `startsOn` / `endsOn` / `yearStatus` (from the
+ * posting refusal) so roles or API clients that cannot list fiscal years still
+ * get a real month or year name. Quarter labels still need the years list
+ * (every month of the quarter must share a lock kind).
+ *
+ * Depends on `../i18n/locale` (`translate`) and the `periodLabel.*` keys in
+ * `nl.ts` / `en.ts`. #74 should copy this file and keep those keys in sync.
  */
+
+import { translate, type Locale } from '../i18n/locale.js'
 
 /** A fiscal year as `GET /fiscal-years` returns it (with period ranges). */
 export interface PeriodLabelYear {
@@ -22,10 +34,21 @@ export interface PeriodLabelYear {
   }[]
 }
 
-/** Violation `detail` keys used by `period_hard_closed` / `period_soft_closed`. */
+/**
+ * Violation `detail` keys used by `period_hard_closed` / `period_soft_closed`.
+ * Core always sends `fiscalYear` + `period`; posting also sends `startsOn`,
+ * `endsOn`, and `yearStatus` (`open` | `closed`) when the period is known.
+ */
 export type PeriodLabelDetail = Readonly<Record<string, string>> | null | undefined
 
-const MISSING = 'deze periode'
+/** Map an `Intl` tag (`nl-NL`, `en-GB`) or short locale to our catalogue key. */
+function catalogueLocale(tag: string): Locale {
+  return tag.toLowerCase().startsWith('en') ? 'en' : 'nl'
+}
+
+function thisPeriod(locale: string): string {
+  return translate(catalogueLocale(locale), 'periodLabel.thisPeriod')
+}
 
 function parseIsoDate(iso: string): Date | null {
   const [year, month, day] = iso.split('-').map(Number)
@@ -52,7 +75,15 @@ function isClosedStatus(status: string): boolean {
   return status === 'hard_closed' || status === 'soft_closed'
 }
 
-/** Prefer "quarter" when every month of that calendar quarter is closed. */
+/**
+ * Prefer "quarter" when every month of that calendar quarter is closed with the
+ * *same* lock kind. Mixed soft/hard months keep their month labels so copy
+ * does not call a soft-closed July "definitief afgesloten".
+ *
+ * The year in `Qn YYYY` is the calendar year of `period.startsOn`, not the
+ * fiscal-year code — otherwise a July-start FY 2026 period 9 (Jan–Mar 2027)
+ * would read `Q1 2026`.
+ */
 function quarterLabel(
   year: PeriodLabelYear,
   period: PeriodLabelYear['periods'][number],
@@ -66,12 +97,14 @@ function quarterLabel(
     const m = Number(row.startsOn.slice(5, 7))
     return quarterMonths.includes(m)
   })
-  if (quarterPeriods.length !== 3 || !quarterPeriods.every((row) => isClosedStatus(row.status))) {
-    return null
-  }
-  const code = year.code.trim()
-  if (code === '') return null
-  return `Q${String(quarter)} ${code}`
+  if (quarterPeriods.length !== 3) return null
+  const status = quarterPeriods[0]!.status
+  if (!isClosedStatus(status)) return null
+  if (!quarterPeriods.every((row) => row.status === status)) return null
+
+  const calendarYear = period.startsOn.slice(0, 4)
+  if (!/^\d{4}$/.test(calendarYear)) return null
+  return `Q${String(quarter)} ${calendarYear}`
 }
 
 function monthLabel(startsOn: string, locale: string, fiscalYear: string): string | null {
@@ -90,22 +123,24 @@ function monthLabel(startsOn: string, locale: string, fiscalYear: string): strin
   return formatted
 }
 
-function sequenceLabel(period: number | null, fiscalYear: string): string {
+function sequenceLabel(period: number | null, fiscalYear: string, locale: string): string {
+  const lang = catalogueLocale(locale)
   const year = fiscalYear.trim()
   if (period !== null && year !== '') {
-    return `Periode ${String(period)} van boekjaar ${year}`
+    return translate(lang, 'periodLabel.sequenceOfYear', { period, year })
   }
-  if (period !== null) return `Periode ${String(period)}`
-  if (year !== '') return `boekjaar ${year}`
-  return MISSING
+  if (period !== null) return translate(lang, 'periodLabel.sequence', { period })
+  if (year !== '') return translate(lang, 'periodLabel.fiscalYear', { year })
+  return thisPeriod(locale)
 }
 
 /**
  * Real period name with year, or a safe generic — never blank, never `Q4 ` / `-`.
  *
- * @param years Fiscal years from the API; empty / undefined / null → sequence fallback.
- * @param detail Violation detail (`fiscalYear` / `year`, `period`); absent → `deze periode`.
- * @param locale Month names via `Intl` (default `nl-NL`).
+ * @param years Fiscal years from the API; empty / undefined / null → use detail dates.
+ * @param detail Violation / lock detail (`fiscalYear` / `year`, `period`, optional
+ *   `startsOn` / `endsOn` / `yearStatus`); absent → this period.
+ * @param locale Month names via `Intl` and catalogue via `nl` / `en` (default `nl-NL`).
  */
 export function periodLabel(
   years: readonly PeriodLabelYear[] | null | undefined,
@@ -114,15 +149,22 @@ export function periodLabel(
 ): string {
   const fiscalYear = readYear(detail)
   const sequence = readPeriod(detail)
+  const startsOn = detail == null ? '' : (detail['startsOn'] ?? '').trim()
+  const yearStatus = detail == null ? '' : (detail['yearStatus'] ?? '').trim()
 
-  if (fiscalYear === '' && sequence === null) return MISSING
+  if (fiscalYear === '' && sequence === null && startsOn === '') return thisPeriod(locale)
 
   const list = years ?? []
   const year = fiscalYear === '' ? undefined : list.find((row) => row.code === fiscalYear)
 
-  if (year !== undefined && year.status === 'closed') {
-    const code = year.code.trim()
-    return code === '' ? sequenceLabel(sequence, fiscalYear) : `boekjaar ${code}`
+  if (
+    (year !== undefined && year.status === 'closed') ||
+    (year === undefined && yearStatus === 'closed' && fiscalYear !== '')
+  ) {
+    const code = (year?.code ?? fiscalYear).trim()
+    return code === ''
+      ? sequenceLabel(sequence, fiscalYear, locale)
+      : translate(catalogueLocale(locale), 'periodLabel.fiscalYear', { year: code })
   }
 
   if (year !== undefined && sequence !== null) {
@@ -135,8 +177,14 @@ export function periodLabel(
     }
   }
 
-  // Years empty, period missing from the year, or incomplete detail.
-  return sequenceLabel(sequence, fiscalYear)
+  // Years empty / period unknown: prefer startsOn from the violation so a
+  // bookkeeper (or any client) still sees "oktober 2026" rather than "Periode 9…".
+  if (startsOn !== '') {
+    const asMonth = monthLabel(startsOn, locale, fiscalYear)
+    if (asMonth !== null) return asMonth
+  }
+
+  return sequenceLabel(sequence, fiscalYear, locale)
 }
 
 /** Same as `periodLabel`, with the first character uppercased for sentence starts. */
@@ -145,11 +193,11 @@ export function sentencePeriodLabel(
   detail: PeriodLabelDetail,
   locale: string = 'nl-NL',
 ): string {
-  return capitalizePeriodLabel(periodLabel(years, detail, locale))
+  return capitalizePeriodLabel(periodLabel(years, detail, locale), locale)
 }
 
 /** Uppercase the first character (`boekjaar 2026` → `Boekjaar 2026`). */
-export function capitalizePeriodLabel(label: string): string {
-  if (label.length === 0) return MISSING
-  return label.charAt(0).toLocaleUpperCase() + label.slice(1)
+export function capitalizePeriodLabel(label: string, locale: string = 'nl-NL'): string {
+  if (label.length === 0) return thisPeriod(locale)
+  return label.charAt(0).toLocaleUpperCase(locale) + label.slice(1)
 }

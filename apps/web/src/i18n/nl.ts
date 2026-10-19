@@ -617,6 +617,12 @@ export const nl = {
   'invoiceGuided.loading': 'Even geduld…',
   'invoiceGuided.keys.customers': 'Klant',
 
+  // Shared period-label helper (#73 / #74) — keep EN keys in parity.
+  'periodLabel.fiscalYear': 'boekjaar {year}',
+  'periodLabel.sequenceOfYear': 'Periode {period} van boekjaar {year}',
+  'periodLabel.sequence': 'Periode {period}',
+  'periodLabel.thisPeriod': 'deze periode',
+
   // Contacts — customers and suppliers.
   'contacts.title': 'Relaties',
   'contacts.intro': 'Klanten en leveranciers, met de gegevens die een e-factuur nodig heeft.',

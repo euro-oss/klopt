@@ -678,6 +678,12 @@ export const en: Record<MessageKey, string> = {
   'invoiceGuided.loading': 'One moment…',
   'invoiceGuided.keys.customers': 'Customer',
 
+  // Shared period-label helper (#73 / #74) — keep NL keys in parity.
+  'periodLabel.fiscalYear': 'fiscal year {year}',
+  'periodLabel.sequenceOfYear': 'Period {period} of fiscal year {year}',
+  'periodLabel.sequence': 'Period {period}',
+  'periodLabel.thisPeriod': 'this period',
+
   // Contacts — customers and suppliers.
   'contacts.title': 'Contacts',
   'contacts.intro': 'Customers and suppliers, with the details an e-invoice needs.',
