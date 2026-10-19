@@ -237,7 +237,7 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
   await expect(page.getByRole('link', { name: /Moneybird-import/ })).toBeVisible()
-  await expect(page.getByRole('link', { name: /concepten om te versturen/i })).toBeVisible()
+  await expect(page.getByRole('link', { name: /concepten? om te versturen/i })).toBeVisible()
   const viewport = page.viewportSize()
   if (viewport !== null && viewport.width >= 768) {
     await hydrated(page)

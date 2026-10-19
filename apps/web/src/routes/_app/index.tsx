@@ -85,7 +85,9 @@ const DESTINATIONS: Record<
   {
     readonly to: string
     readonly search?: Record<string, string>
-    readonly title: MessageKey
+    /** Plural base (`queue.salesDraft`) or a plain MessageKey (`queue.vatFiling`). */
+    readonly title: string
+    readonly titlePlural: boolean
     readonly body: MessageKey
     readonly action: MessageKey
   }
@@ -93,6 +95,7 @@ const DESTINATIONS: Record<
   'import.blocking': {
     to: '/moneybird',
     title: 'queue.importBlocking',
+    titlePlural: true,
     body: 'queue.importBlockingBody',
     action: 'queue.importBlockingAction',
   },
@@ -100,30 +103,35 @@ const DESTINATIONS: Record<
     to: '/invoices',
     search: { status: 'draft' },
     title: 'queue.salesDraft',
+    titlePlural: true,
     body: 'queue.salesDraftBody',
     action: 'queue.salesDraftAction',
   },
   'sales.overdue': {
     to: '/reports/debtor-ageing',
     title: 'queue.salesOverdue',
+    titlePlural: true,
     body: 'queue.salesOverdueBody',
     action: 'queue.salesOverdueAction',
   },
   'dunning.waiting': {
     to: '/dunning',
     title: 'queue.dunningWaiting',
+    titlePlural: true,
     body: 'queue.dunningWaitingBody',
     action: 'queue.dunningWaitingAction',
   },
   'bank.unmatched': {
     to: '/bank/match',
     title: 'queue.bankUnmatched',
+    titlePlural: true,
     body: 'queue.bankUnmatchedBody',
     action: 'queue.bankUnmatchedAction',
   },
   'inbox.waiting': {
     to: '/inbox',
     title: 'queue.inboxWaiting',
+    titlePlural: true,
     body: 'queue.inboxWaitingBody',
     action: 'queue.inboxWaitingAction',
   },
@@ -131,6 +139,7 @@ const DESTINATIONS: Record<
     to: '/purchases',
     search: { status: 'draft' },
     title: 'queue.purchaseBook',
+    titlePlural: true,
     body: 'queue.purchaseBookBody',
     action: 'queue.purchaseBookAction',
   },
@@ -138,12 +147,14 @@ const DESTINATIONS: Record<
     to: '/purchases',
     search: { status: 'booked' },
     title: 'queue.purchaseApprove',
+    titlePlural: true,
     body: 'queue.purchaseApproveBody',
     action: 'queue.purchaseApproveAction',
   },
   'vat.filing': {
     to: '/vat',
     title: 'queue.vatFiling',
+    titlePlural: false,
     body: 'queue.vatFilingBody',
     action: 'queue.vatFilingAction',
   },
@@ -336,7 +347,7 @@ function Dashboard() {
 }
 
 function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode: string }) {
-  const { t } = useT()
+  const { t, plural } = useT()
   const bank = figures.bank
   const receivablesLate = figures.receivables.overdueCount > 0
   const profitResult = figures.profit.result
@@ -375,9 +386,7 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
         hint={
           figures.receivables.count === 0
             ? t('dash.figure.receivablesEmpty')
-            : t('dash.figure.receivablesHint', {
-                count: String(figures.receivables.overdueCount),
-              })
+            : plural('dash.figure.receivablesHint', figures.receivables.overdueCount)
         }
         hintTone={receivablesLate ? 'attention' : 'muted'}
       />
@@ -387,7 +396,7 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
         hint={
           figures.payables.count === 0
             ? t('dash.figure.payablesEmpty')
-            : t('dash.figure.payablesHint', { count: String(figures.payables.count) })
+            : plural('dash.figure.payablesHint', figures.payables.count)
         }
       />
       <FigureTile
@@ -422,10 +431,10 @@ function dayMonthLabel(
 
 function EuroAmount({ amount }: { amount: string }) {
   return (
-    <>
-      <span className="mr-1 font-semibold">€</span>
+    <span className="whitespace-nowrap">
+      <span className="font-semibold">{'€\u00a0'}</span>
       <Money amount={amount} />
-    </>
+    </span>
   )
 }
 
@@ -598,25 +607,10 @@ function toneIcon(tone: AttentionTone): ReactNode {
 function rowCopy(
   item: WorkQueueItem,
   t: (key: MessageKey, vars?: Record<string, string>) => string,
+  plural: (key: string, count: number, values?: Record<string, string | number>) => string,
 ): { title: string; body: string; action: string } {
   const destination = DESTINATIONS[item.kind]
   const detail = item.detail
-
-  if (item.kind === 'import.blocking') {
-    return {
-      title: t(destination.title, { count: String(item.count) }),
-      body: t(destination.body),
-      action: t(destination.action),
-    }
-  }
-
-  if (item.kind === 'bank.unmatched' || item.kind === 'inbox.waiting') {
-    return {
-      title: t(destination.title, { count: String(item.count) }),
-      body: t(destination.body),
-      action: t(destination.action),
-    }
-  }
 
   if (
     item.kind === 'sales.overdue' &&
@@ -655,28 +649,22 @@ function rowCopy(
       }
     }
     return {
-      title: t(destination.title, { period: detail.vatPeriod }),
+      title: t(destination.title as MessageKey, { period: detail.vatPeriod }),
       body,
       action: t(destination.action),
     }
   }
 
-  if (
-    item.kind === 'sales.draft' ||
-    item.kind === 'sales.overdue' ||
-    item.kind === 'dunning.waiting' ||
-    item.kind === 'purchase.book' ||
-    item.kind === 'purchase.approve'
-  ) {
+  if (destination.titlePlural) {
     return {
-      title: t(destination.title, { count: String(item.count) }),
+      title: plural(destination.title, item.count),
       body: t(destination.body),
       action: t(destination.action),
     }
   }
 
   return {
-    title: t(destination.title),
+    title: t(destination.title as MessageKey),
     body: t(destination.body),
     action: t(destination.action),
   }
@@ -728,12 +716,8 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         }
         return
       }
-      if (
-        event.key === 'j' ||
-        event.key === 'k' ||
-        event.key === 'ArrowDown' ||
-        event.key === 'ArrowUp'
-      ) {
+      // From outside the list, only j/k enter it — arrows keep page scroll.
+      if (event.key === 'j' || event.key === 'k') {
         event.preventDefault()
         setCursor(0)
         cursorRef.current = 0
@@ -779,7 +763,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         {items.map((item, index) => {
           const destination = DESTINATIONS[item.kind]
           const tone = ATTENTION_TONE[item.kind]
-          const copy = rowCopy(item, t)
+          const copy = rowCopy(item, t, plural)
           return (
             <li key={item.kind}>
               <Link
@@ -822,7 +806,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
       </ul>
 
       {hydrated && (
-        <div className="border-border text-muted-foreground mt-3 hidden flex-wrap items-center gap-x-3 gap-y-1.5 border px-2 py-1.5 text-[0.6875rem] md:flex">
+        <div className="border-accent text-muted-foreground mt-3 hidden flex-wrap items-center gap-x-3 gap-y-1.5 border px-2 py-1.5 text-[0.6875rem] md:flex">
           <span className="flex items-center gap-1.5">
             <Keycap>j</Keycap>
             <Keycap>k</Keycap>
@@ -833,7 +817,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
             <span>{t('keys.queueOpenShort')}</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <Keycap>esc</Keycap>
+            <Keycap>Esc</Keycap>
             <span>{t('keys.queueLeaveShort')}</span>
           </span>
         </div>

@@ -68,7 +68,7 @@ test('an empty administration shows the redesigned dashboard and a way to start'
   await expect(page.getByRole('region', { name: 'Kerncijfers' })).toBeVisible()
   // No operational work yet — drafts / bank / inbox stay off the list. A due
   // btw-aangifte may still appear (the period closed even with empty books).
-  await expect(page.getByRole('link', { name: /concepten om te versturen/i })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /concepten? om te versturen/i })).toHaveCount(0)
   await expect(page.getByRole('link', { name: /bankregels wachten/ })).toHaveCount(0)
 
   // Header CTA is the next step when the empty-state button is not shown.
@@ -86,13 +86,16 @@ test('the queue lists what is waiting and opens the screen where it is done', as
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
   await hydrated(page)
-  const row = page.getByRole('link', { name: /concepten om te versturen/i })
+  const row = page.getByRole('link', { name: /concepten? om te versturen/i })
   await expect(row).toBeVisible()
-  // #5 AC: the count is in the title (PM #67).
-  await expect(row).toContainText('1')
+  // #5 AC: the count is in the title (PM #67). Singular form for count 1.
+  await expect(row).toContainText('1 concept om te versturen')
   await expect(row).toContainText('Openen')
 
   // Do not steal focus on load — j/k start the cursor at row 0.
+  // Arrow keys outside the list must not enter it (keep page scroll).
+  await expect(row).not.toBeFocused()
+  await page.keyboard.press('ArrowDown')
   await expect(row).not.toBeFocused()
   await page.keyboard.press('j')
   await expect(row).toBeFocused()
@@ -135,7 +138,7 @@ test('Escape gives the keyboard back to the rest of the application', async ({ p
 
   await page.goto('/')
   await hydrated(page)
-  const row = page.getByRole('link', { name: /concepten om te versturen/i })
+  const row = page.getByRole('link', { name: /concepten? om te versturen/i })
   await page.keyboard.press('j')
   await expect(row).toBeFocused()
 
