@@ -667,8 +667,7 @@ export const en: Record<MessageKey, string> = {
   'invoiceGuided.doneTitlePdf': 'Ready for {name}',
   'invoiceGuided.doneBody':
     'Invoice {number} · {amount} · due by {due}. You will find it under Outstanding with customers.',
-  'invoiceGuided.periodHardClosed':
-    '{period} is permanently closed. Book this in an open period.',
+  'invoiceGuided.periodHardClosed': '{period} is permanently closed. Book this in an open period.',
   'invoiceGuided.periodSoftClosed':
     '{period} is provisionally closed. Only the owner or accountant can post here.',
   'invoiceGuided.another': 'Another invoice',

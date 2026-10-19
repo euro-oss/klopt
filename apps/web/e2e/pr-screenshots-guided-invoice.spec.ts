@@ -81,6 +81,8 @@ async function readyAdmin(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Hotel Zeezicht B.V.')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('87654321')
   await page.getByLabel('E-mail').fill('administratie@hotelzeezicht.nl')
   await page.getByLabel('Straat').fill('Boulevard de Ruyter')
   await page.getByLabel('Huisnr.').fill('2')
@@ -122,6 +124,11 @@ test('capture guided invoice PNGs', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Nieuwe factuur' })).toBeVisible()
   await page.locator('#cust-q').fill('Hotel')
   await expect(page.getByRole('option', { name: /Hotel Zeezicht/ })).toBeVisible()
+  // Select so the check + defaults card show; city (Vlissingen), not DEB-0001.
+  await page.getByRole('option', { name: /Hotel Zeezicht/ }).click()
+  await expect(page.getByText(/We vullen alvast in/)).toBeVisible()
+  await expect(page.getByText('Vlissingen').first()).toBeVisible()
+  await expect(page.getByText('DEB-0001')).toHaveCount(0)
   for (const dark of [false, true]) {
     await shot(page, 'step1-klant', { width: 1440, height: 900, dark })
     await shot(page, 'step1-klant', { width: 390, height: 844, dark })
@@ -135,6 +142,8 @@ test('capture guided invoice PNGs', async ({ page }) => {
   await page.getByLabel('Omschrijving regel 2').fill('Appeltaarten voor de zondagsbrunch')
   await page.getByLabel('Aantal regel 2').fill('6')
   await page.getByLabel('Prijs regel 2').fill('32,50')
+  // Ensure Totaal clears the sticky footer before the 390 shot.
+  await page.getByText('Totaal', { exact: true }).scrollIntoViewIfNeeded()
   for (const dark of [false, true]) {
     await shot(page, 'step2-wat', { width: 1440, height: 900, dark })
     await shot(page, 'step2-wat', { width: 390, height: 844, dark })

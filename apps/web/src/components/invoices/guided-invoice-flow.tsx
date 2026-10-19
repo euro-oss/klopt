@@ -167,8 +167,7 @@ export function GuidedInvoiceFlow({
       revenueAccountNumber: defaultRevenue,
     },
   ])
-  const [sendMethod, setSendMethod] = useState<GuidedSendMethod>('pdf')
-  const pdfFromMissingEmail = useRef(true)
+  const [sendMethod, setSendMethod] = useState<GuidedSendMethod>('email')
   const [confirming, setConfirming] = useState(false)
   const [phase, setPhase] = useState<FlowPhase>(
     contactsError
@@ -209,22 +208,13 @@ export function GuidedInvoiceFlow({
   )
   const termsDays = contactDetail?.paymentTermsDays ?? selected?.paymentTermsDays ?? 30
   const customerEmail = contactDetail?.email ?? selected?.email ?? null
+  // No e-mail → PDF only. Keep the user's choice once an address exists.
+  const effectiveSendMethod: GuidedSendMethod =
+    customerEmail === null || customerEmail === '' ? 'pdf' : sendMethod
 
   useEffect(() => {
     if (confirming) confirmRef.current?.focus()
   }, [confirming])
-
-  useEffect(() => {
-    if (customerEmail === null || customerEmail === '') {
-      setSendMethod('pdf')
-      pdfFromMissingEmail.current = true
-      return
-    }
-    if (pdfFromMissingEmail.current) {
-      setSendMethod('email')
-      pdfFromMissingEmail.current = false
-    }
-  }, [customerEmail])
 
   useEffect(() => {
     if (contactNumber === '') return
@@ -295,7 +285,6 @@ export function GuidedInvoiceFlow({
   }
 
   function chooseSendMethod(method: GuidedSendMethod) {
-    pdfFromMissingEmail.current = false
     setSendMethod(method)
   }
 
@@ -358,7 +347,9 @@ export function GuidedInvoiceFlow({
         kind: 'invoice',
         issueDate,
         reference: null,
-        buyerReference: null,
+        // PEPPOL-EN16931-R003: BT-10 or order reference required for UBL/send.
+        // Guided mode has no buyer-reference field; use the debtor number.
+        buyerReference: contactNumber,
         lines: draftLinesPayload(),
       },
     })
@@ -381,7 +372,13 @@ export function GuidedInvoiceFlow({
         setContactNumber(pick.number)
       }
     }
-    if (!canAdvanceFromStep(step, { contactNumber: effectiveContact, lines, sendMethod })) {
+    if (
+      !canAdvanceFromStep(step, {
+        contactNumber: effectiveContact,
+        lines,
+        sendMethod: effectiveSendMethod,
+      })
+    ) {
       if (step === 1) {
         setProblems([{ path: null, message: t('invoiceGuided.needCustomer') }])
       } else if (step === 2) {
@@ -421,7 +418,7 @@ export function GuidedInvoiceFlow({
       await navigate({ to: '/invoices/$invoiceId', params: { invoiceId: serverDraft.id } })
       return
     }
-    if (!canAdvanceFromStep(2, { contactNumber, lines, sendMethod })) {
+    if (!canAdvanceFromStep(2, { contactNumber, lines, sendMethod: effectiveSendMethod })) {
       setProblems([{ path: null, message: t('invoiceGuided.needLines') }])
       return
     }
@@ -434,7 +431,8 @@ export function GuidedInvoiceFlow({
         kind: 'invoice',
         issueDate,
         reference: null,
-        buyerReference: null,
+        // PEPPOL-EN16931-R003 — see draftForReview.
+        buyerReference: contactNumber,
         lines: draftLinesPayload(),
       },
     })
@@ -493,7 +491,7 @@ export function GuidedInvoiceFlow({
     let sent = false
 
     const sendProblems: { path: string | null; message: string }[] = []
-    if (sendMethod === 'email' && customerEmail) {
+    if (effectiveSendMethod === 'email' && customerEmail) {
       const sendResult = await sendInvoice({
         data: { invoiceId, idempotencyKey: sendKey.current },
       })
@@ -625,8 +623,7 @@ export function GuidedInvoiceFlow({
                 setQuery('')
                 setContactNumber('')
                 setProblems([])
-                setSendMethod('pdf')
-                pdfFromMissingEmail.current = true
+                setSendMethod('email')
               }}
             >
               {t('invoiceGuided.another')}
@@ -778,7 +775,10 @@ export function GuidedInvoiceFlow({
               setQuery(value)
               setActiveIndex(0)
               const next = filterCustomers(openCustomers, value)
-              if (next[0]) setContactNumber(next[0].number)
+              // Clear when the search has no match (also avoids a stale pick after
+              // the field is emptied mid-type).
+              setContactNumber(next[0]?.number ?? '')
+              if (next[0] === undefined) setContactDetail(null)
             }}
             filtered={filtered}
             activeIndex={activeIndex}
@@ -831,7 +831,11 @@ export function GuidedInvoiceFlow({
         )}
 
         {step === 4 && selected && (
-          <SendStep email={customerEmail} sendMethod={sendMethod} onSendMethod={chooseSendMethod} />
+          <SendStep
+            email={customerEmail}
+            sendMethod={effectiveSendMethod}
+            onSendMethod={chooseSendMethod}
+          />
         )}
       </div>
 
@@ -943,7 +947,7 @@ export function GuidedInvoiceFlow({
               {t('invoiceGuided.confirmTitle')}
             </h2>
             <p id={confirmDescId} className="text-muted-foreground mt-2 text-sm">
-              {sendMethod === 'email' && customerEmail
+              {effectiveSendMethod === 'email' && customerEmail
                 ? t('invoiceGuided.confirmBodyEmail', { email: customerEmail })
                 : t('invoiceGuided.confirmBodyPdf')}
             </p>
@@ -1158,11 +1162,9 @@ function LinesStep({
   onAdd: () => void
 }) {
   const { t } = useT()
-  const [issueDisplay, setIssueDisplay] = useState(() => formatDateShort(issueDate))
-
-  useEffect(() => {
-    setIssueDisplay(formatDateShort(issueDate))
-  }, [issueDate])
+  // Local draft while typing an incomplete date; falls back to the ISO prop.
+  const [issueDraft, setIssueDraft] = useState<string | null>(null)
+  const issueDisplay = issueDraft ?? formatDateShort(issueDate)
 
   return (
     <>
@@ -1180,9 +1182,12 @@ function LinesStep({
             value={issueDisplay}
             onChange={(event) => {
               const next = event.target.value
-              setIssueDisplay(next)
+              setIssueDraft(next)
               const parsed = parseDateShort(next)
-              if (parsed !== null) onIssueDate(parsed)
+              if (parsed !== null) {
+                onIssueDate(parsed)
+                setIssueDraft(null)
+              }
             }}
           />
         </div>

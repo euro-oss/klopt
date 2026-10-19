@@ -557,8 +557,7 @@ export const nl = {
   'invoiceGuided.customers': 'Klanten',
   'invoiceGuided.newCustomer': 'Nieuwe klant',
   'invoiceGuided.noAddressYet': 'Adres volgt als je die bij de relatie invult.',
-  'invoiceGuided.defaultsHint':
-    'We vullen alvast in: betalen binnen {days} dagen en {vat}.',
+  'invoiceGuided.defaultsHint': 'We vullen alvast in: betalen binnen {days} dagen en {vat}.',
   'invoiceGuided.dueDate': 'Betalen vóór',
   'invoiceGuided.dueHint': '{days} dagen, zoals afgesproken met deze klant',
   'invoiceGuided.what': 'Wat lever je?',
