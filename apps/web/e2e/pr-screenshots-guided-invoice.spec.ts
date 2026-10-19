@@ -97,17 +97,12 @@ test('capture guided invoice PNGs', async ({ page }) => {
   copyProto('invoice-4-bevestigen', '14-invoice-4-bevestigen')
   copyProto('invoice-verstuurd', '15-invoice-verstuurd')
 
-  // Empty / loading / error under the shell.
-  await page.goto('/sign-in')
-  await signIn(page, uniqueEmail())
-  await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill('Screenshot Empty BV')
-  await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
-  await hydrated(page)
+  // One administration for shell chrome + populated steps.
+  await readyAdmin(page)
 
+  // Empty / loading / error via lab (fixtures; under the real shell).
   await page.goto('/lab/guided-invoice?state=empty')
-  await expect(page.getByText('Nog geen klanten')).toBeVisible()
+  await expect(page.getByText('Nog geen klanten', { exact: true })).toBeVisible()
   for (const dark of [false, true]) {
     await shot(page, 'empty', { width: 1440, height: 900, dark })
     await shot(page, 'empty', { width: 390, height: 844, dark })
@@ -122,9 +117,6 @@ test('capture guided invoice PNGs', async ({ page }) => {
   await expect(page.getByRole('alert')).toBeVisible()
   await shot(page, 'error', { width: 1440, height: 900, dark: false })
   await shot(page, 'error', { width: 390, height: 844, dark: true })
-
-  // Populated flow states.
-  await readyAdmin(page)
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('heading', { name: 'Nieuwe factuur' })).toBeVisible()
@@ -148,6 +140,7 @@ test('capture guided invoice PNGs', async ({ page }) => {
     await shot(page, 'step2-wat', { width: 390, height: 844, dark })
   }
 
+  await page.setViewportSize({ width: 1440, height: 900 })
   await page.getByRole('button', { name: /Verder/ }).click()
   await expect(page.getByText('Stap 3 van 4')).toBeVisible()
   for (const dark of [false, true]) {
@@ -155,8 +148,10 @@ test('capture guided invoice PNGs', async ({ page }) => {
     await shot(page, 'step3-controleren', { width: 390, height: 844, dark })
   }
 
+  await page.setViewportSize({ width: 1440, height: 900 })
   await page.getByRole('button', { name: /Verder/ }).click()
   await expect(page.getByText('Stap 4 van 4')).toBeVisible()
+  await page.getByRole('button', { name: /^Versturen/ }).scrollIntoViewIfNeeded()
   await page.getByRole('button', { name: /^Versturen/ }).click()
   await expect(page.getByRole('alertdialog')).toBeVisible()
   for (const dark of [false, true]) {
@@ -164,11 +159,12 @@ test('capture guided invoice PNGs', async ({ page }) => {
     await shot(page, 'step4-bevestigen', { width: 390, height: 844, dark })
   }
 
+  await page.setViewportSize({ width: 1440, height: 900 })
   await page
     .getByRole('alertdialog')
     .getByRole('button', { name: /^Versturen/ })
     .click()
-  await expect(page.getByRole('heading', { name: /Verstuurd naar/ })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /Verstuurd naar|Klaar voor/ })).toBeVisible({
     timeout: 30_000,
   })
   for (const dark of [false, true]) {
