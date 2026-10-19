@@ -10,10 +10,10 @@ import { DATABASE_URL, signIn, uniqueEmail } from './support'
  * Run with:
  *   CAPTURE_PR_SCREENSHOTS=1 pnpm --filter @klopt/web exec playwright test e2e/pr-screenshots-import-findings.spec.ts
  *
- * Writes under docs/pr-screenshots/<pr>/ once the PR number is known; default 67.
+ * Writes under docs/pr-screenshots/<pr>/ once the PR number is known; default 69.
  */
 
-const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '67'
+const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '69'
 const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', PR)
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
 
