@@ -16,8 +16,17 @@ type PostgresSql = {
  * Versturen with the keyboard. No ledger account or VAT code is shown.
  */
 
-/** Codes and ledger numbers that must never leak into simple mode. */
+/**
+ * Sales VAT codes and revenue ledger numbers that must never leak into
+ * simple mode (PM #74 item 5 / #45 AC). VH* are purchase codes — kept so a
+ * stray purchase picker still fails the check.
+ */
 const LEAK = /\b(?:H21|L9|VERL|GEEN|NUL|ICP|ICPD|PRIV21|VH21|VH9|8000|8010)\b/
+
+async function expectNoCodes(page: Page): Promise<void> {
+  await expect(page.getByText(/journaalpost/i)).toHaveCount(0)
+  await expect(page.getByText(LEAK)).toHaveCount(0)
+}
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
@@ -102,8 +111,7 @@ test('Eigenaar finishes the guided invoice with the keyboard and never sees a le
   await expect(page.getByRole('heading', { name: 'Nieuwe factuur' })).toBeVisible()
   await expect(page.locator('#cust-q')).not.toBeFocused()
   await expect(page.getByText('Stap 1 van 4')).toBeVisible()
-  await expect(page.getByText(/journaalpost/i)).toHaveCount(0)
-  await expect(page.getByText(LEAK)).toHaveCount(0)
+  await expectNoCodes(page)
 
   // Step 1 — keyboard search selects the match; Verder advances.
   await page.locator('#cust-q').pressSequentially('Hotel', { delay: 30 })
@@ -117,7 +125,7 @@ test('Eigenaar finishes the guided invoice with the keyboard and never sees a le
   const vatSelect = page.getByLabel('Btw regel 1')
   await expect(vatSelect).toBeVisible()
   await expect(vatSelect.locator('option:checked')).toContainText(/21% btw/)
-  await expect(page.getByText(LEAK)).toHaveCount(0)
+  await expectNoCodes(page)
   // Distinct zero-rate labels, not five identical "Geen btw".
   const options = await vatSelect.locator('option').allTextContents()
   expect(options.some((label) => /verlegd/i.test(label))).toBe(true)
@@ -128,12 +136,14 @@ test('Eigenaar finishes the guided invoice with the keyboard and never sees a le
   await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 3 van 4')).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText('Wat er gebeurt')).toBeVisible()
-  await expect(page.getByText(/journaalpost/i)).toHaveCount(0)
-  await expect(page.getByText(LEAK)).toHaveCount(0)
+  // Server draft total on Controleren (60 × €4,20 + 21%).
+  await expect(page.getByText(EXPECTED_TOTAL).first()).toBeVisible()
+  await expectNoCodes(page)
 
   await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 4 van 4')).toBeVisible()
   await expect(page.getByRole('radio', { name: /Per e-mail/ })).toBeVisible()
+  await expectNoCodes(page)
 
   await page.getByRole('button', { name: /^Versturen/ }).press('Enter')
   const dialog = page.getByRole('alertdialog')
@@ -147,13 +157,17 @@ test('Eigenaar finishes the guided invoice with the keyboard and never sees a le
   await expect(dialog).toBeVisible()
   await dialog.getByRole('button', { name: /^Versturen/ }).press('Enter')
 
+  // (b)+(c) — emailed success only (not the PDF "Klaar voor" heading), with server total.
   await expect(page.getByRole('heading', { name: /Verstuurd naar Hotel Zeezicht/ })).toBeVisible({
     timeout: 45_000,
   })
+  await expect(page.getByRole('heading', { name: /Klaar voor/ })).toHaveCount(0)
   await expect(page.getByText(/Factuur \d{4}-\d+/)).toBeVisible()
   await expect(page.getByText(EXPECTED_TOTAL)).toBeVisible()
-  await expect(page.getByText(/journaalpost/i)).toHaveCount(0)
-  await waitForOutboxTo('administratie@hotelzeezicht.nl')
+  await expectNoCodes(page)
+  const delivered = await waitForOutboxTo('administratie@hotelzeezicht.nl')
+  expect(delivered).toContain('To: administratie@hotelzeezicht.nl')
+  expect(delivered).toMatch(/Factuur/i)
 })
 
 test('validation errors, Concept opslaan and the PDF path', async ({ page }) => {
@@ -187,11 +201,17 @@ test('validation errors, Concept opslaan and the PDF path', async ({ page }) => 
     'true',
   )
 
+  // (a) Concept opslaan → draft with no number allocated.
   await page.getByRole('button', { name: /Concept opslaan/ }).click()
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible({
     timeout: 15_000,
   })
   await expect(page.getByText(/Concept\./)).toBeVisible()
+  await expect(page.getByText(/Nog geen nummer/)).toBeVisible()
+  await expect(page.getByText(/Factuur \d{4}-\d+/)).toHaveCount(0)
+  // Draft detail uses Money (no € prefix); 60 × €4,20 + 21% = 30492 minor.
+  // (Detail page may show bookkeeper codes — that is not the guided flow.)
+  await expect(page.locator('[data-minor-units="30492"]').first()).toBeVisible()
 })
 
 test('PDF send path reaches Klaar voor without claiming e-mail', async ({ page }) => {
@@ -211,10 +231,13 @@ test('PDF send path reaches Klaar voor without claiming e-mail', async ({ page }
     .getByRole('alertdialog')
     .getByRole('button', { name: /^Versturen/ })
     .click()
+  // PDF path — issued but not e-mailed; must not claim Verstuurd.
   await expect(page.getByRole('heading', { name: /Klaar voor Hotel Zeezicht/ })).toBeVisible({
     timeout: 30_000,
   })
+  await expect(page.getByRole('heading', { name: /Verstuurd naar/ })).toHaveCount(0)
   await expect(page.getByText(EXPECTED_TOTAL)).toBeVisible()
+  await expectNoCodes(page)
 })
 
 test('a hard-closed period keeps the user in the flow with named copy', async ({ page }) => {
@@ -223,12 +246,10 @@ test('a hard-closed period keeps the user in the flow with named copy', async ({
 
   const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
   try {
-    // @klopt/db/testing is typed for Vitest; cast the handful of e2e helpers.
-    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
     const userId = await findUserIdByEmail(database, email)
     if (userId === null) throw new Error('missing user')
     const memberships = await membershipsFor(database, userId)
-    const entityId = memberships[0]?.entityId as string | undefined
+    const entityId = memberships[0]?.entityId
     if (entityId === undefined) throw new Error('missing entity')
 
     // Close the month that contains today's date (UTC).
@@ -239,7 +260,6 @@ test('a hard-closed period keeps the user in the flow with named copy', async ({
       `update klopt.periods set status = 'hard_closed' where entity_id = $1::uuid and sequence = $2`,
       [entityId, month],
     )
-    /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 
     await page.goto('/invoices/new')
     await page.getByRole('option', { name: /Hotel Zeezicht/ }).click()
@@ -254,6 +274,7 @@ test('a hard-closed period keeps the user in the flow with named copy', async ({
       .getByRole('button', { name: /^Versturen/ })
       .click()
 
+    // (d) Stay in the flow with named hard-closed copy; no "heropen".
     await expect(page.getByText('Stap 2 van 4')).toBeVisible({ timeout: 15_000 })
     const quarter = Math.ceil(month / 3)
     await expect(
@@ -261,6 +282,7 @@ test('a hard-closed period keeps the user in the flow with named copy', async ({
     ).toBeVisible()
     await expect(page.getByText(/heropen/i)).toHaveCount(0)
     await expect(page).toHaveURL(/\/invoices\/new/)
+    await expectNoCodes(page)
   } finally {
     await closeDatabase(database)
   }
