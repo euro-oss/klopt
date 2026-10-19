@@ -86,6 +86,8 @@ test('the queue lists what is waiting and opens the screen where it is done', as
   await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
   const row = page.getByRole('link', { name: /concepten om te versturen/i })
   await expect(row).toBeVisible()
+  // #5 AC: the count is in the title (PM #67).
+  await expect(row).toContainText('1')
   await expect(row).toContainText('Openen')
 
   // Do not steal focus on load — j/k start the cursor at row 0.

@@ -137,6 +137,8 @@ describe('honest kerncijfers copy', () => {
     expect(en['dash.figure.receivables']).not.toMatch(/Still to receive/)
     expect(nl['queue.empty']).toBe('Niets wacht op je')
     expect(nl['queue.emptyAction']).toBe('Nieuwe factuur')
+    expect(nl['dash.figure.payablesHint']).toBe('{count} leveranciers')
+    expect(en['dash.figure.payablesHint']).toBe('{count} suppliers')
     // Bank body must not invent a suggestion count.
     expect(nl['queue.bankUnmatchedBody']).not.toMatch(/\d/)
     expect(en['queue.bankUnmatchedBody']).not.toMatch(/\d/)

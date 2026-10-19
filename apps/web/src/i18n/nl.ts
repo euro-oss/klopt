@@ -191,6 +191,7 @@ export const nl = {
   'dash.figures': 'Kerncijfers',
   'dash.figure.bank': 'Op de bank',
   'dash.figure.bankEmpty': 'Nog geen bankrekening',
+  'dash.figure.bankNoStatement': 'Nog geen afschrift',
   'dash.figure.bankHint': '{name} ··· {iban} · {date}',
   'dash.figure.bankHintNoDate': '{name} ··· {iban}',
   // Overdue outstanding only — full open AR has no aggregate yet (#61 follow-up).
@@ -198,7 +199,7 @@ export const nl = {
   'dash.figure.receivablesHint': '{count} facturen te laat',
   'dash.figure.receivablesEmpty': 'Niets te laat',
   'dash.figure.payables': 'Nog te betalen',
-  'dash.figure.payablesHint': '{count} facturen',
+  'dash.figure.payablesHint': '{count} leveranciers',
   'dash.figure.payablesEmpty': 'Niets open',
   'dash.figure.profit': 'Winst dit jaar',
   'dash.figure.loss': 'Verlies dit jaar',

@@ -339,9 +339,10 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
   const { t } = useT()
   const bank = figures.bank
   const receivablesLate = figures.receivables.overdueCount > 0
-  const profit = BigInt(figures.profit.result)
+  const profitResult = figures.profit.result
+  const profit = profitResult === null ? null : BigInt(profitResult)
   const prior = figures.profit.priorResult === null ? null : BigInt(figures.profit.priorResult)
-  const delta = prior === null ? null : profit - prior
+  const delta = profit === null || prior === null ? null : profit - prior
 
   return (
     <section
@@ -350,20 +351,22 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
     >
       <FigureTile
         label={t('dash.figure.bank')}
-        value={bank === null ? '—' : <EuroAmount amount={bank.balance} />}
+        value={bank === null || bank.balance === null ? '—' : <EuroAmount amount={bank.balance} />}
         hint={
           bank === null
             ? t('dash.figure.bankEmpty')
-            : bank.statementDate === null
-              ? t('dash.figure.bankHintNoDate', {
-                  name: bank.name,
-                  iban: ibanTail(bank.iban),
-                })
-              : t('dash.figure.bankHint', {
-                  name: bank.name,
-                  iban: ibanTail(bank.iban),
-                  date: dayMonthLabel(bank.statementDate, t),
-                })
+            : bank.balance === null
+              ? t('dash.figure.bankNoStatement')
+              : bank.statementDate === null
+                ? t('dash.figure.bankHintNoDate', {
+                    name: bank.name,
+                    iban: ibanTail(bank.iban),
+                  })
+                : t('dash.figure.bankHint', {
+                    name: bank.name,
+                    iban: ibanTail(bank.iban),
+                    date: dayMonthLabel(bank.statementDate, t),
+                  })
         }
       />
       <FigureTile
@@ -388,16 +391,18 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
         }
       />
       <FigureTile
-        label={profit < 0n ? t('dash.figure.loss') : t('dash.figure.profit')}
-        value={<EuroAmount amount={figures.profit.result} />}
+        label={profit !== null && profit < 0n ? t('dash.figure.loss') : t('dash.figure.profit')}
+        value={profitResult === null ? '—' : <EuroAmount amount={profitResult} />}
         hint={
-          delta === null
+          profit === null
             ? t('dash.figure.profitNoPrior', { year: yearCode })
-            : delta === 0n
-              ? t('dash.figure.profitFlat')
-              : delta > 0n
-                ? t('dash.figure.profitUp', { amount: formatMinorUnits(delta) })
-                : t('dash.figure.profitDown', { amount: formatMinorUnits(-delta) })
+            : delta === null
+              ? t('dash.figure.profitNoPrior', { year: yearCode })
+              : delta === 0n
+                ? t('dash.figure.profitFlat')
+                : delta > 0n
+                  ? t('dash.figure.profitUp', { amount: formatMinorUnits(delta) })
+                  : t('dash.figure.profitDown', { amount: formatMinorUnits(-delta) })
         }
       />
     </section>
@@ -798,9 +803,13 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
                   <span className="block text-sm font-medium">{copy.title}</span>
                   <span className="text-muted-foreground block text-sm">{copy.body}</span>
                 </span>
-                {item.amount !== null && item.kind !== 'sales.overdue' && (
-                  <Money amount={item.amount} className="text-sm" />
-                )}
+                {item.amount !== null &&
+                  (item.kind !== 'sales.overdue' || item.count > 1) &&
+                  item.kind !== 'vat.filing' && (
+                    <span className="text-sm tabular">
+                      <EuroAmount amount={item.amount} />
+                    </span>
+                  )}
                 <span className="text-muted-foreground group-hover:text-foreground hidden text-sm sm:inline">
                   {copy.action}
                 </span>

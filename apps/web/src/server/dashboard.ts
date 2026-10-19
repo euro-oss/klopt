@@ -35,7 +35,8 @@ const SCAN_LIMIT = 1000
 
 export interface DashboardFigures {
   readonly bank: {
-    readonly balance: string
+    /** `null` when the account has no imported statement yet — render "—". */
+    readonly balance: string | null
     readonly name: string
     readonly iban: string
     readonly statementDate: string | null
@@ -55,7 +56,8 @@ export interface DashboardFigures {
     readonly count: number
   }
   readonly profit: {
-    readonly result: string
+    /** `null` when the P&L read failed — render "—", not € 0,00. */
+    readonly result: string | null
     readonly priorResult: string | null
   }
 }
@@ -201,7 +203,8 @@ async function loadDashboard(
       primaryBank === null
         ? null
         : {
-            balance: primaryBank.reconciliation.statementBalance ?? '0',
+            // No statement yet → no balance. Do not invent € 0,00 (PM #67).
+            balance: primaryBank.reconciliation.statementBalance,
             name: primaryBank.name,
             iban: primaryBank.iban,
             statementDate: primaryBank.reconciliation.statementDate,
@@ -216,7 +219,8 @@ async function loadDashboard(
       count: payables?.body.buckets.length ?? 0,
     },
     profit: {
-      result: profit?.body.result ?? '0',
+      // A failed P&L read is not € 0,00 — leave the figure absent (PM #67).
+      result: profit?.body.result ?? null,
       priorResult: priorProfit?.body.result ?? null,
     },
   }
