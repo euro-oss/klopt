@@ -199,6 +199,7 @@ test('a payment is booked by confirming the candidate, not by trusting the top o
     }),
   ).toBeFocused()
   await expect(page.getByText('Gekoppeld: Grote Klant N.V.')).toHaveCount(0)
+  await expect(page.getByText('Geboekt als boeking')).toHaveCount(0)
 
   await page.keyboard.press('Enter')
   await expect(page.getByText('Gekoppeld: Grote Klant N.V.')).toBeVisible()
@@ -228,6 +229,7 @@ test('the keys the match screen prints are the keys it answers to', async ({ pag
   await expect(rows).toHaveCount(4)
   await page.keyboard.press('1')
   await expect(page.getByText(/^Gekoppeld:/)).toHaveCount(0)
+  await expect(page.getByText('Geboekt als boeking')).toHaveCount(0)
   await expect(rows).toHaveCount(4)
 })
 
@@ -306,6 +308,7 @@ test('a hard-closed period names itself and blocks booking', async ({ page }) =>
   await page.keyboard.press('Enter')
   await expect(queueRows(page)).toHaveCount(before)
   await expect(page.getByText(/^Gekoppeld:/)).toHaveCount(0)
+  await expect(page.getByText('Geboekt als boeking')).toHaveCount(0)
 })
 
 test('soft-closed: bookkeeper is blocked without a link; owner sees Naar Boekjaren', async ({

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { planFiscalYear } from '@klopt/core'
 import {
   absoluteMinor,
   confidenceTone,
@@ -145,6 +146,10 @@ describe('bank-match period locks', () => {
     expect(lock?.kind).toBe('year')
     expect(formatPeriodLabel(lock!, 'nl-NL', yearName, years)).toBe('boekjaar 2025')
     expect(sentencePeriodLabel(years, { fiscalYear: '2025', period: '12' })).toBe('Boekjaar 2025')
+    expect(formatPeriodLabel(lock!, 'en-GB', yearName, years)).toBe('fiscal year 2025')
+    expect(sentencePeriodLabel(years, { fiscalYear: '2025', period: '12' }, 'en-GB')).toBe(
+      'Fiscal year 2025',
+    )
   })
 
   it('derives a lock from confirmMatch violation detail', () => {
@@ -176,6 +181,7 @@ describe('bank-match period locks', () => {
     })
     expect(formatPeriodLabel(lock, 'nl-NL', yearName, [])).toBe('Periode 9 van boekjaar 2026')
     expect(periodLabel([], { fiscalYear: '2026', period: '9' })).toBe('Periode 9 van boekjaar 2026')
+    expect(formatPeriodLabel(lock, 'en-GB', yearName, [])).toBe('Period 9 of fiscal year 2026')
   })
 
   it('still returns a lock when violation detail is missing', () => {
@@ -183,6 +189,44 @@ describe('bank-match period locks', () => {
     expect(lock.kind).toBe('sequence')
     expect(periodLabel(years, undefined)).toBe('deze periode')
     expect(sentencePeriodLabel(years, undefined)).toBe('Deze periode')
+    expect(periodLabel(years, undefined, 'en-GB')).toBe('this period')
+  })
+
+  it('uses calendar year of period start for July-start FY quarters', () => {
+    const layout = planFiscalYear('2026', 7)
+    const julyYears: readonly FiscalYearWithPeriods[] = [
+      {
+        code: layout.code,
+        startsOn: layout.startsOn,
+        endsOn: layout.endsOn,
+        status: 'open',
+        periods: layout.periods.map((row) => ({
+          ...row,
+          status: row.sequence >= 7 && row.sequence <= 9 ? 'hard_closed' : 'open',
+        })),
+      },
+    ]
+    const lock = periodLockForDate(julyYears, '2027-03-15')
+    expect(lock).toMatchObject({ kind: 'quarter', fiscalYear: '2026', period: 9 })
+    expect(formatPeriodLabel(lock!, 'nl-NL', yearName, julyYears)).toBe('Q1 2027')
+    expect(formatPeriodLabel(lock!, 'en-GB', yearName)).toBe('Q1 2027')
+  })
+
+  it('keeps month kind when a quarter mixes soft- and hard-closed', () => {
+    const mixed: readonly FiscalYearWithPeriods[] = [
+      {
+        ...years[0]!,
+        periods: years[0]!.periods.map((row) => {
+          if (row.sequence === 7 || row.sequence === 8) return { ...row, status: 'soft_closed' }
+          if (row.sequence === 9) return { ...row, status: 'hard_closed' }
+          return row
+        }),
+      },
+      years[1]!,
+    ]
+    const lock = periodLockForDate(mixed, '2026-09-15')
+    expect(lock).toMatchObject({ kind: 'month', status: 'hard_closed' })
+    expect(formatPeriodLabel(lock!, 'nl-NL', yearName, mixed)).toBe('september 2026')
   })
 })
 

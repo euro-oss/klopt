@@ -153,8 +153,20 @@ export function formatPeriodLabel(
   if (lock.kind === 'quarter') {
     const month = Number(lock.startsOn.slice(5, 7))
     const quarter = Number.isFinite(month) && month >= 1 ? Math.floor((month - 1) / 3) + 1 : 1
-    const year = lock.fiscalYear.trim()
-    return year === '' ? periodLabel(null, null, locale) : `Q${String(quarter)} ${year}`
+    // Calendar year of the period start — not the fiscal-year code (July-start
+    // FY 2026 period 9 is Jan–Mar 2027 → Q1 2027).
+    const calendarYear = lock.startsOn.slice(0, 4)
+    if (!/^\d{4}$/.test(calendarYear)) {
+      return periodLabel(
+        null,
+        {
+          fiscalYear: lock.fiscalYear,
+          period: lock.period > 0 ? String(lock.period) : '',
+        },
+        locale,
+      )
+    }
+    return `Q${String(quarter)} ${calendarYear}`
   }
   const parsed = parseIsoDate(lock.startsOn)
   if (parsed === null) {
@@ -244,7 +256,8 @@ export function isBookingBlocked(lock: PeriodLock | null, canPostClosed: boolean
 
 /**
  * Prefer "quarter" when the whole calendar quarter sharing this period is
- * closed; otherwise name the month. Year locks are handled above.
+ * closed with the *same* lock kind (all hard or all soft). Mixed soft/hard
+ * months stay `month` so copy does not overstate. Year locks are above.
  */
 function lockKind(
   year: FiscalYearWithPeriods,
@@ -258,13 +271,11 @@ function lockKind(
     const m = Number(row.startsOn.slice(5, 7))
     return quarterMonths.includes(m)
   })
-  if (
-    quarterPeriods.length === 3 &&
-    quarterPeriods.every((row) => row.status === 'hard_closed' || row.status === 'soft_closed')
-  ) {
-    return 'quarter'
-  }
-  return 'month'
+  if (quarterPeriods.length !== 3) return 'month'
+  const status = quarterPeriods[0]!.status
+  if (status !== 'hard_closed' && status !== 'soft_closed') return 'month'
+  if (!quarterPeriods.every((row) => row.status === status)) return 'month'
+  return 'quarter'
 }
 
 /** Violation codes that mean "this booking date is locked". */
@@ -285,10 +296,6 @@ export function periodLockFromViolation(
   code: string,
   detail: Readonly<Record<string, string>> | undefined,
 ): PeriodLock {
-  // Resolve the shared label first so blank / "Q4 " / "-" cannot slip through
-  // a parallel formatting path in book() / lockCopy.
-  void periodLabel(years, detail)
-
   const fiscalYear = (detail?.['fiscalYear'] ?? detail?.['year'] ?? '').trim()
   const periodRaw = (detail?.['period'] ?? '').trim()
   const sequence = periodRaw === '' ? 0 : Number(periodRaw)

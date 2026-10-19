@@ -234,14 +234,25 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
       }
 
       // Two candidates: reference 99% + IBAN/amount when the contact has the
-      // bank line's IBAN (desktop panel).
+      // bank line's IBAN (desktop panel). Require both so we never re-pin a
+      // queue duplicate.
       if (label === 'desktop-1440') {
         await selectPaymentRow(page)
         const options = page.locator('[role="option"]')
-        if ((await options.count()) >= 2) {
-          await shoot(page, `two-candidates-${theme}-${label}.png`)
-        }
+        await expect(options).toHaveCount(2, { timeout: 10_000 })
+        await expect(page.getByText('Welke hoort erbij?').locator('visible=true')).toBeVisible()
+        await expect(page.getByText('Zeker').locator('visible=true')).toHaveCount(2)
+        await shoot(page, `two-candidates-${theme}-${label}.png`)
       }
+
+      // Hard-closed: named lock, no Boeken / Naar Boekjaren.
+      await setMarchStatus(entityName, 'hard_closed')
+      await openMatch(page)
+      await setTheme(page, theme)
+      await ensurePanelVisible(page)
+      await expect(page.getByText(/definitief afgesloten/).locator('visible=true')).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Naar Boekjaren' })).toHaveCount(0)
+      await shoot(page, `locked-hard-${theme}-${label}.png`)
 
       // Owner soft-closed notice + Naar Boekjaren.
       await setMarchStatus(entityName, 'soft_closed')

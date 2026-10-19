@@ -267,7 +267,7 @@ export const nl = {
   'fiscalYears.firstDay': 'Eerste dag',
   'fiscalYears.lastDay': 'Laatste dag',
   'fiscalYears.period.open': 'open',
-  'fiscalYears.period.softClosed': 'zacht gesloten',
+  'fiscalYears.period.softClosed': 'voorlopig afgesloten',
   'fiscalYears.period.hardClosed': 'hard gesloten',
   'fiscalYears.openTitle': 'Volgend boekjaar openen',
   'fiscalYears.openBody':
@@ -799,6 +799,11 @@ export const nl = {
   'match.period.softClosedNotice': '{period} is voorlopig afgesloten. Je kunt hier nog in boeken.',
   'match.period.fallsIn': '{date} valt in {period}.',
   'match.period.toFiscalYears': 'Naar Boekjaren',
+  // Shared period-label helper (#73 / #74) — keep EN keys in parity.
+  'periodLabel.fiscalYear': 'boekjaar {year}',
+  'periodLabel.sequenceOfYear': 'Periode {period} van boekjaar {year}',
+  'periodLabel.sequence': 'Periode {period}',
+  'periodLabel.thisPeriod': 'deze periode',
   'match.panelClose': 'Sluiten',
   'match.panelLabel': 'Bankregel',
   'match.strategy.reference': 'factuurnummer',
@@ -910,7 +915,7 @@ export const nl = {
     'Deze toelichting wordt bij de aangifte bewaard en hoort bij het dossier van deze periode.',
   'vatReturn.fileAndClose': 'Aangifte indienen en periode vastzetten',
   'vatReturn.fileNote':
-    'Indienen zet de perioden in deze aangifte op zacht afgesloten. Alleen de accountant kan er daarna nog in boeken, en zo’n correctie vraagt een suppletie.',
+    'Indienen zet de perioden in deze aangifte op voorlopig afgesloten. Alleen de accountant kan er daarna nog in boeken, en zo’n correctie vraagt een suppletie.',
   'vatReturn.transport.manual': 'Zelf indienen via Mijn Belastingdienst Zakelijk',
   'vatReturn.transport.digipoort': 'Digipoort (eigen certificaat)',
   'vatReturn.transport.sbr_provider': 'Via een SBR-dienstverlener',
@@ -1653,7 +1658,7 @@ export const nl = {
   'members.role.bookkeeper': 'Boekhouder',
   'members.role.bookkeeperHint': 'Boeken en inrichten. Geen jaarafsluiting.',
   'members.role.accountant': 'Accountant',
-  'members.role.accountantHint': 'Ook boeken in een zachtgesloten periode, en afsluiten.',
+  'members.role.accountantHint': 'Ook boeken in een voorlopig afgesloten periode, en afsluiten.',
   'members.role.auditor': 'Controleur',
   'members.role.auditorHint': 'Alleen lezen en exporteren.',
 
@@ -2000,7 +2005,7 @@ export const nl = {
   'violation.period_hard_closed':
     'Periode {fiscalYear}-{period} is afgesloten. Boek in een open periode.',
   'violation.period_soft_closed':
-    'Periode {fiscalYear}-{period} is zacht afgesloten. Alleen de eigenaar of accountant kan hierin boeken.',
+    'Periode {fiscalYear}-{period} is voorlopig afgesloten. Alleen de eigenaar of accountant kan hierin boeken.',
   'violation.reversal_target_already_reversed':
     'Post {reversesEntryId} is al gestorneerd door {reversedBy}.',
   'violation.reversal_target_not_found': 'Geen post {reversesEntryId} om te storneren.',

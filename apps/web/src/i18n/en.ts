@@ -341,7 +341,7 @@ export const en: Record<MessageKey, string> = {
   'fiscalYears.firstDay': 'First day',
   'fiscalYears.lastDay': 'Last day',
   'fiscalYears.period.open': 'open',
-  'fiscalYears.period.softClosed': 'soft-closed',
+  'fiscalYears.period.softClosed': 'provisionally closed',
   'fiscalYears.period.hardClosed': 'hard-closed',
   'fiscalYears.openTitle': 'Open the next book year',
   'fiscalYears.openBody':
@@ -863,6 +863,11 @@ export const en: Record<MessageKey, string> = {
   'match.period.softClosedNotice': '{period} is provisionally closed. You can still post here.',
   'match.period.fallsIn': '{date} falls in {period}.',
   'match.period.toFiscalYears': 'Go to Fiscal years',
+  // Shared period-label helper (#73 / #74) — keep NL keys in parity.
+  'periodLabel.fiscalYear': 'fiscal year {year}',
+  'periodLabel.sequenceOfYear': 'Period {period} of fiscal year {year}',
+  'periodLabel.sequence': 'Period {period}',
+  'periodLabel.thisPeriod': 'this period',
   'match.panelClose': 'Close',
   'match.panelLabel': 'Bank line',
   'match.strategy.reference': 'invoice number',
@@ -973,7 +978,7 @@ export const en: Record<MessageKey, string> = {
     "This explanation is kept with the return and belongs to this period's file.",
   'vatReturn.fileAndClose': 'File the return and close the period',
   'vatReturn.fileNote':
-    'Filing sets the periods in this return to soft-closed. Only the accountant can post into them afterwards, and such a correction calls for a supplementary return.',
+    'Filing sets the periods in this return to provisionally closed. Only the accountant can post into them afterwards, and such a correction calls for a supplementary return.',
   'vatReturn.transport.manual': 'File it yourself via Mijn Belastingdienst Zakelijk',
   'vatReturn.transport.digipoort': 'Digipoort (your own certificate)',
   'vatReturn.transport.sbr_provider': 'Through an SBR provider',
@@ -1607,7 +1612,7 @@ export const en: Record<MessageKey, string> = {
   'members.role.bookkeeper': 'Bookkeeper',
   'members.role.bookkeeperHint': 'Posting and setting up. No year close.',
   'members.role.accountant': 'Accountant',
-  'members.role.accountantHint': 'Also posting into a soft-closed period, and closing.',
+  'members.role.accountantHint': 'Also posting into a provisionally closed period, and closing.',
   'members.role.auditor': 'Auditor',
   'members.role.auditorHint': 'Reading and exporting only.',
 

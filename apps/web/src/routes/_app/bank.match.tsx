@@ -603,7 +603,10 @@ function MatchQueue() {
                           }
                         }}
                         className={cn(
-                          'cursor-pointer transition-opacity duration-200 focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
+                          // `group` so sticky cells can paint the same inset ring
+                          // above their opaque background (otherwise they cover
+                          // the row outline over Datum when the table scrolls).
+                          'group cursor-pointer transition-opacity duration-200 focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
                           sel && 'bg-muted',
                           !sel && 'hover:bg-muted/60',
                           flashing && 'bg-success/15',
@@ -614,6 +617,10 @@ function MatchQueue() {
                             'sticky left-0 z-10 border-l-[3px] px-3 py-3 font-medium md:whitespace-nowrap',
                             sel ? 'border-l-accent bg-muted' : 'border-l-transparent bg-background',
                             sel && 'bg-muted',
+                            // Left + top/bottom ring segments on the sticky cell —
+                            // same inset as the row's -outline-offset-4 / outline-2
+                            // so the focus ring stays continuous over Datum.
+                            'group-focus-visible:shadow-[inset_4px_0_0_-2px_var(--ring),inset_0_4px_0_-2px_var(--ring),inset_0_-4px_0_-2px_var(--ring)]',
                           )}
                         >
                           {lineTitle(item, t)}
