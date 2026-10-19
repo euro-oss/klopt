@@ -1466,9 +1466,7 @@ function ReviewStep({
             const lineNet = multiplyByDecimal(price, line.quantity === '' ? '0' : line.quantity)
             return (
               <li key={index} className="border-b border-black/10 pb-2">
-                <p className="break-normal hyphens-auto" lang="nl">
-                  {line.description}
-                </p>
+                <p className="break-normal wrap-anywhere">{line.description}</p>
                 <div className="mt-0.5 flex justify-between gap-3">
                   <span className="whitespace-nowrap tabular-nums">
                     {line.quantity}
@@ -1508,9 +1506,7 @@ function ReviewStep({
               const lineNet = multiplyByDecimal(price, line.quantity === '' ? '0' : line.quantity)
               return (
                 <tr key={index} className="border-b border-black/10">
-                  <td className="py-1.5 pr-2 break-normal hyphens-auto" lang="nl">
-                    {line.description}
-                  </td>
+                  <td className="py-1.5 pr-2 break-normal wrap-anywhere">{line.description}</td>
                   <td className="pl-3 text-right whitespace-nowrap tabular-nums">
                     {line.quantity}
                   </td>
