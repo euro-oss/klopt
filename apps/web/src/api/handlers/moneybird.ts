@@ -593,6 +593,8 @@ function serialisePlan(plan: MoneybirdImportPlan, functionalCurrency: string) {
       mappedCode: rate.mappedCode,
       mapped: rate.mapped,
       used: rate.used,
+      /** Primary (standard) first, then verlegd / ICP / invoer — for the btw picker (#70). */
+      candidates: rate.candidates,
     })),
     contacts: {
       count: plan.contacts.length,

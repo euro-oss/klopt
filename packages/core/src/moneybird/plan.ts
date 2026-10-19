@@ -2,7 +2,7 @@ import { renderFindingMessage, type FindingMessageKey } from '../finding-message
 import type { AccountType, JournalLineInput } from '../ledger/types.js'
 import type { MoneybirdAdministration } from '../ports/moneybird.js'
 import { applyFxToLines, type FxRateChoice } from './fx.js'
-import { matchVatCodes, nextFreeNumber } from './account-ranker.js'
+import { matchVatCodes, nextFreeNumber, rankVatCodes } from './account-ranker.js'
 import {
   classifyAccount,
   contactName,
@@ -97,6 +97,10 @@ export interface ExistingTaxRule {
   readonly code: string
   readonly rateBasisPoints: number
   readonly direction: 'input' | 'output'
+  /** Optional chart metadata for primary/other ranking (#70). */
+  readonly scope?: string
+  readonly reverseCharge?: string
+  readonly deductionCode?: string | null
 }
 
 /**
@@ -167,6 +171,12 @@ export interface MoneybirdPlannedAccount {
   readonly proposedNumber: string
 }
 
+export interface MoneybirdVatCandidate {
+  readonly code: string
+  /** Plain domestic standard first; verlegd / ICP / invoer / … under other. */
+  readonly group: 'primary' | 'other'
+}
+
 export interface MoneybirdPlannedTaxRate {
   readonly moneybirdId: string
   readonly name: string
@@ -176,6 +186,11 @@ export interface MoneybirdPlannedTaxRate {
   readonly mappedCode: string | null
   readonly mapped: boolean
   readonly used: boolean
+  /**
+   * Chart codes compatible with this Moneybird rate, primary (standard) first.
+   * Additive for the btw picker (#70); finding contract unchanged.
+   */
+  readonly candidates: readonly MoneybirdVatCandidate[]
 }
 
 export interface MoneybirdPlannedContact {
@@ -356,16 +371,25 @@ function taxFromPercent(net: bigint, percent: number): bigint {
 }
 
 /**
- * Suggest a Klopt VAT code only when direction and rate are known and exactly
- * one chart rule matches. Ambiguous 0% sales (VERL / GEEN / NUL / ICP / ICPD),
- * unknown direction, and empty / non-numeric rates stay unmapped (#70).
+ * Suggest a Klopt VAT code only when exactly one *primary* (plain domestic
+ * standard) chart rule matches — e.g. H21 / VH21 / L9 / VL9. Verlegd, ICP and
+ * invoer stay secondary. Ambiguous 0% sales (all `other`) stay unmapped (#70).
  */
 function proposeTaxCode(rate: MoneybirdTaxRate, rules: readonly ExistingTaxRule[]): string | null {
-  const matches = matchVatCodes(rules, {
+  return rankVatCodes(rules, {
     percentage: rate.percentage,
     taxRateType: rate.taxRateType,
-  })
-  return matches.length === 1 ? (matches[0]?.code ?? null) : null
+  }).suggestedCode
+}
+
+function vatCandidatesFor(
+  rate: MoneybirdTaxRate,
+  rules: readonly ExistingTaxRule[],
+): readonly MoneybirdVatCandidate[] {
+  return rankVatCodes(rules, {
+    percentage: rate.percentage,
+    taxRateType: rate.taxRateType,
+  }).candidates.map((entry) => ({ code: entry.rule.code, group: entry.group }))
 }
 
 /** True when a confirmed mapping is direction- and rate-compatible with the chart. */
@@ -561,6 +585,7 @@ export function planMoneybirdImport(
 
   const taxRates: MoneybirdPlannedTaxRate[] = snapshot.taxRates.map((rate) => {
     const proposed = proposeTaxCode(rate, options.existingTaxRules)
+    const candidates = vatCandidatesFor(rate, options.existingTaxRules)
     const confirmedRaw = options.confirmedTaxMappings[rate.id]?.trim() || null
     const used = usedTaxRateIds.has(rate.id)
 
@@ -612,6 +637,7 @@ export function planMoneybirdImport(
       mappedCode: mapped ? mappedCode : null,
       mapped,
       used,
+      candidates,
     }
   })
 

@@ -7724,6 +7724,27 @@
                 },
                 "used": {
                   "type": "boolean"
+                },
+                "candidates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "string"
+                      },
+                      "group": {
+                        "enum": [
+                          "primary",
+                          "other"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "group"
+                    ]
+                  }
                 }
               },
               "required": [
@@ -7734,7 +7755,8 @@
                 "proposedCode",
                 "mappedCode",
                 "mapped",
-                "used"
+                "used",
+                "candidates"
               ]
             }
           },

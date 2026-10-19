@@ -17565,7 +17565,7 @@
     "/api/v1/moneybird/import/preview": {
       "get": {
         "operationId": "moneybird.previewImport",
-        "summary": "What importing the chosen Moneybird administration would bring across, including booked history, without posting. VAT mappings that disagree with chart direction or rate surface as `incompatible_tax_rate`; ambiguous 0% sales rates are never auto-suggested.",
+        "summary": "What importing the chosen Moneybird administration would bring across, including booked history, without posting. VAT mappings that disagree with chart direction or rate surface as `incompatible_tax_rate`. Each tax rate includes `candidates` grouped `primary` (plain domestic standard) then `other` (verlegd / ICP / invoer / …); only a unique primary is auto-suggested — never for ambiguous 0% sales.",
         "tags": [
           "moneybird"
         ],
@@ -17798,6 +17798,27 @@
                           },
                           "used": {
                             "type": "boolean"
+                          },
+                          "candidates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "code": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "enum": [
+                                    "primary",
+                                    "other"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "code",
+                                "group"
+                              ]
+                            }
                           }
                         },
                         "required": [
@@ -17808,7 +17829,8 @@
                           "proposedCode",
                           "mappedCode",
                           "mapped",
-                          "used"
+                          "used",
+                          "candidates"
                         ]
                       }
                     },

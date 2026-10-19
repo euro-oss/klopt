@@ -4,6 +4,7 @@ import {
   matchVatCodes,
   nextFreeNumber,
   rankAccountSuggestions,
+  rankVatCodes,
 } from '../../src/index.js'
 
 const chart = [
@@ -85,6 +86,34 @@ describe('matchVatCodes', () => {
     expect(
       matchVatCodes(rules, { percentage: Number.POSITIVE_INFINITY, taxRateType: 'sales_invoice' }),
     ).toEqual([])
+  })
+
+  it('ranks the plain standard code primary and suggests it when unique', () => {
+    const ranked = rankVatCodes(
+      [
+        ...rules,
+        {
+          code: 'PRIV21',
+          rateBasisPoints: 2100,
+          direction: 'output',
+          scope: 'private_use',
+          reverseCharge: 'none',
+        },
+        {
+          code: 'VERL-ONTV',
+          rateBasisPoints: 2100,
+          direction: 'input',
+          scope: 'domestic',
+          reverseCharge: 'domestic',
+          deductionCode: 'VERL-VOOR',
+        },
+      ],
+      { percentage: 21, taxRateType: 'sales_invoice' },
+    )
+    expect(ranked.primary.map((rule) => rule.code)).toEqual(['H21'])
+    expect(ranked.other.map((rule) => rule.code)).toEqual(['PRIV21'])
+    expect(ranked.suggestedCode).toBe('H21')
+    expect(ranked.candidates.map((row) => row.group)).toEqual(['primary', 'other'])
   })
 })
 

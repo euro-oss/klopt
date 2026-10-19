@@ -1372,7 +1372,7 @@ export const moneybirdOperations: Readonly<Record<string, OperationDefinition>> 
     kind: 'read',
     permission: 'ledger:import',
     summary:
-      'What importing the chosen Moneybird administration would bring across, including booked history, without posting. VAT mappings that disagree with chart direction or rate surface as `incompatible_tax_rate`; ambiguous 0% sales rates are never auto-suggested.',
+      'What importing the chosen Moneybird administration would bring across, including booked history, without posting. VAT mappings that disagree with chart direction or rate surface as `incompatible_tax_rate`. Each tax rate includes `candidates` grouped `primary` (plain domestic standard) then `other` (verlegd / ICP / invoer / …); only a unique primary is auto-suggested — never for ambiguous 0% sales.',
     agentExposure: 'read',
     idempotent: true,
   }),

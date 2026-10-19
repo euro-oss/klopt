@@ -1,12 +1,44 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   mayClaimReconciled,
   planMoneybirdImport,
   parseAdministration,
   parseTaxRate,
+  type ExistingTaxRule,
   type MoneybirdImportOptions,
 } from '../../src/index.js'
+import { loadChart } from '../../src/setup/chart.js'
 import { snapshot, snapshotV2 } from './fixture.js'
+
+const NL_MKB = loadChart(
+  JSON.parse(
+    readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        '..',
+        '..',
+        '..',
+        '..',
+        'reference-data',
+        'charts',
+        'nl-mkb.json',
+      ),
+      'utf8',
+    ),
+  ),
+)
+
+const nlMkbTaxRules: readonly ExistingTaxRule[] = NL_MKB.taxCodes.map((code) => ({
+  code: code.code,
+  rateBasisPoints: code.rateBasisPoints,
+  direction: code.direction,
+  scope: code.scope,
+  reverseCharge: code.reverseCharge,
+  deductionCode: code.deductionCode,
+}))
 
 const options = (overrides: Partial<MoneybirdImportOptions> = {}): MoneybirdImportOptions => ({
   entityId: 'entity-1',
@@ -708,5 +740,135 @@ describe('VAT mapping direction and rate (#70)', () => {
       mappedCode: 'VH21',
     })
     expect(plan.problems.map((item) => item.code)).not.toContain('incompatible_tax_rate')
+  })
+})
+
+describe('VAT ranking against the full nl-mkb chart (#70)', () => {
+  it('loads every tax code from nl-mkb (not a subset)', () => {
+    expect(nlMkbTaxRules.length).toBe(NL_MKB.taxCodes.length)
+    expect(nlMkbTaxRules.length).toBeGreaterThanOrEqual(16)
+    expect(nlMkbTaxRules.map((rule) => rule.code)).toEqual(
+      expect.arrayContaining([
+        'H21',
+        'L9',
+        'VH21',
+        'VL9',
+        'VERL',
+        'GEEN',
+        'NUL',
+        'ICP',
+        'ICPD',
+        'VERL-ONTV',
+        'ICV21',
+        'INV23',
+      ]),
+    )
+  })
+
+  it('preselects H21 for 21% sales and ranks PRIV21 under other', () => {
+    const plan = planMoneybirdImport(snapshot(), options({ existingTaxRules: nlMkbTaxRules }))
+    const sales = plan.taxRates.find((rate) => rate.moneybirdId === '21')
+    expect(sales?.proposedCode).toBe('H21')
+    expect(
+      sales?.candidates.filter((row) => row.group === 'primary').map((row) => row.code),
+    ).toEqual(['H21'])
+    expect(sales?.candidates.filter((row) => row.group === 'other').map((row) => row.code)).toEqual(
+      ['PRIV21'],
+    )
+    expect(sales?.candidates[0]).toEqual({ code: 'H21', group: 'primary' })
+  })
+
+  it('preselects VH21 for 21% purchase; verlegd / ICP / invoer are other', () => {
+    const plan = planMoneybirdImport(snapshot(), options({ existingTaxRules: nlMkbTaxRules }))
+    const purchase = plan.taxRates.find((rate) => rate.moneybirdId === '22')
+    expect(purchase?.proposedCode).toBe('VH21')
+    expect(
+      purchase?.candidates.filter((row) => row.group === 'primary').map((row) => row.code),
+    ).toEqual(['VH21'])
+    const other = purchase?.candidates.filter((row) => row.group === 'other').map((row) => row.code)
+    expect(other).toEqual(
+      expect.arrayContaining([
+        'VERL-ONTV',
+        'VERL-VOOR',
+        'ICV21',
+        'ICV21-VOOR',
+        'INV23',
+        'INV23-VOOR',
+      ]),
+    )
+    expect(other).not.toContain('VH21')
+    expect(purchase?.candidates[0]).toEqual({ code: 'VH21', group: 'primary' })
+  })
+
+  it('preselects L9 / VL9 for 9% sales and purchase', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          {
+            id: '91',
+            name: 'BTW laag 9%',
+            percentage: 9,
+            taxRateType: 'sales_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+          {
+            id: '92',
+            name: 'Voorbelasting laag 9%',
+            percentage: 9,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+      },
+      options({ existingTaxRules: nlMkbTaxRules }),
+    )
+    expect(plan.taxRates.find((rate) => rate.moneybirdId === '91')?.proposedCode).toBe('L9')
+    expect(plan.taxRates.find((rate) => rate.moneybirdId === '92')?.proposedCode).toBe('VL9')
+  })
+
+  it('does not preselect any of the five 0% sales codes', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          {
+            id: '30',
+            name: '0% sales',
+            percentage: 0,
+            taxRateType: 'sales_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+      },
+      options({ existingTaxRules: nlMkbTaxRules }),
+    )
+    const zero = plan.taxRates.find((rate) => rate.moneybirdId === '30')
+    expect(zero?.proposedCode).toBeNull()
+    expect(zero?.candidates.filter((row) => row.group === 'primary')).toEqual([])
+    expect(zero?.candidates.map((row) => row.code).sort()).toEqual(
+      ['GEEN', 'ICP', 'ICPD', 'NUL', 'VERL'].sort(),
+    )
+    expect(zero?.candidates.every((row) => row.group === 'other')).toBe(true)
+  })
+
+  it('still rejects sales → VH21 against the full chart', () => {
+    const plan = planMoneybirdImport(
+      snapshot(),
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '21': 'VH21' },
+      }),
+    )
+    expect(plan.problems.map((item) => item.code)).toContain('incompatible_tax_rate')
+    expect(plan.taxRates.find((rate) => rate.moneybirdId === '21')?.mappedCode).toBeNull()
   })
 })

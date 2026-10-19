@@ -66,6 +66,7 @@ export {
   type MoneybirdPlannedEntry,
   type MoneybirdPlannedFinancialAccount,
   type MoneybirdPlannedTaxRate,
+  type MoneybirdVatCandidate,
   type MoneybirdProblem,
   type MoneybirdProblemCode,
   type MoneybirdSnapshot,
@@ -88,12 +89,17 @@ export {
 } from './fixes.js'
 export {
   hasUniqueVatMatch,
+  isPlainStandardVatCode,
   matchVatCodes,
   nextFreeNumber,
   rankAccountSuggestions,
+  rankVatCodes,
   type AccountSuggestionQuery,
   type RankableAccount,
   type RankedAccount,
+  type RankedVatCandidate,
+  type RankedVatCodes,
+  type VatCandidateGroup,
   type VatMatchQuery,
   type VatMatchRule,
 } from './account-ranker.js'
