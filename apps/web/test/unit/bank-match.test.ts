@@ -179,9 +179,9 @@ describe('bank-match period locks', () => {
       status: 'hard_closed',
       kind: 'sequence',
     })
-    expect(formatPeriodLabel(lock, 'nl-NL', yearName, [])).toBe('Periode 9 van boekjaar 2026')
-    expect(periodLabel([], { fiscalYear: '2026', period: '9' })).toBe('Periode 9 van boekjaar 2026')
-    expect(formatPeriodLabel(lock, 'en-GB', yearName, [])).toBe('Period 9 of fiscal year 2026')
+    expect(formatPeriodLabel(lock, 'nl-NL', yearName, [])).toBe('periode 9 van boekjaar 2026')
+    expect(periodLabel([], { fiscalYear: '2026', period: '9' })).toBe('periode 9 van boekjaar 2026')
+    expect(formatPeriodLabel(lock, 'en-GB', yearName, [])).toBe('period 9 of fiscal year 2026')
   })
 
   it('names the month from violation startsOn when fiscal years are empty', () => {

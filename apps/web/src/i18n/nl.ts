@@ -268,7 +268,7 @@ export const nl = {
   'fiscalYears.lastDay': 'Laatste dag',
   'fiscalYears.period.open': 'open',
   'fiscalYears.period.softClosed': 'voorlopig afgesloten',
-  'fiscalYears.period.hardClosed': 'hard gesloten',
+  'fiscalYears.period.hardClosed': 'definitief afgesloten',
   'fiscalYears.openTitle': 'Volgend boekjaar openen',
   'fiscalYears.openBody':
     'Een boekjaar heet naar het jaar waarin het begint. De data volgen uit de startmaand van deze administratie, dus je typt alleen het jaartal.',
@@ -801,8 +801,8 @@ export const nl = {
   'match.period.toFiscalYears': 'Naar Boekjaren',
   // Shared period-label helper (#73 / #74) — keep EN keys in parity.
   'periodLabel.fiscalYear': 'boekjaar {year}',
-  'periodLabel.sequenceOfYear': 'Periode {period} van boekjaar {year}',
-  'periodLabel.sequence': 'Periode {period}',
+  'periodLabel.sequenceOfYear': 'periode {period} van boekjaar {year}',
+  'periodLabel.sequence': 'periode {period}',
   'periodLabel.thisPeriod': 'deze periode',
   'match.panelClose': 'Sluiten',
   'match.panelLabel': 'Bankregel',
@@ -913,9 +913,9 @@ export const nl = {
   'vatReturn.why': 'Waarom',
   'vatReturn.whyHint':
     'Deze toelichting wordt bij de aangifte bewaard en hoort bij het dossier van deze periode.',
-  'vatReturn.fileAndClose': 'Aangifte indienen en periode vastzetten',
+  'vatReturn.fileAndClose': 'Aangifte indienen',
   'vatReturn.fileNote':
-    'Indienen zet de perioden in deze aangifte op voorlopig afgesloten. Alleen de accountant kan er daarna nog in boeken, en zo’n correctie vraagt een suppletie.',
+    'Na indienen zijn de perioden in deze aangifte voorlopig afgesloten. Alleen de eigenaar of de accountant kan er daarna nog in boeken, en zo’n correctie vraagt een suppletie.',
   'vatReturn.transport.manual': 'Zelf indienen via Mijn Belastingdienst Zakelijk',
   'vatReturn.transport.digipoort': 'Digipoort (eigen certificaat)',
   'vatReturn.transport.sbr_provider': 'Via een SBR-dienstverlener',

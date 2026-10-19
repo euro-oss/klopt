@@ -5,8 +5,9 @@
  * server violation detail, returns a never-blank label with the year —
  * `oktober 2026` / `October 2026`, `Q3 2026` (whole quarter only, same lock
  * kind), `boekjaar 2026` / `fiscal year 2026`, or the neutral
- * `Periode 9 van boekjaar 2026` / `Period 9 of fiscal year 2026` when neither
- * years nor `startsOn` in detail are available. Missing detail yields
+ * `periode 9 van boekjaar 2026` / `period 9 of fiscal year 2026` when neither
+ * years nor `startsOn` in detail are available (capitalised only at sentence
+ * start via `capitalizePeriodLabel`). Missing detail yields
  * `deze periode` / `this period`.
  *
  * Violation detail may carry `startsOn` / `endsOn` / `yearStatus` (from the
@@ -178,7 +179,7 @@ export function periodLabel(
   }
 
   // Years empty / period unknown: prefer startsOn from the violation so a
-  // bookkeeper (or any client) still sees "oktober 2026" rather than "Periode 9…".
+  // bookkeeper (or any client) still sees "oktober 2026" rather than "periode 9…".
   if (startsOn !== '') {
     const asMonth = monthLabel(startsOn, locale, fiscalYear)
     if (asMonth !== null) return asMonth

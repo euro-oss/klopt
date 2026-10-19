@@ -342,7 +342,7 @@ export const en: Record<MessageKey, string> = {
   'fiscalYears.lastDay': 'Last day',
   'fiscalYears.period.open': 'open',
   'fiscalYears.period.softClosed': 'provisionally closed',
-  'fiscalYears.period.hardClosed': 'hard-closed',
+  'fiscalYears.period.hardClosed': 'permanently closed',
   'fiscalYears.openTitle': 'Open the next book year',
   'fiscalYears.openBody':
     'A book year is named after the year it starts in. The dates follow from this administration’s starting month, so the label is all you type.',
@@ -865,8 +865,8 @@ export const en: Record<MessageKey, string> = {
   'match.period.toFiscalYears': 'Go to Fiscal years',
   // Shared period-label helper (#73 / #74) — keep NL keys in parity.
   'periodLabel.fiscalYear': 'fiscal year {year}',
-  'periodLabel.sequenceOfYear': 'Period {period} of fiscal year {year}',
-  'periodLabel.sequence': 'Period {period}',
+  'periodLabel.sequenceOfYear': 'period {period} of fiscal year {year}',
+  'periodLabel.sequence': 'period {period}',
   'periodLabel.thisPeriod': 'this period',
   'match.panelClose': 'Close',
   'match.panelLabel': 'Bank line',
@@ -976,9 +976,9 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.why': 'Why',
   'vatReturn.whyHint':
     "This explanation is kept with the return and belongs to this period's file.",
-  'vatReturn.fileAndClose': 'File the return and close the period',
+  'vatReturn.fileAndClose': 'File return',
   'vatReturn.fileNote':
-    'Filing sets the periods in this return to provisionally closed. Only the accountant can post into them afterwards, and such a correction calls for a supplementary return.',
+    'After filing, the periods in this return are provisionally closed. Only the owner or the accountant can still post in them, and a correction requires a supplementary return.',
   'vatReturn.transport.manual': 'File it yourself via Mijn Belastingdienst Zakelijk',
   'vatReturn.transport.digipoort': 'Digipoort (your own certificate)',
   'vatReturn.transport.sbr_provider': 'Through an SBR provider',
