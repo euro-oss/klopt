@@ -60,8 +60,7 @@ export const en: Record<MessageKey, string> = {
     'History that does not balance cannot be taken as an opening balance.',
   'finding.why.moneybird.trial_balance_account_missing':
     'A balance with no account in the chart has nowhere to go.',
-  'finding.moneybird.period_locked':
-    '{reference} falls in closed fiscal year {year}. Reported, not posted.',
+  // finding.moneybird.period_locked English comes from FINDING_MESSAGES (spread above).
   'finding.why.moneybird.period_locked':
     'Fiscal year {year} is closed. Reopen it under Fiscal years (owner or accountant), or mark this document as not transferred.',
   'finding.why.moneybird.unbalanced_document':
