@@ -103,3 +103,17 @@ describe('werklijst tones', () => {
     expect(ATTENTION_TONE['vat.filing']).toBe('info')
   })
 })
+
+describe('honest kerncijfers copy', () => {
+  it('labels the overdue-only figure as verlopen, not as all receivables', async () => {
+    const { nl } = await import('../../src/i18n/nl.js')
+    const { en } = await import('../../src/i18n/en.js')
+    expect(nl['dash.figure.receivables']).toBe('Verlopen facturen')
+    expect(en['dash.figure.receivables']).toBe('Overdue invoices')
+    expect(nl['dash.figure.receivables']).not.toMatch(/Nog te ontvangen/)
+    expect(en['dash.figure.receivables']).not.toMatch(/Still to receive/)
+    // Bank body must not invent a suggestion count.
+    expect(nl['queue.bankUnmatchedBody']).not.toMatch(/\d/)
+    expect(en['queue.bankUnmatchedBody']).not.toMatch(/\d/)
+  })
+})

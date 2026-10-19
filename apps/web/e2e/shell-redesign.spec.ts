@@ -33,7 +33,9 @@ async function anAdministration(
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill(name)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
   await hydrated(page)
   return email
 }
@@ -128,7 +130,9 @@ test('⌘K hides Nieuwe journaalpost when Geavanceerd is off', async ({ page }) 
   // /entries/new.
   await page.keyboard.press('n')
   await page.keyboard.press('j')
-  await expect(page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
   await expect(page).not.toHaveURL(/\/entries\/new/)
 })
 
@@ -273,7 +277,9 @@ test('a Boekhouder gets Geavanceerd on by default', async ({ browser }) => {
     await expect(ownerPage.getByText(new RegExp(`${keeperEmail} heeft nu toegang`))).toBeVisible()
 
     await keeperPage.goto('/')
-    await expect(keeperPage.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
+    await expect(
+      keeperPage.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+    ).toBeVisible()
     await hydrated(keeperPage)
 
     const nav = keeperPage.getByRole('navigation', { name: 'Hoofdnavigatie' })
@@ -316,7 +322,9 @@ test('switching administration re-derives Geavanceerd from the active role', asy
 
     // Pick up the new membership without a full sign-out.
     await ownerPage.goto('/')
-    await expect(ownerPage.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
+    await expect(
+      ownerPage.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+    ).toBeVisible()
     await hydrated(ownerPage)
 
     const nav = ownerPage.getByRole('navigation', { name: 'Hoofdnavigatie' })
@@ -429,7 +437,9 @@ test('Geavanceerd choice persists across a fresh browser context for the same us
     const page = await second.newPage()
     await page.goto('/sign-in')
     await signIn(page, email)
-    await expect(page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+    ).toBeVisible()
     await hydrated(page)
 
     const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })

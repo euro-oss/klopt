@@ -123,7 +123,9 @@ test('a server-computed label follows the reader, not the server', async ({ brow
   const context = await browser.newContext({ locale: 'nl-NL' })
   const page = await context.newPage()
   await anAdministration(page)
-  await expect(page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
   await chooseInAccountMenu(page, 'Taal', 'EN')
   await expect(page.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
 
@@ -148,7 +150,9 @@ test('and the same screens stay Dutch for a Dutch reader', async ({ browser }) =
   const context = await browser.newContext({ locale: 'nl-NL' })
   const page = await context.newPage()
   await anAdministration(page)
-  await expect(page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 
   await page.goto('/reports/balance-sheet')
   await expect(page.getByRole('heading', { name: 'Activa' })).toBeVisible()
@@ -174,7 +178,9 @@ test('a domain refusal is in the reader’s language, with its numbers intact', 
   const context = await browser.newContext({ locale: 'nl-NL' })
   const page = await context.newPage()
   await anAdministration(page)
-  await expect(page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
   // Nieuwe journaalpost is Geavanceerd chrome (#44).
   await enableAdvancedMode(page)
 

@@ -26,8 +26,9 @@ import { contextFromRequest, reportYear, run } from './internal'
  *
  * Import findings come from the last stored Moneybird dry-run / run report —
  * never from a live preview (that walk is too heavy for every dashboard load).
- * Bank match suggestion counts have no aggregate API yet (per-transaction
- * only); the bank row shows the unmatched count alone.
+ * Bank match suggestion counts and Exact finding status have no aggregate API
+ * yet — leave those numbers out entirely rather than inventing 0 (#61 follow-up).
+ * The bank row shows the unmatched count alone, with no suggestion subtitle.
  */
 
 const SCAN_LIMIT = 1000
@@ -40,7 +41,11 @@ export interface DashboardFigures {
     readonly statementDate: string | null
   } | null
   readonly receivables: {
-    /** Overdue outstanding — full open AR is not aggregated yet. */
+    /**
+     * Overdue outstanding only. Labelled "Verlopen facturen" until a full
+     * open-AR aggregate exists (#61 follow-up). Do not present as "Nog te
+     * ontvangen".
+     */
     readonly total: string
     readonly count: number
     readonly overdueCount: number

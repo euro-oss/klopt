@@ -106,6 +106,18 @@ test('Geavanceerd off hides Proefbalans on the dashboard health strip', async ({
   await expect(page.locator('#main').getByText('Proefbalans')).toHaveCount(0)
 })
 
+test('kerncijfers label overdue outstanding honestly, not as all receivables', async ({ page }) => {
+  await anAdministration(page, 'Eerlijke Cijfers BV')
+
+  const figures = page.getByRole('region', { name: 'Kerncijfers' })
+  // Overdue-only figure until a full open-AR aggregate exists (#61 follow-up).
+  await expect(figures.getByText('Verlopen facturen')).toBeVisible()
+  await expect(figures.getByText('Nog te ontvangen')).toHaveCount(0)
+  // Bank suggestions and Exact finding counts stay out — no invented 0.
+  await expect(page.getByText(/suggestie/i)).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /Exact.*0|0.*Exact/i })).toHaveCount(0)
+})
+
 test('Escape gives the keyboard back to the rest of the application', async ({ page }) => {
   await anAdministration(page, 'Ontsnapping BV')
   await aDraftInvoice(page)

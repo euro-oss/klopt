@@ -264,9 +264,10 @@ export const en: Record<MessageKey, string> = {
   'dash.figure.bankEmpty': 'No bank account yet',
   'dash.figure.bankHint': '{name} ··· {iban} · {date}',
   'dash.figure.bankHintNoDate': '{name} ··· {iban}',
-  'dash.figure.receivables': 'Still to receive',
-  'dash.figure.receivablesHint': '{count} overdue',
-  'dash.figure.receivablesEmpty': 'Nothing open',
+  // Overdue outstanding only — full open AR has no aggregate yet (#61 follow-up).
+  'dash.figure.receivables': 'Overdue invoices',
+  'dash.figure.receivablesHint': '{count} invoices',
+  'dash.figure.receivablesEmpty': 'Nothing overdue',
   'dash.figure.payables': 'Still to pay',
   'dash.figure.payablesHint': '{count} invoices',
   'dash.figure.payablesEmpty': 'Nothing open',

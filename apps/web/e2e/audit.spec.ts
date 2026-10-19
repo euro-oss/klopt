@@ -39,7 +39,9 @@ async function anAdministration(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill('Sporen BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 }
 
 test('a correction leaves a trail with both sides on it', async ({ page }) => {
@@ -132,7 +134,9 @@ test('signing in is on the log, once there are books to have opened', async ({ p
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill('Aanmelden BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 
   // Out and back in, now that the address reaches something.
   await signOut(page)
@@ -140,7 +144,9 @@ test('signing in is on the log, once there are books to have opened', async ({ p
   await signIn(page, email)
   // Signing in ends in a document navigation. Going somewhere else before it
   // lands cancels it, and the next page is served without the new cookie.
-  await expect(page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 
   await page.goto('/audit-log')
   await expect(page.getByText('auth.signedIn').first()).toBeVisible()
