@@ -422,12 +422,13 @@ function MatchQueue() {
         setNotice(null)
         setError(null)
         setPeriodError(null)
-        if (phoneOpen) {
-          closePhone()
-          rows.current[selected]?.focus()
-          return
-        }
-        rows.current[selected]?.focus()
+        if (phoneOpen) closePhone()
+        // Focus after React applies the cleared choice — otherwise the
+        // combobox re-render steals focus and the queue row stays inactive.
+        const rowIndex = selected
+        queueMicrotask(() => {
+          rows.current[rowIndex]?.focus()
+        })
       }
     }
 

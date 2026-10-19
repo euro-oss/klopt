@@ -138,7 +138,8 @@ test('a bookkeeper works through the queue with the keyboard', async ({ page }) 
   await chooseOption(page, 'Categorie', /Algemene kosten/)
   await page.getByRole('button', { name: 'Boeken' }).last().click()
 
-  await expect(page.getByText('Gekoppeld: Algemene kosten')).toBeVisible()
+  // Posted notice names the bank line (counterparty / description), not the account.
+  await expect(page.getByText('Gekoppeld: Kosten betalingsverkeer')).toBeVisible()
   await expect(rows).toHaveCount(3)
 
   await page.getByRole('button', { name: 'Overslaan' }).click()
@@ -226,7 +227,7 @@ test('the keys the match screen prints are the keys it answers to', async ({ pag
   const rows = queueRows(page)
   await expect(rows).toHaveCount(4)
   await page.keyboard.press('1')
-  await expect(page.getByText('Gekoppeld: Algemene kosten')).toHaveCount(0)
+  await expect(page.getByText(/^Gekoppeld:/)).toHaveCount(0)
   await expect(rows).toHaveCount(4)
 })
 
@@ -296,7 +297,7 @@ test('a hard-closed period names itself and blocks booking', async ({ page }) =>
 
   // Newest first: fee line in March.
   await expect(page.getByRole('heading', { name: /Kosten betalingsverkeer/ })).toBeVisible()
-  await expect(page.getByText(/maart 2026 is definitief afgesloten/)).toBeVisible()
+  await expect(page.getByText(/Maart 2026 is definitief afgesloten/)).toBeVisible()
   await expect(page.getByRole('link', { name: 'Naar Boekjaren' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Boeken' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Koppelen' })).toHaveCount(0)
@@ -304,7 +305,7 @@ test('a hard-closed period names itself and blocks booking', async ({ page }) =>
   const before = await queueRows(page).count()
   await page.keyboard.press('Enter')
   await expect(queueRows(page)).toHaveCount(before)
-  await expect(page.getByText('Gekoppeld: Algemene kosten')).toHaveCount(0)
+  await expect(page.getByText(/^Gekoppeld:/)).toHaveCount(0)
 })
 
 test('soft-closed: bookkeeper is blocked without a link; owner sees Naar Boekjaren', async ({
@@ -322,7 +323,7 @@ test('soft-closed: bookkeeper is blocked without a link; owner sees Naar Boekjar
     await ownerPage.goto('/bank/match')
     await hydrated(ownerPage)
     await expect(
-      ownerPage.getByText(/maart 2026 is voorlopig afgesloten\. Je kunt hier nog in boeken/),
+      ownerPage.getByText(/Maart 2026 is voorlopig afgesloten\. Je kunt hier nog in boeken/),
     ).toBeVisible()
     await expect(ownerPage.getByRole('link', { name: 'Naar Boekjaren' })).toBeVisible()
     // Owner may still book into a soft-closed period.
@@ -347,7 +348,7 @@ test('soft-closed: bookkeeper is blocked without a link; owner sees Naar Boekjar
     await hydrated(keeperPage)
     await expect(
       keeperPage.getByText(
-        /maart 2026 is voorlopig afgesloten\. Alleen de eigenaar of accountant kan hierin boeken/,
+        /Maart 2026 is voorlopig afgesloten\. Alleen de eigenaar of accountant kan hierin boeken/,
       ),
     ).toBeVisible()
     await expect(keeperPage.getByRole('link', { name: 'Naar Boekjaren' })).toHaveCount(0)
