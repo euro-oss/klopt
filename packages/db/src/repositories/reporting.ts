@@ -353,6 +353,7 @@ export class ReportingRepository {
       readonly scope: string
       readonly reverseCharge: string
       readonly deductionCode: string | null
+      readonly deductibility: string
     }[]
   > {
     const rows = await this.tx
@@ -363,6 +364,7 @@ export class ReportingRepository {
         scope: taxCodes.scope,
         reverseCharge: taxCodes.reverseCharge,
         deductionCode: taxCodes.deductionCode,
+        deductibility: taxCodes.deductibility,
       })
       .from(taxCodes)
       .where(eq(taxCodes.entityId, entityId))
@@ -373,6 +375,7 @@ export class ReportingRepository {
       scope: row.scope,
       reverseCharge: row.reverseCharge,
       deductionCode: row.deductionCode,
+      deductibility: row.deductibility,
     }))
   }
 

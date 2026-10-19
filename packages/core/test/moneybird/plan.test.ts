@@ -39,6 +39,7 @@ const nlMkbTaxRules: readonly ExistingTaxRule[] = NL_MKB.taxCodes.map((code) => 
   scope: code.scope,
   reverseCharge: code.reverseCharge,
   deductionCode: code.deductionCode,
+  deductibility: code.deductibility,
 }))
 
 const options = (overrides: Partial<MoneybirdImportOptions> = {}): MoneybirdImportOptions => ({

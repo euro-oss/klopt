@@ -114,6 +114,33 @@ describe('matchVatCodes', () => {
     expect(ranked.suggestedCode).toBeNull()
   })
 
+  it('keeps pro_rata input codes out of primary so VH21 stays unique', () => {
+    const ranked = rankVatCodes(
+      [
+        {
+          code: 'VH21',
+          rateBasisPoints: 2100,
+          direction: 'input',
+          scope: 'domestic',
+          reverseCharge: 'none',
+          deductibility: 'full',
+        },
+        {
+          code: 'VH21-PRO',
+          rateBasisPoints: 2100,
+          direction: 'input',
+          scope: 'domestic',
+          reverseCharge: 'none',
+          deductibility: 'pro_rata',
+        },
+      ],
+      { percentage: 21, taxRateType: 'purchase_invoice' },
+    )
+    expect(ranked.primary.map((rule) => rule.code)).toEqual(['VH21'])
+    expect(ranked.other.map((rule) => rule.code)).toEqual(['VH21-PRO'])
+    expect(ranked.suggestedCode).toBe('VH21')
+  })
+
   it('returns no matches for an unknown taxRateType', () => {
     expect(matchVatCodes(rules, { percentage: 21, taxRateType: 'unknown' })).toEqual([])
     expect(matchVatCodes(rules, { percentage: 21, taxRateType: '' })).toEqual([])

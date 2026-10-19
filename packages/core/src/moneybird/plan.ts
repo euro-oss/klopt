@@ -101,6 +101,7 @@ export interface ExistingTaxRule {
   readonly scope?: string
   readonly reverseCharge?: string
   readonly deductionCode?: string | null
+  readonly deductibility?: string
 }
 
 /**

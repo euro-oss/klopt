@@ -128,6 +128,8 @@ export interface VatMatchRule {
   readonly scope?: string
   readonly reverseCharge?: string
   readonly deductionCode?: string | null
+  /** When set, only `full` (or omitted) may be primary — pro_rata / none are other. */
+  readonly deductibility?: string
 }
 
 export type VatCandidateGroup = 'primary' | 'other'
@@ -175,7 +177,8 @@ export function matchVatCodes(
 
 /**
  * True when this code is the plain domestic standard for its rate — not
- * verlegd, ICP, invoer, export, exempt, private use, or a deduction half.
+ * verlegd, ICP, invoer, export, exempt, private use, a deduction half, or a
+ * partial-deductibility (pro_rata) input code.
  *
  * Missing `scope` or `reverseCharge` never counts as primary: on a custom
  * chart that omitted metadata we must not pre-select (#70 PM).
@@ -186,6 +189,8 @@ export function isPlainStandardVatCode(
 ): boolean {
   if (rule.scope === undefined || rule.reverseCharge === undefined) return false
   if (rule.scope !== 'domestic' || rule.reverseCharge !== 'none') return false
+  // Omitted deductibility means full (chart codes that only set scope/RC).
+  if (rule.deductibility !== undefined && rule.deductibility !== 'full') return false
   const deductionHalves = new Set(
     chart
       .map((entry) => entry.deductionCode)
