@@ -244,7 +244,11 @@ export function AccountPicker({
         return
       }
       case 'Escape':
-        if (!open && text === current) return
+        // Settled (not mid-edit): let Escape bubble so a parent (bank match
+        // panel, invoice draft, …) can leave the field. Comparing `text` to
+        // `current` fails in name-only mode where the input shows a name and
+        // the value is the account number.
+        if (!open && query === null) return
         // Taken, so the shell does not also read it as "clear the focus".
         event.preventDefault()
         event.stopPropagation()
