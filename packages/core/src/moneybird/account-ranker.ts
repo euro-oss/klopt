@@ -176,14 +176,16 @@ export function matchVatCodes(
 /**
  * True when this code is the plain domestic standard for its rate — not
  * verlegd, ICP, invoer, export, exempt, private use, or a deduction half.
+ *
+ * Missing `scope` or `reverseCharge` never counts as primary: on a custom
+ * chart that omitted metadata we must not pre-select (#70 PM).
  */
 export function isPlainStandardVatCode(
   rule: VatMatchRule,
   chart: readonly VatMatchRule[],
 ): boolean {
-  const scope = rule.scope ?? 'domestic'
-  const reverseCharge = rule.reverseCharge ?? 'none'
-  if (scope !== 'domestic' || reverseCharge !== 'none') return false
+  if (rule.scope === undefined || rule.reverseCharge === undefined) return false
+  if (rule.scope !== 'domestic' || rule.reverseCharge !== 'none') return false
   const deductionHalves = new Set(
     chart
       .map((entry) => entry.deductionCode)

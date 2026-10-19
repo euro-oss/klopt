@@ -54,7 +54,9 @@ export {
 } from './resources.js'
 export {
   MONEYBIRD_NOT_IMPORTED,
+  findIncompatibleTaxMappings,
   planMoneybirdImport,
+  resolveMoneybirdTaxRateType,
   type ExistingTaxRule,
   type MoneybirdImportDecisions,
   type MoneybirdImportOptions,

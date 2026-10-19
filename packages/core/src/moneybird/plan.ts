@@ -360,7 +360,8 @@ function qtyOf(amount: string | null): number {
 }
 
 function percentageText(value: number): string {
-  if (!Number.isFinite(value)) return ''
+  // Em dash so finding copy never renders a bare "(%)" for empty / NaN (#70 PM).
+  if (!Number.isFinite(value)) return '—'
   return value.toFixed(value % 1 === 0 ? 0 : 1)
 }
 
@@ -371,37 +372,121 @@ function taxFromPercent(net: bigint, percent: number): bigint {
 }
 
 /**
+ * Effective Moneybird `tax_rate_type` for matching.
+ *
+ * When Moneybird omitted the direction, derive it from documents that use the
+ * rate (sales → sales_invoice, purchases/receipts → purchase_invoice). Mixed
+ * or unused stays unknown (#70 PM).
+ */
+export function resolveMoneybirdTaxRateType(
+  rate: MoneybirdTaxRate,
+  snapshot: Pick<MoneybirdSnapshot, 'salesInvoices' | 'purchaseInvoices' | 'receipts'>,
+): string {
+  if (rate.taxRateType === 'sales_invoice' || rate.taxRateType === 'purchase_invoice') {
+    return rate.taxRateType
+  }
+  let onSales = false
+  let onPurchase = false
+  for (const invoice of snapshot.salesInvoices) {
+    if (invoice.details.some((detail) => detail.taxRateId === rate.id)) onSales = true
+  }
+  for (const document of [...snapshot.purchaseInvoices, ...snapshot.receipts]) {
+    if (document.details.some((detail) => detail.taxRateId === rate.id)) onPurchase = true
+  }
+  if (onSales && !onPurchase) return 'sales_invoice'
+  if (onPurchase && !onSales) return 'purchase_invoice'
+  return rate.taxRateType
+}
+
+function rateForMatching(
+  rate: MoneybirdTaxRate,
+  taxRateType: string,
+): { percentage: number; taxRateType: string } {
+  return { percentage: rate.percentage, taxRateType }
+}
+
+/**
  * Suggest a Klopt VAT code only when exactly one *primary* (plain domestic
  * standard) chart rule matches — e.g. H21 / VH21 / L9 / VL9. Verlegd, ICP and
  * invoer stay secondary. Ambiguous 0% sales (all `other`) stay unmapped (#70).
  */
-function proposeTaxCode(rate: MoneybirdTaxRate, rules: readonly ExistingTaxRule[]): string | null {
-  return rankVatCodes(rules, {
-    percentage: rate.percentage,
-    taxRateType: rate.taxRateType,
-  }).suggestedCode
+function proposeTaxCode(
+  rate: MoneybirdTaxRate,
+  taxRateType: string,
+  rules: readonly ExistingTaxRule[],
+): string | null {
+  return rankVatCodes(rules, rateForMatching(rate, taxRateType)).suggestedCode
 }
 
 function vatCandidatesFor(
   rate: MoneybirdTaxRate,
+  taxRateType: string,
   rules: readonly ExistingTaxRule[],
 ): readonly MoneybirdVatCandidate[] {
-  return rankVatCodes(rules, {
-    percentage: rate.percentage,
-    taxRateType: rate.taxRateType,
-  }).candidates.map((entry) => ({ code: entry.rule.code, group: entry.group }))
+  return rankVatCodes(rules, rateForMatching(rate, taxRateType)).candidates.map((entry) => ({
+    code: entry.rule.code,
+    group: entry.group,
+  }))
+}
+
+/** True when direction + finite rate are known so matchVatCodes can decide. */
+function taxRateDecidable(rate: MoneybirdTaxRate, taxRateType: string): boolean {
+  return (
+    (taxRateType === 'sales_invoice' || taxRateType === 'purchase_invoice') &&
+    Number.isFinite(rate.percentage)
+  )
 }
 
 /** True when a confirmed mapping is direction- and rate-compatible with the chart. */
 function taxMappingCompatible(
   rate: MoneybirdTaxRate,
+  taxRateType: string,
   code: string,
   rules: readonly ExistingTaxRule[],
 ): boolean {
-  return matchVatCodes(rules, {
-    percentage: rate.percentage,
-    taxRateType: rate.taxRateType,
-  }).some((rule) => rule.code === code)
+  if (!taxRateDecidable(rate, taxRateType)) return false
+  return matchVatCodes(rules, rateForMatching(rate, taxRateType)).some((rule) => rule.code === code)
+}
+
+/**
+ * Confirmed VAT mappings that the chart cannot accept (wrong direction/rate, or
+ * an undecidable Moneybird rate). Used by the planner and by `saveMappings`
+ * so rejection happens on save, not only on preview/run (#70 PM).
+ */
+export function findIncompatibleTaxMappings(
+  snapshot: MoneybirdSnapshot,
+  rules: readonly ExistingTaxRule[],
+  mappings: Readonly<Record<string, string>>,
+): readonly MoneybirdProblem[] {
+  const existingTaxCodes = new Set(rules.map((rule) => rule.code))
+  const found: MoneybirdProblem[] = []
+  for (const rate of snapshot.taxRates) {
+    const confirmedRaw = mappings[rate.id]?.trim() || null
+    if (confirmedRaw === null || confirmedRaw === '') continue
+    if (!existingTaxCodes.has(confirmedRaw)) {
+      found.push(
+        problem('incompatible_tax_rate', `taxRates.${rate.id}`, {
+          name: rate.name,
+          percentage: percentageText(rate.percentage),
+          mappedCode: confirmedRaw,
+          taxRateType: resolveMoneybirdTaxRateType(rate, snapshot),
+        }),
+      )
+      continue
+    }
+    const taxRateType = resolveMoneybirdTaxRateType(rate, snapshot)
+    if (!taxMappingCompatible(rate, taxRateType, confirmedRaw, rules)) {
+      found.push(
+        problem('incompatible_tax_rate', `taxRates.${rate.id}`, {
+          name: rate.name,
+          percentage: percentageText(rate.percentage),
+          mappedCode: confirmedRaw,
+          taxRateType,
+        }),
+      )
+    }
+  }
+  return found
 }
 
 function pickControl(
@@ -584,32 +669,28 @@ export function planMoneybirdImport(
   for (const account of snapshot.financialAccounts) markAccount(account.ledgerAccountId)
 
   const taxRates: MoneybirdPlannedTaxRate[] = snapshot.taxRates.map((rate) => {
-    const proposed = proposeTaxCode(rate, options.existingTaxRules)
-    const candidates = vatCandidatesFor(rate, options.existingTaxRules)
+    const taxRateType = resolveMoneybirdTaxRateType(rate, snapshot)
+    const proposed = proposeTaxCode(rate, taxRateType, options.existingTaxRules)
+    const candidates = vatCandidatesFor(rate, taxRateType, options.existingTaxRules)
     const confirmedRaw = options.confirmedTaxMappings[rate.id]?.trim() || null
     const used = usedTaxRateIds.has(rate.id)
 
     let confirmed: string | null = null
     let incompatible = false
     if (confirmedRaw !== null && existingTaxCodes.has(confirmedRaw)) {
-      // Known direction + finite rate: the chosen code must be in matchVatCodes.
-      // Unknown / empty / NaN rates never auto-map; a hand pick is accepted when
-      // the code exists and matchVatCodes cannot decide (no 21% fallback).
-      const decidable =
-        (rate.taxRateType === 'sales_invoice' || rate.taxRateType === 'purchase_invoice') &&
-        Number.isFinite(rate.percentage)
-      if (decidable && !taxMappingCompatible(rate, confirmedRaw, options.existingTaxRules)) {
+      // Accept only when direction (declared or derived) + finite rate make the
+      // code a matchVatCodes hit. Unknown / empty / NaN — or a wrong code —
+      // is incompatible_tax_rate; never accept unvalidated (#70 PM).
+      if (!taxMappingCompatible(rate, taxRateType, confirmedRaw, options.existingTaxRules)) {
         incompatible = true
-        if (used) {
-          problems.push(
-            problem('incompatible_tax_rate', `taxRates.${rate.id}`, {
-              name: rate.name,
-              percentage: percentageText(rate.percentage),
-              mappedCode: confirmedRaw,
-              taxRateType: rate.taxRateType,
-            }),
-          )
-        }
+        problems.push(
+          problem('incompatible_tax_rate', `taxRates.${rate.id}`, {
+            name: rate.name,
+            percentage: percentageText(rate.percentage),
+            mappedCode: confirmedRaw,
+            taxRateType,
+          }),
+        )
       } else {
         confirmed = confirmedRaw
       }
@@ -632,7 +713,8 @@ export function planMoneybirdImport(
       moneybirdId: rate.id,
       name: rate.name,
       percentage: percentageText(rate.percentage),
-      taxRateType: rate.taxRateType,
+      // Surface the effective direction (declared or derived) for the picker.
+      taxRateType,
       proposedCode: proposed,
       mappedCode: mapped ? mappedCode : null,
       mapped,

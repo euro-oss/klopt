@@ -46,9 +46,27 @@ describe('rankAccountSuggestions', () => {
 
 describe('matchVatCodes', () => {
   const rules = [
-    { code: 'H21', rateBasisPoints: 2100, direction: 'output' as const },
-    { code: 'VH21', rateBasisPoints: 2100, direction: 'input' as const },
-    { code: 'H9', rateBasisPoints: 900, direction: 'output' as const },
+    {
+      code: 'H21',
+      rateBasisPoints: 2100,
+      direction: 'output' as const,
+      scope: 'domestic',
+      reverseCharge: 'none',
+    },
+    {
+      code: 'VH21',
+      rateBasisPoints: 2100,
+      direction: 'input' as const,
+      scope: 'domestic',
+      reverseCharge: 'none',
+    },
+    {
+      code: 'H9',
+      rateBasisPoints: 900,
+      direction: 'output' as const,
+      scope: 'domestic',
+      reverseCharge: 'none',
+    },
   ]
 
   it('matches by direction and rate', () => {
@@ -64,14 +82,36 @@ describe('matchVatCodes', () => {
     ).toEqual(['VH21'])
   })
 
-  it('offers one-click only when exactly one rule matches', () => {
+  it('offers one-click only when exactly one primary rule matches', () => {
     expect(hasUniqueVatMatch(rules, { percentage: 21, taxRateType: 'sales_invoice' })).toBe(true)
     expect(
-      hasUniqueVatMatch([...rules, { code: 'H21b', rateBasisPoints: 2100, direction: 'output' }], {
-        percentage: 21,
-        taxRateType: 'sales_invoice',
-      }),
+      hasUniqueVatMatch(
+        [
+          ...rules,
+          {
+            code: 'H21b',
+            rateBasisPoints: 2100,
+            direction: 'output',
+            scope: 'domestic',
+            reverseCharge: 'none',
+          },
+        ],
+        {
+          percentage: 21,
+          taxRateType: 'sales_invoice',
+        },
+      ),
     ).toBe(false)
+  })
+
+  it('never treats missing scope or reverseCharge as primary', () => {
+    const ranked = rankVatCodes([{ code: 'X21', rateBasisPoints: 2100, direction: 'output' }], {
+      percentage: 21,
+      taxRateType: 'sales_invoice',
+    })
+    expect(ranked.primary).toEqual([])
+    expect(ranked.other.map((rule) => rule.code)).toEqual(['X21'])
+    expect(ranked.suggestedCode).toBeNull()
   })
 
   it('returns no matches for an unknown taxRateType', () => {
