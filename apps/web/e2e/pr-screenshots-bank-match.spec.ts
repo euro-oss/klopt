@@ -213,13 +213,28 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
       await openMatch(page)
       await setTheme(page, theme)
 
-      // Queue with confidence badges / voorstel column (Geavanceerd on).
-      // Mobile: keep the Sheet closed so the swipe hint stays visible.
-      await selectPaymentRow(page, label !== 'mobile-390')
+      // Queue with a selected focused row (Geavanceerd on). Mobile: keep the
+      // Sheet closed so the swipe hint + sticky focus ring stay visible.
+      // Desktop: select a fee line so the queue PNG is not a two-candidate
+      // panel duplicate.
       if (label === 'mobile-390') {
+        await selectPaymentRow(page, false)
         await page.keyboard.press('Escape').catch(() => undefined)
         await page.waitForTimeout(200)
         await expect(page.getByText(/Veeg de tabel opzij/)).toBeVisible()
+        const payment = page.locator('[data-slot="scroll-table"] tbody tr').filter({
+          hasText: 'Grote Klant',
+        })
+        await payment.focus()
+      } else {
+        const fee = page.locator('[data-slot="scroll-table"] tbody tr').filter({
+          hasText: 'Kosten betalingsverkeer',
+        })
+        await fee.click()
+        // Keep focus on the row so the continuous sticky focus ring is visible
+        // at 1440 (panel must not steal it before the shot).
+        await fee.focus()
+        await expect(fee).toBeFocused()
       }
       await shoot(page, `queue-${theme}-${label}.png`)
 
@@ -234,8 +249,7 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
       }
 
       // Two candidates: reference 99% + IBAN/amount when the contact has the
-      // bank line's IBAN (desktop panel). Require both so we never re-pin a
-      // queue duplicate.
+      // bank line's IBAN (desktop panel). Must differ from the fee-line queue.
       if (label === 'desktop-1440') {
         await selectPaymentRow(page)
         const options = page.locator('[role="option"]')

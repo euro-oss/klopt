@@ -603,10 +603,9 @@ function MatchQueue() {
                           }
                         }}
                         className={cn(
-                          // `group` so sticky cells can paint the same inset ring
-                          // above their opaque background (otherwise they cover
-                          // the row outline over Datum when the table scrolls).
-                          'group cursor-pointer transition-opacity duration-200 focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
+                          // Ring is painted on each `td` (not the `tr` outline) so the
+                          // sticky first column cannot cover it over Datum.
+                          'group cursor-pointer transition-opacity duration-200 focus-visible:outline-none',
                           sel && 'bg-muted',
                           !sel && 'hover:bg-muted/60',
                           flashing && 'bg-success/15',
@@ -617,10 +616,8 @@ function MatchQueue() {
                             'sticky left-0 z-10 border-l-[3px] px-3 py-3 font-medium md:whitespace-nowrap',
                             sel ? 'border-l-accent bg-muted' : 'border-l-transparent bg-background',
                             sel && 'bg-muted',
-                            // Left + top/bottom ring segments on the sticky cell —
-                            // same inset as the row's -outline-offset-4 / outline-2
-                            // so the focus ring stays continuous over Datum.
-                            'group-focus-visible:shadow-[inset_4px_0_0_-2px_var(--ring),inset_0_4px_0_-2px_var(--ring),inset_0_-4px_0_-2px_var(--ring)]',
+                            // Left + top + bottom of the continuous row ring.
+                            'group-focus-visible:shadow-[inset_2px_0_0_0_var(--ring),inset_0_2px_0_0_var(--ring),inset_0_-2px_0_0_var(--ring)]',
                           )}
                         >
                           {lineTitle(item, t)}
@@ -632,16 +629,38 @@ function MatchQueue() {
                               </span>
                             )}
                         </td>
-                        <td className="text-muted-foreground px-3 py-3 whitespace-nowrap tabular">
+                        <td
+                          className={cn(
+                            'text-muted-foreground px-3 py-3 whitespace-nowrap tabular',
+                            'group-focus-visible:shadow-[inset_0_2px_0_0_var(--ring),inset_0_-2px_0_0_var(--ring)]',
+                          )}
+                        >
                           {formatBankDay(item.bookingDate, tag)}
                         </td>
-                        <td className="px-3 py-3 text-right whitespace-nowrap tabular">
+                        <td
+                          className={cn(
+                            'px-3 py-3 text-right whitespace-nowrap tabular',
+                            'group-focus-visible:shadow-[inset_0_2px_0_0_var(--ring),inset_0_-2px_0_0_var(--ring)]',
+                          )}
+                        >
                           {out ? formatEuro(item.amount) : ''}
                         </td>
-                        <td className="px-3 py-3 text-right whitespace-nowrap tabular">
+                        <td
+                          className={cn(
+                            'px-3 py-3 text-right whitespace-nowrap tabular',
+                            'group-focus-visible:shadow-[inset_0_2px_0_0_var(--ring),inset_0_-2px_0_0_var(--ring)]',
+                          )}
+                        >
                           {!out ? formatEuro(item.amount) : ''}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap" data-cell="sug">
+                        <td
+                          className={cn(
+                            'px-3 py-3 whitespace-nowrap',
+                            // Right + top + bottom close the continuous row ring.
+                            'group-focus-visible:shadow-[inset_-2px_0_0_0_var(--ring),inset_0_2px_0_0_var(--ring),inset_0_-2px_0_0_var(--ring)]',
+                          )}
+                          data-cell="sug"
+                        >
                           {flashing ? (
                             <span className="text-success inline-flex items-center gap-1.5 font-medium">
                               <svg
