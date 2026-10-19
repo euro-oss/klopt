@@ -1342,7 +1342,7 @@ export const moneybirdOperations: Readonly<Record<string, OperationDefinition>> 
     kind: 'write',
     permission: 'ledger:import',
     summary:
-      'Confirm ledger-account and VAT-code mappings for the next Moneybird import. Each VAT mapping must match the Moneybird rate’s direction (sales/purchase) and percentage against the entity chart (`matchVatCodes`); incompatible mappings are rejected as `incompatible_tax_rate`.',
+      'Confirm ledger-account and VAT-code mappings for the next Moneybird import. Each VAT mapping must match the Moneybird rate’s direction (sales/purchase) and percentage against the entity chart (`matchVatCodes`). Incompatible picks return 422 `validation_failed` with `violations[]` of `{code: incompatible_tax_rate, path: taxRates.<id>, …}`; the whole request is rejected and nothing is saved (accounts, tax rates, and import decisions are all-or-nothing). 409 when no administration is chosen yet, or when Moneybird cannot be read.',
     agentExposure: 'none',
     idempotent: true,
   }),

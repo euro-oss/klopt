@@ -21,8 +21,9 @@ export const describeSchemaInput = z.object({
    * conversation that follows guessing at one.
    *
    * Tax codes carry direction (input/output) and rate; Moneybird import
-   * mappings must match both (`matchVatCodes`) or the planner rejects them
-   * as `incompatible_tax_rate`.
+   * mappings must match both (`matchVatCodes`) or `saveMappings` / preview /
+   * run reject them as 422 `validation_failed` with `incompatible_tax_rate`
+   * violations at `taxRates.<id>`.
    */
   include: z
     .array(z.enum(['accounts', 'journals', 'taxCodes', 'fiscalYears']))

@@ -366,6 +366,43 @@ function percentageText(value: number): string {
   return value.toFixed(value % 1 === 0 ? 0 : 1)
 }
 
+/** Finding detail: `21%` or `—` (never `(—%)` once templates wrap with parentheses). */
+function percentageFindingDetail(value: number): string {
+  const text = percentageText(value)
+  return text === '—' ? '—' : `${text}%`
+}
+
+function taxRateDocumentSides(
+  rate: MoneybirdTaxRate,
+  snapshot: Pick<MoneybirdSnapshot, 'salesInvoices' | 'purchaseInvoices' | 'receipts'>,
+): { readonly onSales: boolean; readonly onPurchase: boolean } {
+  let onSales = false
+  let onPurchase = false
+  for (const invoice of snapshot.salesInvoices) {
+    if (invoice.details.some((detail) => detail.taxRateId === rate.id)) onSales = true
+  }
+  for (const document of [...snapshot.purchaseInvoices, ...snapshot.receipts]) {
+    if (document.details.some((detail) => detail.taxRateId === rate.id)) onPurchase = true
+  }
+  return { onSales, onPurchase }
+}
+
+/**
+ * Special copy when an unknown-direction rate is used on both sales and
+ * purchase sides — mapping stays undecidable (#70 PM).
+ */
+function incompatibleTaxRateMessageKey(
+  rate: MoneybirdTaxRate,
+  taxRateType: string,
+  snapshot: Pick<MoneybirdSnapshot, 'salesInvoices' | 'purchaseInvoices' | 'receipts'>,
+): FindingMessageKey {
+  if (!taxRateDecidable(rate, taxRateType)) {
+    const { onSales, onPurchase } = taxRateDocumentSides(rate, snapshot)
+    if (onSales && onPurchase) return 'moneybird.incompatible_tax_rate_both_sides'
+  }
+  return 'moneybird.incompatible_tax_rate'
+}
+
 /** VAT amount from net and a Moneybird percentage; non-finite rates contribute 0. */
 function taxFromPercent(net: bigint, percent: number): bigint {
   if (!Number.isFinite(percent) || percent === 0) return 0n
@@ -386,14 +423,7 @@ export function resolveMoneybirdTaxRateType(
   if (rate.taxRateType === 'sales_invoice' || rate.taxRateType === 'purchase_invoice') {
     return rate.taxRateType
   }
-  let onSales = false
-  let onPurchase = false
-  for (const invoice of snapshot.salesInvoices) {
-    if (invoice.details.some((detail) => detail.taxRateId === rate.id)) onSales = true
-  }
-  for (const document of [...snapshot.purchaseInvoices, ...snapshot.receipts]) {
-    if (document.details.some((detail) => detail.taxRateId === rate.id)) onPurchase = true
-  }
+  const { onSales, onPurchase } = taxRateDocumentSides(rate, snapshot)
   if (onSales && !onPurchase) return 'sales_invoice'
   if (onPurchase && !onSales) return 'purchase_invoice'
   return rate.taxRateType
@@ -464,26 +494,32 @@ export function findIncompatibleTaxMappings(
   for (const rate of snapshot.taxRates) {
     const confirmedRaw = mappings[rate.id]?.trim() || null
     if (confirmedRaw === null || confirmedRaw === '') continue
+    const taxRateType = resolveMoneybirdTaxRateType(rate, snapshot)
+    const detail = {
+      name: rate.name,
+      percentage: percentageFindingDetail(rate.percentage),
+      mappedCode: confirmedRaw,
+      taxRateType,
+    }
     if (!existingTaxCodes.has(confirmedRaw)) {
       found.push(
-        problem('incompatible_tax_rate', `taxRates.${rate.id}`, {
-          name: rate.name,
-          percentage: percentageText(rate.percentage),
-          mappedCode: confirmedRaw,
-          taxRateType: resolveMoneybirdTaxRateType(rate, snapshot),
-        }),
+        problem(
+          'incompatible_tax_rate',
+          `taxRates.${rate.id}`,
+          detail,
+          incompatibleTaxRateMessageKey(rate, taxRateType, snapshot),
+        ),
       )
       continue
     }
-    const taxRateType = resolveMoneybirdTaxRateType(rate, snapshot)
     if (!taxMappingCompatible(rate, taxRateType, confirmedRaw, rules)) {
       found.push(
-        problem('incompatible_tax_rate', `taxRates.${rate.id}`, {
-          name: rate.name,
-          percentage: percentageText(rate.percentage),
-          mappedCode: confirmedRaw,
-          taxRateType,
-        }),
+        problem(
+          'incompatible_tax_rate',
+          `taxRates.${rate.id}`,
+          detail,
+          incompatibleTaxRateMessageKey(rate, taxRateType, snapshot),
+        ),
       )
     }
   }
@@ -685,12 +721,17 @@ export function planMoneybirdImport(
       if (!taxMappingCompatible(rate, taxRateType, confirmedRaw, options.existingTaxRules)) {
         incompatible = true
         problems.push(
-          problem('incompatible_tax_rate', `taxRates.${rate.id}`, {
-            name: rate.name,
-            percentage: percentageText(rate.percentage),
-            mappedCode: confirmedRaw,
-            taxRateType,
-          }),
+          problem(
+            'incompatible_tax_rate',
+            `taxRates.${rate.id}`,
+            {
+              name: rate.name,
+              percentage: percentageFindingDetail(rate.percentage),
+              mappedCode: confirmedRaw,
+              taxRateType,
+            },
+            incompatibleTaxRateMessageKey(rate, taxRateType, snapshot),
+          ),
         )
       } else {
         confirmed = confirmedRaw
@@ -706,7 +747,7 @@ export function planMoneybirdImport(
       problems.push(
         problem('unmapped_tax_rate', `taxRates.${rate.id}`, {
           name: rate.name,
-          percentage: percentageText(rate.percentage),
+          percentage: percentageFindingDetail(rate.percentage),
         }),
       )
     }
