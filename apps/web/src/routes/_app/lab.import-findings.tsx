@@ -42,11 +42,11 @@ export const Route = createFileRoute('/_app/lab/import-findings')({
       search['state'] === 'loading' ||
       search['state'] === 'error' ||
       search['state'] === 'open'
-        ? (search['state'] as 'empty' | 'loading' | 'error' | 'open')
+        ? search['state']
         : ('open' as const),
     sheet:
       search['sheet'] === 'account' || search['sheet'] === 'fx' || search['sheet'] === 'fxo'
-        ? (search['sheet'] as 'account' | 'fx' | 'fxo')
+        ? search['sheet']
         : undefined,
   }),
   component: ImportFindingsLab,

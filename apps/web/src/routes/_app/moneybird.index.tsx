@@ -530,7 +530,11 @@ function Moneybird() {
           setError(result.problem?.detail ?? t('common.unknownError'))
           return
         }
-        setImported(result.data as Record<string, unknown>)
+        setImported(
+          result.data !== undefined && result.data !== null && typeof result.data === 'object'
+            ? { ...(result.data as object) }
+            : {},
+        )
         void router.invalidate()
       })
       .finally(() => {
@@ -841,15 +845,8 @@ function Moneybird() {
       {fxDraft !== null && (
         <MoneybirdFxSheet
           draft={fxDraft}
-          pendingFx={
-            ((preview?.['pendingFx'] as PendingFxEntry[] | undefined) ?? []) as PendingFxEntry[]
-          }
-          functionalCurrency={
-            typeof preview?.['functionalCurrency'] === 'string' &&
-            preview['functionalCurrency'] !== ''
-              ? (preview['functionalCurrency'] as string)
-              : 'EUR'
-          }
+          pendingFx={readPendingFx(preview)}
+          functionalCurrency={readFunctionalCurrency(preview)}
           advanced={advanced}
           fxRateError={fxRateError}
           onRateChange={(rate) =>
@@ -1202,6 +1199,16 @@ interface PendingFxEntry {
     readonly debitMinor: string
     readonly creditMinor: string
   }[]
+}
+
+function readPendingFx(preview: Record<string, unknown> | null): readonly PendingFxEntry[] {
+  const raw = preview?.['pendingFx']
+  return Array.isArray(raw) ? (raw as PendingFxEntry[]) : []
+}
+
+function readFunctionalCurrency(preview: Record<string, unknown> | null): string {
+  const raw = preview?.['functionalCurrency']
+  return typeof raw === 'string' && raw !== '' ? raw : 'EUR'
 }
 
 function PreviewReport({
