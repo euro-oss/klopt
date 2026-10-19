@@ -607,7 +607,7 @@ function Profile({
   role: string
 }) {
   const { t } = useT()
-  const { advanced, setAdvanced } = useAdvancedMode()
+  const { advanced, setAdvanced, saving } = useAdvancedMode()
   // A trigger that opens nothing is the failure `select.tsx` describes: this
   // is a Radix popover, so it does nothing at all until React has attached.
   const hydrated = useHydrated()
@@ -669,11 +669,16 @@ function Profile({
             <span className="text-muted-foreground block text-xs">{roleLine}</span>
           </div>
 
-          {/* Geavanceerd (#44): no shortcut — Shift+letter is table type-ahead. */}
+          {/* Geavanceerd (#44): no shortcut — Shift+letter is table type-ahead.
+              In-flight saves are ignored in setAdvanced (savingRef) without
+              disabling the control — disabled would flash opacity and drop
+              keyboard focus out of the menu in Chromium (#66 design review).
+              Failure is announced once by the fixed toast. */}
           <button
             type="button"
             role="switch"
             aria-checked={advanced}
+            aria-busy={saving || undefined}
             disabled={!hydrated}
             onClick={() => {
               void setAdvanced(!advanced)

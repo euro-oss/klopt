@@ -90,7 +90,7 @@ function Moneybird() {
   const { t, tag } = useT()
   const router = useRouter()
   const hydrated = useHydrated()
-  const { advanced, setAdvanced } = useAdvancedMode()
+  const { advanced, setAdvanced, saving: advancedSaving } = useAdvancedMode()
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -494,6 +494,8 @@ function Moneybird() {
           <input
             type="checkbox"
             checked={advanced}
+            disabled={!hydrated}
+            aria-busy={advancedSaving || undefined}
             onChange={(event) => {
               void setAdvanced(event.target.checked)
             }}

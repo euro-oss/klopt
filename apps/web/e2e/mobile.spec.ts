@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, openAccountMenu, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, enableAdvancedMode, signIn, uniqueEmail } from './support'
 
 /**
  * Phone viewport smoke for #38 / redesign shell (#61 slice 2).
@@ -77,13 +77,7 @@ test('Geavanceerd in the Sheet profile reveals Journaalposten', async ({ page })
   const sheetNav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
   await expect(sheetNav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
 
-  await openAccountMenu(page)
-  await page.getByRole('switch', { name: /Geavanceerd/ }).click()
-  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-    'aria-checked',
-    'true',
-  )
-  await page.keyboard.press('Escape')
+  await enableAdvancedMode(page)
 
   await expect(sheetNav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
   await expect(sheetNav.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
@@ -92,14 +86,7 @@ test('Geavanceerd in the Sheet profile reveals Journaalposten', async ({ page })
 test('a ledger table scrolls inside itself with a sticky first column', async ({ page }) => {
   await anAdministration(page)
   // Per-user preference (#44), not a shared cookie — toggle via the Sheet profile.
-  await page.getByRole('button', { name: 'Menu openen' }).click()
-  await page.getByRole('region', { name: 'Profiel' }).getByRole('button').click()
-  await page.getByRole('switch', { name: /Geavanceerd/ }).click()
-  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-    'aria-checked',
-    'true',
-  )
-  await page.keyboard.press('Escape')
+  await enableAdvancedMode(page)
 
   await page
     .getByRole('navigation', { name: 'Hoofdnavigatie' })

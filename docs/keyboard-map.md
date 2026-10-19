@@ -231,7 +231,9 @@ session. Accepting only one is a papercut a hundred times a day.
   table type-ahead on the sort column (`Shift`+`K` reaches "Kantoorkosten" in
   one stroke); a `⇧G` toggle would steal every "G…" row. Reach it from the user
   menu (switch row) or from ⌘K ("Geavanceerd aanzetten" / "uitzetten"). When it
-  is off, Journaalposten and Proefbalans leave the nav but stay in the palette.
+  is off, Journaalposten and Proefbalans leave the nav but stay in the palette;
+  Nieuwe journaalpost (`n j`) leaves the palette and the `?` Nieuw group as
+  well (same gate as the shell CTA).
 
 ## Implementation notes
 

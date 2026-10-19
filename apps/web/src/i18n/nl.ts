@@ -94,6 +94,7 @@ export const nl = {
   'shell.advancedToggleOn': 'Geavanceerd aanzetten',
   'shell.advancedToggleOff': 'Geavanceerd uitzetten',
   'shell.advancedNoShortcut': 'Geen sneltoets',
+  'shell.advancedSaveFailed': 'Geavanceerd is niet opgeslagen. Probeer het opnieuw.',
   'shell.brandMark': 'K',
 
   // Short rows in the account menu: NL | EN, not bilingual SelectFields.

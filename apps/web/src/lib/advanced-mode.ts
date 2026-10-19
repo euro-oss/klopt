@@ -65,3 +65,30 @@ export function retiredAdvancedModeCookieNames(cookieHeader: string): string[] {
   }
   return [...names]
 }
+
+/**
+ * Payload for the Geavanceerd write server function.
+ *
+ * Only `enabled` is accepted. A client-supplied `userId` (or any other field)
+ * is ignored — the session user is the sole scope on the server.
+ */
+export function parseAdvancedModeWrite(input: unknown): { enabled: boolean } {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    throw new AdvancedModeValidationError('enabled must be a boolean')
+  }
+  const enabled = (input as { readonly enabled?: unknown }).enabled
+  if (typeof enabled !== 'boolean') {
+    throw new AdvancedModeValidationError('enabled must be a boolean')
+  }
+  return { enabled }
+}
+
+/** Bad write payload — the server maps this to HTTP 400. */
+export class AdvancedModeValidationError extends Error {
+  readonly status = 400 as const
+
+  constructor(message: string) {
+    super(message)
+    this.name = 'AdvancedModeValidationError'
+  }
+}

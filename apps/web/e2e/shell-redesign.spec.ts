@@ -6,6 +6,7 @@ import {
   enableAdvancedMode,
   hydrated,
   openAccountMenu,
+  setAdvancedMode,
   signIn,
   signOut,
   uniqueEmail,
@@ -96,6 +97,112 @@ test('? opens keyboard help and mentions Geavanceerd is unbound', async ({ page 
   await expect(help.getByText(/Geavanceerd heeft bewust geen sneltoets/)).toBeVisible()
 })
 
+test('help Nieuw hides Nieuwe journaalpost when Geavanceerd is off', async ({ page }) => {
+  await anAdministration(page, 'Help Nieuw BV')
+
+  await page.keyboard.press('?')
+  const help = page.getByRole('dialog', { name: 'Sneltoetsen' })
+  await expect(help).toBeVisible()
+
+  // `exact: true` — otherwise "Nieuw" also matches the "Nieuwe factuur" group.
+  const nieuw = help
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Nieuw', exact: true }) })
+  await expect(nieuw.getByRole('heading', { name: 'Nieuw', exact: true })).toBeVisible()
+  // Same gate as ⌘K: Eigenaar with Geavanceerd off must not see n j here.
+  await expect(nieuw.getByText('Nieuwe journaalpost')).toHaveCount(0)
+  await expect(nieuw.getByText('Nieuwe factuur', { exact: true })).toBeVisible()
+})
+
+test('⌘K hides Nieuwe journaalpost when Geavanceerd is off', async ({ page }) => {
+  await anAdministration(page, 'Palette Nieuw BV')
+
+  await page.keyboard.press('ControlOrMeta+k')
+  const palette = page.getByRole('dialog', { name: 'Commando’s' })
+  await expect(palette).toBeVisible()
+  await page.keyboard.type('nieuwe journaal')
+  await expect(palette.getByRole('option', { name: /Nieuwe journaalpost/ })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+
+  // Chord is gated the same way — stays on the dashboard rather than opening
+  // /entries/new.
+  await page.keyboard.press('n')
+  await page.keyboard.press('j')
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(page).not.toHaveURL(/\/entries\/new/)
+})
+
+test('a failed Geavanceerd save reverts the switch and shows the toast', async ({ page }) => {
+  await anAdministration(page, 'Save Fail BV')
+
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    if (request.method() === 'POST' && (request.postData() ?? '').includes('enabled')) {
+      await route.fulfill({ status: 500, body: 'save failed' })
+      return
+    }
+    await route.continue()
+  })
+
+  await openAccountMenu(page)
+  const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  await toggle.click()
+
+  // Optimistic flip reverts once the 500 lands.
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  const toast = page.getByTestId('advanced-mode-save-failed')
+  await expect(toast).toBeVisible()
+  await expect(toast).toContainText('Geavanceerd is niet opgeslagen. Probeer het opnieuw.')
+  await expect(toast.getByRole('button', { name: 'Sluiten' })).toBeVisible()
+  // Exactly one live region — the toast, not a second inline alert.
+  await expect(page.getByRole('alert')).toHaveCount(1)
+})
+
+test('double-click while Geavanceerd save is in flight keeps focus in the menu', async ({
+  page,
+}) => {
+  await anAdministration(page, 'Double Toggle BV')
+
+  let release!: () => void
+  const held = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let posts = 0
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    if (request.method() === 'POST' && (request.postData() ?? '').includes('enabled')) {
+      posts += 1
+      await held
+      await route.continue()
+      return
+    }
+    await route.continue()
+  })
+
+  await openAccountMenu(page)
+  const menu = page.getByRole('dialog', { name: 'Profiel' })
+  const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
+  await toggle.focus()
+  await expect(toggle).toBeFocused()
+
+  await toggle.click()
+  // In-flight: busy, still enabled (no dimming), focus stays on the switch.
+  await expect(toggle).toHaveAttribute('aria-busy', 'true')
+  await expect(toggle).toBeEnabled()
+  await expect(toggle).toBeFocused()
+  await expect(menu).toBeVisible()
+
+  // Second click is ignored by savingRef — still one POST, focus retained.
+  await toggle.click()
+  release()
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await expect(toggle).not.toHaveAttribute('aria-busy')
+  await expect(toggle).toBeFocused()
+  await expect(menu).toBeVisible()
+  expect(posts).toBe(1)
+})
+
 test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) => {
   await anAdministration(page, 'Help Volgorde BV')
 
@@ -136,13 +243,7 @@ test('turning Geavanceerd off from the menu hides the advanced nav again', async
   const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
   await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
 
-  await openAccountMenu(page)
-  await page.getByRole('switch', { name: /Geavanceerd/ }).click()
-  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-    'aria-checked',
-    'false',
-  )
-  await page.keyboard.press('Escape')
+  await setAdvancedMode(page, false)
 
   await expect(nav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
   await expect(nav.getByRole('link', { name: /Proefbalans/ })).toHaveCount(0)
