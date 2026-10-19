@@ -90,6 +90,7 @@ export class FakeLedgerRepository implements LedgerRepository {
             endsOn: `2026-${String(month).padStart(2, '0')}-28`,
             fiscalYearId: 'fy-2026',
             fiscalYearCode: '2026',
+            fiscalYearStatus: 'open',
           }
         : null
 

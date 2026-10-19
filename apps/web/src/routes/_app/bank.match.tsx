@@ -116,6 +116,9 @@ function periodName(
     {
       fiscalYear: lock.fiscalYear,
       period: lock.period > 0 ? String(lock.period) : '',
+      startsOn: lock.startsOn,
+      endsOn: lock.endsOn,
+      yearStatus: lock.status === 'year_closed' ? 'closed' : 'open',
     },
     locale,
   )
@@ -782,6 +785,9 @@ function lockCopy(
   const detail = {
     fiscalYear: lock.fiscalYear,
     period: lock.period > 0 ? String(lock.period) : '',
+    startsOn: lock.startsOn,
+    endsOn: lock.endsOn,
+    yearStatus: lock.status === 'year_closed' ? 'closed' : 'open',
   }
   const period = periodName(lock, years, locale)
   const Period = sentencePeriodLabel(years, detail, locale)

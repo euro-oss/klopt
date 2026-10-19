@@ -120,6 +120,16 @@ function parseIsoDate(iso: string): Date | null {
  * Named period for copy. Prefers the shared `periodLabel` helper (#73/#74)
  * whenever fiscal years are supplied; otherwise uses the lock’s own dates.
  */
+function lockDetail(lock: PeriodLock): Record<string, string> {
+  return {
+    fiscalYear: lock.fiscalYear,
+    period: lock.period > 0 ? String(lock.period) : '',
+    startsOn: lock.startsOn,
+    endsOn: lock.endsOn,
+    yearStatus: lock.status === 'year_closed' ? 'closed' : 'open',
+  }
+}
+
 export function formatPeriodLabel(
   lock: PeriodLock,
   locale: string,
@@ -127,28 +137,14 @@ export function formatPeriodLabel(
   years?: readonly FiscalYearWithPeriods[] | null,
 ): string {
   if (years !== undefined) {
-    return periodLabel(
-      years,
-      {
-        fiscalYear: lock.fiscalYear,
-        period: lock.period > 0 ? String(lock.period) : '',
-      },
-      locale,
-    )
+    return periodLabel(years, lockDetail(lock), locale)
   }
   if (lock.kind === 'year') {
     const year = lock.fiscalYear.trim()
     return year === '' ? periodLabel(null, null, locale) : yearName(year)
   }
   if (lock.kind === 'sequence') {
-    return periodLabel(
-      null,
-      {
-        fiscalYear: lock.fiscalYear,
-        period: lock.period > 0 ? String(lock.period) : '',
-      },
-      locale,
-    )
+    return periodLabel(null, lockDetail(lock), locale)
   }
   if (lock.kind === 'quarter') {
     const month = Number(lock.startsOn.slice(5, 7))
@@ -157,27 +153,13 @@ export function formatPeriodLabel(
     // FY 2026 period 9 is Jan–Mar 2027 → Q1 2027).
     const calendarYear = lock.startsOn.slice(0, 4)
     if (!/^\d{4}$/.test(calendarYear)) {
-      return periodLabel(
-        null,
-        {
-          fiscalYear: lock.fiscalYear,
-          period: lock.period > 0 ? String(lock.period) : '',
-        },
-        locale,
-      )
+      return periodLabel(null, lockDetail(lock), locale)
     }
     return `Q${String(quarter)} ${calendarYear}`
   }
   const parsed = parseIsoDate(lock.startsOn)
   if (parsed === null) {
-    return periodLabel(
-      null,
-      {
-        fiscalYear: lock.fiscalYear,
-        period: lock.period > 0 ? String(lock.period) : '',
-      },
-      locale,
-    )
+    return periodLabel(null, lockDetail(lock), locale)
   }
   return new Intl.DateTimeFormat(locale, {
     month: 'long',
@@ -300,15 +282,18 @@ export function periodLockFromViolation(
   const periodRaw = (detail?.['period'] ?? '').trim()
   const sequence = periodRaw === '' ? 0 : Number(periodRaw)
   const status: PeriodLock['status'] = code === 'period_soft_closed' ? 'soft_closed' : 'hard_closed'
+  const detailStartsOn = (detail?.['startsOn'] ?? '').trim()
+  const detailEndsOn = (detail?.['endsOn'] ?? '').trim()
+  const yearStatus = (detail?.['yearStatus'] ?? '').trim()
 
   if (fiscalYear === '' || periodRaw === '' || !Number.isFinite(sequence)) {
     return {
       fiscalYear,
       period: Number.isFinite(sequence) ? sequence : 0,
       status,
-      startsOn: '',
-      endsOn: '',
-      kind: 'sequence',
+      startsOn: detailStartsOn,
+      endsOn: detailEndsOn,
+      kind: detailStartsOn !== '' ? 'month' : 'sequence',
     }
   }
 
@@ -317,7 +302,7 @@ export function periodLockFromViolation(
   const resolvedStatus: PeriodLock['status'] =
     code === 'period_soft_closed'
       ? 'soft_closed'
-      : year?.status === 'closed'
+      : year?.status === 'closed' || yearStatus === 'closed'
         ? 'year_closed'
         : 'hard_closed'
 
@@ -332,7 +317,20 @@ export function periodLockFromViolation(
     }
   }
 
-  // Years empty / period unknown: sequence kind → periodLabel neutral copy.
+  // Years empty / period unknown: prefer dates from the violation so labels
+  // stay real (`oktober 2026`) even when GET /fiscal-years failed or was
+  // skipped. Quarter still needs the years list.
+  if (detailStartsOn !== '') {
+    return {
+      fiscalYear,
+      period: sequence,
+      status: resolvedStatus,
+      startsOn: detailStartsOn,
+      endsOn: detailEndsOn,
+      kind: resolvedStatus === 'year_closed' ? 'year' : 'month',
+    }
+  }
+
   return {
     fiscalYear,
     period: sequence,

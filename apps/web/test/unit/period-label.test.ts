@@ -174,6 +174,73 @@ describe('periodLabel', () => {
     expect(periodLabel(years, undefined, 'en-GB')).toBe('this period')
     expect(periodLabel(years, { fiscalYear: '2026', period: '10' }, 'en-GB')).toBe('October 2026')
   })
+
+  it('names the month from violation startsOn when years are missing', () => {
+    // Bookkeeper / API client whose GET /fiscal-years failed still gets a real
+    // name from the posting refusal payload.
+    expect(
+      periodLabel(
+        [],
+        {
+          fiscalYear: '2026',
+          period: '10',
+          startsOn: '2026-10-01',
+          endsOn: '2026-10-31',
+          yearStatus: 'open',
+        },
+        'nl-NL',
+      ),
+    ).toBe('oktober 2026')
+    expect(
+      periodLabel(
+        null,
+        {
+          fiscalYear: '2026',
+          period: '10',
+          startsOn: '2026-10-01',
+          endsOn: '2026-10-31',
+          yearStatus: 'open',
+        },
+        'en-GB',
+      ),
+    ).toBe('October 2026')
+  })
+
+  it('names a closed year from yearStatus when years are missing', () => {
+    expect(
+      periodLabel(
+        [],
+        {
+          fiscalYear: '2025',
+          period: '12',
+          startsOn: '2025-12-01',
+          endsOn: '2025-12-31',
+          yearStatus: 'closed',
+        },
+        'nl-NL',
+      ),
+    ).toBe('boekjaar 2025')
+    expect(
+      periodLabel(
+        undefined,
+        {
+          fiscalYear: '2025',
+          period: '12',
+          startsOn: '2025-12-01',
+          endsOn: '2025-12-31',
+          yearStatus: 'closed',
+        },
+        'en-GB',
+      ),
+    ).toBe('fiscal year 2025')
+  })
+
+  it('uses the missing-detail path when detail has no year, period, or startsOn', () => {
+    expect(periodLabel(years, undefined, 'nl-NL')).toBe('deze periode')
+    expect(periodLabel([], null, 'nl-NL')).toBe('deze periode')
+    expect(periodLabel(undefined, {}, 'en-GB')).toBe('this period')
+    expect(periodLabel(null, { endsOn: '2026-10-31' }, 'nl-NL')).toBe('deze periode')
+  })
 })
 
 describe('sentencePeriodLabel', () => {

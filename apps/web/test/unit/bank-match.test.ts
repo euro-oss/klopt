@@ -184,6 +184,30 @@ describe('bank-match period locks', () => {
     expect(formatPeriodLabel(lock, 'en-GB', yearName, [])).toBe('Period 9 of fiscal year 2026')
   })
 
+  it('names the month from violation startsOn when fiscal years are empty', () => {
+    const lock = periodLockFromViolation([], 'period_hard_closed', {
+      fiscalYear: '2026',
+      period: '10',
+      startsOn: '2026-10-01',
+      endsOn: '2026-10-31',
+      yearStatus: 'open',
+    })
+    expect(lock).toMatchObject({
+      kind: 'month',
+      startsOn: '2026-10-01',
+      endsOn: '2026-10-31',
+    })
+    expect(formatPeriodLabel(lock, 'nl-NL', yearName, [])).toBe('oktober 2026')
+    expect(
+      periodLabel([], {
+        fiscalYear: '2026',
+        period: '10',
+        startsOn: '2026-10-01',
+        yearStatus: 'open',
+      }),
+    ).toBe('oktober 2026')
+  })
+
   it('still returns a lock when violation detail is missing', () => {
     const lock = periodLockFromViolation(years, 'period_hard_closed', undefined)
     expect(lock.kind).toBe('sequence')
