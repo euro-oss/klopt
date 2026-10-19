@@ -310,15 +310,16 @@ export function isPeriodLockCode(code: string): boolean {
  * flow only advances when Enter is not already spoken for.
  *
  * Duck-typed so unit tests can run under Node without a DOM global.
+ * `target` is `unknown` because React's `EventTarget` and our test stubs
+ * only share the Element-like fields we inspect.
  */
 export function flowShouldAdvanceOnEnter(event: {
   readonly defaultPrevented: boolean
-  readonly target: EventTarget | null
+  readonly target: unknown
 }): boolean {
   if (event.defaultPrevented) return false
-  const target = event.target
-  if (target === null || typeof target !== 'object') return false
-  const el = target as {
+  if (event.target === null || typeof event.target !== 'object') return false
+  const el = event.target as {
     closest?: (selector: string) => unknown
     tagName?: string
     isContentEditable?: boolean
