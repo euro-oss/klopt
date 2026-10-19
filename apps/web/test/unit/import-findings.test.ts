@@ -114,17 +114,35 @@ describe('honestySourcesFromExact', () => {
 })
 
 describe('vatOptionsFor', () => {
-  it('filters purchase rates to input codes', () => {
+  it('filters purchase rates to input codes and sales to output', () => {
     expect(
       vatOptionsFor({ taxRateType: 'purchase_invoice', percentage: '21' }).map((o) => o.code),
     ).toEqual(['VH21'])
     expect(
       vatOptionsFor({ taxRateType: 'sales_invoice', percentage: '21' }).map((o) => o.code),
     ).toEqual(['H21'])
+    expect(
+      vatOptionsFor({ taxRateType: 'purchase_invoice', percentage: '9' }).map((o) => o.code),
+    ).toEqual(['VL9'])
+    expect(
+      vatOptionsFor({ taxRateType: 'sales_invoice', percentage: '9' }).map((o) => o.code),
+    ).toEqual(['L9'])
+    expect(
+      vatOptionsFor({ taxRateType: 'sales_invoice', percentage: '0' }).map((o) => o.code),
+    ).toEqual(['GEEN'])
   })
 
-  it('does not fall back to 21% for unsupported rates', () => {
-    expect(vatOptionsFor({ taxRateType: 'purchase_invoice', percentage: '6' })).toEqual([])
+  it('never maps a sales rate onto VH21/VL9', () => {
+    const sales = vatOptionsFor({ taxRateType: 'sales_invoice', percentage: '21' })
+    expect(sales.every((option) => option.code === 'H21')).toBe(true)
+    expect(sales.some((option) => option.code.startsWith('V'))).toBe(false)
+  })
+
+  it('does not fall back to 21% for verlegd, ICP, export or other rates', () => {
+    // Verlegd / ICP / export are 0% specials outside the three-way radio — empty, not GEEN/H21.
+    expect(vatOptionsFor({ taxRateType: 'sales_invoice', percentage: '6' })).toEqual([])
+    expect(vatOptionsFor({ taxRateType: 'purchase_invoice', percentage: '0' })).toEqual([])
     expect(suggestVatCode({ taxRateType: 'sales_invoice', percentage: '12' })).toBeNull()
+    expect(suggestVatCode({ taxRateType: 'purchase_invoice', percentage: '21.5' })).toBeNull()
   })
 })

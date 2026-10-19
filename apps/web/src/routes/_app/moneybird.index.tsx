@@ -110,6 +110,7 @@ function Moneybird() {
   }, [accountsResult])
 
   const [busy, setBusy] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [administrations, setAdministrations] = useState<readonly AdministrationOption[] | null>(
@@ -126,6 +127,8 @@ function Moneybird() {
     readonly suggestedVat: ImportVatCode | null
     readonly taxRateType: string | null
     readonly percentage: string | null
+    /** MappingReview row id for the #42 jump-to-row fallback. */
+    readonly mappingAnchor: string | null
   } | null>(null)
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
   const [imported, setImported] = useState<Record<string, unknown> | null>(null)
@@ -295,6 +298,7 @@ function Moneybird() {
         suggestedVat: null,
         taxRateType: null,
         percentage: null,
+        mappingAnchor: id !== '' ? `moneybird-account-${id}` : null,
       })
     },
     onMapTaxRate: (problem) => {
@@ -316,6 +320,7 @@ function Moneybird() {
         suggestedVat,
         taxRateType,
         percentage: percentage !== '' ? percentage : null,
+        mappingAnchor: id !== '' ? `moneybird-tax-${id}` : null,
       })
     },
     onRenumberAccount: (problem) => {
@@ -515,14 +520,23 @@ function Moneybird() {
     },
   }
 
-  const commit = () =>
-    run(
-      () => runMoneybirdImport({ data: { idempotencyKey: crypto.randomUUID() } }),
-      (data) => {
-        setImported(data as Record<string, unknown>)
+  const commit = () => {
+    setImporting(true)
+    setError(null)
+    setNote(null)
+    void runMoneybirdImport({ data: { idempotencyKey: crypto.randomUUID() } })
+      .then((result) => {
+        if (!result.ok) {
+          setError(result.problem?.detail ?? t('common.unknownError'))
+          return
+        }
+        setImported(result.data as Record<string, unknown>)
         void router.invalidate()
-      },
-    )
+      })
+      .finally(() => {
+        setImporting(false)
+      })
+  }
 
   return (
     <>
@@ -712,7 +726,9 @@ function Moneybird() {
                 report={preview}
                 actions={findingActions}
                 advanced={advanced}
-                loading={busy}
+                loading={false}
+                importing={importing}
+                hydrated={hydrated}
                 error={error}
                 typeDraft={typeDraft}
                 unbalancedDraft={unbalancedDraft}
@@ -786,6 +802,21 @@ function Moneybird() {
           percentage={accountVatDraft.percentage}
           mode={accountVatDraft.mode}
           advanced={advanced}
+          {...(accountVatDraft.mappingAnchor === null
+            ? {}
+            : {
+                onJumpToMapping: () => {
+                  const anchor = accountVatDraft.mappingAnchor
+                  setAccountVatDraft(null)
+                  if (anchor === null) return
+                  requestAnimationFrame(() => {
+                    document.getElementById(anchor)?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'center',
+                    })
+                  })
+                },
+              })}
           onSave={(choice) => {
             if (accountVatDraft.mode === 'tax') {
               const taxId = accountVatDraft.taxMoneybirdId ?? accountVatDraft.moneybirdId
@@ -1178,6 +1209,8 @@ function PreviewReport({
   actions,
   advanced,
   loading,
+  importing,
+  hydrated,
   error,
   typeDraft,
   unbalancedDraft,
@@ -1197,6 +1230,8 @@ function PreviewReport({
   actions: MoneybirdFindingActions
   advanced: boolean
   loading: boolean
+  importing: boolean
+  hydrated: boolean
   error: string | null
   typeDraft: { moneybirdId: string; name: string; type: AccountType } | null
   unbalancedDraft: MoneybirdProblem | null
@@ -1267,11 +1302,12 @@ function PreviewReport({
   return (
     <div className="mt-6">
       <ImportFindingsScreen
-        sourceLabel={t('moneybird.title')}
         subtitle={t('moneybird.step3Intro')}
         connected
         hasPreview
         loading={loading}
+        importing={importing}
+        hydrated={hydrated}
         error={error}
         findings={findings}
         sources={sources}

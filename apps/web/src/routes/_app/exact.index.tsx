@@ -839,7 +839,6 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
       </ScrollTable>
 
       <ImportFindingsScreen
-        sourceLabel={t('exact.title')}
         subtitle={t('exact.step3Intro')}
         connected
         hasPreview

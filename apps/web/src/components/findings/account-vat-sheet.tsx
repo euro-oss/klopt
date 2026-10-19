@@ -50,6 +50,8 @@ export interface AccountVatSheetProps {
   readonly mode?: 'account' | 'tax'
   /** Geavanceerd: show account numbers, RGS codes and btw codes. */
   readonly advanced?: boolean
+  /** #42 fallback: jump to the MappingReview row under the sheet. */
+  readonly onJumpToMapping?: () => void
   readonly onSave: (choice: {
     readonly accountNumber: string | null
     readonly accountName: string | null
@@ -71,6 +73,7 @@ export function AccountVatSheet({
   percentage = null,
   mode = 'account',
   advanced = false,
+  onJumpToMapping,
   onSave,
 }: AccountVatSheetProps) {
   const { t } = useT()
@@ -97,8 +100,15 @@ export function AccountVatSheet({
   useEffect(() => {
     if (!open) return
     setQuery('')
-    setNewAccount(false)
     setVat(defaultVat)
+    if (accounts.length === 0) {
+      // No Klopt chart yet — the #42 new-account fallback is the only path.
+      setNewAccount(true)
+      setChosenNumber(null)
+      setActive(0)
+      return
+    }
+    setNewAccount(false)
     const best = buildRankedList(accounts, {
       rgsCode,
       number: sourceNumber,
@@ -433,6 +443,16 @@ export function AccountVatSheet({
         </div>
 
         <SheetFooter className="flex-row flex-wrap justify-end gap-2 border-t px-5 py-3">
+          {onJumpToMapping !== undefined && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="mr-auto min-h-11 md:min-h-9"
+              onClick={onJumpToMapping}
+            >
+              {t('importFindings.accountVat.jumpToMapping')}
+            </Button>
+          )}
           <Button
             type="button"
             variant="ghost"

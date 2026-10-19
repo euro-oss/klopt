@@ -135,6 +135,8 @@ export const en: Record<MessageKey, string> = {
     'Nothing blocks the import. Drafts and closed periods stay under ‘Not transferred’.',
   'importFindings.resolvedHeading': 'Resolved',
   'importFindings.loading': 'Loading findings…',
+  'importFindings.importing': 'Importing…',
+  'importFindings.accountVat.jumpToMapping': 'Edit in the mapping table',
   'importFindings.source.sales': 'Sales invoices',
   'importFindings.source.purchases': 'Purchases and receipts',
   'importFindings.source.bookings': 'Entries {year}',

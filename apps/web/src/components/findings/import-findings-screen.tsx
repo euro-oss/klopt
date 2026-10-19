@@ -35,11 +35,16 @@ const STEP_LABEL: Record<ImportProgressStep['id'], MessageKey> = {
 }
 
 export interface ImportFindingsScreenProps {
-  readonly sourceLabel: string
+  /**
+   * Optional screen title. Omit when the page already has an h1 for the same
+   * name (PM #69) — the eyebrow alone identifies the import chrome.
+   */
+  readonly sourceLabel?: string
   readonly subtitle?: string
   readonly connected: boolean
   readonly hasPreview: boolean
   readonly importing?: boolean
+  /** Initial dry-run only — must not hide findings during later actions. */
   readonly loading?: boolean
   readonly error?: string | null
   readonly findings: readonly FindingsListItem[]
@@ -48,6 +53,8 @@ export interface ImportFindingsScreenProps {
   readonly onReread?: () => void
   readonly onImport?: () => void
   readonly importDisabledReason?: string | null
+  /** Hydration gate for the Import button (same as the old Moneybird CTA). */
+  readonly hydrated?: boolean
   readonly emptySummary?: string
   readonly className?: string
   /** Geavanceerd: show technical paths on finding cards. */
@@ -70,6 +77,7 @@ export function ImportFindingsScreen({
   onReread,
   onImport,
   importDisabledReason = null,
+  hydrated = true,
   emptySummary,
   className,
   advanced = false,
@@ -84,15 +92,20 @@ export function ImportFindingsScreen({
     blockingCount: blocking,
     importing,
   })
-  const canImport = hasPreview && blocking === 0 && onImport !== undefined && !loading
+  const canImport =
+    hasPreview && blocking === 0 && onImport !== undefined && !loading && !importing && hydrated
   const allClear = hasPreview && findings.length === 0 && !loading && error === null
+  // During a re-read/persist the list stays; only the first dry-run hides it.
+  const showBody = hasPreview || !loading
 
   return (
     <div data-slot="import-findings" className={cn('mx-auto w-full max-w-4xl', className)}>
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-muted-foreground text-xs">{t('importFindings.eyebrow')}</p>
-          <h2 className="mt-0.5 text-lg font-semibold tracking-tight">{sourceLabel}</h2>
+          {sourceLabel !== undefined && sourceLabel !== '' && (
+            <h2 className="mt-0.5 text-lg font-semibold tracking-tight">{sourceLabel}</h2>
+          )}
           {subtitle !== undefined && subtitle !== '' && (
             <p className="text-muted-foreground mt-1 text-sm">{subtitle}</p>
           )}
@@ -103,7 +116,7 @@ export function ImportFindingsScreen({
               type="button"
               variant="outline"
               size="default"
-              disabled={loading}
+              disabled={loading || importing}
               onClick={onReread}
               className="min-h-11 gap-2 md:min-h-9"
             >
@@ -122,7 +135,7 @@ export function ImportFindingsScreen({
               }
               className="min-h-11 md:min-h-9"
             >
-              {t('importFindings.import')}
+              {importing ? t('common.busy') : t('importFindings.import')}
             </Button>
           )}
         </div>
@@ -153,7 +166,7 @@ export function ImportFindingsScreen({
         </p>
       )}
 
-      {loading && (
+      {loading && !hasPreview && (
         <div
           role="status"
           data-slot="import-findings-loading"
@@ -164,7 +177,18 @@ export function ImportFindingsScreen({
         </div>
       )}
 
-      {!loading && sources.length > 0 && (
+      {importing && (
+        <div
+          role="status"
+          data-slot="import-findings-importing"
+          className="animate-in-fade mb-6 flex items-center gap-3 border px-4 py-3 text-sm"
+        >
+          <RiLoader4Line className="size-5 animate-spin" aria-hidden />
+          {t('importFindings.importing')}
+        </div>
+      )}
+
+      {showBody && sources.length > 0 && (
         <section aria-labelledby="import-findings-sources" className="mb-8">
           <h3 id="import-findings-sources" className="mb-2 text-base font-medium">
             {t('importFindings.sourcesHeading')}
@@ -175,7 +199,7 @@ export function ImportFindingsScreen({
 
       {children}
 
-      {!loading && hasPreview && (
+      {showBody && hasPreview && (
         <section aria-labelledby="import-findings-open">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
             <h3 id="import-findings-open" className="text-base font-medium">
@@ -221,7 +245,7 @@ export function ImportFindingsScreen({
         </section>
       )}
 
-      {!loading && resolved.length > 0 && (
+      {showBody && resolved.length > 0 && (
         <section aria-labelledby="import-findings-resolved" className="mt-8">
           <h3 id="import-findings-resolved" className="mb-2 text-base font-medium">
             {t('importFindings.resolvedHeading')}{' '}

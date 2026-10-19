@@ -134,7 +134,6 @@ function ImportFindingsLab() {
       </div>
 
       <ImportFindingsScreen
-        sourceLabel={source === 'exact' ? 'Exact Online' : 'Moneybird'}
         subtitle={
           source === 'exact'
             ? t('importFindings.allClearBody')
@@ -143,6 +142,7 @@ function ImportFindingsLab() {
         connected
         hasPreview={state !== 'loading'}
         loading={state === 'loading'}
+        hydrated={hydrated}
         error={state === 'error' ? 'Moneybird weigerde de verbinding (HTTP 401).' : null}
         findings={findings}
         sources={

@@ -1430,6 +1430,8 @@ export const nl = {
     'Er houdt niets de import meer tegen. Concepten en afgesloten periodes blijven onder ‘Niet overgezet’.',
   'importFindings.resolvedHeading': 'Opgelost',
   'importFindings.loading': 'Bevindingen laden…',
+  'importFindings.importing': 'Bezig met importeren…',
+  'importFindings.accountVat.jumpToMapping': 'Bewerk in de mappingtabel',
   'importFindings.source.sales': 'Verkoopfacturen',
   'importFindings.source.purchases': 'Inkoop en bonnen',
   'importFindings.source.bookings': 'Boekingen {year}',
