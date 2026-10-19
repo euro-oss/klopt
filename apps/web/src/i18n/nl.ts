@@ -293,6 +293,7 @@ export const nl = {
   'queue.vatFiling': 'Btw-aangifte {period} staat klaar',
   'queue.vatFilingBody': 'Uiterlijk {deadline} indienen',
   'queue.vatFilingBodyPayable': 'Uiterlijk {deadline} indienen · € {amount} te betalen',
+  'queue.vatFilingBodyRefund': 'Uiterlijk {deadline} indienen · € {amount} terug te krijgen',
   'queue.vatFilingAction': 'Bekijken',
 
   'dash.trialBalance': 'Proefbalans',
@@ -612,7 +613,8 @@ export const nl = {
   'invoice.delivered': 'verzonden',
   'invoice.notDelivered': 'niet verzonden',
   'invoice.postedAs': 'Geboekt als',
-  'invoice.postedAsLink': 'journaalpost',
+  // Plain Dutch in simple mode — "journaalpost" stays on advanced-only screens.
+  'invoice.postedAsLink': 'boeking',
 
   // Drafting a sales invoice.
   'invoiceNew.intro': 'Versturen is een aparte stap: een concept kan nog gewijzigd worden.',
@@ -743,7 +745,7 @@ export const nl = {
   'purchase.findings': 'Bevindingen',
   'purchase.findingsBlocking': ' ({count} blokkerend)',
   'purchase.findingLine': ' (regel {line})',
-  'purchase.postedAsEntry': 'journaalpost {number}',
+  'purchase.postedAsEntry': 'boeking {number}',
   'purchase.approvedForPayment': ' · goedgekeurd voor betaling',
   'purchase.severity.blocking': 'Blokkerend',
   'purchase.severity.warning': 'Ter beoordeling',
@@ -852,7 +854,7 @@ export const nl = {
   'match.learnNote': 'Een eigen rekening onthouden we voor deze tegenpartij.',
   'match.suggestionsFailed': 'De suggesties konden niet geladen worden.',
   'match.suggestionsFailedWhy': 'De suggesties konden niet geladen worden: {reason}',
-  'match.posted': 'Geboekt als journaalpost {number}',
+  'match.posted': 'Geboekt als boeking {number}',
   'match.postedLearned': ', en onthouden voor volgende keer.',
   'match.strategy.reference': 'factuurnummer',
   'match.strategy.iban_amount': 'rekeningnummer en bedrag',

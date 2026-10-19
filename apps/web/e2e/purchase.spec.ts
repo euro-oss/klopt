@@ -133,15 +133,15 @@ test('a bookkeeper enters a supplier invoice, books it and gets it approved', as
   await expect(page.getByText('concept')).toBeVisible()
 
   // Nothing is in the books yet, and it is not payable.
-  await expect(page.getByRole('link', { name: /^journaalpost \d/ })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /^boeking \d/ })).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Boeken', exact: true }).click()
-  await expect(page.getByRole('link', { name: /^journaalpost \d/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /^boeking \d/ })).toBeVisible()
   await expect(page.getByText(/nog niet goedgekeurd/)).toBeVisible()
 
   // The entry is dated the invoice, not today, which is what puts the VAT in
   // the right period.
-  await page.getByRole('link', { name: /^journaalpost \d/ }).click()
+  await page.getByRole('link', { name: /^boeking \d/ }).click()
   await expect(page.getByText('10-02-2026').first()).toBeVisible()
   await expect(page.getByText('Leverancier B.V.').first()).toBeVisible()
 
@@ -256,7 +256,7 @@ test('a UBL invoice arrives in the postvak and becomes a booked liability', asyn
 
   await expect(page.getByRole('heading', { name: 'Inkoopfactuur F-2026-0042' })).toBeVisible()
   await page.getByRole('button', { name: 'Boeken', exact: true }).click()
-  await expect(page.getByRole('link', { name: /^journaalpost \d/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /^boeking \d/ })).toBeVisible()
 
   // And the queue is empty again.
   await page.goto('/inbox')

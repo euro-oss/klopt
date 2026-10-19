@@ -270,9 +270,10 @@ export const en: Record<MessageKey, string> = {
   'dash.figure.bankHint': '{name} ··· {iban} · {date}',
   'dash.figure.bankHintNoDate': '{name} ··· {iban}',
   // Overdue outstanding only — full open AR has no aggregate yet (#61 follow-up).
-  'dash.figure.receivables': 'Late with customers',
+  // EN "Overdue" matches Designer+PM; NL stays "Te laat bij klanten" (not "Te laat betaald").
+  'dash.figure.receivables': 'Overdue',
   'dash.figure.receivablesHint': '{count} invoices late',
-  'dash.figure.receivablesEmpty': 'Nothing late',
+  'dash.figure.receivablesEmpty': 'Nothing overdue',
   'dash.figure.payables': 'Still to pay',
   'dash.figure.payablesHint': '{count} suppliers',
   'dash.figure.payablesEmpty': 'Nothing open',
@@ -367,6 +368,7 @@ export const en: Record<MessageKey, string> = {
   'queue.vatFiling': 'VAT return {period} is ready',
   'queue.vatFilingBody': 'File by {deadline}',
   'queue.vatFilingBodyPayable': 'File by {deadline} · € {amount} to pay',
+  'queue.vatFilingBodyRefund': 'File by {deadline} · € {amount} to reclaim',
   'queue.vatFilingAction': 'View',
   'dash.trialBalance': 'Trial balance',
   'dash.trialBalanceEqual': 'Debit and credit are equal.',
@@ -674,7 +676,7 @@ export const en: Record<MessageKey, string> = {
   'invoice.delivered': 'delivered',
   'invoice.notDelivered': 'not delivered',
   'invoice.postedAs': 'Posted as',
-  'invoice.postedAsLink': 'a journal entry',
+  'invoice.postedAsLink': 'entry',
 
   // Drafting a sales invoice.
   'invoiceNew.intro': 'Issuing is a separate step: a draft can still be changed.',
@@ -805,7 +807,7 @@ export const en: Record<MessageKey, string> = {
   'purchase.findings': 'Findings',
   'purchase.findingsBlocking': ' ({count} blocking)',
   'purchase.findingLine': ' (line {line})',
-  'purchase.postedAsEntry': 'journal entry {number}',
+  'purchase.postedAsEntry': 'entry {number}',
   'purchase.approvedForPayment': ' · approved for payment',
   'purchase.severity.blocking': 'Blocking',
   'purchase.severity.warning': 'For review',
@@ -914,7 +916,7 @@ export const en: Record<MessageKey, string> = {
   'match.learnNote': 'A ledger account of our own is remembered for this counterparty.',
   'match.suggestionsFailed': 'The suggestions could not be loaded.',
   'match.suggestionsFailedWhy': 'The suggestions could not be loaded: {reason}',
-  'match.posted': 'Posted as journal entry {number}',
+  'match.posted': 'Posted as entry {number}',
   'match.postedLearned': ', and remembered for next time.',
   'match.strategy.reference': 'invoice number',
   'match.strategy.iban_amount': 'account number and amount',

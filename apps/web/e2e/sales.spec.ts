@@ -79,7 +79,7 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   await expect(
     page.getByRole('heading', { name: /Factuur 2026-0001|Factuur \d{4}-0001/ }),
   ).toBeVisible()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: 'UBL downloaden' })).toBeVisible()
 
   const invoiceId = page.url().split('/').pop() ?? ''
@@ -137,7 +137,7 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   await expect(page.getByRole('button', { name: 'Versturen en boeken' })).toHaveCount(0)
 
   // And it really did reach the ledger.
-  await page.getByRole('link', { name: 'journaalpost', exact: true }).click()
+  await page.getByRole('link', { name: 'boeking', exact: true }).click()
   await expect(page.getByText('Advieswerk maart').first()).toBeVisible()
 })
 
@@ -158,7 +158,7 @@ test('crediting an issued invoice drafts a credit note against it', async ({ pag
   await page.getByLabel('Prijs regel 1').fill('500,00')
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Crediteren' }).click()
 
@@ -228,7 +228,7 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
   await page.getByLabel('Prijs regel 1').fill('1000,00')
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   await page.getByRole('link', { name: /Aanmaningen/ }).click()
   await expect(page.getByRole('heading', { name: 'Aanmaningen' })).toBeVisible()

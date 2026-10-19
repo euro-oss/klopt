@@ -88,7 +88,7 @@ test('a bookkeeper works through the queue with the keyboard', async ({ page }) 
   await chooseOption(page, 'Zelf kiezen', /^4900 /)
   await page.getByRole('button', { name: 'Boeken' }).last().click()
 
-  await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
+  await expect(page.getByText(/Geboekt als boeking/)).toBeVisible()
   await expect(queue).toHaveCount(3)
 
   // Skipping is the other half of getting through a queue, and it is a button:
@@ -120,7 +120,7 @@ test('a payment is booked by confirming the candidate, not by trusting the top o
   await page.getByLabel('Prijs regel 1').fill('1000,00')
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   await page.goto('/bank/match')
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
@@ -147,10 +147,10 @@ test('a payment is booked by confirming the candidate, not by trusting the top o
   // the line being agreed to was off to the side of the key being pressed.
   await page.keyboard.press('Enter')
   await expect(page.locator('li[aria-current="true"]').filter({ hasText: '99%' })).toBeFocused()
-  await expect(page.getByText(/Geboekt als journaalpost/)).toHaveCount(0)
+  await expect(page.getByText(/Geboekt als boeking/)).toHaveCount(0)
 
   await page.keyboard.press('Enter')
-  await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
+  await expect(page.getByText(/Geboekt als boeking/)).toBeVisible()
 })
 
 test('the keys the match screen prints are the keys it answers to', async ({ page }) => {
@@ -172,7 +172,7 @@ test('the keys the match screen prints are the keys it answers to', async ({ pag
   const queue = page.getByRole('list', { name: 'Wachtrij' }).getByRole('listitem')
   await expect(queue).toHaveCount(4)
   await page.keyboard.press('1')
-  await expect(page.getByText(/Geboekt als journaalpost/)).toHaveCount(0)
+  await expect(page.getByText(/Geboekt als boeking/)).toHaveCount(0)
   await expect(queue).toHaveCount(4)
 })
 

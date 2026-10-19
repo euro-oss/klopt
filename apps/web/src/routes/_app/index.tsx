@@ -645,15 +645,24 @@ function rowCopy(
 
   if (item.kind === 'vat.filing' && detail?.vatPeriod !== undefined) {
     const deadline = detail.vatDeadline === undefined ? '—' : dayMonthLabel(detail.vatDeadline, t)
+    let body = t('queue.vatFilingBody', { deadline })
+    if (detail.vatPayable !== undefined && detail.vatPayable !== null) {
+      const payable = BigInt(detail.vatPayable)
+      if (payable < 0n) {
+        body = t('queue.vatFilingBodyRefund', {
+          deadline,
+          amount: formatMinorUnits(-payable),
+        })
+      } else if (payable > 0n) {
+        body = t('queue.vatFilingBodyPayable', {
+          deadline,
+          amount: formatMinorUnits(payable),
+        })
+      }
+    }
     return {
       title: t(destination.title, { period: detail.vatPeriod }),
-      body:
-        detail.vatPayable !== undefined && detail.vatPayable !== null
-          ? t('queue.vatFilingBodyPayable', {
-              deadline,
-              amount: formatMinorUnits(BigInt(detail.vatPayable)),
-            })
-          : t('queue.vatFilingBody', { deadline }),
+      body,
       action: t(destination.action),
     }
   }

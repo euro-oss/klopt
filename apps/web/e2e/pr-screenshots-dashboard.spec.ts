@@ -135,7 +135,7 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   await page.getByLabel('Prijs regel 1').fill('1210,00')
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   // Bank lines (neutral) with a real balance.
   await page.goto('/bank')

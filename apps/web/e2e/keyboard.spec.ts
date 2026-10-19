@@ -545,7 +545,7 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
 
   await tabTo(page, /^BUTTON Boeken$/)
   await page.keyboard.press('Enter')
-  await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
+  await expect(page.getByText(/Geboekt als boeking/)).toBeVisible()
   await expect(queue).toHaveCount(3)
 
   // Het postvak: `g` then `e`, open the document, book it as a draft invoice.
