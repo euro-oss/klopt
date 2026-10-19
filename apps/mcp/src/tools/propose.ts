@@ -152,6 +152,50 @@ export async function draftSalesInvoice(
 }
 
 // ---------------------------------------------------------------------------
+// replace_draft_sales_invoice
+// ---------------------------------------------------------------------------
+
+export const replaceDraftSalesInvoiceInput = draftSalesInvoiceInput.extend({
+  invoiceId: z
+    .string()
+    .uuid()
+    .describe('The draft to rewrite. Same id afterwards; issued invoices are refused.'),
+})
+
+/**
+ * Replace a draft sales invoice in place.
+ *
+ * Same id, new lines and totals. Still no number and no journal entry — the
+ * gapless series is allocated at issue. Prefer this over drafting a second
+ * invoice when the first one was wrong: two drafts leave an orphan.
+ */
+export async function replaceDraftSalesInvoice(
+  context: ToolContext,
+  input: z.infer<typeof replaceDraftSalesInvoiceInput>,
+): Promise<Answer<Record<string, unknown>>> {
+  const { invoiceId, ...fields } = input
+  const body = await context.api.put<{ id: string; total?: unknown }>(
+    `/sales-invoices/${invoiceId}`,
+    {
+      ...fields,
+      buyerReference: null,
+      creditsInvoiceId: null,
+      lines: fields.lines.map((line, index) => ({
+        ...line,
+        unitPrice: minorUnitsFrom(line.unitPrice, `lines.${String(index)}.unitPrice`),
+      })),
+    },
+  )
+
+  return answer(await context.provenance([`PUT /sales-invoices/${invoiceId}`]), {
+    draftId: body.id,
+    status: 'draft',
+    ...body,
+    release: `Not issued. It has no number and no journal entry until a human issues it at Verkoopfacturen → ${body.id}.`,
+  })
+}
+
+// ---------------------------------------------------------------------------
 // capture_purchase_invoice
 // ---------------------------------------------------------------------------
 

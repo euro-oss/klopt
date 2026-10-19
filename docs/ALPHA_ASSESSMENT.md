@@ -287,8 +287,8 @@ Read: `describe_schema`, `search`, `get_balance`, `explain_number`,
 `list_open_items`, `vat_return_preview`, `list_pending_approvals`,
 `export_xaf`, `check_journal_entry`.
 
-Write (draft only): `draft_sales_invoice`, `capture_purchase_invoice`,
-`draft_from_inbox_item`.
+Write (draft only): `draft_sales_invoice`, `replace_draft_sales_invoice`,
+`capture_purchase_invoice`, `draft_from_inbox_item`.
 
 No `query`, no post/issue/file/pay. That is the design. Do not “complete” MCP
 by adding release tools.

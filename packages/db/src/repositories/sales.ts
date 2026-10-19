@@ -195,6 +195,71 @@ export class SalesRepository {
     return id
   }
 
+  /**
+   * Replace a draft in place: same id, new header and lines, re-priced.
+   *
+   * Drafts allocate no number and post nothing, so rewriting one is the cheap
+   * way to keep a single draft id when the UI walks Klant → Controleren →
+   * Terug → edit → Controleren. Issued invoices are never touched here.
+   */
+  async replaceDraft(
+    invoiceId: string,
+    request: DraftInvoiceRequest,
+    context: InvoiceContext,
+    priced: PricedInvoice,
+  ): Promise<void> {
+    await this.tx
+      .update(salesInvoices)
+      .set({
+        contactId: context.contact.id,
+        kind: request.kind,
+        issueDate: request.issueDate,
+        dueDate: dueDate(request.issueDate, context.contact.paymentTermsDays),
+        currency: context.currency,
+        netMinorUnits: priced.net,
+        taxMinorUnits: priced.tax,
+        totalMinorUnits: priced.total,
+        reference: request.reference,
+        buyerReference: request.buyerReference,
+        notes: request.notes,
+        creditsInvoiceId: request.creditsInvoiceId,
+      })
+      .where(and(eq(salesInvoices.entityId, request.entityId), eq(salesInvoices.id, invoiceId)))
+
+    await this.tx.delete(salesInvoiceLines).where(eq(salesInvoiceLines.invoiceId, invoiceId))
+
+    const accountIds = await this.accountIdsByNumber(
+      request.entityId,
+      priced.lines.map((line) => line.revenueAccountNumber),
+    )
+
+    await this.tx.insert(salesInvoiceLines).values(
+      priced.lines.map((line) => {
+        const accountId = accountIds.get(line.revenueAccountNumber)
+        if (accountId === undefined) {
+          throw new Error(`No account ${line.revenueAccountNumber}.`)
+        }
+        const taxCode = context.taxCodes.get(line.tax.code)
+        if (taxCode === undefined) throw new Error(`No tax code ${line.tax.code}.`)
+
+        return {
+          id: uuidv7(),
+          entityId: request.entityId,
+          invoiceId,
+          lineNumber: line.lineNumber,
+          description: line.description,
+          quantity: line.quantity,
+          unitCode: line.unitCode,
+          unitPriceMinorUnits: line.unitPrice,
+          revenueAccountId: accountId,
+          taxCodeId: taxCode.id,
+          netMinorUnits: line.net,
+          taxMinorUnits: line.tax_,
+        }
+      }),
+    )
+  }
+
   private async accountIdsByNumber(
     entityId: string,
     numbers: readonly string[],

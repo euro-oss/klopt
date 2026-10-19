@@ -183,17 +183,6 @@ export function formatDateLongNl(iso: string, opts?: { includeYear?: boolean }):
   return `${dayText} ${monthName} ${year}`
 }
 
-/**
- * Name a closed fiscal period for guided copy (`Q3 2026`).
- * Sequence is the monthly period number from the ledger (1–12).
- */
-export function formatGuidedPeriodName(fiscalYear: string, sequence: string): string {
-  const seq = Number(sequence)
-  if (!Number.isFinite(seq) || seq < 1) return `${fiscalYear}-${sequence}`
-  const quarter = Math.ceil(seq / 3)
-  return `Q${String(quarter)} ${fiscalYear}`
-}
-
 /** Client-side indicative totals (per-line VAT). Prefer server totals on step 3+. */
 export function computeGuidedTotals(
   lines: readonly GuidedLineDraft[],

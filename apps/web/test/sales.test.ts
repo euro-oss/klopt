@@ -14,6 +14,7 @@ import {
   handleListOverdueInvoices,
   handleListTaxCodes,
   handleGetContact,
+  handleReplaceDraftInvoice,
   handleUpdateContact,
 } from '../src/api/handlers/sales.js'
 import {
@@ -184,6 +185,64 @@ describe('drafting', () => {
       currency: 'EUR',
     })
     expect(statement.body.result).toBe('0')
+  })
+
+  it('replaces a draft in place with the same id and new totals', async () => {
+    const { token } = await newEntity()
+    await withCustomer(token)
+
+    const created = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const replaced = await handleReplaceDraftInvoice(
+      await context(token, uuidv7()),
+      created.body.id,
+      draft({
+        lines: [
+          {
+            description: 'Meer advies',
+            quantity: '2',
+            unitPrice: '100000',
+            revenueAccountNumber: '8000',
+            taxCode: 'H21',
+          },
+        ],
+      }),
+    )
+
+    expect(replaced.status).toBe(200)
+    expect(replaced.body.id).toBe(created.body.id)
+    expect(replaced.body.status).toBe('draft')
+    expect(replaced.body.net).toBe('200000')
+    expect(replaced.body.tax).toBe('42000')
+    expect(replaced.body.total).toBe('242000')
+
+    const listed = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'draft' }),
+    )
+    expect(listed.body.invoices).toHaveLength(1)
+    expect(listed.body.invoices[0]!.id).toBe(created.body.id)
+    expect(listed.body.invoices[0]!.total).toBe('242000')
+
+    const fetched = await handleGetInvoice(await context(token), created.body.id)
+    expect(fetched.body.invoice.lines).toHaveLength(1)
+    expect(fetched.body.invoice.lines[0]!.description).toBe('Meer advies')
+    expect(Number(fetched.body.invoice.lines[0]!.quantity)).toBe(2)
+  })
+
+  it('refuses to replace an issued invoice', async () => {
+    const { token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    await expect(
+      handleReplaceDraftInvoice(await context(token, uuidv7()), drafted.body.id, draft()),
+    ).rejects.toMatchObject({ code: 'conflict' })
   })
 
   it('sets the due date from the contact’s payment terms', async () => {

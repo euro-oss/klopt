@@ -105,6 +105,7 @@ describe('what an agent is allowed to reach for', () => {
       'get_balance',
       'list_open_items',
       'list_pending_approvals',
+      'replace_draft_sales_invoice',
       'search',
       'vat_return_preview',
     ])
@@ -127,6 +128,7 @@ describe('what an agent is allowed to reach for', () => {
 
     const writes = new Set([
       'draft_sales_invoice',
+      'replace_draft_sales_invoice',
       'capture_purchase_invoice',
       'draft_from_inbox_item',
     ])

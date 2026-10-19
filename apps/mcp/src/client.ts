@@ -123,6 +123,16 @@ export class ApiClient {
     return JSON.parse(await this.request(path, { method: 'POST', body })) as T
   }
 
+  /**
+   * A PUT against `/api/v1`, for rewriting a draft in place.
+   *
+   * Same proposal model as `post`: the body is something a human still has to
+   * release. The idempotency key is generated per call for the same reason.
+   */
+  async put<T>(path: string, body: unknown): Promise<T> {
+    return JSON.parse(await this.request(path, { method: 'PUT', body })) as T
+  }
+
   private async request(
     path: string,
     options: { readonly method?: string; readonly body?: unknown } = {},

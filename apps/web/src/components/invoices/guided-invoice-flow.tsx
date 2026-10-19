@@ -24,7 +24,6 @@ import {
   formatDateLongNl,
   formatDateShort,
   formatEuro,
-  formatGuidedPeriodName,
   GUIDED_STEP_KEYS,
   isPeriodLockCode,
   nextStep,
@@ -41,10 +40,17 @@ import {
   type GuidedTotals,
   type VatLabelBag,
 } from '~/lib/guided-invoice'
+import { periodLabel, type PeriodLabelYear } from '~/lib/period-label'
 import { multiplyByDecimal, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
-import { draftInvoice, getContact, issueInvoice, sendInvoice } from '~/server/sales'
+import {
+  draftInvoice,
+  getContact,
+  issueInvoice,
+  replaceDraftInvoice,
+  sendInvoice,
+} from '~/server/sales'
 
 function useVatLabels(): VatLabelBag {
   const { t } = useT()
@@ -117,6 +123,7 @@ export function GuidedInvoiceFlow({
   taxCodes,
   accounts,
   entity,
+  fiscalYears = [],
   contactsError,
   initialPhase = 'form',
 }: {
@@ -124,6 +131,8 @@ export function GuidedInvoiceFlow({
   taxCodes: readonly GuidedTaxCode[]
   accounts: readonly GuidedAccount[]
   entity: GuidedEntity | null
+  /** Book years with periods — for shared `periodLabel` copy on period locks. */
+  fiscalYears?: readonly PeriodLabelYear[]
   contactsError?: string | null
   /** Lab / screenshot hook for empty / loading / error chrome. */
   initialPhase?: FlowPhase
@@ -182,6 +191,8 @@ export function GuidedInvoiceFlow({
   const [serverDraft, setServerDraft] = useState<ServerDraft | null>(null)
 
   const draftKey = useRef(crypto.randomUUID())
+  /** Kept across Terug / period-lock so Controleren replaces instead of orphaning. */
+  const knownDraftId = useRef<string | null>(null)
   const issueKey = useRef(crypto.randomUUID())
   const sendKey = useRef(crypto.randomUUID())
   const confirmRef = useRef<HTMLButtonElement>(null)
@@ -280,7 +291,16 @@ export function GuidedInvoiceFlow({
     )
   }
 
-  function clearServerDraft() {
+  /**
+   * Drop review totals for step-2 editing without rotating the draft id.
+   * `knownDraftId` stays so the next Controleren replaces in place.
+   */
+  function clearReviewDraft() {
+    setServerDraft(null)
+  }
+
+  function forgetDraft() {
+    knownDraftId.current = null
     setServerDraft(null)
     draftKey.current = crypto.randomUUID()
   }
@@ -371,24 +391,36 @@ export function GuidedInvoiceFlow({
   async function draftForReview(): Promise<boolean> {
     setPhase('loading')
     setProblems([])
-    const result = await draftInvoice({
-      data: {
-        idempotencyKey: draftKey.current,
-        contactNumber,
-        kind: 'invoice',
-        issueDate,
-        reference: null,
-        // PEPPOL-EN16931-R003: BT-10 or order reference required for UBL/send.
-        // Guided mode has no buyer-reference field; use the debtor number.
-        buyerReference: contactNumber,
-        lines: draftLinesPayload(),
-      },
-    })
+    const payload = {
+      contactNumber,
+      kind: 'invoice' as const,
+      issueDate,
+      reference: null,
+      // PEPPOL-EN16931-R003: BT-10 or order reference required for UBL/send.
+      // Guided mode has no buyer-reference field; use the debtor number.
+      buyerReference: contactNumber,
+      lines: draftLinesPayload(),
+    }
+    const existingId = knownDraftId.current
+    const result =
+      existingId === null
+        ? await draftInvoice({
+            data: { idempotencyKey: draftKey.current, ...payload },
+          })
+        : await replaceDraftInvoice({
+            data: {
+              invoiceId: existingId,
+              // Fresh key per replace: content may have changed since last write.
+              idempotencyKey: crypto.randomUUID(),
+              ...payload,
+            },
+          })
     if (!result.ok) {
       setPhase('form')
       report(result.problem)
       return false
     }
+    knownDraftId.current = result.data.id
     setServerDraft(mapServerDraft(result.data))
     setPhase('form')
     return true
@@ -437,7 +469,7 @@ export function GuidedInvoiceFlow({
     setConfirming(false)
     const prev = prevStep(step)
     if (prev !== null) {
-      if (step === 3) clearServerDraft()
+      if (step === 3) clearReviewDraft()
       setStep(prev)
       return
     }
@@ -496,10 +528,8 @@ export function GuidedInvoiceFlow({
         (violation) => typeof violation.code === 'string' && isPeriodLockCode(violation.code),
       )
       if (periodViolation !== undefined) {
-        const fiscalYear = periodViolation.detail?.['fiscalYear'] ?? ''
-        const period = periodViolation.detail?.['period'] ?? ''
-        const periodName = formatGuidedPeriodName(fiscalYear, period)
-        clearServerDraft()
+        const periodName = periodLabel(fiscalYears, periodViolation.detail)
+        clearReviewDraft()
         setPhase('form')
         setStep(2)
         setProblems([
@@ -635,11 +665,10 @@ export function GuidedInvoiceFlow({
             <Button
               variant="outline"
               onClick={() => {
-                draftKey.current = crypto.randomUUID()
+                forgetDraft()
                 issueKey.current = crypto.randomUUID()
                 sendKey.current = crypto.randomUUID()
                 setDone(null)
-                setServerDraft(null)
                 setPhase('form')
                 setStep(1)
                 setLines([

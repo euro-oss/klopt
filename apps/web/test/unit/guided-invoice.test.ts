@@ -9,7 +9,6 @@ import {
   formatDateLongNl,
   formatDateShort,
   formatEuro,
-  formatGuidedPeriodName,
   formatRatePercent,
   isZeroVatRate,
   nextStep,
@@ -85,13 +84,11 @@ describe('guided invoice helpers', () => {
     ).toBe('')
   })
 
-  it('parses and formats short Dutch dates and period names', () => {
+  it('parses and formats short Dutch dates', () => {
     expect(formatDateShort('2026-11-01')).toBe('01-11-2026')
     expect(parseDateShort('01-11-2026')).toBe('2026-11-01')
     expect(parseDateShort('1-11-2026')).toBe('2026-11-01')
     expect(parseDateShort('32-11-2026')).toBe(null)
-    expect(formatGuidedPeriodName('2026', '7')).toBe('Q3 2026')
-    expect(formatGuidedPeriodName('2026', '1')).toBe('Q1 2026')
     expect(addDaysIso('2026-10-18', 14)).toBe('2026-11-01')
     expect(formatDateLongNl('2026-11-01', { includeYear: false })).toBe('1 november')
   })

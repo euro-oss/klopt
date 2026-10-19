@@ -15,6 +15,8 @@ import { isApple } from '~/lib/keyboard'
 import { draftInvoice, getContact, listContacts, listTaxCodes } from '~/server/sales'
 import { listAccounts } from '~/server/ledger'
 import { getEntity } from '~/server/entity'
+import { listFiscalYears } from '~/server/setup'
+import type { PeriodLabelYear } from '~/lib/period-label'
 
 /**
  * A new sales invoice.
@@ -48,6 +50,7 @@ export const Route = createFileRoute('/_app/invoices/new')({
       taxCodes: await listTaxCodes(),
       accounts: await listAccounts(),
       entity: await getEntity(),
+      fiscalYears: await listFiscalYears(),
     }
   },
   component: NewInvoice,
@@ -84,7 +87,7 @@ function NewInvoice() {
 }
 
 function GuidedFromLoader() {
-  const { contacts, taxCodes, accounts, entity } = Route.useLoaderData()
+  const { contacts, taxCodes, accounts, entity, fiscalYears } = Route.useLoaderData()
 
   const customers = contacts.ok
     ? contacts.data.contacts.map((row) => ({
@@ -129,12 +132,15 @@ function GuidedFromLoader() {
       }
     : null
 
+  const years: readonly PeriodLabelYear[] = fiscalYears.ok ? fiscalYears.data.fiscalYears : []
+
   return (
     <GuidedInvoiceFlow
       customers={customers}
       taxCodes={codes}
       accounts={revenueAccounts}
       entity={entityRow}
+      fiscalYears={years}
       contactsError={contacts.ok ? null : contacts.problem.detail}
     />
   )

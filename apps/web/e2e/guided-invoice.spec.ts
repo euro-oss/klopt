@@ -82,8 +82,10 @@ async function fillBreadLine(page: Page): Promise<void> {
   await page.getByLabel('Prijs regel 1').fill('4,20')
 }
 
-/** 60 × €4,20 at 21% (H21 / per-invoice) = €304,92. */
-const EXPECTED_TOTAL = /€\u00a0304,92|€ 304,92/
+/** 60 × €4,20 at 21% (H21 / per-invoice) = €304,92. NBSP-only (formatEuro). */
+const EXPECTED_TOTAL = /€\u00a0304,92/
+/** After orphan-draft edit: 50 × €4,20 at 21% = €254,10. */
+const EDITED_TOTAL = /€\u00a0254,10/
 
 async function waitForOutboxTo(email: string): Promise<string> {
   const deadline = Date.now() + 15_000
@@ -177,22 +179,22 @@ test('validation errors, Concept opslaan and the PDF path', async ({ page }) => 
   await page.goto('/invoices/new')
   // No match → needCustomer (avoid fill()'s clear step, which auto-picks everyone).
   await page.locator('#cust-q').pressSequentially('zzzz-geen-klant', { delay: 20 })
-  await page.getByRole('button', { name: /Verder/ }).click()
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Kies eerst een klant.')).toBeVisible()
 
   await page.locator('#cust-q').fill('Hotel')
-  await page.getByRole('option', { name: /Hotel Zeezicht/ }).click()
-  await page.getByRole('button', { name: /Verder/ }).click()
+  await page.getByRole('option', { name: /Hotel Zeezicht/ }).press('Enter')
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 2 van 4')).toBeVisible()
-  await page.getByRole('button', { name: /Verder/ }).click()
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(
     page.getByText('Vul minstens één regel met omschrijving en bedrag in.'),
   ).toBeVisible()
 
   await fillBreadLine(page)
-  await page.getByRole('button', { name: /Verder/ }).click()
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 3 van 4')).toBeVisible({ timeout: 15_000 })
-  await page.getByRole('button', { name: /Verder/ }).click()
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 4 van 4')).toBeVisible()
 
   // No e-mail → PDF is the default.
@@ -202,7 +204,7 @@ test('validation errors, Concept opslaan and the PDF path', async ({ page }) => 
   )
 
   // (a) Concept opslaan → draft with no number allocated.
-  await page.getByRole('button', { name: /Concept opslaan/ }).click()
+  await page.getByRole('button', { name: /Concept opslaan/ }).press('Enter')
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible({
     timeout: 15_000,
   })
@@ -219,18 +221,18 @@ test('PDF send path reaches Klaar voor without claiming e-mail', async ({ page }
   await addCustomer(page)
 
   await page.goto('/invoices/new')
-  await page.getByRole('option', { name: /Hotel Zeezicht/ }).click()
-  await page.getByRole('button', { name: /Verder/ }).click()
+  await page.getByRole('option', { name: /Hotel Zeezicht/ }).press('Enter')
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await fillBreadLine(page)
-  await page.getByRole('button', { name: /Verder/ }).click()
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 3 van 4')).toBeVisible({ timeout: 15_000 })
-  await page.getByRole('button', { name: /Verder/ }).click()
-  await page.getByRole('radio', { name: /Zelf versturen/ }).click()
-  await page.getByRole('button', { name: /^Versturen/ }).click()
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
+  await page.getByRole('radio', { name: /Zelf versturen/ }).press('Space')
+  await page.getByRole('button', { name: /^Versturen/ }).press('Enter')
   await page
     .getByRole('alertdialog')
     .getByRole('button', { name: /^Versturen/ })
-    .click()
+    .press('Enter')
   // PDF path — issued but not e-mailed; must not claim Verstuurd.
   await expect(page.getByRole('heading', { name: /Klaar voor Hotel Zeezicht/ })).toBeVisible({
     timeout: 30_000,
@@ -238,6 +240,66 @@ test('PDF send path reaches Klaar voor without claiming e-mail', async ({ page }
   await expect(page.getByRole('heading', { name: /Verstuurd naar/ })).toHaveCount(0)
   await expect(page.getByText(EXPECTED_TOTAL)).toBeVisible()
   await expectNoCodes(page)
+})
+
+test('Controleren → Terug → edit → Controleren keeps one draft id', async ({ page }) => {
+  test.setTimeout(90_000)
+  await administrationReady(page, 'Guided Orphan BV')
+  await addCustomer(page)
+
+  await page.goto('/invoices/new')
+  await page.getByRole('option', { name: /Hotel Zeezicht/ }).press('Enter')
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
+  await fillBreadLine(page)
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
+  await expect(page.getByText('Stap 3 van 4')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText(EXPECTED_TOTAL).first()).toBeVisible()
+
+  const firstList = await page.request.get('/api/v1/sales-invoices?status=draft')
+  expect(firstList.ok()).toBe(true)
+  const firstBody = (await firstList.json()) as { invoices: { id: string; total: string }[] }
+  expect(firstBody.invoices).toHaveLength(1)
+  const draftId = firstBody.invoices[0]!.id
+  expect(firstBody.invoices[0]!.total).toBe('30492')
+
+  await page.getByRole('button', { name: /Terug/ }).press('Enter')
+  await expect(page.getByText('Stap 2 van 4')).toBeVisible()
+  await page.getByLabel('Aantal regel 1').fill('50')
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
+  await expect(page.getByText('Stap 3 van 4')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText(EDITED_TOTAL).first()).toBeVisible()
+
+  const secondList = await page.request.get('/api/v1/sales-invoices?status=draft')
+  expect(secondList.ok()).toBe(true)
+  const secondBody = (await secondList.json()) as { invoices: { id: string; total: string }[] }
+  expect(secondBody.invoices).toHaveLength(1)
+  expect(secondBody.invoices[0]!.id).toBe(draftId)
+  expect(secondBody.invoices[0]!.total).toBe('25410')
+
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
+  await page.getByRole('button', { name: /^Versturen/ }).press('Enter')
+  await page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: /^Versturen/ })
+    .press('Enter')
+  await expect(page.getByRole('heading', { name: /Verstuurd naar Hotel Zeezicht/ })).toBeVisible({
+    timeout: 45_000,
+  })
+  await expect(page.getByText(EDITED_TOTAL)).toBeVisible()
+
+  const issued = await page.request.get(`/api/v1/sales-invoices/${draftId}`)
+  expect(issued.ok()).toBe(true)
+  const issuedBody = (await issued.json()) as {
+    invoice: { id: string; status: string; total: string }
+  }
+  expect(issuedBody.invoice.id).toBe(draftId)
+  expect(issuedBody.invoice.status).toBe('issued')
+  expect(issuedBody.invoice.total).toBe('25410')
+
+  const draftsLeft = await page.request.get('/api/v1/sales-invoices?status=draft')
+  expect(draftsLeft.ok()).toBe(true)
+  const draftsBody = (await draftsLeft.json()) as { invoices: unknown[] }
+  expect(draftsBody.invoices).toHaveLength(0)
 })
 
 test('a hard-closed period keeps the user in the flow with named copy', async ({ page }) => {
@@ -252,8 +314,9 @@ test('a hard-closed period keeps the user in the flow with named copy', async ({
     const entityId = memberships[0]?.entityId
     if (entityId === undefined) throw new Error('missing entity')
 
-    // Close the month that contains today's date (UTC).
+    // Close the month that contains today's date (UTC) — a single month, not a quarter.
     const today = new Date().toISOString().slice(0, 10)
+    const year = Number(today.slice(0, 4))
     const month = Number(today.slice(5, 7))
     const client = (database as unknown as { $client: PostgresSql }).$client
     await client.unsafe(
@@ -262,24 +325,27 @@ test('a hard-closed period keeps the user in the flow with named copy', async ({
     )
 
     await page.goto('/invoices/new')
-    await page.getByRole('option', { name: /Hotel Zeezicht/ }).click()
-    await page.getByRole('button', { name: /Verder/ }).click()
+    await page.getByRole('option', { name: /Hotel Zeezicht/ }).press('Enter')
+    await page.getByRole('button', { name: /Verder/ }).press('Enter')
     await fillBreadLine(page)
-    await page.getByRole('button', { name: /Verder/ }).click()
+    await page.getByRole('button', { name: /Verder/ }).press('Enter')
     await expect(page.getByText('Stap 3 van 4')).toBeVisible({ timeout: 15_000 })
-    await page.getByRole('button', { name: /Verder/ }).click()
-    await page.getByRole('button', { name: /^Versturen/ }).click()
+    await page.getByRole('button', { name: /Verder/ }).press('Enter')
+    await page.getByRole('button', { name: /^Versturen/ }).press('Enter')
     await page
       .getByRole('alertdialog')
       .getByRole('button', { name: /^Versturen/ })
-      .click()
+      .press('Enter')
 
-    // (d) Stay in the flow with named hard-closed copy; no "heropen".
+    // (d) Stay in the flow with month-named hard-closed copy (not Qn); no "heropen".
     await expect(page.getByText('Stap 2 van 4')).toBeVisible({ timeout: 15_000 })
-    const quarter = Math.ceil(month / 3)
-    await expect(
-      page.getByText(`Q${String(quarter)} ${today.slice(0, 4)} is definitief afgesloten`),
-    ).toBeVisible()
+    const monthLabel = new Intl.DateTimeFormat('nl-NL', {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(year, month - 1, 1)))
+    await expect(page.getByText(`${monthLabel} is definitief afgesloten`)).toBeVisible()
+    await expect(page.getByText(/Q\d/)).toHaveCount(0)
     await expect(page.getByText(/heropen/i)).toHaveCount(0)
     await expect(page).toHaveURL(/\/invoices\/new/)
     await expectNoCodes(page)
