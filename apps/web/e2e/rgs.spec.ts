@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
 
 /**
  * RGS-koppelingen op het grootboek.
@@ -54,7 +54,8 @@ test('a code is changed from the table, and the dashboard figure follows', async
   await expect(page.getByRole('row', { name: /^1000 / }).getByText('niet gekoppeld')).toBeVisible()
 
   // The figure on the dashboard is a different screen reading the same
-  // coverage. It has to have moved.
+  // coverage. Health (RGS / unmapped) only shows with Geavanceerd on (#67).
+  await enableAdvancedMode(page)
   await page.goto('/')
   await expect(page.getByText('Niet-gekoppelde rekeningen')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Koppelingen bijwerken' })).toBeVisible()

@@ -35,6 +35,7 @@ import {
   maxMonthAmount,
   type AttentionTone,
   type MonthBar,
+  type PeriodRow,
 } from '~/lib/dashboard'
 import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
@@ -528,13 +529,7 @@ function IncomeChart({ months }: { months: readonly MonthBar[] }) {
   )
 }
 
-function PeriodsPanel({
-  rows,
-  yearCode,
-}: {
-  rows: ReturnType<typeof import('~/lib/dashboard').buildPeriodRows>
-  yearCode: string
-}) {
+function PeriodsPanel({ rows, yearCode }: { rows: readonly PeriodRow[]; yearCode: string }) {
   const { t } = useT()
   if (rows.length === 0) return null
 
@@ -700,13 +695,10 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
   const [cursor, setCursor] = useState(0)
   const rows = useRef<(HTMLAnchorElement | null)[]>([])
   const cursorRef = useRef(0)
-  cursorRef.current = cursor
 
-  const focusRow = (index: number): void => {
-    setCursor(index)
-    cursorRef.current = index
-    rows.current[index]?.focus()
-  }
+  useEffect(() => {
+    cursorRef.current = cursor
+  }, [cursor])
 
   // j/k enter the list at row 0 without stealing focus on load. Global
   // prefixes (g j) still win: useShortcuts marks those defaultPrevented.
@@ -718,7 +710,25 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
       if (event.metaKey || event.ctrlKey || event.altKey) return
       const active = document.activeElement
       const inList = rows.current.some((row) => row !== null && row === active)
-      if (inList) return
+      if (inList) {
+        const resolution = resolveListKey(
+          event.key,
+          { index: cursorRef.current, count: items.length },
+          false,
+        )
+        if (resolution.action === 'move') {
+          event.preventDefault()
+          const next = resolution.index
+          setCursor(next)
+          cursorRef.current = next
+          rows.current[next]?.focus()
+        }
+        if (resolution.action === 'leave') {
+          event.preventDefault()
+          rows.current[cursorRef.current]?.blur()
+        }
+        return
+      }
       if (
         event.key === 'j' ||
         event.key === 'k' ||
@@ -726,7 +736,9 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         event.key === 'ArrowUp'
       ) {
         event.preventDefault()
-        focusRow(0)
+        setCursor(0)
+        cursorRef.current = 0
+        rows.current[0]?.focus()
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -764,26 +776,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         </span>
       </div>
 
-      <ul
-        role="list"
-        className="divide-y border"
-        onKeyDown={(event) => {
-          const resolution = resolveListKey(
-            event.key,
-            { index: cursorRef.current, count: items.length },
-            event.metaKey || event.ctrlKey || event.altKey,
-          )
-
-          if (resolution.action === 'move') {
-            event.preventDefault()
-            focusRow(resolution.index)
-          }
-          if (resolution.action === 'leave') {
-            event.preventDefault()
-            rows.current[cursorRef.current]?.blur()
-          }
-        }}
-      >
+      <ul role="list" className="divide-y border">
         {items.map((item, index) => {
           const destination = DESTINATIONS[item.kind]
           const tone = ATTENTION_TONE[item.kind]

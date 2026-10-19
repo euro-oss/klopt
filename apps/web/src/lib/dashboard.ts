@@ -76,7 +76,7 @@ export function ibanTail(iban: string): string {
  * Used for chart axis and period rows (nl/en share the same keys).
  */
 export function monthKey(month: number): `dash.month.${number}` {
-  return `dash.month.${month}` as `dash.month.${number}`
+  return `dash.month.${month}`
 }
 
 export interface MonthBar {

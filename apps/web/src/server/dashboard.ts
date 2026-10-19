@@ -183,7 +183,7 @@ async function loadDashboard(
         .length,
       purchaseToBook: purchasesInYear.filter((invoice) => invoice.status === 'draft').length,
       purchaseToApprove: purchasesInYear.filter((invoice) => invoice.status === 'booked').length,
-      vatFiling: vatReady === null ? 0 : 1,
+      vatFilingCount: vatReady === null ? 0 : 1,
       vatPeriod: vatReady?.label ?? null,
       vatDeadline: vatReady?.deadline ?? null,
       vatPayable: vatReady?.payable ?? null,

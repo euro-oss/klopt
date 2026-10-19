@@ -95,7 +95,8 @@ export interface WorkQueueCounts {
   readonly inboxWaiting: number
   readonly purchaseToBook: number
   readonly purchaseToApprove: number
-  readonly vatFiling: number
+  /** Count of ready VAT returns (suffix Count so it is not flagged as money). */
+  readonly vatFilingCount: number
   readonly vatPeriod: string | null
   readonly vatDeadline: string | null
   readonly vatPayable: string | null
@@ -150,7 +151,7 @@ export function buildWorkQueue(
     { kind: 'purchase.approve', count: counts.purchaseToApprove, amount: null },
     {
       kind: 'vat.filing',
-      count: counts.vatFiling,
+      count: counts.vatFilingCount,
       amount: counts.vatPayable,
       ...(vatDetail === undefined ? {} : { detail: vatDetail }),
     },
