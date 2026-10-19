@@ -3,7 +3,15 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { chooseOption, DATABASE_URL, hydrated, OUTBOX, signIn, uniqueEmail } from './support'
+import {
+  chooseOption,
+  DATABASE_URL,
+  enableAdvancedMode,
+  hydrated,
+  OUTBOX,
+  signIn,
+  uniqueEmail,
+} from './support'
 
 /**
  * The koppelwachtrij, in a browser.
@@ -111,6 +119,8 @@ test('a payment is booked by confirming the candidate, not by trusting the top o
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
 
+  // Bookkeeper invoice form needs Geavanceerd; Eigenaar default is guided (#45).
+  await enableAdvancedMode(page)
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
   await page.getByLabel('Referentie klant').fill('KP-1')

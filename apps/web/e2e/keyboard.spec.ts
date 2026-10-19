@@ -2,7 +2,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, enableAdvancedMode, signIn, uniqueEmail } from './support'
 
 /** The copy-as-TSV test writes to the clipboard and then reads it back. */
 test.use({ permissions: ['clipboard-read', 'clipboard-write'] })
@@ -484,6 +484,10 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
     buffer: Buffer.from(UBL, 'utf8'),
   })
   await expect(page.getByText('F-2026-0042 · Leverancier B.V.')).toBeVisible()
+
+  // Bookkeeper invoice form (Grootboek, confirm dialog) needs Geavanceerd;
+  // Eigenaar default is the guided flow (#45).
+  await enableAdvancedMode(page)
 
   // ── From here on, the keyboard and nothing else. ───────────────────────────
 
