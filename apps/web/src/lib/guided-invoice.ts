@@ -16,6 +16,15 @@ import {
 /** Non-breaking space after the euro sign (same convention as the dashboard PR). */
 export const EURO_NBSP = '€\u00a0'
 
+/** Privégebruik is not a sales-line choice — drop it from the guided picker. */
+export const SALES_PICKER_EXCLUDED = new Set(['PRIV21'])
+
+/**
+ * Zero-rate sales codes that must each keep a distinct plain-Dutch label
+ * (they land in different aangifte boxes).
+ */
+export const ZERO_RATE_SALES_CODES = ['VERL', 'GEEN', 'NUL', 'ICP', 'ICPD'] as const
+
 export type GuidedStep = 1 | 2 | 3 | 4
 
 export const GUIDED_STEP_COUNT = 4
@@ -43,6 +52,7 @@ export interface GuidedTaxCode {
   ratePercent: string
   rateBasisPoints: number
   direction: string
+  description?: string
 }
 
 export interface GuidedTotals {
@@ -51,6 +61,12 @@ export interface GuidedTotals {
   total: bigint
   /** Rate label → tax amount, for the summary rows (e.g. `9% btw`). */
   taxByLabel: ReadonlyArray<{ label: string; amount: bigint }>
+}
+
+export type VatLabelBag = {
+  rate: (rate: string) => string
+  /** Distinct labels keyed by tax code (VERL, GEEN, …). */
+  byCode: Readonly<Partial<Record<string, string>>>
 }
 
 /** Format minor units with a non-breaking space after €. Never invents a figure. */
@@ -71,25 +87,32 @@ export function isZeroVatRate(ratePercent: string): boolean {
   return trimmed === '' || trimmed === '0' || trimmed === '0.00' || trimmed === '0,00'
 }
 
+/** Output codes offered on a sales invoice (no PRIV21). */
+export function salesPickerTaxCodes(codes: readonly GuidedTaxCode[]): GuidedTaxCode[] {
+  return codes.filter(
+    (code) => code.direction === 'output' && !SALES_PICKER_EXCLUDED.has(code.code),
+  )
+}
+
 /**
- * Plain VAT label for simple mode — rate only, never the ledger code.
- * Callers pass translated none / rate templates.
+ * Plain VAT label for simple mode — never the ledger code.
+ * Zero-rate codes use their own translated label; positive rates use `{rate}% btw`.
  */
-export function taxCodeLabel(
-  code: GuidedTaxCode | undefined,
-  labels: { none: string; rate: (rate: string) => string },
-): string {
-  if (code === undefined || isZeroVatRate(code.ratePercent)) return labels.none
+export function taxCodeLabel(code: GuidedTaxCode | undefined, labels: VatLabelBag): string {
+  if (code === undefined) return labels.byCode['GEEN'] ?? ''
+  const named = labels.byCode[code.code]
+  if (named !== undefined) return named
+  if (isZeroVatRate(code.ratePercent)) return labels.byCode['GEEN'] ?? code.description ?? ''
   return labels.rate(formatRatePercent(code.ratePercent))
 }
 
 /**
- * Pick the default output tax code: highest rate (same rule as the advanced
- * form). Last-booking defaults are not available from the API yet — TODO.
+ * Default output tax code: highest *positive* sales rate. Never preselects a
+ * 0% code or PRIV21. Last-booking defaults are not available from the API yet.
  */
 export function defaultOutputTaxCode(codes: readonly GuidedTaxCode[]): string {
-  const output = codes.filter((code) => code.direction === 'output')
-  return [...output].sort((a, b) => b.rateBasisPoints - a.rateBasisPoints)[0]?.code ?? ''
+  const eligible = salesPickerTaxCodes(codes).filter((code) => !isZeroVatRate(code.ratePercent))
+  return [...eligible].sort((a, b) => b.rateBasisPoints - a.rateBasisPoints)[0]?.code ?? ''
 }
 
 export function addDaysIso(isoDate: string, days: number): string {
@@ -109,6 +132,22 @@ export function addDaysIso(isoDate: string, days: number): string {
 /** Display `2026-11-01` as `01-11-2026`. */
 export function formatDateShort(iso: string): string {
   return formatDate(iso)
+}
+
+/** Parse `01-11-2026` or `1-11-2026` back to ISO. */
+export function parseDateShort(display: string): string | null {
+  const match = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(display.trim())
+  if (match === null) return null
+  const day = Number(match[1])
+  const month = Number(match[2])
+  const year = Number(match[3])
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day)
+    return null
+  const m = String(month).padStart(2, '0')
+  const d = String(day).padStart(2, '0')
+  return `${String(year)}-${m}-${d}`
 }
 
 const MONTHS_NL = [
@@ -140,10 +179,22 @@ export function formatDateLongNl(iso: string, opts?: { includeYear?: boolean }):
   return `${dayText} ${monthName} ${year}`
 }
 
+/**
+ * Name a closed fiscal period for guided copy (`Q3 2026`).
+ * Sequence is the monthly period number from the ledger (1–12).
+ */
+export function formatGuidedPeriodName(fiscalYear: string, sequence: string): string {
+  const seq = Number(sequence)
+  if (!Number.isFinite(seq) || seq < 1) return `${fiscalYear}-${sequence}`
+  const quarter = Math.ceil(seq / 3)
+  return `Q${String(quarter)} ${fiscalYear}`
+}
+
+/** Client-side indicative totals (per-line VAT). Prefer server totals on step 3+. */
 export function computeGuidedTotals(
   lines: readonly GuidedLineDraft[],
   codes: readonly GuidedTaxCode[],
-  vatLabels: { none: string; rate: (rate: string) => string },
+  vatLabels: VatLabelBag,
 ): GuidedTotals {
   const rateOf = (code: string): string =>
     codes.find((item) => item.code === code)?.ratePercent ?? '0'
@@ -178,17 +229,17 @@ export function computeGuidedTotals(
   }
 }
 
-export function filterCustomers<T extends { name: string; number: string; email: string | null }>(
-  customers: readonly T[],
-  query: string,
-): T[] {
+export function filterCustomers<
+  T extends { name: string; number: string; email: string | null; city?: string | null },
+>(customers: readonly T[], query: string): T[] {
   const q = query.trim().toLowerCase()
   if (q === '') return [...customers]
   return customers.filter(
     (customer) =>
       customer.name.toLowerCase().includes(q) ||
       customer.number.toLowerCase().includes(q) ||
-      (customer.email?.toLowerCase().includes(q) ?? false),
+      (customer.email?.toLowerCase().includes(q) ?? false) ||
+      (customer.city?.toLowerCase().includes(q) ?? false),
   )
 }
 
@@ -252,4 +303,8 @@ export function sellerIdentifiers(entity: {
   if (entity.kvkNumber) parts.push(`KvK ${entity.kvkNumber}`)
   if (entity.vatNumber) parts.push(entity.vatNumber)
   return parts.join(' · ')
+}
+
+export function isPeriodLockCode(code: string): boolean {
+  return code === 'period_hard_closed' || code === 'period_soft_closed'
 }

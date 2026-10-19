@@ -9,7 +9,6 @@ import {
 } from '@remixicon/react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
-import { Money } from '~/components/finance/money'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Keycap } from '~/components/ui/keycap'
@@ -25,9 +24,13 @@ import {
   formatDateLongNl,
   formatDateShort,
   formatEuro,
+  formatGuidedPeriodName,
   GUIDED_STEP_KEYS,
+  isPeriodLockCode,
   nextStep,
+  parseDateShort,
   prevStep,
+  salesPickerTaxCodes,
   sellerAddressLines,
   sellerIdentifiers,
   taxCodeLabel,
@@ -35,17 +38,25 @@ import {
   type GuidedSendMethod,
   type GuidedStep,
   type GuidedTaxCode,
+  type GuidedTotals,
+  type VatLabelBag,
 } from '~/lib/guided-invoice'
 import { multiplyByDecimal, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
 import { draftInvoice, getContact, issueInvoice, sendInvoice } from '~/server/sales'
 
-function useVatLabels() {
+function useVatLabels(): VatLabelBag {
   const { t } = useT()
   return {
-    none: t('invoiceGuided.vatNone'),
-    rate: (rate: string) => t('invoiceGuided.vatRate', { rate }),
+    rate: (rate) => t('invoiceGuided.vatRate', { rate }),
+    byCode: {
+      VERL: t('invoiceGuided.vat.VERL'),
+      GEEN: t('invoiceGuided.vat.GEEN'),
+      NUL: t('invoiceGuided.vat.NUL'),
+      ICP: t('invoiceGuided.vat.ICP'),
+      ICPD: t('invoiceGuided.vat.ICPD'),
+    },
   }
 }
 
@@ -54,6 +65,7 @@ export interface GuidedCustomer {
   number: string
   name: string
   email: string | null
+  city: string | null
   paymentTermsDays: number
   isBlocked: boolean
 }
@@ -86,6 +98,14 @@ interface DoneState {
   sent: boolean
 }
 
+interface ServerDraft {
+  id: string
+  net: bigint
+  tax: bigint
+  total: bigint
+  taxByLabel: ReadonlyArray<{ label: string; amount: bigint }>
+}
+
 /**
  * Guided new-invoice flow for Eigenaar with Geavanceerd off (#45 / #61 slice 5).
  *
@@ -116,10 +136,10 @@ export function GuidedInvoiceFlow({
   const confirmDescId = useId()
 
   const openCustomers = customers.filter((row) => !row.isBlocked)
-  const codes = taxCodes.filter((code) => code.direction === 'output')
+  const codes = salesPickerTaxCodes(taxCodes)
   const revenueAccounts = accounts.filter((account) => account.type === 'revenue')
   const defaultRevenue = revenueAccounts[0]?.number ?? ''
-  const defaultTax = defaultOutputTaxCode(codes)
+  const defaultTax = defaultOutputTaxCode(taxCodes)
 
   const today = (): string => new Date().toISOString().slice(0, 10)
 
@@ -147,7 +167,8 @@ export function GuidedInvoiceFlow({
       revenueAccountNumber: defaultRevenue,
     },
   ])
-  const [sendMethod, setSendMethod] = useState<GuidedSendMethod>('email')
+  const [sendMethod, setSendMethod] = useState<GuidedSendMethod>('pdf')
+  const pdfFromMissingEmail = useRef(true)
   const [confirming, setConfirming] = useState(false)
   const [phase, setPhase] = useState<FlowPhase>(
     contactsError
@@ -159,6 +180,7 @@ export function GuidedInvoiceFlow({
   const [problems, setProblems] = useState<{ path: string | null; message: string }[]>([])
   const [done, setDone] = useState<DoneState | null>(null)
   const [leaving, setLeaving] = useState(false)
+  const [serverDraft, setServerDraft] = useState<ServerDraft | null>(null)
 
   const draftKey = useRef(crypto.randomUUID())
   const issueKey = useRef(crypto.randomUUID())
@@ -169,19 +191,40 @@ export function GuidedInvoiceFlow({
   const vatLabels = useVatLabels()
   const selected = openCustomers.find((c) => c.number === contactNumber) ?? null
   const filtered = useMemo(() => filterCustomers(openCustomers, query), [openCustomers, query])
-  const totals = useMemo(
+  const clientTotals = useMemo(
     () => computeGuidedTotals(lines, codes, vatLabels),
     [lines, codes, vatLabels],
   )
+  const reviewTotals: GuidedTotals = serverDraft
+    ? {
+        net: serverDraft.net,
+        tax: serverDraft.tax,
+        total: serverDraft.total,
+        taxByLabel: serverDraft.taxByLabel,
+      }
+    : clientTotals
   const dueDate = addDaysIso(
     issueDate,
     contactDetail?.paymentTermsDays ?? selected?.paymentTermsDays ?? 30,
   )
   const termsDays = contactDetail?.paymentTermsDays ?? selected?.paymentTermsDays ?? 30
+  const customerEmail = contactDetail?.email ?? selected?.email ?? null
 
   useEffect(() => {
     if (confirming) confirmRef.current?.focus()
   }, [confirming])
+
+  useEffect(() => {
+    if (customerEmail === null || customerEmail === '') {
+      setSendMethod('pdf')
+      pdfFromMissingEmail.current = true
+      return
+    }
+    if (pdfFromMissingEmail.current) {
+      setSendMethod('email')
+      pdfFromMissingEmail.current = false
+    }
+  }, [customerEmail])
 
   useEffect(() => {
     if (contactNumber === '') return
@@ -216,6 +259,11 @@ export function GuidedInvoiceFlow({
     )
   }
 
+  function clearServerDraft() {
+    setServerDraft(null)
+    draftKey.current = crypto.randomUUID()
+  }
+
   function chooseCustomer(number: string, advance = false) {
     setContactNumber(number)
     if (number === '') setContactDetail(null)
@@ -246,7 +294,85 @@ export function GuidedInvoiceFlow({
     ])
   }
 
-  function goNext() {
+  function chooseSendMethod(method: GuidedSendMethod) {
+    pdfFromMissingEmail.current = false
+    setSendMethod(method)
+  }
+
+  function draftLinesPayload() {
+    return lines
+      .filter((line) => line.description.trim() !== '')
+      .map((line) => ({
+        description: line.description.trim(),
+        quantity: line.quantity === '' ? '1' : line.quantity,
+        unitCode: 'EA',
+        unitPrice: (parseMinorUnits(line.unitPrice) ?? 0n).toString(),
+        revenueAccountNumber: line.revenueAccountNumber || defaultRevenue,
+        taxCode: line.taxCode || defaultTax,
+      }))
+  }
+
+  function mapServerDraft(data: {
+    id: string
+    net: string
+    tax: string
+    total: string
+    taxGroups: readonly {
+      code: string
+      ratePercent: string
+      amount: string
+      description?: string
+    }[]
+  }): ServerDraft {
+    return {
+      id: data.id,
+      net: BigInt(data.net),
+      tax: BigInt(data.tax),
+      total: BigInt(data.total),
+      taxByLabel: data.taxGroups
+        .map((group) => {
+          const known = codes.find((item) => item.code === group.code)
+          const fallback: GuidedTaxCode = {
+            code: group.code,
+            ratePercent: group.ratePercent,
+            rateBasisPoints: Math.round(Number(group.ratePercent) * 100) || 0,
+            direction: 'output',
+            ...(group.description !== undefined ? { description: group.description } : {}),
+          }
+          return {
+            label: taxCodeLabel(known ?? fallback, vatLabels),
+            amount: BigInt(group.amount),
+          }
+        })
+        .filter((row) => row.amount !== 0n),
+    }
+  }
+
+  async function draftForReview(): Promise<boolean> {
+    setPhase('loading')
+    setProblems([])
+    const result = await draftInvoice({
+      data: {
+        idempotencyKey: draftKey.current,
+        contactNumber,
+        kind: 'invoice',
+        issueDate,
+        reference: null,
+        buyerReference: null,
+        lines: draftLinesPayload(),
+      },
+    })
+    if (!result.ok) {
+      setPhase('form')
+      report(result.problem)
+      return false
+    }
+    setServerDraft(mapServerDraft(result.data))
+    setPhase('form')
+    return true
+  }
+
+  async function goNext() {
     let effectiveContact = contactNumber
     if (step === 1 && effectiveContact === '') {
       const pick = filtered[activeIndex] ?? filtered[0]
@@ -268,6 +394,12 @@ export function GuidedInvoiceFlow({
       setConfirming(true)
       return
     }
+    if (step === 2) {
+      const ok = await draftForReview()
+      if (!ok) return
+      setStep(3)
+      return
+    }
     const next = nextStep(step)
     if (next !== null) setStep(next)
   }
@@ -277,6 +409,7 @@ export function GuidedInvoiceFlow({
     setConfirming(false)
     const prev = prevStep(step)
     if (prev !== null) {
+      if (step === 3) clearServerDraft()
       setStep(prev)
       return
     }
@@ -284,6 +417,10 @@ export function GuidedInvoiceFlow({
   }
 
   async function saveDraftOnly() {
+    if (serverDraft !== null) {
+      await navigate({ to: '/invoices/$invoiceId', params: { invoiceId: serverDraft.id } })
+      return
+    }
     if (!canAdvanceFromStep(2, { contactNumber, lines, sendMethod })) {
       setProblems([{ path: null, message: t('invoiceGuided.needLines') }])
       return
@@ -298,16 +435,7 @@ export function GuidedInvoiceFlow({
         issueDate,
         reference: null,
         buyerReference: null,
-        lines: lines
-          .filter((line) => line.description.trim() !== '')
-          .map((line) => ({
-            description: line.description.trim(),
-            quantity: line.quantity === '' ? '1' : line.quantity,
-            unitCode: 'EA',
-            unitPrice: (parseMinorUnits(line.unitPrice) ?? 0n).toString(),
-            revenueAccountNumber: line.revenueAccountNumber || defaultRevenue,
-            taxCode: line.taxCode || defaultTax,
-          })),
+        lines: draftLinesPayload(),
       },
     })
     if (!result.ok) {
@@ -321,47 +449,43 @@ export function GuidedInvoiceFlow({
 
   async function confirmSend() {
     setConfirming(false)
+    if (serverDraft === null) {
+      setProblems([{ path: null, message: t('invoiceGuided.needLines') }])
+      return
+    }
     setPhase('loading')
     setProblems([])
 
-    const draftResult = await draftInvoice({
-      data: {
-        idempotencyKey: draftKey.current,
-        contactNumber,
-        kind: 'invoice',
-        issueDate,
-        reference: null,
-        buyerReference: null,
-        lines: lines
-          .filter((line) => line.description.trim() !== '')
-          .map((line) => ({
-            description: line.description.trim(),
-            quantity: line.quantity === '' ? '1' : line.quantity,
-            unitCode: 'EA',
-            unitPrice: (parseMinorUnits(line.unitPrice) ?? 0n).toString(),
-            revenueAccountNumber: line.revenueAccountNumber || defaultRevenue,
-            taxCode: line.taxCode || defaultTax,
-          })),
-      },
-    })
-
-    if (!draftResult.ok) {
-      setPhase('error')
-      report(draftResult.problem)
-      return
-    }
-
-    const invoiceId = draftResult.data.id
-    draftKey.current = crypto.randomUUID()
+    const invoiceId = serverDraft.id
 
     const issueResult = await issueInvoice({
       data: { invoiceId, idempotencyKey: issueKey.current },
     })
 
     if (!issueResult.ok) {
+      const periodViolation = issueResult.problem.violations.find(
+        (violation) => typeof violation.code === 'string' && isPeriodLockCode(violation.code),
+      )
+      if (periodViolation !== undefined) {
+        const fiscalYear = periodViolation.detail?.['fiscalYear'] ?? ''
+        const period = periodViolation.detail?.['period'] ?? ''
+        const periodName = formatGuidedPeriodName(fiscalYear, period)
+        clearServerDraft()
+        setPhase('form')
+        setStep(2)
+        setProblems([
+          {
+            path: null,
+            message:
+              periodViolation.code === 'period_hard_closed'
+                ? t('invoiceGuided.periodHardClosed', { period: periodName })
+                : t('invoiceGuided.periodSoftClosed', { period: periodName }),
+          },
+        ])
+        return
+      }
       setPhase('error')
       report(issueResult.problem)
-      await navigate({ to: '/invoices/$invoiceId', params: { invoiceId } })
       return
     }
 
@@ -369,15 +493,12 @@ export function GuidedInvoiceFlow({
     let sent = false
 
     const sendProblems: { path: string | null; message: string }[] = []
-    if (sendMethod === 'email') {
+    if (sendMethod === 'email' && customerEmail) {
       const sendResult = await sendInvoice({
         data: { invoiceId, idempotencyKey: sendKey.current },
       })
       sendKey.current = crypto.randomUUID()
       if (!sendResult.ok) {
-        // Issued, but Peppol / transport refused the send. Keep the success
-        // screen (number is real) and surface the reason — do not invent a
-        // "sent" state.
         report(sendResult.problem)
         sendProblems.push(
           ...(sendResult.problem.violations.length > 0
@@ -489,6 +610,7 @@ export function GuidedInvoiceFlow({
                 issueKey.current = crypto.randomUUID()
                 sendKey.current = crypto.randomUUID()
                 setDone(null)
+                setServerDraft(null)
                 setPhase('form')
                 setStep(1)
                 setLines([
@@ -503,6 +625,8 @@ export function GuidedInvoiceFlow({
                 setQuery('')
                 setContactNumber('')
                 setProblems([])
+                setSendMethod('pdf')
+                pdfFromMissingEmail.current = true
               }}
             >
               {t('invoiceGuided.another')}
@@ -525,7 +649,6 @@ export function GuidedInvoiceFlow({
     )
   }
 
-  const customerEmail = contactDetail?.email ?? selected?.email ?? null
   const vatHint = taxCodeLabel(
     codes.find((c) => c.code === (lines[0]?.taxCode ?? defaultTax)),
     vatLabels,
@@ -574,27 +697,24 @@ export function GuidedInvoiceFlow({
             chooseCustomer(pick.number, true)
             return
           }
-          goNext()
+          void goNext()
           return
         }
 
         if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey) {
           const target = event.target as HTMLElement | null
           if (target !== null && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) {
-            // Mid-field Enter must not submit; customer search has its own handler.
             if (step === 1 && target.id === 'cust-q') return
             event.preventDefault()
             return
           }
-          // Primary CTA: let the button's own click run, and also advance here so
-          // Enter works even when the host button does not synthesise a click.
           if (target?.closest('[data-guided-primary]')) {
             event.preventDefault()
-            goNext()
+            void goNext()
             return
           }
           event.preventDefault()
-          goNext()
+          void goNext()
         }
       }}
     >
@@ -648,9 +768,8 @@ export function GuidedInvoiceFlow({
       </ol>
 
       <div
-        className="animate-in fade-in-0 duration-150 motion-reduce:animate-none"
+        className="animate-in fade-in-0 pb-28 duration-150 motion-reduce:animate-none md:pb-0"
         data-step={step}
-        // No focus steal on load — search is available but not auto-focused.
       >
         {step === 1 && (
           <CustomerStep
@@ -668,7 +787,7 @@ export function GuidedInvoiceFlow({
             onCommit={() => {
               const pick = filtered[activeIndex]
               if (pick) chooseCustomer(pick.number, true)
-              else goNext()
+              else void goNext()
             }}
             onArrowDown={() =>
               setActiveIndex((i) => Math.min(i + 1, Math.max(filtered.length - 1, 0)))
@@ -690,7 +809,7 @@ export function GuidedInvoiceFlow({
             termsDays={termsDays}
             lines={lines}
             codes={codes}
-            totals={totals}
+            totals={clientTotals}
             vatLabels={vatLabels}
             hydrated={hydrated}
             onIssueDate={setIssueDate}
@@ -707,12 +826,12 @@ export function GuidedInvoiceFlow({
             issueDate={issueDate}
             dueDate={dueDate}
             lines={lines}
-            totals={totals}
+            totals={reviewTotals}
           />
         )}
 
         {step === 4 && selected && (
-          <SendStep email={customerEmail} sendMethod={sendMethod} onSendMethod={setSendMethod} />
+          <SendStep email={customerEmail} sendMethod={sendMethod} onSendMethod={chooseSendMethod} />
         )}
       </div>
 
@@ -738,7 +857,9 @@ export function GuidedInvoiceFlow({
           <Button type="button" variant="outline" onClick={goBack}>
             <RiArrowLeftSLine className="size-4" aria-hidden="true" />
             {t('invoiceGuided.back')}
-            <Keycap className="ml-1">Esc</Keycap>
+            <span className="ml-1 hidden normal-case md:inline-flex">
+              <Keycap>Esc</Keycap>
+            </span>
           </Button>
         ) : (
           <Button
@@ -747,7 +868,9 @@ export function GuidedInvoiceFlow({
             onClick={() => void navigate({ to: '/invoices', search: { status: undefined } })}
           >
             {t('common.cancel')}
-            <Keycap className="ml-1">Esc</Keycap>
+            <span className="ml-1 hidden normal-case md:inline-flex">
+              <Keycap>Esc</Keycap>
+            </span>
           </Button>
         )}
         <span className="flex-1" />
@@ -761,7 +884,12 @@ export function GuidedInvoiceFlow({
             {t('invoiceNew.saveDraft')}
           </Button>
         )}
-        <Button type="button" data-guided-primary disabled={!hydrated} onClick={goNext}>
+        <Button
+          type="button"
+          data-guided-primary
+          disabled={!hydrated}
+          onClick={() => void goNext()}
+        >
           {step === 4 ? (
             <>
               <RiSendPlaneLine className="size-4" aria-hidden="true" />
@@ -770,7 +898,9 @@ export function GuidedInvoiceFlow({
           ) : (
             t('invoiceGuided.next')
           )}
-          <Keycap className="ml-1">↵</Keycap>
+          <span className="ml-1 hidden normal-case md:inline-flex">
+            <Keycap>↵</Keycap>
+          </span>
         </Button>
       </div>
 
@@ -824,15 +954,15 @@ export function GuidedInvoiceFlow({
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">{t('report.total')}</dt>
-                <dd className="font-medium">
-                  <Money amount={totals.total} />
-                </dd>
+                <dd className="font-medium">{formatEuro(reviewTotals.total)}</dd>
               </div>
             </dl>
             <div className="mt-5 flex flex-wrap justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setConfirming(false)}>
                 {t('common.cancel')}
-                <Keycap className="ml-1">Esc</Keycap>
+                <span className="ml-1 hidden normal-case md:inline-flex">
+                  <Keycap>Esc</Keycap>
+                </span>
               </Button>
               <Button
                 type="button"
@@ -842,7 +972,9 @@ export function GuidedInvoiceFlow({
               >
                 <RiSendPlaneLine className="size-4" aria-hidden="true" />
                 {t('invoiceGuided.send')}
-                <Keycap className="ml-1">↵</Keycap>
+                <span className="ml-1 hidden normal-case md:inline-flex">
+                  <Keycap>↵</Keycap>
+                </span>
               </Button>
             </div>
           </section>
@@ -909,7 +1041,6 @@ function CustomerStep({
           aria-expanded="true"
           aria-controls="cust-list"
           autoComplete="off"
-          // No autoFocus — do not move focus on load.
           className="pl-9"
           placeholder={t('invoiceGuided.searchPlaceholder')}
           value={query}
@@ -941,13 +1072,13 @@ function CustomerStep({
       >
         {filtered.map((customer, index) => {
           const active = index === activeIndex
-          const selected = customer.number === selectedNumber
+          const isSelected = customer.number === selectedNumber
           return (
             <li key={customer.id} role="presentation">
               <button
                 type="button"
                 role="option"
-                aria-selected={selected}
+                aria-selected={isSelected}
                 onClick={() => onChoose(customer.number)}
                 className={cn(
                   'flex min-h-11 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left text-sm',
@@ -956,7 +1087,7 @@ function CustomerStep({
                 )}
               >
                 <span className="flex size-4 items-center">
-                  {selected ? <RiCheckLine className="size-4" aria-hidden="true" /> : null}
+                  {isSelected ? <RiCheckLine className="size-4" aria-hidden="true" /> : null}
                 </span>
                 <span className="flex-1 font-medium">{customer.name}</span>
                 <span
@@ -965,7 +1096,7 @@ function CustomerStep({
                     'tabular',
                   )}
                 >
-                  {customer.number}
+                  {customer.city ?? ''}
                 </span>
               </button>
             </li>
@@ -1019,14 +1150,19 @@ function LinesStep({
   termsDays: number
   lines: GuidedLineDraft[]
   codes: GuidedTaxCode[]
-  totals: ReturnType<typeof computeGuidedTotals>
-  vatLabels: { none: string; rate: (rate: string) => string }
+  totals: GuidedTotals
+  vatLabels: VatLabelBag
   hydrated: boolean
   onIssueDate: (value: string) => void
   onUpdate: (index: number, patch: Partial<GuidedLineDraft>) => void
   onAdd: () => void
 }) {
   const { t } = useT()
+  const [issueDisplay, setIssueDisplay] = useState(() => formatDateShort(issueDate))
+
+  useEffect(() => {
+    setIssueDisplay(formatDateShort(issueDate))
+  }, [issueDate])
 
   return (
     <>
@@ -1037,10 +1173,17 @@ function LinesStep({
           </label>
           <Input
             id="inv-date"
-            type="date"
+            type="text"
+            inputMode="numeric"
+            placeholder="DD-MM-YYYY"
             className="mt-1.5 tabular"
-            value={issueDate}
-            onChange={(event) => onIssueDate(event.target.value)}
+            value={issueDisplay}
+            onChange={(event) => {
+              const next = event.target.value
+              setIssueDisplay(next)
+              const parsed = parseDateShort(next)
+              if (parsed !== null) onIssueDate(parsed)
+            }}
           />
         </div>
         <div>
@@ -1049,9 +1192,9 @@ function LinesStep({
           </label>
           <Input
             id="inv-due"
-            type="date"
+            type="text"
             className="mt-1.5 tabular"
-            value={dueDate}
+            value={formatDateShort(dueDate)}
             readOnly
             aria-readonly="true"
           />
@@ -1072,7 +1215,7 @@ function LinesStep({
               <th className="w-20 px-3 py-2 text-right font-medium">{t('invoice.quantity')}</th>
               <th className="w-28 px-3 py-2 text-right font-medium">{t('invoice.price')}</th>
               <th className="w-32 px-3 py-2 font-medium">{t('invoiceGuided.vat')}</th>
-              <th className="w-28 px-3 py-2 text-right font-medium">{t('invoice.net')}</th>
+              <th className="w-28 px-3 py-2 text-right font-medium">{t('invoiceGuided.amount')}</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -1129,7 +1272,7 @@ function LinesStep({
                     </select>
                   </td>
                   <td className="px-3 py-2 text-right font-medium tabular">
-                    <Money amount={lineNet} />
+                    {formatEuro(lineNet)}
                   </td>
                 </tr>
               )
@@ -1149,31 +1292,23 @@ function LinesStep({
       <dl className="mt-4 ml-auto max-w-xs space-y-1 text-sm tabular">
         <div className="flex justify-between">
           <dt className="text-muted-foreground">{t('invoiceGuided.exVat')}</dt>
-          <dd>
-            <Money amount={totals.net} />
-          </dd>
+          <dd>{formatEuro(totals.net)}</dd>
         </div>
         {totals.taxByLabel.map((row) => (
           <div key={row.label} className="flex justify-between">
             <dt className="text-muted-foreground">{row.label}</dt>
-            <dd>
-              <Money amount={row.amount} />
-            </dd>
+            <dd>{formatEuro(row.amount)}</dd>
           </div>
         ))}
         {totals.taxByLabel.length === 0 && totals.tax === 0n && (
           <div className="flex justify-between">
             <dt className="text-muted-foreground">{t('invoice.vat')}</dt>
-            <dd>
-              <Money amount={0n} />
-            </dd>
+            <dd>{formatEuro(0n)}</dd>
           </div>
         )}
         <div className="flex justify-between border-t pt-1 text-base font-semibold">
           <dt>{t('report.total')}</dt>
-          <dd>
-            <Money amount={totals.total} />
-          </dd>
+          <dd>{formatEuro(totals.total)}</dd>
         </div>
       </dl>
       <p className="text-muted-foreground mt-2 max-w-md text-xs">{t('invoiceNew.vatNote')}</p>
@@ -1201,7 +1336,7 @@ function ReviewStep({
   issueDate: string
   dueDate: string
   lines: GuidedLineDraft[]
-  totals: ReturnType<typeof computeGuidedTotals>
+  totals: GuidedTotals
 }) {
   const { t } = useT()
   const sellerName = entity?.legalName || entity?.name || ''
@@ -1262,7 +1397,7 @@ function ReviewStep({
               <th className="py-1 font-medium">{t('entries.description')}</th>
               <th className="py-1 text-right font-medium">{t('invoice.quantity')}</th>
               <th className="py-1 text-right font-medium">{t('invoice.price')}</th>
-              <th className="py-1 text-right font-medium">{t('invoice.net')}</th>
+              <th className="py-1 text-right font-medium">{t('invoiceGuided.amount')}</th>
             </tr>
           </thead>
           <tbody>

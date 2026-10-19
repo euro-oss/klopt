@@ -12,7 +12,7 @@ import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { multiplyByDecimal, parseMinorUnits, percentOf } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
-import { draftInvoice, listContacts, listTaxCodes } from '~/server/sales'
+import { draftInvoice, getContact, listContacts, listTaxCodes } from '~/server/sales'
 import { listAccounts } from '~/server/ledger'
 import { getEntity } from '~/server/entity'
 
@@ -27,12 +27,29 @@ import { getEntity } from '~/server/entity'
  * own screen in advanced mode, or as the last guided step when simple.
  */
 export const Route = createFileRoute('/_app/invoices/new')({
-  loader: async () => ({
-    contacts: await listContacts({ data: { customersOnly: true } }),
-    taxCodes: await listTaxCodes(),
-    accounts: await listAccounts(),
-    entity: await getEntity(),
-  }),
+  loader: async () => {
+    const contacts = await listContacts({ data: { customersOnly: true } })
+    const contactsWithCity = contacts.ok
+      ? {
+          ...contacts,
+          data: {
+            contacts: await Promise.all(
+              contacts.data.contacts.map(async (row) => {
+                const detail = await getContact({ data: { contactId: row.id } })
+                const city = detail.ok ? (detail.data.contact.address?.city ?? null) : null
+                return { ...row, city }
+              }),
+            ),
+          },
+        }
+      : contacts
+    return {
+      contacts: contactsWithCity,
+      taxCodes: await listTaxCodes(),
+      accounts: await listAccounts(),
+      entity: await getEntity(),
+    }
+  },
   component: NewInvoice,
 })
 
@@ -75,6 +92,7 @@ function GuidedFromLoader() {
         number: row.number,
         name: row.name,
         email: row.email,
+        city: row.city ?? null,
         paymentTermsDays: row.paymentTermsDays,
         isBlocked: row.isBlocked,
       }))
@@ -86,6 +104,7 @@ function GuidedFromLoader() {
         ratePercent: code.ratePercent,
         rateBasisPoints: code.rateBasisPoints,
         direction: code.direction,
+        description: code.description,
       }))
     : []
 
