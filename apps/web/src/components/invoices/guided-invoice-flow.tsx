@@ -21,6 +21,7 @@ import {
   computeGuidedTotals,
   defaultOutputTaxCode,
   filterCustomers,
+  flowShouldAdvanceOnEnter,
   formatDateLongNl,
   formatDateShort,
   formatEuro,
@@ -747,29 +748,11 @@ export function GuidedInvoiceFlow({
           setActiveIndex((i) => Math.max(i - 1, 0))
           return
         }
-        if (step === 1 && event.key === 'Enter' && (event.target as HTMLElement).id === 'cust-q') {
-          event.preventDefault()
-          const pick = filtered[activeIndex]
-          if (pick) {
-            chooseCustomer(pick.number, true)
-            return
-          }
-          void goNext()
-          return
-        }
-
+        // Enter on Terug / Concept / listbox options / inputs stays with that
+        // control (native activation or its own handler). Only advance when
+        // nothing else claimed the key — see `flowShouldAdvanceOnEnter`.
         if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey) {
-          const target = event.target as HTMLElement | null
-          if (target !== null && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) {
-            if (step === 1 && target.id === 'cust-q') return
-            event.preventDefault()
-            return
-          }
-          if (target?.closest('[data-guided-primary]')) {
-            event.preventDefault()
-            void goNext()
-            return
-          }
+          if (!flowShouldAdvanceOnEnter(event)) return
           event.preventDefault()
           void goNext()
         }
@@ -1156,6 +1139,15 @@ function CustomerStep({
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => onChoose(customer.number)}
+                onKeyDown={(event) => {
+                  // Standard combobox: Enter on a focused/highlighted option selects it.
+                  // Stop propagation so nothing else sees the key; the flow-level
+                  // handler also ignores buttons, but this is the option's job.
+                  if (event.key !== 'Enter' && event.key !== ' ') return
+                  event.preventDefault()
+                  event.stopPropagation()
+                  onChoose(customer.number)
+                }}
                 className={cn(
                   'flex min-h-11 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left text-sm',
                   'focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',

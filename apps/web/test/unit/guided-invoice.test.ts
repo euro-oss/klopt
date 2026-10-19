@@ -6,6 +6,7 @@ import {
   defaultOutputTaxCode,
   EURO_NBSP,
   filterCustomers,
+  flowShouldAdvanceOnEnter,
   formatDateLongNl,
   formatDateShort,
   formatEuro,
@@ -175,5 +176,30 @@ describe('guided invoice helpers', () => {
     expect(sellerIdentifiers({ kvkNumber: '61234567', vatNumber: 'NL861234567B01' })).toBe(
       'KvK 61234567 · NL861234567B01',
     )
+  })
+
+  it('leaves Enter on buttons, options and inputs to those controls', () => {
+    const button = {
+      closest: (sel: string) => (sel.includes('button') ? {} : null),
+      tagName: 'BUTTON',
+    }
+    const option = {
+      closest: (sel: string) => (sel.includes('[role="option"]') ? {} : null),
+      tagName: 'BUTTON',
+    }
+    const input = {
+      closest: () => null,
+      tagName: 'INPUT',
+    }
+    const pane = {
+      closest: () => null,
+      tagName: 'DIV',
+    }
+
+    expect(flowShouldAdvanceOnEnter({ defaultPrevented: false, target: button })).toBe(false)
+    expect(flowShouldAdvanceOnEnter({ defaultPrevented: false, target: option })).toBe(false)
+    expect(flowShouldAdvanceOnEnter({ defaultPrevented: false, target: input })).toBe(false)
+    expect(flowShouldAdvanceOnEnter({ defaultPrevented: true, target: pane })).toBe(false)
+    expect(flowShouldAdvanceOnEnter({ defaultPrevented: false, target: pane })).toBe(true)
   })
 })

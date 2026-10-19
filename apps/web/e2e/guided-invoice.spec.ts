@@ -183,8 +183,7 @@ test('validation errors, Concept opslaan and the PDF path', async ({ page }) => 
   await expect(page.getByText('Kies eerst een klant.')).toBeVisible()
 
   await page.locator('#cust-q').fill('Hotel')
-  // Option activate is click: Enter on the option role does not select in this listbox.
-  await page.getByRole('option', { name: /Hotel Zeezicht/ }).click()
+  await page.getByRole('option', { name: /Hotel Zeezicht/ }).press('Enter')
   await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 2 van 4')).toBeVisible()
   await page.getByRole('button', { name: /Verder/ }).press('Enter')
@@ -205,7 +204,7 @@ test('validation errors, Concept opslaan and the PDF path', async ({ page }) => 
   )
 
   // (a) Concept opslaan → draft with no number allocated.
-  await page.getByRole('button', { name: /Concept opslaan/ }).click()
+  await page.getByRole('button', { name: /Concept opslaan/ }).press('Enter')
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible({
     timeout: 15_000,
   })
@@ -253,11 +252,12 @@ test('Controleren → Terug → edit → Controleren keeps one draft id', async 
   await page.goto('/invoices/new')
   await expect(page.getByRole('heading', { name: 'Nieuwe factuur' })).toBeVisible()
   await hydrated(page)
-  await page.getByRole('option', { name: /Hotel Zeezicht/ }).click()
-  await page.getByRole('button', { name: /Verder/ }).click()
+  // Keyboard pick: Enter on the highlighted option selects it (combobox).
+  await page.getByRole('option', { name: /Hotel Zeezicht/ }).press('Enter')
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 2 van 4')).toBeVisible()
   await fillBreadLine(page)
-  await page.getByRole('button', { name: /Verder/ }).click()
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 3 van 4')).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText(EXPECTED_TOTAL).first()).toBeVisible()
 
@@ -268,11 +268,11 @@ test('Controleren → Terug → edit → Controleren keeps one draft id', async 
   const draftId = firstBody.invoices[0]!.id
   expect(firstBody.invoices[0]!.total).toBe('30492')
 
-  // Click Terug (Enter on that button is captured by the flow's goNext handler).
-  await page.getByRole('button', { name: /Terug/ }).click()
+  // Enter on Terug goes back (must not be captured as goNext).
+  await page.getByRole('button', { name: /Terug/ }).press('Enter')
   await expect(page.getByText('Stap 2 van 4')).toBeVisible()
   await page.getByLabel('Aantal regel 1').fill('50')
-  await page.getByRole('button', { name: /Verder/ }).click()
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 3 van 4')).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText(EDITED_TOTAL).first()).toBeVisible()
 
@@ -283,12 +283,12 @@ test('Controleren → Terug → edit → Controleren keeps one draft id', async 
   expect(secondBody.invoices[0]!.id).toBe(draftId)
   expect(secondBody.invoices[0]!.total).toBe('25410')
 
-  await page.getByRole('button', { name: /Verder/ }).click()
-  await page.getByRole('button', { name: /^Versturen/ }).click()
+  await page.getByRole('button', { name: /Verder/ }).press('Enter')
+  await page.getByRole('button', { name: /^Versturen/ }).press('Enter')
   await page
     .getByRole('alertdialog')
     .getByRole('button', { name: /^Versturen/ })
-    .click()
+    .press('Enter')
   await expect(page.getByRole('heading', { name: /Verstuurd naar Hotel Zeezicht/ })).toBeVisible({
     timeout: 45_000,
   })

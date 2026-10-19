@@ -301,3 +301,35 @@ export function sellerIdentifiers(entity: {
 export function isPeriodLockCode(code: string): boolean {
   return code === 'period_hard_closed' || code === 'period_soft_closed'
 }
+
+/**
+ * Whether the flow-level Enter → goNext handler should run.
+ *
+ * Enter on a focused Terug / Concept / listbox option / link must keep its
+ * native meaning (go back, save, select). Those controls own the key; the
+ * flow only advances when Enter is not already spoken for.
+ *
+ * Duck-typed so unit tests can run under Node without a DOM global.
+ */
+export function flowShouldAdvanceOnEnter(event: {
+  readonly defaultPrevented: boolean
+  readonly target: EventTarget | null
+}): boolean {
+  if (event.defaultPrevented) return false
+  const target = event.target
+  if (target === null || typeof target !== 'object') return false
+  const el = target as {
+    closest?: (selector: string) => unknown
+    tagName?: string
+    isContentEditable?: boolean
+  }
+  if (typeof el.closest !== 'function') return false
+  // Buttons (Terug, Verder, Concept, role=option), links, listbox options,
+  // textareas and selects keep Enter for their own activation.
+  if (el.closest('button, a, [role="option"], textarea, select')) return false
+  if (el.isContentEditable === true) return false
+  // Plain inputs (and the customer combobox) keep Enter; the combobox handler
+  // selects the highlighted option and preventDefaults before this sees it.
+  if (typeof el.tagName === 'string' && el.tagName.toUpperCase() === 'INPUT') return false
+  return true
+}
