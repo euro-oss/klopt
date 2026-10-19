@@ -62,6 +62,13 @@ const SPECS: Readonly<Record<MoneybirdProblemCode, MoneybirdFixSpec>> = {
     honesty: null,
     changesBooks: false,
   },
+  incompatible_tax_rate: {
+    code: 'incompatible_tax_rate',
+    fixType: 'guided',
+    severity: 'blocking',
+    honesty: null,
+    changesBooks: false,
+  },
   trial_balance_account_missing: {
     code: 'trial_balance_account_missing',
     fixType: 'guided',

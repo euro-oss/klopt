@@ -138,6 +138,8 @@ export const FINDING_MESSAGES = {
     'Ledger account {name} ({number}) has no confirmed Klopt account. Map it before importing.',
   'moneybird.unmapped_tax_rate':
     'Tax rate {name} ({percentage}%) has no confirmed Klopt VAT code. Map it before importing.',
+  'moneybird.incompatible_tax_rate':
+    'Tax rate {name} ({percentage}%) cannot map to {mappedCode}: direction or rate does not match the chart.',
   'moneybird.account_number_collision': 'Moneybird returned ledger number {number} twice ({name}).',
   'moneybird.contact_number_collision':
     'Moneybird returned contact number {number} twice ({name}).',

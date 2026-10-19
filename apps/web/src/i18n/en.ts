@@ -48,6 +48,8 @@ export const en: Record<MessageKey, string> = {
     'An account without a mapping never lands in Klopt; postings to it would be missing later.',
   'finding.why.moneybird.unmapped_tax_rate':
     'Without a tax code the return cannot place those lines.',
+  'finding.why.moneybird.incompatible_tax_rate':
+    'The wrong direction or rate puts sales VAT on input codes (or the reverse) and corrupts the return.',
   'finding.why.moneybird.account_number_collision':
     'Two accounts with the same number cannot sit side by side in one chart.',
   'finding.why.moneybird.contact_number_collision':

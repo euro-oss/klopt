@@ -164,7 +164,7 @@ export function createServer(options: ServerOptions): McpServer {
     'describe_schema',
     {
       description:
-        'The chart of accounts, dagboeken, tax codes and book years of this administration. Call this first: every other tool is phrased in terms of an account number or a code, and guessing at them is how an agent reports the wrong figure.',
+        'The chart of accounts, dagboeken, tax codes and book years of this administration. Call this first: every other tool is phrased in terms of an account number or a code, and guessing at them is how an agent reports the wrong figure. Tax codes include direction and rate — Moneybird import VAT mappings must match both or the planner rejects them as incompatible_tax_rate.',
       inputSchema: describeSchemaInput.shape,
       annotations: readOnly,
     },

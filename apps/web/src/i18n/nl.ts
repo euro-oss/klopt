@@ -1306,6 +1306,8 @@ export const nl = {
     'Grootboekrekening {name} ({number}) heeft geen bevestigde Klopt-rekening. Map hem voordat je importeert.',
   'finding.moneybird.unmapped_tax_rate':
     'Btw-tarief {name} ({percentage}%) heeft geen bevestigde Klopt-btw-code. Map hem voordat je importeert.',
+  'finding.moneybird.incompatible_tax_rate':
+    'Btw-tarief {name} ({percentage}%) past niet bij {mappedCode}: richting of percentage komt niet overeen met het schema.',
   'finding.moneybird.account_number_collision':
     'Moneybird gaf grootboeknummer {number} twee keer terug ({name}).',
   'finding.moneybird.contact_number_collision':
@@ -1341,6 +1343,8 @@ export const nl = {
     'Een rekening zonder mapping komt niet in Klopt terecht; boeken erop zou later ontbreken.',
   'finding.why.moneybird.unmapped_tax_rate':
     'Zonder btw-code kan de aangifte die regels niet plaatsen.',
+  'finding.why.moneybird.incompatible_tax_rate':
+    'Een verkeerde richting of percentage zet omzet in voorbelasting (of omgekeerd) en bederft de aangifte.',
   'finding.why.moneybird.account_number_collision':
     'Twee rekeningen met hetzelfde nummer kunnen niet naast elkaar in één schema.',
   'finding.why.moneybird.contact_number_collision':

@@ -2,7 +2,7 @@ import { renderFindingMessage, type FindingMessageKey } from '../finding-message
 import type { AccountType, JournalLineInput } from '../ledger/types.js'
 import type { MoneybirdAdministration } from '../ports/moneybird.js'
 import { applyFxToLines, type FxRateChoice } from './fx.js'
-import { nextFreeNumber } from './account-ranker.js'
+import { matchVatCodes, nextFreeNumber } from './account-ranker.js'
 import {
   classifyAccount,
   contactName,
@@ -33,6 +33,7 @@ export type MoneybirdProblemCode =
   | 'unknown_currency'
   | 'unmapped_account'
   | 'unmapped_tax_rate'
+  | 'incompatible_tax_rate'
   | 'account_number_collision'
   | 'contact_number_collision'
   | 'resource_unreadable'
@@ -344,16 +345,39 @@ function qtyOf(amount: string | null): number {
 }
 
 function percentageText(value: number): string {
+  if (!Number.isFinite(value)) return ''
   return value.toFixed(value % 1 === 0 ? 0 : 1)
 }
 
+/** VAT amount from net and a Moneybird percentage; non-finite rates contribute 0. */
+function taxFromPercent(net: bigint, percent: number): bigint {
+  if (!Number.isFinite(percent) || percent === 0) return 0n
+  return (net * BigInt(Math.round(percent * 100))) / 10000n
+}
+
+/**
+ * Suggest a Klopt VAT code only when direction and rate are known and exactly
+ * one chart rule matches. Ambiguous 0% sales (VERL / GEEN / NUL / ICP / ICPD),
+ * unknown direction, and empty / non-numeric rates stay unmapped (#70).
+ */
 function proposeTaxCode(rate: MoneybirdTaxRate, rules: readonly ExistingTaxRule[]): string | null {
-  const bps = Math.round(rate.percentage * 100)
-  const direction = rate.taxRateType === 'purchase_invoice' ? 'input' : 'output'
-  const matches = rules.filter(
-    (rule) => rule.rateBasisPoints === bps && rule.direction === direction,
-  )
-  return matches[0]?.code ?? null
+  const matches = matchVatCodes(rules, {
+    percentage: rate.percentage,
+    taxRateType: rate.taxRateType,
+  })
+  return matches.length === 1 ? (matches[0]?.code ?? null) : null
+}
+
+/** True when a confirmed mapping is direction- and rate-compatible with the chart. */
+function taxMappingCompatible(
+  rate: MoneybirdTaxRate,
+  code: string,
+  rules: readonly ExistingTaxRule[],
+): boolean {
+  return matchVatCodes(rules, {
+    percentage: rate.percentage,
+    taxRateType: rate.taxRateType,
+  }).some((rule) => rule.code === code)
 }
 
 function pickControl(
@@ -537,11 +561,41 @@ export function planMoneybirdImport(
 
   const taxRates: MoneybirdPlannedTaxRate[] = snapshot.taxRates.map((rate) => {
     const proposed = proposeTaxCode(rate, options.existingTaxRules)
-    const confirmed = options.confirmedTaxMappings[rate.id]?.trim() || null
-    const mappedCode = confirmed ?? proposed
-    const mapped = mappedCode !== null && existingTaxCodes.has(mappedCode)
+    const confirmedRaw = options.confirmedTaxMappings[rate.id]?.trim() || null
     const used = usedTaxRateIds.has(rate.id)
-    if (used && !mapped) {
+
+    let confirmed: string | null = null
+    let incompatible = false
+    if (confirmedRaw !== null && existingTaxCodes.has(confirmedRaw)) {
+      // Known direction + finite rate: the chosen code must be in matchVatCodes.
+      // Unknown / empty / NaN rates never auto-map; a hand pick is accepted when
+      // the code exists and matchVatCodes cannot decide (no 21% fallback).
+      const decidable =
+        (rate.taxRateType === 'sales_invoice' || rate.taxRateType === 'purchase_invoice') &&
+        Number.isFinite(rate.percentage)
+      if (decidable && !taxMappingCompatible(rate, confirmedRaw, options.existingTaxRules)) {
+        incompatible = true
+        if (used) {
+          problems.push(
+            problem('incompatible_tax_rate', `taxRates.${rate.id}`, {
+              name: rate.name,
+              percentage: percentageText(rate.percentage),
+              mappedCode: confirmedRaw,
+              taxRateType: rate.taxRateType,
+            }),
+          )
+        }
+      } else {
+        confirmed = confirmedRaw
+      }
+    }
+
+    // After rejecting a bad confirmed pick, do not silently apply proposed —
+    // the finding asks the user to choose again (#70).
+    const mappedCode = confirmed ?? (incompatible ? null : proposed)
+    const mapped = mappedCode !== null && existingTaxCodes.has(mappedCode)
+    // incompatible_tax_rate already blocks; do not also emit unmapped_tax_rate.
+    if (used && !mapped && !incompatible) {
       problems.push(
         problem('unmapped_tax_rate', `taxRates.${rate.id}`, {
           name: rate.name,
@@ -828,7 +882,7 @@ export function planMoneybirdImport(
       const quantity = qtyOf(detail.amount)
       let net = detail.price * BigInt(Math.round(quantity))
       const percent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
-      if (invoice.pricesAreInclTax && percent !== 0) {
+      if (invoice.pricesAreInclTax && Number.isFinite(percent) && percent !== 0) {
         const grossLine = net
         net = (grossLine * 10000n) / BigInt(Math.round((100 + percent) * 100))
       }
@@ -836,7 +890,7 @@ export function planMoneybirdImport(
       if (net === 0n) continue
       const taxCode =
         detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
-      const tax = percent === 0 ? 0n : (net * BigInt(Math.round(percent * 100))) / 10000n
+      const tax = taxFromPercent(net, percent)
       const accountNumber = resolveAccount(
         detail.ledgerAccountId,
         '8000',
@@ -917,7 +971,7 @@ export function planMoneybirdImport(
       const taxCode =
         detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
       const percent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
-      const tax = percent === 0 ? 0n : (net * BigInt(Math.round(percent * 100))) / 10000n
+      const tax = taxFromPercent(net, percent)
       const accountNumber = resolveAccount(
         detail.ledgerAccountId,
         '4000',

@@ -126,11 +126,19 @@ export interface VatMatchRule {
  * Existing VAT rules that match this Moneybird rate by direction and bps.
  *
  * When exactly one rule matches, the UI may offer a one-click "Gebruik {code}".
+ * Unknown direction and non-finite percentages match nothing — never guess
+ * "output" or fall back to 21% (#70 / #69).
  */
 export function matchVatCodes(
   rules: readonly VatMatchRule[],
   query: VatMatchQuery,
 ): readonly VatMatchRule[] {
+  if (query.taxRateType !== 'purchase_invoice' && query.taxRateType !== 'sales_invoice') {
+    return []
+  }
+  if (!Number.isFinite(query.percentage)) {
+    return []
+  }
   const bps = Math.round(query.percentage * 100)
   const direction = query.taxRateType === 'purchase_invoice' ? 'input' : 'output'
   return rules.filter((rule) => rule.rateBasisPoints === bps && rule.direction === direction)
