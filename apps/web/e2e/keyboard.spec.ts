@@ -533,12 +533,13 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await expect(queue).toHaveCount(4)
   await page.keyboard.press('j')
 
-  // Fixture chart has 4900 (Algemene kosten), not 4400.
+  // Fixture chart has 4900 (Algemene kosten), not 4400. Simple mode shows the
+  // name in the field; the stored value is still the account number.
   const manual = page.getByRole('combobox', { name: 'Categorie' })
   await manual.pressSequentially('4900')
   await page.keyboard.press('ArrowDown')
   await page.keyboard.press('Enter')
-  await expect(manual).toHaveValue('4900')
+  await expect(manual).toHaveValue('Algemene kosten')
   await expect(page.getByRole('button', { name: /^Boeken/ })).toBeEnabled()
 
   // Keycap inside the button makes focused() report more than "Boeken".
