@@ -457,9 +457,14 @@ function AccountVatSheetBody({
                       tabIndex={checked || (vat === null && index === 0) ? 0 : -1}
                       onClick={() => setVat(option.code)}
                       className={cn(
-                        'min-h-11 px-3 text-left text-sm',
+                        // Inset ring: overflow-y-auto on 4+ options clips the global
+                        // +2px offset (#69 / #67 werklijst). Ink fill uses background.
+                        'min-h-11 px-3 text-left text-sm outline-none',
+                        'focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
                         vatOptions.length <= 3 && index > 0 && 'border-l',
-                        checked ? 'bg-foreground text-background font-medium' : 'hover:bg-muted',
+                        checked
+                          ? 'bg-foreground text-background font-medium focus-visible:outline-background'
+                          : 'hover:bg-muted',
                       )}
                     >
                       <span className="block">{vatLabel(option)}</span>

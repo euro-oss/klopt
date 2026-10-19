@@ -172,6 +172,35 @@ test('capture import findings PNGs (1440/390 × light/dark + sheets + states)', 
     await shoot(page, 'fix-tax-vat-zero-light-desktop-1440.png')
     await context.close()
   }
+  // Focused option inside the scrolling 4+ list — inset ring (#69 design final).
+  for (const theme of ['light', 'dark'] as const) {
+    for (const [label, size] of [
+      ['desktop-1440', { width: 1440, height: 900 }],
+      ['mobile-390', { width: 390, height: 844 }],
+    ] as const) {
+      const context = await browser.newContext({ viewport: size })
+      const page = await context.newPage()
+      await ready(page, `Tax 0% focus ${theme} ${label}`)
+      await openFindings(page, 'source=moneybird&state=open')
+      await page.getByTestId('lab-advanced').check()
+      await openFindings(page, 'source=moneybird&state=open&sheet=tax0')
+      const sheet = page.getByRole('dialog')
+      await expect(sheet.getByRole('radio')).toHaveCount(5)
+      const first = sheet.getByRole('radio').nth(0)
+      await first.focus()
+      await expect(first).toBeFocused()
+      // Select second so the ink-filled row shows outline-background.
+      await page.keyboard.press('ArrowDown')
+      await page.keyboard.press('ArrowDown')
+      const selected = sheet.getByRole('radio').nth(1)
+      await expect(selected).toHaveAttribute('aria-checked', 'true')
+      await selected.focus()
+      await expect(selected).toBeFocused()
+      await setTheme(page, theme)
+      await shoot(page, `fix-tax-vat-zero-focus-${theme}-${label}.png`)
+      await context.close()
+    }
+  }
   // Empty / unknown rate: vatUnknown status once, no duplicate hint (#69 design).
   {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
