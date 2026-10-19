@@ -4,6 +4,7 @@ import {
   RiAlertLine,
   RiArrowRightLine,
   RiCalendarLine,
+  RiCheckboxBlankCircleLine,
   RiInformationLine,
   RiLockLine,
   RiUploadLine,
@@ -29,7 +30,6 @@ import {
   barHeightPercent,
   calendarParts,
   capitalizeWord,
-  dayPartAt,
   greetingName,
   ibanTail,
   maxMonthAmount,
@@ -41,6 +41,7 @@ import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import { isTypingInto } from '~/lib/keyboard'
+import { localDayPart, localTodayIso } from '~/lib/local-clock'
 import { resolveListKey } from '~/lib/list-cursor'
 import { cn } from '~/lib/utils'
 import type { WorkQueueItem, WorkQueueKind } from '~/lib/work-queue'
@@ -175,8 +176,7 @@ function Dashboard() {
   const isDemo = entity.ok && entity.data.isDemo === true
   const entityName = entity.ok ? entity.data.name : ''
   const name = greetingName(session.user.name)
-  const now = new Date()
-  const part = dayPartAt(now.getHours())
+  const part = localDayPart()
   const greetingKey =
     name === null
       ? part === 'morning'
@@ -189,8 +189,7 @@ function Dashboard() {
         : part === 'afternoon'
           ? 'dash.greeting.afternoon'
           : 'dash.greeting.evening'
-  const todayIso = `${String(now.getFullYear())}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const parts = calendarParts(todayIso)
+  const parts = calendarParts(localTodayIso())
   const weekday = capitalizeWord(t(`dash.weekday.${String(parts.weekday)}` as MessageKey))
   const dateLabel = t('dash.dateDayMonth', {
     day: String(parts.day),
@@ -589,9 +588,9 @@ function toneIcon(tone: AttentionTone): ReactNode {
     return <RiInformationLine aria-hidden="true" className="text-info size-[18px]" />
   }
   return (
-    <span
+    <RiCheckboxBlankCircleLine
       aria-hidden="true"
-      className="border-muted-foreground mt-0.5 inline-block size-[18px] shrink-0 rounded-full border"
+      className="text-muted-foreground mt-0.5 size-[18px] shrink-0"
     />
   )
 }
