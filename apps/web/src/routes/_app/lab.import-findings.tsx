@@ -45,7 +45,10 @@ export const Route = createFileRoute('/_app/lab/import-findings')({
         ? search['state']
         : ('open' as const),
     sheet:
-      search['sheet'] === 'account' || search['sheet'] === 'fx' || search['sheet'] === 'fxo'
+      search['sheet'] === 'account' ||
+      search['sheet'] === 'tax' ||
+      search['sheet'] === 'fx' ||
+      search['sheet'] === 'fxo'
         ? search['sheet']
         : undefined,
   }),
@@ -60,6 +63,7 @@ function ImportFindingsLab() {
   const hydrated = useHydrated()
   const { advanced, setAdvanced, saving: advancedSaving } = useAdvancedMode()
   const [accountOpen, setAccountOpen] = useState(sheet === 'account')
+  const [taxOpen, setTaxOpen] = useState(sheet === 'tax')
   const [fxOpen, setFxOpen] = useState(sheet === 'fx' || sheet === 'fxo')
   const [fxRate, setFxRate] = useState(sheet === 'fxo' ? '1,1490' : '1,1531')
   const [fxSource, setFxSource] = useState<'ecb' | 'override'>(sheet === 'fxo' ? 'override' : 'ecb')
@@ -210,6 +214,22 @@ function ImportFindingsLab() {
                 'f1',
                 `Kantoorartikelen → ${choice.accountName ?? choice.accountNumber ?? '—'}`,
               )
+            }}
+          />
+          {/* Purchase 21% → VH21 only (direction-safe; never H21). */}
+          <AccountVatSheet
+            open={taxOpen}
+            onOpenChange={setTaxOpen}
+            sourceName="Hoog tarief inkoop"
+            sourceDetail="21%"
+            accounts={FIXTURE_ACCOUNTS}
+            mode="tax"
+            taxRateType="purchase_invoice"
+            percentage="21"
+            suggestedVat="VH21"
+            advanced={advanced}
+            onSave={(choice) => {
+              resolveById('f3', `Laag tarief → ${choice.vatCode ?? '—'}`)
             }}
           />
           <FxRateSheet

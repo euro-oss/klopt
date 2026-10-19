@@ -16,7 +16,7 @@ export function ScrollTable({
   readonly className?: string
 }) {
   return (
-    <div className={cn('overflow-x-auto', className)}>
+    <div data-slot="scroll-table" className={cn('overflow-x-auto', className)}>
       <div className="min-w-full">{children}</div>
     </div>
   )
