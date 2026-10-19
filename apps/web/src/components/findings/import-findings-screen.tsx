@@ -261,7 +261,7 @@ export function ImportFindingsScreen({
                   <span className="block">{row.title}</span>
                   <span className="text-muted-foreground block">{row.result}</span>
                 </span>
-                <code className="text-muted-foreground hidden font-mono text-[11px] sm:block">
+                <code className="text-muted-foreground hidden text-[11px] sm:block">
                   {row.code}
                 </code>
               </li>
@@ -371,7 +371,7 @@ function HonestyCell({ source }: { readonly source: HonestySource }) {
             <RiCheckboxBlankCircleLine className="size-3" aria-hidden />
           ) : (
             <span
-              className="inline-block size-2.5 rounded-full border border-dashed border-current"
+              className="inline-block size-2.5 border border-dashed border-current"
               aria-hidden
             />
           )}

@@ -1485,7 +1485,7 @@ function PreviewReport({
               <tbody>
                 {requests.map((entry, index) => (
                   <tr key={`${entry.path}-${String(index)}`} className="border-border border-b">
-                    <td className="py-1 pr-4 font-mono text-xs tabular-nums">{entry.path}</td>
+                    <td className="py-1 pr-4 text-xs tabular-nums">{entry.path}</td>
                     <td className="py-1 text-right tabular-nums">{String(entry.status)}</td>
                     <td className="py-1 text-right tabular-nums">{String(entry.rows)}</td>
                     <td className="py-1 text-right tabular-nums">{String(entry.durationMs)} ms</td>

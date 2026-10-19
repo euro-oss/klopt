@@ -230,7 +230,7 @@ export function FxRateSheet({
                         {advanced &&
                           row.accountNumber !== undefined &&
                           row.accountNumber !== '' && (
-                            <span className="text-muted-foreground ml-1 font-mono text-xs">
+                            <span className="text-muted-foreground ml-1 text-xs">
                               {row.accountNumber}
                             </span>
                           )}

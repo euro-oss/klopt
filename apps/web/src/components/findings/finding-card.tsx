@@ -196,7 +196,7 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
             {severity === 'blocking' ? t('findingCard.blocking') : t('findingCard.warning')}
           </Badge>
           <span className="text-muted-foreground text-xs">{fixTypeLabel(t, fix)}</span>
-          <code className="text-muted-foreground ml-auto hidden font-mono text-[11px] tracking-normal normal-case sm:block">
+          <code className="text-muted-foreground ml-auto hidden text-[11px] tracking-normal normal-case sm:block">
             {code}
           </code>
         </ItemHeader>
@@ -480,7 +480,7 @@ export function FindingHonestyState({
           <RiCheckboxBlankCircleLine className="size-3.5 shrink-0" aria-hidden />
         ) : (
           <span
-            className="inline-block size-3 shrink-0 rounded-full border border-dashed border-current"
+            className="inline-block size-3 shrink-0 border border-dashed border-current"
             aria-hidden
           />
         )}

@@ -322,9 +322,7 @@ function AccountVatSheetBody({
                         {selected ? <RiCheckLine className="size-4" aria-hidden /> : null}
                       </span>
                       {advanced && (
-                        <span className="w-10 font-mono text-xs tabular-nums">
-                          {row.account.number}
-                        </span>
+                        <span className="w-10 text-xs tabular-nums">{row.account.number}</span>
                       )}
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2 text-sm font-medium">
@@ -350,7 +348,9 @@ function AccountVatSheetBody({
                             row.account.rgsCode !== '' && (
                               <>
                                 {' · RGS '}
-                                <span className="font-mono">{row.account.rgsCode}</span>
+                                <span className="text-xs tracking-normal">
+                                  {row.account.rgsCode}
+                                </span>
                               </>
                             )}
                         </span>
@@ -415,9 +415,7 @@ function AccountVatSheetBody({
                       )}
                     >
                       {t(`importFindings.vat.${option.code}` as MessageKey)}
-                      {advanced && (
-                        <span className="font-mono text-xs opacity-70"> {option.code}</span>
-                      )}
+                      {advanced && <span className="text-xs opacity-70"> {option.code}</span>}
                     </button>
                   )
                 })}
