@@ -62,7 +62,7 @@ export const en: Record<MessageKey, string> = {
     'A balance with no account in the chart has nowhere to go.',
   // finding.moneybird.period_locked English comes from FINDING_MESSAGES (spread above).
   'finding.why.moneybird.period_locked':
-    'Fiscal year {year} is closed. Reopen it under Fiscal years (owner or accountant), or mark this document as not transferred.',
+    'Fiscal year {year} is closed. Mark this document as not transferred, or look under Fiscal years.',
   'finding.why.moneybird.unbalanced_document':
     'A document that does not balance must not be posted quietly.',
   'finding.why.moneybird.attachment_without_url':
@@ -805,9 +805,9 @@ export const en: Record<MessageKey, string> = {
   'match.eyebrow': 'Money',
   'match.intro':
     'Every line gets a counter-entry or is skipped. Suggestions are ordered by how sure they are.',
-  'match.subtitle': '{name} ··· {iban} · updated {when}',
+  'match.subtitle': '{name} ··· {iban} · updated: {when}',
   'match.subtitleBare': 'No bank account yet',
-  'match.updatedUnknown': 'unknown',
+  'match.updatedUnknown': 'not known yet',
   'match.backToBank': 'Back to bank',
   'match.nothingToDo': 'Everything is matched.',
   'match.nothingToDoBody': 'Every bank line is posted or skipped.',
@@ -815,6 +815,7 @@ export const en: Record<MessageKey, string> = {
   'match.stepQueue': 'Bank lines',
   'match.stepPanel': 'Match',
   'match.queue': 'Queue',
+  'match.swipeHint': 'Swipe the table sideways for more columns. Tap a line to match it.',
   'match.col.counterparty': 'Counterparty',
   'match.col.date': 'Date',
   'match.col.out': 'Out',
@@ -822,6 +823,7 @@ export const en: Record<MessageKey, string> = {
   'match.col.suggestion': 'Suggestion',
   'match.remaining_one': '{count} line left to match',
   'match.remaining_other': '{count} lines left to match',
+  'match.remainingCapped': '500+ lines left to match',
   'match.direction.out': 'Out',
   'match.direction.in': 'In',
   'match.noCounterparty': 'no counterparty',
@@ -854,13 +856,13 @@ export const en: Record<MessageKey, string> = {
   'match.confidence.certain': 'Certain',
   'match.confidence.likely': 'Likely',
   'match.confidence.possible': 'Possible',
-  'match.period.closedMonth': 'This month is closed',
-  'match.period.closedQuarter': 'This quarter is closed',
-  'match.period.closedYear': 'This year is closed',
-  'match.period.lockedBody':
-    '{date} falls in {period}. Ask your bookkeeper to reopen the period, or leave this line.',
-  'match.period.reopen': 'Go to fiscal years',
-  'match.period.askAccountant': 'Ask your bookkeeper to reopen this quarter.',
+  'match.period.yearName': 'fiscal year {year}',
+  'match.period.hardClosed': '{period} is permanently closed. Post this in an open period.',
+  'match.period.softClosedBookkeeper':
+    '{period} is provisionally closed. Only the owner or accountant can post here.',
+  'match.period.softClosedNotice': '{period} is provisionally closed',
+  'match.period.fallsIn': '{date} falls in {period}.',
+  'match.period.toFiscalYears': 'Go to Fiscal years',
   'match.panelClose': 'Close',
   'match.panelLabel': 'Bank line',
   'match.strategy.reference': 'invoice number',
@@ -1304,7 +1306,7 @@ export const en: Record<MessageKey, string> = {
   'moneybird.fix.acknowledgeEmpty': 'I know {year} is empty',
   'moneybird.fix.reread': 'Read again',
   'moneybird.fix.exclude': 'Do not transfer',
-  'moneybird.fix.reopenYear': 'Reopen fiscal year',
+  'moneybird.fix.reopenYear': 'Go to Fiscal years',
   'moneybird.fix.deferAttachment': 'Add later',
   'moneybird.fix.openMoneybird': 'Open in Moneybird',
   'moneybird.fix.settings': 'Go to settings',

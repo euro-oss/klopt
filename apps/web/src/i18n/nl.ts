@@ -741,9 +741,9 @@ export const nl = {
   'match.eyebrow': 'Geld',
   'match.intro':
     'Elke regel krijgt een tegenboeking of wordt overgeslagen. Voorstellen staan op volgorde van zekerheid.',
-  'match.subtitle': '{name} ··· {iban} · bijgewerkt {when}',
+  'match.subtitle': '{name} ··· {iban} · bijgewerkt: {when}',
   'match.subtitleBare': 'Nog geen bankrekening',
-  'match.updatedUnknown': 'onbekend',
+  'match.updatedUnknown': 'nog niet bekend',
   'match.backToBank': 'Terug naar bank',
   'match.nothingToDo': 'Alles is gekoppeld.',
   'match.nothingToDoBody': 'Elke bankregel is geboekt of overgeslagen.',
@@ -751,6 +751,7 @@ export const nl = {
   'match.stepQueue': 'Bankregels',
   'match.stepPanel': 'Koppelen',
   'match.queue': 'Wachtrij',
+  'match.swipeHint': 'Veeg de tabel opzij voor meer kolommen. Tik op een regel om te koppelen.',
   'match.col.counterparty': 'Tegenpartij',
   'match.col.date': 'Datum',
   'match.col.out': 'Af',
@@ -758,6 +759,7 @@ export const nl = {
   'match.col.suggestion': 'Voorstel',
   'match.remaining_one': '{count} regel nog te koppelen',
   'match.remaining_other': '{count} regels nog te koppelen',
+  'match.remainingCapped': '500+ regels nog te koppelen',
   'match.direction.out': 'Af',
   'match.direction.in': 'Bij',
   'match.noCounterparty': 'zonder tegenpartij',
@@ -790,13 +792,13 @@ export const nl = {
   'match.confidence.certain': 'Zeker',
   'match.confidence.likely': 'Waarschijnlijk',
   'match.confidence.possible': 'Mogelijk',
-  'match.period.closedMonth': 'Deze maand is afgesloten',
-  'match.period.closedQuarter': 'Dit kwartaal is afgesloten',
-  'match.period.closedYear': 'Dit jaar is afgesloten',
-  'match.period.lockedBody':
-    '{date} valt in {period}. Vraag je boekhouder om de periode te heropenen, of laat deze regel staan.',
-  'match.period.reopen': 'Naar boekjaren',
-  'match.period.askAccountant': 'Vraag je boekhouder om dit kwartaal te heropenen.',
+  'match.period.yearName': 'boekjaar {year}',
+  'match.period.hardClosed': '{period} is definitief afgesloten. Boek dit in een open periode.',
+  'match.period.softClosedBookkeeper':
+    '{period} is voorlopig afgesloten. Alleen de eigenaar of accountant kan hierin boeken.',
+  'match.period.softClosedNotice': '{period} is voorlopig afgesloten',
+  'match.period.fallsIn': '{date} valt in {period}.',
+  'match.period.toFiscalYears': 'Naar Boekjaren',
   'match.panelClose': 'Sluiten',
   'match.panelLabel': 'Bankregel',
   'match.strategy.reference': 'factuurnummer',
@@ -1244,7 +1246,7 @@ export const nl = {
   'moneybird.fix.acknowledgeEmpty': 'Ik weet dat {year} leeg is',
   'moneybird.fix.reread': 'Opnieuw lezen',
   'moneybird.fix.exclude': 'Niet overzetten',
-  'moneybird.fix.reopenYear': 'Boekjaar heropenen',
+  'moneybird.fix.reopenYear': 'Naar Boekjaren',
   'moneybird.fix.deferAttachment': 'Later toevoegen',
   'moneybird.fix.openMoneybird': 'Open in Moneybird',
   'moneybird.fix.settings': 'Naar instellingen',
@@ -1393,7 +1395,7 @@ export const nl = {
   'finding.why.moneybird.trial_balance_account_missing':
     'Een saldo zonder rekening in het schema heeft geen plek om naartoe te gaan.',
   'finding.why.moneybird.period_locked':
-    'Boekjaar {year} is afgesloten. Heropen het onder Boekjaren (eigenaar of accountant), of zet dit document op ‘Niet overgezet’.',
+    'Boekjaar {year} is afgesloten. Zet dit document op ‘Niet overgezet’, of bekijk Boekjaren.',
   'finding.why.moneybird.unbalanced_document':
     'Een document dat niet sluit mag niet stilzwijgend worden geboekt.',
   'finding.why.moneybird.attachment_without_url':

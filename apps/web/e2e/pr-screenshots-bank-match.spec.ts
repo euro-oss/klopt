@@ -2,8 +2,9 @@ import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
-import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import { closeDatabase, createDatabase, runMigrations } from '@klopt/db'
+import { findEntityIdByName, setPeriodStatus } from '@klopt/db/testing'
+import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
 
 /**
  * Public PNGs for the bank matching redesign PR (#61 slice 6).
@@ -33,6 +34,7 @@ const FIXTURES = join(
   'bank',
   '__fixtures__',
 )
+const MARCH = 3
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
@@ -50,8 +52,7 @@ async function ready(page: Page, name: string): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
 }
 
-async function withBankQueue(page: Page, name: string): Promise<void> {
-  await ready(page, name)
+async function importStatement(page: Page): Promise<void> {
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
   await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
@@ -63,17 +64,49 @@ async function withBankQueue(page: Page, name: string): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
   await expect(page.getByText('4 transacties ingelezen.')).toBeVisible()
+}
+
+async function issueMatchingInvoice(page: Page): Promise<void> {
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
+  await page.getByLabel('Naam', { exact: true }).fill('Grote Klant N.V.')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
+
+  await page.goto('/invoices/new')
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
+  await page.getByLabel('Referentie klant').fill('KP-1')
+  await page.getByLabel('Omschrijving regel 1').fill('Advieswerk')
+  await page.getByLabel('Prijs regel 1').fill('1000,00')
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+}
+
+async function openMatch(page: Page): Promise<void> {
   await page.goto('/bank/match')
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
-  // Prefer the queue table over the shared Dashboard-kbd wait: on a phone
-  // viewport the sidebar (and its keycaps) is hidden inside the Sheet.
   await expect(page.locator('[data-slot="scroll-table"] tbody tr').first()).toBeVisible({
     timeout: 15_000,
   })
   await hydrated(page).catch(async () => {
-    // Desktop-only fallback already satisfied by the table wait above.
     await page.waitForTimeout(300)
   })
+}
+
+async function setMarchStatus(
+  entityName: string,
+  status: 'open' | 'soft_closed' | 'hard_closed',
+): Promise<void> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  try {
+    const entityId = await findEntityIdByName(database, entityName)
+    if (entityId === null) throw new Error(`No entity named ${entityName}`)
+    await setPeriodStatus(database, entityId, MARCH, status)
+  } finally {
+    await closeDatabase(database)
+  }
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
@@ -99,6 +132,30 @@ function copyProto(name: string, dest: string): void {
   if (existsSync(src)) copyFileSync(src, join(OUT, dest))
 }
 
+async function ensurePanelVisible(page: Page): Promise<void> {
+  const size = page.viewportSize()
+  if (size !== null && size.width < 1024) {
+    const skip = page.getByRole('button', { name: 'Overslaan' })
+    if (!(await skip.isVisible().catch(() => false))) {
+      await page.keyboard.press('Enter')
+      await expect(skip).toBeVisible({ timeout: 8_000 })
+    }
+  }
+}
+
+async function selectPaymentRow(page: Page): Promise<void> {
+  const payment = page.locator('[data-slot="scroll-table"] tbody tr').filter({
+    hasText: 'Grote Klant',
+  })
+  await payment.click()
+  await ensurePanelVisible(page)
+  const suggestion = page
+    .getByText(/staat in de omschrijving en het bedrag klopt precies/)
+    .locator('visible=true')
+  await expect(suggestion).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByText('Zeker').locator('visible=true').first()).toBeVisible()
+}
+
 async function drainQueue(page: Page): Promise<void> {
   for (;;) {
     if (
@@ -114,7 +171,6 @@ async function drainQueue(page: Page): Promise<void> {
 
     const skip = page.getByRole('button', { name: 'Overslaan' })
     if (!(await skip.isVisible().catch(() => false))) {
-      // Phone sheet is closed below lg — open it so Overslaan is reachable.
       await page.keyboard.press('Enter')
       await expect(skip).toBeVisible({ timeout: 8_000 })
     }
@@ -124,8 +180,10 @@ async function drainQueue(page: Page): Promise<void> {
   }
 }
 
-test('capture bank match PNGs (1440/390 × light/dark + empty + prototype)', async ({ browser }) => {
-  test.setTimeout(600_000)
+test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', async ({
+  browser,
+}) => {
+  test.setTimeout(900_000)
 
   for (const theme of ['light', 'dark'] as const) {
     for (const [label, size] of [
@@ -134,8 +192,16 @@ test('capture bank match PNGs (1440/390 × light/dark + empty + prototype)', asy
     ] as const) {
       const context = await browser.newContext({ viewport: size })
       const page = await context.newPage()
-      await withBankQueue(page, `Shot ${theme} ${label}`)
+      const entityName = `Shot ${theme} ${label}`
+      await ready(page, entityName)
+      await importStatement(page)
+      await issueMatchingInvoice(page)
+      await enableAdvancedMode(page)
+      await openMatch(page)
       await setTheme(page, theme)
+
+      // Queue with confidence badges / voorstel column (Geavanceerd on).
+      await selectPaymentRow(page)
       await shoot(page, `queue-${theme}-${label}.png`)
 
       if (label === 'mobile-390') {
@@ -147,6 +213,35 @@ test('capture bank match PNGs (1440/390 × light/dark + empty + prototype)', asy
         await page.keyboard.press('Escape')
         await page.waitForTimeout(300)
       }
+
+      // Owner soft-closed notice + Naar Boekjaren.
+      await setMarchStatus(entityName, 'soft_closed')
+      await openMatch(page)
+      await setTheme(page, theme)
+      await ensurePanelVisible(page)
+      await expect(page.getByText(/voorlopig afgesloten/).locator('visible=true')).toBeVisible()
+      await shoot(page, `locked-owner-${theme}-${label}.png`)
+
+      // Bookkeeper path: hard-closed (same named block copy, no link).
+      await setMarchStatus(entityName, 'hard_closed')
+      await openMatch(page)
+      await setTheme(page, theme)
+      await ensurePanelVisible(page)
+      await expect(page.getByText(/definitief afgesloten/).locator('visible=true')).toBeVisible()
+      await shoot(page, `locked-bookkeeper-${theme}-${label}.png`)
+
+      await setMarchStatus(entityName, 'open')
+      await openMatch(page)
+      await setTheme(page, theme)
+      await selectPaymentRow(page)
+      // Desktop: first Enter focuses the candidate; second books. Phone sheet
+      // may already be open from selectPaymentRow — still need the book Enter.
+      await page.keyboard.press('Enter')
+      await page.keyboard.press('Enter')
+      await expect(
+        page.getByText(/Gekoppeld:|Geboekt als boeking/).locator('visible=true'),
+      ).toBeVisible()
+      await shoot(page, `matched-${theme}-${label}.png`)
 
       await drainQueue(page)
       await expect(page.getByText('Alles is gekoppeld.')).toBeVisible({ timeout: 15_000 })

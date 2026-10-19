@@ -1,5 +1,5 @@
 import { uuidv7 } from '@klopt/core'
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
   auditLog,
@@ -221,6 +221,35 @@ export async function findUserIdByEmail(database: Database, email: string): Prom
     .where(eq(users.email, email))
     .limit(1)
   return row?.id ?? null
+}
+
+/** Look an administration up by the name typed at setup (newest when names collide). */
+export async function findEntityIdByName(database: Database, name: string): Promise<string | null> {
+  const [row] = await database
+    .select({ id: entities.id })
+    .from(entities)
+    .where(eq(entities.name, name))
+    .orderBy(desc(entities.createdAt))
+    .limit(1)
+  return row?.id ?? null
+}
+
+/**
+ * Force a period’s open / soft_closed / hard_closed status for lock tests.
+ *
+ * Bank-match and VAT suites need a closed March or April without walking the
+ * full filing or year-close UI. Callers restore `open` in a `finally`.
+ */
+export async function setPeriodStatus(
+  database: Database,
+  entityId: string,
+  sequence: number,
+  status: 'open' | 'soft_closed' | 'hard_closed',
+): Promise<void> {
+  await database
+    .update(periods)
+    .set({ status })
+    .where(and(eq(periods.entityId, entityId), eq(periods.sequence, sequence)))
 }
 
 /**

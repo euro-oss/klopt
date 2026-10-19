@@ -10,21 +10,24 @@ import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import {
-  absoluteMinor,
   confidenceTone,
   formatBankDay,
+  formatBankDayWithYear,
   formatEuro,
+  formatPeriodLabel,
   ibanTail,
+  isBookingBlocked,
   isOutgoing,
   isPeriodLockViolation,
   periodLockForDate,
   periodLockFromViolation,
+  suggestionBookedAmount,
   suggestionLabel,
   type FiscalYearWithPeriods,
   type PeriodLock,
 } from '~/lib/bank-match'
 import { useHydrated } from '~/lib/hydration'
-import { may, MAY_CLOSE_YEAR, MAY_POST_CLOSED } from '~/lib/roles'
+import { may, MAY_POST_CLOSED } from '~/lib/roles'
 import { cn } from '~/lib/utils'
 import {
   confirmMatch,
@@ -99,13 +102,12 @@ const STRATEGY_KEY: Record<string, MessageKey> = {
   oldest_first: 'match.strategy.oldest_first',
 }
 
-function periodTitle(
-  t: (key: MessageKey, values?: Record<string, string>) => string,
+function periodName(
   lock: PeriodLock,
+  locale: string,
+  t: (key: MessageKey, values?: Record<string, string>) => string,
 ): string {
-  if (lock.kind === 'year') return t('match.period.closedYear')
-  if (lock.kind === 'quarter') return t('match.period.closedQuarter')
-  return t('match.period.closedMonth')
+  return formatPeriodLabel(lock, locale, (year) => t('match.period.yearName', { year }))
 }
 
 /** Prefer counterparty; fall back to description so the panel H2 matches the table. */
@@ -129,7 +131,6 @@ function MatchQueue() {
   const panelTitleId = useId()
 
   const canPostClosed = may(MAY_POST_CLOSED, role)
-  const canManageYears = may(MAY_CLOSE_YEAR, role)
 
   const strategyOf = (strategy: string) => {
     const key = STRATEGY_KEY[strategy]
@@ -147,12 +148,7 @@ function MatchQueue() {
   const [answered, setAnswered] = useState<{ id: string; items: Suggestion[] } | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [periodError, setPeriodError] = useState<{
-    readonly title: string
-    readonly body: string
-    readonly fiscalYear: string
-    readonly period: number
-  } | null>(null)
+  const [periodError, setPeriodError] = useState<PeriodLock | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [manualAccount, setManualAccount] = useState('')
   const [candidate, setCandidate] = useState(0)
@@ -174,8 +170,8 @@ function MatchQueue() {
   const lineId = line?.id
   const suggestions = answered !== null && answered.id === lineId ? answered.items : null
   const loadingSuggestions = lineId !== undefined && suggestions === null
-  const lock =
-    line === undefined ? null : periodLockForDate(fiscalYears, line.bookingDate, canPostClosed)
+  const lock = line === undefined ? null : periodLockForDate(fiscalYears, line.bookingDate)
+  const accountNameByNumber = new Map(postable.map((account) => [account.number, account.name]))
 
   const keyFor = (transactionId: string): string => {
     const existing = keys.current.get(transactionId)
@@ -221,7 +217,7 @@ function MatchQueue() {
     accountNumber: string | null,
   ): Promise<void> => {
     if (line === undefined || busy) return
-    if (lock !== null && !(lock.status === 'soft_closed' && canPostClosed)) return
+    if (isBookingBlocked(lock, canPostClosed)) return
 
     setBusy(true)
     setError(null)
@@ -250,17 +246,16 @@ function MatchQueue() {
     if (!result.ok) {
       const locked = result.problem.violations.find((item) => isPeriodLockViolation(item.code))
       if (locked !== undefined) {
-        const fromDetail = periodLockFromViolation(locked.detail)
-        const kindTitle =
-          locked.code === 'period_hard_closed'
-            ? t('match.period.closedYear')
-            : t('match.period.closedQuarter')
-        setPeriodError({
-          title: kindTitle,
-          body: violationMessage(t, locked),
-          fiscalYear: fromDetail?.fiscalYear ?? '',
-          period: fromDetail?.period ?? 0,
-        })
+        setPeriodError(
+          periodLockFromViolation(fiscalYears, locked.code, locked.detail) ?? {
+            fiscalYear: locked.detail?.['fiscalYear'] ?? '',
+            period: Number(locked.detail?.['period'] ?? 0),
+            status: locked.code === 'period_soft_closed' ? 'soft_closed' : 'hard_closed',
+            startsOn: '',
+            endsOn: '',
+            kind: 'year',
+          },
+        )
         return
       }
       setError(
@@ -272,7 +267,19 @@ function MatchQueue() {
     }
 
     const counterparty = lineTitle(line, t)
-    const resultLabel = suggestion === null ? (accountNumber ?? '') : suggestionLabel(suggestion)
+    const bookedAccount = accountNumber ?? suggestion?.accountNumber ?? null
+    const resultLabel =
+      suggestion === null
+        ? advanced
+          ? (bookedAccount ?? '')
+          : (accountNameByNumber.get(bookedAccount ?? '') ?? bookedAccount ?? '')
+        : suggestionLabel(suggestion, {
+            preferAccountName: !advanced,
+            accountName:
+              suggestion.accountNumber === null
+                ? null
+                : (accountNameByNumber.get(suggestion.accountNumber) ?? null),
+          })
 
     keys.current.delete(line.id)
     setFlashId(line.id)
@@ -337,8 +344,9 @@ function MatchQueue() {
     if (offered.length > 0) {
       moveCandidate(Math.min(candidate, offered.length - 1))
     } else {
+      // Prefer the Categorie combobox, not the "search other" button above it.
       accountPickerHost.current
-        ?.querySelector<HTMLElement>('input:not([disabled]), button:not([disabled])')
+        ?.querySelector<HTMLElement>('input[role="combobox"]:not([disabled])')
         ?.focus()
     }
   }
@@ -350,7 +358,15 @@ function MatchQueue() {
       if (event.defaultPrevented) return
 
       const target = event.target as HTMLElement | null
-      if (target !== null && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return
+      // Esc still leaves the panel from the Categorie field; other chords stay
+      // out of the way while somebody is typing an account number.
+      if (
+        target !== null &&
+        /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName) &&
+        event.key !== 'Escape'
+      ) {
+        return
+      }
       if (event.metaKey || event.ctrlKey || event.altKey) return
 
       const onControl = target !== null && /^(BUTTON|A)$/.test(target.tagName)
@@ -374,11 +390,12 @@ function MatchQueue() {
       }
       if (event.key === 'Enter') {
         event.preventDefault()
-        if (lock !== null && !(lock.status === 'soft_closed' && canPostClosed)) return
         if (!inPanel) {
+          // Open even when locked so the named period notice is readable on phone.
           openPanel()
           return
         }
+        if (isBookingBlocked(lock, canPostClosed)) return
         const chosen = offered[here]
         if (chosen !== undefined) void book(chosen, null)
         else if (manualAccount !== '') void book(null, manualAccount)
@@ -452,10 +469,10 @@ function MatchQueue() {
       hydrated={hydrated}
       advanced={advanced}
       postable={postable}
+      accountNameByNumber={accountNameByNumber}
       manualAccount={manualAccount}
       onManualAccount={setManualAccount}
       accountPickerHost={accountPickerHost}
-      canManageYears={canManageYears}
       canPostClosed={canPostClosed}
       periodError={periodError}
       locale={tag}
@@ -492,7 +509,9 @@ function MatchQueue() {
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-muted-foreground text-sm tabular">
             <span className="text-foreground text-lg font-semibold">
-              {plural('match.remaining', queue.length)}
+              {queue.length >= 500
+                ? t('match.remainingCapped')
+                : plural('match.remaining', queue.length)}
             </span>
           </p>
           <Link
@@ -504,7 +523,7 @@ function MatchQueue() {
         </div>
       </header>
 
-      {notice !== null && (
+      {notice !== null && queue.length > 0 && (
         <p role="status" className="border-border text-muted-foreground mb-4 border p-3 text-sm">
           {notice}
         </p>
@@ -543,7 +562,8 @@ function MatchQueue() {
                 <tbody className="divide-border divide-y">
                   {queue.map((item, index) => {
                     const sel = index === selected
-                    const itemLock = periodLockForDate(fiscalYears, item.bookingDate, canPostClosed)
+                    const itemLock = periodLockForDate(fiscalYears, item.bookingDate)
+                    const itemBlocked = isBookingBlocked(itemLock, canPostClosed)
                     const flashing = flashId === item.id
                     const out = isOutgoing(item.amount)
                     return (
@@ -559,6 +579,13 @@ function MatchQueue() {
                           setSelected(index)
                           setCandidate(0)
                           setPeriodError(null)
+                          // Phone: tap opens the sheet (including locked rows — lock copy lives there).
+                          if (
+                            typeof window !== 'undefined' &&
+                            window.matchMedia('(max-width: 1023px)').matches
+                          ) {
+                            setPhoneOpen(true)
+                          }
                         }}
                         onFocus={() => {
                           setSelected(index)
@@ -571,7 +598,7 @@ function MatchQueue() {
                           }
                         }}
                         className={cn(
-                          'cursor-pointer transition-opacity duration-200 focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
+                          'cursor-pointer transition-opacity duration-200 focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
                           sel && 'bg-muted',
                           !sel && 'hover:bg-muted/60',
                           flashing && 'bg-success/15',
@@ -617,10 +644,10 @@ function MatchQueue() {
                               </svg>
                               {t('match.matchedLabel')}
                             </span>
-                          ) : itemLock !== null ? (
+                          ) : itemBlocked && itemLock !== null ? (
                             <span className="text-muted-foreground flex max-w-48 items-center gap-1">
                               <RiLockLine className="size-3.5 shrink-0" aria-hidden />
-                              <span className="truncate">{periodTitle(t, itemLock)}</span>
+                              <span className="truncate">{periodName(itemLock, tag, t)}</span>
                             </span>
                           ) : sel && loadingSuggestions ? (
                             <span className="text-muted-foreground">{t('match.searching')}</span>
@@ -634,7 +661,14 @@ function MatchQueue() {
                                     : 'bg-muted-foreground',
                                 )}
                               />
-                              {suggestionLabel(suggestions[0]!)}
+                              {suggestionLabel(suggestions[0]!, {
+                                preferAccountName: !advanced,
+                                accountName:
+                                  suggestions[0]!.accountNumber === null
+                                    ? null
+                                    : (accountNameByNumber.get(suggestions[0]!.accountNumber) ??
+                                      null),
+                              })}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">{t('match.dash')}</span>
@@ -646,6 +680,8 @@ function MatchQueue() {
                 </tbody>
               </table>
             </div>
+
+            <p className="text-muted-foreground mt-2 text-xs md:hidden">{t('match.swipeHint')}</p>
 
             <ShortcutFooter
               ids={['match.next', 'match.previous', 'match.confirm', 'match.clear', 'match.leave']}
@@ -702,6 +738,41 @@ function MatchQueue() {
   )
 }
 
+function lockCopy(
+  lock: PeriodLock,
+  lineDate: string,
+  locale: string,
+  canPostClosed: boolean,
+  t: (key: MessageKey, values?: Record<string, string>) => string,
+): { readonly title: string; readonly body: string; readonly showFiscalYearsLink: boolean } {
+  const period = periodName(lock, locale, t)
+  const date = formatBankDayWithYear(lineDate, locale)
+  const fallsIn = t('match.period.fallsIn', { date, period })
+
+  if (lock.status === 'hard_closed' || lock.status === 'year_closed') {
+    return {
+      title: period,
+      body: `${fallsIn} ${t('match.period.hardClosed', { period })}`,
+      showFiscalYearsLink: false,
+    }
+  }
+
+  // soft_closed
+  if (canPostClosed) {
+    return {
+      title: period,
+      body: t('match.period.softClosedNotice', { period }),
+      showFiscalYearsLink: true,
+    }
+  }
+
+  return {
+    title: period,
+    body: `${fallsIn} ${t('match.period.softClosedBookkeeper', { period })}`,
+    showFiscalYearsLink: false,
+  }
+}
+
 function MatchPanel({
   panelRef,
   titleId,
@@ -715,10 +786,10 @@ function MatchPanel({
   hydrated,
   advanced,
   postable,
+  accountNameByNumber,
   manualAccount,
   onManualAccount,
   accountPickerHost,
-  canManageYears,
   canPostClosed,
   periodError,
   locale,
@@ -743,17 +814,12 @@ function MatchPanel({
   hydrated: boolean
   advanced: boolean
   postable: readonly { number: string; name: string; isBlocked: boolean }[]
+  accountNameByNumber: ReadonlyMap<string, string>
   manualAccount: string
   onManualAccount: (value: string) => void
   accountPickerHost: React.RefObject<HTMLDivElement | null>
-  canManageYears: boolean
   canPostClosed: boolean
-  periodError: {
-    readonly title: string
-    readonly body: string
-    readonly fiscalYear: string
-    readonly period: number
-  } | null
+  periodError: PeriodLock | null
   locale: string
   strategyOf: (strategy: string) => string
   onSelectCandidate: (index: number) => void
@@ -766,15 +832,19 @@ function MatchPanel({
 }) {
   if (line === undefined) {
     return (
-      <div className="border-border border p-6 text-sm text-muted-foreground">
+      <div className="border-border text-muted-foreground border p-6 text-sm">
         {t('match.nothingToDo')}
       </div>
     )
   }
 
   const outgoing = isOutgoing(line.amount)
-  const blocked = lock !== null && !(lock.status === 'soft_closed' && canPostClosed)
+  const blocked = isBookingBlocked(lock, canPostClosed)
+  const softNotice = lock !== null && lock.status === 'soft_closed' && canPostClosed && !blocked
   const offered = suggestions ?? []
+  const shownLock = periodError ?? (blocked || softNotice ? lock : null)
+  const copy =
+    shownLock === null ? null : lockCopy(shownLock, line.bookingDate, locale, canPostClosed, t)
 
   return (
     <section
@@ -818,57 +888,26 @@ function MatchPanel({
             className="mt-2 min-h-11 md:min-h-8"
             onClick={onClosePhone}
           >
-            {t('match.panelClose')} <Keycap className="ml-1.5">Esc</Keycap>
+            {t('match.panelClose')} <Keycap className="ml-1.5 hidden md:inline-flex">Esc</Keycap>
           </Button>
         )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {periodError !== null && (
-          <div className="border-border m-4 flex gap-3 border border-dashed p-4 text-sm">
-            <RiLockLine className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden />
-            <div>
-              <p className="font-medium">{periodError.title}</p>
-              <p className="text-muted-foreground mt-1">{periodError.body}</p>
-              {canManageYears ? (
-                <Link
-                  to="/fiscal-years"
-                  className="mt-2 inline-flex min-h-11 items-center text-sm underline underline-offset-4 md:min-h-8"
-                >
-                  {t('match.period.reopen')}
-                </Link>
-              ) : (
-                <p className="text-muted-foreground mt-2 text-sm">
-                  {t('match.period.askAccountant')}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {blocked && lock !== null && periodError === null && (
+        {copy !== null && (
           <div className="p-4">
             <div className="border-border flex gap-3 border border-dashed p-4 text-sm">
               <RiLockLine className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden />
               <div>
-                <p className="font-medium">{periodTitle(t, lock)}</p>
-                <p className="text-muted-foreground mt-1">
-                  {t('match.period.lockedBody', {
-                    date: formatBankDay(line.bookingDate, locale),
-                    period: periodTitle(t, lock),
-                  })}
-                </p>
-                {canManageYears ? (
+                <p className="font-medium">{copy.title}</p>
+                <p className="text-muted-foreground mt-1">{copy.body}</p>
+                {copy.showFiscalYearsLink && (
                   <Link
                     to="/fiscal-years"
-                    className="mt-2 inline-flex min-h-11 items-center text-sm underline underline-offset-4 md:min-h-8"
+                    className="text-muted-foreground mt-2 inline-flex min-h-11 items-center text-sm underline underline-offset-4 md:min-h-8"
                   >
-                    {t('match.period.reopen')}
+                    {t('match.period.toFiscalYears')}
                   </Link>
-                ) : (
-                  <p className="text-muted-foreground mt-2 text-sm">
-                    {t('match.period.askAccountant')}
-                  </p>
                 )}
               </div>
             </div>
@@ -926,12 +965,16 @@ function MatchPanel({
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center justify-between gap-2">
                             <span className="text-sm font-medium">
-                              {suggestionLabel(suggestion)}
+                              {suggestionLabel(suggestion, {
+                                preferAccountName: !advanced,
+                                accountName:
+                                  suggestion.accountNumber === null
+                                    ? null
+                                    : (accountNameByNumber.get(suggestion.accountNumber) ?? null),
+                              })}
                             </span>
                             <span className="text-sm tabular">
-                              {suggestion.allocations[0] !== undefined
-                                ? formatEuro(suggestion.allocations[0].amount)
-                                : formatEuro(absoluteMinor(line.amount).toString())}
+                              {suggestionBookedAmount(suggestion, line.amount)}
                             </span>
                           </span>
                           <span className="text-muted-foreground mt-0.5 flex items-center justify-between gap-2 text-xs">
@@ -983,6 +1026,7 @@ function MatchPanel({
                   advanced ? t('match.chooseAdvancedPlaceholder') : t('match.choosePlaceholder')
                 }
                 disabled={!hydrated || busy}
+                showAccountNumbers={advanced}
                 className="mt-2"
               />
               {(line.counterpartyName !== null || advanced) && (
@@ -1018,7 +1062,7 @@ function MatchPanel({
             }}
           >
             {t('match.confirm')}
-            <Keycap className="ml-1.5">↵</Keycap>
+            <Keycap className="ml-1.5 hidden md:inline-flex">↵</Keycap>
           </Button>
         )}
         {!blocked && offered.length === 0 && (
@@ -1029,7 +1073,7 @@ function MatchPanel({
             onClick={onBookManual}
           >
             {t('match.book')}
-            <Keycap className="ml-1.5">↵</Keycap>
+            <Keycap className="ml-1.5 hidden md:inline-flex">↵</Keycap>
           </Button>
         )}
         <Button
@@ -1039,7 +1083,7 @@ function MatchPanel({
           className="min-h-11 md:min-h-9"
           onClick={onClear}
         >
-          {t('match.clearChoice')} <Keycap className="ml-1.5">u</Keycap>
+          {t('match.clearChoice')} <Keycap className="ml-1.5 hidden md:inline-flex">u</Keycap>
         </Button>
       </div>
 

@@ -54,6 +54,7 @@ export function AccountPicker({
   disabled = false,
   placeholder,
   autoFocus = false,
+  showAccountNumbers = true,
   className,
   inputClassName,
 }: {
@@ -74,6 +75,11 @@ export function AccountPicker({
   readonly disabled?: boolean
   readonly placeholder?: string
   readonly autoFocus?: boolean
+  /**
+   * When false (simple / Categorie mode), the field and list show names only.
+   * The value stored is still the account number.
+   */
+  readonly showAccountNumbers?: boolean
   readonly className?: string
   readonly inputClassName?: string
 }) {
@@ -97,16 +103,16 @@ export function AccountPicker({
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
 
-  const text = query ?? current
+  const chosen = accounts.find((account) => account.number === current) ?? null
+  const text =
+    query ?? (showAccountNumbers ? current : (chosen?.name ?? (current === '' ? '' : current)))
   /** True while the text is a query rather than the chosen account's number. */
   const typing = query !== null
 
   const list = useRef<HTMLUListElement>(null)
 
   const matches = typing ? filterAccounts(accounts, text) : accounts
-  const chosen = accounts.find((account) => account.number === current) ?? null
-  const showName = chosen !== null && !typing
-
+  const showName = showAccountNumbers && chosen !== null && !typing
   /**
    * Whether "no account" is on offer.
    *
@@ -305,17 +311,18 @@ export function AccountPicker({
             }}
             onKeyDown={onKeyDown}
             className={cn(
-              'tabular bg-transparent text-sm outline-none',
+              'bg-transparent text-base outline-none md:text-sm',
+              showAccountNumbers && 'tabular',
               // Room for a word while one is being typed, and only room for a
               // number once one is chosen: the name beside it takes the rest.
               showName ? 'w-20 shrink-0' : 'w-full',
             )}
           />
           {/* The name of what is chosen, next to the number it was chosen by.
-              Both, always: the number is what gets typed and the name is what
-              says it was the right one. */}
-          {chosen !== null && !typing && (
-            <span className="text-muted-foreground min-w-0 flex-1 truncate text-xs">
+              Both when numbers are on: the number is typed, the name confirms.
+              In simple mode the input itself shows the name. */}
+          {showName && (
+            <span className="text-muted-foreground min-w-0 flex-1 truncate text-xs md:text-xs">
               {chosen.name}
             </span>
           )}
@@ -366,7 +373,13 @@ export function AccountPicker({
                     if (position !== -1) setActive(position)
                   }}
                 >
-                  <span className="tabular">{account.number}</span> {account.name}
+                  {showAccountNumbers ? (
+                    <>
+                      <span className="tabular">{account.number}</span> {account.name}
+                    </>
+                  ) : (
+                    account.name
+                  )}
                   {isPostable(account) ? '' : ` · ${t('picker.blocked')}`}
                 </Option>
               )

@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { AccountType, MoneybirdImportDecisions, MoneybirdProblem } from '@klopt/core'
 import {
@@ -129,6 +129,7 @@ function Moneybird() {
     type: AccountType
   } | null>(null)
   const [unbalancedDraft, setUnbalancedDraft] = useState<MoneybirdProblem | null>(null)
+  const [periodLockedDraft, setPeriodLockedDraft] = useState<MoneybirdProblem | null>(null)
   const [drillNote, setDrillNote] = useState<string | null>(null)
   const [drillDocuments, setDrillDocuments] = useState<
     readonly { reference: string; description: string; documentDate: string; externalId: string }[]
@@ -370,6 +371,9 @@ function Moneybird() {
     },
     onOpenPeriodSettings: () => {
       void router.navigate({ to: '/fiscal-years' })
+    },
+    onReviewPeriodLocked: (problem) => {
+      setPeriodLockedDraft(problem)
     },
     onDeferAttachment: (problem) => {
       const id = problem.detail['attachmentId']
@@ -656,6 +660,7 @@ function Moneybird() {
                 fxDraft={fxDraft}
                 typeDraft={typeDraft}
                 unbalancedDraft={unbalancedDraft}
+                periodLockedDraft={periodLockedDraft}
                 drillNote={drillNote}
                 drillDocuments={drillDocuments}
                 fxRateError={fxRateError}
@@ -722,6 +727,12 @@ function Moneybird() {
                   findingActions.onOpenMoneybird(unbalancedDraft)
                 }}
                 onUnbalancedDismiss={() => setUnbalancedDraft(null)}
+                onPeriodLockedExclude={() => {
+                  if (periodLockedDraft === null) return
+                  findingActions.onExcludeDocument(periodLockedDraft)
+                  setPeriodLockedDraft(null)
+                }}
+                onPeriodLockedDismiss={() => setPeriodLockedDraft(null)}
                 onDrillDismiss={() => {
                   setDrillNote(null)
                   setDrillDocuments([])
@@ -926,6 +937,7 @@ function PreviewReport({
   fxDraft,
   typeDraft,
   unbalancedDraft,
+  periodLockedDraft,
   drillNote,
   drillDocuments,
   fxRateError,
@@ -938,6 +950,8 @@ function PreviewReport({
   onUnbalancedExclude,
   onUnbalancedOpenMoneybird,
   onUnbalancedDismiss,
+  onPeriodLockedExclude,
+  onPeriodLockedDismiss,
   onDrillDismiss,
 }: {
   report: Record<string, unknown>
@@ -956,6 +970,7 @@ function PreviewReport({
   } | null
   typeDraft: { moneybirdId: string; name: string; type: AccountType } | null
   unbalancedDraft: MoneybirdProblem | null
+  periodLockedDraft: MoneybirdProblem | null
   drillNote: string | null
   drillDocuments: readonly {
     reference: string
@@ -973,6 +988,8 @@ function PreviewReport({
   onUnbalancedExclude: () => void
   onUnbalancedOpenMoneybird: () => void
   onUnbalancedDismiss: () => void
+  onPeriodLockedExclude: () => void
+  onPeriodLockedDismiss: () => void
   onDrillDismiss: () => void
 }) {
   const { t } = useT()
@@ -1252,6 +1269,39 @@ function PreviewReport({
             <button
               type="button"
               onClick={onUnbalancedDismiss}
+              className="border-border rounded-none border px-3 py-2 text-sm"
+            >
+              {t('findingCard.close')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {periodLockedDraft !== null && (
+        <div className="border-border mb-6 rounded-none border p-4">
+          <p className="mb-2 text-sm font-semibold">{t('moneybird.fix.exclude')}</p>
+          <p className="text-muted-foreground mb-3 text-sm">
+            {t('finding.why.moneybird.period_locked', {
+              year: periodLockedDraft.detail['year'] ?? '—',
+            })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onPeriodLockedExclude}
+              className="bg-primary text-primary-foreground rounded-none px-3 py-2 text-sm"
+            >
+              {t('moneybird.fix.exclude')}
+            </button>
+            <Link
+              to="/fiscal-years"
+              className="border-border inline-flex items-center rounded-none border px-3 py-2 text-sm"
+            >
+              {t('moneybird.fix.reopenYear')}
+            </Link>
+            <button
+              type="button"
+              onClick={onPeriodLockedDismiss}
               className="border-border rounded-none border px-3 py-2 text-sm"
             >
               {t('findingCard.close')}

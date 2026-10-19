@@ -79,6 +79,8 @@ export function ShortcutFooter({
 
   return (
     <div
+      role="group"
+      aria-label={t('shortcuts.title')}
       className={cn(
         'border-border text-muted-foreground mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border px-2 py-1.5 text-[0.6875rem]',
         className,

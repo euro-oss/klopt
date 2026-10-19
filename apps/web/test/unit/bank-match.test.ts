@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest'
 import {
   absoluteMinor,
   confidenceTone,
+  formatBankDayWithYear,
   formatEuro,
+  formatPeriodLabel,
   ibanTail,
+  isBookingBlocked,
   isOutgoing,
   isPeriodLockViolation,
   periodLockForDate,
   periodLockFromViolation,
+  suggestionBookedAmount,
   suggestionLabel,
   type FiscalYearWithPeriods,
 } from '../../src/lib/bank-match.js'
@@ -101,68 +105,70 @@ describe('bank-match confidence', () => {
 })
 
 describe('bank-match period locks', () => {
-  it('names a fully closed quarter', () => {
-    const lock = periodLockForDate(years, '2026-09-30', false)
+  it('names a fully closed quarter as Q3', () => {
+    const lock = periodLockForDate(years, '2026-09-30')
     expect(lock).toMatchObject({
       status: 'hard_closed',
       kind: 'quarter',
       fiscalYear: '2026',
     })
+    expect(formatPeriodLabel(lock!, 'nl-NL', (year) => `boekjaar ${year}`)).toBe('Q3 2026')
+    expect(formatBankDayWithYear('2026-09-30', 'nl-NL')).toMatch(/2026/)
   })
 
-  it('keeps soft-closed open for accountants', () => {
-    expect(periodLockForDate(years, '2026-10-15', true)).toBeNull()
-    expect(periodLockForDate(years, '2026-10-15', false)).toMatchObject({
-      status: 'soft_closed',
-      kind: 'month',
-    })
+  it('returns soft-closed for everyone; booking gate is separate', () => {
+    const lock = periodLockForDate(years, '2026-10-15')
+    expect(lock).toMatchObject({ status: 'soft_closed', kind: 'month' })
+    expect(isBookingBlocked(lock, true)).toBe(false)
+    expect(isBookingBlocked(lock, false)).toBe(true)
   })
 
-  it('locks a closed year wholesale', () => {
-    expect(periodLockForDate(years, '2025-06-01', true)).toMatchObject({
-      status: 'year_closed',
-      kind: 'year',
-      fiscalYear: '2025',
-    })
+  it('names a closed year as boekjaar', () => {
+    const lock = periodLockForDate(years, '2025-06-01')
+    expect(lock?.kind).toBe('year')
+    expect(formatPeriodLabel(lock!, 'nl-NL', (year) => `boekjaar ${year}`)).toBe('boekjaar 2025')
   })
 
-  it('leaves open months alone', () => {
-    expect(periodLockForDate(years, '2026-11-12', false)).toBeNull()
-  })
-
-  it('reads lock detail off a confirmMatch violation', () => {
+  it('derives a lock from confirmMatch violation detail', () => {
     expect(isPeriodLockViolation('period_hard_closed')).toBe(true)
     expect(isPeriodLockViolation('period_soft_closed')).toBe(true)
-    expect(isPeriodLockViolation('unbalanced')).toBe(false)
-    expect(periodLockFromViolation({ fiscalYear: '2026', period: '9' })).toEqual({
+    const lock = periodLockFromViolation(years, 'period_hard_closed', {
+      fiscalYear: '2026',
+      period: '9',
+    })
+    expect(lock).toMatchObject({
       fiscalYear: '2026',
       period: 9,
+      status: 'hard_closed',
+      kind: 'quarter',
     })
   })
 })
 
 describe('bank-match suggestion labels', () => {
-  it('prefers invoice numbers, then account, then reason', () => {
+  it('sums multi-invoice allocation amounts', () => {
     expect(
-      suggestionLabel({
-        allocations: [{ number: '2026-0131' }],
-        accountNumber: '1300',
-        reason: 'Zelfde bedrag',
-      }),
-    ).toBe('2026-0131')
+      suggestionBookedAmount(
+        {
+          allocations: [{ amount: '50000' }, { amount: '25000' }],
+        },
+        '100000',
+      ),
+    ).toBe('€\u00a0750,00')
+  })
+
+  it('prefers the account name in simple mode', () => {
     expect(
-      suggestionLabel({
-        allocations: [],
-        accountNumber: '4400',
-        reason: 'Zo boekte je Makro',
-      }),
-    ).toBe('4400')
+      suggestionLabel(
+        { allocations: [], accountNumber: '4410', reason: 'geleerd' },
+        { preferAccountName: true, accountName: 'Telecom' },
+      ),
+    ).toBe('Telecom')
     expect(
-      suggestionLabel({
-        allocations: [],
-        accountNumber: null,
-        reason: 'Zo boekte je Makro',
-      }),
-    ).toBe('Zo boekte je Makro')
+      suggestionLabel(
+        { allocations: [], accountNumber: '4410', reason: 'geleerd' },
+        { preferAccountName: false },
+      ),
+    ).toBe('4410')
   })
 })

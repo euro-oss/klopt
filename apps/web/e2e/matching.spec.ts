@@ -2,14 +2,25 @@ import { rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
-import { runMigrations } from '@klopt/db'
-import { chooseOption, DATABASE_URL, hydrated, OUTBOX, signIn, uniqueEmail } from './support'
+import { closeDatabase, createDatabase, runMigrations } from '@klopt/db'
+import { findEntityIdByName, setPeriodStatus } from '@klopt/db/testing'
+import {
+  chooseOption,
+  DATABASE_URL,
+  enableAdvancedMode,
+  hydrated,
+  OUTBOX,
+  signIn,
+  uniqueEmail,
+} from './support'
 
 /**
  * The koppelwachtrij, in a browser (#61 slice 6 redesign).
  *
  * The keyboard is the feature — j/k move, Enter opens then books, u clears,
- * Esc leaves — so the assertions are about what a keystroke does.
+ * Esc leaves — so the assertions are about what a keystroke does. Period locks
+ * (a–d) cover named copy, role gates, and the Esc path that used to assert
+ * nothing about a lock.
  */
 
 const FIXTURES = join(
@@ -23,6 +34,13 @@ const FIXTURES = join(
   'bank',
   '__fixtures__',
 )
+
+/** March in a Jan–Dec year — the MT940 fixture books on 2026-03-02 … 03-05. */
+const MARCH = 3
+
+function uniqueAdminName(prefix: string): string {
+  return `${prefix} ${Date.now().toString(36)}`
+}
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
@@ -59,6 +77,20 @@ function queueRows(page: Page) {
   return page.locator('[data-slot="scroll-table"] tbody tr')
 }
 
+async function setMarchStatus(
+  entityName: string,
+  status: 'open' | 'soft_closed' | 'hard_closed',
+): Promise<void> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  try {
+    const entityId = await findEntityIdByName(database, entityName)
+    if (entityId === null) throw new Error(`No entity named ${entityName}`)
+    await setPeriodStatus(database, entityId, MARCH, status)
+  } finally {
+    await closeDatabase(database)
+  }
+}
+
 test('a bookkeeper works through the queue with the keyboard', async ({ page }) => {
   await withStatement(page, 'Koppelen BV')
 
@@ -86,8 +118,8 @@ test('a bookkeeper works through the queue with the keyboard', async ({ page }) 
   ).toBeVisible()
   await page.keyboard.press('ArrowUp')
 
-  // Book the selected line by hand.
-  await chooseOption(page, 'Categorie', /^4900 /)
+  // Book the selected line by hand (simple mode: names, not account numbers).
+  await chooseOption(page, 'Categorie', /Algemene kosten/)
   await page.getByRole('button', { name: 'Boeken' }).last().click()
 
   await expect(page.getByText(/Gekoppeld:|Geboekt als boeking/)).toBeVisible()
@@ -149,13 +181,8 @@ test('the keys the match screen prints are the keys it answers to', async ({ pag
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
   await hydrated(page)
 
-  // Yellow shortcut strip is desktop-only (hidden below md). Prefer a div:
-  // the nav also uses border-accent on the active link.
   await page.setViewportSize({ width: 1440, height: 900 })
-  const strip = page
-    .locator('div.border-accent')
-    .filter({ has: page.locator('kbd') })
-    .first()
+  const strip = page.getByRole('group', { name: 'Sneltoetsen' }).first()
   await expect(strip).toBeVisible()
   await expect(strip).toContainText('Paneel openen / voorstel boeken')
   await expect(strip).toContainText('Keuze in het paneel wissen')
@@ -184,7 +211,8 @@ test('booking by hand teaches a rule, and the rule can be switched off', async (
   const telecom = queueRows(page).filter({ hasText: 'Telecom B.V.' })
   await telecom.click()
 
-  await chooseOption(page, 'Categorie', /^4410 /)
+  // Simple mode: Categorie picker shows names (Telefoon- en internetkosten = 4410).
+  await chooseOption(page, 'Categorie', /Telefoon- en internetkosten/)
   await page.getByRole('button', { name: 'Boeken' }).last().click()
 
   await expect(page.getByText(/en onthouden voor volgende keer/)).toBeVisible()
@@ -199,7 +227,7 @@ test('booking by hand teaches a rule, and the rule can be switched off', async (
   await expect(rule.getByRole('button', { name: 'Aanzetten' })).toBeVisible()
 })
 
-test('Esc leaves the panel and a locked period names itself', async ({ page }) => {
+test('Esc returns focus to the queue row and clears the panel choice', async ({ page }) => {
   await withStatement(page, 'Esc BV')
   await page.goto('/bank/match')
   await hydrated(page)
@@ -207,17 +235,121 @@ test('Esc leaves the panel and a locked period names itself', async ({ page }) =
   const rows = queueRows(page)
   await expect(rows.first()).not.toBeFocused()
 
-  // Enter into the panel (desktop: focus lands on account picker or suggestion).
   await page.keyboard.press('Enter')
-  await page.keyboard.press('Escape')
-  // After Esc the queue row can take focus; the panel choice is cleared.
-  await expect(page.getByRole('button', { name: 'Boeken' }).last()).toBeDisabled()
+  // Desktop: focus lands on the account picker (no suggestions).
+  await expect(page.getByRole('combobox', { name: 'Categorie' })).toBeFocused()
 
-  // Soft-close a period via the API so a booking date in the fixture locks.
-  // The MT940 fixture uses 2026 dates; closing the year is the durable lock.
-  // We assert the period-lock UI path by posting into a closed year through
-  // the fiscal-years screen when the role may close — skip if the fixture
-  // dates are still open (common in a fresh admin). The unit tests cover the
-  // lock helper exhaustively.
-  await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
+  // First Esc closes the open account list; the second leaves the panel and
+  // returns focus to the queue (AccountPicker swallows the first Esc on purpose).
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+  await expect(rows.first()).toBeFocused()
+  await expect(page.getByRole('button', { name: 'Boeken' }).last()).toBeDisabled()
+})
+
+test('a hard-closed period names itself and blocks booking', async ({ page }) => {
+  const name = uniqueAdminName('Hard Gesloten')
+  await withStatement(page, name)
+  await setMarchStatus(name, 'hard_closed')
+
+  await page.goto('/bank/match')
+  await hydrated(page)
+
+  // Newest first: fee line in March.
+  await expect(page.getByRole('heading', { name: /Kosten betalingsverkeer/ })).toBeVisible()
+  await expect(page.getByText(/maart 2026 is definitief afgesloten/)).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Naar Boekjaren' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Boeken' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Koppelen' })).toHaveCount(0)
+
+  const before = await queueRows(page).count()
+  await page.keyboard.press('Enter')
+  await expect(queueRows(page)).toHaveCount(before)
+  await expect(page.getByText(/Gekoppeld:|Geboekt als boeking/)).toHaveCount(0)
+})
+
+test('soft-closed: bookkeeper is blocked without a link; owner sees Naar Boekjaren', async ({
+  browser,
+}) => {
+  const owner = await browser.newContext()
+  const keeper = await browser.newContext()
+
+  try {
+    const ownerPage = await owner.newPage()
+    const name = uniqueAdminName('Voorlopig Gesloten')
+    await withStatement(ownerPage, name)
+    await setMarchStatus(name, 'soft_closed')
+
+    await ownerPage.goto('/bank/match')
+    await hydrated(ownerPage)
+    await expect(ownerPage.getByText(/maart 2026 is voorlopig afgesloten/)).toBeVisible()
+    await expect(ownerPage.getByRole('link', { name: 'Naar Boekjaren' })).toBeVisible()
+    // Owner may still book into a soft-closed period.
+    await expect(ownerPage.getByRole('button', { name: 'Boeken' }).last()).toBeVisible()
+
+    const keeperPage = await keeper.newPage()
+    const keeperEmail = uniqueEmail()
+    await keeperPage.goto('/sign-in')
+    await signIn(keeperPage, keeperEmail)
+    await expect(keeperPage.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+
+    await ownerPage.goto('/members')
+    const invite = ownerPage.locator('form', {
+      has: ownerPage.getByRole('button', { name: 'Uitnodigen' }),
+    })
+    await invite.getByLabel('E-mail').fill(keeperEmail)
+    await chooseOption(ownerPage, 'Rol', 'Boekhouder', invite)
+    await ownerPage.getByRole('button', { name: 'Uitnodigen' }).click()
+    await expect(ownerPage.getByText(new RegExp(`${keeperEmail} heeft nu toegang`))).toBeVisible()
+
+    await keeperPage.goto('/bank/match')
+    await hydrated(keeperPage)
+    await expect(
+      keeperPage.getByText(
+        /maart 2026 is voorlopig afgesloten\. Alleen de eigenaar of accountant kan hierin boeken/,
+      ),
+    ).toBeVisible()
+    await expect(keeperPage.getByRole('link', { name: 'Naar Boekjaren' })).toHaveCount(0)
+    await expect(keeperPage.getByRole('button', { name: 'Boeken' })).toHaveCount(0)
+    await expect(keeperPage.getByRole('button', { name: 'Koppelen' })).toHaveCount(0)
+
+    const before = await queueRows(keeperPage).count()
+    await keeperPage.keyboard.press('Enter')
+    await expect(queueRows(keeperPage)).toHaveCount(before)
+  } finally {
+    await owner.close()
+    await keeper.close()
+  }
+})
+
+test('Geavanceerd shows the confidence percent on a suggestion', async ({ page }) => {
+  await withStatement(page, 'Geavanceerd Percent BV')
+
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('DEB-0099')
+  await page.getByLabel('Naam', { exact: true }).fill('Grote Klant N.V.')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
+
+  await page.goto('/invoices/new')
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
+  await page.getByLabel('Referentie klant').fill('KP-%')
+  await page.getByLabel('Omschrijving regel 1').fill('Advieswerk')
+  await page.getByLabel('Prijs regel 1').fill('1000,00')
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+
+  await enableAdvancedMode(page)
+  await page.goto('/bank/match')
+  await hydrated(page)
+
+  const suggestion = page.getByText(/staat in de omschrijving en het bedrag klopt precies/)
+  for (let step = 0; step < 4 && !(await suggestion.isVisible()); step += 1) {
+    await page.keyboard.press('ArrowDown')
+    await suggestion.waitFor({ state: 'visible', timeout: 2_000 }).catch(() => undefined)
+  }
+  await expect(suggestion).toBeVisible()
+  await expect(page.getByText(/%/).first()).toBeVisible()
 })

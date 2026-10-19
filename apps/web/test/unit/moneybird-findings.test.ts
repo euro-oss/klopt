@@ -66,16 +66,18 @@ describe('moneybird finding fix types', () => {
     expect(moneybirdFixTypeFor(problem('unbalanced_document', 'sales_invoice:1'))).toBe('guided')
   })
 
-  it('sends period_locked to Boekjaren (named year / reopen, #61 slice 6)', () => {
-    const onOpenPeriodSettings = vi.fn()
+  it('opens period_locked with Niet overzetten primary and Boekjaren secondary', () => {
     const onExcludeDocument = vi.fn()
+    const onReviewPeriodLocked = vi.fn()
+    const onOpenPeriodSettings = vi.fn()
     const actions = {
       onOpenPeriodSettings,
       onExcludeDocument,
+      onReviewPeriodLocked,
       moneybirdHrefFor: () => null,
       labels: {
         exclude: 'Niet overzetten',
-        reopenYear: 'Boekjaar heropenen',
+        reopenYear: 'Naar Boekjaren',
         stepDoNotTransfer: 'Niet overzetten',
         openMoneybird: 'Open in Moneybird',
         mapAccount: '',
@@ -110,10 +112,12 @@ describe('moneybird finding fix types', () => {
     )
     expect(card.fix.type).toBe('guided')
     if (card.fix.type !== 'guided') return
-    expect(card.fix.label).toBe('Boekjaar heropenen')
+    expect(card.fix.label).toBe('Niet overzetten')
+    expect(card.fix.steps).toEqual(['Niet overzetten', 'Naar Boekjaren'])
     card.fix.onOpen()
-    expect(onOpenPeriodSettings).toHaveBeenCalledOnce()
+    expect(onReviewPeriodLocked).toHaveBeenCalledOnce()
     expect(onExcludeDocument).not.toHaveBeenCalled()
+    expect(onOpenPeriodSettings).not.toHaveBeenCalled()
   })
 })
 
