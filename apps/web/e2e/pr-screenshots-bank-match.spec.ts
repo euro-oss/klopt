@@ -158,7 +158,10 @@ async function selectPaymentRow(page: Page, openPhonePanel = true): Promise<void
     hasText: 'Grote Klant',
   })
   await payment.click()
-  if (openPhonePanel) await ensurePanelVisible(page)
+  // Voorstel column fills once suggestions load (visible even with the Sheet closed).
+  await expect(payment.getByText('2026-0001', { exact: true })).toBeVisible({ timeout: 10_000 })
+  if (!openPhonePanel) return
+  await ensurePanelVisible(page)
   const suggestion = page
     .getByText(/staat in de omschrijving en het bedrag klopt precies/)
     .locator('visible=true')
