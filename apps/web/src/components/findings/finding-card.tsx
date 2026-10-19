@@ -17,6 +17,7 @@ import {
 } from 'react'
 import { Link } from '@tanstack/react-router'
 import { cn } from 'cn'
+import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemHeader } from '~/components/ui/item'
 import { Keycap, ShortcutFooter } from '~/components/ui/keycap'
@@ -100,9 +101,14 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
   }, [showPreview])
 
   const openFix = (): void => {
-    setConfirming(false)
     onFixOpenChange?.(true)
-    if (fix.type === 'guided') fix.onOpen()
+    if (fix.type === 'guided') {
+      setConfirming(false)
+      fix.onOpen()
+      return
+    }
+    // oneClick with preview: first activation shows the preview (contract / #57).
+    setConfirming(fix.type === 'oneClick' && fix.preview !== undefined)
   }
 
   const closeFix = (): void => {
@@ -141,11 +147,12 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
       aria-expanded={fixOpen}
       aria-controls={fixOpen ? panelId : undefined}
       className={cn(
-        // Design: focus = 2px border (Phase 2 may tint yellow in dark).
-        'cursor-default border-2 outline-none focus-visible:border-foreground',
+        // Prototype: 1px card + 4px severity bar; focus = 2px ring outline.
+        'cursor-default border bg-card p-4 outline-none transition-colors md:p-5',
+        'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         classes.border,
         classes.bar,
-        selected && 'border-foreground',
+        selected && 'outline-solid outline-2 outline-offset-2 outline-ring',
         className,
       )}
       onFocus={() => {
@@ -178,20 +185,21 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
       }}
     >
       <ItemContent className="min-w-0 gap-2">
-        <ItemHeader>
-          <span className={cn('text-xs font-semibold tracking-widest uppercase', classes.title)}>
+        <ItemHeader className="mb-2 flex-wrap gap-2">
+          <Badge variant={severity === 'blocking' ? 'destructive' : 'outline'}>
             {severity === 'blocking' ? t('findingCard.blocking') : t('findingCard.warning')}
-          </span>
-          <code className="text-muted-foreground text-[0.625rem] tracking-normal normal-case tabular">
+          </Badge>
+          <span className="text-muted-foreground text-xs">{fixTypeLabel(t, fix)}</span>
+          <code className="text-muted-foreground ml-auto hidden font-mono text-[11px] tracking-normal normal-case sm:block">
             {code}
           </code>
         </ItemHeader>
 
-        <ItemDescription className={cn('line-clamp-none text-sm', classes.body)}>
+        <ItemDescription className={cn('line-clamp-none text-[15px] leading-snug font-medium', classes.body)}>
           {explanation}
         </ItemDescription>
 
-        <p className="text-muted-foreground text-xs leading-relaxed">
+        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
           <span className="font-medium text-foreground">{t('findingCard.whyItMatters')}: </span>
           {why}
         </p>
@@ -206,7 +214,10 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
           <div
             id={panelId}
             data-slot="finding-fix"
-            className="border-border mt-2 w-full border-t pt-3"
+            className={cn(
+              'border-border mt-4 w-full border-t pt-3',
+              showPreview && 'animate-in-fade border bg-muted p-4',
+            )}
           >
             <FixPanel
               fix={fix}
@@ -222,24 +233,25 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
         )}
 
         {!fixOpen && (
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
             <Button
               type="button"
-              variant={fix.type === 'oneClick' ? 'default' : 'outline'}
-              size="xs"
+              variant={fix.type === 'oneClick' ? 'outline' : 'default'}
+              size="default"
               onClick={openFix}
-              className="gap-2"
+              className="min-h-11 gap-2 md:min-h-9"
             >
               {fixActionLabel(t, fix)}
-              <BindingKeycaps id="finding.openFix" />
+              {selected && <BindingKeycaps id="finding.openFix" />}
             </Button>
             {fix.type === 'oneClick' && fix.preview === undefined && (
               <span className="text-muted-foreground text-xs">{t('findingCard.oneClickSafe')}</span>
             )}
+            {fix.type === 'oneClick' && fix.preview !== undefined && (
+              <span className="text-muted-foreground text-xs">{t('findingCard.fixHint.preview')}</span>
+            )}
             {fix.type === 'guided' && fix.steps !== undefined && fix.steps.length > 0 && (
-              <span className="text-muted-foreground text-xs">
-                {t('findingCard.guidedSteps', { count: String(fix.steps.length) })}
-              </span>
+              <span className="text-muted-foreground text-xs">{fix.steps.join(' → ')}</span>
             )}
           </div>
         )}
@@ -266,7 +278,21 @@ function fixActionLabel(
 ): string {
   if (fix.type === 'oneClick') return fix.label
   if (fix.type === 'guided') return fix.label
-  return t('findingCard.openExplain')
+  return fix.linkLabel ?? t('findingCard.openExplain')
+}
+
+function fixTypeLabel(
+  t: (key: MessageKey, values?: Record<string, string>) => string,
+  fix: FindingFix,
+): string {
+  if (fix.type === 'oneClick') return t('findingCard.fixType.oneClick')
+  if (fix.type === 'guided') {
+    if (fix.steps !== undefined && fix.steps.length > 0) {
+      return t('findingCard.guidedSteps', { count: String(fix.steps.length) })
+    }
+    return t('findingCard.fixType.guided')
+  }
+  return t('findingCard.fixType.explainOnly')
 }
 
 function FixPanel({
@@ -336,31 +362,42 @@ function FixPanel({
   if (confirming && fix.preview !== undefined) {
     return (
       <div
-        className="flex flex-col items-start gap-3"
+        className="flex w-full flex-col items-start gap-3"
         role="group"
         aria-label={t('findingCard.preview')}
       >
-        <p className="text-sm font-medium">{t('findingCard.preview')}</p>
-        <p className="text-sm">{fix.preview.summary}</p>
+        <p className="text-sm font-medium">{fix.preview.summary || t('findingCard.preview')}</p>
         {fix.preview.lines !== undefined && fix.preview.lines.length > 0 && (
-          <dl className="w-full text-sm">
+          <dl className="mt-1 w-full space-y-1 text-sm">
             {fix.preview.lines.map((line) => (
-              <div
-                key={line.label}
-                className="flex justify-between gap-4 border-border border-b py-1"
-              >
+              <div key={line.label} className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">{line.label}</dt>
-                <dd className="tabular text-right">{line.value}</dd>
+                <dd className="tabular-nums">{line.value}</dd>
               </div>
             ))}
           </dl>
         )}
-        <div className="flex flex-wrap gap-2">
-          <Button ref={confirmRef} type="button" size="xs" onClick={onActivateOneClick}>
+        <p className="text-muted-foreground text-xs">{t('findingCard.fixHint.preview')}</p>
+        <div className="mt-1 flex flex-wrap gap-2">
+          <Button
+            ref={confirmRef}
+            type="button"
+            size="default"
+            className="min-h-11 md:min-h-9"
+            onClick={onActivateOneClick}
+          >
             {t('findingCard.confirmFix')}
+            <BindingKeycaps id="finding.openFix" />
           </Button>
-          <Button type="button" variant="ghost" size="xs" onClick={onClose}>
-            {t('findingCard.close')}
+          <Button
+            type="button"
+            variant="ghost"
+            size="default"
+            className="min-h-11 md:min-h-9"
+            onClick={onClose}
+          >
+            {t('common.cancel')}
+            <BindingKeycaps id="finding.closeFix" />
           </Button>
         </div>
       </div>

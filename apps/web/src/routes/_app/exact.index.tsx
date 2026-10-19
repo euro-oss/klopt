@@ -1,12 +1,12 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
+import { ImportFindingsScreen } from '~/components/findings/import-findings-screen'
 import {
-  FindingsList,
-  FindingHonestyState,
   asExplainOnlyFinding,
   honestyFromReconciliation,
 } from '~/components/findings/finding-card'
+import { honestySourcesFromExact } from '~/lib/import-findings'
 import { formatDate } from '~/lib/format'
 import {
   balanceSheetAccounts,
@@ -835,37 +835,49 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
         </tbody>
       </table>
 
-      {/* Unread ≠ empty ≠ reconciled (#41). */}
-      {honesty !== null && (
-        <div className="mb-6 max-w-md">
-          <FindingHonestyState honesty={honesty} />
-        </div>
-      )}
-
-      {problems.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-destructive mb-2 text-sm font-semibold">
-            {t('exact.blocking', { count: String(problems.length) })}
-          </h3>
-          <FindingsList
-            aria-label={t('exact.blocking', { count: String(problems.length) })}
-            findings={problems.map((problem) =>
-              asExplainOnlyFinding(
-                {
-                  code: problem.code,
-                  path: problem.path,
-                  // Exact problems still ship English `message` only (#46 will
-                  // add messageKey). Placeholder key falls through to message.
-                  messageKey: `exact.${problem.code}`,
-                  message: problem.message,
-                  detail: {},
-                },
-                'blocking',
-              ),
-            )}
-          />
-        </div>
-      )}
+      <ImportFindingsScreen
+        sourceLabel={t('exact.title')}
+        subtitle={t('exact.step3Intro')}
+        connected
+        hasPreview
+        findings={[
+          ...problems.map((problem) =>
+            asExplainOnlyFinding(
+              {
+                code: problem.code,
+                path: problem.path,
+                // Exact problems still ship English `message` only (#46 will
+                // add messageKey). Placeholder key falls through to message.
+                messageKey: `exact.${problem.code}`,
+                message: problem.message,
+                detail: {},
+              },
+              'blocking',
+            ),
+          ),
+          ...warnings.map((warning) =>
+            asExplainOnlyFinding(
+              {
+                code: warning.code,
+                path: warning.path,
+                messageKey: `exact.${warning.code}`,
+                message: warning.message,
+                detail: {},
+              },
+              'warning',
+            ),
+          ),
+        ]}
+        sources={honestySourcesFromExact({
+          honesty,
+          label: t('exact.openItemsReconciliation'),
+          count: t('exact.outstandingHint', {
+            receivables: String(openItems.receivable.count),
+            payables: String(openItems.payable.count),
+          }),
+        })}
+        emptySummary={t('exact.nothingToReport')}
+      />
 
       {/*
         What the read actually cost. Shown rather than logged because "how many
@@ -911,33 +923,6 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
             </tbody>
           </table>
         </details>
-      )}
-
-      {warnings.length > 0 && (
-        <div className="mb-6">
-          <h3 className="mb-2 text-sm font-semibold">
-            {t('exact.warnings', { count: String(warnings.length) })}
-          </h3>
-          <FindingsList
-            aria-label={t('exact.warnings', { count: String(warnings.length) })}
-            findings={warnings.map((warning) =>
-              asExplainOnlyFinding(
-                {
-                  code: warning.code,
-                  path: warning.path,
-                  messageKey: `exact.${warning.code}`,
-                  message: warning.message,
-                  detail: {},
-                },
-                'warning',
-              ),
-            )}
-          />
-        </div>
-      )}
-
-      {problems.length === 0 && warnings.length === 0 && (
-        <p className="text-muted-foreground text-sm">{t('exact.nothingToReport')}</p>
       )}
     </div>
   )

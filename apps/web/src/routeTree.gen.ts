@@ -28,6 +28,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSnapshotsRouteImport } from './routes/_app/snapshots'
 import { Route as AppWebhooksRouteImport } from './routes/_app/webhooks'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
+import { Route as LabImportFindingsRouteImport } from './routes/lab.import-findings'
 import { Route as LabPrimitivesRouteImport } from './routes/lab.primitives'
 import { Route as OauthAuthorizeRouteImport } from './routes/oauth/authorize'
 import { Route as OauthRegisterRouteImport } from './routes/oauth/register'
@@ -261,6 +262,11 @@ const AppWebhooksRoute = AppWebhooksRouteImport.update({
 const ApiMcpRoute = ApiMcpRouteImport.update({
   id: '/api/mcp',
   path: '/api/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabImportFindingsRoute = LabImportFindingsRouteImport.update({
+  id: '/lab/import-findings',
+  path: '/lab/import-findings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LabPrimitivesRoute = LabPrimitivesRouteImport.update({
@@ -1020,6 +1026,7 @@ export interface FileRoutesByFullPath {
   '/snapshots': typeof AppSnapshotsRoute
   '/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/lab/import-findings': typeof LabImportFindingsRoute
   '/lab/primitives': typeof LabPrimitivesRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
@@ -1177,6 +1184,7 @@ export interface FileRoutesByTo {
   '/snapshots': typeof AppSnapshotsRoute
   '/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/lab/import-findings': typeof LabImportFindingsRoute
   '/lab/primitives': typeof LabPrimitivesRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
@@ -1337,6 +1345,7 @@ export interface FileRoutesById {
   '/_app/snapshots': typeof AppSnapshotsRoute
   '/_app/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/lab/import-findings': typeof LabImportFindingsRoute
   '/lab/primitives': typeof LabPrimitivesRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
@@ -1498,6 +1507,7 @@ export interface FileRouteTypes {
     | '/snapshots'
     | '/webhooks'
     | '/api/mcp'
+    | '/lab/import-findings'
     | '/lab/primitives'
     | '/oauth/authorize'
     | '/oauth/register'
@@ -1655,6 +1665,7 @@ export interface FileRouteTypes {
     | '/snapshots'
     | '/webhooks'
     | '/api/mcp'
+    | '/lab/import-findings'
     | '/lab/primitives'
     | '/oauth/authorize'
     | '/oauth/register'
@@ -1814,6 +1825,7 @@ export interface FileRouteTypes {
     | '/_app/snapshots'
     | '/_app/webhooks'
     | '/api/mcp'
+    | '/lab/import-findings'
     | '/lab/primitives'
     | '/oauth/authorize'
     | '/oauth/register'
@@ -1963,6 +1975,7 @@ export interface RootRouteChildren {
   DotwellKnownOauthAuthorizationServerRoute: typeof DotwellKnownOauthAuthorizationServerRoute
   DotwellKnownOauthProtectedResourceRoute: typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   ApiMcpRoute: typeof ApiMcpRoute
+  LabImportFindingsRoute: typeof LabImportFindingsRoute
   LabPrimitivesRoute: typeof LabPrimitivesRoute
   OauthAuthorizeRoute: typeof OauthAuthorizeRoute
   OauthRegisterRoute: typeof OauthRegisterRoute
@@ -2163,6 +2176,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mcp'
       fullPath: '/api/mcp'
       preLoaderRoute: typeof ApiMcpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab/import-findings': {
+      id: '/lab/import-findings'
+      path: '/lab/import-findings'
+      fullPath: '/lab/import-findings'
+      preLoaderRoute: typeof LabImportFindingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lab/primitives': {
@@ -3634,6 +3654,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownOauthProtectedResourceRoute:
     DotwellKnownOauthProtectedResourceRouteWithChildren,
   ApiMcpRoute: ApiMcpRoute,
+  LabImportFindingsRoute: LabImportFindingsRoute,
   LabPrimitivesRoute: LabPrimitivesRoute,
   OauthAuthorizeRoute: OauthAuthorizeRoute,
   OauthRegisterRoute: OauthRegisterRoute,
