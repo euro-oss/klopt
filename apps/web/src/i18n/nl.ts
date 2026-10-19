@@ -1309,7 +1309,7 @@ export const nl = {
   'finding.moneybird.incompatible_tax_rate':
     'Btw-tarief {name} ({percentage}) past niet bij {mappedCode}: richting of percentage komt niet overeen met het schema.',
   'finding.moneybird.incompatible_tax_rate_both_sides':
-    'Richting onbekend: deze btw-code staat op verkoop- én inkoopfacturen',
+    'Richting onbekend: dit btw-tarief staat op verkoop- én inkoopfacturen.',
   'finding.moneybird.account_number_collision':
     'Moneybird gaf grootboeknummer {number} twee keer terug ({name}).',
   'finding.moneybird.contact_number_collision':
