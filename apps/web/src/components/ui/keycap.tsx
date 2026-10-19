@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BINDINGS_BY_ID, bindingChips, type Binding } from '~/lib/keyboard'
 import { useHydrated } from '~/lib/hydration'
 import { useT } from '~/i18n/provider'
+import type { MessageKey } from '~/i18n/nl'
 import { cn } from '~/lib/utils'
 
 /**
@@ -70,9 +71,12 @@ function bindingsOf(ids: readonly string[]): readonly Binding[] {
 export function ShortcutFooter({
   ids,
   className,
+  labelOverrides,
 }: {
   readonly ids: readonly string[]
   readonly className?: string
+  /** Per-binding label override (e.g. explain-only: ↵ is Uitleg, not Oplossen). */
+  readonly labelOverrides?: Readonly<Partial<Record<string, MessageKey>>> | undefined
 }) {
   const { t } = useT()
   const hydrated = useHydrated()
@@ -91,7 +95,7 @@ export function ShortcutFooter({
           {bindingChips(binding).map((chip, index) => (
             <Keycap key={`${binding.id}-${String(index)}`}>{chip}</Keycap>
           ))}
-          <span>{t(binding.label)}</span>
+          <span>{t(labelOverrides?.[binding.id] ?? binding.label)}</span>
         </span>
       ))}
     </div>

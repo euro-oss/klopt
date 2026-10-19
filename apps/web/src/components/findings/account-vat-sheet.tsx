@@ -452,7 +452,9 @@ function AccountVatSheetBody({
                       type="button"
                       role="radio"
                       aria-checked={checked}
-                      tabIndex={checked ? 0 : -1}
+                      // Roving tabindex: when nothing is selected, the first radio
+                      // stays in the Tab order so keyboard users can reach the group.
+                      tabIndex={checked || (vat === null && index === 0) ? 0 : -1}
                       onClick={() => setVat(option.code)}
                       className={cn(
                         'min-h-11 px-3 text-left text-sm',

@@ -1462,9 +1462,9 @@ export const nl = {
   'importFindings.accountVat.vatHint': 'In Moneybird stond {rate}% btw.',
   'importFindings.accountVat.vatHintUnknown': 'In Moneybird stond geen tarief.',
   'importFindings.accountVat.vatUnsupported':
-    'Dit Moneybird-tarief ({rate}%) kunnen we niet vanzelf koppelen. Kies het btw-tarief zelf in de tabel hieronder.',
+    'Dit Moneybird-tarief ({rate}%) kunnen we niet vanzelf koppelen. Kies het btw-tarief zelf in de mappingtabel.',
   'importFindings.accountVat.vatUnknown':
-    'We weten niet welk tarief dit is. Kies het btw-tarief zelf in de tabel hieronder.',
+    'We weten niet welk tarief dit is. Kies het btw-tarief zelf in de mappingtabel.',
   'importFindings.accountVat.whatHappens': 'Wat er gebeurt',
   'importFindings.accountVat.whatHappensBody':
     'De boekingen uit Moneybird komen op {account}, met {vat}. Er wordt nu nog niets geboekt; dat gebeurt pas als je importeert.',
@@ -1780,6 +1780,7 @@ export const nl = {
   'keys.findingNext': 'Volgende bevinding',
   'keys.findingPrevious': 'Vorige bevinding',
   'keys.findingOpenFix': 'Oplossen',
+  'keys.findingOpenExplain': 'Uitleg',
   'keys.findingCloseFix': 'Sluiten',
   'keys.palette': 'Commandopalet',
   'keys.help': 'Sneltoetsen',

@@ -167,9 +167,9 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.vatHint': 'Moneybird had {rate}% VAT.',
   'importFindings.accountVat.vatHintUnknown': 'Moneybird had no rate.',
   'importFindings.accountVat.vatUnsupported':
-    'We cannot match this Moneybird rate ({rate}%) automatically. Choose the VAT rate yourself in the table below.',
+    'We cannot match this Moneybird rate ({rate}%) automatically. Choose the VAT rate yourself in the mapping table.',
   'importFindings.accountVat.vatUnknown':
-    'We do not know which rate this is. Choose the VAT rate yourself in the table below.',
+    'We do not know which rate this is. Choose the VAT rate yourself in the mapping table.',
   'importFindings.accountVat.whatHappens': 'What happens',
   'importFindings.accountVat.whatHappensBody':
     'The Moneybird entries land on {account}, with {vat}. Nothing is posted yet; that happens when you import.',
@@ -1730,6 +1730,7 @@ export const en: Record<MessageKey, string> = {
   'keys.findingNext': 'Next finding',
   'keys.findingPrevious': 'Previous finding',
   'keys.findingOpenFix': 'Resolve',
+  'keys.findingOpenExplain': 'Explain',
   'keys.findingCloseFix': 'Close',
   'keys.palette': 'Command palette',
   'keys.help': 'Keyboard help',

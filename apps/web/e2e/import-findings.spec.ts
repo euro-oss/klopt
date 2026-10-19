@@ -118,19 +118,37 @@ test('btw sheet filters by direction and moves with arrow keys', async ({ page }
   await expect(zeroSheet).toBeVisible()
   await expect(zeroSheet.getByRole('radio')).toHaveCount(5)
   await expect(zeroSheet.getByRole('radio', { checked: true })).toHaveCount(0)
-  await zeroSheet.getByRole('radio').nth(0).focus()
+  // First radio is in the Tab order when nothing is pre-selected (roving tabindex).
+  await expect(zeroSheet.getByRole('radio').nth(0)).toHaveAttribute('tabindex', '0')
+  let focusedRadio = false
+  for (let press = 0; press < 24; press += 1) {
+    await page.keyboard.press('Tab')
+    if (
+      await zeroSheet
+        .getByRole('radio')
+        .nth(0)
+        .evaluate((el) => el === document.activeElement)
+    ) {
+      focusedRadio = true
+      break
+    }
+  }
+  expect(focusedRadio).toBe(true)
   await page.keyboard.press('ArrowDown') // none → first (VERL)
   await expect(zeroSheet.getByRole('radio').nth(0)).toHaveAttribute('aria-checked', 'true')
   await page.keyboard.press('ArrowDown') // → second (GEEN / Vrijgesteld)
   await expect(zeroSheet.getByRole('radio').nth(1)).toHaveAttribute('aria-checked', 'true')
   await expect(zeroSheet.getByRole('radio').nth(1)).toContainText(/Vrijgesteld|GEEN/)
+  await page.keyboard.press('Enter')
+  await expect(zeroSheet).toBeHidden()
+  await expect(page.getByText('0% → GEEN')).toBeVisible()
 })
 
 test('btw sheet shows map-by-hand for an unsupported rate', async ({ page }) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxBad')
   await expect(page.getByRole('dialog')).toBeVisible()
   const sheet = page.getByRole('dialog')
-  await expect(sheet.getByRole('status')).toContainText(/vanzelf koppelen|zelf in de tabel/i)
+  await expect(sheet.getByRole('status')).toContainText(/vanzelf koppelen|mappingtabel/i)
   await expect(sheet.getByRole('radio')).toHaveCount(0)
   // No duplicate hint under the status box when options are empty (#69).
   await expect(sheet.getByText(/In Moneybird stond/)).toHaveCount(0)
@@ -140,7 +158,9 @@ test('btw sheet shows vatUnknown once for an empty rate', async ({ page }) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxEmpty')
   const sheet = page.getByRole('dialog')
   await expect(sheet).toBeVisible()
-  await expect(sheet.getByRole('status')).toContainText(/We weten niet welk tarief dit is/)
+  await expect(sheet.getByRole('status')).toContainText(
+    /We weten niet welk tarief dit is.*mappingtabel/,
+  )
   await expect(sheet.getByRole('radio')).toHaveCount(0)
   // Status owns the copy; no second identical / short hint line.
   await expect(sheet.getByText(/We weten niet welk tarief dit is/)).toHaveCount(1)

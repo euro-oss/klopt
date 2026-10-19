@@ -625,6 +625,11 @@ export function FindingsList({
       {showShortcuts && (
         <ShortcutFooter
           ids={['finding.next', 'finding.previous', 'finding.openFix', 'finding.closeFix']}
+          labelOverrides={
+            findings[safeCursor]?.fix.type === 'explainOnly'
+              ? { 'finding.openFix': 'keys.findingOpenExplain' }
+              : undefined
+          }
         />
       )}
     </div>
