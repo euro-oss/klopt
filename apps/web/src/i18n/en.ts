@@ -680,8 +680,8 @@ export const en: Record<MessageKey, string> = {
 
   // Shared period-label helper (#73 / #74) — keep NL keys in parity.
   'periodLabel.fiscalYear': 'fiscal year {year}',
-  'periodLabel.sequenceOfYear': 'Period {period} of fiscal year {year}',
-  'periodLabel.sequence': 'Period {period}',
+  'periodLabel.sequenceOfYear': 'period {period} of fiscal year {year}',
+  'periodLabel.sequence': 'period {period}',
   'periodLabel.thisPeriod': 'this period',
 
   // Contacts — customers and suppliers.

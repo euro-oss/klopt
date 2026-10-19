@@ -99,14 +99,15 @@ describe('periodLabel', () => {
   })
 
   it('falls back to a neutral sequence label when years are empty', () => {
+    // Mid-sentence: lowercase "periode". Sentence starts use capitalizePeriodLabel.
     expect(periodLabel([], { fiscalYear: '2026', period: '9' }, 'nl-NL')).toBe(
-      'Periode 9 van boekjaar 2026',
+      'periode 9 van boekjaar 2026',
     )
     expect(periodLabel(undefined, { fiscalYear: '2026', period: '9' }, 'nl-NL')).toBe(
-      'Periode 9 van boekjaar 2026',
+      'periode 9 van boekjaar 2026',
     )
     expect(periodLabel(null, { year: '2026', period: '9' }, 'nl-NL')).toBe(
-      'Periode 9 van boekjaar 2026',
+      'periode 9 van boekjaar 2026',
     )
   })
 
@@ -167,10 +168,10 @@ describe('periodLabel', () => {
       'fiscal year 2025',
     )
     expect(periodLabel([], { fiscalYear: '2026', period: '9' }, 'en-GB')).toBe(
-      'Period 9 of fiscal year 2026',
+      'period 9 of fiscal year 2026',
     )
     expect(periodLabel([], { fiscalYear: '2026' }, 'en-GB')).toBe('fiscal year 2026')
-    expect(periodLabel([], { period: '9' }, 'en-GB')).toBe('Period 9')
+    expect(periodLabel([], { period: '9' }, 'en-GB')).toBe('period 9')
     expect(periodLabel(years, undefined, 'en-GB')).toBe('this period')
     expect(periodLabel(years, { fiscalYear: '2026', period: '10' }, 'en-GB')).toBe('October 2026')
   })
@@ -251,6 +252,7 @@ describe('sentencePeriodLabel', () => {
     )
     expect(sentencePeriodLabel(years, undefined)).toBe('Deze periode')
     expect(capitalizePeriodLabel('oktober 2026')).toBe('Oktober 2026')
+    expect(capitalizePeriodLabel('periode 9 van boekjaar 2026')).toBe('Periode 9 van boekjaar 2026')
   })
 
   it('capitalises English fiscal-year and this-period labels', () => {

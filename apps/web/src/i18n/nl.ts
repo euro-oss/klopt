@@ -619,8 +619,8 @@ export const nl = {
 
   // Shared period-label helper (#73 / #74) — keep EN keys in parity.
   'periodLabel.fiscalYear': 'boekjaar {year}',
-  'periodLabel.sequenceOfYear': 'Periode {period} van boekjaar {year}',
-  'periodLabel.sequence': 'Periode {period}',
+  'periodLabel.sequenceOfYear': 'periode {period} van boekjaar {year}',
+  'periodLabel.sequence': 'periode {period}',
   'periodLabel.thisPeriod': 'deze periode',
 
   // Contacts — customers and suppliers.
