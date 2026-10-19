@@ -65,7 +65,15 @@ async function withBankQueue(page: Page, name: string): Promise<void> {
   await expect(page.getByText('4 transacties ingelezen.')).toBeVisible()
   await page.goto('/bank/match')
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
-  await hydrated(page)
+  // Prefer the queue table over the shared Dashboard-kbd wait: on a phone
+  // viewport the sidebar (and its keycaps) is hidden inside the Sheet.
+  await expect(page.locator('[data-slot="scroll-table"] tbody tr').first()).toBeVisible({
+    timeout: 15_000,
+  })
+  await hydrated(page).catch(async () => {
+    // Desktop-only fallback already satisfied by the table wait above.
+    await page.waitForTimeout(300)
+  })
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
@@ -91,6 +99,31 @@ function copyProto(name: string, dest: string): void {
   if (existsSync(src)) copyFileSync(src, join(OUT, dest))
 }
 
+async function drainQueue(page: Page): Promise<void> {
+  for (;;) {
+    if (
+      await page
+        .getByText('Alles is gekoppeld.')
+        .isVisible()
+        .catch(() => false)
+    ) {
+      return
+    }
+    const rows = page.locator('[data-slot="scroll-table"] tbody tr')
+    if ((await rows.count()) === 0) return
+
+    const skip = page.getByRole('button', { name: 'Overslaan' })
+    if (!(await skip.isVisible().catch(() => false))) {
+      // Phone sheet is closed below lg — open it so Overslaan is reachable.
+      await page.keyboard.press('Enter')
+      await expect(skip).toBeVisible({ timeout: 8_000 })
+    }
+    if (await skip.isDisabled().catch(() => true)) return
+    await skip.click()
+    await page.waitForTimeout(450)
+  }
+}
+
 test('capture bank match PNGs (1440/390 × light/dark + empty + prototype)', async ({ browser }) => {
   test.setTimeout(600_000)
 
@@ -105,21 +138,18 @@ test('capture bank match PNGs (1440/390 × light/dark + empty + prototype)', asy
       await setTheme(page, theme)
       await shoot(page, `queue-${theme}-${label}.png`)
 
-      // Empty: skip every line.
-      for (;;) {
-        const skip = page.getByRole('button', { name: 'Overslaan' })
-        if (!(await skip.isVisible().catch(() => false))) break
-        if (await skip.isDisabled().catch(() => true)) break
-        await skip.click()
-        await page.waitForTimeout(400)
-        if (
-          await page
-            .getByText('Alles is gekoppeld.')
-            .isVisible()
-            .catch(() => false)
-        )
-          break
+      if (label === 'mobile-390') {
+        await page.keyboard.press('Enter')
+        await expect(page.getByRole('button', { name: 'Overslaan' })).toBeVisible({
+          timeout: 8_000,
+        })
+        await shoot(page, `panel-${theme}-${label}.png`)
+        await page.keyboard.press('Escape')
+        await page.waitForTimeout(300)
       }
+
+      await drainQueue(page)
+      await expect(page.getByText('Alles is gekoppeld.')).toBeVisible({ timeout: 15_000 })
       await shoot(page, `empty-${theme}-${label}.png`)
       await context.close()
     }

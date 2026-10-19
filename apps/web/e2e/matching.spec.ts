@@ -149,10 +149,11 @@ test('the keys the match screen prints are the keys it answers to', async ({ pag
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
   await hydrated(page)
 
-  // Yellow shortcut strip is desktop-only (hidden below md).
+  // Yellow shortcut strip is desktop-only (hidden below md). Prefer a div:
+  // the nav also uses border-accent on the active link.
   await page.setViewportSize({ width: 1440, height: 900 })
   const strip = page
-    .locator('.border-accent')
+    .locator('div.border-accent')
     .filter({ has: page.locator('kbd') })
     .first()
   await expect(strip).toBeVisible()

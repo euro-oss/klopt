@@ -108,6 +108,18 @@ function periodTitle(
   return t('match.period.closedMonth')
 }
 
+/** Prefer counterparty; fall back to description so the panel H2 matches the table. */
+function lineTitle(
+  line: Pick<Line, 'counterpartyName' | 'description'>,
+  t: (key: MessageKey, values?: Record<string, string>) => string,
+): string {
+  if (line.counterpartyName !== null && line.counterpartyName !== '') {
+    return line.counterpartyName
+  }
+  if (line.description !== '') return line.description
+  return t('match.noCounterpartyTitle')
+}
+
 function MatchQueue() {
   const { transactions, accounts, bankAccounts, years, role } = Route.useLoaderData()
   const router = useRouter()
@@ -259,9 +271,7 @@ function MatchQueue() {
       return
     }
 
-    const counterparty =
-      line.counterpartyName ??
-      (line.description === '' ? t('match.noCounterpartyTitle') : line.description)
+    const counterparty = lineTitle(line, t)
     const resultLabel = suggestion === null ? (accountNumber ?? '') : suggestionLabel(suggestion)
 
     keys.current.delete(line.id)
@@ -574,13 +584,14 @@ function MatchQueue() {
                             sel && 'bg-muted',
                           )}
                         >
-                          {item.counterpartyName ??
-                            (item.description === ''
-                              ? t('match.noCounterpartyTitle')
-                              : item.description)}
-                          <span className="text-muted-foreground block max-w-48 truncate text-xs font-normal">
-                            {item.description}
-                          </span>
+                          {lineTitle(item, t)}
+                          {item.counterpartyName !== null &&
+                            item.counterpartyName !== '' &&
+                            item.description !== '' && (
+                              <span className="text-muted-foreground block max-w-48 truncate text-xs font-normal">
+                                {item.description}
+                              </span>
+                            )}
                         </td>
                         <td className="text-muted-foreground px-3 py-3 whitespace-nowrap tabular">
                           {formatBankDay(item.bookingDate, tag)}
@@ -781,11 +792,13 @@ function MatchPanel({
               {line.counterpartyIban === null ? '' : ` · ${line.counterpartyIban}`}
             </p>
             <h2 id={titleId} className="mt-0.5 text-base font-semibold">
-              {line.counterpartyName ?? t('match.noCounterpartyTitle')}
+              {lineTitle(line, t)}
             </h2>
-            {line.description !== '' && (
-              <p className="text-muted-foreground text-sm">{line.description}</p>
-            )}
+            {line.counterpartyName !== null &&
+              line.counterpartyName !== '' &&
+              line.description !== '' && (
+                <p className="text-muted-foreground text-sm">{line.description}</p>
+              )}
           </div>
           <div className="text-right">
             <Badge variant="outline">

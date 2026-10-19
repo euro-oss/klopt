@@ -98,7 +98,7 @@ describe('moneybird finding fix types', () => {
         stepOpenMoneybird: '',
         stepReread: '',
       },
-    } as MoneybirdFindingActions
+    } as unknown as MoneybirdFindingActions
 
     const card = moneybirdFindingCard(
       problem('period_locked', 'journal:1', {
