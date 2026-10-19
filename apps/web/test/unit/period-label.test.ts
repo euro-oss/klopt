@@ -63,9 +63,7 @@ const years: readonly PeriodLabelYear[] = [
 
 describe('periodLabel', () => {
   it('names a single closed month with its year', () => {
-    expect(
-      periodLabel(years, { fiscalYear: '2026', period: '10' }, 'nl-NL'),
-    ).toBe('oktober 2026')
+    expect(periodLabel(years, { fiscalYear: '2026', period: '10' }, 'nl-NL')).toBe('oktober 2026')
   })
 
   it('names a fully closed quarter as Qn year', () => {

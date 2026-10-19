@@ -796,7 +796,7 @@ export const nl = {
   'match.period.hardClosed': '{period} is definitief afgesloten. Boek dit in een open periode.',
   'match.period.softClosedBookkeeper':
     '{period} is voorlopig afgesloten. Alleen de eigenaar of accountant kan hierin boeken.',
-  'match.period.softClosedNotice': '{period} is voorlopig afgesloten',
+  'match.period.softClosedNotice': '{period} is voorlopig afgesloten. Je kunt hier nog in boeken.',
   'match.period.fallsIn': '{date} valt in {period}.',
   'match.period.toFiscalYears': 'Naar Boekjaren',
   'match.panelClose': 'Sluiten',
@@ -1246,7 +1246,7 @@ export const nl = {
   'moneybird.fix.acknowledgeEmpty': 'Ik weet dat {year} leeg is',
   'moneybird.fix.reread': 'Opnieuw lezen',
   'moneybird.fix.exclude': 'Niet overzetten',
-  'moneybird.fix.reopenYear': 'Naar Boekjaren',
+  'moneybird.fix.toFiscalYears': 'Naar Boekjaren',
   'moneybird.fix.deferAttachment': 'Later toevoegen',
   'moneybird.fix.openMoneybird': 'Open in Moneybird',
   'moneybird.fix.settings': 'Naar instellingen',
@@ -1395,7 +1395,7 @@ export const nl = {
   'finding.why.moneybird.trial_balance_account_missing':
     'Een saldo zonder rekening in het schema heeft geen plek om naartoe te gaan.',
   'finding.why.moneybird.period_locked':
-    'Boekjaar {year} is afgesloten. Zet dit document op ‘Niet overgezet’, of bekijk Boekjaren.',
+    'Boekjaar {year} is afgesloten. Zet dit document op ‘Niet overzetten’, of bekijk Boekjaren.',
   'finding.why.moneybird.unbalanced_document':
     'Een document dat niet sluit mag niet stilzwijgend worden geboekt.',
   'finding.why.moneybird.attachment_without_url':
@@ -1998,9 +1998,9 @@ export const nl = {
   'violation.period_already_filed':
     'Deze periode is aangegeven en de cijfers zijn niet veranderd. Er valt niets te corrigeren, dus er is geen suppletie.',
   'violation.period_hard_closed':
-    'Periode {fiscalYear}-{period} is afgesloten. Boek in een open periode, of open hem bewust opnieuw.',
+    'Periode {fiscalYear}-{period} is afgesloten. Boek in een open periode.',
   'violation.period_soft_closed':
-    'Periode {fiscalYear}-{period} is zacht afgesloten: alleen een accountant mag er nog in boeken.',
+    'Periode {fiscalYear}-{period} is zacht afgesloten. Alleen de eigenaar of accountant kan hierin boeken.',
   'violation.reversal_target_already_reversed':
     'Post {reversesEntryId} is al gestorneerd door {reversedBy}.',
   'violation.reversal_target_not_found': 'Geen post {reversesEntryId} om te storneren.',

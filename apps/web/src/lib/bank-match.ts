@@ -9,6 +9,9 @@
  */
 
 import { formatMinorUnits } from '@klopt/core/format'
+import { periodLabel } from './period-label.js'
+
+export { capitalizePeriodLabel, periodLabel, sentencePeriodLabel } from './period-label.js'
 
 /** A fiscal year as `GET /fiscal-years` returns it (with period ranges). */
 export interface FiscalYearWithPeriods {
@@ -29,6 +32,9 @@ export interface FiscalYearWithPeriods {
  *
  * Soft-closed periods stay bookable for roles with `ledger:post-closed`
  * (`isBookingBlocked`); hard-closed and year-closed always block.
+ *
+ * `sequence` is the neutral fallback when fiscal years were not loaded — never
+ * invent a calendar month from January 1st.
  */
 export interface PeriodLock {
   readonly fiscalYear: string
@@ -37,7 +43,7 @@ export interface PeriodLock {
   readonly startsOn: string
   readonly endsOn: string
   /** Which plain-Dutch / English period label to use. */
-  readonly kind: 'month' | 'quarter' | 'year'
+  readonly kind: 'month' | 'quarter' | 'year' | 'sequence'
 }
 
 /** Suggestion confidence as the prototype prints it — never a fake %. */
@@ -111,27 +117,77 @@ function parseIsoDate(iso: string): Date | null {
 }
 
 /**
- * Named period for copy: `Q3 2026`, `september 2026`, or translated
- * `boekjaar 2025` / `fiscal year 2025`.
+ * Named period for copy. Prefers the shared `periodLabel` helper (#73/#74)
+ * whenever fiscal years are supplied; otherwise uses the lock’s own dates.
  */
 export function formatPeriodLabel(
   lock: PeriodLock,
   locale: string,
   yearName: (year: string) => string,
+  years?: readonly FiscalYearWithPeriods[] | null,
 ): string {
-  if (lock.kind === 'year') return yearName(lock.fiscalYear)
+  if (years !== undefined) {
+    return periodLabel(
+      years,
+      {
+        fiscalYear: lock.fiscalYear,
+        period: lock.period > 0 ? String(lock.period) : '',
+      },
+      locale,
+    )
+  }
+  if (lock.kind === 'year') {
+    const year = lock.fiscalYear.trim()
+    return year === '' ? periodLabel(null, null, locale) : yearName(year)
+  }
+  if (lock.kind === 'sequence') {
+    return periodLabel(
+      null,
+      {
+        fiscalYear: lock.fiscalYear,
+        period: lock.period > 0 ? String(lock.period) : '',
+      },
+      locale,
+    )
+  }
   if (lock.kind === 'quarter') {
     const month = Number(lock.startsOn.slice(5, 7))
     const quarter = Number.isFinite(month) && month >= 1 ? Math.floor((month - 1) / 3) + 1 : 1
-    return `Q${String(quarter)} ${lock.fiscalYear}`
+    const year = lock.fiscalYear.trim()
+    return year === '' ? periodLabel(null, null, locale) : `Q${String(quarter)} ${year}`
   }
   const parsed = parseIsoDate(lock.startsOn)
-  if (parsed === null) return lock.fiscalYear
+  if (parsed === null) {
+    return periodLabel(
+      null,
+      {
+        fiscalYear: lock.fiscalYear,
+        period: lock.period > 0 ? String(lock.period) : '',
+      },
+      locale,
+    )
+  }
   return new Intl.DateTimeFormat(locale, {
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
   }).format(parsed)
+}
+
+/** How many unmatched lines to show before the remaining label caps at "500+". */
+export const MATCH_QUEUE_CAP = 500
+
+/**
+ * Remaining-queue copy: exact plural below and at the cap; "500+" only above it.
+ * Pair with a fetch of `cap + 1` so a full page of `cap` lines does not look capped.
+ */
+export function remainingLabel(
+  fetchedCount: number,
+  capped: string,
+  exact: (count: number) => string,
+  cap: number = MATCH_QUEUE_CAP,
+): string {
+  return fetchedCount > cap ? capped : exact(fetchedCount)
 }
 
 /**
@@ -218,24 +274,40 @@ export function isPeriodLockViolation(code: string): boolean {
 
 /**
  * Build a PeriodLock from a confirmMatch violation when the queue did not
- * already know the period was closed (race with a concurrent close). Uses
- * fiscal year / period from the detail — never a hard-coded "this year".
+ * already know the period was closed (race with a concurrent close).
+ *
+ * Labels go through `periodLabel` (shared with #74): never invent January,
+ * never blank. Missing detail still returns a lock so the UI can say
+ * "Deze periode…".
  */
 export function periodLockFromViolation(
   years: readonly FiscalYearWithPeriods[],
   code: string,
   detail: Readonly<Record<string, string>> | undefined,
-): PeriodLock | null {
-  if (detail === undefined) return null
-  const fiscalYear = detail['fiscalYear']
-  const periodRaw = detail['period']
-  if (fiscalYear === undefined || periodRaw === undefined) return null
-  const sequence = Number(periodRaw)
-  if (!Number.isFinite(sequence)) return null
+): PeriodLock {
+  // Resolve the shared label first so blank / "Q4 " / "-" cannot slip through
+  // a parallel formatting path in book() / lockCopy.
+  void periodLabel(years, detail)
+
+  const fiscalYear = (detail?.['fiscalYear'] ?? detail?.['year'] ?? '').trim()
+  const periodRaw = (detail?.['period'] ?? '').trim()
+  const sequence = periodRaw === '' ? 0 : Number(periodRaw)
+  const status: PeriodLock['status'] = code === 'period_soft_closed' ? 'soft_closed' : 'hard_closed'
+
+  if (fiscalYear === '' || periodRaw === '' || !Number.isFinite(sequence)) {
+    return {
+      fiscalYear,
+      period: Number.isFinite(sequence) ? sequence : 0,
+      status,
+      startsOn: '',
+      endsOn: '',
+      kind: 'sequence',
+    }
+  }
 
   const year = years.find((row) => row.code === fiscalYear)
   const period = year?.periods.find((row) => row.sequence === sequence)
-  const status: PeriodLock['status'] =
+  const resolvedStatus: PeriodLock['status'] =
     code === 'period_soft_closed'
       ? 'soft_closed'
       : year?.status === 'closed'
@@ -246,20 +318,21 @@ export function periodLockFromViolation(
     return {
       fiscalYear,
       period: sequence,
-      status,
+      status: resolvedStatus,
       startsOn: period.startsOn,
       endsOn: period.endsOn,
-      kind: status === 'year_closed' ? 'year' : lockKind(year, period),
+      kind: resolvedStatus === 'year_closed' ? 'year' : lockKind(year, period),
     }
   }
 
+  // Years empty / period unknown: sequence kind → periodLabel neutral copy.
   return {
     fiscalYear,
     period: sequence,
-    status,
-    startsOn: `${fiscalYear}-01-01`,
-    endsOn: `${fiscalYear}-12-31`,
-    kind: status === 'year_closed' ? 'year' : 'month',
+    status: resolvedStatus,
+    startsOn: year?.startsOn ?? '',
+    endsOn: year?.endsOn ?? '',
+    kind: resolvedStatus === 'year_closed' ? 'year' : 'sequence',
   }
 }
 

@@ -62,7 +62,7 @@ export const en: Record<MessageKey, string> = {
     'A balance with no account in the chart has nowhere to go.',
   // finding.moneybird.period_locked English comes from FINDING_MESSAGES (spread above).
   'finding.why.moneybird.period_locked':
-    'Fiscal year {year} is closed. Mark this document as not transferred, or look under Fiscal years.',
+    'Fiscal year {year} is closed. Mark this document as ‘Do not transfer’, or look under Fiscal years.',
   'finding.why.moneybird.unbalanced_document':
     'A document that does not balance must not be posted quietly.',
   'finding.why.moneybird.attachment_without_url':
@@ -860,7 +860,7 @@ export const en: Record<MessageKey, string> = {
   'match.period.hardClosed': '{period} is permanently closed. Post this in an open period.',
   'match.period.softClosedBookkeeper':
     '{period} is provisionally closed. Only the owner or accountant can post here.',
-  'match.period.softClosedNotice': '{period} is provisionally closed',
+  'match.period.softClosedNotice': '{period} is provisionally closed. You can still post here.',
   'match.period.fallsIn': '{date} falls in {period}.',
   'match.period.toFiscalYears': 'Go to Fiscal years',
   'match.panelClose': 'Close',
@@ -1306,7 +1306,7 @@ export const en: Record<MessageKey, string> = {
   'moneybird.fix.acknowledgeEmpty': 'I know {year} is empty',
   'moneybird.fix.reread': 'Read again',
   'moneybird.fix.exclude': 'Do not transfer',
-  'moneybird.fix.reopenYear': 'Go to Fiscal years',
+  'moneybird.fix.toFiscalYears': 'Go to Fiscal years',
   'moneybird.fix.deferAttachment': 'Add later',
   'moneybird.fix.openMoneybird': 'Open in Moneybird',
   'moneybird.fix.settings': 'Go to settings',

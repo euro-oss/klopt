@@ -545,7 +545,7 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   // Keycap inside the button makes focused() report more than "Boeken".
   await tabTo(page, /^BUTTON Boeken/)
   await page.keyboard.press('Enter')
-  await expect(page.getByText(/Gekoppeld:|Geboekt als boeking/)).toBeVisible()
+  await expect(page.getByText('Gekoppeld: Algemene kosten')).toBeVisible()
   await expect(queue).toHaveCount(3)
 
   // Het postvak: `g` then `e`, open the document, book it as a draft invoice.

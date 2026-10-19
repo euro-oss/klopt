@@ -66,10 +66,7 @@ function quarterLabel(
     const m = Number(row.startsOn.slice(5, 7))
     return quarterMonths.includes(m)
   })
-  if (
-    quarterPeriods.length !== 3 ||
-    !quarterPeriods.every((row) => isClosedStatus(row.status))
-  ) {
+  if (quarterPeriods.length !== 3 || !quarterPeriods.every((row) => isClosedStatus(row.status))) {
     return null
   }
   const code = year.code.trim()

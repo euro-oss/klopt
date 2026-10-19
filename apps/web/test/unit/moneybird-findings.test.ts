@@ -77,7 +77,7 @@ describe('moneybird finding fix types', () => {
       moneybirdHrefFor: () => null,
       labels: {
         exclude: 'Niet overzetten',
-        reopenYear: 'Naar Boekjaren',
+        toFiscalYears: 'Naar Boekjaren',
         stepDoNotTransfer: 'Niet overzetten',
         openMoneybird: 'Open in Moneybird',
         mapAccount: '',

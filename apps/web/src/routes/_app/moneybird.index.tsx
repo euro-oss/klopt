@@ -7,6 +7,7 @@ import {
   previewFxEntry,
 } from '@klopt/core/moneybird-fx'
 import { PageHeader, Stat } from '~/components/app-shell'
+import { Button } from '~/components/ui/button'
 import {
   FindingsList,
   FindingHonestyState,
@@ -445,7 +446,7 @@ function Moneybird() {
       acknowledgeEmpty: t('moneybird.fix.acknowledgeEmpty'),
       reread: t('moneybird.fix.reread'),
       exclude: t('moneybird.fix.exclude'),
-      reopenYear: t('moneybird.fix.reopenYear'),
+      toFiscalYears: t('moneybird.fix.toFiscalYears'),
       deferAttachment: t('moneybird.fix.deferAttachment'),
       openMoneybird: t('moneybird.fix.openMoneybird'),
       settings: t('moneybird.fix.settings'),
@@ -1286,26 +1287,15 @@ function PreviewReport({
             })}
           </p>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={onPeriodLockedExclude}
-              className="bg-primary text-primary-foreground rounded-none px-3 py-2 text-sm"
-            >
+            <Button type="button" onClick={onPeriodLockedExclude}>
               {t('moneybird.fix.exclude')}
-            </button>
-            <Link
-              to="/fiscal-years"
-              className="border-border inline-flex items-center rounded-none border px-3 py-2 text-sm"
-            >
-              {t('moneybird.fix.reopenYear')}
-            </Link>
-            <button
-              type="button"
-              onClick={onPeriodLockedDismiss}
-              className="border-border rounded-none border px-3 py-2 text-sm"
-            >
+            </Button>
+            <Button type="button" variant="outline" asChild>
+              <Link to="/fiscal-years">{t('moneybird.fix.toFiscalYears')}</Link>
+            </Button>
+            <Button type="button" variant="outline" onClick={onPeriodLockedDismiss}>
               {t('findingCard.close')}
-            </button>
+            </Button>
           </div>
         </div>
       )}

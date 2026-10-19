@@ -57,7 +57,7 @@ export interface MoneybirdFindingActions {
     readonly reread: string
     readonly exclude: string
     /** Secondary label: navigate to Boekjaren (no reopen). */
-    readonly reopenYear: string
+    readonly toFiscalYears: string
     readonly deferAttachment: string
     readonly openMoneybird: string
     readonly settings: string
@@ -182,7 +182,7 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'guided',
         label: labels.exclude,
         onOpen: () => actions.onReviewPeriodLocked(problem),
-        steps: [labels.stepDoNotTransfer, labels.reopenYear],
+        steps: [labels.stepDoNotTransfer, labels.toFiscalYears],
       }
     case 'unbalanced_document':
       return {

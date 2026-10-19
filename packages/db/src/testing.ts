@@ -5,6 +5,8 @@ import {
   auditLog,
   accountDimensionRequirements,
   accounts,
+  bankAccounts,
+  bankTransactions,
   dimensionTypes,
   dimensionValues,
   entities,
@@ -250,6 +252,45 @@ export async function setPeriodStatus(
     .update(periods)
     .set({ status })
     .where(and(eq(periods.entityId, entityId), eq(periods.sequence, sequence)))
+}
+
+/**
+ * Extra unmatched bank lines for queue-cap tests (e.g. the "500+" remaining label).
+ *
+ * Inserts directly: walking the import UI hundreds of times is not the subject.
+ */
+export async function seedUnmatchedBankLines(
+  database: Database,
+  entityId: string,
+  count: number,
+): Promise<void> {
+  const [account] = await database
+    .select({ id: bankAccounts.id })
+    .from(bankAccounts)
+    .where(eq(bankAccounts.entityId, entityId))
+    .limit(1)
+  if (account === undefined) throw new Error(`No bank account for entity ${entityId}`)
+
+  const rows = Array.from({ length: count }, (_, index) => {
+    const id = uuidv7()
+    return {
+      id,
+      entityId,
+      bankAccountId: account.id,
+      dedupeKey: `seed-extra-${id}`,
+      amountMinorUnits: -100n - BigInt(index),
+      currency: 'EUR',
+      bookingDate: '2026-11-15',
+      valueDate: '2026-11-15',
+      description: `Extra regel ${String(index + 1)}`,
+      status: 'unmatched' as const,
+    }
+  })
+
+  const chunk = 100
+  for (let offset = 0; offset < rows.length; offset += chunk) {
+    await database.insert(bankTransactions).values(rows.slice(offset, offset + chunk))
+  }
 }
 
 /**

@@ -9,12 +9,15 @@ import {
   isBookingBlocked,
   isOutgoing,
   isPeriodLockViolation,
+  MATCH_QUEUE_CAP,
   periodLockForDate,
   periodLockFromViolation,
+  remainingLabel,
   suggestionBookedAmount,
   suggestionLabel,
   type FiscalYearWithPeriods,
 } from '../../src/lib/bank-match.js'
+import { periodLabel, sentencePeriodLabel } from '../../src/lib/period-label.js'
 
 const years: readonly FiscalYearWithPeriods[] = [
   {
@@ -77,6 +80,8 @@ const years: readonly FiscalYearWithPeriods[] = [
   },
 ]
 
+const yearName = (year: string) => `boekjaar ${year}`
+
 describe('bank-match amounts', () => {
   it('treats negative minor units as Af (outgoing)', () => {
     expect(isOutgoing('-145200')).toBe(true)
@@ -104,6 +109,18 @@ describe('bank-match confidence', () => {
   })
 })
 
+describe('bank-match remaining label', () => {
+  const exact = (count: number) => `${String(count)} regels nog te koppelen`
+  const capped = '500+ regels nog te koppelen'
+
+  it('shows the exact count at 499 and 500, and caps only above the page size', () => {
+    expect(MATCH_QUEUE_CAP).toBe(500)
+    expect(remainingLabel(499, capped, exact)).toBe('499 regels nog te koppelen')
+    expect(remainingLabel(500, capped, exact)).toBe('500 regels nog te koppelen')
+    expect(remainingLabel(501, capped, exact)).toBe('500+ regels nog te koppelen')
+  })
+})
+
 describe('bank-match period locks', () => {
   it('names a fully closed quarter as Q3', () => {
     const lock = periodLockForDate(years, '2026-09-30')
@@ -112,7 +129,7 @@ describe('bank-match period locks', () => {
       kind: 'quarter',
       fiscalYear: '2026',
     })
-    expect(formatPeriodLabel(lock!, 'nl-NL', (year) => `boekjaar ${year}`)).toBe('Q3 2026')
+    expect(formatPeriodLabel(lock!, 'nl-NL', yearName, years)).toBe('Q3 2026')
     expect(formatBankDayWithYear('2026-09-30', 'nl-NL')).toMatch(/2026/)
   })
 
@@ -123,10 +140,11 @@ describe('bank-match period locks', () => {
     expect(isBookingBlocked(lock, false)).toBe(true)
   })
 
-  it('names a closed year as boekjaar', () => {
+  it('names a closed year as boekjaar and capitalises sentence starts', () => {
     const lock = periodLockForDate(years, '2025-06-01')
     expect(lock?.kind).toBe('year')
-    expect(formatPeriodLabel(lock!, 'nl-NL', (year) => `boekjaar ${year}`)).toBe('boekjaar 2025')
+    expect(formatPeriodLabel(lock!, 'nl-NL', yearName, years)).toBe('boekjaar 2025')
+    expect(sentencePeriodLabel(years, { fiscalYear: '2025', period: '12' })).toBe('Boekjaar 2025')
   })
 
   it('derives a lock from confirmMatch violation detail', () => {
@@ -142,6 +160,29 @@ describe('bank-match period locks', () => {
       status: 'hard_closed',
       kind: 'quarter',
     })
+    expect(periodLabel(years, { fiscalYear: '2026', period: '9' })).toBe('Q3 2026')
+  })
+
+  it('uses the shared periodLabel when fiscal years are empty', () => {
+    const lock = periodLockFromViolation([], 'period_hard_closed', {
+      fiscalYear: '2026',
+      period: '9',
+    })
+    expect(lock).toMatchObject({
+      fiscalYear: '2026',
+      period: 9,
+      status: 'hard_closed',
+      kind: 'sequence',
+    })
+    expect(formatPeriodLabel(lock, 'nl-NL', yearName, [])).toBe('Periode 9 van boekjaar 2026')
+    expect(periodLabel([], { fiscalYear: '2026', period: '9' })).toBe('Periode 9 van boekjaar 2026')
+  })
+
+  it('still returns a lock when violation detail is missing', () => {
+    const lock = periodLockFromViolation(years, 'period_hard_closed', undefined)
+    expect(lock.kind).toBe('sequence')
+    expect(periodLabel(years, undefined)).toBe('deze periode')
+    expect(sentencePeriodLabel(years, undefined)).toBe('Deze periode')
   })
 })
 

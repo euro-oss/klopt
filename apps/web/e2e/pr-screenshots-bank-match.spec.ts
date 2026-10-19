@@ -4,7 +4,14 @@ import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 import { closeDatabase, createDatabase, runMigrations } from '@klopt/db'
 import { findEntityIdByName, setPeriodStatus } from '@klopt/db/testing'
-import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
+import {
+  chooseOption,
+  DATABASE_URL,
+  enableAdvancedMode,
+  hydrated,
+  signIn,
+  uniqueEmail,
+} from './support'
 
 /**
  * Public PNGs for the bank matching redesign PR (#61 slice 6).
@@ -66,11 +73,14 @@ async function importStatement(page: Page): Promise<void> {
   await expect(page.getByText('4 transacties ingelezen.')).toBeVisible()
 }
 
-async function issueMatchingInvoice(page: Page): Promise<void> {
+async function issueMatchingInvoice(page: Page, withIban = false): Promise<void> {
   await page.goto('/contacts')
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Grote Klant N.V.')
+  if (withIban) {
+    await page.getByLabel('IBAN').fill('NL91RABO0315273637')
+  }
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
 
@@ -143,12 +153,12 @@ async function ensurePanelVisible(page: Page): Promise<void> {
   }
 }
 
-async function selectPaymentRow(page: Page): Promise<void> {
+async function selectPaymentRow(page: Page, openPhonePanel = true): Promise<void> {
   const payment = page.locator('[data-slot="scroll-table"] tbody tr').filter({
     hasText: 'Grote Klant',
   })
   await payment.click()
-  await ensurePanelVisible(page)
+  if (openPhonePanel) await ensurePanelVisible(page)
   const suggestion = page
     .getByText(/staat in de omschrijving en het bedrag klopt precies/)
     .locator('visible=true')
@@ -195,13 +205,19 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
       const entityName = `Shot ${theme} ${label}`
       await ready(page, entityName)
       await importStatement(page)
-      await issueMatchingInvoice(page)
+      await issueMatchingInvoice(page, true)
       await enableAdvancedMode(page)
       await openMatch(page)
       await setTheme(page, theme)
 
       // Queue with confidence badges / voorstel column (Geavanceerd on).
-      await selectPaymentRow(page)
+      // Mobile: keep the Sheet closed so the swipe hint stays visible.
+      await selectPaymentRow(page, label !== 'mobile-390')
+      if (label === 'mobile-390') {
+        await page.keyboard.press('Escape').catch(() => undefined)
+        await page.waitForTimeout(200)
+        await expect(page.getByText(/Veeg de tabel opzij/)).toBeVisible()
+      }
       await shoot(page, `queue-${theme}-${label}.png`)
 
       if (label === 'mobile-390') {
@@ -214,6 +230,16 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
         await page.waitForTimeout(300)
       }
 
+      // Two candidates: reference 99% + IBAN/amount when the contact has the
+      // bank line's IBAN (desktop panel).
+      if (label === 'desktop-1440') {
+        await selectPaymentRow(page)
+        const options = page.locator('[role="option"]')
+        if ((await options.count()) >= 2) {
+          await shoot(page, `two-candidates-${theme}-${label}.png`)
+        }
+      }
+
       // Owner soft-closed notice + Naar Boekjaren.
       await setMarchStatus(entityName, 'soft_closed')
       await openMatch(page)
@@ -222,13 +248,38 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
       await expect(page.getByText(/voorlopig afgesloten/).locator('visible=true')).toBeVisible()
       await shoot(page, `locked-owner-${theme}-${label}.png`)
 
-      // Bookkeeper path: hard-closed (same named block copy, no link).
-      await setMarchStatus(entityName, 'hard_closed')
-      await openMatch(page)
-      await setTheme(page, theme)
-      await ensurePanelVisible(page)
-      await expect(page.getByText(/definitief afgesloten/).locator('visible=true')).toBeVisible()
-      await shoot(page, `locked-bookkeeper-${theme}-${label}.png`)
+      // Soft-closed Boekhouder (blocked, no link) — invite a bookkeeper.
+      const keeperContext = await browser.newContext({ viewport: size })
+      const keeperPage = await keeperContext.newPage()
+      const keeperEmail = uniqueEmail()
+      await keeperPage.goto('/sign-in')
+      await signIn(keeperPage, keeperEmail)
+      await expect(
+        keeperPage.getByRole('heading', { name: 'Nog geen administratie' }),
+      ).toBeVisible()
+
+      await page.goto('/members')
+      const invite = page.locator('form', {
+        has: page.getByRole('button', { name: 'Uitnodigen' }),
+      })
+      await invite.getByLabel('E-mail').fill(keeperEmail)
+      await chooseOption(page, 'Rol', 'Boekhouder', invite)
+      await page.getByRole('button', { name: 'Uitnodigen' }).click()
+      await expect(page.getByText(new RegExp(`${keeperEmail} heeft nu toegang`))).toBeVisible()
+
+      await keeperPage.goto('/bank/match')
+      await hydrated(keeperPage).catch(async () => {
+        await keeperPage.waitForTimeout(300)
+      })
+      await setTheme(keeperPage, theme)
+      await ensurePanelVisible(keeperPage)
+      await expect(
+        keeperPage
+          .getByText(/Alleen de eigenaar of accountant kan hierin boeken/)
+          .locator('visible=true'),
+      ).toBeVisible()
+      await shoot(keeperPage, `locked-bookkeeper-${theme}-${label}.png`)
+      await keeperContext.close()
 
       await setMarchStatus(entityName, 'open')
       await openMatch(page)
@@ -239,7 +290,7 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
       await page.keyboard.press('Enter')
       await page.keyboard.press('Enter')
       await expect(
-        page.getByText(/Gekoppeld:|Geboekt als boeking/).locator('visible=true'),
+        page.getByText('Gekoppeld: Grote Klant N.V.').locator('visible=true'),
       ).toBeVisible()
       await shoot(page, `matched-${theme}-${label}.png`)
 

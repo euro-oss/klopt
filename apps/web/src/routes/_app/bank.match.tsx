@@ -10,22 +10,24 @@ import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import {
+  MATCH_QUEUE_CAP,
   confidenceTone,
   formatBankDay,
   formatBankDayWithYear,
   formatEuro,
-  formatPeriodLabel,
   ibanTail,
   isBookingBlocked,
   isOutgoing,
   isPeriodLockViolation,
   periodLockForDate,
   periodLockFromViolation,
+  remainingLabel,
   suggestionBookedAmount,
   suggestionLabel,
   type FiscalYearWithPeriods,
   type PeriodLock,
 } from '~/lib/bank-match'
+import { periodLabel, sentencePeriodLabel } from '~/lib/period-label'
 import { useHydrated } from '~/lib/hydration'
 import { may, MAY_POST_CLOSED } from '~/lib/roles'
 import { cn } from '~/lib/utils'
@@ -55,7 +57,9 @@ export const Route = createFileRoute('/_app/bank/match')({
       context.session.memberships[0]?.role ??
       ''
     const [transactions, accounts, bankAccounts, years] = await Promise.all([
-      listBankTransactions({ data: { status: 'unmatched', limit: 500 } }),
+      // Fetch one past the display cap so exactly MATCH_QUEUE_CAP lines do not
+      // look like "500+" — remainingLabel only caps when fetchedCount > cap.
+      listBankTransactions({ data: { status: 'unmatched', limit: MATCH_QUEUE_CAP + 1 } }),
       listAccounts(),
       listBankAccounts(),
       listFiscalYears(),
@@ -104,10 +108,17 @@ const STRATEGY_KEY: Record<string, MessageKey> = {
 
 function periodName(
   lock: PeriodLock,
+  years: readonly FiscalYearWithPeriods[],
   locale: string,
-  t: (key: MessageKey, values?: Record<string, string>) => string,
 ): string {
-  return formatPeriodLabel(lock, locale, (year) => t('match.period.yearName', { year }))
+  return periodLabel(
+    years,
+    {
+      fiscalYear: lock.fiscalYear,
+      period: lock.period > 0 ? String(lock.period) : '',
+    },
+    locale,
+  )
 }
 
 /** Prefer counterparty; fall back to description so the panel H2 matches the table. */
@@ -137,7 +148,11 @@ function MatchQueue() {
     return key === undefined ? strategy : t(key)
   }
 
-  const queue: Line[] = transactions.ok ? transactions.data.transactions : []
+  const fetched: Line[] = transactions.ok ? transactions.data.transactions : []
+  const remainingText = remainingLabel(fetched.length, t('match.remainingCapped'), (count) =>
+    plural('match.remaining', count),
+  )
+  const queue = fetched.length > MATCH_QUEUE_CAP ? fetched.slice(0, MATCH_QUEUE_CAP) : fetched
   const postable = accounts.ok ? accounts.data.accounts.filter((account) => !account.isBlocked) : []
   const fiscalYears: FiscalYearWithPeriods[] = years.ok
     ? (years.data.fiscalYears as FiscalYearWithPeriods[])
@@ -246,16 +261,8 @@ function MatchQueue() {
     if (!result.ok) {
       const locked = result.problem.violations.find((item) => isPeriodLockViolation(item.code))
       if (locked !== undefined) {
-        setPeriodError(
-          periodLockFromViolation(fiscalYears, locked.code, locked.detail) ?? {
-            fiscalYear: locked.detail?.['fiscalYear'] ?? '',
-            period: Number(locked.detail?.['period'] ?? 0),
-            status: locked.code === 'period_soft_closed' ? 'soft_closed' : 'hard_closed',
-            startsOn: '',
-            endsOn: '',
-            kind: 'year',
-          },
-        )
+        // Shared #73/#74 helper: never-blank label (incl. "deze periode").
+        setPeriodError(periodLockFromViolation(fiscalYears, locked.code, locked.detail))
         return
       }
       setError(
@@ -461,6 +468,7 @@ function MatchQueue() {
       titleId={panelTitleId}
       line={line}
       lock={lock}
+      years={fiscalYears}
       suggestions={suggestions}
       loading={loadingSuggestions}
       candidate={candidate}
@@ -508,11 +516,7 @@ function MatchQueue() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-muted-foreground text-sm tabular">
-            <span className="text-foreground text-lg font-semibold">
-              {queue.length >= 500
-                ? t('match.remainingCapped')
-                : plural('match.remaining', queue.length)}
-            </span>
+            <span className="text-foreground text-lg font-semibold">{remainingText}</span>
           </p>
           <Link
             to="/bank"
@@ -647,7 +651,9 @@ function MatchQueue() {
                           ) : itemBlocked && itemLock !== null ? (
                             <span className="text-muted-foreground flex max-w-48 items-center gap-1">
                               <RiLockLine className="size-3.5 shrink-0" aria-hidden />
-                              <span className="truncate">{periodName(itemLock, tag, t)}</span>
+                              <span className="truncate">
+                                {periodName(itemLock, fiscalYears, tag)}
+                              </span>
                             </span>
                           ) : sel && loadingSuggestions ? (
                             <span className="text-muted-foreground">{t('match.searching')}</span>
@@ -740,19 +746,25 @@ function MatchQueue() {
 
 function lockCopy(
   lock: PeriodLock,
+  years: readonly FiscalYearWithPeriods[],
   lineDate: string,
   locale: string,
   canPostClosed: boolean,
   t: (key: MessageKey, values?: Record<string, string>) => string,
 ): { readonly title: string; readonly body: string; readonly showFiscalYearsLink: boolean } {
-  const period = periodName(lock, locale, t)
+  const detail = {
+    fiscalYear: lock.fiscalYear,
+    period: lock.period > 0 ? String(lock.period) : '',
+  }
+  const period = periodName(lock, years, locale)
+  const Period = sentencePeriodLabel(years, detail, locale)
   const date = formatBankDayWithYear(lineDate, locale)
   const fallsIn = t('match.period.fallsIn', { date, period })
 
   if (lock.status === 'hard_closed' || lock.status === 'year_closed') {
     return {
-      title: period,
-      body: `${fallsIn} ${t('match.period.hardClosed', { period })}`,
+      title: Period,
+      body: `${fallsIn} ${t('match.period.hardClosed', { period: Period })}`,
       showFiscalYearsLink: false,
     }
   }
@@ -760,15 +772,15 @@ function lockCopy(
   // soft_closed
   if (canPostClosed) {
     return {
-      title: period,
-      body: t('match.period.softClosedNotice', { period }),
+      title: Period,
+      body: t('match.period.softClosedNotice', { period: Period }),
       showFiscalYearsLink: true,
     }
   }
 
   return {
-    title: period,
-    body: `${fallsIn} ${t('match.period.softClosedBookkeeper', { period })}`,
+    title: Period,
+    body: `${fallsIn} ${t('match.period.softClosedBookkeeper', { period: Period })}`,
     showFiscalYearsLink: false,
   }
 }
@@ -778,6 +790,7 @@ function MatchPanel({
   titleId,
   line,
   lock,
+  years,
   suggestions,
   loading,
   candidate,
@@ -806,6 +819,7 @@ function MatchPanel({
   titleId: string
   line: Line | undefined
   lock: PeriodLock | null
+  years: readonly FiscalYearWithPeriods[]
   suggestions: Suggestion[] | null
   loading: boolean
   candidate: number
@@ -844,7 +858,9 @@ function MatchPanel({
   const offered = suggestions ?? []
   const shownLock = periodError ?? (blocked || softNotice ? lock : null)
   const copy =
-    shownLock === null ? null : lockCopy(shownLock, line.bookingDate, locale, canPostClosed, t)
+    shownLock === null
+      ? null
+      : lockCopy(shownLock, years, line.bookingDate, locale, canPostClosed, t)
 
   return (
     <section
