@@ -1457,7 +1457,31 @@ function ReviewStep({
             </p>
           </div>
         </div>
-        <table className="mt-6 w-full table-fixed text-xs tabular">
+        {/* Phone: description full width; qty × price and amount on the next row
+            so Omschrijving is not squeezed into mid-word breaks. sm+ keeps the
+            four-column table (1440 unchanged). */}
+        <ul className="mt-6 space-y-3 text-xs tabular sm:hidden">
+          {filled.map((line, index) => {
+            const price = parseMinorUnits(line.unitPrice) ?? 0n
+            const lineNet = multiplyByDecimal(price, line.quantity === '' ? '0' : line.quantity)
+            return (
+              <li key={index} className="border-b border-black/10 pb-2">
+                <p className="break-normal hyphens-auto" lang="nl">
+                  {line.description}
+                </p>
+                <div className="mt-0.5 flex justify-between gap-3">
+                  <span className="whitespace-nowrap tabular-nums">
+                    {line.quantity}
+                    {' × '}
+                    {formatEuro(price)}
+                  </span>
+                  <span className="whitespace-nowrap tabular-nums">{formatEuro(lineNet)}</span>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+        <table className="mt-6 hidden w-full table-fixed text-xs tabular sm:table">
           <colgroup>
             <col />
             <col className="w-12" />
@@ -1484,7 +1508,9 @@ function ReviewStep({
               const lineNet = multiplyByDecimal(price, line.quantity === '' ? '0' : line.quantity)
               return (
                 <tr key={index} className="border-b border-black/10">
-                  <td className="py-1.5 pr-2 break-words">{line.description}</td>
+                  <td className="py-1.5 pr-2 break-normal hyphens-auto" lang="nl">
+                    {line.description}
+                  </td>
                   <td className="pl-3 text-right whitespace-nowrap tabular-nums">
                     {line.quantity}
                   </td>

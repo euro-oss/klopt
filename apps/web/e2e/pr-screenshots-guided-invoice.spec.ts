@@ -42,12 +42,30 @@ async function shot(
   await page.evaluate(() => {
     window.scrollTo(0, 0)
   })
+  // Playwright full-page stitches viewports, so a sticky Terug/Verder bar is
+  // painted at the bottom of the first viewport and covers Totaal / Indicatief
+  // (step 2) and “Wat er gebeurt” (step 3) at 390. Unstick only for capture.
+  await page.evaluate(() => {
+    const id = 'guided-screenshot-unstick'
+    if (document.getElementById(id) !== null) return
+    const style = document.createElement('style')
+    style.id = id
+    style.textContent =
+      '[data-guided-sticky-actions]{position:static!important;bottom:auto!important}'
+    document.head.appendChild(style)
+  })
   await page.waitForTimeout(80)
   const suffix = `${opts.dark ? 'dark' : 'light'}-${opts.width >= 1000 ? 'desktop-1440' : 'mobile-390'}`
-  await page.screenshot({
-    path: join(OUT, `${name}-${suffix}.png`),
-    fullPage: true,
-  })
+  try {
+    await page.screenshot({
+      path: join(OUT, `${name}-${suffix}.png`),
+      fullPage: true,
+    })
+  } finally {
+    await page.evaluate(() => {
+      document.getElementById('guided-screenshot-unstick')?.remove()
+    })
+  }
 }
 
 /**
