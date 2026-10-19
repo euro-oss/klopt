@@ -129,8 +129,22 @@ test('btw sheet filters by direction and moves with arrow keys', async ({ page }
 test('btw sheet shows map-by-hand for an unsupported rate', async ({ page }) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxBad')
   await expect(page.getByRole('dialog')).toBeVisible()
-  await expect(page.getByRole('status')).toContainText(/vanzelf koppelen|zelf in de tabel/i)
-  await expect(page.getByRole('radio')).toHaveCount(0)
+  const sheet = page.getByRole('dialog')
+  await expect(sheet.getByRole('status')).toContainText(/vanzelf koppelen|zelf in de tabel/i)
+  await expect(sheet.getByRole('radio')).toHaveCount(0)
+  // No duplicate hint under the status box when options are empty (#69).
+  await expect(sheet.getByText(/In Moneybird stond/)).toHaveCount(0)
+})
+
+test('btw sheet shows vatUnknown once for an empty rate', async ({ page }) => {
+  await openLab(page, 'source=moneybird&state=open&sheet=taxEmpty')
+  const sheet = page.getByRole('dialog')
+  await expect(sheet).toBeVisible()
+  await expect(sheet.getByRole('status')).toContainText(/We weten niet welk tarief dit is/)
+  await expect(sheet.getByRole('radio')).toHaveCount(0)
+  // Status owns the copy; no second identical / short hint line.
+  await expect(sheet.getByText(/We weten niet welk tarief dit is/)).toHaveCount(1)
+  await expect(sheet.getByText(/In Moneybird stond geen tarief/)).toHaveCount(0)
 })
 
 test('FX sheet toggles ECB to Aangepast and back', async ({ page }) => {

@@ -50,6 +50,7 @@ export const Route = createFileRoute('/_app/lab/import-findings')({
       search['sheet'] === 'tax' ||
       search['sheet'] === 'tax0' ||
       search['sheet'] === 'taxBad' ||
+      search['sheet'] === 'taxEmpty' ||
       search['sheet'] === 'fx' ||
       search['sheet'] === 'fxo'
         ? search['sheet']
@@ -69,6 +70,7 @@ function ImportFindingsLab() {
   const [taxOpen, setTaxOpen] = useState(sheet === 'tax')
   const [taxZeroOpen, setTaxZeroOpen] = useState(sheet === 'tax0')
   const [taxBadOpen, setTaxBadOpen] = useState(sheet === 'taxBad')
+  const [taxEmptyOpen, setTaxEmptyOpen] = useState(sheet === 'taxEmpty')
   const [fxOpen, setFxOpen] = useState(sheet === 'fx' || sheet === 'fxo')
   const [fxRate, setFxRate] = useState(sheet === 'fxo' ? '1,1490' : '1,1531')
   const [fxSource, setFxSource] = useState<'ecb' | 'override'>(sheet === 'fxo' ? 'override' : 'ecb')
@@ -266,6 +268,20 @@ function ImportFindingsLab() {
             mode="tax"
             taxRateType="purchase_invoice"
             percentage="6"
+            advanced={advanced}
+            onSave={() => undefined}
+          />
+          {/* Empty / unknown rate → vatUnknown status, no duplicate hint. */}
+          <AccountVatSheet
+            open={taxEmptyOpen}
+            onOpenChange={setTaxEmptyOpen}
+            sourceName="Onbekend tarief"
+            sourceDetail="—"
+            accounts={FIXTURE_ACCOUNTS}
+            taxRules={NL_MKB_VAT_RULES}
+            mode="tax"
+            taxRateType="purchase_invoice"
+            percentage=""
             advanced={advanced}
             onSave={() => undefined}
           />

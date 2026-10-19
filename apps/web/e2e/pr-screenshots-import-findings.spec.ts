@@ -172,6 +172,21 @@ test('capture import findings PNGs (1440/390 × light/dark + sheets + states)', 
     await shoot(page, 'fix-tax-vat-zero-light-desktop-1440.png')
     await context.close()
   }
+  // Empty / unknown rate: vatUnknown status once, no duplicate hint (#69 design).
+  {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+    const page = await context.newPage()
+    await ready(page, 'Tax empty rate')
+    await openFindings(page, 'source=moneybird&state=open&sheet=taxEmpty')
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await expect(page.getByRole('status')).toContainText(/We weten niet welk tarief dit is/)
+    await expect(
+      page.getByRole('dialog').getByText(/We weten niet welk tarief dit is/),
+    ).toHaveCount(1)
+    await setTheme(page, 'light')
+    await shoot(page, 'fix-tax-vat-empty-light-desktop-1440.png')
+    await context.close()
+  }
 
   // FX ECB + override — prove live € 1.429,84 / € 1.424,76; advanced Debet/Credit; dark + 390.
   {

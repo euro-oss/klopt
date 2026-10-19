@@ -165,8 +165,7 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.stepVat': '2. Which VAT rate?',
   'importFindings.accountVat.stepVatOnly': 'Which VAT rate?',
   'importFindings.accountVat.vatHint': 'Moneybird had {rate}% VAT.',
-  'importFindings.accountVat.vatHintUnknown':
-    'We do not know which rate this is. Choose the VAT rate yourself in the table below.',
+  'importFindings.accountVat.vatHintUnknown': 'Moneybird had no rate.',
   'importFindings.accountVat.vatUnsupported':
     'We cannot match this Moneybird rate ({rate}%) automatically. Choose the VAT rate yourself in the table below.',
   'importFindings.accountVat.vatUnknown':

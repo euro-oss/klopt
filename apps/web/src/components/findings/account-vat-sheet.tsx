@@ -467,11 +467,14 @@ function AccountVatSheetBody({
                 })}
               </div>
             )}
-            <p className="text-muted-foreground mt-1.5 text-xs">
-              {percentage !== null && percentage !== '' && percentageLabel !== '—'
-                ? t('importFindings.accountVat.vatHint', { rate: percentageLabel })
-                : t('importFindings.accountVat.vatHintUnknown')}
-            </p>
+            {/* Status box already explains empty options; skip the duplicate hint. */}
+            {vatOptions.length > 0 && (
+              <p className="text-muted-foreground mt-1.5 text-xs">
+                {percentage !== null && percentage !== '' && percentageLabel !== '—'
+                  ? t('importFindings.accountVat.vatHint', { rate: percentageLabel })
+                  : t('importFindings.accountVat.vatHintUnknown')}
+              </p>
+            )}
           </fieldset>
         )}
 

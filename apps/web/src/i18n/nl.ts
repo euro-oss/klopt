@@ -1460,8 +1460,7 @@ export const nl = {
   'importFindings.accountVat.stepVat': '2. Welk btw-tarief?',
   'importFindings.accountVat.stepVatOnly': 'Welk btw-tarief?',
   'importFindings.accountVat.vatHint': 'In Moneybird stond {rate}% btw.',
-  'importFindings.accountVat.vatHintUnknown':
-    'We weten niet welk tarief dit is. Kies het btw-tarief zelf in de tabel hieronder.',
+  'importFindings.accountVat.vatHintUnknown': 'In Moneybird stond geen tarief.',
   'importFindings.accountVat.vatUnsupported':
     'Dit Moneybird-tarief ({rate}%) kunnen we niet vanzelf koppelen. Kies het btw-tarief zelf in de tabel hieronder.',
   'importFindings.accountVat.vatUnknown':
