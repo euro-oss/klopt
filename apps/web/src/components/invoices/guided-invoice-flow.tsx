@@ -738,16 +738,8 @@ export function GuidedInvoiceFlow({
         }
         setLeaving(false)
 
-        if (step === 1 && event.key === 'ArrowDown') {
-          event.preventDefault()
-          setActiveIndex((i) => Math.min(i + 1, Math.max(filtered.length - 1, 0)))
-          return
-        }
-        if (step === 1 && event.key === 'ArrowUp') {
-          event.preventDefault()
-          setActiveIndex((i) => Math.max(i - 1, 0))
-          return
-        }
+        // Arrow keys for the customer listbox live only on `#cust-q` — handling
+        // them here as well moved the highlight by two per press.
         // Enter on Terug / Concept / listbox options / inputs stays with that
         // control (native activation or its own handler). Only advance when
         // nothing else claimed the key — see `flowShouldAdvanceOnEnter`.
@@ -1105,18 +1097,23 @@ function CustomerStep({
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           onKeyDown={(event) => {
+            // Combobox owns ArrowUp/Down/Enter; stopPropagation so the flow
+            // container never double-handles them.
             if (event.key === 'ArrowDown') {
               event.preventDefault()
+              event.stopPropagation()
               onArrowDown()
               return
             }
             if (event.key === 'ArrowUp') {
               event.preventDefault()
+              event.stopPropagation()
               onArrowUp()
               return
             }
             if (event.key === 'Enter') {
               event.preventDefault()
+              event.stopPropagation()
               onCommit()
             }
           }}
@@ -1418,11 +1415,11 @@ function ReviewStep({
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_260px]">
       <div
-        className="border-border border bg-white p-6 text-black dark:bg-white"
+        className="border-border border bg-white p-4 text-black md:p-6 dark:bg-white"
         aria-label={t('invoiceGuided.preview')}
       >
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p className="font-semibold">{sellerName || t('invoiceGuided.sellerFallback')}</p>
             {sellerLines.length > 0 && (
               <p className="text-xs text-black/60">
@@ -1436,37 +1433,49 @@ function ReviewStep({
             )}
             {sellerIds !== '' && <p className="text-xs text-black/60">{sellerIds}</p>}
           </div>
-          <div className="text-right">
+          <div className="shrink-0 text-right">
             <p className="text-lg font-semibold">{t('invoice.title')}</p>
             <p className="text-xs text-black/60">{t('invoiceGuided.numberLater')}</p>
           </div>
         </div>
-        <div className="mt-6 grid grid-cols-2 gap-4 text-xs">
-          <div>
+        <div className="mt-6 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2 sm:gap-4">
+          <div className="min-w-0">
             <p className="text-black/60">{t('invoiceGuided.to')}</p>
             <p className="font-medium">{customerName}</p>
             {buyerLines.map((line) => (
               <p key={line}>{line}</p>
             ))}
           </div>
-          <div className="text-right tabular">
-            <p>
+          <div className="tabular sm:text-right">
+            <p className="whitespace-nowrap">
               <span className="text-black/60">{t('invoices.date')} </span>
               {formatDateShort(issueDate)}
             </p>
-            <p>
+            <p className="whitespace-nowrap">
               <span className="text-black/60">{t('invoiceGuided.dueDate')} </span>
               {formatDateShort(dueDate)}
             </p>
           </div>
         </div>
-        <table className="mt-6 w-full text-xs tabular">
+        <table className="mt-6 w-full table-fixed text-xs tabular">
+          <colgroup>
+            <col />
+            <col className="w-12" />
+            <col className="w-[4.75rem]" />
+            <col className="w-[5.25rem]" />
+          </colgroup>
           <thead className="border-b border-black/20 text-left text-black/60">
             <tr>
-              <th className="py-1 font-medium">{t('entries.description')}</th>
-              <th className="py-1 text-right font-medium">{t('invoice.quantity')}</th>
-              <th className="py-1 text-right font-medium">{t('invoice.price')}</th>
-              <th className="py-1 text-right font-medium">{t('invoiceGuided.amount')}</th>
+              <th className="py-1 pr-2 font-medium">{t('entries.description')}</th>
+              <th className="py-1 pl-3 text-right font-medium whitespace-nowrap">
+                {t('invoice.quantity')}
+              </th>
+              <th className="py-1 pl-4 text-right font-medium whitespace-nowrap">
+                {t('invoice.price')}
+              </th>
+              <th className="py-1 pl-4 text-right font-medium whitespace-nowrap">
+                {t('invoiceGuided.amount')}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1475,29 +1484,35 @@ function ReviewStep({
               const lineNet = multiplyByDecimal(price, line.quantity === '' ? '0' : line.quantity)
               return (
                 <tr key={index} className="border-b border-black/10">
-                  <td className="py-1.5">{line.description}</td>
-                  <td className="text-right">{line.quantity}</td>
-                  <td className="text-right">{formatEuro(price)}</td>
-                  <td className="text-right">{formatEuro(lineNet)}</td>
+                  <td className="py-1.5 pr-2 break-words">{line.description}</td>
+                  <td className="pl-3 text-right whitespace-nowrap tabular-nums">
+                    {line.quantity}
+                  </td>
+                  <td className="pl-4 text-right whitespace-nowrap tabular-nums">
+                    {formatEuro(price)}
+                  </td>
+                  <td className="pl-4 text-right whitespace-nowrap tabular-nums">
+                    {formatEuro(lineNet)}
+                  </td>
                 </tr>
               )
             })}
           </tbody>
         </table>
         <dl className="mt-3 ml-auto w-48 space-y-0.5 text-xs tabular">
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-3">
             <dt className="text-black/60">{t('invoiceGuided.exVat')}</dt>
-            <dd>{formatEuro(totals.net)}</dd>
+            <dd className="whitespace-nowrap">{formatEuro(totals.net)}</dd>
           </div>
           {totals.taxByLabel.map((row) => (
-            <div key={row.label} className="flex justify-between">
+            <div key={row.label} className="flex justify-between gap-3">
               <dt className="text-black/60">{row.label}</dt>
-              <dd>{formatEuro(row.amount)}</dd>
+              <dd className="whitespace-nowrap">{formatEuro(row.amount)}</dd>
             </div>
           ))}
-          <div className="flex justify-between border-t border-black/20 pt-1 text-sm font-semibold">
+          <div className="flex justify-between gap-3 border-t border-black/20 pt-1 text-sm font-semibold">
             <dt>{t('report.total')}</dt>
-            <dd>{formatEuro(totals.total)}</dd>
+            <dd className="whitespace-nowrap">{formatEuro(totals.total)}</dd>
           </div>
         </dl>
       </div>

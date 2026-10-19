@@ -57,11 +57,20 @@ async function administrationReady(page: Page, name: string): Promise<string> {
   return email
 }
 
-async function addCustomer(page: Page, opts: { email?: string | null } = {}): Promise<void> {
+async function addCustomer(
+  page: Page,
+  opts: {
+    email?: string | null
+    number?: string
+    name?: string
+  } = {},
+): Promise<void> {
+  const number = opts.number ?? 'DEB-0001'
+  const name = opts.name ?? 'Hotel Zeezicht B.V.'
   await page.goto('/contacts')
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
-  await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
-  await page.getByLabel('Naam', { exact: true }).fill('Hotel Zeezicht B.V.')
+  await page.getByLabel('Nummer', { exact: true }).fill(number)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
   // Peppol/UBL needs buyer KvK (electronic address defaults to it).
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
   await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('87654321')
@@ -73,7 +82,7 @@ async function addCustomer(page: Page, opts: { email?: string | null } = {}): Pr
   await page.getByLabel('Postcode').fill('4381 KA')
   await page.getByLabel('Plaats').fill('Vlissingen')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Hotel Zeezicht B.V.' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: name })).toBeVisible()
 }
 
 async function fillBreadLine(page: Page): Promise<void> {
@@ -358,9 +367,50 @@ test('a hard-closed period keeps the user in the flow with named copy', async ({
     await expect(page.getByText(/heropen/i)).toHaveCount(0)
     await expect(page).toHaveURL(/\/invoices\/new/)
     await expectNoCodes(page)
+
+    // Draft from the failed send must still be the only one; Controleren replaces it.
+    const afterBack = await page.request.get('/api/v1/sales-invoices?status=draft')
+    expect(afterBack.ok()).toBe(true)
+    const afterBackBody = (await afterBack.json()) as { invoices: { id: string }[] }
+    expect(afterBackBody.invoices).toHaveLength(1)
+    const draftId = afterBackBody.invoices[0]!.id
+
+    await page.getByRole('button', { name: /Verder/ }).press('Enter')
+    await expect(page.getByText('Stap 3 van 4')).toBeVisible({ timeout: 15_000 })
+    const afterControleren = await page.request.get('/api/v1/sales-invoices?status=draft')
+    expect(afterControleren.ok()).toBe(true)
+    const afterControlerenBody = (await afterControleren.json()) as {
+      invoices: { id: string }[]
+    }
+    expect(afterControlerenBody.invoices).toHaveLength(1)
+    expect(afterControlerenBody.invoices[0]!.id).toBe(draftId)
   } finally {
     await closeDatabase(database)
   }
+})
+
+test('ArrowDown once then Enter selects the second of three customers', async ({ page }) => {
+  await administrationReady(page, 'Guided Pijltjes BV')
+  await addCustomer(page, { number: 'DEB-0001', name: 'Alpha Bakkerij' })
+  await addCustomer(page, { number: 'DEB-0002', name: 'Bravo Hotel' })
+  await addCustomer(page, { number: 'DEB-0003', name: 'Charlie Café' })
+
+  await page.goto('/invoices/new')
+  await expect(page.getByRole('heading', { name: 'Nieuwe factuur' })).toBeVisible()
+  await hydrated(page)
+  await expect(page.getByRole('option')).toHaveCount(3)
+
+  await page.locator('#cust-q').focus()
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Enter')
+  await expect(page.getByText('Stap 2 van 4')).toBeVisible()
+  // Terug (not Escape): focus may leave the flow after advancing, so Esc would miss.
+  await page.getByRole('button', { name: /Terug/ }).press('Enter')
+  await expect(page.getByText('Stap 1 van 4')).toBeVisible()
+  await expect(page.getByRole('option', { name: /Bravo Hotel/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
 })
 
 test('Escape steps back, and the empty state offers Relaties', async ({ page }) => {

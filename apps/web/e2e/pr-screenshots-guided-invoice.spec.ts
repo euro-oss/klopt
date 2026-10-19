@@ -37,6 +37,12 @@ async function shot(
     await page.evaluate(() => document.documentElement.classList.remove('dark'))
   }
   await page.emulateMedia({ reducedMotion: 'reduce' })
+  // Full-page shots with sticky chrome must start at the top; otherwise the
+  // shell top bar is painted mid-page (Designer: step-2/3 at 390).
+  await page.evaluate(() => {
+    window.scrollTo(0, 0)
+  })
+  await page.waitForTimeout(80)
   const suffix = `${opts.dark ? 'dark' : 'light'}-${opts.width >= 1000 ? 'desktop-1440' : 'mobile-390'}`
   await page.screenshot({
     path: join(OUT, `${name}-${suffix}.png`),

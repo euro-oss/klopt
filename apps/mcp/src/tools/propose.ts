@@ -106,8 +106,10 @@ export const draftSalesInvoiceInput = z.object({
     .describe('The debiteurennummer. See list_open_items or Relaties.'),
   issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   kind: z.enum(['invoice', 'credit_note']).default('invoice'),
-  reference: z.string().nullable().default(null),
-  notes: z.string().nullable().default(null),
+  reference: z.string().nullable().optional(),
+  /** Debiteurennummer / Peppol buyer reference. Omit rather than send null. */
+  buyerReference: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   lines: z
     .array(
       z.object({
@@ -133,9 +135,13 @@ export async function draftSalesInvoice(
   context: ToolContext,
   input: z.infer<typeof draftSalesInvoiceInput>,
 ): Promise<Answer<Record<string, unknown>>> {
+  const { buyerReference, reference, notes, ...rest } = input
   const body = await context.api.post<{ id: string; total?: unknown }>('/sales-invoices', {
-    ...input,
-    buyerReference: null,
+    ...rest,
+    // Only send optional refs when the caller set them — never wipe with null.
+    ...(reference !== undefined ? { reference } : {}),
+    ...(buyerReference !== undefined ? { buyerReference } : {}),
+    ...(notes !== undefined ? { notes } : {}),
     creditsInvoiceId: null,
     lines: input.lines.map((line, index) => ({
       ...line,
@@ -173,12 +179,16 @@ export async function replaceDraftSalesInvoice(
   context: ToolContext,
   input: z.infer<typeof replaceDraftSalesInvoiceInput>,
 ): Promise<Answer<Record<string, unknown>>> {
-  const { invoiceId, ...fields } = input
+  const { invoiceId, buyerReference, reference, notes, ...fields } = input
   const body = await context.api.put<{ id: string; total?: unknown }>(
     `/sales-invoices/${invoiceId}`,
     {
       ...fields,
-      buyerReference: null,
+      // Keep the existing buyerReference on the draft unless the caller sets one.
+      // Sending null wiped the debiteurennummer and broke a later Peppol send.
+      ...(reference !== undefined ? { reference } : {}),
+      ...(buyerReference !== undefined ? { buyerReference } : {}),
+      ...(notes !== undefined ? { notes } : {}),
       creditsInvoiceId: null,
       lines: fields.lines.map((line, index) => ({
         ...line,

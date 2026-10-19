@@ -201,14 +201,17 @@ export class SalesRepository {
    * Drafts allocate no number and post nothing, so rewriting one is the cheap
    * way to keep a single draft id when the UI walks Klant → Controleren →
    * Terug → edit → Controleren. Issued invoices are never touched here.
+   *
+   * Returns `false` when no draft row matched (issued/cancelled/missing under
+   * READ COMMITTED) — callers must not rewrite lines in that case.
    */
   async replaceDraft(
     invoiceId: string,
     request: DraftInvoiceRequest,
     context: InvoiceContext,
     priced: PricedInvoice,
-  ): Promise<void> {
-    await this.tx
+  ): Promise<boolean> {
+    const updated = await this.tx
       .update(salesInvoices)
       .set({
         contactId: context.contact.id,
@@ -224,9 +227,27 @@ export class SalesRepository {
         notes: request.notes,
         creditsInvoiceId: request.creditsInvoiceId,
       })
-      .where(and(eq(salesInvoices.entityId, request.entityId), eq(salesInvoices.id, invoiceId)))
+      .where(
+        and(
+          eq(salesInvoices.entityId, request.entityId),
+          eq(salesInvoices.id, invoiceId),
+          // Race with issue: without status=draft the UPDATE would still hit the
+          // row and the following line rewrite would overwrite an issued invoice.
+          eq(salesInvoices.status, 'draft'),
+        ),
+      )
+      .returning({ id: salesInvoices.id })
 
-    await this.tx.delete(salesInvoiceLines).where(eq(salesInvoiceLines.invoiceId, invoiceId))
+    if (updated.length === 0) return false
+
+    await this.tx
+      .delete(salesInvoiceLines)
+      .where(
+        and(
+          eq(salesInvoiceLines.invoiceId, invoiceId),
+          eq(salesInvoiceLines.entityId, request.entityId),
+        ),
+      )
 
     const accountIds = await this.accountIdsByNumber(
       request.entityId,
@@ -258,6 +279,7 @@ export class SalesRepository {
         }
       }),
     )
+    return true
   }
 
   private async accountIdsByNumber(

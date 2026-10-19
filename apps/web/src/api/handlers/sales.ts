@@ -451,14 +451,20 @@ export async function handleReplaceDraftInvoice(
       kind: body.kind,
       issueDate: body.issueDate,
       reference: body.reference,
-      buyerReference: body.buyerReference,
+      // Keep the debtor-number / Peppol buyer reference unless the caller
+      // explicitly sends a non-null value. MCP used to POST null and wipe it.
+      buyerReference: body.buyerReference ?? invoice.buyerReference,
       notes: body.notes,
       creditsInvoiceId: body.creditsInvoiceId,
       lines: body.lines,
     }
 
     const priced = priceDraft(request, invoiceContext)
-    await sales.replaceDraft(invoiceId, request, invoiceContext, priced)
+    const replaced = await sales.replaceDraft(invoiceId, request, invoiceContext, priced)
+    if (!replaced) {
+      // Lost the race with issue (or the draft vanished). Do not rewrite lines.
+      throw new ApiError('conflict', `Invoice ${invoice.number ?? invoiceId} is no longer a draft.`)
+    }
 
     return { status: 200, body: { id: invoiceId, status: 'draft', ...serialisePriced(priced) } }
   })
