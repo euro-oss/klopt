@@ -55,8 +55,8 @@ test('category sheet respects Geavanceerd off/on and ranked list', async ({ page
   await expect(sheet).toBeVisible()
   await expect(sheet.getByText('Beste match eerst')).toBeVisible()
   await expect(sheet.getByText('Beste match', { exact: true })).toBeVisible()
-  // Numbers and RGS stay advanced-only.
-  await expect(sheet.locator('.font-mono', { hasText: '4510' })).toHaveCount(0)
+  // Numbers and RGS stay advanced-only (theme forbids font-mono; numbers use tabular-nums).
+  await expect(sheet.locator('.tabular-nums', { hasText: '4510' })).toHaveCount(0)
   await expect(sheet.getByText(/RGS/)).toHaveCount(0)
   await expect(sheet.getByRole('button', { name: /Gebruik 4510|Nieuwe categorie/ })).toBeVisible()
   // Ranked list shows more than a single row.
@@ -71,7 +71,7 @@ test('category sheet respects Geavanceerd off/on and ranked list', async ({ page
   await mapAccount.getByRole('button', { name: 'Categorie kiezen' }).click()
   await expect(sheet).toBeVisible()
   await expect(sheet.getByText('Voorgesteld op RGS')).toBeVisible()
-  await expect(sheet.locator('.font-mono', { hasText: '4510' })).toBeVisible()
+  await expect(sheet.locator('.tabular-nums', { hasText: '4510' })).toBeVisible()
   await expect(sheet.getByText(/RGS /).first()).toBeVisible()
 
   await sheet.getByRole('button', { name: 'Opslaan' }).click()
