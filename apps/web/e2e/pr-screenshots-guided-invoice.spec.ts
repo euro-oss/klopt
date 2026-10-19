@@ -44,6 +44,28 @@ async function shot(
   })
 }
 
+/**
+ * Scroll to the end and assert `label` sits fully above the sticky Terug/Verder
+ * bar (Designer: Totaal / Indicatief must not be covered at 390).
+ */
+async function ensureAboveSticky(page: Page, label: string | RegExp): Promise<void> {
+  const sticky = page.locator('[data-guided-sticky-actions]')
+  await expect(sticky).toBeVisible()
+  const target = page.getByText(label, { exact: typeof label === 'string' }).last()
+  await expect(target).toBeVisible()
+  await page.evaluate(() => {
+    window.scrollTo(0, document.documentElement.scrollHeight)
+  })
+  await expect
+    .poll(async () => {
+      const boxes = await Promise.all([target.boundingBox(), sticky.boundingBox()])
+      const [t, s] = boxes
+      if (t === null || s === null) return false
+      return t.y + t.height <= s.y - 2
+    })
+    .toBe(true)
+}
+
 function copyProto(name: string, protoBase: string): void {
   for (const theme of ['light', 'dark'] as const) {
     for (const [size, label] of [
@@ -142,18 +164,22 @@ test('capture guided invoice PNGs', async ({ page }) => {
   await page.getByLabel('Omschrijving regel 2').fill('Appeltaarten voor de zondagsbrunch')
   await page.getByLabel('Aantal regel 2').fill('6')
   await page.getByLabel('Prijs regel 2').fill('32,50')
-  // Ensure Totaal clears the sticky footer before the 390 shot.
-  await page.getByText('Totaal', { exact: true }).scrollIntoViewIfNeeded()
   for (const dark of [false, true]) {
     await shot(page, 'step2-wat', { width: 1440, height: 900, dark })
+    await page.setViewportSize({ width: 390, height: 844 })
+    // Indicatief sits below Totaal; both must clear the sticky bar.
+    await ensureAboveSticky(page, /Indicatief/)
+    await ensureAboveSticky(page, 'Totaal')
     await shot(page, 'step2-wat', { width: 390, height: 844, dark })
   }
 
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.getByRole('button', { name: /Verder/ }).click()
-  await expect(page.getByText('Stap 3 van 4')).toBeVisible()
+  await expect(page.getByText('Stap 3 van 4')).toBeVisible({ timeout: 15_000 })
   for (const dark of [false, true]) {
     await shot(page, 'step3-controleren', { width: 1440, height: 900, dark })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await ensureAboveSticky(page, 'Totaal')
     await shot(page, 'step3-controleren', { width: 390, height: 844, dark })
   }
 
@@ -165,6 +191,7 @@ test('capture guided invoice PNGs', async ({ page }) => {
   await expect(page.getByRole('alertdialog')).toBeVisible()
   for (const dark of [false, true]) {
     await shot(page, 'step4-bevestigen', { width: 1440, height: 900, dark })
+    // Confirm dialog covers the sticky bar; no Totaal-vs-sticky check here.
     await shot(page, 'step4-bevestigen', { width: 390, height: 844, dark })
   }
 

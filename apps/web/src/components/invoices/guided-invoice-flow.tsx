@@ -7,7 +7,7 @@ import {
   RiSearchLine,
   RiSendPlaneLine,
 } from '@remixicon/react'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -186,6 +186,37 @@ export function GuidedInvoiceFlow({
   const sendKey = useRef(crypto.randomUUID())
   const confirmRef = useRef<HTMLButtonElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
+  const stickyActionsRef = useRef<HTMLDivElement>(null)
+  /** Phone: padding so Totaal/Indicatief clear the sticky Terug/Verder bar. */
+  const [stickyClearancePx, setStickyClearancePx] = useState(0)
+
+  useLayoutEffect(() => {
+    const el = stickyActionsRef.current
+    if (el === null) return
+
+    const mq = window.matchMedia('(min-width: 768px)')
+    const BREATHING_ROOM_PX = 16
+
+    function update(): void {
+      const bar = stickyActionsRef.current
+      if (bar === null) return
+      if (mq.matches) {
+        setStickyClearancePx(0)
+        return
+      }
+      // Real sticky height (includes safe-area padding on the bar) + breathing room.
+      setStickyClearancePx(Math.ceil(bar.getBoundingClientRect().height) + BREATHING_ROOM_PX)
+    }
+
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    mq.addEventListener('change', update)
+    return () => {
+      observer.disconnect()
+      mq.removeEventListener('change', update)
+    }
+  }, [step, hydrated])
 
   const vatLabels = useVatLabels()
   const selected = openCustomers.find((c) => c.number === contactNumber) ?? null
@@ -765,8 +796,16 @@ export function GuidedInvoiceFlow({
       </ol>
 
       <div
-        className="animate-in fade-in-0 pb-28 duration-150 motion-reduce:animate-none md:pb-0"
+        className="animate-in fade-in-0 duration-150 motion-reduce:animate-none"
         data-step={step}
+        style={
+          stickyClearancePx > 0
+            ? {
+                // Measured sticky height already includes safe-area padding on the bar.
+                paddingBottom: `${String(stickyClearancePx)}px`,
+              }
+            : undefined
+        }
       >
         {step === 1 && (
           <CustomerStep
@@ -837,26 +876,30 @@ export function GuidedInvoiceFlow({
             onSendMethod={chooseSendMethod}
           />
         )}
+
+        {problems.length > 0 && (
+          <ul role="alert" className="text-destructive mt-4 space-y-1 text-sm">
+            {problems.map((problem, index) => (
+              <li key={index}>
+                {problem.path === null ? '' : `${problem.path}: `}
+                {problem.message}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {leaving && step === 1 && (
+          <p role="status" className="text-unreconciled mt-4 text-sm">
+            {t('invoiceNew.escapeAgain')}
+          </p>
+        )}
       </div>
 
-      {problems.length > 0 && (
-        <ul role="alert" className="text-destructive mt-4 space-y-1 text-sm">
-          {problems.map((problem, index) => (
-            <li key={index}>
-              {problem.path === null ? '' : `${problem.path}: `}
-              {problem.message}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {leaving && step === 1 && (
-        <p role="status" className="text-unreconciled mt-4 text-sm">
-          {t('invoiceNew.escapeAgain')}
-        </p>
-      )}
-
-      <div className="border-border sticky bottom-0 z-10 -mx-4 mt-6 flex items-center gap-2 border-t bg-background px-4 py-3 md:static md:mx-0 md:border-t-0 md:px-0">
+      <div
+        ref={stickyActionsRef}
+        data-guided-sticky-actions
+        className="border-border sticky bottom-0 z-10 -mx-4 mt-6 flex items-center gap-2 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:static md:mx-0 md:border-t-0 md:px-0 md:pb-3"
+      >
         {step > 1 ? (
           <Button type="button" variant="outline" onClick={goBack}>
             <RiArrowLeftSLine className="size-4" aria-hidden="true" />
