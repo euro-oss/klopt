@@ -11,6 +11,7 @@ import { DATABASE_URL, signIn, uniqueEmail } from './support'
  *   CAPTURE_PR_SCREENSHOTS=1 pnpm --filter @klopt/web exec playwright test e2e/pr-screenshots-import-findings.spec.ts
  *
  * Writes under docs/pr-screenshots/<pr>/ once the PR number is known; default 69.
+ * Captures the lab under the real `_app` shell (nav + findings), full page.
  */
 
 const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '69'
@@ -46,11 +47,18 @@ async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
 }
 
 async function shoot(page: Page, name: string): Promise<void> {
-  await page.screenshot({ path: join(OUT, name), fullPage: false })
+  await page.screenshot({ path: join(OUT, name), fullPage: true })
 }
 
-test('capture import findings PNGs (1440/390 × light/dark + empty)', async ({ browser }) => {
-  test.setTimeout(180_000)
+async function openFindings(page: Page, search: string): Promise<void> {
+  await page.goto(`/lab/import-findings?${search}`)
+  await expect(page.locator('[data-slot="import-findings"]')).toBeVisible({ timeout: 15_000 })
+}
+
+test('capture import findings PNGs (1440/390 × light/dark + sheets + states)', async ({
+  browser,
+}) => {
+  test.setTimeout(240_000)
   for (const theme of ['light', 'dark'] as const) {
     for (const [label, size] of [
       ['desktop-1440', { width: 1440, height: 900 }],
@@ -60,8 +68,12 @@ test('capture import findings PNGs (1440/390 × light/dark + empty)', async ({ b
         const context = await browser.newContext({ viewport: size })
         const page = await context.newPage()
         await ready(page, `Findings ${theme} ${label}`)
-        await page.goto('/lab/import-findings?source=moneybird&state=open')
-        await expect(page.locator('[data-slot="import-findings"]')).toBeVisible()
+        await openFindings(page, 'source=moneybird&state=open')
+        // Expand one-click preview + keyboard strip in view.
+        const tax = page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+        await tax.scrollIntoViewIfNeeded()
+        await tax.getByRole('button', { name: 'Gebruik 9% btw' }).click()
+        await expect(tax).toHaveAttribute('data-fix-open', 'true')
         await setTheme(page, theme)
         await shoot(page, `findings-${theme}-${label}.png`)
         await context.close()
@@ -70,7 +82,7 @@ test('capture import findings PNGs (1440/390 × light/dark + empty)', async ({ b
         const context = await browser.newContext({ viewport: size })
         const page = await context.newPage()
         await ready(page, `Empty ${theme} ${label}`)
-        await page.goto('/lab/import-findings?source=moneybird&state=empty')
+        await openFindings(page, 'source=moneybird&state=empty')
         await expect(page.getByText('Alles is nagekeken')).toBeVisible()
         await setTheme(page, theme)
         await shoot(page, `findings-empty-${theme}-${label}.png`)
@@ -79,37 +91,69 @@ test('capture import findings PNGs (1440/390 × light/dark + empty)', async ({ b
     }
   }
 
-  // Account+VAT and FX sheets at desktop light (prototype companions).
+  // Account sheet — desktop + mobile, light + dark.
+  for (const theme of ['light', 'dark'] as const) {
+    for (const [label, size] of [
+      ['desktop-1440', { width: 1440, height: 900 }],
+      ['mobile-390', { width: 390, height: 844 }],
+    ] as const) {
+      const context = await browser.newContext({ viewport: size })
+      const page = await context.newPage()
+      await ready(page, `Account ${theme} ${label}`)
+      await openFindings(page, 'source=moneybird&state=open&sheet=account')
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await setTheme(page, theme)
+      await shoot(page, `fix-account-vat-${theme}-${label}.png`)
+      await context.close()
+    }
+  }
+
+  // FX ECB + override — desktop light/dark + mobile light; advanced Debet/Credit.
   {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     const page = await context.newPage()
-    await ready(page, 'Sheets Desktop')
-    await page.goto('/lab/import-findings?source=moneybird&state=open')
-    await expect(page.locator('[data-slot="import-findings"]')).toBeVisible()
-    await page
-      .locator('[data-slot="finding-card"][data-code="unmapped_account"]')
-      .getByRole('button', { name: 'Categorie kiezen' })
-      .click()
-    const accountSheet = page.getByRole('dialog')
-    await expect(accountSheet).toBeVisible()
+    await ready(page, 'FX ECB')
+    await openFindings(page, 'source=moneybird&state=open&sheet=fx')
+    await expect(page.getByRole('dialog')).toBeVisible()
     await setTheme(page, 'light')
-    await shoot(page, 'fix-account-vat-light-desktop-1440.png')
-    await page.keyboard.press('Escape')
-    await expect(accountSheet).toBeHidden()
-    await page
-      .locator('[data-slot="finding-card"][data-code="unmapped_account"]')
-      .getByRole('button', { name: 'Sluiten' })
-      .click()
-    await page
-      .locator('[data-slot="finding-card"][data-code="unknown_currency"]')
-      .getByRole('button', { name: 'Koers kiezen' })
-      .click()
-    const fxSheet = page.getByRole('dialog')
-    await expect(fxSheet).toBeVisible()
     await shoot(page, 'fix-fx-ecb-light-desktop-1440.png')
     await page.locator('#fx-rate-input').fill('1,1490')
     await expect(page.getByText(/Aangepast ·/)).toBeVisible()
     await shoot(page, 'fix-fx-override-light-desktop-1440.png')
+    await page.keyboard.press('Escape')
+    await page.getByTestId('lab-advanced').check()
+    await page
+      .locator('[data-slot="finding-card"][data-code="unknown_currency"]')
+      .getByRole('button', { name: 'Koers kiezen' })
+      .click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await expect(page.getByText('Debet')).toBeVisible()
+    await shoot(page, 'fix-fx-advanced-light-desktop-1440.png')
+    await setTheme(page, 'dark')
+    await shoot(page, 'fix-fx-ecb-dark-desktop-1440.png')
+    await context.close()
+  }
+  {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+    const page = await context.newPage()
+    await ready(page, 'FX mobile')
+    await openFindings(page, 'source=moneybird&state=open&sheet=fx')
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await setTheme(page, 'light')
+    await shoot(page, 'fix-fx-ecb-light-mobile-390.png')
+    await context.close()
+  }
+
+  // Geavanceerd on: paths + numbers visible on findings.
+  {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+    const page = await context.newPage()
+    await ready(page, 'Advanced findings')
+    await openFindings(page, 'source=moneybird&state=open')
+    await page.getByTestId('lab-advanced').check()
+    await expect(page.getByText('ledger_accounts/389114002')).toBeVisible()
+    await setTheme(page, 'light')
+    await shoot(page, 'findings-advanced-light-desktop-1440.png')
     await context.close()
   }
 })

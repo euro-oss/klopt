@@ -19,6 +19,7 @@ import {
   SheetTitle,
 } from '~/components/ui/sheet'
 import { useT } from '~/i18n/provider'
+import type { MessageKey } from '~/i18n/nl'
 import { cn } from '~/lib/utils'
 
 export interface FxPreviewRow {
@@ -26,6 +27,9 @@ export interface FxPreviewRow {
   /** Advanced-only account number shown beside the label. */
   readonly accountNumber?: string
   readonly amount: string
+  /** Advanced-only Debet / Credit amounts. */
+  readonly debit?: string
+  readonly credit?: string
 }
 
 export interface FxRateSheetProps {
@@ -40,11 +44,13 @@ export interface FxRateSheetProps {
   readonly ecbRate: string
   readonly source: 'ecb' | 'override'
   readonly ecbDate: string
+  /** Optional inverse for the ECB honesty note, e.g. `0,8672`. */
+  readonly ecbInverse?: string | null
   readonly loading?: boolean
   readonly error?: string | null
   readonly previewRows: readonly FxPreviewRow[]
   readonly calcLine: string
-  /** Geavanceerd: show account numbers beside preview rows. */
+  /** Geavanceerd: show account numbers and Debet/Credit columns. */
   readonly advanced?: boolean
   readonly onRateChange: (rate: string) => void
   readonly onResetEcb?: () => void
@@ -63,6 +69,7 @@ export function FxRateSheet({
   ecbRate,
   source,
   ecbDate,
+  ecbInverse = null,
   loading = false,
   error = null,
   previewRows,
@@ -74,19 +81,27 @@ export function FxRateSheet({
 }: FxRateSheetProps) {
   const { t } = useT()
   const isEcb = source === 'ecb'
+  const currencyName = fxCurrencyName(t, currency)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
         closeLabel={t('findingCard.close')}
-        className="w-full sm:max-w-[520px]"
+        className="flex w-full flex-col sm:max-w-[520px]"
         data-slot="fx-rate-sheet"
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+            const target = event.target as HTMLElement
+            if (target.id === 'fx-rate-input') {
+              event.preventDefault()
+              if (!loading && rate.trim() !== '') onAccept()
+            }
+          }
+        }}
       >
         <SheetHeader className="border-b px-5 py-4">
-          <SheetDescription className="text-xs">
-            {t('importFindings.fx.eyebrow')}
-          </SheetDescription>
+          <SheetDescription className="text-xs">{t('importFindings.fx.eyebrow')}</SheetDescription>
           <SheetTitle className="text-lg leading-snug">
             {t('importFindings.fx.title', { reference })}
           </SheetTitle>
@@ -128,7 +143,7 @@ export function FxRateSheet({
             </Badge>
           </div>
           <p className="text-muted-foreground mb-2 text-xs">
-            {t('importFindings.fx.rateHint', { currency })}
+            {t('importFindings.fx.rateHint', { currencyName })}
           </p>
 
           <div className="flex items-stretch">
@@ -159,9 +174,14 @@ export function FxRateSheet({
           <p id="fx-rate-note" className="text-muted-foreground mt-2 text-xs">
             {loading
               ? t('moneybird.fx.loading')
-              : isEcb
-                ? t('importFindings.fx.ecbNote', { date: ecbDate })
-                : t('importFindings.fx.overrideNote')}
+              : isEcb && ecbInverse !== null && ecbInverse !== ''
+                ? t('importFindings.fx.ecbNoteInverse', {
+                    inverse: ecbInverse,
+                    currency,
+                  })
+                : isEcb
+                  ? t('importFindings.fx.ecbNote', { date: ecbDate })
+                  : t('importFindings.fx.overrideNote')}
           </p>
 
           {error !== null && error !== '' && (
@@ -187,6 +207,21 @@ export function FxRateSheet({
             </h3>
             <div className="border">
               <table className="w-full text-sm">
+                {advanced && (
+                  <thead>
+                    <tr className="border-b text-left">
+                      <th className="px-3 py-2 font-medium">
+                        {t('importFindings.fx.previewHeading')}
+                      </th>
+                      <th className="px-3 py-2 text-right font-medium">
+                        {t('importFindings.fx.debit')}
+                      </th>
+                      <th className="px-3 py-2 text-right font-medium">
+                        {t('importFindings.fx.credit')}
+                      </th>
+                    </tr>
+                  </thead>
+                )}
                 <tbody className="divide-y">
                   {previewRows.map((row) => (
                     <tr key={row.label}>
@@ -200,7 +235,14 @@ export function FxRateSheet({
                             </span>
                           )}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{row.amount}</td>
+                      {advanced ? (
+                        <>
+                          <td className="px-3 py-2 text-right tabular-nums">{row.debit ?? '—'}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{row.credit ?? '—'}</td>
+                        </>
+                      ) : (
+                        <td className="px-3 py-2 text-right tabular-nums">{row.amount}</td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -240,4 +282,14 @@ export function FxRateSheet({
       </SheetContent>
     </Sheet>
   )
+}
+
+function fxCurrencyName(
+  t: (key: MessageKey, values?: Record<string, string>) => string,
+  currency: string,
+): string {
+  if (currency === 'GBP') return t('importFindings.fx.currency.GBP')
+  if (currency === 'USD') return t('importFindings.fx.currency.USD')
+  if (currency === 'CHF') return t('importFindings.fx.currency.CHF')
+  return t('importFindings.fx.currency.fallback', { currency })
 }

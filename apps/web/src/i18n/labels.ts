@@ -161,9 +161,7 @@ export function findingMessage(t: Translate, finding: TranslatableFinding): stri
   // missing catalogue entry and throws (Exact still ships message-only keys).
   const detail = finding.detail
   const values =
-    detail !== null && detail !== undefined && Object.keys(detail).length > 0
-      ? detail
-      : undefined
+    detail !== null && detail !== undefined && Object.keys(detail).length > 0 ? detail : undefined
   return lookUp(t, `finding.${finding.messageKey}`, values) ?? finding.message
 }
 

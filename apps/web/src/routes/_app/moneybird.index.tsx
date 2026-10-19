@@ -11,8 +11,14 @@ import { PageHeader } from '~/components/app-shell'
 import { AccountVatSheet } from '~/components/findings/account-vat-sheet'
 import { FxRateSheet } from '~/components/findings/fx-rate-sheet'
 import { ImportFindingsScreen } from '~/components/findings/import-findings-screen'
+import { ScrollTable, stickyFirstCol } from '~/components/ui/scroll-table'
+import { cn } from '~/lib/utils'
 import { detailForDisplay, formatFindingAmount, formatMonthName } from '~/lib/finding-card'
-import { honestySourcesFromMoneybird, type ImportVatCode } from '~/lib/import-findings'
+import {
+  honestySourcesFromMoneybird,
+  suggestVatCode,
+  type ImportVatCode,
+} from '~/lib/import-findings'
 import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
@@ -117,7 +123,9 @@ function Moneybird() {
     readonly detailLine: string
     readonly mode: 'account' | 'tax'
     readonly taxMoneybirdId?: string
-    readonly suggestedVat: ImportVatCode
+    readonly suggestedVat: ImportVatCode | null
+    readonly taxRateType: string | null
+    readonly percentage: string | null
   } | null>(null)
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
   const [imported, setImported] = useState<Record<string, unknown> | null>(null)
@@ -284,15 +292,19 @@ function Moneybird() {
             ? t('importFindings.source.readCount', { count })
             : '',
         mode: 'account',
-        suggestedVat: 'VH21',
+        suggestedVat: null,
+        taxRateType: null,
+        percentage: null,
       })
     },
     onMapTaxRate: (problem) => {
       const id = problem.path?.replace(/^taxRates\./, '') ?? problem.detail['moneybirdId'] ?? ''
       const name = problem.detail['name'] ?? id
       const percentage = problem.detail['percentage'] ?? ''
-      const suggestedVat: ImportVatCode =
-        percentage.startsWith('9') ? 'VL9' : percentage.startsWith('0') ? 'GEEN' : 'VH21'
+      const taxRates = (preview?.['taxRates'] as TaxSample[] | undefined) ?? []
+      const sample = taxRates.find((rate) => rate.moneybirdId === id)
+      const taxRateType = sample?.taxRateType ?? problem.detail['taxRateType'] ?? 'purchase_invoice'
+      const suggestedVat = suggestVatCode({ taxRateType, percentage })
       setAccountVatDraft({
         moneybirdId: id,
         name,
@@ -302,6 +314,8 @@ function Moneybird() {
         mode: 'tax',
         taxMoneybirdId: id,
         suggestedVat,
+        taxRateType,
+        percentage: percentage !== '' ? percentage : null,
       })
     },
     onRenumberAccount: (problem) => {
@@ -551,7 +565,7 @@ function Moneybird() {
         <span className="text-muted-foreground text-xs">{t('moneybird.advancedHint')}</span>
       </div>
 
-      {error !== null && (
+      {error !== null && preview === null && (
         <p role="alert" className="text-destructive mb-4 text-sm">
           {error}
         </p>
@@ -768,16 +782,19 @@ function Moneybird() {
           sourceNumber={accountVatDraft.number}
           accounts={kloptAccounts}
           suggestedVat={accountVatDraft.suggestedVat}
+          taxRateType={accountVatDraft.taxRateType}
+          percentage={accountVatDraft.percentage}
+          mode={accountVatDraft.mode}
           advanced={advanced}
           onSave={(choice) => {
             if (accountVatDraft.mode === 'tax') {
               const taxId = accountVatDraft.taxMoneybirdId ?? accountVatDraft.moneybirdId
-              if (taxId !== '') {
+              if (taxId !== '' && choice.vatCode !== null) {
                 const nextTax = { ...taxMappings, [taxId]: choice.vatCode }
                 setTaxMappings(nextTax)
                 void persistAndPreview({ taxMappings: nextTax })
               }
-            } else if (accountVatDraft.moneybirdId !== '') {
+            } else if (accountVatDraft.moneybirdId !== '' && choice.accountNumber !== null) {
               const nextAccounts = {
                 ...accountMappings,
                 [accountVatDraft.moneybirdId]: choice.accountNumber,
@@ -848,9 +865,7 @@ function Moneybird() {
                 rate: normalized,
                 source,
                 date:
-                  source === 'ecb'
-                    ? fxDraft.date || fxDraft.documentDate
-                    : fxDraft.documentDate,
+                  source === 'ecb' ? fxDraft.date || fxDraft.documentDate : fxDraft.documentDate,
               }),
             )
             setFxDraft(null)
@@ -904,19 +919,25 @@ function MoneybirdFxSheet({
       ? []
       : previewFxEntry(
           fxEntry.lines.map((line) => ({
-            label: `${line.accountNumber} ${line.description}`,
+            label: line.description,
             debit: BigInt(line.debitMinor),
             credit: BigInt(line.creditMinor),
           })),
           draft.currency,
           fxNormalized,
         )
+  const ecbInverse =
+    draft.ecbRate === ''
+      ? null
+      : (() => {
+          const normalized = normalizeFxRateInput(draft.ecbRate)
+          if (normalized === null) return null
+          const rate = Number(normalized)
+          if (!Number.isFinite(rate) || rate <= 0) return null
+          return (1 / rate).toFixed(4).replace('.', ',')
+        })()
   const displayRate =
-    draft.rate === ''
-      ? ''
-      : draft.rate.includes(',')
-        ? draft.rate
-        : draft.rate.replace('.', ',')
+    draft.rate === '' ? '' : draft.rate.includes(',') ? draft.rate : draft.rate.replace('.', ',')
   const foreignTotal =
     fxEntry === undefined
       ? '—'
@@ -946,18 +967,31 @@ function MoneybirdFxSheet({
       }
       source={draft.source}
       ecbDate={draft.date || draft.documentDate}
+      ecbInverse={ecbInverse}
       loading={draft.loading}
       error={draft.error ?? fxRateError}
       advanced={advanced}
-      previewRows={fxPreviewLines.map((line) => {
-        const functional = line.functionalDebit > 0n ? line.functionalDebit : line.functionalCredit
-        const number = line.label.split(' ')[0] ?? ''
-        const name = line.label.slice(number.length).trim() || line.label
+      previewRows={fxPreviewLines.map((line, index) => {
+        const accountNumber = fxEntry?.lines[index]?.accountNumber
         return {
-          label: advanced ? line.label : name,
-          accountNumber: advanced ? number : undefined,
+          label: line.label,
+          ...(advanced && accountNumber !== undefined && accountNumber !== ''
+            ? { accountNumber }
+            : {}),
           amount:
-            functional > 0n ? formatFindingAmount(functional, functionalCurrency) : '—',
+            line.functionalDebit > 0n
+              ? formatFindingAmount(line.functionalDebit, functionalCurrency)
+              : line.functionalCredit > 0n
+                ? formatFindingAmount(line.functionalCredit, functionalCurrency)
+                : '—',
+          debit:
+            line.functionalDebit > 0n
+              ? formatFindingAmount(line.functionalDebit, functionalCurrency)
+              : '—',
+          credit:
+            line.functionalCredit > 0n
+              ? formatFindingAmount(line.functionalCredit, functionalCurrency)
+              : '—',
         }
       })}
       calcLine={
@@ -978,7 +1012,7 @@ function MoneybirdFxSheet({
             })
       }
       onRateChange={onRateChange}
-      onResetEcb={draft.ecbRate === '' ? undefined : onResetEcb}
+      {...(draft.ecbRate === '' ? {} : { onResetEcb })}
       onAccept={onAccept}
     />
   )
@@ -1024,71 +1058,75 @@ function MappingReview({
         {t('moneybird.mappingIntro')}
         {unmapped > 0 ? ` ${t('moneybird.unmappedCount', { count: String(unmapped) })}` : ''}
       </p>
-      <table className="mb-4 w-full text-sm">
-        <thead>
-          <tr className="border-border border-b text-left">
-            <th className="py-2">{sourceColumn}</th>
-            <th className="py-2">{accountColumn}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {accounts.map((account) => (
-            <tr
-              key={account.moneybirdId}
-              id={`moneybird-account-${account.moneybirdId}`}
-              className="border-border border-b"
-            >
-              <td className="py-2">
-                {advanced ? `${account.number} — ${account.name}` : account.name}
-                {advanced && account.rgsCode !== null && account.rgsCode !== undefined ? (
-                  <span className="text-muted-foreground ml-2 text-xs tabular-nums">
-                    {account.rgsCode}
-                  </span>
-                ) : null}
-              </td>
-              <td className="py-2">
-                <input
-                  value={accountMappings[account.moneybirdId] ?? account.proposedNumber}
-                  onChange={(event) => onAccountChange(account.moneybirdId, event.target.value)}
-                  disabled={!hydrated}
-                  className="border-border w-32 rounded-none border px-2 py-1 tabular-nums"
-                />
-              </td>
+      <ScrollTable className="mb-4">
+        <table className={cn('w-full min-w-[32rem] text-sm', stickyFirstCol)}>
+          <thead>
+            <tr className="border-border border-b text-left">
+              <th className="py-2 pr-4">{sourceColumn}</th>
+              <th className="py-2">{accountColumn}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <table className="mb-4 w-full text-sm">
-        <thead>
-          <tr className="border-border border-b text-left">
-            <th className="py-2">{t('moneybird.taxRates')}</th>
-            <th className="py-2">{t('moneybird.kloptTax')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {taxRates.map((rate) => (
-            <tr
-              key={rate.moneybirdId}
-              id={`moneybird-tax-${rate.moneybirdId}`}
-              className="border-border border-b"
-            >
-              <td className="py-2">
-                {rate.name} ({rate.percentage}%)
-              </td>
-              <td className="py-2">
-                <input
-                  value={
-                    taxMappings[rate.moneybirdId] ?? rate.mappedCode ?? rate.proposedCode ?? ''
-                  }
-                  onChange={(event) => onTaxChange(rate.moneybirdId, event.target.value)}
-                  disabled={!hydrated}
-                  className="border-border w-32 rounded-none border px-2 py-1 tabular-nums"
-                />
-              </td>
+          </thead>
+          <tbody>
+            {accounts.map((account) => (
+              <tr
+                key={account.moneybirdId}
+                id={`moneybird-account-${account.moneybirdId}`}
+                className="border-border border-b"
+              >
+                <td className="py-2 pr-4">
+                  {advanced ? `${account.number} — ${account.name}` : account.name}
+                  {advanced && account.rgsCode !== null && account.rgsCode !== undefined ? (
+                    <span className="text-muted-foreground ml-2 text-xs tabular-nums">
+                      {account.rgsCode}
+                    </span>
+                  ) : null}
+                </td>
+                <td className="py-2">
+                  <input
+                    value={accountMappings[account.moneybirdId] ?? account.proposedNumber}
+                    onChange={(event) => onAccountChange(account.moneybirdId, event.target.value)}
+                    disabled={!hydrated}
+                    className="border-border w-32 rounded-none border px-2 py-1 tabular-nums"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </ScrollTable>
+      <ScrollTable className="mb-4">
+        <table className={cn('w-full min-w-[28rem] text-sm', stickyFirstCol)}>
+          <thead>
+            <tr className="border-border border-b text-left">
+              <th className="py-2 pr-4">{t('moneybird.taxRates')}</th>
+              <th className="py-2">{t('moneybird.kloptTax')}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {taxRates.map((rate) => (
+              <tr
+                key={rate.moneybirdId}
+                id={`moneybird-tax-${rate.moneybirdId}`}
+                className="border-border border-b"
+              >
+                <td className="py-2 pr-4 tabular-nums">
+                  {rate.name} ({rate.percentage}%)
+                </td>
+                <td className="py-2">
+                  <input
+                    value={
+                      taxMappings[rate.moneybirdId] ?? rate.mappedCode ?? rate.proposedCode ?? ''
+                    }
+                    onChange={(event) => onTaxChange(rate.moneybirdId, event.target.value)}
+                    disabled={!hydrated}
+                    className="border-border w-32 rounded-none border px-2 py-1 tabular-nums"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </ScrollTable>
       <button
         type="button"
         disabled={busy || !hydrated}
@@ -1113,6 +1151,7 @@ interface TaxSample {
   readonly moneybirdId: string
   readonly name: string
   readonly percentage: string
+  readonly taxRateType?: string
   readonly proposedCode: string | null
   readonly mappedCode: string | null
   readonly used: boolean
@@ -1214,6 +1253,9 @@ function PreviewReport({
       bookings: (year) => t('importFindings.source.bookings', { year: String(year) }),
       readCount: (n) => t('importFindings.source.readCount', { count: String(n) }),
       zeroRead: t('importFindings.source.zeroRead'),
+      unreadable: t('importFindings.source.unreadable'),
+      doesNotBalance: t('importFindings.source.doesNotBalance'),
+      yearRead: t('importFindings.source.yearRead'),
     },
     onReread,
   })
@@ -1235,6 +1277,7 @@ function PreviewReport({
         sources={sources}
         onReread={onReread}
         onImport={onImport}
+        advanced={advanced}
       >
         {typeDraft !== null && (
           <div className="border-border mb-6 rounded-none border p-4">
@@ -1336,7 +1379,9 @@ function PreviewReport({
                 ))}
               </ul>
             ) : (
-              <p className="text-muted-foreground mb-3 text-sm">{t('moneybird.drillNoDocuments')}</p>
+              <p className="text-muted-foreground mb-3 text-sm">
+                {t('moneybird.drillNoDocuments')}
+              </p>
             )}
             <button
               type="button"
@@ -1384,32 +1429,33 @@ function PreviewReport({
               ),
             })}
           </summary>
-          <table className="mt-2 w-full text-sm">
-            <thead>
-              <tr className="border-border border-b text-left">
-                <th className="py-2">{t('moneybird.resource')}</th>
-                <th className="py-2 text-right">{t('moneybird.statusColumn')}</th>
-                <th className="py-2 text-right">{t('moneybird.rowsColumn')}</th>
-                <th className="py-2 text-right">{t('moneybird.durationColumn')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map((entry, index) => (
-                <tr key={`${entry.path}-${String(index)}`} className="border-border border-b">
-                  <td className="py-1 tabular text-xs">{entry.path}</td>
-                  <td className="py-1 text-right tabular">{String(entry.status)}</td>
-                  <td className="py-1 text-right tabular">{String(entry.rows)}</td>
-                  <td className="py-1 text-right tabular">{String(entry.durationMs)} ms</td>
+          <ScrollTable>
+            <table className={cn('mt-2 w-full min-w-[36rem] text-sm', stickyFirstCol)}>
+              <thead>
+                <tr className="border-border border-b text-left">
+                  <th className="py-2 pr-4">{t('moneybird.resource')}</th>
+                  <th className="py-2 text-right">{t('moneybird.statusColumn')}</th>
+                  <th className="py-2 text-right">{t('moneybird.rowsColumn')}</th>
+                  <th className="py-2 text-right">{t('moneybird.durationColumn')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {requests.map((entry, index) => (
+                  <tr key={`${entry.path}-${String(index)}`} className="border-border border-b">
+                    <td className="py-1 pr-4 font-mono text-xs tabular-nums">{entry.path}</td>
+                    <td className="py-1 text-right tabular-nums">{String(entry.status)}</td>
+                    <td className="py-1 text-right tabular-nums">{String(entry.rows)}</td>
+                    <td className="py-1 text-right tabular-nums">{String(entry.durationMs)} ms</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollTable>
         </details>
       )}
     </div>
   )
 }
-
 
 interface ReconciliationYear {
   readonly year: number
@@ -1477,26 +1523,28 @@ function ImportProgress({
                       : ''}
               </h3>
               {year.accounts.length > 0 && (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-border text-muted-foreground border-b text-left">
-                      <th className="py-2">{t('moneybird.accountColumn')}</th>
-                      <th className="py-2 text-right">{t('moneybird.plannedColumn')}</th>
-                      <th className="py-2 text-right">{t('moneybird.kloptColumn')}</th>
-                      <th className="py-2 text-right">{t('moneybird.differenceColumn')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {year.accounts.map((row) => (
-                      <tr key={row.accountNumber} className="border-border border-b">
-                        <td className="py-1.5 tabular-nums">{row.accountNumber}</td>
-                        <td className="py-1.5 text-right tabular-nums">{row.planned}</td>
-                        <td className="py-1.5 text-right tabular-nums">{row.klopt}</td>
-                        <td className="py-1.5 text-right tabular-nums">{row.difference}</td>
+                <ScrollTable>
+                  <table className={cn('w-full min-w-[36rem] text-sm', stickyFirstCol)}>
+                    <thead>
+                      <tr className="border-border text-muted-foreground border-b text-left">
+                        <th className="py-2 pr-4">{t('moneybird.accountColumn')}</th>
+                        <th className="py-2 text-right">{t('moneybird.plannedColumn')}</th>
+                        <th className="py-2 text-right">{t('moneybird.kloptColumn')}</th>
+                        <th className="py-2 text-right">{t('moneybird.differenceColumn')}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {year.accounts.map((row) => (
+                        <tr key={row.accountNumber} className="border-border border-b">
+                          <td className="py-1.5 pr-4 tabular-nums">{row.accountNumber}</td>
+                          <td className="py-1.5 text-right tabular-nums">{row.planned}</td>
+                          <td className="py-1.5 text-right tabular-nums">{row.klopt}</td>
+                          <td className="py-1.5 text-right tabular-nums">{row.difference}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </ScrollTable>
               )}
             </div>
           ))}
@@ -1505,26 +1553,28 @@ function ImportProgress({
               <h3 className="mb-2 text-sm font-semibold">
                 {t('moneybird.openingLabel', { year: String(opening.year) })}
               </h3>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-border text-muted-foreground border-b text-left">
-                    <th className="py-2">{t('moneybird.accountColumn')}</th>
-                    <th className="py-2 text-right">{t('moneybird.plannedColumn')}</th>
-                    <th className="py-2 text-right">{t('moneybird.kloptColumn')}</th>
-                    <th className="py-2 text-right">{t('moneybird.differenceColumn')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {opening.accounts.map((row) => (
-                    <tr key={row.accountNumber} className="border-border border-b">
-                      <td className="py-1.5 tabular-nums">{row.accountNumber}</td>
-                      <td className="py-1.5 text-right tabular-nums">{row.planned}</td>
-                      <td className="py-1.5 text-right tabular-nums">{row.klopt}</td>
-                      <td className="py-1.5 text-right tabular-nums">{row.difference}</td>
+              <ScrollTable>
+                <table className={cn('w-full min-w-[36rem] text-sm', stickyFirstCol)}>
+                  <thead>
+                    <tr className="border-border text-muted-foreground border-b text-left">
+                      <th className="py-2 pr-4">{t('moneybird.accountColumn')}</th>
+                      <th className="py-2 text-right">{t('moneybird.plannedColumn')}</th>
+                      <th className="py-2 text-right">{t('moneybird.kloptColumn')}</th>
+                      <th className="py-2 text-right">{t('moneybird.differenceColumn')}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {opening.accounts.map((row) => (
+                      <tr key={row.accountNumber} className="border-border border-b">
+                        <td className="py-1.5 pr-4 tabular-nums">{row.accountNumber}</td>
+                        <td className="py-1.5 text-right tabular-nums">{row.planned}</td>
+                        <td className="py-1.5 text-right tabular-nums">{row.klopt}</td>
+                        <td className="py-1.5 text-right tabular-nums">{row.difference}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </ScrollTable>
             </div>
           )}
         </div>

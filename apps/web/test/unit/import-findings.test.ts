@@ -3,7 +3,20 @@ import {
   honestySourcesFromExact,
   honestySourcesFromMoneybird,
   importProgressSteps,
+  suggestVatCode,
+  vatOptionsFor,
 } from '../../src/lib/import-findings.js'
+
+const LABELS = {
+  sales: 'Verkoopfacturen',
+  purchases: 'Inkoop en bonnen',
+  bookings: (year: number) => `Boekingen ${String(year)}`,
+  readCount: (n: number) => `${String(n)} gelezen`,
+  zeroRead: '0 gelezen',
+  unreadable: 'Niet gelezen',
+  doesNotBalance: 'Sluit niet',
+  yearRead: 'Gelezen',
+}
 
 describe('importProgressSteps', () => {
   it('starts on connect until linked', () => {
@@ -29,21 +42,17 @@ describe('importProgressSteps', () => {
 })
 
 describe('honestySourcesFromMoneybird', () => {
-  it('builds sales, purchases, year, and unread attachment cells', () => {
+  it('shows sales/purchases counts without a Klopt claim', () => {
     const sources = honestySourcesFromMoneybird({
       counts: { salesInvoices: 412, purchaseInvoices: 200, documents: 68 },
       reconciliation: [{ year: 2024, source: 'empty', balanced: null }],
       unreadResource: { label: 'Bijlagen', detail: 'HTTP 403' },
-      labels: {
-        sales: 'Verkoopfacturen',
-        purchases: 'Inkoop en bonnen',
-        bookings: (year) => `Boekingen ${String(year)}`,
-        readCount: (n) => `${String(n)} gelezen`,
-        zeroRead: '0 gelezen',
-      },
+      labels: LABELS,
     })
     expect(sources).toHaveLength(4)
-    expect(sources[0]?.honesty).toBe('reconciled')
+    expect(sources[0]?.honesty).toBeNull()
+    expect(sources[0]?.count).toBe('412 gelezen')
+    expect(sources[1]?.honesty).toBeNull()
     expect(sources[2]?.honesty).toBe('empty')
     expect(sources[3]?.honesty).toBe('unread')
     expect(sources[3]?.count).toBe('HTTP 403')
@@ -53,15 +62,31 @@ describe('honestySourcesFromMoneybird', () => {
     const sources = honestySourcesFromMoneybird({
       counts: {},
       reconciliation: [{ year: 2025, source: 'unreadable', balanced: true }],
-      labels: {
-        sales: 'S',
-        purchases: 'P',
-        bookings: (year) => String(year),
-        readCount: (n) => String(n),
-        zeroRead: '0',
-      },
+      labels: LABELS,
     })
-    expect(sources.find((source) => source.id === 'year-2025')?.honesty).toBe('unread')
+    const year = sources.find((source) => source.id === 'year-2025')
+    expect(year?.honesty).toBe('unread')
+    expect(year?.count).toBe('Niet gelezen')
+  })
+
+  it('surfaces does-not-balance for a read year that fails', () => {
+    const sources = honestySourcesFromMoneybird({
+      counts: { salesInvoices: 1 },
+      reconciliation: [{ year: 2024, source: 'read', balanced: false }],
+      labels: LABELS,
+    })
+    const year = sources.find((source) => source.id === 'year-2024')
+    expect(year?.honesty).toBeNull()
+    expect(year?.count).toBe('Sluit niet')
+  })
+
+  it('omits sales/purchases when those counts are absent', () => {
+    const sources = honestySourcesFromMoneybird({
+      counts: {},
+      reconciliation: [],
+      labels: LABELS,
+    })
+    expect(sources).toEqual([])
   })
 })
 
@@ -84,8 +109,22 @@ describe('honestySourcesFromExact', () => {
   })
 
   it('returns none when honesty is unknown', () => {
+    expect(honestySourcesFromExact({ honesty: null, label: 'x', count: 'y' })).toEqual([])
+  })
+})
+
+describe('vatOptionsFor', () => {
+  it('filters purchase rates to input codes', () => {
     expect(
-      honestySourcesFromExact({ honesty: null, label: 'x', count: 'y' }),
-    ).toEqual([])
+      vatOptionsFor({ taxRateType: 'purchase_invoice', percentage: '21' }).map((o) => o.code),
+    ).toEqual(['VH21'])
+    expect(
+      vatOptionsFor({ taxRateType: 'sales_invoice', percentage: '21' }).map((o) => o.code),
+    ).toEqual(['H21'])
+  })
+
+  it('does not fall back to 21% for unsupported rates', () => {
+    expect(vatOptionsFor({ taxRateType: 'purchase_invoice', percentage: '6' })).toEqual([])
+    expect(suggestVatCode({ taxRateType: 'sales_invoice', percentage: '12' })).toBeNull()
   })
 })

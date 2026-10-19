@@ -6,7 +6,12 @@
  * empty / loading / error states. FindingCard props stay on the #41 contract.
  */
 
-import { RiCheckLine, RiLoader4Line, RiRefreshLine } from '@remixicon/react'
+import {
+  RiCheckboxBlankCircleLine,
+  RiCheckLine,
+  RiLoader4Line,
+  RiRefreshLine,
+} from '@remixicon/react'
 import type { ReactNode } from 'react'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -45,6 +50,8 @@ export interface ImportFindingsScreenProps {
   readonly importDisabledReason?: string | null
   readonly emptySummary?: string
   readonly className?: string
+  /** Geavanceerd: show technical paths on finding cards. */
+  readonly advanced?: boolean
   /** Extra chrome under the findings list (FX/type panels still owned by caller). */
   readonly children?: ReactNode
 }
@@ -65,6 +72,7 @@ export function ImportFindingsScreen({
   importDisabledReason = null,
   emptySummary,
   className,
+  advanced = false,
   children,
 }: ImportFindingsScreenProps) {
   const { t } = useT()
@@ -80,10 +88,7 @@ export function ImportFindingsScreen({
   const allClear = hasPreview && findings.length === 0 && !loading && error === null
 
   return (
-    <div
-      data-slot="import-findings"
-      className={cn('mx-auto w-full max-w-4xl', className)}
-    >
+    <div data-slot="import-findings" className={cn('mx-auto w-full max-w-4xl', className)}>
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-muted-foreground text-xs">{t('importFindings.eyebrow')}</p>
@@ -124,10 +129,7 @@ export function ImportFindingsScreen({
       </header>
 
       {!canImport && blocking > 0 && (
-        <p
-          id="import-findings-why"
-          className="text-muted-foreground -mt-4 mb-6 text-right text-xs"
-        >
+        <p id="import-findings-why" className="text-muted-foreground -mt-4 mb-6 text-right text-xs">
           {blocking === 1
             ? t('importFindings.blockingOne')
             : t('importFindings.blockingMany', { count: String(blocking) })}
@@ -203,11 +205,7 @@ export function ImportFindingsScreen({
                 {emptySummary ?? t('importFindings.allClearBody')}
               </p>
               {canImport && (
-                <Button
-                  type="button"
-                  className="mt-5 min-h-11 md:min-h-9"
-                  onClick={onImport}
-                >
+                <Button type="button" className="mt-5 min-h-11 md:min-h-9" onClick={onImport}>
                   {t('importFindings.import')}
                 </Button>
               )}
@@ -217,6 +215,7 @@ export function ImportFindingsScreen({
               findings={findings}
               aria-label={t('importFindings.openHeading')}
               showShortcuts
+              showPath={advanced}
             />
           )}
         </section>
@@ -273,11 +272,7 @@ function ImportProgressStrip({ steps }: { readonly steps: readonly ImportProgres
               step.state === 'todo' && 'text-muted-foreground',
             )}
           >
-            {step.state === 'done' ? (
-              <RiCheckLine className="size-3.5" aria-hidden />
-            ) : (
-              index + 1
-            )}
+            {step.state === 'done' ? <RiCheckLine className="size-3.5" aria-hidden /> : index + 1}
           </span>
           <span
             className={cn(
@@ -308,50 +303,59 @@ function HonestyGrid({ sources }: { readonly sources: readonly HonestySource[] }
 
 function HonestyCell({ source }: { readonly source: HonestySource }) {
   const { t } = useT()
-  const classes = honestyClasses(source.honesty)
-  const badgeVariant =
-    source.honesty === 'reconciled'
-      ? 'success'
-      : source.honesty === 'unread'
-        ? 'outline'
-        : 'outline'
+  const honesty = source.honesty
+  const classes = honesty !== null ? honestyClasses(honesty) : null
   const label =
-    source.honesty === 'unread'
+    honesty === 'unread'
       ? t('findingCard.honesty.unread')
-      : source.honesty === 'empty'
+      : honesty === 'empty'
         ? t('findingCard.honesty.empty')
-        : t('findingCard.honesty.reconciled')
+        : honesty === 'reconciled'
+          ? t('findingCard.honesty.reconciled')
+          : null
   const hint =
-    source.honesty === 'unread'
+    honesty === 'unread'
       ? t('findingCard.honesty.unreadHint')
-      : source.honesty === 'empty'
+      : honesty === 'empty'
         ? t('findingCard.honesty.emptyHint')
-        : t('findingCard.honesty.reconciledHint')
-
+        : honesty === 'reconciled'
+          ? t('findingCard.honesty.reconciledHint')
+          : null
   return (
     <div
-      data-honesty={source.honesty}
+      data-honesty={honesty ?? 'count-only'}
       className={cn(
         'bg-background p-4',
-        source.honesty === 'unread' &&
+        honesty === 'unread' &&
           '-outline-offset-4 outline outline-1 outline-dashed outline-[var(--line-strong)]',
       )}
     >
       <p className="text-sm font-medium">{source.label}</p>
       <p className="text-muted-foreground text-xs tabular-nums">{source.count}</p>
-      <Badge
-        variant={badgeVariant}
-        className={cn(
-          'mt-2',
-          source.honesty === 'unread' && 'border-dashed',
-          source.honesty === 'reconciled' && classes.text,
-        )}
-      >
-        {source.honesty === 'reconciled' && <RiCheckLine className="size-3" aria-hidden />}
-        {label}
-      </Badge>
-      <p className="text-muted-foreground mt-1.5 text-xs">{hint}</p>
-      {source.honesty === 'unread' && source.onReread !== undefined && (
+      {label !== null && honesty !== null && (
+        <Badge
+          variant={honesty === 'reconciled' ? 'success' : 'outline'}
+          className={cn(
+            'mt-2 normal-case tracking-normal',
+            honesty === 'unread' && 'border-dashed',
+            honesty === 'reconciled' && classes?.text,
+          )}
+        >
+          {honesty === 'reconciled' ? (
+            <RiCheckLine className="size-3" aria-hidden />
+          ) : honesty === 'empty' ? (
+            <RiCheckboxBlankCircleLine className="size-3" aria-hidden />
+          ) : (
+            <span
+              className="inline-block size-2.5 rounded-full border border-dashed border-current"
+              aria-hidden
+            />
+          )}
+          {label}
+        </Badge>
+      )}
+      {hint !== null && <p className="text-muted-foreground mt-1.5 text-xs">{hint}</p>}
+      {honesty === 'unread' && source.onReread !== undefined && (
         <button
           type="button"
           onClick={source.onReread}

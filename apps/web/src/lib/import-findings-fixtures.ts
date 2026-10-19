@@ -72,6 +72,7 @@ export function moneybirdFixtureFindings(handlers?: {
       detail: {
         reference: 'INV-20931',
         currency: 'GBP',
+        functionalCurrency: 'EUR',
         amount: '1.240,00',
         date: '2026-10-16',
       },

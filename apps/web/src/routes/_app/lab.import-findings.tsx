@@ -1,8 +1,11 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
+import { normalizeFxRateInput } from '@klopt/core/moneybird-fx'
+import { PageHeader } from '~/components/app-shell'
 import { AccountVatSheet } from '~/components/findings/account-vat-sheet'
 import { FxRateSheet } from '~/components/findings/fx-rate-sheet'
 import { ImportFindingsScreen } from '~/components/findings/import-findings-screen'
+import { ScrollTable, stickyFirstCol } from '~/components/ui/scroll-table'
 import {
   EXACT_FIXTURE_SOURCES,
   FIXTURE_ACCOUNTS,
@@ -12,20 +15,23 @@ import {
   moneybirdFixtureFindings,
 } from '~/lib/import-findings-fixtures'
 import type { FindingsListItem } from '~/components/findings/finding-card'
-import type { ResolvedFindingRow } from '~/lib/import-findings'
 import { formatFindingAmount } from '~/lib/finding-card'
+import type { ResolvedFindingRow } from '~/lib/import-findings'
+import { useAdvancedMode } from '~/lib/advanced-mode-context'
+import { useHydrated } from '~/lib/hydration'
+import { cn } from '~/lib/utils'
 import { useT } from '~/i18n/provider'
 
 /**
  * Import findings lab (redesign slice 4 / #61).
  *
  * Dev-only fixture surface for Playwright and PR screenshots — no live
- * Moneybird/Exact token. Production builds 404. Geavanceerd is a local
- * checkbox here (the lab sits outside AdvancedModeProvider).
+ * Moneybird/Exact token. Lives under `_app` so screenshots capture the real
+ * shell. Production builds 404.
  *
- * Query: `?source=moneybird|exact&state=open|empty|loading|error`
+ * Query: `?source=moneybird|exact&state=open|empty|loading|error&advanced=1`
  */
-export const Route = createFileRoute('/lab/import-findings')({
+export const Route = createFileRoute('/_app/lab/import-findings')({
   beforeLoad: () => {
     if (!import.meta.env.DEV) throw notFound()
   },
@@ -38,18 +44,25 @@ export const Route = createFileRoute('/lab/import-findings')({
       search['state'] === 'open'
         ? (search['state'] as 'empty' | 'loading' | 'error' | 'open')
         : ('open' as const),
+    sheet:
+      search['sheet'] === 'account' || search['sheet'] === 'fx' || search['sheet'] === 'fxo'
+        ? (search['sheet'] as 'account' | 'fx' | 'fxo')
+        : undefined,
   }),
   component: ImportFindingsLab,
 })
 
+const FOREIGN_MINOR = 124_000n // GBP 1.240,00
+
 function ImportFindingsLab() {
-  const { source, state } = Route.useSearch()
+  const { source, state, sheet } = Route.useSearch()
   const { t } = useT()
-  const [advanced, setAdvanced] = useState(false)
-  const [accountOpen, setAccountOpen] = useState(false)
-  const [fxOpen, setFxOpen] = useState(false)
-  const [fxRate, setFxRate] = useState('1,1531')
-  const [fxSource, setFxSource] = useState<'ecb' | 'override'>('ecb')
+  const hydrated = useHydrated()
+  const { advanced, setAdvanced, saving: advancedSaving } = useAdvancedMode()
+  const [accountOpen, setAccountOpen] = useState(sheet === 'account')
+  const [fxOpen, setFxOpen] = useState(sheet === 'fx' || sheet === 'fxo')
+  const [fxRate, setFxRate] = useState(sheet === 'fxo' ? '1,1490' : '1,1531')
+  const [fxSource, setFxSource] = useState<'ecb' | 'override'>(sheet === 'fxo' ? 'override' : 'ecb')
   const [resolved, setResolved] = useState<readonly ResolvedFindingRow[]>(
     source === 'moneybird' ? MONEYBIRD_FIXTURE_RESOLVED : [],
   )
@@ -70,9 +83,9 @@ function ImportFindingsLab() {
   }, [source, state, dismissed])
 
   function resolveById(id: string, result: string): void {
-    const finding = (
-      source === 'exact' ? exactFixtureFindings() : moneybirdFixtureFindings()
-    ).find((row) => row.id === id)
+    const finding = (source === 'exact' ? exactFixtureFindings() : moneybirdFixtureFindings()).find(
+      (row) => row.id === id,
+    )
     if (finding === undefined) return
     setDismissed((current) => new Set([...current, id]))
     setResolved((current) => [
@@ -86,19 +99,40 @@ function ImportFindingsLab() {
     ])
   }
 
-  const eurPreview = formatFindingAmount(143_000n, 'EUR')
+  const normalized = normalizeFxRateInput(fxRate)
+  const eurMinor =
+    normalized === null ? 0n : BigInt(Math.round(Number(FOREIGN_MINOR) * Number(normalized)))
+  const eurPreview = formatFindingAmount(eurMinor, 'EUR')
+  const ecbInverse = (1 / 1.1531).toFixed(4).replace('.', ',')
 
   return (
-    <main className="bg-background text-foreground min-h-dvh px-4 py-6 md:px-8 md:py-8">
-      <label className="mb-4 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={advanced}
-          onChange={(event) => setAdvanced(event.target.checked)}
-          data-testid="lab-advanced"
-        />
-        Geavanceerd
-      </label>
+    <>
+      <PageHeader
+        title={source === 'exact' ? 'Exact Online' : 'Moneybird'}
+        description={
+          source === 'exact'
+            ? t('importFindings.allClearBody')
+            : 'Proefimport van Voorbeeld BV · gelezen vandaag. Er is nog niets geboekt.'
+        }
+      />
+
+      <div className="mb-4 flex items-center gap-3">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={advanced}
+            disabled={!hydrated}
+            aria-busy={advancedSaving || undefined}
+            data-testid="lab-advanced"
+            onChange={(event) => {
+              void setAdvanced(event.target.checked)
+            }}
+            className="border-border size-4 rounded-none"
+          />
+          Geavanceerd
+        </label>
+      </div>
+
       <ImportFindingsScreen
         sourceLabel={source === 'exact' ? 'Exact Online' : 'Moneybird'}
         subtitle={
@@ -117,20 +151,47 @@ function ImportFindingsLab() {
             : source === 'exact'
               ? EXACT_FIXTURE_SOURCES
               : MONEYBIRD_FIXTURE_SOURCES.map((cell) =>
-                  cell.honesty === 'unread'
-                    ? { ...cell, onReread: () => undefined }
-                    : cell,
+                  cell.honesty === 'unread' ? { ...cell, onReread: () => undefined } : cell,
                 )
         }
         resolved={state === 'empty' ? [] : resolved}
         onReread={() => undefined}
         onImport={() => undefined}
-        emptySummary={
-          source === 'moneybird'
-            ? 'Er houdt niets de import meer tegen. We zetten 680 boekingen over. 4 concepten en 1 bon uit 2025 blijven achter.'
-            : undefined
-        }
+        advanced={advanced}
+        {...(source === 'moneybird'
+          ? {
+              emptySummary:
+                'Er houdt niets de import meer tegen. We zetten 680 boekingen over. 4 concepten en 1 bon uit 2025 blijven achter.',
+            }
+          : {})}
       />
+
+      {source === 'moneybird' && state === 'open' && (
+        <ScrollTable className="mt-8">
+          <table className={cn('w-full min-w-[36rem] text-sm', stickyFirstCol)}>
+            <thead>
+              <tr className="border-border border-b text-left">
+                <th className="py-2 pr-4">Moneybird</th>
+                <th className="py-2">Klopt-categorie</th>
+                <th className="py-2 text-right tabular-nums">Boekingen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Kantoorartikelen', 'Kantoorkosten', '38'],
+                ['Verzendkosten', 'Verzendkosten', '12'],
+                ['Shipton Mill', 'Crediteuren', '1'],
+              ].map(([from, to, count]) => (
+                <tr key={from} className="border-border border-b">
+                  <td className="py-2 pr-4">{from}</td>
+                  <td className="py-2">{to}</td>
+                  <td className="py-2 text-right tabular-nums">{count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ScrollTable>
+      )}
 
       {source === 'moneybird' && (
         <>
@@ -142,11 +203,12 @@ function ImportFindingsLab() {
             rgsCode="WBedKanKan"
             sourceNumber="4510"
             accounts={FIXTURE_ACCOUNTS}
+            mode="account"
             advanced={advanced}
             onSave={(choice) => {
               resolveById(
                 'f1',
-                `Kantoorartikelen → ${choice.accountName} · ${t(`importFindings.vat.${choice.vatCode}`)}`,
+                `Kantoorartikelen → ${choice.accountName ?? choice.accountNumber ?? '—'}`,
               )
             }}
           />
@@ -162,10 +224,23 @@ function ImportFindingsLab() {
             ecbRate="1,1531"
             source={fxSource}
             ecbDate="2026-10-16"
+            ecbInverse={ecbInverse}
             advanced={advanced}
             previewRows={[
-              { label: 'Inkoop grondstoffen', accountNumber: '7000', amount: eurPreview },
-              { label: 'Te betalen aan Shipton Mill', accountNumber: '1600', amount: eurPreview },
+              {
+                label: 'Inkoop grondstoffen',
+                accountNumber: '7000',
+                amount: eurPreview,
+                debit: eurPreview,
+                credit: '—',
+              },
+              {
+                label: 'Te betalen aan Shipton Mill',
+                accountNumber: '1600',
+                amount: eurPreview,
+                debit: '—',
+                credit: eurPreview,
+              },
             ]}
             calcLine={`GBP 1.240,00 × ${fxRate} = ${eurPreview}`}
             onRateChange={(value) => {
@@ -186,6 +261,6 @@ function ImportFindingsLab() {
           />
         </>
       )}
-    </main>
+    </>
   )
 }

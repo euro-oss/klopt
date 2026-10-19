@@ -28,7 +28,6 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSnapshotsRouteImport } from './routes/_app/snapshots'
 import { Route as AppWebhooksRouteImport } from './routes/_app/webhooks'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
-import { Route as LabImportFindingsRouteImport } from './routes/lab.import-findings'
 import { Route as LabPrimitivesRouteImport } from './routes/lab.primitives'
 import { Route as OauthAuthorizeRouteImport } from './routes/oauth/authorize'
 import { Route as OauthRegisterRouteImport } from './routes/oauth/register'
@@ -45,6 +44,7 @@ import { Route as AppExactCallbackRouteImport } from './routes/_app/exact.callba
 import { Route as AppInvoicesIndexRouteImport } from './routes/_app/invoices.index'
 import { Route as AppInvoicesInvoiceIdRouteImport } from './routes/_app/invoices.$invoiceId'
 import { Route as AppInvoicesNewRouteImport } from './routes/_app/invoices.new'
+import { Route as AppLabImportFindingsRouteImport } from './routes/_app/lab.import-findings'
 import { Route as AppMoneybirdIndexRouteImport } from './routes/_app/moneybird.index'
 import { Route as AppPaymentsIndexRouteImport } from './routes/_app/payments.index'
 import { Route as AppPaymentsBatchIdRouteImport } from './routes/_app/payments.$batchId'
@@ -264,11 +264,6 @@ const ApiMcpRoute = ApiMcpRouteImport.update({
   path: '/api/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LabImportFindingsRoute = LabImportFindingsRouteImport.update({
-  id: '/lab/import-findings',
-  path: '/lab/import-findings',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LabPrimitivesRoute = LabPrimitivesRouteImport.update({
   id: '/lab/primitives',
   path: '/lab/primitives',
@@ -349,6 +344,11 @@ const AppInvoicesNewRoute = AppInvoicesNewRouteImport.update({
   path: '/invoices/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLabImportFindingsRoute = AppLabImportFindingsRouteImport.update({
+  id: '/lab/import-findings',
+  path: '/lab/import-findings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMoneybirdIndexRoute = AppMoneybirdIndexRouteImport.update({
   id: '/moneybird/',
   path: '/moneybird/',
@@ -384,12 +384,11 @@ const AppReportsBalanceSheetRoute = AppReportsBalanceSheetRouteImport.update({
   path: '/reports/balance-sheet',
   getParentRoute: () => AppRoute,
 } as any)
-const AppReportsCreditorAgeingRoute =
-  AppReportsCreditorAgeingRouteImport.update({
-    id: '/reports/creditor-ageing',
-    path: '/reports/creditor-ageing',
-    getParentRoute: () => AppRoute,
-  } as any)
+const AppReportsCreditorAgeingRoute = AppReportsCreditorAgeingRouteImport.update({
+  id: '/reports/creditor-ageing',
+  path: '/reports/creditor-ageing',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppReportsDebtorAgeingRoute = AppReportsDebtorAgeingRouteImport.update({
   id: '/reports/debtor-ageing',
   path: '/reports/debtor-ageing',
@@ -566,23 +565,21 @@ const ApiV1AuditLogExportRoute = ApiV1AuditLogExportRouteImport.update({
   path: '/export',
   getParentRoute: () => ApiV1AuditLogRoute,
 } as any)
-const ApiV1BankMatchRulesRuleIdRoute =
-  ApiV1BankMatchRulesRuleIdRouteImport.update({
-    id: '/$ruleId',
-    path: '/$ruleId',
-    getParentRoute: () => ApiV1BankMatchRulesRoute,
-  } as any)
+const ApiV1BankMatchRulesRuleIdRoute = ApiV1BankMatchRulesRuleIdRouteImport.update({
+  id: '/$ruleId',
+  path: '/$ruleId',
+  getParentRoute: () => ApiV1BankMatchRulesRoute,
+} as any)
 const ApiV1ContactsContactIdRoute = ApiV1ContactsContactIdRouteImport.update({
   id: '/$contactId',
   path: '/$contactId',
   getParentRoute: () => ApiV1ContactsRoute,
 } as any)
-const ApiV1DocumentsDocumentIdRoute =
-  ApiV1DocumentsDocumentIdRouteImport.update({
-    id: '/api/v1/documents/$documentId',
-    path: '/api/v1/documents/$documentId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const ApiV1DocumentsDocumentIdRoute = ApiV1DocumentsDocumentIdRouteImport.update({
+  id: '/api/v1/documents/$documentId',
+  path: '/api/v1/documents/$documentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1EntitiesEntityIdRoute = ApiV1EntitiesEntityIdRouteImport.update({
   id: '/api/v1/entities/$entityId',
   path: '/api/v1/entities/$entityId',
@@ -638,47 +635,41 @@ const ApiV1InboxSourcesRoute = ApiV1InboxSourcesRouteImport.update({
   path: '/sources',
   getParentRoute: () => ApiV1InboxRoute,
 } as any)
-const ApiV1JournalEntriesEntryIdRoute =
-  ApiV1JournalEntriesEntryIdRouteImport.update({
-    id: '/$entryId',
-    path: '/$entryId',
-    getParentRoute: () => ApiV1JournalEntriesRoute,
-  } as any)
-const ApiV1JournalEntriesBatchRoute =
-  ApiV1JournalEntriesBatchRouteImport.update({
-    id: '/batch',
-    path: '/batch',
-    getParentRoute: () => ApiV1JournalEntriesRoute,
-  } as any)
-const ApiV1LedgerChainVerificationRoute =
-  ApiV1LedgerChainVerificationRouteImport.update({
-    id: '/api/v1/ledger/chain-verification',
-    path: '/api/v1/ledger/chain-verification',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const ApiV1JournalEntriesEntryIdRoute = ApiV1JournalEntriesEntryIdRouteImport.update({
+  id: '/$entryId',
+  path: '/$entryId',
+  getParentRoute: () => ApiV1JournalEntriesRoute,
+} as any)
+const ApiV1JournalEntriesBatchRoute = ApiV1JournalEntriesBatchRouteImport.update({
+  id: '/batch',
+  path: '/batch',
+  getParentRoute: () => ApiV1JournalEntriesRoute,
+} as any)
+const ApiV1LedgerChainVerificationRoute = ApiV1LedgerChainVerificationRouteImport.update({
+  id: '/api/v1/ledger/chain-verification',
+  path: '/api/v1/ledger/chain-verification',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1MembersMemberIdRoute = ApiV1MembersMemberIdRouteImport.update({
   id: '/$memberId',
   path: '/$memberId',
   getParentRoute: () => ApiV1MembersRoute,
 } as any)
-const ApiV1MoneybirdAdministrationRoute =
-  ApiV1MoneybirdAdministrationRouteImport.update({
-    id: '/api/v1/moneybird/administration',
-    path: '/api/v1/moneybird/administration',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1MoneybirdAdministrationsRoute =
-  ApiV1MoneybirdAdministrationsRouteImport.update({
-    id: '/api/v1/moneybird/administrations',
-    path: '/api/v1/moneybird/administrations',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1MoneybirdConnectionRoute =
-  ApiV1MoneybirdConnectionRouteImport.update({
-    id: '/api/v1/moneybird/connection',
-    path: '/api/v1/moneybird/connection',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const ApiV1MoneybirdAdministrationRoute = ApiV1MoneybirdAdministrationRouteImport.update({
+  id: '/api/v1/moneybird/administration',
+  path: '/api/v1/moneybird/administration',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1MoneybirdAdministrationsRoute = ApiV1MoneybirdAdministrationsRouteImport.update({
+  id: '/api/v1/moneybird/administrations',
+  path: '/api/v1/moneybird/administrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1MoneybirdConnectionRoute = ApiV1MoneybirdConnectionRouteImport.update({
+  id: '/api/v1/moneybird/connection',
+  path: '/api/v1/moneybird/connection',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1MoneybirdFxRateRoute = ApiV1MoneybirdFxRateRouteImport.update({
   id: '/api/v1/moneybird/fx-rate',
   path: '/api/v1/moneybird/fx-rate',
@@ -694,59 +685,51 @@ const ApiV1MoneybirdMappingsRoute = ApiV1MoneybirdMappingsRouteImport.update({
   path: '/api/v1/moneybird/mappings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1OauthClientsClientIdRoute =
-  ApiV1OauthClientsClientIdRouteImport.update({
-    id: '/api/v1/oauth-clients/$clientId',
-    path: '/api/v1/oauth-clients/$clientId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1PaymentBatchesBatchIdRoute =
-  ApiV1PaymentBatchesBatchIdRouteImport.update({
-    id: '/$batchId',
-    path: '/$batchId',
-    getParentRoute: () => ApiV1PaymentBatchesRoute,
-  } as any)
-const ApiV1PurchaseInvoicesInvoiceIdRoute =
-  ApiV1PurchaseInvoicesInvoiceIdRouteImport.update({
-    id: '/$invoiceId',
-    path: '/$invoiceId',
-    getParentRoute: () => ApiV1PurchaseInvoicesRoute,
-  } as any)
-const ApiV1ReportsBalanceSheetRoute =
-  ApiV1ReportsBalanceSheetRouteImport.update({
-    id: '/api/v1/reports/balance-sheet',
-    path: '/api/v1/reports/balance-sheet',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1ReportsCreditorAgeingRoute =
-  ApiV1ReportsCreditorAgeingRouteImport.update({
-    id: '/api/v1/reports/creditor-ageing',
-    path: '/api/v1/reports/creditor-ageing',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const ApiV1OauthClientsClientIdRoute = ApiV1OauthClientsClientIdRouteImport.update({
+  id: '/api/v1/oauth-clients/$clientId',
+  path: '/api/v1/oauth-clients/$clientId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PaymentBatchesBatchIdRoute = ApiV1PaymentBatchesBatchIdRouteImport.update({
+  id: '/$batchId',
+  path: '/$batchId',
+  getParentRoute: () => ApiV1PaymentBatchesRoute,
+} as any)
+const ApiV1PurchaseInvoicesInvoiceIdRoute = ApiV1PurchaseInvoicesInvoiceIdRouteImport.update({
+  id: '/$invoiceId',
+  path: '/$invoiceId',
+  getParentRoute: () => ApiV1PurchaseInvoicesRoute,
+} as any)
+const ApiV1ReportsBalanceSheetRoute = ApiV1ReportsBalanceSheetRouteImport.update({
+  id: '/api/v1/reports/balance-sheet',
+  path: '/api/v1/reports/balance-sheet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ReportsCreditorAgeingRoute = ApiV1ReportsCreditorAgeingRouteImport.update({
+  id: '/api/v1/reports/creditor-ageing',
+  path: '/api/v1/reports/creditor-ageing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1ReportsDunningRoute = ApiV1ReportsDunningRouteImport.update({
   id: '/api/v1/reports/dunning',
   path: '/api/v1/reports/dunning',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1ReportsOverdueInvoicesRoute =
-  ApiV1ReportsOverdueInvoicesRouteImport.update({
-    id: '/api/v1/reports/overdue-invoices',
-    path: '/api/v1/reports/overdue-invoices',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1ReportsProfitAndLossRoute =
-  ApiV1ReportsProfitAndLossRouteImport.update({
-    id: '/api/v1/reports/profit-and-loss',
-    path: '/api/v1/reports/profit-and-loss',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1ReportsTrialBalanceRoute =
-  ApiV1ReportsTrialBalanceRouteImport.update({
-    id: '/api/v1/reports/trial-balance',
-    path: '/api/v1/reports/trial-balance',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const ApiV1ReportsOverdueInvoicesRoute = ApiV1ReportsOverdueInvoicesRouteImport.update({
+  id: '/api/v1/reports/overdue-invoices',
+  path: '/api/v1/reports/overdue-invoices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ReportsProfitAndLossRoute = ApiV1ReportsProfitAndLossRouteImport.update({
+  id: '/api/v1/reports/profit-and-loss',
+  path: '/api/v1/reports/profit-and-loss',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ReportsTrialBalanceRoute = ApiV1ReportsTrialBalanceRouteImport.update({
+  id: '/api/v1/reports/trial-balance',
+  path: '/api/v1/reports/trial-balance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1RetentionClassRoute = ApiV1RetentionClassRouteImport.update({
   id: '/class',
   path: '/class',
@@ -777,12 +760,11 @@ const ApiV1RgsUpgradePreviewRoute = ApiV1RgsUpgradePreviewRouteImport.update({
   path: '/api/v1/rgs/upgrade-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1SalesInvoicesInvoiceIdRoute =
-  ApiV1SalesInvoicesInvoiceIdRouteImport.update({
-    id: '/$invoiceId',
-    path: '/$invoiceId',
-    getParentRoute: () => ApiV1SalesInvoicesRoute,
-  } as any)
+const ApiV1SalesInvoicesInvoiceIdRoute = ApiV1SalesInvoicesInvoiceIdRouteImport.update({
+  id: '/$invoiceId',
+  path: '/$invoiceId',
+  getParentRoute: () => ApiV1SalesInvoicesRoute,
+} as any)
 const ApiV1SetupChartsRoute = ApiV1SetupChartsRouteImport.update({
   id: '/api/v1/setup/charts',
   path: '/api/v1/setup/charts',
@@ -852,42 +834,38 @@ const ApiV1InboxItemIdDraftRoute = ApiV1InboxItemIdDraftRouteImport.update({
   path: '/$itemId/draft',
   getParentRoute: () => ApiV1InboxRoute,
 } as any)
-const ApiV1InboxSourcesSourceIdRoute =
-  ApiV1InboxSourcesSourceIdRouteImport.update({
-    id: '/$sourceId',
-    path: '/$sourceId',
-    getParentRoute: () => ApiV1InboxSourcesRoute,
-  } as any)
+const ApiV1InboxSourcesSourceIdRoute = ApiV1InboxSourcesSourceIdRouteImport.update({
+  id: '/$sourceId',
+  path: '/$sourceId',
+  getParentRoute: () => ApiV1InboxSourcesRoute,
+} as any)
 const ApiV1JournalEntriesEntryIdReversalRoute =
   ApiV1JournalEntriesEntryIdReversalRouteImport.update({
     id: '/reversal',
     path: '/reversal',
     getParentRoute: () => ApiV1JournalEntriesEntryIdRoute,
   } as any)
-const ApiV1MoneybirdImportPreviewRoute =
-  ApiV1MoneybirdImportPreviewRouteImport.update({
-    id: '/preview',
-    path: '/preview',
-    getParentRoute: () => ApiV1MoneybirdImportRoute,
-  } as any)
+const ApiV1MoneybirdImportPreviewRoute = ApiV1MoneybirdImportPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => ApiV1MoneybirdImportRoute,
+} as any)
 const ApiV1PaymentBatchesBatchIdInstructionsRoute =
   ApiV1PaymentBatchesBatchIdInstructionsRouteImport.update({
     id: '/instructions',
     path: '/instructions',
     getParentRoute: () => ApiV1PaymentBatchesBatchIdRoute,
   } as any)
-const ApiV1PaymentBatchesBatchIdPain001Route =
-  ApiV1PaymentBatchesBatchIdPain001RouteImport.update({
-    id: '/pain001',
-    path: '/pain001',
-    getParentRoute: () => ApiV1PaymentBatchesBatchIdRoute,
-  } as any)
-const ApiV1PaymentBatchesBatchIdRunRoute =
-  ApiV1PaymentBatchesBatchIdRunRouteImport.update({
-    id: '/run',
-    path: '/run',
-    getParentRoute: () => ApiV1PaymentBatchesBatchIdRoute,
-  } as any)
+const ApiV1PaymentBatchesBatchIdPain001Route = ApiV1PaymentBatchesBatchIdPain001RouteImport.update({
+  id: '/pain001',
+  path: '/pain001',
+  getParentRoute: () => ApiV1PaymentBatchesBatchIdRoute,
+} as any)
+const ApiV1PaymentBatchesBatchIdRunRoute = ApiV1PaymentBatchesBatchIdRunRouteImport.update({
+  id: '/run',
+  path: '/run',
+  getParentRoute: () => ApiV1PaymentBatchesBatchIdRoute,
+} as any)
 const ApiV1PaymentBatchesBatchIdTransitionsRoute =
   ApiV1PaymentBatchesBatchIdTransitionsRouteImport.update({
     id: '/transitions',
@@ -912,48 +890,42 @@ const ApiV1SalesInvoicesInvoiceIdDeliveriesRoute =
     path: '/deliveries',
     getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
   } as any)
-const ApiV1SalesInvoicesInvoiceIdIssueRoute =
-  ApiV1SalesInvoicesInvoiceIdIssueRouteImport.update({
-    id: '/issue',
-    path: '/issue',
-    getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
-  } as any)
-const ApiV1SalesInvoicesInvoiceIdPdfRoute =
-  ApiV1SalesInvoicesInvoiceIdPdfRouteImport.update({
-    id: '/pdf',
-    path: '/pdf',
-    getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
-  } as any)
+const ApiV1SalesInvoicesInvoiceIdIssueRoute = ApiV1SalesInvoicesInvoiceIdIssueRouteImport.update({
+  id: '/issue',
+  path: '/issue',
+  getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
+} as any)
+const ApiV1SalesInvoicesInvoiceIdPdfRoute = ApiV1SalesInvoicesInvoiceIdPdfRouteImport.update({
+  id: '/pdf',
+  path: '/pdf',
+  getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
+} as any)
 const ApiV1SalesInvoicesInvoiceIdRemindersRoute =
   ApiV1SalesInvoicesInvoiceIdRemindersRouteImport.update({
     id: '/reminders',
     path: '/reminders',
     getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
   } as any)
-const ApiV1SalesInvoicesInvoiceIdSendRoute =
-  ApiV1SalesInvoicesInvoiceIdSendRouteImport.update({
-    id: '/send',
-    path: '/send',
-    getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
-  } as any)
-const ApiV1SalesInvoicesInvoiceIdUblRoute =
-  ApiV1SalesInvoicesInvoiceIdUblRouteImport.update({
-    id: '/ubl',
-    path: '/ubl',
-    getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
-  } as any)
-const ApiV1SnapshotsSnapshotIdManifestRoute =
-  ApiV1SnapshotsSnapshotIdManifestRouteImport.update({
-    id: '/$snapshotId/manifest',
-    path: '/$snapshotId/manifest',
-    getParentRoute: () => ApiV1SnapshotsRoute,
-  } as any)
-const ApiV1SnapshotsSnapshotIdTimestampRoute =
-  ApiV1SnapshotsSnapshotIdTimestampRouteImport.update({
-    id: '/$snapshotId/timestamp',
-    path: '/$snapshotId/timestamp',
-    getParentRoute: () => ApiV1SnapshotsRoute,
-  } as any)
+const ApiV1SalesInvoicesInvoiceIdSendRoute = ApiV1SalesInvoicesInvoiceIdSendRouteImport.update({
+  id: '/send',
+  path: '/send',
+  getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
+} as any)
+const ApiV1SalesInvoicesInvoiceIdUblRoute = ApiV1SalesInvoicesInvoiceIdUblRouteImport.update({
+  id: '/ubl',
+  path: '/ubl',
+  getParentRoute: () => ApiV1SalesInvoicesInvoiceIdRoute,
+} as any)
+const ApiV1SnapshotsSnapshotIdManifestRoute = ApiV1SnapshotsSnapshotIdManifestRouteImport.update({
+  id: '/$snapshotId/manifest',
+  path: '/$snapshotId/manifest',
+  getParentRoute: () => ApiV1SnapshotsRoute,
+} as any)
+const ApiV1SnapshotsSnapshotIdTimestampRoute = ApiV1SnapshotsSnapshotIdTimestampRouteImport.update({
+  id: '/$snapshotId/timestamp',
+  path: '/$snapshotId/timestamp',
+  getParentRoute: () => ApiV1SnapshotsRoute,
+} as any)
 const ApiV1SnapshotsSnapshotIdVerificationsRoute =
   ApiV1SnapshotsSnapshotIdVerificationsRouteImport.update({
     id: '/$snapshotId/verifications',
@@ -970,30 +942,27 @@ const ApiV1VatReturnsPeriodRoute = ApiV1VatReturnsPeriodRouteImport.update({
   path: '/api/v1/vat/returns/$period',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1WebhooksEndpointIdReplayRoute =
-  ApiV1WebhooksEndpointIdReplayRouteImport.update({
-    id: '/replay',
-    path: '/replay',
-    getParentRoute: () => ApiV1WebhooksEndpointIdRoute,
-  } as any)
-const ApiV1InboxSourcesSourceIdPollRoute =
-  ApiV1InboxSourcesSourceIdPollRouteImport.update({
-    id: '/poll',
-    path: '/poll',
-    getParentRoute: () => ApiV1InboxSourcesSourceIdRoute,
-  } as any)
+const ApiV1WebhooksEndpointIdReplayRoute = ApiV1WebhooksEndpointIdReplayRouteImport.update({
+  id: '/replay',
+  path: '/replay',
+  getParentRoute: () => ApiV1WebhooksEndpointIdRoute,
+} as any)
+const ApiV1InboxSourcesSourceIdPollRoute = ApiV1InboxSourcesSourceIdPollRouteImport.update({
+  id: '/poll',
+  path: '/poll',
+  getParentRoute: () => ApiV1InboxSourcesSourceIdRoute,
+} as any)
 const ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute =
   ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRouteImport.update({
     id: '/$instructionId',
     path: '/$instructionId',
     getParentRoute: () => ApiV1PaymentBatchesBatchIdInstructionsRoute,
   } as any)
-const ApiV1VatFilingsFilingIdStatusRoute =
-  ApiV1VatFilingsFilingIdStatusRouteImport.update({
-    id: '/$filingId/status',
-    path: '/$filingId/status',
-    getParentRoute: () => ApiV1VatFilingsRoute,
-  } as any)
+const ApiV1VatFilingsFilingIdStatusRoute = ApiV1VatFilingsFilingIdStatusRouteImport.update({
+  id: '/$filingId/status',
+  path: '/$filingId/status',
+  getParentRoute: () => ApiV1VatFilingsRoute,
+} as any)
 const ApiV1VatFilingsFilingIdSubmissionsRoute =
   ApiV1VatFilingsFilingIdSubmissionsRouteImport.update({
     id: '/$filingId/submissions',
@@ -1026,7 +995,6 @@ export interface FileRoutesByFullPath {
   '/snapshots': typeof AppSnapshotsRoute
   '/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
-  '/lab/import-findings': typeof LabImportFindingsRoute
   '/lab/primitives': typeof LabPrimitivesRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
@@ -1038,6 +1006,7 @@ export interface FileRoutesByFullPath {
   '/exact/callback': typeof AppExactCallbackRoute
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
+  '/lab/import-findings': typeof AppLabImportFindingsRoute
   '/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
   '/purchases/new': typeof AppPurchasesNewRoute
@@ -1184,7 +1153,6 @@ export interface FileRoutesByTo {
   '/snapshots': typeof AppSnapshotsRoute
   '/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
-  '/lab/import-findings': typeof LabImportFindingsRoute
   '/lab/primitives': typeof LabPrimitivesRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
@@ -1197,6 +1165,7 @@ export interface FileRoutesByTo {
   '/exact/callback': typeof AppExactCallbackRoute
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
+  '/lab/import-findings': typeof AppLabImportFindingsRoute
   '/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
   '/purchases/new': typeof AppPurchasesNewRoute
@@ -1345,7 +1314,6 @@ export interface FileRoutesById {
   '/_app/snapshots': typeof AppSnapshotsRoute
   '/_app/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
-  '/lab/import-findings': typeof LabImportFindingsRoute
   '/lab/primitives': typeof LabPrimitivesRoute
   '/oauth/authorize': typeof OauthAuthorizeRoute
   '/oauth/register': typeof OauthRegisterRoute
@@ -1358,6 +1326,7 @@ export interface FileRoutesById {
   '/_app/exact/callback': typeof AppExactCallbackRoute
   '/_app/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/_app/invoices/new': typeof AppInvoicesNewRoute
+  '/_app/lab/import-findings': typeof AppLabImportFindingsRoute
   '/_app/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/_app/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
   '/_app/purchases/new': typeof AppPurchasesNewRoute
@@ -1507,7 +1476,6 @@ export interface FileRouteTypes {
     | '/snapshots'
     | '/webhooks'
     | '/api/mcp'
-    | '/lab/import-findings'
     | '/lab/primitives'
     | '/oauth/authorize'
     | '/oauth/register'
@@ -1519,6 +1487,7 @@ export interface FileRouteTypes {
     | '/exact/callback'
     | '/invoices/$invoiceId'
     | '/invoices/new'
+    | '/lab/import-findings'
     | '/payments/$batchId'
     | '/purchases/$invoiceId'
     | '/purchases/new'
@@ -1665,7 +1634,6 @@ export interface FileRouteTypes {
     | '/snapshots'
     | '/webhooks'
     | '/api/mcp'
-    | '/lab/import-findings'
     | '/lab/primitives'
     | '/oauth/authorize'
     | '/oauth/register'
@@ -1678,6 +1646,7 @@ export interface FileRouteTypes {
     | '/exact/callback'
     | '/invoices/$invoiceId'
     | '/invoices/new'
+    | '/lab/import-findings'
     | '/payments/$batchId'
     | '/purchases/$invoiceId'
     | '/purchases/new'
@@ -1825,7 +1794,6 @@ export interface FileRouteTypes {
     | '/_app/snapshots'
     | '/_app/webhooks'
     | '/api/mcp'
-    | '/lab/import-findings'
     | '/lab/primitives'
     | '/oauth/authorize'
     | '/oauth/register'
@@ -1838,6 +1806,7 @@ export interface FileRouteTypes {
     | '/_app/exact/callback'
     | '/_app/invoices/$invoiceId'
     | '/_app/invoices/new'
+    | '/_app/lab/import-findings'
     | '/_app/payments/$batchId'
     | '/_app/purchases/$invoiceId'
     | '/_app/purchases/new'
@@ -1975,7 +1944,6 @@ export interface RootRouteChildren {
   DotwellKnownOauthAuthorizationServerRoute: typeof DotwellKnownOauthAuthorizationServerRoute
   DotwellKnownOauthProtectedResourceRoute: typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   ApiMcpRoute: typeof ApiMcpRoute
-  LabImportFindingsRoute: typeof LabImportFindingsRoute
   LabPrimitivesRoute: typeof LabPrimitivesRoute
   OauthAuthorizeRoute: typeof OauthAuthorizeRoute
   OauthRegisterRoute: typeof OauthRegisterRoute
@@ -2178,13 +2146,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMcpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lab/import-findings': {
-      id: '/lab/import-findings'
-      path: '/lab/import-findings'
-      fullPath: '/lab/import-findings'
-      preLoaderRoute: typeof LabImportFindingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/lab/primitives': {
       id: '/lab/primitives'
       path: '/lab/primitives'
@@ -2295,6 +2256,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices/new'
       fullPath: '/invoices/new'
       preLoaderRoute: typeof AppInvoicesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lab/import-findings': {
+      id: '/_app/lab/import-findings'
+      path: '/lab/import-findings'
+      fullPath: '/lab/import-findings'
+      preLoaderRoute: typeof AppLabImportFindingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/moneybird/': {
@@ -3174,6 +3142,7 @@ interface AppRouteChildren {
   AppExactCallbackRoute: typeof AppExactCallbackRoute
   AppInvoicesInvoiceIdRoute: typeof AppInvoicesInvoiceIdRoute
   AppInvoicesNewRoute: typeof AppInvoicesNewRoute
+  AppLabImportFindingsRoute: typeof AppLabImportFindingsRoute
   AppPaymentsBatchIdRoute: typeof AppPaymentsBatchIdRoute
   AppPurchasesInvoiceIdRoute: typeof AppPurchasesInvoiceIdRoute
   AppPurchasesNewRoute: typeof AppPurchasesNewRoute
@@ -3215,6 +3184,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppExactCallbackRoute: AppExactCallbackRoute,
   AppInvoicesInvoiceIdRoute: AppInvoicesInvoiceIdRoute,
   AppInvoicesNewRoute: AppInvoicesNewRoute,
+  AppLabImportFindingsRoute: AppLabImportFindingsRoute,
   AppPaymentsBatchIdRoute: AppPaymentsBatchIdRoute,
   AppPurchasesInvoiceIdRoute: AppPurchasesInvoiceIdRoute,
   AppPurchasesNewRoute: AppPurchasesNewRoute,
@@ -3244,8 +3214,7 @@ interface DotwellKnownOauthProtectedResourceRouteChildren {
 
 const DotwellKnownOauthProtectedResourceRouteChildren: DotwellKnownOauthProtectedResourceRouteChildren =
   {
-    DotwellKnownOauthProtectedResourceApiMcpRoute:
-      DotwellKnownOauthProtectedResourceApiMcpRoute,
+    DotwellKnownOauthProtectedResourceApiMcpRoute: DotwellKnownOauthProtectedResourceApiMcpRoute,
   }
 
 const DotwellKnownOauthProtectedResourceRouteWithChildren =
@@ -3273,8 +3242,9 @@ const ApiV1BankMatchRulesRouteChildren: ApiV1BankMatchRulesRouteChildren = {
   ApiV1BankMatchRulesRuleIdRoute: ApiV1BankMatchRulesRuleIdRoute,
 }
 
-const ApiV1BankMatchRulesRouteWithChildren =
-  ApiV1BankMatchRulesRoute._addFileChildren(ApiV1BankMatchRulesRouteChildren)
+const ApiV1BankMatchRulesRouteWithChildren = ApiV1BankMatchRulesRoute._addFileChildren(
+  ApiV1BankMatchRulesRouteChildren,
+)
 
 interface ApiV1BankTransactionsRouteChildren {
   ApiV1BankTransactionsTransactionIdIgnoreRoute: typeof ApiV1BankTransactionsTransactionIdIgnoreRoute
@@ -3283,33 +3253,27 @@ interface ApiV1BankTransactionsRouteChildren {
 }
 
 const ApiV1BankTransactionsRouteChildren: ApiV1BankTransactionsRouteChildren = {
-  ApiV1BankTransactionsTransactionIdIgnoreRoute:
-    ApiV1BankTransactionsTransactionIdIgnoreRoute,
-  ApiV1BankTransactionsTransactionIdMatchRoute:
-    ApiV1BankTransactionsTransactionIdMatchRoute,
+  ApiV1BankTransactionsTransactionIdIgnoreRoute: ApiV1BankTransactionsTransactionIdIgnoreRoute,
+  ApiV1BankTransactionsTransactionIdMatchRoute: ApiV1BankTransactionsTransactionIdMatchRoute,
   ApiV1BankTransactionsTransactionIdSuggestionsRoute:
     ApiV1BankTransactionsTransactionIdSuggestionsRoute,
 }
 
-const ApiV1BankTransactionsRouteWithChildren =
-  ApiV1BankTransactionsRoute._addFileChildren(
-    ApiV1BankTransactionsRouteChildren,
-  )
+const ApiV1BankTransactionsRouteWithChildren = ApiV1BankTransactionsRoute._addFileChildren(
+  ApiV1BankTransactionsRouteChildren,
+)
 
 interface ApiV1ContactsContactIdRouteChildren {
   ApiV1ContactsContactIdPseudonymiseRoute: typeof ApiV1ContactsContactIdPseudonymiseRoute
 }
 
-const ApiV1ContactsContactIdRouteChildren: ApiV1ContactsContactIdRouteChildren =
-  {
-    ApiV1ContactsContactIdPseudonymiseRoute:
-      ApiV1ContactsContactIdPseudonymiseRoute,
-  }
+const ApiV1ContactsContactIdRouteChildren: ApiV1ContactsContactIdRouteChildren = {
+  ApiV1ContactsContactIdPseudonymiseRoute: ApiV1ContactsContactIdPseudonymiseRoute,
+}
 
-const ApiV1ContactsContactIdRouteWithChildren =
-  ApiV1ContactsContactIdRoute._addFileChildren(
-    ApiV1ContactsContactIdRouteChildren,
-  )
+const ApiV1ContactsContactIdRouteWithChildren = ApiV1ContactsContactIdRoute._addFileChildren(
+  ApiV1ContactsContactIdRouteChildren,
+)
 
 interface ApiV1ContactsRouteChildren {
   ApiV1ContactsContactIdRoute: typeof ApiV1ContactsContactIdRouteWithChildren
@@ -3331,22 +3295,21 @@ const ApiV1FiscalYearsRouteChildren: ApiV1FiscalYearsRouteChildren = {
   ApiV1FiscalYearsCloseRoute: ApiV1FiscalYearsCloseRoute,
 }
 
-const ApiV1FiscalYearsRouteWithChildren =
-  ApiV1FiscalYearsRoute._addFileChildren(ApiV1FiscalYearsRouteChildren)
+const ApiV1FiscalYearsRouteWithChildren = ApiV1FiscalYearsRoute._addFileChildren(
+  ApiV1FiscalYearsRouteChildren,
+)
 
 interface ApiV1InboxSourcesSourceIdRouteChildren {
   ApiV1InboxSourcesSourceIdPollRoute: typeof ApiV1InboxSourcesSourceIdPollRoute
 }
 
-const ApiV1InboxSourcesSourceIdRouteChildren: ApiV1InboxSourcesSourceIdRouteChildren =
-  {
-    ApiV1InboxSourcesSourceIdPollRoute: ApiV1InboxSourcesSourceIdPollRoute,
-  }
+const ApiV1InboxSourcesSourceIdRouteChildren: ApiV1InboxSourcesSourceIdRouteChildren = {
+  ApiV1InboxSourcesSourceIdPollRoute: ApiV1InboxSourcesSourceIdPollRoute,
+}
 
-const ApiV1InboxSourcesSourceIdRouteWithChildren =
-  ApiV1InboxSourcesSourceIdRoute._addFileChildren(
-    ApiV1InboxSourcesSourceIdRouteChildren,
-  )
+const ApiV1InboxSourcesSourceIdRouteWithChildren = ApiV1InboxSourcesSourceIdRoute._addFileChildren(
+  ApiV1InboxSourcesSourceIdRouteChildren,
+)
 
 interface ApiV1InboxSourcesRouteChildren {
   ApiV1InboxSourcesSourceIdRoute: typeof ApiV1InboxSourcesSourceIdRouteWithChildren
@@ -3356,8 +3319,9 @@ const ApiV1InboxSourcesRouteChildren: ApiV1InboxSourcesRouteChildren = {
   ApiV1InboxSourcesSourceIdRoute: ApiV1InboxSourcesSourceIdRouteWithChildren,
 }
 
-const ApiV1InboxSourcesRouteWithChildren =
-  ApiV1InboxSourcesRoute._addFileChildren(ApiV1InboxSourcesRouteChildren)
+const ApiV1InboxSourcesRouteWithChildren = ApiV1InboxSourcesRoute._addFileChildren(
+  ApiV1InboxSourcesRouteChildren,
+)
 
 interface ApiV1InboxRouteChildren {
   ApiV1InboxSourcesRoute: typeof ApiV1InboxSourcesRouteWithChildren
@@ -3371,24 +3335,18 @@ const ApiV1InboxRouteChildren: ApiV1InboxRouteChildren = {
   ApiV1InboxItemIdDraftRoute: ApiV1InboxItemIdDraftRoute,
 }
 
-const ApiV1InboxRouteWithChildren = ApiV1InboxRoute._addFileChildren(
-  ApiV1InboxRouteChildren,
-)
+const ApiV1InboxRouteWithChildren = ApiV1InboxRoute._addFileChildren(ApiV1InboxRouteChildren)
 
 interface ApiV1JournalEntriesEntryIdRouteChildren {
   ApiV1JournalEntriesEntryIdReversalRoute: typeof ApiV1JournalEntriesEntryIdReversalRoute
 }
 
-const ApiV1JournalEntriesEntryIdRouteChildren: ApiV1JournalEntriesEntryIdRouteChildren =
-  {
-    ApiV1JournalEntriesEntryIdReversalRoute:
-      ApiV1JournalEntriesEntryIdReversalRoute,
-  }
+const ApiV1JournalEntriesEntryIdRouteChildren: ApiV1JournalEntriesEntryIdRouteChildren = {
+  ApiV1JournalEntriesEntryIdReversalRoute: ApiV1JournalEntriesEntryIdReversalRoute,
+}
 
 const ApiV1JournalEntriesEntryIdRouteWithChildren =
-  ApiV1JournalEntriesEntryIdRoute._addFileChildren(
-    ApiV1JournalEntriesEntryIdRouteChildren,
-  )
+  ApiV1JournalEntriesEntryIdRoute._addFileChildren(ApiV1JournalEntriesEntryIdRouteChildren)
 
 interface ApiV1JournalEntriesRouteChildren {
   ApiV1JournalEntriesEntryIdRoute: typeof ApiV1JournalEntriesEntryIdRouteWithChildren
@@ -3400,8 +3358,9 @@ const ApiV1JournalEntriesRouteChildren: ApiV1JournalEntriesRouteChildren = {
   ApiV1JournalEntriesBatchRoute: ApiV1JournalEntriesBatchRoute,
 }
 
-const ApiV1JournalEntriesRouteWithChildren =
-  ApiV1JournalEntriesRoute._addFileChildren(ApiV1JournalEntriesRouteChildren)
+const ApiV1JournalEntriesRouteWithChildren = ApiV1JournalEntriesRoute._addFileChildren(
+  ApiV1JournalEntriesRouteChildren,
+)
 
 interface ApiV1MembersRouteChildren {
   ApiV1MembersMemberIdRoute: typeof ApiV1MembersMemberIdRoute
@@ -3411,9 +3370,7 @@ const ApiV1MembersRouteChildren: ApiV1MembersRouteChildren = {
   ApiV1MembersMemberIdRoute: ApiV1MembersMemberIdRoute,
 }
 
-const ApiV1MembersRouteWithChildren = ApiV1MembersRoute._addFileChildren(
-  ApiV1MembersRouteChildren,
-)
+const ApiV1MembersRouteWithChildren = ApiV1MembersRoute._addFileChildren(ApiV1MembersRouteChildren)
 
 interface ApiV1PaymentBatchesBatchIdInstructionsRouteChildren {
   ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute: typeof ApiV1PaymentBatchesBatchIdInstructionsInstructionIdRoute
@@ -3437,21 +3394,16 @@ interface ApiV1PaymentBatchesBatchIdRouteChildren {
   ApiV1PaymentBatchesBatchIdTransitionsRoute: typeof ApiV1PaymentBatchesBatchIdTransitionsRoute
 }
 
-const ApiV1PaymentBatchesBatchIdRouteChildren: ApiV1PaymentBatchesBatchIdRouteChildren =
-  {
-    ApiV1PaymentBatchesBatchIdInstructionsRoute:
-      ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren,
-    ApiV1PaymentBatchesBatchIdPain001Route:
-      ApiV1PaymentBatchesBatchIdPain001Route,
-    ApiV1PaymentBatchesBatchIdRunRoute: ApiV1PaymentBatchesBatchIdRunRoute,
-    ApiV1PaymentBatchesBatchIdTransitionsRoute:
-      ApiV1PaymentBatchesBatchIdTransitionsRoute,
-  }
+const ApiV1PaymentBatchesBatchIdRouteChildren: ApiV1PaymentBatchesBatchIdRouteChildren = {
+  ApiV1PaymentBatchesBatchIdInstructionsRoute:
+    ApiV1PaymentBatchesBatchIdInstructionsRouteWithChildren,
+  ApiV1PaymentBatchesBatchIdPain001Route: ApiV1PaymentBatchesBatchIdPain001Route,
+  ApiV1PaymentBatchesBatchIdRunRoute: ApiV1PaymentBatchesBatchIdRunRoute,
+  ApiV1PaymentBatchesBatchIdTransitionsRoute: ApiV1PaymentBatchesBatchIdTransitionsRoute,
+}
 
 const ApiV1PaymentBatchesBatchIdRouteWithChildren =
-  ApiV1PaymentBatchesBatchIdRoute._addFileChildren(
-    ApiV1PaymentBatchesBatchIdRouteChildren,
-  )
+  ApiV1PaymentBatchesBatchIdRoute._addFileChildren(ApiV1PaymentBatchesBatchIdRouteChildren)
 
 interface ApiV1PaymentBatchesRouteChildren {
   ApiV1PaymentBatchesBatchIdRoute: typeof ApiV1PaymentBatchesBatchIdRouteWithChildren
@@ -3461,40 +3413,34 @@ const ApiV1PaymentBatchesRouteChildren: ApiV1PaymentBatchesRouteChildren = {
   ApiV1PaymentBatchesBatchIdRoute: ApiV1PaymentBatchesBatchIdRouteWithChildren,
 }
 
-const ApiV1PaymentBatchesRouteWithChildren =
-  ApiV1PaymentBatchesRoute._addFileChildren(ApiV1PaymentBatchesRouteChildren)
+const ApiV1PaymentBatchesRouteWithChildren = ApiV1PaymentBatchesRoute._addFileChildren(
+  ApiV1PaymentBatchesRouteChildren,
+)
 
 interface ApiV1PurchaseInvoicesInvoiceIdRouteChildren {
   ApiV1PurchaseInvoicesInvoiceIdBookingRoute: typeof ApiV1PurchaseInvoicesInvoiceIdBookingRoute
   ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute: typeof ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute
 }
 
-const ApiV1PurchaseInvoicesInvoiceIdRouteChildren: ApiV1PurchaseInvoicesInvoiceIdRouteChildren =
-  {
-    ApiV1PurchaseInvoicesInvoiceIdBookingRoute:
-      ApiV1PurchaseInvoicesInvoiceIdBookingRoute,
-    ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute:
-      ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute,
-  }
+const ApiV1PurchaseInvoicesInvoiceIdRouteChildren: ApiV1PurchaseInvoicesInvoiceIdRouteChildren = {
+  ApiV1PurchaseInvoicesInvoiceIdBookingRoute: ApiV1PurchaseInvoicesInvoiceIdBookingRoute,
+  ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute: ApiV1PurchaseInvoicesInvoiceIdTransitionsRoute,
+}
 
 const ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren =
-  ApiV1PurchaseInvoicesInvoiceIdRoute._addFileChildren(
-    ApiV1PurchaseInvoicesInvoiceIdRouteChildren,
-  )
+  ApiV1PurchaseInvoicesInvoiceIdRoute._addFileChildren(ApiV1PurchaseInvoicesInvoiceIdRouteChildren)
 
 interface ApiV1PurchaseInvoicesRouteChildren {
   ApiV1PurchaseInvoicesInvoiceIdRoute: typeof ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren
 }
 
 const ApiV1PurchaseInvoicesRouteChildren: ApiV1PurchaseInvoicesRouteChildren = {
-  ApiV1PurchaseInvoicesInvoiceIdRoute:
-    ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren,
+  ApiV1PurchaseInvoicesInvoiceIdRoute: ApiV1PurchaseInvoicesInvoiceIdRouteWithChildren,
 }
 
-const ApiV1PurchaseInvoicesRouteWithChildren =
-  ApiV1PurchaseInvoicesRoute._addFileChildren(
-    ApiV1PurchaseInvoicesRouteChildren,
-  )
+const ApiV1PurchaseInvoicesRouteWithChildren = ApiV1PurchaseInvoicesRoute._addFileChildren(
+  ApiV1PurchaseInvoicesRouteChildren,
+)
 
 interface ApiV1RetentionRouteChildren {
   ApiV1RetentionClassRoute: typeof ApiV1RetentionClassRoute
@@ -3521,35 +3467,29 @@ interface ApiV1SalesInvoicesInvoiceIdRouteChildren {
   ApiV1SalesInvoicesInvoiceIdUblRoute: typeof ApiV1SalesInvoicesInvoiceIdUblRoute
 }
 
-const ApiV1SalesInvoicesInvoiceIdRouteChildren: ApiV1SalesInvoicesInvoiceIdRouteChildren =
-  {
-    ApiV1SalesInvoicesInvoiceIdDeliveriesRoute:
-      ApiV1SalesInvoicesInvoiceIdDeliveriesRoute,
-    ApiV1SalesInvoicesInvoiceIdIssueRoute:
-      ApiV1SalesInvoicesInvoiceIdIssueRoute,
-    ApiV1SalesInvoicesInvoiceIdPdfRoute: ApiV1SalesInvoicesInvoiceIdPdfRoute,
-    ApiV1SalesInvoicesInvoiceIdRemindersRoute:
-      ApiV1SalesInvoicesInvoiceIdRemindersRoute,
-    ApiV1SalesInvoicesInvoiceIdSendRoute: ApiV1SalesInvoicesInvoiceIdSendRoute,
-    ApiV1SalesInvoicesInvoiceIdUblRoute: ApiV1SalesInvoicesInvoiceIdUblRoute,
-  }
+const ApiV1SalesInvoicesInvoiceIdRouteChildren: ApiV1SalesInvoicesInvoiceIdRouteChildren = {
+  ApiV1SalesInvoicesInvoiceIdDeliveriesRoute: ApiV1SalesInvoicesInvoiceIdDeliveriesRoute,
+  ApiV1SalesInvoicesInvoiceIdIssueRoute: ApiV1SalesInvoicesInvoiceIdIssueRoute,
+  ApiV1SalesInvoicesInvoiceIdPdfRoute: ApiV1SalesInvoicesInvoiceIdPdfRoute,
+  ApiV1SalesInvoicesInvoiceIdRemindersRoute: ApiV1SalesInvoicesInvoiceIdRemindersRoute,
+  ApiV1SalesInvoicesInvoiceIdSendRoute: ApiV1SalesInvoicesInvoiceIdSendRoute,
+  ApiV1SalesInvoicesInvoiceIdUblRoute: ApiV1SalesInvoicesInvoiceIdUblRoute,
+}
 
 const ApiV1SalesInvoicesInvoiceIdRouteWithChildren =
-  ApiV1SalesInvoicesInvoiceIdRoute._addFileChildren(
-    ApiV1SalesInvoicesInvoiceIdRouteChildren,
-  )
+  ApiV1SalesInvoicesInvoiceIdRoute._addFileChildren(ApiV1SalesInvoicesInvoiceIdRouteChildren)
 
 interface ApiV1SalesInvoicesRouteChildren {
   ApiV1SalesInvoicesInvoiceIdRoute: typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
 }
 
 const ApiV1SalesInvoicesRouteChildren: ApiV1SalesInvoicesRouteChildren = {
-  ApiV1SalesInvoicesInvoiceIdRoute:
-    ApiV1SalesInvoicesInvoiceIdRouteWithChildren,
+  ApiV1SalesInvoicesInvoiceIdRoute: ApiV1SalesInvoicesInvoiceIdRouteWithChildren,
 }
 
-const ApiV1SalesInvoicesRouteWithChildren =
-  ApiV1SalesInvoicesRoute._addFileChildren(ApiV1SalesInvoicesRouteChildren)
+const ApiV1SalesInvoicesRouteWithChildren = ApiV1SalesInvoicesRoute._addFileChildren(
+  ApiV1SalesInvoicesRouteChildren,
+)
 
 interface ApiV1SnapshotsRouteChildren {
   ApiV1SnapshotsSnapshotIdManifestRoute: typeof ApiV1SnapshotsSnapshotIdManifestRoute
@@ -3559,10 +3499,8 @@ interface ApiV1SnapshotsRouteChildren {
 
 const ApiV1SnapshotsRouteChildren: ApiV1SnapshotsRouteChildren = {
   ApiV1SnapshotsSnapshotIdManifestRoute: ApiV1SnapshotsSnapshotIdManifestRoute,
-  ApiV1SnapshotsSnapshotIdTimestampRoute:
-    ApiV1SnapshotsSnapshotIdTimestampRoute,
-  ApiV1SnapshotsSnapshotIdVerificationsRoute:
-    ApiV1SnapshotsSnapshotIdVerificationsRoute,
+  ApiV1SnapshotsSnapshotIdTimestampRoute: ApiV1SnapshotsSnapshotIdTimestampRoute,
+  ApiV1SnapshotsSnapshotIdVerificationsRoute: ApiV1SnapshotsSnapshotIdVerificationsRoute,
 }
 
 const ApiV1SnapshotsRouteWithChildren = ApiV1SnapshotsRoute._addFileChildren(
@@ -3577,23 +3515,19 @@ const ApiV1TokensRouteChildren: ApiV1TokensRouteChildren = {
   ApiV1TokensTokenIdRoute: ApiV1TokensTokenIdRoute,
 }
 
-const ApiV1TokensRouteWithChildren = ApiV1TokensRoute._addFileChildren(
-  ApiV1TokensRouteChildren,
-)
+const ApiV1TokensRouteWithChildren = ApiV1TokensRoute._addFileChildren(ApiV1TokensRouteChildren)
 
 interface ApiV1WebhooksEndpointIdRouteChildren {
   ApiV1WebhooksEndpointIdReplayRoute: typeof ApiV1WebhooksEndpointIdReplayRoute
 }
 
-const ApiV1WebhooksEndpointIdRouteChildren: ApiV1WebhooksEndpointIdRouteChildren =
-  {
-    ApiV1WebhooksEndpointIdReplayRoute: ApiV1WebhooksEndpointIdReplayRoute,
-  }
+const ApiV1WebhooksEndpointIdRouteChildren: ApiV1WebhooksEndpointIdRouteChildren = {
+  ApiV1WebhooksEndpointIdReplayRoute: ApiV1WebhooksEndpointIdReplayRoute,
+}
 
-const ApiV1WebhooksEndpointIdRouteWithChildren =
-  ApiV1WebhooksEndpointIdRoute._addFileChildren(
-    ApiV1WebhooksEndpointIdRouteChildren,
-  )
+const ApiV1WebhooksEndpointIdRouteWithChildren = ApiV1WebhooksEndpointIdRoute._addFileChildren(
+  ApiV1WebhooksEndpointIdRouteChildren,
+)
 
 interface ApiV1WebhooksRouteChildren {
   ApiV1WebhooksEndpointIdRoute: typeof ApiV1WebhooksEndpointIdRouteWithChildren
@@ -3615,8 +3549,9 @@ const ApiV1ExactImportRouteChildren: ApiV1ExactImportRouteChildren = {
   ApiV1ExactImportPreviewRoute: ApiV1ExactImportPreviewRoute,
 }
 
-const ApiV1ExactImportRouteWithChildren =
-  ApiV1ExactImportRoute._addFileChildren(ApiV1ExactImportRouteChildren)
+const ApiV1ExactImportRouteWithChildren = ApiV1ExactImportRoute._addFileChildren(
+  ApiV1ExactImportRouteChildren,
+)
 
 interface ApiV1MoneybirdImportRouteChildren {
   ApiV1MoneybirdImportPreviewRoute: typeof ApiV1MoneybirdImportPreviewRoute
@@ -3626,8 +3561,9 @@ const ApiV1MoneybirdImportRouteChildren: ApiV1MoneybirdImportRouteChildren = {
   ApiV1MoneybirdImportPreviewRoute: ApiV1MoneybirdImportPreviewRoute,
 }
 
-const ApiV1MoneybirdImportRouteWithChildren =
-  ApiV1MoneybirdImportRoute._addFileChildren(ApiV1MoneybirdImportRouteChildren)
+const ApiV1MoneybirdImportRouteWithChildren = ApiV1MoneybirdImportRoute._addFileChildren(
+  ApiV1MoneybirdImportRouteChildren,
+)
 
 interface ApiV1VatFilingsRouteChildren {
   ApiV1VatFilingsFilingIdStatusRoute: typeof ApiV1VatFilingsFilingIdStatusRoute
@@ -3636,8 +3572,7 @@ interface ApiV1VatFilingsRouteChildren {
 
 const ApiV1VatFilingsRouteChildren: ApiV1VatFilingsRouteChildren = {
   ApiV1VatFilingsFilingIdStatusRoute: ApiV1VatFilingsFilingIdStatusRoute,
-  ApiV1VatFilingsFilingIdSubmissionsRoute:
-    ApiV1VatFilingsFilingIdSubmissionsRoute,
+  ApiV1VatFilingsFilingIdSubmissionsRoute: ApiV1VatFilingsFilingIdSubmissionsRoute,
 }
 
 const ApiV1VatFilingsRouteWithChildren = ApiV1VatFilingsRoute._addFileChildren(
@@ -3649,12 +3584,9 @@ const rootRouteChildren: RootRouteChildren = {
   SetupRoute: SetupRoute,
   SignInRoute: SignInRoute,
   SignOutRoute: SignOutRoute,
-  DotwellKnownOauthAuthorizationServerRoute:
-    DotwellKnownOauthAuthorizationServerRoute,
-  DotwellKnownOauthProtectedResourceRoute:
-    DotwellKnownOauthProtectedResourceRouteWithChildren,
+  DotwellKnownOauthAuthorizationServerRoute: DotwellKnownOauthAuthorizationServerRoute,
+  DotwellKnownOauthProtectedResourceRoute: DotwellKnownOauthProtectedResourceRouteWithChildren,
   ApiMcpRoute: ApiMcpRoute,
-  LabImportFindingsRoute: LabImportFindingsRoute,
   LabPrimitivesRoute: LabPrimitivesRoute,
   OauthAuthorizeRoute: OauthAuthorizeRoute,
   OauthRegisterRoute: OauthRegisterRoute,
@@ -3719,8 +3651,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1VatPeriodsRoute: ApiV1VatPeriodsRoute,
   ApiV1VatIcpPeriodRoute: ApiV1VatIcpPeriodRoute,
   ApiV1VatReturnsPeriodRoute: ApiV1VatReturnsPeriodRoute,
-  ApiV1VatSubmissionsSubmissionIdInstanceRoute:
-    ApiV1VatSubmissionsSubmissionIdInstanceRoute,
+  ApiV1VatSubmissionsSubmissionIdInstanceRoute: ApiV1VatSubmissionsSubmissionIdInstanceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

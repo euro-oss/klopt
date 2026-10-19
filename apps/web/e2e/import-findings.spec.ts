@@ -14,10 +14,7 @@ test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
 
-async function openLab(
-  page: Page,
-  search: string = 'source=moneybird&state=open',
-): Promise<void> {
+async function openLab(page: Page, search: string = 'source=moneybird&state=open'): Promise<void> {
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
@@ -31,7 +28,8 @@ async function openLab(
 test('Moneybird fixture shows honesty grid, blocking counts, and j/k', async ({ page }) => {
   await openLab(page)
 
-  await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Hoofdnavigatie' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Moneybird' })).toBeVisible()
   await expect(page.getByText('Wat we gelezen hebben')).toBeVisible()
   await expect(page.getByText('Na te kijken')).toBeVisible()
   await expect(page.getByText(/3 blokkeren/)).toBeVisible()
@@ -46,7 +44,7 @@ test('Moneybird fixture shows honesty grid, blocking counts, and j/k', async ({ 
   await expect(cards.nth(1)).toHaveAttribute('aria-selected', 'true')
 })
 
-test('category + btw sheet respects Geavanceerd off/on', async ({ page }) => {
+test('category sheet respects Geavanceerd off/on and ranked list', async ({ page }) => {
   await openLab(page)
   const advanced = page.getByTestId('lab-advanced')
   await expect(advanced).not.toBeChecked()
@@ -55,21 +53,27 @@ test('category + btw sheet respects Geavanceerd off/on', async ({ page }) => {
   await mapAccount.getByRole('button', { name: 'Categorie kiezen' }).click()
   const sheet = page.getByRole('dialog')
   await expect(sheet).toBeVisible()
-  await expect(sheet.getByText('Beste match')).toBeVisible()
-  // Numbers stay advanced-only (best RGS match is 4510 Kantoorartikelen).
+  await expect(sheet.getByText('Beste match eerst')).toBeVisible()
+  await expect(sheet.getByText('Beste match', { exact: true })).toBeVisible()
+  // Numbers and RGS stay advanced-only.
   await expect(sheet.locator('.font-mono', { hasText: '4510' })).toHaveCount(0)
+  await expect(sheet.getByText(/RGS/)).toHaveCount(0)
+  await expect(sheet.getByRole('button', { name: /Gebruik 4510|Nieuwe categorie/ })).toBeVisible()
+  // Ranked list shows more than a single row.
+  await expect(sheet.getByRole('option')).toHaveCount(await sheet.getByRole('option').count())
+  expect(await sheet.getByRole('option').count()).toBeGreaterThan(1)
 
   await page.keyboard.press('Escape')
   await expect(sheet).toBeHidden()
-  // Sheet dismiss leaves the card fix panel open — close it explicitly.
   await mapAccount.getByRole('button', { name: 'Sluiten' }).click()
   await expect(mapAccount).not.toHaveAttribute('data-fix-open', 'true')
   await advanced.check()
   await mapAccount.getByRole('button', { name: 'Categorie kiezen' }).click()
   await expect(sheet).toBeVisible()
+  await expect(sheet.getByText('Voorgesteld op RGS')).toBeVisible()
   await expect(sheet.locator('.font-mono', { hasText: '4510' })).toBeVisible()
+  await expect(sheet.getByText(/RGS /).first()).toBeVisible()
 
-  await sheet.getByRole('radio', { name: /9% btw/ }).click()
   await sheet.getByRole('button', { name: 'Opslaan' }).click()
   await expect(sheet).toBeHidden()
   await expect(page.getByText(/Kantoorartikelen →/)).toBeVisible()
@@ -86,8 +90,13 @@ test('FX sheet toggles ECB to Aangepast and back', async ({ page }) => {
   await expect(sheet).toBeVisible()
   await expect(sheet.getByText(/ECB ·/)).toBeVisible()
 
+  await expect(sheet.getByText(/Euro per 1 Britse pond/)).toBeVisible()
+  await expect(sheet.getByText(/1 EUR = 0,8672 GBP/)).toBeVisible()
+  await expect(sheet.getByText(/GBP 1\.240,00 × 1,1531 = € 1\.429,84/)).toBeVisible()
+
   await sheet.locator('#fx-rate-input').fill('1,1490')
   await expect(sheet.getByText(/Aangepast ·/)).toBeVisible()
+  await expect(sheet.getByText(/GBP 1\.240,00 × 1,1490 = € 1\.424,76/)).toBeVisible()
   await sheet.getByRole('button', { name: /Terug naar ECB/ }).click()
   await expect(sheet.getByText(/ECB ·/)).toBeVisible()
 
@@ -123,7 +132,7 @@ test('empty, loading and error states', async ({ page }) => {
 
 test('Exact fixture lists explain-only findings', async ({ page }) => {
   await openLab(page, 'source=exact&state=open')
-  await expect(page.getByRole('heading', { name: 'Exact Online' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Exact Online' })).toBeVisible()
   await expect(page.locator('[data-slot="finding-card"]').first()).toBeVisible()
   await expect(page.getByText('Blokkeert import').first()).toBeVisible()
 })

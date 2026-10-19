@@ -16,6 +16,7 @@ import {
   type RefObject,
 } from 'react'
 import { Link } from '@tanstack/react-router'
+import { RiCheckboxBlankCircleLine, RiCheckLine, RiErrorWarningLine } from '@remixicon/react'
 import { cn } from 'cn'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -56,6 +57,8 @@ export interface FindingCardProps extends FindingCardModel {
   readonly tabIndex?: number
   readonly id?: string
   readonly className?: string
+  /** Geavanceerd: show technical `path` under the body (#57). */
+  readonly showPath?: boolean
 }
 
 /**
@@ -81,6 +84,7 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
     tabIndex = -1,
     id,
     className,
+    showPath = false,
   },
   ref,
 ) {
@@ -147,12 +151,13 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
       aria-expanded={fixOpen}
       aria-controls={fixOpen ? panelId : undefined}
       className={cn(
-        // Prototype: 1px card + 4px severity bar; focus = 2px ring outline.
+        // Prototype: 1px card + 4px severity bar; focus ring only on :focus-visible
+        // so j/k/Tab show the cursor without a ring on load (#69 design review).
         'cursor-default border bg-card p-4 outline-none transition-colors md:p-5',
         'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         classes.border,
         classes.bar,
-        selected && 'outline-solid outline-2 outline-offset-2 outline-ring',
+        selected && 'bg-muted/40',
         className,
       )}
       onFocus={() => {
@@ -187,6 +192,7 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
       <ItemContent className="min-w-0 gap-2">
         <ItemHeader className="mb-2 flex-wrap gap-2">
           <Badge variant={severity === 'blocking' ? 'destructive' : 'outline'}>
+            {severity === 'blocking' && <RiErrorWarningLine className="size-3" aria-hidden />}
             {severity === 'blocking' ? t('findingCard.blocking') : t('findingCard.warning')}
           </Badge>
           <span className="text-muted-foreground text-xs">{fixTypeLabel(t, fix)}</span>
@@ -195,7 +201,9 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
           </code>
         </ItemHeader>
 
-        <ItemDescription className={cn('line-clamp-none text-[15px] leading-snug font-medium', classes.body)}>
+        <ItemDescription
+          className={cn('line-clamp-none text-[15px] leading-snug font-medium', classes.body)}
+        >
           {explanation}
         </ItemDescription>
 
@@ -204,7 +212,7 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
           {why}
         </p>
 
-        {path !== null && path !== undefined && path !== '' && (
+        {showPath && path !== null && path !== undefined && path !== '' && (
           <p className="text-muted-foreground text-[0.625rem] tabular">{path}</p>
         )}
 
@@ -248,7 +256,9 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
               <span className="text-muted-foreground text-xs">{t('findingCard.oneClickSafe')}</span>
             )}
             {fix.type === 'oneClick' && fix.preview !== undefined && (
-              <span className="text-muted-foreground text-xs">{t('findingCard.fixHint.preview')}</span>
+              <span className="text-muted-foreground text-xs">
+                {t('findingCard.fixHint.preview')}
+              </span>
             )}
             {fix.type === 'guided' && fix.steps !== undefined && fix.steps.length > 0 && (
               <span className="text-muted-foreground text-xs">{fix.steps.join(' → ')}</span>
@@ -451,7 +461,6 @@ export function FindingHonestyState({
       : honesty === 'empty'
         ? t('findingCard.honesty.emptyHint')
         : t('findingCard.honesty.reconciledHint')
-
   return (
     <div
       data-slot="finding-honesty"
@@ -464,7 +473,19 @@ export function FindingHonestyState({
       )}
       role="status"
     >
-      <p className={cn('font-semibold tracking-widest uppercase', classes.text)}>{label}</p>
+      <p className={cn('flex items-center gap-1.5 text-xs font-medium normal-case', classes.text)}>
+        {honesty === 'reconciled' ? (
+          <RiCheckLine className="size-3.5 shrink-0" aria-hidden />
+        ) : honesty === 'empty' ? (
+          <RiCheckboxBlankCircleLine className="size-3.5 shrink-0" aria-hidden />
+        ) : (
+          <span
+            className="inline-block size-3 shrink-0 rounded-full border border-dashed border-current"
+            aria-hidden
+          />
+        )}
+        {label}
+      </p>
       {!compact && <p className="text-muted-foreground mt-1 text-xs normal-case">{hint}</p>}
     </div>
   )
@@ -480,6 +501,8 @@ export interface FindingsListProps {
   readonly empty?: ReactNode
   /** Print the findings keyboard strip under the list. */
   readonly showShortcuts?: boolean
+  /** Geavanceerd: show technical paths on each card. */
+  readonly showPath?: boolean
   readonly 'aria-label'?: string
 }
 
@@ -494,6 +517,7 @@ export function FindingsList({
   className,
   empty,
   showShortcuts = true,
+  showPath = false,
   'aria-label': ariaLabel,
 }: FindingsListProps) {
   const { t } = useT()
@@ -569,6 +593,7 @@ export function FindingsList({
             }}
             selected={index === safeCursor}
             fixOpen={safeOpenFix === index}
+            showPath={showPath}
             tabIndex={index === safeCursor ? 0 : -1}
             onSelect={() => {
               setCursor(index)
