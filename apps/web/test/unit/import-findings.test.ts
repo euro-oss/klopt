@@ -3,6 +3,7 @@ import {
   honestySourcesFromExact,
   honestySourcesFromMoneybird,
   importProgressSteps,
+  NL_MKB_VAT_RULES,
   suggestVatCode,
   vatOptionsFor,
 } from '../../src/lib/import-findings.js'
@@ -114,35 +115,65 @@ describe('honestySourcesFromExact', () => {
 })
 
 describe('vatOptionsFor', () => {
-  it('filters purchase rates to input codes and sales to output', () => {
+  const rules = NL_MKB_VAT_RULES
+
+  it('filters purchase rates to input codes and sales to output via matchVatCodes', () => {
     expect(
-      vatOptionsFor({ taxRateType: 'purchase_invoice', percentage: '21' }).map((o) => o.code),
+      vatOptionsFor({ rules, taxRateType: 'purchase_invoice', percentage: '21' }).map(
+        (o) => o.code,
+      ),
     ).toEqual(['VH21'])
     expect(
-      vatOptionsFor({ taxRateType: 'sales_invoice', percentage: '21' }).map((o) => o.code),
+      vatOptionsFor({ rules, taxRateType: 'sales_invoice', percentage: '21' }).map((o) => o.code),
     ).toEqual(['H21'])
     expect(
-      vatOptionsFor({ taxRateType: 'purchase_invoice', percentage: '9' }).map((o) => o.code),
+      vatOptionsFor({ rules, taxRateType: 'purchase_invoice', percentage: '9' }).map((o) => o.code),
     ).toEqual(['VL9'])
     expect(
-      vatOptionsFor({ taxRateType: 'sales_invoice', percentage: '9' }).map((o) => o.code),
+      vatOptionsFor({ rules, taxRateType: 'sales_invoice', percentage: '9' }).map((o) => o.code),
     ).toEqual(['L9'])
-    expect(
-      vatOptionsFor({ taxRateType: 'sales_invoice', percentage: '0' }).map((o) => o.code),
-    ).toEqual(['GEEN'])
   })
 
   it('never maps a sales rate onto VH21/VL9', () => {
-    const sales = vatOptionsFor({ taxRateType: 'sales_invoice', percentage: '21' })
+    const sales = vatOptionsFor({ rules, taxRateType: 'sales_invoice', percentage: '21' })
     expect(sales.every((option) => option.code === 'H21')).toBe(true)
-    expect(sales.some((option) => option.code.startsWith('V'))).toBe(false)
+    expect(sales.some((option) => option.code.startsWith('V') && option.code !== 'VERL')).toBe(
+      false,
+    )
   })
 
-  it('does not fall back to 21% for verlegd, ICP, export or other rates', () => {
-    // Verlegd / ICP / export are 0% specials outside the three-way radio — empty, not GEEN/H21.
-    expect(vatOptionsFor({ taxRateType: 'sales_invoice', percentage: '6' })).toEqual([])
-    expect(vatOptionsFor({ taxRateType: 'purchase_invoice', percentage: '0' })).toEqual([])
-    expect(suggestVatCode({ taxRateType: 'sales_invoice', percentage: '12' })).toBeNull()
-    expect(suggestVatCode({ taxRateType: 'purchase_invoice', percentage: '21.5' })).toBeNull()
+  it('lists all five 0% sales codes and never prefills GEEN', () => {
+    const zero = vatOptionsFor({ rules, taxRateType: 'sales_invoice', percentage: '0' }).map(
+      (o) => o.code,
+    )
+    expect(zero).toEqual(['VERL', 'GEEN', 'NUL', 'ICP', 'ICPD'])
+    expect(suggestVatCode({ rules, taxRateType: 'sales_invoice', percentage: '0' })).toBeNull()
+  })
+
+  it('covers verlegd, ICP and export as distinct 0% sales matches', () => {
+    const zero = vatOptionsFor({ rules, taxRateType: 'sales_invoice', percentage: '0' })
+    expect(zero.find((o) => o.code === 'VERL')?.description).toMatch(/verlegd/i)
+    expect(zero.find((o) => o.code === 'ICP')?.description).toMatch(/Intracommunautaire/i)
+    expect(zero.find((o) => o.code === 'NUL')?.description).toMatch(/export/i)
+  })
+
+  it('returns [] for empty percentage, NaN, unknown direction, or unmatched rate', () => {
+    expect(vatOptionsFor({ rules, taxRateType: 'sales_invoice', percentage: '' })).toEqual([])
+    expect(vatOptionsFor({ rules, taxRateType: 'sales_invoice', percentage: 'abc' })).toEqual([])
+    expect(vatOptionsFor({ rules, taxRateType: null, percentage: '21' })).toEqual([])
+    expect(vatOptionsFor({ rules, taxRateType: 'other', percentage: '21' })).toEqual([])
+    expect(vatOptionsFor({ rules, taxRateType: 'sales_invoice', percentage: '6' })).toEqual([])
+    expect(vatOptionsFor({ rules, taxRateType: 'purchase_invoice', percentage: '0' })).toEqual([])
+    expect(suggestVatCode({ rules, taxRateType: 'sales_invoice', percentage: '12' })).toBeNull()
+    expect(
+      suggestVatCode({ rules, taxRateType: 'purchase_invoice', percentage: '21.5' }),
+    ).toBeNull()
+  })
+
+  it('prefills only when exactly one rule matches', () => {
+    expect(suggestVatCode({ rules, taxRateType: 'purchase_invoice', percentage: '21' })).toBe(
+      'VH21',
+    )
+    expect(suggestVatCode({ rules, taxRateType: 'sales_invoice', percentage: '9' })).toBe('L9')
   })
 })

@@ -6,6 +6,7 @@
  * FindingCard models from `~/lib/finding-card` / `moneybird-findings`.
  */
 
+import { matchVatCodes, type VatMatchRule } from '@klopt/core/moneybird-account-ranker'
 import type { FindingHonesty } from '~/lib/finding-card'
 
 /** Local copy of honestyFromReconciliation — keeps this module free of value imports from finding-card for vitest path alias. */
@@ -208,53 +209,102 @@ export function honestySourcesFromExact(input: {
   ]
 }
 
-/** Catalogue of common nl-mkb VAT radios for the category + btw sheet. */
-export const IMPORT_VAT_CATALOGUE = [
-  { code: 'H21', rate: '21', direction: 'output' as const },
-  { code: 'L9', rate: '9', direction: 'output' as const },
-  { code: 'GEEN', rate: '0', direction: 'output' as const },
-  { code: 'VH21', rate: '21', direction: 'input' as const },
-  { code: 'VL9', rate: '9', direction: 'input' as const },
-] as const
+/** Tax-rule shape for the btw sheet — entity chart codes + optional label. */
+export interface ImportVatRule extends VatMatchRule {
+  readonly description?: string
+}
 
-export type ImportVatCode = (typeof IMPORT_VAT_CATALOGUE)[number]['code']
+/** One radio in the direction-filtered btw picker. */
+export interface ImportVatOption {
+  readonly code: string
+  readonly rate: string
+  readonly description: string
+  readonly direction: 'input' | 'output'
+}
 
-/** @deprecated Prefer IMPORT_VAT_CATALOGUE + vatOptionsFor. */
-export const IMPORT_VAT_OPTIONS = [
-  { code: 'VH21' as const, rate: '21' },
-  { code: 'VL9' as const, rate: '9' },
-  { code: 'GEEN' as const, rate: '0' },
+/** Klopt tax code string (nl-mkb: H21, VERL, ICP, …). */
+export type ImportVatCode = string
+
+/**
+ * Subset of `reference-data/charts/nl-mkb.json` for lab / unit tests.
+ * Real Moneybird screens pass the entity's `listTaxCodes` rows instead.
+ */
+export const NL_MKB_VAT_RULES: readonly ImportVatRule[] = [
+  { code: 'H21', rateBasisPoints: 2100, direction: 'output', description: 'BTW hoog 21%' },
+  { code: 'L9', rateBasisPoints: 900, direction: 'output', description: 'BTW laag 9%' },
+  {
+    code: 'VERL',
+    rateBasisPoints: 0,
+    direction: 'output',
+    description: 'BTW verlegd naar afnemer',
+  },
+  { code: 'GEEN', rateBasisPoints: 0, direction: 'output', description: 'Vrijgesteld van BTW' },
+  {
+    code: 'NUL',
+    rateBasisPoints: 0,
+    direction: 'output',
+    description: 'BTW 0% (export buiten de EU)',
+  },
+  {
+    code: 'ICP',
+    rateBasisPoints: 0,
+    direction: 'output',
+    description: 'Intracommunautaire levering goederen 0%',
+  },
+  {
+    code: 'ICPD',
+    rateBasisPoints: 0,
+    direction: 'output',
+    description: 'Intracommunautaire dienst 0%',
+  },
+  {
+    code: 'VH21',
+    rateBasisPoints: 2100,
+    direction: 'input',
+    description: 'Voorbelasting hoog 21%',
+  },
+  { code: 'VL9', rateBasisPoints: 900, direction: 'input', description: 'Voorbelasting laag 9%' },
 ]
 
 /**
- * VAT radios filtered by Moneybird direction and rate (#42 / proposeTaxCode).
+ * VAT radios from the entity chart via core `matchVatCodes` (#69 PM).
  *
- * Rates other than 21 / 9 / 0 never fall back to 21%. Unknown rates return [].
+ * Empty / NaN percentage or unknown direction → [] (map by hand). Multiple
+ * 0% sales matches (VERL/GEEN/NUL/ICP/ICPD) are all returned; never prefill.
  */
 export function vatOptionsFor(input: {
+  readonly rules: readonly ImportVatRule[]
   readonly taxRateType?: string | null
   readonly percentage?: string | null
-}): readonly { readonly code: ImportVatCode; readonly rate: string }[] {
-  const direction = input.taxRateType === 'purchase_invoice' ? 'input' : 'output'
+}): readonly ImportVatOption[] {
+  const taxRateType = input.taxRateType ?? null
+  if (taxRateType !== 'purchase_invoice' && taxRateType !== 'sales_invoice') return []
+
   const raw = (input.percentage ?? '').trim().replace(',', '.')
-  const numeric = raw === '' ? null : Number(raw)
-  if (numeric === null || !Number.isFinite(numeric)) {
-    return IMPORT_VAT_CATALOGUE.filter((option) => option.direction === direction).map(
-      (option) => ({ code: option.code, rate: option.rate }),
-    )
-  }
-  const rounded = Math.round(numeric)
-  if (rounded !== 21 && rounded !== 9 && rounded !== 0) return []
-  const rate = String(rounded)
-  return IMPORT_VAT_CATALOGUE.filter(
-    (option) => option.direction === direction && option.rate === rate,
-  ).map((option) => ({ code: option.code, rate: option.rate }))
+  if (raw === '') return []
+  const numeric = Number(raw)
+  if (!Number.isFinite(numeric)) return []
+
+  return matchVatCodes(input.rules, { percentage: numeric, taxRateType }).map((rule) => {
+    const withLabel = input.rules.find((row) => row.code === rule.code)
+    return {
+      code: rule.code,
+      rate: (rule.rateBasisPoints / 100).toFixed(rule.rateBasisPoints % 100 === 0 ? 0 : 2),
+      description: withLabel?.description?.trim() || rule.code,
+      direction: rule.direction,
+    }
+  })
 }
 
-/** Suggest the first matching catalogue code for a Moneybird tax percentage. */
+/**
+ * Prefill only when exactly one chart code matches. Never pick GEEN (or any
+ * other) among several 0% sales candidates.
+ */
 export function suggestVatCode(input: {
+  readonly rules: readonly ImportVatRule[]
   readonly taxRateType?: string | null
   readonly percentage?: string | null
 }): ImportVatCode | null {
-  return vatOptionsFor(input)[0]?.code ?? null
+  const options = vatOptionsFor(input)
+  return options.length === 1 ? (options[0]?.code ?? null) : null
 }

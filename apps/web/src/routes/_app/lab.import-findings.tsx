@@ -6,6 +6,7 @@ import { AccountVatSheet } from '~/components/findings/account-vat-sheet'
 import { FxRateSheet } from '~/components/findings/fx-rate-sheet'
 import { ImportFindingsScreen } from '~/components/findings/import-findings-screen'
 import { ScrollTable, stickyFirstCol } from '~/components/ui/scroll-table'
+import { NL_MKB_VAT_RULES } from '~/lib/import-findings'
 import {
   EXACT_FIXTURE_SOURCES,
   FIXTURE_ACCOUNTS,
@@ -47,6 +48,8 @@ export const Route = createFileRoute('/_app/lab/import-findings')({
     sheet:
       search['sheet'] === 'account' ||
       search['sheet'] === 'tax' ||
+      search['sheet'] === 'tax0' ||
+      search['sheet'] === 'taxBad' ||
       search['sheet'] === 'fx' ||
       search['sheet'] === 'fxo'
         ? search['sheet']
@@ -64,6 +67,8 @@ function ImportFindingsLab() {
   const { advanced, setAdvanced, saving: advancedSaving } = useAdvancedMode()
   const [accountOpen, setAccountOpen] = useState(sheet === 'account')
   const [taxOpen, setTaxOpen] = useState(sheet === 'tax')
+  const [taxZeroOpen, setTaxZeroOpen] = useState(sheet === 'tax0')
+  const [taxBadOpen, setTaxBadOpen] = useState(sheet === 'taxBad')
   const [fxOpen, setFxOpen] = useState(sheet === 'fx' || sheet === 'fxo')
   const [fxRate, setFxRate] = useState(sheet === 'fxo' ? '1,1490' : '1,1531')
   const [fxSource, setFxSource] = useState<'ecb' | 'override'>(sheet === 'fxo' ? 'override' : 'ecb')
@@ -207,6 +212,7 @@ function ImportFindingsLab() {
             rgsCode="WBedKanKan"
             sourceNumber="4510"
             accounts={FIXTURE_ACCOUNTS}
+            taxRules={NL_MKB_VAT_RULES}
             mode="account"
             advanced={advanced}
             onSave={(choice) => {
@@ -223,14 +229,45 @@ function ImportFindingsLab() {
             sourceName="Hoog tarief inkoop"
             sourceDetail="21%"
             accounts={FIXTURE_ACCOUNTS}
+            taxRules={NL_MKB_VAT_RULES}
             mode="tax"
             taxRateType="purchase_invoice"
             percentage="21"
             suggestedVat="VH21"
             advanced={advanced}
             onSave={(choice) => {
-              resolveById('f3', `Laag tarief → ${choice.vatCode ?? '—'}`)
+              resolveById('f3', `Hoog tarief → ${choice.vatCode ?? '—'}`)
             }}
+          />
+          {/* Sales 0% → VERL/GEEN/NUL/ICP/ICPD, nothing pre-selected. */}
+          <AccountVatSheet
+            open={taxZeroOpen}
+            onOpenChange={setTaxZeroOpen}
+            sourceName="Verlegd / ICP / export"
+            sourceDetail="0%"
+            accounts={FIXTURE_ACCOUNTS}
+            taxRules={NL_MKB_VAT_RULES}
+            mode="tax"
+            taxRateType="sales_invoice"
+            percentage="0"
+            advanced={advanced}
+            onSave={(choice) => {
+              resolveById('f3', `0% → ${choice.vatCode ?? '—'}`)
+            }}
+          />
+          {/* Unsupported rate → map-by-hand, never a 21% fallback. */}
+          <AccountVatSheet
+            open={taxBadOpen}
+            onOpenChange={setTaxBadOpen}
+            sourceName="Odd rate"
+            sourceDetail="6%"
+            accounts={FIXTURE_ACCOUNTS}
+            taxRules={NL_MKB_VAT_RULES}
+            mode="tax"
+            taxRateType="purchase_invoice"
+            percentage="6"
+            advanced={advanced}
+            onSave={() => undefined}
           />
           <FxRateSheet
             open={fxOpen}

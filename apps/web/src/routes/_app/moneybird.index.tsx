@@ -18,7 +18,9 @@ import {
   honestySourcesFromMoneybird,
   suggestVatCode,
   type ImportVatCode,
+  type ImportVatRule,
 } from '~/lib/import-findings'
+import { listTaxCodes } from '~/server/sales'
 import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
@@ -79,6 +81,7 @@ export const Route = createFileRoute('/_app/moneybird/')({
     connection: await getMoneybirdConnection(),
     run: await moneybirdImportStatus(),
     accounts: await listAccounts(),
+    taxCodes: await listTaxCodes(),
   }),
   component: Moneybird,
 })
@@ -94,7 +97,12 @@ interface AdministrationOption {
 }
 
 function Moneybird() {
-  const { connection, run: runResult, accounts: accountsResult } = Route.useLoaderData()
+  const {
+    connection,
+    run: runResult,
+    accounts: accountsResult,
+    taxCodes: taxCodesResult,
+  } = Route.useLoaderData()
   const { t, tag } = useT()
   const router = useRouter()
   const hydrated = useHydrated()
@@ -108,6 +116,22 @@ function Moneybird() {
       rgsCode: account.rgsCode ?? null,
     }))
   }, [accountsResult])
+
+  const kloptTaxRules: readonly ImportVatRule[] = useMemo(() => {
+    if (!taxCodesResult.ok) return []
+    const rows = taxCodesResult.data.taxCodes as readonly {
+      readonly code: string
+      readonly description: string
+      readonly rateBasisPoints: number
+      readonly direction: 'input' | 'output'
+    }[]
+    return rows.map((row) => ({
+      code: row.code,
+      description: row.description,
+      rateBasisPoints: row.rateBasisPoints,
+      direction: row.direction,
+    }))
+  }, [taxCodesResult])
 
   const [busy, setBusy] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -307,8 +331,14 @@ function Moneybird() {
       const percentage = problem.detail['percentage'] ?? ''
       const taxRates = (preview?.['taxRates'] as TaxSample[] | undefined) ?? []
       const sample = taxRates.find((rate) => rate.moneybirdId === id)
-      const taxRateType = sample?.taxRateType ?? problem.detail['taxRateType'] ?? 'purchase_invoice'
-      const suggestedVat = suggestVatCode({ taxRateType, percentage })
+      const rawType = sample?.taxRateType ?? problem.detail['taxRateType'] ?? null
+      const taxRateType =
+        rawType === 'purchase_invoice' || rawType === 'sales_invoice' ? rawType : null
+      const suggestedVat = suggestVatCode({
+        rules: kloptTaxRules,
+        taxRateType,
+        percentage,
+      })
       setAccountVatDraft({
         moneybirdId: id,
         name,
@@ -801,6 +831,7 @@ function Moneybird() {
           rgsCode={accountVatDraft.rgsCode}
           sourceNumber={accountVatDraft.number}
           accounts={kloptAccounts}
+          taxRules={kloptTaxRules}
           suggestedVat={accountVatDraft.suggestedVat}
           taxRateType={accountVatDraft.taxRateType}
           percentage={accountVatDraft.percentage}

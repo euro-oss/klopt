@@ -25,7 +25,12 @@ import {
 } from '~/components/ui/sheet'
 import { Badge } from '~/components/ui/badge'
 import { Keycap } from '~/components/ui/keycap'
-import { suggestVatCode, vatOptionsFor, type ImportVatCode } from '~/lib/import-findings'
+import {
+  suggestVatCode,
+  vatOptionsFor,
+  type ImportVatCode,
+  type ImportVatRule,
+} from '~/lib/import-findings'
 import { cn } from '~/lib/utils'
 import { useT } from '~/i18n/provider'
 import type { MessageKey } from '~/i18n/nl'
@@ -40,7 +45,9 @@ export interface AccountVatSheetProps {
   readonly rgsCode?: string | null
   readonly sourceNumber?: string
   readonly accounts: readonly RankableAccount[]
-  /** Prefill from Moneybird tax percentage when known. */
+  /** Entity chart tax rules — options come from `matchVatCodes`, not a hard-coded list. */
+  readonly taxRules?: readonly ImportVatRule[]
+  /** Prefill from Moneybird tax percentage when known (ignored when multiple matches). */
   readonly suggestedVat?: ImportVatCode | null
   /** Moneybird `tax_rate_type` for direction-safe VAT radios. */
   readonly taxRateType?: string | null
@@ -89,6 +96,7 @@ function AccountVatSheetBody({
   rgsCode = null,
   sourceNumber = '',
   accounts,
+  taxRules = [],
   suggestedVat = null,
   taxRateType = null,
   percentage = null,
@@ -100,13 +108,19 @@ function AccountVatSheetBody({
   const { t } = useT()
   const listId = useId()
   const vatOptions = useMemo(
-    () => vatOptionsFor({ taxRateType, percentage }),
-    [taxRateType, percentage],
+    () => vatOptionsFor({ rules: taxRules, taxRateType, percentage }),
+    [taxRules, taxRateType, percentage],
   )
+  // Prefill only when exactly one match — never GEEN among five 0% sales codes.
+  const uniqueSuggested = suggestVatCode({ rules: taxRules, taxRateType, percentage })
   const defaultVat =
-    suggestedVat !== null && vatOptions.some((option) => option.code === suggestedVat)
-      ? suggestedVat
-      : (suggestVatCode({ taxRateType, percentage }) ?? vatOptions[0]?.code ?? null)
+    uniqueSuggested !== null
+      ? uniqueSuggested
+      : suggestedVat !== null &&
+          vatOptions.length === 1 &&
+          vatOptions.some((option) => option.code === suggestedVat)
+        ? suggestedVat
+        : null
   const emptyChart = accounts.length === 0
   const initialChosen = emptyChart
     ? null
@@ -144,6 +158,15 @@ function AccountVatSheetBody({
         ? sourceNumber.trim() !== ''
         : chosen !== null
 
+  const saveAccount = (account: RankableAccount): void => {
+    onSave({
+      accountNumber: account.number,
+      accountName: account.name,
+      vatCode: null,
+    })
+    onOpenChange(false)
+  }
+
   const save = (): void => {
     if (!canSave) return
     if (mode === 'tax') {
@@ -166,12 +189,16 @@ function AccountVatSheetBody({
       return
     }
     if (chosen === null) return
-    onSave({
-      accountNumber: chosen.number,
-      accountName: chosen.name,
-      vatCode: null,
-    })
-    onOpenChange(false)
+    saveAccount(chosen)
+  }
+
+  const vatLabel = (option: { readonly code: string; readonly description: string }): string => {
+    const key = `importFindings.vat.${option.code}` as MessageKey
+    const translated = t(key)
+    // Unknown keys fall through as the key string — prefer the chart description.
+    return translated === key || translated.startsWith('importFindings.vat.')
+      ? option.description
+      : translated
   }
 
   const onVatKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
@@ -179,11 +206,15 @@ function AccountVatSheetBody({
     const index = vatOptions.findIndex((option) => option.code === vat)
     if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
       event.preventDefault()
-      const next = vatOptions[(index + 1) % vatOptions.length]
+      // No selection yet: ↓/→ picks the first; otherwise advance.
+      const next = vatOptions[index < 0 ? 0 : (index + 1) % vatOptions.length]
       if (next !== undefined) setVat(next.code)
     } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
       event.preventDefault()
-      const prev = vatOptions[(index - 1 + vatOptions.length) % vatOptions.length]
+      const prev =
+        vatOptions[
+          index < 0 ? vatOptions.length - 1 : (index - 1 + vatOptions.length) % vatOptions.length
+        ]
       if (prev !== undefined) setVat(prev.code)
     }
   }
@@ -278,9 +309,13 @@ function AccountVatSheetBody({
                   } else if (event.key === 'Enter') {
                     const row = ranked[active]
                     if (row === undefined) return
+                    // Commit the highlighted row and stop bubble — SheetContent's
+                    // Enter handler would otherwise save() with the *previous* pick.
                     event.preventDefault()
+                    event.stopPropagation()
                     setChosenNumber(row.account.number)
                     setNewAccount(false)
+                    saveAccount(row.account)
                   }
                 }}
                 className="border-input bg-background min-h-11 w-full border py-2 pr-3 pl-9 text-base md:min-h-9 md:text-sm"
@@ -392,10 +427,19 @@ function AccountVatSheetBody({
             ) : (
               <div
                 role="radiogroup"
-                className="grid border"
-                style={{
-                  gridTemplateColumns: `repeat(${String(vatOptions.length)}, minmax(0, 1fr))`,
-                }}
+                className={cn(
+                  'border',
+                  vatOptions.length <= 3
+                    ? 'grid'
+                    : 'flex max-h-64 flex-col divide-y overflow-y-auto',
+                )}
+                style={
+                  vatOptions.length <= 3
+                    ? {
+                        gridTemplateColumns: `repeat(${String(vatOptions.length)}, minmax(0, 1fr))`,
+                      }
+                    : undefined
+                }
                 onKeyDown={onVatKeyDown}
               >
                 {vatOptions.map((option, index) => {
@@ -409,13 +453,13 @@ function AccountVatSheetBody({
                       tabIndex={checked ? 0 : -1}
                       onClick={() => setVat(option.code)}
                       className={cn(
-                        'min-h-11 px-2 text-sm',
-                        index > 0 && 'border-l',
+                        'min-h-11 px-3 text-left text-sm',
+                        vatOptions.length <= 3 && index > 0 && 'border-l',
                         checked ? 'bg-foreground text-background font-medium' : 'hover:bg-muted',
                       )}
                     >
-                      {t(`importFindings.vat.${option.code}` as MessageKey)}
-                      {advanced && <span className="text-xs opacity-70"> {option.code}</span>}
+                      <span className="block">{vatLabel(option)}</span>
+                      {advanced && <span className="block text-xs opacity-70">{option.code}</span>}
                     </button>
                   )
                 })}
@@ -445,7 +489,7 @@ function AccountVatSheetBody({
             <p className="font-medium">{t('importFindings.accountVat.whatHappens')}</p>
             <p className="text-muted-foreground mt-1">
               {t('importFindings.accountVat.whatHappensTax', {
-                vat: t(`importFindings.vat.${vatOption.code}` as MessageKey),
+                vat: vatLabel(vatOption),
               })}
             </p>
           </div>

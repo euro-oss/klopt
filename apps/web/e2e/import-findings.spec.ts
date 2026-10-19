@@ -79,6 +79,60 @@ test('category sheet respects Geavanceerd off/on and ranked list', async ({ page
   await expect(page.getByText(/Kantoorartikelen →/)).toBeVisible()
 })
 
+test('category search ↓ + ↵ commits the highlighted row, not the previous pick', async ({
+  page,
+}) => {
+  await openLab(page)
+  const mapAccount = page.locator('[data-slot="finding-card"][data-code="unmapped_account"]')
+  await mapAccount.getByRole('button', { name: 'Categorie kiezen' }).click()
+  const sheet = page.getByRole('dialog')
+  await expect(sheet).toBeVisible()
+  const options = sheet.getByRole('option')
+  expect(await options.count()).toBeGreaterThan(1)
+  // First option is the RGS best match (Kantoorartikelen). ArrowDown → second.
+  const secondLabel = ((await options.nth(1).innerText()).split('\n')[0] ?? '')
+    .replace(/\s*Beste match\s*/g, '')
+    .trim()
+
+  await sheet.locator('#account-vat-query').focus()
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Enter')
+  await expect(sheet).toBeHidden()
+  await expect(page.getByText(`Kantoorartikelen → ${secondLabel}`)).toBeVisible()
+  await expect(page.getByText('Kantoorartikelen → Kantoorartikelen')).toHaveCount(0)
+})
+
+test('btw sheet filters by direction and moves with arrow keys', async ({ page }) => {
+  await openLab(page)
+  await page.getByTestId('lab-advanced').check()
+  await page.goto('/lab/import-findings?source=moneybird&state=open&sheet=tax')
+  const sheet = page.getByRole('dialog')
+  await expect(sheet).toBeVisible()
+  await expect(sheet.getByText('VH21', { exact: true })).toBeVisible()
+  await expect(sheet.getByRole('radio')).toHaveCount(1)
+  await expect(sheet.getByRole('radio')).toHaveAttribute('aria-checked', 'true')
+
+  await page.keyboard.press('Escape')
+  await page.goto('/lab/import-findings?source=moneybird&state=open&sheet=tax0')
+  const zeroSheet = page.getByRole('dialog')
+  await expect(zeroSheet).toBeVisible()
+  await expect(zeroSheet.getByRole('radio')).toHaveCount(5)
+  await expect(zeroSheet.getByRole('radio', { checked: true })).toHaveCount(0)
+  await zeroSheet.getByRole('radio').nth(0).focus()
+  await page.keyboard.press('ArrowDown') // none → first (VERL)
+  await expect(zeroSheet.getByRole('radio').nth(0)).toHaveAttribute('aria-checked', 'true')
+  await page.keyboard.press('ArrowDown') // → second (GEEN / Vrijgesteld)
+  await expect(zeroSheet.getByRole('radio').nth(1)).toHaveAttribute('aria-checked', 'true')
+  await expect(zeroSheet.getByRole('radio').nth(1)).toContainText(/Vrijgesteld|GEEN/)
+})
+
+test('btw sheet shows map-by-hand for an unsupported rate', async ({ page }) => {
+  await openLab(page, 'source=moneybird&state=open&sheet=taxBad')
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(page.getByRole('status')).toContainText(/valt buiten|hand|map/i)
+  await expect(page.getByRole('radio')).toHaveCount(0)
+})
+
 test('FX sheet toggles ECB to Aangepast and back', async ({ page }) => {
   await openLab(page)
 

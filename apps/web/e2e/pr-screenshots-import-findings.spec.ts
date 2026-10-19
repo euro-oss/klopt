@@ -128,7 +128,7 @@ test('capture import findings PNGs (1440/390 × light/dark + sheets + states)', 
     }
   }
 
-  // Direction-filtered btw picker (purchase 21% → VH21 only). Advanced so VH21 shows.
+  // Direction-filtered btw: purchase 21% → VH21; sales 0% → five codes, none prefilled.
   // Toggle Geavanceerd before opening the sheet — the overlay blocks the checkbox.
   for (const theme of ['light', 'dark'] as const) {
     for (const [label, size] of [
@@ -144,12 +144,24 @@ test('capture import findings PNGs (1440/390 × light/dark + sheets + states)', 
       await openFindings(page, 'source=moneybird&state=open&sheet=tax')
       await expect(page.getByRole('dialog')).toBeVisible()
       await expect(page.getByText('VH21', { exact: true })).toBeVisible()
-      // Substring-safe: VH21 contains "H21", so assert radio count instead.
       await expect(page.getByRole('dialog').getByRole('radio')).toHaveCount(1)
       await setTheme(page, theme)
       await shoot(page, `fix-tax-vat-${theme}-${label}.png`)
       await context.close()
     }
+  }
+  {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+    const page = await context.newPage()
+    await ready(page, 'Tax 0% sales')
+    await openFindings(page, 'source=moneybird&state=open')
+    await page.getByTestId('lab-advanced').check()
+    await openFindings(page, 'source=moneybird&state=open&sheet=tax0')
+    await expect(page.getByRole('dialog').getByRole('radio')).toHaveCount(5)
+    await expect(page.getByRole('dialog').getByRole('radio', { checked: true })).toHaveCount(0)
+    await setTheme(page, 'light')
+    await shoot(page, 'fix-tax-vat-zero-light-desktop-1440.png')
+    await context.close()
   }
 
   // FX ECB + override — prove live € 1.429,84 / € 1.424,76; advanced Debet/Credit; dark + 390.
