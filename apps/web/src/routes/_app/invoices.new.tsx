@@ -2,36 +2,36 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { violationMessage } from '~/i18n/labels'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
+import { GuidedInvoiceFlow } from '~/components/invoices/guided-invoice-flow'
 import { Money } from '~/components/finance/money'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
 import { ShortcutFooter, ShortcutPanel, StepBadge } from '~/components/ui/keycap'
 import { useT } from '~/i18n/provider'
+import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { multiplyByDecimal, parseMinorUnits, percentOf } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
 import { draftInvoice, listContacts, listTaxCodes } from '~/server/sales'
 import { listAccounts } from '~/server/ledger'
+import { getEntity } from '~/server/entity'
 
 /**
  * A new sales invoice.
  *
- * Drafted, not issued: drafting allocates no number and posts nothing, so it is
- * cheap and reversible. Issuing is a separate, deliberate act on the invoice's
- * own screen, because it takes a number out of a legally gapless series and
- * puts an entry in the hash chain.
+ * With Geavanceerd off (Eigenaar default): the guided four-step flow (#45).
+ * With Geavanceerd on: the existing bookkeeper form is unchanged.
  *
- * The totals shown here are computed in the browser for feedback only. The
- * authoritative figures come back from `priceInvoice` in `@klopt/core`, which
- * applies the entity's VAT rounding policy — and per-invoice rounding can
- * differ from the naive per-line sum by a cent, which is exactly the sort of
- * disagreement a bookkeeper notices. Hence the note under the total.
+ * Drafted, not issued: drafting allocates no number and posts nothing, so it is
+ * cheap and reversible. Issuing is a separate, deliberate act — on the invoice's
+ * own screen in advanced mode, or as the last guided step when simple.
  */
 export const Route = createFileRoute('/_app/invoices/new')({
   loader: async () => ({
     contacts: await listContacts({ data: { customersOnly: true } }),
     taxCodes: await listTaxCodes(),
     accounts: await listAccounts(),
+    entity: await getEntity(),
   }),
   component: NewInvoice,
 })
@@ -57,6 +57,71 @@ const emptyLine = (revenue: string, tax: string): DraftLine => ({
 const today = (): string => new Date().toISOString().slice(0, 10)
 
 function NewInvoice() {
+  const { advanced } = useAdvancedMode()
+
+  if (!advanced) {
+    return <GuidedFromLoader />
+  }
+
+  return <AdvancedInvoiceForm />
+}
+
+function GuidedFromLoader() {
+  const { contacts, taxCodes, accounts, entity } = Route.useLoaderData()
+
+  const customers = contacts.ok
+    ? contacts.data.contacts.map((row) => ({
+        id: row.id,
+        number: row.number,
+        name: row.name,
+        email: row.email,
+        paymentTermsDays: row.paymentTermsDays,
+        isBlocked: row.isBlocked,
+      }))
+    : []
+
+  const codes = taxCodes.ok
+    ? taxCodes.data.taxCodes.map((code) => ({
+        code: code.code,
+        ratePercent: code.ratePercent,
+        rateBasisPoints: code.rateBasisPoints,
+        direction: code.direction,
+      }))
+    : []
+
+  const revenueAccounts = accounts.ok
+    ? accounts.data.accounts.map((account) => ({
+        number: account.number,
+        name: account.name,
+        type: account.type,
+      }))
+    : []
+
+  const entityRow = entity.ok
+    ? {
+        name: entity.data.name,
+        legalName: entity.data.legalName,
+        kvkNumber: entity.data.kvkNumber,
+        vatNumber: entity.data.vatNumber,
+        street: entity.data.street,
+        houseNumber: entity.data.houseNumber,
+        postalCode: entity.data.postalCode,
+        city: entity.data.city,
+      }
+    : null
+
+  return (
+    <GuidedInvoiceFlow
+      customers={customers}
+      taxCodes={codes}
+      accounts={revenueAccounts}
+      entity={entityRow}
+      contactsError={contacts.ok ? null : contacts.problem.detail}
+    />
+  )
+}
+
+function AdvancedInvoiceForm() {
   const { contacts, taxCodes, accounts } = Route.useLoaderData()
   const navigate = useNavigate()
   /**

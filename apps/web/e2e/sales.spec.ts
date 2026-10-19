@@ -1,7 +1,7 @@
 import { rmSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, enableAdvancedMode, OUTBOX, signIn, uniqueEmail } from './support'
 
 /**
  * Invoicing, in a browser, from an empty administration to a posted invoice.
@@ -33,6 +33,8 @@ async function anAdministration(page: Page, name: string): Promise<void> {
 
 test('a bookkeeper records a customer, drafts an invoice and issues it', async ({ page }) => {
   await anAdministration(page, 'Facturen BV')
+  // Bookkeeper form is Geavanceerd-on; Eigenaar default is the guided flow (#45).
+  await enableAdvancedMode(page)
 
   await page.getByRole('link', { name: /Relaties/ }).click()
   await expect(page.getByRole('heading', { name: 'Relaties' })).toBeVisible()
@@ -141,6 +143,7 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
 
 test('crediting an issued invoice drafts a credit note against it', async ({ page }) => {
   await anAdministration(page, 'Creditnota BV')
+  await enableAdvancedMode(page)
 
   await page.goto('/contacts')
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
@@ -190,6 +193,7 @@ test('a posted journal entry goes through, which it could not before', async ({ 
 
 test('an overdue invoice turns up in the dunning list and can be chased', async ({ page }) => {
   await anAdministration(page, 'Aanmaning BV')
+  await enableAdvancedMode(page)
 
   await page.goto('/settings')
   await page.getByLabel('Straat').fill('Keizersgracht')
