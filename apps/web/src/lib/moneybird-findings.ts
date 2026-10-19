@@ -172,10 +172,13 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         onOpen: () => actions.onDrillUnbalanced(problem),
       }
     case 'period_locked':
+      // Named year lives in finding.moneybird.period_locked / why (#61 slice 6,
+      // deferred from #69). Primary action opens Boekjaren — the page itself
+      // gates close/reopen by role; exclude stays a listed step.
       return {
         type: 'guided',
-        label: labels.exclude,
-        onOpen: () => actions.onExcludeDocument(problem),
+        label: labels.reopenYear,
+        onOpen: () => actions.onOpenPeriodSettings(problem),
         steps: [labels.stepDoNotTransfer, labels.reopenYear],
       }
     case 'unbalanced_document':

@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { FindingMessageKey, MoneybirdProblem } from '@klopt/core'
-import { moneybirdFixTypeFor } from '../../src/lib/moneybird-findings.js'
+import {
+  moneybirdFindingCard,
+  moneybirdFixTypeFor,
+  type MoneybirdFindingActions,
+} from '../../src/lib/moneybird-findings.js'
 import { honestyFromReconciliation } from '../../src/lib/finding-card.js'
 
 const CODES = [
@@ -60,6 +64,56 @@ describe('moneybird finding fix types', () => {
 
   it('wires unbalanced_document as guided exclude', () => {
     expect(moneybirdFixTypeFor(problem('unbalanced_document', 'sales_invoice:1'))).toBe('guided')
+  })
+
+  it('sends period_locked to Boekjaren (named year / reopen, #61 slice 6)', () => {
+    const onOpenPeriodSettings = vi.fn()
+    const onExcludeDocument = vi.fn()
+    const actions = {
+      onOpenPeriodSettings,
+      onExcludeDocument,
+      moneybirdHrefFor: () => null,
+      labels: {
+        exclude: 'Niet overzetten',
+        reopenYear: 'Boekjaar heropenen',
+        stepDoNotTransfer: 'Niet overzetten',
+        openMoneybird: 'Open in Moneybird',
+        mapAccount: '',
+        mapTax: '',
+        renumberAccount: '',
+        renumberContact: '',
+        pickType: '',
+        confirmEur: '',
+        chooseRate: '',
+        confirmYearStart: '',
+        acknowledgeEmpty: '',
+        reread: '',
+        deferAttachment: '',
+        settings: '',
+        drillDown: '',
+        stepRate: '',
+        stepPreview: '',
+        stepConfirm: '',
+        stepPermissions: '',
+        stepOpenMoneybird: '',
+        stepReread: '',
+      },
+    } as MoneybirdFindingActions
+
+    const card = moneybirdFindingCard(
+      problem('period_locked', 'journal:1', {
+        year: '2024',
+        reference: 'J-1',
+      }),
+      'problems',
+      actions,
+    )
+    expect(card.fix.type).toBe('guided')
+    if (card.fix.type !== 'guided') return
+    expect(card.fix.label).toBe('Boekjaar heropenen')
+    card.fix.onOpen()
+    expect(onOpenPeriodSettings).toHaveBeenCalledOnce()
+    expect(onExcludeDocument).not.toHaveBeenCalled()
   })
 })
 

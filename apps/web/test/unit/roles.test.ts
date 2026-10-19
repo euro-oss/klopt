@@ -8,6 +8,7 @@ import {
   MAY_EXPORT_AUDIT_FILE,
   MAY_IMPORT_AUDIT_FILE,
   MAY_OPEN_YEAR,
+  MAY_POST_CLOSED,
 } from '../../src/lib/roles.js'
 
 /**
@@ -32,6 +33,7 @@ const sorted = (roles: readonly string[]): readonly string[] => [...roles].toSor
 describe('the roles a screen offers an action to', () => {
   it('are the roles that hold the permission behind it', () => {
     expect(sorted(MAY_CLOSE_YEAR)).toEqual(holdersOf('ledger:close'))
+    expect(sorted(MAY_POST_CLOSED)).toEqual(holdersOf('ledger:post-closed'))
     expect(sorted(MAY_OPEN_YEAR)).toEqual(holdersOf('ledger:configure'))
     expect(sorted(MAY_IMPORT_AUDIT_FILE)).toEqual(holdersOf('ledger:import'))
     expect(sorted(MAY_EXPORT_AUDIT_FILE)).toEqual(holdersOf('ledger:export'))
