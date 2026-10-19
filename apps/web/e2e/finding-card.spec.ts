@@ -46,7 +46,7 @@ async function anAdministration(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill('Bevindingen BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ })).toBeVisible()
 }
 
 test('j/k move between findings, Enter opens the fix, Escape closes it', async ({ page }) => {
