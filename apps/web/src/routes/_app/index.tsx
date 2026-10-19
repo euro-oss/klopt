@@ -13,14 +13,22 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
-import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from '~/components/ui/empty'
-import { Keycap, ShortcutFooter } from '~/components/ui/keycap'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '~/components/ui/empty'
+import { Keycap } from '~/components/ui/keycap'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
-import { formatDate, formatMinorUnits } from '~/lib/format'
+import { formatMinorUnits } from '~/lib/format'
 import {
   ATTENTION_TONE,
   barHeightPercent,
+  calendarParts,
+  capitalizeWord,
   dayPartAt,
   greetingName,
   ibanTail,
@@ -31,6 +39,7 @@ import {
 import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
+import { isTypingInto } from '~/lib/keyboard'
 import { resolveListKey } from '~/lib/list-cursor'
 import { cn } from '~/lib/utils'
 import type { WorkQueueItem, WorkQueueKind } from '~/lib/work-queue'
@@ -44,8 +53,8 @@ import { getRgsCoverage, getTrialBalance } from '~/server/ledger'
  *
  * Ports the #57 prototype screen (#61 slice 3). The queue still answers
  * "what do I do today?"; the figures and periods sit around it the way the
- * approved HTML does. Health (proefbalans / RGS) stays below — Proefbalans
- * only when Geavanceerd is on (#65).
+ * approved HTML does. Health (proefbalans / RGS) stays below — only when
+ * Geavanceerd is on (#65 / designer review).
  *
  * Import findings UI itself is owned by slice 4; this screen only links to
  * Moneybird when a stored dry-run already reported blocking problems.
@@ -164,54 +173,67 @@ function Dashboard() {
 
   const isDemo = entity.ok && entity.data.isDemo === true
   const entityName = entity.ok ? entity.data.name : ''
-  const name = greetingName(session.user.name, session.user.email)
+  const name = greetingName(session.user.name)
   const now = new Date()
   const part = dayPartAt(now.getHours())
   const greetingKey =
-    part === 'morning'
-      ? 'dash.greeting.morning'
-      : part === 'afternoon'
-        ? 'dash.greeting.afternoon'
-        : 'dash.greeting.evening'
-  const weekdayKey = `dash.weekday.${String(now.getDay())}` as MessageKey
-  const dateLabel = formatDate(
-    `${String(now.getFullYear())}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
-  )
+    name === null
+      ? part === 'morning'
+        ? 'dash.greeting.morningBare'
+        : part === 'afternoon'
+          ? 'dash.greeting.afternoonBare'
+          : 'dash.greeting.eveningBare'
+      : part === 'morning'
+        ? 'dash.greeting.morning'
+        : part === 'afternoon'
+          ? 'dash.greeting.afternoon'
+          : 'dash.greeting.evening'
+  const todayIso = `${String(now.getFullYear())}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const parts = calendarParts(todayIso)
+  const weekday = capitalizeWord(t(`dash.weekday.${String(parts.weekday)}` as MessageKey))
+  const dateLabel = t('dash.dateDayMonth', {
+    day: String(parts.day),
+    month: t(`dash.monthFull.${String(parts.month)}` as MessageKey),
+  })
 
   const year = dashboard.ok ? dashboard.data.fiscalYear : null
 
   return (
     <>
       <PageHeader
-        title={t(greetingKey, { name })}
+        title={name === null ? t(greetingKey) : t(greetingKey, { name })}
         description={
           year === null
             ? t('dash.introNoYear')
             : t('dash.greetingSub', {
-                weekday: t(weekdayKey),
+                weekday,
                 date: dateLabel,
                 entity: isDemo ? `${entityName} · ${t('shell.demoBadge')}` : entityName,
               })
         }
         actions={
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button asChild className="min-h-11 md:min-h-9">
+          <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:justify-end">
+            <Button asChild className="min-h-11 w-full flex-1 md:min-h-9 md:w-auto">
               <Link to="/invoices/new">
                 <RiAddLine data-icon="inline-start" aria-hidden="true" />
                 {t('dash.newInvoice')}
                 {hydrated && (
-                  <span className="ml-1 inline-flex gap-0.5">
-                    <Keycap className="border-primary-foreground/30 bg-transparent text-primary-foreground/80">
+                  <span className="ml-1 hidden gap-0.5 normal-case md:inline-flex">
+                    <Keycap className="border-primary-foreground/30 bg-transparent normal-case text-primary-foreground/80">
                       n
                     </Keycap>
-                    <Keycap className="border-primary-foreground/30 bg-transparent text-primary-foreground/80">
+                    <Keycap className="border-primary-foreground/30 bg-transparent normal-case text-primary-foreground/80">
                       f
                     </Keycap>
                   </span>
                 )}
               </Link>
             </Button>
-            <Button asChild variant="outline" className="min-h-11 md:min-h-9">
+            <Button
+              asChild
+              variant="outline"
+              className="min-h-11 w-full flex-1 md:min-h-9 md:w-auto"
+            >
               <Link to="/inbox">
                 <RiUploadLine data-icon="inline-start" aria-hidden="true" />
                 {t('dash.addReceipt')}
@@ -242,10 +264,10 @@ function Dashboard() {
         </>
       )}
 
-      <section className="mt-8">
-        <h2 className="mb-3 font-medium">{t('dash.healthTitle')}</h2>
-        <div className={cn('grid gap-4', advanced ? 'sm:grid-cols-2' : 'sm:grid-cols-1')}>
-          {advanced && (
+      {advanced && (
+        <section className="mt-8">
+          <h2 className="mb-3 font-medium">{t('dash.healthTitle')}</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
             <Stat
               label={t('dash.trialBalance')}
               value={trial.ok ? <Money amount={trial.data.difference} /> : '—'}
@@ -256,25 +278,25 @@ function Dashboard() {
               }
               tone={trial.ok && trial.data.difference === '0' ? 'good' : 'warn'}
             />
-          )}
-          <Stat
-            label={t('dash.rgsCoverage')}
-            value={coverage.ok ? `${String(coverage.data.mappedPercentage)}%` : '—'}
-            hint={
-              coverage.ok
-                ? t('dash.rgsCoverageHint', {
-                    mapped: String(coverage.data.mappedCount),
-                    total: String(coverage.data.accountCount),
-                    version: coverage.data.version,
-                  })
-                : undefined
-            }
-            tone={coverage.ok && coverage.data.unmappedCount === 0 ? 'good' : 'warn'}
-          />
-        </div>
-      </section>
+            <Stat
+              label={t('dash.rgsCoverage')}
+              value={coverage.ok ? `${String(coverage.data.mappedPercentage)}%` : '—'}
+              hint={
+                coverage.ok
+                  ? t('dash.rgsCoverageHint', {
+                      mapped: String(coverage.data.mappedCount),
+                      total: String(coverage.data.accountCount),
+                      version: coverage.data.version,
+                    })
+                  : undefined
+              }
+              tone={coverage.ok && coverage.data.unmappedCount === 0 ? 'good' : 'warn'}
+            />
+          </div>
+        </section>
+      )}
 
-      {coverage.ok && coverage.data.unmappedCount > 0 && (
+      {advanced && coverage.ok && coverage.data.unmappedCount > 0 && (
         <section className="border-border mt-4 border p-4">
           <h2 className="font-medium">{t('dash.unmapped')}</h2>
           <p className="text-muted-foreground mt-1 text-sm">{t('dash.unmappedBody')}</p>
@@ -340,7 +362,7 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
               : t('dash.figure.bankHint', {
                   name: bank.name,
                   iban: ibanTail(bank.iban),
-                  date: formatDate(bank.statementDate),
+                  date: dayMonthLabel(bank.statementDate, t),
                 })
         }
       />
@@ -380,6 +402,17 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
       />
     </section>
   )
+}
+
+function dayMonthLabel(
+  iso: string,
+  t: (key: MessageKey, vars?: Record<string, string>) => string,
+): string {
+  const parts = calendarParts(iso)
+  return t('dash.dateDayMonth', {
+    day: String(parts.day),
+    month: t(`dash.monthFull.${String(parts.month)}` as MessageKey),
+  })
 }
 
 function EuroAmount({ amount }: { amount: string }) {
@@ -422,6 +455,7 @@ function IncomeChart({ months }: { months: readonly MonthBar[] }) {
   const { t } = useT()
   const max = maxMonthAmount(months)
   const partial = months.find((month) => month.partial)
+  const emptyPlot = months.length === 0 || max === 0n
 
   return (
     <section aria-labelledby="dash-chart-h" className="border p-4">
@@ -431,7 +465,7 @@ function IncomeChart({ months }: { months: readonly MonthBar[] }) {
         </h2>
         <span className="text-muted-foreground text-xs">{t('dash.chartScale')}</span>
       </div>
-      {months.length === 0 ? (
+      {emptyPlot ? (
         <p className="text-muted-foreground mt-4 text-sm">{t('dash.chartEmpty')}</p>
       ) : (
         <>
@@ -509,7 +543,7 @@ function PeriodsPanel({
           const label =
             row.kind === 'month'
               ? t('dash.period.month', {
-                  month: t(`dash.month.${row.labelRef}` as MessageKey),
+                  month: capitalizeWord(t(`dash.monthFull.${row.labelRef}` as MessageKey)),
                   year: yearCode,
                 })
               : row.kind === 'quarter'
@@ -527,7 +561,9 @@ function PeriodsPanel({
             <li key={row.id} className="flex items-center justify-between gap-3 py-2">
               <span>{label}</span>
               {row.status === 'open' ? (
-                <Badge variant="outline">{t('dash.period.open')}</Badge>
+                <Badge variant="outline" className="normal-case tracking-normal font-medium">
+                  {t('dash.period.open')}
+                </Badge>
               ) : (
                 <span className="text-muted-foreground inline-flex items-center gap-1">
                   <RiLockLine aria-hidden="true" className="size-3.5" />
@@ -555,7 +591,7 @@ function toneIcon(tone: AttentionTone): ReactNode {
   return (
     <span
       aria-hidden="true"
-      className="border-muted-foreground mt-0.5 size-[18px] rounded-full border"
+      className="border-muted-foreground mt-0.5 inline-block size-[18px] shrink-0 rounded-full border"
     />
   )
 }
@@ -603,7 +639,7 @@ function rowCopy(
   }
 
   if (item.kind === 'vat.filing' && detail?.vatPeriod !== undefined) {
-    const deadline = detail.vatDeadline === undefined ? '—' : formatDate(detail.vatDeadline)
+    const deadline = detail.vatDeadline === undefined ? '—' : dayMonthLabel(detail.vatDeadline, t)
     return {
       title: t(destination.title, { period: detail.vatPeriod }),
       body:
@@ -613,6 +649,20 @@ function rowCopy(
               amount: formatMinorUnits(BigInt(detail.vatPayable)),
             })
           : t('queue.vatFilingBody', { deadline }),
+      action: t(destination.action),
+    }
+  }
+
+  if (
+    item.kind === 'sales.draft' ||
+    item.kind === 'sales.overdue' ||
+    item.kind === 'dunning.waiting' ||
+    item.kind === 'purchase.book' ||
+    item.kind === 'purchase.approve'
+  ) {
+    return {
+      title: t(destination.title, { count: String(item.count) }),
+      body: t(destination.body),
       action: t(destination.action),
     }
   }
@@ -627,7 +677,7 @@ function rowCopy(
 /**
  * The queue itself, and the keyboard that works it.
  *
- * Focus lands on the first row when the screen is ready. `j`/`k` move,
+ * Focus stays on the page on load — `j`/`k` start the cursor at row 0.
  * `Enter` opens (native link), `Escape` leaves the list.
  */
 function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
@@ -635,11 +685,41 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
   const hydrated = useHydrated()
   const [cursor, setCursor] = useState(0)
   const rows = useRef<(HTMLAnchorElement | null)[]>([])
+  const cursorRef = useRef(0)
+  cursorRef.current = cursor
 
+  const focusRow = (index: number): void => {
+    setCursor(index)
+    cursorRef.current = index
+    rows.current[index]?.focus()
+  }
+
+  // j/k enter the list at row 0 without stealing focus on load. Global
+  // prefixes (g j) still win: useShortcuts marks those defaultPrevented.
   useEffect(() => {
-    if (!hydrated) return
-    rows.current[0]?.focus()
-  }, [hydrated])
+    if (items.length === 0) return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.defaultPrevented) return
+      if (isTypingInto(event.target)) return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      const active = document.activeElement
+      const inList = rows.current.some((row) => row !== null && row === active)
+      if (inList) return
+      if (
+        event.key === 'j' ||
+        event.key === 'k' ||
+        event.key === 'ArrowDown' ||
+        event.key === 'ArrowUp'
+      ) {
+        event.preventDefault()
+        focusRow(0)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [items.length])
 
   if (items.length === 0) {
     return (
@@ -648,6 +728,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
           <EmptyTitle role="heading" aria-level={2}>
             {t('queue.empty')}
           </EmptyTitle>
+          <EmptyDescription>{t('queue.emptyBody')}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button asChild>
@@ -656,11 +737,6 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         </EmptyContent>
       </Empty>
     )
-  }
-
-  const focusRow = (index: number): void => {
-    setCursor(index)
-    rows.current[index]?.focus()
   }
 
   return (
@@ -680,7 +756,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         onKeyDown={(event) => {
           const resolution = resolveListKey(
             event.key,
-            { index: cursor, count: items.length },
+            { index: cursorRef.current, count: items.length },
             event.metaKey || event.ctrlKey || event.altKey,
           )
 
@@ -690,7 +766,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
           }
           if (resolution.action === 'leave') {
             event.preventDefault()
-            rows.current[cursor]?.blur()
+            rows.current[cursorRef.current]?.blur()
           }
         }}
       >
@@ -735,7 +811,23 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         })}
       </ul>
 
-      <ShortcutFooter ids={['queue.next', 'queue.previous', 'queue.open', 'queue.leave']} />
+      {hydrated && (
+        <div className="border-border text-muted-foreground mt-3 hidden flex-wrap items-center gap-x-3 gap-y-1.5 border px-2 py-1.5 text-[0.6875rem] md:flex">
+          <span className="flex items-center gap-1.5">
+            <Keycap>j</Keycap>
+            <Keycap>k</Keycap>
+            <span>{t('keys.queueMove')}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Keycap>↵</Keycap>
+            <span>{t('keys.queueOpenShort')}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Keycap>esc</Keycap>
+            <span>{t('keys.queueLeaveShort')}</span>
+          </span>
+        </div>
+      )}
     </section>
   )
 }

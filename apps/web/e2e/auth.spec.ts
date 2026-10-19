@@ -121,7 +121,7 @@ test('a member lands on the dashboard, and signing out returns to the form', asy
     await expect(
       page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
     ).toBeVisible()
-    await expect(page.getByText('RGS-dekking')).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Kerncijfers' })).toBeVisible()
 
     await signOut(page)
     await expect(page).toHaveURL(/\/sign-in/)

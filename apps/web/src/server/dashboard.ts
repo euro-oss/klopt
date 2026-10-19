@@ -13,7 +13,7 @@ import { handleListFiscalYears } from '~/api/handlers/setup'
 import { handleListVatPeriods } from '~/api/handlers/vat'
 import { hasPermission, type RequestContext } from '~/api/context'
 import { listPurchaseInvoicesQuery, listVatPeriodsQuery } from '~/api/schemas'
-import { buildPeriodRows, type MonthBar } from '~/lib/dashboard'
+import { buildPeriodRows, chartPeriodsThroughToday, type MonthBar } from '~/lib/dashboard'
 import { buildWorkQueue, type WorkQueueItem } from '~/lib/work-queue'
 import { isFiscalYearCode, withinFiscalYear, type FiscalYearScope } from '~/lib/fiscal-year'
 import { contextFromRequest, reportYear, run } from './internal'
@@ -42,7 +42,7 @@ export interface DashboardFigures {
   } | null
   readonly receivables: {
     /**
-     * Overdue outstanding only. Labelled "Verlopen facturen" until a full
+     * Overdue outstanding only. Labelled "Te laat bij klanten" until a full
      * open-AR aggregate exists (#61 follow-up). Do not present as "Nog te
      * ontvangen".
      */
@@ -222,9 +222,9 @@ async function loadDashboard(
   }
 
   const yearRow = fiscalYears.body.fiscalYears.find((year) => year.code === scope.code)
-  const chartPeriods = (yearRow?.periods ?? []).slice(
-    Math.max(0, (yearRow?.periods.length ?? 0) - 6),
-  )
+  // Six periods ending at today — not the last six of the boekjaar (those can
+  // include months that have not started yet).
+  const chartPeriods = chartPeriodsThroughToday(yearRow?.periods ?? [], today)
 
   const monthResults = await Promise.all(
     chartPeriods.map(async (period) => {

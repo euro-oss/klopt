@@ -62,14 +62,19 @@ test('an empty administration shows the redesigned dashboard and a way to start'
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
   ).toBeVisible()
+  // No email local-part in the greeting (designer #67).
+  await expect(page.getByRole('heading', { name: /@|e2e-/ })).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Kerncijfers' })).toBeVisible()
   // No operational work yet — drafts / bank / inbox stay off the list. A due
   // btw-aangifte may still appear (the period closed even with empty books).
-  await expect(page.getByRole('link', { name: /Concepten om te versturen/ })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /concepten om te versturen/i })).toHaveCount(0)
   await expect(page.getByRole('link', { name: /bankregels wachten/ })).toHaveCount(0)
 
   // Header CTA is the next step when the empty-state button is not shown.
-  await page.getByRole('link', { name: /Nieuwe factuur/ }).click()
+  await page
+    .getByRole('link', { name: /Nieuwe factuur/ })
+    .first()
+    .click()
   await expect(page).toHaveURL(/\/invoices\/new$/)
 })
 
@@ -79,12 +84,13 @@ test('the queue lists what is waiting and opens the screen where it is done', as
 
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
-  const row = page.getByRole('link', { name: /Concepten om te versturen/ })
+  const row = page.getByRole('link', { name: /concepten om te versturen/i })
   await expect(row).toBeVisible()
   await expect(row).toContainText('Openen')
 
-  // Focus lands on the first row on its own: the application opens with the
-  // hands already on the work.
+  // Do not steal focus on load — j/k start the cursor at row 0.
+  await expect(row).not.toBeFocused()
+  await page.keyboard.press('j')
   await expect(row).toBeFocused()
 
   await page.keyboard.press('Enter')
@@ -96,13 +102,13 @@ test('the queue lists what is waiting and opens the screen where it is done', as
   await expect(page.getByRole('row')).toHaveCount(2)
 })
 
-test('Geavanceerd off hides Proefbalans on the dashboard health strip', async ({ page }) => {
+test('Geavanceerd off hides the whole health strip on the dashboard', async ({ page }) => {
   await anAdministration(page, 'Eenvoudig Dashboard BV')
 
-  // Owner defaults to Geavanceerd off (#65): Proefbalans stays out of the
-  // health strip the same way it leaves the nav.
-  await expect(page.getByRole('heading', { name: 'Kloppen de boeken?' })).toBeVisible()
-  await expect(page.getByText('RGS-dekking')).toBeVisible()
+  // Owner defaults to Geavanceerd off (#65 / designer #67): jargon health
+  // (Kloppen de boeken?, RGS, Proefbalans) stays out until advanced is on.
+  await expect(page.getByRole('heading', { name: 'Kloppen de boeken?' })).toHaveCount(0)
+  await expect(page.locator('#main').getByText('RGS-dekking')).toHaveCount(0)
   await expect(page.locator('#main').getByText('Proefbalans')).toHaveCount(0)
 })
 
@@ -111,8 +117,9 @@ test('kerncijfers label overdue outstanding honestly, not as all receivables', a
 
   const figures = page.getByRole('region', { name: 'Kerncijfers' })
   // Overdue-only figure until a full open-AR aggregate exists (#61 follow-up).
-  await expect(figures.getByText('Verlopen facturen')).toBeVisible()
+  await expect(figures.getByText('Te laat bij klanten')).toBeVisible()
   await expect(figures.getByText('Nog te ontvangen')).toHaveCount(0)
+  await expect(figures.getByText('Verlopen facturen')).toHaveCount(0)
   // Bank suggestions and Exact finding counts stay out — no invented 0.
   await expect(page.getByText(/suggestie/i)).toHaveCount(0)
   await expect(page.getByRole('link', { name: /Exact.*0|0.*Exact/i })).toHaveCount(0)
@@ -123,7 +130,8 @@ test('Escape gives the keyboard back to the rest of the application', async ({ p
   await aDraftInvoice(page)
 
   await page.goto('/')
-  const row = page.getByRole('link', { name: /Concepten om te versturen/ })
+  const row = page.getByRole('link', { name: /concepten om te versturen/i })
+  await page.keyboard.press('j')
   await expect(row).toBeFocused()
 
   await page.keyboard.press('Escape')

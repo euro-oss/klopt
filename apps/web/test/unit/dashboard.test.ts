@@ -3,6 +3,9 @@ import {
   ATTENTION_TONE,
   barHeightPercent,
   buildPeriodRows,
+  calendarParts,
+  capitalizeWord,
+  chartPeriodsThroughToday,
   dayPartAt,
   greetingName,
   ibanTail,
@@ -11,10 +14,21 @@ import {
 import { WORK_QUEUE_ORDER } from '../../src/lib/work-queue.js'
 
 describe('dashboard greeting helpers', () => {
-  it('takes the first name for the greeting', () => {
+  it('takes the first name for the greeting, and never the email', () => {
     expect(greetingName('Hidde de Vries')).toBe('Hidde')
     expect(greetingName('  Ana  ')).toBe('Ana')
-    expect(greetingName('', 'hidde@example.nl')).toBe('hidde')
+    expect(greetingName('')).toBeNull()
+    expect(greetingName('   ')).toBeNull()
+  })
+
+  it('capitalises the weekday for the subline', () => {
+    expect(capitalizeWord('maandag')).toBe('Maandag')
+    expect(capitalizeWord('')).toBe('')
+  })
+
+  it('reads calendar parts from an ISO date', () => {
+    const parts = calendarParts('2026-10-19')
+    expect(parts).toEqual({ year: 2026, month: 10, day: 19, weekday: 1 })
   })
 
   it('splits the day the way Dutch greetings do', () => {
@@ -38,6 +52,15 @@ describe('dashboard chart scale', () => {
     expect(barHeightPercent('100000', max)).toBe(100)
     expect(barHeightPercent('10000', max)).toBeGreaterThanOrEqual(2)
     expect(barHeightPercent('0', max)).toBe(0)
+  })
+
+  it('takes the six periods ending at today, not future boekjaar months', () => {
+    const periods = Array.from({ length: 12 }, (_, index) => ({
+      sequence: index + 1,
+      startsOn: `2026-${String(index + 1).padStart(2, '0')}-01`,
+    }))
+    const window = chartPeriodsThroughToday(periods, '2026-10-19')
+    expect(window.map((period) => period.sequence)).toEqual([5, 6, 7, 8, 9, 10])
   })
 })
 
@@ -105,13 +128,15 @@ describe('werklijst tones', () => {
 })
 
 describe('honest kerncijfers copy', () => {
-  it('labels the overdue-only figure as verlopen, not as all receivables', async () => {
+  it('labels the overdue-only figure as te laat bij klanten, not as all receivables', async () => {
     const { nl } = await import('../../src/i18n/nl.js')
     const { en } = await import('../../src/i18n/en.js')
-    expect(nl['dash.figure.receivables']).toBe('Verlopen facturen')
-    expect(en['dash.figure.receivables']).toBe('Overdue invoices')
+    expect(nl['dash.figure.receivables']).toBe('Te laat bij klanten')
+    expect(en['dash.figure.receivables']).toBe('Late with customers')
     expect(nl['dash.figure.receivables']).not.toMatch(/Nog te ontvangen/)
     expect(en['dash.figure.receivables']).not.toMatch(/Still to receive/)
+    expect(nl['queue.empty']).toBe('Niets wacht op je')
+    expect(nl['queue.emptyAction']).toBe('Nieuwe factuur')
     // Bank body must not invent a suggestion count.
     expect(nl['queue.bankUnmatchedBody']).not.toMatch(/\d/)
     expect(en['queue.bankUnmatchedBody']).not.toMatch(/\d/)

@@ -23,7 +23,10 @@ describe('Alpha 5 density and dark mode', () => {
     const shell = read('components/app-shell.tsx')
     // Phone keeps p-4; desktop gets the redesign's roomier px/py (#57).
     expect(shell).toContain('min-w-0 flex-1 scroll-mt-12 p-4 outline-none md:p-8')
-    expect(shell).toContain('mb-4 flex items-start justify-between gap-4')
+    // Header stacks CTAs full-width below md so 390px does not overflow (#67).
+    expect(shell).toContain(
+      'mb-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between',
+    )
     expect(shell).toContain('text-xl font-semibold tracking-tight')
     expect(shell).not.toContain('focus:rounded')
   })
@@ -69,10 +72,10 @@ describe('Alpha 5 density and dark mode', () => {
     expect(empty).not.toContain('tracking-wider uppercase')
     expect(empty).not.toContain('text-primary')
 
-    // Home empty: one line + next action, no body paragraph.
+    // Home empty: title, body from the prototype, and the same CTA as the header.
     const home = read('routes/_app/index.tsx')
     expect(home).toContain("t('queue.empty')")
+    expect(home).toContain("t('queue.emptyBody')")
     expect(home).toContain("t('queue.emptyAction')")
-    expect(home).not.toContain("t('queue.emptyBody')")
   })
 })

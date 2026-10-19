@@ -24,18 +24,36 @@ export const ATTENTION_TONE: Readonly<Record<WorkQueueKind, AttentionTone>> = {
 
 /**
  * First name for "Goedemorgen, Hidde" — the part before the first space.
- * Magic-link sign-in often leaves `name` empty; fall back to the email local
- * part so the greeting is never "Goedemorgen," with a dangling comma.
+ * Magic-link sign-in often leaves `name` empty; never fall back to the email
+ * local-part (that wraps into four lines on phone). Caller shows a bare
+ * greeting without a comma when this returns null.
  */
-export function greetingName(fullName: string, email = ''): string {
+export function greetingName(fullName: string): string | null {
   const trimmed = fullName.trim()
-  if (trimmed !== '') {
-    const first = trimmed.split(/\s+/)[0]
-    return first === undefined || first === '' ? trimmed : first
-  }
-  const at = email.indexOf('@')
-  if (at > 0) return email.slice(0, at)
-  return email.trim() === '' ? 'daar' : email.trim()
+  if (trimmed === '') return null
+  const first = trimmed.split(/\s+/)[0]
+  return first === undefined || first === '' ? trimmed : first
+}
+
+/** Capitalise the first letter — weekdays and full month names in the subline. */
+export function capitalizeWord(value: string): string {
+  if (value.length === 0) return value
+  return value.slice(0, 1).toUpperCase() + value.slice(1)
+}
+
+/** Calendar parts from an ISO `YYYY-MM-DD` (local calendar, not UTC). */
+export function calendarParts(iso: string): {
+  readonly year: number
+  readonly month: number
+  readonly day: number
+  readonly weekday: number
+} {
+  const [yearText, monthText, dayText] = iso.split('-')
+  const year = Number(yearText)
+  const month = Number(monthText)
+  const day = Number(dayText)
+  const date = new Date(year, month - 1, day)
+  return { year, month, day, weekday: date.getDay() }
 }
 
 export type DayPart = 'morning' | 'afternoon' | 'evening'
@@ -95,6 +113,20 @@ export function maxMonthAmount(months: readonly MonthBar[]): bigint {
     if (expenses > max) max = expenses
   }
   return max
+}
+
+/**
+ * The six periods ending at the current one (or the latest that has started),
+ * not the last six of the boekjaar — so November/December stay off the chart
+ * in October.
+ */
+export function chartPeriodsThroughToday<T extends { readonly startsOn: string }>(
+  periods: readonly T[],
+  today: string,
+  window = 6,
+): T[] {
+  const through = periods.filter((period) => period.startsOn <= today)
+  return through.slice(Math.max(0, through.length - window))
 }
 
 export interface PeriodRow {
