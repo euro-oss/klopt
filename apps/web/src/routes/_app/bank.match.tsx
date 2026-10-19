@@ -528,7 +528,7 @@ function MatchQueue() {
               tabIndex={-1}
               data-slot="scroll-table"
             >
-              <table className="w-full min-w-[560px] text-sm">
+              <table className="w-full min-w-[560px] text-sm" aria-label={t('match.queue')}>
                 <thead className="bg-muted text-muted-foreground text-left text-xs">
                   <tr>
                     <th className="bg-muted sticky left-0 z-10 px-3 py-2 font-medium">

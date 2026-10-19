@@ -524,22 +524,27 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await focusIsSomewhere(page)
 
   // Koppelen: `g` then `o`, the cursor down a line, an account typed in, booked.
+  // Redesign (#61 slice 6): Af/Bij table + Categorie picker, not the old button list.
   await page.keyboard.press('g')
   await page.keyboard.press('o')
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
 
-  const queue = page.getByRole('list', { name: 'Wachtrij' }).getByRole('button')
+  const queue = page.getByRole('table', { name: 'Wachtrij' }).locator('tbody tr')
   await expect(queue).toHaveCount(4)
   await page.keyboard.press('j')
 
-  const manual = page.getByRole('combobox', { name: 'Zelf kiezen' })
-  await manual.pressSequentially('4400')
+  // Fixture chart has 4900 (Algemene kosten), not 4400.
+  const manual = page.getByRole('combobox', { name: 'Categorie' })
+  await manual.pressSequentially('4900')
+  await page.keyboard.press('ArrowDown')
   await page.keyboard.press('Enter')
-  await expect(manual).toHaveValue('4400')
+  await expect(manual).toHaveValue('4900')
+  await expect(page.getByRole('button', { name: /^Boeken/ })).toBeEnabled()
 
-  await tabTo(page, /^BUTTON Boeken$/)
+  // Keycap inside the button makes focused() report more than "Boeken".
+  await tabTo(page, /^BUTTON Boeken/)
   await page.keyboard.press('Enter')
-  await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
+  await expect(page.getByText(/Gekoppeld:|Geboekt als boeking/)).toBeVisible()
   await expect(queue).toHaveCount(3)
 
   // Het postvak: `g` then `e`, open the document, book it as a draft invoice.
