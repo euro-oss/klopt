@@ -129,7 +129,7 @@ test('btw sheet filters by direction and moves with arrow keys', async ({ page }
 test('btw sheet shows map-by-hand for an unsupported rate', async ({ page }) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxBad')
   await expect(page.getByRole('dialog')).toBeVisible()
-  await expect(page.getByRole('status')).toContainText(/valt buiten|hand|map/i)
+  await expect(page.getByRole('status')).toContainText(/vanzelf koppelen|zelf in de tabel/i)
   await expect(page.getByRole('radio')).toHaveCount(0)
 })
 
