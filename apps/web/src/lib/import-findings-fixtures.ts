@@ -125,7 +125,7 @@ export function moneybirdFixtureFindings(handlers?: {
       code: 'draft_skipped',
       path: 'documents/sales_invoices',
       messageKey: 'moneybird.draft_skipped',
-      detail: { count: '4', state: 'concept' },
+      detail: { reference: 'CONCEPT-4', count: '4', state: 'concept' },
       message: '4 invoices are still draft in Moneybird',
       severity: 'warning',
       fix: {

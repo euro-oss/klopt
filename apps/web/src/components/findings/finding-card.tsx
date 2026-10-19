@@ -191,7 +191,10 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
     >
       <ItemContent className="min-w-0 gap-2">
         <ItemHeader className="mb-2 flex-wrap gap-2">
-          <Badge variant={severity === 'blocking' ? 'destructive' : 'outline'}>
+          <Badge
+            variant={severity === 'blocking' ? 'destructive' : 'outline'}
+            className={severity === 'blocking' ? undefined : 'tracking-normal normal-case'}
+          >
             {severity === 'blocking' && <RiErrorWarningLine className="size-3" aria-hidden />}
             {severity === 'blocking' ? t('findingCard.blocking') : t('findingCard.warning')}
           </Badge>
@@ -240,7 +243,14 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
           </div>
         )}
 
-        {!fixOpen && (
+        {!fixOpen && fix.type === 'explainOnly' && (
+          <div className="mt-4 flex flex-col items-start gap-2">
+            <p className="text-muted-foreground text-sm">{t('findingCard.explainOnlyBody')}</p>
+            <ExplainOnlyLink fix={fix} />
+          </div>
+        )}
+
+        {!fixOpen && fix.type !== 'explainOnly' && (
           <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
             <Button
               type="button"
@@ -274,11 +284,33 @@ function BindingKeycaps({ id }: { id: string }) {
   const binding = BINDINGS_BY_ID.get(id)
   if (binding === undefined) return null
   return (
-    <span className="inline-flex gap-0.5" aria-hidden>
+    <span className="hidden gap-0.5 md:inline-flex" aria-hidden>
       {bindingChips(binding).map((chip) => (
         <Keycap key={chip}>{chip}</Keycap>
       ))}
     </span>
+  )
+}
+
+function ExplainOnlyLink({ fix }: { fix: Extract<FindingFix, { type: 'explainOnly' }> }) {
+  if (fix.href === undefined || fix.linkLabel === undefined) return null
+  const external = fix.href.startsWith('http://') || fix.href.startsWith('https://')
+  if (external) {
+    return (
+      <a
+        href={fix.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-sm underline underline-offset-4"
+      >
+        {fix.linkLabel} ↗
+      </a>
+    )
+  }
+  return (
+    <Link to={fix.href} className="text-sm underline underline-offset-4">
+      {fix.linkLabel} ↗
+    </Link>
   )
 }
 
@@ -323,26 +355,10 @@ function FixPanel({
   const { t } = useT()
 
   if (fix.type === 'explainOnly') {
-    const external =
-      fix.href !== undefined && (fix.href.startsWith('http://') || fix.href.startsWith('https://'))
     return (
       <div className="flex flex-col items-start gap-3">
         <p className="text-muted-foreground text-sm">{t('findingCard.explainOnlyBody')}</p>
-        {fix.href !== undefined && fix.linkLabel !== undefined && external && (
-          <a
-            href={fix.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm underline underline-offset-4"
-          >
-            {fix.linkLabel} ↗
-          </a>
-        )}
-        {fix.href !== undefined && fix.linkLabel !== undefined && !external && (
-          <Link to={fix.href} className="text-sm underline underline-offset-4">
-            {fix.linkLabel} ↗
-          </Link>
-        )}
+        <ExplainOnlyLink fix={fix} />
         <Button type="button" variant="ghost" size="xs" onClick={onClose}>
           {t('findingCard.close')}
         </Button>

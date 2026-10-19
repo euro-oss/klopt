@@ -422,7 +422,9 @@ function AccountVatSheetBody({
             </legend>
             {vatOptions.length === 0 ? (
               <p className="text-muted-foreground border px-3 py-3 text-sm" role="status">
-                {t('importFindings.accountVat.vatUnsupported', { rate: percentageLabel })}
+                {percentageLabel === '—'
+                  ? t('importFindings.accountVat.vatUnknown')
+                  : t('importFindings.accountVat.vatUnsupported', { rate: percentageLabel })}
               </p>
             ) : (
               <div
@@ -514,11 +516,11 @@ function AccountVatSheetBody({
           onClick={() => onOpenChange(false)}
         >
           {t('common.cancel')}
-          <Keycap className="ml-1">Esc</Keycap>
+          <Keycap className="ml-1 hidden md:inline-flex">Esc</Keycap>
         </Button>
         <Button type="button" disabled={!canSave} className="min-h-11 md:min-h-9" onClick={save}>
           {t('common.save')}
-          <Keycap className="ml-1">↵</Keycap>
+          <Keycap className="ml-1 hidden md:inline-flex">↵</Keycap>
         </Button>
       </SheetFooter>
     </SheetContent>

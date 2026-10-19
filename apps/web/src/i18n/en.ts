@@ -136,7 +136,7 @@ export const en: Record<MessageKey, string> = {
   'importFindings.resolvedHeading': 'Resolved',
   'importFindings.loading': 'Loading findings…',
   'importFindings.importing': 'Importing…',
-  'importFindings.accountVat.jumpToMapping': 'Edit in the mapping table',
+  'importFindings.accountVat.jumpToMapping': 'Choose it yourself in the table',
   'importFindings.source.sales': 'Sales invoices',
   'importFindings.source.purchases': 'Purchases and receipts',
   'importFindings.source.bookings': 'Entries {year}',
@@ -165,9 +165,12 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.stepVat': '2. Which VAT rate?',
   'importFindings.accountVat.stepVatOnly': 'Which VAT rate?',
   'importFindings.accountVat.vatHint': 'Moneybird had {rate}% VAT.',
-  'importFindings.accountVat.vatHintUnknown': 'Pick the rate that matches this Moneybird rate.',
+  'importFindings.accountVat.vatHintUnknown':
+    'We do not know which rate this is. Choose the VAT rate yourself in the table below.',
   'importFindings.accountVat.vatUnsupported':
-    'This Moneybird rate ({rate}%) is outside 21 / 9 / 0. Map it by hand in the table below.',
+    'We cannot match this Moneybird rate ({rate}%) automatically. Choose the VAT rate yourself in the table below.',
+  'importFindings.accountVat.vatUnknown':
+    'We do not know which rate this is. Choose the VAT rate yourself in the table below.',
   'importFindings.accountVat.whatHappens': 'What happens',
   'importFindings.accountVat.whatHappensBody':
     'The Moneybird entries land on {account}, with {vat}. Nothing is posted yet; that happens when you import.',
@@ -203,6 +206,7 @@ export const en: Record<MessageKey, string> = {
   'importFindings.fx.overrideNote': 'Your own rate. We store it with the entry and the date.',
   'importFindings.fx.resetEcb': 'Back to ECB rate ({rate})',
   'importFindings.fx.previewHeading': 'How it will be posted',
+  'importFindings.fx.accountColumn': 'Account',
   'importFindings.fx.debit': 'Debit',
   'importFindings.fx.credit': 'Credit',
   'importFindings.fx.accept': 'Use rate',
@@ -1726,8 +1730,8 @@ export const en: Record<MessageKey, string> = {
   'keys.group.findings': 'Findings',
   'keys.findingNext': 'Next finding',
   'keys.findingPrevious': 'Previous finding',
-  'keys.findingOpenFix': 'Open the fix',
-  'keys.findingCloseFix': 'Close the fix',
+  'keys.findingOpenFix': 'Resolve',
+  'keys.findingCloseFix': 'Close',
   'keys.palette': 'Command palette',
   'keys.help': 'Keyboard help',
   'keys.goProfitAndLoss': 'Profit and loss account',

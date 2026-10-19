@@ -71,11 +71,20 @@ async function revealReviewStates(page: Page): Promise<void> {
 
   // Let op warning + explain-only + period_locked + Opgelost + keyboard strip.
   await expect(page.getByText('Let op').first()).toBeVisible()
-  await expect(page.locator('[data-slot="finding-card"][data-code="draft_skipped"]')).toBeVisible()
+  const draft = page.locator('[data-slot="finding-card"][data-code="draft_skipped"]')
+  await expect(draft).toBeVisible()
+  await expect(draft.getByText('Dit los je niet hier op.')).toBeVisible()
+  await expect(draft.getByText('CONCEPT-4')).toBeVisible()
   await expect(page.locator('[data-slot="finding-card"][data-code="period_locked"]')).toBeVisible()
   await expect(page.getByText('Opgelost').first()).toBeVisible()
-  // ShortcutFooter under the list (hydrated keycaps).
-  await expect(page.locator('[data-slot="import-findings"] kbd').first()).toBeVisible()
+  // ShortcutFooter / in-button chips: desktop only (#69; CSS-hidden < md).
+  const width = page.viewportSize()?.width ?? 0
+  const firstKbd = page.locator('[data-slot="import-findings"] kbd').first()
+  if (width >= 768) {
+    await expect(firstKbd).toBeVisible()
+  } else {
+    await expect(firstKbd).toBeHidden()
+  }
 }
 
 test('capture import findings PNGs (1440/390 × light/dark + sheets + states)', async ({

@@ -1431,7 +1431,7 @@ export const nl = {
   'importFindings.resolvedHeading': 'Opgelost',
   'importFindings.loading': 'Bevindingen laden…',
   'importFindings.importing': 'Bezig met importeren…',
-  'importFindings.accountVat.jumpToMapping': 'Bewerk in de mappingtabel',
+  'importFindings.accountVat.jumpToMapping': 'Zelf kiezen in de tabel',
   'importFindings.source.sales': 'Verkoopfacturen',
   'importFindings.source.purchases': 'Inkoop en bonnen',
   'importFindings.source.bookings': 'Boekingen {year}',
@@ -1460,9 +1460,12 @@ export const nl = {
   'importFindings.accountVat.stepVat': '2. Welk btw-tarief?',
   'importFindings.accountVat.stepVatOnly': 'Welk btw-tarief?',
   'importFindings.accountVat.vatHint': 'In Moneybird stond {rate}% btw.',
-  'importFindings.accountVat.vatHintUnknown': 'Kies het tarief dat bij dit Moneybird-tarief hoort.',
+  'importFindings.accountVat.vatHintUnknown':
+    'We weten niet welk tarief dit is. Kies het btw-tarief zelf in de tabel hieronder.',
   'importFindings.accountVat.vatUnsupported':
-    'Dit Moneybird-tarief ({rate}%) valt buiten 21 / 9 / 0. Map het handmatig in de tabel hieronder.',
+    'Dit Moneybird-tarief ({rate}%) kunnen we niet vanzelf koppelen. Kies het btw-tarief zelf in de tabel hieronder.',
+  'importFindings.accountVat.vatUnknown':
+    'We weten niet welk tarief dit is. Kies het btw-tarief zelf in de tabel hieronder.',
   'importFindings.accountVat.whatHappens': 'Wat er gebeurt',
   'importFindings.accountVat.whatHappensBody':
     'De boekingen uit Moneybird komen op {account}, met {vat}. Er wordt nu nog niets geboekt; dat gebeurt pas als je importeert.',
@@ -1499,6 +1502,7 @@ export const nl = {
   'importFindings.fx.overrideNote': 'Je eigen koers. We bewaren hem bij de boeking, met de datum.',
   'importFindings.fx.resetEcb': 'Terug naar ECB-koers ({rate})',
   'importFindings.fx.previewHeading': 'Zo wordt het geboekt',
+  'importFindings.fx.accountColumn': 'Rekening',
   'importFindings.fx.debit': 'Debet',
   'importFindings.fx.credit': 'Credit',
   'importFindings.fx.accept': 'Koers gebruiken',
@@ -1776,8 +1780,8 @@ export const nl = {
   'keys.group.findings': 'Bevindingen',
   'keys.findingNext': 'Volgende bevinding',
   'keys.findingPrevious': 'Vorige bevinding',
-  'keys.findingOpenFix': 'Fix openen',
-  'keys.findingCloseFix': 'Fix sluiten',
+  'keys.findingOpenFix': 'Oplossen',
+  'keys.findingCloseFix': 'Sluiten',
   'keys.palette': 'Commandopalet',
   'keys.help': 'Sneltoetsen',
   'keys.goProfitAndLoss': 'Winst- en verliesrekening',

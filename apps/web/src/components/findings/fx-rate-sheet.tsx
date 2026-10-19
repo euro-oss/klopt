@@ -211,7 +211,7 @@ export function FxRateSheet({
                   <thead>
                     <tr className="border-b text-left">
                       <th className="px-3 py-2 font-medium">
-                        {t('importFindings.fx.previewHeading')}
+                        {t('importFindings.fx.accountColumn')}
                       </th>
                       <th className="px-3 py-2 text-right font-medium">
                         {t('importFindings.fx.debit')}
@@ -267,7 +267,7 @@ export function FxRateSheet({
             onClick={() => onOpenChange(false)}
           >
             {t('common.cancel')}
-            <Keycap className="ml-1">Esc</Keycap>
+            <Keycap className="ml-1 hidden md:inline-flex">Esc</Keycap>
           </Button>
           <Button
             type="button"
@@ -276,7 +276,7 @@ export function FxRateSheet({
             onClick={onAccept}
           >
             {t('importFindings.fx.accept')}
-            <Keycap className="ml-1">↵</Keycap>
+            <Keycap className="ml-1 hidden md:inline-flex">↵</Keycap>
           </Button>
         </SheetFooter>
       </SheetContent>

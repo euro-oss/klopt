@@ -28,7 +28,8 @@ export function Keycap({
   return (
     <kbd
       className={cn(
-        'border-border bg-background text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center border border-b-2 px-1.5 font-sans text-[11px] font-medium tabular',
+        // normal-case: survives uppercase parents (primary buttons show Esc, not ESC).
+        'border-border bg-background text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center border border-b-2 px-1.5 font-sans text-[11px] font-medium tracking-normal normal-case tabular',
         className,
       )}
     >
@@ -80,7 +81,8 @@ export function ShortcutFooter({
   return (
     <div
       className={cn(
-        'border-border text-muted-foreground mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border px-2 py-1.5 text-[0.6875rem]',
+        // Yellow outline as #67; hidden on phone (#57 / #69 design review).
+        'border-accent text-muted-foreground mt-3 hidden flex-wrap items-center gap-x-3 gap-y-1.5 border px-2 py-1.5 text-[0.6875rem] md:flex',
         className,
       )}
     >
