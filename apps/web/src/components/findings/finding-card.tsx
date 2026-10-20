@@ -16,7 +16,9 @@ import {
   type RefObject,
 } from 'react'
 import { Link } from '@tanstack/react-router'
+import { RiCheckboxBlankCircleLine, RiCheckLine, RiErrorWarningLine } from '@remixicon/react'
 import { cn } from 'cn'
+import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemHeader } from '~/components/ui/item'
 import { Keycap, ShortcutFooter } from '~/components/ui/keycap'
@@ -55,6 +57,8 @@ export interface FindingCardProps extends FindingCardModel {
   readonly tabIndex?: number
   readonly id?: string
   readonly className?: string
+  /** Geavanceerd: show technical `path` under the body (#57). */
+  readonly showPath?: boolean
 }
 
 /**
@@ -80,6 +84,7 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
     tabIndex = -1,
     id,
     className,
+    showPath = false,
   },
   ref,
 ) {
@@ -100,9 +105,14 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
   }, [showPreview])
 
   const openFix = (): void => {
-    setConfirming(false)
     onFixOpenChange?.(true)
-    if (fix.type === 'guided') fix.onOpen()
+    if (fix.type === 'guided') {
+      setConfirming(false)
+      fix.onOpen()
+      return
+    }
+    // oneClick with preview: first activation shows the preview (contract / #57).
+    setConfirming(fix.type === 'oneClick' && fix.preview !== undefined)
   }
 
   const closeFix = (): void => {
@@ -141,11 +151,13 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
       aria-expanded={fixOpen}
       aria-controls={fixOpen ? panelId : undefined}
       className={cn(
-        // Design: focus = 2px border (Phase 2 may tint yellow in dark).
-        'cursor-default border-2 outline-none focus-visible:border-foreground',
+        // Prototype: 1px card + 4px severity bar; focus ring only on :focus-visible
+        // so j/k/Tab show the cursor without a ring on load (#69 design review).
+        'cursor-default border bg-card p-4 outline-none transition-colors md:p-5',
+        'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         classes.border,
         classes.bar,
-        selected && 'border-foreground',
+        selected && 'bg-muted/40',
         className,
       )}
       onFocus={() => {
@@ -178,25 +190,32 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
       }}
     >
       <ItemContent className="min-w-0 gap-2">
-        <ItemHeader>
-          <span className={cn('text-xs font-semibold tracking-widest uppercase', classes.title)}>
+        <ItemHeader className="mb-2 flex-wrap gap-2">
+          <Badge
+            variant={severity === 'blocking' ? 'destructive' : 'outline'}
+            className={severity === 'blocking' ? undefined : 'tracking-normal normal-case'}
+          >
+            {severity === 'blocking' && <RiErrorWarningLine className="size-3" aria-hidden />}
             {severity === 'blocking' ? t('findingCard.blocking') : t('findingCard.warning')}
-          </span>
-          <code className="text-muted-foreground text-[0.625rem] tracking-normal normal-case tabular">
+          </Badge>
+          <span className="text-muted-foreground text-xs">{fixTypeLabel(t, fix)}</span>
+          <code className="text-muted-foreground ml-auto hidden text-[11px] tracking-normal normal-case sm:block">
             {code}
           </code>
         </ItemHeader>
 
-        <ItemDescription className={cn('line-clamp-none text-sm', classes.body)}>
+        <ItemDescription
+          className={cn('line-clamp-none text-[15px] leading-snug font-medium', classes.body)}
+        >
           {explanation}
         </ItemDescription>
 
-        <p className="text-muted-foreground text-xs leading-relaxed">
+        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
           <span className="font-medium text-foreground">{t('findingCard.whyItMatters')}: </span>
           {why}
         </p>
 
-        {path !== null && path !== undefined && path !== '' && (
+        {showPath && path !== null && path !== undefined && path !== '' && (
           <p className="text-muted-foreground text-[0.625rem] tabular">{path}</p>
         )}
 
@@ -206,7 +225,10 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
           <div
             id={panelId}
             data-slot="finding-fix"
-            className="border-border mt-2 w-full border-t pt-3"
+            className={cn(
+              'border-border mt-4 w-full border-t pt-3',
+              showPreview && 'animate-in-fade border bg-muted p-4',
+            )}
           >
             <FixPanel
               fix={fix}
@@ -221,25 +243,35 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
           </div>
         )}
 
-        {!fixOpen && (
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+        {!fixOpen && fix.type === 'explainOnly' && (
+          <div className="mt-4 flex flex-col items-start gap-2">
+            <p className="text-muted-foreground text-sm">{t('findingCard.explainOnlyBody')}</p>
+            <ExplainOnlyLink fix={fix} />
+          </div>
+        )}
+
+        {!fixOpen && fix.type !== 'explainOnly' && (
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
             <Button
               type="button"
-              variant={fix.type === 'oneClick' ? 'default' : 'outline'}
-              size="xs"
+              variant={fix.type === 'oneClick' ? 'outline' : 'default'}
+              size="default"
               onClick={openFix}
-              className="gap-2"
+              className="min-h-11 gap-2 md:min-h-9"
             >
               {fixActionLabel(t, fix)}
-              <BindingKeycaps id="finding.openFix" />
+              {selected && <BindingKeycaps id="finding.openFix" />}
             </Button>
             {fix.type === 'oneClick' && fix.preview === undefined && (
               <span className="text-muted-foreground text-xs">{t('findingCard.oneClickSafe')}</span>
             )}
-            {fix.type === 'guided' && fix.steps !== undefined && fix.steps.length > 0 && (
+            {fix.type === 'oneClick' && fix.preview !== undefined && (
               <span className="text-muted-foreground text-xs">
-                {t('findingCard.guidedSteps', { count: String(fix.steps.length) })}
+                {t('findingCard.fixHint.preview')}
               </span>
+            )}
+            {fix.type === 'guided' && fix.steps !== undefined && fix.steps.length > 0 && (
+              <span className="text-muted-foreground text-xs">{fix.steps.join(' → ')}</span>
             )}
           </div>
         )}
@@ -252,11 +284,33 @@ function BindingKeycaps({ id }: { id: string }) {
   const binding = BINDINGS_BY_ID.get(id)
   if (binding === undefined) return null
   return (
-    <span className="inline-flex gap-0.5" aria-hidden>
+    <span className="hidden gap-0.5 md:inline-flex" aria-hidden>
       {bindingChips(binding).map((chip) => (
         <Keycap key={chip}>{chip}</Keycap>
       ))}
     </span>
+  )
+}
+
+function ExplainOnlyLink({ fix }: { fix: Extract<FindingFix, { type: 'explainOnly' }> }) {
+  if (fix.href === undefined || fix.linkLabel === undefined) return null
+  const external = fix.href.startsWith('http://') || fix.href.startsWith('https://')
+  if (external) {
+    return (
+      <a
+        href={fix.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-sm underline underline-offset-4"
+      >
+        {fix.linkLabel} ↗
+      </a>
+    )
+  }
+  return (
+    <Link to={fix.href} className="text-sm underline underline-offset-4">
+      {fix.linkLabel} ↗
+    </Link>
   )
 }
 
@@ -266,7 +320,21 @@ function fixActionLabel(
 ): string {
   if (fix.type === 'oneClick') return fix.label
   if (fix.type === 'guided') return fix.label
-  return t('findingCard.openExplain')
+  return fix.linkLabel ?? t('findingCard.openExplain')
+}
+
+function fixTypeLabel(
+  t: (key: MessageKey, values?: Record<string, string>) => string,
+  fix: FindingFix,
+): string {
+  if (fix.type === 'oneClick') return t('findingCard.fixType.oneClick')
+  if (fix.type === 'guided') {
+    if (fix.steps !== undefined && fix.steps.length > 0) {
+      return t('findingCard.guidedSteps', { count: String(fix.steps.length) })
+    }
+    return t('findingCard.fixType.guided')
+  }
+  return t('findingCard.fixType.explainOnly')
 }
 
 function FixPanel({
@@ -287,26 +355,10 @@ function FixPanel({
   const { t } = useT()
 
   if (fix.type === 'explainOnly') {
-    const external =
-      fix.href !== undefined && (fix.href.startsWith('http://') || fix.href.startsWith('https://'))
     return (
       <div className="flex flex-col items-start gap-3">
         <p className="text-muted-foreground text-sm">{t('findingCard.explainOnlyBody')}</p>
-        {fix.href !== undefined && fix.linkLabel !== undefined && external && (
-          <a
-            href={fix.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm underline underline-offset-4"
-          >
-            {fix.linkLabel} ↗
-          </a>
-        )}
-        {fix.href !== undefined && fix.linkLabel !== undefined && !external && (
-          <Link to={fix.href} className="text-sm underline underline-offset-4">
-            {fix.linkLabel} ↗
-          </Link>
-        )}
+        <ExplainOnlyLink fix={fix} />
         <Button type="button" variant="ghost" size="xs" onClick={onClose}>
           {t('findingCard.close')}
         </Button>
@@ -336,31 +388,42 @@ function FixPanel({
   if (confirming && fix.preview !== undefined) {
     return (
       <div
-        className="flex flex-col items-start gap-3"
+        className="flex w-full flex-col items-start gap-3"
         role="group"
         aria-label={t('findingCard.preview')}
       >
-        <p className="text-sm font-medium">{t('findingCard.preview')}</p>
-        <p className="text-sm">{fix.preview.summary}</p>
+        <p className="text-sm font-medium">{fix.preview.summary || t('findingCard.preview')}</p>
         {fix.preview.lines !== undefined && fix.preview.lines.length > 0 && (
-          <dl className="w-full text-sm">
+          <dl className="mt-1 w-full space-y-1 text-sm">
             {fix.preview.lines.map((line) => (
-              <div
-                key={line.label}
-                className="flex justify-between gap-4 border-border border-b py-1"
-              >
+              <div key={line.label} className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">{line.label}</dt>
-                <dd className="tabular text-right">{line.value}</dd>
+                <dd className="tabular-nums">{line.value}</dd>
               </div>
             ))}
           </dl>
         )}
-        <div className="flex flex-wrap gap-2">
-          <Button ref={confirmRef} type="button" size="xs" onClick={onActivateOneClick}>
+        <p className="text-muted-foreground text-xs">{t('findingCard.fixHint.preview')}</p>
+        <div className="mt-1 flex flex-wrap gap-2">
+          <Button
+            ref={confirmRef}
+            type="button"
+            size="default"
+            className="min-h-11 md:min-h-9"
+            onClick={onActivateOneClick}
+          >
             {t('findingCard.confirmFix')}
+            <BindingKeycaps id="finding.openFix" />
           </Button>
-          <Button type="button" variant="ghost" size="xs" onClick={onClose}>
-            {t('findingCard.close')}
+          <Button
+            type="button"
+            variant="ghost"
+            size="default"
+            className="min-h-11 md:min-h-9"
+            onClick={onClose}
+          >
+            {t('common.cancel')}
+            <BindingKeycaps id="finding.closeFix" />
           </Button>
         </div>
       </div>
@@ -414,7 +477,6 @@ export function FindingHonestyState({
       : honesty === 'empty'
         ? t('findingCard.honesty.emptyHint')
         : t('findingCard.honesty.reconciledHint')
-
   return (
     <div
       data-slot="finding-honesty"
@@ -427,7 +489,19 @@ export function FindingHonestyState({
       )}
       role="status"
     >
-      <p className={cn('font-semibold tracking-widest uppercase', classes.text)}>{label}</p>
+      <p className={cn('flex items-center gap-1.5 text-xs font-medium normal-case', classes.text)}>
+        {honesty === 'reconciled' ? (
+          <RiCheckLine className="size-3.5 shrink-0" aria-hidden />
+        ) : honesty === 'empty' ? (
+          <RiCheckboxBlankCircleLine className="size-3.5 shrink-0" aria-hidden />
+        ) : (
+          <span
+            className="inline-block size-3 shrink-0 border border-dashed border-current"
+            aria-hidden
+          />
+        )}
+        {label}
+      </p>
       {!compact && <p className="text-muted-foreground mt-1 text-xs normal-case">{hint}</p>}
     </div>
   )
@@ -443,6 +517,8 @@ export interface FindingsListProps {
   readonly empty?: ReactNode
   /** Print the findings keyboard strip under the list. */
   readonly showShortcuts?: boolean
+  /** Geavanceerd: show technical paths on each card. */
+  readonly showPath?: boolean
   readonly 'aria-label'?: string
 }
 
@@ -457,6 +533,7 @@ export function FindingsList({
   className,
   empty,
   showShortcuts = true,
+  showPath = false,
   'aria-label': ariaLabel,
 }: FindingsListProps) {
   const { t } = useT()
@@ -532,6 +609,7 @@ export function FindingsList({
             }}
             selected={index === safeCursor}
             fixOpen={safeOpenFix === index}
+            showPath={showPath}
             tabIndex={index === safeCursor ? 0 : -1}
             onSelect={() => {
               setCursor(index)
@@ -547,6 +625,11 @@ export function FindingsList({
       {showShortcuts && (
         <ShortcutFooter
           ids={['finding.next', 'finding.previous', 'finding.openFix', 'finding.closeFix']}
+          labelOverrides={
+            findings[safeCursor]?.fix.type === 'explainOnly'
+              ? { 'finding.openFix': 'keys.findingOpenExplain' }
+              : undefined
+          }
         />
       )}
     </div>

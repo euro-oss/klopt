@@ -72,6 +72,11 @@ describe('matchVatCodes', () => {
       }),
     ).toBe(false)
   })
+
+  it('returns no matches for an unknown taxRateType', () => {
+    expect(matchVatCodes(rules, { percentage: 21, taxRateType: 'unknown' })).toEqual([])
+    expect(matchVatCodes(rules, { percentage: 21, taxRateType: '' })).toEqual([])
+  })
 })
 
 describe('nextFreeNumber', () => {
