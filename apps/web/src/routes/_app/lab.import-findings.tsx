@@ -293,7 +293,7 @@ function ImportFindingsLab() {
               resolveById('f3', `0% → ${choice.vatCode ?? '—'}`)
             }}
           />
-          {/* Purchase 0% → no nl-mkb input 0% code; honest unsupported copy. */}
+          {/* Purchase 0% → VGEEN as other, nothing pre-selected. */}
           <AccountVatSheet
             open={taxPurchase0Open}
             onOpenChange={setTaxPurchase0Open}
@@ -306,9 +306,11 @@ function ImportFindingsLab() {
             percentage="0"
             advanced={advanced}
             onJumpToMapping={noopJumpToMapping}
-            onSave={() => undefined}
+            onSave={(choice) => {
+              resolveById('f3', `Inkoop 0% → ${choice.vatCode ?? '—'}`)
+            }}
           />
-          {/* Unsupported rate → honest empty status (6%). */}
+          {/* Unsupported purchase rate → honest empty status (6% inkoop). */}
           <AccountVatSheet
             open={taxBadOpen}
             onOpenChange={setTaxBadOpen}

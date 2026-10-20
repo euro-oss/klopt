@@ -182,6 +182,107 @@ describe('matchVatCodes', () => {
     expect(ranked.suggestedCode).toBe('H21')
     expect(ranked.candidates.map((row) => row.group)).toEqual(['primary', 'other'])
   })
+
+  it('offers VGEEN for a 0% purchase rate', () => {
+    const chart = [
+      {
+        code: 'VGEEN',
+        rateBasisPoints: 0,
+        direction: 'input' as const,
+        scope: 'out_of_scope',
+        reverseCharge: 'none',
+        deductibility: 'none',
+      },
+      {
+        code: 'GEEN',
+        rateBasisPoints: 0,
+        direction: 'output' as const,
+        scope: 'exempt',
+        reverseCharge: 'none',
+      },
+    ]
+    expect(
+      matchVatCodes(chart, { percentage: 0, taxRateType: 'purchase_invoice' }).map(
+        (rule) => rule.code,
+      ),
+    ).toEqual(['VGEEN'])
+  })
+
+  it('offers VERL9-ONTV for a 9% reverse-charge purchase rate among other matches', () => {
+    const chart = [
+      {
+        code: 'VL9',
+        rateBasisPoints: 900,
+        direction: 'input' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+        deductibility: 'full',
+      },
+      {
+        code: 'VERL9-ONTV',
+        rateBasisPoints: 900,
+        direction: 'input' as const,
+        scope: 'domestic',
+        reverseCharge: 'domestic',
+        deductionCode: 'VERL9-VOOR',
+      },
+      {
+        code: 'VERL9-VOOR',
+        rateBasisPoints: 900,
+        direction: 'input' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+        deductibility: 'full',
+      },
+    ]
+    const ranked = rankVatCodes(chart, { percentage: 9, taxRateType: 'purchase_invoice' })
+    expect(ranked.primary.map((rule) => rule.code)).toEqual(['VL9'])
+    expect(ranked.other.map((rule) => rule.code)).toEqual(
+      expect.arrayContaining(['VERL9-ONTV', 'VERL9-VOOR']),
+    )
+  })
+
+  it('offers L6 and H19 for historical 6% and 19% sales rates', () => {
+    const chart = [
+      {
+        code: 'L6',
+        rateBasisPoints: 600,
+        direction: 'output' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+      },
+      {
+        code: 'H19',
+        rateBasisPoints: 1900,
+        direction: 'output' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+      },
+      {
+        code: 'H21',
+        rateBasisPoints: 2100,
+        direction: 'output' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+      },
+    ]
+    expect(
+      matchVatCodes(chart, { percentage: 6, taxRateType: 'sales_invoice' }).map(
+        (rule) => rule.code,
+      ),
+    ).toEqual(['L6'])
+    expect(
+      matchVatCodes(chart, { percentage: 19, taxRateType: 'sales_invoice' }).map(
+        (rule) => rule.code,
+      ),
+    ).toEqual(['H19'])
+    expect(rankVatCodes(chart, { percentage: 6, taxRateType: 'sales_invoice' }).suggestedCode).toBe(
+      'L6',
+    )
+    expect(
+      rankVatCodes(chart, { percentage: 19, taxRateType: 'sales_invoice' }).suggestedCode,
+    ).toBe('H19')
+  })
 })
 
 describe('nextFreeNumber', () => {

@@ -68,6 +68,28 @@
       "scope": "domestic"
     },
     {
+      "code": "L6",
+      "description": "BTW overig 6%",
+      "rateBasisPoints": 600,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "S",
+      "baseRubriek": "1c",
+      "vatRubriek": "1c",
+      "scope": "domestic"
+    },
+    {
+      "code": "H19",
+      "description": "BTW overig 19%",
+      "rateBasisPoints": 1900,
+      "direction": "output",
+      "accountRole": "vatPayable",
+      "ublCategory": "S",
+      "baseRubriek": "1c",
+      "vatRubriek": "1c",
+      "scope": "domestic"
+    },
+    {
       "code": "PRIV21",
       "description": "Privégebruik 21%",
       "rateBasisPoints": 2100,
@@ -154,6 +176,16 @@
       "deductibility": "full"
     },
     {
+      "code": "VGEEN",
+      "description": "Geen btw (inkoop)",
+      "rateBasisPoints": 0,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "O",
+      "scope": "out_of_scope",
+      "deductibility": "none"
+    },
+    {
       "code": "VERL-ONTV",
       "description": "BTW verlegd naar u, verschuldigd",
       "rateBasisPoints": 2100,
@@ -170,6 +202,30 @@
       "code": "VERL-VOOR",
       "description": "BTW verlegd naar u, voorbelasting",
       "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "AE",
+      "vatRubriek": "5b",
+      "scope": "domestic",
+      "deductibility": "full"
+    },
+    {
+      "code": "VERL9-ONTV",
+      "description": "BTW verlegd naar u 9%, verschuldigd",
+      "rateBasisPoints": 900,
+      "direction": "input",
+      "accountRole": "vatPayable",
+      "ublCategory": "AE",
+      "baseRubriek": "2a",
+      "vatRubriek": "2a",
+      "scope": "domestic",
+      "reverseCharge": "domestic",
+      "deductionCode": "VERL9-VOOR"
+    },
+    {
+      "code": "VERL9-VOOR",
+      "description": "BTW verlegd naar u 9%, voorbelasting",
+      "rateBasisPoints": 900,
       "direction": "input",
       "accountRole": "vatReceivable",
       "ublCategory": "AE",
@@ -202,6 +258,30 @@
       "deductibility": "full"
     },
     {
+      "code": "ICV9",
+      "description": "Intracommunautaire verwerving 9%, verschuldigd",
+      "rateBasisPoints": 900,
+      "direction": "input",
+      "accountRole": "vatPayable",
+      "ublCategory": "K",
+      "baseRubriek": "4b",
+      "vatRubriek": "4b",
+      "scope": "intra_community_acquisition",
+      "supplyKind": "goods",
+      "deductionCode": "ICV9-VOOR"
+    },
+    {
+      "code": "ICV9-VOOR",
+      "description": "Intracommunautaire verwerving 9%, voorbelasting",
+      "rateBasisPoints": 900,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "K",
+      "vatRubriek": "5b",
+      "scope": "intra_community_acquisition",
+      "deductibility": "full"
+    },
+    {
       "code": "INV23",
       "description": "Invoer met artikel 23-verlegging, verschuldigd",
       "rateBasisPoints": 2100,
@@ -219,6 +299,31 @@
       "code": "INV23-VOOR",
       "description": "Invoer met artikel 23-verlegging, voorbelasting",
       "rateBasisPoints": 2100,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "S",
+      "vatRubriek": "5b",
+      "scope": "import",
+      "deductibility": "full"
+    },
+    {
+      "code": "INV9",
+      "description": "Invoer met artikel 23-verlegging 9%, verschuldigd",
+      "rateBasisPoints": 900,
+      "direction": "input",
+      "accountRole": "vatPayable",
+      "ublCategory": "S",
+      "baseRubriek": "4a",
+      "vatRubriek": "4a",
+      "scope": "import",
+      "reverseCharge": "import_article_23",
+      "supplyKind": "goods",
+      "deductionCode": "INV9-VOOR"
+    },
+    {
+      "code": "INV9-VOOR",
+      "description": "Invoer met artikel 23-verlegging 9%, voorbelasting",
+      "rateBasisPoints": 900,
       "direction": "input",
       "accountRole": "vatReceivable",
       "ublCategory": "S",

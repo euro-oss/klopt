@@ -812,16 +812,22 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
       expect.arrayContaining([
         'H21',
         'L9',
+        'L6',
+        'H19',
         'VH21',
         'VL9',
+        'VGEEN',
         'VERL',
         'GEEN',
         'NUL',
         'ICP',
         'ICPD',
         'VERL-ONTV',
+        'VERL9-ONTV',
         'ICV21',
+        'ICV9',
         'INV23',
+        'INV9',
       ]),
     )
   })
@@ -1144,7 +1150,7 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     expect(plan.problems.map((item) => item.code)).not.toContain('incompatible_tax_rate')
   })
 
-  it('leaves 0% purchase with no candidates and unmapped_tax_rate (no V0 yet — #72)', () => {
+  it('offers VGEEN for a 0% purchase rate without preselecting it', () => {
     const base = snapshot()
     const plan = planMoneybirdImport(
       {
@@ -1168,12 +1174,45 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
       options({ existingTaxRules: nlMkbTaxRules }),
     )
     const rate = plan.taxRates.find((row) => row.moneybirdId === '50')
-    expect(rate?.candidates).toEqual([])
+    expect(rate?.candidates).toEqual([{ code: 'VGEEN', group: 'other' }])
     expect(rate?.proposedCode).toBeNull()
+    // Like 0% sales: a candidate exists but nothing is pre-selected, so the
+    // rate stays unmapped until the user confirms VGEEN.
     expect(plan.problems.map((item) => item.code)).toContain('unmapped_tax_rate')
+
+    const confirmed = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          {
+            id: '50',
+            name: '0% purchase',
+            percentage: 0,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        purchaseInvoices: base.purchaseInvoices.map((invoice) => ({
+          ...invoice,
+          details: invoice.details.map((detail) => ({ ...detail, taxRateId: '50' })),
+        })),
+      },
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '50': 'VGEEN' },
+      }),
+    )
+    expect(confirmed.taxRates.find((row) => row.moneybirdId === '50')).toMatchObject({
+      mapped: true,
+      mappedCode: 'VGEEN',
+      proposedCode: null,
+    })
+    expect(confirmed.problems.map((item) => item.code)).not.toContain('unmapped_tax_rate')
   })
 
-  it('rejects a confirmed H21 on an unsupported 6% rate', () => {
+  it('preselects L6 for a 6% sales rate and rejects a confirmed H21 on it', () => {
     const base = snapshot()
     const plan = planMoneybirdImport(
       {
@@ -1199,7 +1238,10 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
         confirmedTaxMappings: { '60': 'H21' },
       }),
     )
-    expect(plan.taxRates.find((rate) => rate.moneybirdId === '60')?.candidates).toEqual([])
+    expect(plan.taxRates.find((rate) => rate.moneybirdId === '60')?.candidates).toEqual([
+      { code: 'L6', group: 'primary' },
+    ])
+    expect(plan.taxRates.find((rate) => rate.moneybirdId === '60')?.proposedCode).toBe('L6')
     expect(plan.problems.map((item) => item.code)).toContain('incompatible_tax_rate')
   })
 

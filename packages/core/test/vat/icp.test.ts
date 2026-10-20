@@ -48,6 +48,35 @@ const RULES: readonly TaxCodeRule[] = [
     scope: 'domestic',
     ublCategory: 'S',
   }),
+  rule('ICV9', {
+    rateBasisPoints: 900,
+    direction: 'input',
+    baseRubriek: '4b',
+    vatRubriek: '4b',
+    scope: 'intra_community_acquisition',
+    supplyKind: 'goods',
+    ublCategory: 'K',
+    deductionCode: 'ICV9-VOOR',
+  }),
+  rule('INV9', {
+    rateBasisPoints: 900,
+    direction: 'input',
+    baseRubriek: '4a',
+    vatRubriek: '4a',
+    scope: 'import',
+    reverseCharge: 'import_article_23',
+    supplyKind: 'goods',
+    deductionCode: 'INV9-VOOR',
+  }),
+  rule('VGEEN', {
+    rateBasisPoints: 0,
+    direction: 'input',
+    baseRubriek: null,
+    vatRubriek: null,
+    scope: 'out_of_scope',
+    deductibility: 'none',
+    ublCategory: 'O',
+  }),
 ]
 
 let sequence = 0
@@ -281,6 +310,37 @@ describe('buildIcpReturn', () => {
     expect(result.entries).toEqual([])
     expect(result.totalMinorUnits).toBe(0n)
     expect(result.findings).toEqual([])
+    expect(result.blocked).toBe(false)
+  })
+
+  it('excludes purchase-side ICV9, INV9 and VGEEN from the opgaaf', () => {
+    const result = build([
+      line({
+        signedMinorUnits: 100_000n,
+        taxCode: 'ICV9',
+        taxRole: 'base',
+        accountNumber: '7000',
+        accountName: 'Inkoop',
+      }),
+      line({
+        signedMinorUnits: 50_000n,
+        taxCode: 'INV9',
+        taxRole: 'base',
+        accountNumber: '7000',
+        accountName: 'Inkoop',
+      }),
+      line({
+        signedMinorUnits: 25_000n,
+        taxCode: 'VGEEN',
+        taxRole: 'base',
+        accountNumber: '4400',
+        accountName: 'Kosten',
+      }),
+    ])
+
+    expect(result.entries).toEqual([])
+    expect(result.totalMinorUnits).toBe(0n)
+    expect(result.rubriek3bMinorUnits).toBe(0n)
     expect(result.blocked).toBe(false)
   })
 })

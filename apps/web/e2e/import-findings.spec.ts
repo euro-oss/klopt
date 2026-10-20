@@ -222,17 +222,15 @@ test('btw sheet hides disclosure while a non-primary is selected', async ({ page
   await expect(sheet.locator('[data-slot="vat-show-other"]')).toContainText('Minder tonen')
 })
 
-test('btw sheet shows honest copy for 0% purchase and unsupported 6%', async ({ page }) => {
+test('btw sheet offers VGEEN for 0% purchase and honest copy for unsupported 6% purchase', async ({
+  page,
+}) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxPurchase0')
   const zeroPurchase = page.getByRole('dialog')
   await expect(zeroPurchase).toBeVisible()
-  await expect(zeroPurchase.getByRole('radio')).toHaveCount(0)
-  await expect(zeroPurchase.getByRole('status')).toContainText(
-    /Klopt heeft nog geen btw-code voor dit tarief/,
-  )
-  // onJumpToMapping is passed in; the sheet must still hide the link (#71 PM A).
-  await expect(zeroPurchase.locator('[data-slot="vat-jump-to-mapping"]')).toHaveCount(0)
-  await expect(zeroPurchase.getByRole('button', { name: /Zelf kiezen in de tabel/ })).toHaveCount(0)
+  await expect(zeroPurchase.getByRole('radio')).toHaveCount(1)
+  await expect(zeroPurchase.getByRole('radio')).toContainText(/Geen btw/)
+  await expect(zeroPurchase.getByRole('status')).toHaveCount(0)
   await expect(zeroPurchase.getByText('H21', { exact: true })).toHaveCount(0)
   await page.keyboard.press('Escape')
 
