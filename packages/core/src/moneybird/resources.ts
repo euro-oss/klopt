@@ -139,11 +139,13 @@ export interface MoneybirdTaxRate {
 }
 
 export function parseTaxRate(row: Record<string, unknown>): MoneybirdTaxRate {
+  // Empty / missing percentage stays non-finite (NaN); missing direction stays
+  // empty. Do not invent 0% or sales_invoice — that would auto-map VERL or H21 (#70).
   return {
     id: requireId(row, 'id'),
     name: readString(row, 'name') ?? requireId(row, 'id'),
-    percentage: readNumber(row, 'percentage') ?? 0,
-    taxRateType: readString(row, 'tax_rate_type') ?? 'sales_invoice',
+    percentage: readNumber(row, 'percentage') ?? Number.NaN,
+    taxRateType: readString(row, 'tax_rate_type') ?? '',
     country: readString(row, 'country'),
     active: row['active'] === undefined ? true : readBoolean(row, 'active'),
     reportReference: readString(row, 'report_reference') ?? readString(row, 'tax_report_reference'),

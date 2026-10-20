@@ -523,6 +523,52 @@ describe('FX rate and mapping decisions', () => {
     }
   })
 
+  it('rejects incompatible VAT mappings on save with 422 and persists nothing', async () => {
+    const { token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse(MAPPINGS),
+    )
+    const before = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(before.connection?.taxMappings).toEqual(MAPPINGS.taxMappings)
+    expect(before.connection?.accountMappings).toEqual(MAPPINGS.accountMappings)
+
+    let caught: unknown
+    try {
+      await handleSaveMoneybirdMappings(
+        await context(token, crypto.randomUUID()),
+        saveMoneybirdMappingsBody.parse({
+          accountMappings: { '1': '9999' },
+          taxMappings: { '21': 'VH21', '22': 'VH21' },
+        }),
+      )
+    } catch (error: unknown) {
+      caught = error
+    }
+    expect(caught).toBeInstanceOf(ApiError)
+    const error = caught as ApiError
+    expect(error.code).toBe('validation_failed')
+    expect(error.status).toBe(422)
+    expect(error.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'incompatible_tax_rate',
+          path: 'taxRates.21',
+          messageKey: 'moneybird.incompatible_tax_rate',
+        }),
+      ]),
+    )
+    expect(error.violations.every((row) => row.path !== 'taxRates.22')).toBe(true)
+
+    const after = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(after.connection?.taxMappings).toEqual(MAPPINGS.taxMappings)
+    expect(after.connection?.accountMappings).toEqual(MAPPINGS.accountMappings)
+  })
+
   it('rejects a bad override rate at save and records audit fields for a good one', async () => {
     const { token, entityId } = await newEntity()
     fakeMoneybird()

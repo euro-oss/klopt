@@ -17,10 +17,17 @@ import { cn } from '~/lib/utils'
 import { detailForDisplay, formatFindingAmount, formatMonthName } from '~/lib/finding-card'
 import {
   honestySourcesFromMoneybird,
+  importVatRulesFromListTaxCodes,
   suggestVatCode,
   type ImportVatCode,
   type ImportVatRule,
 } from '~/lib/import-findings'
+import {
+  applyTaxMappingSaveFailure,
+  scrollTaxMappingViolationIntoView,
+  type TaxMappingViolationView,
+} from '~/lib/tax-mapping-save'
+import { MoneybirdMappingReview } from '~/components/findings/moneybird-mapping-review'
 import { listTaxCodes } from '~/server/sales'
 import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
@@ -120,18 +127,20 @@ function Moneybird() {
 
   const kloptTaxRules: readonly ImportVatRule[] = useMemo(() => {
     if (!taxCodesResult.ok) return []
+    // Pass deductionCode (and proRata) through — without it VERL-VOOR ranks as
+    // a plain standard and 21% purchase loses its VH21 preselect (#71 PM).
     const rows = taxCodesResult.data.taxCodes as readonly {
       readonly code: string
-      readonly description: string
+      readonly description?: string
       readonly rateBasisPoints: number
       readonly direction: 'input' | 'output'
+      readonly scope?: string
+      readonly reverseCharge?: string
+      readonly deductibility?: string
+      readonly deductionCode?: string | null
+      readonly proRataBasisPoints?: number | null
     }[]
-    return rows.map((row) => ({
-      code: row.code,
-      description: row.description,
-      rateBasisPoints: row.rateBasisPoints,
-      direction: row.direction,
-    }))
+    return importVatRulesFromListTaxCodes(rows)
   }, [taxCodesResult])
 
   const [busy, setBusy] = useState(false)
@@ -161,6 +170,10 @@ function Moneybird() {
   const [baseUrl, setBaseUrl] = useState('https://moneybird.com/api/v2')
   const [accountMappings, setAccountMappings] = useState<Record<string, string>>({})
   const [taxMappings, setTaxMappings] = useState<Record<string, string>>({})
+  /** Inline messages for `taxRates.<id>` after a saveMappings 422 (#71 PM). */
+  const [taxViolations, setTaxViolations] = useState<
+    Readonly<Record<string, TaxMappingViolationView>>
+  >({})
   const [decisions, setDecisions] = useState<MoneybirdImportDecisions>(() => {
     const fromConnection = connection.ok
       ? (connection.data.connection as { importDecisions?: MoneybirdImportDecisions } | null)
@@ -208,9 +221,16 @@ function Moneybird() {
   const canStoreSecrets = connection.data.canStoreSecrets
 
   async function run(
-    work: () => Promise<{ ok: boolean; problem?: { detail: string }; data?: unknown }>,
+    work: () => Promise<{
+      ok: boolean
+      problem?: {
+        detail: string
+        violations?: readonly { path?: string | null; message?: string; code?: string }[]
+      }
+      data?: unknown
+    }>,
     onDone?: (data: unknown) => void,
-  ) {
+  ): Promise<boolean> {
     setBusy(true)
     setError(null)
     setNote(null)
@@ -219,9 +239,10 @@ function Moneybird() {
 
     if (!result.ok) {
       setError(result.problem?.detail ?? t('common.unknownError'))
-      return
+      return false
     }
     onDone?.(result.data)
+    return true
   }
 
   const connect = () =>
@@ -279,23 +300,45 @@ function Moneybird() {
       setTaxMappings(nextTax)
     })
 
-  const persistAndPreview = (next: {
+  const persistAndPreview = async (next: {
     accountMappings?: Record<string, string>
     taxMappings?: Record<string, string>
     importDecisions?: MoneybirdImportDecisions
-  }) =>
-    run(
-      () =>
-        saveMoneybirdMappings({
-          data: {
-            accountMappings: next.accountMappings ?? accountMappings,
-            taxMappings: next.taxMappings ?? taxMappings,
-            importDecisions: next.importDecisions ?? decisions,
-            idempotencyKey: crypto.randomUUID(),
-          },
-        }),
-      () => void runPreview(),
-    )
+  }) => {
+    const previousTax = taxMappings
+    const attemptedTax = next.taxMappings ?? taxMappings
+    // Optimistic UI — rolled back per rejected taxRates.<id> on 422 (#71 PM).
+    if (next.taxMappings !== undefined) setTaxMappings(next.taxMappings)
+    if (next.accountMappings !== undefined) setAccountMappings(next.accountMappings)
+    setTaxViolations({})
+    setBusy(true)
+    setError(null)
+    setNote(null)
+    const result = await saveMoneybirdMappings({
+      data: {
+        accountMappings: next.accountMappings ?? accountMappings,
+        taxMappings: attemptedTax,
+        importDecisions: next.importDecisions ?? decisions,
+        idempotencyKey: crypto.randomUUID(),
+      },
+    })
+    setBusy(false)
+    if (!result.ok) {
+      setError(result.problem?.detail ?? t('common.unknownError'))
+      const applied = applyTaxMappingSaveFailure({
+        previous: previousTax,
+        attempted: attemptedTax,
+        violations: result.problem?.violations ?? [],
+        t,
+      })
+      setTaxViolations(applied.taxViolations)
+      setTaxMappings(applied.taxMappings)
+      const firstRejected = applied.rejectedIds[0]
+      if (firstRejected !== undefined) scrollTaxMappingViolationIntoView(firstRejected)
+      return
+    }
+    void runPreview()
+  }
 
   const saveMappings = () => void persistAndPreview({})
 
@@ -805,17 +848,27 @@ function Moneybird() {
                   setDrillDocuments([])
                 }}
               />
-              <MappingReview
-                report={preview}
+              <MoneybirdMappingReview
+                accounts={
+                  (preview['accounts'] as { sample: AccountSample[] } | undefined)?.sample ?? []
+                }
+                taxRates={(preview['taxRates'] as TaxSample[] | undefined) ?? []}
                 accountMappings={accountMappings}
                 taxMappings={taxMappings}
+                taxViolations={taxViolations}
                 advanced={advanced}
                 onAccountChange={(id, value) =>
                   setAccountMappings((current) => ({ ...current, [id]: value }))
                 }
-                onTaxChange={(id, value) =>
+                onTaxChange={(id, value) => {
+                  setTaxViolations((current) => {
+                    if (current[id] === undefined) return current
+                    const next = { ...current }
+                    delete next[id]
+                    return next
+                  })
                   setTaxMappings((current) => ({ ...current, [id]: value }))
-                }
+                }}
                 onSave={() => void saveMappings()}
                 busy={busy}
                 hydrated={hydrated}
@@ -869,7 +922,6 @@ function Moneybird() {
               const taxId = accountVatDraft.taxMoneybirdId ?? accountVatDraft.moneybirdId
               if (taxId !== '' && choice.vatCode !== null) {
                 const nextTax = { ...taxMappings, [taxId]: choice.vatCode }
-                setTaxMappings(nextTax)
                 void persistAndPreview({ taxMappings: nextTax })
               }
             } else if (accountVatDraft.moneybirdId !== '' && choice.accountNumber !== null) {
@@ -877,7 +929,6 @@ function Moneybird() {
                 ...accountMappings,
                 [accountVatDraft.moneybirdId]: choice.accountNumber,
               }
-              setAccountMappings(nextAccounts)
               void persistAndPreview({ accountMappings: nextAccounts })
             }
             setAccountVatDraft(null)
@@ -1086,127 +1137,6 @@ function MoneybirdFxSheet({
       {...(draft.ecbRate === '' ? {} : { onResetEcb })}
       onAccept={onAccept}
     />
-  )
-}
-
-function MappingReview({
-  report,
-  accountMappings,
-  taxMappings,
-  advanced,
-  onAccountChange,
-  onTaxChange,
-  onSave,
-  busy,
-  hydrated,
-}: {
-  report: Record<string, unknown>
-  accountMappings: Record<string, string>
-  taxMappings: Record<string, string>
-  advanced: boolean
-  onAccountChange: (id: string, value: string) => void
-  onTaxChange: (id: string, value: string) => void
-  onSave: () => void
-  busy: boolean
-  hydrated: boolean
-}) {
-  const { t } = useT()
-  const accounts = (report['accounts'] as { sample: AccountSample[] }).sample
-  const taxRates = report['taxRates'] as TaxSample[]
-  const unmapped =
-    accounts.filter((account) => (accountMappings[account.moneybirdId] ?? '').trim() === '')
-      .length +
-    taxRates.filter((rate) => rate.used && (taxMappings[rate.moneybirdId] ?? '').trim() === '')
-      .length
-  // Simple mode: Moneybird name → Klopt Categorie. Geavanceerd: Grootboek → Klopt-rekening.
-  const sourceColumn = advanced ? t('moneybird.ledgerAccounts') : t('moneybird.moneybirdName')
-  const accountColumn = advanced ? t('moneybird.kloptAccount') : t('moneybird.category')
-
-  return (
-    <div className="mt-6">
-      <h3 className="mb-2 text-sm font-semibold">{t('moneybird.mapping')}</h3>
-      <p className="text-muted-foreground mb-4 text-sm">
-        {t('moneybird.mappingIntro')}
-        {unmapped > 0 ? ` ${t('moneybird.unmappedCount', { count: String(unmapped) })}` : ''}
-      </p>
-      <ScrollTable className="mb-4">
-        <table className={cn('w-full min-w-[32rem] text-sm', stickyFirstCol)}>
-          <thead>
-            <tr className="border-border border-b text-left">
-              <th className="py-2 pr-4">{sourceColumn}</th>
-              <th className="py-2">{accountColumn}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {accounts.map((account) => (
-              <tr
-                key={account.moneybirdId}
-                id={`moneybird-account-${account.moneybirdId}`}
-                className="border-border border-b"
-              >
-                <td className="py-2 pr-4">
-                  {advanced ? `${account.number} — ${account.name}` : account.name}
-                  {advanced && account.rgsCode !== null && account.rgsCode !== undefined ? (
-                    <span className="text-muted-foreground ml-2 text-xs tabular-nums">
-                      {account.rgsCode}
-                    </span>
-                  ) : null}
-                </td>
-                <td className="py-2">
-                  <input
-                    value={accountMappings[account.moneybirdId] ?? account.proposedNumber}
-                    onChange={(event) => onAccountChange(account.moneybirdId, event.target.value)}
-                    disabled={!hydrated}
-                    className="border-border w-32 rounded-none border px-2 py-1 tabular-nums"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </ScrollTable>
-      <ScrollTable className="mb-4">
-        <table className={cn('w-full min-w-[28rem] text-sm', stickyFirstCol)}>
-          <thead>
-            <tr className="border-border border-b text-left">
-              <th className="py-2 pr-4">{t('moneybird.taxRates')}</th>
-              <th className="py-2">{t('moneybird.kloptTax')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {taxRates.map((rate) => (
-              <tr
-                key={rate.moneybirdId}
-                id={`moneybird-tax-${rate.moneybirdId}`}
-                className="border-border border-b"
-              >
-                <td className="py-2 pr-4 tabular-nums">
-                  {rate.name} ({rate.percentage}%)
-                </td>
-                <td className="py-2">
-                  <input
-                    value={
-                      taxMappings[rate.moneybirdId] ?? rate.mappedCode ?? rate.proposedCode ?? ''
-                    }
-                    onChange={(event) => onTaxChange(rate.moneybirdId, event.target.value)}
-                    disabled={!hydrated}
-                    className="border-border w-32 rounded-none border px-2 py-1 tabular-nums"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </ScrollTable>
-      <button
-        type="button"
-        disabled={busy || !hydrated}
-        onClick={onSave}
-        className="border-border rounded-none border px-3 py-1.5 text-sm disabled:opacity-50"
-      >
-        {t('moneybird.saveMappings')}
-      </button>
-    </div>
   )
 }
 

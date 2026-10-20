@@ -1,6 +1,7 @@
 import {
   MoneybirdReadError,
   findAdministration,
+  findIncompatibleTaxMappings,
   isOlderThanDays,
   lookupEcbRate,
   normalizeFxRateInput,
@@ -368,6 +369,44 @@ export async function handleSaveMoneybirdMappings(
                 ),
               }),
         }
+
+  // Reject incompatible VAT mappings on save (#70 PM), not only on preview/run.
+  if (Object.keys(body.taxMappings).length > 0) {
+    const { client, connection } = await clientFor(context)
+    if (connection.administrationId === null) {
+      throw new ApiError(
+        'conflict',
+        'No Moneybird administration has been chosen yet. Choose one before mapping VAT rates.',
+      )
+    }
+    try {
+      const rules = await context.database.transaction(async (tx) =>
+        new ReportingRepository(tx).taxRules(context.entityId),
+      )
+      const snapshot = await readAdministration({
+        client,
+        administrationId: connection.administrationId,
+      })
+      const incompatible = findIncompatibleTaxMappings(snapshot, rules, body.taxMappings)
+      if (incompatible.length > 0) {
+        throw new ApiError(
+          'validation_failed',
+          'One or more VAT mappings do not match the chart direction or rate.',
+          incompatible.map((entry) => ({
+            code: entry.code,
+            path: entry.path,
+            message: entry.message,
+            messageKey: entry.messageKey,
+            detail: entry.detail,
+          })),
+        )
+      }
+    } catch (error: unknown) {
+      if (error instanceof ApiError) throw error
+      return refuse(context, error, client.log)
+    }
+  }
+
   await withMoneybirdConnection(context.database, (repository) =>
     repository.saveMappings({
       entityId: context.entityId,
@@ -593,6 +632,8 @@ function serialisePlan(plan: MoneybirdImportPlan, functionalCurrency: string) {
       mappedCode: rate.mappedCode,
       mapped: rate.mapped,
       used: rate.used,
+      /** Primary (standard) first, then verlegd / ICP / invoer — for the btw picker (#70). */
+      candidates: rate.candidates,
     })),
     contacts: {
       count: plan.contacts.length,

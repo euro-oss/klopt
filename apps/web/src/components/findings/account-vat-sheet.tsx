@@ -7,7 +7,7 @@
  * the VAT code (PM #69 — do not claim both when only one is persisted).
  */
 
-import { RiAddLine, RiCheckLine, RiSearchLine } from '@remixicon/react'
+import { RiAddLine, RiArrowDownSLine, RiCheckLine, RiSearchLine } from '@remixicon/react'
 import { useId, useMemo, useState, type KeyboardEvent } from 'react'
 import {
   rankAccountSuggestions,
@@ -26,9 +26,9 @@ import {
 import { Badge } from '~/components/ui/badge'
 import { Keycap } from '~/components/ui/keycap'
 import {
-  suggestVatCode,
-  vatOptionsFor,
+  vatCandidatesFor,
   type ImportVatCode,
+  type ImportVatOption,
   type ImportVatRule,
 } from '~/lib/import-findings'
 import { cn } from '~/lib/utils'
@@ -107,18 +107,18 @@ function AccountVatSheetBody({
 }: AccountVatSheetProps) {
   const { t } = useT()
   const listId = useId()
-  const vatOptions = useMemo(
-    () => vatOptionsFor({ rules: taxRules, taxRateType, percentage }),
+  const candidates = useMemo(
+    () => vatCandidatesFor({ rules: taxRules, taxRateType, percentage }),
     [taxRules, taxRateType, percentage],
   )
-  // Prefill only when exactly one match — never GEEN among five 0% sales codes.
-  const uniqueSuggested = suggestVatCode({ rules: taxRules, taxRateType, percentage })
+  // Prefill only a unique primary — never a 0% sales code (#70 / #71).
+  const uniqueSuggested = candidates.suggestedCode
   const defaultVat =
     uniqueSuggested !== null
       ? uniqueSuggested
       : suggestedVat !== null &&
-          vatOptions.length === 1 &&
-          vatOptions.some((option) => option.code === suggestedVat)
+          candidates.primary.length === 1 &&
+          candidates.primary.some((option) => option.code === suggestedVat)
         ? suggestedVat
         : null
   const emptyChart = accounts.length === 0
@@ -137,6 +137,22 @@ function AccountVatSheetBody({
   const [chosenNumber, setChosenNumber] = useState<string | null>(initialChosen)
   const [newAccount, setNewAccount] = useState(emptyChart)
   const [vat, setVat] = useState<ImportVatCode | null>(defaultVat)
+  /** Disclosure for primary+other; ignored when there is no primary (0% sales). */
+  const [showOther, setShowOther] = useState(false)
+
+  const primaryOptions = candidates.primary
+  const otherOptions = candidates.other
+  const allVatOptions: readonly ImportVatOption[] = [...primaryOptions, ...otherOptions]
+  /** 0% sales: only `other` — show them directly, no disclosure (#71 designer). */
+  const otherOnly = primaryOptions.length === 0 && otherOptions.length > 0
+  const canDiscloseOther = primaryOptions.length > 0 && otherOptions.length > 0
+  /** Keep other open while an other code is selected so collapse cannot hide it. */
+  const selectedIsOther = vat !== null && otherOptions.some((option) => option.code === vat)
+  const disclosureOpen = otherOnly || showOther || selectedIsOther
+  /** Radios in tab/arrow order: all when other-only / expanded / other selected. */
+  const vatOptions: readonly ImportVatOption[] = disclosureOpen ? allVatOptions : primaryOptions
+  const vatListId = `${listId}-vat`
+  const checkedVatIndex = vatOptions.findIndex((option) => option.code === vat)
 
   const ranked = useMemo(
     () => buildRankedList(accounts, { rgsCode, number: sourceNumber, name: sourceName, query }),
@@ -148,12 +164,12 @@ function AccountVatSheetBody({
     : (ranked.find((row) => row.account.number === chosenNumber)?.account ??
       accounts.find((account) => account.number === chosenNumber) ??
       null)
-  const vatOption = vatOptions.find((option) => option.code === vat) ?? null
+  const vatOption = allVatOptions.find((option) => option.code === vat) ?? null
   const percentageLabel = (percentage ?? '').trim().replace(/\.0+$/, '') || '—'
 
   const canSave =
     mode === 'tax'
-      ? vat !== null && vatOptions.length > 0
+      ? vat !== null && allVatOptions.length > 0
       : newAccount
         ? sourceNumber.trim() !== ''
         : chosen !== null
@@ -192,13 +208,35 @@ function AccountVatSheetBody({
     saveAccount(chosen)
   }
 
-  const vatLabel = (option: { readonly code: string; readonly description: string }): string => {
-    const key = `importFindings.vat.${option.code}` as MessageKey
-    const translated = t(key)
-    // Unknown keys fall through as the key string — prefer the chart description.
-    return translated === key || translated.startsWith('importFindings.vat.')
-      ? option.description
-      : translated
+  const vatLabel = (
+    option: ImportVatOption | { readonly code: string; readonly description: string },
+  ): string => {
+    const proRata = 'proRataBasisPoints' in option ? (option.proRataBasisPoints ?? null) : null
+    const deductibility = 'deductibility' in option ? option.deductibility : undefined
+    if (
+      (deductibility === 'pro_rata' || option.code === 'VH21-PRO') &&
+      proRata !== null &&
+      Number.isFinite(proRata) &&
+      proRata > 0 &&
+      proRata < 10_000
+    ) {
+      const share = (proRata / 100).toFixed(proRata % 100 === 0 ? 0 : 2)
+      return t('importFindings.vat.VH21-PRO.share', { share })
+    }
+    // Prefer #74 shared keys (VERL/GEEN/NUL/ICP/ICPD), then importFindings.
+    for (const prefix of ['invoiceGuided.vat.', 'importFindings.vat.'] as const) {
+      const key = `${prefix}${option.code}` as MessageKey
+      const translated = t(key)
+      if (
+        translated !== undefined &&
+        translated !== key &&
+        !translated.startsWith('invoiceGuided.vat.') &&
+        !translated.startsWith('importFindings.vat.')
+      ) {
+        return translated
+      }
+    }
+    return option.description
   }
 
   const onVatKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
@@ -237,7 +275,10 @@ function AccountVatSheetBody({
       onKeyDown={(event) => {
         if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey && !event.altKey) {
           const target = event.target as HTMLElement
-          if (target.tagName === 'INPUT' || target.getAttribute('role') === 'radio') {
+          // Search combobox + radios only — never the disclosure button (#71 PM).
+          const isSearch = target instanceof HTMLInputElement && target.id === 'account-vat-query'
+          const isRadio = target.getAttribute('role') === 'radio'
+          if (isSearch || isRadio) {
             event.preventDefault()
             save()
           }
@@ -420,62 +461,103 @@ function AccountVatSheetBody({
             <legend className="mb-2 text-sm font-medium">
               {t('importFindings.accountVat.stepVatOnly')}
             </legend>
-            {vatOptions.length === 0 ? (
+            {allVatOptions.length === 0 ? (
               <p className="text-muted-foreground border px-3 py-3 text-sm" role="status">
                 {percentageLabel === '—'
                   ? t('importFindings.accountVat.vatUnknown')
                   : t('importFindings.accountVat.vatUnsupported', { rate: percentageLabel })}
               </p>
             ) : (
-              <div
-                role="radiogroup"
-                className={cn(
-                  'border',
-                  vatOptions.length <= 3
-                    ? 'grid'
-                    : 'flex max-h-64 flex-col divide-y overflow-y-auto',
-                )}
-                style={
-                  vatOptions.length <= 3
-                    ? {
-                        gridTemplateColumns: `repeat(${String(vatOptions.length)}, minmax(0, 1fr))`,
-                      }
-                    : undefined
-                }
-                onKeyDown={onVatKeyDown}
-              >
-                {vatOptions.map((option, index) => {
-                  const checked = option.code === vat
-                  return (
-                    <button
-                      key={option.code}
-                      type="button"
-                      role="radio"
-                      aria-checked={checked}
-                      // Roving tabindex: when nothing is selected, the first radio
-                      // stays in the Tab order so keyboard users can reach the group.
-                      tabIndex={checked || (vat === null && index === 0) ? 0 : -1}
-                      onClick={() => setVat(option.code)}
+              <>
+                <div
+                  id={vatListId}
+                  role="radiogroup"
+                  className={cn(
+                    'border',
+                    vatOptions.length <= 3
+                      ? 'grid'
+                      : 'flex max-h-64 flex-col divide-y overflow-y-auto',
+                  )}
+                  style={
+                    vatOptions.length <= 3
+                      ? {
+                          gridTemplateColumns: `repeat(${String(vatOptions.length)}, minmax(0, 1fr))`,
+                        }
+                      : undefined
+                  }
+                  onKeyDown={onVatKeyDown}
+                >
+                  {vatOptions.map((option, index) => {
+                    const checked = option.code === vat
+                    // Checked radio, else first visible when nothing checked (#71 PM).
+                    const tabStop = checkedVatIndex >= 0 ? index === checkedVatIndex : index === 0
+                    return (
+                      <button
+                        key={option.code}
+                        type="button"
+                        role="radio"
+                        aria-checked={checked}
+                        tabIndex={tabStop ? 0 : -1}
+                        onClick={() => {
+                          setVat(option.code)
+                          if (option.group === 'other') setShowOther(true)
+                        }}
+                        className={cn(
+                          'min-h-11 px-3 text-left text-sm outline-none',
+                          'focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
+                          vatOptions.length <= 3 && index > 0 && 'border-l',
+                          checked
+                            ? 'bg-foreground text-background font-medium focus-visible:outline-background'
+                            : 'hover:bg-muted',
+                        )}
+                      >
+                        <span className="block">{vatLabel(option)}</span>
+                        {advanced && (
+                          <span className="block text-xs opacity-70 tabular-nums">
+                            {option.code}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                {/* Hide disclosure while a non-primary is selected so Minder tonen
+                    cannot be a no-op; list stays open via selectedIsOther (#71 designer). */}
+                {canDiscloseOther && !selectedIsOther && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    data-slot="vat-show-other"
+                    aria-expanded={disclosureOpen}
+                    aria-controls={vatListId}
+                    className="mt-2 h-auto min-h-11 justify-start gap-1 px-0 font-normal tracking-normal normal-case md:min-h-9"
+                    onClick={() => setShowOther((open) => !open)}
+                  >
+                    <RiArrowDownSLine
+                      aria-hidden
                       className={cn(
-                        // Inset ring: overflow-y-auto on 4+ options clips the global
-                        // +2px offset (#69 / #67 werklijst). Ink fill uses background.
-                        'min-h-11 px-3 text-left text-sm outline-none',
-                        'focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
-                        vatOptions.length <= 3 && index > 0 && 'border-l',
-                        checked
-                          ? 'bg-foreground text-background font-medium focus-visible:outline-background'
-                          : 'hover:bg-muted',
+                        'size-4 shrink-0 transition-transform motion-reduce:transition-none',
+                        disclosureOpen && 'rotate-180',
                       )}
-                    >
-                      <span className="block">{vatLabel(option)}</span>
-                      {advanced && <span className="block text-xs opacity-70">{option.code}</span>}
-                    </button>
-                  )
-                })}
-              </div>
+                    />
+                    {disclosureOpen
+                      ? t(
+                          advanced
+                            ? 'importFindings.accountVat.hideOtherCodes'
+                            : 'importFindings.accountVat.showFewerRates',
+                        )
+                      : t(
+                          advanced
+                            ? 'importFindings.accountVat.showOtherCodes'
+                            : 'importFindings.accountVat.showOtherRates',
+                        )}
+                  </Button>
+                )}
+              </>
             )}
-            {/* Status box already explains empty options; skip the duplicate hint. */}
-            {vatOptions.length > 0 && (
+            {/* Hint only when a valid code exists — unsupported copy already covers empty. */}
+            {allVatOptions.length > 0 && (
               <p className="text-muted-foreground mt-1.5 text-xs">
                 {percentage !== null && percentage !== '' && percentageLabel !== '—'
                   ? t('importFindings.accountVat.vatHint', { rate: percentageLabel })
@@ -509,11 +591,13 @@ function AccountVatSheetBody({
       </div>
 
       <SheetFooter className="flex-row flex-wrap justify-end gap-2 border-t px-5 py-3">
-        {onJumpToMapping !== undefined && (
+        {/* No “Zelf kiezen in de tabel” when every pick would 422 (#71 PM). */}
+        {onJumpToMapping !== undefined && !(mode === 'tax' && allVatOptions.length === 0) && (
           <Button
             type="button"
             variant="ghost"
             className="mr-auto min-h-11 md:min-h-9"
+            data-slot="vat-jump-to-mapping"
             onClick={onJumpToMapping}
           >
             {t('importFindings.accountVat.jumpToMapping')}

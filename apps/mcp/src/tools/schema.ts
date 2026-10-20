@@ -19,6 +19,13 @@ export const describeSchemaInput = z.object({
    * Which parts to return. All of them by default — this is the orientation
    * call, and a chart of two hundred accounts is still smaller than the
    * conversation that follows guessing at one.
+   *
+   * Tax codes carry direction (input/output) and rate; Moneybird import
+   * mappings must match both (`matchVatCodes`). `previewImport` lists
+   * mismatches as blocking `incompatible_tax_rate` problems at
+   * `taxRates.<id>`, and `runImport` refuses with 422 `validation_failed`
+   * while any remain. (`saveMappings`, which agents can't call, rejects
+   * them with 422.)
    */
   include: z
     .array(z.enum(['accounts', 'journals', 'taxCodes', 'fiscalYears']))

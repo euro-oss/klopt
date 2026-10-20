@@ -120,20 +120,56 @@ export interface VatMatchRule {
   readonly code: string
   readonly rateBasisPoints: number
   readonly direction: 'input' | 'output'
+  /**
+   * Chart scope / reverse-charge / deduction pairing — optional so older
+   * callers still match by direction + rate. When present, {@link rankVatCodes}
+   * can put the plain domestic standard code first (#70).
+   */
+  readonly scope?: string
+  readonly reverseCharge?: string
+  readonly deductionCode?: string | null
+  /** When set, only `full` (or omitted) may be primary — pro_rata / none are other. */
+  readonly deductibility?: string
+}
+
+export type VatCandidateGroup = 'primary' | 'other'
+
+export interface RankedVatCandidate {
+  readonly rule: VatMatchRule
+  readonly group: VatCandidateGroup
+}
+
+export interface RankedVatCodes {
+  /** Plain domestic standard codes (H21, L9, VH21, VL9, …). */
+  readonly primary: readonly VatMatchRule[]
+  /** Verlegd, ICP, invoer, vrijgesteld, export, private use, deduction halves. */
+  readonly other: readonly VatMatchRule[]
+  /** primary then other — ready for a picker. */
+  readonly candidates: readonly RankedVatCandidate[]
+  /**
+   * Pre-select when exactly one primary matches. Never set for ambiguous 0%
+   * sales (VERL/GEEN/NUL/ICP/ICPD are all `other`).
+   */
+  readonly suggestedCode: string | null
 }
 
 /**
  * Existing VAT rules that match this Moneybird rate by direction and bps.
  *
  * When exactly one rule matches, the UI may offer a one-click "Gebruik {code}".
+ * Unknown direction and non-finite percentages match nothing — never guess
+ * "output" or fall back to 21% (#70 / #69).
  */
 export function matchVatCodes(
   rules: readonly VatMatchRule[],
   query: VatMatchQuery,
 ): readonly VatMatchRule[] {
   // Unknown direction must not guess "output" — that would offer sales codes
-  // for an unclassified Moneybird rate (#69 PM).
+  // for an unclassified Moneybird rate (#69 PM / #70).
   if (query.taxRateType !== 'purchase_invoice' && query.taxRateType !== 'sales_invoice') {
+    return []
+  }
+  if (!Number.isFinite(query.percentage)) {
     return []
   }
   const bps = Math.round(query.percentage * 100)
@@ -141,9 +177,53 @@ export function matchVatCodes(
   return rules.filter((rule) => rule.rateBasisPoints === bps && rule.direction === direction)
 }
 
-/** True when the UI may offer the VAT one-click shortcut. */
+/**
+ * True when this code is the plain domestic standard for its rate — not
+ * verlegd, ICP, invoer, export, exempt, private use, a deduction half, or a
+ * partial-deductibility (pro_rata) input code.
+ *
+ * Missing `scope` or `reverseCharge` never counts as primary: on a custom
+ * chart that omitted metadata we must not pre-select (#70 PM).
+ */
+export function isPlainStandardVatCode(
+  rule: VatMatchRule,
+  chart: readonly VatMatchRule[],
+): boolean {
+  if (rule.scope === undefined || rule.reverseCharge === undefined) return false
+  if (rule.scope !== 'domestic' || rule.reverseCharge !== 'none') return false
+  // Omitted deductibility means full (chart codes that only set scope/RC).
+  if (rule.deductibility !== undefined && rule.deductibility !== 'full') return false
+  const deductionHalves = new Set(
+    chart
+      .map((entry) => entry.deductionCode)
+      .filter((code): code is string => typeof code === 'string' && code !== ''),
+  )
+  return !deductionHalves.has(rule.code)
+}
+
+/**
+ * Direction + rate matches, split into primary (standard) vs other, with a
+ * suggested code only when exactly one primary exists (#70).
+ */
+export function rankVatCodes(rules: readonly VatMatchRule[], query: VatMatchQuery): RankedVatCodes {
+  const matches = matchVatCodes(rules, query)
+  const primary = matches.filter((rule) => isPlainStandardVatCode(rule, rules))
+  const other = matches.filter((rule) => !isPlainStandardVatCode(rule, rules))
+  const candidates: RankedVatCandidate[] = [
+    ...primary.map((rule) => ({ rule, group: 'primary' as const })),
+    ...other.map((rule) => ({ rule, group: 'other' as const })),
+  ]
+  return {
+    primary,
+    other,
+    candidates,
+    suggestedCode: primary.length === 1 ? (primary[0]?.code ?? null) : null,
+  }
+}
+
+/** True when the UI may offer the VAT one-click shortcut (exactly one primary). */
 export function hasUniqueVatMatch(rules: readonly VatMatchRule[], query: VatMatchQuery): boolean {
-  return matchVatCodes(rules, query).length === 1
+  return rankVatCodes(rules, query).suggestedCode !== null
 }
 
 /**

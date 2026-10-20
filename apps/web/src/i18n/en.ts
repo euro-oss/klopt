@@ -48,6 +48,10 @@ export const en: Record<MessageKey, string> = {
     'An account without a mapping never lands in Klopt; postings to it would be missing later.',
   'finding.why.moneybird.unmapped_tax_rate':
     'Without a tax code the return cannot place those lines.',
+  'finding.why.moneybird.incompatible_tax_rate':
+    'The wrong direction or rate puts sales VAT on input codes (or the reverse) and corrupts the return.',
+  'finding.why.moneybird.incompatible_tax_rate_both_sides':
+    'Without a single direction no VAT code can be chosen; the import stays blocked until Moneybird shows one side only.',
   'finding.why.moneybird.account_number_collision':
     'Two accounts with the same number cannot sit side by side in one chart.',
   'finding.why.moneybird.contact_number_collision':
@@ -166,12 +170,16 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.useNewNumber': 'Use {number} (new)',
   'importFindings.accountVat.stepVat': '2. Which VAT rate?',
   'importFindings.accountVat.stepVatOnly': 'Which VAT rate?',
+  'importFindings.accountVat.showOtherCodes': 'Show other codes',
+  'importFindings.accountVat.hideOtherCodes': 'Hide other codes',
+  'importFindings.accountVat.showOtherRates': 'Show other rates',
+  'importFindings.accountVat.showFewerRates': 'Show less',
   'importFindings.accountVat.vatHint': 'Moneybird had {rate}% VAT.',
   'importFindings.accountVat.vatHintUnknown': 'Moneybird had no rate.',
   'importFindings.accountVat.vatUnsupported':
-    'We cannot match this Moneybird rate ({rate}%) automatically. Choose the VAT rate yourself in the mapping table.',
+    'Klopt does not have a VAT code for this rate yet, so this import cannot continue.',
   'importFindings.accountVat.vatUnknown':
-    'We do not know which rate this is. Choose the VAT rate yourself in the mapping table.',
+    'Moneybird did not send a rate, so this import cannot continue.',
   'importFindings.accountVat.whatHappens': 'What happens',
   'importFindings.accountVat.whatHappensBody':
     'The Moneybird entries land on {account}, with {vat}. Nothing is posted yet; that happens when you import.',
@@ -183,14 +191,14 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.reason.number': 'Same number',
   'importFindings.accountVat.reason.name': 'Similar name',
   'importFindings.vat.VH21': '21% VAT',
+  'importFindings.vat.VH21-PRO': '21% VAT, partly deductible',
+  'importFindings.vat.VH21-PRO.share': '21% VAT, {share}% deductible',
   'importFindings.vat.VL9': '9% VAT',
   'importFindings.vat.H21': '21% VAT',
   'importFindings.vat.L9': '9% VAT',
-  'importFindings.vat.GEEN': 'Exempt',
-  'importFindings.vat.VERL': 'Reverse charge',
-  'importFindings.vat.NUL': 'Export 0%',
-  'importFindings.vat.ICP': 'ICP goods',
-  'importFindings.vat.ICPD': 'ICP services',
+  'importFindings.vat.VERL-ONTV': 'VAT reverse-charged to you',
+  'importFindings.vat.ICV21': '21% VAT on purchases from the EU',
+  'importFindings.vat.INV23': '21% VAT on imports from outside the EU',
   'importFindings.fx.eyebrow': 'Resolve · Rate',
   'importFindings.fx.title': 'Choose a rate for {reference}',
   'importFindings.fx.supplier': 'Supplier',
@@ -1575,6 +1583,8 @@ export const en: Record<MessageKey, string> = {
   'moneybird.mappingIntro':
     'Every Moneybird ledger account and tax rate must have a Klopt account or VAT code before anything posts.',
   'moneybird.saveMappings': 'Save the mapping',
+  'moneybird.taxMapping.rollback': '{rejected} was not saved; {current} stays.',
+  'moneybird.taxMapping.rollbackCleared': '{rejected} was not saved.',
   'moneybird.kloptAccount': 'Klopt account',
   'moneybird.kloptTax': 'Klopt VAT code',
   'moneybird.category': 'Category',

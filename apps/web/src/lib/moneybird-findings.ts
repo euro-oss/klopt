@@ -96,6 +96,7 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         onOpen: () => actions.onMapAccount(problem),
       }
     case 'unmapped_tax_rate':
+    case 'incompatible_tax_rate':
       return {
         type: 'guided',
         label: labels.mapTax,

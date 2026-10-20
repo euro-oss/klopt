@@ -4,6 +4,7 @@ import {
   matchVatCodes,
   nextFreeNumber,
   rankAccountSuggestions,
+  rankVatCodes,
 } from '../../src/index.js'
 
 const chart = [
@@ -45,9 +46,27 @@ describe('rankAccountSuggestions', () => {
 
 describe('matchVatCodes', () => {
   const rules = [
-    { code: 'H21', rateBasisPoints: 2100, direction: 'output' as const },
-    { code: 'VH21', rateBasisPoints: 2100, direction: 'input' as const },
-    { code: 'H9', rateBasisPoints: 900, direction: 'output' as const },
+    {
+      code: 'H21',
+      rateBasisPoints: 2100,
+      direction: 'output' as const,
+      scope: 'domestic',
+      reverseCharge: 'none',
+    },
+    {
+      code: 'VH21',
+      rateBasisPoints: 2100,
+      direction: 'input' as const,
+      scope: 'domestic',
+      reverseCharge: 'none',
+    },
+    {
+      code: 'H9',
+      rateBasisPoints: 900,
+      direction: 'output' as const,
+      scope: 'domestic',
+      reverseCharge: 'none',
+    },
   ]
 
   it('matches by direction and rate', () => {
@@ -63,19 +82,105 @@ describe('matchVatCodes', () => {
     ).toEqual(['VH21'])
   })
 
-  it('offers one-click only when exactly one rule matches', () => {
+  it('offers one-click only when exactly one primary rule matches', () => {
     expect(hasUniqueVatMatch(rules, { percentage: 21, taxRateType: 'sales_invoice' })).toBe(true)
     expect(
-      hasUniqueVatMatch([...rules, { code: 'H21b', rateBasisPoints: 2100, direction: 'output' }], {
-        percentage: 21,
-        taxRateType: 'sales_invoice',
-      }),
+      hasUniqueVatMatch(
+        [
+          ...rules,
+          {
+            code: 'H21b',
+            rateBasisPoints: 2100,
+            direction: 'output',
+            scope: 'domestic',
+            reverseCharge: 'none',
+          },
+        ],
+        {
+          percentage: 21,
+          taxRateType: 'sales_invoice',
+        },
+      ),
     ).toBe(false)
+  })
+
+  it('never treats missing scope or reverseCharge as primary', () => {
+    const ranked = rankVatCodes([{ code: 'X21', rateBasisPoints: 2100, direction: 'output' }], {
+      percentage: 21,
+      taxRateType: 'sales_invoice',
+    })
+    expect(ranked.primary).toEqual([])
+    expect(ranked.other.map((rule) => rule.code)).toEqual(['X21'])
+    expect(ranked.suggestedCode).toBeNull()
+  })
+
+  it('keeps pro_rata input codes out of primary so VH21 stays unique', () => {
+    const ranked = rankVatCodes(
+      [
+        {
+          code: 'VH21',
+          rateBasisPoints: 2100,
+          direction: 'input',
+          scope: 'domestic',
+          reverseCharge: 'none',
+          deductibility: 'full',
+        },
+        {
+          code: 'VH21-PRO',
+          rateBasisPoints: 2100,
+          direction: 'input',
+          scope: 'domestic',
+          reverseCharge: 'none',
+          deductibility: 'pro_rata',
+        },
+      ],
+      { percentage: 21, taxRateType: 'purchase_invoice' },
+    )
+    expect(ranked.primary.map((rule) => rule.code)).toEqual(['VH21'])
+    expect(ranked.other.map((rule) => rule.code)).toEqual(['VH21-PRO'])
+    expect(ranked.suggestedCode).toBe('VH21')
   })
 
   it('returns no matches for an unknown taxRateType', () => {
     expect(matchVatCodes(rules, { percentage: 21, taxRateType: 'unknown' })).toEqual([])
     expect(matchVatCodes(rules, { percentage: 21, taxRateType: '' })).toEqual([])
+  })
+
+  it('returns no matches for a non-finite percentage', () => {
+    expect(matchVatCodes(rules, { percentage: Number.NaN, taxRateType: 'sales_invoice' })).toEqual(
+      [],
+    )
+    expect(
+      matchVatCodes(rules, { percentage: Number.POSITIVE_INFINITY, taxRateType: 'sales_invoice' }),
+    ).toEqual([])
+  })
+
+  it('ranks the plain standard code primary and suggests it when unique', () => {
+    const ranked = rankVatCodes(
+      [
+        ...rules,
+        {
+          code: 'PRIV21',
+          rateBasisPoints: 2100,
+          direction: 'output',
+          scope: 'private_use',
+          reverseCharge: 'none',
+        },
+        {
+          code: 'VERL-ONTV',
+          rateBasisPoints: 2100,
+          direction: 'input',
+          scope: 'domestic',
+          reverseCharge: 'domestic',
+          deductionCode: 'VERL-VOOR',
+        },
+      ],
+      { percentage: 21, taxRateType: 'sales_invoice' },
+    )
+    expect(ranked.primary.map((rule) => rule.code)).toEqual(['H21'])
+    expect(ranked.other.map((rule) => rule.code)).toEqual(['PRIV21'])
+    expect(ranked.suggestedCode).toBe('H21')
+    expect(ranked.candidates.map((row) => row.group)).toEqual(['primary', 'other'])
   })
 })
 

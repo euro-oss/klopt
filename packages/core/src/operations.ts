@@ -1351,7 +1351,8 @@ export const moneybirdOperations: Readonly<Record<string, OperationDefinition>> 
     id: 'moneybird.saveMappings',
     kind: 'write',
     permission: 'ledger:import',
-    summary: 'Confirm ledger-account and VAT-code mappings for the next Moneybird import.',
+    summary:
+      'Confirm ledger-account and VAT-code mappings for the next Moneybird import. Each VAT mapping must match the Moneybird rate’s direction (sales/purchase) and percentage against the entity chart (`matchVatCodes`). Incompatible picks return 422 `validation_failed` with `violations[]` of `{code: incompatible_tax_rate, path: taxRates.<id>, …}`; the whole request is rejected and nothing is saved (accounts, tax rates, and import decisions are all-or-nothing). 409 when no administration is chosen yet, or when Moneybird cannot be read.',
     agentExposure: 'none',
     idempotent: true,
   }),
@@ -1381,7 +1382,7 @@ export const moneybirdOperations: Readonly<Record<string, OperationDefinition>> 
     kind: 'read',
     permission: 'ledger:import',
     summary:
-      'What importing the chosen Moneybird administration would bring across, including booked history, without posting.',
+      'What importing the chosen Moneybird administration would bring across, including booked history, without posting. VAT mappings that disagree with chart direction or rate surface as `incompatible_tax_rate`. Each tax rate includes `candidates` grouped `primary` (plain domestic standard) then `other` (verlegd / ICP / invoer / …); only a unique primary is auto-suggested — never for ambiguous 0% sales.',
     agentExposure: 'read',
     idempotent: true,
   }),
@@ -1391,7 +1392,7 @@ export const moneybirdOperations: Readonly<Record<string, OperationDefinition>> 
     kind: 'write',
     permission: 'ledger:import',
     summary:
-      'Start importing the chosen Moneybird administration in the background. Posts only through postJournalEntry.',
+      'Start importing the chosen Moneybird administration in the background. Posts only through postJournalEntry. Blocked while `incompatible_tax_rate` or other import problems remain.',
     agentExposure: 'proposal',
     idempotent: true,
   }),

@@ -1413,6 +1413,8 @@ export const nl = {
   'moneybird.mappingIntro':
     'Elke Moneybird-rekening en elk tarief moet een Klopt-rekening of btw-code hebben voordat er geboekt wordt.',
   'moneybird.saveMappings': 'Mapping bewaren',
+  'moneybird.taxMapping.rollback': '{rejected} is niet bewaard; {current} blijft staan.',
+  'moneybird.taxMapping.rollbackCleared': '{rejected} is niet bewaard.',
   'moneybird.kloptAccount': 'Klopt-rekening',
   'moneybird.kloptTax': 'Klopt-btw-code',
   'moneybird.category': 'Categorie',
@@ -1531,7 +1533,11 @@ export const nl = {
   'finding.moneybird.unmapped_account':
     'Grootboekrekening {name} ({number}) heeft geen bevestigde Klopt-rekening. Map hem voordat je importeert.',
   'finding.moneybird.unmapped_tax_rate':
-    'Btw-tarief {name} ({percentage}%) heeft geen bevestigde Klopt-btw-code. Map hem voordat je importeert.',
+    'Btw-tarief {name} ({percentage}) heeft geen bevestigde Klopt-btw-code. Map hem voordat je importeert.',
+  'finding.moneybird.incompatible_tax_rate':
+    'Btw-tarief {name} ({percentage}) past niet bij {mappedCode}: richting of percentage komt niet overeen met het schema.',
+  'finding.moneybird.incompatible_tax_rate_both_sides':
+    'Richting onbekend: dit btw-tarief staat op verkoop- én inkoopfacturen.',
   'finding.moneybird.account_number_collision':
     'Moneybird gaf grootboeknummer {number} twee keer terug ({name}).',
   'finding.moneybird.contact_number_collision':
@@ -1567,6 +1573,10 @@ export const nl = {
     'Een rekening zonder mapping komt niet in Klopt terecht; boeken erop zou later ontbreken.',
   'finding.why.moneybird.unmapped_tax_rate':
     'Zonder btw-code kan de aangifte die regels niet plaatsen.',
+  'finding.why.moneybird.incompatible_tax_rate':
+    'Een verkeerde richting of percentage zet omzet in voorbelasting (of omgekeerd) en bederft de aangifte.',
+  'finding.why.moneybird.incompatible_tax_rate_both_sides':
+    'Zonder eenduidige richting kan geen btw-code gekozen worden; de import blijft geblokkeerd tot Moneybird één kant aangeeft.',
   'finding.why.moneybird.account_number_collision':
     'Twee rekeningen met hetzelfde nummer kunnen niet naast elkaar in één schema.',
   'finding.why.moneybird.contact_number_collision':
@@ -1685,12 +1695,16 @@ export const nl = {
   'importFindings.accountVat.useNewNumber': 'Gebruik {number} (nieuw)',
   'importFindings.accountVat.stepVat': '2. Welk btw-tarief?',
   'importFindings.accountVat.stepVatOnly': 'Welk btw-tarief?',
+  'importFindings.accountVat.showOtherCodes': 'Andere codes tonen',
+  'importFindings.accountVat.hideOtherCodes': 'Andere codes verbergen',
+  'importFindings.accountVat.showOtherRates': 'Andere tarieven tonen',
+  'importFindings.accountVat.showFewerRates': 'Minder tonen',
   'importFindings.accountVat.vatHint': 'In Moneybird stond {rate}% btw.',
   'importFindings.accountVat.vatHintUnknown': 'In Moneybird stond geen tarief.',
   'importFindings.accountVat.vatUnsupported':
-    'Dit Moneybird-tarief ({rate}%) kunnen we niet vanzelf koppelen. Kies het btw-tarief zelf in de mappingtabel.',
+    'Klopt heeft nog geen btw-code voor dit tarief, dus deze import kan nog niet verder.',
   'importFindings.accountVat.vatUnknown':
-    'We weten niet welk tarief dit is. Kies het btw-tarief zelf in de mappingtabel.',
+    'Moneybird gaf geen tarief mee, dus deze import kan nog niet verder.',
   'importFindings.accountVat.whatHappens': 'Wat er gebeurt',
   'importFindings.accountVat.whatHappensBody':
     'De boekingen uit Moneybird komen op {account}, met {vat}. Er wordt nu nog niets geboekt; dat gebeurt pas als je importeert.',
@@ -1702,14 +1716,14 @@ export const nl = {
   'importFindings.accountVat.reason.number': 'Zelfde nummer',
   'importFindings.accountVat.reason.name': 'Vergelijkbare naam',
   'importFindings.vat.VH21': '21% btw',
+  'importFindings.vat.VH21-PRO': '21% btw, deels aftrekbaar',
+  'importFindings.vat.VH21-PRO.share': '21% btw, {share}% aftrekbaar',
   'importFindings.vat.VL9': '9% btw',
   'importFindings.vat.H21': '21% btw',
   'importFindings.vat.L9': '9% btw',
-  'importFindings.vat.GEEN': 'Vrijgesteld',
-  'importFindings.vat.VERL': 'Verlegd',
-  'importFindings.vat.NUL': 'Export 0%',
-  'importFindings.vat.ICP': 'ICP goederen',
-  'importFindings.vat.ICPD': 'ICP diensten',
+  'importFindings.vat.VERL-ONTV': 'Btw verlegd naar jou',
+  'importFindings.vat.ICV21': '21% btw over inkoop uit de EU',
+  'importFindings.vat.INV23': '21% btw over invoer van buiten de EU',
   'importFindings.fx.eyebrow': 'Oplossen · Koers',
   'importFindings.fx.title': 'Koers kiezen voor {reference}',
   'importFindings.fx.supplier': 'Leverancier',

@@ -10,6 +10,7 @@ import { honestyFromReconciliation } from '../../src/lib/finding-card.js'
 const CODES = [
   'unmapped_account',
   'unmapped_tax_rate',
+  'incompatible_tax_rate',
   'trial_balance_account_missing',
   'account_number_collision',
   'contact_number_collision',

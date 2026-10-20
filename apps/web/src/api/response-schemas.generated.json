@@ -2966,6 +2966,8 @@
                     "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
+                    "moneybird.incompatible_tax_rate",
+                    "moneybird.incompatible_tax_rate_both_sides",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -3282,6 +3284,8 @@
                     "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
+                    "moneybird.incompatible_tax_rate",
+                    "moneybird.incompatible_tax_rate_both_sides",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -3654,6 +3658,8 @@
                                   "moneybird.unknown_currency_document",
                                   "moneybird.unmapped_account",
                                   "moneybird.unmapped_tax_rate",
+                                  "moneybird.incompatible_tax_rate",
+                                  "moneybird.incompatible_tax_rate_both_sides",
                                   "moneybird.account_number_collision",
                                   "moneybird.contact_number_collision",
                                   "moneybird.resource_unreadable",
@@ -4149,6 +4155,8 @@
                             "moneybird.unknown_currency_document",
                             "moneybird.unmapped_account",
                             "moneybird.unmapped_tax_rate",
+                            "moneybird.incompatible_tax_rate",
+                            "moneybird.incompatible_tax_rate_both_sides",
                             "moneybird.account_number_collision",
                             "moneybird.contact_number_collision",
                             "moneybird.resource_unreadable",
@@ -7720,6 +7728,27 @@
                 },
                 "used": {
                   "type": "boolean"
+                },
+                "candidates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "string"
+                      },
+                      "group": {
+                        "enum": [
+                          "primary",
+                          "other"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "group"
+                    ]
+                  }
                 }
               },
               "required": [
@@ -7730,7 +7759,8 @@
                 "proposedCode",
                 "mappedCode",
                 "mapped",
-                "used"
+                "used",
+                "candidates"
               ]
             }
           },
@@ -8073,6 +8103,8 @@
                     "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
+                    "moneybird.incompatible_tax_rate",
+                    "moneybird.incompatible_tax_rate_both_sides",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -8199,6 +8231,8 @@
                     "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
+                    "moneybird.incompatible_tax_rate",
+                    "moneybird.incompatible_tax_rate_both_sides",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -9098,6 +9132,8 @@
                     "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
+                    "moneybird.incompatible_tax_rate",
+                    "moneybird.incompatible_tax_rate_both_sides",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -9399,6 +9435,8 @@
                     "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
+                    "moneybird.incompatible_tax_rate",
+                    "moneybird.incompatible_tax_rate_both_sides",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -9647,6 +9685,8 @@
                     "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
+                    "moneybird.incompatible_tax_rate",
+                    "moneybird.incompatible_tax_rate_both_sides",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -10034,6 +10074,8 @@
                     "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
+                    "moneybird.incompatible_tax_rate",
+                    "moneybird.incompatible_tax_rate_both_sides",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -13391,6 +13433,8 @@
                     "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
+                    "moneybird.incompatible_tax_rate",
+                    "moneybird.incompatible_tax_rate_both_sides",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -13989,6 +14033,8 @@
                     "moneybird.unknown_currency_document",
                     "moneybird.unmapped_account",
                     "moneybird.unmapped_tax_rate",
+                    "moneybird.incompatible_tax_rate",
+                    "moneybird.incompatible_tax_rate_both_sides",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -14916,6 +14962,7 @@
         "trial_balance_empty",
         "unmapped_account",
         "unmapped_tax_rate",
+        "incompatible_tax_rate",
         "period_locked",
         "unbalanced_document",
         "draft_skipped",
