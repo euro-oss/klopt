@@ -42,6 +42,7 @@ import {
   handleIssueInvoice,
   handleListContacts,
   handleListInvoices,
+  handleReplaceDraftInvoice,
   handleSendDunningReminder,
   handleSendInvoice,
   handleUpdateContact,
@@ -837,6 +838,32 @@ describe('every write, against the schema it publishes', () => {
     )
     conforms('sales.draftInvoice', drafted.body)
     made['invoiceId'] = idOf(drafted.body)
+
+    // Same totals as the draft: a later bank match allocates 121000 against this
+    // invoice, and retention.pseudonymiseContact needs it settled.
+    conforms(
+      'sales.replaceDraftInvoice',
+      (
+        await handleReplaceDraftInvoice(
+          await contextFor(key()),
+          made['invoiceId'],
+          schemas.draftInvoiceBody.parse({
+            contactNumber: 'DEB-9001',
+            issueDate: '2026-01-20',
+            buyerReference: 'PO-9001',
+            lines: [
+              {
+                description: 'Advies herzien',
+                quantity: '1',
+                unitPrice: '100000',
+                revenueAccountNumber: '8000',
+                taxCode: 'H21',
+              },
+            ],
+          }),
+        )
+      ).body,
+    )
 
     conforms(
       'sales.issueInvoice',

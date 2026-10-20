@@ -106,8 +106,10 @@ export const draftSalesInvoiceInput = z.object({
     .describe('The debiteurennummer. See list_open_items or Relaties.'),
   issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   kind: z.enum(['invoice', 'credit_note']).default('invoice'),
-  reference: z.string().nullable().default(null),
-  notes: z.string().nullable().default(null),
+  reference: z.string().nullable().optional(),
+  /** Debiteurennummer / Peppol buyer reference. Omit rather than send null. */
+  buyerReference: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   lines: z
     .array(
       z.object({
@@ -133,9 +135,13 @@ export async function draftSalesInvoice(
   context: ToolContext,
   input: z.infer<typeof draftSalesInvoiceInput>,
 ): Promise<Answer<Record<string, unknown>>> {
+  const { buyerReference, reference, notes, ...rest } = input
   const body = await context.api.post<{ id: string; total?: unknown }>('/sales-invoices', {
-    ...input,
-    buyerReference: null,
+    ...rest,
+    // Only send optional refs when the caller set them — never wipe with null.
+    ...(reference !== undefined ? { reference } : {}),
+    ...(buyerReference !== undefined ? { buyerReference } : {}),
+    ...(notes !== undefined ? { notes } : {}),
     creditsInvoiceId: null,
     lines: input.lines.map((line, index) => ({
       ...line,
@@ -144,6 +150,54 @@ export async function draftSalesInvoice(
   })
 
   return answer(await context.provenance(['POST /sales-invoices']), {
+    draftId: body.id,
+    status: 'draft',
+    ...body,
+    release: `Not issued. It has no number and no journal entry until a human issues it at Verkoopfacturen → ${body.id}.`,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// replace_draft_sales_invoice
+// ---------------------------------------------------------------------------
+
+export const replaceDraftSalesInvoiceInput = draftSalesInvoiceInput.extend({
+  invoiceId: z
+    .string()
+    .uuid()
+    .describe('The draft to rewrite. Same id afterwards; issued invoices are refused.'),
+})
+
+/**
+ * Replace a draft sales invoice in place.
+ *
+ * Same id, new lines and totals. Still no number and no journal entry — the
+ * gapless series is allocated at issue. Prefer this over drafting a second
+ * invoice when the first one was wrong: two drafts leave an orphan.
+ */
+export async function replaceDraftSalesInvoice(
+  context: ToolContext,
+  input: z.infer<typeof replaceDraftSalesInvoiceInput>,
+): Promise<Answer<Record<string, unknown>>> {
+  const { invoiceId, buyerReference, reference, notes, ...fields } = input
+  const body = await context.api.put<{ id: string; total?: unknown }>(
+    `/sales-invoices/${invoiceId}`,
+    {
+      ...fields,
+      // Keep the existing buyerReference on the draft unless the caller sets one.
+      // Sending null wiped the debiteurennummer and broke a later Peppol send.
+      ...(reference !== undefined ? { reference } : {}),
+      ...(buyerReference !== undefined ? { buyerReference } : {}),
+      ...(notes !== undefined ? { notes } : {}),
+      creditsInvoiceId: null,
+      lines: fields.lines.map((line, index) => ({
+        ...line,
+        unitPrice: minorUnitsFrom(line.unitPrice, `lines.${String(index)}.unitPrice`),
+      })),
+    },
+  )
+
+  return answer(await context.provenance([`PUT /sales-invoices/${invoiceId}`]), {
     draftId: body.id,
     status: 'draft',
     ...body,

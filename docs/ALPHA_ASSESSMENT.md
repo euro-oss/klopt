@@ -59,7 +59,7 @@ packages/adapters    Filing, email, PDF, S3, IMAP, Exact, VIES, schematron
 apps/web             UI + `/api/v1` + hosted MCP + OAuth
 apps/worker          inbound.poll, snapshot.sealPendingYears, oauth.purge,
                      exact.importDocuments, webhooks.deliver
-apps/mcp             stdio MCP server (same 12 tools as `/api/mcp`)
+apps/mcp             stdio MCP server (same 13 tools as `/api/mcp`)
 apps/cli             Operator surface over the public API
 tools/               eslint-plugin-klopt, rgs-import, container helpers
 examples/notifier    Worked external module (must not import Klopt packages)
@@ -171,7 +171,7 @@ README. A bookkeeper can keep a Dutch administration through these paths today.
 - Webhooks: 11 versioned event types, signed, retried, replayable.
 - Generated OpenAPI 3.1 (`GET /api/v1/openapi.json` and `docs/openapi.json`).
 - Module contract with ownership test; `examples/notifier` is the worked module.
-- MCP: 12 tools (9 read, 3 draft-only writes).
+- MCP: 13 tools (9 read, 4 draft-only writes).
 - CLI: `login`, `check`, `export`, `bank-import`, `webhooks-replay`, `events`.
 - Headless mode: non-`/api` paths 404.
 
@@ -281,14 +281,14 @@ engine lands in M3” — the engine has landed.
 
 API is the most finished surface. Treat it as alpha-ready for integrators.
 
-MCP is **12 tools** (9 read, 3 draft-only writes):
+MCP is **13 tools** (9 read, 4 draft-only writes):
 
 Read: `describe_schema`, `search`, `get_balance`, `explain_number`,
 `list_open_items`, `vat_return_preview`, `list_pending_approvals`,
 `export_xaf`, `check_journal_entry`.
 
-Write (draft only): `draft_sales_invoice`, `capture_purchase_invoice`,
-`draft_from_inbox_item`.
+Write (draft only): `draft_sales_invoice`, `replace_draft_sales_invoice`,
+`capture_purchase_invoice`, `draft_from_inbox_item`.
 
 No `query`, no post/issue/file/pay. That is the design. Do not “complete” MCP
 by adding release tools.
@@ -403,7 +403,7 @@ schedule Digipoort, Peppol AP, or PSD2 as alpha gates.
 ### WS1 — Stop the docs from lying; put e2e in CI — **S**
 
 - Rewrite `docs/architecture.md` “Not built yet” to match 0.1.0.
-- Align MCP tool count to 9 read / 3 draft-only writes (README already correct).
+- Align MCP tool count to 9 read / 4 draft-only writes (README already correct).
 - Extend `docs/decisions/README.md` through ADR 0058 (or generate it).
 - Add GitHub issue templates: bug, alpha-gap, compliance-artefact.
 - Run Playwright on CI (Postgres service already there; add a job or a

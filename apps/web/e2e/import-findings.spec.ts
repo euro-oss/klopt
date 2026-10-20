@@ -26,6 +26,10 @@ async function openLab(page: Page, search: string = 'source=moneybird&state=open
   ).toBeVisible()
   await page.goto(`/lab/import-findings?${search}`)
   await expect(page.locator('[data-slot="import-findings"]')).toBeVisible({ timeout: 15_000 })
+  // Sheet openers are plain onClick handlers — they no-op until hydration.
+  // Gate on the Geavanceerd checkbox (disabled until hydrated) so Categorie
+  // kiezen / Koers kiezen actually open the dialog.
+  await expect(page.getByTestId('lab-advanced')).toBeEnabled()
 }
 
 test('Moneybird fixture shows honesty grid, blocking counts, and j/k', async ({ page }) => {

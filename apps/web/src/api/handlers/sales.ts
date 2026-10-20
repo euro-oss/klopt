@@ -399,6 +399,77 @@ export async function handleDraftInvoice(context: RequestContext, body: DraftInv
   })
 }
 
+/**
+ * Rewrite a draft in place. Same id, new lines and totals; still no number and
+ * no journal entry. Used when the guided flow walks Controleren → Terug → edit
+ * → Controleren so a second draft is not left orphaned.
+ */
+export async function handleReplaceDraftInvoice(
+  context: RequestContext,
+  invoiceId: string,
+  body: DraftInvoiceBody,
+) {
+  requirePermission(context, 'ledger:draft')
+  requireIdempotencyKey(context)
+
+  return withSales(context.database, async ({ sales }) => {
+    const invoice = await sales.findInvoice(context.entityId, invoiceId)
+    if (invoice === null) throw new ApiError('not_found', `No invoice ${invoiceId}.`)
+    if (invoice.status !== 'draft') {
+      throw new ApiError(
+        'conflict',
+        `Invoice ${invoice.number ?? invoiceId} is ${invoice.status}, not a draft.`,
+      )
+    }
+
+    const invoiceContext = await sales.loadContext(context.entityId, body.contactNumber)
+    if (invoiceContext === null) {
+      throw new ApiError('not_found', `No contact ${body.contactNumber}.`)
+    }
+    if (invoiceContext.contact.isBlocked) {
+      throw new ApiError(
+        'validation_failed',
+        `${invoiceContext.contact.name} is blocked. Unblock the contact before invoicing it.`,
+      )
+    }
+
+    for (const line of body.lines) {
+      if (!invoiceContext.revenueAccountNumbers.has(line.revenueAccountNumber)) {
+        throw new ApiError('validation_failed', `No account ${line.revenueAccountNumber}.`, [
+          {
+            code: 'unknown_account',
+            path: 'lines',
+            message: `No account ${line.revenueAccountNumber}.`,
+          },
+        ])
+      }
+    }
+
+    const request: DraftInvoiceRequest = {
+      entityId: context.entityId,
+      contactNumber: body.contactNumber,
+      kind: body.kind,
+      issueDate: body.issueDate,
+      reference: body.reference,
+      // Keep the debtor-number / Peppol buyer reference unless the caller
+      // explicitly sends a non-null value. MCP used to POST null and wipe it.
+      buyerReference: body.buyerReference ?? invoice.buyerReference,
+      notes: body.notes,
+      creditsInvoiceId: body.creditsInvoiceId,
+      lines: body.lines,
+    }
+
+    const priced = priceDraft(request, invoiceContext)
+    const replaced = await sales.replaceDraft(invoiceId, request, invoiceContext, priced)
+    if (!replaced) {
+      // Lost the race with issue (or the draft vanished). Do not rewrite lines.
+      throw new ApiError('conflict', `Invoice ${invoice.number ?? invoiceId} is no longer a draft.`)
+    }
+
+    return { status: 200, body: { id: invoiceId, status: 'draft', ...serialisePriced(priced) } }
+  })
+}
+
 export async function handleIssueInvoice(
   context: RequestContext,
   invoiceId: string,

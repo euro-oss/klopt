@@ -607,6 +607,13 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/sales-invoices.$invoiceId.ts',
   },
   {
+    operationId: 'sales.replaceDraftInvoice',
+    method: 'PUT',
+    path: '/sales-invoices/{invoiceId}',
+    module: 'api/v1/sales-invoices.$invoiceId.ts',
+    request: { body: 'draftInvoiceBody' },
+  },
+  {
     operationId: 'sales.issueInvoice',
     method: 'POST',
     path: '/sales-invoices/{invoiceId}/issue',

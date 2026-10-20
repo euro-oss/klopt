@@ -1,7 +1,14 @@
 import { rmSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { chooseOption, DATABASE_URL, OUTBOX, signIn, uniqueEmail } from './support'
+import {
+  chooseOption,
+  DATABASE_URL,
+  enableAdvancedMode,
+  OUTBOX,
+  signIn,
+  uniqueEmail,
+} from './support'
 
 /**
  * The BTW-aangifte, in a browser, from an empty administration to a filing.
@@ -65,6 +72,8 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByRole('cell', { name: 'Klant N.V.' })).toBeVisible()
 
+  // Bookkeeper invoice form needs Geavanceerd; Eigenaar default is guided (#45).
+  await enableAdvancedMode(page)
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
   await page.getByLabel('Factuurdatum').fill('2026-02-10')
@@ -229,6 +238,8 @@ test('the ICP opgaaf cross-checks 3b and refuses an unproven VAT number', async 
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByRole('cell', { name: 'Kunde GmbH' })).toBeVisible()
 
+  // Bookkeeper invoice form needs Geavanceerd; Eigenaar default is guided (#45).
+  await enableAdvancedMode(page)
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
   await chooseOption(page, /^Klant$/, /^DEB-EU-1 /)

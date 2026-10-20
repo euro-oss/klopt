@@ -61,12 +61,13 @@ What is in 0.1.0, plus the unreleased screens already on `main`.
   an idempotency key on every write, and `application/problem+json` errors.
   Webhooks carry the event stream. Operators also get a CLI
   ([`apps/cli/README.md`](apps/cli/README.md)).
-- **MCP, twelve tools.** Nine read: `describe_schema`, `search`, `get_balance`,
+- **MCP, thirteen tools.** Nine read: `describe_schema`, `search`, `get_balance`,
   `explain_number`, `list_open_items`, `vat_return_preview`,
-  `list_pending_approvals`, `export_xaf`, `check_journal_entry`. Three draft a
+  `list_pending_approvals`, `export_xaf`, `check_journal_entry`. Four draft a
   human still has to release: `draft_sales_invoice`,
-  `capture_purchase_invoice`, `draft_from_inbox_item`. Nothing in the server
-  posts, sends, files, or pays. A read-only token sees only the read tools.
+  `replace_draft_sales_invoice`, `capture_purchase_invoice`,
+  `draft_from_inbox_item`. Nothing in the server posts, sends, files, or pays.
+  A read-only token sees only the read tools.
   Point a client at `https://<your-host>/api/mcp` with
   `Authorization: Bearer klopt_…`, or run `apps/mcp` over stdio with
   `KLOPT_API_URL` and `KLOPT_TOKEN`. Issue the token under **Toegang**.

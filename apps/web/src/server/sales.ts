@@ -11,6 +11,7 @@ import {
   handleListInvoices,
   handleListOverdueInvoices,
   handleListTaxCodes,
+  handleReplaceDraftInvoice,
   handleSendDunningReminder,
   handleSendInvoice,
   handleUpdateContact,
@@ -104,6 +105,21 @@ export const draftInvoice = createServerFn({ method: 'POST' })
         (await handleDraftInvoice(await contextFromRequest({ idempotencyKey: keyOf(data) }), body))
           .body,
     ),
+  )
+
+export const replaceDraftInvoice = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(draftInvoiceBody, data, async (body) => {
+      const payload = data as { invoiceId: string }
+      return (
+        await handleReplaceDraftInvoice(
+          await contextFromRequest({ idempotencyKey: keyOf(data) }),
+          payload.invoiceId,
+          body,
+        )
+      ).body
+    }),
   )
 
 export const issueInvoice = createServerFn({ method: 'POST' })

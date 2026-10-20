@@ -4,6 +4,7 @@ import {
   chooseInAccountMenu,
   chooseOption,
   DATABASE_URL,
+  enableAdvancedMode,
   hydrated,
   openEntitySwitcher,
   signIn,
@@ -46,6 +47,8 @@ async function aDraftInvoice(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByRole('cell', { name: 'Wachtende Klant N.V.' })).toBeVisible()
 
+  // Draft setup uses the bookkeeper form (Geavanceerd); Eigenaar default is guided (#45).
+  await enableAdvancedMode(page)
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
   await page.getByLabel('Omschrijving regel 1').fill('Advieswerk')
