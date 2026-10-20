@@ -386,7 +386,8 @@ test('Geavanceerd shows the confidence percent on a suggestion', async ({ page }
   await page.getByLabel('Prijs regel 1').fill('1000,00')
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  // Owner default: Geavanceerd off → simple-mode "boeking", not "journaalpost".
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   await enableAdvancedMode(page)
   await page.goto('/bank/match')
