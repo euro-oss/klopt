@@ -22,7 +22,9 @@ async function anAdministrationWithAPosting(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill('Zegel BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 
   // A book year with nothing in it has nothing worth sealing.
   // Route stays reachable when Geavanceerd is off; the sidebar CTA does not.

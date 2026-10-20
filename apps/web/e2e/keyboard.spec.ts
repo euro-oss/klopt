@@ -71,7 +71,9 @@ async function anAdministration(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill('Toetsenbord BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
   await theKeyboardIsLive(page)
 }
 
@@ -171,7 +173,9 @@ test('a prefix expires rather than hijacking the next thing you type', async ({ 
 
   await page.keyboard.press('j')
   // Still on the dashboard: the prefix went, so `j` meant nothing.
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 })
 
 test('Escape drops a half-typed shortcut', async ({ page }) => {
@@ -183,7 +187,9 @@ test('Escape drops a half-typed shortcut', async ({ page }) => {
   await expect(page.getByText('G …')).toBeHidden()
 
   await page.keyboard.press('j')
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 })
 
 test('a bare letter does not fire while somebody is typing', async ({ page }) => {
@@ -539,7 +545,7 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
 
   await tabTo(page, /^BUTTON Boeken$/)
   await page.keyboard.press('Enter')
-  await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
+  await expect(page.getByText(/Geboekt als boeking/)).toBeVisible()
   await expect(queue).toHaveCount(3)
 
   // Het postvak: `g` then `e`, open the document, book it as a draft invoice.
