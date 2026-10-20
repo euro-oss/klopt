@@ -32,6 +32,8 @@ const MIGRATION_PATH = join(
 const NEW_CODES = [
   'L6',
   'H19',
+  'VL6',
+  'VH19',
   'VGEEN',
   'VERL9-ONTV',
   'VERL9-VOOR',
@@ -258,6 +260,93 @@ describe('0036_nl_mkb_missing_vat_codes', () => {
 
     await applyBackfill()
     expect(await codesFor(entityId)).toEqual(afterFirst)
+
+    const [vl6] = await database
+      .select({
+        rateBasisPoints: taxCodes.rateBasisPoints,
+        vatRubriek: taxCodes.vatRubriek,
+        direction: taxCodes.direction,
+        validTo: taxCodes.validTo,
+      })
+      .from(taxCodes)
+      .where(and(eq(taxCodes.entityId, entityId), eq(taxCodes.code, 'VL6')))
+      .limit(1)
+    expect(vl6).toMatchObject({
+      rateBasisPoints: 600,
+      vatRubriek: '5b',
+      direction: 'input',
+      validTo: null,
+    })
+  })
+
+  it('leaves an existing same-name code untouched even when its meaning differs', async () => {
+    const entityId = await seedEntity(database, { fiscalYearCode: '2025' })
+    await seedNlMkbAnchors(entityId)
+    const [receivable] = await database
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(and(eq(accounts.entityId, entityId), eq(accounts.number, '1510')))
+      .limit(1)
+    await database.insert(taxCodes).values({
+      id: uuidv7(),
+      entityId,
+      code: 'VGEEN',
+      description: 'Custom local meaning',
+      rateBasisPoints: 2100,
+      direction: 'input',
+      accountId: receivable?.id ?? null,
+      ublCategory: 'S',
+      vatRubriek: '5b',
+      scope: 'domestic',
+      deductibility: 'full',
+      validFrom: '2025-01-01',
+    })
+
+    await applyBackfill()
+    const [row] = await database
+      .select({
+        description: taxCodes.description,
+        rateBasisPoints: taxCodes.rateBasisPoints,
+        scope: taxCodes.scope,
+      })
+      .from(taxCodes)
+      .where(and(eq(taxCodes.entityId, entityId), eq(taxCodes.code, 'VGEEN')))
+      .limit(1)
+    expect(row).toMatchObject({
+      description: 'Custom local meaning',
+      rateBasisPoints: 2100,
+      scope: 'domestic',
+    })
+  })
+
+  it('inserts a pair only when neither half already exists', async () => {
+    const entityId = await seedEntity(database, { fiscalYearCode: '2025' })
+    await seedNlMkbAnchors(entityId)
+    const [receivable] = await database
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(and(eq(accounts.entityId, entityId), eq(accounts.number, '1510')))
+      .limit(1)
+    await database.insert(taxCodes).values({
+      id: uuidv7(),
+      entityId,
+      code: 'VERL9-VOOR',
+      description: 'Pre-existing half with another meaning',
+      rateBasisPoints: 0,
+      direction: 'input',
+      accountId: receivable?.id ?? null,
+      ublCategory: 'O',
+      scope: 'out_of_scope',
+      deductibility: 'none',
+      validFrom: '2025-01-01',
+    })
+
+    await applyBackfill()
+    const codes = await codesFor(entityId)
+    expect(codes).toContain('VERL9-VOOR')
+    expect(codes).not.toContain('VERL9-ONTV')
+    expect(codes).toContain('ICV9')
+    expect(codes).toContain('ICV9-VOOR')
   })
 
   it('includes the new codes in an XAF export vatCodes block', async () => {
@@ -283,6 +372,12 @@ describe('0036_nl_mkb_missing_vat_codes', () => {
       expect(vatIds).toContain(code)
     }
     expect(document.vatCodes.find((code) => code.vatID === 'L6')?.vatDesc).toBe('BTW overig 6%')
+    expect(document.vatCodes.find((code) => code.vatID === 'VL6')?.vatDesc).toBe(
+      'Voorbelasting overig 6%',
+    )
+    expect(document.vatCodes.find((code) => code.vatID === 'VGEEN')?.vatDesc).toBe(
+      'Inkoop zonder btw',
+    )
     expect(document.vatCodes.find((code) => code.vatID === 'VGEEN')?.vatToClaimAccID).toBe('1510')
   })
 })

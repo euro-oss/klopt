@@ -816,6 +816,8 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
         'H19',
         'VH21',
         'VL9',
+        'VL6',
+        'VH19',
         'VGEEN',
         'VERL',
         'GEEN',
@@ -1243,6 +1245,65 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     ])
     expect(plan.taxRates.find((rate) => rate.moneybirdId === '60')?.proposedCode).toBe('L6')
     expect(plan.problems.map((item) => item.code)).toContain('incompatible_tax_rate')
+  })
+
+  it('preselects VL6 / VH19 for historical 6% and 19% purchase rates', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          {
+            id: '66',
+            name: 'Voorbelasting 6%',
+            percentage: 6,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+          {
+            id: '69',
+            name: 'Voorbelasting 19%',
+            percentage: 19,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+      },
+      options({ existingTaxRules: nlMkbTaxRules }),
+    )
+    expect(plan.taxRates.find((rate) => rate.moneybirdId === '66')?.proposedCode).toBe('VL6')
+    expect(plan.taxRates.find((rate) => rate.moneybirdId === '69')?.proposedCode).toBe('VH19')
+  })
+
+  it('does not preselect L6 or VL6 when a 6% rate has unknown direction', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          {
+            id: '61',
+            name: '6% unknown',
+            percentage: 6,
+            taxRateType: 'other',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        salesInvoices: [],
+        purchaseInvoices: [],
+        receipts: [],
+      },
+      options({ existingTaxRules: nlMkbTaxRules }),
+    )
+    const rate = plan.taxRates.find((row) => row.moneybirdId === '61')
+    expect(rate?.proposedCode).toBeNull()
+    expect(rate?.candidates).toEqual([])
   })
 
   it('does not preselect on a custom chart with no primary code', () => {

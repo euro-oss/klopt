@@ -54,6 +54,18 @@ const RULES: readonly TaxCodeRule[] = [
     ublCategory: 'K',
   }),
   rule('VH21', { direction: 'input', baseRubriek: null, vatRubriek: '5b' }),
+  rule('VL6', {
+    direction: 'input',
+    rateBasisPoints: 600,
+    baseRubriek: null,
+    vatRubriek: '5b',
+  }),
+  rule('VH19', {
+    direction: 'input',
+    rateBasisPoints: 1900,
+    baseRubriek: null,
+    vatRubriek: '5b',
+  }),
   rule('VGEEN', {
     direction: 'input',
     rateBasisPoints: 0,
@@ -298,7 +310,26 @@ describe('buildVatReturn', () => {
     expect(result.blocked).toBe(false)
   })
 
-  it('leaves a 0% purchase (VGEEN) out of every rubriek', () => {
+  it('puts historical 6% and 19% purchase VAT in rubriek 5b', () => {
+    const result = build([
+      line('4400', 100_000n, { taxCode: 'VL6', taxRole: 'base' }),
+      line('1510', 6_000n, { taxCode: 'VL6', taxRole: 'tax' }),
+      line('1600', -106_000n),
+      line('4400', 100_000n, { taxCode: 'VH19', taxRole: 'base' }),
+      line('1510', 19_000n, { taxCode: 'VH19', taxRole: 'tax' }),
+      line('1600', -119_000n),
+    ])
+
+    expect(rubriekAmounts(result, '5b')).toEqual({
+      baseMinorUnits: 0n,
+      vatMinorUnits: 25_000n,
+    })
+    expect(result.deductibleMinorUnits).toBe(25_000n)
+    expect(result.findings).toEqual([])
+    expect(result.blocked).toBe(false)
+  })
+
+  it('leaves a 0% purchase (VGEEN) out of every rubriek without a warning', () => {
     const result = build([
       line('4400', 50_000n, { taxCode: 'VGEEN', taxRole: 'base' }),
       line('1600', -50_000n),
@@ -306,10 +337,9 @@ describe('buildVatReturn', () => {
 
     expect(rubriekAmounts(result, '5b')).toEqual({ baseMinorUnits: 0n, vatMinorUnits: 0n })
     expect(result.deductibleMinorUnits).toBe(0n)
-    // Out-of-scope codes have no base box; tagging a base is a warning, not a
-    // declaration — nothing reaches the aangifte, which is the point of VGEEN.
-    expect(result.findings.map((entry) => entry.code)).toEqual(['code_declares_no_base'])
-    expect(result.findings[0]?.severity).toBe('warning')
+    // Out-of-scope 0% purchases declare nothing — the base is tagged for XAF,
+    // not for a rubriek. No code_declares_no_base warning (#72 / #86 PM).
+    expect(result.findings).toEqual([])
     expect(result.blocked).toBe(false)
   })
 

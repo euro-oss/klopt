@@ -2,7 +2,13 @@ import { renderFindingMessage, type FindingMessageKey } from '../finding-message
 import type { AccountType, JournalLineInput } from '../ledger/types.js'
 import type { MoneybirdAdministration } from '../ports/moneybird.js'
 import { applyFxToLines, type FxRateChoice } from './fx.js'
-import { matchVatCodes, nextFreeNumber, rankVatCodes } from './account-ranker.js'
+import {
+  isSpecialAcquisitionPurchaseRate,
+  matchVatCodes,
+  nextFreeNumber,
+  rankVatCodes,
+  type VatMatchQuery,
+} from './account-ranker.js'
 import {
   classifyAccount,
   contactName,
@@ -429,11 +435,13 @@ export function resolveMoneybirdTaxRateType(
   return rate.taxRateType
 }
 
-function rateForMatching(
-  rate: MoneybirdTaxRate,
-  taxRateType: string,
-): { percentage: number; taxRateType: string } {
-  return { percentage: rate.percentage, taxRateType }
+function rateForMatching(rate: MoneybirdTaxRate, taxRateType: string): VatMatchQuery {
+  return {
+    percentage: rate.percentage,
+    taxRateType,
+    excludeOutOfScopeInput:
+      taxRateType === 'purchase_invoice' && isSpecialAcquisitionPurchaseRate(rate),
+  }
 }
 
 /**

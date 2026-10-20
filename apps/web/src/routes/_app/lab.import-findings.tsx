@@ -310,17 +310,17 @@ function ImportFindingsLab() {
               resolveById('f3', `Inkoop 0% → ${choice.vatCode ?? '—'}`)
             }}
           />
-          {/* Unsupported purchase rate → honest empty status (6% inkoop). */}
+          {/* Unsupported purchase rate → honest empty status (12% inkoop). */}
           <AccountVatSheet
             open={taxBadOpen}
             onOpenChange={setTaxBadOpen}
             sourceName="Odd rate"
-            sourceDetail="6%"
+            sourceDetail="12%"
             accounts={FIXTURE_ACCOUNTS}
             taxRules={NL_MKB_VAT_RULES}
             mode="tax"
             taxRateType="purchase_invoice"
-            percentage="6"
+            percentage="12"
             advanced={advanced}
             onJumpToMapping={noopJumpToMapping}
             onSave={() => undefined}

@@ -18,6 +18,19 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Missing standard Dutch VAT codes on nl-mkb
+
+The shipped `nl-mkb` chart now includes the codes Moneybird imports need for
+exact direction+rate matching: `VGEEN` (0% purchase), the 9% reverse-charge /
+EU-acquisition / article-23 pairs (`VERL9-*`, `ICV9*`, `INV9*`), historical
+sales `L6` / `H19` (rubriek 1c), and historical purchase `VL6` / `VH19`
+(voorbelasting → 5b). Migration `0036_nl_mkb_missing_vat_codes.sql` backfills
+existing nl-mkb administrations (detected by H21 + VH21 + VERL-ONTV) with
+INSERT-only, skip-if-exists logic; paired codes insert only when neither half
+exists. L6, H19, VL6 and VH19 are import/correction codes only — new sales and
+purchase booking pickers never offer them. 23% and 9.7% codes are not included
+yet.
+
 ### Peppol Schematron in the container image
 
 Outbound UBL generation and send load `CEN-EN16931-UBL.sch` and

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { FindingsList, asExplainOnlyFinding } from '~/components/findings/finding-card'
 import { Money } from '~/components/finance/money'
+import { purchaseBookingTaxCodes } from '~/lib/booking-tax-codes'
 import { formatDate } from '~/lib/format'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
@@ -138,9 +139,7 @@ function Inbox() {
         (account) => account.type === 'expense' || account.type === 'asset',
       )
     : []
-  const inputCodes = taxCodes.ok
-    ? taxCodes.data.taxCodes.filter((code) => code.direction === 'input')
-    : []
+  const inputCodes = taxCodes.ok ? purchaseBookingTaxCodes(taxCodes.data.taxCodes) : []
 
   async function upload(event: React.ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.target.files?.[0]

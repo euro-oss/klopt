@@ -76,7 +76,8 @@
       "ublCategory": "S",
       "baseRubriek": "1c",
       "vatRubriek": "1c",
-      "scope": "domestic"
+      "scope": "domestic",
+      "correctionOnly": true
     },
     {
       "code": "H19",
@@ -87,7 +88,8 @@
       "ublCategory": "S",
       "baseRubriek": "1c",
       "vatRubriek": "1c",
-      "scope": "domestic"
+      "scope": "domestic",
+      "correctionOnly": true
     },
     {
       "code": "PRIV21",
@@ -176,8 +178,32 @@
       "deductibility": "full"
     },
     {
+      "code": "VL6",
+      "description": "Voorbelasting overig 6%",
+      "rateBasisPoints": 600,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "S",
+      "vatRubriek": "5b",
+      "scope": "domestic",
+      "deductibility": "full",
+      "correctionOnly": true
+    },
+    {
+      "code": "VH19",
+      "description": "Voorbelasting overig 19%",
+      "rateBasisPoints": 1900,
+      "direction": "input",
+      "accountRole": "vatReceivable",
+      "ublCategory": "S",
+      "vatRubriek": "5b",
+      "scope": "domestic",
+      "deductibility": "full",
+      "correctionOnly": true
+    },
+    {
       "code": "VGEEN",
-      "description": "Geen btw (inkoop)",
+      "description": "Inkoop zonder btw",
       "rateBasisPoints": 0,
       "direction": "input",
       "accountRole": "vatReceivable",

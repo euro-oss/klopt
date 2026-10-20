@@ -92,6 +92,7 @@ export {
 export {
   hasUniqueVatMatch,
   isPlainStandardVatCode,
+  isSpecialAcquisitionPurchaseRate,
   matchVatCodes,
   nextFreeNumber,
   rankAccountSuggestions,

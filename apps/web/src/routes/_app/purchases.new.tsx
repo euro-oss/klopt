@@ -3,6 +3,7 @@ import { violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
+import { purchaseBookingTaxCodes } from '~/lib/booking-tax-codes'
 import { formatMinorUnits, parseMinorUnits, percentOf } from '~/lib/format'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
@@ -70,10 +71,8 @@ function NewPurchaseInvoice() {
     : []
   // Input codes only: the VAT on a purchase invoice is ours to deduct, not to
   // charge, and offering an output code would invite a finding rather than
-  // prevent one.
-  const inputCodes = taxCodes.ok
-    ? taxCodes.data.taxCodes.filter((code) => code.direction === 'input')
-    : []
+  // prevent one. Historical VL6/VH19 stay on the chart for import/corrections.
+  const inputCodes = taxCodes.ok ? purchaseBookingTaxCodes(taxCodes.data.taxCodes) : []
   const costAccounts = accounts.ok
     ? accounts.data.accounts.filter(
         (account) => account.type === 'expense' || account.type === 'asset',

@@ -43,7 +43,11 @@ const codes = [
   { code: 'ICP', ratePercent: '0.00', rateBasisPoints: 0, direction: 'output' },
   { code: 'ICPD', ratePercent: '0.00', rateBasisPoints: 0, direction: 'output' },
   { code: 'PRIV21', ratePercent: '21.00', rateBasisPoints: 2100, direction: 'output' },
+  { code: 'L6', ratePercent: '6.00', rateBasisPoints: 600, direction: 'output' },
+  { code: 'H19', ratePercent: '19.00', rateBasisPoints: 1900, direction: 'output' },
   { code: 'VH21', ratePercent: '21.00', rateBasisPoints: 2100, direction: 'input' },
+  { code: 'VL6', ratePercent: '6.00', rateBasisPoints: 600, direction: 'input' },
+  { code: 'VH19', ratePercent: '19.00', rateBasisPoints: 1900, direction: 'input' },
 ]
 
 describe('guided invoice helpers', () => {
@@ -72,10 +76,13 @@ describe('guided invoice helpers', () => {
     expect(formatRatePercent('21.00')).toBe('21')
   })
 
-  it('excludes PRIV21 from the sales picker and defaults to H21', () => {
+  it('excludes PRIV21, L6 and H19 from the sales picker and defaults to H21', () => {
     const picker = salesPickerTaxCodes(codes)
     expect(picker.map((row) => row.code)).not.toContain('PRIV21')
+    expect(picker.map((row) => row.code)).not.toContain('L6')
+    expect(picker.map((row) => row.code)).not.toContain('H19')
     expect(picker.map((row) => row.code)).not.toContain('VH21')
+    expect(picker.map((row) => row.code)).not.toContain('VL6')
     expect(defaultOutputTaxCode(codes)).toBe('H21')
     expect(defaultOutputTaxCode(codes.filter((row) => row.code !== 'H21'))).toBe('L9')
     expect(

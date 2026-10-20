@@ -222,14 +222,14 @@ test('btw sheet hides disclosure while a non-primary is selected', async ({ page
   await expect(sheet.locator('[data-slot="vat-show-other"]')).toContainText('Minder tonen')
 })
 
-test('btw sheet offers VGEEN for 0% purchase and honest copy for unsupported 6% purchase', async ({
+test('btw sheet offers VGEEN for 0% purchase and honest copy for unsupported 12% purchase', async ({
   page,
 }) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxPurchase0')
   const zeroPurchase = page.getByRole('dialog')
   await expect(zeroPurchase).toBeVisible()
   await expect(zeroPurchase.getByRole('radio')).toHaveCount(1)
-  await expect(zeroPurchase.getByRole('radio')).toContainText(/Geen btw/)
+  await expect(zeroPurchase.getByRole('radio')).toContainText(/Inkoop zonder btw/)
   await expect(zeroPurchase.getByRole('status')).toHaveCount(0)
   await expect(zeroPurchase.getByText('H21', { exact: true })).toHaveCount(0)
   await page.keyboard.press('Escape')

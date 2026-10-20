@@ -124,6 +124,7 @@ export {
   unknownCurrencyVariantOf,
   hasUniqueVatMatch,
   isPlainStandardVatCode,
+  isSpecialAcquisitionPurchaseRate,
   matchVatCodes,
   nextFreeNumber,
   rankAccountSuggestions,

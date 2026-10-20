@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   hasUniqueVatMatch,
+  isSpecialAcquisitionPurchaseRate,
   matchVatCodes,
   nextFreeNumber,
   rankAccountSuggestions,
@@ -282,6 +283,130 @@ describe('matchVatCodes', () => {
     expect(
       rankVatCodes(chart, { percentage: 19, taxRateType: 'sales_invoice' }).suggestedCode,
     ).toBe('H19')
+  })
+
+  it('offers VL6 and VH19 for historical 6% and 19% purchase rates', () => {
+    const chart = [
+      {
+        code: 'VL6',
+        rateBasisPoints: 600,
+        direction: 'input' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+        deductibility: 'full',
+      },
+      {
+        code: 'VH19',
+        rateBasisPoints: 1900,
+        direction: 'input' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+        deductibility: 'full',
+      },
+      {
+        code: 'L6',
+        rateBasisPoints: 600,
+        direction: 'output' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+      },
+      {
+        code: 'H19',
+        rateBasisPoints: 1900,
+        direction: 'output' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+      },
+    ]
+    expect(
+      matchVatCodes(chart, { percentage: 6, taxRateType: 'purchase_invoice' }).map(
+        (rule) => rule.code,
+      ),
+    ).toEqual(['VL6'])
+    expect(
+      matchVatCodes(chart, { percentage: 19, taxRateType: 'purchase_invoice' }).map(
+        (rule) => rule.code,
+      ),
+    ).toEqual(['VH19'])
+    expect(
+      rankVatCodes(chart, { percentage: 6, taxRateType: 'purchase_invoice' }).suggestedCode,
+    ).toBe('VL6')
+    expect(
+      rankVatCodes(chart, { percentage: 19, taxRateType: 'purchase_invoice' }).suggestedCode,
+    ).toBe('VH19')
+  })
+
+  it('does not preselect across directions for unknown 6% / 19% rates', () => {
+    const chart = [
+      {
+        code: 'L6',
+        rateBasisPoints: 600,
+        direction: 'output' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+      },
+      {
+        code: 'VL6',
+        rateBasisPoints: 600,
+        direction: 'input' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+        deductibility: 'full',
+      },
+      {
+        code: 'H19',
+        rateBasisPoints: 1900,
+        direction: 'output' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+      },
+      {
+        code: 'VH19',
+        rateBasisPoints: 1900,
+        direction: 'input' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+        deductibility: 'full',
+      },
+    ]
+    expect(matchVatCodes(chart, { percentage: 6, taxRateType: 'other' })).toEqual([])
+    expect(matchVatCodes(chart, { percentage: 19, taxRateType: '' })).toEqual([])
+    expect(rankVatCodes(chart, { percentage: 6, taxRateType: 'unknown' }).suggestedCode).toBeNull()
+    expect(rankVatCodes(chart, { percentage: 19, taxRateType: 'unknown' }).suggestedCode).toBeNull()
+  })
+
+  it('drops VGEEN for special acquisition purchase rates when asked', () => {
+    const chart = [
+      {
+        code: 'VGEEN',
+        rateBasisPoints: 0,
+        direction: 'input' as const,
+        scope: 'out_of_scope',
+        reverseCharge: 'none',
+        deductibility: 'none',
+      },
+      {
+        code: 'VERL-ONTV',
+        rateBasisPoints: 0,
+        direction: 'input' as const,
+        scope: 'domestic',
+        reverseCharge: 'domestic',
+        deductionCode: 'VERL-VOOR',
+      },
+    ]
+    expect(
+      matchVatCodes(chart, {
+        percentage: 0,
+        taxRateType: 'purchase_invoice',
+        excludeOutOfScopeInput: true,
+      }).map((rule) => rule.code),
+    ).toEqual(['VERL-ONTV'])
+    expect(
+      isSpecialAcquisitionPurchaseRate({ name: 'BTW verlegd naar u', reportReference: null }),
+    ).toBe(true)
+    expect(isSpecialAcquisitionPurchaseRate({ name: 'Geen btw', reportReference: null })).toBe(
+      false,
+    )
   })
 })
 
