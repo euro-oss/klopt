@@ -16,10 +16,10 @@ export type NormalBalance = 'debit' | 'credit'
 export type JournalType = 'memoriaal' | 'verkoop' | 'inkoop' | 'bank' | 'kas'
 
 /**
- * `soft_closed` means only an accountant may post — a role question, so it is
- * enforced in the application. `hard_closed` is absolute and is enforced by the
- * database as well, because "including via the API" (spec 6.4) has to survive
- * somebody writing a new API.
+ * `soft_closed` means only an owner or accountant may post — a role question,
+ * so it is enforced in the application. `hard_closed` is absolute and is
+ * enforced by the database as well, because "including via the API"
+ * (spec 6.4) has to survive somebody writing a new API.
  */
 export type PeriodStatus = 'open' | 'soft_closed' | 'hard_closed'
 

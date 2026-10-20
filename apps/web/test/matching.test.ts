@@ -5,7 +5,12 @@ import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
 import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
-import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
+import {
+  seedEntity,
+  seedSalesConfiguration,
+  cleanupSeededBackgroundWork,
+  setPeriodStatus,
+} from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
 import { ApiError } from '../src/api/errors.js'
@@ -67,17 +72,27 @@ const FIXTURES = join(
 
 let database: Database
 let token: string
+let entityId: string
 let bankAccountId: string
 let iban: string
 
-const request = (idempotencyKey?: string): Request => {
-  const headers = new Headers({ authorization: `Bearer ${token}` })
+/** April in a Jan–Dec year — every `aTransaction` books on 2026-04-02. */
+const APRIL = 4
+
+const request = (bearer: string, idempotencyKey?: string): Request => {
+  const headers = new Headers({ authorization: `Bearer ${bearer}` })
   if (idempotencyKey !== undefined) headers.set('idempotency-key', idempotencyKey)
   return new Request('https://klopt.test/api/v1/bank-transactions', { headers })
 }
 
 const contextFor = async (idempotencyKey?: string) =>
-  resolveRequestContext({ database, request: request(idempotencyKey) })
+  resolveRequestContext({ database, request: request(token, idempotencyKey) })
+
+const contextAs = async (bearer: string, idempotencyKey?: string) =>
+  resolveRequestContext({ database, request: request(bearer, idempotencyKey) })
+
+const setAprilStatus = (status: 'open' | 'soft_closed' | 'hard_closed') =>
+  setPeriodStatus(database, entityId, APRIL, status)
 
 /** An issued invoice for a customer whose IBAN is the one in the fixture. */
 async function anInvoice(options: { amount?: string; number?: string } = {}): Promise<{
@@ -185,7 +200,7 @@ beforeAll(async () => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 
-  const entityId = await seedEntity(database)
+  entityId = await seedEntity(database)
   await seedSalesConfiguration(database, entityId)
 
   const issued = await issueToken(database, {
@@ -538,6 +553,108 @@ describe('learning from a confirmation', () => {
     expect(suggestions.body.suggestions.some((item) => item.strategy === 'learned_rule')).toBe(
       false,
     )
+  })
+})
+
+describe('period locks on confirmMatch', () => {
+  it('rejects a hard-closed match and leaves the line unmatched', async () => {
+    const transactionId = await aTransaction({
+      amount: '-4,00',
+      description: 'Hard-closed fee',
+      sequence: 200,
+    })
+
+    await setAprilStatus('hard_closed')
+    try {
+      await expect(
+        handleConfirmMatch(
+          await contextFor(uuidv7()),
+          transactionId,
+          confirmMatchBody.parse({ accountNumber: '4000' }),
+        ),
+      ).rejects.toMatchObject({ code: 'period_hard_closed' })
+
+      const list = await handleListBankTransactions(
+        await contextFor(),
+        transactionsQuery.parse({ bankAccountId, limit: 1000 }),
+      )
+      expect(list.body.transactions.find((item) => item.id === transactionId)?.status).toBe(
+        'unmatched',
+      )
+    } finally {
+      await setAprilStatus('open')
+    }
+  })
+
+  it('rejects a soft-closed match for a bookkeeper and leaves the line unmatched', async () => {
+    const transactionId = await aTransaction({
+      amount: '-5,00',
+      description: 'Soft-closed fee',
+      sequence: 201,
+    })
+    const { token: bookkeeper } = await issueToken(database, {
+      entityId,
+      name: `bookkeeper-${randomUUID().slice(0, 8)}`,
+      permissions: ['ledger:read', 'ledger:post'],
+      actorKind: 'script',
+      actorId: 'bookkeeper',
+    })
+
+    await setAprilStatus('soft_closed')
+    try {
+      await expect(
+        handleConfirmMatch(
+          await contextAs(bookkeeper, uuidv7()),
+          transactionId,
+          confirmMatchBody.parse({ accountNumber: '4000' }),
+        ),
+      ).rejects.toMatchObject({ code: 'period_soft_closed' })
+
+      const list = await handleListBankTransactions(
+        await contextFor(),
+        transactionsQuery.parse({ bankAccountId, limit: 1000 }),
+      )
+      expect(list.body.transactions.find((item) => item.id === transactionId)?.status).toBe(
+        'unmatched',
+      )
+    } finally {
+      await setAprilStatus('open')
+    }
+  })
+
+  it('lets an accountant confirm a match into a soft-closed period', async () => {
+    const transactionId = await aTransaction({
+      amount: '-6,00',
+      description: 'Accountant correction',
+      sequence: 202,
+    })
+    const { token: accountant } = await issueToken(database, {
+      entityId,
+      name: `accountant-${randomUUID().slice(0, 8)}`,
+      permissions: ['ledger:read', 'ledger:post', 'ledger:post-closed'],
+      actorKind: 'script',
+      actorId: 'accountant',
+    })
+
+    await setAprilStatus('soft_closed')
+    try {
+      const confirmed = await handleConfirmMatch(
+        await contextAs(accountant, uuidv7()),
+        transactionId,
+        confirmMatchBody.parse({ accountNumber: '4000' }),
+      )
+      expect(confirmed.body).toMatchObject({ allocated: 0 })
+
+      const list = await handleListBankTransactions(
+        await contextFor(),
+        transactionsQuery.parse({ bankAccountId, limit: 1000 }),
+      )
+      expect(list.body.transactions.find((item) => item.id === transactionId)?.status).toBe(
+        'matched',
+      )
+    } finally {
+      await setAprilStatus('open')
+    }
   })
 })
 

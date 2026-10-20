@@ -37,6 +37,10 @@ export class FakeLedgerRepository implements LedgerRepository {
   readonly audits: AuditEvent[] = []
   readonly events: DomainEvent[] = []
 
+  /** Override the default open period returned by `loadPostingContext`. */
+  periodStatus: PeriodRecord['status'] = 'open'
+  fiscalYearStatus: PeriodRecord['fiscalYearStatus'] = 'open'
+
   private readonly counters = new Map<string, number>()
   private readonly idempotency = new Map<string, IdempotencyRecord>()
   private readonly accounts: Map<string, AccountRecord>
@@ -85,11 +89,12 @@ export class FakeLedgerRepository implements LedgerRepository {
         ? {
             id: `period-${String(month)}`,
             sequence: month,
-            status: 'open',
+            status: this.periodStatus,
             startsOn: `2026-${String(month).padStart(2, '0')}-01`,
             endsOn: `2026-${String(month).padStart(2, '0')}-28`,
             fiscalYearId: 'fy-2026',
             fiscalYearCode: '2026',
+            fiscalYearStatus: this.fiscalYearStatus,
           }
         : null
 

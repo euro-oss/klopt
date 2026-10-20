@@ -50,6 +50,8 @@ export interface PeriodRecord {
   readonly endsOn: string
   readonly fiscalYearId: string
   readonly fiscalYearCode: string
+  /** Open/closed status of the boekjaar that owns this period. */
+  readonly fiscalYearStatus: 'open' | 'closed'
 }
 
 export interface DimensionTypeRecord {

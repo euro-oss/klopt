@@ -84,6 +84,8 @@ export function ShortcutFooter({
 
   return (
     <div
+      role="group"
+      aria-label={t('shortcuts.title')}
       className={cn(
         // Yellow outline as #67; hidden on phone (#57 / #69 design review).
         'border-accent text-muted-foreground mt-3 hidden flex-wrap items-center gap-x-3 gap-y-1.5 border px-2 py-1.5 text-[0.6875rem] md:flex',

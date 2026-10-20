@@ -38,6 +38,8 @@ export interface MoneybirdFindingActions {
   readonly onDrillUnbalanced: (problem: MoneybirdProblem) => void
   /** Opens the unbalanced-document panel (exclude + Open in Moneybird). */
   readonly onReviewUnbalanced: (problem: MoneybirdProblem) => void
+  /** Opens the period_locked panel (exclude primary, Boekjaren secondary). */
+  readonly onReviewPeriodLocked: (problem: MoneybirdProblem) => void
   /** Absolute Moneybird web URL for a problem path, when one exists. */
   readonly moneybirdHrefFor: (problem: MoneybirdProblem) => string | null
   readonly labels: {
@@ -54,7 +56,8 @@ export interface MoneybirdFindingActions {
     readonly acknowledgeEmpty: string
     readonly reread: string
     readonly exclude: string
-    readonly reopenYear: string
+    /** Secondary label: navigate to Boekjaren (no reopen). */
+    readonly toFiscalYears: string
     readonly deferAttachment: string
     readonly openMoneybird: string
     readonly settings: string
@@ -173,11 +176,14 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         onOpen: () => actions.onDrillUnbalanced(problem),
       }
     case 'period_locked':
+      // Named year lives in finding.moneybird.period_locked / why. Primary is
+      // Niet overzetten (exclude); Naar Boekjaren is secondary — there is no
+      // reopen operation (#75).
       return {
         type: 'guided',
         label: labels.exclude,
-        onOpen: () => actions.onExcludeDocument(problem),
-        steps: [labels.stepDoNotTransfer, labels.reopenYear],
+        onOpen: () => actions.onReviewPeriodLocked(problem),
+        steps: [labels.stepDoNotTransfer, labels.toFiscalYears],
       }
     case 'unbalanced_document':
       return {

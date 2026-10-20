@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { postJournalEntry, systemClock, uuidv7, type Actor } from '@klopt/core'
+import { LedgerError, postJournalEntry, systemClock, uuidv7, type Actor } from '@klopt/core'
 import { sql } from 'drizzle-orm'
 import { withLedger } from '../src/unit-of-work.js'
-import { periods } from '../src/schema/index.js'
+import { fiscalYears, periods } from '../src/schema/index.js'
 import { and, eq } from 'drizzle-orm'
 import { createFixture, type Fixture } from './support/fixture.js'
 import { expectDatabaseError } from './support/errors.js'
@@ -316,6 +316,93 @@ describe('period control', () => {
           ),
         ),
       ).rejects.toMatchObject({ code: 'period_hard_closed' })
+    } finally {
+      await entity.close()
+    }
+  })
+
+  it('carries yearStatus closed on a hard-closed refusal into a closed year', async () => {
+    const entity = await createFixture()
+    try {
+      await entity.database
+        .update(periods)
+        .set({ status: 'hard_closed' })
+        .where(and(eq(periods.entityId, entity.entityId), eq(periods.sequence, 3)))
+      await entity.database
+        .update(fiscalYears)
+        .set({ status: 'closed' })
+        .where(eq(fiscalYears.entityId, entity.entityId))
+
+      let caught: unknown
+      try {
+        await withLedger(entity.database, (repository) =>
+          postJournalEntry(
+            {
+              entityId: entity.entityId,
+              journalCode: 'MEM',
+              bookingDate: '2026-03-15',
+              documentDate: '2026-03-15',
+              description: 'Into a closed year',
+              sourceDocumentRef: null,
+              reversesEntryId: null,
+              lines: [
+                {
+                  accountNumber: '1100',
+                  description: null,
+                  debit: 100_00n,
+                  credit: 0n,
+                  currency: null,
+                  exchangeRate: null,
+                  exchangeRateSource: null,
+                  taxCode: null,
+                  taxRole: null,
+                  taxAmount: null,
+                  dimensions: [],
+                  subledgerKind: null,
+                  subledgerId: null,
+                },
+                {
+                  accountNumber: '8000',
+                  description: null,
+                  debit: 0n,
+                  credit: 100_00n,
+                  currency: null,
+                  exchangeRate: null,
+                  exchangeRateSource: null,
+                  taxCode: null,
+                  taxRole: null,
+                  taxAmount: null,
+                  dimensions: [],
+                  subledgerKind: null,
+                  subledgerId: null,
+                },
+              ],
+            },
+            actor,
+            {
+              dryRun: false,
+              idempotencyKey: uuidv7(),
+              requestId: null,
+              ip: null,
+              mayPostToSoftClosedPeriod: false,
+            },
+            { repository, clock: systemClock },
+          ),
+        )
+      } catch (error) {
+        caught = error
+      }
+
+      expect(caught).toBeInstanceOf(LedgerError)
+      const error = caught as LedgerError
+      expect(error.code).toBe('period_hard_closed')
+      expect(error.violations[0]?.detail).toMatchObject({
+        period: '3',
+        fiscalYear: '2026',
+        startsOn: '2026-03-01',
+        endsOn: '2026-03-31',
+        yearStatus: 'closed',
+      })
     } finally {
       await entity.close()
     }

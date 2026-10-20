@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import type { AccountType, MoneybirdImportDecisions, MoneybirdProblem } from '@klopt/core'
 import type { RankableAccount } from '@klopt/core/moneybird-account-ranker'
@@ -8,6 +8,7 @@ import {
   previewFxEntry,
 } from '@klopt/core/moneybird-fx'
 import { PageHeader } from '~/components/app-shell'
+import { Button } from '~/components/ui/button'
 import { AccountVatSheet } from '~/components/findings/account-vat-sheet'
 import { FxRateSheet } from '~/components/findings/fx-rate-sheet'
 import { ImportFindingsScreen } from '~/components/findings/import-findings-screen'
@@ -191,6 +192,7 @@ function Moneybird() {
     type: AccountType
   } | null>(null)
   const [unbalancedDraft, setUnbalancedDraft] = useState<MoneybirdProblem | null>(null)
+  const [periodLockedDraft, setPeriodLockedDraft] = useState<MoneybirdProblem | null>(null)
   const [drillNote, setDrillNote] = useState<string | null>(null)
   const [drillDocuments, setDrillDocuments] = useState<
     readonly { reference: string; description: string; documentDate: string; externalId: string }[]
@@ -505,6 +507,9 @@ function Moneybird() {
     onOpenPeriodSettings: () => {
       void router.navigate({ to: '/fiscal-years' })
     },
+    onReviewPeriodLocked: (problem) => {
+      setPeriodLockedDraft(problem)
+    },
     onDeferAttachment: (problem) => {
       const id = problem.detail['attachmentId']
       if (id !== undefined) applyDecisions(withDeferredAttachment(decisions, id))
@@ -575,7 +580,7 @@ function Moneybird() {
       acknowledgeEmpty: t('moneybird.fix.acknowledgeEmpty'),
       reread: t('moneybird.fix.reread'),
       exclude: t('moneybird.fix.exclude'),
-      reopenYear: t('moneybird.fix.reopenYear'),
+      toFiscalYears: t('moneybird.fix.toFiscalYears'),
       deferAttachment: t('moneybird.fix.deferAttachment'),
       openMoneybird: t('moneybird.fix.openMoneybird'),
       settings: t('moneybird.fix.settings'),
@@ -806,6 +811,7 @@ function Moneybird() {
                 error={error}
                 typeDraft={typeDraft}
                 unbalancedDraft={unbalancedDraft}
+                periodLockedDraft={periodLockedDraft}
                 drillNote={drillNote}
                 drillDocuments={drillDocuments}
                 onReread={() => void runPreview()}
@@ -828,6 +834,12 @@ function Moneybird() {
                   findingActions.onOpenMoneybird(unbalancedDraft)
                 }}
                 onUnbalancedDismiss={() => setUnbalancedDraft(null)}
+                onPeriodLockedExclude={() => {
+                  if (periodLockedDraft === null) return
+                  findingActions.onExcludeDocument(periodLockedDraft)
+                  setPeriodLockedDraft(null)
+                }}
+                onPeriodLockedDismiss={() => setPeriodLockedDraft(null)}
                 onDrillDismiss={() => {
                   setDrillNote(null)
                   setDrillDocuments([])
@@ -1321,6 +1333,7 @@ function PreviewReport({
   error,
   typeDraft,
   unbalancedDraft,
+  periodLockedDraft,
   drillNote,
   drillDocuments,
   onReread,
@@ -1331,6 +1344,8 @@ function PreviewReport({
   onUnbalancedExclude,
   onUnbalancedOpenMoneybird,
   onUnbalancedDismiss,
+  onPeriodLockedExclude,
+  onPeriodLockedDismiss,
   onDrillDismiss,
 }: {
   report: Record<string, unknown>
@@ -1342,6 +1357,7 @@ function PreviewReport({
   error: string | null
   typeDraft: { moneybirdId: string; name: string; type: AccountType } | null
   unbalancedDraft: MoneybirdProblem | null
+  periodLockedDraft: MoneybirdProblem | null
   drillNote: string | null
   drillDocuments: readonly {
     reference: string
@@ -1357,6 +1373,8 @@ function PreviewReport({
   onUnbalancedExclude: () => void
   onUnbalancedOpenMoneybird: () => void
   onUnbalancedDismiss: () => void
+  onPeriodLockedExclude: () => void
+  onPeriodLockedDismiss: () => void
   onDrillDismiss: () => void
 }) {
   const { t } = useT()
@@ -1497,6 +1515,28 @@ function PreviewReport({
               >
                 {t('findingCard.close')}
               </button>
+            </div>
+          </div>
+        )}
+
+        {periodLockedDraft !== null && (
+          <div className="border-border mb-6 rounded-none border p-4">
+            <p className="mb-2 text-sm font-semibold">{t('moneybird.fix.exclude')}</p>
+            <p className="text-muted-foreground mb-3 text-sm">
+              {t('finding.why.moneybird.period_locked', {
+                year: periodLockedDraft.detail['year'] ?? '—',
+              })}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" onClick={onPeriodLockedExclude}>
+                {t('moneybird.fix.exclude')}
+              </Button>
+              <Button type="button" variant="outline" asChild>
+                <Link to="/fiscal-years">{t('moneybird.fix.toFiscalYears')}</Link>
+              </Button>
+              <Button type="button" variant="outline" onClick={onPeriodLockedDismiss}>
+                {t('findingCard.close')}
+              </Button>
             </div>
           </div>
         )}

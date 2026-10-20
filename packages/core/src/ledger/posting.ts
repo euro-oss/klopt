@@ -260,6 +260,12 @@ export async function postJournalEntry(
       violation('period_hard_closed', 'bookingDate', {
         period: String(context.period.sequence),
         fiscalYear: context.period.fiscalYearCode,
+        // Dates + year status so UIs that cannot list fiscal years (or whose
+        // list failed) still name the period — every role that can post gets
+        // these on the refusal.
+        startsOn: context.period.startsOn,
+        endsOn: context.period.endsOn,
+        yearStatus: context.period.fiscalYearStatus,
       }),
     )
   } else if (context.period.status === 'soft_closed' && !options.mayPostToSoftClosedPeriod) {
@@ -267,6 +273,9 @@ export async function postJournalEntry(
       violation('period_soft_closed', 'bookingDate', {
         period: String(context.period.sequence),
         fiscalYear: context.period.fiscalYearCode,
+        startsOn: context.period.startsOn,
+        endsOn: context.period.endsOn,
+        yearStatus: context.period.fiscalYearStatus,
       }),
     )
   }
