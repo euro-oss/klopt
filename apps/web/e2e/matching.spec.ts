@@ -381,6 +381,9 @@ test('Geavanceerd shows the confidence percent on a suggestion', async ({ page }
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
 
+  // Bookkeeper invoice form needs Geavanceerd; Eigenaar default is guided (#45).
+  // Stay on for the match panel so the confidence percent is shown.
+  await enableAdvancedMode(page)
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
   await page.getByLabel('Referentie klant').fill('KP-%')
@@ -388,10 +391,10 @@ test('Geavanceerd shows the confidence percent on a suggestion', async ({ page }
   await page.getByLabel('Prijs regel 1').fill('1000,00')
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  // Owner default: Geavanceerd off → simple-mode "boeking", not "journaalpost".
+  // Invoice success always links as "boeking" (invoice.postedAsLink); Geavanceerd
+  // only changes the form and the match panel confidence percent below.
   await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
-  await enableAdvancedMode(page)
   await page.goto('/bank/match')
   await hydrated(page)
 

@@ -2,7 +2,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, enableAdvancedMode, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, enableAdvancedMode, setAdvancedMode, signIn, uniqueEmail } from './support'
 
 /** The copy-as-TSV test writes to the clipboard and then reads it back. */
 test.use({ permissions: ['clipboard-read', 'clipboard-write'] })
@@ -533,6 +533,10 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   // body: the next Tab starts here rather than at the top of the window.
   await focusIsSomewhere(page)
 
+  // Invoice needed Geavanceerd; Koppelen below asserts simple-mode Categorie
+  // (name in the field). Turn it off before `g o`.
+  await setAdvancedMode(page, false)
+
   // Koppelen: `g` then `o`, the cursor down a line, an account typed in, booked.
   // Redesign (#61 slice 6): Af/Bij table + Categorie picker, not the old button list.
   await page.keyboard.press('g')
@@ -558,6 +562,9 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   // Posted notice names the bank line (j moved off the fee line).
   await expect(page.getByText('Gekoppeld: Overboeking spaarrekening')).toBeVisible()
   await expect(queue).toHaveCount(3)
+
+  // Postvak draft uses Grootboek line fields — turn Geavanceerd back on.
+  await enableAdvancedMode(page)
 
   // Het postvak: `g` then `e`, open the document, book it as a draft invoice.
   await page.keyboard.press('g')
