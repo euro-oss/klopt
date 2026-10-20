@@ -105,48 +105,74 @@ test('category search ↓ + ↵ commits the highlighted row, not the previous pi
   await expect(page.getByText('Kantoorartikelen → Kantoorartikelen')).toHaveCount(0)
 })
 
-test('btw sheet preselects primary VH21 and reveals VH21-PRO via Andere codes', async ({
-  page,
-}) => {
+test('btw sheet preselects VH21; Space opens other without saving', async ({ page }) => {
   await openLab(page)
-  await page.getByTestId('lab-advanced').check()
   await page.goto('/lab/import-findings?source=moneybird&state=open&sheet=tax')
   const sheet = page.getByRole('dialog')
   await expect(sheet).toBeVisible()
-  await expect(sheet.getByText('VH21', { exact: true })).toBeVisible()
-  // Primary only until the toggle opens other codes (VH21-PRO).
   await expect(sheet.getByRole('radio')).toHaveCount(1)
   await expect(sheet.getByRole('radio')).toHaveAttribute('aria-checked', 'true')
   await expect(sheet.getByText('PRIV21')).toHaveCount(0)
   const otherToggle = sheet.locator('[data-slot="vat-show-other"]')
-  await expect(otherToggle).toContainText('Andere codes tonen')
-  await otherToggle.locator('input[type="checkbox"]').check()
+  await expect(otherToggle).toHaveAttribute('aria-expanded', 'false')
+  await expect(otherToggle).toHaveAttribute('aria-controls', /.+-vat$/)
+  await expect(otherToggle).toContainText('Andere tarieven tonen')
+  await otherToggle.focus()
+  await page.keyboard.press('Space')
   await expect(sheet).toBeVisible()
-  await expect(otherToggle).toContainText('Andere codes verbergen')
-  await expect(sheet.getByRole('radio')).toHaveCount(2)
-  await expect(sheet.getByText('VH21-PRO', { exact: true })).toBeVisible()
-  // Primary stays preselected after revealing other codes (primary is first).
-  const vh21Radio = sheet.getByRole('radio').nth(0)
-  await expect(vh21Radio).toContainText('VH21')
-  await expect(vh21Radio).not.toContainText('VH21-PRO')
-  await expect(vh21Radio).toHaveAttribute('aria-checked', 'true')
-  await expect(sheet.getByRole('radio').nth(1)).toHaveAttribute('aria-checked', 'false')
+  await expect(otherToggle).toHaveAttribute('aria-expanded', 'true')
+  await expect(otherToggle).toContainText('Minder tonen')
+  // Real chart: VERL-ONTV / ICV21 / INV23 — no output codes, no deduction halves.
+  await expect(sheet.getByRole('radio')).toHaveCount(4)
+  await expect(sheet.getByText('H21', { exact: true })).toHaveCount(0)
+  await expect(sheet.getByText('VERL-VOOR', { exact: true })).toHaveCount(0)
+  await expect(sheet.getByRole('radio').nth(0)).toHaveAttribute('aria-checked', 'true')
+  // Enter on the disclosure must not save/close (#71 PM).
+  await otherToggle.focus()
+  await page.keyboard.press('Enter')
+  await expect(sheet).toBeVisible()
+
+  // Geavanceerd: disclosure says “codes”; raw codes appear.
+  await page.keyboard.press('Escape')
+  await expect(sheet).toBeHidden()
+  await page.getByTestId('lab-advanced').check()
+  await page.goto('/lab/import-findings?source=moneybird&state=open&sheet=tax')
+  const advancedSheet = page.getByRole('dialog')
+  const advancedToggle = advancedSheet.locator('[data-slot="vat-show-other"]')
+  await expect(advancedToggle).toContainText('Andere codes tonen')
+  await advancedToggle.click()
+  await expect(advancedToggle).toContainText('Andere codes verbergen')
+  await expect(advancedSheet.getByText('VERL-ONTV', { exact: true })).toBeVisible()
+  await expect(advancedSheet.getByText('ICV21', { exact: true })).toBeVisible()
+  await expect(advancedSheet.getByText('INV23', { exact: true })).toBeVisible()
 })
 
-test('btw sheet lists 0% sales under Andere codes with no preselect', async ({ page }) => {
+test('btw sheet 21% sales shows only H21; no input codes when expanded', async ({ page }) => {
+  await openLab(page, 'source=moneybird&state=open&sheet=taxSales21')
+  const sheet = page.getByRole('dialog')
+  await expect(sheet).toBeVisible()
+  await expect(sheet.getByRole('radio')).toHaveCount(1)
+  await expect(sheet.getByRole('radio')).toHaveAttribute('aria-checked', 'true')
+  // No “other” purchase codes to disclose on a plain 21% sales rate.
+  await expect(sheet.locator('[data-slot="vat-show-other"]')).toHaveCount(0)
+  await expect(sheet.getByText('VH21', { exact: true })).toHaveCount(0)
+  await expect(sheet.getByText('PRIV21')).toHaveCount(0)
+})
+
+test('btw sheet lists 0% sales directly with no disclosure and no preselect', async ({ page }) => {
   await openLab(page)
-  await page.getByTestId('lab-advanced').check()
   await page.goto('/lab/import-findings?source=moneybird&state=open&sheet=tax0')
   const zeroSheet = page.getByRole('dialog')
   await expect(zeroSheet).toBeVisible()
-  // No primary for 0% — other codes open so the five are reachable; none checked.
   await expect(zeroSheet.getByRole('radio')).toHaveCount(5)
   await expect(zeroSheet.getByRole('radio', { checked: true })).toHaveCount(0)
-  await expect(zeroSheet.locator('[data-slot="vat-show-other"]')).toContainText(
-    'Andere codes verbergen',
-  )
+  await expect(zeroSheet.locator('[data-slot="vat-show-other"]')).toHaveCount(0)
   await expect(zeroSheet.getByText('PRIV21')).toHaveCount(0)
-  // First radio is in the Tab order when nothing is pre-selected (roving tabindex).
+  await expect(zeroSheet.getByText('Btw verlegd')).toBeVisible()
+  await expect(zeroSheet.getByText('Vrijgesteld van btw')).toBeVisible()
+  await expect(zeroSheet.getByText('0% export buiten de EU')).toBeVisible()
+  await expect(zeroSheet.getByText('0% levering in de EU (goederen)')).toBeVisible()
+  await expect(zeroSheet.getByText('0% dienst in de EU')).toBeVisible()
   await expect(zeroSheet.getByRole('radio').nth(0)).toHaveAttribute('tabindex', '0')
   let focusedRadio = false
   for (let press = 0; press < 24; press += 1) {
@@ -162,24 +188,49 @@ test('btw sheet lists 0% sales under Andere codes with no preselect', async ({ p
     }
   }
   expect(focusedRadio).toBe(true)
-  await page.keyboard.press('ArrowDown') // none → first (VERL)
+  await page.keyboard.press('ArrowDown')
   await expect(zeroSheet.getByRole('radio').nth(0)).toHaveAttribute('aria-checked', 'true')
-  await page.keyboard.press('ArrowDown') // → second (GEEN / Vrijgesteld)
+  await page.keyboard.press('ArrowDown')
   await expect(zeroSheet.getByRole('radio').nth(1)).toHaveAttribute('aria-checked', 'true')
-  await expect(zeroSheet.getByRole('radio').nth(1)).toContainText(/Vrijgesteld|GEEN/)
+  await expect(zeroSheet.getByRole('radio').nth(1)).toContainText(/Vrijgesteld/)
   await page.keyboard.press('Enter')
   await expect(zeroSheet).toBeHidden()
   await expect(page.getByText('0% → GEEN')).toBeVisible()
 })
 
-test('btw sheet shows map-by-hand for an unsupported rate', async ({ page }) => {
-  await openLab(page, 'source=moneybird&state=open&sheet=taxBad')
-  await expect(page.getByRole('dialog')).toBeVisible()
+test('btw sheet keeps other expanded while an other code is selected', async ({ page }) => {
+  await openLab(page, 'source=moneybird&state=open&sheet=tax')
   const sheet = page.getByRole('dialog')
-  await expect(sheet.getByRole('status')).toContainText(/vanzelf koppelen|mappingtabel/i)
-  await expect(sheet.getByRole('radio')).toHaveCount(0)
-  // No duplicate hint under the status box when options are empty (#69).
-  await expect(sheet.getByText(/In Moneybird stond/)).toHaveCount(0)
+  const toggle = sheet.locator('[data-slot="vat-show-other"]')
+  await toggle.click()
+  await sheet.getByRole('radio').nth(1).click() // VERL-ONTV
+  await expect(sheet.getByRole('radio').nth(1)).toHaveAttribute('aria-checked', 'true')
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  await toggle.click() // collapse is a no-op while other stays selected
+  await expect(sheet.getByRole('radio')).toHaveCount(4)
+  await expect(sheet.getByRole('radio').nth(1)).toHaveAttribute('aria-checked', 'true')
+  await expect(sheet.getByRole('radio').nth(1)).toHaveAttribute('tabindex', '0')
+})
+
+test('btw sheet shows honest copy for 0% purchase and unsupported 6%', async ({ page }) => {
+  await openLab(page, 'source=moneybird&state=open&sheet=taxPurchase0')
+  const zeroPurchase = page.getByRole('dialog')
+  await expect(zeroPurchase).toBeVisible()
+  await expect(zeroPurchase.getByRole('radio')).toHaveCount(0)
+  await expect(zeroPurchase.getByRole('status')).toContainText(
+    /Klopt heeft nog geen btw-code voor dit tarief/,
+  )
+  await expect(zeroPurchase.getByText(/mappingtabel/i)).toHaveCount(0)
+  await expect(zeroPurchase.getByText('H21', { exact: true })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+
+  await page.goto('/lab/import-findings?source=moneybird&state=open&sheet=taxBad')
+  const bad = page.getByRole('dialog')
+  await expect(bad.getByRole('status')).toContainText(
+    /Klopt heeft nog geen btw-code voor dit tarief/,
+  )
+  await expect(bad.getByRole('radio')).toHaveCount(0)
+  await expect(bad.getByText(/In Moneybird stond/)).toHaveCount(0)
 })
 
 test('btw sheet shows vatUnknown once for an empty rate', async ({ page }) => {
@@ -187,12 +238,23 @@ test('btw sheet shows vatUnknown once for an empty rate', async ({ page }) => {
   const sheet = page.getByRole('dialog')
   await expect(sheet).toBeVisible()
   await expect(sheet.getByRole('status')).toContainText(
-    /We weten niet welk tarief dit is.*mappingtabel/,
+    /Klopt heeft nog geen btw-code voor dit tarief/,
   )
   await expect(sheet.getByRole('radio')).toHaveCount(0)
-  // Status owns the copy; no second identical / short hint line.
-  await expect(sheet.getByText(/We weten niet welk tarief dit is/)).toHaveCount(1)
+  await expect(sheet.getByText(/Klopt heeft nog geen btw-code/)).toHaveCount(1)
   await expect(sheet.getByText(/In Moneybird stond geen tarief/)).toHaveCount(0)
+})
+
+test('mapping 422 rolls back the rejected tax rate and shows the violation', async ({ page }) => {
+  await openLab(page, 'source=moneybird&state=open&sheet=taxMapFail')
+  const panel = page.locator('[data-slot="lab-tax-map-fail"]')
+  await expect(panel).toBeVisible()
+  const input = panel.locator('input')
+  await expect(input).toHaveValue('H21')
+  await input.fill('VH21')
+  await panel.getByRole('button', { name: 'Bewaar mapping' }).click()
+  await expect(panel.locator('[data-slot="tax-mapping-violation"]')).toContainText(/past niet/)
+  await expect(input).toHaveValue('H21')
 })
 
 test('FX sheet toggles ECB to Aangepast and back', async ({ page }) => {

@@ -170,14 +170,20 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.stepVatOnly': 'Which VAT rate?',
   'importFindings.accountVat.showOtherCodes': 'Show other codes',
   'importFindings.accountVat.hideOtherCodes': 'Hide other codes',
-  'importFindings.accountVat.vatOtherHidden':
-    'No standard rate for this. Show other codes to choose verlegd, ICP, export or a special code.',
+  'importFindings.accountVat.showOtherRates': 'Show other rates',
+  'importFindings.accountVat.showFewerRates': 'Show less',
+  'importFindings.accountVat.vatOtherHiddenSales':
+    'No standard rate for this. Show other rates to choose reverse charge, ICP, export or a special code.',
+  'importFindings.accountVat.vatOtherHiddenPurchase':
+    'No standard rate for this. Show other rates to choose a reverse-charge or special code.',
   'importFindings.accountVat.vatHint': 'Moneybird had {rate}% VAT.',
   'importFindings.accountVat.vatHintUnknown': 'Moneybird had no rate.',
   'importFindings.accountVat.vatUnsupported':
-    'We cannot match this Moneybird rate ({rate}%) automatically. Choose the VAT rate yourself in the mapping table.',
+    'Klopt does not have a VAT code for this rate yet, so this import cannot continue.',
   'importFindings.accountVat.vatUnknown':
-    'We do not know which rate this is. Choose the VAT rate yourself in the mapping table.',
+    'Klopt does not have a VAT code for this rate yet, so this import cannot continue.',
+  'importFindings.accountVat.vatMapByHand':
+    'We cannot match this Moneybird rate ({rate}%) automatically. Choose the VAT rate yourself in the mapping table.',
   'importFindings.accountVat.whatHappens': 'What happens',
   'importFindings.accountVat.whatHappensBody':
     'The Moneybird entries land on {account}, with {vat}. Nothing is posted yet; that happens when you import.',
@@ -189,15 +195,20 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.reason.number': 'Same number',
   'importFindings.accountVat.reason.name': 'Similar name',
   'importFindings.vat.VH21': '21% VAT',
-  'importFindings.vat.VH21-PRO': '21% VAT, 50% deductible',
+  'importFindings.vat.VH21-PRO': '21% VAT, partly deductible',
+  'importFindings.vat.VH21-PRO.share': '21% VAT, {share}% deductible',
   'importFindings.vat.VL9': '9% VAT',
   'importFindings.vat.H21': '21% VAT',
   'importFindings.vat.L9': '9% VAT',
-  'importFindings.vat.GEEN': 'Exempt',
-  'importFindings.vat.VERL': 'Reverse charge',
-  'importFindings.vat.NUL': 'Export 0%',
-  'importFindings.vat.ICP': 'ICP goods',
-  'importFindings.vat.ICPD': 'ICP services',
+  'importFindings.vat.VERL-ONTV': 'VAT reverse-charged to you',
+  'importFindings.vat.ICV21': 'IC acquisition 21%',
+  'importFindings.vat.INV23': 'Import art. 23',
+  // Shared with guided invoice flow (#74) — same key names + values for a clean merge.
+  'invoiceGuided.vat.VERL': 'VAT reverse-charged',
+  'invoiceGuided.vat.GEEN': 'VAT-exempt',
+  'invoiceGuided.vat.NUL': '0% export outside the EU',
+  'invoiceGuided.vat.ICP': '0% EU goods supply',
+  'invoiceGuided.vat.ICPD': '0% EU service',
   'importFindings.fx.eyebrow': 'Resolve · Rate',
   'importFindings.fx.title': 'Choose a rate for {reference}',
   'importFindings.fx.supplier': 'Supplier',

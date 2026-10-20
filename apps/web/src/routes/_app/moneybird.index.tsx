@@ -16,10 +16,12 @@ import { cn } from '~/lib/utils'
 import { detailForDisplay, formatFindingAmount, formatMonthName } from '~/lib/finding-card'
 import {
   honestySourcesFromMoneybird,
+  importVatRulesFromListTaxCodes,
   suggestVatCode,
   type ImportVatCode,
   type ImportVatRule,
 } from '~/lib/import-findings'
+import { rollbackRejectedTaxMappings, taxViolationsByRateId } from '~/lib/tax-mapping-save'
 import { listTaxCodes } from '~/server/sales'
 import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
@@ -119,24 +121,20 @@ function Moneybird() {
 
   const kloptTaxRules: readonly ImportVatRule[] = useMemo(() => {
     if (!taxCodesResult.ok) return []
+    // Pass deductionCode (and proRata) through — without it VERL-VOOR ranks as
+    // a plain standard and 21% purchase loses its VH21 preselect (#71 PM).
     const rows = taxCodesResult.data.taxCodes as readonly {
       readonly code: string
-      readonly description: string
+      readonly description?: string
       readonly rateBasisPoints: number
       readonly direction: 'input' | 'output'
       readonly scope?: string
       readonly reverseCharge?: string
       readonly deductibility?: string
+      readonly deductionCode?: string | null
+      readonly proRataBasisPoints?: number | null
     }[]
-    return rows.map((row) => ({
-      code: row.code,
-      description: row.description,
-      rateBasisPoints: row.rateBasisPoints,
-      direction: row.direction,
-      ...(row.scope !== undefined ? { scope: row.scope } : {}),
-      ...(row.reverseCharge !== undefined ? { reverseCharge: row.reverseCharge } : {}),
-      ...(row.deductibility !== undefined ? { deductibility: row.deductibility } : {}),
-    }))
+    return importVatRulesFromListTaxCodes(rows)
   }, [taxCodesResult])
 
   const [busy, setBusy] = useState(false)
@@ -166,6 +164,8 @@ function Moneybird() {
   const [baseUrl, setBaseUrl] = useState('https://moneybird.com/api/v2')
   const [accountMappings, setAccountMappings] = useState<Record<string, string>>({})
   const [taxMappings, setTaxMappings] = useState<Record<string, string>>({})
+  /** Inline messages for `taxRates.<id>` after a saveMappings 422 (#71 PM). */
+  const [taxViolations, setTaxViolations] = useState<Readonly<Record<string, string>>>({})
   const [decisions, setDecisions] = useState<MoneybirdImportDecisions>(() => {
     const fromConnection = connection.ok
       ? (connection.data.connection as { importDecisions?: MoneybirdImportDecisions } | null)
@@ -212,9 +212,16 @@ function Moneybird() {
   const canStoreSecrets = connection.data.canStoreSecrets
 
   async function run(
-    work: () => Promise<{ ok: boolean; problem?: { detail: string }; data?: unknown }>,
+    work: () => Promise<{
+      ok: boolean
+      problem?: {
+        detail: string
+        violations?: readonly { path?: string | null; message?: string; code?: string }[]
+      }
+      data?: unknown
+    }>,
     onDone?: (data: unknown) => void,
-  ) {
+  ): Promise<boolean> {
     setBusy(true)
     setError(null)
     setNote(null)
@@ -223,9 +230,10 @@ function Moneybird() {
 
     if (!result.ok) {
       setError(result.problem?.detail ?? t('common.unknownError'))
-      return
+      return false
     }
     onDone?.(result.data)
+    return true
   }
 
   const connect = () =>
@@ -283,23 +291,49 @@ function Moneybird() {
       setTaxMappings(nextTax)
     })
 
-  const persistAndPreview = (next: {
+  const persistAndPreview = async (next: {
     accountMappings?: Record<string, string>
     taxMappings?: Record<string, string>
     importDecisions?: MoneybirdImportDecisions
-  }) =>
-    run(
-      () =>
-        saveMoneybirdMappings({
-          data: {
-            accountMappings: next.accountMappings ?? accountMappings,
-            taxMappings: next.taxMappings ?? taxMappings,
-            importDecisions: next.importDecisions ?? decisions,
-            idempotencyKey: crypto.randomUUID(),
-          },
-        }),
-      () => void runPreview(),
-    )
+  }) => {
+    const previousTax = taxMappings
+    const attemptedTax = next.taxMappings ?? taxMappings
+    // Optimistic UI — rolled back per rejected taxRates.<id> on 422 (#71 PM).
+    if (next.taxMappings !== undefined) setTaxMappings(next.taxMappings)
+    if (next.accountMappings !== undefined) setAccountMappings(next.accountMappings)
+    setTaxViolations({})
+    setBusy(true)
+    setError(null)
+    setNote(null)
+    const result = await saveMoneybirdMappings({
+      data: {
+        accountMappings: next.accountMappings ?? accountMappings,
+        taxMappings: attemptedTax,
+        importDecisions: next.importDecisions ?? decisions,
+        idempotencyKey: crypto.randomUUID(),
+      },
+    })
+    setBusy(false)
+    if (!result.ok) {
+      setError(result.problem?.detail ?? t('common.unknownError'))
+      const byRate = taxViolationsByRateId(result.problem?.violations ?? [])
+      setTaxViolations(byRate)
+      const rejectedIds = new Set(Object.keys(byRate))
+      if (rejectedIds.size > 0) {
+        setTaxMappings(
+          rollbackRejectedTaxMappings({
+            previous: previousTax,
+            attempted: attemptedTax,
+            rejectedIds,
+          }),
+        )
+      } else if (next.taxMappings !== undefined) {
+        setTaxMappings(previousTax)
+      }
+      return
+    }
+    void runPreview()
+  }
 
   const saveMappings = () => void persistAndPreview({})
 
@@ -803,13 +837,20 @@ function Moneybird() {
                 report={preview}
                 accountMappings={accountMappings}
                 taxMappings={taxMappings}
+                taxViolations={taxViolations}
                 advanced={advanced}
                 onAccountChange={(id, value) =>
                   setAccountMappings((current) => ({ ...current, [id]: value }))
                 }
-                onTaxChange={(id, value) =>
+                onTaxChange={(id, value) => {
+                  setTaxViolations((current) => {
+                    if (current[id] === undefined) return current
+                    const next = { ...current }
+                    delete next[id]
+                    return next
+                  })
                   setTaxMappings((current) => ({ ...current, [id]: value }))
-                }
+                }}
                 onSave={() => void saveMappings()}
                 busy={busy}
                 hydrated={hydrated}
@@ -863,7 +904,6 @@ function Moneybird() {
               const taxId = accountVatDraft.taxMoneybirdId ?? accountVatDraft.moneybirdId
               if (taxId !== '' && choice.vatCode !== null) {
                 const nextTax = { ...taxMappings, [taxId]: choice.vatCode }
-                setTaxMappings(nextTax)
                 void persistAndPreview({ taxMappings: nextTax })
               }
             } else if (accountVatDraft.moneybirdId !== '' && choice.accountNumber !== null) {
@@ -871,7 +911,6 @@ function Moneybird() {
                 ...accountMappings,
                 [accountVatDraft.moneybirdId]: choice.accountNumber,
               }
-              setAccountMappings(nextAccounts)
               void persistAndPreview({ accountMappings: nextAccounts })
             }
             setAccountVatDraft(null)
@@ -1087,6 +1126,7 @@ function MappingReview({
   report,
   accountMappings,
   taxMappings,
+  taxViolations,
   advanced,
   onAccountChange,
   onTaxChange,
@@ -1097,6 +1137,7 @@ function MappingReview({
   report: Record<string, unknown>
   accountMappings: Record<string, string>
   taxMappings: Record<string, string>
+  taxViolations: Readonly<Record<string, string>>
   advanced: boolean
   onAccountChange: (id: string, value: string) => void
   onTaxChange: (id: string, value: string) => void
@@ -1168,27 +1209,49 @@ function MappingReview({
             </tr>
           </thead>
           <tbody>
-            {taxRates.map((rate) => (
-              <tr
-                key={rate.moneybirdId}
-                id={`moneybird-tax-${rate.moneybirdId}`}
-                className="border-border border-b"
-              >
-                <td className="py-2 pr-4 tabular-nums">
-                  {rate.name} ({rate.percentage}%)
-                </td>
-                <td className="py-2">
-                  <input
-                    value={
-                      taxMappings[rate.moneybirdId] ?? rate.mappedCode ?? rate.proposedCode ?? ''
-                    }
-                    onChange={(event) => onTaxChange(rate.moneybirdId, event.target.value)}
-                    disabled={!hydrated}
-                    className="border-border w-32 rounded-none border px-2 py-1 tabular-nums"
-                  />
-                </td>
-              </tr>
-            ))}
+            {taxRates.map((rate) => {
+              const violation = taxViolations[rate.moneybirdId]
+              return (
+                <tr
+                  key={rate.moneybirdId}
+                  id={`moneybird-tax-${rate.moneybirdId}`}
+                  className="border-border border-b"
+                >
+                  <td className="py-2 pr-4 tabular-nums">
+                    {rate.name} ({rate.percentage}%)
+                  </td>
+                  <td className="py-2">
+                    <input
+                      value={
+                        taxMappings[rate.moneybirdId] ?? rate.mappedCode ?? rate.proposedCode ?? ''
+                      }
+                      onChange={(event) => onTaxChange(rate.moneybirdId, event.target.value)}
+                      disabled={!hydrated}
+                      aria-invalid={violation !== undefined}
+                      aria-describedby={
+                        violation !== undefined
+                          ? `moneybird-tax-${rate.moneybirdId}-error`
+                          : undefined
+                      }
+                      className={cn(
+                        'border-border w-32 rounded-none border px-2 py-1 tabular-nums',
+                        violation !== undefined && 'border-destructive',
+                      )}
+                    />
+                    {violation !== undefined ? (
+                      <p
+                        id={`moneybird-tax-${rate.moneybirdId}-error`}
+                        role="alert"
+                        className="text-destructive mt-1 text-xs"
+                        data-slot="tax-mapping-violation"
+                      >
+                        {violation}
+                      </p>
+                    ) : null}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </ScrollTable>

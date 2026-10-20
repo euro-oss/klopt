@@ -7,7 +7,7 @@
  * the VAT code (PM #69 — do not claim both when only one is persisted).
  */
 
-import { RiAddLine, RiCheckLine, RiSearchLine } from '@remixicon/react'
+import { RiAddLine, RiArrowDownSLine, RiCheckLine, RiSearchLine } from '@remixicon/react'
 import { useId, useMemo, useState, type KeyboardEvent } from 'react'
 import {
   rankAccountSuggestions,
@@ -121,9 +121,6 @@ function AccountVatSheetBody({
           candidates.primary.some((option) => option.code === suggestedVat)
         ? suggestedVat
         : null
-  // When there is no primary (0% sales), open “Andere codes” so the five codes
-  // are reachable without an empty radiogroup.
-  const hasOtherCodes = candidates.other.length > 0
   const emptyChart = accounts.length === 0
   const initialChosen = emptyChart
     ? null
@@ -140,14 +137,22 @@ function AccountVatSheetBody({
   const [chosenNumber, setChosenNumber] = useState<string | null>(initialChosen)
   const [newAccount, setNewAccount] = useState(emptyChart)
   const [vat, setVat] = useState<ImportVatCode | null>(defaultVat)
-  /** Other codes start open when there is no primary (0% sales). */
-  const [showOther, setShowOther] = useState(candidates.primary.length === 0 && hasOtherCodes)
+  /** Disclosure for primary+other; ignored when there is no primary (0% sales). */
+  const [showOther, setShowOther] = useState(false)
 
   const primaryOptions = candidates.primary
   const otherOptions = candidates.other
   const allVatOptions: readonly ImportVatOption[] = [...primaryOptions, ...otherOptions]
-  /** Radios currently in the tab/arrow order (primary always; other when expanded). */
-  const vatOptions: readonly ImportVatOption[] = showOther ? allVatOptions : primaryOptions
+  /** 0% sales: only `other` — show them directly, no disclosure (#71 designer). */
+  const otherOnly = primaryOptions.length === 0 && otherOptions.length > 0
+  const canDiscloseOther = primaryOptions.length > 0 && otherOptions.length > 0
+  /** Keep other open while an other code is selected so collapse cannot hide it. */
+  const selectedIsOther = vat !== null && otherOptions.some((option) => option.code === vat)
+  const disclosureOpen = otherOnly || showOther || selectedIsOther
+  /** Radios in tab/arrow order: all when other-only / expanded / other selected. */
+  const vatOptions: readonly ImportVatOption[] = disclosureOpen ? allVatOptions : primaryOptions
+  const vatListId = `${listId}-vat`
+  const checkedVatIndex = vatOptions.findIndex((option) => option.code === vat)
 
   const ranked = useMemo(
     () => buildRankedList(accounts, { rgsCode, number: sourceNumber, name: sourceName, query }),
@@ -203,19 +208,35 @@ function AccountVatSheetBody({
     saveAccount(chosen)
   }
 
-  const vatLabel = (option: { readonly code: string; readonly description: string }): string => {
-    const key = `importFindings.vat.${option.code}` as MessageKey
-    const translated = t(key)
-    // Missing/unknown keys: catalogue miss → undefined; cast of a non-key → key string.
-    // Prefer the chart description over either.
+  const vatLabel = (
+    option: ImportVatOption | { readonly code: string; readonly description: string },
+  ): string => {
+    const proRata = 'proRataBasisPoints' in option ? (option.proRataBasisPoints ?? null) : null
+    const deductibility = 'deductibility' in option ? option.deductibility : undefined
     if (
-      translated === undefined ||
-      translated === key ||
-      translated.startsWith('importFindings.vat.')
+      (deductibility === 'pro_rata' || option.code === 'VH21-PRO') &&
+      proRata !== null &&
+      Number.isFinite(proRata) &&
+      proRata > 0 &&
+      proRata < 10_000
     ) {
-      return option.description
+      const share = (proRata / 100).toFixed(proRata % 100 === 0 ? 0 : 2)
+      return t('importFindings.vat.VH21-PRO.share', { share })
     }
-    return translated
+    // Prefer #74 shared keys (VERL/GEEN/NUL/ICP/ICPD), then importFindings.
+    for (const prefix of ['invoiceGuided.vat.', 'importFindings.vat.'] as const) {
+      const key = `${prefix}${option.code}` as MessageKey
+      const translated = t(key)
+      if (
+        translated !== undefined &&
+        translated !== key &&
+        !translated.startsWith('invoiceGuided.vat.') &&
+        !translated.startsWith('importFindings.vat.')
+      ) {
+        return translated
+      }
+    }
+    return option.description
   }
 
   const onVatKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
@@ -254,7 +275,10 @@ function AccountVatSheetBody({
       onKeyDown={(event) => {
         if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey && !event.altKey) {
           const target = event.target as HTMLElement
-          if (target.tagName === 'INPUT' || target.getAttribute('role') === 'radio') {
+          // Search combobox + radios only — never the disclosure button (#71 PM).
+          const isSearch = target instanceof HTMLInputElement && target.id === 'account-vat-query'
+          const isRadio = target.getAttribute('role') === 'radio'
+          if (isSearch || isRadio) {
             event.preventDefault()
             save()
           }
@@ -447,10 +471,15 @@ function AccountVatSheetBody({
               <>
                 {vatOptions.length === 0 ? (
                   <p className="text-muted-foreground border px-3 py-3 text-sm" role="status">
-                    {t('importFindings.accountVat.vatOtherHidden')}
+                    {t(
+                      taxRateType === 'purchase_invoice'
+                        ? 'importFindings.accountVat.vatOtherHiddenPurchase'
+                        : 'importFindings.accountVat.vatOtherHiddenSales',
+                    )}
                   </p>
                 ) : (
                   <div
+                    id={vatListId}
                     role="radiogroup"
                     className={cn(
                       'border',
@@ -469,14 +498,19 @@ function AccountVatSheetBody({
                   >
                     {vatOptions.map((option, index) => {
                       const checked = option.code === vat
+                      // Checked radio, else first visible when nothing checked (#71 PM).
+                      const tabStop = checkedVatIndex >= 0 ? index === checkedVatIndex : index === 0
                       return (
                         <button
                           key={option.code}
                           type="button"
                           role="radio"
                           aria-checked={checked}
-                          tabIndex={checked || (vat === null && index === 0) ? 0 : -1}
-                          onClick={() => setVat(option.code)}
+                          tabIndex={tabStop ? 0 : -1}
+                          onClick={() => {
+                            setVat(option.code)
+                            if (option.group === 'other') setShowOther(true)
+                          }}
                           className={cn(
                             'min-h-11 px-3 text-left text-sm outline-none',
                             'focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
@@ -497,25 +531,44 @@ function AccountVatSheetBody({
                     })}
                   </div>
                 )}
-                {hasOtherCodes && (
-                  <label
-                    className="text-foreground mt-2 flex min-h-11 cursor-pointer items-center gap-2 text-sm underline-offset-4 hover:underline md:min-h-9"
+                {canDiscloseOther && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
                     data-slot="vat-show-other"
+                    aria-expanded={disclosureOpen}
+                    aria-controls={vatListId}
+                    className="mt-2 h-auto min-h-11 justify-start gap-1 px-0 font-normal tracking-normal normal-case md:min-h-9"
+                    onClick={() => {
+                      // Collapse is a no-op while an other code stays selected.
+                      if (disclosureOpen && selectedIsOther) return
+                      setShowOther((open) => !open)
+                    }}
                   >
-                    <input
-                      type="checkbox"
-                      className="border-input size-4 shrink-0 rounded-none border accent-foreground"
-                      checked={showOther}
-                      onChange={(event) => setShowOther(event.target.checked)}
+                    <RiArrowDownSLine
+                      aria-hidden
+                      className={cn(
+                        'size-4 shrink-0 transition-transform motion-reduce:transition-none',
+                        disclosureOpen && 'rotate-180',
+                      )}
                     />
-                    {showOther
-                      ? t('importFindings.accountVat.hideOtherCodes')
-                      : t('importFindings.accountVat.showOtherCodes')}
-                  </label>
+                    {disclosureOpen
+                      ? t(
+                          advanced
+                            ? 'importFindings.accountVat.hideOtherCodes'
+                            : 'importFindings.accountVat.showFewerRates',
+                        )
+                      : t(
+                          advanced
+                            ? 'importFindings.accountVat.showOtherCodes'
+                            : 'importFindings.accountVat.showOtherRates',
+                        )}
+                  </Button>
                 )}
               </>
             )}
-            {/* Status box already explains empty options; skip the duplicate hint. */}
+            {/* Hint only when a valid code exists — unsupported copy already covers empty. */}
             {allVatOptions.length > 0 && (
               <p className="text-muted-foreground mt-1.5 text-xs">
                 {percentage !== null && percentage !== '' && percentageLabel !== '—'

@@ -7,6 +7,7 @@ import { FxRateSheet } from '~/components/findings/fx-rate-sheet'
 import { ImportFindingsScreen } from '~/components/findings/import-findings-screen'
 import { ScrollTable, stickyFirstCol } from '~/components/ui/scroll-table'
 import { NL_MKB_VAT_RULES } from '~/lib/import-findings'
+import { rollbackRejectedTaxMappings, taxViolationsByRateId } from '~/lib/tax-mapping-save'
 import {
   EXACT_FIXTURE_SOURCES,
   FIXTURE_ACCOUNTS,
@@ -49,8 +50,11 @@ export const Route = createFileRoute('/_app/lab/import-findings')({
       search['sheet'] === 'account' ||
       search['sheet'] === 'tax' ||
       search['sheet'] === 'tax0' ||
+      search['sheet'] === 'taxSales21' ||
+      search['sheet'] === 'taxPurchase0' ||
       search['sheet'] === 'taxBad' ||
       search['sheet'] === 'taxEmpty' ||
+      search['sheet'] === 'taxMapFail' ||
       search['sheet'] === 'fx' ||
       search['sheet'] === 'fxo'
         ? search['sheet']
@@ -69,6 +73,8 @@ function ImportFindingsLab() {
   const [accountOpen, setAccountOpen] = useState(sheet === 'account')
   const [taxOpen, setTaxOpen] = useState(sheet === 'tax')
   const [taxZeroOpen, setTaxZeroOpen] = useState(sheet === 'tax0')
+  const [taxSales21Open, setTaxSales21Open] = useState(sheet === 'taxSales21')
+  const [taxPurchase0Open, setTaxPurchase0Open] = useState(sheet === 'taxPurchase0')
   const [taxBadOpen, setTaxBadOpen] = useState(sheet === 'taxBad')
   const [taxEmptyOpen, setTaxEmptyOpen] = useState(sheet === 'taxEmpty')
   const [fxOpen, setFxOpen] = useState(sheet === 'fx' || sheet === 'fxo')
@@ -78,6 +84,10 @@ function ImportFindingsLab() {
     source === 'moneybird' ? MONEYBIRD_FIXTURE_RESOLVED : [],
   )
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(() => new Set())
+  // Lab stand-in for moneybird MappingReview 422 handling (#71 PM).
+  const [mapTax, setMapTax] = useState<Record<string, string>>({ '21': 'H21' })
+  const [mapViolations, setMapViolations] = useState<Readonly<Record<string, string>>>({})
+  const showMapFail = sheet === 'taxMapFail'
 
   const findings = useMemo((): readonly FindingsListItem[] => {
     if (state === 'empty' || state === 'loading' || state === 'error') return []
@@ -224,7 +234,7 @@ function ImportFindingsLab() {
               )
             }}
           />
-          {/* Purchase 21% → VH21 only (direction-safe; never H21). */}
+          {/* Purchase 21% → VH21 primary; VERL-ONTV / ICV21 / INV23 under other. */}
           <AccountVatSheet
             open={taxOpen}
             onOpenChange={setTaxOpen}
@@ -239,6 +249,23 @@ function ImportFindingsLab() {
             advanced={advanced}
             onSave={(choice) => {
               resolveById('f3', `Hoog tarief → ${choice.vatCode ?? '—'}`)
+            }}
+          />
+          {/* Sales 21% → H21 only; no input codes with toggle open. */}
+          <AccountVatSheet
+            open={taxSales21Open}
+            onOpenChange={setTaxSales21Open}
+            sourceName="Hoog tarief verkoop"
+            sourceDetail="21%"
+            accounts={FIXTURE_ACCOUNTS}
+            taxRules={NL_MKB_VAT_RULES}
+            mode="tax"
+            taxRateType="sales_invoice"
+            percentage="21"
+            suggestedVat="H21"
+            advanced={advanced}
+            onSave={(choice) => {
+              resolveById('f3', `Verkoop 21% → ${choice.vatCode ?? '—'}`)
             }}
           />
           {/* Sales 0% → VERL/GEEN/NUL/ICP/ICPD, nothing pre-selected. */}
@@ -257,7 +284,21 @@ function ImportFindingsLab() {
               resolveById('f3', `0% → ${choice.vatCode ?? '—'}`)
             }}
           />
-          {/* Unsupported rate → map-by-hand, never a 21% fallback. */}
+          {/* Purchase 0% → no nl-mkb input 0% code; honest unsupported copy. */}
+          <AccountVatSheet
+            open={taxPurchase0Open}
+            onOpenChange={setTaxPurchase0Open}
+            sourceName="Inkoop zonder btw"
+            sourceDetail="0%"
+            accounts={FIXTURE_ACCOUNTS}
+            taxRules={NL_MKB_VAT_RULES}
+            mode="tax"
+            taxRateType="purchase_invoice"
+            percentage="0"
+            advanced={advanced}
+            onSave={() => undefined}
+          />
+          {/* Unsupported rate → honest empty status (6%). */}
           <AccountVatSheet
             open={taxBadOpen}
             onOpenChange={setTaxBadOpen}
@@ -285,6 +326,67 @@ function ImportFindingsLab() {
             advanced={advanced}
             onSave={() => undefined}
           />
+          {showMapFail && (
+            <div className="border-border mt-6 border p-4" data-slot="lab-tax-map-fail">
+              <h2 className="text-sm font-semibold">Mapping (lab 422)</h2>
+              <p className="text-muted-foreground mb-3 text-xs">
+                Simulates saveMappings rejecting taxRates.21 so the UI rolls back.
+              </p>
+              <div id="moneybird-tax-21" className="flex flex-col gap-1">
+                <label className="text-sm">
+                  Hoog tarief verkoop (21%)
+                  <input
+                    className={cn(
+                      'border-border mt-1 block w-40 rounded-none border px-2 py-1 tabular-nums',
+                      mapViolations['21'] !== undefined && 'border-destructive',
+                    )}
+                    value={mapTax['21'] ?? ''}
+                    aria-invalid={mapViolations['21'] !== undefined}
+                    onChange={(event) => {
+                      setMapViolations({})
+                      setMapTax({ '21': event.target.value })
+                    }}
+                  />
+                </label>
+                {mapViolations['21'] !== undefined ? (
+                  <p
+                    role="alert"
+                    className="text-destructive text-xs"
+                    data-slot="tax-mapping-violation"
+                  >
+                    {mapViolations['21']}
+                  </p>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                className="border-border mt-3 rounded-none border px-3 py-1.5 text-sm"
+                onClick={() => {
+                  const previous = { '21': 'H21' }
+                  const attempted = { ...mapTax }
+                  // Canned 422: sales rate mapped to an input code.
+                  const byRate = taxViolationsByRateId([
+                    {
+                      path: 'taxRates.21',
+                      message:
+                        'Dit Moneybird-tarief past niet bij VH21 (inkoop). Kies een verkoopcode.',
+                      code: 'incompatible_tax_rate',
+                    },
+                  ])
+                  setMapViolations(byRate)
+                  setMapTax(
+                    rollbackRejectedTaxMappings({
+                      previous,
+                      attempted,
+                      rejectedIds: new Set(Object.keys(byRate)),
+                    }),
+                  )
+                }}
+              >
+                Bewaar mapping
+              </button>
+            </div>
+          )}
           <FxRateSheet
             open={fxOpen}
             onOpenChange={setFxOpen}
