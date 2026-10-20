@@ -1,7 +1,7 @@
 /**
  * Helpers for Moneybird tax-mapping save + 422 handling (#71 PM).
  *
- * `setTaxMappings` must not leave a rejected code looking mapped: roll back
+ * `setTaxMappings` must not leave a rejected code looking mapped (CI nudge): roll back
  * paths in `violations[]` under `taxRates.<id>` to the previous value.
  */
 
