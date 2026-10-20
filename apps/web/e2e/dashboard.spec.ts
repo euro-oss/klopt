@@ -4,6 +4,7 @@ import {
   chooseInAccountMenu,
   chooseOption,
   DATABASE_URL,
+  hydrated,
   openEntitySwitcher,
   signIn,
   uniqueEmail,
@@ -30,7 +31,9 @@ async function anAdministration(page: Page, name: string): Promise<void> {
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill(name)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 }
 
 /** A customer and a saved draft, which is the cheapest row in the queue. */
@@ -52,15 +55,27 @@ async function aDraftInvoice(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
 }
 
-test('an empty administration is told there is nothing waiting, and where to start', async ({
+test('an empty administration shows the redesigned dashboard and a way to start', async ({
   page,
 }) => {
   await anAdministration(page, 'Leeg Bureau BV')
 
-  await expect(page.getByRole('heading', { name: 'Niets wacht' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
+  // No email local-part in the greeting (designer #67).
+  await expect(page.getByRole('heading', { name: /@|e2e-/ })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Kerncijfers' })).toBeVisible()
+  // No operational work yet — drafts / bank / inbox stay off the list. A due
+  // btw-aangifte may still appear (the period closed even with empty books).
+  await expect(page.getByRole('link', { name: /concept(en)? om te versturen/i })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /bankregels wachten/ })).toHaveCount(0)
 
-  // The empty state is a next step rather than a dashed box.
-  await page.getByRole('link', { name: 'Verkoopfactuur maken' }).click()
+  // Header CTA is the next step when the empty-state button is not shown.
+  await page
+    .getByRole('link', { name: /Nieuwe factuur/ })
+    .first()
+    .click()
   await expect(page).toHaveURL(/\/invoices\/new$/)
 })
 
@@ -69,12 +84,20 @@ test('the queue lists what is waiting and opens the screen where it is done', as
   await aDraftInvoice(page)
 
   await page.goto('/')
-  const row = page.getByRole('link', { name: /Concepten om te versturen/ })
+  await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
+  await hydrated(page)
+  const row = page.getByRole('link', { name: /concept(en)? om te versturen/i })
   await expect(row).toBeVisible()
-  await expect(row).toContainText('1')
+  // #5 AC: the count is in the title (PM #67). Singular form for count 1.
+  await expect(row).toContainText('1 concept om te versturen')
+  await expect(row).toContainText('Openen')
 
-  // Focus lands on the first row on its own: the application opens with the
-  // hands already on the work.
+  // Do not steal focus on load — j/k start the cursor at row 0.
+  // Arrow keys outside the list must not enter it (keep page scroll).
+  await expect(row).not.toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await expect(row).not.toBeFocused()
+  await page.keyboard.press('j')
   await expect(row).toBeFocused()
 
   await page.keyboard.press('Enter')
@@ -86,12 +109,37 @@ test('the queue lists what is waiting and opens the screen where it is done', as
   await expect(page.getByRole('row')).toHaveCount(2)
 })
 
+test('Geavanceerd off hides the whole health strip on the dashboard', async ({ page }) => {
+  await anAdministration(page, 'Eenvoudig Dashboard BV')
+
+  // Owner defaults to Geavanceerd off (#65 / designer #67): jargon health
+  // (Kloppen de boeken?, RGS, Proefbalans) stays out until advanced is on.
+  await expect(page.getByRole('heading', { name: 'Kloppen de boeken?' })).toHaveCount(0)
+  await expect(page.locator('#main').getByText('RGS-dekking')).toHaveCount(0)
+  await expect(page.locator('#main').getByText('Proefbalans')).toHaveCount(0)
+})
+
+test('kerncijfers label overdue outstanding honestly, not as all receivables', async ({ page }) => {
+  await anAdministration(page, 'Eerlijke Cijfers BV')
+
+  const figures = page.getByRole('region', { name: 'Kerncijfers' })
+  // Overdue-only figure until a full open-AR aggregate exists (#61 follow-up).
+  await expect(figures.getByText('Te laat bij klanten')).toBeVisible()
+  await expect(figures.getByText('Nog te ontvangen')).toHaveCount(0)
+  await expect(figures.getByText('Verlopen facturen')).toHaveCount(0)
+  // Bank suggestions and Exact finding counts stay out — no invented 0.
+  await expect(page.getByText(/suggestie/i)).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /Exact.*0|0.*Exact/i })).toHaveCount(0)
+})
+
 test('Escape gives the keyboard back to the rest of the application', async ({ page }) => {
   await anAdministration(page, 'Ontsnapping BV')
   await aDraftInvoice(page)
 
   await page.goto('/')
-  const row = page.getByRole('link', { name: /Concepten om te versturen/ })
+  await hydrated(page)
+  const row = page.getByRole('link', { name: /concept(en)? om te versturen/i })
+  await page.keyboard.press('j')
   await expect(row).toBeFocused()
 
   await page.keyboard.press('Escape')
@@ -114,11 +162,13 @@ test('the book year in the shell is the administration’s, and the reports agre
   await expect(page.getByRole('combobox', { name: 'Boekjaar', exact: true })).toBeVisible()
   await page.keyboard.press('Escape')
 
-  // Read the year off the dashboard rather than out of the picker: what
-  // matters is that the screens agree about it, and a Radix trigger's text is
-  // a detail of a component library.
-  const heading = (await page.getByText(/^Boekjaar \d{4}:/).textContent()) ?? ''
-  const year = /Boekjaar (\d{4})/.exec(heading)?.[1] ?? ''
+  // The shell switcher names the year; the redesigned dashboard greeting no
+  // longer repeats "Boekjaar YYYY:" in the page header.
+  const switcher =
+    (await page
+      .getByRole('button', { name: /Administratie en boekjaar|Administration and book year/ })
+      .textContent()) ?? ''
+  const year = /Boekjaar (\d{4})/.exec(switcher)?.[1] ?? ''
   expect(year).toMatch(/^\d{4}$/)
 
   // The dates sit on the switcher row, because a boekjaar labelled 2025 may
@@ -178,8 +228,12 @@ test('a boekjaar that is not the calendar year is the one the screens use', asyn
   await chooseOption(page, 'Begint in', 'juli')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
 
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
-  await expect(page.getByText(`Boekjaar ${opened}:`)).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /Administratie en boekjaar|Administration and book year/ }),
+  ).toContainText(`Boekjaar ${opened}`)
   await expect(
     page.getByText(`01-07-${opened} – 30-06-${String(Number(opened) + 1)}`),
   ).toBeVisible()

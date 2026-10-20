@@ -56,7 +56,9 @@ async function withStatement(page: Page, name: string): Promise<void> {
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill(name)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
@@ -168,7 +170,7 @@ test('a payment is booked by confirming the candidate, not by trusting the top o
   await page.getByLabel('Prijs regel 1').fill('1000,00')
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   await page.goto('/bank/match')
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()

@@ -16,25 +16,44 @@ import { permissionsForRole, grants } from '@klopt/core'
  */
 
 const nothing: WorkQueueCounts = {
+  importBlocking: 0,
+  importSource: null,
   salesDrafts: 0,
   salesOverdue: 0,
   salesOverdueTotal: '0',
+  salesOverdueTop: null,
   dunningWaiting: 0,
   bankUnmatched: 0,
   inboxWaiting: 0,
   purchaseToBook: 0,
   purchaseToApprove: 0,
+  vatFilingCount: 0,
+  vatPeriod: null,
+  vatDeadline: null,
+  vatPayable: null,
 }
 
 const everything: WorkQueueCounts = {
+  importBlocking: 3,
+  importSource: 'moneybird',
   salesDrafts: 1,
   salesOverdue: 9,
   salesOverdueTotal: '250000',
+  salesOverdueTop: {
+    contactName: 'Hotel Zeezicht',
+    number: '2026-0131',
+    daysOverdue: 12,
+    total: '145200',
+  },
   dunningWaiting: 4,
   bankUnmatched: 40,
   inboxWaiting: 3,
   purchaseToBook: 2,
   purchaseToApprove: 7,
+  vatFilingCount: 1,
+  vatPeriod: 'Q3',
+  vatDeadline: '2026-10-31',
+  vatPayable: '391800',
 }
 
 describe('what the queue shows', () => {
@@ -52,14 +71,33 @@ describe('what the queue shows', () => {
   })
 
   it('keeps the daily order rather than sorting by size', () => {
-    // Invoice, then the bank, then what suppliers sent. A queue that reorders
-    // itself as the numbers move is a queue nobody can learn.
+    // Blocking import first, then invoice, bank, suppliers, btw. A queue that
+    // reorders itself as the numbers move is a queue nobody can learn.
     expect(buildWorkQueue(everything).map((row) => row.kind)).toEqual([...WORK_QUEUE_ORDER])
   })
 
   it('carries the overdue total, because a count of late invoices is not the news', () => {
     const [row] = buildWorkQueue({ ...nothing, salesOverdue: 3, salesOverdueTotal: '1234567' })
-    expect(row).toEqual({ kind: 'sales.overdue', count: 3, amount: '1234567' })
+    expect(row).toEqual({
+      kind: 'sales.overdue',
+      count: 3,
+      amount: '1234567',
+      detail: undefined,
+    })
+  })
+
+  it('puts the richest overdue on the row for the redesigned subtitle', () => {
+    const [row] = buildWorkQueue({
+      ...nothing,
+      salesOverdue: 1,
+      salesOverdueTotal: '145200',
+      salesOverdueTop: everything.salesOverdueTop,
+    })
+    expect(row?.detail).toEqual({
+      contactName: 'Hotel Zeezicht',
+      invoiceNumber: '2026-0131',
+      daysOverdue: 12,
+    })
   })
 
   it('puts no figure on the rows where a count is the whole story', () => {
@@ -78,6 +116,19 @@ describe('what the queue shows', () => {
       dunningWaiting: 1,
     })
     expect(rows.map((row) => row.kind)).toEqual(['sales.overdue', 'dunning.waiting'])
+  })
+
+  it('surfaces a stored Moneybird dry-run that still blocks', () => {
+    const [row] = buildWorkQueue({
+      ...nothing,
+      importBlocking: 3,
+      importSource: 'moneybird',
+    })
+    expect(row).toMatchObject({
+      kind: 'import.blocking',
+      count: 3,
+      detail: { source: 'moneybird' },
+    })
   })
 })
 
@@ -101,9 +152,9 @@ describe('what a reader is offered', () => {
   })
 
   it('leaves an auditor with what an auditor can actually do', () => {
-    // Read and export, and nothing else: looking at what is overdue is
-    // reading; every other row is somebody else's afternoon.
-    expect(forRole('auditor')).toEqual(['sales.overdue'])
+    // Read and export, and nothing else: looking at what is overdue, import
+    // findings, and VAT is reading; every other row is somebody else's afternoon.
+    expect(forRole('auditor')).toEqual(['import.blocking', 'sales.overdue', 'vat.filing'])
   })
 
   it('names, for every row, the permission the screen behind it requires', () => {

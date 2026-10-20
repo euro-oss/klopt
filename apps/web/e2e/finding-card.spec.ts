@@ -46,7 +46,9 @@ async function anAdministration(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill('Bevindingen BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 }
 
 test('j/k move between findings, Enter opens the fix, Escape closes it', async ({ page }) => {
@@ -81,7 +83,7 @@ test('j/k move between findings, Enter opens the fix, Escape closes it', async (
   await page.keyboard.press('Enter')
   await expect(findings.first()).toHaveAttribute('data-fix-open', 'true')
   await expect(page.getByText(/Waarom dit telt/).first()).toBeVisible()
-  await expect(page.getByText('Dit los je niet hier op.')).toBeVisible()
+  await expect(findings.first().getByText('Dit los je niet hier op.')).toBeVisible()
 
   // Escape closes the fix.
   await page.keyboard.press('Escape')

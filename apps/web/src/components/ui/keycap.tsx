@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BINDINGS_BY_ID, bindingChips, type Binding } from '~/lib/keyboard'
 import { useHydrated } from '~/lib/hydration'
 import { useT } from '~/i18n/provider'
+import type { MessageKey } from '~/i18n/nl'
 import { cn } from '~/lib/utils'
 
 /**
@@ -28,7 +29,8 @@ export function Keycap({
   return (
     <kbd
       className={cn(
-        'border-border bg-background text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center border border-b-2 px-1.5 font-sans text-[11px] font-medium tabular',
+        // normal-case: survives uppercase parents (primary buttons show Esc, not ESC).
+        'border-border bg-background text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center border border-b-2 px-1.5 font-sans text-[11px] font-medium tracking-normal normal-case tabular',
         className,
       )}
     >
@@ -69,9 +71,12 @@ function bindingsOf(ids: readonly string[]): readonly Binding[] {
 export function ShortcutFooter({
   ids,
   className,
+  labelOverrides,
 }: {
   readonly ids: readonly string[]
   readonly className?: string
+  /** Per-binding label override (e.g. explain-only: ↵ is Uitleg, not Oplossen). */
+  readonly labelOverrides?: Readonly<Partial<Record<string, MessageKey>>> | undefined
 }) {
   const { t } = useT()
   const hydrated = useHydrated()
@@ -82,7 +87,8 @@ export function ShortcutFooter({
       role="group"
       aria-label={t('shortcuts.title')}
       className={cn(
-        'border-border text-muted-foreground mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border px-2 py-1.5 text-[0.6875rem]',
+        // Yellow outline as #67; hidden on phone (#57 / #69 design review).
+        'border-accent text-muted-foreground mt-3 hidden flex-wrap items-center gap-x-3 gap-y-1.5 border px-2 py-1.5 text-[0.6875rem] md:flex',
         className,
       )}
     >
@@ -91,7 +97,7 @@ export function ShortcutFooter({
           {bindingChips(binding).map((chip, index) => (
             <Keycap key={`${binding.id}-${String(index)}`}>{chip}</Keycap>
           ))}
-          <span>{t(binding.label)}</span>
+          <span>{t(labelOverrides?.[binding.id] ?? binding.label)}</span>
         </span>
       ))}
     </div>

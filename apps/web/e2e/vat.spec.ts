@@ -25,7 +25,9 @@ async function anAdministration(page: Page, name: string): Promise<void> {
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill(name)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 }
 
 /**
@@ -72,7 +74,7 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   // The aangifte. Nothing was tallied along the way; this is computed now.
   await page.getByRole('link', { name: /BTW/ }).first().click()
@@ -238,7 +240,7 @@ test('the ICP opgaaf cross-checks 3b and refuses an unproven VAT number', async 
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   // The aangifte declares it in 3b with no VAT.
   await page.goto('/vat/2026-Q1')
