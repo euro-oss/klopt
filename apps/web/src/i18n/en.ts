@@ -174,18 +174,12 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.hideOtherCodes': 'Hide other codes',
   'importFindings.accountVat.showOtherRates': 'Show other rates',
   'importFindings.accountVat.showFewerRates': 'Show less',
-  'importFindings.accountVat.vatOtherHiddenSales':
-    'No standard rate for this. Show other rates to choose reverse charge, ICP, export or a special code.',
-  'importFindings.accountVat.vatOtherHiddenPurchase':
-    'No standard rate for this. Show other rates to choose a reverse-charge or special code.',
   'importFindings.accountVat.vatHint': 'Moneybird had {rate}% VAT.',
   'importFindings.accountVat.vatHintUnknown': 'Moneybird had no rate.',
   'importFindings.accountVat.vatUnsupported':
     'Klopt does not have a VAT code for this rate yet, so this import cannot continue.',
   'importFindings.accountVat.vatUnknown':
     'Moneybird did not send a rate, so this import cannot continue.',
-  'importFindings.accountVat.vatMapByHand':
-    'We cannot match this Moneybird rate ({rate}%) automatically. Choose the VAT rate yourself in the mapping table.',
   'importFindings.accountVat.whatHappens': 'What happens',
   'importFindings.accountVat.whatHappensBody':
     'The Moneybird entries land on {account}, with {vat}. Nothing is posted yet; that happens when you import.',
@@ -205,12 +199,6 @@ export const en: Record<MessageKey, string> = {
   'importFindings.vat.VERL-ONTV': 'VAT reverse-charged to you',
   'importFindings.vat.ICV21': '21% VAT on purchases from the EU',
   'importFindings.vat.INV23': '21% VAT on imports from outside the EU',
-  // Shared with guided invoice flow (#74) — same key names + values for a clean merge.
-  'invoiceGuided.vat.VERL': 'VAT reverse-charged',
-  'invoiceGuided.vat.GEEN': 'VAT-exempt',
-  'invoiceGuided.vat.NUL': '0% export outside the EU',
-  'invoiceGuided.vat.ICP': '0% EU goods supply',
-  'invoiceGuided.vat.ICPD': '0% EU service',
   'importFindings.fx.eyebrow': 'Resolve · Rate',
   'importFindings.fx.title': 'Choose a rate for {reference}',
   'importFindings.fx.supplier': 'Supplier',
@@ -1595,6 +1583,8 @@ export const en: Record<MessageKey, string> = {
   'moneybird.mappingIntro':
     'Every Moneybird ledger account and tax rate must have a Klopt account or VAT code before anything posts.',
   'moneybird.saveMappings': 'Save the mapping',
+  'moneybird.taxMapping.rollback': '{rejected} was not saved; {current} stays.',
+  'moneybird.taxMapping.rollbackCleared': '{rejected} was not saved.',
   'moneybird.kloptAccount': 'Klopt account',
   'moneybird.kloptTax': 'Klopt VAT code',
   'moneybird.category': 'Category',

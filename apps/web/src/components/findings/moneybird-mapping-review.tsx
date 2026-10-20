@@ -3,6 +3,7 @@
  * the import-findings lab so 422 inline errors share one path (#71 PM).
  */
 
+import { Fragment } from 'react'
 import { ScrollTable, stickyFirstCol } from '~/components/ui/scroll-table'
 import { cn } from '~/lib/utils'
 import type { TaxMappingViolationView } from '~/lib/tax-mapping-save'
@@ -108,11 +109,11 @@ export function MoneybirdMappingReview({
         </ScrollTable>
       )}
       <ScrollTable className="mb-4">
-        <table className={cn('w-full min-w-[28rem] text-sm', stickyFirstCol)}>
+        <table className={cn('w-full min-w-0 text-sm md:min-w-[28rem]', stickyFirstCol)}>
           <thead>
             <tr className="border-border border-b text-left">
               <th className="py-2 pr-4">{t('moneybird.taxRates')}</th>
-              <th className="py-2">{t('moneybird.kloptTax')}</th>
+              <th className="w-36 py-2 sm:w-40">{t('moneybird.kloptTax')}</th>
             </tr>
           </thead>
           <tbody>
@@ -120,45 +121,44 @@ export function MoneybirdMappingReview({
               const raw = taxViolations[rate.moneybirdId]
               const violationMessage =
                 typeof raw === 'string' ? raw : raw !== undefined ? raw.message : undefined
+              const errorId = `moneybird-tax-${rate.moneybirdId}-error`
               return (
-                <tr
-                  key={rate.moneybirdId}
-                  id={`moneybird-tax-${rate.moneybirdId}`}
-                  className="border-border border-b"
-                >
-                  <td className="py-2 pr-4 tabular-nums">
-                    {rate.name} ({rate.percentage}%)
-                  </td>
-                  <td className="py-2">
-                    <input
-                      value={
-                        taxMappings[rate.moneybirdId] ?? rate.mappedCode ?? rate.proposedCode ?? ''
-                      }
-                      onChange={(event) => onTaxChange(rate.moneybirdId, event.target.value)}
-                      disabled={!hydrated}
-                      aria-invalid={violationMessage !== undefined}
-                      aria-describedby={
-                        violationMessage !== undefined
-                          ? `moneybird-tax-${rate.moneybirdId}-error`
-                          : undefined
-                      }
-                      className={cn(
-                        'border-border w-32 rounded-none border px-2 py-1 tabular-nums',
-                        violationMessage !== undefined && 'border-destructive',
-                      )}
-                    />
-                    {violationMessage !== undefined ? (
-                      <p
-                        id={`moneybird-tax-${rate.moneybirdId}-error`}
-                        role="alert"
-                        className="text-destructive mt-1 text-xs"
-                        data-slot="tax-mapping-violation"
-                      >
-                        {violationMessage}
-                      </p>
-                    ) : null}
-                  </td>
-                </tr>
+                <Fragment key={rate.moneybirdId}>
+                  <tr id={`moneybird-tax-${rate.moneybirdId}`} className="border-border border-b">
+                    <td className="py-2 pr-4 tabular-nums">
+                      {rate.name} ({rate.percentage}%)
+                    </td>
+                    <td className="py-2">
+                      <input
+                        value={
+                          taxMappings[rate.moneybirdId] ??
+                          rate.mappedCode ??
+                          rate.proposedCode ??
+                          ''
+                        }
+                        onChange={(event) => onTaxChange(rate.moneybirdId, event.target.value)}
+                        disabled={!hydrated}
+                        aria-describedby={violationMessage !== undefined ? errorId : undefined}
+                        className="border-border w-32 max-w-full rounded-none border px-2 py-1 tabular-nums"
+                      />
+                    </td>
+                  </tr>
+                  {violationMessage !== undefined ? (
+                    <tr className="border-border border-b">
+                      <td colSpan={2} className="max-w-0 py-1 pb-2">
+                        <p
+                          id={errorId}
+                          role="alert"
+                          aria-invalid="true"
+                          className="border-destructive text-destructive whitespace-normal break-words border-l-[3px] pl-2 text-xs"
+                          data-slot="tax-mapping-violation"
+                        >
+                          {violationMessage}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
               )
             })}
           </tbody>

@@ -1,9 +1,9 @@
 /**
- * Helpers for Moneybird tax-mapping save + 422 handling (#71 PM).
+ * Helpers for Moneybird tax-mapping save + 422 handling (#71 PM / Designer).
  *
  * `setTaxMappings` must not leave a rejected code looking mapped: roll back
  * paths in `violations[]` under `taxRates.<id>` to the previous value.
- * Display uses `finding.<messageKey>` (NL/EN), falling back to `message`.
+ * Display leads with a plain rollback line, then the finding explanation.
  */
 
 import { detailForDisplay } from './finding-card.js'
@@ -21,6 +21,8 @@ export interface TaxMappingViolation {
 export interface TaxMappingViolationView {
   readonly message: string
   readonly messageKey: string | null
+  readonly rejected: string
+  readonly current: string
 }
 
 type Translate = (key: MessageKey, values?: Readonly<Record<string, string>>) => string
@@ -38,23 +40,57 @@ export function formatTaxViolationMessage(t: Translate, violation: TaxMappingVio
   return (violation.message ?? '').trim()
 }
 
+/**
+ * Plain je-voice lead: what was rejected vs what stays, then the finding reason.
+ */
+export function formatTaxMappingRollbackMessage(input: {
+  readonly t: Translate
+  readonly rejected: string
+  readonly current: string
+  readonly reason: string
+}): string {
+  const lead =
+    input.current.trim() === ''
+      ? input.t('moneybird.taxMapping.rollbackCleared', { rejected: input.rejected })
+      : input.t('moneybird.taxMapping.rollback', {
+          rejected: input.rejected,
+          current: input.current,
+        })
+  const reason = input.reason.trim()
+  if (reason === '') return lead
+  return `${lead} ${reason}`
+}
+
 /** Index `taxRates.<id>` into display-ready messages (localised when possible). */
 export function taxViolationsByRateId(
   violations: readonly TaxMappingViolation[],
   t: Translate,
+  codes?: {
+    readonly previous: Readonly<Record<string, string>>
+    readonly attempted: Readonly<Record<string, string>>
+  },
 ): Readonly<Record<string, TaxMappingViolationView>> {
   const byRate: Record<string, TaxMappingViolationView> = {}
   for (const row of violations) {
     const path = row.path ?? ''
+    if (path === '') continue
     const match = /^taxRates\.(.+)$/.exec(path)
     if (match === null) continue
     const id = match[1]
     if (id === undefined || id === '') continue
-    const message = formatTaxViolationMessage(t, row)
+    const reason = formatTaxViolationMessage(t, row)
+    const rejected = (codes?.attempted[id] ?? row.detail?.['mappedCode'] ?? '').trim()
+    const current = (codes?.previous[id] ?? '').trim()
+    // Blank English message and no messageKey → nothing to show.
+    if (reason === '' && rejected === '') continue
+    const message =
+      rejected !== '' ? formatTaxMappingRollbackMessage({ t, rejected, current, reason }) : reason
     if (message === '') continue
     byRate[id] = {
       message,
       messageKey: row.messageKey?.trim() || null,
+      rejected,
+      current,
     }
   }
   return byRate
@@ -89,7 +125,10 @@ export function applyTaxMappingSaveFailure(input: {
   readonly taxViolations: Readonly<Record<string, TaxMappingViolationView>>
   readonly rejectedIds: readonly string[]
 } {
-  const taxViolations = taxViolationsByRateId(input.violations, input.t)
+  const taxViolations = taxViolationsByRateId(input.violations, input.t, {
+    previous: input.previous,
+    attempted: input.attempted,
+  })
   const rejectedIds = Object.keys(taxViolations)
   const taxMappings =
     rejectedIds.length > 0
@@ -102,13 +141,21 @@ export function applyTaxMappingSaveFailure(input: {
   return { taxMappings, taxViolations, rejectedIds }
 }
 
-/** Scroll the first rejected `moneybird-tax-<id>` row into view (#71 PM). */
+/**
+ * Scroll the first rejected `moneybird-tax-<id>` row into view and focus its
+ * input. Respects prefers-reduced-motion (#71 Designer).
+ */
 export function scrollTaxMappingViolationIntoView(rateId: string): void {
   if (rateId === '') return
   requestAnimationFrame(() => {
-    document.getElementById(`moneybird-tax-${rateId}`)?.scrollIntoView({
-      behavior: 'smooth',
+    const reduce =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const row = document.getElementById(`moneybird-tax-${rateId}`)
+    row?.scrollIntoView({
+      behavior: reduce ? 'auto' : 'smooth',
       block: 'center',
     })
+    const input = row?.querySelector('input')
+    if (input instanceof HTMLElement) input.focus({ preventScroll: true })
   })
 }

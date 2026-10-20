@@ -469,68 +469,58 @@ function AccountVatSheetBody({
               </p>
             ) : (
               <>
-                {vatOptions.length === 0 ? (
-                  <p className="text-muted-foreground border px-3 py-3 text-sm" role="status">
-                    {t(
-                      taxRateType === 'purchase_invoice'
-                        ? 'importFindings.accountVat.vatOtherHiddenPurchase'
-                        : 'importFindings.accountVat.vatOtherHiddenSales',
-                    )}
-                  </p>
-                ) : (
-                  <div
-                    id={vatListId}
-                    role="radiogroup"
-                    className={cn(
-                      'border',
-                      vatOptions.length <= 3
-                        ? 'grid'
-                        : 'flex max-h-64 flex-col divide-y overflow-y-auto',
-                    )}
-                    style={
-                      vatOptions.length <= 3
-                        ? {
-                            gridTemplateColumns: `repeat(${String(vatOptions.length)}, minmax(0, 1fr))`,
-                          }
-                        : undefined
-                    }
-                    onKeyDown={onVatKeyDown}
-                  >
-                    {vatOptions.map((option, index) => {
-                      const checked = option.code === vat
-                      // Checked radio, else first visible when nothing checked (#71 PM).
-                      const tabStop = checkedVatIndex >= 0 ? index === checkedVatIndex : index === 0
-                      return (
-                        <button
-                          key={option.code}
-                          type="button"
-                          role="radio"
-                          aria-checked={checked}
-                          tabIndex={tabStop ? 0 : -1}
-                          onClick={() => {
-                            setVat(option.code)
-                            if (option.group === 'other') setShowOther(true)
-                          }}
-                          className={cn(
-                            'min-h-11 px-3 text-left text-sm outline-none',
-                            'focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
-                            vatOptions.length <= 3 && index > 0 && 'border-l',
-                            checked
-                              ? 'bg-foreground text-background font-medium focus-visible:outline-background'
-                              : 'hover:bg-muted',
-                          )}
-                        >
-                          <span className="block">{vatLabel(option)}</span>
-                          {advanced && (
-                            <span className="block text-xs opacity-70 tabular-nums">
-                              {option.code}
-                            </span>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
+                <div
+                  id={vatListId}
+                  role="radiogroup"
+                  className={cn(
+                    'border',
+                    vatOptions.length <= 3
+                      ? 'grid'
+                      : 'flex max-h-64 flex-col divide-y overflow-y-auto',
+                  )}
+                  style={
+                    vatOptions.length <= 3
+                      ? {
+                          gridTemplateColumns: `repeat(${String(vatOptions.length)}, minmax(0, 1fr))`,
+                        }
+                      : undefined
+                  }
+                  onKeyDown={onVatKeyDown}
+                >
+                  {vatOptions.map((option, index) => {
+                    const checked = option.code === vat
+                    // Checked radio, else first visible when nothing checked (#71 PM).
+                    const tabStop = checkedVatIndex >= 0 ? index === checkedVatIndex : index === 0
+                    return (
+                      <button
+                        key={option.code}
+                        type="button"
+                        role="radio"
+                        aria-checked={checked}
+                        tabIndex={tabStop ? 0 : -1}
+                        onClick={() => {
+                          setVat(option.code)
+                          if (option.group === 'other') setShowOther(true)
+                        }}
+                        className={cn(
+                          'min-h-11 px-3 text-left text-sm outline-none',
+                          'focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
+                          vatOptions.length <= 3 && index > 0 && 'border-l',
+                          checked
+                            ? 'bg-foreground text-background font-medium focus-visible:outline-background'
+                            : 'hover:bg-muted',
+                        )}
+                      >
+                        <span className="block">{vatLabel(option)}</span>
+                        {advanced && (
+                          <span className="block text-xs opacity-70 tabular-nums">
+                            {option.code}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
                 {/* Hide disclosure while a non-primary is selected so Minder tonen
                     cannot be a no-op; list stays open via selectedIsOther (#71 designer). */}
                 {canDiscloseOther && !selectedIsOther && (

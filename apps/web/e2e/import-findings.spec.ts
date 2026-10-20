@@ -260,9 +260,7 @@ test('btw sheet shows Moneybird-empty-rate copy for vatUnknown', async ({ page }
   await expect(sheet.getByText(/In Moneybird stond geen tarief/)).toHaveCount(0)
 })
 
-test('mapping 422 shows finding.moneybird.incompatible_tax_rate and rolls back', async ({
-  page,
-}) => {
+test('mapping 422 shows rollback copy, focuses the field, and rolls back', async ({ page }) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxMapFail')
   const panel = page.locator('[data-slot="lab-tax-map-fail"]')
   await expect(panel).toBeVisible()
@@ -272,11 +270,27 @@ test('mapping 422 shows finding.moneybird.incompatible_tax_rate and rolls back',
   await input.fill('VH21')
   await panel.getByRole('button', { name: 'Mapping bewaren' }).click()
   const violation = panel.locator('[data-slot="tax-mapping-violation"]')
-  await expect(violation).toContainText(/Btw-tarief Hoog tarief verkoop \(21%\) past niet bij VH21/)
-  await expect(input).toHaveAttribute('aria-invalid', 'true')
+  await expect(violation).toContainText(/VH21 is niet bewaard; H21 blijft staan/)
+  await expect(violation).toContainText(/past niet bij VH21/)
+  await expect(violation).toHaveAttribute('aria-invalid', 'true')
+  await expect(input).not.toHaveClass(/border-destructive/)
   await expect(input).toHaveValue('H21')
-  // Row stays in view after the rejected save (#71 PM B).
+  await expect(input).toBeFocused()
   await expect(row).toBeInViewport()
+})
+
+test('mapping 422 scroll respects prefers-reduced-motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await openLab(page, 'source=moneybird&state=open&sheet=taxMapFail')
+  const panel = page.locator('[data-slot="lab-tax-map-fail"]')
+  const input = panel.locator('#moneybird-tax-21 input')
+  await input.fill('VH21')
+  await panel.getByRole('button', { name: 'Mapping bewaren' }).click()
+  await expect(panel.locator('[data-slot="tax-mapping-violation"]')).toContainText(
+    /VH21 is niet bewaard/,
+  )
+  await expect(input).toBeFocused()
+  await expect(input).toHaveValue('H21')
 })
 
 test('FX sheet toggles ECB to Aangepast and back', async ({ page }) => {

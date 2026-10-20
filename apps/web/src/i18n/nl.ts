@@ -1413,6 +1413,8 @@ export const nl = {
   'moneybird.mappingIntro':
     'Elke Moneybird-rekening en elk tarief moet een Klopt-rekening of btw-code hebben voordat er geboekt wordt.',
   'moneybird.saveMappings': 'Mapping bewaren',
+  'moneybird.taxMapping.rollback': '{rejected} is niet bewaard; {current} blijft staan.',
+  'moneybird.taxMapping.rollbackCleared': '{rejected} is niet bewaard.',
   'moneybird.kloptAccount': 'Klopt-rekening',
   'moneybird.kloptTax': 'Klopt-btw-code',
   'moneybird.category': 'Categorie',
@@ -1697,18 +1699,12 @@ export const nl = {
   'importFindings.accountVat.hideOtherCodes': 'Andere codes verbergen',
   'importFindings.accountVat.showOtherRates': 'Andere tarieven tonen',
   'importFindings.accountVat.showFewerRates': 'Minder tonen',
-  'importFindings.accountVat.vatOtherHiddenSales':
-    'Geen standaardtarief hiervoor. Toon andere tarieven om verlegd, ICP, export of een speciale code te kiezen.',
-  'importFindings.accountVat.vatOtherHiddenPurchase':
-    'Geen standaardtarief hiervoor. Toon andere tarieven om een verleggings- of speciale code te kiezen.',
   'importFindings.accountVat.vatHint': 'In Moneybird stond {rate}% btw.',
   'importFindings.accountVat.vatHintUnknown': 'In Moneybird stond geen tarief.',
   'importFindings.accountVat.vatUnsupported':
     'Klopt heeft nog geen btw-code voor dit tarief, dus deze import kan nog niet verder.',
   'importFindings.accountVat.vatUnknown':
     'Moneybird gaf geen tarief mee, dus deze import kan nog niet verder.',
-  'importFindings.accountVat.vatMapByHand':
-    'Dit Moneybird-tarief ({rate}%) kunnen we niet vanzelf koppelen. Kies het btw-tarief zelf in de mappingtabel.',
   'importFindings.accountVat.whatHappens': 'Wat er gebeurt',
   'importFindings.accountVat.whatHappensBody':
     'De boekingen uit Moneybird komen op {account}, met {vat}. Er wordt nu nog niets geboekt; dat gebeurt pas als je importeert.',
@@ -1728,12 +1724,6 @@ export const nl = {
   'importFindings.vat.VERL-ONTV': 'Btw verlegd naar jou',
   'importFindings.vat.ICV21': '21% btw over inkoop uit de EU',
   'importFindings.vat.INV23': '21% btw over invoer van buiten de EU',
-  // Shared with guided invoice flow (#74) — same key names + values for a clean merge.
-  'invoiceGuided.vat.VERL': 'Btw verlegd',
-  'invoiceGuided.vat.GEEN': 'Vrijgesteld van btw',
-  'invoiceGuided.vat.NUL': '0% export buiten de EU',
-  'invoiceGuided.vat.ICP': '0% levering in de EU (goederen)',
-  'invoiceGuided.vat.ICPD': '0% dienst in de EU',
   'importFindings.fx.eyebrow': 'Oplossen · Koers',
   'importFindings.fx.title': 'Koers kiezen voor {reference}',
   'importFindings.fx.supplier': 'Leverancier',
