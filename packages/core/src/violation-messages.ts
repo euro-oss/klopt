@@ -296,11 +296,11 @@ export const VIOLATION_MESSAGES = {
   },
   period_hard_closed: {
     code: 'period_hard_closed',
-    text: 'Period {fiscalYear}-{period} is closed. Post to an open period, or reopen it deliberately.',
+    text: 'Period {fiscalYear}-{period} is closed. Post to an open period.',
   },
   period_soft_closed: {
     code: 'period_soft_closed',
-    text: 'Period {fiscalYear}-{period} is soft-closed: only an accountant may post to it.',
+    text: 'Period {fiscalYear}-{period} is provisionally closed. Only the owner or accountant can post here.',
   },
   reversal_target_already_reversed: {
     code: 'reversal_target_already_reversed',

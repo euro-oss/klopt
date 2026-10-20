@@ -205,6 +205,31 @@ describe('the domain’s refusals', () => {
   // That every message names a real `LedgerErrorCode` needs no test: the
   // catalogue is `satisfies Readonly<Record<string, ViolationMessage>>`, so a
   // made-up code does not compile.
+
+  it('pins period_hard_closed / period_soft_closed in NL and EN with no reopen wording', () => {
+    expect(nl['violation.period_hard_closed']).toBe(
+      'Periode {fiscalYear}-{period} is afgesloten. Boek in een open periode.',
+    )
+    expect(nl['violation.period_soft_closed']).toBe(
+      'Periode {fiscalYear}-{period} is voorlopig afgesloten. Alleen de eigenaar of accountant kan hierin boeken.',
+    )
+    expect(VIOLATION_MESSAGES.period_hard_closed.text).toBe(
+      'Period {fiscalYear}-{period} is closed. Post to an open period.',
+    )
+    expect(VIOLATION_MESSAGES.period_soft_closed.text).toBe(
+      'Period {fiscalYear}-{period} is provisionally closed. Only the owner or accountant can post here.',
+    )
+    expect(en['violation.period_hard_closed']).toBe(VIOLATION_MESSAGES.period_hard_closed.text)
+    expect(en['violation.period_soft_closed']).toBe(VIOLATION_MESSAGES.period_soft_closed.text)
+
+    for (const text of [
+      nl['violation.period_hard_closed'],
+      en['violation.period_hard_closed'],
+      VIOLATION_MESSAGES.period_hard_closed.text,
+    ]) {
+      expect(text.toLowerCase()).not.toMatch(/heropen|reopen|opnieuw/)
+    }
+  })
 })
 
 describe('turning a violation into a sentence', () => {

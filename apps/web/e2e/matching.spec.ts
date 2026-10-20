@@ -2,7 +2,8 @@ import { rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
-import { runMigrations } from '@klopt/db'
+import { closeDatabase, createDatabase, runMigrations } from '@klopt/db'
+import { findEntityIdByName, seedUnmatchedBankLines, setPeriodStatus } from '@klopt/db/testing'
 import {
   chooseOption,
   DATABASE_URL,
@@ -14,11 +15,12 @@ import {
 } from './support'
 
 /**
- * The koppelwachtrij, in a browser.
+ * The koppelwachtrij, in a browser (#61 slice 6 redesign).
  *
- * The keyboard is the feature — spec 7.4 asks for "a one-keystroke confirm" —
- * so the assertions are about what a keystroke does, which is exactly the kind
- * of thing no handler test can see.
+ * The keyboard is the feature — j/k move, Enter opens then books, u clears,
+ * Esc leaves — so the assertions are about what a keystroke does. Period locks
+ * (a–d) cover named copy, role gates, and the Esc path that used to assert
+ * nothing about a lock.
  */
 
 const FIXTURES = join(
@@ -32,6 +34,13 @@ const FIXTURES = join(
   'bank',
   '__fixtures__',
 )
+
+/** March in a Jan–Dec year — the MT940 fixture books on 2026-03-02 … 03-05. */
+const MARCH = 3
+
+function uniqueAdminName(prefix: string): string {
+  return `${prefix} ${Date.now().toString(36)}`
+}
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
@@ -47,7 +56,9 @@ async function withStatement(page: Page, name: string): Promise<void> {
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill(name)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
@@ -66,43 +77,76 @@ async function withStatement(page: Page, name: string): Promise<void> {
   await expect(page.getByText('4 transacties ingelezen.')).toBeVisible()
 }
 
+function queueRows(page: Page) {
+  return page.locator('[data-slot="scroll-table"] tbody tr')
+}
+
+async function setMarchStatus(
+  entityName: string,
+  status: 'open' | 'soft_closed' | 'hard_closed',
+): Promise<void> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  try {
+    const entityId = await findEntityIdByName(database, entityName)
+    if (entityId === null) throw new Error(`No entity named ${entityName}`)
+    await setPeriodStatus(database, entityId, MARCH, status)
+  } finally {
+    await closeDatabase(database)
+  }
+}
+
+/** Extra unmatched lines so the remaining label can hit the 500+ cap. */
+async function seedExtraUnmatched(entityName: string, count: number): Promise<void> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  try {
+    const entityId = await findEntityIdByName(database, entityName)
+    if (entityId === null) throw new Error(`No entity named ${entityName}`)
+    await seedUnmatchedBankLines(database, entityId, count)
+  } finally {
+    await closeDatabase(database)
+  }
+}
+
 test('a bookkeeper works through the queue with the keyboard', async ({ page }) => {
   await withStatement(page, 'Koppelen BV')
 
   await page.getByRole('link', { name: '4 koppelen' }).click()
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
 
-  const queue = page.getByRole('list', { name: 'Wachtrij' }).getByRole('listitem')
-  await expect(queue).toHaveCount(4)
+  const rows = queueRows(page)
+  await expect(rows).toHaveCount(4)
 
   // No invoices exist, so nothing is suggested and a choice has to be made.
-  await expect(page.getByText('Geen voorstel. Kies zelf een grootboekrekening.')).toBeVisible()
+  await expect(page.getByText('Geen voorstel. Kies zelf een categorie.')).toBeVisible()
 
   // The selected line is the first, and the detail pane follows the selection.
-  await expect(page.getByRole('button', { name: /Kosten betalingsverkeer/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Kosten betalingsverkeer/ })).toBeVisible()
 
   // The arrow keys are listened for in an effect, so a keystroke sent before
   // React has taken over is simply lost.
   await hydrated(page)
 
+  // No focus moved on load — document body (or nothing in the queue) keeps focus.
+  await expect(rows.first()).not.toBeFocused()
+
   // Down and up move the selection, and the detail pane keeps up.
   await page.keyboard.press('ArrowDown')
-  await expect(page.getByText('Overboeking spaarrekening').last()).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Overboeking spaarrekening|spaarrekening/ }),
+  ).toBeVisible()
   await page.keyboard.press('ArrowUp')
 
-  // Book the selected line by hand.
-  await chooseOption(page, 'Zelf kiezen', /^4900 /)
+  // Book the selected line by hand (simple mode: names, not account numbers).
+  await chooseOption(page, 'Categorie', /Algemene kosten/)
   await page.getByRole('button', { name: 'Boeken' }).last().click()
 
-  await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
-  await expect(queue).toHaveCount(3)
+  // Posted notice names the bank line (counterparty / description), not the account.
+  await expect(page.getByText('Gekoppeld: Kosten betalingsverkeer')).toBeVisible()
+  await expect(rows).toHaveCount(3)
 
-  // Skipping is the other half of getting through a queue, and it is a button:
-  // `x` used to do it in one keystroke, which made "not this one" as cheap as
-  // booking (Alpha 4 oracle, docs/keyboard-map.md).
   await page.getByRole('button', { name: 'Overslaan' }).click()
   await expect(page.getByText('Overgeslagen.')).toBeVisible()
-  await expect(queue).toHaveCount(2)
+  await expect(rows).toHaveCount(2)
 })
 
 test('a payment is booked by confirming the candidate, not by trusting the top one', async ({
@@ -128,7 +172,7 @@ test('a payment is booked by confirming the candidate, not by trusting the top o
   await page.getByLabel('Prijs regel 1').fill('1000,00')
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   await page.goto('/bank/match')
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
@@ -147,58 +191,52 @@ test('a payment is booked by confirming the candidate, not by trusting the top o
   }
 
   await expect(suggestion).toBeVisible()
-  await expect(page.getByText('99%')).toBeVisible()
+  await expect(page.getByText('Zeker').first()).toBeVisible()
 
-  // Two keystrokes, and the second one is aimed. `Enter` from the queue moves
-  // into the panel and lands on the candidate that would be booked — it does not
-  // book the top suggestion from the queue, which is the thing Alpha 4 took out:
-  // the line being agreed to was off to the side of the key being pressed.
+  // Two keystrokes: Enter opens the panel onto the candidate; Enter books it.
+  // Confirming the candidate asserts the focused suggestion is the 99%
+  // invoice-number one (Geavanceerd off still shows the reason, not %).
   await page.keyboard.press('Enter')
-  await expect(page.locator('li[aria-current="true"]').filter({ hasText: '99%' })).toBeFocused()
-  await expect(page.getByText(/Geboekt als journaalpost/)).toHaveCount(0)
+  await expect(
+    page.locator('[role="option"][aria-selected="true"]').filter({
+      hasText: /staat in de omschrijving en het bedrag klopt precies/,
+    }),
+  ).toBeFocused()
+  await expect(page.getByText('Gekoppeld: Grote Klant N.V.')).toHaveCount(0)
+  await expect(page.getByText('Geboekt als boeking')).toHaveCount(0)
 
   await page.keyboard.press('Enter')
-  await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
+  await expect(page.getByText('Gekoppeld: Grote Klant N.V.')).toBeVisible()
 })
 
 test('the keys the match screen prints are the keys it answers to', async ({ page }) => {
-  // The registry is the source of the chrome, so this is really a check that the
-  // screen stopped promising `1`–`9` and `x` when it stopped listening for them.
   await withStatement(page, 'Toetsen BV')
   await page.goto('/bank/match')
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
   await hydrated(page)
 
-  const panel = page.getByRole('complementary', { name: 'Sneltoetsen' })
-  await expect(panel).toContainText('Paneel openen / voorstel boeken')
-  await expect(panel).toContainText('Keuze in het paneel wissen')
-  await expect(panel).toContainText('Paneel sluiten')
-  await expect(panel.getByText('1–9')).toHaveCount(0)
-  await expect(panel.getByText('X', { exact: true })).toHaveCount(0)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const strip = page.getByRole('group', { name: 'Sneltoetsen' }).first()
+  await expect(strip).toBeVisible()
+  await expect(strip).toContainText('Paneel openen / voorstel boeken')
+  await expect(strip).toContainText('Keuze in het paneel wissen')
+  await expect(strip).toContainText('Paneel sluiten')
+  await expect(strip.getByText('Esc', { exact: true })).toBeVisible()
+  await expect(strip.getByText('1–9')).toHaveCount(0)
+  await expect(strip.getByText('X', { exact: true })).toHaveCount(0)
 
-  // And a digit no longer books anything.
-  const queue = page.getByRole('list', { name: 'Wachtrij' }).getByRole('listitem')
-  await expect(queue).toHaveCount(4)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(strip).toBeHidden()
+
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const rows = queueRows(page)
+  await expect(rows).toHaveCount(4)
   await page.keyboard.press('1')
-  await expect(page.getByText(/Geboekt als journaalpost/)).toHaveCount(0)
-  await expect(queue).toHaveCount(4)
+  await expect(page.getByText(/^Gekoppeld:/)).toHaveCount(0)
+  await expect(page.getByText('Geboekt als boeking')).toHaveCount(0)
+  await expect(rows).toHaveCount(4)
 })
 
-/**
- * Un-quarantined: the cause was in this file, not in the learned-rules view.
- *
- * The quarantine note read the symptom correctly — the confirmation appears,
- * so a rule *is* learned, but no row for the IBAN turns up on `/bank`. The
- * reason is one line further up: the click that selects the Telecom line
- * landed before React had taken over, so it selected nothing, and the booking
- * went to whichever line the queue had opened on. That line is the bank
- * charges, whose rule is keyed on its description. The screen was right and
- * the test was booking something else.
- *
- * It fails the same way outside CI once the first paint is slow enough, which
- * is how it was caught. With the wait below it passed twelve consecutive runs
- * and two full-suite runs locally.
- */
 test('booking by hand teaches a rule, and the rule can be switched off', async ({ page }) => {
   await withStatement(page, 'Regels BV')
 
@@ -209,26 +247,179 @@ test('booking by hand teaches a rule, and the rule can be switched off', async (
   // line the queue opened on.
   await hydrated(page)
 
-  // The direct debit from Telecom B.V. has an IBAN, so a choice made here is
-  // worth remembering.
-  const telecom = page
-    .getByRole('list', { name: 'Wachtrij' })
-    .getByRole('button', { name: /Telecom B.V./ })
+  const telecom = queueRows(page).filter({ hasText: 'Telecom B.V.' })
   await telecom.click()
 
-  await chooseOption(page, 'Zelf kiezen', /^4410 /)
+  // Simple mode: Categorie picker shows names (Telefoon- en internetkosten = 4410).
+  await chooseOption(page, 'Categorie', /Telefoon- en internetkosten/)
   await page.getByRole('button', { name: 'Boeken' }).last().click()
 
   await expect(page.getByText(/en onthouden voor volgende keer/)).toBeVisible()
 
-  // Visible, with what it matches on and how often it has fired.
   await page.goto('/bank')
   await expect(page.getByRole('heading', { name: 'Onthouden regels' })).toBeVisible()
   const rule = page.locator('tbody tr', { hasText: 'NL20INGB0001234567' })
   await expect(rule).toContainText('4410')
   await expect(rule).toContainText('1×')
 
-  // And editable, which is the other half of what spec 7.4 asks for.
   await rule.getByRole('button', { name: 'Uitzetten' }).click()
   await expect(rule.getByRole('button', { name: 'Aanzetten' })).toBeVisible()
+})
+
+test('Esc returns focus to the queue row and clears the panel choice', async ({ page }) => {
+  await withStatement(page, 'Esc BV')
+  await page.goto('/bank/match')
+  await hydrated(page)
+
+  const rows = queueRows(page)
+  await expect(rows.first()).not.toBeFocused()
+
+  await page.keyboard.press('Enter')
+  // Desktop: focus lands on the account picker (no suggestions).
+  await expect(page.getByRole('combobox', { name: 'Categorie' })).toBeFocused()
+
+  // Make a real choice first — otherwise Boeken is disabled either way and the
+  // clear assertion is tautological.
+  await chooseOption(page, 'Categorie', /Algemene kosten/)
+  await expect(page.getByRole('combobox', { name: 'Categorie' })).toHaveValue(/Algemene kosten/)
+  await expect(page.getByRole('button', { name: 'Boeken' }).last()).toBeEnabled()
+
+  // First Esc closes the open account list; the second leaves the panel and
+  // returns focus to the queue (AccountPicker swallows the first Esc on purpose).
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+  await expect(rows.first()).toBeFocused()
+  await expect(page.getByRole('combobox', { name: 'Categorie' })).toHaveValue('')
+  await expect(page.getByRole('button', { name: 'Boeken' }).last()).toBeDisabled()
+})
+
+test('a hard-closed period names itself and blocks booking', async ({ page }) => {
+  const name = uniqueAdminName('Hard Gesloten')
+  await withStatement(page, name)
+  await setMarchStatus(name, 'hard_closed')
+
+  await page.goto('/bank/match')
+  await hydrated(page)
+
+  // Newest first: fee line in March.
+  await expect(page.getByRole('heading', { name: /Kosten betalingsverkeer/ })).toBeVisible()
+  await expect(page.getByText(/Maart 2026 is definitief afgesloten/)).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Naar Boekjaren' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Boeken' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Koppelen' })).toHaveCount(0)
+
+  const before = await queueRows(page).count()
+  await page.keyboard.press('Enter')
+  await expect(queueRows(page)).toHaveCount(before)
+  await expect(page.getByText(/^Gekoppeld:/)).toHaveCount(0)
+  await expect(page.getByText('Geboekt als boeking')).toHaveCount(0)
+})
+
+test('soft-closed: bookkeeper is blocked without a link; owner sees Naar Boekjaren', async ({
+  browser,
+}) => {
+  const owner = await browser.newContext()
+  const keeper = await browser.newContext()
+
+  try {
+    const ownerPage = await owner.newPage()
+    const name = uniqueAdminName('Voorlopig Gesloten')
+    await withStatement(ownerPage, name)
+    await setMarchStatus(name, 'soft_closed')
+
+    await ownerPage.goto('/bank/match')
+    await hydrated(ownerPage)
+    await expect(
+      ownerPage.getByText(/Maart 2026 is voorlopig afgesloten\. Je kunt hier nog in boeken/),
+    ).toBeVisible()
+    await expect(ownerPage.getByRole('link', { name: 'Naar Boekjaren' })).toBeVisible()
+    // Owner may still book into a soft-closed period.
+    await expect(ownerPage.getByRole('button', { name: 'Boeken' }).last()).toBeVisible()
+
+    const keeperPage = await keeper.newPage()
+    const keeperEmail = uniqueEmail()
+    await keeperPage.goto('/sign-in')
+    await signIn(keeperPage, keeperEmail)
+    await expect(keeperPage.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+
+    await ownerPage.goto('/members')
+    const invite = ownerPage.locator('form', {
+      has: ownerPage.getByRole('button', { name: 'Uitnodigen' }),
+    })
+    await invite.getByLabel('E-mail').fill(keeperEmail)
+    await chooseOption(ownerPage, 'Rol', 'Boekhouder', invite)
+    await ownerPage.getByRole('button', { name: 'Uitnodigen' }).click()
+    await expect(ownerPage.getByText(new RegExp(`${keeperEmail} heeft nu toegang`))).toBeVisible()
+
+    await keeperPage.goto('/bank/match')
+    await hydrated(keeperPage)
+    await expect(
+      keeperPage.getByText(
+        /Maart 2026 is voorlopig afgesloten\. Alleen de eigenaar of accountant kan hierin boeken/,
+      ),
+    ).toBeVisible()
+    await expect(keeperPage.getByRole('link', { name: 'Naar Boekjaren' })).toHaveCount(0)
+    await expect(keeperPage.getByRole('button', { name: 'Boeken' })).toHaveCount(0)
+    await expect(keeperPage.getByRole('button', { name: 'Koppelen' })).toHaveCount(0)
+
+    const before = await queueRows(keeperPage).count()
+    await keeperPage.keyboard.press('Enter')
+    await expect(queueRows(keeperPage)).toHaveCount(before)
+  } finally {
+    await owner.close()
+    await keeper.close()
+  }
+})
+
+test('Geavanceerd shows the confidence percent on a suggestion', async ({ page }) => {
+  await withStatement(page, 'Geavanceerd Percent BV')
+
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('DEB-0099')
+  await page.getByLabel('Naam', { exact: true }).fill('Grote Klant N.V.')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
+
+  await page.goto('/invoices/new')
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
+  await page.getByLabel('Referentie klant').fill('KP-%')
+  await page.getByLabel('Omschrijving regel 1').fill('Advieswerk')
+  await page.getByLabel('Prijs regel 1').fill('1000,00')
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+  // Owner default: Geavanceerd off → simple-mode "boeking", not "journaalpost".
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
+
+  await enableAdvancedMode(page)
+  await page.goto('/bank/match')
+  await hydrated(page)
+
+  const suggestion = page.getByText(/staat in de omschrijving en het bedrag klopt precies/)
+  for (let step = 0; step < 4 && !(await suggestion.isVisible()); step += 1) {
+    await page.keyboard.press('ArrowDown')
+    // Suggestions are fetched for the line that was just selected, so let the
+    // answer arrive before deciding to walk past it.
+    await suggestion.waitFor({ state: 'visible', timeout: 2_000 }).catch(() => undefined)
+  }
+  await expect(suggestion).toBeVisible()
+
+  await page.keyboard.press('Enter')
+  const selected = page.locator('[role="option"][aria-selected="true"]')
+  await expect(selected).toBeFocused()
+  await expect(selected).toContainText('99%')
+  await expect(selected).toContainText('factuurnummer')
+})
+
+test('the remaining label caps only above 500 lines', async ({ page }) => {
+  const name = uniqueAdminName('VijfhonderdPlus')
+  await withStatement(page, name)
+  // Statement has 4 unmatched; seed 497 more → 501 total. Fetch is cap+1, so
+  // the label shows 500+; exactly 500 would still show "500 regels…".
+  await seedExtraUnmatched(name, 497)
+
+  await page.goto('/bank/match')
+  await hydrated(page)
+  await expect(page.getByText('500+ regels nog te koppelen')).toBeVisible()
+  await expect(queueRows(page)).toHaveCount(500)
 })

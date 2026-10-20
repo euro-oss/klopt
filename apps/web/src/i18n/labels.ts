@@ -157,7 +157,12 @@ function lookUp(t: Translate, key: string, detail?: Values): string | undefined 
  * a posting. Same fallback: the English the domain wrote, rather than a key.
  */
 export function findingMessage(t: Translate, finding: TranslatableFinding): string {
-  return lookUp(t, `finding.${finding.messageKey}`, finding.detail ?? undefined) ?? finding.message
+  // Empty `{}` must not be passed as values: `translate` then calls `.replace` on a
+  // missing catalogue entry and throws (Exact still ships message-only keys).
+  const detail = finding.detail
+  const values =
+    detail !== null && detail !== undefined && Object.keys(detail).length > 0 ? detail : undefined
+  return lookUp(t, `finding.${finding.messageKey}`, values) ?? finding.message
 }
 
 /**

@@ -1,12 +1,12 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PageHeader, Stat } from '~/components/app-shell'
-import {
-  FindingsList,
-  FindingHonestyState,
-  asExplainOnlyFinding,
-  honestyFromReconciliation,
-} from '~/components/findings/finding-card'
+import { ImportFindingsScreen } from '~/components/findings/import-findings-screen'
+import { asExplainOnlyFinding, honestyFromReconciliation } from '~/components/findings/finding-card'
+import { ScrollTable, stickyFirstCol } from '~/components/ui/scroll-table'
+import { honestySourcesFromExact } from '~/lib/import-findings'
+import { useAdvancedMode } from '~/lib/advanced-mode-context'
+import { cn } from '~/lib/utils'
 import { formatDate } from '~/lib/format'
 import {
   balanceSheetAccounts,
@@ -696,6 +696,7 @@ interface Reconciliation {
  * in het schema.
  */
 function PreviewReport({ report }: { report: Record<string, unknown> }) {
+  const { advanced } = useAdvancedMode()
   const { t } = useT()
   const reconciliation = report['reconciliation'] as Reconciliation
   const accounts = report['accounts'] as { count: number; new: number; derived: number }
@@ -792,80 +793,94 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
           {t('exact.reconciliationCaveat')}
         </p>
       )}
-      <table className="mb-6 w-full text-sm">
-        <thead>
-          <tr className="border-border border-b text-left">
-            <th className="py-2">{t('exact.side')}</th>
-            <th className="py-2">{t('exact.accountsColumn')}</th>
-            <th className="py-2 text-right">{t('exact.ledgerColumn')}</th>
-            <th className="py-2 text-right">{t('exact.openItemsColumn')}</th>
-            <th className="py-2 text-right">{t('exact.differenceColumn')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(
-            [
-              ['exact.receivables', reconciliation.receivable],
-              ['exact.payables', reconciliation.payable],
-            ] as const satisfies readonly (readonly [MessageKey, ControlCheck])[]
-          ).map(([label, check]) => (
-            <tr key={label} className="border-border border-b">
-              <td className="py-2">{t(label)}</td>
-              <td className="py-2 tabular text-xs">
-                {check.accountCodes.length === 0
-                  ? t('exact.noneFound')
-                  : check.accountCodes.join(', ')}
-              </td>
-              {/*
+      <ScrollTable className="mb-6">
+        <table className={cn('w-full min-w-[36rem] text-sm', stickyFirstCol)}>
+          <thead>
+            <tr className="border-border border-b text-left">
+              <th className="py-2 pr-4">{t('exact.side')}</th>
+              <th className="py-2">{t('exact.accountsColumn')}</th>
+              <th className="py-2 text-right">{t('exact.ledgerColumn')}</th>
+              <th className="py-2 text-right">{t('exact.openItemsColumn')}</th>
+              <th className="py-2 text-right">{t('exact.differenceColumn')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(
+              [
+                ['exact.receivables', reconciliation.receivable],
+                ['exact.payables', reconciliation.payable],
+              ] as const satisfies readonly (readonly [MessageKey, ControlCheck])[]
+            ).map(([label, check]) => (
+              <tr key={label} className="border-border border-b">
+                <td className="py-2">{t(label)}</td>
+                <td className="py-2 tabular text-xs">
+                  {check.accountCodes.length === 0
+                    ? t('exact.noneFound')
+                    : check.accountCodes.join(', ')}
+                </td>
+                {/*
                 An em dash rather than 0,00 where there is no number. A zero
                 here would read as "the control account is empty", which is a
                 claim about somebody's books that we did not get to look at.
               */}
-              <td className="py-2 text-right tabular">{check.ledger ?? '—'}</td>
-              <td className="py-2 text-right tabular">{check.openItems}</td>
-              <td
-                className={`py-2 text-right tabular ${
-                  check.outcome === 'differs' ? 'text-unreconciled' : ''
-                }`}
-              >
-                {check.difference ?? '—'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <td className="py-2 text-right tabular">{check.ledger ?? '—'}</td>
+                <td className="py-2 text-right tabular">{check.openItems}</td>
+                <td
+                  className={`py-2 text-right tabular ${
+                    check.outcome === 'differs' ? 'text-unreconciled' : ''
+                  }`}
+                >
+                  {check.difference ?? '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </ScrollTable>
 
-      {/* Unread ≠ empty ≠ reconciled (#41). */}
-      {honesty !== null && (
-        <div className="mb-6 max-w-md">
-          <FindingHonestyState honesty={honesty} />
-        </div>
-      )}
-
-      {problems.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-destructive mb-2 text-sm font-semibold">
-            {t('exact.blocking', { count: String(problems.length) })}
-          </h3>
-          <FindingsList
-            aria-label={t('exact.blocking', { count: String(problems.length) })}
-            findings={problems.map((problem) =>
-              asExplainOnlyFinding(
-                {
-                  code: problem.code,
-                  path: problem.path,
-                  // Exact problems still ship English `message` only (#46 will
-                  // add messageKey). Placeholder key falls through to message.
-                  messageKey: `exact.${problem.code}`,
-                  message: problem.message,
-                  detail: {},
-                },
-                'blocking',
-              ),
-            )}
-          />
-        </div>
-      )}
+      <ImportFindingsScreen
+        subtitle={t('exact.step3Intro')}
+        connected
+        hasPreview
+        advanced={advanced}
+        findings={[
+          ...problems.map((problem) =>
+            asExplainOnlyFinding(
+              {
+                code: problem.code,
+                path: problem.path,
+                // Exact problems still ship English `message` only (#46 will
+                // add messageKey). Placeholder key falls through to message.
+                messageKey: `exact.${problem.code}`,
+                message: problem.message,
+                detail: {},
+              },
+              'blocking',
+            ),
+          ),
+          ...warnings.map((warning) =>
+            asExplainOnlyFinding(
+              {
+                code: warning.code,
+                path: warning.path,
+                messageKey: `exact.${warning.code}`,
+                message: warning.message,
+                detail: {},
+              },
+              'warning',
+            ),
+          ),
+        ]}
+        sources={honestySourcesFromExact({
+          honesty,
+          label: t('exact.openItemsReconciliation'),
+          count: t('exact.outstandingHint', {
+            receivables: String(openItems.receivable.count),
+            payables: String(openItems.payable.count),
+          }),
+        })}
+        emptySummary={t('exact.nothingToReport')}
+      />
 
       {/*
         What the read actually cost. Shown rather than logged because "how many
@@ -884,60 +899,35 @@ function PreviewReport({ report }: { report: Record<string, unknown> }) {
               ),
             })}
           </summary>
-          <table className="mt-2 w-full text-sm">
-            <thead>
-              <tr className="border-border border-b text-left">
-                <th className="py-2">{t('exact.resource')}</th>
-                <th className="py-2 text-right">{t('exact.statusColumn')}</th>
-                <th className="py-2 text-right">{t('exact.rowsColumn')}</th>
-                <th className="py-2 text-right">{t('exact.durationColumn')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map((entry, index) => (
-                <tr key={`${entry.path}-${String(index)}`} className="border-border border-b">
-                  <td className="py-1 tabular text-xs">{entry.path}</td>
-                  <td
-                    className={`py-1 text-right tabular ${
-                      entry.status >= 400 ? 'text-destructive' : ''
-                    }`}
-                  >
-                    {String(entry.status)}
-                  </td>
-                  <td className="py-1 text-right tabular">{String(entry.rows)}</td>
-                  <td className="py-1 text-right tabular">{String(entry.durationMs)} ms</td>
+          <ScrollTable>
+            <table className={cn('mt-2 w-full min-w-[36rem] text-sm', stickyFirstCol)}>
+              <thead>
+                <tr className="border-border border-b text-left">
+                  <th className="py-2 pr-4">{t('exact.resource')}</th>
+                  <th className="py-2 text-right">{t('exact.statusColumn')}</th>
+                  <th className="py-2 text-right">{t('exact.rowsColumn')}</th>
+                  <th className="py-2 text-right">{t('exact.durationColumn')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {requests.map((entry, index) => (
+                  <tr key={`${entry.path}-${String(index)}`} className="border-border border-b">
+                    <td className="py-1 tabular text-xs">{entry.path}</td>
+                    <td
+                      className={`py-1 text-right tabular ${
+                        entry.status >= 400 ? 'text-destructive' : ''
+                      }`}
+                    >
+                      {String(entry.status)}
+                    </td>
+                    <td className="py-1 text-right tabular">{String(entry.rows)}</td>
+                    <td className="py-1 text-right tabular">{String(entry.durationMs)} ms</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollTable>
         </details>
-      )}
-
-      {warnings.length > 0 && (
-        <div className="mb-6">
-          <h3 className="mb-2 text-sm font-semibold">
-            {t('exact.warnings', { count: String(warnings.length) })}
-          </h3>
-          <FindingsList
-            aria-label={t('exact.warnings', { count: String(warnings.length) })}
-            findings={warnings.map((warning) =>
-              asExplainOnlyFinding(
-                {
-                  code: warning.code,
-                  path: warning.path,
-                  messageKey: `exact.${warning.code}`,
-                  message: warning.message,
-                  detail: {},
-                },
-                'warning',
-              ),
-            )}
-          />
-        </div>
-      )}
-
-      {problems.length === 0 && warnings.length === 0 && (
-        <p className="text-muted-foreground text-sm">{t('exact.nothingToReport')}</p>
       )}
     </div>
   )

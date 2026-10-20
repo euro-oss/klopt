@@ -752,14 +752,16 @@ export function PageHeader({
   actions?: ReactNode | undefined
 }) {
   return (
-    <header className="mb-4 flex items-start justify-between gap-4">
-      <div>
+    <header className="mb-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="min-w-0">
         <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
         {description !== undefined && (
           <p className="text-muted-foreground mt-1 text-sm">{description}</p>
         )}
       </div>
-      {actions !== undefined && <div className="flex shrink-0 gap-2">{actions}</div>}
+      {actions !== undefined && (
+        <div className="flex w-full shrink-0 gap-2 md:w-auto">{actions}</div>
+      )}
     </header>
   )
 }

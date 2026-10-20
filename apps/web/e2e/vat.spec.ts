@@ -32,7 +32,9 @@ async function anAdministration(page: Page, name: string): Promise<void> {
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill(name)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 }
 
 /**
@@ -81,7 +83,7 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   // The aangifte. Nothing was tallied along the way; this is computed now.
   await page.getByRole('link', { name: /BTW/ }).first().click()
@@ -124,9 +126,7 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
   await expect(
     page.getByText(/omzetbelastingnummer, en dat staat nog niet in deze administratie/),
   ).toBeVisible()
-  await expect(
-    page.getByRole('button', { name: /Aangifte indienen en periode vastzetten/ }),
-  ).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Aangifte indienen$/ })).toHaveCount(0)
 
   await withVatNumber(page)
   await page.goto('/vat/2026-Q1')
@@ -143,7 +143,7 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
 
   // Filing. A clean return needs no acceptance, and it locks the quarter.
   await page.getByRole('textbox', { name: 'Kenmerk van de indiening' }).fill('MBZ-2026-04-02-7781')
-  await page.getByRole('button', { name: /Aangifte indienen en periode vastzetten/ }).click()
+  await page.getByRole('button', { name: /^Aangifte indienen$/ }).click()
   await expect(page.getByText(/Ingediend op/)).toBeVisible()
   await expect(page.getByText(/Deze periode is ingediend/)).toBeVisible()
 
@@ -251,7 +251,7 @@ test('the ICP opgaaf cross-checks 3b and refuses an unproven VAT number', async 
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   // The aangifte declares it in 3b with no VAT.
   await page.goto('/vat/2026-Q1')

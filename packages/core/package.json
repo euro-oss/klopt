@@ -29,6 +29,10 @@
     "./moneybird-fx": {
       "types": "./dist/moneybird/fx.d.ts",
       "default": "./dist/moneybird/fx.js"
+    },
+    "./moneybird-account-ranker": {
+      "types": "./dist/moneybird/account-ranker.d.ts",
+      "default": "./dist/moneybird/account-ranker.js"
     }
   },
   "files": [

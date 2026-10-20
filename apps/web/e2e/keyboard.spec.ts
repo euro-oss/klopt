@@ -71,7 +71,9 @@ async function anAdministration(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill('Toetsenbord BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
   await theKeyboardIsLive(page)
 }
 
@@ -171,7 +173,9 @@ test('a prefix expires rather than hijacking the next thing you type', async ({ 
 
   await page.keyboard.press('j')
   // Still on the dashboard: the prefix went, so `j` meant nothing.
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 })
 
 test('Escape drops a half-typed shortcut', async ({ page }) => {
@@ -183,7 +187,9 @@ test('Escape drops a half-typed shortcut', async ({ page }) => {
   await expect(page.getByText('G …')).toBeHidden()
 
   await page.keyboard.press('j')
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
 })
 
 test('a bare letter does not fire while somebody is typing', async ({ page }) => {
@@ -528,22 +534,29 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await focusIsSomewhere(page)
 
   // Koppelen: `g` then `o`, the cursor down a line, an account typed in, booked.
+  // Redesign (#61 slice 6): Af/Bij table + Categorie picker, not the old button list.
   await page.keyboard.press('g')
   await page.keyboard.press('o')
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
 
-  const queue = page.getByRole('list', { name: 'Wachtrij' }).getByRole('button')
+  const queue = page.getByRole('table', { name: 'Wachtrij' }).locator('tbody tr')
   await expect(queue).toHaveCount(4)
   await page.keyboard.press('j')
 
-  const manual = page.getByRole('combobox', { name: 'Zelf kiezen' })
-  await manual.pressSequentially('4400')
+  // Fixture chart has 4900 (Algemene kosten), not 4400. Simple mode shows the
+  // name in the field; the stored value is still the account number.
+  const manual = page.getByRole('combobox', { name: 'Categorie' })
+  await manual.pressSequentially('4900')
+  await page.keyboard.press('ArrowDown')
   await page.keyboard.press('Enter')
-  await expect(manual).toHaveValue('4400')
+  await expect(manual).toHaveValue('Algemene kosten')
+  await expect(page.getByRole('button', { name: /^Boeken/ })).toBeEnabled()
 
-  await tabTo(page, /^BUTTON Boeken$/)
+  // Keycap inside the button makes focused() report more than "Boeken".
+  await tabTo(page, /^BUTTON Boeken/)
   await page.keyboard.press('Enter')
-  await expect(page.getByText(/Geboekt als journaalpost/)).toBeVisible()
+  // Posted notice names the bank line (j moved off the fee line).
+  await expect(page.getByText('Gekoppeld: Overboeking spaarrekening')).toBeVisible()
   await expect(queue).toHaveCount(3)
 
   // Het postvak: `g` then `e`, open the document, book it as a draft invoice.
