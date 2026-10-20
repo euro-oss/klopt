@@ -1573,6 +1573,10 @@ export const nl = {
   'importFindings.accountVat.useNewNumber': 'Gebruik {number} (nieuw)',
   'importFindings.accountVat.stepVat': '2. Welk btw-tarief?',
   'importFindings.accountVat.stepVatOnly': 'Welk btw-tarief?',
+  'importFindings.accountVat.showOtherCodes': 'Andere codes tonen',
+  'importFindings.accountVat.hideOtherCodes': 'Andere codes verbergen',
+  'importFindings.accountVat.vatOtherHidden':
+    'Geen standaardtarief voor dit. Toon andere codes om verlegd, ICP, export of een speciale code te kiezen.',
   'importFindings.accountVat.vatHint': 'In Moneybird stond {rate}% btw.',
   'importFindings.accountVat.vatHintUnknown': 'In Moneybird stond geen tarief.',
   'importFindings.accountVat.vatUnsupported':
@@ -1590,6 +1594,7 @@ export const nl = {
   'importFindings.accountVat.reason.number': 'Zelfde nummer',
   'importFindings.accountVat.reason.name': 'Vergelijkbare naam',
   'importFindings.vat.VH21': '21% btw',
+  'importFindings.vat.VH21-PRO': '21% btw, 50% aftrekbaar',
   'importFindings.vat.VL9': '9% btw',
   'importFindings.vat.H21': '21% btw',
   'importFindings.vat.L9': '9% btw',

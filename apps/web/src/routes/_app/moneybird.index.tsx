@@ -124,12 +124,18 @@ function Moneybird() {
       readonly description: string
       readonly rateBasisPoints: number
       readonly direction: 'input' | 'output'
+      readonly scope?: string
+      readonly reverseCharge?: string
+      readonly deductibility?: string
     }[]
     return rows.map((row) => ({
       code: row.code,
       description: row.description,
       rateBasisPoints: row.rateBasisPoints,
       direction: row.direction,
+      ...(row.scope !== undefined ? { scope: row.scope } : {}),
+      ...(row.reverseCharge !== undefined ? { reverseCharge: row.reverseCharge } : {}),
+      ...(row.deductibility !== undefined ? { deductibility: row.deductibility } : {}),
     }))
   }, [taxCodesResult])
 

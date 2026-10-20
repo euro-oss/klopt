@@ -168,6 +168,10 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.useNewNumber': 'Use {number} (new)',
   'importFindings.accountVat.stepVat': '2. Which VAT rate?',
   'importFindings.accountVat.stepVatOnly': 'Which VAT rate?',
+  'importFindings.accountVat.showOtherCodes': 'Show other codes',
+  'importFindings.accountVat.hideOtherCodes': 'Hide other codes',
+  'importFindings.accountVat.vatOtherHidden':
+    'No standard rate for this. Show other codes to choose verlegd, ICP, export or a special code.',
   'importFindings.accountVat.vatHint': 'Moneybird had {rate}% VAT.',
   'importFindings.accountVat.vatHintUnknown': 'Moneybird had no rate.',
   'importFindings.accountVat.vatUnsupported':
@@ -185,6 +189,7 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.reason.number': 'Same number',
   'importFindings.accountVat.reason.name': 'Similar name',
   'importFindings.vat.VH21': '21% VAT',
+  'importFindings.vat.VH21-PRO': '21% VAT, 50% deductible',
   'importFindings.vat.VL9': '9% VAT',
   'importFindings.vat.H21': '21% VAT',
   'importFindings.vat.L9': '9% VAT',

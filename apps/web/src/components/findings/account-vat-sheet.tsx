@@ -26,9 +26,9 @@ import {
 import { Badge } from '~/components/ui/badge'
 import { Keycap } from '~/components/ui/keycap'
 import {
-  suggestVatCode,
-  vatOptionsFor,
+  vatCandidatesFor,
   type ImportVatCode,
+  type ImportVatOption,
   type ImportVatRule,
 } from '~/lib/import-findings'
 import { cn } from '~/lib/utils'
@@ -107,20 +107,23 @@ function AccountVatSheetBody({
 }: AccountVatSheetProps) {
   const { t } = useT()
   const listId = useId()
-  const vatOptions = useMemo(
-    () => vatOptionsFor({ rules: taxRules, taxRateType, percentage }),
+  const candidates = useMemo(
+    () => vatCandidatesFor({ rules: taxRules, taxRateType, percentage }),
     [taxRules, taxRateType, percentage],
   )
-  // Prefill only when exactly one match — never GEEN among five 0% sales codes.
-  const uniqueSuggested = suggestVatCode({ rules: taxRules, taxRateType, percentage })
+  // Prefill only a unique primary — never a 0% sales code (#70 / #71).
+  const uniqueSuggested = candidates.suggestedCode
   const defaultVat =
     uniqueSuggested !== null
       ? uniqueSuggested
       : suggestedVat !== null &&
-          vatOptions.length === 1 &&
-          vatOptions.some((option) => option.code === suggestedVat)
+          candidates.primary.length === 1 &&
+          candidates.primary.some((option) => option.code === suggestedVat)
         ? suggestedVat
         : null
+  // When there is no primary (0% sales), open “Andere codes” so the five codes
+  // are reachable without an empty radiogroup.
+  const hasOtherCodes = candidates.other.length > 0
   const emptyChart = accounts.length === 0
   const initialChosen = emptyChart
     ? null
@@ -137,6 +140,14 @@ function AccountVatSheetBody({
   const [chosenNumber, setChosenNumber] = useState<string | null>(initialChosen)
   const [newAccount, setNewAccount] = useState(emptyChart)
   const [vat, setVat] = useState<ImportVatCode | null>(defaultVat)
+  /** Other codes start open when there is no primary (0% sales). */
+  const [showOther, setShowOther] = useState(candidates.primary.length === 0 && hasOtherCodes)
+
+  const primaryOptions = candidates.primary
+  const otherOptions = candidates.other
+  const allVatOptions: readonly ImportVatOption[] = [...primaryOptions, ...otherOptions]
+  /** Radios currently in the tab/arrow order (primary always; other when expanded). */
+  const vatOptions: readonly ImportVatOption[] = showOther ? allVatOptions : primaryOptions
 
   const ranked = useMemo(
     () => buildRankedList(accounts, { rgsCode, number: sourceNumber, name: sourceName, query }),
@@ -148,12 +159,12 @@ function AccountVatSheetBody({
     : (ranked.find((row) => row.account.number === chosenNumber)?.account ??
       accounts.find((account) => account.number === chosenNumber) ??
       null)
-  const vatOption = vatOptions.find((option) => option.code === vat) ?? null
+  const vatOption = allVatOptions.find((option) => option.code === vat) ?? null
   const percentageLabel = (percentage ?? '').trim().replace(/\.0+$/, '') || '—'
 
   const canSave =
     mode === 'tax'
-      ? vat !== null && vatOptions.length > 0
+      ? vat !== null && allVatOptions.length > 0
       : newAccount
         ? sourceNumber.trim() !== ''
         : chosen !== null
@@ -195,10 +206,16 @@ function AccountVatSheetBody({
   const vatLabel = (option: { readonly code: string; readonly description: string }): string => {
     const key = `importFindings.vat.${option.code}` as MessageKey
     const translated = t(key)
-    // Unknown keys fall through as the key string — prefer the chart description.
-    return translated === key || translated.startsWith('importFindings.vat.')
-      ? option.description
-      : translated
+    // Missing/unknown keys: catalogue miss → undefined; cast of a non-key → key string.
+    // Prefer the chart description over either.
+    if (
+      translated === undefined ||
+      translated === key ||
+      translated.startsWith('importFindings.vat.')
+    ) {
+      return option.description
+    }
+    return translated
   }
 
   const onVatKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
@@ -420,62 +437,86 @@ function AccountVatSheetBody({
             <legend className="mb-2 text-sm font-medium">
               {t('importFindings.accountVat.stepVatOnly')}
             </legend>
-            {vatOptions.length === 0 ? (
+            {allVatOptions.length === 0 ? (
               <p className="text-muted-foreground border px-3 py-3 text-sm" role="status">
                 {percentageLabel === '—'
                   ? t('importFindings.accountVat.vatUnknown')
                   : t('importFindings.accountVat.vatUnsupported', { rate: percentageLabel })}
               </p>
             ) : (
-              <div
-                role="radiogroup"
-                className={cn(
-                  'border',
-                  vatOptions.length <= 3
-                    ? 'grid'
-                    : 'flex max-h-64 flex-col divide-y overflow-y-auto',
+              <>
+                {vatOptions.length === 0 ? (
+                  <p className="text-muted-foreground border px-3 py-3 text-sm" role="status">
+                    {t('importFindings.accountVat.vatOtherHidden')}
+                  </p>
+                ) : (
+                  <div
+                    role="radiogroup"
+                    className={cn(
+                      'border',
+                      vatOptions.length <= 3
+                        ? 'grid'
+                        : 'flex max-h-64 flex-col divide-y overflow-y-auto',
+                    )}
+                    style={
+                      vatOptions.length <= 3
+                        ? {
+                            gridTemplateColumns: `repeat(${String(vatOptions.length)}, minmax(0, 1fr))`,
+                          }
+                        : undefined
+                    }
+                    onKeyDown={onVatKeyDown}
+                  >
+                    {vatOptions.map((option, index) => {
+                      const checked = option.code === vat
+                      return (
+                        <button
+                          key={option.code}
+                          type="button"
+                          role="radio"
+                          aria-checked={checked}
+                          tabIndex={checked || (vat === null && index === 0) ? 0 : -1}
+                          onClick={() => setVat(option.code)}
+                          className={cn(
+                            'min-h-11 px-3 text-left text-sm outline-none',
+                            'focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
+                            vatOptions.length <= 3 && index > 0 && 'border-l',
+                            checked
+                              ? 'bg-foreground text-background font-medium focus-visible:outline-background'
+                              : 'hover:bg-muted',
+                          )}
+                        >
+                          <span className="block">{vatLabel(option)}</span>
+                          {advanced && (
+                            <span className="block text-xs opacity-70 tabular-nums">
+                              {option.code}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
                 )}
-                style={
-                  vatOptions.length <= 3
-                    ? {
-                        gridTemplateColumns: `repeat(${String(vatOptions.length)}, minmax(0, 1fr))`,
-                      }
-                    : undefined
-                }
-                onKeyDown={onVatKeyDown}
-              >
-                {vatOptions.map((option, index) => {
-                  const checked = option.code === vat
-                  return (
-                    <button
-                      key={option.code}
-                      type="button"
-                      role="radio"
-                      aria-checked={checked}
-                      // Roving tabindex: when nothing is selected, the first radio
-                      // stays in the Tab order so keyboard users can reach the group.
-                      tabIndex={checked || (vat === null && index === 0) ? 0 : -1}
-                      onClick={() => setVat(option.code)}
-                      className={cn(
-                        // Inset ring: overflow-y-auto on 4+ options clips the global
-                        // +2px offset (#69 / #67 werklijst). Ink fill uses background.
-                        'min-h-11 px-3 text-left text-sm outline-none',
-                        'focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
-                        vatOptions.length <= 3 && index > 0 && 'border-l',
-                        checked
-                          ? 'bg-foreground text-background font-medium focus-visible:outline-background'
-                          : 'hover:bg-muted',
-                      )}
-                    >
-                      <span className="block">{vatLabel(option)}</span>
-                      {advanced && <span className="block text-xs opacity-70">{option.code}</span>}
-                    </button>
-                  )
-                })}
-              </div>
+                {hasOtherCodes && (
+                  <label
+                    className="text-foreground mt-2 flex min-h-11 cursor-pointer items-center gap-2 text-sm underline-offset-4 hover:underline md:min-h-9"
+                    data-slot="vat-show-other"
+                  >
+                    <input
+                      type="checkbox"
+                      className="border-input size-4 shrink-0 rounded-none border accent-foreground"
+                      checked={showOther}
+                      onChange={(event) => setShowOther(event.target.checked)}
+                    />
+                    {showOther
+                      ? t('importFindings.accountVat.hideOtherCodes')
+                      : t('importFindings.accountVat.showOtherCodes')}
+                  </label>
+                )}
+              </>
             )}
             {/* Status box already explains empty options; skip the duplicate hint. */}
-            {vatOptions.length > 0 && (
+            {allVatOptions.length > 0 && (
               <p className="text-muted-foreground mt-1.5 text-xs">
                 {percentage !== null && percentage !== '' && percentageLabel !== '—'
                   ? t('importFindings.accountVat.vatHint', { rate: percentageLabel })

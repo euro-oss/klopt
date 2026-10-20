@@ -6,7 +6,7 @@
  * FindingCard models from `~/lib/finding-card` / `moneybird-findings`.
  */
 
-import { matchVatCodes, type VatMatchRule } from '@klopt/core/moneybird-account-ranker'
+import { rankVatCodes, type VatMatchRule } from '@klopt/core/moneybird-account-ranker'
 import type { FindingHonesty } from '~/lib/finding-card'
 
 /** Local copy of honestyFromReconciliation — keeps this module free of value imports from finding-card for vitest path alias. */
@@ -220,6 +220,15 @@ export interface ImportVatOption {
   readonly rate: string
   readonly description: string
   readonly direction: 'input' | 'output'
+  readonly group: 'primary' | 'other'
+}
+
+/** Primary then other — for the sheet and “Andere codes tonen” (#71). */
+export interface ImportVatCandidates {
+  readonly primary: readonly ImportVatOption[]
+  readonly other: readonly ImportVatOption[]
+  /** Unique plain standard only — never a 0% sales code. */
+  readonly suggestedCode: string | null
 }
 
 /** Klopt tax code string (nl-mkb: H21, VERL, ICP, …). */
@@ -228,83 +237,182 @@ export type ImportVatCode = string
 /**
  * Subset of `reference-data/charts/nl-mkb.json` for lab / unit tests.
  * Real Moneybird screens pass the entity's `listTaxCodes` rows instead.
+ * Scope / reverseCharge / deductibility drive primary vs other (#70 / #71).
  */
 export const NL_MKB_VAT_RULES: readonly ImportVatRule[] = [
-  { code: 'H21', rateBasisPoints: 2100, direction: 'output', description: 'BTW hoog 21%' },
-  { code: 'L9', rateBasisPoints: 900, direction: 'output', description: 'BTW laag 9%' },
+  {
+    code: 'H21',
+    rateBasisPoints: 2100,
+    direction: 'output',
+    scope: 'domestic',
+    reverseCharge: 'none',
+    deductibility: 'full',
+    description: 'BTW hoog 21%',
+  },
+  {
+    code: 'L9',
+    rateBasisPoints: 900,
+    direction: 'output',
+    scope: 'domestic',
+    reverseCharge: 'none',
+    deductibility: 'full',
+    description: 'BTW laag 9%',
+  },
+  {
+    code: 'PRIV21',
+    rateBasisPoints: 2100,
+    direction: 'output',
+    scope: 'private_use',
+    reverseCharge: 'none',
+    deductibility: 'full',
+    description: 'Privégebruik 21%',
+  },
   {
     code: 'VERL',
     rateBasisPoints: 0,
     direction: 'output',
+    scope: 'domestic',
+    reverseCharge: 'domestic',
     description: 'BTW verlegd naar afnemer',
   },
-  { code: 'GEEN', rateBasisPoints: 0, direction: 'output', description: 'Vrijgesteld van BTW' },
+  {
+    code: 'GEEN',
+    rateBasisPoints: 0,
+    direction: 'output',
+    scope: 'exempt',
+    reverseCharge: 'none',
+    description: 'Vrijgesteld van BTW',
+  },
   {
     code: 'NUL',
     rateBasisPoints: 0,
     direction: 'output',
+    scope: 'export',
+    reverseCharge: 'none',
     description: 'BTW 0% (export buiten de EU)',
   },
   {
     code: 'ICP',
     rateBasisPoints: 0,
     direction: 'output',
+    scope: 'intra_community',
+    reverseCharge: 'none',
     description: 'Intracommunautaire levering goederen 0%',
   },
   {
     code: 'ICPD',
     rateBasisPoints: 0,
     direction: 'output',
+    scope: 'intra_community_services',
+    reverseCharge: 'none',
     description: 'Intracommunautaire dienst 0%',
   },
   {
     code: 'VH21',
     rateBasisPoints: 2100,
     direction: 'input',
+    scope: 'domestic',
+    reverseCharge: 'none',
+    deductibility: 'full',
     description: 'Voorbelasting hoog 21%',
   },
-  { code: 'VL9', rateBasisPoints: 900, direction: 'input', description: 'Voorbelasting laag 9%' },
+  {
+    code: 'VH21-PRO',
+    rateBasisPoints: 2100,
+    direction: 'input',
+    scope: 'domestic',
+    reverseCharge: 'none',
+    deductibility: 'pro_rata',
+    description: 'Voorbelasting hoog 21%, 50% aftrekbaar',
+  },
+  {
+    code: 'VL9',
+    rateBasisPoints: 900,
+    direction: 'input',
+    scope: 'domestic',
+    reverseCharge: 'none',
+    deductibility: 'full',
+    description: 'Voorbelasting laag 9%',
+  },
 ]
 
+/** Private-use codes stay out of the sales picker (#71 PM). */
+function showInVatPicker(rule: VatMatchRule): boolean {
+  return rule.scope !== 'private_use'
+}
+
+function toVatOption(
+  rule: VatMatchRule,
+  rules: readonly ImportVatRule[],
+  group: 'primary' | 'other',
+): ImportVatOption {
+  const withLabel = rules.find((row) => row.code === rule.code)
+  return {
+    code: rule.code,
+    rate: (rule.rateBasisPoints / 100).toFixed(rule.rateBasisPoints % 100 === 0 ? 0 : 2),
+    description: withLabel?.description?.trim() || rule.code,
+    direction: rule.direction,
+    group,
+  }
+}
+
 /**
- * VAT radios from the entity chart via core `matchVatCodes` (#69 PM).
+ * Direction + rate matches via `rankVatCodes`: primary (H21/L9/VH21/VL9) first,
+ * then other (0% sales, VH21-PRO, …). PRIV21 is never offered (#71).
  *
- * Empty / NaN percentage or unknown direction → [] (map by hand). Multiple
- * 0% sales matches (VERL/GEEN/NUL/ICP/ICPD) are all returned; never prefill.
+ * Empty / NaN percentage or unknown direction → empty groups (map by hand).
+ */
+export function vatCandidatesFor(input: {
+  readonly rules: readonly ImportVatRule[]
+  readonly taxRateType?: string | null
+  readonly percentage?: string | null
+}): ImportVatCandidates {
+  const taxRateType = input.taxRateType ?? null
+  if (taxRateType !== 'purchase_invoice' && taxRateType !== 'sales_invoice') {
+    return { primary: [], other: [], suggestedCode: null }
+  }
+
+  const raw = (input.percentage ?? '').trim().replace(',', '.')
+  if (raw === '') return { primary: [], other: [], suggestedCode: null }
+  const numeric = Number(raw)
+  if (!Number.isFinite(numeric)) return { primary: [], other: [], suggestedCode: null }
+
+  const ranked = rankVatCodes(input.rules, { percentage: numeric, taxRateType })
+  const primary = ranked.primary
+    .filter(showInVatPicker)
+    .map((rule) => toVatOption(rule, input.rules, 'primary'))
+  const other = ranked.other
+    .filter(showInVatPicker)
+    .map((rule) => toVatOption(rule, input.rules, 'other'))
+  const suggestedCode =
+    ranked.suggestedCode !== null && primary.some((row) => row.code === ranked.suggestedCode)
+      ? ranked.suggestedCode
+      : primary.length === 1
+        ? (primary[0]?.code ?? null)
+        : null
+  return { primary, other, suggestedCode }
+}
+
+/**
+ * Flat primary+other list (PRIV21 excluded). Prefer {@link vatCandidatesFor}
+ * when the UI needs the toggle split.
  */
 export function vatOptionsFor(input: {
   readonly rules: readonly ImportVatRule[]
   readonly taxRateType?: string | null
   readonly percentage?: string | null
 }): readonly ImportVatOption[] {
-  const taxRateType = input.taxRateType ?? null
-  if (taxRateType !== 'purchase_invoice' && taxRateType !== 'sales_invoice') return []
-
-  const raw = (input.percentage ?? '').trim().replace(',', '.')
-  if (raw === '') return []
-  const numeric = Number(raw)
-  if (!Number.isFinite(numeric)) return []
-
-  return matchVatCodes(input.rules, { percentage: numeric, taxRateType }).map((rule) => {
-    const withLabel = input.rules.find((row) => row.code === rule.code)
-    return {
-      code: rule.code,
-      rate: (rule.rateBasisPoints / 100).toFixed(rule.rateBasisPoints % 100 === 0 ? 0 : 2),
-      description: withLabel?.description?.trim() || rule.code,
-      direction: rule.direction,
-    }
-  })
+  const ranked = vatCandidatesFor(input)
+  return [...ranked.primary, ...ranked.other]
 }
 
 /**
- * Prefill only when exactly one chart code matches. Never pick GEEN (or any
- * other) among several 0% sales candidates.
+ * Prefill only a unique primary. Never pick among 0% sales (all `other`).
  */
 export function suggestVatCode(input: {
   readonly rules: readonly ImportVatRule[]
   readonly taxRateType?: string | null
   readonly percentage?: string | null
 }): ImportVatCode | null {
-  const options = vatOptionsFor(input)
-  return options.length === 1 ? (options[0]?.code ?? null) : null
+  return vatCandidatesFor(input).suggestedCode
 }

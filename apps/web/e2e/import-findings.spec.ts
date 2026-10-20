@@ -20,7 +20,10 @@ async function openLab(page: Page, search: string = 'source=moneybird&state=open
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill('Import Findings BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  // #67 dashboard greeting replaced the old "Dashboard" h1.
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
   await page.goto(`/lab/import-findings?${search}`)
   await expect(page.locator('[data-slot="import-findings"]')).toBeVisible({ timeout: 15_000 })
 }
@@ -102,22 +105,47 @@ test('category search ↓ + ↵ commits the highlighted row, not the previous pi
   await expect(page.getByText('Kantoorartikelen → Kantoorartikelen')).toHaveCount(0)
 })
 
-test('btw sheet filters by direction and moves with arrow keys', async ({ page }) => {
+test('btw sheet preselects primary VH21 and reveals VH21-PRO via Andere codes', async ({
+  page,
+}) => {
   await openLab(page)
   await page.getByTestId('lab-advanced').check()
   await page.goto('/lab/import-findings?source=moneybird&state=open&sheet=tax')
   const sheet = page.getByRole('dialog')
   await expect(sheet).toBeVisible()
   await expect(sheet.getByText('VH21', { exact: true })).toBeVisible()
+  // Primary only until the toggle opens other codes (VH21-PRO).
   await expect(sheet.getByRole('radio')).toHaveCount(1)
   await expect(sheet.getByRole('radio')).toHaveAttribute('aria-checked', 'true')
+  await expect(sheet.getByText('PRIV21')).toHaveCount(0)
+  const otherToggle = sheet.locator('[data-slot="vat-show-other"]')
+  await expect(otherToggle).toContainText('Andere codes tonen')
+  await otherToggle.locator('input[type="checkbox"]').check()
+  await expect(sheet).toBeVisible()
+  await expect(otherToggle).toContainText('Andere codes verbergen')
+  await expect(sheet.getByRole('radio')).toHaveCount(2)
+  await expect(sheet.getByText('VH21-PRO', { exact: true })).toBeVisible()
+  // Primary stays preselected after revealing other codes (primary is first).
+  const vh21Radio = sheet.getByRole('radio').nth(0)
+  await expect(vh21Radio).toContainText('VH21')
+  await expect(vh21Radio).not.toContainText('VH21-PRO')
+  await expect(vh21Radio).toHaveAttribute('aria-checked', 'true')
+  await expect(sheet.getByRole('radio').nth(1)).toHaveAttribute('aria-checked', 'false')
+})
 
-  await page.keyboard.press('Escape')
+test('btw sheet lists 0% sales under Andere codes with no preselect', async ({ page }) => {
+  await openLab(page)
+  await page.getByTestId('lab-advanced').check()
   await page.goto('/lab/import-findings?source=moneybird&state=open&sheet=tax0')
   const zeroSheet = page.getByRole('dialog')
   await expect(zeroSheet).toBeVisible()
+  // No primary for 0% — other codes open so the five are reachable; none checked.
   await expect(zeroSheet.getByRole('radio')).toHaveCount(5)
   await expect(zeroSheet.getByRole('radio', { checked: true })).toHaveCount(0)
+  await expect(zeroSheet.locator('[data-slot="vat-show-other"]')).toContainText(
+    'Andere codes verbergen',
+  )
+  await expect(zeroSheet.getByText('PRIV21')).toHaveCount(0)
   // First radio is in the Tab order when nothing is pre-selected (roving tabindex).
   await expect(zeroSheet.getByRole('radio').nth(0)).toHaveAttribute('tabindex', '0')
   let focusedRadio = false
