@@ -40,7 +40,8 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        'bg-overlay fixed inset-0 z-50 duration-[200ms] supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 motion-reduce:animate-none motion-reduce:transition-none',
+        // Dim only — prototype #57 uses bg-black/40 with no blur.
+        'bg-overlay fixed inset-0 z-50 duration-[200ms] data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 motion-reduce:animate-none motion-reduce:transition-none',
         className,
       )}
       {...props}
@@ -70,8 +71,10 @@ function SheetContent({
         className={cn(
           'bg-popover text-popover-foreground fixed z-50 flex flex-col text-sm transition duration-[200ms] ease-in-out',
           'data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t',
-          'data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:sm:max-w-sm',
-          'data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:sm:max-w-sm',
+          // Left: no forced width — app-shell nav keeps `w-72` (#69 review / #64).
+          'data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:border-r',
+          // Right fix panels: full phone / 520px desktop (#57).
+          'data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-full data-[side=right]:border-l data-[side=right]:sm:max-w-[520px]',
           'data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b',
           'data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
           'data-[side=bottom]:data-open:slide-in-from-bottom-10 data-[side=left]:data-open:slide-in-from-left-10 data-[side=right]:data-open:slide-in-from-right-10 data-[side=top]:data-open:slide-in-from-top-10',

@@ -44,6 +44,7 @@ import { Route as AppExactCallbackRouteImport } from './routes/_app/exact.callba
 import { Route as AppInvoicesIndexRouteImport } from './routes/_app/invoices.index'
 import { Route as AppInvoicesInvoiceIdRouteImport } from './routes/_app/invoices.$invoiceId'
 import { Route as AppInvoicesNewRouteImport } from './routes/_app/invoices.new'
+import { Route as AppLabImportFindingsRouteImport } from './routes/_app/lab.import-findings'
 import { Route as AppMoneybirdIndexRouteImport } from './routes/_app/moneybird.index'
 import { Route as AppPaymentsIndexRouteImport } from './routes/_app/payments.index'
 import { Route as AppPaymentsBatchIdRouteImport } from './routes/_app/payments.$batchId'
@@ -341,6 +342,11 @@ const AppInvoicesInvoiceIdRoute = AppInvoicesInvoiceIdRouteImport.update({
 const AppInvoicesNewRoute = AppInvoicesNewRouteImport.update({
   id: '/invoices/new',
   path: '/invoices/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLabImportFindingsRoute = AppLabImportFindingsRouteImport.update({
+  id: '/lab/import-findings',
+  path: '/lab/import-findings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMoneybirdIndexRoute = AppMoneybirdIndexRouteImport.update({
@@ -1031,6 +1037,7 @@ export interface FileRoutesByFullPath {
   '/exact/callback': typeof AppExactCallbackRoute
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
+  '/lab/import-findings': typeof AppLabImportFindingsRoute
   '/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
   '/purchases/new': typeof AppPurchasesNewRoute
@@ -1189,6 +1196,7 @@ export interface FileRoutesByTo {
   '/exact/callback': typeof AppExactCallbackRoute
   '/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
+  '/lab/import-findings': typeof AppLabImportFindingsRoute
   '/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
   '/purchases/new': typeof AppPurchasesNewRoute
@@ -1349,6 +1357,7 @@ export interface FileRoutesById {
   '/_app/exact/callback': typeof AppExactCallbackRoute
   '/_app/invoices/$invoiceId': typeof AppInvoicesInvoiceIdRoute
   '/_app/invoices/new': typeof AppInvoicesNewRoute
+  '/_app/lab/import-findings': typeof AppLabImportFindingsRoute
   '/_app/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/_app/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
   '/_app/purchases/new': typeof AppPurchasesNewRoute
@@ -1509,6 +1518,7 @@ export interface FileRouteTypes {
     | '/exact/callback'
     | '/invoices/$invoiceId'
     | '/invoices/new'
+    | '/lab/import-findings'
     | '/payments/$batchId'
     | '/purchases/$invoiceId'
     | '/purchases/new'
@@ -1667,6 +1677,7 @@ export interface FileRouteTypes {
     | '/exact/callback'
     | '/invoices/$invoiceId'
     | '/invoices/new'
+    | '/lab/import-findings'
     | '/payments/$batchId'
     | '/purchases/$invoiceId'
     | '/purchases/new'
@@ -1826,6 +1837,7 @@ export interface FileRouteTypes {
     | '/_app/exact/callback'
     | '/_app/invoices/$invoiceId'
     | '/_app/invoices/new'
+    | '/_app/lab/import-findings'
     | '/_app/payments/$batchId'
     | '/_app/purchases/$invoiceId'
     | '/_app/purchases/new'
@@ -2275,6 +2287,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices/new'
       fullPath: '/invoices/new'
       preLoaderRoute: typeof AppInvoicesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lab/import-findings': {
+      id: '/_app/lab/import-findings'
+      path: '/lab/import-findings'
+      fullPath: '/lab/import-findings'
+      preLoaderRoute: typeof AppLabImportFindingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/moneybird/': {
@@ -3154,6 +3173,7 @@ interface AppRouteChildren {
   AppExactCallbackRoute: typeof AppExactCallbackRoute
   AppInvoicesInvoiceIdRoute: typeof AppInvoicesInvoiceIdRoute
   AppInvoicesNewRoute: typeof AppInvoicesNewRoute
+  AppLabImportFindingsRoute: typeof AppLabImportFindingsRoute
   AppPaymentsBatchIdRoute: typeof AppPaymentsBatchIdRoute
   AppPurchasesInvoiceIdRoute: typeof AppPurchasesInvoiceIdRoute
   AppPurchasesNewRoute: typeof AppPurchasesNewRoute
@@ -3195,6 +3215,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppExactCallbackRoute: AppExactCallbackRoute,
   AppInvoicesInvoiceIdRoute: AppInvoicesInvoiceIdRoute,
   AppInvoicesNewRoute: AppInvoicesNewRoute,
+  AppLabImportFindingsRoute: AppLabImportFindingsRoute,
   AppPaymentsBatchIdRoute: AppPaymentsBatchIdRoute,
   AppPurchasesInvoiceIdRoute: AppPurchasesInvoiceIdRoute,
   AppPurchasesNewRoute: AppPurchasesNewRoute,

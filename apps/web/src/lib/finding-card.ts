@@ -242,8 +242,8 @@ export function honestyClasses(honesty: FindingHonesty): {
       // Read and vacant — solid border, still neutral.
       return { border: 'border-border', text: 'text-foreground', tone: 'neutral' }
     case 'reconciled':
-      // Read and balanced — confident foreground; Phase 2 may tint green.
-      return { border: 'border-foreground', text: 'text-foreground', tone: 'good' }
+      // Read and balanced — success green (#57 honesty “Klopt”).
+      return { border: 'border-success', text: 'text-success', tone: 'good' }
   }
 }
 

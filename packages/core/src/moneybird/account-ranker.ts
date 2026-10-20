@@ -164,6 +164,8 @@ export function matchVatCodes(
   rules: readonly VatMatchRule[],
   query: VatMatchQuery,
 ): readonly VatMatchRule[] {
+  // Unknown direction must not guess "output" — that would offer sales codes
+  // for an unclassified Moneybird rate (#69 PM / #70).
   if (query.taxRateType !== 'purchase_invoice' && query.taxRateType !== 'sales_invoice') {
     return []
   }

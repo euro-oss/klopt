@@ -14300,10 +14300,10 @@
                 "status": {
                   "enum": [
                     "failed",
-                    "rejected",
                     "prepared",
                     "delivered",
-                    "accepted"
+                    "accepted",
+                    "rejected"
                   ]
                 },
                 "reference": {
@@ -14674,10 +14674,10 @@
     "FilingStatus": {
       "enum": [
         "failed",
-        "rejected",
         "prepared",
         "delivered",
-        "accepted"
+        "accepted",
+        "rejected"
       ]
     },
     "FilingTransportKind": {
@@ -14868,9 +14868,9 @@
       "enum": [
         "draft",
         "approved",
+        "rejected",
         "submitted",
-        "exported",
-        "rejected"
+        "exported"
       ]
     },
     "PaymentRunFindingCode": {

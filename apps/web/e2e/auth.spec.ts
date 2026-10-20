@@ -118,8 +118,10 @@ test('a member lands on the dashboard, and signing out returns to the form', asy
     await addMember(database, { entityId, userId, role: 'bookkeeper' })
 
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
-    await expect(page.getByText('RGS-dekking')).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+    ).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Kerncijfers' })).toBeVisible()
 
     await signOut(page)
     await expect(page).toHaveURL(/\/sign-in/)
@@ -145,7 +147,9 @@ test('a signed-in visitor is bounced away from the sign-in page', async ({ page 
 
     await page.goto('/sign-in')
     await expect(page).toHaveURL(/localhost:\d+\/$/)
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+    ).toBeVisible()
   } finally {
     await closeDatabase(database)
   }
