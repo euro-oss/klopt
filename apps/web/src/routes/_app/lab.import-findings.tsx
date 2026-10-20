@@ -7,7 +7,12 @@ import { FxRateSheet } from '~/components/findings/fx-rate-sheet'
 import { ImportFindingsScreen } from '~/components/findings/import-findings-screen'
 import { ScrollTable, stickyFirstCol } from '~/components/ui/scroll-table'
 import { NL_MKB_VAT_RULES } from '~/lib/import-findings'
-import { rollbackRejectedTaxMappings, taxViolationsByRateId } from '~/lib/tax-mapping-save'
+import {
+  applyTaxMappingSaveFailure,
+  scrollTaxMappingViolationIntoView,
+  type TaxMappingViolationView,
+} from '~/lib/tax-mapping-save'
+import { MoneybirdMappingReview } from '~/components/findings/moneybird-mapping-review'
 import {
   EXACT_FIXTURE_SOURCES,
   FIXTURE_ACCOUNTS,
@@ -84,10 +89,14 @@ function ImportFindingsLab() {
     source === 'moneybird' ? MONEYBIRD_FIXTURE_RESOLVED : [],
   )
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(() => new Set())
-  // Lab stand-in for moneybird MappingReview 422 handling (#71 PM).
+  // Lab uses the same MoneybirdMappingReview + applyTaxMappingSaveFailure as /moneybird.
   const [mapTax, setMapTax] = useState<Record<string, string>>({ '21': 'H21' })
-  const [mapViolations, setMapViolations] = useState<Readonly<Record<string, string>>>({})
+  const [mapViolations, setMapViolations] = useState<
+    Readonly<Record<string, TaxMappingViolationView>>
+  >({})
+  const [mapBusy, setMapBusy] = useState(false)
   const showMapFail = sheet === 'taxMapFail'
+  const noopJumpToMapping = () => undefined
 
   const findings = useMemo((): readonly FindingsListItem[] => {
     if (state === 'empty' || state === 'loading' || state === 'error') return []
@@ -296,6 +305,7 @@ function ImportFindingsLab() {
             taxRateType="purchase_invoice"
             percentage="0"
             advanced={advanced}
+            onJumpToMapping={noopJumpToMapping}
             onSave={() => undefined}
           />
           {/* Unsupported rate → honest empty status (6%). */}
@@ -310,6 +320,7 @@ function ImportFindingsLab() {
             taxRateType="purchase_invoice"
             percentage="6"
             advanced={advanced}
+            onJumpToMapping={noopJumpToMapping}
             onSave={() => undefined}
           />
           {/* Empty / unknown rate → vatUnknown status, no duplicate hint. */}
@@ -324,68 +335,71 @@ function ImportFindingsLab() {
             taxRateType="purchase_invoice"
             percentage=""
             advanced={advanced}
+            onJumpToMapping={noopJumpToMapping}
             onSave={() => undefined}
           />
           {showMapFail && (
-            <div className="border-border mt-6 border p-4" data-slot="lab-tax-map-fail">
-              <h2 className="text-sm font-semibold">Mapping (lab 422)</h2>
-              <p className="text-muted-foreground mb-3 text-xs">
-                Simulates saveMappings rejecting taxRates.21 so the UI rolls back.
-              </p>
-              <div id="moneybird-tax-21" className="flex flex-col gap-1">
-                <label className="text-sm">
-                  Hoog tarief verkoop (21%)
-                  <input
-                    className={cn(
-                      'border-border mt-1 block w-40 rounded-none border px-2 py-1 tabular-nums',
-                      mapViolations['21'] !== undefined && 'border-destructive',
-                    )}
-                    value={mapTax['21'] ?? ''}
-                    aria-invalid={mapViolations['21'] !== undefined}
-                    onChange={(event) => {
-                      setMapViolations({})
-                      setMapTax({ '21': event.target.value })
-                    }}
-                  />
-                </label>
-                {mapViolations['21'] !== undefined ? (
-                  <p
-                    role="alert"
-                    className="text-destructive text-xs"
-                    data-slot="tax-mapping-violation"
-                  >
-                    {mapViolations['21']}
-                  </p>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                className="border-border mt-3 rounded-none border px-3 py-1.5 text-sm"
-                onClick={() => {
-                  const previous = { '21': 'H21' }
-                  const attempted = { ...mapTax }
-                  // Canned 422: sales rate mapped to an input code.
-                  const byRate = taxViolationsByRateId([
+            <MoneybirdMappingReview
+              data-slot="lab-tax-map-fail"
+              accounts={[]}
+              taxRates={[
+                {
+                  moneybirdId: '21',
+                  name: 'Hoog tarief verkoop',
+                  percentage: '21',
+                  taxRateType: 'sales_invoice',
+                  proposedCode: 'H21',
+                  mappedCode: 'H21',
+                  used: true,
+                },
+              ]}
+              accountMappings={{}}
+              taxMappings={mapTax}
+              taxViolations={mapViolations}
+              advanced={advanced}
+              onAccountChange={() => undefined}
+              onTaxChange={(id, value) => {
+                setMapViolations((current) => {
+                  if (current[id] === undefined) return current
+                  const next = { ...current }
+                  delete next[id]
+                  return next
+                })
+                setMapTax((current) => ({ ...current, [id]: value }))
+              }}
+              onSave={() => {
+                setMapBusy(true)
+                const previous = { '21': 'H21' }
+                const attempted = { ...mapTax }
+                // Same shape as saveMappings 422 — finding.moneybird.incompatible_tax_rate.
+                const applied = applyTaxMappingSaveFailure({
+                  previous,
+                  attempted,
+                  violations: [
                     {
                       path: 'taxRates.21',
-                      message:
-                        'Dit Moneybird-tarief past niet bij VH21 (inkoop). Kies een verkoopcode.',
                       code: 'incompatible_tax_rate',
+                      messageKey: 'moneybird.incompatible_tax_rate',
+                      message:
+                        'Tax rate Hoog tarief verkoop (21%) cannot map to VH21: direction or rate does not match the chart.',
+                      detail: {
+                        name: 'Hoog tarief verkoop',
+                        percentage: '21%',
+                        mappedCode: attempted['21'] ?? 'VH21',
+                      },
                     },
-                  ])
-                  setMapViolations(byRate)
-                  setMapTax(
-                    rollbackRejectedTaxMappings({
-                      previous,
-                      attempted,
-                      rejectedIds: new Set(Object.keys(byRate)),
-                    }),
-                  )
-                }}
-              >
-                Bewaar mapping
-              </button>
-            </div>
+                  ],
+                  t,
+                })
+                setMapViolations(applied.taxViolations)
+                setMapTax(applied.taxMappings)
+                const first = applied.rejectedIds[0]
+                if (first !== undefined) scrollTaxMappingViolationIntoView(first)
+                setMapBusy(false)
+              }}
+              busy={mapBusy}
+              hydrated={hydrated}
+            />
           )}
           <FxRateSheet
             open={fxOpen}

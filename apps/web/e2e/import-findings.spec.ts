@@ -142,6 +142,7 @@ test('btw sheet preselects VH21; Space opens other without saving', async ({ pag
   await expect(advancedToggle).toContainText('Andere codes tonen')
   await advancedToggle.click()
   await expect(advancedToggle).toContainText('Andere codes verbergen')
+  await expect(advancedSheet.getByText('VH21', { exact: true })).toBeVisible()
   await expect(advancedSheet.getByText('VERL-ONTV', { exact: true })).toBeVisible()
   await expect(advancedSheet.getByText('ICV21', { exact: true })).toBeVisible()
   await expect(advancedSheet.getByText('INV23', { exact: true })).toBeVisible()
@@ -198,18 +199,23 @@ test('btw sheet lists 0% sales directly with no disclosure and no preselect', as
   await expect(page.getByText('0% → GEEN')).toBeVisible()
 })
 
-test('btw sheet keeps other expanded while an other code is selected', async ({ page }) => {
+test('btw sheet hides disclosure while a non-primary is selected', async ({ page }) => {
   await openLab(page, 'source=moneybird&state=open&sheet=tax')
   const sheet = page.getByRole('dialog')
   const toggle = sheet.locator('[data-slot="vat-show-other"]')
   await toggle.click()
+  await expect(sheet.getByRole('radio')).toHaveCount(4)
+  await expect(sheet.getByText('Btw verlegd naar jou')).toBeVisible()
   await sheet.getByRole('radio').nth(1).click() // VERL-ONTV
   await expect(sheet.getByRole('radio').nth(1)).toHaveAttribute('aria-checked', 'true')
-  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-  await toggle.click() // collapse is a no-op while other stays selected
+  // Disclosure hidden while other stays selected — list remains open (#71 designer).
+  await expect(sheet.locator('[data-slot="vat-show-other"]')).toHaveCount(0)
   await expect(sheet.getByRole('radio')).toHaveCount(4)
-  await expect(sheet.getByRole('radio').nth(1)).toHaveAttribute('aria-checked', 'true')
   await expect(sheet.getByRole('radio').nth(1)).toHaveAttribute('tabindex', '0')
+  // Choosing primary again brings the disclosure back.
+  await sheet.getByRole('radio').nth(0).click()
+  await expect(sheet.locator('[data-slot="vat-show-other"]')).toBeVisible()
+  await expect(sheet.locator('[data-slot="vat-show-other"]')).toContainText('Minder tonen')
 })
 
 test('btw sheet shows honest copy for 0% purchase and unsupported 6%', async ({ page }) => {
@@ -220,7 +226,9 @@ test('btw sheet shows honest copy for 0% purchase and unsupported 6%', async ({ 
   await expect(zeroPurchase.getByRole('status')).toContainText(
     /Klopt heeft nog geen btw-code voor dit tarief/,
   )
-  await expect(zeroPurchase.getByText(/mappingtabel/i)).toHaveCount(0)
+  // onJumpToMapping is passed in; the sheet must still hide the link (#71 PM A).
+  await expect(zeroPurchase.locator('[data-slot="vat-jump-to-mapping"]')).toHaveCount(0)
+  await expect(zeroPurchase.getByRole('button', { name: /Zelf kiezen in de tabel/ })).toHaveCount(0)
   await expect(zeroPurchase.getByText('H21', { exact: true })).toHaveCount(0)
   await page.keyboard.press('Escape')
 
@@ -230,31 +238,41 @@ test('btw sheet shows honest copy for 0% purchase and unsupported 6%', async ({ 
     /Klopt heeft nog geen btw-code voor dit tarief/,
   )
   await expect(bad.getByRole('radio')).toHaveCount(0)
+  await expect(bad.locator('[data-slot="vat-jump-to-mapping"]')).toHaveCount(0)
   await expect(bad.getByText(/In Moneybird stond/)).toHaveCount(0)
 })
 
-test('btw sheet shows vatUnknown once for an empty rate', async ({ page }) => {
+test('btw sheet shows Moneybird-empty-rate copy for vatUnknown', async ({ page }) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxEmpty')
   const sheet = page.getByRole('dialog')
   await expect(sheet).toBeVisible()
   await expect(sheet.getByRole('status')).toContainText(
-    /Klopt heeft nog geen btw-code voor dit tarief/,
+    /Moneybird gaf geen tarief mee, dus deze import kan nog niet verder/,
   )
   await expect(sheet.getByRole('radio')).toHaveCount(0)
-  await expect(sheet.getByText(/Klopt heeft nog geen btw-code/)).toHaveCount(1)
+  await expect(sheet.locator('[data-slot="vat-jump-to-mapping"]')).toHaveCount(0)
+  await expect(sheet.getByText(/Moneybird gaf geen tarief mee/)).toHaveCount(1)
+  await expect(sheet.getByText(/Klopt heeft nog geen btw-code/)).toHaveCount(0)
   await expect(sheet.getByText(/In Moneybird stond geen tarief/)).toHaveCount(0)
 })
 
-test('mapping 422 rolls back the rejected tax rate and shows the violation', async ({ page }) => {
+test('mapping 422 shows finding.moneybird.incompatible_tax_rate and rolls back', async ({
+  page,
+}) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxMapFail')
   const panel = page.locator('[data-slot="lab-tax-map-fail"]')
   await expect(panel).toBeVisible()
-  const input = panel.locator('input')
+  const row = panel.locator('#moneybird-tax-21')
+  const input = row.locator('input')
   await expect(input).toHaveValue('H21')
   await input.fill('VH21')
-  await panel.getByRole('button', { name: 'Bewaar mapping' }).click()
-  await expect(panel.locator('[data-slot="tax-mapping-violation"]')).toContainText(/past niet/)
+  await panel.getByRole('button', { name: 'Mapping bewaren' }).click()
+  const violation = panel.locator('[data-slot="tax-mapping-violation"]')
+  await expect(violation).toContainText(/Btw-tarief Hoog tarief verkoop \(21%\) past niet bij VH21/)
+  await expect(input).toHaveAttribute('aria-invalid', 'true')
   await expect(input).toHaveValue('H21')
+  // Row stays in view after the rejected save (#71 PM B).
+  await expect(row).toBeInViewport()
 })
 
 test('FX sheet toggles ECB to Aangepast and back', async ({ page }) => {

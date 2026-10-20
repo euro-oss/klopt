@@ -1633,7 +1633,7 @@ export const nl = {
   'importFindings.accountVat.vatUnsupported':
     'Klopt heeft nog geen btw-code voor dit tarief, dus deze import kan nog niet verder.',
   'importFindings.accountVat.vatUnknown':
-    'Klopt heeft nog geen btw-code voor dit tarief, dus deze import kan nog niet verder.',
+    'Moneybird gaf geen tarief mee, dus deze import kan nog niet verder.',
   'importFindings.accountVat.vatMapByHand':
     'Dit Moneybird-tarief ({rate}%) kunnen we niet vanzelf koppelen. Kies het btw-tarief zelf in de mappingtabel.',
   'importFindings.accountVat.whatHappens': 'Wat er gebeurt',
@@ -1652,9 +1652,9 @@ export const nl = {
   'importFindings.vat.VL9': '9% btw',
   'importFindings.vat.H21': '21% btw',
   'importFindings.vat.L9': '9% btw',
-  'importFindings.vat.VERL-ONTV': 'Btw verlegd naar u',
-  'importFindings.vat.ICV21': 'IC-verwerving 21%',
-  'importFindings.vat.INV23': 'Invoer art. 23',
+  'importFindings.vat.VERL-ONTV': 'Btw verlegd naar jou',
+  'importFindings.vat.ICV21': '21% btw over inkoop uit de EU',
+  'importFindings.vat.INV23': '21% btw over invoer van buiten de EU',
   // Shared with guided invoice flow (#74) — same key names + values for a clean merge.
   'invoiceGuided.vat.VERL': 'Btw verlegd',
   'invoiceGuided.vat.GEEN': 'Vrijgesteld van btw',

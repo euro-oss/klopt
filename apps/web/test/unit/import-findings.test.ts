@@ -196,6 +196,9 @@ describe('vatCandidatesFor on full nl-mkb.json (listTaxCodes shape)', () => {
     expect(zeroSales.other.map((row) => row.code)).toEqual(['VERL', 'GEEN', 'NUL', 'ICP', 'ICPD'])
     expect(zeroSales.suggestedCode).toBeNull()
     expect(
+      suggestVatCode({ rules: chartRules, taxRateType: 'sales_invoice', percentage: '0' }),
+    ).toBeNull()
+    expect(
       vatCandidatesFor({
         rules: chartRules,
         taxRateType: 'purchase_invoice',

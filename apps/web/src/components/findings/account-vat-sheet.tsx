@@ -531,7 +531,9 @@ function AccountVatSheetBody({
                     })}
                   </div>
                 )}
-                {canDiscloseOther && (
+                {/* Hide disclosure while a non-primary is selected so Minder tonen
+                    cannot be a no-op; list stays open via selectedIsOther (#71 designer). */}
+                {canDiscloseOther && !selectedIsOther && (
                   <Button
                     type="button"
                     variant="link"
@@ -540,11 +542,7 @@ function AccountVatSheetBody({
                     aria-expanded={disclosureOpen}
                     aria-controls={vatListId}
                     className="mt-2 h-auto min-h-11 justify-start gap-1 px-0 font-normal tracking-normal normal-case md:min-h-9"
-                    onClick={() => {
-                      // Collapse is a no-op while an other code stays selected.
-                      if (disclosureOpen && selectedIsOther) return
-                      setShowOther((open) => !open)
-                    }}
+                    onClick={() => setShowOther((open) => !open)}
                   >
                     <RiArrowDownSLine
                       aria-hidden
@@ -603,11 +601,13 @@ function AccountVatSheetBody({
       </div>
 
       <SheetFooter className="flex-row flex-wrap justify-end gap-2 border-t px-5 py-3">
-        {onJumpToMapping !== undefined && (
+        {/* No “Zelf kiezen in de tabel” when every pick would 422 (#71 PM). */}
+        {onJumpToMapping !== undefined && !(mode === 'tax' && allVatOptions.length === 0) && (
           <Button
             type="button"
             variant="ghost"
             className="mr-auto min-h-11 md:min-h-9"
+            data-slot="vat-jump-to-mapping"
             onClick={onJumpToMapping}
           >
             {t('importFindings.accountVat.jumpToMapping')}

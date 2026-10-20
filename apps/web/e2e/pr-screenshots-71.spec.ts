@@ -94,7 +94,8 @@ test('capture #71 btw picker PNGs (simple + one advanced set)', async ({ browser
       const sheet = page.getByRole('dialog')
       await sheet.locator('[data-slot="vat-show-other"]').click()
       await expect(sheet.getByRole('radio')).toHaveCount(4)
-      await expect(sheet.getByText('Btw verlegd naar u')).toBeVisible()
+      await expect(sheet.getByText('Btw verlegd naar jou')).toBeVisible()
+      await expect(sheet.getByText('21% btw over inkoop uit de EU')).toBeVisible()
       await expect(sheet.locator('[data-slot="vat-show-other"]')).toContainText('Minder tonen')
       await setTheme(page, theme)
       await shoot(page, `btw-other-${theme}-${label}.png`)
@@ -136,6 +137,26 @@ test('capture #71 btw picker PNGs (simple + one advanced set)', async ({ browser
       await expect(toggle).toContainText('Andere codes verbergen')
       await setTheme(page, theme)
       await shoot(page, `btw-advanced-other-${theme}-${label}.png`)
+      await context.close()
+    }
+  }
+
+  // 422 inline error on the lab mapping table (rollback + violation).
+  for (const theme of ['light', 'dark'] as const) {
+    for (const [label, size] of VIEWPORTS) {
+      const context = await browser.newContext({ viewport: size })
+      const page = await context.newPage()
+      await ready(page, `71 tax 422 ${theme} ${label}`)
+      await openFindings(page, 'source=moneybird&state=open&sheet=taxMapFail')
+      const panel = page.locator('[data-slot="lab-tax-map-fail"]')
+      await expect(panel).toBeVisible()
+      await panel.locator('input').fill('VH21')
+      await panel.getByRole('button', { name: 'Mapping bewaren' }).click()
+      await expect(panel.locator('[data-slot="tax-mapping-violation"]')).toContainText(
+        /past niet bij VH21/,
+      )
+      await setTheme(page, theme)
+      await shoot(page, `btw-422-${theme}-${label}.png`)
       await context.close()
     }
   }

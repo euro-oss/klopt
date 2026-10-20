@@ -183,7 +183,7 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.vatUnsupported':
     'Klopt does not have a VAT code for this rate yet, so this import cannot continue.',
   'importFindings.accountVat.vatUnknown':
-    'Klopt does not have a VAT code for this rate yet, so this import cannot continue.',
+    'Moneybird did not send a rate, so this import cannot continue.',
   'importFindings.accountVat.vatMapByHand':
     'We cannot match this Moneybird rate ({rate}%) automatically. Choose the VAT rate yourself in the mapping table.',
   'importFindings.accountVat.whatHappens': 'What happens',
@@ -203,8 +203,8 @@ export const en: Record<MessageKey, string> = {
   'importFindings.vat.H21': '21% VAT',
   'importFindings.vat.L9': '9% VAT',
   'importFindings.vat.VERL-ONTV': 'VAT reverse-charged to you',
-  'importFindings.vat.ICV21': 'IC acquisition 21%',
-  'importFindings.vat.INV23': 'Import art. 23',
+  'importFindings.vat.ICV21': '21% VAT on purchases from the EU',
+  'importFindings.vat.INV23': '21% VAT on imports from outside the EU',
   // Shared with guided invoice flow (#74) — same key names + values for a clean merge.
   'invoiceGuided.vat.VERL': 'VAT reverse-charged',
   'invoiceGuided.vat.GEEN': 'VAT-exempt',
