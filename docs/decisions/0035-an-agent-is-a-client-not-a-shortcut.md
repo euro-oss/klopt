@@ -179,9 +179,11 @@ resolves at all.
 
 ## Addendum: the write tools, and the permission that makes them mean something
 
-Four write tools: `check_journal_entry`, `draft_sales_invoice`,
-`capture_purchase_invoice`, `draft_from_inbox_item`. Every one ends at
-something that exists and has not happened yet.
+Five write tools: `check_journal_entry`, `draft_sales_invoice`,
+`replace_draft_sales_invoice`, `capture_purchase_invoice`,
+`draft_from_inbox_item`. Every one ends at something that exists and has not
+happened yet (`replace_draft_sales_invoice` rewrites a draft in place so a
+second draft is not left orphaned).
 
 What is absent is the design. There is no `issue_invoice`, no
 `book_purchase_invoice`, no `send_invoice`, no `approve_payment_batch` and no

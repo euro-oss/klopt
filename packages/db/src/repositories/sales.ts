@@ -195,6 +195,93 @@ export class SalesRepository {
     return id
   }
 
+  /**
+   * Replace a draft in place: same id, new header and lines, re-priced.
+   *
+   * Drafts allocate no number and post nothing, so rewriting one is the cheap
+   * way to keep a single draft id when the UI walks Klant → Controleren →
+   * Terug → edit → Controleren. Issued invoices are never touched here.
+   *
+   * Returns `false` when no draft row matched (issued/cancelled/missing under
+   * READ COMMITTED) — callers must not rewrite lines in that case.
+   */
+  async replaceDraft(
+    invoiceId: string,
+    request: DraftInvoiceRequest,
+    context: InvoiceContext,
+    priced: PricedInvoice,
+  ): Promise<boolean> {
+    const updated = await this.tx
+      .update(salesInvoices)
+      .set({
+        contactId: context.contact.id,
+        kind: request.kind,
+        issueDate: request.issueDate,
+        dueDate: dueDate(request.issueDate, context.contact.paymentTermsDays),
+        currency: context.currency,
+        netMinorUnits: priced.net,
+        taxMinorUnits: priced.tax,
+        totalMinorUnits: priced.total,
+        reference: request.reference,
+        buyerReference: request.buyerReference,
+        notes: request.notes,
+        creditsInvoiceId: request.creditsInvoiceId,
+      })
+      .where(
+        and(
+          eq(salesInvoices.entityId, request.entityId),
+          eq(salesInvoices.id, invoiceId),
+          // Race with issue: without status=draft the UPDATE would still hit the
+          // row and the following line rewrite would overwrite an issued invoice.
+          eq(salesInvoices.status, 'draft'),
+        ),
+      )
+      .returning({ id: salesInvoices.id })
+
+    if (updated.length === 0) return false
+
+    await this.tx
+      .delete(salesInvoiceLines)
+      .where(
+        and(
+          eq(salesInvoiceLines.invoiceId, invoiceId),
+          eq(salesInvoiceLines.entityId, request.entityId),
+        ),
+      )
+
+    const accountIds = await this.accountIdsByNumber(
+      request.entityId,
+      priced.lines.map((line) => line.revenueAccountNumber),
+    )
+
+    await this.tx.insert(salesInvoiceLines).values(
+      priced.lines.map((line) => {
+        const accountId = accountIds.get(line.revenueAccountNumber)
+        if (accountId === undefined) {
+          throw new Error(`No account ${line.revenueAccountNumber}.`)
+        }
+        const taxCode = context.taxCodes.get(line.tax.code)
+        if (taxCode === undefined) throw new Error(`No tax code ${line.tax.code}.`)
+
+        return {
+          id: uuidv7(),
+          entityId: request.entityId,
+          invoiceId,
+          lineNumber: line.lineNumber,
+          description: line.description,
+          quantity: line.quantity,
+          unitCode: line.unitCode,
+          unitPriceMinorUnits: line.unitPrice,
+          revenueAccountId: accountId,
+          taxCodeId: taxCode.id,
+          netMinorUnits: line.net,
+          taxMinorUnits: line.tax_,
+        }
+      }),
+    )
+    return true
+  }
+
   private async accountIdsByNumber(
     entityId: string,
     numbers: readonly string[],

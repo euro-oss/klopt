@@ -12050,6 +12050,121 @@
         ]
       }
     },
+    "sales.replaceDraftInvoice": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "net": {
+            "type": "string"
+          },
+          "tax": {
+            "type": "string"
+          },
+          "total": {
+            "type": "string"
+          },
+          "rounding": {
+            "$ref": "#/components/schemas/VatRounding"
+          },
+          "taxGroups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "ratePercent": {
+                  "type": "string"
+                },
+                "ublCategory": {
+                  "type": "string"
+                },
+                "net": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "description",
+                "ratePercent",
+                "ublCategory",
+                "net",
+                "amount"
+              ]
+            }
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "lineNumber": {
+                  "type": "number"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "string"
+                },
+                "unitCode": {
+                  "type": "string"
+                },
+                "unitPrice": {
+                  "type": "string"
+                },
+                "revenueAccountNumber": {
+                  "type": "string"
+                },
+                "taxCode": {
+                  "type": "string"
+                },
+                "net": {
+                  "type": "string"
+                },
+                "tax": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "lineNumber",
+                "description",
+                "quantity",
+                "unitCode",
+                "unitPrice",
+                "revenueAccountNumber",
+                "taxCode",
+                "net",
+                "tax"
+              ]
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "net",
+          "tax",
+          "total",
+          "rounding",
+          "taxGroups",
+          "lines",
+          "id",
+          "status"
+        ]
+      }
+    },
     "sales.sendDunningReminder": {
       "schema": {
         "type": "object",

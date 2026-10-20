@@ -484,6 +484,16 @@ export const salesOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  replaceDraftInvoice: defineOperation({
+    id: 'sales.replaceDraftInvoice',
+    kind: 'write',
+    permission: 'ledger:draft',
+    summary:
+      'Replace a draft sales invoice in place: same id, new lines and totals, still unposted.',
+    agentExposure: 'proposal',
+    idempotent: true,
+  }),
+
   issueInvoice: defineOperation({
     id: 'sales.issueInvoice',
     kind: 'write',

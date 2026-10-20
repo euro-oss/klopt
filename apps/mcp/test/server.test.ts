@@ -105,6 +105,7 @@ describe('what an agent is allowed to reach for', () => {
       'get_balance',
       'list_open_items',
       'list_pending_approvals',
+      'replace_draft_sales_invoice',
       'search',
       'vat_return_preview',
     ])
@@ -127,6 +128,7 @@ describe('what an agent is allowed to reach for', () => {
 
     const writes = new Set([
       'draft_sales_invoice',
+      'replace_draft_sales_invoice',
       'capture_purchase_invoice',
       'draft_from_inbox_item',
     ])
@@ -458,5 +460,102 @@ describe('when the API says no', () => {
 
     expect(result.isError).toBe(true)
     expect((result.content as { text: string }[])[0]!.text).toContain('not reachable')
+  })
+})
+
+describe('draft and replace proposal bodies', () => {
+  const LINE = {
+    description: 'Advies',
+    quantity: '1',
+    unitPrice: '100.00',
+    revenueAccountNumber: '8000',
+    taxCode: 'H21',
+  }
+
+  it('does not send buyerReference: null on draft or replace by default', async () => {
+    const calls: { method: string; path: string; body: Record<string, unknown> }[] = []
+    const recording = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const href = input instanceof Request ? input.url : input.toString()
+      const method = (
+        init?.method ?? (input instanceof Request ? input.method : 'GET')
+      ).toUpperCase()
+      if (method === 'POST' || method === 'PUT') {
+        const sent = typeof init?.body === 'string' ? init.body : '{}'
+        calls.push({
+          method,
+          path: new URL(href).pathname,
+          body: JSON.parse(sent) as Record<string, unknown>,
+        })
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ id: '018f0000-0000-7000-8000-000000000099', total: '121000' }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          ),
+        )
+      }
+      return api(CHART)(input)
+    })
+
+    const client = await connect(recording)
+    await client.callTool({
+      name: 'draft_sales_invoice',
+      arguments: {
+        contactNumber: 'DEB-0001',
+        issueDate: '2026-01-20',
+        lines: [LINE],
+      },
+    })
+    await client.callTool({
+      name: 'replace_draft_sales_invoice',
+      arguments: {
+        invoiceId: '018f0000-0000-7000-8000-000000000099',
+        contactNumber: 'DEB-0001',
+        issueDate: '2026-01-20',
+        lines: [LINE],
+      },
+    })
+
+    expect(calls).toHaveLength(2)
+    expect(calls[0]?.method).toBe('POST')
+    expect(calls[0]?.body).not.toHaveProperty('buyerReference')
+    expect(calls[1]?.method).toBe('PUT')
+    expect(calls[1]?.body).not.toHaveProperty('buyerReference')
+  })
+
+  it('forwards an explicit buyerReference on replace', async () => {
+    const calls: { body: Record<string, unknown> }[] = []
+    const recording = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const method = (
+        init?.method ?? (input instanceof Request ? input.method : 'GET')
+      ).toUpperCase()
+      if (method === 'PUT') {
+        const sent = typeof init?.body === 'string' ? init.body : '{}'
+        calls.push({ body: JSON.parse(sent) as Record<string, unknown> })
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: '018f0000-0000-7000-8000-000000000099' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }),
+        )
+      }
+      return api(CHART)(input)
+    })
+
+    const client = await connect(recording)
+    await client.callTool({
+      name: 'replace_draft_sales_invoice',
+      arguments: {
+        invoiceId: '018f0000-0000-7000-8000-000000000099',
+        contactNumber: 'DEB-0001',
+        issueDate: '2026-01-20',
+        buyerReference: 'DEB-0001',
+        lines: [LINE],
+      },
+    })
+
+    expect(calls[0]?.body['buyerReference']).toBe('DEB-0001')
   })
 })

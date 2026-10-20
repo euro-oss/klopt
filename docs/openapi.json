@@ -24484,6 +24484,285 @@
             }
           }
         ]
+      },
+      "put": {
+        "operationId": "sales.replaceDraftInvoice",
+        "summary": "Replace a draft sales invoice in place: same id, new lines and totals, still unposted.",
+        "tags": [
+          "sales"
+        ],
+        "x-klopt-permission": "ledger:draft",
+        "x-klopt-kind": "write",
+        "x-klopt-agent-exposure": "proposal",
+        "responses": {
+          "200": {
+            "description": "The request succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "net": {
+                      "type": "string"
+                    },
+                    "tax": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "string"
+                    },
+                    "rounding": {
+                      "$ref": "#/components/schemas/VatRounding"
+                    },
+                    "taxGroups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "ratePercent": {
+                            "type": "string"
+                          },
+                          "ublCategory": {
+                            "type": "string"
+                          },
+                          "net": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "description",
+                          "ratePercent",
+                          "ublCategory",
+                          "net",
+                          "amount"
+                        ]
+                      }
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "lineNumber": {
+                            "type": "number"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "string"
+                          },
+                          "unitCode": {
+                            "type": "string"
+                          },
+                          "unitPrice": {
+                            "type": "string"
+                          },
+                          "revenueAccountNumber": {
+                            "type": "string"
+                          },
+                          "taxCode": {
+                            "type": "string"
+                          },
+                          "net": {
+                            "type": "string"
+                          },
+                          "tax": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "lineNumber",
+                          "description",
+                          "quantity",
+                          "unitCode",
+                          "unitPrice",
+                          "revenueAccountNumber",
+                          "taxCode",
+                          "net",
+                          "tax"
+                        ]
+                      }
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "net",
+                    "tax",
+                    "total",
+                    "rounding",
+                    "taxGroups",
+                    "lines",
+                    "id",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/IdempotencyKeyRequired"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "description": "A client-chosen key. Retrying with the same key and the same body replays the original result rather than acting twice; the same key with a different body is a 409.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contactNumber": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "kind": {
+                    "default": "invoice",
+                    "type": "string",
+                    "enum": [
+                      "invoice",
+                      "credit_note"
+                    ]
+                  },
+                  "issueDate": {
+                    "$ref": "#/components/schemas/IsoDate"
+                  },
+                  "reference": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "buyerReference": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "notes": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "creditsInvoiceId": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "lines": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "description": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "quantity": {
+                          "default": "1",
+                          "type": "string",
+                          "pattern": "^\\d+(\\.\\d{1,6})?$"
+                        },
+                        "unitCode": {
+                          "default": "EA",
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "unitPrice": {
+                          "$ref": "#/components/schemas/MinorUnits"
+                        },
+                        "revenueAccountNumber": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "taxCode": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "description",
+                        "unitPrice",
+                        "revenueAccountNumber",
+                        "taxCode"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "contactNumber",
+                  "issueDate",
+                  "lines"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/sales-invoices/{invoiceId}/deliveries": {

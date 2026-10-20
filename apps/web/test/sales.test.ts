@@ -1,6 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
-import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
+import {
+  closeDatabase,
+  createDatabase,
+  issueToken,
+  priceDraft,
+  runMigrations,
+  withSales,
+  type Database,
+  type DraftInvoiceRequest,
+} from '@klopt/db'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
@@ -14,6 +23,7 @@ import {
   handleListOverdueInvoices,
   handleListTaxCodes,
   handleGetContact,
+  handleReplaceDraftInvoice,
   handleUpdateContact,
 } from '../src/api/handlers/sales.js'
 import {
@@ -184,6 +194,212 @@ describe('drafting', () => {
       currency: 'EUR',
     })
     expect(statement.body.result).toBe('0')
+  })
+
+  it('replaces a draft in place with the same id and new totals', async () => {
+    const { token } = await newEntity()
+    await withCustomer(token)
+
+    const created = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const replaced = await handleReplaceDraftInvoice(
+      await context(token, uuidv7()),
+      created.body.id,
+      draft({
+        lines: [
+          {
+            description: 'Meer advies',
+            quantity: '2',
+            unitPrice: '100000',
+            revenueAccountNumber: '8000',
+            taxCode: 'H21',
+          },
+        ],
+      }),
+    )
+
+    expect(replaced.status).toBe(200)
+    expect(replaced.body.id).toBe(created.body.id)
+    expect(replaced.body.status).toBe('draft')
+    expect(replaced.body.net).toBe('200000')
+    expect(replaced.body.tax).toBe('42000')
+    expect(replaced.body.total).toBe('242000')
+
+    const listed = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'draft' }),
+    )
+    expect(listed.body.invoices).toHaveLength(1)
+    expect(listed.body.invoices[0]!.id).toBe(created.body.id)
+    expect(listed.body.invoices[0]!.total).toBe('242000')
+
+    const fetched = await handleGetInvoice(await context(token), created.body.id)
+    expect(fetched.body.invoice.lines).toHaveLength(1)
+    expect(fetched.body.invoice.lines[0]!.description).toBe('Meer advies')
+    expect(Number(fetched.body.invoice.lines[0]!.quantity)).toBe(2)
+  })
+
+  it('refuses to replace an issued invoice and leaves lines and totals alone', async () => {
+    const { token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const before = await handleGetInvoice(await context(token), drafted.body.id)
+    expect(before.body.invoice.status).toBe('draft')
+    expect(before.body.invoice.total).toBe('121000')
+    expect(before.body.invoice.lines).toHaveLength(1)
+    expect(before.body.invoice.lines[0]!.description).toBe('Advieswerkzaamheden')
+
+    await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const issued = await handleGetInvoice(await context(token), drafted.body.id)
+    expect(issued.body.invoice.status).toBe('issued')
+    expect(issued.body.invoice.number).toMatch(/^\d{4}-\d+$/)
+    const issuedNumber = issued.body.invoice.number
+
+    await expect(
+      handleReplaceDraftInvoice(
+        await context(token, uuidv7()),
+        drafted.body.id,
+        draft({
+          lines: [
+            {
+              description: 'Should never land',
+              quantity: '99',
+              unitPrice: '99900',
+              revenueAccountNumber: '8000',
+              taxCode: 'H21',
+            },
+          ],
+        }),
+      ),
+    ).rejects.toMatchObject({ code: 'conflict' })
+
+    const after = await handleGetInvoice(await context(token), drafted.body.id)
+    expect(after.body.invoice.status).toBe('issued')
+    expect(after.body.invoice.number).toBe(issuedNumber)
+    expect(after.body.invoice.total).toBe(before.body.invoice.total)
+    expect(after.body.invoice.net).toBe(before.body.invoice.net)
+    expect(after.body.invoice.lines).toHaveLength(1)
+    expect(after.body.invoice.lines[0]!.description).toBe('Advieswerkzaamheden')
+    expect(after.body.invoice.lines[0]!.unitPrice).toBe('10000')
+  })
+
+  it('replaceDraft returns false after issue without rewriting lines, totals or number', async () => {
+    // The handler's early status check never reaches replaceDraft once issue
+    // has committed. This hits the repository path that guards the race:
+    // UPDATE … WHERE status = 'draft' RETURNING id, then refuse before lines.
+    const { entityId, token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const before = await handleGetInvoice(await context(token), drafted.body.id)
+    expect(before.body.invoice.status).toBe('issued')
+    expect(before.body.invoice.number).toMatch(/^\d{4}-\d+$/)
+    expect(before.body.invoice.total).toBe('121000')
+    expect(before.body.invoice.lines).toHaveLength(1)
+    expect(before.body.invoice.lines[0]!.description).toBe('Advieswerkzaamheden')
+
+    const replaced = await withSales(database, async ({ sales }) => {
+      const invoiceContext = await sales.loadContext(entityId, 'DEB-0001')
+      if (invoiceContext === null) throw new Error('missing contact')
+      const request: DraftInvoiceRequest = {
+        entityId,
+        contactNumber: 'DEB-0001',
+        kind: 'invoice',
+        issueDate: '2026-01-20',
+        reference: null,
+        buyerReference: null,
+        notes: null,
+        creditsInvoiceId: null,
+        lines: [
+          {
+            description: 'Should never land',
+            quantity: '99',
+            unitCode: 'EA',
+            unitPrice: 99900n,
+            revenueAccountNumber: '8000',
+            taxCode: 'H21',
+          },
+        ],
+      }
+      const priced = priceDraft(request, invoiceContext)
+      return sales.replaceDraft(drafted.body.id, request, invoiceContext, priced)
+    })
+
+    expect(replaced).toBe(false)
+
+    const after = await handleGetInvoice(await context(token), drafted.body.id)
+    expect(after.body.invoice.status).toBe('issued')
+    expect(after.body.invoice.number).toBe(before.body.invoice.number)
+    expect(after.body.invoice.total).toBe(before.body.invoice.total)
+    expect(after.body.invoice.net).toBe(before.body.invoice.net)
+    expect(after.body.invoice.tax).toBe(before.body.invoice.tax)
+    expect(after.body.invoice.lines).toHaveLength(1)
+    expect(after.body.invoice.lines[0]!.description).toBe('Advieswerkzaamheden')
+    expect(after.body.invoice.lines[0]!.unitPrice).toBe('10000')
+    expect(Number(after.body.invoice.lines[0]!.quantity)).toBe(10)
+  })
+
+  it('needs ledger:draft to replace a draft', async () => {
+    const { entityId, token } = await newEntity()
+    await withCustomer(token)
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const { token: reader } = await issueToken(database, {
+      entityId,
+      name: 'reader',
+      permissions: ['ledger:read'],
+      actorKind: 'script',
+      actorId: 'reader',
+    })
+
+    await expect(
+      handleReplaceDraftInvoice(await context(reader, uuidv7()), drafted.body.id, draft()),
+    ).rejects.toMatchObject({ code: 'forbidden' })
+  })
+
+  it('will not replace another administration’s draft', async () => {
+    const ours = await newEntity()
+    const theirs = await newEntity()
+    await withCustomer(ours.token)
+    await withCustomer(theirs.token)
+    const drafted = await handleDraftInvoice(await context(ours.token, uuidv7()), draft())
+
+    await expect(
+      handleReplaceDraftInvoice(await context(theirs.token, uuidv7()), drafted.body.id, draft()),
+    ).rejects.toMatchObject({ code: 'not_found' })
+  })
+
+  it('keeps buyerReference on replace when the caller sends null', async () => {
+    const { token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(
+      await context(token, uuidv7()),
+      draft({ buyerReference: 'DEB-0001' }),
+    )
+    expect(
+      (await handleGetInvoice(await context(token), drafted.body.id)).body.invoice.buyerReference,
+    ).toBe('DEB-0001')
+
+    await handleReplaceDraftInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      draft({ buyerReference: null }),
+    )
+
+    const after = await handleGetInvoice(await context(token), drafted.body.id)
+    expect(after.body.invoice.buyerReference).toBe('DEB-0001')
+    expect(after.body.invoice.lines[0]!.description).toBe('Advieswerkzaamheden')
   })
 
   it('sets the due date from the contact’s payment terms', async () => {

@@ -19,6 +19,8 @@ import {
   draftFromInboxItemInput,
   draftSalesInvoice,
   draftSalesInvoiceInput,
+  replaceDraftSalesInvoice,
+  replaceDraftSalesInvoiceInput,
 } from './tools/propose.js'
 
 /**
@@ -27,12 +29,12 @@ import {
  * ## Read is broad, write is narrow
  *
  * "Never expose a generic query or SQL tool. Every write tool is a named domain
- * operation with a typed argument set." Eight read tools, each one a named
+ * operation with a typed argument set." Nine read tools, each one a named
  * question a bookkeeper actually asks, and four write tools, each one a named
- * thing an agent may propose. There is no `query`, no `sql`, no `call_endpoint`
- * escape hatch, and adding one later would undo the entire safety model in a
- * single commit — which is why the absence is written down here rather than
- * left as an observation about the current file.
+ * thing an agent may propose (create or rewrite a draft). There is no `query`,
+ * no `sql`, no `call_endpoint` escape hatch, and adding one later would undo
+ * the entire safety model in a single commit — which is why the absence is
+ * written down here rather than left as an observation about the current file.
  *
  * ## An agent drafts; a human releases
  *
@@ -268,6 +270,17 @@ export function createServer(options: ServerOptions): McpServer {
       annotations: proposes,
     },
     guard((args) => draftSalesInvoice(context, args)),
+  )
+
+  server.registerTool(
+    'replace_draft_sales_invoice',
+    {
+      description:
+        'Replace a draft sales invoice in place: same id, new lines and totals, still no number and no journal entry. Prefer this over drafting a second invoice when the first was wrong.',
+      inputSchema: replaceDraftSalesInvoiceInput.shape,
+      annotations: proposes,
+    },
+    guard((args) => replaceDraftSalesInvoice(context, args)),
   )
 
   server.registerTool(
