@@ -257,19 +257,39 @@ export interface ListTaxCodeRow {
 export function importVatRulesFromListTaxCodes(
   rows: readonly ListTaxCodeRow[],
 ): readonly ImportVatRule[] {
-  return rows.map((row) => ({
-    code: row.code,
-    description: row.description,
-    rateBasisPoints: row.rateBasisPoints,
-    direction: row.direction,
-    scope: row.scope ?? 'domestic',
-    reverseCharge: row.reverseCharge ?? 'none',
-    deductibility: row.deductibility ?? 'full',
-    ...(row.deductionCode !== undefined && row.deductionCode !== null && row.deductionCode !== ''
-      ? { deductionCode: row.deductionCode }
-      : {}),
-    ...(row.proRataBasisPoints !== undefined ? { proRataBasisPoints: row.proRataBasisPoints } : {}),
-  }))
+  return rows.map((row): ImportVatRule => {
+    const rule: ImportVatRule = {
+      code: row.code,
+      rateBasisPoints: row.rateBasisPoints,
+      direction: row.direction,
+      scope: row.scope ?? 'domestic',
+      reverseCharge: row.reverseCharge ?? 'none',
+      deductibility: row.deductibility ?? 'full',
+    }
+    if (row.description !== undefined && row.description !== '') {
+      return {
+        ...rule,
+        description: row.description,
+        ...(row.deductionCode !== undefined &&
+        row.deductionCode !== null &&
+        row.deductionCode !== ''
+          ? { deductionCode: row.deductionCode }
+          : {}),
+        ...(row.proRataBasisPoints !== undefined
+          ? { proRataBasisPoints: row.proRataBasisPoints }
+          : {}),
+      }
+    }
+    return {
+      ...rule,
+      ...(row.deductionCode !== undefined && row.deductionCode !== null && row.deductionCode !== ''
+        ? { deductionCode: row.deductionCode }
+        : {}),
+      ...(row.proRataBasisPoints !== undefined
+        ? { proRataBasisPoints: row.proRataBasisPoints }
+        : {}),
+    }
+  })
 }
 
 /**
