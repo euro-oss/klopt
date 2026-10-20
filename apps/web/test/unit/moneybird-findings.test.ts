@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { FindingMessageKey, MoneybirdProblem } from '@klopt/core'
-import { moneybirdFixTypeFor } from '../../src/lib/moneybird-findings.js'
+import {
+  moneybirdFindingCard,
+  moneybirdFixTypeFor,
+  type MoneybirdFindingActions,
+} from '../../src/lib/moneybird-findings.js'
 import { honestyFromReconciliation } from '../../src/lib/finding-card.js'
 
 const CODES = [
@@ -60,6 +64,60 @@ describe('moneybird finding fix types', () => {
 
   it('wires unbalanced_document as guided exclude', () => {
     expect(moneybirdFixTypeFor(problem('unbalanced_document', 'sales_invoice:1'))).toBe('guided')
+  })
+
+  it('opens period_locked with Niet overzetten primary and Boekjaren secondary', () => {
+    const onExcludeDocument = vi.fn()
+    const onReviewPeriodLocked = vi.fn()
+    const onOpenPeriodSettings = vi.fn()
+    const actions = {
+      onOpenPeriodSettings,
+      onExcludeDocument,
+      onReviewPeriodLocked,
+      moneybirdHrefFor: () => null,
+      labels: {
+        exclude: 'Niet overzetten',
+        toFiscalYears: 'Naar Boekjaren',
+        stepDoNotTransfer: 'Niet overzetten',
+        openMoneybird: 'Open in Moneybird',
+        mapAccount: '',
+        mapTax: '',
+        renumberAccount: '',
+        renumberContact: '',
+        pickType: '',
+        confirmEur: '',
+        chooseRate: '',
+        confirmYearStart: '',
+        acknowledgeEmpty: '',
+        reread: '',
+        deferAttachment: '',
+        settings: '',
+        drillDown: '',
+        stepRate: '',
+        stepPreview: '',
+        stepConfirm: '',
+        stepPermissions: '',
+        stepOpenMoneybird: '',
+        stepReread: '',
+      },
+    } as unknown as MoneybirdFindingActions
+
+    const card = moneybirdFindingCard(
+      problem('period_locked', 'journal:1', {
+        year: '2024',
+        reference: 'J-1',
+      }),
+      'problems',
+      actions,
+    )
+    expect(card.fix.type).toBe('guided')
+    if (card.fix.type !== 'guided') return
+    expect(card.fix.label).toBe('Niet overzetten')
+    expect(card.fix.steps).toEqual(['Niet overzetten', 'Naar Boekjaren'])
+    card.fix.onOpen()
+    expect(onReviewPeriodLocked).toHaveBeenCalledOnce()
+    expect(onExcludeDocument).not.toHaveBeenCalled()
+    expect(onOpenPeriodSettings).not.toHaveBeenCalled()
   })
 })
 

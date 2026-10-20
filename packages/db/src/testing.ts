@@ -1,10 +1,12 @@
 import { uuidv7 } from '@klopt/core'
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
   auditLog,
   accountDimensionRequirements,
   accounts,
+  bankAccounts,
+  bankTransactions,
   dimensionTypes,
   dimensionValues,
   entities,
@@ -221,6 +223,74 @@ export async function findUserIdByEmail(database: Database, email: string): Prom
     .where(eq(users.email, email))
     .limit(1)
   return row?.id ?? null
+}
+
+/** Look an administration up by the name typed at setup (newest when names collide). */
+export async function findEntityIdByName(database: Database, name: string): Promise<string | null> {
+  const [row] = await database
+    .select({ id: entities.id })
+    .from(entities)
+    .where(eq(entities.name, name))
+    .orderBy(desc(entities.createdAt))
+    .limit(1)
+  return row?.id ?? null
+}
+
+/**
+ * Force a period’s open / soft_closed / hard_closed status for lock tests.
+ *
+ * Bank-match and VAT suites need a closed March or April without walking the
+ * full filing or year-close UI. Callers restore `open` in a `finally`.
+ */
+export async function setPeriodStatus(
+  database: Database,
+  entityId: string,
+  sequence: number,
+  status: 'open' | 'soft_closed' | 'hard_closed',
+): Promise<void> {
+  await database
+    .update(periods)
+    .set({ status })
+    .where(and(eq(periods.entityId, entityId), eq(periods.sequence, sequence)))
+}
+
+/**
+ * Extra unmatched bank lines for queue-cap tests (e.g. the "500+" remaining label).
+ *
+ * Inserts directly: walking the import UI hundreds of times is not the subject.
+ */
+export async function seedUnmatchedBankLines(
+  database: Database,
+  entityId: string,
+  count: number,
+): Promise<void> {
+  const [account] = await database
+    .select({ id: bankAccounts.id })
+    .from(bankAccounts)
+    .where(eq(bankAccounts.entityId, entityId))
+    .limit(1)
+  if (account === undefined) throw new Error(`No bank account for entity ${entityId}`)
+
+  const rows = Array.from({ length: count }, (_, index) => {
+    const id = uuidv7()
+    return {
+      id,
+      entityId,
+      bankAccountId: account.id,
+      dedupeKey: `seed-extra-${id}`,
+      amountMinorUnits: -100n - BigInt(index),
+      currency: 'EUR',
+      bookingDate: '2026-11-15',
+      valueDate: '2026-11-15',
+      description: `Extra regel ${String(index + 1)}`,
+      status: 'unmatched' as const,
+    }
+  })
+
+  const chunk = 100
+  for (let offset = 0; offset < rows.length; offset += chunk) {
+    await database.insert(bankTransactions).values(rows.slice(offset, offset + chunk))
+  }
 }
 
 /**

@@ -25,6 +25,13 @@
 export const MAY_CLOSE_YEAR: readonly string[] = ['owner', 'accountant']
 
 /**
+ * `ledger:post-closed`. Soft-closed periods stay open for the accountant (and
+ * the owner). Used by bank matching to decide whether a soft-closed booking
+ * date is still bookable or should show the lock (#61 slice 6).
+ */
+export const MAY_POST_CLOSED: readonly string[] = ['owner', 'accountant']
+
+/**
  * `ledger:configure`. Opening the next year includes the bookkeeper on purpose:
  * "a bookkeeper whose year rolled over cannot post into the new year without
  * operator help" is the sentence #6 exists because of.

@@ -80,6 +80,7 @@ export class DrizzleLedgerRepository implements LedgerRepository {
         endsOn: periods.endsOn,
         fiscalYearId: periods.fiscalYearId,
         fiscalYearCode: fiscalYears.code,
+        fiscalYearStatus: fiscalYears.status,
       })
       .from(periods)
       .innerJoin(fiscalYears, eq(fiscalYears.id, periods.fiscalYearId))

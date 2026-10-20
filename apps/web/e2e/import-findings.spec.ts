@@ -20,7 +20,10 @@ async function openLab(page: Page, search: string = 'source=moneybird&state=open
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill('Import Findings BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  // #67 redesign: greeting, not a "Dashboard" heading.
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
   await page.goto(`/lab/import-findings?${search}`)
   await expect(page.locator('[data-slot="import-findings"]')).toBeVisible({ timeout: 15_000 })
 }
