@@ -1,25 +1,51 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { purchaseBookingTaxCodes, salesBookingTaxCodes } from '../../src/lib/booking-tax-codes.js'
 
-const chart = [
-  { code: 'H21', direction: 'output' },
-  { code: 'L9', direction: 'output' },
-  { code: 'L6', direction: 'output' },
-  { code: 'H19', direction: 'output' },
-  { code: 'PRIV21', direction: 'output' },
-  { code: 'VH21', direction: 'input' },
-  { code: 'VL9', direction: 'input' },
-  { code: 'VL6', direction: 'input' },
-  { code: 'VH19', direction: 'input' },
-  { code: 'VGEEN', direction: 'input' },
-]
+const chartPath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  '..',
+  'reference-data',
+  'charts',
+  'nl-mkb.json',
+)
 
-describe('booking tax code pickers', () => {
+const chartTaxCodes = (
+  JSON.parse(readFileSync(chartPath, 'utf8')) as {
+    taxCodes: readonly { code: string; direction: string }[]
+  }
+).taxCodes
+
+describe('booking tax code pickers (full nl-mkb chart)', () => {
   it('excludes L6, H19 and PRIV21 from new sales booking pickers', () => {
-    expect(salesBookingTaxCodes(chart).map((row) => row.code)).toEqual(['H21', 'L9'])
+    const codes = salesBookingTaxCodes(chartTaxCodes).map((row) => row.code)
+    expect(codes).not.toContain('L6')
+    expect(codes).not.toContain('H19')
+    expect(codes).not.toContain('PRIV21')
+    expect(codes).toContain('H21')
+    expect(codes).toContain('L9')
+    expect(
+      codes.every((code) => chartTaxCodes.find((row) => row.code === code)?.direction === 'output'),
+    ).toBe(true)
   })
 
   it('excludes VL6 and VH19 from new purchase booking pickers', () => {
-    expect(purchaseBookingTaxCodes(chart).map((row) => row.code)).toEqual(['VH21', 'VL9', 'VGEEN'])
+    const codes = purchaseBookingTaxCodes(chartTaxCodes).map((row) => row.code)
+    expect(codes).not.toContain('VL6')
+    expect(codes).not.toContain('VH19')
+    expect(codes).not.toContain('L6')
+    expect(codes).not.toContain('H19')
+    expect(codes).not.toContain('PRIV21')
+    expect(codes).toContain('VH21')
+    expect(codes).toContain('VL9')
+    expect(codes).toContain('VGEEN')
+    expect(
+      codes.every((code) => chartTaxCodes.find((row) => row.code === code)?.direction === 'input'),
+    ).toBe(true)
   })
 })

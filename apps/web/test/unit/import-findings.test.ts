@@ -10,6 +10,7 @@ import {
   NL_MKB_VAT_RULES,
   suggestVatCode,
   vatCandidatesFor,
+  vatCandidatesFromServer,
   vatOptionsFor,
   type ListTaxCodeRow,
 } from '../../src/lib/import-findings.js'
@@ -256,6 +257,44 @@ describe('vatCandidatesFor on full nl-mkb.json (listTaxCodes shape)', () => {
         percentage: '19',
       }),
     ).toEqual({ primary: [], other: [], suggestedCode: null })
+  })
+
+  it('uses server candidates so a 0% verlegd rate offers no VGEEN', () => {
+    // Server matcher drops VGEEN for verlegd / ICV / import names; empty list.
+    expect(
+      vatCandidatesFromServer({
+        rules: chartRules,
+        candidates: [],
+        proposedCode: null,
+      }),
+    ).toEqual({ primary: [], other: [], suggestedCode: null })
+    expect(
+      vatCandidatesFromServer({
+        rules: chartRules,
+        candidates: [{ code: 'VGEEN', group: 'other' }],
+        proposedCode: null,
+      }),
+    ).toMatchObject({
+      primary: [],
+      other: [{ code: 'VGEEN' }],
+      suggestedCode: null,
+    })
+    // Deduction halves from the server stay out of the picker (#71).
+    expect(
+      vatCandidatesFromServer({
+        rules: chartRules,
+        candidates: [
+          { code: 'VH21', group: 'primary' },
+          { code: 'VERL-ONTV', group: 'other' },
+          { code: 'VERL-VOOR', group: 'other' },
+        ],
+        proposedCode: 'VH21',
+      }),
+    ).toMatchObject({
+      primary: [{ code: 'VH21' }],
+      other: [{ code: 'VERL-ONTV' }],
+      suggestedCode: 'VH21',
+    })
   })
 
   it('keeps PRIV21 out of the sales picker', () => {

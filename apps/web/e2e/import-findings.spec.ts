@@ -244,6 +244,23 @@ test('btw sheet offers VGEEN for 0% purchase and honest copy for unsupported 12%
   await expect(bad.getByText(/In Moneybird stond/)).toHaveCount(0)
 })
 
+test('btw sheet offers no VGEEN for 0% verlegd purchase and shows kan-nog-niet-verder copy', async ({
+  page,
+}) => {
+  await openLab(page, 'source=moneybird&state=open&sheet=taxVerlegd0')
+  const sheet = page.getByRole('dialog')
+  await expect(sheet).toBeVisible()
+  await expect(sheet.getByText('BTW verlegd', { exact: true })).toBeVisible()
+  await expect(sheet.getByRole('radio')).toHaveCount(0)
+  await expect(sheet.getByText('VGEEN', { exact: true })).toHaveCount(0)
+  await expect(sheet.getByText(/Inkoop zonder btw/)).toHaveCount(0)
+  await expect(sheet.getByRole('status')).toContainText(
+    /Klopt heeft nog geen btw-code voor dit tarief/,
+  )
+  await expect(sheet.getByRole('status')).toContainText(/kan nog niet verder/)
+  await expect(sheet.locator('[data-slot="vat-jump-to-mapping"]')).toHaveCount(0)
+})
+
 test('btw sheet shows Moneybird-empty-rate copy for vatUnknown', async ({ page }) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxEmpty')
   const sheet = page.getByRole('dialog')

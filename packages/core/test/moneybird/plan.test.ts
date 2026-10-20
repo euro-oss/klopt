@@ -1152,6 +1152,51 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     expect(plan.problems.map((item) => item.code)).not.toContain('incompatible_tax_rate')
   })
 
+  it('offers no candidates for a 0% verlegd / ICV / import purchase rate', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          {
+            id: '51',
+            name: 'BTW verlegd naar u',
+            percentage: 0,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+          {
+            id: '52',
+            name: 'Intracommunautaire verwerving',
+            percentage: 0,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: 'ICV',
+          },
+          {
+            id: '53',
+            name: 'Invoer artikel 23',
+            percentage: 0,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+      },
+      options({ existingTaxRules: nlMkbTaxRules }),
+    )
+    for (const id of ['51', '52', '53']) {
+      const rate = plan.taxRates.find((row) => row.moneybirdId === id)
+      expect(rate?.candidates).toEqual([])
+      expect(rate?.proposedCode).toBeNull()
+      expect(rate?.candidates.map((row) => row.code)).not.toContain('VGEEN')
+    }
+  })
+
   it('offers VGEEN for a 0% purchase rate without preselecting it', () => {
     const base = snapshot()
     const plan = planMoneybirdImport(

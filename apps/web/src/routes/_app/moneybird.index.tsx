@@ -161,6 +161,11 @@ function Moneybird() {
     readonly suggestedVat: ImportVatCode | null
     readonly taxRateType: string | null
     readonly percentage: string | null
+    /** Preview `taxRates[].candidates` — sheet must not re-rank client-side (#86). */
+    readonly serverCandidates?: readonly {
+      readonly code: string
+      readonly group: 'primary' | 'other'
+    }[]
     /** MappingReview row id for the #42 jump-to-row fallback. */
     readonly mappingAnchor: string | null
   } | null>(null)
@@ -379,11 +384,14 @@ function Moneybird() {
       const rawType = sample?.taxRateType ?? problem.detail['taxRateType'] ?? null
       const taxRateType =
         rawType === 'purchase_invoice' || rawType === 'sales_invoice' ? rawType : null
-      const suggestedVat = suggestVatCode({
-        rules: kloptTaxRules,
-        taxRateType,
-        percentage,
-      })
+      // Prefer the preview's proposedCode + candidates (name-aware matcher).
+      const suggestedVat =
+        sample?.proposedCode ??
+        suggestVatCode({
+          rules: kloptTaxRules,
+          taxRateType,
+          percentage,
+        })
       setAccountVatDraft({
         moneybirdId: id,
         name,
@@ -395,6 +403,7 @@ function Moneybird() {
         suggestedVat,
         taxRateType,
         percentage: percentage !== '' ? percentage : null,
+        serverCandidates: sample?.candidates ?? [],
         mappingAnchor: id !== '' ? `moneybird-tax-${id}` : null,
       })
     },
@@ -900,6 +909,9 @@ function Moneybird() {
           suggestedVat={accountVatDraft.suggestedVat}
           taxRateType={accountVatDraft.taxRateType}
           percentage={accountVatDraft.percentage}
+          {...(accountVatDraft.serverCandidates !== undefined
+            ? { serverCandidates: accountVatDraft.serverCandidates }
+            : {})}
           mode={accountVatDraft.mode}
           advanced={advanced}
           {...(accountVatDraft.mappingAnchor === null
@@ -1156,6 +1168,10 @@ interface TaxSample {
   readonly proposedCode: string | null
   readonly mappedCode: string | null
   readonly used: boolean
+  readonly candidates?: readonly {
+    readonly code: string
+    readonly group: 'primary' | 'other'
+  }[]
 }
 
 interface PendingFxEntry {

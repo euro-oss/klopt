@@ -57,6 +57,7 @@ export const Route = createFileRoute('/_app/lab/import-findings')({
       search['sheet'] === 'tax0' ||
       search['sheet'] === 'taxSales21' ||
       search['sheet'] === 'taxPurchase0' ||
+      search['sheet'] === 'taxVerlegd0' ||
       search['sheet'] === 'taxBad' ||
       search['sheet'] === 'taxEmpty' ||
       search['sheet'] === 'taxMapFail' ||
@@ -80,6 +81,7 @@ function ImportFindingsLab() {
   const [taxZeroOpen, setTaxZeroOpen] = useState(sheet === 'tax0')
   const [taxSales21Open, setTaxSales21Open] = useState(sheet === 'taxSales21')
   const [taxPurchase0Open, setTaxPurchase0Open] = useState(sheet === 'taxPurchase0')
+  const [taxVerlegd0Open, setTaxVerlegd0Open] = useState(sheet === 'taxVerlegd0')
   const [taxBadOpen, setTaxBadOpen] = useState(sheet === 'taxBad')
   const [taxEmptyOpen, setTaxEmptyOpen] = useState(sheet === 'taxEmpty')
   const [fxOpen, setFxOpen] = useState(sheet === 'fx' || sheet === 'fxo')
@@ -293,7 +295,7 @@ function ImportFindingsLab() {
               resolveById('f3', `0% → ${choice.vatCode ?? '—'}`)
             }}
           />
-          {/* Purchase 0% → VGEEN as other, nothing pre-selected. */}
+          {/* Purchase 0% → VGEEN as other, nothing pre-selected (server candidates). */}
           <AccountVatSheet
             open={taxPurchase0Open}
             onOpenChange={setTaxPurchase0Open}
@@ -304,11 +306,28 @@ function ImportFindingsLab() {
             mode="tax"
             taxRateType="purchase_invoice"
             percentage="0"
+            serverCandidates={[{ code: 'VGEEN', group: 'other' }]}
             advanced={advanced}
             onJumpToMapping={noopJumpToMapping}
             onSave={(choice) => {
               resolveById('f3', `Inkoop 0% → ${choice.vatCode ?? '—'}`)
             }}
+          />
+          {/* 0% verlegd purchase → server drops VGEEN; honest empty (#86 PM). */}
+          <AccountVatSheet
+            open={taxVerlegd0Open}
+            onOpenChange={setTaxVerlegd0Open}
+            sourceName="BTW verlegd"
+            sourceDetail="0%"
+            accounts={FIXTURE_ACCOUNTS}
+            taxRules={NL_MKB_VAT_RULES}
+            mode="tax"
+            taxRateType="purchase_invoice"
+            percentage="0"
+            serverCandidates={[]}
+            advanced={advanced}
+            onJumpToMapping={noopJumpToMapping}
+            onSave={() => undefined}
           />
           {/* Unsupported purchase rate → honest empty status (12% inkoop). */}
           <AccountVatSheet
@@ -321,6 +340,7 @@ function ImportFindingsLab() {
             mode="tax"
             taxRateType="purchase_invoice"
             percentage="12"
+            serverCandidates={[]}
             advanced={advanced}
             onJumpToMapping={noopJumpToMapping}
             onSave={() => undefined}

@@ -558,6 +558,10 @@ function toVatOption(
  * halves are never offered (#71).
  *
  * Empty / NaN percentage or unknown direction → empty groups (map by hand).
+ *
+ * Prefer {@link vatCandidatesFromServer} on the Moneybird import sheet: the
+ * preview already applied name-based guards (e.g. no VGEEN on verlegd / ICV /
+ * import rates) that this client-only path cannot see.
  */
 export function vatCandidatesFor(input: {
   readonly rules: readonly ImportVatRule[]
@@ -585,6 +589,43 @@ export function vatCandidatesFor(input: {
   const suggestedCode =
     ranked.suggestedCode !== null && primary.some((row) => row.code === ranked.suggestedCode)
       ? ranked.suggestedCode
+      : primary.length === 1
+        ? (primary[0]?.code ?? null)
+        : null
+  return { primary, other, suggestedCode }
+}
+
+/** One entry from Moneybird preview `taxRates[].candidates`. */
+export interface ServerVatCandidate {
+  readonly code: string
+  readonly group: 'primary' | 'other'
+}
+
+/**
+ * Drive the import sheet from server-computed candidates (same matcher the
+ * saveMappings 422 validates against). Filters PRIV21 and deduction halves
+ * like the client picker; empty list → honest “kan nog niet verder” (#86 PM).
+ */
+export function vatCandidatesFromServer(input: {
+  readonly rules: readonly ImportVatRule[]
+  readonly candidates: readonly ServerVatCandidate[]
+  readonly proposedCode?: string | null
+}): ImportVatCandidates {
+  const halves = deductionHalfCodes(input.rules)
+  const primary: ImportVatOption[] = []
+  const other: ImportVatOption[] = []
+  for (const entry of input.candidates) {
+    const rule = input.rules.find((row) => row.code === entry.code)
+    if (rule === undefined) continue
+    if (!showInVatPicker(rule, halves)) continue
+    const option = toVatOption(rule, input.rules, entry.group)
+    if (entry.group === 'primary') primary.push(option)
+    else other.push(option)
+  }
+  const proposed = input.proposedCode ?? null
+  const suggestedCode =
+    proposed !== null && primary.some((row) => row.code === proposed)
+      ? proposed
       : primary.length === 1
         ? (primary[0]?.code ?? null)
         : null

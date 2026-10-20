@@ -28,8 +28,9 @@ sales `L6` / `H19` (rubriek 1c), and historical purchase `VL6` / `VH19`
 existing nl-mkb administrations (detected by H21 + VH21 + VERL-ONTV) with
 INSERT-only, skip-if-exists logic; paired codes insert only when neither half
 exists. L6, H19, VL6 and VH19 are import/correction codes only — new sales and
-purchase booking pickers never offer them. 23% and 9.7% codes are not included
-yet.
+purchase booking pickers never offer them. The Moneybird import sheet drives VAT
+radios from preview `taxRates[].candidates` (server matcher), so verlegd / ICV /
+import 0% rates never offer VGEEN. 23% and 9.7% codes are not included yet.
 
 ### Peppol Schematron in the container image
 
