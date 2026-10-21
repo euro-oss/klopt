@@ -1,5 +1,6 @@
 export * from './rubrieken.js'
 export * from './tax-code.js'
+export * from './tax-code-catalog.js'
 export * from './return.js'
 export * from './period.js'
 export * from './filing.js'

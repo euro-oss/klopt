@@ -181,6 +181,14 @@ export const BINDINGS: readonly Binding[] = [
     keys: 'g s',
     to: '/fiscal-years',
   },
+  // Palette-only: the `g` alphabet is full (docs/keyboard-map.md). Findable
+  // under Beheer and ⌘K without claiming a global chord.
+  {
+    id: 'go.taxCodes',
+    label: 'nav.taxCodes',
+    group: 'keys.group.goTo',
+    to: '/tax-codes',
+  },
   // `g q` has no mnemonic and is not pretending to: the Product call on #6 left
   // `c`, `q`, `s` and `v` free, #9 took `c` and `v` for the ouderdomsanalyses,
   // and *auditfile* shares no free letter with anything. The palette prints it.

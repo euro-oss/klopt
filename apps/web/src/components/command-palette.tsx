@@ -84,6 +84,7 @@ const EXTRA_NAVIGABLE: readonly Binding[] = BINDINGS.filter(
       'go.exactAlias',
       'go.moneybird',
       'go.fiscalYears',
+      'go.taxCodes',
       'go.auditFile',
       'go.debtorAgeing',
       'go.creditorAgeing',

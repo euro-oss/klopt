@@ -1,9 +1,14 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { violationMessage } from '~/i18n/labels'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
-import { purchaseBookingTaxCodes } from '~/lib/booking-tax-codes'
+import { todayInAmsterdam } from '~/lib/amsterdam-date'
+import {
+  clearedTaxCodeLineNumbers,
+  defaultPurchaseBookingTaxCode,
+  purchaseBookingTaxCodes,
+} from '~/lib/booking-tax-codes'
 import { formatMinorUnits, parseMinorUnits, percentOf } from '~/lib/format'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
@@ -52,7 +57,7 @@ const emptyLine = (account: string, tax: string): DraftLine => ({
   tax: '',
 })
 
-const today = (): string => new Date().toISOString().slice(0, 10)
+const today = (): string => todayInAmsterdam()
 
 function addDays(date: string, days: number): string {
   const parsed = new Date(`${date}T00:00:00Z`)
@@ -69,10 +74,6 @@ function NewPurchaseInvoice() {
   const suppliers = contacts.ok
     ? contacts.data.contacts.filter((contact) => contact.isSupplier && !contact.isBlocked)
     : []
-  // Input codes only: the VAT on a purchase invoice is ours to deduct, not to
-  // charge, and offering an output code would invite a finding rather than
-  // prevent one. Historical VL6/VH19 stay on the chart for import/corrections.
-  const inputCodes = taxCodes.ok ? purchaseBookingTaxCodes(taxCodes.data.taxCodes) : []
   const costAccounts = accounts.ok
     ? accounts.data.accounts.filter(
         (account) => account.type === 'expense' || account.type === 'asset',
@@ -81,29 +82,19 @@ function NewPurchaseInvoice() {
 
   const defaultAccount = costAccounts[0]?.number ?? ''
   /**
-   * The plain voorbelasting code, not simply the first input code.
-   *
-   * Sorted alphabetically the first input code is an intra-community
-   * acquisition, which charges no VAT — so defaulting to it makes an ordinary
-   * domestic invoice unbookable the moment somebody types the VAT from the
-   * document. A default that turns the commonest case into a blocking finding
-   * is worse than no default.
+   * Usual default is VH21. When that code has ended for the invoice date we
+   * preselect nothing — never silently fall back to VL9 or VGEEN.
    */
-  const defaultTax =
-    (
-      inputCodes.find(
-        (code) =>
-          code.scope === 'domestic' &&
-          code.reverseCharge === 'none' &&
-          code.deductibility === 'full' &&
-          code.rateBasisPoints > 0,
-      ) ?? inputCodes[0]
-    )?.code ?? ''
-
   const [contactNumber, setContactNumber] = useState(suppliers[0]?.number ?? '')
   const [supplierInvoiceNumber, setSupplierInvoiceNumber] = useState('')
   const [kind, setKind] = useState<'invoice' | 'credit_note'>('invoice')
   const [invoiceDate, setInvoiceDate] = useState(today())
+  // Input codes only; filter by invoice date so an ended VH21 / VGEEN drops out.
+  const inputCodes = useMemo(
+    () => (taxCodes.ok ? purchaseBookingTaxCodes(taxCodes.data.taxCodes, invoiceDate) : []),
+    [taxCodes, invoiceDate],
+  )
+  const defaultTax = defaultPurchaseBookingTaxCode(inputCodes)
   const [dueDate, setDueDate] = useState(addDays(today(), 30))
   const [paymentReference, setPaymentReference] = useState('')
   const [statedNet, setStatedNet] = useState('')
@@ -112,7 +103,26 @@ function NewPurchaseInvoice() {
   const [lines, setLines] = useState<DraftLine[]>(() => [emptyLine(defaultAccount, defaultTax)])
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<string[]>([])
+  const [dateNotice, setDateNotice] = useState<string | null>(null)
   const key = useRef<string>(crypto.randomUUID())
+
+  function changeInvoiceDate(next: string): void {
+    setInvoiceDate(next)
+    const allowed = new Set(
+      (taxCodes.ok ? purchaseBookingTaxCodes(taxCodes.data.taxCodes, next) : []).map(
+        (code) => code.code,
+      ),
+    )
+    const cleared = clearedTaxCodeLineNumbers(lines, allowed)
+    setDateNotice(
+      cleared[0] === undefined ? null : t('booking.taxCodeInvalidOnDate', { n: cleared[0] }),
+    )
+    setLines((current) =>
+      current.map((line) =>
+        line.taxCode === '' || allowed.has(line.taxCode) ? line : { ...line, taxCode: '' },
+      ),
+    )
+  }
 
   const filled = lines.filter((line) => line.description !== '' || line.net !== '')
 
@@ -285,7 +295,7 @@ function NewPurchaseInvoice() {
             aria-label={t('purchases.invoiceDate')}
             value={invoiceDate}
             onChange={(event) => {
-              setInvoiceDate(event.target.value)
+              changeInvoiceDate(event.target.value)
               setDueDate(addDays(event.target.value, 30))
             }}
             className="field-control tabular"
@@ -387,6 +397,9 @@ function NewPurchaseInvoice() {
                     update(index, { taxCode: next })
                   }}
                 >
+                  {line.taxCode === '' || inputCodes.length === 0 ? (
+                    <SelectOption value="">{t('purchaseNew.chooseVat')}</SelectOption>
+                  ) : null}
                   {inputCodes.map((code) => (
                     <SelectOption key={code.code} value={code.code}>
                       {code.code} · {code.ratePercent}% · {code.description}
@@ -458,6 +471,14 @@ function NewPurchaseInvoice() {
           {!totalMatches && <li>{t('purchaseNew.totalDoesNotMatch')}</li>}
         </ul>
       )}
+
+      <p
+        role="status"
+        aria-live="polite"
+        className={dateNotice === null ? 'sr-only' : 'text-muted-foreground mb-4 text-sm'}
+      >
+        {dateNotice ?? ''}
+      </p>
 
       {problems.length > 0 && (
         <ul role="alert" className="text-destructive mb-4 max-w-2xl space-y-1 text-sm">

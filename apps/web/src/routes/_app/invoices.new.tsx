@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { violationMessage } from '~/i18n/labels'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { GuidedInvoiceFlow } from '~/components/invoices/guided-invoice-flow'
 import { Money } from '~/components/finance/money'
@@ -9,7 +9,12 @@ import { AccountPicker } from '~/components/finance/account-picker'
 import { ShortcutFooter, ShortcutPanel, StepBadge } from '~/components/ui/keycap'
 import { useT } from '~/i18n/provider'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
-import { salesBookingTaxCodes } from '~/lib/booking-tax-codes'
+import {
+  clearedTaxCodeLineNumbers,
+  defaultSalesBookingTaxCode,
+  salesBookingTaxCodes,
+} from '~/lib/booking-tax-codes'
+import { todayInAmsterdam } from '~/lib/amsterdam-date'
 import { multiplyByDecimal, parseMinorUnits, percentOf } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
@@ -75,7 +80,7 @@ const emptyLine = (revenue: string, tax: string): DraftLine => ({
   taxCode: tax,
 })
 
-const today = (): string => new Date().toISOString().slice(0, 10)
+const today = (): string => todayInAmsterdam()
 
 function NewInvoice() {
   const { advanced } = useAdvancedMode()
@@ -109,6 +114,8 @@ function GuidedFromLoader() {
         rateBasisPoints: code.rateBasisPoints,
         direction: code.direction,
         description: code.description,
+        validFrom: code.validFrom,
+        validTo: code.validTo,
       }))
     : []
 
@@ -159,35 +166,54 @@ function AdvancedInvoiceForm() {
   const hydrated = useHydrated()
 
   const customers = contacts.ok ? contacts.data.contacts.filter((row) => !row.isBlocked) : []
-  // Historical L6/H19 stay on the chart for import/corrections only.
-  const codes = taxCodes.ok ? salesBookingTaxCodes(taxCodes.data.taxCodes) : []
   const revenueAccounts = accounts.ok
     ? accounts.data.accounts.filter((account) => account.type === 'revenue')
     : []
 
   const defaultRevenue = revenueAccounts[0]?.number ?? ''
   /**
-   * The highest output rate, not the alphabetically first code.
-   *
-   * The shipped chart's output codes sort to `GEEN` — exempt — which would make
-   * every new line zero-rated by default and produce an invoice with no VAT on
-   * it that nobody noticed. The commonest Dutch invoice is 21%, so the default
-   * is the highest rate there is.
+   * Usual default is H21. When that code has ended for the issue date we
+   * preselect nothing — never silently fall back to L9.
    */
-  const defaultTax = [...codes].sort((a, b) => b.rateBasisPoints - a.rateBasisPoints)[0]?.code ?? ''
-
   const [contactNumber, setContactNumber] = useState(customers[0]?.number ?? '')
   const [kind, setKind] = useState<'invoice' | 'credit_note'>('invoice')
   const [issueDate, setIssueDate] = useState(today())
+  // Historical L6/H19 stay on the chart for import/corrections only; filter by
+  // the issue date so an ended H21 is not still selectable.
+  const codes = useMemo(
+    () => (taxCodes.ok ? salesBookingTaxCodes(taxCodes.data.taxCodes, issueDate) : []),
+    [taxCodes, issueDate],
+  )
+  const defaultTax = defaultSalesBookingTaxCode(codes)
   const [reference, setReference] = useState('')
   const [buyerReference, setBuyerReference] = useState('')
   const [lines, setLines] = useState<DraftLine[]>([emptyLine(defaultRevenue, defaultTax)])
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<{ path: string | null; message: string }[]>([])
+  const [dateNotice, setDateNotice] = useState<string | null>(null)
   /** Whether the draft has been described, so Escape knows what it would lose. */
   const [confirming, setConfirming] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const confirmRef = useRef<HTMLButtonElement>(null)
+
+  /** Move the issue date and drop any line tax code that falls outside its window. */
+  function changeIssueDate(next: string): void {
+    setIssueDate(next)
+    const allowed = new Set(
+      (taxCodes.ok ? salesBookingTaxCodes(taxCodes.data.taxCodes, next) : []).map(
+        (code) => code.code,
+      ),
+    )
+    const cleared = clearedTaxCodeLineNumbers(lines, allowed)
+    setDateNotice(
+      cleared[0] === undefined ? null : t('booking.taxCodeInvalidOnDate', { n: cleared[0] }),
+    )
+    setLines((current) =>
+      current.map((line) =>
+        line.taxCode === '' || allowed.has(line.taxCode) ? line : { ...line, taxCode: '' },
+      ),
+    )
+  }
 
   /** One key per attempt. A second click must not draft a second invoice. */
   const idempotencyKey = useRef<string>(crypto.randomUUID())
@@ -379,7 +405,7 @@ function AdvancedInvoiceForm() {
             type="date"
             value={issueDate}
             onChange={(event) => {
-              setIssueDate(event.target.value)
+              changeIssueDate(event.target.value)
             }}
             className="field-control tabular"
           />
@@ -497,6 +523,9 @@ function AdvancedInvoiceForm() {
                     update(index, { taxCode: next })
                   }}
                 >
+                  {line.taxCode === '' || codes.length === 0 ? (
+                    <SelectOption value="">{t('invoiceNew.chooseVat')}</SelectOption>
+                  ) : null}
                   {codes.map((code) => (
                     <SelectOption key={code.code} value={code.code}>
                       {code.code} · {code.ratePercent}%
@@ -522,6 +551,14 @@ function AdvancedInvoiceForm() {
         </div>
       </div>
       <p className="text-muted-foreground mb-4 max-w-md text-xs">{t('invoiceNew.vatNote')}</p>
+
+      <p
+        role="status"
+        aria-live="polite"
+        className={dateNotice === null ? 'sr-only' : 'text-muted-foreground mb-4 text-sm'}
+      >
+        {dateNotice ?? ''}
+      </p>
 
       {problems.length > 0 && (
         <ul role="alert" className="text-destructive mb-4 space-y-1 text-sm">

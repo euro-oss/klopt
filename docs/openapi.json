@@ -26962,6 +26962,15 @@
                           "ratePercent": {
                             "type": "string"
                           },
+                          "inUse": {
+                            "type": "boolean"
+                          },
+                          "correctionOnly": {
+                            "type": "boolean"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
                           "code": {
                             "type": "string"
                           },
@@ -27058,6 +27067,9 @@
                         },
                         "required": [
                           "ratePercent",
+                          "inUse",
+                          "correctionOnly",
+                          "id",
                           "code",
                           "description",
                           "rateBasisPoints",
@@ -27081,6 +27093,371 @@
                   },
                   "required": [
                     "taxCodes"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "sales.createTaxCodes",
+        "summary": "Insert one allowlisted standard VAT code, or an atomic reverse-charge / acquisition pair.",
+        "tags": [
+          "sales"
+        ],
+        "x-klopt-permission": "tax-codes:manage",
+        "x-klopt-kind": "write",
+        "x-klopt-agent-exposure": "none",
+        "responses": {
+          "200": {
+            "description": "Replayed, or a dry run.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "codes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "validFrom": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "codes",
+                    "ids",
+                    "validFrom"
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "codes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "validFrom": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "codes",
+                    "ids",
+                    "validFrom"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/IdempotencyKeyRequired"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "description": "A client-chosen key. Retrying with the same key and the same body replays the original result rather than acting twice; the same key with a different body is a 409.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32,
+                    "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+                  }
+                },
+                "required": [
+                  "key"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tax-codes/{taxCodeId}": {
+      "patch": {
+        "operationId": "sales.deactivateTaxCode",
+        "summary": "End an unused tax code with valid_to, or restore it with valid_to null. Never mutates rate or rubrieken; ending is refused when in use.",
+        "tags": [
+          "sales"
+        ],
+        "x-klopt-permission": "tax-codes:manage",
+        "x-klopt-kind": "write",
+        "x-klopt-agent-exposure": "none",
+        "responses": {
+          "200": {
+            "description": "The request succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "validFrom": {
+                          "type": "string"
+                        },
+                        "validTo": {
+                          "type": "null"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "code",
+                        "validFrom",
+                        "validTo"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "validFrom": {
+                          "type": "string"
+                        },
+                        "validTo": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "code",
+                        "validFrom",
+                        "validTo"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/IdempotencyKeyRequired"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "taxCodeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "description": "A client-chosen key. Retrying with the same key and the same body replays the original result rather than acting twice; the same key with a different body is a 409.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "validTo": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "validTo"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tax-codes/offers": {
+      "get": {
+        "operationId": "sales.listTaxCodeOffers",
+        "summary": "Standard nl-mkb VAT codes this administration may still add (pairs offered atomically).",
+        "tags": [
+          "sales"
+        ],
+        "x-klopt-permission": "tax-codes:manage",
+        "x-klopt-kind": "read",
+        "x-klopt-agent-exposure": "none",
+        "responses": {
+          "200": {
+            "description": "The request succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "offers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "codes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "descriptions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "rateBasisPoints": {
+                            "type": "number"
+                          },
+                          "ratePercent": {
+                            "type": "string"
+                          },
+                          "direction": {
+                            "enum": [
+                              "output",
+                              "input"
+                            ]
+                          },
+                          "pair": {
+                            "type": "boolean"
+                          },
+                          "correctionOnly": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "codes",
+                          "descriptions",
+                          "rateBasisPoints",
+                          "ratePercent",
+                          "direction",
+                          "pair",
+                          "correctionOnly"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "offers"
                   ]
                 }
               }

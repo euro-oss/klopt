@@ -84,12 +84,23 @@ describe('guided invoice helpers', () => {
     expect(picker.map((row) => row.code)).not.toContain('VH21')
     expect(picker.map((row) => row.code)).not.toContain('VL6')
     expect(defaultOutputTaxCode(codes)).toBe('H21')
-    expect(defaultOutputTaxCode(codes.filter((row) => row.code !== 'H21'))).toBe('L9')
+    // Never silently fall back to L9 when H21 is gone (#88 PM).
+    expect(defaultOutputTaxCode(codes.filter((row) => row.code !== 'H21'))).toBe('')
     expect(
       defaultOutputTaxCode(
         codes.filter((row) => row.rateBasisPoints === 0 || row.code === 'PRIV21'),
       ),
     ).toBe('')
+  })
+
+  it('hides ended H21 for the issue date and leaves the default empty', () => {
+    const withEndedH21 = codes.map((row) =>
+      row.code === 'H21' ? { ...row, validFrom: '2019-01-01', validTo: '2025-12-31' } : row,
+    )
+    expect(salesPickerTaxCodes(withEndedH21, '2026-03-15').map((row) => row.code)).not.toContain(
+      'H21',
+    )
+    expect(defaultOutputTaxCode(withEndedH21, '2026-03-15')).toBe('')
   })
 
   it('parses and formats short Dutch dates', () => {

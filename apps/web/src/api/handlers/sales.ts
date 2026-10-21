@@ -3,6 +3,9 @@ import {
   CUSTOMIZATION_ID,
   DEFAULT_DUNNING_SCHEDULE,
   PERMISSIONS,
+  availableTaxCodeOffers,
+  isCorrectionOrImportOnly,
+  resolveTaxCodeOffer,
   resourceOf,
   versionOf,
   checkUblRules,
@@ -29,15 +32,19 @@ import {
 } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError, requireIfMatch } from '../errors.js'
+import { isUniqueViolation } from '../../lib/db-error.js'
 import { recordAudit } from '../audit.js'
 import { invoiceRenderer } from '../documents.js'
 import { documentStore } from '../document-store.js'
 import { eInvoiceTransport } from '../e-invoice.js'
 import { schematron } from '../schematron.js'
 import { etagOf } from '../etag.js'
+import { referenceData } from '../reference-data.js'
 import type {
   ContactsQuery,
   CreateContactBody,
+  CreateTaxCodesBody,
+  DeactivateTaxCodeBody,
   DraftInvoiceBody,
   InvoicesQuery,
   IssueInvoiceBody,
@@ -332,9 +339,11 @@ export async function handleUpdateContact(
 
 export async function handleListTaxCodes(context: RequestContext) {
   requirePermission(context, 'ledger:read')
-  const rows = await withSalesRead(context.database, (repository) =>
-    repository.listTaxCodes(context.entityId),
-  )
+  const { rows, inUse } = await withSalesRead(context.database, async (repository) => {
+    const listed = await repository.listTaxCodes(context.entityId)
+    const used = await repository.taxCodesInUse(context.entityId)
+    return { rows: listed, inUse: used }
+  })
 
   return {
     status: 200,
@@ -342,9 +351,247 @@ export async function handleListTaxCodes(context: RequestContext) {
       taxCodes: rows.map((code) => ({
         ...code,
         ratePercent: (code.rateBasisPoints / 100).toFixed(2),
+        inUse: inUse.has(code.code),
+        correctionOnly: isCorrectionOrImportOnly(code.code),
       })),
     },
   }
+}
+
+/**
+ * Standard chart codes this administration may still add.
+ *
+ * Eigenaar / Accountant only (`tax-codes:manage`). `ledger:configure` alone is
+ * not enough — a bookkeeper holds that and must not invent BTW-codes.
+ */
+export async function handleListTaxCodeOffers(context: RequestContext) {
+  requirePermission(context, PERMISSIONS.manageTaxCodes)
+
+  const chart = referenceData().chart('nl-mkb')
+  const existing = await withSalesRead(context.database, async (repository) => {
+    const rows = await repository.listTaxCodes(context.entityId)
+    return new Set(rows.map((row) => row.code))
+  })
+
+  const offers = availableTaxCodeOffers(chart, existing)
+  return {
+    status: 200,
+    body: {
+      offers: offers.map((offer) => ({
+        key: offer.key,
+        codes: offer.codes,
+        descriptions: offer.descriptions,
+        rateBasisPoints: offer.rateBasisPoints,
+        ratePercent: (offer.rateBasisPoints / 100).toFixed(2),
+        direction: offer.direction,
+        pair: offer.pair,
+        correctionOnly: offer.correctionOnly,
+      })),
+    },
+  }
+}
+
+/**
+ * Insert one allowlisted offer (single or atomic pair). No free-form rates.
+ */
+export async function handleCreateTaxCodes(context: RequestContext, body: CreateTaxCodesBody) {
+  requirePermission(context, PERMISSIONS.manageTaxCodes)
+  requireIdempotencyKey(context)
+
+  const chart = referenceData().chart('nl-mkb')
+  const offer = resolveTaxCodeOffer(chart, body.key)
+  if (offer === null) {
+    throw new ApiError('validation_failed', `No standard VAT code offer "${body.key}".`, [
+      {
+        code: 'unknown_tax_code_offer',
+        path: 'key',
+        message: 'Choose a key from GET /tax-codes/offers.',
+      },
+    ])
+  }
+
+  return withSales(context.database, async ({ sales }) => {
+    const existing = await sales.listTaxCodes(context.entityId)
+    const existingCodes = new Set(existing.map((row) => row.code))
+    const clash = offer.codes.filter((code) => existingCodes.has(code))
+    if (clash.length > 0) {
+      throw new ApiError(
+        'conflict',
+        `This administration already has ${clash.join(' and ')}. A pair is only added when neither half exists.`,
+        clash.map((code) => ({
+          code: 'tax_code_exists',
+          path: 'key',
+          message: `${code} already exists.`,
+        })),
+      )
+    }
+
+    const accountNumbers = [
+      ...new Set(offer.entries.map((entry) => chart.roles[entry.accountRole])),
+    ]
+    const accountIds = await sales.accountIdsByNumbers(context.entityId, accountNumbers)
+    const missingAccount = accountNumbers.find((number) => !accountIds.has(number))
+    if (missingAccount !== undefined) {
+      throw new ApiError(
+        'validation_failed',
+        `Account ${missingAccount} is missing; this administration cannot receive the standard chart codes.`,
+      )
+    }
+
+    const validFrom =
+      (await sales.taxCodeAnchorValidFrom(context.entityId)) ??
+      existing[0]?.validFrom ??
+      `${new Date().getUTCFullYear()}-01-01`
+
+    let ids: readonly string[]
+    try {
+      ids = await sales.insertTaxCodes(
+        context.entityId,
+        offer.entries.map((entry) => ({
+          code: entry.code,
+          description: entry.description,
+          rateBasisPoints: entry.rateBasisPoints,
+          direction: entry.direction,
+          accountId: accountIds.get(chart.roles[entry.accountRole]) ?? null,
+          isReverseCharge: entry.isReverseCharge,
+          ublCategory: entry.ublCategory,
+          baseRubriek: entry.baseRubriek,
+          vatRubriek: entry.vatRubriek,
+          scope: entry.scope,
+          reverseCharge: entry.reverseCharge,
+          deductibility: entry.deductibility,
+          proRataBasisPoints: entry.proRataBasisPoints,
+          supplyKind: entry.supplyKind,
+          deductionCode: entry.deductionCode,
+          validFrom,
+        })),
+      )
+    } catch (error: unknown) {
+      // Two simultaneous POSTs can both pass the existence check; the unique
+      // index then rejects the loser — surface that as 409, not 500.
+      if (isUniqueViolation(error)) {
+        throw new ApiError(
+          'conflict',
+          `This administration already has ${offer.codes.join(' and ')}. A pair is only added when neither half exists.`,
+          offer.codes.map((code) => ({
+            code: 'tax_code_exists',
+            path: 'key',
+            message: `${code} already exists.`,
+          })),
+        )
+      }
+      throw error
+    }
+
+    await recordAudit(context, {
+      action: 'sales.createTaxCodes',
+      resourceType: 'tax_code',
+      resourceId: ids[0] ?? body.key,
+      after: { key: body.key, codes: offer.codes, validFrom },
+    })
+
+    return {
+      status: 201,
+      body: {
+        key: body.key,
+        codes: offer.codes,
+        ids: [...ids],
+        validFrom,
+      },
+    }
+  })
+}
+
+/**
+ * End or restore a tax-code window (`valid_to` only). Rate / rubriek changes
+ * are never done here. Ending is refused when the code is in use; restore
+ * (`validTo: null`) always clears the end date.
+ */
+export async function handleDeactivateTaxCode(
+  context: RequestContext,
+  taxCodeId: string,
+  body: DeactivateTaxCodeBody,
+) {
+  requirePermission(context, PERMISSIONS.manageTaxCodes)
+  requireIdempotencyKey(context)
+
+  return withSales(context.database, async ({ sales }) => {
+    const row = await sales.findTaxCodeRowForUpdate(context.entityId, taxCodeId)
+    if (row === null) throw new ApiError('not_found', 'No such tax code.')
+
+    if (body.validTo === null) {
+      if (row.validTo === null) {
+        return {
+          status: 200,
+          body: { id: row.id, code: row.code, validFrom: row.validFrom, validTo: null },
+        }
+      }
+      const ok = await sales.setTaxCodeValidTo(context.entityId, taxCodeId, null)
+      if (!ok) throw new ApiError('not_found', 'No such tax code.')
+
+      await recordAudit(context, {
+        action: 'sales.deactivateTaxCode',
+        resourceType: 'tax_code',
+        resourceId: taxCodeId,
+        before: { validTo: row.validTo },
+        after: { validTo: null, code: row.code },
+      })
+
+      return {
+        status: 200,
+        body: { id: row.id, code: row.code, validFrom: row.validFrom, validTo: null },
+      }
+    }
+
+    const inUse = await sales.taxCodesInUse(context.entityId)
+    if (inUse.has(row.code)) {
+      throw new ApiError(
+        'conflict',
+        `${row.code} is in use on bookings, lines or a Moneybird mapping and cannot be closed.`,
+        [
+          {
+            code: 'tax_code_in_use',
+            path: 'taxCodeId',
+            message: `${row.code} is referenced.`,
+          },
+        ],
+      )
+    }
+
+    if (row.validTo !== null && row.validTo <= body.validTo) {
+      // Already closed on or before the requested day — idempotent success.
+      return {
+        status: 200,
+        body: { id: row.id, code: row.code, validFrom: row.validFrom, validTo: row.validTo },
+      }
+    }
+
+    if (body.validTo < row.validFrom) {
+      throw new ApiError('validation_failed', 'validTo must be on or after validFrom.', [
+        {
+          code: 'invalid_valid_to',
+          path: 'validTo',
+          message: `validFrom is ${row.validFrom}.`,
+        },
+      ])
+    }
+
+    const ok = await sales.setTaxCodeValidTo(context.entityId, taxCodeId, body.validTo)
+    if (!ok) throw new ApiError('not_found', 'No such tax code.')
+
+    await recordAudit(context, {
+      action: 'sales.deactivateTaxCode',
+      resourceType: 'tax_code',
+      resourceId: taxCodeId,
+      before: { validTo: row.validTo },
+      after: { validTo: body.validTo, code: row.code },
+    })
+
+    return {
+      status: 200,
+      body: { id: row.id, code: row.code, validFrom: row.validFrom, validTo: body.validTo },
+    }
+  })
 }
 
 export async function handleDraftInvoice(context: RequestContext, body: DraftInvoiceBody) {
