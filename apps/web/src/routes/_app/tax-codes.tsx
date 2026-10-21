@@ -1,7 +1,16 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { useId, useRef, useState, type KeyboardEvent } from 'react'
+import { useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Keycap } from '~/components/ui/keycap'
@@ -17,6 +26,7 @@ import { useT } from '~/i18n/provider'
 import type { MessageKey } from '~/i18n/nl'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { todayInAmsterdam } from '~/lib/amsterdam-date'
+import { taxCodeUnavailableFrom } from '~/lib/booking-tax-codes'
 import { formatDate } from '~/lib/format'
 import { formatRatePercent } from '~/lib/guided-invoice'
 import { useHydrated } from '~/lib/hydration'
@@ -80,10 +90,26 @@ type PendingEnd = {
   readonly endDate: string
 }
 
+/** Desktop table from `sm` up; stacked cards below — only one is mounted. */
+function useWideLayout(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const media = window.matchMedia('(min-width: 640px)')
+      media.addEventListener('change', onChange)
+      return () => {
+        media.removeEventListener('change', onChange)
+      }
+    },
+    () => window.matchMedia('(min-width: 640px)').matches,
+    () => false,
+  )
+}
+
 function TaxCodesPage() {
   const data = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
+  const wideLayout = useWideLayout()
   const { t } = useT()
   const { advanced } = useAdvancedMode()
   const [open, setOpen] = useState(false)
@@ -93,9 +119,8 @@ function TaxCodesPage() {
   const [selected, setSelected] = useState<string | null>(null)
   const [pendingEnd, setPendingEnd] = useState<PendingEnd | null>(null)
   const key = useRef(crypto.randomUUID())
-  const confirmTitleId = useId()
-  const confirmDescId = useId()
-  const confirmRef = useRef<HTMLButtonElement>(null)
+  const confirmActionRef = useRef<HTMLButtonElement>(null)
+  const endTriggerRef = useRef<HTMLButtonElement | null>(null)
   const offerListId = useId()
 
   if (data.forbidden) {
@@ -163,6 +188,10 @@ function TaxCodesPage() {
     return `${formatRatePercent(ratePercent)}%`
   }
 
+  function unavailableLabel(validTo: string): string {
+    return formatDate(taxCodeUnavailableFrom(validTo))
+  }
+
   async function addSelected() {
     if (selected === null) return
     const offer = offers.find((row) => row.key === selected)
@@ -201,7 +230,7 @@ function TaxCodesPage() {
     key.current = crypto.randomUUID()
     const label = plainVatLabel(row.code, t, row.description)
     setPendingEnd(null)
-    setNotice(t('taxCodes.notice.ended', { label, datum: formatDate(endDate) }))
+    setNotice(t('taxCodes.notice.ended', { label, datum: unavailableLabel(endDate) }))
     await router.invalidate()
   }
 
@@ -241,6 +270,47 @@ function TaxCodesPage() {
       event.preventDefault()
       void addSelected()
     }
+  }
+
+  function rowAction(row: TaxCodeRow) {
+    if (row.inUse) return null
+    if (row.validTo !== null) {
+      return (
+        <div className="flex flex-col items-start gap-1">
+          {!advanced ? (
+            <span className="text-muted-foreground text-xs">
+              {t('taxCodes.endedStatus', { datum: unavailableLabel(row.validTo) })}
+            </span>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!hydrated || busy}
+            className="min-h-11 md:min-h-9"
+            onClick={() => void restoreCode(row)}
+          >
+            {t('taxCodes.restore')}
+          </Button>
+        </div>
+      )
+    }
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={!hydrated || busy}
+        className="min-h-11 md:min-h-9"
+        onClick={(event) => {
+          setError(null)
+          endTriggerRef.current = event.currentTarget
+          setPendingEnd({ row, endDate: todayInAmsterdam() })
+        }}
+      >
+        {t('taxCodes.deactivate')}
+      </Button>
+    )
   }
 
   const columns: Column<TaxCodeRow>[] = [
@@ -321,44 +391,15 @@ function TaxCodesPage() {
     {
       key: 'actions',
       header: t('taxCodes.col.actions'),
-      cell: (row) => {
-        if (row.inUse) return null
-        if (row.validTo !== null) {
-          return (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!hydrated || busy}
-              className="min-h-11 md:min-h-9"
-              onClick={() => void restoreCode(row)}
-            >
-              {t('taxCodes.restore')}
-            </Button>
-          )
-        }
-        return (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={!hydrated || busy}
-            className="min-h-11 md:min-h-9"
-            onClick={() => {
-              setError(null)
-              setPendingEnd({ row, endDate: todayInAmsterdam() })
-              queueMicrotask(() => confirmRef.current?.focus())
-            }}
-          >
-            {t('taxCodes.deactivate')}
-          </Button>
-        )
-      },
+      cell: (row) => rowAction(row),
     },
   ]
 
   const checkedOfferIndex =
     selected === null ? -1 : offers.findIndex((offer) => offer.key === selected)
+
+  const pendingLabel =
+    pendingEnd === null ? '' : plainVatLabel(pendingEnd.row.code, t, pendingEnd.row.description)
 
   return (
     <>
@@ -380,11 +421,14 @@ function TaxCodesPage() {
         }
       />
 
-      {notice !== null && (
-        <p role="status" className="border-border mb-4 border p-3 text-sm">
-          {notice}
-        </p>
-      )}
+      {/* Mounted before it has text so screen readers announce when it fills. */}
+      <p
+        role="status"
+        aria-live="polite"
+        className={cn('text-sm', notice === null ? 'sr-only' : 'border-border mb-4 border p-3')}
+      >
+        {notice ?? ''}
+      </p>
 
       {error !== null && (
         <p role="alert" className="text-destructive mb-4 text-sm">
@@ -396,13 +440,61 @@ function TaxCodesPage() {
         <p className="text-muted-foreground border-border rounded-none border border-dashed p-6 text-sm">
           {t('taxCodes.empty')}
         </p>
-      ) : (
+      ) : wideLayout ? (
         <LedgerTable
           columns={columns}
           rows={[...rows]}
           rowKey={(row) => row.id}
           caption={t('taxCodes.caption')}
         />
+      ) : (
+        /* Below sm the sticky label column fills the viewport; stack instead. */
+        <ul className="border-border divide-y border" aria-label={t('taxCodes.caption')}>
+          {rows.map((row) => {
+            const label = plainVatLabel(row.code, t, row.description)
+            const rubrieken = [row.baseRubriek, row.vatRubriek].filter(
+              (value): value is string => value !== null && value !== '',
+            )
+            return (
+              <li key={row.id} className="flex flex-col gap-2 px-3 py-3">
+                <div className="flex flex-col gap-0.5">
+                  <span className="inline-flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium">{label}</span>
+                    {badgeFor(row)}
+                  </span>
+                  <code className="text-muted-foreground text-xs tabular-nums">{row.code}</code>
+                </div>
+                <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                  <span>
+                    {t('taxCodes.col.rate')}:{' '}
+                    <span className="text-foreground tabular-nums">
+                      {rateDisplay(row.ratePercent)}
+                    </span>
+                  </span>
+                  <span>
+                    {t('taxCodes.col.inUse')}:{' '}
+                    {row.inUse ? t('taxCodes.inUse.yes') : t('taxCodes.inUse.no')}
+                  </span>
+                  {advanced ? (
+                    <>
+                      <span>
+                        {t('taxCodes.col.rubrieken')}:{' '}
+                        <span className="text-foreground">
+                          {rubrieken.length === 0 ? '—' : rubrieken.join(' / ')}
+                        </span>
+                      </span>
+                      <span className="tabular-nums">
+                        {t('taxCodes.col.valid')}: {formatDate(row.validFrom)}
+                        {row.validTo !== null ? ` – ${formatDate(row.validTo)}` : ''}
+                      </span>
+                    </>
+                  ) : null}
+                </div>
+                <div>{rowAction(row)}</div>
+              </li>
+            )
+          })}
+        </ul>
       )}
 
       <Sheet
@@ -512,48 +604,60 @@ function TaxCodesPage() {
         </SheetContent>
       </Sheet>
 
-      {pendingEnd !== null && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/40"
-            aria-label={t('common.cancel')}
-            onClick={() => setPendingEnd(null)}
-          />
-          <section
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby={confirmTitleId}
-            aria-describedby={confirmDescId}
-            className="border-border animate-in fade-in-0 zoom-in-98 relative w-full border bg-background p-6 duration-[160ms] motion-reduce:animate-none sm:max-w-md"
-          >
-            <h2 id={confirmTitleId} className="text-lg">
-              {t('taxCodes.deactivateTitle')}
-            </h2>
-            <p id={confirmDescId} className="text-muted-foreground mt-2 text-sm">
-              {t('taxCodes.deactivateBody', {
-                datum: formatDate(pendingEnd.endDate),
-              })}
-            </p>
-            <div className="mt-5 flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setPendingEnd(null)}>
-                {t('common.cancel')}
-                <span className="ml-1 hidden normal-case md:inline-flex">
-                  <Keycap>Esc</Keycap>
-                </span>
-              </Button>
-              <Button
-                type="button"
-                ref={confirmRef}
-                disabled={busy || !hydrated}
-                onClick={() => void confirmEnd()}
-              >
-                {busy ? t('common.busy') : t('taxCodes.deactivateConfirm')}
-              </Button>
-            </div>
-          </section>
-        </div>
-      )}
+      <AlertDialog
+        open={pendingEnd !== null}
+        onOpenChange={(next) => {
+          if (!next) {
+            setPendingEnd(null)
+            // Controlled open (no Trigger) — restore focus to the row button.
+            queueMicrotask(() => {
+              endTriggerRef.current?.focus()
+            })
+          }
+        }}
+      >
+        <AlertDialogContent
+          onOpenAutoFocus={(event) => {
+            event.preventDefault()
+            confirmActionRef.current?.focus()
+          }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingEnd === null
+                ? ''
+                : t('taxCodes.deactivateTitle', {
+                    label: pendingLabel,
+                    code: pendingEnd.row.code,
+                  })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingEnd === null
+                ? ''
+                : t('taxCodes.deactivateBody', {
+                    datum: unavailableLabel(pendingEnd.endDate),
+                  })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>
+              {t('common.cancel')}
+              <span className="ml-1 hidden normal-case md:inline-flex">
+                <Keycap>Esc</Keycap>
+              </span>
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              ref={confirmActionRef}
+              disabled={busy || !hydrated}
+              className="min-h-11 md:min-h-9"
+              onClick={() => void confirmEnd()}
+            >
+              {busy ? t('common.busy') : t('taxCodes.deactivateConfirm')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

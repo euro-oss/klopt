@@ -10,6 +10,8 @@
  * (H21 / VH21) is ended we preselect nothing — never another rate.
  */
 
+import { addCalendarDays } from './amsterdam-date.js'
+
 export const SALES_BOOKING_EXCLUDED = new Set(['PRIV21', 'L6', 'H19'])
 
 export const PURCHASE_BOOKING_EXCLUDED = new Set(['VL6', 'VH19'])
@@ -28,6 +30,27 @@ export function taxCodeValidOn(code: TaxCodeValidity, onDate: string): boolean {
     return false
   }
   return true
+}
+
+/**
+ * First calendar day the code can no longer be picked.
+ * `validTo` is inclusive, so the UI shows the day after.
+ */
+export function taxCodeUnavailableFrom(validTo: string): string {
+  return addCalendarDays(validTo, 1)
+}
+
+/**
+ * 1-based line numbers whose tax code is cleared when the booking date moves
+ * outside that code’s validity window.
+ */
+export function clearedTaxCodeLineNumbers(
+  lines: readonly { readonly taxCode: string }[],
+  allowedCodes: ReadonlySet<string>,
+): number[] {
+  return lines.flatMap((line, index) =>
+    line.taxCode !== '' && !allowedCodes.has(line.taxCode) ? [index + 1] : [],
+  )
 }
 
 export function salesBookingTaxCodes<

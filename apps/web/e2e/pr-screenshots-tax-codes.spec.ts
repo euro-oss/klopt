@@ -81,6 +81,22 @@ async function endCode(entityId: string, code: string, validTo: string): Promise
   }
 }
 
+/** Mark a code in use via an account default (counts for the Ja badge). */
+async function markCodeInUse(entityId: string, code: string): Promise<void> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  const client = (database as unknown as { $client: SqlTag }).$client
+  try {
+    await client`
+      update klopt.accounts
+      set default_tax_code = ${code}
+      where entity_id = ${entityId}::uuid
+        and number = '8000'
+    `
+  } finally {
+    await closeDatabase(database)
+  }
+}
+
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.evaluate((t) => {
@@ -191,7 +207,11 @@ test('capture Btw-codes PNGs for #88', async ({ browser }) => {
       await enableAdvancedMode(page)
       await page.goto('/tax-codes')
       await waitReady(page, label)
-      await expect(page.getByRole('columnheader', { name: 'Aangifte' })).toBeVisible()
+      if (label === 'mobile-390') {
+        await expect(page.getByText('Aangifte:', { exact: false }).first()).toBeVisible()
+      } else {
+        await expect(page.getByRole('columnheader', { name: 'Aangifte' })).toBeVisible()
+      }
       await setTheme(page, theme)
       await shoot(page, `advanced-${theme}-${label}.png`)
       await context.close()
@@ -206,12 +226,12 @@ test('capture Btw-codes PNGs for #88', async ({ browser }) => {
       await ready(page, `btw confirm ${theme} ${label}`)
       await page.goto('/tax-codes')
       await waitReady(page, label)
-      const endButton = page.getByRole('button', { name: 'Niet meer gebruiken' }).first()
+      const endButton = page
+        .locator('tr, li')
+        .filter({ has: page.getByText('L9', { exact: true }) })
+        .getByRole('button', { name: 'Niet meer gebruiken' })
       await expect(endButton).toBeEnabled()
-      // Sticky first column intercepts the action cell on 390.
-      await endButton.evaluate((el: HTMLElement) => {
-        el.click()
-      })
+      await endButton.click()
       await expect(page.getByRole('alertdialog')).toBeVisible({ timeout: 10_000 })
       await setTheme(page, theme)
       await shoot(page, `end-confirm-${theme}-${label}.png`)
@@ -229,8 +249,26 @@ test('capture Btw-codes PNGs for #88', async ({ browser }) => {
       await page.goto('/tax-codes')
       await waitReady(page, label)
       await expect(page.getByRole('button', { name: 'Weer gebruiken' }).first()).toBeVisible()
+      await expect(page.getByText(/Niet meer te kiezen vanaf/)).toBeVisible()
       await setTheme(page, theme)
       await shoot(page, `ended-${theme}-${label}.png`)
+      await context.close()
+    }
+  }
+
+  // In-use ('Ja') row with no action.
+  for (const theme of ['light', 'dark'] as const) {
+    for (const [label, size] of VIEWPORTS) {
+      const context = await browser.newContext({ viewport: size })
+      const page = await context.newPage()
+      const entityId = await ready(page, `btw inuse ${theme} ${label}`)
+      await markCodeInUse(entityId, 'H21')
+      await page.goto('/tax-codes')
+      await waitReady(page, label)
+      // Desktop uses a Ja badge; stacked mobile embeds “In gebruik: Ja”.
+      await expect(page.getByText('Ja').first()).toBeVisible()
+      await setTheme(page, theme)
+      await shoot(page, `in-use-${theme}-${label}.png`)
       await context.close()
     }
   }

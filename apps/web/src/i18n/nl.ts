@@ -454,16 +454,20 @@ export const nl = {
   'taxCodes.badge.correctionOnly': 'Alleen voor import en correcties van oude jaren',
   'taxCodes.badge.privateUse': 'Alleen voor correcties van privégebruik',
   'taxCodes.plain.PRIV21': 'Privégebruik 21% btw',
+  'taxCodes.plain.deductionSuffix': '(aftrekbaar deel)',
   'taxCodes.offer.addsPair': 'Voegt 2 codes toe',
   'taxCodes.deactivate': 'Niet meer gebruiken',
-  'taxCodes.deactivateTitle': 'Code niet meer gebruiken?',
+  'taxCodes.deactivateTitle': '{label} ({code}) niet meer gebruiken?',
   'taxCodes.deactivateBody':
     'Vanaf {datum} kun je deze code niet meer kiezen. Bestaande boekingen blijven staan. Je kunt dit terugdraaien.',
   'taxCodes.deactivateConfirm': 'Niet meer gebruiken',
   'taxCodes.restore': 'Weer gebruiken',
+  'taxCodes.endedStatus': 'Niet meer te kiezen vanaf {datum}',
   'taxCodes.notice.ended': '{label} kun je vanaf {datum} niet meer kiezen.',
   'taxCodes.notice.restored': '{label} kun je weer kiezen.',
   'taxCodes.notice.added': '{label} is toegevoegd.',
+  'booking.taxCodeInvalidOnDate':
+    'De btw-code van regel {n} geldt niet op deze datum. Kies een andere.',
   'taxCodes.error.exists': 'Deze code staat al in deze administratie.',
   'taxCodes.error.pairHalf':
     'Van dit paar staat al een helft in deze administratie. Voeg alleen toe als beide ontbreken.',

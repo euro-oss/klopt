@@ -1423,8 +1423,9 @@ export class SalesRepository {
   }
 
   /**
-   * Lock one tax-code row for the end / restore path so a concurrent booking
-   * cannot slip past the in-use check.
+   * Lock one tax-code row for the end / restore path so concurrent PATCHes
+   * serialise on this row. Does not lock bookings that reference the code —
+   * the in-use check still runs after the lock is taken.
    */
   async findTaxCodeRowForUpdate(entityId: string, taxCodeId: string) {
     const [row] = await this.tx

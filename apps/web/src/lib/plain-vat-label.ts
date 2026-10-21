@@ -28,6 +28,7 @@ export function plainVatLabel(code: string, t: Translate, fallbackDescription?: 
     if (translated !== key) return translated
   }
 
+  const isDeduction = Object.prototype.hasOwnProperty.call(DEDUCTION_TO_PRIMARY, code)
   const lookup = DEDUCTION_TO_PRIMARY[code] ?? code
   for (const prefix of ['invoiceGuided.vat.', 'importFindings.vat.'] as const) {
     const key = `${prefix}${lookup}` as MessageKey
@@ -38,7 +39,10 @@ export function plainVatLabel(code: string, t: Translate, fallbackDescription?: 
       !translated.startsWith('invoiceGuided.vat.') &&
       !translated.startsWith('importFindings.vat.')
     ) {
-      return translated
+      if (!isDeduction) return translated
+      const suffixKey = 'taxCodes.plain.deductionSuffix' as MessageKey
+      const suffix = t(suffixKey)
+      return suffix === suffixKey ? translated : `${translated} ${suffix}`
     }
   }
   return fallbackDescription ?? code

@@ -92,6 +92,13 @@ test('an owner adds a missing pair and sees both codes on the list', async ({ pa
   await expect(page.getByText('VERL9-VOOR', { exact: true })).toBeVisible()
 })
 
+function unusedL9EndButton(page: Page) {
+  return page
+    .getByRole('row')
+    .filter({ has: page.getByText('L9', { exact: true }) })
+    .getByRole('button', { name: 'Niet meer gebruiken' })
+}
+
 test('an owner ends a code with confirm, then restores it', async ({ page }) => {
   await anOwner(page, 'Eind Codes BV')
   await page.goto('/tax-codes')
@@ -99,26 +106,61 @@ test('an owner ends a code with confirm, then restores it', async ({ page }) => 
   await hydrated(page)
 
   // L9 is unused on a fresh administration.
-  const row = page
-    .getByRole('row')
-    .filter({ has: page.getByText('L9', { exact: true }) })
-    .first()
-  await expect(row).toBeVisible()
-  await row.getByRole('button', { name: 'Niet meer gebruiken' }).click({ force: true })
+  const endButton = unusedL9EndButton(page)
+  await expect(endButton).toBeVisible()
+  await endButton.click()
 
   const confirm = page.getByRole('alertdialog')
   await expect(confirm).toBeVisible()
+  await expect(confirm.getByRole('heading')).toContainText(/\(L9\) niet meer gebruiken\?/)
   await expect(confirm).toContainText(
     /Vanaf .+ kun je deze code niet meer kiezen\. Bestaande boekingen blijven staan\. Je kunt dit terugdraaien\./,
   )
   await confirm.getByRole('button', { name: 'Niet meer gebruiken' }).click()
   await expect(confirm).toBeHidden()
   await expect(page.getByText(/niet meer kiezen/)).toBeVisible()
+  await expect(page.getByText(/Niet meer te kiezen vanaf/)).toBeVisible()
 
+  const row = page.getByRole('row').filter({ has: page.getByText('L9', { exact: true }) })
   await expect(row.getByRole('button', { name: 'Weer gebruiken' })).toBeVisible()
-  await row.getByRole('button', { name: 'Weer gebruiken' }).click({ force: true })
+  await row.getByRole('button', { name: 'Weer gebruiken' }).click()
   await expect(page.getByText(/weer kiezen/)).toBeVisible()
-  await expect(row.getByRole('button', { name: 'Niet meer gebruiken' })).toBeVisible()
+  await expect(unusedL9EndButton(page)).toBeVisible()
+})
+
+test('Esc closes the end confirm and returns focus to the row button', async ({ page }) => {
+  await anOwner(page, 'Esc Confirm BV')
+  await page.goto('/tax-codes')
+  await hydrated(page)
+
+  const endButton = unusedL9EndButton(page)
+  await endButton.click()
+  const confirm = page.getByRole('alertdialog')
+  await expect(confirm).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(confirm).toBeHidden()
+  await expect(endButton).toBeFocused()
+})
+
+test('Enter on the confirm action ends the code', async ({ page }) => {
+  await anOwner(page, 'Enter Confirm BV')
+  await page.goto('/tax-codes')
+  await hydrated(page)
+
+  const endButton = unusedL9EndButton(page)
+  await endButton.click()
+  const confirm = page.getByRole('alertdialog')
+  await expect(confirm).toBeVisible()
+  const action = confirm.getByRole('button', { name: 'Niet meer gebruiken' })
+  await expect(action).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(confirm).toBeHidden()
+  await expect(
+    page
+      .getByRole('row')
+      .filter({ has: page.getByText('L9', { exact: true }) })
+      .getByRole('button', { name: 'Weer gebruiken' }),
+  ).toBeVisible()
 })
 
 test('an ended H21 is not offered on a new sales invoice', async ({ page }) => {

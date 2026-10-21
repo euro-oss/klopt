@@ -9,7 +9,11 @@ import { AccountPicker } from '~/components/finance/account-picker'
 import { ShortcutFooter, ShortcutPanel, StepBadge } from '~/components/ui/keycap'
 import { useT } from '~/i18n/provider'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
-import { defaultSalesBookingTaxCode, salesBookingTaxCodes } from '~/lib/booking-tax-codes'
+import {
+  clearedTaxCodeLineNumbers,
+  defaultSalesBookingTaxCode,
+  salesBookingTaxCodes,
+} from '~/lib/booking-tax-codes'
 import { todayInAmsterdam } from '~/lib/amsterdam-date'
 import { multiplyByDecimal, parseMinorUnits, percentOf } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
@@ -186,6 +190,7 @@ function AdvancedInvoiceForm() {
   const [lines, setLines] = useState<DraftLine[]>([emptyLine(defaultRevenue, defaultTax)])
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<{ path: string | null; message: string }[]>([])
+  const [dateNotice, setDateNotice] = useState<string | null>(null)
   /** Whether the draft has been described, so Escape knows what it would lose. */
   const [confirming, setConfirming] = useState(false)
   const [leaving, setLeaving] = useState(false)
@@ -198,6 +203,10 @@ function AdvancedInvoiceForm() {
       (taxCodes.ok ? salesBookingTaxCodes(taxCodes.data.taxCodes, next) : []).map(
         (code) => code.code,
       ),
+    )
+    const cleared = clearedTaxCodeLineNumbers(lines, allowed)
+    setDateNotice(
+      cleared[0] === undefined ? null : t('booking.taxCodeInvalidOnDate', { n: cleared[0] }),
     )
     setLines((current) =>
       current.map((line) =>
@@ -542,6 +551,14 @@ function AdvancedInvoiceForm() {
         </div>
       </div>
       <p className="text-muted-foreground mb-4 max-w-md text-xs">{t('invoiceNew.vatNote')}</p>
+
+      <p
+        role="status"
+        aria-live="polite"
+        className={dateNotice === null ? 'sr-only' : 'text-muted-foreground mb-4 text-sm'}
+      >
+        {dateNotice ?? ''}
+      </p>
 
       {problems.length > 0 && (
         <ul role="alert" className="text-destructive mb-4 space-y-1 text-sm">

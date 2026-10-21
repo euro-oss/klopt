@@ -4,7 +4,11 @@ import { useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { todayInAmsterdam } from '~/lib/amsterdam-date'
-import { defaultPurchaseBookingTaxCode, purchaseBookingTaxCodes } from '~/lib/booking-tax-codes'
+import {
+  clearedTaxCodeLineNumbers,
+  defaultPurchaseBookingTaxCode,
+  purchaseBookingTaxCodes,
+} from '~/lib/booking-tax-codes'
 import { formatMinorUnits, parseMinorUnits, percentOf } from '~/lib/format'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
@@ -99,6 +103,7 @@ function NewPurchaseInvoice() {
   const [lines, setLines] = useState<DraftLine[]>(() => [emptyLine(defaultAccount, defaultTax)])
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<string[]>([])
+  const [dateNotice, setDateNotice] = useState<string | null>(null)
   const key = useRef<string>(crypto.randomUUID())
 
   function changeInvoiceDate(next: string): void {
@@ -107,6 +112,10 @@ function NewPurchaseInvoice() {
       (taxCodes.ok ? purchaseBookingTaxCodes(taxCodes.data.taxCodes, next) : []).map(
         (code) => code.code,
       ),
+    )
+    const cleared = clearedTaxCodeLineNumbers(lines, allowed)
+    setDateNotice(
+      cleared[0] === undefined ? null : t('booking.taxCodeInvalidOnDate', { n: cleared[0] }),
     )
     setLines((current) =>
       current.map((line) =>
@@ -462,6 +471,14 @@ function NewPurchaseInvoice() {
           {!totalMatches && <li>{t('purchaseNew.totalDoesNotMatch')}</li>}
         </ul>
       )}
+
+      <p
+        role="status"
+        aria-live="polite"
+        className={dateNotice === null ? 'sr-only' : 'text-muted-foreground mb-4 text-sm'}
+      >
+        {dateNotice ?? ''}
+      </p>
 
       {problems.length > 0 && (
         <ul role="alert" className="text-destructive mb-4 max-w-2xl space-y-1 text-sm">

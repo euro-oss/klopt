@@ -643,16 +643,20 @@ export const en: Record<MessageKey, string> = {
   'taxCodes.badge.correctionOnly': 'Import and corrections of prior years only',
   'taxCodes.badge.privateUse': 'Private-use corrections only',
   'taxCodes.plain.PRIV21': '21% VAT on private use',
+  'taxCodes.plain.deductionSuffix': '(deductible share)',
   'taxCodes.offer.addsPair': 'Adds 2 codes',
   'taxCodes.deactivate': 'Stop using',
-  'taxCodes.deactivateTitle': 'Stop using this code?',
+  'taxCodes.deactivateTitle': 'Stop using {label} ({code})?',
   'taxCodes.deactivateBody':
     'From {datum} you can no longer pick this code. Existing bookings stay. You can undo this.',
   'taxCodes.deactivateConfirm': 'Stop using',
   'taxCodes.restore': 'Use again',
+  'taxCodes.endedStatus': 'No longer available from {datum}',
   'taxCodes.notice.ended': '{label} can no longer be picked from {datum}.',
   'taxCodes.notice.restored': '{label} can be picked again.',
   'taxCodes.notice.added': '{label} has been added.',
+  'booking.taxCodeInvalidOnDate':
+    'The VAT code on line {n} is not valid on this date. Pick another.',
   'taxCodes.error.exists': 'This code is already on this administration.',
   'taxCodes.error.pairHalf':
     'One half of this pair is already on this administration. Add only when both are missing.',

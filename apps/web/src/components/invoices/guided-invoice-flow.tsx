@@ -43,6 +43,7 @@ import {
 } from '~/lib/guided-invoice'
 import { periodLabel, type PeriodLabelYear } from '~/lib/period-label'
 import { todayInAmsterdam } from '~/lib/amsterdam-date'
+import { clearedTaxCodeLineNumbers } from '~/lib/booking-tax-codes'
 import { multiplyByDecimal, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
@@ -190,6 +191,7 @@ export function GuidedInvoiceFlow({
         : initialPhase,
   )
   const [problems, setProblems] = useState<{ path: string | null; message: string }[]>([])
+  const [dateNotice, setDateNotice] = useState<string | null>(null)
   const [done, setDone] = useState<DoneState | null>(null)
   const [leaving, setLeaving] = useState(false)
   const [serverDraft, setServerDraft] = useState<ServerDraft | null>(null)
@@ -857,9 +859,16 @@ export function GuidedInvoiceFlow({
             totals={clientTotals}
             vatLabels={vatLabels}
             hydrated={hydrated}
+            dateNotice={dateNotice}
             onIssueDate={(next) => {
               setIssueDate(next)
               const allowed = new Set(salesPickerTaxCodes(taxCodes, next).map((code) => code.code))
+              const cleared = clearedTaxCodeLineNumbers(lines, allowed)
+              setDateNotice(
+                cleared[0] === undefined
+                  ? null
+                  : t('booking.taxCodeInvalidOnDate', { n: cleared[0] }),
+              )
               setLines((current) =>
                 current.map((line) =>
                   line.taxCode === '' || allowed.has(line.taxCode)
@@ -1218,6 +1227,7 @@ function LinesStep({
   totals,
   vatLabels,
   hydrated,
+  dateNotice,
   onIssueDate,
   onUpdate,
   onAdd,
@@ -1230,6 +1240,7 @@ function LinesStep({
   totals: GuidedTotals
   vatLabels: VatLabelBag
   hydrated: boolean
+  dateNotice: string | null
   onIssueDate: (value: string) => void
   onUpdate: (index: number, patch: Partial<GuidedLineDraft>) => void
   onAdd: () => void
@@ -1281,6 +1292,14 @@ function LinesStep({
           </p>
         </div>
       </div>
+
+      <p
+        role="status"
+        aria-live="polite"
+        className={dateNotice === null ? 'sr-only' : 'text-muted-foreground mb-4 text-sm'}
+      >
+        {dateNotice ?? ''}
+      </p>
 
       <p className="mb-2 text-sm font-medium">{t('invoiceGuided.what')}</p>
       <div className="border-border overflow-x-auto border">
