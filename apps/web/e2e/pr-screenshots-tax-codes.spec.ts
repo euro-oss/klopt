@@ -265,8 +265,9 @@ test('capture Btw-codes PNGs for #88', async ({ browser }) => {
       await markCodeInUse(entityId, 'H21')
       await page.goto('/tax-codes')
       await waitReady(page, label)
+      const h21 = page.locator('tr, li').filter({ has: page.getByText('H21', { exact: true }) })
       // Desktop uses a Ja badge; stacked mobile embeds “In gebruik: Ja”.
-      await expect(page.getByText('Ja').first()).toBeVisible()
+      await expect(h21.getByText('Ja')).toBeVisible()
       await setTheme(page, theme)
       await shoot(page, `in-use-${theme}-${label}.png`)
       await context.close()
