@@ -46,6 +46,16 @@ describe('roles', () => {
     expect(allowed).toEqual(['owner'])
   })
 
+  it('keeps tax-code management with owner and accountant, not the bookkeeper', () => {
+    // Bookkeepers hold ledger:configure; inventing BTW-codes must not ride along.
+    const allowed = ROLES.filter((role) =>
+      permissionsForRole(role).includes(PERMISSIONS.manageTaxCodes),
+    )
+    expect(allowed.sort()).toEqual(['accountant', 'owner'])
+    expect(permissionsForRole('bookkeeper')).toContain(PERMISSIONS.configure)
+    expect(permissionsForRole('bookkeeper')).not.toContain(PERMISSIONS.manageTaxCodes)
+  })
+
   it('gives every role read access, because none of them is useful without it', () => {
     for (const role of ROLES) {
       expect(permissionsForRole(role), role).toContain(PERMISSIONS.read)
