@@ -5,8 +5,10 @@
  * badge flips to Aangepast on edit, reset to ECB, live booking preview.
  * Amounts stay euro display strings (tabular-nums); yellow is never severity.
  *
- * While ECB lookup runs: spinner + status on the ECB button, rate field stays
- * editable, aria-busy + polite live region, slow hint after ~3 s.
+ * While ECB lookup runs: spinner + status on the ECB button (aria-busy /
+ * aria-disabled so focus stays), rate field stays editable, polite live region
+ * outside the busy control, slow hint after ~3 s. Recoverable ECB failures use
+ * the attention (orange) tone — never destructive red, never yellow-as-error.
  */
 
 import { useId } from 'react'
@@ -24,7 +26,7 @@ import {
 } from '~/components/ui/sheet'
 import { useT } from '~/i18n/provider'
 import type { MessageKey } from '~/i18n/nl'
-import { fxLookupLiveKind } from '~/lib/fx-rate-lookup'
+import { formatFxAnnouncementDate, fxLookupLiveKind } from '~/lib/fx-rate-lookup'
 import { cn } from '~/lib/utils'
 
 export interface FxPreviewRow {
@@ -64,7 +66,7 @@ export interface FxRateSheetProps {
   readonly advanced?: boolean
   readonly onRateChange: (rate: string) => void
   readonly onResetEcb?: () => void
-  /** Re-fetch from ECB (disabled while `loading`). */
+  /** Re-fetch from ECB (ignored while `loading`). */
   readonly onRefreshEcb?: () => void
   readonly onAccept: () => void
 }
@@ -109,9 +111,12 @@ export function FxRateSheet({
       : liveKind === 'error' && error !== null && error !== ''
         ? error
         : liveKind === 'success'
-          ? t('importFindings.fx.fetchSuccess', { date: ecbDate })
+          ? t('importFindings.fx.fetchSuccess', {
+              date: formatFxAnnouncementDate(ecbDate),
+            })
           : ''
   const showSlowHint = forceSlowHint || loading
+  const refreshUnavailable = onRefreshEcb === undefined
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -154,12 +159,7 @@ export function FxRateSheet({
             ))}
           </dl>
 
-          <div
-            id={regionId}
-            data-slot="fx-rate-region"
-            aria-busy={loading || undefined}
-            aria-describedby={liveId}
-          >
+          <div id={regionId} data-slot="fx-rate-region">
             <div className="flex items-baseline justify-between gap-2">
               <label htmlFor="fx-rate-input" className="text-sm font-medium">
                 {t('moneybird.fx.rateLabel')}
@@ -223,10 +223,19 @@ export function FxRateSheet({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={loading || onRefreshEcb === undefined}
-                  onClick={onRefreshEcb}
+                  // Keep focus on the control while busy: aria-disabled, not disabled.
+                  disabled={refreshUnavailable && !loading}
+                  aria-disabled={loading || undefined}
+                  aria-busy={loading || undefined}
+                  onClick={() => {
+                    if (loading || onRefreshEcb === undefined) return
+                    onRefreshEcb()
+                  }}
                   data-slot="fx-ecb-refresh"
-                  className="min-h-11 gap-2 normal-case tracking-normal md:min-h-8"
+                  className={cn(
+                    'min-h-11 gap-2 normal-case tracking-normal md:min-h-8',
+                    loading && 'opacity-50',
+                  )}
                 >
                   {loading ? (
                     <>
@@ -259,14 +268,15 @@ export function FxRateSheet({
                 {t('importFindings.fx.slowHint')}
               </p>
             )}
+          </div>
 
-            <div id={liveId} role="status" aria-live="polite" className="sr-only">
-              {announced}
-            </div>
+          {/* Outside aria-busy so polite announcements are not suppressed. */}
+          <div id={liveId} role="status" aria-live="polite" className="sr-only">
+            {announced}
           </div>
 
           {error !== null && error !== '' && (
-            <p role="alert" className="text-destructive mt-2 text-sm" data-slot="fx-error">
+            <p className="text-warning mt-2 text-sm" data-slot="fx-error">
               {error}
             </p>
           )}

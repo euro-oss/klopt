@@ -104,14 +104,14 @@ function ImportFindingsLab() {
   const [fxSource, setFxSource] = useState<'ecb' | 'override'>(
     sheet === 'fxo' || sheet === 'fxError' ? 'override' : 'ecb',
   )
-  const [fxLoading] = useState(sheet === 'fxLoading' || sheet === 'fxSlow')
-  const [fxError] = useState(
+  const [fxLoading, setFxLoading] = useState(sheet === 'fxLoading' || sheet === 'fxSlow')
+  const [fxError, setFxError] = useState<string | null>(
     sheet === 'fxError'
       ? 'We konden de ECB-koers nu niet ophalen. Vul de koers zelf in of probeer het later opnieuw.'
       : null,
   )
   // Lab forces the slow hint for screenshot capture without waiting 3 s.
-  const [fxForceSlowHint] = useState(sheet === 'fxSlow')
+  const [fxForceSlowHint, setFxForceSlowHint] = useState(sheet === 'fxSlow')
   const [resolved, setResolved] = useState<readonly ResolvedFindingRow[]>(
     source === 'moneybird' ? MONEYBIRD_FIXTURE_RESOLVED : [],
   )
@@ -486,7 +486,12 @@ function ImportFindingsLab() {
               setFxRate(value)
               setFxSource(value === '1,1531' || value === '1.1531' ? 'ecb' : 'override')
             }}
-            onRefreshEcb={() => undefined}
+            onRefreshEcb={() => {
+              // Keep typed rate; clear only the recoverable error and show loading.
+              setFxError(null)
+              setFxForceSlowHint(false)
+              setFxLoading(true)
+            }}
             onResetEcb={() => {
               setFxRate('1,1531')
               setFxSource('ecb')

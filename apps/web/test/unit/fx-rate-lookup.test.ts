@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   FX_LOOKUP_SLOW_HINT_MS,
+  formatFxAnnouncementDate,
   fxLookupLiveKind,
+  nextFxLookupDraft,
   shouldApplyFxLookupResult,
   shouldShowFxLookupSlowHint,
 } from '../../src/lib/fx-rate-lookup.js'
 import { en } from '../../src/i18n/en.js'
 import { nl } from '../../src/i18n/nl.js'
+import { translate } from '../../src/i18n/locale.js'
 
 describe('shouldApplyFxLookupResult', () => {
   it('applies only the current generation when the user has not typed', () => {
@@ -71,6 +74,59 @@ describe('fxLookupLiveKind', () => {
     expect(fxLookupLiveKind({ loading: false, error: 'fail', hasEcbRate: false })).toBe('error')
     expect(fxLookupLiveKind({ loading: false, error: null, hasEcbRate: true })).toBe('success')
     expect(fxLookupLiveKind({ loading: false, error: null, hasEcbRate: false })).toBe('idle')
+  })
+})
+
+describe('formatFxAnnouncementDate', () => {
+  it('formats ISO dates as DD-MM-YYYY for NL and EN live copy', () => {
+    expect(formatFxAnnouncementDate('2026-10-16')).toBe('16-10-2026')
+    expect(translate('nl', 'importFindings.fx.fetchSuccess', { date: '16-10-2026' })).toBe(
+      'ECB-koers geladen (16-10-2026).',
+    )
+    expect(translate('en', 'importFindings.fx.fetchSuccess', { date: '16-10-2026' })).toBe(
+      'ECB rate loaded (16-10-2026).',
+    )
+  })
+})
+
+describe('nextFxLookupDraft', () => {
+  it('starts empty for a new document', () => {
+    expect(
+      nextFxLookupDraft(null, {
+        externalId: 'doc-1',
+        currency: 'GBP',
+        documentDate: '2026-10-16',
+      }),
+    ).toMatchObject({
+      externalId: 'doc-1',
+      rate: '',
+      ecbRate: '',
+      loading: true,
+      error: null,
+      userEditedDuringLookup: false,
+    })
+  })
+
+  it('keeps a typed rate on Opnieuw ophalen for the same document', () => {
+    const next = nextFxLookupDraft(
+      {
+        externalId: 'doc-1',
+        currency: 'GBP',
+        documentDate: '2026-10-16',
+        rate: '1,1490',
+        ecbRate: '',
+        source: 'override',
+        date: '2026-10-16',
+        userEditedDuringLookup: true,
+      },
+      { externalId: 'doc-1', currency: 'GBP', documentDate: '2026-10-16' },
+    )
+    expect(next.rate).toBe('1,1490')
+    expect(next.source).toBe('override')
+    expect(next.loading).toBe(true)
+    expect(next.error).toBeNull()
+    // Intentional refresh may apply ECB; typing mid-flight sets the flag again.
+    expect(next.userEditedDuringLookup).toBe(false)
   })
 })
 

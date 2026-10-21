@@ -49,3 +49,60 @@ export function fxLookupLiveKind(args: {
   if (args.hasEcbRate) return 'success'
   return 'idle'
 }
+
+/**
+ * ISO `YYYY-MM-DD` → `DD-MM-YYYY` for live-region / UI copy (NL and EN).
+ * Unknown shapes pass through unchanged.
+ */
+export function formatFxAnnouncementDate(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (match === null) return iso
+  return `${match[3]}-${match[2]}-${match[1]}`
+}
+
+export interface FxLookupDraftSeed {
+  readonly externalId: string
+  readonly currency: string
+  readonly documentDate: string
+  readonly rate: string
+  readonly ecbRate: string
+  readonly source: 'ecb' | 'override'
+  readonly date: string
+  readonly userEditedDuringLookup: boolean
+}
+
+/**
+ * Start or re-start an ECB lookup. A retry for the same document keeps the
+ * typed rate (and related fields); a fresh open starts empty.
+ */
+export function nextFxLookupDraft(
+  current: FxLookupDraftSeed | null,
+  args: {
+    readonly externalId: string
+    readonly currency: string
+    readonly documentDate: string
+  },
+): FxLookupDraftSeed & { readonly loading: true; readonly error: null } {
+  if (current !== null && current.externalId === args.externalId) {
+    return {
+      ...current,
+      loading: true,
+      error: null,
+      // Intentional refresh may apply ECB when it returns; typing mid-flight
+      // sets userEditedDuringLookup again via onRateChange.
+      userEditedDuringLookup: false,
+    }
+  }
+  return {
+    externalId: args.externalId,
+    currency: args.currency,
+    documentDate: args.documentDate,
+    rate: '',
+    ecbRate: '',
+    source: 'ecb',
+    date: args.documentDate,
+    loading: true,
+    error: null,
+    userEditedDuringLookup: false,
+  }
+}

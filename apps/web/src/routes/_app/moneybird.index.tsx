@@ -48,7 +48,7 @@ import {
 } from '~/lib/moneybird-decisions'
 import { moneybirdFindingCard, type MoneybirdFindingActions } from '~/lib/moneybird-findings'
 import { moneybirdDocumentUrl } from '~/lib/moneybird-urls'
-import { shouldApplyFxLookupResult } from '~/lib/fx-rate-lookup'
+import { nextFxLookupDraft, shouldApplyFxLookupResult } from '~/lib/fx-rate-lookup'
 import {
   chooseMoneybirdAdministration,
   connectMoneybird,
@@ -363,18 +363,23 @@ function Moneybird() {
   }) => {
     const generation = ++fxLookupGeneration.current
     setFxRateError(null)
-    setFxDraft({
-      externalId: args.externalId,
-      currency: args.currency,
-      documentDate: args.documentDate,
-      rate: '',
-      ecbRate: '',
-      source: 'ecb',
-      date: args.documentDate,
-      loading: true,
-      error: null,
-      userEditedDuringLookup: false,
-    })
+    setFxDraft((current) =>
+      nextFxLookupDraft(
+        current === null
+          ? null
+          : {
+              externalId: current.externalId,
+              currency: current.currency,
+              documentDate: current.documentDate,
+              rate: current.rate,
+              ecbRate: current.ecbRate,
+              source: current.source,
+              date: current.date,
+              userEditedDuringLookup: current.userEditedDuringLookup,
+            },
+        args,
+      ),
+    )
     const finishLoading = (patch: {
       readonly rate?: string
       readonly ecbRate?: string
