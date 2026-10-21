@@ -127,6 +127,35 @@ async function waitReady(page: Page, label: string): Promise<void> {
   }
 }
 
+/** Ended L9 row scrolled into view (muted status + Weer gebruiken). */
+async function captureEndedShots(browser: {
+  newContext: (options?: { viewport: { width: number; height: number } }) => Promise<{
+    newPage: () => Promise<Page>
+    close: () => Promise<void>
+  }>
+}): Promise<void> {
+  for (const theme of ['light', 'dark'] as const) {
+    for (const [label, size] of VIEWPORTS) {
+      const context = await browser.newContext({ viewport: size })
+      const page = await context.newPage()
+      const entityId = await ready(page, `btw ended ${theme} ${label}`)
+      await endCode(entityId, 'L9', '2026-06-30')
+      await page.goto('/tax-codes')
+      await waitReady(page, label)
+      const endedRow = page.locator('tr, li').filter({ has: page.getByText('L9', { exact: true }) })
+      const restore = endedRow.getByRole('button', { name: 'Weer gebruiken' })
+      const status = endedRow.getByText(/Niet meer te kiezen vanaf/)
+      await expect(restore).toBeVisible()
+      await expect(status).toBeVisible()
+      await endedRow.scrollIntoViewIfNeeded()
+      await restore.scrollIntoViewIfNeeded()
+      await setTheme(page, theme)
+      await shoot(page, `ended-${theme}-${label}.png`)
+      await context.close()
+    }
+  }
+}
+
 test('capture Btw-codes PNGs for #88', async ({ browser }) => {
   test.setTimeout(900_000)
 
@@ -239,22 +268,7 @@ test('capture Btw-codes PNGs for #88', async ({ browser }) => {
     }
   }
 
-  // Ended state with Weer gebruiken.
-  for (const theme of ['light', 'dark'] as const) {
-    for (const [label, size] of VIEWPORTS) {
-      const context = await browser.newContext({ viewport: size })
-      const page = await context.newPage()
-      const entityId = await ready(page, `btw ended ${theme} ${label}`)
-      await endCode(entityId, 'L9', '2026-06-30')
-      await page.goto('/tax-codes')
-      await waitReady(page, label)
-      await expect(page.getByRole('button', { name: 'Weer gebruiken' }).first()).toBeVisible()
-      await expect(page.getByText(/Niet meer te kiezen vanaf/)).toBeVisible()
-      await setTheme(page, theme)
-      await shoot(page, `ended-${theme}-${label}.png`)
-      await context.close()
-    }
-  }
+  await captureEndedShots(browser)
 
   // In-use ('Ja') row with no action.
   for (const theme of ['light', 'dark'] as const) {
@@ -310,4 +324,9 @@ test('capture Btw-codes PNGs for #88', async ({ browser }) => {
       await keeperCtx.close()
     }
   }
+})
+
+test('capture ended-only Btw-codes PNGs for #88', async ({ browser }) => {
+  test.setTimeout(300_000)
+  await captureEndedShots(browser)
 })
