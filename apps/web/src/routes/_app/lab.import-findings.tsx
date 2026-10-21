@@ -95,7 +95,11 @@ function ImportFindingsLab() {
     sheet === 'fxError'
   const [fxOpen, setFxOpen] = useState(fxSheetOpen)
   const [fxRate, setFxRate] = useState(
-    sheet === 'fxo' ? '1,1490' : sheet === 'fxLoading' || sheet === 'fxSlow' ? '' : '1,1531',
+    sheet === 'fxo'
+      ? '1,1490'
+      : sheet === 'fxLoading' || sheet === 'fxSlow' || sheet === 'fxError'
+        ? ''
+        : '1,1531',
   )
   const [fxSource, setFxSource] = useState<'ecb' | 'override'>(
     sheet === 'fxo' || sheet === 'fxError' ? 'override' : 'ecb',
