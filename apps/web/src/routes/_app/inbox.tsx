@@ -139,7 +139,8 @@ function Inbox() {
         (account) => account.type === 'expense' || account.type === 'asset',
       )
     : []
-  const inputCodes = taxCodes.ok ? purchaseBookingTaxCodes(taxCodes.data.taxCodes) : []
+  const allTaxCodes = taxCodes.ok ? taxCodes.data.taxCodes : []
+  const inputCodesFor = (onDate: string) => purchaseBookingTaxCodes(allTaxCodes, onDate)
 
   async function upload(event: React.ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.target.files?.[0]
@@ -680,22 +681,34 @@ function Inbox() {
                                 />
                               </td>
                               <td className="py-1 pr-2">
-                                <SelectField
-                                  label={t('purchaseNew.taxCodeLine', {
-                                    line: String(index + 1),
-                                  })}
-                                  labelHidden
-                                  name={`tax-${String(index)}`}
-                                  defaultValue={line.taxCode}
-                                  disabled={!hydrated}
-                                >
-                                  <SelectOption value="">{t('inbox.choose')}</SelectOption>
-                                  {inputCodes.map((code) => (
-                                    <SelectOption key={code.code} value={code.code}>
-                                      {code.code} · {code.ratePercent}% · {code.description}
-                                    </SelectOption>
-                                  ))}
-                                </SelectField>
+                                {(() => {
+                                  const codes = inputCodesFor(parsed.invoice.invoiceDate)
+                                  const allowed = new Set(codes.map((code) => code.code))
+                                  // Ended or not-yet-valid codes from the parse
+                                  // must not stay selected — show the empty hint.
+                                  const chosen =
+                                    line.taxCode !== '' && allowed.has(line.taxCode)
+                                      ? line.taxCode
+                                      : ''
+                                  return (
+                                    <SelectField
+                                      label={t('purchaseNew.taxCodeLine', {
+                                        line: String(index + 1),
+                                      })}
+                                      labelHidden
+                                      name={`tax-${String(index)}`}
+                                      defaultValue={chosen}
+                                      disabled={!hydrated}
+                                    >
+                                      <SelectOption value="">{t('inbox.choose')}</SelectOption>
+                                      {codes.map((code) => (
+                                        <SelectOption key={code.code} value={code.code}>
+                                          {code.code} · {code.ratePercent}% · {code.description}
+                                        </SelectOption>
+                                      ))}
+                                    </SelectField>
+                                  )
+                                })()}
                               </td>
                               {/* The amounts are the document's. Not editable
                                   here: this screen captures what arrived. */}

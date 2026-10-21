@@ -32,6 +32,7 @@ import {
 } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError, requireIfMatch } from '../errors.js'
+import { isUniqueViolation } from '../../lib/db-error.js'
 import { recordAudit } from '../audit.js'
 import { invoiceRenderer } from '../documents.js'
 import { documentStore } from '../document-store.js'
@@ -442,27 +443,45 @@ export async function handleCreateTaxCodes(context: RequestContext, body: Create
       existing[0]?.validFrom ??
       `${new Date().getUTCFullYear()}-01-01`
 
-    const ids = await sales.insertTaxCodes(
-      context.entityId,
-      offer.entries.map((entry) => ({
-        code: entry.code,
-        description: entry.description,
-        rateBasisPoints: entry.rateBasisPoints,
-        direction: entry.direction,
-        accountId: accountIds.get(chart.roles[entry.accountRole]) ?? null,
-        isReverseCharge: entry.isReverseCharge,
-        ublCategory: entry.ublCategory,
-        baseRubriek: entry.baseRubriek,
-        vatRubriek: entry.vatRubriek,
-        scope: entry.scope,
-        reverseCharge: entry.reverseCharge,
-        deductibility: entry.deductibility,
-        proRataBasisPoints: entry.proRataBasisPoints,
-        supplyKind: entry.supplyKind,
-        deductionCode: entry.deductionCode,
-        validFrom,
-      })),
-    )
+    let ids: readonly string[]
+    try {
+      ids = await sales.insertTaxCodes(
+        context.entityId,
+        offer.entries.map((entry) => ({
+          code: entry.code,
+          description: entry.description,
+          rateBasisPoints: entry.rateBasisPoints,
+          direction: entry.direction,
+          accountId: accountIds.get(chart.roles[entry.accountRole]) ?? null,
+          isReverseCharge: entry.isReverseCharge,
+          ublCategory: entry.ublCategory,
+          baseRubriek: entry.baseRubriek,
+          vatRubriek: entry.vatRubriek,
+          scope: entry.scope,
+          reverseCharge: entry.reverseCharge,
+          deductibility: entry.deductibility,
+          proRataBasisPoints: entry.proRataBasisPoints,
+          supplyKind: entry.supplyKind,
+          deductionCode: entry.deductionCode,
+          validFrom,
+        })),
+      )
+    } catch (error: unknown) {
+      // Two simultaneous POSTs can both pass the existence check; the unique
+      // index then rejects the loser — surface that as 409, not 500.
+      if (isUniqueViolation(error)) {
+        throw new ApiError(
+          'conflict',
+          `This administration already has ${offer.codes.join(' and ')}. A pair is only added when neither half exists.`,
+          offer.codes.map((code) => ({
+            code: 'tax_code_exists',
+            path: 'key',
+            message: `${code} already exists.`,
+          })),
+        )
+      }
+      throw error
+    }
 
     await recordAudit(context, {
       action: 'sales.createTaxCodes',
@@ -484,7 +503,9 @@ export async function handleCreateTaxCodes(context: RequestContext, body: Create
 }
 
 /**
- * Set valid_to on an unused code. Rate / rubriek changes are never done here.
+ * End or restore a tax-code window (`valid_to` only). Rate / rubriek changes
+ * are never done here. Ending is refused when the code is in use; restore
+ * (`validTo: null`) always clears the end date.
  */
 export async function handleDeactivateTaxCode(
   context: RequestContext,
@@ -495,8 +516,32 @@ export async function handleDeactivateTaxCode(
   requireIdempotencyKey(context)
 
   return withSales(context.database, async ({ sales }) => {
-    const row = await sales.findTaxCodeRow(context.entityId, taxCodeId)
+    const row = await sales.findTaxCodeRowForUpdate(context.entityId, taxCodeId)
     if (row === null) throw new ApiError('not_found', 'No such tax code.')
+
+    if (body.validTo === null) {
+      if (row.validTo === null) {
+        return {
+          status: 200,
+          body: { id: row.id, code: row.code, validFrom: row.validFrom, validTo: null },
+        }
+      }
+      const ok = await sales.setTaxCodeValidTo(context.entityId, taxCodeId, null)
+      if (!ok) throw new ApiError('not_found', 'No such tax code.')
+
+      await recordAudit(context, {
+        action: 'sales.deactivateTaxCode',
+        resourceType: 'tax_code',
+        resourceId: taxCodeId,
+        before: { validTo: row.validTo },
+        after: { validTo: null, code: row.code },
+      })
+
+      return {
+        status: 200,
+        body: { id: row.id, code: row.code, validFrom: row.validFrom, validTo: null },
+      }
+    }
 
     const inUse = await sales.taxCodesInUse(context.entityId)
     if (inUse.has(row.code)) {

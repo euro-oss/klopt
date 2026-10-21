@@ -1423,10 +1423,34 @@ export class SalesRepository {
   }
 
   /**
-   * Close a window with valid_to. Never touches rate or rubrieken — a rate
-   * change is a new row (migration 0012).
+   * Lock one tax-code row for the end / restore path so a concurrent booking
+   * cannot slip past the in-use check.
    */
-  async setTaxCodeValidTo(entityId: string, taxCodeId: string, validTo: string): Promise<boolean> {
+  async findTaxCodeRowForUpdate(entityId: string, taxCodeId: string) {
+    const [row] = await this.tx
+      .select({
+        id: taxCodes.id,
+        code: taxCodes.code,
+        validFrom: taxCodes.validFrom,
+        validTo: taxCodes.validTo,
+        rateBasisPoints: taxCodes.rateBasisPoints,
+      })
+      .from(taxCodes)
+      .where(and(eq(taxCodes.entityId, entityId), eq(taxCodes.id, taxCodeId)))
+      .for('update')
+      .limit(1)
+    return row ?? null
+  }
+
+  /**
+   * Set or clear valid_to. Never touches rate or rubrieken — a rate change is
+   * a new row (migration 0012). `null` restores the code for new bookings.
+   */
+  async setTaxCodeValidTo(
+    entityId: string,
+    taxCodeId: string,
+    validTo: string | null,
+  ): Promise<boolean> {
     const updated = await this.tx
       .update(taxCodes)
       .set({ validTo })

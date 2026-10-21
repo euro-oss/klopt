@@ -341,9 +341,17 @@ export const createTaxCodesBody = z.object({
     .regex(/^[A-Z0-9][A-Z0-9-]*$/, 'Use a standard chart code key.'),
 })
 
-/** Close an unused tax-code window. Rate / rubriek mutation is never allowed. */
+/**
+ * End or restore a tax-code window. Rate / rubriek mutation is never allowed.
+ *
+ * `validTo: null` clears an end date so the code can be picked again
+ * (`Weer gebruiken`). A calendar date ends it from that day.
+ */
 export const deactivateTaxCodeBody = z.object({
-  validTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use an ISO calendar date (YYYY-MM-DD).'),
+  validTo: z.union([
+    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use an ISO calendar date (YYYY-MM-DD).'),
+    z.null(),
+  ]),
 })
 
 export type CreateContactBody = z.infer<typeof createContactBody>

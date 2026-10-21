@@ -42,6 +42,7 @@ import {
   type VatLabelBag,
 } from '~/lib/guided-invoice'
 import { periodLabel, type PeriodLabelYear } from '~/lib/period-label'
+import { todayInAmsterdam } from '~/lib/amsterdam-date'
 import { multiplyByDecimal, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
@@ -146,12 +147,10 @@ export function GuidedInvoiceFlow({
   const confirmDescId = useId()
 
   const openCustomers = customers.filter((row) => !row.isBlocked)
-  const codes = salesPickerTaxCodes(taxCodes)
   const revenueAccounts = accounts.filter((account) => account.type === 'revenue')
   const defaultRevenue = revenueAccounts[0]?.number ?? ''
-  const defaultTax = defaultOutputTaxCode(taxCodes)
 
-  const today = (): string => new Date().toISOString().slice(0, 10)
+  const today = (): string => todayInAmsterdam()
 
   const [step, setStep] = useState<GuidedStep>(1)
   const [query, setQuery] = useState('')
@@ -168,6 +167,10 @@ export function GuidedInvoiceFlow({
     } | null
   } | null>(null)
   const [issueDate, setIssueDate] = useState(today)
+  // Filter by issue date so an ended H21 is not still selectable, and never
+  // silently fall back to another rate when the usual default is gone.
+  const codes = useMemo(() => salesPickerTaxCodes(taxCodes, issueDate), [taxCodes, issueDate])
+  const defaultTax = defaultOutputTaxCode(taxCodes, issueDate)
   const [lines, setLines] = useState<GuidedLineDraft[]>([
     {
       description: '',
@@ -707,10 +710,9 @@ export function GuidedInvoiceFlow({
     )
   }
 
-  const vatHint = taxCodeLabel(
-    codes.find((c) => c.code === (lines[0]?.taxCode ?? defaultTax)),
-    vatLabels,
-  )
+  const vatHintCode = codes.find((c) => c.code === (lines[0]?.taxCode || defaultTax))
+  const vatHint =
+    vatHintCode !== undefined ? taxCodeLabel(vatHintCode, vatLabels) : t('invoiceNew.chooseVat')
 
   return (
     <div
@@ -855,7 +857,17 @@ export function GuidedInvoiceFlow({
             totals={clientTotals}
             vatLabels={vatLabels}
             hydrated={hydrated}
-            onIssueDate={setIssueDate}
+            onIssueDate={(next) => {
+              setIssueDate(next)
+              const allowed = new Set(salesPickerTaxCodes(taxCodes, next).map((code) => code.code))
+              setLines((current) =>
+                current.map((line) =>
+                  line.taxCode === '' || allowed.has(line.taxCode)
+                    ? line
+                    : { ...line, taxCode: '' },
+                ),
+              )
+            }}
             onUpdate={updateLine}
             onAdd={addLine}
           />
@@ -1330,6 +1342,9 @@ function LinesStep({
                       disabled={!hydrated}
                       onChange={(event) => onUpdate(index, { taxCode: event.target.value })}
                     >
+                      {line.taxCode === '' || codes.length === 0 ? (
+                        <option value="">{t('invoiceNew.chooseVat')}</option>
+                      ) : null}
                       {codes.map((code) => (
                         <option key={code.code} value={code.code}>
                           {taxCodeLabel(code, vatLabels)}

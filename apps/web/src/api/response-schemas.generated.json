@@ -10919,26 +10919,53 @@
     },
     "sales.deactivateTaxCode": {
       "schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              },
+              "validFrom": {
+                "type": "string"
+              },
+              "validTo": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "validFrom",
+              "validTo"
+            ]
           },
-          "code": {
-            "type": "string"
-          },
-          "validFrom": {
-            "type": "string"
-          },
-          "validTo": {
-            "type": "string"
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              },
+              "validFrom": {
+                "type": "string"
+              },
+              "validTo": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "validFrom",
+              "validTo"
+            ]
           }
-        },
-        "required": [
-          "id",
-          "code",
-          "validFrom",
-          "validTo"
         ]
       }
     },

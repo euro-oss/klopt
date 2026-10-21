@@ -613,18 +613,17 @@ export const en: Record<MessageKey, string> = {
   'fiscalYears.alreadyClosed':
     'Book year {year} is already closed. Closing happens once; there is no undo button here.',
 
-  // VAT codes: view standard codes and add missing ones (#87 PR B).
+  // VAT codes: view standard codes and add missing ones (#87 PR B / #88).
   'taxCodes.title': 'VAT codes',
   'taxCodes.intro':
     'Every VAT code on this administration. You only add standard codes from the Dutch chart — no custom rates or boxes.',
   'taxCodes.caption': 'VAT codes on this administration',
   'taxCodes.empty': 'This administration has no VAT codes yet.',
-  'taxCodes.forbidden':
-    'Managing VAT codes is for the owner or accountant. A bookkeeper does not see this screen.',
+  'taxCodes.forbidden': 'Only the owner or accountant can manage VAT codes.',
   'taxCodes.add': 'Add a code',
   'taxCodes.addTitle': 'Add a standard code',
   'taxCodes.addIntro':
-    'Pick a combination from the chart. For a pair (reverse charge, ICV, import) both halves arrive together.',
+    'Pick which rate you want to add. Reverse charge, EU purchases and imports each add two codes.',
   'taxCodes.addConfirm': 'Add',
   'taxCodes.offersEmpty':
     'Every standard code is already on this administration. There is nothing left to add.',
@@ -641,9 +640,34 @@ export const en: Record<MessageKey, string> = {
   'taxCodes.direction.purchase': 'Purchase',
   'taxCodes.inUse.yes': 'Yes',
   'taxCodes.inUse.no': 'No',
-  'taxCodes.badge.correctionOnly': 'Correction/import only',
-  'taxCodes.offer.pair': 'Pair',
-  'taxCodes.deactivate': 'Close',
+  'taxCodes.badge.correctionOnly': 'Import and corrections of prior years only',
+  'taxCodes.badge.privateUse': 'Private-use corrections only',
+  'taxCodes.plain.PRIV21': '21% VAT on private use',
+  'taxCodes.offer.addsPair': 'Adds 2 codes',
+  'taxCodes.deactivate': 'Stop using',
+  'taxCodes.deactivateTitle': 'Stop using this code?',
+  'taxCodes.deactivateBody':
+    'From {datum} you can no longer pick this code. Existing bookings stay. You can undo this.',
+  'taxCodes.deactivateConfirm': 'Stop using',
+  'taxCodes.restore': 'Use again',
+  'taxCodes.notice.ended': '{label} can no longer be picked from {datum}.',
+  'taxCodes.notice.restored': '{label} can be picked again.',
+  'taxCodes.notice.added': '{label} has been added.',
+  'taxCodes.error.exists': 'This code is already on this administration.',
+  'taxCodes.error.pairHalf':
+    'One half of this pair is already on this administration. Add only when both are missing.',
+  'taxCodes.error.forbidden': 'Only the owner or accountant can manage VAT codes.',
+  'taxCodes.error.inUse': 'This code is already on bookings or a mapping, so you cannot end it.',
+  'taxCodes.error.notAllowed': 'This code is not on the standard chart.',
+  'taxCodes.error.generic': 'That did not work. Try again.',
+  'taxCodes.scope.domestic': 'Domestic',
+  'taxCodes.scope.private_use': 'Private use',
+  'taxCodes.scope.exempt': 'Exempt',
+  'taxCodes.scope.export': 'Export',
+  'taxCodes.scope.intra_community_supply': 'IC supply',
+  'taxCodes.scope.intra_community_acquisition': 'IC acquisition',
+  'taxCodes.scope.out_of_scope': 'Out of scope',
+  'taxCodes.scope.import': 'Import',
 
   // The audit file: out, and back in.
   'auditFile.title': 'Audit file',
@@ -857,6 +881,7 @@ export const en: Record<MessageKey, string> = {
   'invoiceNew.priceLine': 'Price line {line}',
   'invoiceNew.accountLine': 'Ledger line {line}',
   'invoiceNew.vatLine': 'VAT line {line}',
+  'invoiceNew.chooseVat': 'Pick a VAT rate',
   'invoiceNew.vatNote': 'Indicative. VAT is final when the invoice is sent.',
   'invoiceNew.saveDraft': 'Save the draft',
   'invoiceNew.nothingYet': 'There is nothing on this invoice yet.',
@@ -1011,6 +1036,7 @@ export const en: Record<MessageKey, string> = {
   'purchaseNew.netAmount': 'Amount excl. VAT',
   'purchaseNew.lines': 'Lines of the purchase invoice',
   'purchaseNew.taxCode': 'VAT code',
+  'purchaseNew.chooseVat': 'Pick a VAT rate',
   'purchaseNew.excludingVat': 'Excl. VAT',
   'purchaseNew.netLine': 'Excl. VAT line {line}',
   'purchaseNew.taxCodeLine': 'VAT code line {line}',

@@ -502,7 +502,7 @@ export const salesOperations: Readonly<Record<string, OperationDefinition>> = {
     kind: 'write',
     permission: 'tax-codes:manage',
     summary:
-      'Close an unused tax code with valid_to. Never mutates rate or rubrieken; refused when in use.',
+      'End an unused tax code with valid_to, or restore it with valid_to null. Never mutates rate or rubrieken; ending is refused when in use.',
     agentExposure: 'none',
     idempotent: true,
   }),

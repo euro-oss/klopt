@@ -4,10 +4,10 @@ import { deactivateTaxCodeBody } from '~/api/schemas'
 import { handle, parse, readJson } from '~/api/runtime'
 
 /**
- * Close an unused tax-code window (`valid_to` only).
+ * End or restore a tax-code window (`valid_to` only).
  *
- * Rate and rubriek changes are never PATCH fields: a rate change is a new row
- * with a new valid_from (migration 0012), which this PR does not offer.
+ * `validTo: null` clears an end date. Rate and rubriek changes are never PATCH
+ * fields: a rate change is a new row with a new valid_from (migration 0012).
  */
 export const Route = createFileRoute('/api/v1/tax-codes/$taxCodeId')({
   server: {
