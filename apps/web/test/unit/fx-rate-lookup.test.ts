@@ -6,6 +6,7 @@ import {
   nextFxLookupDraft,
   shouldApplyFxLookupResult,
   shouldShowFxLookupSlowHint,
+  showFxSourceBadge,
 } from '../../src/lib/fx-rate-lookup.js'
 import { en } from '../../src/i18n/en.js'
 import { nl } from '../../src/i18n/nl.js'
@@ -86,6 +87,28 @@ describe('formatFxAnnouncementDate', () => {
     expect(translate('en', 'importFindings.fx.fetchSuccess', { date: '16-10-2026' })).toBe(
       'ECB rate loaded (16-10-2026).',
     )
+    expect(translate('nl', 'importFindings.fx.badgeEcb', { date: '16-10-2026' })).toBe(
+      'ECB · 16-10-2026',
+    )
+    expect(translate('nl', 'importFindings.fx.ecbNote', { date: '16-10-2026' })).toContain(
+      '16-10-2026',
+    )
+  })
+})
+
+describe('showFxSourceBadge', () => {
+  it('always shows the ECB badge', () => {
+    expect(showFxSourceBadge('ecb', '')).toBe(true)
+    expect(showFxSourceBadge('ecb', '1,1531')).toBe(true)
+  })
+
+  it('hides Aangepast when the rate field is empty', () => {
+    expect(showFxSourceBadge('override', '')).toBe(false)
+    expect(showFxSourceBadge('override', '   ')).toBe(false)
+  })
+
+  it('shows Aangepast once a rate is typed', () => {
+    expect(showFxSourceBadge('override', '1,1490')).toBe(true)
   })
 })
 

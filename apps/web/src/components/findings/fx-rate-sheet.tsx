@@ -26,7 +26,7 @@ import {
 } from '~/components/ui/sheet'
 import { useT } from '~/i18n/provider'
 import type { MessageKey } from '~/i18n/nl'
-import { formatFxAnnouncementDate, fxLookupLiveKind } from '~/lib/fx-rate-lookup'
+import { formatFxAnnouncementDate, fxLookupLiveKind, showFxSourceBadge } from '~/lib/fx-rate-lookup'
 import { cn } from '~/lib/utils'
 
 export interface FxPreviewRow {
@@ -100,6 +100,7 @@ export function FxRateSheet({
   const currencyName = fxCurrencyName(t, currency)
   const regionId = useId()
   const liveId = useId()
+  const dateLabel = formatFxAnnouncementDate(ecbDate)
   const liveKind = fxLookupLiveKind({
     loading,
     error,
@@ -112,11 +113,13 @@ export function FxRateSheet({
         ? error
         : liveKind === 'success'
           ? t('importFindings.fx.fetchSuccess', {
-              date: formatFxAnnouncementDate(ecbDate),
+              date: dateLabel,
             })
           : ''
   const showSlowHint = forceSlowHint || loading
   const refreshUnavailable = onRefreshEcb === undefined
+  // Empty override (e.g. error state) must not show a hollow "Aangepast" badge.
+  const showSourceBadge = showFxSourceBadge(source, rate)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -164,19 +167,21 @@ export function FxRateSheet({
               <label htmlFor="fx-rate-input" className="text-sm font-medium">
                 {t('moneybird.fx.rateLabel')}
               </label>
-              <Badge variant={isEcb ? 'outline' : 'attention'} data-fx="badge">
-                {isEcb ? (
-                  <>
-                    <RiBankLine className="size-3" aria-hidden />
-                    {t('importFindings.fx.badgeEcb', { date: ecbDate })}
-                  </>
-                ) : (
-                  <>
-                    <RiPencilLine className="size-3" aria-hidden />
-                    {t('importFindings.fx.badgeOverride', { date: ecbDate })}
-                  </>
-                )}
-              </Badge>
+              {showSourceBadge ? (
+                <Badge variant={isEcb ? 'outline' : 'attention'} data-fx="badge">
+                  {isEcb ? (
+                    <>
+                      <RiBankLine className="size-3" aria-hidden />
+                      {t('importFindings.fx.badgeEcb', { date: dateLabel })}
+                    </>
+                  ) : (
+                    <>
+                      <RiPencilLine className="size-3" aria-hidden />
+                      {t('importFindings.fx.badgeOverride', { date: dateLabel })}
+                    </>
+                  )}
+                </Badge>
+              ) : null}
             </div>
             <p className="text-muted-foreground mb-2 text-xs">
               {t('importFindings.fx.rateHint', { currencyName })}
@@ -213,7 +218,7 @@ export function FxRateSheet({
                     currency,
                   })
                 : isEcb
-                  ? t('importFindings.fx.ecbNote', { date: ecbDate })
+                  ? t('importFindings.fx.ecbNote', { date: dateLabel })
                   : t('importFindings.fx.overrideNote')}
             </p>
 
@@ -234,7 +239,9 @@ export function FxRateSheet({
                   data-slot="fx-ecb-refresh"
                   className={cn(
                     'min-h-11 gap-2 normal-case tracking-normal md:min-h-8',
-                    loading && 'opacity-50',
+                    // Match aria-disabled: no clickable hover, not-allowed cursor.
+                    loading &&
+                      'cursor-not-allowed opacity-50 hover:bg-background hover:text-foreground',
                   )}
                 >
                   {loading ? (

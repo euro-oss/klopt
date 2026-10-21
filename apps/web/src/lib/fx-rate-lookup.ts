@@ -60,6 +60,14 @@ export function formatFxAnnouncementDate(iso: string): string {
   return `${match[3]}-${match[2]}-${match[1]}`
 }
 
+/**
+ * Whether the ECB / Aangepast source badge should render.
+ * An empty override (typical after a failed lookup) hides the badge.
+ */
+export function showFxSourceBadge(source: 'ecb' | 'override', rate: string): boolean {
+  return source === 'ecb' || rate.trim() !== ''
+}
+
 export interface FxLookupDraftSeed {
   readonly externalId: string
   readonly currency: string

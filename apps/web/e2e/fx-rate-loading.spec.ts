@@ -37,6 +37,10 @@ test('Koers loading announces via polite live region; no role=alert', async ({ p
   await expect(page.getByRole('status')).toContainText('Koers ophalen bij ECB')
   await expect(sheet.locator('[role="alert"]')).toHaveCount(0)
   await expect(page.locator('[data-slot="fx-rate-region"]')).not.toHaveAttribute('aria-busy')
+  // Busy: not clickable-looking (cursor + no muted hover background).
+  await expect(refresh).toHaveClass(/cursor-not-allowed/)
+  await refresh.hover()
+  await expect(refresh).toHaveCSS('cursor', 'not-allowed')
 })
 
 test('Koers slow hint is present after the 3 s reveal while still loading', async ({ page }) => {
@@ -76,6 +80,23 @@ test('Koers error is warning-toned, single live announcement, no role=alert', as
   await expect(sheet.locator('[role="alert"]')).toHaveCount(0)
   await expect(page.getByRole('status')).toContainText(/ECB-koers nu niet ophalen/)
   await expect(page.locator('#fx-rate-input')).toBeEnabled()
+  // Empty override must not show a hollow Aangepast badge.
+  await expect(sheet.locator('[data-fx="badge"]')).toHaveCount(0)
+  await expect(sheet.getByText(/Aangepast/)).toHaveCount(0)
+})
+
+test('Koers badge and ECB note use DD-MM-YYYY dates', async ({ page }) => {
+  await ready(page)
+  await page.goto('/lab/import-findings?source=moneybird&state=open&sheet=fx')
+  const sheet = page.getByRole('dialog')
+  await expect(sheet).toBeVisible()
+  await expect(sheet.locator('[data-fx="badge"]')).toContainText('ECB · 16-10-2026')
+  await page.locator('#fx-rate-input').fill('1,1490')
+  await expect(sheet.locator('[data-fx="badge"]')).toContainText('Aangepast · 16-10-2026')
+  // Loading has no inverse note, so the dated ECB note is the one shown.
+  await page.goto('/lab/import-findings?source=moneybird&state=open&sheet=fxLoading')
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(page.locator('#fx-rate-note')).toContainText('16-10-2026')
 })
 
 test('Opnieuw ophalen keeps focus on the ECB button while busy', async ({ page }) => {
