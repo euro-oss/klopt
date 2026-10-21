@@ -84,7 +84,12 @@ test('capture BTW-codes list + add dialog PNGs', async ({ browser }) => {
       await ready(page, `btw list ${theme} ${label}`)
       await page.goto('/tax-codes')
       await expect(page.getByRole('heading', { name: 'BTW-codes' })).toBeVisible()
-      await hydrated(page)
+      // Desktop: sidebar kbd hints. Phone: Sheet hides them — wait on the CTA.
+      if (label === 'mobile-390') {
+        await expect(page.getByRole('button', { name: 'Code toevoegen' })).toBeEnabled()
+      } else {
+        await hydrated(page)
+      }
       await setTheme(page, theme)
       await shoot(page, `list-${theme}-${label}.png`)
       await context.close()
@@ -97,7 +102,7 @@ test('capture BTW-codes list + add dialog PNGs', async ({ browser }) => {
       const page = await context.newPage()
       await ready(page, `btw add ${theme} ${label}`)
       await page.goto('/tax-codes')
-      await hydrated(page)
+      await expect(page.getByRole('button', { name: 'Code toevoegen' })).toBeEnabled()
       await page.getByRole('button', { name: 'Code toevoegen' }).click()
       await expect(page.getByRole('dialog')).toBeVisible()
       await setTheme(page, theme)
