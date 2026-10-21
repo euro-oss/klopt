@@ -1,9 +1,16 @@
 import { expect, test, type Page } from '@playwright/test'
 import { closeDatabase, createDatabase, runMigrations } from '@klopt/db'
-import { chooseOption, DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import {
+  chooseOption,
+  DATABASE_URL,
+  enableAdvancedMode,
+  hydrated,
+  signIn,
+  uniqueEmail,
+} from './support'
 
 /**
- * BTW-codes beheren: add a missing pair, and keep bookkeepers out.
+ * Btw-codes beheren: add a missing pair, confirm end/restore, keep bookkeepers out.
  */
 
 type SqlTag = {
@@ -41,6 +48,21 @@ async function dropPair(entityId: string): Promise<void> {
   }
 }
 
+async function endCode(entityId: string, code: string, validTo: string): Promise<void> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  const client = (database as unknown as { $client: SqlTag }).$client
+  try {
+    await client`
+      update klopt.tax_codes
+      set valid_to = ${validTo}::date
+      where entity_id = ${entityId}::uuid
+        and code = ${code}
+    `
+  } finally {
+    await closeDatabase(database)
+  }
+}
+
 test('an owner adds a missing pair and sees both codes on the list', async ({ page }) => {
   await anOwner(page, 'BTW Codes BV')
 
@@ -50,25 +72,77 @@ test('an owner adds a missing pair and sees both codes on the list', async ({ pa
   await dropPair(entity.id)
 
   await page.goto('/tax-codes')
-  await expect(page.getByRole('heading', { name: 'BTW-codes' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Btw-codes' })).toBeVisible()
   await hydrated(page)
 
-  await expect(page.getByRole('cell', { name: 'VERL9-ONTV', exact: true })).toHaveCount(0)
+  await expect(page.getByText('VERL9-ONTV', { exact: true })).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Code toevoegen' }).click()
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
-  await expect(dialog.getByText('VERL9-ONTV + VERL9-VOOR', { exact: true })).toBeVisible()
+  await expect(dialog.getByText('9% btw verlegd naar jou', { exact: true })).toBeVisible()
+  await expect(dialog.getByText('Voegt 2 codes toe')).toBeVisible()
 
-  await dialog.getByRole('radio', { name: /VERL9-ONTV \+ VERL9-VOOR/ }).check()
+  await dialog.getByRole('radio', { name: /9% btw verlegd naar jou/ }).click()
   await dialog.getByRole('button', { name: 'Toevoegen' }).click()
   await expect(dialog).toBeHidden()
 
-  await expect(page.getByRole('cell', { name: 'VERL9-ONTV', exact: true })).toBeVisible()
-  await expect(page.getByRole('cell', { name: 'VERL9-VOOR', exact: true })).toBeVisible()
+  await expect(page.getByText(/is toegevoegd/)).toBeVisible()
+  await expect(page.getByText('VERL9-ONTV', { exact: true })).toBeVisible()
+  await expect(page.getByText('VERL9-VOOR', { exact: true })).toBeVisible()
 })
 
-test('a bookkeeper cannot reach the BTW-codes screen', async ({ browser }) => {
+test('an owner ends a code with confirm, then restores it', async ({ page }) => {
+  await anOwner(page, 'Eind Codes BV')
+  await page.goto('/tax-codes')
+  await expect(page.getByRole('heading', { name: 'Btw-codes' })).toBeVisible()
+  await hydrated(page)
+
+  // L9 is unused on a fresh administration.
+  const row = page
+    .getByRole('row')
+    .filter({ has: page.getByText('L9', { exact: true }) })
+    .first()
+  await expect(row).toBeVisible()
+  await row.getByRole('button', { name: 'Niet meer gebruiken' }).click({ force: true })
+
+  const confirm = page.getByRole('alertdialog')
+  await expect(confirm).toBeVisible()
+  await expect(confirm).toContainText(
+    /Vanaf .+ kun je deze code niet meer kiezen\. Bestaande boekingen blijven staan\. Je kunt dit terugdraaien\./,
+  )
+  await confirm.getByRole('button', { name: 'Niet meer gebruiken' }).click()
+  await expect(confirm).toBeHidden()
+  await expect(page.getByText(/niet meer kiezen/)).toBeVisible()
+
+  await expect(row.getByRole('button', { name: 'Weer gebruiken' })).toBeVisible()
+  await row.getByRole('button', { name: 'Weer gebruiken' }).click({ force: true })
+  await expect(page.getByText(/weer kiezen/)).toBeVisible()
+  await expect(row.getByRole('button', { name: 'Niet meer gebruiken' })).toBeVisible()
+})
+
+test('an ended H21 is not offered on a new sales invoice', async ({ page }) => {
+  await anOwner(page, 'Ended H21 BV')
+
+  const entityRes = await page.request.get('/api/v1/entity')
+  expect(entityRes.ok()).toBe(true)
+  const entity = (await entityRes.json()) as { id: string }
+  await endCode(entity.id, 'H21', '2020-12-31')
+
+  await enableAdvancedMode(page)
+  await page.goto('/invoices/new')
+  const vat = page.getByLabel(/Btw regel 1/)
+  await expect(vat).toBeVisible()
+  // Empty default — H21 ended, so we do not silently pick L9.
+  await expect(vat).toContainText(/Kies een btw-tarief/)
+  await vat.click()
+  const list = page.getByRole('listbox')
+  await expect(list).toBeVisible()
+  await expect(list.getByRole('option', { name: /H21/ })).toHaveCount(0)
+  await expect(list.getByRole('option', { name: /L9/ })).toBeVisible()
+})
+
+test('a bookkeeper cannot reach the Btw-codes screen', async ({ browser }) => {
   const owner = await browser.newContext()
   const keeper = await browser.newContext()
 
@@ -91,11 +165,13 @@ test('a bookkeeper cannot reach the BTW-codes screen', async ({ browser }) => {
     await ownerPage.getByRole('button', { name: 'Uitnodigen' }).click()
     await expect(ownerPage.getByText(new RegExp(`${keeperEmail} heeft nu toegang`))).toBeVisible()
 
-    await expect(keeperPage.getByRole('link', { name: 'BTW-codes' })).toHaveCount(0)
+    await expect(keeperPage.getByRole('link', { name: 'Btw-codes' })).toHaveCount(0)
 
     await keeperPage.goto('/tax-codes')
-    await expect(keeperPage.getByRole('heading', { name: 'BTW-codes' })).toBeVisible()
-    await expect(keeperPage.getByRole('alert')).toContainText(/eigenaar of accountant/)
+    await expect(keeperPage.getByRole('heading', { name: 'Btw-codes' })).toBeVisible()
+    await expect(keeperPage.getByRole('alert')).toContainText(
+      'Alleen de eigenaar of accountant kan btw-codes beheren.',
+    )
     await expect(keeperPage.getByRole('button', { name: 'Code toevoegen' })).toHaveCount(0)
   } finally {
     await owner.close()
