@@ -260,6 +260,7 @@ export const en: Record<MessageKey, string> = {
   'nav.debtorsPlain': 'Outstanding with customers',
   'nav.creditorAgeing': 'Creditors',
   'nav.fiscalYears': 'Book years',
+  'nav.taxCodes': 'VAT codes',
   'nav.auditFile': 'Audit file',
 
   'shell.tagline': 'Open bookkeeping',
@@ -611,6 +612,38 @@ export const en: Record<MessageKey, string> = {
   'fiscalYears.closedNotice': 'Book year {year} is closed.',
   'fiscalYears.alreadyClosed':
     'Book year {year} is already closed. Closing happens once; there is no undo button here.',
+
+  // VAT codes: view standard codes and add missing ones (#87 PR B).
+  'taxCodes.title': 'VAT codes',
+  'taxCodes.intro':
+    'Every VAT code on this administration. You only add standard codes from the Dutch chart — no custom rates or boxes.',
+  'taxCodes.caption': 'VAT codes on this administration',
+  'taxCodes.empty': 'This administration has no VAT codes yet.',
+  'taxCodes.forbidden':
+    'Managing VAT codes is for the owner or accountant. A bookkeeper does not see this screen.',
+  'taxCodes.add': 'Add a code',
+  'taxCodes.addTitle': 'Add a standard code',
+  'taxCodes.addIntro':
+    'Pick a combination from the chart. For a pair (reverse charge, ICV, import) both halves arrive together.',
+  'taxCodes.addConfirm': 'Add',
+  'taxCodes.offersEmpty':
+    'Every standard code is already on this administration. There is nothing left to add.',
+  'taxCodes.col.code': 'Code',
+  'taxCodes.col.label': 'Description',
+  'taxCodes.col.rate': 'Rate',
+  'taxCodes.col.direction': 'Direction',
+  'taxCodes.col.rubrieken': 'Return boxes',
+  'taxCodes.col.valid': 'Valid',
+  'taxCodes.col.category': 'Category',
+  'taxCodes.col.inUse': 'In use',
+  'taxCodes.col.actions': 'Action',
+  'taxCodes.direction.sales': 'Sales',
+  'taxCodes.direction.purchase': 'Purchase',
+  'taxCodes.inUse.yes': 'Yes',
+  'taxCodes.inUse.no': 'No',
+  'taxCodes.badge.correctionOnly': 'Correction/import only',
+  'taxCodes.offer.pair': 'Pair',
+  'taxCodes.deactivate': 'Close',
 
   // The audit file: out, and back in.
   'auditFile.title': 'Audit file',

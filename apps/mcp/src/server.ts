@@ -49,6 +49,11 @@ import {
  * do the whole thing, and then the proposal model is a description of a habit
  * rather than a property of the system.
  *
+ * Adding or closing VAT codes (`POST /tax-codes`, `PATCH /tax-codes/{id}`) is
+ * likewise REST/UI only: configuration for Eigenaar / Accountant, not a draft
+ * an agent proposes. `describe_schema` already returns the entity's tax codes
+ * for reads; there is no MCP write tool for the allowlist.
+ *
  * ## The two that took a REST route first
  *
  * `search` and `explain_number` are the tools the spec names that this server

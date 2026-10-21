@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import {
   handleCreateContact,
+  handleCreateTaxCodes,
+  handleDeactivateTaxCode,
   handleDraftInvoice,
   handleGetContact,
   handleGetDunningQueue,
@@ -10,6 +12,7 @@ import {
   handleListDeliveries,
   handleListInvoices,
   handleListOverdueInvoices,
+  handleListTaxCodeOffers,
   handleListTaxCodes,
   handleReplaceDraftInvoice,
   handleSendDunningReminder,
@@ -19,6 +22,8 @@ import {
 import { handlePseudonymiseContact } from '~/api/handlers/retention'
 import {
   createContactBody,
+  createTaxCodesBody,
+  deactivateTaxCodeBody,
   draftInvoiceBody,
   issueInvoiceBody,
   sendInvoiceBody,
@@ -73,6 +78,43 @@ export const createContact = createServerFn({ method: 'POST' })
 export const listTaxCodes = createServerFn({ method: 'GET' }).handler(async () =>
   run(async () => (await handleListTaxCodes(await contextFromRequest())).body),
 )
+
+export const listTaxCodeOffers = createServerFn({ method: 'GET' }).handler(async () =>
+  run(async () => (await handleListTaxCodeOffers(await contextFromRequest())).body),
+)
+
+export const createTaxCodes = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      createTaxCodesBody,
+      data,
+      async (body) =>
+        (
+          await handleCreateTaxCodes(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            body,
+          )
+        ).body,
+    ),
+  )
+
+export const deactivateTaxCode = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => input)
+  .handler(async ({ data }) =>
+    runWith(
+      deactivateTaxCodeBody,
+      data,
+      async (body) =>
+        (
+          await handleDeactivateTaxCode(
+            await contextFromRequest({ idempotencyKey: keyOf(data) }),
+            (data as { taxCodeId: string }).taxCodeId,
+            body,
+          )
+        ).body,
+    ),
+  )
 
 export const listInvoices = createServerFn({ method: 'GET' })
   .validator((input: { status?: 'draft' | 'issued' | 'cancelled' | null; limit?: number }) => input)

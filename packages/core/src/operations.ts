@@ -475,6 +475,38 @@ export const salesOperations: Readonly<Record<string, OperationDefinition>> = {
     idempotent: true,
   }),
 
+  listTaxCodeOffers: defineOperation({
+    id: 'sales.listTaxCodeOffers',
+    kind: 'read',
+    permission: 'tax-codes:manage',
+    summary:
+      'Standard nl-mkb VAT codes this administration may still add (pairs offered atomically).',
+    // UI / REST configuration. MCP drafts invoices; it does not invent tax codes
+    // (see apps/mcp/src/server.ts — writes stay draft-only).
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  createTaxCodes: defineOperation({
+    id: 'sales.createTaxCodes',
+    kind: 'write',
+    permission: 'tax-codes:manage',
+    summary:
+      'Insert one allowlisted standard VAT code, or an atomic reverse-charge / acquisition pair.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  deactivateTaxCode: defineOperation({
+    id: 'sales.deactivateTaxCode',
+    kind: 'write',
+    permission: 'tax-codes:manage',
+    summary:
+      'Close an unused tax code with valid_to. Never mutates rate or rubrieken; refused when in use.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
   draftInvoice: defineOperation({
     id: 'sales.draftInvoice',
     kind: 'write',

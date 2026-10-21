@@ -1,5 +1,5 @@
 import type { MessageKey } from '~/i18n/nl'
-import { MAY_EXPORT_AUDIT_FILE, MAY_OPEN_YEAR } from '~/lib/roles'
+import { MAY_EXPORT_AUDIT_FILE, MAY_MANAGE_TAX_CODES, MAY_OPEN_YEAR } from '~/lib/roles'
 
 /**
  * Shell navigation IA (#61 slice 2 / #57).
@@ -119,6 +119,12 @@ export const NAVIGATION: readonly NavGroup[] = [
         key: 'nav.fiscalYears',
         binding: 'go.fiscalYears',
         roles: MAY_OPEN_YEAR,
+      },
+      {
+        to: '/tax-codes',
+        key: 'nav.taxCodes',
+        binding: 'go.taxCodes',
+        roles: MAY_MANAGE_TAX_CODES,
       },
       {
         to: '/audit-file',

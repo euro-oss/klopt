@@ -328,9 +328,29 @@ export const overdueQuery = z.object({
   asOf: asOfDefaultsToday,
 })
 
+/** Allowlisted standard VAT code (or atomic pair) to insert. */
+export const createTaxCodesBody = z.object({
+  /**
+   * Primary chart code of the offer — e.g. `VERL9-ONTV` inserts both halves,
+   * `L6` inserts that single. Free-form rates and rubrieken are refused.
+   */
+  key: z
+    .string()
+    .min(1)
+    .max(32)
+    .regex(/^[A-Z0-9][A-Z0-9-]*$/, 'Use a standard chart code key.'),
+})
+
+/** Close an unused tax-code window. Rate / rubriek mutation is never allowed. */
+export const deactivateTaxCodeBody = z.object({
+  validTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use an ISO calendar date (YYYY-MM-DD).'),
+})
+
 export type CreateContactBody = z.infer<typeof createContactBody>
 export type DraftInvoiceBody = z.infer<typeof draftInvoiceBody>
 export type IssueInvoiceBody = z.infer<typeof issueInvoiceBody>
+export type CreateTaxCodesBody = z.infer<typeof createTaxCodesBody>
+export type DeactivateTaxCodeBody = z.infer<typeof deactivateTaxCodeBody>
 
 /**
  * Provisioning (principle 4). Everything optional here has a defensible default

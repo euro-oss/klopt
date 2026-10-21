@@ -10886,6 +10886,62 @@
         ]
       }
     },
+    "sales.createTaxCodes": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "validFrom": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "codes",
+          "ids",
+          "validFrom"
+        ]
+      }
+    },
+    "sales.deactivateTaxCode": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "validFrom": {
+            "type": "string"
+          },
+          "validTo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "validFrom",
+          "validTo"
+        ]
+      }
+    },
     "sales.draftInvoice": {
       "schema": {
         "type": "object",
@@ -11916,6 +11972,67 @@
         ]
       }
     },
+    "sales.listTaxCodeOffers": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "offers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "codes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "descriptions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "rateBasisPoints": {
+                  "type": "number"
+                },
+                "ratePercent": {
+                  "type": "string"
+                },
+                "direction": {
+                  "enum": [
+                    "output",
+                    "input"
+                  ]
+                },
+                "pair": {
+                  "type": "boolean"
+                },
+                "correctionOnly": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "key",
+                "codes",
+                "descriptions",
+                "rateBasisPoints",
+                "ratePercent",
+                "direction",
+                "pair",
+                "correctionOnly"
+              ]
+            }
+          }
+        },
+        "required": [
+          "offers"
+        ]
+      }
+    },
     "sales.listTaxCodes": {
       "schema": {
         "type": "object",
@@ -11926,6 +12043,15 @@
               "type": "object",
               "properties": {
                 "ratePercent": {
+                  "type": "string"
+                },
+                "inUse": {
+                  "type": "boolean"
+                },
+                "correctionOnly": {
+                  "type": "boolean"
+                },
+                "id": {
                   "type": "string"
                 },
                 "code": {
@@ -12024,6 +12150,9 @@
               },
               "required": [
                 "ratePercent",
+                "inUse",
+                "correctionOnly",
+                "id",
                 "code",
                 "description",
                 "rateBasisPoints",

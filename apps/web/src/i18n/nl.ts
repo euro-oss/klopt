@@ -55,6 +55,7 @@ export const nl = {
   'nav.debtorsPlain': 'Openstaand bij klanten',
   'nav.creditorAgeing': 'Crediteuren',
   'nav.fiscalYears': 'Boekjaren',
+  'nav.taxCodes': 'BTW-codes',
   'nav.auditFile': 'Auditfile',
 
   'shell.tagline': 'Open boekhouden',
@@ -422,6 +423,38 @@ export const nl = {
   // draaien, net zoals de bevestiging hierboven zegt.
   'fiscalYears.alreadyClosed':
     'Boekjaar {year} is al afgesloten. Afsluiten gebeurt één keer; hier zit geen knop om dat terug te draaien.',
+
+  // BTW-codes: standaardcodes bekijken en ontbrekende toevoegen (#87 PR B).
+  'taxCodes.title': 'BTW-codes',
+  'taxCodes.intro':
+    'Alle btw-codes van deze administratie. Je voegt alleen standaardcodes uit het Nederlandse schema toe — geen eigen tarieven of rubrieken.',
+  'taxCodes.caption': 'BTW-codes van deze administratie',
+  'taxCodes.empty': 'Deze administratie heeft nog geen btw-codes.',
+  'taxCodes.forbidden':
+    'BTW-codes beheren kan alleen als eigenaar of accountant. Een boekhouder ziet dit scherm niet.',
+  'taxCodes.add': 'Code toevoegen',
+  'taxCodes.addTitle': 'Standaardcode toevoegen',
+  'taxCodes.addIntro':
+    'Kies een combinatie uit het schema. Bij een paar (verlegd, ICV, invoer) komen beide helften tegelijk binnen.',
+  'taxCodes.addConfirm': 'Toevoegen',
+  'taxCodes.offersEmpty':
+    'Alle standaardcodes staan al in deze administratie. Er is niets meer om toe te voegen.',
+  'taxCodes.col.code': 'Code',
+  'taxCodes.col.label': 'Omschrijving',
+  'taxCodes.col.rate': 'Tarief',
+  'taxCodes.col.direction': 'Richting',
+  'taxCodes.col.rubrieken': 'Aangifte',
+  'taxCodes.col.valid': 'Geldig',
+  'taxCodes.col.category': 'Categorie',
+  'taxCodes.col.inUse': 'In gebruik',
+  'taxCodes.col.actions': 'Actie',
+  'taxCodes.direction.sales': 'Verkoop',
+  'taxCodes.direction.purchase': 'Inkoop',
+  'taxCodes.inUse.yes': 'Ja',
+  'taxCodes.inUse.no': 'Nee',
+  'taxCodes.badge.correctionOnly': 'Alleen correctie/import',
+  'taxCodes.offer.pair': 'Paar',
+  'taxCodes.deactivate': 'Sluiten',
 
   // De auditfile: eruit en er weer in.
   'auditFile.title': 'Auditfile',
