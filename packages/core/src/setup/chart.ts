@@ -75,6 +75,11 @@ export interface ChartTaxCode {
   readonly proRataBasisPoints: number | null
   readonly supplyKind: SupplyKind
   readonly deductionCode: string | null
+  /**
+   * Historical / import-only rates (L6, H19, …). Kept on the chart so imports
+   * can map them; new booking pickers and the Beheer badge read this flag.
+   */
+  readonly correctionOnly: boolean
 }
 
 export interface Chart {
@@ -271,6 +276,7 @@ export function loadChart(raw: unknown): Chart {
           'not_applicable',
         ),
         deductionCode: typeof code['deductionCode'] === 'string' ? code['deductionCode'] : null,
+        correctionOnly: code['correctionOnly'] === true,
       }
     },
   )

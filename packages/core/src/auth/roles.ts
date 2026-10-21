@@ -92,6 +92,15 @@ export const PERMISSIONS = {
    */
   manageRetention: 'retention:manage',
   /**
+   * Add (and deactivate unused) VAT codes on an administration.
+   *
+   * Own permission on purpose: `ledger:configure` also sits with the
+   * bookkeeper, and changing which BTW-codes exist is an Eigenaar / Accountant
+   * decision — the same people who close a year and file a return. A token that
+   * only holds configure must not be able to invent rates or rubrieken.
+   */
+  manageTaxCodes: 'tax-codes:manage',
+  /**
    * Create a new administration. Instance-scoped, not entity-scoped: it is held
    * by a signed-in human and by no role and no API token, because a token is
    * issued by one administration and must not be able to create another.
@@ -131,6 +140,7 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     PERMISSIONS.fileVat,
     PERMISSIONS.approvePurchase,
     PERMISSIONS.manageRetention,
+    PERMISSIONS.manageTaxCodes,
   ],
   accountant: [
     PERMISSIONS.read,
@@ -145,6 +155,7 @@ const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     PERMISSIONS.approvePayments,
     PERMISSIONS.fileVat,
     PERMISSIONS.approvePurchase,
+    PERMISSIONS.manageTaxCodes,
   ],
   /**
    * A bookkeeper prepares payments and cannot approve them. That is the

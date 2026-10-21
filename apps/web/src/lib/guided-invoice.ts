@@ -54,6 +54,8 @@ export interface GuidedTaxCode {
   rateBasisPoints: number
   direction: string
   description?: string
+  validFrom?: string
+  validTo?: string | null
 }
 
 export interface GuidedTotals {
@@ -89,8 +91,11 @@ export function isZeroVatRate(ratePercent: string): boolean {
 }
 
 /** Output codes offered on a sales invoice (no PRIV21 / L6 / H19). */
-export function salesPickerTaxCodes(codes: readonly GuidedTaxCode[]): GuidedTaxCode[] {
-  return salesBookingTaxCodes(codes)
+export function salesPickerTaxCodes(
+  codes: readonly GuidedTaxCode[],
+  onDate?: string,
+): GuidedTaxCode[] {
+  return salesBookingTaxCodes(codes, onDate)
 }
 
 /**
@@ -106,12 +111,12 @@ export function taxCodeLabel(code: GuidedTaxCode | undefined, labels: VatLabelBa
 }
 
 /**
- * Default output tax code: highest *positive* sales rate. Never preselects a
- * 0% code or PRIV21. Last-booking defaults are not available from the API yet.
+ * Usual sales default: H21 when it is still in the picker. Never preselects a
+ * 0% code or PRIV21, and never silently falls back to L9 when H21 has ended.
  */
-export function defaultOutputTaxCode(codes: readonly GuidedTaxCode[]): string {
-  const eligible = salesPickerTaxCodes(codes).filter((code) => !isZeroVatRate(code.ratePercent))
-  return [...eligible].sort((a, b) => b.rateBasisPoints - a.rateBasisPoints)[0]?.code ?? ''
+export function defaultOutputTaxCode(codes: readonly GuidedTaxCode[], onDate?: string): string {
+  const eligible = salesPickerTaxCodes(codes, onDate)
+  return eligible.some((code) => code.code === 'H21') ? 'H21' : ''
 }
 
 export function addDaysIso(isoDate: string, days: number): string {

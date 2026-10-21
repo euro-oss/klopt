@@ -38,10 +38,14 @@ import {
 } from '../src/api/handlers/ledger.js'
 import {
   handleCreateContact,
+  handleCreateTaxCodes,
+  handleDeactivateTaxCode,
   handleDraftInvoice,
   handleIssueInvoice,
   handleListContacts,
   handleListInvoices,
+  handleListTaxCodeOffers,
+  handleListTaxCodes,
   handleReplaceDraftInvoice,
   handleSendDunningReminder,
   handleSendInvoice,
@@ -892,6 +896,33 @@ describe('every write, against the schema it publishes', () => {
           await contextFor(key()),
           made['invoiceId'],
           schemas.sendReminderBody.parse({ asOf: '2026-04-07' }),
+        )
+      ).body,
+    )
+
+    // Allowlisted standard codes: offer list, atomic pair insert, then close an
+    // unused single with valid_to (H21 is in use on the invoice above).
+    conforms('sales.listTaxCodes', (await handleListTaxCodes(await contextFor())).body)
+    conforms('sales.listTaxCodeOffers', (await handleListTaxCodeOffers(await contextFor())).body)
+    conforms(
+      'sales.createTaxCodes',
+      (
+        await handleCreateTaxCodes(
+          await contextFor(key()),
+          schemas.createTaxCodesBody.parse({ key: 'VERL9-ONTV' }),
+        )
+      ).body,
+    )
+    const listed = await handleListTaxCodes(await contextFor())
+    const unused = listed.body.taxCodes.find((row) => row.code === 'L9' && !row.inUse)
+    if (unused === undefined) throw new Error('Expected unused L9 for deactivateTaxCode.')
+    conforms(
+      'sales.deactivateTaxCode',
+      (
+        await handleDeactivateTaxCode(
+          await contextFor(key()),
+          unused.id,
+          schemas.deactivateTaxCodeBody.parse({ validTo: '2026-12-31' }),
         )
       ).body,
     )

@@ -20,6 +20,9 @@ import {
   contacts,
   entities,
   invoiceDeliveries,
+  journalLines,
+  moneybirdConnections,
+  purchaseInvoiceLines,
   purchaseInvoices,
   salesInvoiceLines,
   salesInvoices,
@@ -1256,6 +1259,7 @@ export class SalesRepository {
   async listTaxCodes(entityId: string) {
     return this.tx
       .select({
+        id: taxCodes.id,
         code: taxCodes.code,
         description: taxCodes.description,
         rateBasisPoints: taxCodes.rateBasisPoints,
@@ -1280,6 +1284,180 @@ export class SalesRepository {
       .leftJoin(accounts, eq(accounts.id, taxCodes.accountId))
       .where(eq(taxCodes.entityId, entityId))
       .orderBy(asc(taxCodes.code), asc(taxCodes.validFrom))
+  }
+
+  /**
+   * Codes referenced by bookings, document lines, account defaults, or a
+   * Moneybird mapping. Used to refuse deactivation and to badge the list.
+   */
+  async taxCodesInUse(entityId: string): Promise<ReadonlySet<string>> {
+    const used = new Set<string>()
+
+    const fromSales = await this.tx
+      .selectDistinct({ code: taxCodes.code })
+      .from(salesInvoiceLines)
+      .innerJoin(taxCodes, eq(taxCodes.id, salesInvoiceLines.taxCodeId))
+      .where(eq(salesInvoiceLines.entityId, entityId))
+    for (const row of fromSales) used.add(row.code)
+
+    const fromPurchase = await this.tx
+      .selectDistinct({ code: taxCodes.code })
+      .from(purchaseInvoiceLines)
+      .innerJoin(taxCodes, eq(taxCodes.id, purchaseInvoiceLines.taxCodeId))
+      .where(eq(purchaseInvoiceLines.entityId, entityId))
+    for (const row of fromPurchase) used.add(row.code)
+
+    const fromJournal = await this.tx
+      .selectDistinct({ code: journalLines.taxCode })
+      .from(journalLines)
+      .where(and(eq(journalLines.entityId, entityId), sql`${journalLines.taxCode} is not null`))
+    for (const row of fromJournal) {
+      if (row.code !== null) used.add(row.code)
+    }
+
+    const fromAccounts = await this.tx
+      .selectDistinct({ code: accounts.defaultTaxCode })
+      .from(accounts)
+      .where(and(eq(accounts.entityId, entityId), sql`${accounts.defaultTaxCode} is not null`))
+    for (const row of fromAccounts) {
+      if (row.code !== null) used.add(row.code)
+    }
+
+    const [connection] = await this.tx
+      .select({ taxMappings: moneybirdConnections.taxMappings })
+      .from(moneybirdConnections)
+      .where(eq(moneybirdConnections.entityId, entityId))
+      .limit(1)
+    if (connection !== undefined) {
+      const mappings = connection.taxMappings
+      if (typeof mappings === 'object' && mappings !== null && !Array.isArray(mappings)) {
+        for (const value of Object.values(mappings as Record<string, unknown>)) {
+          if (typeof value === 'string' && value !== '') used.add(value)
+        }
+      }
+    }
+
+    return used
+  }
+
+  /** Earliest H21 window, or null when the entity has no high-rate anchor. */
+  async taxCodeAnchorValidFrom(entityId: string): Promise<string | null> {
+    const [row] = await this.tx
+      .select({ validFrom: taxCodes.validFrom })
+      .from(taxCodes)
+      .where(and(eq(taxCodes.entityId, entityId), eq(taxCodes.code, 'H21')))
+      .orderBy(asc(taxCodes.validFrom))
+      .limit(1)
+    return row?.validFrom ?? null
+  }
+
+  async accountIdsByNumbers(
+    entityId: string,
+    numbers: readonly string[],
+  ): Promise<ReadonlyMap<string, string>> {
+    return this.accountIdsByNumber(entityId, numbers)
+  }
+
+  async insertTaxCodes(
+    entityId: string,
+    rows: readonly {
+      readonly code: string
+      readonly description: string
+      readonly rateBasisPoints: number
+      readonly direction: 'output' | 'input'
+      readonly accountId: string | null
+      readonly isReverseCharge: boolean
+      readonly ublCategory: string
+      readonly baseRubriek: string | null
+      readonly vatRubriek: string | null
+      readonly scope: string
+      readonly reverseCharge: string
+      readonly deductibility: string
+      readonly proRataBasisPoints: number | null
+      readonly supplyKind: string
+      readonly deductionCode: string | null
+      readonly validFrom: string
+    }[],
+  ): Promise<readonly string[]> {
+    if (rows.length === 0) return []
+    const ids = rows.map(() => uuidv7())
+    await this.tx.insert(taxCodes).values(
+      rows.map((row, index) => ({
+        id: ids[index]!,
+        entityId,
+        code: row.code,
+        description: row.description,
+        rateBasisPoints: row.rateBasisPoints,
+        direction: row.direction,
+        accountId: row.accountId,
+        isReverseCharge: row.isReverseCharge,
+        ublCategory: row.ublCategory,
+        baseRubriek: row.baseRubriek,
+        vatRubriek: row.vatRubriek,
+        scope: row.scope as typeof taxCodes.$inferInsert.scope,
+        reverseCharge: row.reverseCharge as typeof taxCodes.$inferInsert.reverseCharge,
+        deductibility: row.deductibility as typeof taxCodes.$inferInsert.deductibility,
+        proRataBasisPoints: row.proRataBasisPoints,
+        supplyKind: row.supplyKind as typeof taxCodes.$inferInsert.supplyKind,
+        deductionCode: row.deductionCode,
+        validFrom: row.validFrom,
+        validTo: null,
+      })),
+    )
+    return ids
+  }
+
+  async findTaxCodeRow(entityId: string, taxCodeId: string) {
+    const [row] = await this.tx
+      .select({
+        id: taxCodes.id,
+        code: taxCodes.code,
+        validFrom: taxCodes.validFrom,
+        validTo: taxCodes.validTo,
+        rateBasisPoints: taxCodes.rateBasisPoints,
+      })
+      .from(taxCodes)
+      .where(and(eq(taxCodes.entityId, entityId), eq(taxCodes.id, taxCodeId)))
+      .limit(1)
+    return row ?? null
+  }
+
+  /**
+   * Lock one tax-code row for the end / restore path so concurrent PATCHes
+   * serialise on this row. Does not lock bookings that reference the code —
+   * the in-use check still runs after the lock is taken.
+   */
+  async findTaxCodeRowForUpdate(entityId: string, taxCodeId: string) {
+    const [row] = await this.tx
+      .select({
+        id: taxCodes.id,
+        code: taxCodes.code,
+        validFrom: taxCodes.validFrom,
+        validTo: taxCodes.validTo,
+        rateBasisPoints: taxCodes.rateBasisPoints,
+      })
+      .from(taxCodes)
+      .where(and(eq(taxCodes.entityId, entityId), eq(taxCodes.id, taxCodeId)))
+      .for('update')
+      .limit(1)
+    return row ?? null
+  }
+
+  /**
+   * Set or clear valid_to. Never touches rate or rubrieken — a rate change is
+   * a new row (migration 0012). `null` restores the code for new bookings.
+   */
+  async setTaxCodeValidTo(
+    entityId: string,
+    taxCodeId: string,
+    validTo: string | null,
+  ): Promise<boolean> {
+    const updated = await this.tx
+      .update(taxCodes)
+      .set({ validTo })
+      .where(and(eq(taxCodes.entityId, entityId), eq(taxCodes.id, taxCodeId)))
+      .returning({ id: taxCodes.id })
+    return updated.length > 0
   }
 }
 

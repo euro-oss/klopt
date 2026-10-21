@@ -55,6 +55,7 @@ export const nl = {
   'nav.debtorsPlain': 'Openstaand bij klanten',
   'nav.creditorAgeing': 'Crediteuren',
   'nav.fiscalYears': 'Boekjaren',
+  'nav.taxCodes': 'Btw-codes',
   'nav.auditFile': 'Auditfile',
 
   'shell.tagline': 'Open boekhouden',
@@ -423,6 +424,67 @@ export const nl = {
   'fiscalYears.alreadyClosed':
     'Boekjaar {year} is al afgesloten. Afsluiten gebeurt één keer; hier zit geen knop om dat terug te draaien.',
 
+  // Btw-codes: standaardcodes bekijken en ontbrekende toevoegen (#87 PR B / #88).
+  'taxCodes.title': 'Btw-codes',
+  'taxCodes.intro':
+    'Alle btw-codes van deze administratie. Je voegt alleen standaardcodes uit het Nederlandse schema toe — geen eigen tarieven of rubrieken.',
+  'taxCodes.caption': 'Btw-codes van deze administratie',
+  'taxCodes.empty': 'Deze administratie heeft nog geen btw-codes.',
+  'taxCodes.forbidden': 'Alleen de eigenaar of accountant kan btw-codes beheren.',
+  'taxCodes.add': 'Code toevoegen',
+  'taxCodes.addTitle': 'Standaardcode toevoegen',
+  'taxCodes.addIntro':
+    'Kies welk tarief je wilt toevoegen. Bij verlegd, inkoop uit de EU en invoer komen er twee codes bij.',
+  'taxCodes.addConfirm': 'Toevoegen',
+  'taxCodes.offersEmpty':
+    'Alle standaardcodes staan al in deze administratie. Er is niets meer om toe te voegen.',
+  'taxCodes.col.code': 'Code',
+  'taxCodes.col.label': 'Omschrijving',
+  'taxCodes.col.rate': 'Tarief',
+  'taxCodes.col.direction': 'Richting',
+  'taxCodes.col.rubrieken': 'Aangifte',
+  'taxCodes.col.valid': 'Geldig',
+  'taxCodes.col.category': 'Categorie',
+  'taxCodes.col.inUse': 'In gebruik',
+  'taxCodes.col.actions': 'Actie',
+  'taxCodes.direction.sales': 'Verkoop',
+  'taxCodes.direction.purchase': 'Inkoop',
+  'taxCodes.inUse.yes': 'Ja',
+  'taxCodes.inUse.no': 'Nee',
+  'taxCodes.badge.correctionOnly': 'Alleen voor import en correcties van oude jaren',
+  'taxCodes.badge.privateUse': 'Alleen voor correcties van privégebruik',
+  'taxCodes.plain.PRIV21': 'Privégebruik 21% btw',
+  'taxCodes.plain.deductionSuffix': '(aftrekbaar deel)',
+  'taxCodes.offer.addsPair': 'Voegt 2 codes toe',
+  'taxCodes.deactivate': 'Niet meer gebruiken',
+  'taxCodes.deactivateTitle': '{label} ({code}) niet meer gebruiken?',
+  'taxCodes.deactivateBody':
+    'Vanaf {datum} kun je deze code niet meer kiezen. Bestaande boekingen blijven staan. Je kunt dit terugdraaien.',
+  'taxCodes.deactivateConfirm': 'Niet meer gebruiken',
+  'taxCodes.restore': 'Weer gebruiken',
+  'taxCodes.endedStatus': 'Niet meer te kiezen vanaf {datum}',
+  'taxCodes.notice.ended': '{label} kun je vanaf {datum} niet meer kiezen.',
+  'taxCodes.notice.restored': '{label} kun je weer kiezen.',
+  'taxCodes.notice.added': '{label} is toegevoegd.',
+  'booking.taxCodeInvalidOnDate':
+    'De btw-code van regel {n} geldt niet op deze datum. Kies een andere.',
+  'taxCodes.error.exists': 'Deze code staat al in deze administratie.',
+  'taxCodes.error.pairHalf':
+    'Van dit paar staat al een helft in deze administratie. Voeg alleen toe als beide ontbreken.',
+  'taxCodes.error.forbidden': 'Alleen de eigenaar of accountant kan btw-codes beheren.',
+  'taxCodes.error.inUse':
+    'Deze code staat al op boekingen of een koppeling en kun je niet beëindigen.',
+  'taxCodes.error.notAllowed': 'Deze code staat niet in het standaardschema.',
+  'taxCodes.error.generic': 'Dit lukte niet. Probeer het opnieuw.',
+  'taxCodes.scope.domestic': 'Binnenland',
+  'taxCodes.scope.private_use': 'Privégebruik',
+  'taxCodes.scope.exempt': 'Vrijgesteld',
+  'taxCodes.scope.export': 'Export',
+  'taxCodes.scope.intra_community_supply': 'IC-levering',
+  'taxCodes.scope.intra_community_acquisition': 'IC-verwerving',
+  'taxCodes.scope.out_of_scope': 'Buiten bereik',
+  'taxCodes.scope.import': 'Invoer',
+
   // De auditfile: eruit en er weer in.
   'auditFile.title': 'Auditfile',
   'auditFile.intro':
@@ -641,6 +703,7 @@ export const nl = {
   'invoiceNew.priceLine': 'Prijs regel {line}',
   'invoiceNew.accountLine': 'Grootboek regel {line}',
   'invoiceNew.vatLine': 'Btw regel {line}',
+  'invoiceNew.chooseVat': 'Kies een btw-tarief',
   'invoiceNew.vatNote': 'Indicatief. De btw wordt bij versturen definitief.',
   'invoiceNew.saveDraft': 'Concept opslaan',
   'invoiceNew.nothingYet': 'Er staat nog niets op deze factuur.',
@@ -796,6 +859,7 @@ export const nl = {
   'purchaseNew.netAmount': 'Bedrag excl. btw',
   'purchaseNew.lines': 'Regels van de inkoopfactuur',
   'purchaseNew.taxCode': 'Btw-code',
+  'purchaseNew.chooseVat': 'Kies een btw-tarief',
   'purchaseNew.excludingVat': 'Excl. btw',
   'purchaseNew.netLine': 'Excl. btw regel {line}',
   'purchaseNew.taxCodeLine': 'Btw-code regel {line}',

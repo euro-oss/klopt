@@ -26,6 +26,7 @@ import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppRetentionRouteImport } from './routes/_app/retention'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSnapshotsRouteImport } from './routes/_app/snapshots'
+import { Route as AppTaxCodesRouteImport } from './routes/_app/tax-codes'
 import { Route as AppWebhooksRouteImport } from './routes/_app/webhooks'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as LabPrimitivesRouteImport } from './routes/lab.primitives'
@@ -130,6 +131,8 @@ import { Route as ApiV1RgsMappingsRouteImport } from './routes/api/v1/rgs.mappin
 import { Route as ApiV1RgsUpgradePreviewRouteImport } from './routes/api/v1/rgs.upgrade-preview'
 import { Route as ApiV1SalesInvoicesInvoiceIdRouteImport } from './routes/api/v1/sales-invoices.$invoiceId'
 import { Route as ApiV1SetupChartsRouteImport } from './routes/api/v1/setup.charts'
+import { Route as ApiV1TaxCodesTaxCodeIdRouteImport } from './routes/api/v1/tax-codes.$taxCodeId'
+import { Route as ApiV1TaxCodesOffersRouteImport } from './routes/api/v1/tax-codes.offers'
 import { Route as ApiV1TokensTokenIdRouteImport } from './routes/api/v1/tokens.$tokenId'
 import { Route as ApiV1VatFilingsRouteImport } from './routes/api/v1/vat.filings'
 import { Route as ApiV1VatNumberChecksRouteImport } from './routes/api/v1/vat.number-checks'
@@ -253,6 +256,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const AppSnapshotsRoute = AppSnapshotsRouteImport.update({
   id: '/snapshots',
   path: '/snapshots',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTaxCodesRoute = AppTaxCodesRouteImport.update({
+  id: '/tax-codes',
+  path: '/tax-codes',
   getParentRoute: () => AppRoute,
 } as any)
 const AppWebhooksRoute = AppWebhooksRouteImport.update({
@@ -794,6 +802,16 @@ const ApiV1SetupChartsRoute = ApiV1SetupChartsRouteImport.update({
   path: '/api/v1/setup/charts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1TaxCodesTaxCodeIdRoute = ApiV1TaxCodesTaxCodeIdRouteImport.update({
+  id: '/$taxCodeId',
+  path: '/$taxCodeId',
+  getParentRoute: () => ApiV1TaxCodesRoute,
+} as any)
+const ApiV1TaxCodesOffersRoute = ApiV1TaxCodesOffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
+  getParentRoute: () => ApiV1TaxCodesRoute,
+} as any)
 const ApiV1TokensTokenIdRoute = ApiV1TokensTokenIdRouteImport.update({
   id: '/$tokenId',
   path: '/$tokenId',
@@ -1030,6 +1048,7 @@ export interface FileRoutesByFullPath {
   '/retention': typeof AppRetentionRoute
   '/settings': typeof AppSettingsRoute
   '/snapshots': typeof AppSnapshotsRoute
+  '/tax-codes': typeof AppTaxCodesRoute
   '/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
   '/lab/primitives': typeof LabPrimitivesRoute
@@ -1078,7 +1097,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/search': typeof ApiV1SearchRoute
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
-  '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
+  '/api/v1/tax-codes': typeof ApiV1TaxCodesRouteWithChildren
   '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
   '/api/v1/webhooks': typeof ApiV1WebhooksRouteWithChildren
   '/bank/': typeof AppBankIndexRoute
@@ -1134,6 +1153,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
+  '/api/v1/tax-codes/$taxCodeId': typeof ApiV1TaxCodesTaxCodeIdRoute
+  '/api/v1/tax-codes/offers': typeof ApiV1TaxCodesOffersRoute
   '/api/v1/tokens/$tokenId': typeof ApiV1TokensTokenIdRoute
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
@@ -1189,6 +1210,7 @@ export interface FileRoutesByTo {
   '/retention': typeof AppRetentionRoute
   '/settings': typeof AppSettingsRoute
   '/snapshots': typeof AppSnapshotsRoute
+  '/tax-codes': typeof AppTaxCodesRoute
   '/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
   '/lab/primitives': typeof LabPrimitivesRoute
@@ -1238,7 +1260,7 @@ export interface FileRoutesByTo {
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/search': typeof ApiV1SearchRoute
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
-  '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
+  '/api/v1/tax-codes': typeof ApiV1TaxCodesRouteWithChildren
   '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
   '/api/v1/webhooks': typeof ApiV1WebhooksRouteWithChildren
   '/bank': typeof AppBankIndexRoute
@@ -1294,6 +1316,8 @@ export interface FileRoutesByTo {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
+  '/api/v1/tax-codes/$taxCodeId': typeof ApiV1TaxCodesTaxCodeIdRoute
+  '/api/v1/tax-codes/offers': typeof ApiV1TaxCodesOffersRoute
   '/api/v1/tokens/$tokenId': typeof ApiV1TokensTokenIdRoute
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
@@ -1351,6 +1375,7 @@ export interface FileRoutesById {
   '/_app/retention': typeof AppRetentionRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/snapshots': typeof AppSnapshotsRoute
+  '/_app/tax-codes': typeof AppTaxCodesRoute
   '/_app/webhooks': typeof AppWebhooksRoute
   '/api/mcp': typeof ApiMcpRoute
   '/lab/primitives': typeof LabPrimitivesRoute
@@ -1400,7 +1425,7 @@ export interface FileRoutesById {
   '/api/v1/sales-invoices': typeof ApiV1SalesInvoicesRouteWithChildren
   '/api/v1/search': typeof ApiV1SearchRoute
   '/api/v1/snapshots': typeof ApiV1SnapshotsRouteWithChildren
-  '/api/v1/tax-codes': typeof ApiV1TaxCodesRoute
+  '/api/v1/tax-codes': typeof ApiV1TaxCodesRouteWithChildren
   '/api/v1/tokens': typeof ApiV1TokensRouteWithChildren
   '/api/v1/webhooks': typeof ApiV1WebhooksRouteWithChildren
   '/_app/bank/': typeof AppBankIndexRoute
@@ -1456,6 +1481,8 @@ export interface FileRoutesById {
   '/api/v1/rgs/upgrade-preview': typeof ApiV1RgsUpgradePreviewRoute
   '/api/v1/sales-invoices/$invoiceId': typeof ApiV1SalesInvoicesInvoiceIdRouteWithChildren
   '/api/v1/setup/charts': typeof ApiV1SetupChartsRoute
+  '/api/v1/tax-codes/$taxCodeId': typeof ApiV1TaxCodesTaxCodeIdRoute
+  '/api/v1/tax-codes/offers': typeof ApiV1TaxCodesOffersRoute
   '/api/v1/tokens/$tokenId': typeof ApiV1TokensTokenIdRoute
   '/api/v1/vat/filings': typeof ApiV1VatFilingsRouteWithChildren
   '/api/v1/vat/number-checks': typeof ApiV1VatNumberChecksRoute
@@ -1514,6 +1541,7 @@ export interface FileRouteTypes {
     | '/retention'
     | '/settings'
     | '/snapshots'
+    | '/tax-codes'
     | '/webhooks'
     | '/api/mcp'
     | '/lab/primitives'
@@ -1618,6 +1646,8 @@ export interface FileRouteTypes {
     | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
+    | '/api/v1/tax-codes/$taxCodeId'
+    | '/api/v1/tax-codes/offers'
     | '/api/v1/tokens/$tokenId'
     | '/api/v1/vat/filings'
     | '/api/v1/vat/number-checks'
@@ -1673,6 +1703,7 @@ export interface FileRouteTypes {
     | '/retention'
     | '/settings'
     | '/snapshots'
+    | '/tax-codes'
     | '/webhooks'
     | '/api/mcp'
     | '/lab/primitives'
@@ -1778,6 +1809,8 @@ export interface FileRouteTypes {
     | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
+    | '/api/v1/tax-codes/$taxCodeId'
+    | '/api/v1/tax-codes/offers'
     | '/api/v1/tokens/$tokenId'
     | '/api/v1/vat/filings'
     | '/api/v1/vat/number-checks'
@@ -1834,6 +1867,7 @@ export interface FileRouteTypes {
     | '/_app/retention'
     | '/_app/settings'
     | '/_app/snapshots'
+    | '/_app/tax-codes'
     | '/_app/webhooks'
     | '/api/mcp'
     | '/lab/primitives'
@@ -1939,6 +1973,8 @@ export interface FileRouteTypes {
     | '/api/v1/rgs/upgrade-preview'
     | '/api/v1/sales-invoices/$invoiceId'
     | '/api/v1/setup/charts'
+    | '/api/v1/tax-codes/$taxCodeId'
+    | '/api/v1/tax-codes/offers'
     | '/api/v1/tokens/$tokenId'
     | '/api/v1/vat/filings'
     | '/api/v1/vat/number-checks'
@@ -2015,7 +2051,7 @@ export interface RootRouteChildren {
   ApiV1SalesInvoicesRoute: typeof ApiV1SalesInvoicesRouteWithChildren
   ApiV1SearchRoute: typeof ApiV1SearchRoute
   ApiV1SnapshotsRoute: typeof ApiV1SnapshotsRouteWithChildren
-  ApiV1TaxCodesRoute: typeof ApiV1TaxCodesRoute
+  ApiV1TaxCodesRoute: typeof ApiV1TaxCodesRouteWithChildren
   ApiV1TokensRoute: typeof ApiV1TokensRouteWithChildren
   ApiV1WebhooksRoute: typeof ApiV1WebhooksRouteWithChildren
   ApiV1DocumentsDocumentIdRoute: typeof ApiV1DocumentsDocumentIdRoute
@@ -2173,6 +2209,13 @@ declare module '@tanstack/react-router' {
       path: '/snapshots'
       fullPath: '/snapshots'
       preLoaderRoute: typeof AppSnapshotsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tax-codes': {
+      id: '/_app/tax-codes'
+      path: '/tax-codes'
+      fullPath: '/tax-codes'
+      preLoaderRoute: typeof AppTaxCodesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/webhooks': {
@@ -2903,6 +2946,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SetupChartsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/tax-codes/$taxCodeId': {
+      id: '/api/v1/tax-codes/$taxCodeId'
+      path: '/$taxCodeId'
+      fullPath: '/api/v1/tax-codes/$taxCodeId'
+      preLoaderRoute: typeof ApiV1TaxCodesTaxCodeIdRouteImport
+      parentRoute: typeof ApiV1TaxCodesRoute
+    }
+    '/api/v1/tax-codes/offers': {
+      id: '/api/v1/tax-codes/offers'
+      path: '/offers'
+      fullPath: '/api/v1/tax-codes/offers'
+      preLoaderRoute: typeof ApiV1TaxCodesOffersRouteImport
+      parentRoute: typeof ApiV1TaxCodesRoute
+    }
     '/api/v1/tokens/$tokenId': {
       id: '/api/v1/tokens/$tokenId'
       path: '/$tokenId'
@@ -3183,6 +3240,7 @@ interface AppRouteChildren {
   AppRetentionRoute: typeof AppRetentionRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSnapshotsRoute: typeof AppSnapshotsRoute
+  AppTaxCodesRoute: typeof AppTaxCodesRoute
   AppWebhooksRoute: typeof AppWebhooksRoute
   AppIndexRoute: typeof AppIndexRoute
   AppBankMatchRoute: typeof AppBankMatchRoute
@@ -3226,6 +3284,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRetentionRoute: AppRetentionRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSnapshotsRoute: AppSnapshotsRoute,
+  AppTaxCodesRoute: AppTaxCodesRoute,
   AppWebhooksRoute: AppWebhooksRoute,
   AppIndexRoute: AppIndexRoute,
   AppBankMatchRoute: AppBankMatchRoute,
@@ -3591,6 +3650,20 @@ const ApiV1SnapshotsRouteWithChildren = ApiV1SnapshotsRoute._addFileChildren(
   ApiV1SnapshotsRouteChildren,
 )
 
+interface ApiV1TaxCodesRouteChildren {
+  ApiV1TaxCodesTaxCodeIdRoute: typeof ApiV1TaxCodesTaxCodeIdRoute
+  ApiV1TaxCodesOffersRoute: typeof ApiV1TaxCodesOffersRoute
+}
+
+const ApiV1TaxCodesRouteChildren: ApiV1TaxCodesRouteChildren = {
+  ApiV1TaxCodesTaxCodeIdRoute: ApiV1TaxCodesTaxCodeIdRoute,
+  ApiV1TaxCodesOffersRoute: ApiV1TaxCodesOffersRoute,
+}
+
+const ApiV1TaxCodesRouteWithChildren = ApiV1TaxCodesRoute._addFileChildren(
+  ApiV1TaxCodesRouteChildren,
+)
+
 interface ApiV1TokensRouteChildren {
   ApiV1TokensTokenIdRoute: typeof ApiV1TokensTokenIdRoute
 }
@@ -3704,7 +3777,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1SalesInvoicesRoute: ApiV1SalesInvoicesRouteWithChildren,
   ApiV1SearchRoute: ApiV1SearchRoute,
   ApiV1SnapshotsRoute: ApiV1SnapshotsRouteWithChildren,
-  ApiV1TaxCodesRoute: ApiV1TaxCodesRoute,
+  ApiV1TaxCodesRoute: ApiV1TaxCodesRouteWithChildren,
   ApiV1TokensRoute: ApiV1TokensRouteWithChildren,
   ApiV1WebhooksRoute: ApiV1WebhooksRouteWithChildren,
   ApiV1DocumentsDocumentIdRoute: ApiV1DocumentsDocumentIdRoute,

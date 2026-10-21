@@ -32,6 +32,26 @@ the ADR is where the reasoning is.
   the lookup wins over a late response. A worker full-history backfill remains a
   follow-up.
 
+### Btw-codes beheren (Beheer)
+
+Eigenaar and Accountant can open **Beheer → Btw-codes**, see every tax code on
+the active administration (plain label, rate, direction, in-use; rubrieken and
+category under Geavanceerd), and add missing **standard** nl-mkb codes from a
+fixed allowlist. Paired codes (`VERL9-*`, `ICV9*`, `INV9*`) insert atomically
+and only when neither half exists. Codes kept off new-booking pickers (L6, H19,
+VL6, VH19, PRIV21) show an “alleen voor import en correcties…” badge. Unused
+codes may be ended with `valid_to` (Europe/Amsterdam “today”) and restored with
+`valid_to: null`; rate/rubriek mutation is never offered. Booking pickers
+(guided sales, advanced invoice, purchase, inbox) hide codes outside
+`validFrom`…`validTo` for the document date and never fall back to another rate
+when H21 / VH21 has ended. Gated by the new `tax-codes:manage` permission
+(owner/accountant) — `ledger:configure` alone is not enough, so a bookkeeper
+gets 403. **Existing API tokens keep the permissions they were issued with and
+must be reissued to receive `tax-codes:manage`**, the same least-privilege rule
+as `retention:manage`. REST: `GET/POST /tax-codes`, `GET /tax-codes/offers`,
+`PATCH /tax-codes/{id}`. Not exposed on MCP (draft-only writes). No schema
+migration.
+
 ### Missing standard Dutch VAT codes on nl-mkb
 
 The shipped `nl-mkb` chart now includes the codes Moneybird imports need for

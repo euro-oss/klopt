@@ -7,6 +7,7 @@ import {
   MAY_CLOSE_YEAR,
   MAY_EXPORT_AUDIT_FILE,
   MAY_IMPORT_AUDIT_FILE,
+  MAY_MANAGE_TAX_CODES,
   MAY_OPEN_YEAR,
   MAY_POST_CLOSED,
 } from '../../src/lib/roles.js'
@@ -37,6 +38,14 @@ describe('the roles a screen offers an action to', () => {
     expect(sorted(MAY_OPEN_YEAR)).toEqual(holdersOf('ledger:configure'))
     expect(sorted(MAY_IMPORT_AUDIT_FILE)).toEqual(holdersOf('ledger:import'))
     expect(sorted(MAY_EXPORT_AUDIT_FILE)).toEqual(holdersOf('ledger:export'))
+    expect(sorted(MAY_MANAGE_TAX_CODES)).toEqual(holdersOf('tax-codes:manage'))
+  })
+
+  it('keeps BTW-codes out of the bookkeeper’s hands even though they configure', () => {
+    expect(may(MAY_OPEN_YEAR, 'bookkeeper')).toBe(true)
+    expect(may(MAY_MANAGE_TAX_CODES, 'bookkeeper')).toBe(false)
+    expect(may(MAY_MANAGE_TAX_CODES, 'owner')).toBe(true)
+    expect(may(MAY_MANAGE_TAX_CODES, 'accountant')).toBe(true)
   })
 
   it('separate opening a year from closing one, because the permissions do', () => {
@@ -74,7 +83,9 @@ describe('the navigation', () => {
   it('gates the Alpha 3 screens on the same lists the screens do', () => {
     expect(shell).toContain('MAY_OPEN_YEAR')
     expect(shell).toContain('MAY_EXPORT_AUDIT_FILE')
+    expect(shell).toContain('MAY_MANAGE_TAX_CODES')
     expect(shell).not.toMatch(/to: '\/fiscal-years',[\s\S]{0,200}roles: \[/)
     expect(shell).not.toMatch(/to: '\/audit-file',[\s\S]{0,200}roles: \[/)
+    expect(shell).not.toMatch(/to: '\/tax-codes',[\s\S]{0,200}roles: \[/)
   })
 })

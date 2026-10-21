@@ -2,7 +2,17 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { purchaseBookingTaxCodes, salesBookingTaxCodes } from '../../src/lib/booking-tax-codes.js'
+import {
+  clearedTaxCodeLineNumbers,
+  defaultPurchaseBookingTaxCode,
+  defaultSalesBookingTaxCode,
+  purchaseBookingTaxCodes,
+  salesBookingTaxCodes,
+  taxCodeUnavailableFrom,
+  taxCodeValidOn,
+} from '../../src/lib/booking-tax-codes.js'
+import { en } from '../../src/i18n/en.js'
+import { nl } from '../../src/i18n/nl.js'
 
 const chartPath = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -17,9 +27,14 @@ const chartPath = join(
 
 const chartTaxCodes = (
   JSON.parse(readFileSync(chartPath, 'utf8')) as {
-    taxCodes: readonly { code: string; direction: string }[]
+    taxCodes: readonly {
+      code: string
+      direction: string
+      validFrom?: string
+      validTo?: string | null
+    }[]
   }
-).taxCodes
+).taxCodes.map((row) => ({ ...row, validFrom: '2019-01-01', validTo: null }))
 
 describe('booking tax code pickers (full nl-mkb chart)', () => {
   it('excludes L6, H19 and PRIV21 from new sales booking pickers', () => {
@@ -47,5 +62,82 @@ describe('booking tax code pickers (full nl-mkb chart)', () => {
     expect(
       codes.every((code) => chartTaxCodes.find((row) => row.code === code)?.direction === 'input'),
     ).toBe(true)
+  })
+
+  it('hides codes ended before the booking date and keeps validTo inclusive', () => {
+    const withWindows = chartTaxCodes.map((row) =>
+      row.code === 'H21'
+        ? { ...row, validTo: '2026-03-31' }
+        : row.code === 'L9'
+          ? { ...row, validFrom: '2026-04-01', validTo: null }
+          : row,
+    )
+    const onMarch = salesBookingTaxCodes(withWindows, '2026-03-31').map((row) => row.code)
+    expect(onMarch).toContain('H21')
+    expect(onMarch).not.toContain('L9')
+
+    const onApril = salesBookingTaxCodes(withWindows, '2026-04-01').map((row) => row.code)
+    expect(onApril).not.toContain('H21')
+    expect(onApril).toContain('L9')
+  })
+
+  it('does not fall back when the usual sales default H21 has ended', () => {
+    const withoutH21 = salesBookingTaxCodes(
+      chartTaxCodes.map((row) => (row.code === 'H21' ? { ...row, validTo: '2025-12-31' } : row)),
+      '2026-03-15',
+    )
+    expect(withoutH21.map((row) => row.code)).not.toContain('H21')
+    expect(defaultSalesBookingTaxCode(withoutH21)).toBe('')
+    expect(defaultSalesBookingTaxCode(salesBookingTaxCodes(chartTaxCodes, '2026-03-15'))).toBe(
+      'H21',
+    )
+  })
+
+  it('does not fall back when the usual purchase default VH21 has ended', () => {
+    const withoutVh21 = purchaseBookingTaxCodes(
+      chartTaxCodes.map((row) => (row.code === 'VH21' ? { ...row, validTo: '2025-12-31' } : row)),
+      '2026-03-15',
+    )
+    expect(withoutVh21.map((row) => row.code)).not.toContain('VH21')
+    expect(withoutVh21.map((row) => row.code)).toContain('VGEEN')
+    expect(defaultPurchaseBookingTaxCode(withoutVh21)).toBe('')
+  })
+
+  it('treats validTo as inclusive in taxCodeValidOn', () => {
+    expect(taxCodeValidOn({ validFrom: '2019-01-01', validTo: '2026-03-31' }, '2026-03-31')).toBe(
+      true,
+    )
+    expect(taxCodeValidOn({ validFrom: '2019-01-01', validTo: '2026-03-31' }, '2026-04-01')).toBe(
+      false,
+    )
+  })
+
+  it('shows the day after validTo as the first unavailable day', () => {
+    expect(taxCodeUnavailableFrom('2026-10-21')).toBe('2026-10-22')
+    expect(taxCodeUnavailableFrom('2026-12-31')).toBe('2027-01-01')
+  })
+
+  it('hides an ended VGEEN from the purchase picker on later dates', () => {
+    const withEnded = chartTaxCodes.map((row) =>
+      row.code === 'VGEEN' ? { ...row, validTo: '2025-12-31' } : row,
+    )
+    const codes = purchaseBookingTaxCodes(withEnded, '2026-03-15').map((row) => row.code)
+    expect(codes).not.toContain('VGEEN')
+    expect(codes).toContain('VH21')
+  })
+
+  it('lists 1-based line numbers whose tax code is cleared on a date change', () => {
+    const allowed = new Set(['H21', 'L9'])
+    expect(
+      clearedTaxCodeLineNumbers(
+        [{ taxCode: 'H21' }, { taxCode: 'GEEN' }, { taxCode: '' }, { taxCode: 'L9' }],
+        allowed,
+      ),
+    ).toEqual([2])
+  })
+
+  it('has NL and EN copy for the date-clear notice', () => {
+    expect(nl['booking.taxCodeInvalidOnDate']).toContain('regel {n}')
+    expect(en['booking.taxCodeInvalidOnDate']).toContain('line {n}')
   })
 })

@@ -587,6 +587,26 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/tax-codes.ts',
   },
   {
+    operationId: 'sales.listTaxCodeOffers',
+    method: 'GET',
+    path: '/tax-codes/offers',
+    module: 'api/v1/tax-codes.offers.ts',
+  },
+  {
+    operationId: 'sales.createTaxCodes',
+    method: 'POST',
+    path: '/tax-codes',
+    module: 'api/v1/tax-codes.ts',
+    request: { body: 'createTaxCodesBody' },
+  },
+  {
+    operationId: 'sales.deactivateTaxCode',
+    method: 'PATCH',
+    path: '/tax-codes/{taxCodeId}',
+    module: 'api/v1/tax-codes.$taxCodeId.ts',
+    request: { body: 'deactivateTaxCodeBody' },
+  },
+  {
     operationId: 'sales.listInvoices',
     method: 'GET',
     path: '/sales-invoices',

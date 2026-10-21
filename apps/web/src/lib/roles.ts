@@ -25,6 +25,12 @@
 export const MAY_CLOSE_YEAR: readonly string[] = ['owner', 'accountant']
 
 /**
+ * `tax-codes:manage`. Adding standard BTW-codes is Eigenaar / Accountant only
+ * — not the bookkeeper, even though they hold `ledger:configure`.
+ */
+export const MAY_MANAGE_TAX_CODES: readonly string[] = ['owner', 'accountant']
+
+/**
  * `ledger:post-closed`. Soft-closed periods stay open for the accountant (and
  * the owner). Used by bank matching to decide whether a soft-closed booking
  * date is still bookable or should show the lock (#61 slice 6).
