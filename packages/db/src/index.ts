@@ -121,7 +121,12 @@ export {
   type MoneybirdConnectionRow,
   MoneybirdConnectionRepository,
 } from './repositories/moneybird.js'
-export { EcbRateRepository } from './repositories/ecb-rates.js'
+export {
+  ECB_RATE_UPSERT_BATCH_SIZE,
+  ECB_RATE_UPSERT_PARAMS_PER_ROW,
+  EcbRateRepository,
+  ecbRateUpsertBatchCount,
+} from './repositories/ecb-rates.js'
 export {
   MoneybirdImportRepository,
   withMoneybirdImport,

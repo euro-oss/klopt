@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { AccountType, MoneybirdImportDecisions, MoneybirdProblem } from '@klopt/core'
 import type { RankableAccount } from '@klopt/core/moneybird-account-ranker'
 import {
@@ -48,6 +48,7 @@ import {
 } from '~/lib/moneybird-decisions'
 import { moneybirdFindingCard, type MoneybirdFindingActions } from '~/lib/moneybird-findings'
 import { moneybirdDocumentUrl } from '~/lib/moneybird-urls'
+import { shouldApplyFxLookupResult } from '~/lib/fx-rate-lookup'
 import {
   chooseMoneybirdAdministration,
   connectMoneybird,
@@ -197,7 +198,10 @@ function Moneybird() {
     date: string
     loading: boolean
     error: string | null
+    /** True once the user typed during the in-flight ECB lookup. */
+    userEditedDuringLookup: boolean
   } | null>(null)
+  const fxLookupGeneration = useRef(0)
   const [typeDraft, setTypeDraft] = useState<{
     moneybirdId: string
     name: string
@@ -352,6 +356,109 @@ function Moneybird() {
     void persistAndPreview({ importDecisions: next })
   }
 
+  const startFxLookup = (args: {
+    readonly externalId: string
+    readonly currency: string
+    readonly documentDate: string
+  }) => {
+    const generation = ++fxLookupGeneration.current
+    setFxRateError(null)
+    setFxDraft({
+      externalId: args.externalId,
+      currency: args.currency,
+      documentDate: args.documentDate,
+      rate: '',
+      ecbRate: '',
+      source: 'ecb',
+      date: args.documentDate,
+      loading: true,
+      error: null,
+      userEditedDuringLookup: false,
+    })
+    const finishLoading = (patch: {
+      readonly rate?: string
+      readonly ecbRate?: string
+      readonly source?: 'ecb' | 'override'
+      readonly date?: string
+      readonly error?: string | null
+      readonly applyRate: boolean
+    }) => {
+      setFxDraft((current) => {
+        if (current === null || current.externalId !== args.externalId) return current
+        if (
+          !shouldApplyFxLookupResult({
+            resultGeneration: generation,
+            currentGeneration: fxLookupGeneration.current,
+            userEditedDuringLookup: current.userEditedDuringLookup,
+          })
+        ) {
+          // Typed value wins: drop the network result, clear the spinner only.
+          return { ...current, loading: false, error: patch.error ?? current.error }
+        }
+        if (!patch.applyRate) {
+          return {
+            ...current,
+            loading: false,
+            error: patch.error ?? null,
+            source: 'override',
+          }
+        }
+        return {
+          ...current,
+          rate: patch.rate ?? current.rate,
+          ecbRate: patch.ecbRate ?? current.ecbRate,
+          source: patch.source ?? current.source,
+          date: patch.date ?? current.date,
+          loading: false,
+          error: null,
+        }
+      })
+    }
+    // GET is cache-only; on miss POST refreshes ECB then returns the rate.
+    // Server functions have no AbortSignal — ignore stale generations instead.
+    void moneybirdFxRate({
+      data: { currency: args.currency, documentDate: args.documentDate },
+    }).then((cached) => {
+      if (generation !== fxLookupGeneration.current) return
+      if (cached.ok) {
+        finishLoading({
+          applyRate: true,
+          rate: cached.data.rate,
+          ecbRate: cached.data.rate,
+          source: 'ecb',
+          date: cached.data.date,
+        })
+        return
+      }
+      void refreshMoneybirdFxRate({
+        data: { currency: args.currency, documentDate: args.documentDate },
+      }).then((refreshed) => {
+        if (generation !== fxLookupGeneration.current) return
+        if (refreshed.ok) {
+          finishLoading({
+            applyRate: true,
+            rate: refreshed.data.rate,
+            ecbRate: refreshed.data.rate,
+            source: 'ecb',
+            date: refreshed.data.date,
+          })
+          return
+        }
+        const code =
+          'problem' in refreshed &&
+          typeof refreshed.problem === 'object' &&
+          refreshed.problem !== null &&
+          'code' in refreshed.problem
+            ? String((refreshed.problem as { code?: string }).code ?? '')
+            : ''
+        finishLoading({
+          applyRate: false,
+          error: code === 'conflict' ? t('moneybird.fx.refreshFailed') : t('moneybird.fx.noEcb'),
+        })
+      })
+    })
+  }
+
   const findingActions: MoneybirdFindingActions = {
     onMapAccount: (problem) => {
       const id = problem.detail['moneybirdId'] ?? problem.path?.replace(/^accounts\./, '') ?? ''
@@ -438,68 +545,7 @@ function Moneybird() {
       const externalId = problem.path ?? ''
       const currency = problem.detail['currency'] ?? ''
       const documentDate = problem.detail['documentDate'] ?? ''
-      setFxRateError(null)
-      setFxDraft({
-        externalId,
-        currency,
-        documentDate,
-        rate: '',
-        ecbRate: '',
-        source: 'ecb',
-        date: documentDate,
-        loading: true,
-        error: null,
-      })
-      const applyOk = (body: { rate: string; date: string }) => {
-        setFxDraft((current) =>
-          current === null || current.externalId !== externalId
-            ? current
-            : {
-                ...current,
-                rate: body.rate,
-                ecbRate: body.rate,
-                source: 'ecb',
-                date: body.date,
-                loading: false,
-                error: null,
-              },
-        )
-      }
-      const applyFail = (message: string) => {
-        setFxDraft((current) =>
-          current === null || current.externalId !== externalId
-            ? current
-            : {
-                ...current,
-                rate: '',
-                ecbRate: '',
-                source: 'override',
-                loading: false,
-                error: message,
-              },
-        )
-      }
-      // GET is cache-only; on miss POST refreshes ECB then returns the rate.
-      void moneybirdFxRate({ data: { currency, documentDate } }).then((cached) => {
-        if (cached.ok) {
-          applyOk(cached.data)
-          return
-        }
-        void refreshMoneybirdFxRate({ data: { currency, documentDate } }).then((refreshed) => {
-          if (refreshed.ok) {
-            applyOk(refreshed.data)
-            return
-          }
-          const code =
-            'problem' in refreshed &&
-            typeof refreshed.problem === 'object' &&
-            refreshed.problem !== null &&
-            'code' in refreshed.problem
-              ? String((refreshed.problem as { code?: string }).code ?? '')
-              : ''
-          applyFail(code === 'conflict' ? t('moneybird.fx.refreshFailed') : t('moneybird.fx.noEcb'))
-        })
-      })
+      startFxLookup({ externalId, currency, documentDate })
     },
     onConfirmFiscalYearStart: () => applyDecisions(withConfirmedFiscalYearStart(decisions)),
     onAcknowledgeEmptyYear: (problem) =>
@@ -964,6 +1010,7 @@ function Moneybird() {
               return {
                 ...current,
                 rate,
+                userEditedDuringLookup: current.loading ? true : current.userEditedDuringLookup,
                 source:
                   sameAsEcb || (current.ecbRate !== '' && rate === current.ecbRate)
                     ? 'ecb'
@@ -972,6 +1019,14 @@ function Moneybird() {
               }
             })
           }
+          onRefreshEcb={() => {
+            if (fxDraft === null || fxDraft.loading) return
+            startFxLookup({
+              externalId: fxDraft.externalId,
+              currency: fxDraft.currency,
+              documentDate: fxDraft.documentDate,
+            })
+          }}
           onResetEcb={() =>
             setFxDraft((current) =>
               current === null || current.ecbRate === ''
@@ -992,6 +1047,8 @@ function Moneybird() {
               return
             }
             setFxRateError(null)
+            // Accepting a typed rate while lookup still runs drops that lookup.
+            fxLookupGeneration.current += 1
             const source: 'ecb' | 'override' =
               fxDraft.ecbRate !== '' && normalized === fxDraft.ecbRate ? 'ecb' : 'override'
             applyDecisions(
@@ -1005,6 +1062,7 @@ function Moneybird() {
             setFxDraft(null)
           }}
           onDismiss={() => {
+            fxLookupGeneration.current += 1
             setFxDraft(null)
             setFxRateError(null)
           }}
@@ -1021,6 +1079,7 @@ function MoneybirdFxSheet({
   advanced,
   fxRateError,
   onRateChange,
+  onRefreshEcb,
   onResetEcb,
   onAccept,
   onDismiss,
@@ -1035,12 +1094,14 @@ function MoneybirdFxSheet({
     date: string
     loading: boolean
     error: string | null
+    userEditedDuringLookup: boolean
   }
   pendingFx: readonly PendingFxEntry[]
   functionalCurrency: string
   advanced: boolean
   fxRateError: string | null
   onRateChange: (rate: string) => void
+  onRefreshEcb: () => void
   onResetEcb: () => void
   onAccept: () => void
   onDismiss: () => void
@@ -1146,6 +1207,7 @@ function MoneybirdFxSheet({
             })
       }
       onRateChange={onRateChange}
+      onRefreshEcb={onRefreshEcb}
       {...(draft.ecbRate === '' ? {} : { onResetEcb })}
       onAccept={onAccept}
     />

@@ -10,9 +10,33 @@ import { ecbReferenceRates } from '../schema/documents.js'
  * network — the adapter is responsible for fetching and calling `upsertMany`.
  */
 
+/** Rows per INSERT … ON CONFLICT. 4 binds/row → 4_000 params, under PG's 65_535. */
+export const ECB_RATE_UPSERT_BATCH_SIZE = 1_000
+
+/** Bind parameters per upserted row (currency, rate_date, rate, fetched_at). */
+export const ECB_RATE_UPSERT_PARAMS_PER_ROW = 4
+
+/**
+ * How many INSERT statements `upsertMany` will issue for `rowCount` rows.
+ * Pure helper for tests that assert batching without counting SQL round-trips.
+ */
+export function ecbRateUpsertBatchCount(rowCount: number): number {
+  if (rowCount <= 0) return 0
+  return Math.ceil(rowCount / ECB_RATE_UPSERT_BATCH_SIZE)
+}
+
 export class EcbRateRepository {
   constructor(private readonly tx: Transaction) {}
 
+  /**
+   * Upsert rates in batches of {@link ECB_RATE_UPSERT_BATCH_SIZE}.
+   *
+   * Batches run inside the caller's transaction (`withEcbRates`): one commit for
+   * the whole refresh so a mid-flight failure cannot leave a partial window
+   * that looks like a successful cache warm. Per-batch commits would be safer
+   * against statement timeouts on huge backfills, but web refresh only stores a
+   * single-currency lookback window (hundreds of rows), so atomicity wins.
+   */
   async upsertMany(
     rows: readonly {
       readonly currency: string
@@ -21,23 +45,27 @@ export class EcbRateRepository {
     }[],
   ): Promise<number> {
     if (rows.length === 0) return 0
-    await this.tx
-      .insert(ecbReferenceRates)
-      .values(
-        rows.map((row) => ({
-          currency: row.currency.toUpperCase(),
-          rateDate: row.rateDate,
-          rate: row.rate,
-          fetchedAt: new Date(),
-        })),
-      )
-      .onConflictDoUpdate({
-        target: [ecbReferenceRates.currency, ecbReferenceRates.rateDate],
-        set: {
-          rate: sql`excluded.rate`,
-          fetchedAt: sql`excluded.fetched_at`,
-        },
-      })
+    const fetchedAt = new Date()
+    for (let offset = 0; offset < rows.length; offset += ECB_RATE_UPSERT_BATCH_SIZE) {
+      const batch = rows.slice(offset, offset + ECB_RATE_UPSERT_BATCH_SIZE)
+      await this.tx
+        .insert(ecbReferenceRates)
+        .values(
+          batch.map((row) => ({
+            currency: row.currency.toUpperCase(),
+            rateDate: row.rateDate,
+            rate: row.rate,
+            fetchedAt,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: [ecbReferenceRates.currency, ecbReferenceRates.rateDate],
+          set: {
+            rate: sql`excluded.rate`,
+            fetchedAt: sql`excluded.fetched_at`,
+          },
+        })
+    }
     return rows.length
   }
 

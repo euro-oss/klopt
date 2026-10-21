@@ -1,5 +1,7 @@
 import {
+  ECB_MAX_LOOKBACK_DAYS,
   MoneybirdReadError,
+  addCalendarDays,
   findAdministration,
   findIncompatibleTaxMappings,
   isOlderThanDays,
@@ -474,9 +476,17 @@ export async function handleMoneybirdFxRate(context: RequestContext, query: Mone
 /**
  * Fetch ECB reference rates into the cache, then return the rate for the query.
  *
+ * Cache-first: a qualifying row already in `ecb_reference_rates` skips the
+ * network. Otherwise only the requested currency in the document lookback
+ * window (document date − {@link ECB_MAX_LOOKBACK_DAYS} … today) is fetched and
+ * upserted — never the full multi-currency hist file in one web request.
+ *
  * Document dates older than ~90 days pull eurofxref-hist.xml; otherwise the
  * 90-day feed + daily snapshot suffice. Separated from GET so a read never
  * writes or calls outside.
+ *
+ * Follow-up: a worker job could backfill the full multi-currency history into
+ * the cache outside the request path; web refresh must stay windowed.
  */
 export async function handleRefreshMoneybirdFxRate(
   context: RequestContext,
@@ -484,13 +494,28 @@ export async function handleRefreshMoneybirdFxRate(
 ) {
   requirePermission(context, 'ledger:import')
   const currency = query.currency.toUpperCase()
+
+  const cached = await withEcbRatesRead(context.database, (repository) =>
+    repository.listForCurrency(currency),
+  )
+  const cachedChoice = lookupEcbRate(cached, currency, query.documentDate)
+  if (cachedChoice !== null) {
+    return { status: 200, body: fxRateBody(currency, query.documentDate, cachedChoice) }
+  }
+
   const today = new Date().toISOString().slice(0, 10)
   const needFullHistory = isOlderThanDays(query.documentDate, ECB_HIST_FULL_AFTER_DAYS, today)
   const feed = needFullHistory ? 'full' : '90d'
+  const dateFrom = addCalendarDays(query.documentDate, -ECB_MAX_LOOKBACK_DAYS)
 
   let fetched: Awaited<ReturnType<typeof fetchEcbReferenceRates>>
   try {
-    fetched = await fetchEcbReferenceRates({ includeFullHistory: needFullHistory })
+    fetched = await fetchEcbReferenceRates({
+      includeFullHistory: needFullHistory,
+      currencies: [currency],
+      dateFrom,
+      dateTo: today,
+    })
     await withEcbRates(context.database, (repository) =>
       repository.upsertMany(
         fetched.map((row) => ({

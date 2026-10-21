@@ -100,6 +100,16 @@ export function calendarDaysBetween(earlier: string, later: string): number {
   return Math.round((toUtc(later) - toUtc(earlier)) / 86_400_000)
 }
 
+/** Shift an ISO `YYYY-MM-DD` by `deltaDays` calendar days (UTC). */
+export function addCalendarDays(iso: string, deltaDays: number): string {
+  const utc = Date.UTC(
+    Number(iso.slice(0, 4)),
+    Number(iso.slice(5, 7)) - 1,
+    Number(iso.slice(8, 10)),
+  )
+  return new Date(utc + deltaDays * 86_400_000).toISOString().slice(0, 10)
+}
+
 /**
  * The ECB reference rate for `currency` on `documentDate`, or the nearest
  * earlier business day present in `rates` within {@link ECB_MAX_LOOKBACK_DAYS}.

@@ -62,7 +62,10 @@ export const Route = createFileRoute('/_app/lab/import-findings')({
       search['sheet'] === 'taxEmpty' ||
       search['sheet'] === 'taxMapFail' ||
       search['sheet'] === 'fx' ||
-      search['sheet'] === 'fxo'
+      search['sheet'] === 'fxo' ||
+      search['sheet'] === 'fxLoading' ||
+      search['sheet'] === 'fxSlow' ||
+      search['sheet'] === 'fxError'
         ? search['sheet']
         : undefined,
   }),
@@ -84,9 +87,27 @@ function ImportFindingsLab() {
   const [taxVerlegd0Open, setTaxVerlegd0Open] = useState(sheet === 'taxVerlegd0')
   const [taxBadOpen, setTaxBadOpen] = useState(sheet === 'taxBad')
   const [taxEmptyOpen, setTaxEmptyOpen] = useState(sheet === 'taxEmpty')
-  const [fxOpen, setFxOpen] = useState(sheet === 'fx' || sheet === 'fxo')
-  const [fxRate, setFxRate] = useState(sheet === 'fxo' ? '1,1490' : '1,1531')
-  const [fxSource, setFxSource] = useState<'ecb' | 'override'>(sheet === 'fxo' ? 'override' : 'ecb')
+  const fxSheetOpen =
+    sheet === 'fx' ||
+    sheet === 'fxo' ||
+    sheet === 'fxLoading' ||
+    sheet === 'fxSlow' ||
+    sheet === 'fxError'
+  const [fxOpen, setFxOpen] = useState(fxSheetOpen)
+  const [fxRate, setFxRate] = useState(
+    sheet === 'fxo' ? '1,1490' : sheet === 'fxLoading' || sheet === 'fxSlow' ? '' : '1,1531',
+  )
+  const [fxSource, setFxSource] = useState<'ecb' | 'override'>(
+    sheet === 'fxo' || sheet === 'fxError' ? 'override' : 'ecb',
+  )
+  const [fxLoading] = useState(sheet === 'fxLoading' || sheet === 'fxSlow')
+  const [fxError] = useState(
+    sheet === 'fxError'
+      ? 'We konden de ECB-koers nu niet ophalen. Vul de koers zelf in of probeer het later opnieuw.'
+      : null,
+  )
+  // Lab forces the slow hint for screenshot capture without waiting 3 s.
+  const [fxForceSlowHint] = useState(sheet === 'fxSlow')
   const [resolved, setResolved] = useState<readonly ResolvedFindingRow[]>(
     source === 'moneybird' ? MONEYBIRD_FIXTURE_RESOLVED : [],
   )
@@ -432,10 +453,13 @@ function ImportFindingsLab() {
             currency="GBP"
             foreignAmountLabel="GBP 1.240,00"
             rate={fxRate}
-            ecbRate="1,1531"
+            ecbRate={fxLoading || fxError !== null ? '' : '1,1531'}
             source={fxSource}
             ecbDate="2026-10-16"
-            ecbInverse={ecbInverse}
+            ecbInverse={fxLoading || fxError !== null ? null : ecbInverse}
+            loading={fxLoading}
+            error={fxError}
+            forceSlowHint={fxForceSlowHint}
             advanced={advanced}
             previewRows={[
               {
@@ -453,11 +477,12 @@ function ImportFindingsLab() {
                 credit: eurPreview,
               },
             ]}
-            calcLine={`GBP 1.240,00 × ${fxRate} = ${eurPreview}`}
+            calcLine={`GBP 1.240,00 × ${fxRate === '' ? '…' : fxRate} = ${eurPreview}`}
             onRateChange={(value) => {
               setFxRate(value)
               setFxSource(value === '1,1531' || value === '1.1531' ? 'ecb' : 'override')
             }}
+            onRefreshEcb={() => undefined}
             onResetEcb={() => {
               setFxRate('1,1531')
               setFxSource('ecb')

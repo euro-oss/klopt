@@ -131,6 +131,7 @@ export {
   rankVatCodes,
   ECB_MAX_LOOKBACK_DAYS,
   FX_RATE_MAX_DECIMALS,
+  addCalendarDays,
   applyFxToLines,
   calendarDaysBetween,
   convertMinorWithRate,
