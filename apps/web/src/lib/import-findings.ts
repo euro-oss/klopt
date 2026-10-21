@@ -313,6 +313,20 @@ export const NL_MKB_VAT_RULES: readonly ImportVatRule[] = importVatRulesFromList
     scope: 'domestic',
   },
   {
+    code: 'L6',
+    description: 'BTW overig 6%',
+    rateBasisPoints: 600,
+    direction: 'output',
+    scope: 'domestic',
+  },
+  {
+    code: 'H19',
+    description: 'BTW overig 19%',
+    rateBasisPoints: 1900,
+    direction: 'output',
+    scope: 'domestic',
+  },
+  {
     code: 'PRIV21',
     description: 'Privégebruik 21%',
     rateBasisPoints: 2100,
@@ -372,6 +386,30 @@ export const NL_MKB_VAT_RULES: readonly ImportVatRule[] = importVatRulesFromList
     deductibility: 'full',
   },
   {
+    code: 'VL6',
+    description: 'Voorbelasting overig 6%',
+    rateBasisPoints: 600,
+    direction: 'input',
+    scope: 'domestic',
+    deductibility: 'full',
+  },
+  {
+    code: 'VH19',
+    description: 'Voorbelasting overig 19%',
+    rateBasisPoints: 1900,
+    direction: 'input',
+    scope: 'domestic',
+    deductibility: 'full',
+  },
+  {
+    code: 'VGEEN',
+    description: 'Inkoop zonder btw',
+    rateBasisPoints: 0,
+    direction: 'input',
+    scope: 'out_of_scope',
+    deductibility: 'none',
+  },
+  {
     code: 'VERL-ONTV',
     description: 'BTW verlegd naar u, verschuldigd',
     rateBasisPoints: 2100,
@@ -384,6 +422,23 @@ export const NL_MKB_VAT_RULES: readonly ImportVatRule[] = importVatRulesFromList
     code: 'VERL-VOOR',
     description: 'BTW verlegd naar u, voorbelasting',
     rateBasisPoints: 2100,
+    direction: 'input',
+    scope: 'domestic',
+    deductibility: 'full',
+  },
+  {
+    code: 'VERL9-ONTV',
+    description: 'BTW verlegd naar u 9%, verschuldigd',
+    rateBasisPoints: 900,
+    direction: 'input',
+    scope: 'domestic',
+    reverseCharge: 'domestic',
+    deductionCode: 'VERL9-VOOR',
+  },
+  {
+    code: 'VERL9-VOOR',
+    description: 'BTW verlegd naar u 9%, voorbelasting',
+    rateBasisPoints: 900,
     direction: 'input',
     scope: 'domestic',
     deductibility: 'full',
@@ -405,6 +460,22 @@ export const NL_MKB_VAT_RULES: readonly ImportVatRule[] = importVatRulesFromList
     deductibility: 'full',
   },
   {
+    code: 'ICV9',
+    description: 'Intracommunautaire verwerving 9%, verschuldigd',
+    rateBasisPoints: 900,
+    direction: 'input',
+    scope: 'intra_community_acquisition',
+    deductionCode: 'ICV9-VOOR',
+  },
+  {
+    code: 'ICV9-VOOR',
+    description: 'Intracommunautaire verwerving 9%, voorbelasting',
+    rateBasisPoints: 900,
+    direction: 'input',
+    scope: 'intra_community_acquisition',
+    deductibility: 'full',
+  },
+  {
     code: 'INV23',
     description: 'Invoer met artikel 23-verlegging, verschuldigd',
     rateBasisPoints: 2100,
@@ -417,6 +488,23 @@ export const NL_MKB_VAT_RULES: readonly ImportVatRule[] = importVatRulesFromList
     code: 'INV23-VOOR',
     description: 'Invoer met artikel 23-verlegging, voorbelasting',
     rateBasisPoints: 2100,
+    direction: 'input',
+    scope: 'import',
+    deductibility: 'full',
+  },
+  {
+    code: 'INV9',
+    description: 'Invoer met artikel 23-verlegging 9%, verschuldigd',
+    rateBasisPoints: 900,
+    direction: 'input',
+    scope: 'import',
+    reverseCharge: 'import_article_23',
+    deductionCode: 'INV9-VOOR',
+  },
+  {
+    code: 'INV9-VOOR',
+    description: 'Invoer met artikel 23-verlegging 9%, voorbelasting',
+    rateBasisPoints: 900,
     direction: 'input',
     scope: 'import',
     deductibility: 'full',
@@ -470,6 +558,10 @@ function toVatOption(
  * halves are never offered (#71).
  *
  * Empty / NaN percentage or unknown direction → empty groups (map by hand).
+ *
+ * Prefer {@link vatCandidatesFromServer} on the Moneybird import sheet: the
+ * preview already applied name-based guards (e.g. no VGEEN on verlegd / ICV /
+ * import rates) that this client-only path cannot see.
  */
 export function vatCandidatesFor(input: {
   readonly rules: readonly ImportVatRule[]
@@ -497,6 +589,43 @@ export function vatCandidatesFor(input: {
   const suggestedCode =
     ranked.suggestedCode !== null && primary.some((row) => row.code === ranked.suggestedCode)
       ? ranked.suggestedCode
+      : primary.length === 1
+        ? (primary[0]?.code ?? null)
+        : null
+  return { primary, other, suggestedCode }
+}
+
+/** One entry from Moneybird preview `taxRates[].candidates`. */
+export interface ServerVatCandidate {
+  readonly code: string
+  readonly group: 'primary' | 'other'
+}
+
+/**
+ * Drive the import sheet from server-computed candidates (same matcher the
+ * saveMappings 422 validates against). Filters PRIV21 and deduction halves
+ * like the client picker; empty list → honest “kan nog niet verder” (#86 PM).
+ */
+export function vatCandidatesFromServer(input: {
+  readonly rules: readonly ImportVatRule[]
+  readonly candidates: readonly ServerVatCandidate[]
+  readonly proposedCode?: string | null
+}): ImportVatCandidates {
+  const halves = deductionHalfCodes(input.rules)
+  const primary: ImportVatOption[] = []
+  const other: ImportVatOption[] = []
+  for (const entry of input.candidates) {
+    const rule = input.rules.find((row) => row.code === entry.code)
+    if (rule === undefined) continue
+    if (!showInVatPicker(rule, halves)) continue
+    const option = toVatOption(rule, input.rules, entry.group)
+    if (entry.group === 'primary') primary.push(option)
+    else other.push(option)
+  }
+  const proposed = input.proposedCode ?? null
+  const suggestedCode =
+    proposed !== null && primary.some((row) => row.code === proposed)
+      ? proposed
       : primary.length === 1
         ? (primary[0]?.code ?? null)
         : null

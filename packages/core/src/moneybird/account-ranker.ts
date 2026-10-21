@@ -113,6 +113,41 @@ export interface VatMatchQuery {
   readonly percentage: number
   /** Moneybird `tax_rate_type`: sales_invoice → output, purchase_invoice → input. */
   readonly taxRateType: string
+  /**
+   * When true, drop out-of-scope 0% input codes (VGEEN). Used for Moneybird
+   * purchase rates that are verlegd / EU acquisition / import — those must map
+   * to VERL/ICV/INV, never to VGEEN.
+   */
+  readonly excludeOutOfScopeInput?: boolean
+}
+
+/**
+ * Moneybird purchase rates that are reverse-charge received, EU acquisition or
+ * import (article 23) — not plain domestic "geen btw".
+ *
+ * Detected from the rate name / report_reference: Moneybird books many of these
+ * at 0% on the invoice even though Klopt's paired codes carry 9%/21%.
+ */
+export function isSpecialAcquisitionPurchaseRate(rate: {
+  readonly name: string
+  readonly reportReference?: string | null
+}): boolean {
+  const text = `${rate.name} ${rate.reportReference ?? ''}`.toLowerCase()
+  return (
+    /verleg/.test(text) ||
+    /reverse\s*charg/.test(text) ||
+    /intra\s*comm/.test(text) ||
+    /\bicp\b/.test(text) ||
+    /verwerving/.test(text) ||
+    /invoer/.test(text) ||
+    /\bimport\b/.test(text) ||
+    /binnen\s*eu/.test(text) ||
+    /buiten\s*eu/.test(text) ||
+    /within\s*eu/.test(text) ||
+    /outside\s*eu/.test(text) ||
+    /article\s*23/.test(text) ||
+    /artikel\s*23/.test(text)
+  )
 }
 
 /** Minimal tax-rule shape for matching — same fields as `ExistingTaxRule`. */
@@ -174,7 +209,17 @@ export function matchVatCodes(
   }
   const bps = Math.round(query.percentage * 100)
   const direction = query.taxRateType === 'purchase_invoice' ? 'input' : 'output'
-  return rules.filter((rule) => rule.rateBasisPoints === bps && rule.direction === direction)
+  return rules.filter((rule) => {
+    if (rule.rateBasisPoints !== bps || rule.direction !== direction) return false
+    if (
+      query.excludeOutOfScopeInput === true &&
+      direction === 'input' &&
+      (rule.scope === 'out_of_scope' || rule.code === 'VGEEN')
+    ) {
+      return false
+    }
+    return true
+  })
 }
 
 /**

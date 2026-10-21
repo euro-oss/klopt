@@ -281,9 +281,13 @@ export function buildVatReturn(request: VatReturnRequest): VatReturn {
       // return that has a single purchase in it. They are still tagged, because
       // XAF wants the base alongside the VAT.
       //
-      // Any *other* code with no base box is an out-of-scope code, and a
-      // taxable base tagged with one is worth saying out loud.
-      if (rule.vatRubriek !== '5b') {
+      // Out-of-scope 0% purchases (VGEEN) likewise declare nothing — the base
+      // is tagged for XAF, not for a rubriek. Warning on those would fire for
+      // every "inkoop zonder btw" line.
+      //
+      // Any *other* code with no base box is misconfigured, and a taxable base
+      // tagged with one is worth saying out loud.
+      if (rule.vatRubriek !== '5b' && rule.scope !== 'out_of_scope') {
         exclude('code_declares_no_base', line, rule.code, 'base', natural)
       }
       continue

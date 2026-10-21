@@ -12,12 +12,13 @@ import {
   percentOf,
   parseMinorUnits,
 } from './format'
+import { SALES_BOOKING_EXCLUDED, salesBookingTaxCodes } from './booking-tax-codes'
 
 /** Non-breaking space after the euro sign (same convention as the dashboard PR). */
 export const EURO_NBSP = '€\u00a0'
 
-/** Privégebruik is not a sales-line choice — drop it from the guided picker. */
-export const SALES_PICKER_EXCLUDED = new Set(['PRIV21'])
+/** Privégebruik and historical 6%/19% — not sales-line choices on a new invoice. */
+export const SALES_PICKER_EXCLUDED = SALES_BOOKING_EXCLUDED
 
 /**
  * Zero-rate sales codes that must each keep a distinct plain-Dutch label
@@ -87,11 +88,9 @@ export function isZeroVatRate(ratePercent: string): boolean {
   return trimmed === '' || trimmed === '0' || trimmed === '0.00' || trimmed === '0,00'
 }
 
-/** Output codes offered on a sales invoice (no PRIV21). */
+/** Output codes offered on a sales invoice (no PRIV21 / L6 / H19). */
 export function salesPickerTaxCodes(codes: readonly GuidedTaxCode[]): GuidedTaxCode[] {
-  return codes.filter(
-    (code) => code.direction === 'output' && !SALES_PICKER_EXCLUDED.has(code.code),
-  )
+  return salesBookingTaxCodes(codes)
 }
 
 /**

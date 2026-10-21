@@ -43,6 +43,8 @@ function rule(code: string, overrides: Partial<TaxCodeRule> = {}): TaxCodeRule {
 const RULES: readonly TaxCodeRule[] = [
   rule('H21'),
   rule('L9', { rateBasisPoints: 900, baseRubriek: '1b', vatRubriek: '1b' }),
+  rule('L6', { rateBasisPoints: 600, baseRubriek: '1c', vatRubriek: '1c' }),
+  rule('H19', { rateBasisPoints: 1900, baseRubriek: '1c', vatRubriek: '1c' }),
   rule('ICP', {
     rateBasisPoints: 0,
     baseRubriek: '3b',
@@ -52,6 +54,43 @@ const RULES: readonly TaxCodeRule[] = [
     ublCategory: 'K',
   }),
   rule('VH21', { direction: 'input', baseRubriek: null, vatRubriek: '5b' }),
+  rule('VL6', {
+    direction: 'input',
+    rateBasisPoints: 600,
+    baseRubriek: null,
+    vatRubriek: '5b',
+  }),
+  rule('VH19', {
+    direction: 'input',
+    rateBasisPoints: 1900,
+    baseRubriek: null,
+    vatRubriek: '5b',
+  }),
+  rule('VGEEN', {
+    direction: 'input',
+    rateBasisPoints: 0,
+    baseRubriek: null,
+    vatRubriek: null,
+    scope: 'out_of_scope',
+    deductibility: 'none',
+    ublCategory: 'O',
+  }),
+  rule('VERL9-ONTV', {
+    direction: 'input',
+    rateBasisPoints: 900,
+    baseRubriek: '2a',
+    vatRubriek: '2a',
+    reverseCharge: 'domestic',
+    deductionCode: 'VERL9-VOOR',
+    ublCategory: 'AE',
+  }),
+  rule('VERL9-VOOR', {
+    direction: 'input',
+    rateBasisPoints: 900,
+    baseRubriek: null,
+    vatRubriek: '5b',
+    ublCategory: 'AE',
+  }),
   rule('ICV21', {
     direction: 'input',
     baseRubriek: '4b',
@@ -65,6 +104,41 @@ const RULES: readonly TaxCodeRule[] = [
     baseRubriek: null,
     vatRubriek: '5b',
     scope: 'intra_community_acquisition',
+  }),
+  rule('ICV9', {
+    direction: 'input',
+    rateBasisPoints: 900,
+    baseRubriek: '4b',
+    vatRubriek: '4b',
+    scope: 'intra_community_acquisition',
+    supplyKind: 'goods',
+    deductionCode: 'ICV9-VOOR',
+    ublCategory: 'K',
+  }),
+  rule('ICV9-VOOR', {
+    direction: 'input',
+    rateBasisPoints: 900,
+    baseRubriek: null,
+    vatRubriek: '5b',
+    scope: 'intra_community_acquisition',
+    ublCategory: 'K',
+  }),
+  rule('INV9', {
+    direction: 'input',
+    rateBasisPoints: 900,
+    baseRubriek: '4a',
+    vatRubriek: '4a',
+    scope: 'import',
+    reverseCharge: 'import_article_23',
+    supplyKind: 'goods',
+    deductionCode: 'INV9-VOOR',
+  }),
+  rule('INV9-VOOR', {
+    direction: 'input',
+    rateBasisPoints: 900,
+    baseRubriek: null,
+    vatRubriek: '5b',
+    scope: 'import',
   }),
 ]
 
@@ -217,6 +291,99 @@ describe('buildVatReturn', () => {
     expect(result.deductibleMinorUnits).toBe(21_000n)
     expect(result.payableMinorUnits).toBe(0n)
     expect(result.blocked).toBe(false)
+  })
+
+  it('puts historical 6% and 19% sales in rubriek 1c', () => {
+    const result = build([
+      line('1300', 106_000n),
+      line('8000', -100_000n, { taxCode: 'L6', taxRole: 'base' }),
+      line('1500', -6_000n, { taxCode: 'L6', taxRole: 'tax' }),
+      line('1300', 119_000n),
+      line('8000', -100_000n, { taxCode: 'H19', taxRole: 'base' }),
+      line('1500', -19_000n, { taxCode: 'H19', taxRole: 'tax' }),
+    ])
+
+    expect(rubriekAmounts(result, '1c')).toEqual({
+      baseMinorUnits: 200_000n,
+      vatMinorUnits: 25_000n,
+    })
+    expect(result.blocked).toBe(false)
+  })
+
+  it('puts historical 6% and 19% purchase VAT in rubriek 5b', () => {
+    const result = build([
+      line('4400', 100_000n, { taxCode: 'VL6', taxRole: 'base' }),
+      line('1510', 6_000n, { taxCode: 'VL6', taxRole: 'tax' }),
+      line('1600', -106_000n),
+      line('4400', 100_000n, { taxCode: 'VH19', taxRole: 'base' }),
+      line('1510', 19_000n, { taxCode: 'VH19', taxRole: 'tax' }),
+      line('1600', -119_000n),
+    ])
+
+    expect(rubriekAmounts(result, '5b')).toEqual({
+      baseMinorUnits: 0n,
+      vatMinorUnits: 25_000n,
+    })
+    expect(result.deductibleMinorUnits).toBe(25_000n)
+    expect(result.findings).toEqual([])
+    expect(result.blocked).toBe(false)
+  })
+
+  it('leaves a 0% purchase (VGEEN) out of every rubriek without a warning', () => {
+    const result = build([
+      line('4400', 50_000n, { taxCode: 'VGEEN', taxRole: 'base' }),
+      line('1600', -50_000n),
+    ])
+
+    expect(rubriekAmounts(result, '5b')).toEqual({ baseMinorUnits: 0n, vatMinorUnits: 0n })
+    expect(result.deductibleMinorUnits).toBe(0n)
+    // Out-of-scope 0% purchases declare nothing — the base is tagged for XAF,
+    // not for a rubriek. No code_declares_no_base warning (#72 / #86 PM).
+    expect(result.findings).toEqual([])
+    expect(result.blocked).toBe(false)
+  })
+
+  it('puts 9% reverse charge received in 2a and its deduction in 5b', () => {
+    const result = build([
+      line('7000', 100_000n, { taxCode: 'VERL9-ONTV', taxRole: 'base' }),
+      line('1600', -100_000n),
+      line('1500', -9_000n, { taxCode: 'VERL9-ONTV', taxRole: 'tax' }),
+      line('1510', 9_000n, { taxCode: 'VERL9-VOOR', taxRole: 'tax' }),
+    ])
+
+    expect(rubriekAmounts(result, '2a')).toEqual({
+      baseMinorUnits: 100_000n,
+      vatMinorUnits: 9_000n,
+    })
+    expect(result.deductibleMinorUnits).toBe(9_000n)
+    expect(result.payableMinorUnits).toBe(0n)
+    expect(result.blocked).toBe(false)
+  })
+
+  it('puts ICV9 in 4b + 5b and INV9 in 4a + 5b', () => {
+    const icv = build([
+      line('7000', 100_000n, { taxCode: 'ICV9', taxRole: 'base' }),
+      line('1600', -100_000n),
+      line('1500', -9_000n, { taxCode: 'ICV9', taxRole: 'tax' }),
+      line('1510', 9_000n, { taxCode: 'ICV9-VOOR', taxRole: 'tax' }),
+    ])
+    expect(rubriekAmounts(icv, '4b')).toEqual({
+      baseMinorUnits: 100_000n,
+      vatMinorUnits: 9_000n,
+    })
+    expect(icv.deductibleMinorUnits).toBe(9_000n)
+
+    const inv = build([
+      line('7000', 100_000n, { taxCode: 'INV9', taxRole: 'base' }),
+      line('1600', -100_000n),
+      line('1500', -9_000n, { taxCode: 'INV9', taxRole: 'tax' }),
+      line('1510', 9_000n, { taxCode: 'INV9-VOOR', taxRole: 'tax' }),
+    ])
+    expect(rubriekAmounts(inv, '4a')).toEqual({
+      baseMinorUnits: 100_000n,
+      vatMinorUnits: 9_000n,
+    })
+    expect(inv.deductibleMinorUnits).toBe(9_000n)
   })
 })
 

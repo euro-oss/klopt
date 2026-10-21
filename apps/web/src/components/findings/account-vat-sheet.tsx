@@ -27,9 +27,11 @@ import { Badge } from '~/components/ui/badge'
 import { Keycap } from '~/components/ui/keycap'
 import {
   vatCandidatesFor,
+  vatCandidatesFromServer,
   type ImportVatCode,
   type ImportVatOption,
   type ImportVatRule,
+  type ServerVatCandidate,
 } from '~/lib/import-findings'
 import { cn } from '~/lib/utils'
 import { useT } from '~/i18n/provider'
@@ -45,11 +47,17 @@ export interface AccountVatSheetProps {
   readonly rgsCode?: string | null
   readonly sourceNumber?: string
   readonly accounts: readonly RankableAccount[]
-  /** Entity chart tax rules — options come from `matchVatCodes`, not a hard-coded list. */
+  /** Entity chart tax rules — labels / half-filter for VAT radios. */
   readonly taxRules?: readonly ImportVatRule[]
-  /** Prefill from Moneybird tax percentage when known (ignored when multiple matches). */
+  /**
+   * Preview `taxRates[].candidates` from the server matcher. When set (including
+   * `[]`), the sheet does not re-rank by direction+percentage alone — so verlegd
+   * / ICV / import 0% rates never offer VGEEN (#86 PM).
+   */
+  readonly serverCandidates?: readonly ServerVatCandidate[]
+  /** Prefill from Moneybird `proposedCode` when it is a unique primary. */
   readonly suggestedVat?: ImportVatCode | null
-  /** Moneybird `tax_rate_type` for direction-safe VAT radios. */
+  /** Moneybird `tax_rate_type` for direction-safe VAT radios (lab / fallback). */
   readonly taxRateType?: string | null
   /** Moneybird percentage text (`21`, `9`, …). */
   readonly percentage?: string | null
@@ -81,6 +89,7 @@ export function AccountVatSheet(props: AccountVatSheetProps) {
             props.suggestedVat ?? '',
             props.taxRateType ?? '',
             props.percentage ?? '',
+            (props.serverCandidates ?? []).map((row) => `${row.code}:${row.group}`).join(','),
           ].join('|')}
           {...props}
         />
@@ -97,6 +106,7 @@ function AccountVatSheetBody({
   sourceNumber = '',
   accounts,
   taxRules = [],
+  serverCandidates,
   suggestedVat = null,
   taxRateType = null,
   percentage = null,
@@ -107,10 +117,16 @@ function AccountVatSheetBody({
 }: AccountVatSheetProps) {
   const { t } = useT()
   const listId = useId()
-  const candidates = useMemo(
-    () => vatCandidatesFor({ rules: taxRules, taxRateType, percentage }),
-    [taxRules, taxRateType, percentage],
-  )
+  const candidates = useMemo(() => {
+    if (serverCandidates !== undefined) {
+      return vatCandidatesFromServer({
+        rules: taxRules,
+        candidates: serverCandidates,
+        proposedCode: suggestedVat,
+      })
+    }
+    return vatCandidatesFor({ rules: taxRules, taxRateType, percentage })
+  }, [serverCandidates, taxRules, suggestedVat, taxRateType, percentage])
   // Prefill only a unique primary — never a 0% sales code (#70 / #71).
   const uniqueSuggested = candidates.suggestedCode
   const defaultVat =

@@ -9,6 +9,7 @@ import { AccountPicker } from '~/components/finance/account-picker'
 import { ShortcutFooter, ShortcutPanel, StepBadge } from '~/components/ui/keycap'
 import { useT } from '~/i18n/provider'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
+import { salesBookingTaxCodes } from '~/lib/booking-tax-codes'
 import { multiplyByDecimal, parseMinorUnits, percentOf } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
@@ -158,9 +159,8 @@ function AdvancedInvoiceForm() {
   const hydrated = useHydrated()
 
   const customers = contacts.ok ? contacts.data.contacts.filter((row) => !row.isBlocked) : []
-  const codes = taxCodes.ok
-    ? taxCodes.data.taxCodes.filter((code) => code.direction === 'output')
-    : []
+  // Historical L6/H19 stay on the chart for import/corrections only.
+  const codes = taxCodes.ok ? salesBookingTaxCodes(taxCodes.data.taxCodes) : []
   const revenueAccounts = accounts.ok
     ? accounts.data.accounts.filter((account) => account.type === 'revenue')
     : []
