@@ -167,7 +167,7 @@ describe('fetchEcbReferenceRates', () => {
     const hanging: typeof fetch = (_input, init) =>
       new Promise((_resolve, reject) => {
         const signal = init?.signal
-        if (signal === undefined) return
+        if (signal == null) return
         if (signal.aborted) {
           reject(abortError(signal.reason))
           return
@@ -213,7 +213,8 @@ describe('fetchEcbReferenceRates', () => {
   it('passes AbortSignal.timeout on every ECB fetch', async () => {
     const signals: AbortSignal[] = []
     const fetchMock: typeof fetch = (_input, init) => {
-      if (init?.signal !== undefined) signals.push(init.signal)
+      const signal = init?.signal
+      if (signal != null) signals.push(signal)
       return Promise.resolve(okXmlResponse(SAMPLE))
     }
     await fetchEcbReferenceRates({
