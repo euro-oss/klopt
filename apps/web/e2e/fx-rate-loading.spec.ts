@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, signIn, uniqueEmail } from './support'
 
@@ -11,7 +11,7 @@ test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
 
-async function ready(page: import('@playwright/test').Page): Promise<void> {
+async function ready(page: Page): Promise<void> {
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()

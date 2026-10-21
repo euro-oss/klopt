@@ -82,6 +82,17 @@ function okXmlResponse(xml: string): Response {
   })
 }
 
+function requestUrl(input: RequestInfo | URL): string {
+  if (typeof input === 'string') return input
+  if (input instanceof URL) return input.href
+  return input.url
+}
+
+function abortError(reason: unknown): Error {
+  if (reason instanceof Error) return reason
+  return new DOMException('The operation was aborted.', 'AbortError')
+}
+
 describe('parseEcbEurofxrefXml', () => {
   it('reads Cube time and currency rows', () => {
     const rows = parseEcbEurofxrefXml(SAMPLE)
@@ -127,11 +138,15 @@ describe('fetchEcbReferenceRates', () => {
   it('keeps only the requested currency and window from a full-history feed', async () => {
     const histXml = buildSyntheticFullHistoryXml({ dayCount: 7_000, startDate: '2000-01-03' })
     const upserted: { currency: string; rateDate: string }[] = []
-    const fetchMock: typeof fetch = async (input) => {
-      const url = String(input)
-      if (url.includes('hist.xml') && !url.includes('90d')) return okXmlResponse(histXml)
+    const fetchMock: typeof fetch = (input) => {
+      const url = requestUrl(input)
+      if (url.includes('hist.xml') && !url.includes('90d')) {
+        return Promise.resolve(okXmlResponse(histXml))
+      }
       // Required 90d + daily can be empty for this assertion.
-      return okXmlResponse(`<?xml version="1.0"?><gesmes:Envelope><Cube></Cube></gesmes:Envelope>`)
+      return Promise.resolve(
+        okXmlResponse(`<?xml version="1.0"?><gesmes:Envelope><Cube></Cube></gesmes:Envelope>`),
+      )
     }
     const rows = await fetchEcbReferenceRates({
       includeFullHistory: true,
@@ -154,11 +169,11 @@ describe('fetchEcbReferenceRates', () => {
         const signal = init?.signal
         if (signal === undefined) return
         if (signal.aborted) {
-          reject(signal.reason ?? new Error('aborted'))
+          reject(abortError(signal.reason))
           return
         }
         signal.addEventListener('abort', () => {
-          reject(signal.reason ?? new DOMException('The operation was aborted.', 'AbortError'))
+          reject(abortError(signal.reason))
         })
       })
     await expect(
@@ -178,11 +193,13 @@ describe('fetchEcbReferenceRates', () => {
 
   it('refuses an oversized response body', async () => {
     const oversized = 'x'.repeat(1_024)
-    const fetchMock: typeof fetch = async () =>
-      new Response(oversized, {
-        status: 200,
-        headers: { 'content-type': 'text/xml', 'content-length': String(oversized.length) },
-      })
+    const fetchMock: typeof fetch = () =>
+      Promise.resolve(
+        new Response(oversized, {
+          status: 200,
+          headers: { 'content-type': 'text/xml', 'content-length': String(oversized.length) },
+        }),
+      )
     await expect(
       fetchEcbReferenceRates({
         fetch: fetchMock,
@@ -195,9 +212,9 @@ describe('fetchEcbReferenceRates', () => {
 
   it('passes AbortSignal.timeout on every ECB fetch', async () => {
     const signals: AbortSignal[] = []
-    const fetchMock: typeof fetch = async (_input, init) => {
+    const fetchMock: typeof fetch = (_input, init) => {
       if (init?.signal !== undefined) signals.push(init.signal)
-      return okXmlResponse(SAMPLE)
+      return Promise.resolve(okXmlResponse(SAMPLE))
     }
     await fetchEcbReferenceRates({
       fetch: fetchMock,
