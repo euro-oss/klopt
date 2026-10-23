@@ -65,7 +65,9 @@ async function openFindings(page: Page, search: string): Promise<void> {
 /** Expand the states Designer item 1 lists into view before a full-page shot. */
 async function revealReviewStates(page: Page): Promise<void> {
   // One-click fix with its preview open.
-  const tax = page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+  const tax = page
+    .locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+    .filter({ hasText: 'Laag tarief' })
   await tax.scrollIntoViewIfNeeded()
   await tax.getByRole('button', { name: 'Gebruik 9% btw' }).click()
   await expect(tax).toHaveAttribute('data-fix-open', 'true')

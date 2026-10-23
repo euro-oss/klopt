@@ -39,7 +39,7 @@ test('Moneybird fixture shows honesty grid, blocking counts, and j/k', async ({ 
   await expect(page.getByRole('heading', { level: 1, name: 'Moneybird' })).toBeVisible()
   await expect(page.getByText('Wat we gelezen hebben')).toBeVisible()
   await expect(page.getByText('Na te kijken')).toBeVisible()
-  await expect(page.getByText(/3 blokkeren/)).toBeVisible()
+  await expect(page.getByText(/4 blokkeren/)).toBeVisible()
   await expect(page.locator('[data-slot="honesty-grid"] [data-honesty="unread"]')).toBeVisible()
 
   const cards = page.locator('[data-slot="finding-card"]')
@@ -354,7 +354,9 @@ test('FX sheet toggles ECB to Aangepast and back', async ({ page }) => {
 test('one-click preview then apply resolves a finding', async ({ page }) => {
   await openLab(page)
 
-  const taxCard = page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+  const taxCard = page
+    .locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+    .filter({ hasText: 'Laag tarief' })
   await taxCard.scrollIntoViewIfNeeded()
   await taxCard.getByRole('button', { name: 'Gebruik 9% btw' }).click()
   await expect(taxCard).toHaveAttribute('data-fix-open', 'true')
