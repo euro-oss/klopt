@@ -40,7 +40,7 @@ describe('every MoneybirdProblemCode has a fix', () => {
     ['incompatible_tax_rate', 'guided'],
     ['null_percentage_vat_mismatch', 'explainOnly'],
     ['self_assessed_vat_unsupported', 'explainOnly'],
-    ['tax_code_not_in_force', 'guided'],
+    ['tax_code_not_in_force', 'oneClick'],
     ['trial_balance_account_missing', 'guided'],
     ['account_number_collision', 'guided'],
     ['contact_number_collision', 'oneClick'],

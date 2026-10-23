@@ -548,6 +548,12 @@ function VatReturnScreen() {
                 <td className="py-1.5 pr-2 text-right">
                   {account.difference === '0' && moneybirdAffected ? (
                     <span className="text-destructive">{t('vatReturn.doesNotCount')}</span>
+                  ) : account.difference === '0' && data.blocked ? (
+                    // While filing is blocked, a zero difference is not a
+                    // positive "sluit aan" / "reconciles" (#96 designer).
+                    <span className="text-muted-foreground">
+                      <Money amount="0" />
+                    </span>
                   ) : account.difference === '0' ? (
                     <span className="text-muted-foreground">{t('vatReturn.reconciles')}</span>
                   ) : (

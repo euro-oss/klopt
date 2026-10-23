@@ -436,6 +436,9 @@ describe('the reconciliation, which blocks', () => {
     // Honest dead end: start date cannot be changed here (#96 / #99).
     expect(finding?.message).toMatch(/no fix for this yet|start date cannot be changed/i)
     expect(finding?.message).not.toMatch(/valid from|geldig vanaf|year whose codes|jaar waarvan/i)
+    expect(finding?.message).not.toMatch(
+      /ask someone who can manage VAT codes|vraag iemand die btw-codes mag beheren/i,
+    )
     expect(result.findings.some((entry) => entry.code === 'unknown_tax_code')).toBe(false)
   })
 
@@ -511,7 +514,10 @@ describe('the reconciliation, which blocks', () => {
     expect(finding?.message).toMatch(
       /cannot fix this yet|can’t file this period through Klopt|tax adviser/i,
     )
-    expect(finding?.message).toMatch(/Wait until Klopt supports/i)
+    expect(finding?.message).toMatch(
+      /Filing through Klopt will work once Klopt supports this|don['’]t wait for that if your filing deadline/i,
+    )
+    expect(finding?.message).not.toMatch(/Wait until Klopt supports this\.?$/i)
     expect(finding?.message).not.toMatch(/Book those purchases by hand|book by hand/i)
   })
 

@@ -626,4 +626,113 @@ describe('Moneybird import VAT return parity with native booking', () => {
       expect(fromImport?.vatMinorUnits, id).toBe(fromNative?.vatMinorUnits)
     }
   })
+
+  it('splits 21% + 9% + null-% (#90) + discount per code like the 0% mixed case', () => {
+    // Same mix as above, but the “Geen btw” Moneybird rate has no percentage
+    // (NaN / #90) rather than an explicit 0. Mapping to GEEN must still pass
+    // the null-% VAT check and produce only H21 + L9 tax lines.
+    const base = snapshot()
+    const opts: MoneybirdImportOptions = {
+      ...options(),
+      confirmedTaxMappings: { '21': 'H21', '29': 'L9', '30': 'GEEN' },
+    }
+    const planned = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          ...base.taxRates,
+          {
+            id: '29',
+            name: 'BTW laag 9%',
+            percentage: 9,
+            taxRateType: 'sales_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+          {
+            id: '30',
+            name: 'Geen btw',
+            percentage: Number.NaN,
+            taxRateType: 'sales_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        salesInvoices: [
+          {
+            ...base.salesInvoices[0]!,
+            id: '311',
+            invoiceId: '2026-011',
+            // 100@21% + 100@9% + 50@null-% − 10 discount@21% → tax 21+9−2.10 = 27.90
+            totalTax: 2790n,
+            totalExcl: 24000n,
+            totalIncl: 26790n,
+            details: [
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'mix-h21-nan',
+                description: 'Hoog',
+                price: 10000n,
+                amount: '1',
+                taxRateId: '21',
+              },
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'mix-l9-nan',
+                description: 'Laag',
+                price: 10000n,
+                amount: '1',
+                taxRateId: '29',
+              },
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'mix-null',
+                description: 'Vrij',
+                price: 5000n,
+                amount: '1',
+                taxRateId: '30',
+              },
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'mix-disc-nan',
+                description: 'Korting',
+                price: -1000n,
+                amount: '1',
+                taxRateId: '21',
+              },
+            ],
+          },
+        ],
+        purchaseInvoices: [],
+      },
+      opts,
+    )
+
+    expect(planned.problems).toEqual([])
+    const entry = planned.entries.find((item) => item.externalId.includes('311'))
+    expect(entry).toBeDefined()
+    const taxLines = entry!.lines.filter((line) => line.taxRole === 'tax')
+    expect(taxLines.map((line) => line.taxCode).sort()).toEqual(['H21', 'L9'])
+    const taxSum = taxLines.reduce((sum, line) => sum + (line.credit - line.debit), 0n)
+    expect(taxSum).toBe(2790n)
+    expect(taxLines.some((line) => line.taxCode === 'GEEN')).toBe(false)
+
+    const moneybirdReturn = returnOf(
+      toVatLines(entry!.lines, {
+        entryId: entry!.externalId,
+        bookingDate: entry!.bookingDate,
+        sourceDocumentRef: entry!.sourceDocumentRef,
+      }),
+    )
+    expect(moneybirdReturn.blocked).toBe(false)
+    expect(
+      moneybirdReturn.findings.filter((finding) =>
+        ['moneybird_untagged_vat', 'rate_mismatch', 'untagged_control_movement'].includes(
+          finding.code,
+        ),
+      ),
+    ).toEqual([])
+  })
 })

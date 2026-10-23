@@ -86,8 +86,8 @@ const SPECS: Readonly<Record<MoneybirdProblemCode, MoneybirdFixSpec>> = {
   },
   tax_code_not_in_force: {
     code: 'tax_code_not_in_force',
-    // No valid_from edit in #88; #99 tracks that. Re-read after fixing Moneybird.
-    fixType: 'guided',
+    // No valid_from edit in #88; #99 tracks that. One-click re-read (#96 designer).
+    fixType: 'oneClick',
     severity: 'blocking',
     honesty: null,
     changesBooks: false,

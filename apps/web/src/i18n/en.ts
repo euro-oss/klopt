@@ -117,7 +117,8 @@ export const en: Record<MessageKey, string> = {
   'findingCard.openExplain': 'Explain',
   'findingCard.explainOnlyBody': 'You cannot fix this here.',
   'findingCard.oneClickSafe': 'Does not change your books',
-  'findingCard.guidedSteps': '{count} steps',
+  'findingCard.guidedSteps_one': '{count} step',
+  'findingCard.guidedSteps_other': '{count} steps',
   'findingCard.guidedHint': 'Follow the steps above.',
   'findingCard.guidedHintEscape': 'Escape closes this panel.',
   'findingCard.guidedHintNoSteps': 'Escape closes this panel.',
@@ -1385,7 +1386,7 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.finding.untagged_control_movement': 'Movement on a VAT account without a code',
   'vatReturn.finding.moneybird_untagged_vat': 'VAT from Moneybird import missing from the return',
   'vatReturn.finding.moneybird_self_assessed_unsupported':
-    'Moneybird reverse-charge or intra-EU purchase not importable yet',
+    'Self-assessed VAT missing for Moneybird reverse-charge/EU purchase',
   'vatReturn.finding.rate_mismatch': 'VAT differs from taxable amount times rate',
   'vatReturn.finding.control_account_difference': 'VAT account does not reconcile',
 

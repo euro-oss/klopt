@@ -2190,9 +2190,11 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     expect(plan.warnings.map((item) => item.code)).toContain('self_assessed_vat_unsupported')
     const finding = plan.warnings.find((item) => item.code === 'self_assessed_vat_unsupported')
     expect(finding?.detail?.['taxCode']).toBe('VERL-ONTV')
-    expect(finding?.message).toMatch(/will import|wordt wel|supports this|ondersteunt/i)
+    expect(finding?.message).toMatch(
+      /will import|wordt wel|filing deadline|aangiftetermijn|supports this|ondersteunt/i,
+    )
     expect(finding?.message).not.toMatch(
-      /book .* by hand|boek .* zelf|wait for the update|wacht op de update/i,
+      /book .* by hand|boek .* zelf|wait for the update|wacht op de update|Wait until Klopt supports this\.?$|Wacht tot Klopt dit ondersteunt\.?$/i,
     )
     expect(plan.entries.some((entry) => entry.kind === 'purchase_invoice')).toBe(true)
   })

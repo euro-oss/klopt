@@ -149,7 +149,7 @@ export function moneybirdFixtureFindings(handlers?: {
       messageKey: 'moneybird.self_assessed_vat_unsupported',
       detail: { reference: 'LEV-RC', taxCode: 'VERL-ONTV' },
       message:
-        'Klopt cannot book self-assessed VAT for reverse-charge or intra-EU purchases yet. LEV-RC will import, but filing through Klopt stays blocked until Klopt supports this.',
+        'Klopt cannot book self-assessed VAT for reverse-charge or intra-EU purchases yet. LEV-RC will import, but filing through Klopt stays blocked. Filing through Klopt will work once Klopt supports this; don’t wait for that if your filing deadline comes first.',
       severity: 'warning',
       fix: {
         type: 'explainOnly',
@@ -158,7 +158,7 @@ export function moneybirdFixtureFindings(handlers?: {
       },
     },
     {
-      // Code not in force — Opnieuw lezen, no /tax-codes (#96 PM / #99).
+      // Code not in force — one-click Opnieuw lezen, no /tax-codes (#96 / #99).
       id: 'f3e',
       code: 'tax_code_not_in_force',
       path: 'salesInvoices/301',
@@ -168,10 +168,9 @@ export function moneybirdFixtureFindings(handlers?: {
         '2025-001 is dated 2025-06-15, but that VAT code does not apply yet on that date in Klopt. There is no fix inside Klopt yet. Check the date and the rate in Moneybird.',
       severity: 'blocking',
       fix: {
-        type: 'guided',
+        type: 'oneClick',
         label: 'Opnieuw lezen',
-        onOpen: () => undefined,
-        steps: ['Opnieuw lezen'],
+        onApply: () => undefined,
       },
     },
     {

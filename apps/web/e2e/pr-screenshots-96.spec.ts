@@ -88,8 +88,10 @@ test('capture #96 Moneybird VAT return, import cards, XAF alert, summary banner'
         await card.scrollIntoViewIfNeeded()
         if (code === 'tax_code_not_in_force') {
           await expect(card).toContainText('15-06-2025')
-          await card.getByRole('button', { name: 'Opnieuw lezen' }).click()
-          await expect(card).toHaveAttribute('data-fix-open', 'true')
+          // One-click re-read: no leftover “1. Opnieuw lezen” panel (#96 designer).
+          await expect(card.getByRole('button', { name: 'Opnieuw lezen' })).toBeVisible()
+          await expect(card).not.toHaveAttribute('data-fix-open', 'true')
+          await expect(card.getByText(/1 stappen|Volg de stappen/)).toHaveCount(0)
         } else {
           await expect(card).toContainText(/btw-verlegging|EU|zelf af te dragen/i)
           await expect(card).toContainText('Open in Moneybird')
@@ -146,11 +148,39 @@ test('capture #96 Moneybird VAT return, import cards, XAF alert, summary banner'
   }
 
   // VAT return: reverse-charge / EU self-assessed block.
+  // Seed a normal sale so 1500 has movement; RC/EU alone must not show “sluit aan”.
   for (const theme of ['light', 'dark'] as const) {
     for (const [label, size] of VIEWPORTS) {
       const context = await browser.newContext({ viewport: size })
       const page = await context.newPage()
       await ready(page, `96 rc ${theme} ${label}`)
+      await postEntry(
+        page,
+        {
+          journalCode: 'VRK',
+          bookingDate: '2026-02-11',
+          documentDate: '2026-02-11',
+          description: 'Native sale for 1500 movement',
+          lines: [
+            { accountNumber: '1300', debit: '12100' },
+            {
+              accountNumber: '8000',
+              credit: '10000',
+              taxCode: 'H21',
+              taxRole: 'base',
+              taxAmount: '2100',
+            },
+            {
+              accountNumber: '1500',
+              credit: '2100',
+              taxCode: 'H21',
+              taxRole: 'tax',
+              taxAmount: '2100',
+            },
+          ],
+        },
+        `rc-sale-${theme}-${label}`,
+      )
       await postEntry(
         page,
         {
@@ -174,9 +204,15 @@ test('capture #96 Moneybird VAT return, import cards, XAF alert, summary banner'
       )
       await page.goto('/vat/2026-Q1')
       await expect(
-        page.getByText(/Moneybird-inkoop met verlegging of EU nog niet te importeren/i),
+        page.getByText(/Zelf af te dragen btw ontbreekt bij Moneybird-inkoop \(verlegging\/EU\)/i),
       ).toBeVisible({ timeout: 15_000 })
       await expect(page.getByText(/niet via Klopt worden ingediend/i).first()).toBeVisible()
+      // Control account row present; while blocked, no positive reconcile label
+      // ("sluit aan" / "reconciles"). Brand name "Klopt" elsewhere is fine.
+      const recon = page.locator('table').filter({ hasText: '1500' })
+      await expect(recon.getByText(/1500/).first()).toBeVisible()
+      await expect(recon.getByText(/sluit aan|reconciles/i)).toHaveCount(0)
+      await expect(recon.getByText(/telt niet mee|does not count/i)).toHaveCount(0)
       await setTheme(page, theme)
       await shoot(page, `vat-moneybird-self-assessed-${theme}-${label}.png`, true)
       await context.close()

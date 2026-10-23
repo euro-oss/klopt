@@ -127,7 +127,7 @@ describe('moneybird finding fix types', () => {
     expect(onOpenPeriodSettings).not.toHaveBeenCalled()
   })
 
-  it('wires tax_code_not_in_force as Opnieuw lezen (no /tax-codes, #96 PM)', () => {
+  it('wires tax_code_not_in_force as one-click Opnieuw lezen (no /tax-codes, #96)', () => {
     const onRereadResource = vi.fn()
     const actions = {
       onRereadResource,
@@ -171,11 +171,11 @@ describe('moneybird finding fix types', () => {
       'problems',
       actions,
     )
-    expect(card.fix.type).toBe('guided')
-    if (card.fix.type !== 'guided') return
+    expect(card.fix.type).toBe('oneClick')
+    if (card.fix.type !== 'oneClick') return
     expect(card.fix.label).toBe('Opnieuw lezen')
-    expect(card.fix.steps).toEqual(['Opnieuw lezen'])
-    card.fix.onOpen()
+    expect(card.fix.preview).toBeUndefined()
+    void card.fix.onApply()
     expect(onRereadResource).toHaveBeenCalledOnce()
   })
 
