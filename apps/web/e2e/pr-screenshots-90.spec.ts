@@ -8,11 +8,11 @@ import { DATABASE_URL, signIn, uniqueEmail } from './support'
  * Public PNGs for #90 — null-rate VAT sheet (VGEEN) + To review steps.
  *
  * Run with:
- *   CAPTURE_PR_SCREENSHOTS=1 PR_SCREENSHOT_NUMBER=90 \
+ *   CAPTURE_PR_SCREENSHOTS=1 PR_SCREENSHOT_NUMBER=91 \
  *     pnpm --filter @klopt/web exec playwright test e2e/pr-screenshots-90.spec.ts
  */
 
-const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '90'
+const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '91'
 const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', PR)
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
 
