@@ -143,7 +143,11 @@ export const FINDING_MESSAGES = {
   'moneybird.incompatible_tax_rate_both_sides':
     'Direction unknown: this tax rate is used on both sales and purchase invoices.',
   'moneybird.null_percentage_vat_mismatch':
-    'Tax rate {name} has no percentage, but {count} document(s) still show VAT ({references}). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
+    'Tax rate {name} has no percentage, but {count} documents still show VAT ({references}). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
+  'moneybird.null_percentage_vat_mismatch_one':
+    'Tax rate {name} has no percentage, but {count} document still shows VAT ({references}). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
+  'moneybird.null_percentage_vat_mismatch_other':
+    'Tax rate {name} has no percentage, but {count} documents still show VAT ({references}). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
   'moneybird.account_number_collision': 'Moneybird returned ledger number {number} twice ({name}).',
   'moneybird.contact_number_collision':
     'Moneybird returned contact number {number} twice ({name}).',

@@ -1606,7 +1606,11 @@ export const nl = {
   'finding.moneybird.incompatible_tax_rate_both_sides':
     'Richting onbekend: dit btw-tarief staat op verkoop- én inkoopfacturen.',
   'finding.moneybird.null_percentage_vat_mismatch':
-    'Btw-tarief {name} heeft geen percentage, maar {count} document(en) tonen nog btw ({references}). Koppelen aan 0% zou die btw uit de aangifte laten vallen — pas eerst het tarief of de documenten in Moneybird aan.',
+    'Btw-tarief {name} heeft geen percentage, maar {count} documenten tonen nog btw ({references}). Koppelen aan 0% zou die btw uit de aangifte laten vallen — pas eerst het tarief of de documenten in Moneybird aan.',
+  'finding.moneybird.null_percentage_vat_mismatch_one':
+    'Btw-tarief {name} heeft geen percentage, maar {count} document toont nog btw ({references}). Koppelen aan 0% zou die btw uit de aangifte laten vallen — pas eerst het tarief of de documenten in Moneybird aan.',
+  'finding.moneybird.null_percentage_vat_mismatch_other':
+    'Btw-tarief {name} heeft geen percentage, maar {count} documenten tonen nog btw ({references}). Koppelen aan 0% zou die btw uit de aangifte laten vallen — pas eerst het tarief of de documenten in Moneybird aan.',
   'finding.moneybird.account_number_collision':
     'Moneybird gaf grootboeknummer {number} twee keer terug ({name}).',
   'finding.moneybird.contact_number_collision':
@@ -1645,6 +1649,10 @@ export const nl = {
   'finding.why.moneybird.incompatible_tax_rate':
     'Een verkeerde richting of percentage zet omzet in voorbelasting (of omgekeerd) en bederft de aangifte.',
   'finding.why.moneybird.null_percentage_vat_mismatch':
+    'Moneybird boekte echte btw op een tarief zonder percentage. Als je dit aan 0% koppelt, verdwijnt die btw stilzwijgend uit de aangifte.',
+  'finding.why.moneybird.null_percentage_vat_mismatch_one':
+    'Moneybird boekte echte btw op een tarief zonder percentage. Als je dit aan 0% koppelt, verdwijnt die btw stilzwijgend uit de aangifte.',
+  'finding.why.moneybird.null_percentage_vat_mismatch_other':
     'Moneybird boekte echte btw op een tarief zonder percentage. Als je dit aan 0% koppelt, verdwijnt die btw stilzwijgend uit de aangifte.',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Zonder eenduidige richting kan geen btw-code gekozen worden; de import blijft geblokkeerd tot Moneybird één kant aangeeft.',

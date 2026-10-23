@@ -27,10 +27,11 @@ marker. Reverse-charge / intra-community / outside-EU names (ICP, ICV, art. 23,
 EU-levering, binnen EU, buiten EU / outside EU, …) still exclude VGEEN; a bare
 “eu” substring does not. Documents whose `totalTax` still carries VAT on a
 null-% rate raise `null_percentage_vat_mismatch` (zero tolerance when only
-null/0% lines; mixed documents allow half-up rounding ±1¢ per taxed line, and
-purchases respect `prices_are_incl_tax`) and refuse a 0% mapping. Empty
-candidates stay an honest dead-end (no “Zelf kiezen in de tabel”). Guided To
-review steps say “Opslaan” to match the sheet button. No migration.
+null/0% lines; mixed documents allow signed half-up rounding ±1¢ per taxed
+line with exact decimal quantities; purchases respect `prices_are_incl_tax`)
+and refuse a 0% mapping. Empty candidates stay an honest dead-end (no “Zelf
+kiezen in de tabel”). Guided To review steps say “Opslaan” to match the sheet
+button. No migration.
 
 ### Fixed
 

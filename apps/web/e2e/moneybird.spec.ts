@@ -180,22 +180,17 @@ test('null-% purchase that still carries VAT shows the mismatch card and no VGEE
       '[data-slot="finding-card"][data-code="null_percentage_vat_mismatch"]',
     )
     await expect(mismatch).toBeVisible({ timeout: 60_000 })
-    await expect(mismatch).toContainText(/tonen nog btw|still show VAT/i)
+    await expect(mismatch).toContainText(/document toont nog btw|document still shows VAT/i)
     await expect(mismatch).toContainText('LEV-VAT')
 
-    // Opening the unmapped rate (if present) must not offer VGEEN for this rate.
-    const unmapped = page
-      .locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
-      .filter({ hasText: 'Geen btw' })
-    if ((await unmapped.count()) > 0) {
-      await unmapped.first().getByRole('button', { name: 'Btw-tarief koppelen' }).click()
-      const sheet = page.getByRole('dialog')
-      await expect(sheet).toBeVisible()
-      await expect(sheet.getByText('VGEEN', { exact: true })).toHaveCount(0)
-      await expect(sheet.getByText(/Inkoop zonder btw/)).toHaveCount(0)
-      await expect(sheet.getByRole('status')).toContainText(/kan nog niet verder/)
-      await page.keyboard.press('Escape')
-    }
+    // Plan suppresses unmapped_tax_rate for a VAT-mismatch rate — no VGEEN path.
+    await expect(
+      page
+        .locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+        .filter({ hasText: 'Geen btw' }),
+    ).toHaveCount(0)
+    await expect(page.getByText('VGEEN', { exact: true })).toHaveCount(0)
+    await expect(page.getByText(/Inkoop zonder btw/)).toHaveCount(0)
   } finally {
     await standIn.close()
   }

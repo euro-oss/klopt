@@ -130,10 +130,10 @@ export function moneybirdFixtureFindings(handlers?: {
       id: 'f3c',
       code: 'null_percentage_vat_mismatch',
       path: 'taxRates.95',
-      messageKey: 'moneybird.null_percentage_vat_mismatch',
+      messageKey: 'moneybird.null_percentage_vat_mismatch_one',
       detail: { name: 'Geen btw', count: '1', references: 'LEV-VAT' },
       message:
-        'Tax rate Geen btw has no percentage, but 1 document(s) still show VAT (LEV-VAT). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
+        'Tax rate Geen btw has no percentage, but 1 document still shows VAT (LEV-VAT). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
       severity: 'blocking',
       fix: {
         type: 'explainOnly',

@@ -295,20 +295,17 @@ function BindingKeycaps({ id }: { id: string }) {
 function ExplainOnlyLink({ fix }: { fix: Extract<FindingFix, { type: 'explainOnly' }> }) {
   if (fix.href === undefined || fix.linkLabel === undefined) return null
   const external = fix.href.startsWith('http://') || fix.href.startsWith('https://')
+  // min-h-11: 44px tap target at 390 (#90 designer).
+  const linkClass = 'inline-flex min-h-11 items-center text-sm underline underline-offset-4'
   if (external) {
     return (
-      <a
-        href={fix.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-sm underline underline-offset-4"
-      >
+      <a href={fix.href} target="_blank" rel="noopener noreferrer" className={linkClass}>
         {fix.linkLabel} ↗
       </a>
     )
   }
   return (
-    <Link to={fix.href} className="text-sm underline underline-offset-4">
+    <Link to={fix.href} className={linkClass}>
       {fix.linkLabel} ↗
     </Link>
   )
