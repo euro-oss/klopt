@@ -2890,7 +2890,7 @@
                 },
                 "messageKey": {
                   "enum": [
-                    "invalid_currency",
+                    "unknown_tax_code",
                     "icp.counterparty_without_vat_number",
                     "icp.icp_mismatch",
                     "icp.proof_predates_period",
@@ -2994,7 +2994,7 @@
                     "moneybird.derived_account_type",
                     "moneybird.fiscal_year_start_mismatch",
                     "moneybird.fiscal_year_start_unknown",
-                    "unknown_tax_code",
+                    "invalid_currency",
                     "entry_unbalanced_functional",
                     "line_debit_and_credit",
                     "account_blocked",
@@ -9116,11 +9116,11 @@
               "properties": {
                 "code": {
                   "enum": [
-                    "invalid_date",
-                    "invalid_currency",
                     "invalid_iban",
                     "invalid_bic",
                     "invalid_amount",
+                    "invalid_currency",
+                    "invalid_date",
                     "invalid_characters",
                     "duplicate_end_to_end_id",
                     "empty_batch",
@@ -15176,17 +15176,17 @@
     },
     "LedgerErrorCode": {
       "enum": [
-        "invalid_date",
-        "invalid_currency",
-        "unknown_account",
         "unknown_tax_code",
         "icp_mismatch",
+        "invalid_currency",
+        "invalid_date",
         "entry_unbalanced",
         "entry_unbalanced_functional",
         "entry_too_few_lines",
         "line_debit_and_credit",
         "line_no_amount",
         "line_negative_amount",
+        "unknown_account",
         "account_blocked",
         "unknown_journal",
         "unknown_dimension_type",
