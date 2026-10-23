@@ -2040,3 +2040,262 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     expect(found.every((item) => item.code === 'incompatible_tax_rate')).toBe(true)
   })
 })
+
+/**
+ * Full-entry posting pins for signed line amounts (#90 / #91 PM addendum).
+ * VAT control lines on 1500/1510 are intentionally untagged today (#94).
+ */
+describe('Moneybird posting pins (signed lines, #91 PM)', () => {
+  type LinePin = {
+    readonly accountNumber: string
+    readonly debit: bigint
+    readonly credit: bigint
+    readonly taxCode: string | null
+    readonly taxAmount: bigint | null
+  }
+
+  const mapped = options({
+    existingTaxRules: nlMkbTaxRules,
+    confirmedTaxMappings: { '21': 'H21', '22': 'VH21' },
+  })
+
+  function pinLines(
+    entry: { readonly lines: readonly LinePin[] } | undefined,
+    expected: readonly LinePin[],
+  ): void {
+    expect(entry).toBeDefined()
+    expect(
+      entry!.lines.map((line) => ({
+        accountNumber: line.accountNumber,
+        debit: line.debit,
+        credit: line.credit,
+        taxCode: line.taxCode,
+        taxAmount: line.taxAmount,
+      })),
+    ).toEqual(expected)
+    const debit = entry!.lines.reduce((sum, line) => sum + line.debit, 0n)
+    const credit = entry!.lines.reduce((sum, line) => sum + line.credit, 0n)
+    expect(debit).toBe(credit)
+  }
+
+  function expectBalanced(plan: ReturnType<typeof planMoneybirdImport>): void {
+    expect(plan.problems.map((item) => item.code)).not.toContain('unbalanced_document')
+  }
+
+  it('pins a normal sales invoice (€100 + 21% VAT)', () => {
+    const plan = planMoneybirdImport(
+      snapshot({
+        purchaseInvoices: [],
+        receipts: [],
+        financialMutations: [],
+        journalDocuments: [],
+      }),
+      mapped,
+    )
+    pinLines(
+      plan.entries.find((item) => item.kind === 'sales_invoice'),
+      [
+        { accountNumber: '1300', debit: 12100n, credit: 0n, taxCode: null, taxAmount: null },
+        { accountNumber: '8000', debit: 0n, credit: 10000n, taxCode: 'H21', taxAmount: 2100n },
+        // Untagged VAT control line — #94, do not “fix” tagging here.
+        { accountNumber: '1500', debit: 0n, credit: 2100n, taxCode: null, taxAmount: null },
+      ],
+    )
+    expectBalanced(plan)
+  })
+
+  it('pins a normal purchase invoice (€100 + 21% VAT)', () => {
+    const plan = planMoneybirdImport(
+      snapshot({ salesInvoices: [], receipts: [], financialMutations: [], journalDocuments: [] }),
+      mapped,
+    )
+    pinLines(
+      plan.entries.find((item) => item.kind === 'purchase_invoice'),
+      [
+        { accountNumber: '4000', debit: 10000n, credit: 0n, taxCode: 'VH21', taxAmount: 2100n },
+        { accountNumber: '1510', debit: 2100n, credit: 0n, taxCode: null, taxAmount: null },
+        { accountNumber: '1600', debit: 0n, credit: 12100n, taxCode: null, taxAmount: null },
+      ],
+    )
+    expectBalanced(plan)
+  })
+
+  it('pins a sales credit note (−€100 + VAT −€21)', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        purchaseInvoices: [],
+        receipts: [],
+        financialMutations: [],
+        journalDocuments: [],
+        salesInvoices: [
+          {
+            ...base.salesInvoices[0]!,
+            totalTax: -2100n,
+            totalExcl: -10000n,
+            totalIncl: -12100n,
+            originalSalesInvoiceId: null,
+            details: [
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                price: -10000n,
+                amount: '1',
+                taxRateId: '21',
+              },
+            ],
+          },
+        ],
+      },
+      mapped,
+    )
+    pinLines(
+      plan.entries.find((item) => item.kind === 'credit_note'),
+      [
+        { accountNumber: '1300', debit: 0n, credit: 12100n, taxCode: null, taxAmount: null },
+        { accountNumber: '8000', debit: 10000n, credit: 0n, taxCode: 'H21', taxAmount: -2100n },
+        { accountNumber: '1500', debit: 2100n, credit: 0n, taxCode: null, taxAmount: null },
+      ],
+    )
+    expectBalanced(plan)
+  })
+
+  it('pins a purchase credit note (−€100 + VAT −€21)', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        salesInvoices: [],
+        receipts: [],
+        financialMutations: [],
+        journalDocuments: [],
+        purchaseInvoices: [
+          {
+            ...base.purchaseInvoices[0]!,
+            totalTax: -2100n,
+            totalExcl: -10000n,
+            totalIncl: -12100n,
+            details: [
+              {
+                ...base.purchaseInvoices[0]!.details[0]!,
+                price: -10000n,
+                amount: '1',
+                taxRateId: '22',
+              },
+            ],
+          },
+        ],
+      },
+      mapped,
+    )
+    pinLines(
+      plan.entries.find((item) => item.kind === 'purchase_invoice'),
+      [
+        { accountNumber: '4000', debit: 0n, credit: 10000n, taxCode: 'VH21', taxAmount: -2100n },
+        { accountNumber: '1510', debit: 0n, credit: 2100n, taxCode: null, taxAmount: null },
+        { accountNumber: '1600', debit: 12100n, credit: 0n, taxCode: null, taxAmount: null },
+      ],
+    )
+    expectBalanced(plan)
+  })
+
+  it('pins a sales invoice with a discount line (+€100, −€10, VAT €18.90)', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        purchaseInvoices: [],
+        receipts: [],
+        financialMutations: [],
+        journalDocuments: [],
+        salesInvoices: [
+          {
+            ...base.salesInvoices[0]!,
+            totalTax: 1890n,
+            totalExcl: 9000n,
+            totalIncl: 10890n,
+            details: [
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'main',
+                description: 'Advies',
+                price: 10000n,
+                amount: '1',
+                taxRateId: '21',
+              },
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'discount',
+                description: 'Korting',
+                price: -1000n,
+                amount: '1',
+                taxRateId: '21',
+              },
+            ],
+          },
+        ],
+      },
+      mapped,
+    )
+    pinLines(
+      plan.entries.find((item) => item.kind === 'sales_invoice'),
+      [
+        { accountNumber: '1300', debit: 10890n, credit: 0n, taxCode: null, taxAmount: null },
+        { accountNumber: '8000', debit: 0n, credit: 10000n, taxCode: 'H21', taxAmount: 2100n },
+        { accountNumber: '8000', debit: 1000n, credit: 0n, taxCode: 'H21', taxAmount: -210n },
+        { accountNumber: '1500', debit: 0n, credit: 1890n, taxCode: null, taxAmount: null },
+      ],
+    )
+    expectBalanced(plan)
+  })
+
+  it('pins a purchase invoice with a discount line (+€100, −€10, VAT €18.90)', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        salesInvoices: [],
+        receipts: [],
+        financialMutations: [],
+        journalDocuments: [],
+        purchaseInvoices: [
+          {
+            ...base.purchaseInvoices[0]!,
+            totalTax: 1890n,
+            totalExcl: 9000n,
+            totalIncl: 10890n,
+            details: [
+              {
+                ...base.purchaseInvoices[0]!.details[0]!,
+                id: 'main',
+                description: 'Huur',
+                price: 10000n,
+                amount: '1',
+                taxRateId: '22',
+              },
+              {
+                ...base.purchaseInvoices[0]!.details[0]!,
+                id: 'discount',
+                description: 'Korting',
+                price: -1000n,
+                amount: '1',
+                taxRateId: '22',
+              },
+            ],
+          },
+        ],
+      },
+      mapped,
+    )
+    pinLines(
+      plan.entries.find((item) => item.kind === 'purchase_invoice'),
+      [
+        { accountNumber: '4000', debit: 10000n, credit: 0n, taxCode: 'VH21', taxAmount: 2100n },
+        { accountNumber: '4000', debit: 0n, credit: 1000n, taxCode: 'VH21', taxAmount: -210n },
+        { accountNumber: '1510', debit: 1890n, credit: 0n, taxCode: null, taxAmount: null },
+        { accountNumber: '1600', debit: 0n, credit: 10890n, taxCode: null, taxAmount: null },
+      ],
+    )
+    expectBalanced(plan)
+  })
+})

@@ -31,7 +31,10 @@ null/0% lines; mixed documents allow signed half-up rounding ±1¢ per taxed
 line with exact decimal quantities; purchases respect `prices_are_incl_tax`)
 and refuse a 0% mapping. Empty candidates stay an honest dead-end (no “Zelf
 kiezen in de tabel”). Guided To review steps say “Opslaan” to match the sheet
-button. No migration.
+button. The import also **books** with signed line amounts: discount
+(negative) lines take the correct debit/credit side, fractional quantities
+(e.g. 2.5) book the exact amount, line VAT is rounded half-up per line, and
+incl.-VAT purchases book net = gross − rounded VAT. No migration.
 
 ### Fixed
 
