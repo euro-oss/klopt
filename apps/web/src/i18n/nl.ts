@@ -1509,6 +1509,9 @@ export const nl = {
   'moneybird.fix.stepOpenMoneybird': 'Moneybird openen',
   'moneybird.fix.stepReread': 'Opnieuw lezen',
   'moneybird.fix.stepDoNotTransfer': 'Niet overzetten',
+  'moneybird.fix.stepMapAccount': 'Categorie kiezen',
+  'moneybird.fix.stepMapTax': 'Btw-code kiezen',
+  'moneybird.fix.stepSave': 'Opslaan',
   'moneybird.excluded': 'Niet overgezet (uitgesloten)',
   'moneybird.fx.sourceEcb': 'Bron: ECB',
   'moneybird.fx.sourceEcbDated': 'Bron: ECB ({date})',
@@ -1602,6 +1605,12 @@ export const nl = {
     'Btw-tarief {name} ({percentage}) past niet bij {mappedCode}: richting of percentage komt niet overeen met het schema.',
   'finding.moneybird.incompatible_tax_rate_both_sides':
     'Richting onbekend: dit btw-tarief staat op verkoop- én inkoopfacturen.',
+  'finding.moneybird.null_percentage_vat_mismatch':
+    'Btw-tarief {name} heeft geen percentage, maar {count} documenten tonen nog btw ({references}). Koppelen aan 0% zou die btw uit de aangifte laten vallen — pas eerst het tarief of de documenten in Moneybird aan.',
+  'finding.moneybird.null_percentage_vat_mismatch_one':
+    'Btw-tarief {name} heeft geen percentage, maar {count} document toont nog btw ({references}). Koppelen aan 0% zou die btw uit de aangifte laten vallen — pas eerst het tarief of de documenten in Moneybird aan.',
+  'finding.moneybird.null_percentage_vat_mismatch_other':
+    'Btw-tarief {name} heeft geen percentage, maar {count} documenten tonen nog btw ({references}). Koppelen aan 0% zou die btw uit de aangifte laten vallen — pas eerst het tarief of de documenten in Moneybird aan.',
   'finding.moneybird.account_number_collision':
     'Moneybird gaf grootboeknummer {number} twee keer terug ({name}).',
   'finding.moneybird.contact_number_collision':
@@ -1639,6 +1648,12 @@ export const nl = {
     'Zonder btw-code kan de aangifte die regels niet plaatsen.',
   'finding.why.moneybird.incompatible_tax_rate':
     'Een verkeerde richting of percentage zet omzet in voorbelasting (of omgekeerd) en bederft de aangifte.',
+  'finding.why.moneybird.null_percentage_vat_mismatch':
+    'Moneybird boekte echte btw op een tarief zonder percentage. Als je dit aan 0% koppelt, verdwijnt die btw stilzwijgend uit de aangifte.',
+  'finding.why.moneybird.null_percentage_vat_mismatch_one':
+    'Moneybird boekte echte btw op een tarief zonder percentage. Als je dit aan 0% koppelt, verdwijnt die btw stilzwijgend uit de aangifte.',
+  'finding.why.moneybird.null_percentage_vat_mismatch_other':
+    'Moneybird boekte echte btw op een tarief zonder percentage. Als je dit aan 0% koppelt, verdwijnt die btw stilzwijgend uit de aangifte.',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Zonder eenduidige richting kan geen btw-code gekozen worden; de import blijft geblokkeerd tot Moneybird één kant aangeeft.',
   'finding.why.moneybird.account_number_collision':
@@ -1693,7 +1708,9 @@ export const nl = {
   'findingCard.explainOnlyBody': 'Dit los je niet hier op.',
   'findingCard.oneClickSafe': 'Wijzigt niets in je boekhouding',
   'findingCard.guidedSteps': '{count} stappen',
-  'findingCard.guidedHint': 'Volg de stappen hierboven. Escape sluit dit paneel.',
+  'findingCard.guidedHint': 'Volg de stappen hierboven.',
+  'findingCard.guidedHintEscape': 'Escape sluit dit paneel.',
+  'findingCard.guidedHintNoSteps': 'Escape sluit dit paneel.',
   'findingCard.preview': 'Dit verandert de boeken',
   'findingCard.confirmFix': 'Toepassen',
   'findingCard.close': 'Sluiten',
@@ -1764,11 +1781,15 @@ export const nl = {
   'importFindings.accountVat.showOtherRates': 'Andere tarieven tonen',
   'importFindings.accountVat.showFewerRates': 'Minder tonen',
   'importFindings.accountVat.vatHint': 'In Moneybird stond {rate}% btw.',
-  'importFindings.accountVat.vatHintUnknown': 'In Moneybird stond geen tarief.',
+  'importFindings.accountVat.vatHintUnknown':
+    'Moneybird gaf geen percentage mee voor ‘{name}’. We gaan uit van 0%; controleer dit.',
   'importFindings.accountVat.vatUnsupported':
     'Klopt heeft nog geen btw-code voor dit tarief, dus deze import kan nog niet verder.',
   'importFindings.accountVat.vatUnknown':
-    'Moneybird gaf geen tarief mee, dus deze import kan nog niet verder.',
+    'Moneybird gaf geen percentage mee voor ‘{name}’. We gaan uit van 0%; controleer dit.',
+  'importFindings.accountVat.vatUnknownEmpty':
+    'Klopt heeft nog geen btw-code voor dit tarief, dus deze import kan nog niet verder.',
+  'importFindings.accountVat.suggested': 'Voorstel',
   'importFindings.accountVat.whatHappens': 'Wat er gebeurt',
   'importFindings.accountVat.whatHappensBody':
     'De boekingen uit Moneybird komen op {account}, met {vat}. Er wordt nu nog niets geboekt; dat gebeurt pas als je importeert.',

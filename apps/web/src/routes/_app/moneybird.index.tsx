@@ -497,6 +497,7 @@ function Moneybird() {
       const taxRateType =
         rawType === 'purchase_invoice' || rawType === 'sales_invoice' ? rawType : null
       // Prefer the preview's proposedCode + candidates (name-aware matcher).
+      // Missing / em-dash percentage still yields 0% candidates from the server (#90).
       const suggestedVat =
         sample?.proposedCode ??
         suggestVatCode({
@@ -504,12 +505,18 @@ function Moneybird() {
           taxRateType,
           percentage,
         })
+      const percentageLabel =
+        percentage === '' || percentage === '—'
+          ? '—'
+          : percentage.endsWith('%')
+            ? percentage
+            : `${percentage}%`
       setAccountVatDraft({
         moneybirdId: id,
         name,
         number: '',
         rgsCode: null,
-        detailLine: percentage !== '' ? `${percentage}%` : '',
+        detailLine: percentageLabel,
         mode: 'tax',
         taxMoneybirdId: id,
         suggestedVat,
@@ -655,6 +662,9 @@ function Moneybird() {
       stepOpenMoneybird: t('moneybird.fix.stepOpenMoneybird'),
       stepReread: t('moneybird.fix.stepReread'),
       stepDoNotTransfer: t('moneybird.fix.stepDoNotTransfer'),
+      stepMapAccount: t('moneybird.fix.stepMapAccount'),
+      stepMapTax: t('moneybird.fix.stepMapTax'),
+      stepSave: t('moneybird.fix.stepSave'),
     },
   }
 

@@ -139,8 +139,10 @@ export interface MoneybirdTaxRate {
 }
 
 export function parseTaxRate(row: Record<string, unknown>): MoneybirdTaxRate {
-  // Empty / missing percentage stays non-finite (NaN); missing direction stays
-  // empty. Do not invent 0% or sales_invoice — that would auto-map VERL or H21 (#70).
+  // Empty / missing percentage stays non-finite (NaN) so UI copy can show "—%"
+  // and distinguish "Moneybird sent no rate" from a real 0. Matching treats
+  // NaN as 0% later (see plan `matchingPercentage`) without auto-confirming
+  // (#70 / #90). Missing direction stays empty — never invent sales_invoice.
   return {
     id: requireId(row, 'id'),
     name: readString(row, 'name') ?? requireId(row, 'id'),
@@ -300,6 +302,11 @@ export interface MoneybirdPurchaseDocument {
   readonly dueDate: string | null
   readonly currency: string
   readonly state: string
+  /**
+   * Moneybird `prices_are_incl_tax` — purchase lines may be gross, same as sales.
+   * Missing / false means line `price` is net (#90 PM).
+   */
+  readonly pricesAreInclTax: boolean
   readonly totalExcl: bigint
   readonly totalIncl: bigint
   readonly totalTax: bigint
@@ -321,6 +328,7 @@ function parsePurchaseLike(
     dueDate: readDate(row, 'due_date'),
     currency: (readString(row, 'currency') ?? 'EUR').toUpperCase(),
     state: readString(row, 'state') ?? 'open',
+    pricesAreInclTax: readBoolean(row, 'prices_are_incl_tax'),
     totalExcl: readMinor(row, 'total_price_excl_tax') ?? 0n,
     totalIncl: readMinor(row, 'total_price_incl_tax') ?? 0n,
     totalTax: readMinor(row, 'total_tax') ?? 0n,

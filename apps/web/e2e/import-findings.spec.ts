@@ -39,7 +39,7 @@ test('Moneybird fixture shows honesty grid, blocking counts, and j/k', async ({ 
   await expect(page.getByRole('heading', { level: 1, name: 'Moneybird' })).toBeVisible()
   await expect(page.getByText('Wat we gelezen hebben')).toBeVisible()
   await expect(page.getByText('Na te kijken')).toBeVisible()
-  await expect(page.getByText(/3 blokkeren/)).toBeVisible()
+  await expect(page.getByText(/5 blokkeren/)).toBeVisible()
   await expect(page.locator('[data-slot="honesty-grid"] [data-honesty="unread"]')).toBeVisible()
 
   const cards = page.locator('[data-slot="finding-card"]')
@@ -239,12 +239,13 @@ test('btw sheet offers VGEEN for 0% purchase and honest copy for unsupported 12%
   await expect(bad.getByRole('status')).toContainText(
     /Klopt heeft nog geen btw-code voor dit tarief/,
   )
+  await expect(bad.getByRole('status')).toContainText(/kan nog niet verder/)
   await expect(bad.getByRole('radio')).toHaveCount(0)
   await expect(bad.locator('[data-slot="vat-jump-to-mapping"]')).toHaveCount(0)
   await expect(bad.getByText(/In Moneybird stond/)).toHaveCount(0)
 })
 
-test('btw sheet offers no VGEEN for 0% verlegd purchase and shows kan-nog-niet-verder copy', async ({
+test('btw sheet offers no VGEEN for 0% verlegd purchase and keeps an honest dead-end', async ({
   page,
 }) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxVerlegd0')
@@ -261,18 +262,49 @@ test('btw sheet offers no VGEEN for 0% verlegd purchase and shows kan-nog-niet-v
   await expect(sheet.locator('[data-slot="vat-jump-to-mapping"]')).toHaveCount(0)
 })
 
-test('btw sheet shows Moneybird-empty-rate copy for vatUnknown', async ({ page }) => {
+test('btw sheet maps null Moneybird percentage as 0% with VGEEN and no auto-confirm (#90)', async ({
+  page,
+}) => {
   await openLab(page, 'source=moneybird&state=open&sheet=taxEmpty')
   const sheet = page.getByRole('dialog')
   await expect(sheet).toBeVisible()
-  await expect(sheet.getByRole('status')).toContainText(
-    /Moneybird gaf geen tarief mee, dus deze import kan nog niet verder/,
-  )
-  await expect(sheet.getByRole('radio')).toHaveCount(0)
-  await expect(sheet.locator('[data-slot="vat-jump-to-mapping"]')).toHaveCount(0)
-  await expect(sheet.getByText(/Moneybird gaf geen tarief mee/)).toHaveCount(1)
-  await expect(sheet.getByText(/Klopt heeft nog geen btw-code/)).toHaveCount(0)
-  await expect(sheet.getByText(/In Moneybird stond geen tarief/)).toHaveCount(0)
+  await expect(sheet.getByText('Geen btw', { exact: true })).toBeVisible()
+  await expect(sheet.getByText('—', { exact: true })).toBeVisible()
+  await expect(sheet.getByRole('radio')).toHaveCount(1)
+  await expect(sheet.getByRole('radio')).toContainText(/Inkoop zonder btw/)
+  await expect(sheet.getByRole('radio')).toHaveAttribute('aria-checked', 'false')
+  await expect(sheet.getByText('Voorstel')).toBeVisible()
+  await expect(sheet.getByRole('button', { name: 'Opslaan' })).toBeDisabled()
+  await expect(sheet.getByText(/Moneybird gaf geen percentage mee voor ‘Geen btw’/)).toBeVisible()
+  await expect(sheet.getByText(/We gaan uit van 0%; controleer dit/)).toBeVisible()
+  const group = sheet.getByRole('radiogroup')
+  await expect(group).toHaveAttribute('aria-labelledby', /.*/)
+  const hintId = await sheet
+    .locator('p')
+    .filter({ hasText: /Moneybird gaf geen percentage/ })
+    .getAttribute('id')
+  expect(hintId).toBeTruthy()
+  await expect(group).toHaveAttribute('aria-describedby', hintId!)
+  await expect(sheet.getByRole('status')).toHaveCount(0)
+  await expect(sheet.getByText(/kan nog niet verder/)).toHaveCount(0)
+  await sheet.getByRole('radio').click()
+  await expect(sheet.getByRole('radio')).toHaveAttribute('aria-checked', 'true')
+  await expect(sheet.getByText('Wat er gebeurt')).toBeVisible()
+  await expect(sheet.getByRole('button', { name: 'Opslaan' })).toBeEnabled()
+})
+
+test('guided Geen btw finding shows steps in the To review card (#90)', async ({ page }) => {
+  await openLab(page)
+  const taxCards = page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+  const guided = taxCards.filter({ hasText: 'Geen btw' })
+  await guided.scrollIntoViewIfNeeded()
+  await guided.getByRole('button', { name: 'Btw-tarief koppelen' }).click()
+  await expect(guided).toHaveAttribute('data-fix-open', 'true')
+  await expect(guided.getByText('Btw-code kiezen')).toBeVisible()
+  await expect(guided.getByText('Opslaan')).toBeVisible()
+  await expect(guided.getByText(/Volg de stappen hierboven/)).toBeVisible()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(page.getByRole('dialog').getByRole('radio')).toContainText(/Inkoop zonder btw/)
 })
 
 test('mapping 422 shows rollback copy, focuses the field, and rolls back', async ({ page }) => {
@@ -337,7 +369,9 @@ test('FX sheet toggles ECB to Aangepast and back', async ({ page }) => {
 test('one-click preview then apply resolves a finding', async ({ page }) => {
   await openLab(page)
 
-  const taxCard = page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+  const taxCard = page
+    .locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+    .filter({ hasText: 'Laag tarief' })
   await taxCard.scrollIntoViewIfNeeded()
   await taxCard.getByRole('button', { name: 'Gebruik 9% btw' }).click()
   await expect(taxCard).toHaveAttribute('data-fix-open', 'true')

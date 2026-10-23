@@ -18,6 +18,27 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Moneybird: map tax rates without a percentage (#90)
+
+A Moneybird tax rate with a null / missing percentage (e.g. “Geen btw”, shown
+as —) can be mapped as 0%: the Resolve · VAT sheet offers the side-aware 0%
+Klopt codes (VGEEN for purchases, never auto-confirmed) with a muted “Voorstel”
+marker. Reverse-charge / intra-community / outside-EU names (ICP, ICV, art. 23,
+EU-levering, binnen EU, buiten EU / outside EU, …) still exclude VGEEN; a bare
+“eu” substring does not. Documents whose `totalTax` still carries VAT on a
+null-% rate raise `null_percentage_vat_mismatch` (zero tolerance when only
+null/0% lines; mixed documents allow signed half-up rounding ±1¢ per taxed
+line with exact decimal quantities; purchases respect `prices_are_incl_tax`)
+and refuse a 0% mapping. Empty candidates stay an honest dead-end (no “Zelf
+kiezen in de tabel”). Guided To review steps say “Opslaan” to match the sheet
+button. The import also **books** with signed line amounts: discount
+(negative) lines take the correct debit/credit side, fractional quantities
+(e.g. 2.5) book the exact amount, line VAT is rounded half-up per line, and
+incl.-VAT purchases book net = gross − rounded VAT. Credit notes identified
+by `originalSalesInvoiceId` whose amounts are still positive have their sign
+normalised once before that signed-line logic so they reverse like before
+(never double-flipped when amounts are already negative). No migration.
+
 ### Fixed
 
 - **Moneybird ECB rate refresh no longer OOMs the web process.** Refreshing a
