@@ -217,3 +217,114 @@ export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn>
       }),
   }
 }
+
+/**
+ * Null-% purchase whose document still carries VAT — blocks with
+ * `null_percentage_vat_mismatch` and offers no VGEEN (#90 PM).
+ */
+export async function startNullRateVatMismatchMoneybirdStandIn(): Promise<MoneybirdStandIn> {
+  const token = 'mb-e2e-null-rate-vat-mismatch-token'
+  const taxRates = [
+    {
+      id: 95,
+      name: 'Geen btw',
+      percentage: null,
+      tax_rate_type: 'purchase_invoice',
+      country: 'NL',
+      active: true,
+    },
+  ]
+  const purchases = [
+    {
+      id: 401,
+      contact_id: 200,
+      reference: 'LEV-VAT',
+      date: '2026-03-05',
+      due_date: '2026-04-05',
+      currency: 'EUR',
+      state: 'open',
+      prices_are_incl_tax: false,
+      total_price_excl_tax: '100.00',
+      total_price_incl_tax: '121.00',
+      total_tax: '21.00',
+      details: [
+        {
+          id: 4011,
+          description: 'Huur',
+          amount: '1',
+          price: '100.00',
+          tax_rate_id: 95,
+          ledger_account_id: 6,
+        },
+      ],
+      attachments: [],
+    },
+  ]
+
+  const server: Server = createServer((req, res) => {
+    const url = req.url ?? '/'
+    const auth = req.headers.authorization ?? ''
+    if (auth !== `Bearer ${token}`) {
+      res.writeHead(401)
+      res.end('unauthorised')
+      return
+    }
+    const json = (body: unknown): void => {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify(body))
+    }
+    if (url.includes('/administrations.json')) {
+      json([ADMIN])
+      return
+    }
+    if (url.includes('ledger_accounts.json')) {
+      json(LEDGER)
+      return
+    }
+    if (url.includes('tax_rates.json')) {
+      json(taxRates)
+      return
+    }
+    if (url.includes('contacts.json')) {
+      json(CONTACTS)
+      return
+    }
+    if (url.includes('sales_invoices.json')) {
+      json([])
+      return
+    }
+    if (url.includes('purchase_invoices.json')) {
+      json(purchases)
+      return
+    }
+    if (url.includes('general_journal_documents.json')) {
+      json(JOURNAL)
+      return
+    }
+    if (
+      url.includes('receipts.json') ||
+      url.includes('financial_accounts.json') ||
+      url.includes('financial_mutations.json') ||
+      url.includes('general_documents.json')
+    ) {
+      json([])
+      return
+    }
+    json([])
+  })
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve())
+  })
+  const address = server.address() as AddressInfo
+  const baseUrl = `http://127.0.0.1:${String(address.port)}/api/v2`
+
+  return {
+    baseUrl,
+    token,
+    close: () =>
+      new Promise((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()))
+      }),
+  }
+}

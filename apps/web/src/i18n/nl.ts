@@ -1645,7 +1645,7 @@ export const nl = {
   'finding.why.moneybird.incompatible_tax_rate':
     'Een verkeerde richting of percentage zet omzet in voorbelasting (of omgekeerd) en bederft de aangifte.',
   'finding.why.moneybird.null_percentage_vat_mismatch':
-    'Moneybird boekte echte btw op een tarief zonder percentage. Die btw zou bij een 0%-mapping stilzwijgend uit de aangifte verdwijnen.',
+    'Moneybird boekte echte btw op een tarief zonder percentage. Als je dit aan 0% koppelt, verdwijnt die btw stilzwijgend uit de aangifte.',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Zonder eenduidige richting kan geen btw-code gekozen worden; de import blijft geblokkeerd tot Moneybird één kant aangeeft.',
   'finding.why.moneybird.account_number_collision':

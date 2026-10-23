@@ -128,28 +128,16 @@ export interface VatMatchQuery {
  * Detected from the rate name / report_reference: Moneybird books many of these
  * at 0% on the invoice even though Klopt's paired codes carry 9%/21%.
  *
- * A bare `eu` substring is not enough: names like "Geen btw (buiten EU)" are
- * domestic out-of-scope and must still offer VGEEN. Match only specific
- * intra-community terms (ICP/ICV, EU-levering, binnen EU as whole words, …)
- * and never "buiten EU" / "outside EU" (#90 designer / #91).
+ * A bare `eu` substring is not enough (would catch unrelated names). Prefer
+ * specific terms (ICP/ICV, EU-levering, binnen EU, buiten EU / outside EU as
+ * whole phrases, art. 23, …) — outside-EU 0% purchases are almost always
+ * import / reverse-charged services and must not offer VGEEN (#86 / #90 PM).
  */
 export function isSpecialAcquisitionPurchaseRate(rate: {
   readonly name: string
   readonly reportReference?: string | null
 }): boolean {
   const text = `${rate.name} ${rate.reportReference ?? ''}`.toLowerCase()
-  // Domestic "outside the EU" is not reverse-charge / ICP — keep VGEEN.
-  if (/\bbuiten\s+eu\b/.test(text) || /\boutside\s+(?:the\s+)?eu\b/.test(text)) {
-    return (
-      /verleg/.test(text) ||
-      /reverse/.test(text) ||
-      /invoer/.test(text) ||
-      /\bimport\b/.test(text) ||
-      /art\.?\s*23\b/.test(text) ||
-      /article\s*23\b/.test(text) ||
-      /artikel\s*23\b/.test(text)
-    )
-  }
   return (
     /verleg/.test(text) ||
     /reverse/.test(text) ||
@@ -163,10 +151,12 @@ export function isSpecialAcquisitionPurchaseRate(rate: {
     /invoer/.test(text) ||
     /\bimport\b/.test(text) ||
     /\bbinnen\s+eu\b/.test(text) ||
+    /\bbuiten\s+eu\b/.test(text) ||
     /\bwithin\s+(?:the\s+)?eu\b/.test(text) ||
-    /art\.?\s*23\b/.test(text) ||
-    /article\s*23\b/.test(text) ||
-    /artikel\s*23\b/.test(text)
+    /\boutside\s+(?:the\s+)?eu\b/.test(text) ||
+    /\bart\.?\s*23\b/.test(text) ||
+    /\barticle\s*23\b/.test(text) ||
+    /\bartikel\s*23\b/.test(text)
   )
 }
 

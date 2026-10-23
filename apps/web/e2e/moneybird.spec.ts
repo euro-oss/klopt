@@ -1,7 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, signIn, uniqueEmail } from './support'
-import { startNullRateMoneybirdStandIn } from './support/moneybird-stand-in'
+import {
+  startNullRateMoneybirdStandIn,
+  startNullRateVatMismatchMoneybirdStandIn,
+} from './support/moneybird-stand-in'
 
 /**
  * Overzetten uit Moneybird, in a browser (issue #32).
@@ -143,6 +146,56 @@ test('null-% purchase and sales rates open the sheet from server candidates (#90
     await expect(salesSheet.getByRole('button', { name: 'Opslaan' })).toBeDisabled()
     // Server candidates for 0% sales — never H21, nothing pre-selected.
     await expect(salesSheet.getByText('21% btw', { exact: true })).toHaveCount(0)
+  } finally {
+    await standIn.close()
+  }
+})
+
+test('null-% purchase that still carries VAT shows the mismatch card and no VGEEN (#90)', async ({
+  page,
+}) => {
+  test.setTimeout(120_000)
+  const standIn = await startNullRateVatMismatchMoneybirdStandIn()
+  try {
+    await anAdministration(page)
+    await page.goto('/moneybird')
+    await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
+
+    await page.getByLabel('API-adres').fill(standIn.baseUrl)
+    await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
+    await page.getByRole('button', { name: 'Verbinden met Moneybird' }).click()
+    await expect(page.getByRole('heading', { name: '2. Welke administratie' })).toBeVisible({
+      timeout: 30_000,
+    })
+
+    await page.getByRole('button', { name: 'Administraties ophalen' }).click()
+    await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
+    await page.getByRole('button', { name: 'kies deze' }).first().click()
+    await expect(page.getByRole('heading', { name: '3. Proefimport' })).toBeVisible({
+      timeout: 30_000,
+    })
+
+    await page.getByRole('button', { name: 'Proefimport uitvoeren' }).click()
+    const mismatch = page.locator(
+      '[data-slot="finding-card"][data-code="null_percentage_vat_mismatch"]',
+    )
+    await expect(mismatch).toBeVisible({ timeout: 60_000 })
+    await expect(mismatch).toContainText(/tonen nog btw|still show VAT/i)
+    await expect(mismatch).toContainText('LEV-VAT')
+
+    // Opening the unmapped rate (if present) must not offer VGEEN for this rate.
+    const unmapped = page
+      .locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+      .filter({ hasText: 'Geen btw' })
+    if ((await unmapped.count()) > 0) {
+      await unmapped.first().getByRole('button', { name: 'Btw-tarief koppelen' }).click()
+      const sheet = page.getByRole('dialog')
+      await expect(sheet).toBeVisible()
+      await expect(sheet.getByText('VGEEN', { exact: true })).toHaveCount(0)
+      await expect(sheet.getByText(/Inkoop zonder btw/)).toHaveCount(0)
+      await expect(sheet.getByRole('status')).toContainText(/kan nog niet verder/)
+      await page.keyboard.press('Escape')
+    }
   } finally {
     await standIn.close()
   }
