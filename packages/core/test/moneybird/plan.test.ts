@@ -83,8 +83,14 @@ describe('booked history', () => {
     const plan = planMoneybirdImport(snapshot(), options())
     expect(plan.entries.map((entry) => entry.kind).sort()).toEqual([
       'bank_mutation',
+      'credit_note',
+      'credit_note',
       'journal',
       'purchase_invoice',
+      'purchase_invoice',
+      'purchase_invoice',
+      'sales_invoice',
+      'sales_invoice',
       'sales_invoice',
     ])
   })
@@ -2122,6 +2128,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
 
   it('pins a sales credit note (−€100 + VAT −€21)', () => {
     const base = snapshot()
+    const credit = base.salesInvoices.find((item) => item.id === '303')!
     const plan = planMoneybirdImport(
       {
         ...base,
@@ -2129,23 +2136,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
         receipts: [],
         financialMutations: [],
         journalDocuments: [],
-        salesInvoices: [
-          {
-            ...base.salesInvoices[0]!,
-            totalTax: -2100n,
-            totalExcl: -10000n,
-            totalIncl: -12100n,
-            originalSalesInvoiceId: null,
-            details: [
-              {
-                ...base.salesInvoices[0]!.details[0]!,
-                price: -10000n,
-                amount: '1',
-                taxRateId: '21',
-              },
-            ],
-          },
-        ],
+        salesInvoices: [credit],
       },
       mapped,
     )
@@ -2158,10 +2149,42 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
       ],
     )
     expectBalanced(plan)
+    expect(plan.problems).toEqual([])
+  })
+
+  it('pins a sales credit note linked by originalSalesInvoiceId with positive amounts', () => {
+    const base = snapshot()
+    const linked = base.salesInvoices.find((item) => item.id === '304')!
+    expect(linked.originalSalesInvoiceId).toBe('301')
+    expect(linked.totalExcl).toBeGreaterThan(0n)
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        purchaseInvoices: [],
+        receipts: [],
+        financialMutations: [],
+        journalDocuments: [],
+        salesInvoices: [linked],
+      },
+      mapped,
+    )
+    // Same reversal as main: Cr 1300 121 / Dr 8000 100 / Dr 1500 21.
+    pinLines(
+      plan.entries.find((item) => item.kind === 'credit_note'),
+      [
+        { accountNumber: '1300', debit: 0n, credit: 12100n, taxCode: null, taxAmount: null },
+        { accountNumber: '8000', debit: 10000n, credit: 0n, taxCode: 'H21', taxAmount: -2100n },
+        { accountNumber: '1500', debit: 2100n, credit: 0n, taxCode: null, taxAmount: null },
+      ],
+    )
+    expectBalanced(plan)
+    // executeMoneybirdImport throws MoneybirdPlanRefused on any plan.problems.
+    expect(plan.problems).toEqual([])
   })
 
   it('pins a purchase credit note (−€100 + VAT −€21)', () => {
     const base = snapshot()
+    const credit = base.purchaseInvoices.find((item) => item.id === '402')!
     const plan = planMoneybirdImport(
       {
         ...base,
@@ -2169,22 +2192,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
         receipts: [],
         financialMutations: [],
         journalDocuments: [],
-        purchaseInvoices: [
-          {
-            ...base.purchaseInvoices[0]!,
-            totalTax: -2100n,
-            totalExcl: -10000n,
-            totalIncl: -12100n,
-            details: [
-              {
-                ...base.purchaseInvoices[0]!.details[0]!,
-                price: -10000n,
-                amount: '1',
-                taxRateId: '22',
-              },
-            ],
-          },
-        ],
+        purchaseInvoices: [credit],
       },
       mapped,
     )
@@ -2197,10 +2205,12 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
       ],
     )
     expectBalanced(plan)
+    expect(plan.problems).toEqual([])
   })
 
   it('pins a sales invoice with a discount line (+€100, −€10, VAT €18.90)', () => {
     const base = snapshot()
+    const discounted = base.salesInvoices.find((item) => item.id === '305')!
     const plan = planMoneybirdImport(
       {
         ...base,
@@ -2208,32 +2218,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
         receipts: [],
         financialMutations: [],
         journalDocuments: [],
-        salesInvoices: [
-          {
-            ...base.salesInvoices[0]!,
-            totalTax: 1890n,
-            totalExcl: 9000n,
-            totalIncl: 10890n,
-            details: [
-              {
-                ...base.salesInvoices[0]!.details[0]!,
-                id: 'main',
-                description: 'Advies',
-                price: 10000n,
-                amount: '1',
-                taxRateId: '21',
-              },
-              {
-                ...base.salesInvoices[0]!.details[0]!,
-                id: 'discount',
-                description: 'Korting',
-                price: -1000n,
-                amount: '1',
-                taxRateId: '21',
-              },
-            ],
-          },
-        ],
+        salesInvoices: [discounted],
       },
       mapped,
     )
@@ -2247,10 +2232,12 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
       ],
     )
     expectBalanced(plan)
+    expect(plan.problems).toEqual([])
   })
 
   it('pins a purchase invoice with a discount line (+€100, −€10, VAT €18.90)', () => {
     const base = snapshot()
+    const discounted = base.purchaseInvoices.find((item) => item.id === '403')!
     const plan = planMoneybirdImport(
       {
         ...base,
@@ -2258,32 +2245,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
         receipts: [],
         financialMutations: [],
         journalDocuments: [],
-        purchaseInvoices: [
-          {
-            ...base.purchaseInvoices[0]!,
-            totalTax: 1890n,
-            totalExcl: 9000n,
-            totalIncl: 10890n,
-            details: [
-              {
-                ...base.purchaseInvoices[0]!.details[0]!,
-                id: 'main',
-                description: 'Huur',
-                price: 10000n,
-                amount: '1',
-                taxRateId: '22',
-              },
-              {
-                ...base.purchaseInvoices[0]!.details[0]!,
-                id: 'discount',
-                description: 'Korting',
-                price: -1000n,
-                amount: '1',
-                taxRateId: '22',
-              },
-            ],
-          },
-        ],
+        purchaseInvoices: [discounted],
       },
       mapped,
     )
@@ -2297,5 +2259,32 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
       ],
     )
     expectBalanced(plan)
+    expect(plan.problems).toEqual([])
+  })
+
+  it('pins a sales invoice with fractional quantity 2.5 (exact amount, half-up VAT)', () => {
+    const base = snapshot()
+    const fractional = base.salesInvoices.find((item) => item.id === '306')!
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        purchaseInvoices: [],
+        receipts: [],
+        financialMutations: [],
+        journalDocuments: [],
+        salesInvoices: [fractional],
+      },
+      mapped,
+    )
+    pinLines(
+      plan.entries.find((item) => item.kind === 'sales_invoice'),
+      [
+        { accountNumber: '1300', debit: 12100n, credit: 0n, taxCode: null, taxAmount: null },
+        { accountNumber: '8000', debit: 0n, credit: 10000n, taxCode: 'H21', taxAmount: 2100n },
+        { accountNumber: '1500', debit: 0n, credit: 2100n, taxCode: null, taxAmount: null },
+      ],
+    )
+    expectBalanced(plan)
+    expect(plan.problems).toEqual([])
   })
 })
