@@ -218,6 +218,19 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'explainOnly',
         ...(moneybirdHref === null ? {} : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
       }
+    case 'self_assessed_vat_unsupported':
+      // Reverse-charge / intra-EU need a self-assessed pair (#95); book by hand.
+      return {
+        type: 'explainOnly',
+        ...(moneybirdHref === null ? {} : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
+      }
+    case 'tax_code_not_in_force':
+      // Mapping is fine; the code's validity window does not cover the document date.
+      return {
+        type: 'explainOnly',
+        href: '/tax-codes',
+        linkLabel: labels.settings,
+      }
     default: {
       const _exhaustive: never = problem.code
       void _exhaustive

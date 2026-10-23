@@ -85,7 +85,8 @@ const SPECS: Readonly<Record<MoneybirdProblemCode, MoneybirdFixSpec>> = {
   },
   tax_code_not_in_force: {
     code: 'tax_code_not_in_force',
-    fixType: 'guided',
+    // Extend validity under Beheer → Btw-codes; no in-app mapper step.
+    fixType: 'explainOnly',
     severity: 'blocking',
     honesty: null,
     changesBooks: false,
