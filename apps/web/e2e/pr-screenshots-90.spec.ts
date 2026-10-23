@@ -162,7 +162,7 @@ test('capture #90 null-rate suggested + confirmed + To review steps', async ({ b
         '[data-slot="finding-card"][data-code="null_percentage_vat_mismatch"]',
       )
       await card.scrollIntoViewIfNeeded()
-      await expect(card).toContainText(/tonen nog btw|still show VAT/i)
+      await expect(card).toContainText(/document toont nog btw|document still shows VAT/i)
       await expect(card).toContainText('LEV-VAT')
       await setTheme(page, theme)
       await shoot(page, `vat-doc-mismatch-${theme}-${label}.png`)

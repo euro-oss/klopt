@@ -52,6 +52,10 @@ export const en: Record<MessageKey, string> = {
     'The wrong direction or rate puts sales VAT on input codes (or the reverse) and corrupts the return.',
   'finding.why.moneybird.null_percentage_vat_mismatch':
     'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
+  'finding.why.moneybird.null_percentage_vat_mismatch_one':
+    'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
+  'finding.why.moneybird.null_percentage_vat_mismatch_other':
+    'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Without a single direction no VAT code can be chosen; the import stays blocked until Moneybird shows one side only.',
   'finding.why.moneybird.account_number_collision':
