@@ -99,7 +99,7 @@ function toVatLines(
     lineNumber: index + 1,
     accountNumber: line.accountNumber,
     accountName: line.accountNumber,
-    description: line.description,
+    description: line.description ?? '',
     taxCode: line.taxCode,
     taxRole: line.taxRole,
     sourceDocumentRef: opts.sourceDocumentRef,

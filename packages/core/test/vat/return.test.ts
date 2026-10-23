@@ -474,7 +474,7 @@ describe('the reconciliation, which blocks', () => {
     expect(result.blocked).toBe(true)
     const finding = result.findings.find((entry) => entry.code === 'moneybird_untagged_vat')
     expect(finding?.severity).toBe('blocking')
-    expect(finding?.detail?.count).toBe('1')
+    expect(finding?.detail?.['count']).toBe('1')
     expect(finding?.messageKey).toBe('vat.moneybird_untagged_vat')
     expect(result.findings.some((entry) => entry.code === 'untagged_control_movement')).toBe(false)
     expect(rubriekAmounts(result, '1a').vatMinorUnits).toBe(0n)
@@ -495,7 +495,7 @@ describe('the reconciliation, which blocks', () => {
       (entry) => entry.code === 'moneybird_self_assessed_unsupported',
     )
     expect(finding?.severity).toBe('blocking')
-    expect(finding?.detail?.count).toBe('1')
+    expect(finding?.detail?.['count']).toBe('1')
   })
 
   it('warns when a rubriek declares VAT its own base and rate do not produce', () => {

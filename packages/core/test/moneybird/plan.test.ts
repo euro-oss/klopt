@@ -2187,7 +2187,7 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     )
     expect(plan.problems.map((item) => item.code)).toContain('self_assessed_vat_unsupported')
     const finding = plan.problems.find((item) => item.code === 'self_assessed_vat_unsupported')
-    expect(finding?.detail.taxCode).toBe('VERL-ONTV')
+    expect(finding?.detail?.['taxCode']).toBe('VERL-ONTV')
     expect(finding?.message).toMatch(/hand|zelf|wait|wacht/i)
   })
 
