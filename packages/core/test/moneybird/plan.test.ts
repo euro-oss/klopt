@@ -718,6 +718,9 @@ describe('VAT mapping direction and rate (#70)', () => {
         taxRates: [empty],
         salesInvoices: base.salesInvoices.map((invoice) => ({
           ...invoice,
+          // Plausible 0% document: totalTax matches null-rate lines at 0% (#90 PM).
+          totalTax: 0n,
+          totalIncl: invoice.totalExcl,
           details: invoice.details.map((detail) => ({ ...detail, taxRateId: '40' })),
         })),
       },
@@ -732,6 +735,7 @@ describe('VAT mapping direction and rate (#70)', () => {
     expect(rate?.candidates.map((row) => row.code)).toEqual(
       expect.arrayContaining(['VERL', 'GEEN', 'NUL', 'ICP', 'ICPD']),
     )
+    expect(rate?.proposedCode).toBeNull()
     expect(plan.problems.map((item) => item.code)).toContain('unmapped_tax_rate')
   })
 
@@ -753,6 +757,8 @@ describe('VAT mapping direction and rate (#70)', () => {
         ],
         purchaseInvoices: base.purchaseInvoices.map((invoice) => ({
           ...invoice,
+          totalTax: 0n,
+          totalIncl: invoice.totalExcl,
           details: invoice.details.map((detail) => ({ ...detail, taxRateId: '41' })),
         })),
       },
@@ -1122,6 +1128,8 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
           {
             ...base.purchaseInvoices[0]!,
             id: 'p-null',
+            totalTax: 0n,
+            totalIncl: base.purchaseInvoices[0]!.totalExcl,
             details: base.purchaseInvoices[0]!.details.map((detail) => ({
               ...detail,
               taxRateId: '90',
@@ -1130,6 +1138,8 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
           {
             ...base.purchaseInvoices[0]!,
             id: 'p-missing',
+            totalTax: 0n,
+            totalIncl: base.purchaseInvoices[0]!.totalExcl,
             details: base.purchaseInvoices[0]!.details.map((detail) => ({
               ...detail,
               taxRateId: '91',
@@ -1138,6 +1148,8 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
           {
             ...base.purchaseInvoices[0]!,
             id: 'p-empty',
+            totalTax: 0n,
+            totalIncl: base.purchaseInvoices[0]!.totalExcl,
             details: base.purchaseInvoices[0]!.details.map((detail) => ({
               ...detail,
               taxRateId: '92',
@@ -1160,6 +1172,85 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     }
     expect(confirmed.problems.map((item) => item.code)).not.toContain('unmapped_tax_rate')
     expect(confirmed.problems.map((item) => item.code)).not.toContain('incompatible_tax_rate')
+    expect(confirmed.problems.map((item) => item.code)).not.toContain(
+      'null_percentage_vat_mismatch',
+    )
+  })
+
+  it('blocks a null-% purchase whose document still carries VAT and refuses VGEEN', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          {
+            id: '95',
+            name: 'Geen btw',
+            percentage: Number.NaN,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        purchaseInvoices: base.purchaseInvoices.map((invoice) => ({
+          ...invoice,
+          // Keep Moneybird's 21 totalTax while the rate has no percentage.
+          details: invoice.details.map((detail) => ({ ...detail, taxRateId: '95' })),
+        })),
+      },
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '95': 'VGEEN' },
+      }),
+    )
+    expect(plan.problems.map((item) => item.code)).toContain('null_percentage_vat_mismatch')
+    expect(plan.problems.map((item) => item.code)).toContain('incompatible_tax_rate')
+    const mismatch = plan.problems.find((item) => item.code === 'null_percentage_vat_mismatch')
+    expect(mismatch?.detail['references']).toContain('LEV-88')
+    expect(plan.taxRates.find((row) => row.moneybirdId === '95')).toMatchObject({
+      mapped: false,
+      mappedCode: null,
+      candidates: [],
+      proposedCode: null,
+    })
+  })
+
+  it('blocks a null-% sales document whose totalTax does not match 0% lines', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          {
+            id: '96',
+            name: 'Geen btw verkoop',
+            percentage: Number.NaN,
+            taxRateType: 'sales_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        salesInvoices: base.salesInvoices.map((invoice) => ({
+          ...invoice,
+          details: invoice.details.map((detail) => ({ ...detail, taxRateId: '96' })),
+        })),
+      },
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '96': 'GEEN' },
+      }),
+    )
+    expect(plan.problems.map((item) => item.code)).toContain('null_percentage_vat_mismatch')
+    expect(plan.problems.map((item) => item.code)).toContain('incompatible_tax_rate')
+    const mismatch = plan.problems.find((item) => item.code === 'null_percentage_vat_mismatch')
+    expect(mismatch?.detail['references']).toContain('2026-001')
+    expect(plan.taxRates.find((row) => row.moneybirdId === '96')).toMatchObject({
+      mapped: false,
+      candidates: [],
+      proposedCode: null,
+    })
   })
 
   it('does not suggest VGEEN for a null-percentage reverse-charge purchase name', () => {

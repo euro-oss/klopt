@@ -203,6 +203,214 @@ describe('the dry run', () => {
     expect(preview.reconciliation[0]).toMatchObject({ source: 'read', balanced: true })
   })
 
+  it('offers VGEEN for a null-% purchase and 0% sales codes without preselecting (#90)', async () => {
+    const { token, entityId } = await newEntity()
+    // seedSalesConfiguration is a short chart; add the 0% codes #90 maps onto.
+    await database.execute(
+      `insert into klopt.tax_codes (id, entity_id, code, description, rate_basis_points, direction, ubl_category, scope, reverse_charge, deductibility, valid_from)
+       values
+         (gen_random_uuid(), '${entityId}', 'VGEEN', 'Inkoop zonder btw', 0, 'input', 'O', 'out_of_scope', 'none', 'none', '2020-01-01'),
+         (gen_random_uuid(), '${entityId}', 'GEEN', 'Vrijgesteld van btw', 0, 'output', 'E', 'exempt', 'none', 'full', '2020-01-01'),
+         (gen_random_uuid(), '${entityId}', 'NUL', 'BTW 0% (export)', 0, 'output', 'G', 'export', 'none', 'full', '2020-01-01'),
+         (gen_random_uuid(), '${entityId}', 'ICPD', 'ICP diensten 0%', 0, 'output', 'K', 'intra_community_supply', 'none', 'full', '2020-01-01')
+       on conflict do nothing`,
+    )
+    const moneybird = fakeMoneybird()
+    moneybird.taxRates = [
+      {
+        id: 90,
+        name: 'Geen btw',
+        percentage: null,
+        tax_rate_type: 'purchase_invoice',
+        country: 'NL',
+        active: true,
+      },
+      {
+        id: 91,
+        name: 'Geen btw verkoop',
+        percentage: null,
+        tax_rate_type: 'sales_invoice',
+        country: 'NL',
+        active: true,
+      },
+    ]
+    moneybird.purchaseInvoices = [
+      {
+        id: 401,
+        contact_id: 200,
+        reference: 'LEV-NULL',
+        date: '2026-03-05',
+        due_date: '2026-04-05',
+        currency: 'EUR',
+        state: 'open',
+        total_price_excl_tax: '100.00',
+        total_price_incl_tax: '100.00',
+        total_tax: '0.00',
+        details: [
+          {
+            id: 4011,
+            description: 'Huur',
+            amount: '1',
+            price: '100.00',
+            tax_rate_id: 90,
+            ledger_account_id: 6,
+          },
+        ],
+        attachments: [],
+      },
+    ]
+    moneybird.salesInvoices = [
+      {
+        id: 301,
+        contact_id: 100,
+        invoice_id: '2026-NULL',
+        state: 'open',
+        invoice_date: '2026-03-01',
+        due_date: '2026-03-31',
+        currency: 'EUR',
+        prices_are_incl_tax: false,
+        total_price_excl_tax: '100.00',
+        total_price_incl_tax: '100.00',
+        total_tax: '0.00',
+        details: [
+          {
+            id: 3011,
+            description: 'Advies',
+            amount: '1',
+            price: '100.00',
+            tax_rate_id: 91,
+            ledger_account_id: 7,
+          },
+        ],
+        attachments: [],
+      },
+    ]
+    await connect(token)
+    await choose(token)
+    const preview = (await handlePreviewMoneybirdImport(await context(token))).body
+    const purchase = (
+      preview.taxRates as {
+        moneybirdId: string
+        proposedCode: string | null
+        candidates: { code: string; group: string }[]
+      }[]
+    ).find((row) => row.moneybirdId === '90')
+    const sales = (
+      preview.taxRates as {
+        moneybirdId: string
+        proposedCode: string | null
+        candidates: { code: string; group: string }[]
+      }[]
+    ).find((row) => row.moneybirdId === '91')
+    expect(purchase).toMatchObject({
+      proposedCode: null,
+      candidates: [{ code: 'VGEEN', group: 'other' }],
+    })
+    expect(sales?.proposedCode).toBeNull()
+    expect(sales?.candidates.map((row) => row.code)).toEqual(
+      expect.arrayContaining(['VERL', 'GEEN', 'NUL', 'ICP', 'ICPD']),
+    )
+    expect(sales?.candidates.some((row) => row.code === 'H21')).toBe(false)
+    expect(preview.problems.map((problem: { code: string }) => problem.code)).toContain(
+      'unmapped_tax_rate',
+    )
+
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse({
+        accountMappings: MAPPINGS.accountMappings,
+        taxMappings: { '90': 'VGEEN', '91': 'GEEN' },
+      }),
+    )
+    const cleared = (await handlePreviewMoneybirdImport(await context(token))).body
+    expect(
+      cleared.problems.filter((problem: { code: string }) => problem.code === 'unmapped_tax_rate'),
+    ).toEqual([])
+    expect(
+      (cleared.taxRates as { moneybirdId: string; mappedCode: string | null }[]).find(
+        (row) => row.moneybirdId === '90',
+      )?.mappedCode,
+    ).toBe('VGEEN')
+  })
+
+  it('blocks a null-% rate when the document still carries VAT (#90)', async () => {
+    const { token, entityId } = await newEntity()
+    await database.execute(
+      `insert into klopt.tax_codes (id, entity_id, code, description, rate_basis_points, direction, ubl_category, scope, reverse_charge, deductibility, valid_from)
+       values
+         (gen_random_uuid(), '${entityId}', 'VGEEN', 'Inkoop zonder btw', 0, 'input', 'O', 'out_of_scope', 'none', 'none', '2020-01-01')
+       on conflict do nothing`,
+    )
+    const moneybird = fakeMoneybird()
+    moneybird.taxRates = [
+      {
+        id: 90,
+        name: 'Geen btw',
+        percentage: null,
+        tax_rate_type: 'purchase_invoice',
+        country: 'NL',
+        active: true,
+      },
+    ]
+    moneybird.purchaseInvoices = [
+      {
+        id: 401,
+        contact_id: 200,
+        reference: 'LEV-VAT',
+        date: '2026-03-05',
+        due_date: '2026-04-05',
+        currency: 'EUR',
+        state: 'open',
+        total_price_excl_tax: '100.00',
+        total_price_incl_tax: '121.00',
+        total_tax: '21.00',
+        details: [
+          {
+            id: 4011,
+            description: 'Huur',
+            amount: '1',
+            price: '100.00',
+            tax_rate_id: 90,
+            ledger_account_id: 6,
+          },
+        ],
+        attachments: [],
+      },
+    ]
+    moneybird.salesInvoices = []
+    moneybird.asked.length = 0
+    await connect(token)
+    await choose(token)
+    const preview = (await handlePreviewMoneybirdImport(await context(token))).body
+    expect(preview.problems.map((problem: { code: string }) => problem.code)).toContain(
+      'null_percentage_vat_mismatch',
+    )
+    const rate = (
+      preview.taxRates as {
+        moneybirdId: string
+        candidates: unknown[]
+        proposedCode: string | null
+      }[]
+    ).find((row) => row.moneybirdId === '90')
+    expect(rate?.candidates).toEqual([])
+    expect(rate?.proposedCode).toBeNull()
+
+    let caught: unknown
+    try {
+      await handleSaveMoneybirdMappings(
+        await context(token, crypto.randomUUID()),
+        saveMoneybirdMappingsBody.parse({
+          accountMappings: MAPPINGS.accountMappings,
+          taxMappings: { '90': 'VGEEN' },
+        }),
+      )
+    } catch (error: unknown) {
+      caught = error
+    }
+    expect(caught).toBeInstanceOf(ApiError)
+    expect((caught as ApiError).code).toBe('validation_failed')
+  })
+
   it('refuses a foreign-currency administration', async () => {
     const { token } = await newEntity()
     const moneybird = fakeMoneybird()

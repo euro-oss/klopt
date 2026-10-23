@@ -212,6 +212,12 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'explainOnly',
         ...(moneybirdHref === null ? {} : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
       }
+    case 'null_percentage_vat_mismatch':
+      // Documents still carry VAT on a null-% rate — fix in Moneybird first (#90 PM).
+      return {
+        type: 'explainOnly',
+        ...(moneybirdHref === null ? {} : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
+      }
     default: {
       const _exhaustive: never = problem.code
       void _exhaustive

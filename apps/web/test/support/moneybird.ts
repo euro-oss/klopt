@@ -10,6 +10,10 @@
 export interface FakeMoneybird {
   readonly asked: string[]
   administrations: readonly Record<string, unknown>[]
+  /** Override tax rates (defaults to the 21% sales + purchase pair). */
+  taxRates: readonly Record<string, unknown>[]
+  salesInvoices: readonly Record<string, unknown>[]
+  purchaseInvoices: readonly Record<string, unknown>[]
   forbidden: Set<string>
   otherCurrency: boolean
   malformed: boolean
@@ -226,6 +230,9 @@ export function fakeMoneybird(): FakeMoneybird {
     malformed: false,
     fiscalYearStartMonth: null,
     omitPeriodStart: false,
+    taxRates: TAX,
+    salesInvoices: SALES,
+    purchaseInvoices: PURCHASES,
     administrations: [
       {
         id: 123456,
@@ -297,10 +304,10 @@ export function fakeMoneybird(): FakeMoneybird {
 
     return Promise.resolve(
       serve('ledger_accounts.json', LEDGER) ??
-        serve('tax_rates.json', TAX) ??
+        serve('tax_rates.json', state.taxRates) ??
         serve('contacts.json', CONTACTS) ??
-        serve('sales_invoices.json', SALES) ??
-        serve('documents/purchase_invoices.json', PURCHASES) ??
+        serve('sales_invoices.json', state.salesInvoices) ??
+        serve('documents/purchase_invoices.json', state.purchaseInvoices) ??
         serve('documents/receipts.json', []) ??
         serve('financial_accounts.json', FINANCIAL_ACCOUNTS) ??
         serve('financial_mutations.json', MUTATIONS) ??

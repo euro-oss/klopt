@@ -214,7 +214,7 @@ test('capture import findings PNGs (1440/390 × light/dark + sheets + states)', 
     const sheet = page.getByRole('dialog')
     await expect(sheet).toBeVisible()
     await expect(sheet.getByRole('radio')).toContainText(/Inkoop zonder btw/)
-    await expect(sheet.getByText(/Moneybird geeft geen percentage voor “Geen btw”/)).toBeVisible()
+    await expect(sheet.getByText(/Moneybird gaf geen percentage mee voor ‘Geen btw’/)).toBeVisible()
     await setTheme(page, 'light')
     await shoot(page, 'fix-tax-vat-empty-light-desktop-1440.png')
     await context.close()

@@ -416,6 +416,55 @@ describe('matchVatCodes', () => {
         reportReference: null,
       }),
     ).toBe(true)
+    expect(isSpecialAcquisitionPurchaseRate({ name: 'ICV 21%', reportReference: null })).toBe(true)
+    expect(
+      isSpecialAcquisitionPurchaseRate({ name: 'Invoer art. 23', reportReference: null }),
+    ).toBe(true)
+    expect(isSpecialAcquisitionPurchaseRate({ name: 'Invoer art 23', reportReference: null })).toBe(
+      true,
+    )
+    expect(isSpecialAcquisitionPurchaseRate({ name: 'EU-levering', reportReference: null })).toBe(
+      true,
+    )
+    expect(isSpecialAcquisitionPurchaseRate({ name: 'EU-verwerving', reportReference: null })).toBe(
+      true,
+    )
+    expect(
+      isSpecialAcquisitionPurchaseRate({ name: 'Levering binnen EU', reportReference: null }),
+    ).toBe(true)
+    // Bare "eu" / "buiten EU" must not drop VGEEN for domestic out-of-scope (#90).
+    expect(
+      isSpecialAcquisitionPurchaseRate({ name: 'Geen btw (buiten EU)', reportReference: null }),
+    ).toBe(false)
+  })
+
+  it('still suggests VGEEN for Geen btw (buiten EU) purchase rates', () => {
+    const chart = [
+      {
+        code: 'VGEEN',
+        rateBasisPoints: 0,
+        direction: 'input' as const,
+        scope: 'out_of_scope',
+        reverseCharge: 'none',
+      },
+      {
+        code: 'VH21',
+        rateBasisPoints: 2100,
+        direction: 'input' as const,
+        scope: 'domestic',
+        reverseCharge: 'none',
+      },
+    ]
+    const ranked = rankVatCodes(chart, {
+      percentage: 0,
+      taxRateType: 'purchase_invoice',
+      excludeOutOfScopeInput: isSpecialAcquisitionPurchaseRate({
+        name: 'Geen btw (buiten EU)',
+        reportReference: null,
+      }),
+    })
+    expect(ranked.candidates.map((row) => row.rule.code)).toContain('VGEEN')
+    expect(ranked.suggestedCode).toBeNull()
   })
 })
 

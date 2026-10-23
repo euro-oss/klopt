@@ -21,12 +21,14 @@ the ADR is where the reasoning is.
 ### Moneybird: map tax rates without a percentage (#90)
 
 A Moneybird tax rate with a null / missing percentage (e.g. “Geen btw”, shown
-as —%) can be mapped as 0%: the Resolve · VAT sheet offers the side-aware 0%
-Klopt codes (VGEEN for purchases, never auto-confirmed). Reverse-charge / EU
-rate names still exclude VGEEN. Dead-end copy is gone; unsupported rates keep
-“Zelf kiezen in de tabel”. Guided To review cards for VAT / category now render
-their steps (the empty Steps block was guided fixes with no `steps` array while
-the hint still said “Volg de stappen hierboven”). No migration.
+as —) can be mapped as 0%: the Resolve · VAT sheet offers the side-aware 0%
+Klopt codes (VGEEN for purchases, never auto-confirmed) with a muted “Voorstel”
+marker. Reverse-charge / intra-community names (ICP, ICV, art. 23, EU-levering,
+binnen EU, …) still exclude VGEEN; a bare “eu” / “buiten EU” does not.
+Documents whose `totalTax` still carries VAT on a null-% rate raise
+`null_percentage_vat_mismatch` and refuse a 0% mapping. Empty candidates stay
+an honest dead-end (no “Zelf kiezen in de tabel”). Guided To review steps say
+“Opslaan” to match the sheet button. No migration.
 
 ### Fixed
 

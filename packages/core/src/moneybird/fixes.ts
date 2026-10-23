@@ -69,6 +69,13 @@ const SPECS: Readonly<Record<MoneybirdProblemCode, MoneybirdFixSpec>> = {
     honesty: null,
     changesBooks: false,
   },
+  null_percentage_vat_mismatch: {
+    code: 'null_percentage_vat_mismatch',
+    fixType: 'explainOnly',
+    severity: 'blocking',
+    honesty: null,
+    changesBooks: false,
+  },
   trial_balance_account_missing: {
     code: 'trial_balance_account_missing',
     fixType: 'guided',
