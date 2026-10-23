@@ -1507,7 +1507,9 @@ export function planMoneybirdImport(
     }
 
     for (const taxCode of [...selfAssessedCodes].sort()) {
-      problems.push(
+      // Warning only: the document still imports; filing is blocked on the
+      // return until #95 books the self-assessed pair (PM #96).
+      warnings.push(
         problem('self_assessed_vat_unsupported', `${document.kind}s.${document.id}`, {
           reference: document.reference,
           taxCode,

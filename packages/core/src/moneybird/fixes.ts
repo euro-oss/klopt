@@ -78,15 +78,16 @@ const SPECS: Readonly<Record<MoneybirdProblemCode, MoneybirdFixSpec>> = {
   },
   self_assessed_vat_unsupported: {
     code: 'self_assessed_vat_unsupported',
+    // Documents import; filing is blocked until #95. Honest dead end on the card.
     fixType: 'explainOnly',
-    severity: 'blocking',
+    severity: 'warning',
     honesty: null,
     changesBooks: false,
   },
   tax_code_not_in_force: {
     code: 'tax_code_not_in_force',
-    // Extend validity under Beheer → Btw-codes; no in-app mapper step.
-    fixType: 'explainOnly',
+    // No valid_from edit in #88; #99 tracks that. Re-read after fixing Moneybird.
+    fixType: 'guided',
     severity: 'blocking',
     honesty: null,
     changesBooks: false,

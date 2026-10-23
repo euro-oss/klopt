@@ -53,6 +53,13 @@ const RULES: readonly TaxCodeRule[] = [
     supplyKind: 'goods',
     ublCategory: 'K',
   }),
+  rule('VERL', {
+    rateBasisPoints: 0,
+    baseRubriek: '1e',
+    vatRubriek: null,
+    reverseCharge: 'domestic',
+    ublCategory: 'AE',
+  }),
   rule('VH21', { direction: 'input', baseRubriek: null, vatRubriek: '5b' }),
   rule('VL6', {
     direction: 'input',
@@ -426,8 +433,9 @@ describe('the reconciliation, which blocks', () => {
     expect(result.blocked).toBe(true)
     const finding = result.findings.find((entry) => entry.code === 'no_rule_in_force')
     expect(finding?.severity).toBe('blocking')
-    // Way forward: extend validity under Beheer → Btw-codes, or use a covered year.
-    expect(finding?.message).toMatch(/Btw-codes|valid from|validity/i)
+    // Honest dead end: start date cannot be changed here (#96 / #99).
+    expect(finding?.message).toMatch(/no fix for this yet|start date cannot be changed/i)
+    expect(finding?.message).not.toMatch(/valid from|geldig vanaf|year whose codes|jaar waarvan/i)
     expect(result.findings.some((entry) => entry.code === 'unknown_tax_code')).toBe(false)
   })
 
@@ -475,12 +483,13 @@ describe('the reconciliation, which blocks', () => {
     const finding = result.findings.find((entry) => entry.code === 'moneybird_untagged_vat')
     expect(finding?.severity).toBe('blocking')
     expect(finding?.detail?.['count']).toBe('1')
-    expect(finding?.messageKey).toBe('vat.moneybird_untagged_vat')
+    expect(finding?.messageKey).toBe('vat.moneybird_untagged_vat_one')
+    expect(finding?.message).toMatch(/cannot fix this yet|can’t file this period through Klopt|tax adviser/i)
     expect(result.findings.some((entry) => entry.code === 'untagged_control_movement')).toBe(false)
     expect(rubriekAmounts(result, '1a').vatMinorUnits).toBe(0n)
   })
 
-  it('hard-blocks Moneybird reverse-charge / intra-EU purchase codes until #95', () => {
+  it('hard-blocks Moneybird reverse-charge / intra-EU purchase codes until supported', () => {
     const result = build([
       line('4000', 100_000n, {
         taxCode: 'ICV21',
@@ -496,6 +505,27 @@ describe('the reconciliation, which blocks', () => {
     )
     expect(finding?.severity).toBe('blocking')
     expect(finding?.detail?.['count']).toBe('1')
+    expect(finding?.messageKey).toBe('vat.moneybird_self_assessed_unsupported_one')
+    expect(finding?.message).toMatch(/cannot fix this yet|can’t file this period through Klopt|tax adviser/i)
+    expect(finding?.message).toMatch(/Wait until Klopt supports/i)
+    expect(finding?.message).not.toMatch(/Book those purchases by hand|book by hand/i)
+  })
+
+  it('does not hard-block Moneybird domestic reverse-charge sales (VERL → 1e)', () => {
+    const result = build([
+      line('1300', 100_000n, { sourceDocumentRef: 'moneybird:1:sales_invoice:501' }),
+      line('8000', -100_000n, {
+        taxCode: 'VERL',
+        taxRole: 'base',
+        sourceDocumentRef: 'moneybird:1:sales_invoice:501',
+      }),
+    ])
+
+    expect(result.blocked).toBe(false)
+    expect(
+      result.findings.some((entry) => entry.code === 'moneybird_self_assessed_unsupported'),
+    ).toBe(false)
+    expect(rubriekAmounts(result, '1e').baseMinorUnits).toBe(100_000n)
   })
 
   it('warns when a rubriek declares VAT its own base and rate do not produce', () => {

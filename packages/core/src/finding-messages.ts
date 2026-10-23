@@ -100,7 +100,7 @@ export const FINDING_MESSAGES = {
   'vat.control_account_difference':
     'Account {accountNumber} {accountName} moved {taggedMovementMinorUnits} on tax-coded lines but the return declares {declaredMinorUnits} (minor units). The difference is the VAT that did not reach a rubriek — the findings above name every line of it.',
   'vat.no_rule_in_force':
-    'A tax code exists but has no rule valid on the booking date, so those lines cannot be assigned to a rubriek. Under Beheer → Btw-codes, extend the code’s validity (valid from) to cover the booking date, or book the documents in a year whose codes already cover that date.',
+    'A tax code exists but has no rule valid on the booking date, so those lines cannot be assigned to a rubriek. Klopt has no fix for this yet — a code’s start date cannot be changed here. Check the booking date and the rate in the source, or ask someone who can manage VAT codes.',
   'vat.rate_mismatch':
     'Rubriek {id} declares VAT that its own base and rate do not produce. Expected roughly {expected}, found {vatMinorUnits} (minor units). A manual correction explains this; a miscoded line also does.',
   'vat.unknown_tax_code':
@@ -108,9 +108,21 @@ export const FINDING_MESSAGES = {
   'vat.untagged_control_movement':
     'A VAT control account moved without a tax code. A payment to or refund from the Belastingdienst looks exactly like this, and so does VAT booked by hand.',
   'vat.moneybird_untagged_vat':
-    'VAT from imported Moneybird documents is missing. Klopt currently leaves the VAT of {count} Moneybird documents out of boxes 1a and 5b, so the VAT in those boxes is too low. You can’t file this period until this is fixed.',
+    'VAT from imported Moneybird documents is missing. Klopt cannot fix this yet: it leaves the VAT of {count} Moneybird documents out of boxes 1a and 5b, so those boxes are too low. You can’t file this period through Klopt. You can file it yourself or with a tax adviser using corrected figures.',
+  'vat.moneybird_untagged_vat_one':
+    'VAT from imported Moneybird documents is missing. Klopt cannot fix this yet: it leaves the VAT of {count} Moneybird document out of boxes 1a and 5b, so those boxes are too low. You can’t file this period through Klopt. You can file it yourself or with a tax adviser using corrected figures.',
+  'vat.moneybird_untagged_vat_other':
+    'VAT from imported Moneybird documents is missing. Klopt cannot fix this yet: it leaves the VAT of {count} Moneybird documents out of boxes 1a and 5b, so those boxes are too low. You can’t file this period through Klopt. You can file it yourself or with a tax adviser using corrected figures.',
   'vat.moneybird_self_assessed_unsupported':
-    'Klopt can’t import reverse-charge or intra-EU purchases from Moneybird yet ({count} documents). Those need self-assessed VAT in boxes 2a/4a/4b and 5b, which the import does not book. Book those purchases by hand in Klopt, or wait for the update that adds this — you can’t file this period until then.',
+    'Klopt cannot fix this yet: {count} imported Moneybird reverse-charge or intra-EU purchases need self-assessed VAT in boxes 2a/4a/4b and 5b, which the import does not book. You can’t file this period through Klopt. You can file it yourself or with a tax adviser using corrected figures. Wait until Klopt supports this.',
+  'vat.moneybird_self_assessed_unsupported_one':
+    'Klopt cannot fix this yet: {count} imported Moneybird reverse-charge or intra-EU purchase needs self-assessed VAT in boxes 2a/4a/4b and 5b, which the import does not book. You can’t file this period through Klopt. You can file it yourself or with a tax adviser using corrected figures. Wait until Klopt supports this.',
+  'vat.moneybird_self_assessed_unsupported_other':
+    'Klopt cannot fix this yet: {count} imported Moneybird reverse-charge or intra-EU purchases need self-assessed VAT in boxes 2a/4a/4b and 5b, which the import does not book. You can’t file this period through Klopt. You can file it yourself or with a tax adviser using corrected figures. Wait until Klopt supports this.',
+  'vat.moneybird_untagged_vat_export':
+    'Note: the VAT totals in this export (1a, 5b) leave out the VAT of imported Moneybird documents.',
+  'vat.moneybird_self_assessed_unsupported_export':
+    'Note: this export leaves out self-assessed VAT (2a/4a/4b and 5b) from imported Moneybird reverse-charge or intra-EU documents. Klopt cannot import those yet.',
   'xaf.accounts_without_rgs': '{unmapped} of {total} accounts have no RGS lead code: {accounts}',
   'xaf.date_outside_fiscal_year': '{trDt} is outside the fiscal year in the header.',
   'xaf.duplicate_account': 'Duplicate account {accID}.',
@@ -153,9 +165,9 @@ export const FINDING_MESSAGES = {
   'moneybird.null_percentage_vat_mismatch_other':
     'Tax rate {name} has no percentage, but {count} documents still show VAT ({references}). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
   'moneybird.self_assessed_vat_unsupported':
-    'Klopt can’t import reverse-charge or intra-EU purchases from Moneybird yet. {reference} is mapped to {taxCode}, which needs self-assessed VAT in boxes 2a/4a/4b and 5b. Book that purchase by hand in Klopt, or wait for the update — you can’t import it until then.',
+    'Klopt cannot book self-assessed VAT for reverse-charge or intra-EU purchases yet. {reference} will import, but filing through Klopt stays blocked until Klopt supports this.',
   'moneybird.tax_code_not_in_force':
-    '{reference} is dated {bookingDate}, but tax code {taxCode} is not valid on that date. Under Beheer → Btw-codes, extend the code’s validity (valid from) to cover that date, or import into a year whose codes already cover it.',
+    '{reference} is dated {bookingDate}, but that VAT code does not apply yet on that date in Klopt. There is no fix inside Klopt yet. Check the date and the rate in Moneybird.',
   'moneybird.account_number_collision': 'Moneybird returned ledger number {number} twice ({name}).',
   'moneybird.contact_number_collision':
     'Moneybird returned contact number {number} twice ({name}).',

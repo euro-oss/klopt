@@ -57,9 +57,12 @@ export const en: Record<MessageKey, string> = {
   'finding.why.moneybird.null_percentage_vat_mismatch_other':
     'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
   'finding.why.moneybird.self_assessed_vat_unsupported':
-    'Without the self-assessed VAT, boxes 2a/4a/4b and 5b are missing; filing would under-declare VAT.',
+    'Without the self-assessed VAT, boxes 2a/4a/4b and 5b are missing; filing through Klopt would under-declare VAT.',
   'finding.why.moneybird.tax_code_not_in_force':
-    'Without a rule valid on the booking date the return cannot place those lines.',
+    'Without a rule valid on the booking date the return cannot place those lines. A code’s start date cannot be changed in Klopt yet.',
+  'finding.moneybird.self_assessed_vat_unsupported_secondary':
+    'Mapped to {taxCode} · self-assessed VAT (2a/4a/4b and 5b)',
+  'finding.moneybird.tax_code_not_in_force_secondary': 'VAT code {taxCode}',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Without a single direction no VAT code can be chosen; the import stays blocked until Moneybird shows one side only.',
   'finding.why.moneybird.account_number_collision':
@@ -704,6 +707,9 @@ export const en: Record<MessageKey, string> = {
   'auditFile.year': 'Book year',
   'auditFile.pickYear': 'Pick a book year',
   'auditFile.export': 'Download the audit file',
+  'auditFile.moneybirdGapTitle': 'Moneybird VAT missing from this export',
+  'auditFile.moneybirdGapBody':
+    'The VAT totals in this file leave out VAT from imported Moneybird documents. You can still download the file.',
   'auditFile.importTitle': 'Import',
   'auditFile.importBody':
     'Pick a file and see what it would do first. Nothing is posted until you confirm it.',
@@ -1287,6 +1293,7 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.deductible': '5b Input VAT',
   'vatReturn.refund': '5c To reclaim',
   'vatReturn.toPay': '5c To pay',
+  'vatReturn.provisional': 'provisional',
   'vatReturn.filed': 'Filed',
   'vatReturn.filedOn': ' on {date}',
   'vatReturn.asSupplement': ' as supplement {number}',
@@ -1329,6 +1336,7 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.declared': 'Declared',
   'vatReturn.difference': 'Difference',
   'vatReturn.untagged': 'Without a code',
+  'vatReturn.doesNotCount': 'does not count',
   'vatReturn.noMovements': 'No movements on a VAT account in this period.',
   'vatReturn.reconciles': 'reconciles',
   'vatReturn.findings': 'Findings ({blocking} blocking, {warnings} for review)',
@@ -1337,7 +1345,7 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.fileSupplement': 'File a supplementary return',
   'vatReturn.fileReturn': 'File the return',
   'vatReturn.blocked':
-    'This return cannot be filed while the reconciliation does not hold. Resolve the blocking findings above.',
+    'This return cannot be filed through Klopt. Resolve the blocking findings above, or file it yourself or with a tax adviser using corrected figures.',
   'vatReturn.noIdentity':
     'A return is identified by the turnover-tax number, and this administration does not have one yet. Fill it in under',
   'vatReturn.taxonomy':

@@ -313,7 +313,18 @@ export async function handleExportAuditFile(
     readonly fromPeriod: number | null
     readonly toPeriod: number | null
   },
-) {
+): Promise<{
+  readonly xml: string
+  readonly filename: string
+  readonly warnings: readonly {
+    readonly code: string
+    readonly path: string | null
+    readonly message: string
+    readonly messageKey: string
+    readonly detail?: Readonly<Record<string, string>>
+  }[]
+  readonly lineCount: number
+}> {
   requirePermission(context, 'ledger:export')
 
   const entity = await withReporting(context.database, (repository) =>
@@ -389,11 +400,11 @@ export async function handleExportAuditFile(
         messageKey: problem.messageKey,
         ...(problem.detail === undefined ? {} : { detail: problem.detail }),
       })),
-      ...moneybirdWarnings.map((message) => ({
+      ...moneybirdWarnings.map((warning) => ({
         code: 'moneybird_vat_export',
         path: 'vat',
-        message,
-        messageKey: 'vat.moneybird_untagged_vat',
+        message: warning.message,
+        messageKey: warning.messageKey,
       })),
     ],
     lineCount: validation.lineCount,

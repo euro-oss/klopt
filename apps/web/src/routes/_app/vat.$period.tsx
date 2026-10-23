@@ -221,7 +221,13 @@ function VatReturnScreen() {
         <Stat label={t('vatReturn.owed')} value={<Money amount={data.owed} />} />
         <Stat label={t('vatReturn.deductible')} value={<Money amount={data.deductible} />} />
         <Stat
-          label={BigInt(data.payable) < 0n ? t('vatReturn.refund') : t('vatReturn.toPay')}
+          label={
+            BigInt(data.payable) < 0n
+              ? t('vatReturn.refund')
+              : data.blocked
+                ? `${t('vatReturn.toPay')} (${t('vatReturn.provisional')})`
+                : t('vatReturn.toPay')
+          }
           value={<Money amount={data.payable} />}
           tone={data.blocked ? 'warn' : 'neutral'}
         />
@@ -521,38 +527,41 @@ function VatReturnScreen() {
               </td>
             </tr>
           )}
-          {data.reconciliation.map((account) => (
-            <tr key={account.accountNumber} className="border-border/50 border-t">
-              <th scope="row" className="py-1.5 pr-2 text-left font-normal">
-                <span className="tabular">{account.accountNumber}</span> {account.accountName}
-              </th>
-              <td className="py-1.5 pr-2 text-right">
-                <Money amount={account.taggedMovement} />
-              </td>
-              <td className="py-1.5 pr-2 text-right">
-                <Money amount={account.declared} />
-              </td>
-              <td className="py-1.5 pr-2 text-right">
-                {account.difference === '0' &&
-                !blocking.some(
-                  (finding) =>
-                    finding.code === 'moneybird_untagged_vat' ||
-                    finding.code === 'moneybird_self_assessed_unsupported',
-                ) ? (
-                  <span className="text-muted-foreground">{t('vatReturn.reconciles')}</span>
-                ) : account.difference === '0' ? (
-                  <span className="text-unreconciled">{t('vatReturn.untagged')}</span>
-                ) : (
-                  <span className="text-destructive">
-                    <Money amount={account.difference} />
-                  </span>
-                )}
-              </td>
-              <td className="py-1.5 text-right">
-                <Money amount={account.untaggedMovement} />
-              </td>
-            </tr>
-          ))}
+          {data.reconciliation.map((account) => {
+            const moneybirdAffected = blocking.some(
+              (finding) =>
+                (finding.code === 'moneybird_untagged_vat' ||
+                  finding.code === 'moneybird_self_assessed_unsupported') &&
+                finding.lines.some((line) => line.accountNumber === account.accountNumber),
+            )
+            return (
+              <tr key={account.accountNumber} className="border-border/50 border-t">
+                <th scope="row" className="py-1.5 pr-2 text-left font-normal">
+                  <span className="tabular">{account.accountNumber}</span> {account.accountName}
+                </th>
+                <td className="py-1.5 pr-2 text-right">
+                  <Money amount={account.taggedMovement} />
+                </td>
+                <td className="py-1.5 pr-2 text-right">
+                  <Money amount={account.declared} />
+                </td>
+                <td className="py-1.5 pr-2 text-right">
+                  {account.difference === '0' && moneybirdAffected ? (
+                    <span className="text-destructive">{t('vatReturn.doesNotCount')}</span>
+                  ) : account.difference === '0' ? (
+                    <span className="text-muted-foreground">{t('vatReturn.reconciles')}</span>
+                  ) : (
+                    <span className="text-destructive">
+                      <Money amount={account.difference} />
+                    </span>
+                  )}
+                </td>
+                <td className="py-1.5 text-right">
+                  <Money amount={account.untaggedMovement} />
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
 

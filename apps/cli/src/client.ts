@@ -1,4 +1,8 @@
 import { randomUUID } from 'node:crypto'
+import {
+  KLOPT_WARNING_MESSAGES_HEADER,
+  decodeWarningMessagesHeader,
+} from '@klopt/core'
 
 /**
  * The one way this CLI reaches Klopt: an HTTP call to the public API.
@@ -36,7 +40,7 @@ export type Fetch = typeof globalThis.fetch
 
 export interface TextResponse {
   readonly text: string
-  /** From `x-klopt-warning-messages` when the export carries soft warnings. */
+  /** Soft warnings from the export (decoded from the ASCII-safe header). */
   readonly warningMessages: readonly string[]
 }
 
@@ -109,18 +113,8 @@ export function createClient(credentials: Credentials, doFetch: Fetch = globalTh
     async getTextWithMeta(path, query) {
       const response = await doFetch(url(path, query), { headers: headers() })
       if (!response.ok) await refuse(response)
-      let warningMessages: string[] = []
-      const raw = response.headers.get('x-klopt-warning-messages')
-      if (raw !== null && raw !== '') {
-        try {
-          const parsed: unknown = JSON.parse(raw)
-          if (Array.isArray(parsed)) {
-            warningMessages = parsed.filter((entry): entry is string => typeof entry === 'string')
-          }
-        } catch {
-          // Header present but not JSON — ignore rather than fail the export.
-        }
-      }
+      const raw = response.headers.get(KLOPT_WARNING_MESSAGES_HEADER) ?? ''
+      const warningMessages = [...decodeWarningMessagesHeader(raw)]
       return { text: await response.text(), warningMessages }
     },
 

@@ -219,17 +219,18 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         ...(moneybirdHref === null ? {} : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
       }
     case 'self_assessed_vat_unsupported':
-      // Reverse-charge / intra-EU need a self-assessed pair (#95); book by hand.
+      // Imports anyway; filing blocked until #95. Moneybird link is look-only.
       return {
         type: 'explainOnly',
         ...(moneybirdHref === null ? {} : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
       }
     case 'tax_code_not_in_force':
-      // Mapping is fine; the code's validity window does not cover the document date.
+      // No valid_from control yet (#99). Re-read after checking Moneybird.
       return {
-        type: 'explainOnly',
-        href: '/tax-codes',
-        linkLabel: labels.settings,
+        type: 'guided',
+        label: labels.reread,
+        onOpen: () => actions.onRereadResource(problem),
+        steps: [labels.stepReread],
       }
     default: {
       const _exhaustive: never = problem.code
@@ -269,5 +270,6 @@ export function moneybirdFixTypeFor(
   // Screen-level: unbalanced_document is guided exclude (PM #55); core catalogue
   // still documents explainOnly — moneybirdFixTypeFor follows the wired screen.
   if (problem.code === 'unbalanced_document') return 'guided'
+  if (problem.code === 'tax_code_not_in_force') return 'guided'
   return fixSpecFor(problem.code).fixType
 }

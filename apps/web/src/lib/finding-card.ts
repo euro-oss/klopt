@@ -9,7 +9,7 @@
  * preview is shown first.
  */
 
-import { formatMinorUnits } from '@klopt/core/format'
+import { formatDate, formatMinorUnits } from '@klopt/core/format'
 
 /** Blocking is red; warning is neutral. Yellow is never severity. */
 export type FindingSeverity = 'blocking' | 'warning'
@@ -116,6 +116,9 @@ export const MONTH_DETAIL_KEYS: ReadonlySet<string> = new Set([
   'entityMonth',
 ])
 
+/** ISO calendar dates (YYYY-MM-DD) shown as DD-MM-YYYY on finding cards. */
+export const DATE_DETAIL_KEYS: ReadonlySet<string> = new Set(['bookingDate', 'invoiceDate'])
+
 /** Locale-aware month name for finding detail (`1` → `januari` / `January`). */
 export function formatMonthName(month: string, localeTag = 'nl-NL'): string {
   const n = Number(month)
@@ -197,6 +200,8 @@ export function detailForDisplay(
       }
     } else if (MONTH_DETAIL_KEYS.has(key) && /^\d{1,2}$/.test(value)) {
       out[key] = formatMonthName(value, localeTag)
+    } else if (DATE_DETAIL_KEYS.has(key) && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      out[key] = formatDate(value)
     } else {
       out[key] = value
     }

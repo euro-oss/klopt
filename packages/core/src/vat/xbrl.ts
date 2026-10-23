@@ -245,7 +245,7 @@ export function generateVatInstance(request: VatInstanceRequest): VatInstance {
     )
   }
 
-  warnings.push(...moneybirdVatExportWarnings(vatReturn, 'en'))
+  warnings.push(...moneybirdVatExportWarnings(vatReturn, 'en').map((warning) => warning.message))
 
   const identifier = omzetbelastingnummer(request.vatNumber)
   const contextId = request.isSuppletie ? 'suppletie' : 'aangifte'

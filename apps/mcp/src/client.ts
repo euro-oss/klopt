@@ -1,4 +1,8 @@
 import { randomUUID } from 'node:crypto'
+import {
+  KLOPT_WARNING_MESSAGES_HEADER,
+  decodeWarningMessagesHeader,
+} from '@klopt/core'
 /**
  * The one way this server reaches Klopt: an HTTP call to the public API.
  *
@@ -112,18 +116,8 @@ export class ApiClient {
     path: string,
   ): Promise<{ readonly text: string; readonly warningMessages: readonly string[] }> {
     const { text, headers } = await this.requestWithHeaders(path)
-    let warningMessages: string[] = []
-    const raw = headers.get('x-klopt-warning-messages')
-    if (raw !== null && raw !== '') {
-      try {
-        const parsed: unknown = JSON.parse(raw)
-        if (Array.isArray(parsed)) {
-          warningMessages = parsed.filter((entry): entry is string => typeof entry === 'string')
-        }
-      } catch {
-        // Ignore malformed header rather than failing an export that worked.
-      }
-    }
+    const raw = headers.get(KLOPT_WARNING_MESSAGES_HEADER) ?? ''
+    const warningMessages = [...decodeWarningMessagesHeader(raw)]
     return { text, warningMessages }
   }
 

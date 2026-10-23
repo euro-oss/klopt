@@ -210,6 +210,13 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
           {explanation}
         </ItemDescription>
 
+        {(messageKey === 'moneybird.self_assessed_vat_unsupported' ||
+          messageKey === 'moneybird.tax_code_not_in_force') && (
+          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+            {t(`finding.${messageKey}_secondary` as MessageKey, displayDetail)}
+          </p>
+        )}
+
         <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
           <span className="font-medium text-foreground">{t('findingCard.whyItMatters')}: </span>
           {why}

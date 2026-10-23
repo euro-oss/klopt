@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { violationMessage } from '~/i18n/labels'
 import { useT } from '~/i18n/provider'
@@ -10,6 +11,7 @@ import { useHydrated } from '~/lib/hydration'
 import { may, MAY_EXPORT_AUDIT_FILE, MAY_IMPORT_AUDIT_FILE } from '~/lib/roles'
 import { importAuditFile } from '~/server/ledger'
 import { listFiscalYears } from '~/server/setup'
+import { getVatReturn } from '~/server/vat'
 
 /**
  * Auditfile — out and back in.
@@ -81,10 +83,39 @@ function AuditFile() {
   const [problems, setProblems] = useState<readonly string[] | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [preview, setPreview] = useState<{ xml: string; report: ImportReport } | null>(null)
+  const [moneybirdGap, setMoneybirdGap] = useState(false)
   const file = useRef<HTMLInputElement>(null)
 
   const mayImport = may(MAY_IMPORT_AUDIT_FILE, role)
   const mayExport = may(MAY_EXPORT_AUDIT_FILE, role)
+
+  // Soft Moneybird VAT gap for the selected year — same signal as the XAF
+  // warning header, shown next to the download (Designer #96).
+  useEffect(() => {
+    if (!mayExport || exportYear === '') {
+      setMoneybirdGap(false)
+      return
+    }
+    let cancelled = false
+    void getVatReturn({ data: { period: exportYear } }).then((result) => {
+      if (cancelled) return
+      if (!result.ok) {
+        setMoneybirdGap(false)
+        return
+      }
+      const findings = result.data.findings ?? []
+      setMoneybirdGap(
+        findings.some(
+          (finding) =>
+            finding.code === 'moneybird_untagged_vat' ||
+            finding.code === 'moneybird_self_assessed_unsupported',
+        ),
+      )
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [exportYear, mayExport])
 
   /**
    * Whether the chart can take the file as it stands.
@@ -174,30 +205,38 @@ function AuditFile() {
           )}
 
           {mayExport && (
-            <div className="mt-4 flex flex-wrap items-end gap-3">
-              <SelectField
-                label={t('auditFile.exportYear')}
-                value={exportYear}
-                onValueChange={setExportYear}
-                disabled={!hydrated}
-                placeholder={t('auditFile.pickYear')}
-                className="w-56"
-              >
-                {options.map((year) => (
-                  <SelectOption key={year.code} value={year.code}>
-                    {`${year.code} (${formatDate(year.startsOn)} – ${formatDate(year.endsOn)})`}
-                  </SelectOption>
-                ))}
-              </SelectField>
+            <div className="mt-4 space-y-3">
+              {moneybirdGap && (
+                <Alert variant="attention" role="status">
+                  <AlertTitle>{t('auditFile.moneybirdGapTitle')}</AlertTitle>
+                  <AlertDescription>{t('auditFile.moneybirdGapBody')}</AlertDescription>
+                </Alert>
+              )}
+              <div className="flex flex-wrap items-end gap-3">
+                <SelectField
+                  label={t('auditFile.exportYear')}
+                  value={exportYear}
+                  onValueChange={setExportYear}
+                  disabled={!hydrated}
+                  placeholder={t('auditFile.pickYear')}
+                  className="w-56"
+                >
+                  {options.map((year) => (
+                    <SelectOption key={year.code} value={year.code}>
+                      {`${year.code} (${formatDate(year.startsOn)} – ${formatDate(year.endsOn)})`}
+                    </SelectOption>
+                  ))}
+                </SelectField>
 
-              {/* A link rather than a fetch: the response is XML with a filename
-                on it, and the browser already knows what to do with that. */}
-              <a
-                href={`/api/v1/exports/audit-file?fiscalYear=${exportYear}`}
-                className="border-input border px-4 py-2 text-sm font-medium"
-              >
-                {t('auditFile.export')}
-              </a>
+                {/* A link rather than a fetch: the response is XML with a filename
+                  on it, and the browser already knows what to do with that. */}
+                <a
+                  href={`/api/v1/exports/audit-file?fiscalYear=${exportYear}`}
+                  className="border-input border px-4 py-2 text-sm font-medium"
+                >
+                  {t('auditFile.export')}
+                </a>
+              </div>
             </div>
           )}
         </section>

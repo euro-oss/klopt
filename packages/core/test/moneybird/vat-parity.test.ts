@@ -445,4 +445,188 @@ describe('Moneybird import VAT return parity with native booking', () => {
     expect(moneybirdReturn.deductibleMinorUnits).toBe(nativeReturn.deductibleMinorUnits)
     expect(moneybirdReturn.payableMinorUnits).toBe(nativeReturn.payableMinorUnits)
   })
+
+  it('splits 21% + 9% + 0% + discount per code and matches native buildVatReturn', () => {
+    const base = snapshot()
+    const opts: MoneybirdImportOptions = {
+      ...options(),
+      confirmedTaxMappings: { '21': 'H21', '29': 'L9', '30': 'GEEN' },
+    }
+    const planned = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          ...base.taxRates,
+          {
+            id: '29',
+            name: 'BTW laag 9%',
+            percentage: 9,
+            taxRateType: 'sales_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+          {
+            id: '30',
+            name: 'Geen btw',
+            percentage: 0,
+            taxRateType: 'sales_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        salesInvoices: [
+          {
+            ...base.salesInvoices[0]!,
+            id: '310',
+            invoiceId: '2026-010',
+            // 100@21% + 100@9% + 50@0% − 10 discount@21% → tax 21+9−2.10 = 27.90
+            totalTax: 2790n,
+            totalExcl: 24000n,
+            totalIncl: 26790n,
+            details: [
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'mix-h21',
+                description: 'Hoog',
+                price: 10000n,
+                amount: '1',
+                taxRateId: '21',
+              },
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'mix-l9',
+                description: 'Laag',
+                price: 10000n,
+                amount: '1',
+                taxRateId: '29',
+              },
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'mix-geen',
+                description: 'Vrij',
+                price: 5000n,
+                amount: '1',
+                taxRateId: '30',
+              },
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'mix-disc',
+                description: 'Korting',
+                price: -1000n,
+                amount: '1',
+                taxRateId: '21',
+              },
+            ],
+          },
+        ],
+        purchaseInvoices: [],
+      },
+      opts,
+    )
+
+    expect(planned.problems).toEqual([])
+    const entry = planned.entries.find((item) => item.externalId.includes('310'))
+    expect(entry).toBeDefined()
+    const taxLines = entry!.lines.filter((line) => line.taxRole === 'tax')
+    expect(taxLines.map((line) => line.taxCode).sort()).toEqual(['H21', 'L9'])
+    const taxSum = taxLines.reduce(
+      (sum, line) => sum + (line.credit - line.debit),
+      0n,
+    )
+    expect(taxSum).toBe(2790n)
+    expect(taxLines.some((line) => line.taxCode === 'GEEN')).toBe(false)
+
+    const moneybirdLines = toVatLines(entry!.lines, {
+      entryId: entry!.externalId,
+      bookingDate: entry!.bookingDate,
+      sourceDocumentRef: entry!.sourceDocumentRef,
+    })
+
+    const taxes = new Map<string, TaxCodeSnapshot>([
+      ['H21', snapshotOf('H21', 2100)],
+      ['L9', snapshotOf('L9', 900)],
+      ['GEEN', snapshotOf('GEEN', 0)],
+    ])
+    const nativeMixed = buildInvoiceEntry(
+      {
+        entityId: 'entity-1',
+        journalCode: 'VRK',
+        bookingDate: '2026-03-01',
+        documentDate: '2026-03-01',
+        invoiceNumber: '2026-010',
+        contactName: 'Klant BV',
+        contactId: 'c1',
+        contactNumber: '1001',
+        receivableAccountNumber: '1300',
+        currency: 'EUR',
+        isCreditNote: false,
+        reference: null,
+      },
+      priceInvoice(
+        [
+          {
+            description: 'Hoog',
+            quantity: '1',
+            unitCode: 'C62',
+            unitPrice: 10000n,
+            revenueAccountNumber: '8000',
+            taxCode: 'H21',
+          },
+          {
+            description: 'Laag',
+            quantity: '1',
+            unitCode: 'C62',
+            unitPrice: 10000n,
+            revenueAccountNumber: '8000',
+            taxCode: 'L9',
+          },
+          {
+            description: 'Vrij',
+            quantity: '1',
+            unitCode: 'C62',
+            unitPrice: 5000n,
+            revenueAccountNumber: '8000',
+            taxCode: 'GEEN',
+          },
+          {
+            description: 'Korting',
+            quantity: '1',
+            unitCode: 'C62',
+            unitPrice: -1000n,
+            revenueAccountNumber: '8000',
+            taxCode: 'H21',
+          },
+        ],
+        taxes,
+        'per_invoice',
+      ),
+      taxAccountFor,
+    )
+
+    const moneybirdReturn = returnOf(moneybirdLines)
+    const nativeReturn = returnOf(
+      toVatLines(nativeMixed.lines, {
+        entryId: 'native-mixed-disc',
+        bookingDate: '2026-03-01',
+        sourceDocumentRef: 'native:mixed-disc',
+      }),
+    )
+
+    expect(moneybirdReturn.blocked).toBe(false)
+    expect(
+      moneybirdReturn.findings.filter((finding) =>
+        ['moneybird_untagged_vat', 'rate_mismatch', 'untagged_control_movement'].includes(
+          finding.code,
+        ),
+      ),
+    ).toEqual([])
+    for (const id of ['1a', '1b', '5b'] as const) {
+      const fromImport = moneybirdReturn.rubrieken.find((row) => row.rubriek.id === id)
+      const fromNative = nativeReturn.rubrieken.find((row) => row.rubriek.id === id)
+      expect(fromImport?.baseMinorUnits, id).toBe(fromNative?.baseMinorUnits)
+      expect(fromImport?.vatMinorUnits, id).toBe(fromNative?.vatMinorUnits)
+    }
+  })
 })

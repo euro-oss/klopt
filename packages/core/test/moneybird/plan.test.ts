@@ -2185,10 +2185,14 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
         confirmedTaxMappings: { '80': 'VERL-ONTV' },
       }),
     )
-    expect(plan.problems.map((item) => item.code)).toContain('self_assessed_vat_unsupported')
-    const finding = plan.problems.find((item) => item.code === 'self_assessed_vat_unsupported')
+    // Warning only — document still imports; filing is blocked on the return (#96 PM).
+    expect(plan.problems.map((item) => item.code)).not.toContain('self_assessed_vat_unsupported')
+    expect(plan.warnings.map((item) => item.code)).toContain('self_assessed_vat_unsupported')
+    const finding = plan.warnings.find((item) => item.code === 'self_assessed_vat_unsupported')
     expect(finding?.detail?.['taxCode']).toBe('VERL-ONTV')
-    expect(finding?.message).toMatch(/hand|zelf|wait|wacht/i)
+    expect(finding?.message).toMatch(/will import|wordt wel|supports this|ondersteunt/i)
+    expect(finding?.message).not.toMatch(/book .* by hand|boek .* zelf|wait for the update|wacht op de update/i)
+    expect(plan.entries.some((entry) => entry.kind === 'purchase_invoice')).toBe(true)
   })
 
   it('blocks when a document date falls before the tax code valid_from', () => {
@@ -2214,7 +2218,8 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
       taxCode: 'H21',
       bookingDate: '2025-06-15',
     })
-    expect(finding?.message).toMatch(/Btw-codes|valid from|geldig/i)
+    expect(finding?.message).toMatch(/does not apply yet|no fix inside Klopt|Moneybird/i)
+    expect(finding?.message).not.toMatch(/valid from|geldig vanaf|Btw-codes|year whose codes|jaar waarvan/i)
   })
 })
 

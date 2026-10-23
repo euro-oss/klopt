@@ -127,6 +127,106 @@ describe('moneybird finding fix types', () => {
     expect(onOpenPeriodSettings).not.toHaveBeenCalled()
   })
 
+  it('wires tax_code_not_in_force as Opnieuw lezen (no /tax-codes, #96 PM)', () => {
+    const onRereadResource = vi.fn()
+    const actions = {
+      onRereadResource,
+      moneybirdHrefFor: () => null,
+      labels: {
+        reread: 'Opnieuw lezen',
+        stepReread: 'Opnieuw lezen',
+        mapAccount: '',
+        mapTax: '',
+        renumberAccount: '',
+        renumberContact: '',
+        pickType: '',
+        confirmEur: '',
+        chooseRate: '',
+        confirmYearStart: '',
+        acknowledgeEmpty: '',
+        exclude: '',
+        toFiscalYears: '',
+        deferAttachment: '',
+        openMoneybird: '',
+        settings: 'Naar instellingen',
+        drillDown: '',
+        stepRate: '',
+        stepPreview: '',
+        stepConfirm: '',
+        stepPermissions: '',
+        stepOpenMoneybird: '',
+        stepDoNotTransfer: '',
+        stepMapAccount: '',
+        stepMapTax: '',
+        stepSave: '',
+      },
+    } as unknown as MoneybirdFindingActions
+
+    const card = moneybirdFindingCard(
+      problem('tax_code_not_in_force', 'salesInvoices.1', {
+        reference: '2025-001',
+        bookingDate: '2025-06-15',
+        taxCode: 'H21',
+      }),
+      'problems',
+      actions,
+    )
+    expect(card.fix.type).toBe('guided')
+    if (card.fix.type !== 'guided') return
+    expect(card.fix.label).toBe('Opnieuw lezen')
+    expect(card.fix.steps).toEqual(['Opnieuw lezen'])
+    card.fix.onOpen()
+    expect(onRereadResource).toHaveBeenCalledOnce()
+  })
+
+  it('keeps self_assessed_vat_unsupported as explainOnly look-link (no Niet overzetten)', () => {
+    const actions = {
+      moneybirdHrefFor: () => 'https://moneybird.example/documents/1',
+      labels: {
+        openMoneybird: 'Open in Moneybird',
+        exclude: 'Niet overzetten',
+        mapAccount: '',
+        mapTax: '',
+        renumberAccount: '',
+        renumberContact: '',
+        pickType: '',
+        confirmEur: '',
+        chooseRate: '',
+        confirmYearStart: '',
+        acknowledgeEmpty: '',
+        reread: '',
+        toFiscalYears: '',
+        deferAttachment: '',
+        settings: '',
+        drillDown: '',
+        stepRate: '',
+        stepPreview: '',
+        stepConfirm: '',
+        stepPermissions: '',
+        stepOpenMoneybird: '',
+        stepReread: '',
+        stepDoNotTransfer: '',
+        stepMapAccount: '',
+        stepMapTax: '',
+        stepSave: '',
+      },
+    } as unknown as MoneybirdFindingActions
+
+    const card = moneybirdFindingCard(
+      problem('self_assessed_vat_unsupported', 'purchase_invoices.1', {
+        reference: 'LEV-1',
+        taxCode: 'VERL-ONTV',
+      }),
+      'warnings',
+      actions,
+    )
+    expect(card.severity).toBe('warning')
+    expect(card.fix.type).toBe('explainOnly')
+    if (card.fix.type !== 'explainOnly') return
+    expect(card.fix.href).toContain('moneybird.example')
+    expect(card.fix.linkLabel).toBe('Open in Moneybird')
+  })
+
   it('gives unmapped_tax_rate guided steps so the To review card is not empty (#90)', () => {
     const onMapTaxRate = vi.fn()
     const actions = {
