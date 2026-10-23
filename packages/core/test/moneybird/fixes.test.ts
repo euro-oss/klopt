@@ -26,8 +26,8 @@ function problem(
 }
 
 describe('every MoneybirdProblemCode has a fix', () => {
-  it('covers all 18 codes', () => {
-    expect(MONEYBIRD_PROBLEM_CODES).toHaveLength(18)
+  it('covers all 20 codes', () => {
+    expect(MONEYBIRD_PROBLEM_CODES).toHaveLength(20)
     for (const code of MONEYBIRD_PROBLEM_CODES) {
       expect(fixSpecFor(code).code).toBe(code)
       expect(['oneClick', 'guided', 'explainOnly']).toContain(fixSpecFor(code).fixType)

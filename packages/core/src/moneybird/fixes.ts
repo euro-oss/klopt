@@ -76,6 +76,20 @@ const SPECS: Readonly<Record<MoneybirdProblemCode, MoneybirdFixSpec>> = {
     honesty: null,
     changesBooks: false,
   },
+  self_assessed_vat_unsupported: {
+    code: 'self_assessed_vat_unsupported',
+    fixType: 'explainOnly',
+    severity: 'blocking',
+    honesty: null,
+    changesBooks: false,
+  },
+  tax_code_not_in_force: {
+    code: 'tax_code_not_in_force',
+    fixType: 'guided',
+    severity: 'blocking',
+    honesty: null,
+    changesBooks: false,
+  },
   trial_balance_account_missing: {
     code: 'trial_balance_account_missing',
     fixType: 'guided',

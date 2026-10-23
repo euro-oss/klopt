@@ -1,6 +1,7 @@
 import { renderFindingMessage, type FindingMessageKey } from '../finding-messages.js'
 import type { AccountType, JournalLineInput } from '../ledger/types.js'
 import type { MoneybirdAdministration } from '../ports/moneybird.js'
+import { purchaseCodeNeedsSelfAssessedVat } from '../vat/return.js'
 import { applyFxToLines, type FxRateChoice } from './fx.js'
 import {
   isSpecialAcquisitionPurchaseRate,
@@ -41,6 +42,8 @@ export type MoneybirdProblemCode =
   | 'unmapped_tax_rate'
   | 'incompatible_tax_rate'
   | 'null_percentage_vat_mismatch'
+  | 'self_assessed_vat_unsupported'
+  | 'tax_code_not_in_force'
   | 'account_number_collision'
   | 'contact_number_collision'
   | 'resource_unreadable'
@@ -109,6 +112,9 @@ export interface ExistingTaxRule {
   readonly reverseCharge?: string
   readonly deductionCode?: string | null
   readonly deductibility?: string
+  /** Validity window — when set, documents outside it raise `tax_code_not_in_force`. */
+  readonly validFrom?: string
+  readonly validTo?: string | null
 }
 
 /**
@@ -538,6 +544,87 @@ function signedDebitCredit(
   }
   const abs = -amount
   return favorCredit ? { debit: abs, credit: 0n } : { debit: 0n, credit: abs }
+}
+
+/**
+ * VAT control lines tagged like native sales/purchase posting: one `taxRole:
+ * 'tax'` line per mapped code, amounts from the base lines' `taxAmount`.
+ * Residual vs `totalTax` (rounding) lands on the largest group so the entry
+ * still balances.
+ */
+function pushTaggedVatLines(
+  lines: JournalLineInput[],
+  options: {
+    readonly vatAccount: string
+    readonly totalTax: bigint
+    readonly favorCredit: boolean
+    readonly description: string
+  },
+): void {
+  if (options.totalTax === 0n) return
+
+  const byCode = new Map<string, bigint>()
+  for (const item of lines) {
+    if (item.taxRole !== 'base' || item.taxCode === null || item.taxAmount === null) continue
+    if (item.taxAmount === 0n) continue
+    byCode.set(item.taxCode, (byCode.get(item.taxCode) ?? 0n) + item.taxAmount)
+  }
+
+  if (byCode.size === 0) {
+    // No mapped base tax to split — keep a single untagged line so the entry
+    // still balances; the return's moneybird_untagged_vat hard block will fire.
+    const vatSides = signedDebitCredit(options.totalTax, options.favorCredit)
+    lines.push(line(options.vatAccount, vatSides.debit, vatSides.credit, options.description))
+    return
+  }
+
+  let sum = 0n
+  for (const amount of byCode.values()) sum += amount
+  if (sum !== options.totalTax) {
+    let largestCode: string | null = null
+    let largestAbs = -1n
+    for (const [code, amount] of byCode) {
+      const abs = amount < 0n ? -amount : amount
+      if (abs > largestAbs) {
+        largestAbs = abs
+        largestCode = code
+      }
+    }
+    if (largestCode !== null) {
+      byCode.set(largestCode, (byCode.get(largestCode) ?? 0n) + (options.totalTax - sum))
+    }
+  }
+
+  for (const [taxCode, amount] of [...byCode.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    if (amount === 0n) continue
+    const vatSides = signedDebitCredit(amount, options.favorCredit)
+    lines.push(
+      line(
+        options.vatAccount,
+        vatSides.debit,
+        vatSides.credit,
+        `${taxCode} ${options.description}`,
+        {
+          taxCode,
+          taxRole: 'tax',
+          taxAmount: amount,
+        },
+      ),
+    )
+  }
+}
+
+function ruleInForceOn(
+  rules: readonly ExistingTaxRule[],
+  code: string,
+  onDate: string,
+): ExistingTaxRule | undefined {
+  return rules.find((rule) => {
+    if (rule.code !== code) return false
+    if (rule.validFrom !== undefined && onDate < rule.validFrom) return false
+    if (rule.validTo != null && onDate > rule.validTo) return false
+    return true
+  })
 }
 
 /**
@@ -1278,6 +1365,7 @@ export function planMoneybirdImport(
       ),
     )
 
+    const salesCodesNotInForce = new Set<string>()
     for (const detail of invoice.details) {
       const percent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
       let tax = signedLineTaxHalfUp(detail, percent, invoice.pricesAreInclTax)
@@ -1294,6 +1382,11 @@ export function planMoneybirdImport(
       if (net === 0n && tax === 0n) continue
       const taxCode =
         detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
+      if (taxCode !== null) {
+        const known = options.existingTaxRules.some((rule) => rule.code === taxCode)
+        const inForce = ruleInForceOn(options.existingTaxRules, taxCode, invoice.invoiceDate)
+        if (known && inForce === undefined) salesCodesNotInForce.add(taxCode)
+      }
       const accountNumber = resolveAccount(
         detail.ledgerAccountId,
         '8000',
@@ -1310,14 +1403,22 @@ export function planMoneybirdImport(
         }),
       )
     }
-
-    const totalTax = flipSign ? -invoice.totalTax : invoice.totalTax
-    if (totalTax !== 0n) {
-      const vatSides = signedDebitCredit(totalTax, true)
-      lines.push(
-        line(vatPayableAccount, vatSides.debit, vatSides.credit, `BTW ${invoice.invoiceId}`),
+    for (const taxCode of [...salesCodesNotInForce].sort()) {
+      problems.push(
+        problem('tax_code_not_in_force', `salesInvoices.${invoice.id}`, {
+          reference: invoice.invoiceId,
+          bookingDate: invoice.invoiceDate,
+          taxCode,
+        }),
       )
     }
+
+    pushTaggedVatLines(lines, {
+      vatAccount: vatPayableAccount,
+      totalTax: flipSign ? -invoice.totalTax : invoice.totalTax,
+      favorCredit: true,
+      description: `BTW ${invoice.invoiceId}`,
+    })
 
     const externalId = `sales_invoice:${invoice.id}`
     pushEntry({
@@ -1362,6 +1463,8 @@ export function planMoneybirdImport(
     const lines: JournalLineInput[] = []
     const gross = document.totalIncl < 0n ? -document.totalIncl : document.totalIncl
 
+    const selfAssessedCodes = new Set<string>()
+    const purchaseCodesNotInForce = new Set<string>()
     for (const detail of document.details) {
       const percent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
       let tax = signedLineTaxHalfUp(detail, percent, document.pricesAreInclTax)
@@ -1378,6 +1481,15 @@ export function planMoneybirdImport(
       if (net === 0n && tax === 0n) continue
       const taxCode =
         detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
+      if (taxCode !== null) {
+        const rule = options.existingTaxRules.find((entry) => entry.code === taxCode)
+        if (rule !== undefined && purchaseCodeNeedsSelfAssessedVat(rule)) {
+          selfAssessedCodes.add(taxCode)
+        }
+        const known = rule !== undefined
+        const inForce = ruleInForceOn(options.existingTaxRules, taxCode, document.date)
+        if (known && inForce === undefined) purchaseCodesNotInForce.add(taxCode)
+      }
       const accountNumber = resolveAccount(
         detail.ledgerAccountId,
         '4000',
@@ -1394,13 +1506,30 @@ export function planMoneybirdImport(
       )
     }
 
-    const totalTax = flipSign ? -document.totalTax : document.totalTax
-    if (totalTax !== 0n) {
-      const vatSides = signedDebitCredit(totalTax, false)
-      lines.push(
-        line(vatReceivableAccount, vatSides.debit, vatSides.credit, `BTW ${document.reference}`),
+    for (const taxCode of [...selfAssessedCodes].sort()) {
+      problems.push(
+        problem('self_assessed_vat_unsupported', `${document.kind}s.${document.id}`, {
+          reference: document.reference,
+          taxCode,
+        }),
       )
     }
+    for (const taxCode of [...purchaseCodesNotInForce].sort()) {
+      problems.push(
+        problem('tax_code_not_in_force', `${document.kind}s.${document.id}`, {
+          reference: document.reference,
+          bookingDate: document.date,
+          taxCode,
+        }),
+      )
+    }
+
+    pushTaggedVatLines(lines, {
+      vatAccount: vatReceivableAccount,
+      totalTax: flipSign ? -document.totalTax : document.totalTax,
+      favorCredit: false,
+      description: `BTW ${document.reference}`,
+    })
 
     lines.push(
       line(
