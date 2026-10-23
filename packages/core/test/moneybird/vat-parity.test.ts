@@ -531,10 +531,7 @@ describe('Moneybird import VAT return parity with native booking', () => {
     expect(entry).toBeDefined()
     const taxLines = entry!.lines.filter((line) => line.taxRole === 'tax')
     expect(taxLines.map((line) => line.taxCode).sort()).toEqual(['H21', 'L9'])
-    const taxSum = taxLines.reduce(
-      (sum, line) => sum + (line.credit - line.debit),
-      0n,
-    )
+    const taxSum = taxLines.reduce((sum, line) => sum + (line.credit - line.debit), 0n)
     expect(taxSum).toBe(2790n)
     expect(taxLines.some((line) => line.taxCode === 'GEEN')).toBe(false)
 

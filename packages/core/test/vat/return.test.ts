@@ -484,7 +484,9 @@ describe('the reconciliation, which blocks', () => {
     expect(finding?.severity).toBe('blocking')
     expect(finding?.detail?.['count']).toBe('1')
     expect(finding?.messageKey).toBe('vat.moneybird_untagged_vat_one')
-    expect(finding?.message).toMatch(/cannot fix this yet|can’t file this period through Klopt|tax adviser/i)
+    expect(finding?.message).toMatch(
+      /cannot fix this yet|can’t file this period through Klopt|tax adviser/i,
+    )
     expect(result.findings.some((entry) => entry.code === 'untagged_control_movement')).toBe(false)
     expect(rubriekAmounts(result, '1a').vatMinorUnits).toBe(0n)
   })
@@ -506,7 +508,9 @@ describe('the reconciliation, which blocks', () => {
     expect(finding?.severity).toBe('blocking')
     expect(finding?.detail?.['count']).toBe('1')
     expect(finding?.messageKey).toBe('vat.moneybird_self_assessed_unsupported_one')
-    expect(finding?.message).toMatch(/cannot fix this yet|can’t file this period through Klopt|tax adviser/i)
+    expect(finding?.message).toMatch(
+      /cannot fix this yet|can’t file this period through Klopt|tax adviser/i,
+    )
     expect(finding?.message).toMatch(/Wait until Klopt supports/i)
     expect(finding?.message).not.toMatch(/Book those purchases by hand|book by hand/i)
   })

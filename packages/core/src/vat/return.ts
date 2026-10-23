@@ -131,8 +131,7 @@ export function purchaseCodeNeedsSelfAssessedVat(rule: {
 
 /** Message keys for Moneybird VAT export banners (XAF / summary / CLI / MCP). */
 export type MoneybirdVatExportMessageKey =
-  | 'vat.moneybird_untagged_vat_export'
-  | 'vat.moneybird_self_assessed_unsupported_export'
+  'vat.moneybird_untagged_vat_export' | 'vat.moneybird_self_assessed_unsupported_export'
 
 export interface MoneybirdVatExportWarning {
   readonly message: string

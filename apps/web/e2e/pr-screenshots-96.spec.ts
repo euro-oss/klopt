@@ -52,11 +52,7 @@ async function shoot(page: Page, name: string, fullPage = false): Promise<void> 
   await page.screenshot({ path: join(OUT, name), fullPage })
 }
 
-async function postEntry(
-  page: Page,
-  body: Record<string, unknown>,
-  key: string,
-): Promise<void> {
+async function postEntry(page: Page, body: Record<string, unknown>, key: string): Promise<void> {
   const res = await page.request.post('/api/v1/journal-entries', {
     headers: {
       'content-type': 'application/json',
@@ -100,10 +96,7 @@ test('capture #96 Moneybird VAT return, import cards, XAF alert, summary banner'
           await expect(card).toContainText(/Dit los je niet hier op/)
         }
         await setTheme(page, theme)
-        await shoot(
-          page,
-          `import-${code.replace(/_/g, '-')}-${theme}-${label}.png`,
-        )
+        await shoot(page, `import-${code.replace(/_/g, '-')}-${theme}-${label}.png`)
         await context.close()
       }
     }
@@ -141,7 +134,9 @@ test('capture #96 Moneybird VAT return, import cards, XAF alert, summary banner'
       await expect(page.getByText(/Btw van Moneybird-import ontbreekt/i)).toBeVisible({
         timeout: 15_000,
       })
-      await expect(page.locator('span.text-destructive', { hasText: 'telt niet mee' })).toBeVisible()
+      await expect(
+        page.locator('span.text-destructive', { hasText: 'telt niet mee' }),
+      ).toBeVisible()
       await expect(page.getByText(/voorlopig/i)).toBeVisible()
       await expect(page.getByText(/niet via Klopt worden ingediend/i).first()).toBeVisible()
       await setTheme(page, theme)

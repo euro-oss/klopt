@@ -2191,7 +2191,9 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     const finding = plan.warnings.find((item) => item.code === 'self_assessed_vat_unsupported')
     expect(finding?.detail?.['taxCode']).toBe('VERL-ONTV')
     expect(finding?.message).toMatch(/will import|wordt wel|supports this|ondersteunt/i)
-    expect(finding?.message).not.toMatch(/book .* by hand|boek .* zelf|wait for the update|wacht op de update/i)
+    expect(finding?.message).not.toMatch(
+      /book .* by hand|boek .* zelf|wait for the update|wacht op de update/i,
+    )
     expect(plan.entries.some((entry) => entry.kind === 'purchase_invoice')).toBe(true)
   })
 
@@ -2219,7 +2221,9 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
       bookingDate: '2025-06-15',
     })
     expect(finding?.message).toMatch(/does not apply yet|no fix inside Klopt|Moneybird/i)
-    expect(finding?.message).not.toMatch(/valid from|geldig vanaf|Btw-codes|year whose codes|jaar waarvan/i)
+    expect(finding?.message).not.toMatch(
+      /valid from|geldig vanaf|Btw-codes|year whose codes|jaar waarvan/i,
+    )
   })
 })
 
