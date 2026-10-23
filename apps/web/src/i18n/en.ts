@@ -56,6 +56,10 @@ export const en: Record<MessageKey, string> = {
     'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
   'finding.why.moneybird.null_percentage_vat_mismatch_other':
     'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
+  'finding.why.moneybird.self_assessed_vat_unsupported':
+    'Without the self-assessed VAT, boxes 2a/4a/4b and 5b are missing; filing would under-declare VAT.',
+  'finding.why.moneybird.tax_code_not_in_force':
+    'Without a rule valid on the booking date the return cannot place those lines.',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Without a single direction no VAT code can be chosen; the import stays blocked until Moneybird shows one side only.',
   'finding.why.moneybird.account_number_collision':
@@ -1371,6 +1375,9 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.finding.code_declares_no_vat': 'VAT posted against a 0% code',
   'vatReturn.finding.code_declares_no_base': 'Taxable amount with no box',
   'vatReturn.finding.untagged_control_movement': 'Movement on a VAT account without a code',
+  'vatReturn.finding.moneybird_untagged_vat': 'VAT from Moneybird import missing from the return',
+  'vatReturn.finding.moneybird_self_assessed_unsupported':
+    'Moneybird reverse-charge or intra-EU purchase not importable yet',
   'vatReturn.finding.rate_mismatch': 'VAT differs from taxable amount times rate',
   'vatReturn.finding.control_account_difference': 'VAT account does not reconcile',
 

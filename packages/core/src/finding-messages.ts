@@ -100,13 +100,17 @@ export const FINDING_MESSAGES = {
   'vat.control_account_difference':
     'Account {accountNumber} {accountName} moved {taggedMovementMinorUnits} on tax-coded lines but the return declares {declaredMinorUnits} (minor units). The difference is the VAT that did not reach a rubriek — the findings above name every line of it.',
   'vat.no_rule_in_force':
-    'A tax code exists but has no rule valid on the booking date, so those lines cannot be assigned to a rubriek. Extend the code’s validity window or reclassify the entries.',
+    'A tax code exists but has no rule valid on the booking date, so those lines cannot be assigned to a rubriek. Under Beheer → Btw-codes, extend the code’s validity (valid from) to cover the booking date, or book the documents in a year whose codes already cover that date.',
   'vat.rate_mismatch':
     'Rubriek {id} declares VAT that its own base and rate do not produce. Expected roughly {expected}, found {vatMinorUnits} (minor units). A manual correction explains this; a miscoded line also does.',
   'vat.unknown_tax_code':
     'Journal lines carry a tax code that no configured code matches, so their VAT is in the books but not in the return.',
   'vat.untagged_control_movement':
     'A VAT control account moved without a tax code. A payment to or refund from the Belastingdienst looks exactly like this, and so does VAT booked by hand.',
+  'vat.moneybird_untagged_vat':
+    'VAT from imported Moneybird documents is missing. Klopt currently leaves the VAT of {count} Moneybird documents out of boxes 1a and 5b, so the VAT in those boxes is too low. You can’t file this period until this is fixed.',
+  'vat.moneybird_self_assessed_unsupported':
+    'Klopt can’t import reverse-charge or intra-EU purchases from Moneybird yet ({count} documents). Those need self-assessed VAT in boxes 2a/4a/4b and 5b, which the import does not book. Book those purchases by hand in Klopt, or wait for the update that adds this — you can’t file this period until then.',
   'xaf.accounts_without_rgs': '{unmapped} of {total} accounts have no RGS lead code: {accounts}',
   'xaf.date_outside_fiscal_year': '{trDt} is outside the fiscal year in the header.',
   'xaf.duplicate_account': 'Duplicate account {accID}.',
@@ -148,6 +152,10 @@ export const FINDING_MESSAGES = {
     'Tax rate {name} has no percentage, but {count} document still shows VAT ({references}). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
   'moneybird.null_percentage_vat_mismatch_other':
     'Tax rate {name} has no percentage, but {count} documents still show VAT ({references}). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
+  'moneybird.self_assessed_vat_unsupported':
+    'Klopt can’t import reverse-charge or intra-EU purchases from Moneybird yet. {reference} is mapped to {taxCode}, which needs self-assessed VAT in boxes 2a/4a/4b and 5b. Book that purchase by hand in Klopt, or wait for the update — you can’t import it until then.',
+  'moneybird.tax_code_not_in_force':
+    '{reference} is dated {bookingDate}, but tax code {taxCode} is not valid on that date. Under Beheer → Btw-codes, extend the code’s validity (valid from) to cover that date, or import into a year whose codes already cover it.',
   'moneybird.account_number_collision': 'Moneybird returned ledger number {number} twice ({name}).',
   'moneybird.contact_number_collision':
     'Moneybird returned contact number {number} twice ({name}).',

@@ -34,10 +34,18 @@ export interface Credentials {
 
 export type Fetch = typeof globalThis.fetch
 
+export interface TextResponse {
+  readonly text: string
+  /** From `x-klopt-warning-messages` when the export carries soft warnings. */
+  readonly warningMessages: readonly string[]
+}
+
 export interface Client {
   get(path: string, query?: Record<string, string | undefined>): Promise<unknown>
   /** The raw body, for the exports that are a file rather than JSON. */
   getText(path: string, query?: Record<string, string | undefined>): Promise<string>
+  /** Like `getText`, plus soft-warning headers (XAF Moneybird VAT banners, …). */
+  getTextWithMeta(path: string, query?: Record<string, string | undefined>): Promise<TextResponse>
   post(path: string, body: unknown): Promise<unknown>
 }
 
@@ -94,9 +102,26 @@ export function createClient(credentials: Credentials, doFetch: Fetch = globalTh
     },
 
     async getText(path, query) {
+      const result = await this.getTextWithMeta(path, query)
+      return result.text
+    },
+
+    async getTextWithMeta(path, query) {
       const response = await doFetch(url(path, query), { headers: headers() })
       if (!response.ok) await refuse(response)
-      return response.text()
+      let warningMessages: string[] = []
+      const raw = response.headers.get('x-klopt-warning-messages')
+      if (raw !== null && raw !== '') {
+        try {
+          const parsed: unknown = JSON.parse(raw)
+          if (Array.isArray(parsed)) {
+            warningMessages = parsed.filter((entry): entry is string => typeof entry === 'string')
+          }
+        } catch {
+          // Header present but not JSON — ignore rather than fail the export.
+        }
+      }
+      return { text: await response.text(), warningMessages }
     },
 
     async post(path, body) {

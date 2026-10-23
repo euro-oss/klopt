@@ -67,6 +67,8 @@ const FINDING_KEY: Record<string, MessageKey> = {
   code_declares_no_vat: 'vatReturn.finding.code_declares_no_vat',
   code_declares_no_base: 'vatReturn.finding.code_declares_no_base',
   untagged_control_movement: 'vatReturn.finding.untagged_control_movement',
+  moneybird_untagged_vat: 'vatReturn.finding.moneybird_untagged_vat',
+  moneybird_self_assessed_unsupported: 'vatReturn.finding.moneybird_self_assessed_unsupported',
   rate_mismatch: 'vatReturn.finding.rate_mismatch',
   control_account_difference: 'vatReturn.finding.control_account_difference',
 }
@@ -531,8 +533,15 @@ function VatReturnScreen() {
                 <Money amount={account.declared} />
               </td>
               <td className="py-1.5 pr-2 text-right">
-                {account.difference === '0' ? (
+                {account.difference === '0' &&
+                !blocking.some(
+                  (finding) =>
+                    finding.code === 'moneybird_untagged_vat' ||
+                    finding.code === 'moneybird_self_assessed_unsupported',
+                ) ? (
                   <span className="text-muted-foreground">{t('vatReturn.reconciles')}</span>
+                ) : account.difference === '0' ? (
+                  <span className="text-unreconciled">{t('vatReturn.untagged')}</span>
                 ) : (
                   <span className="text-destructive">
                     <Money amount={account.difference} />

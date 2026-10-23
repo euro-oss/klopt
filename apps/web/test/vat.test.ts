@@ -312,11 +312,11 @@ describe('the return, from a real journal', () => {
     ).toThrow(/tax role/i)
   })
 
-  it('blocks when VAT reaches the control account under no tax code at all', async () => {
+  it('warns when a hand-typed untagged VAT movement is not from Moneybird', async () => {
     const { token } = await newEntity()
     await invoice(token, { unitPrice: '100000', taxCode: 'H21' })
-    // A hand-typed correction straight onto 1500. Legitimate as an act, and
-    // exactly what the reconciliation is for: it is shown, not silently summed.
+    // A hand-typed correction straight onto 1500. Legitimate as an act (e.g. a
+    // Belastingdienst payment), so it stays a warning — unlike Moneybird imports.
     await handlePostJournalEntry(
       await context(token, uuidv7()),
       postJournalEntryBody.parse({
@@ -336,9 +336,64 @@ describe('the return, from a real journal', () => {
     expect(finding?.severity).toBe('warning')
     expect(finding?.lines).toHaveLength(1)
     expect(finding?.lines[0]?.accountNumber).toBe('1500')
-    // A warning, so it does not block — but it cannot be filed without somebody
-    // saying they looked at it.
     expect(body.blocked).toBe(false)
+  })
+
+  it('refuses filing when Moneybird-imported VAT is untagged on a control account', async () => {
+    const { token } = await newEntity()
+    await invoice(token, { unitPrice: '100000', taxCode: 'H21' })
+    // Simulate an already-imported Moneybird document whose VAT line has no code.
+    await handlePostJournalEntry(
+      await context(token, uuidv7()),
+      postJournalEntryBody.parse({
+        journalCode: 'MEM',
+        bookingDate: '2026-02-10',
+        documentDate: '2026-02-10',
+        description: 'Moneybird import',
+        sourceDocumentRef: 'moneybird:admin:sales_invoice:999',
+        lines: [
+          { accountNumber: '1300', debit: '12100' },
+          {
+            accountNumber: '8000',
+            credit: '10000',
+            taxCode: 'H21',
+            taxRole: 'base',
+            taxAmount: '2100',
+          },
+          { accountNumber: '1500', credit: '2100' },
+        ],
+      }),
+    )
+
+    const { body } = await q1(token)
+    expect(body.blocked).toBe(true)
+    const finding = body.findings.find((entry) => entry.code === 'moneybird_untagged_vat')
+    expect(finding?.severity).toBe('blocking')
+
+    // Accept-with-reason must not bypass the Moneybird hard block (#94 Legal).
+    let caught: unknown
+    try {
+      await handleFileVatReturn(
+        await context(token, uuidv7()),
+        fileVatReturnBody.parse({
+          period: '2026-Q1',
+          transport: 'manual',
+          acceptWarnings: true,
+          acceptedReason: 'looked fine',
+        }),
+      )
+    } catch (error: unknown) {
+      caught = error
+    }
+    expect(caught).toMatchObject({ code: 'vat_out_of_balance' })
+    const violations =
+      caught !== null &&
+      typeof caught === 'object' &&
+      'violations' in caught &&
+      Array.isArray(caught.violations)
+        ? (caught.violations as readonly { path?: string | null }[])
+        : []
+    expect(violations.some((item) => item.path?.includes('moneybird_untagged_vat'))).toBe(true)
   })
 })
 

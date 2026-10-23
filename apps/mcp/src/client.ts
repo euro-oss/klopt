@@ -104,7 +104,27 @@ export class ApiClient {
    * signature would fail on the one route that most needs to work.
    */
   async getText(path: string): Promise<string> {
-    return this.request(path)
+    return (await this.getTextWithMeta(path)).text
+  }
+
+  /** Like `getText`, plus soft-warning headers from the response. */
+  async getTextWithMeta(
+    path: string,
+  ): Promise<{ readonly text: string; readonly warningMessages: readonly string[] }> {
+    const { text, headers } = await this.requestWithHeaders(path)
+    let warningMessages: string[] = []
+    const raw = headers.get('x-klopt-warning-messages')
+    if (raw !== null && raw !== '') {
+      try {
+        const parsed: unknown = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          warningMessages = parsed.filter((entry): entry is string => typeof entry === 'string')
+        }
+      } catch {
+        // Ignore malformed header rather than failing an export that worked.
+      }
+    }
+    return { text, warningMessages }
   }
 
   /**
@@ -137,6 +157,13 @@ export class ApiClient {
     path: string,
     options: { readonly method?: string; readonly body?: unknown } = {},
   ): Promise<string> {
+    return (await this.requestWithHeaders(path, options)).text
+  }
+
+  private async requestWithHeaders(
+    path: string,
+    options: { readonly method?: string; readonly body?: unknown } = {},
+  ): Promise<{ readonly text: string; readonly headers: Headers }> {
     const url = `${this.base}/api/v1${path}`
     const method = options.method ?? 'GET'
 
@@ -185,6 +212,6 @@ export class ApiClient {
       throw new ApiError(detail, response.status, code, path, readViolations(problem.violations))
     }
 
-    return text
+    return { text, headers: response.headers }
   }
 }

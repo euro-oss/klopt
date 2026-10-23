@@ -62,6 +62,11 @@ export interface VatJournalLine {
   readonly taxRole: TaxRole | null
   /** Debit minus credit, in minor units. */
   readonly signedMinorUnits: bigint
+  /**
+   * Entry-level source reference. Used to recognise Moneybird-imported lines
+   * (`moneybird:…`) for the hard blocks in #94 — not part of the rubriek math.
+   */
+  readonly sourceDocumentRef?: string | null
 }
 
 /** A line as it appears in the reconciliation report, with its contribution. */
@@ -94,8 +99,63 @@ export type VatFindingCode =
   | 'code_declares_no_vat'
   | 'code_declares_no_base'
   | 'untagged_control_movement'
+  | 'moneybird_untagged_vat'
+  | 'moneybird_self_assessed_unsupported'
   | 'rate_mismatch'
   | 'control_account_difference'
+
+/** Moneybird-imported journal entries carry this prefix on `sourceDocumentRef`. */
+export function isMoneybirdSource(sourceDocumentRef: string | null | undefined): boolean {
+  return typeof sourceDocumentRef === 'string' && sourceDocumentRef.startsWith('moneybird:')
+}
+
+/**
+ * Purchase codes that need a self-assessed VAT pair (2a/4a/4b + 5b). Moneybird
+ * does not book that pair yet (#95); until it does, those documents block.
+ */
+export function purchaseCodeNeedsSelfAssessedVat(rule: {
+  readonly reverseCharge?: string | null
+  readonly scope?: string | null
+}): boolean {
+  const reverseCharge = rule.reverseCharge ?? 'none'
+  const scope = rule.scope ?? ''
+  return (
+    (reverseCharge !== 'none' && reverseCharge !== '') ||
+    scope === 'intra_community_acquisition' ||
+    scope === 'import'
+  )
+}
+
+/** Plain-text banner for VAT exports when Moneybird VAT is missing from the return. */
+export function moneybirdUntaggedVatExportBanner(locale: 'nl' | 'en'): string {
+  return locale === 'nl'
+    ? 'Let op: de btw-totalen in deze export (1a, 5b) missen de btw van geïmporteerde Moneybird-documenten.'
+    : 'Note: the VAT totals in this export (1a, 5b) leave out the VAT of imported Moneybird documents.'
+}
+
+/** Plain-text banner when reverse-charge / intra-EU Moneybird documents are present. */
+export function moneybirdSelfAssessedExportBanner(locale: 'nl' | 'en'): string {
+  return locale === 'nl'
+    ? 'Let op: deze export mist de zelf af te dragen btw (2a/4a/4b en 5b) van geïmporteerde Moneybird-documenten met verlegging of EU-inkoop. Klopt kan die nog niet importeren (zie issue #95).'
+    : 'Note: this export leaves out self-assessed VAT (2a/4a/4b and 5b) from imported Moneybird reverse-charge or intra-EU documents. Klopt cannot import those yet (see issue #95).'
+}
+
+/** Export banners for the Moneybird hard-block findings present on a return. */
+export function moneybirdVatExportWarnings(
+  vatReturn: Pick<VatReturn, 'findings'>,
+  locale: 'nl' | 'en',
+): readonly string[] {
+  const warnings: string[] = []
+  if (vatReturn.findings.some((finding) => finding.code === 'moneybird_untagged_vat')) {
+    warnings.push(moneybirdUntaggedVatExportBanner(locale))
+  }
+  if (
+    vatReturn.findings.some((finding) => finding.code === 'moneybird_self_assessed_unsupported')
+  ) {
+    warnings.push(moneybirdSelfAssessedExportBanner(locale))
+  }
+  return warnings
+}
 
 export interface VatFinding {
   readonly code: VatFindingCode
@@ -227,6 +287,11 @@ export function buildVatReturn(request: VatReturnRequest): VatReturn {
       a.lineNumber - b.lineNumber,
   )
 
+  // Moneybird entries that use a reverse-charge / intra-EU purchase code. The
+  // importer cannot book the self-assessed pair yet (#95), so those documents
+  // must hard-block the return until they are booked by hand or #95 ships.
+  const moneybirdSelfAssessed = new Map<string, { amount: bigint; lines: VatLineContribution[] }>()
+
   for (const line of ordered) {
     const onControlAccount = controlAccounts.has(line.accountNumber)
 
@@ -234,7 +299,12 @@ export function buildVatReturn(request: VatReturnRequest): VatReturn {
       if (onControlAccount && line.signedMinorUnits !== 0n) {
         const seat = controlBucket(line.accountNumber, line.accountName)
         seat.untagged += line.signedMinorUnits
-        exclude('untagged_control_movement', line, '—', 'tax', line.signedMinorUnits)
+        // Moneybird-imported VAT without a code under-reports 1a/5b and must
+        // not be dismissible as "looks like a Belastingdienst payment" (#94).
+        const exclusion: VatFindingCode = isMoneybirdSource(line.sourceDocumentRef)
+          ? 'moneybird_untagged_vat'
+          : 'untagged_control_movement'
+        exclude(exclusion, line, '—', 'tax', line.signedMinorUnits)
       }
       continue
     }
@@ -248,6 +318,20 @@ export function buildVatReturn(request: VatReturnRequest): VatReturn {
         controlBucket(line.accountNumber, line.accountName).tagged += line.signedMinorUnits
       }
       continue
+    }
+
+    if (
+      isMoneybirdSource(line.sourceDocumentRef) &&
+      purchaseCodeNeedsSelfAssessedVat(rule) &&
+      line.signedMinorUnits !== 0n
+    ) {
+      let seat = moneybirdSelfAssessed.get(line.entryId)
+      if (seat === undefined) {
+        seat = { amount: 0n, lines: [] }
+        moneybirdSelfAssessed.set(line.entryId, seat)
+      }
+      seat.amount += line.signedMinorUnits
+      seat.lines.push(contribution(line, rule.code, line.taxRole, line.signedMinorUnits))
     }
 
     if (onControlAccount) {
@@ -404,11 +488,32 @@ export function buildVatReturn(request: VatReturnRequest): VatReturn {
       message: renderFindingMessage('vat.untagged_control_movement'),
       messageKey: 'vat.untagged_control_movement',
     },
+    {
+      code: 'moneybird_untagged_vat',
+      severity: 'blocking',
+      message: '', // filled below with the document count
+      messageKey: 'vat.moneybird_untagged_vat',
+    },
   ]
 
   for (const kind of EXCLUSIONS) {
     const found = excluded.get(kind.code)
     if (found === undefined) continue
+    if (kind.code === 'moneybird_untagged_vat') {
+      const documentCount = new Set(found.lines.map((entry) => entry.entryId)).size
+      findings.push({
+        code: kind.code,
+        severity: kind.severity,
+        message: renderFindingMessage('vat.moneybird_untagged_vat', {
+          count: String(documentCount),
+        }),
+        messageKey: 'vat.moneybird_untagged_vat',
+        detail: { count: String(documentCount) },
+        amountMinorUnits: found.amount,
+        lines: found.lines,
+      })
+      continue
+    }
     findings.push({
       code: kind.code,
       severity: kind.severity,
@@ -416,6 +521,21 @@ export function buildVatReturn(request: VatReturnRequest): VatReturn {
       messageKey: kind.messageKey,
       amountMinorUnits: found.amount,
       lines: found.lines,
+    })
+  }
+
+  if (moneybirdSelfAssessed.size > 0) {
+    const lines = [...moneybirdSelfAssessed.values()].flatMap((seat) => seat.lines)
+    const amount = [...moneybirdSelfAssessed.values()].reduce((sum, seat) => sum + seat.amount, 0n)
+    const count = String(moneybirdSelfAssessed.size)
+    findings.push({
+      code: 'moneybird_self_assessed_unsupported',
+      severity: 'blocking',
+      message: renderFindingMessage('vat.moneybird_self_assessed_unsupported', { count }),
+      messageKey: 'vat.moneybird_self_assessed_unsupported',
+      detail: { count },
+      amountMinorUnits: amount,
+      lines,
     })
   }
 

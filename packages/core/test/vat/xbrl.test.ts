@@ -529,6 +529,29 @@ describe('presentFilingSummary', () => {
     expect(text).toContain('Terug te vragen: 105 euro')
   })
 
+  it('puts Moneybird VAT export banners on the instance and the Dutch summary', () => {
+    const lines = [
+      line('1300', 121_000n, { sourceDocumentRef: 'moneybird:1:sales_invoice:1' }),
+      line('8000', -100_000n, {
+        taxCode: 'H21',
+        taxRole: 'base',
+        sourceDocumentRef: 'moneybird:1:sales_invoice:1',
+      }),
+      line('1500', -21_000n, { sourceDocumentRef: 'moneybird:1:sales_invoice:1' }),
+    ]
+    const instance = instanceFor(lines)
+    expect(instance.warnings.some((warning) => /Moneybird|1a, 5b/i.test(warning))).toBe(true)
+    const text = presentFilingSummary(instance, {
+      period: parseVatPeriodCode('2026-Q1'),
+      legalName: 'Test Beheer B.V.',
+      vatNumber: 'NL123456789B01',
+      isSuppletie: false,
+      generatedOn: '2026-04-02',
+    })
+    expect(text).toContain('LET OP')
+    expect(text).toMatch(/Moneybird|1a en 5b|1a, 5b/i)
+  })
+
   it('puts the warnings where somebody will see them', () => {
     const unverified = instanceFor(SALE, { verified: false, provenance: 'hand-authored' })
     const text = presentFilingSummary(unverified, {

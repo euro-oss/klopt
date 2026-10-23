@@ -424,7 +424,10 @@ describe('the reconciliation, which blocks', () => {
     ])
 
     expect(result.blocked).toBe(true)
-    expect(result.findings.some((entry) => entry.code === 'no_rule_in_force')).toBe(true)
+    const finding = result.findings.find((entry) => entry.code === 'no_rule_in_force')
+    expect(finding?.severity).toBe('blocking')
+    // Way forward: extend validity under Beheer → Btw-codes, or use a covered year.
+    expect(finding?.message).toMatch(/Btw-codes|valid from|validity/i)
     expect(result.findings.some((entry) => entry.code === 'unknown_tax_code')).toBe(false)
   })
 
@@ -455,6 +458,44 @@ describe('the reconciliation, which blocks', () => {
     expect(payable?.untaggedMovementMinorUnits).toBe(18_000n)
     // The payment is not a difference: the tagged movement still reconciles.
     expect(payable?.differenceMinorUnits).toBe(0n)
+  })
+
+  it('hard-blocks Moneybird-imported untagged VAT on a control account', () => {
+    const result = build([
+      line('1300', 121_000n, { sourceDocumentRef: 'moneybird:1:sales_invoice:301' }),
+      line('8000', -100_000n, {
+        taxCode: 'H21',
+        taxRole: 'base',
+        sourceDocumentRef: 'moneybird:1:sales_invoice:301',
+      }),
+      line('1500', -21_000n, { sourceDocumentRef: 'moneybird:1:sales_invoice:301' }),
+    ])
+
+    expect(result.blocked).toBe(true)
+    const finding = result.findings.find((entry) => entry.code === 'moneybird_untagged_vat')
+    expect(finding?.severity).toBe('blocking')
+    expect(finding?.detail?.count).toBe('1')
+    expect(finding?.messageKey).toBe('vat.moneybird_untagged_vat')
+    expect(result.findings.some((entry) => entry.code === 'untagged_control_movement')).toBe(false)
+    expect(rubriekAmounts(result, '1a').vatMinorUnits).toBe(0n)
+  })
+
+  it('hard-blocks Moneybird reverse-charge / intra-EU purchase codes until #95', () => {
+    const result = build([
+      line('4000', 100_000n, {
+        taxCode: 'ICV21',
+        taxRole: 'base',
+        sourceDocumentRef: 'moneybird:1:purchase_invoice:401',
+      }),
+      line('1600', -100_000n, { sourceDocumentRef: 'moneybird:1:purchase_invoice:401' }),
+    ])
+
+    expect(result.blocked).toBe(true)
+    const finding = result.findings.find(
+      (entry) => entry.code === 'moneybird_self_assessed_unsupported',
+    )
+    expect(finding?.severity).toBe('blocking')
+    expect(finding?.detail?.count).toBe('1')
   })
 
   it('warns when a rubriek declares VAT its own base and rate do not produce', () => {

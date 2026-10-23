@@ -1175,6 +1175,9 @@ export const nl = {
   'vatReturn.finding.code_declares_no_vat': 'BTW geboekt op een 0%-code',
   'vatReturn.finding.code_declares_no_base': 'Grondslag zonder rubriek',
   'vatReturn.finding.untagged_control_movement': 'Mutatie op een BTW-rekening zonder code',
+  'vatReturn.finding.moneybird_untagged_vat': 'Btw van Moneybird-import ontbreekt in de aangifte',
+  'vatReturn.finding.moneybird_self_assessed_unsupported':
+    'Moneybird-inkoop met verlegging of EU nog niet te importeren',
   'vatReturn.finding.rate_mismatch': 'BTW wijkt af van grondslag maal tarief',
   'vatReturn.finding.control_account_difference': 'BTW-rekening sluit niet aan',
 
@@ -1611,6 +1614,10 @@ export const nl = {
     'Btw-tarief {name} heeft geen percentage, maar {count} document toont nog btw ({references}). Koppelen aan 0% zou die btw uit de aangifte laten vallen — pas eerst het tarief of de documenten in Moneybird aan.',
   'finding.moneybird.null_percentage_vat_mismatch_other':
     'Btw-tarief {name} heeft geen percentage, maar {count} documenten tonen nog btw ({references}). Koppelen aan 0% zou die btw uit de aangifte laten vallen — pas eerst het tarief of de documenten in Moneybird aan.',
+  'finding.moneybird.self_assessed_vat_unsupported':
+    'Klopt kan inkopen met btw-verlegging of uit de EU nog niet uit Moneybird importeren. {reference} is gekoppeld aan {taxCode}, en daar hoort zelf af te dragen btw in rubriek 2a/4a/4b en 5b bij. Boek die inkoop zelf in Klopt, of wacht op de update — je kunt hem pas importeren als dat kan.',
+  'finding.moneybird.tax_code_not_in_force':
+    '{reference} is gedateerd op {bookingDate}, maar btw-code {taxCode} geldt niet op die datum. Ga naar Beheer → Btw-codes en verleng de geldigheid (geldig vanaf) zodat die datum eronder valt, of importeer in een jaar waarvan de codes die datum al dekken.',
   'finding.moneybird.account_number_collision':
     'Moneybird gaf grootboeknummer {number} twee keer terug ({name}).',
   'finding.moneybird.contact_number_collision':
@@ -1654,6 +1661,10 @@ export const nl = {
     'Moneybird boekte echte btw op een tarief zonder percentage. Als je dit aan 0% koppelt, verdwijnt die btw stilzwijgend uit de aangifte.',
   'finding.why.moneybird.null_percentage_vat_mismatch_other':
     'Moneybird boekte echte btw op een tarief zonder percentage. Als je dit aan 0% koppelt, verdwijnt die btw stilzwijgend uit de aangifte.',
+  'finding.why.moneybird.self_assessed_vat_unsupported':
+    'Zonder de zelf af te dragen btw ontbreken rubriek 2a/4a/4b en 5b; indienen zou te weinig btw aangeven.',
+  'finding.why.moneybird.tax_code_not_in_force':
+    'Zonder geldige code op de boekdatum kan de aangifte die regels niet plaatsen.',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Zonder eenduidige richting kan geen btw-code gekozen worden; de import blijft geblokkeerd tot Moneybird één kant aangeeft.',
   'finding.why.moneybird.account_number_collision':
@@ -2547,13 +2558,17 @@ export const nl = {
   'finding.vat.control_account_difference':
     'Rekening {accountNumber} {accountName} bewoog {taggedMovementMinorUnits} op regels met een btw-code, terwijl de aangifte {declaredMinorUnits} aangeeft (in centen). Het verschil is de btw die geen rubriek bereikte — de bevindingen hierboven noemen elke regel ervan.',
   'finding.vat.no_rule_in_force':
-    'Er bestaat wel een btw-code, maar geen regel die geldt op de boekdatum, dus die regels kunnen aan geen rubriek worden toegewezen. Verleng de geldigheid van de code of boek de posten anders.',
+    'Er bestaat wel een btw-code, maar geen regel die geldt op de boekdatum, dus die regels kunnen aan geen rubriek worden toegewezen. Ga naar Beheer → Btw-codes en verleng de geldigheid (geldig vanaf) zodat de boekdatum eronder valt, of boek de documenten in een jaar waarvan de codes die datum al dekken.',
   'finding.vat.rate_mismatch':
     'Rubriek {id} geeft btw aan die zijn eigen grondslag en tarief niet opleveren. Verwacht ongeveer {expected}, gevonden {vatMinorUnits} (in centen). Een handmatige correctie verklaart dit; een verkeerd gecodeerde regel ook.',
   'finding.vat.unknown_tax_code':
     'Journaalregels dragen een btw-code die met geen enkele ingestelde code overeenkomt, dus hun btw staat wel in de boeken maar niet in de aangifte.',
   'finding.vat.untagged_control_movement':
     'Een btw-tussenrekening bewoog zonder btw-code. Een betaling aan of teruggaaf van de Belastingdienst ziet er precies zo uit, en met de hand geboekte btw ook.',
+  'finding.vat.moneybird_untagged_vat':
+    'Btw van geïmporteerde Moneybird-documenten ontbreekt. Klopt telt de btw van {count} documenten uit Moneybird nu niet mee in rubriek 1a en 5b. De btw in die rubrieken is daardoor te laag. Je kunt deze periode pas indienen als dit is opgelost.',
+  'finding.vat.moneybird_self_assessed_unsupported':
+    'Klopt kan inkopen met btw-verlegging of uit de EU nog niet uit Moneybird importeren ({count} documenten). Daar hoort zelf af te dragen btw in rubriek 2a/4a/4b en 5b bij, en die boekt de import niet. Boek die inkopen zelf in Klopt, of wacht op de update die dit wel kan — je kunt deze periode pas indienen als dat is gedaan.',
   'finding.xaf.accounts_without_rgs':
     '{unmapped} van de {total} rekeningen hebben geen RGS-referentiecode: {accounts}',
   'finding.xaf.date_outside_fiscal_year': '{trDt} valt buiten het boekjaar uit de header.',

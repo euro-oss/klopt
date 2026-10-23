@@ -32,6 +32,10 @@ export const Route = createFileRoute('/api/v1/exports/audit-file')({
               'content-disposition': `attachment; filename="${result.filename}"`,
               'x-klopt-line-count': String(result.lineCount),
               'x-klopt-warnings': String(result.warnings.length),
+              // Messages, not only a count — CLI/MCP print these (#94 Legal).
+              'x-klopt-warning-messages': JSON.stringify(
+                result.warnings.map((warning) => warning.message),
+              ),
               'x-request-id': context.requestId,
             },
           })

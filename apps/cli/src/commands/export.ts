@@ -29,11 +29,15 @@ export const exportAuditFile: Command = {
     }
 
     const year = requireOption(args, 'year')
-    const xml = await client.getText('/exports/audit-file', {
+    const { text: xml, warningMessages } = await client.getTextWithMeta('/exports/audit-file', {
       fiscalYear: year,
       fromPeriod: optionOf(args, 'from'),
       toPeriod: optionOf(args, 'to'),
     })
+
+    for (const warning of warningMessages) {
+      err(`Warning: ${warning}`)
+    }
 
     const target = optionOf(args, 'out')
     if (target === undefined) {
