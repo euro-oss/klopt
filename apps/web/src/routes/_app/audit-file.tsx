@@ -83,34 +83,42 @@ function AuditFile() {
   const [problems, setProblems] = useState<readonly string[] | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [preview, setPreview] = useState<{ xml: string; report: ImportReport } | null>(null)
-  const [moneybirdGap, setMoneybirdGap] = useState(false)
+  // Soft Moneybird VAT gap for the selected year — same signal as the XAF
+  // warning header (Designer #96). Year is stored with the flag so a year
+  // change hides the banner without a synchronous setState in the effect.
+  const [moneybirdGapForYear, setMoneybirdGapForYear] = useState<{
+    readonly year: string
+    readonly gap: boolean
+  } | null>(null)
   const file = useRef<HTMLInputElement>(null)
 
   const mayImport = may(MAY_IMPORT_AUDIT_FILE, role)
   const mayExport = may(MAY_EXPORT_AUDIT_FILE, role)
+  const moneybirdGap =
+    mayExport &&
+    exportYear !== '' &&
+    moneybirdGapForYear?.year === exportYear &&
+    moneybirdGapForYear.gap
 
-  // Soft Moneybird VAT gap for the selected year — same signal as the XAF
-  // warning header, shown next to the download (Designer #96).
   useEffect(() => {
-    if (!mayExport || exportYear === '') {
-      setMoneybirdGap(false)
-      return
-    }
+    if (!mayExport || exportYear === '') return
+    const year = exportYear
     let cancelled = false
-    void getVatReturn({ data: { period: exportYear } }).then((result) => {
+    void getVatReturn({ data: { period: year } }).then((result) => {
       if (cancelled) return
       if (!result.ok) {
-        setMoneybirdGap(false)
+        setMoneybirdGapForYear({ year, gap: false })
         return
       }
       const findings = result.data.findings ?? []
-      setMoneybirdGap(
-        findings.some(
+      setMoneybirdGapForYear({
+        year,
+        gap: findings.some(
           (finding) =>
             finding.code === 'moneybird_untagged_vat' ||
             finding.code === 'moneybird_self_assessed_unsupported',
         ),
-      )
+      })
     })
     return () => {
       cancelled = true
