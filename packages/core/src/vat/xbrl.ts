@@ -3,7 +3,13 @@ import { formatMinorUnits } from '../format/index.js'
 import { XmlWriter, decimalString } from '../xml/writer.js'
 import { RUBRIEKEN, findRubriek } from './rubrieken.js'
 import type { VatPeriod } from './period.js'
-import { rubriekAmounts, type VatReturn } from './return.js'
+import {
+  moneybirdSelfAssessedExportBanner,
+  moneybirdUntaggedVatExportBanner,
+  moneybirdVatExportWarnings,
+  rubriekAmounts,
+  type VatReturn,
+} from './return.js'
 import type { TaxonomyMapping } from './taxonomy.js'
 
 /**
@@ -239,6 +245,8 @@ export function generateVatInstance(request: VatInstanceRequest): VatInstance {
     )
   }
 
+  warnings.push(...moneybirdVatExportWarnings(vatReturn, 'en').map((warning) => warning.message))
+
   const identifier = omzetbelastingnummer(request.vatNumber)
   const contextId = request.isSuppletie ? 'suppletie' : 'aangifte'
   const unitId = 'EUR'
@@ -387,6 +395,22 @@ export function presentFilingSummary(
     notes.push(
       `De aangifte gaat in hele euro’s. Daardoor staat er ${magnitude} ${drift < 0n ? 'minder' : 'meer'} op de aangifte dan in het grootboek. Elke rubriek is apart afgerond en de totalen zijn uit die afgeronde rubrieken berekend, zodat het formulier met zichzelf klopt.`,
     )
+  }
+  for (const warning of instance.warnings) {
+    if (warning.startsWith('Taxonomy mapping') || warning.startsWith('The instance declares')) {
+      continue
+    }
+    // Moneybird export banners are already localized EN on the instance; the
+    // human summary is Dutch, so re-emit the NL form when we recognise them.
+    if (warning === moneybirdUntaggedVatExportBanner('en')) {
+      notes.push(moneybirdUntaggedVatExportBanner('nl'))
+      continue
+    }
+    if (warning === moneybirdSelfAssessedExportBanner('en')) {
+      notes.push(moneybirdSelfAssessedExportBanner('nl'))
+      continue
+    }
+    notes.push(warning)
   }
 
   if (notes.length > 0) {

@@ -1,6 +1,7 @@
 import { renderFindingMessage, type FindingMessageKey } from '../finding-messages.js'
 import type { AccountType, JournalLineInput } from '../ledger/types.js'
 import type { MoneybirdAdministration } from '../ports/moneybird.js'
+import { purchaseCodeNeedsSelfAssessedVat } from '../vat/return.js'
 import { applyFxToLines, type FxRateChoice } from './fx.js'
 import {
   isSpecialAcquisitionPurchaseRate,
@@ -40,6 +41,9 @@ export type MoneybirdProblemCode =
   | 'unmapped_account'
   | 'unmapped_tax_rate'
   | 'incompatible_tax_rate'
+  | 'null_percentage_vat_mismatch'
+  | 'self_assessed_vat_unsupported'
+  | 'tax_code_not_in_force'
   | 'account_number_collision'
   | 'contact_number_collision'
   | 'resource_unreadable'
@@ -108,6 +112,9 @@ export interface ExistingTaxRule {
   readonly reverseCharge?: string
   readonly deductionCode?: string | null
   readonly deductibility?: string
+  /** Validity window — when set, documents outside it raise `tax_code_not_in_force`. */
+  readonly validFrom?: string
+  readonly validTo?: string | null
 }
 
 /**
@@ -358,12 +365,38 @@ function line(
   return { ...blankLine, accountNumber, description, debit, credit, ...extra }
 }
 
-function qtyOf(amount: string | null): number {
-  if (amount === null) return 1
-  const match = /(-?\d+(?:\.\d+)?)/.exec(amount.replace(',', '.'))
-  if (match?.[1] === undefined) return 1
-  const value = Number(match[1])
-  return Number.isFinite(value) && value !== 0 ? value : 1
+/** Greatest common divisor of two non-negative bigints. */
+function gcd(a: bigint, b: bigint): bigint {
+  let x = a < 0n ? -a : a
+  let y = b < 0n ? -b : b
+  while (y !== 0n) {
+    const t = y
+    y = x % y
+    x = t
+  }
+  return x === 0n ? 1n : x
+}
+
+/**
+ * Moneybird line quantity as an exact fraction (supports "2.5", "2,5", "1 x").
+ * Null / unparseable / zero → 1, matching the previous `qtyOf` default.
+ */
+function parseQtyFraction(amount: string | null): { readonly num: bigint; readonly den: bigint } {
+  if (amount === null) return { num: 1n, den: 1n }
+  const match = /(-?\d+(?:[.,]\d+)?)/.exec(amount)
+  if (match?.[1] === undefined) return { num: 1n, den: 1n }
+  const raw = match[1].replace(',', '.')
+  const neg = raw.startsWith('-')
+  const body = neg ? raw.slice(1) : raw
+  const dot = body.indexOf('.')
+  const whole = dot === -1 ? body : body.slice(0, dot)
+  const frac = dot === -1 ? '' : body.slice(dot + 1)
+  const den = 10n ** BigInt(frac.length)
+  const num = BigInt(whole === '' ? '0' : whole) * den + BigInt(frac === '' ? '0' : frac)
+  if (num === 0n) return { num: 1n, den: 1n }
+  const signed = neg ? -num : num
+  const g = gcd(signed, den)
+  return { num: signed / g, den: den / g }
 }
 
 function percentageText(value: number): string {
@@ -409,10 +442,252 @@ function incompatibleTaxRateMessageKey(
   return 'moneybird.incompatible_tax_rate'
 }
 
-/** VAT amount from net and a Moneybird percentage; non-finite rates contribute 0. */
-function taxFromPercent(net: bigint, percent: number): bigint {
+/** Half-up division of non-negative integers. */
+function divideHalfUp(numerator: bigint, denominator: bigint): bigint {
+  if (denominator === 0n) return 0n
+  return (numerator * 2n + denominator) / (denominator * 2n)
+}
+
+/** Half-up division that preserves the sign of `numerator / denominator`. */
+function divideHalfUpSigned(numerator: bigint, denominator: bigint): bigint {
+  if (denominator === 0n) return 0n
+  const neg = numerator < 0n !== denominator < 0n
+  const n = numerator < 0n ? -numerator : numerator
+  const d = denominator < 0n ? -denominator : denominator
+  const q = divideHalfUp(n, d)
+  return neg ? -q : q
+}
+
+/**
+ * Signed line amount in minor units: `price × qty` with exact decimal qty
+ * (no `Math.round` on quantity). Half-up only when the product is not an
+ * integer number of cents (#90 PM follow-up).
+ */
+function signedLineMinor(detail: {
+  readonly amount: string | null
+  readonly price: bigint
+}): bigint {
+  const { num, den } = parseQtyFraction(detail.amount)
+  return divideHalfUpSigned(detail.price * num, den)
+}
+
+/**
+ * Signed line VAT: half-up on the final per-line tax only. Uses exact decimal
+ * quantities and keeps the sign of `price × qty` (discount / credit lines).
+ * When prices include VAT, tax is `round(gross × rate / (100 + rate))`.
+ */
+function signedLineTaxHalfUp(
+  detail: { readonly amount: string | null; readonly price: bigint },
+  percent: number,
+  pricesAreInclTax: boolean,
+): bigint {
   if (!Number.isFinite(percent) || percent === 0) return 0n
-  return (net * BigInt(Math.round(percent * 100))) / 10000n
+  const { num, den } = parseQtyFraction(detail.amount)
+  if (detail.price === 0n || num === 0n) return 0n
+  const bps = BigInt(Math.round(percent * 100))
+  if (pricesAreInclTax) {
+    return divideHalfUpSigned(detail.price * num * bps, den * (10000n + bps))
+  }
+  return divideHalfUpSigned(detail.price * num * bps, den * 10000n)
+}
+
+/**
+ * True when a document that uses a null-% rate has a `totalTax` that cannot be
+ * explained by its taxed lines (#90 PM):
+ *
+ * - Only null / 0% lines → zero tolerance (any VAT blocks).
+ * - Mixed with taxed lines → signed half-up line VAT, allow ≤ 1 cent per taxed line.
+ */
+function documentNullPercentageVatMismatch(
+  details: readonly {
+    readonly amount: string | null
+    readonly price: bigint
+    readonly taxRateId: string | null
+  }[],
+  totalTax: bigint,
+  taxPercentById: ReadonlyMap<string, number>,
+  nullRateIds: ReadonlySet<string>,
+  pricesAreInclTax: boolean,
+): boolean {
+  const usedNull = details.some(
+    (detail) => detail.taxRateId !== null && nullRateIds.has(detail.taxRateId),
+  )
+  if (!usedNull) return false
+
+  let taxedLines = 0n
+  let expected = 0n
+  for (const detail of details) {
+    if (detail.taxRateId === null) continue
+    if (nullRateIds.has(detail.taxRateId)) continue
+    const raw = taxPercentById.get(detail.taxRateId) ?? Number.NaN
+    if (!Number.isFinite(raw) || raw === 0) continue
+    taxedLines += 1n
+    expected += signedLineTaxHalfUp(detail, raw, pricesAreInclTax)
+  }
+
+  if (taxedLines === 0n) return totalTax !== 0n
+  const diff = expected > totalTax ? expected - totalTax : totalTax - expected
+  return diff > taxedLines
+}
+
+/**
+ * Debit/credit for a signed line amount: positive follows `favorCredit`,
+ * negative flips sides (discount lines on a normal document).
+ */
+function signedDebitCredit(
+  amount: bigint,
+  favorCredit: boolean,
+): { readonly debit: bigint; readonly credit: bigint } {
+  if (amount === 0n) return { debit: 0n, credit: 0n }
+  if (amount > 0n) {
+    return favorCredit ? { debit: 0n, credit: amount } : { debit: amount, credit: 0n }
+  }
+  const abs = -amount
+  return favorCredit ? { debit: abs, credit: 0n } : { debit: 0n, credit: abs }
+}
+
+/**
+ * VAT control lines tagged like native sales/purchase posting: one `taxRole:
+ * 'tax'` line per mapped code, amounts from the base lines' `taxAmount`.
+ * Residual vs `totalTax` (rounding) lands on the largest group so the entry
+ * still balances.
+ */
+function pushTaggedVatLines(
+  lines: JournalLineInput[],
+  options: {
+    readonly vatAccount: string
+    readonly totalTax: bigint
+    readonly favorCredit: boolean
+    readonly description: string
+  },
+): void {
+  if (options.totalTax === 0n) return
+
+  const byCode = new Map<string, bigint>()
+  for (const item of lines) {
+    if (item.taxRole !== 'base' || item.taxCode === null || item.taxAmount === null) continue
+    if (item.taxAmount === 0n) continue
+    byCode.set(item.taxCode, (byCode.get(item.taxCode) ?? 0n) + item.taxAmount)
+  }
+
+  if (byCode.size === 0) {
+    // No mapped base tax to split — keep a single untagged line so the entry
+    // still balances; the return's moneybird_untagged_vat hard block will fire.
+    const vatSides = signedDebitCredit(options.totalTax, options.favorCredit)
+    lines.push(line(options.vatAccount, vatSides.debit, vatSides.credit, options.description))
+    return
+  }
+
+  let sum = 0n
+  for (const amount of byCode.values()) sum += amount
+  if (sum !== options.totalTax) {
+    let largestCode: string | null = null
+    let largestAbs = -1n
+    for (const [code, amount] of byCode) {
+      const abs = amount < 0n ? -amount : amount
+      if (abs > largestAbs) {
+        largestAbs = abs
+        largestCode = code
+      }
+    }
+    if (largestCode !== null) {
+      byCode.set(largestCode, (byCode.get(largestCode) ?? 0n) + (options.totalTax - sum))
+    }
+  }
+
+  for (const [taxCode, amount] of [...byCode.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    if (amount === 0n) continue
+    const vatSides = signedDebitCredit(amount, options.favorCredit)
+    lines.push(
+      line(
+        options.vatAccount,
+        vatSides.debit,
+        vatSides.credit,
+        `${taxCode} ${options.description}`,
+        {
+          taxCode,
+          taxRole: 'tax',
+          taxAmount: amount,
+        },
+      ),
+    )
+  }
+}
+
+function ruleInForceOn(
+  rules: readonly ExistingTaxRule[],
+  code: string,
+  onDate: string,
+): ExistingTaxRule | undefined {
+  return rules.find((rule) => {
+    if (rule.code !== code) return false
+    if (rule.validFrom !== undefined && onDate < rule.validFrom) return false
+    if (rule.validTo != null && onDate > rule.validTo) return false
+    return true
+  })
+}
+
+/**
+ * Null-% Moneybird rates whose documents' `totalTax` does not match line VAT
+ * when null-rate lines are treated as 0%. Keyed by tax rate id → document refs.
+ */
+function nullPercentageVatMismatchRefs(
+  snapshot: Pick<MoneybirdSnapshot, 'salesInvoices' | 'purchaseInvoices' | 'receipts' | 'taxRates'>,
+): ReadonlyMap<string, readonly string[]> {
+  const taxPercentById = new Map(snapshot.taxRates.map((rate) => [rate.id, rate.percentage]))
+  const nullRateIds = new Set(
+    snapshot.taxRates.filter((rate) => !Number.isFinite(rate.percentage)).map((rate) => rate.id),
+  )
+  if (nullRateIds.size === 0) return new Map()
+
+  const refsByRate = new Map<string, string[]>()
+  const note = (rateId: string, reference: string): void => {
+    const list = refsByRate.get(rateId)
+    if (list === undefined) refsByRate.set(rateId, [reference])
+    else if (!list.includes(reference)) list.push(reference)
+  }
+
+  for (const invoice of snapshot.salesInvoices) {
+    if (DRAFT_STATES.has(invoice.state)) continue
+    if (
+      !documentNullPercentageVatMismatch(
+        invoice.details,
+        invoice.totalTax,
+        taxPercentById,
+        nullRateIds,
+        invoice.pricesAreInclTax,
+      )
+    ) {
+      continue
+    }
+    for (const detail of invoice.details) {
+      if (detail.taxRateId !== null && nullRateIds.has(detail.taxRateId)) {
+        note(detail.taxRateId, invoice.invoiceId)
+      }
+    }
+  }
+
+  for (const document of [...snapshot.purchaseInvoices, ...snapshot.receipts]) {
+    if (DRAFT_STATES.has(document.state)) continue
+    if (
+      !documentNullPercentageVatMismatch(
+        document.details,
+        document.totalTax,
+        taxPercentById,
+        nullRateIds,
+        document.pricesAreInclTax,
+      )
+    ) {
+      continue
+    }
+    for (const detail of document.details) {
+      if (detail.taxRateId !== null && nullRateIds.has(detail.taxRateId)) {
+        note(detail.taxRateId, document.reference)
+      }
+    }
+  }
+
+  return refsByRate
 }
 
 /**
@@ -435,9 +710,18 @@ export function resolveMoneybirdTaxRateType(
   return rate.taxRateType
 }
 
+/**
+ * Percentage used for chart matching. A null / missing Moneybird percentage
+ * (stored as NaN) is treated as 0% so "Geen btw" can map to VGEEN / 0% sales
+ * codes — never auto-confirmed; the user still picks (#90).
+ */
+function matchingPercentage(rate: MoneybirdTaxRate): number {
+  return Number.isFinite(rate.percentage) ? rate.percentage : 0
+}
+
 function rateForMatching(rate: MoneybirdTaxRate, taxRateType: string): VatMatchQuery {
   return {
-    percentage: rate.percentage,
+    percentage: matchingPercentage(rate),
     taxRateType,
     excludeOutOfScopeInput:
       taxRateType === 'purchase_invoice' && isSpecialAcquisitionPurchaseRate(rate),
@@ -468,12 +752,12 @@ function vatCandidatesFor(
   }))
 }
 
-/** True when direction + finite rate are known so matchVatCodes can decide. */
-function taxRateDecidable(rate: MoneybirdTaxRate, taxRateType: string): boolean {
-  return (
-    (taxRateType === 'sales_invoice' || taxRateType === 'purchase_invoice') &&
-    Number.isFinite(rate.percentage)
-  )
+/**
+ * True when direction is known so matchVatCodes can decide. A missing
+ * percentage is decidable as 0% (#90); mixed/unknown direction is not.
+ */
+function taxRateDecidable(_rate: MoneybirdTaxRate, taxRateType: string): boolean {
+  return taxRateType === 'sales_invoice' || taxRateType === 'purchase_invoice'
 }
 
 /** True when a confirmed mapping is direction- and rate-compatible with the chart. */
@@ -482,9 +766,15 @@ function taxMappingCompatible(
   taxRateType: string,
   code: string,
   rules: readonly ExistingTaxRule[],
+  options: { readonly refuseZeroPercent?: boolean } = {},
 ): boolean {
   if (!taxRateDecidable(rate, taxRateType)) return false
-  return matchVatCodes(rules, rateForMatching(rate, taxRateType)).some((rule) => rule.code === code)
+  const matches = matchVatCodes(rules, rateForMatching(rate, taxRateType))
+  const hit = matches.find((rule) => rule.code === code)
+  if (hit === undefined) return false
+  // Null-% rate whose documents still carry VAT: never accept a 0% Klopt code (#90 PM).
+  if (options.refuseZeroPercent === true && hit.rateBasisPoints === 0) return false
+  return true
 }
 
 /**
@@ -498,6 +788,7 @@ export function findIncompatibleTaxMappings(
   mappings: Readonly<Record<string, string>>,
 ): readonly MoneybirdProblem[] {
   const existingTaxCodes = new Set(rules.map((rule) => rule.code))
+  const vatMismatchRates = nullPercentageVatMismatchRefs(snapshot)
   const found: MoneybirdProblem[] = []
   for (const rate of snapshot.taxRates) {
     const confirmedRaw = mappings[rate.id]?.trim() || null
@@ -520,7 +811,8 @@ export function findIncompatibleTaxMappings(
       )
       continue
     }
-    if (!taxMappingCompatible(rate, taxRateType, confirmedRaw, rules)) {
+    const refuseZeroPercent = !Number.isFinite(rate.percentage) && vatMismatchRates.has(rate.id)
+    if (!taxMappingCompatible(rate, taxRateType, confirmedRaw, rules, { refuseZeroPercent })) {
       found.push(
         problem(
           'incompatible_tax_rate',
@@ -713,20 +1005,52 @@ export function planMoneybirdImport(
   }
   for (const account of snapshot.financialAccounts) markAccount(account.ledgerAccountId)
 
+  const vatMismatchByRate = nullPercentageVatMismatchRefs(snapshot)
+  for (const [rateId, refs] of vatMismatchByRate) {
+    const rate = snapshot.taxRates.find((row) => row.id === rateId)
+    if (rate === undefined) continue
+    problems.push(
+      problem(
+        'null_percentage_vat_mismatch',
+        `taxRates.${rateId}`,
+        {
+          name: rate.name,
+          percentage: percentageFindingDetail(rate.percentage),
+          references: refs.join(', '),
+          count: String(refs.length),
+        },
+        refs.length === 1
+          ? 'moneybird.null_percentage_vat_mismatch_one'
+          : 'moneybird.null_percentage_vat_mismatch_other',
+      ),
+    )
+  }
+
   const taxRates: MoneybirdPlannedTaxRate[] = snapshot.taxRates.map((rate) => {
     const taxRateType = resolveMoneybirdTaxRateType(rate, snapshot)
-    const proposed = proposeTaxCode(rate, taxRateType, options.existingTaxRules)
-    const candidates = vatCandidatesFor(rate, taxRateType, options.existingTaxRules)
+    const refuseZeroPercent = !Number.isFinite(rate.percentage) && vatMismatchByRate.has(rate.id)
+    // When documents still carry VAT on a null-% rate, offering 0% codes would
+    // invite a mapping that drops that VAT — leave the picker empty (#90 PM).
+    const candidates = refuseZeroPercent
+      ? []
+      : vatCandidatesFor(rate, taxRateType, options.existingTaxRules)
+    const proposed = refuseZeroPercent
+      ? null
+      : proposeTaxCode(rate, taxRateType, options.existingTaxRules)
     const confirmedRaw = options.confirmedTaxMappings[rate.id]?.trim() || null
     const used = usedTaxRateIds.has(rate.id)
 
     let confirmed: string | null = null
     let incompatible = false
     if (confirmedRaw !== null && existingTaxCodes.has(confirmedRaw)) {
-      // Accept only when direction (declared or derived) + finite rate make the
-      // code a matchVatCodes hit. Unknown / empty / NaN — or a wrong code —
-      // is incompatible_tax_rate; never accept unvalidated (#70 PM).
-      if (!taxMappingCompatible(rate, taxRateType, confirmedRaw, options.existingTaxRules)) {
+      // Accept only when direction (declared or derived) + rate (missing → 0%)
+      // make the code a matchVatCodes hit. Unknown direction or a wrong code
+      // is incompatible_tax_rate; never accept unvalidated (#70 / #90).
+      if (
+        !taxMappingCompatible(rate, taxRateType, confirmedRaw, options.existingTaxRules, {
+          refuseZeroPercent,
+        })
+      ) {
         incompatible = true
         problems.push(
           problem(
@@ -750,8 +1074,9 @@ export function planMoneybirdImport(
     // the finding asks the user to choose again (#70).
     const mappedCode = confirmed ?? (incompatible ? null : proposed)
     const mapped = mappedCode !== null && existingTaxCodes.has(mappedCode)
-    // incompatible_tax_rate already blocks; do not also emit unmapped_tax_rate.
-    if (used && !mapped && !incompatible) {
+    // incompatible_tax_rate / null_percentage_vat_mismatch already block; do
+    // not also emit unmapped_tax_rate for the same rate.
+    if (used && !mapped && !incompatible && !vatMismatchByRate.has(rate.id)) {
       problems.push(
         problem('unmapped_tax_rate', `taxRates.${rate.id}`, {
           name: rate.name,
@@ -1020,6 +1345,10 @@ export function planMoneybirdImport(
     }
 
     const isCredit = invoice.totalExcl < 0n || invoice.originalSalesInvoiceId !== null
+    // Credit notes identified by originalSalesInvoiceId often carry positive
+    // amounts. Normalise their sign before signedDebitCredit so they reverse
+    // like main; already-negative credit notes must not be flipped again (#90).
+    const flipSign = isCredit && invoice.totalExcl >= 0n
     const contactNumber =
       invoice.contactId === null ? null : (contactNumberById.get(invoice.contactId) ?? null)
     const revenueIsCredit = !isCredit
@@ -1036,50 +1365,60 @@ export function planMoneybirdImport(
       ),
     )
 
+    const salesCodesNotInForce = new Set<string>()
     for (const detail of invoice.details) {
-      const quantity = qtyOf(detail.amount)
-      let net = detail.price * BigInt(Math.round(quantity))
       const percent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
+      let tax = signedLineTaxHalfUp(detail, percent, invoice.pricesAreInclTax)
+      let net: bigint
       if (invoice.pricesAreInclTax && Number.isFinite(percent) && percent !== 0) {
-        const grossLine = net
-        net = (grossLine * 10000n) / BigInt(Math.round((100 + percent) * 100))
+        net = signedLineMinor(detail) - tax
+      } else {
+        net = signedLineMinor(detail)
       }
-      if (net < 0n) net = -net
-      if (net === 0n) continue
+      if (flipSign) {
+        net = -net
+        tax = -tax
+      }
+      if (net === 0n && tax === 0n) continue
       const taxCode =
         detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
-      const tax = taxFromPercent(net, percent)
+      if (taxCode !== null) {
+        const known = options.existingTaxRules.some((rule) => rule.code === taxCode)
+        const inForce = ruleInForceOn(options.existingTaxRules, taxCode, invoice.invoiceDate)
+        if (known && inForce === undefined) salesCodesNotInForce.add(taxCode)
+      }
       const accountNumber = resolveAccount(
         detail.ledgerAccountId,
         '8000',
         `salesInvoices.${invoice.id}.details.${detail.id}`,
       )
+      // Signed line amounts: positive revenue credits, discount/credit-note
+      // negatives debit — do not abs() then flip via isCredit (#90 PM).
+      const sides = signedDebitCredit(net, true)
       lines.push(
-        line(
-          accountNumber,
-          revenueIsCredit ? 0n : net,
-          revenueIsCredit ? net : 0n,
-          detail.description || invoice.invoiceId,
-          {
-            taxCode,
-            taxRole: taxCode === null ? null : 'base',
-            taxAmount: taxCode === null ? null : revenueIsCredit ? tax : -tax,
-          },
-        ),
+        line(accountNumber, sides.debit, sides.credit, detail.description || invoice.invoiceId, {
+          taxCode,
+          taxRole: taxCode === null ? null : 'base',
+          taxAmount: taxCode === null ? null : tax,
+        }),
+      )
+    }
+    for (const taxCode of [...salesCodesNotInForce].sort()) {
+      problems.push(
+        problem('tax_code_not_in_force', `salesInvoices.${invoice.id}`, {
+          reference: invoice.invoiceId,
+          bookingDate: invoice.invoiceDate,
+          taxCode,
+        }),
       )
     }
 
-    const tax = invoice.totalTax < 0n ? -invoice.totalTax : invoice.totalTax
-    if (tax !== 0n) {
-      lines.push(
-        line(
-          vatPayableAccount,
-          revenueIsCredit ? 0n : tax,
-          revenueIsCredit ? tax : 0n,
-          `BTW ${invoice.invoiceId}`,
-        ),
-      )
-    }
+    pushTaggedVatLines(lines, {
+      vatAccount: vatPayableAccount,
+      totalTax: flipSign ? -invoice.totalTax : invoice.totalTax,
+      favorCredit: true,
+      description: `BTW ${invoice.invoiceId}`,
+    })
 
     const externalId = `sales_invoice:${invoice.id}`
     pushEntry({
@@ -1115,52 +1454,84 @@ export function planMoneybirdImport(
     }
 
     const isCredit = document.totalExcl < 0n
+    // Same rule as sales: positive-amount purchase credit notes normalise once;
+    // already-negative amounts keep signed behaviour (#90).
+    const flipSign = isCredit && document.totalExcl >= 0n
     const contactNumber =
       document.contactId === null ? null : (contactNumberById.get(document.contactId) ?? null)
     const payableIsCredit = !isCredit
     const lines: JournalLineInput[] = []
     const gross = document.totalIncl < 0n ? -document.totalIncl : document.totalIncl
 
+    const selfAssessedCodes = new Set<string>()
+    const purchaseCodesNotInForce = new Set<string>()
     for (const detail of document.details) {
-      const quantity = qtyOf(detail.amount)
-      let net = detail.price * BigInt(Math.round(quantity))
-      if (net < 0n) net = -net
-      if (net === 0n) continue
+      const percent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
+      let tax = signedLineTaxHalfUp(detail, percent, document.pricesAreInclTax)
+      let net: bigint
+      if (document.pricesAreInclTax && Number.isFinite(percent) && percent !== 0) {
+        net = signedLineMinor(detail) - tax
+      } else {
+        net = signedLineMinor(detail)
+      }
+      if (flipSign) {
+        net = -net
+        tax = -tax
+      }
+      if (net === 0n && tax === 0n) continue
       const taxCode =
         detail.taxRateId === null ? null : (taxById.get(detail.taxRateId)?.mappedCode ?? null)
-      const percent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
-      const tax = taxFromPercent(net, percent)
+      if (taxCode !== null) {
+        const rule = options.existingTaxRules.find((entry) => entry.code === taxCode)
+        if (rule !== undefined && purchaseCodeNeedsSelfAssessedVat(rule)) {
+          selfAssessedCodes.add(taxCode)
+        }
+        const known = rule !== undefined
+        const inForce = ruleInForceOn(options.existingTaxRules, taxCode, document.date)
+        if (known && inForce === undefined) purchaseCodesNotInForce.add(taxCode)
+      }
       const accountNumber = resolveAccount(
         detail.ledgerAccountId,
         '4000',
         `${document.kind}s.${document.id}.details.${detail.id}`,
       )
+      // Signed line amounts: positive expense debits, discount/credit negatives credit.
+      const sides = signedDebitCredit(net, false)
       lines.push(
-        line(
-          accountNumber,
-          payableIsCredit ? net : 0n,
-          payableIsCredit ? 0n : net,
-          detail.description || document.reference,
-          {
-            taxCode,
-            taxRole: taxCode === null ? null : 'base',
-            taxAmount: taxCode === null ? null : payableIsCredit ? tax : -tax,
-          },
-        ),
+        line(accountNumber, sides.debit, sides.credit, detail.description || document.reference, {
+          taxCode,
+          taxRole: taxCode === null ? null : 'base',
+          taxAmount: taxCode === null ? null : tax,
+        }),
       )
     }
 
-    const tax = document.totalTax < 0n ? -document.totalTax : document.totalTax
-    if (tax !== 0n) {
-      lines.push(
-        line(
-          vatReceivableAccount,
-          payableIsCredit ? tax : 0n,
-          payableIsCredit ? 0n : tax,
-          `BTW ${document.reference}`,
-        ),
+    for (const taxCode of [...selfAssessedCodes].sort()) {
+      // Warning only: the document still imports; filing is blocked on the
+      // return until #95 books the self-assessed pair (PM #96).
+      warnings.push(
+        problem('self_assessed_vat_unsupported', `${document.kind}s.${document.id}`, {
+          reference: document.reference,
+          taxCode,
+        }),
       )
     }
+    for (const taxCode of [...purchaseCodesNotInForce].sort()) {
+      problems.push(
+        problem('tax_code_not_in_force', `${document.kind}s.${document.id}`, {
+          reference: document.reference,
+          bookingDate: document.date,
+          taxCode,
+        }),
+      )
+    }
+
+    pushTaggedVatLines(lines, {
+      vatAccount: vatReceivableAccount,
+      totalTax: flipSign ? -document.totalTax : document.totalTax,
+      favorCredit: false,
+      description: `BTW ${document.reference}`,
+    })
 
     lines.push(
       line(

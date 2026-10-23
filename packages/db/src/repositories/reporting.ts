@@ -354,6 +354,8 @@ export class ReportingRepository {
       readonly reverseCharge: string
       readonly deductionCode: string | null
       readonly deductibility: string
+      readonly validFrom: string
+      readonly validTo: string | null
     }[]
   > {
     const rows = await this.tx
@@ -365,6 +367,8 @@ export class ReportingRepository {
         reverseCharge: taxCodes.reverseCharge,
         deductionCode: taxCodes.deductionCode,
         deductibility: taxCodes.deductibility,
+        validFrom: taxCodes.validFrom,
+        validTo: taxCodes.validTo,
       })
       .from(taxCodes)
       .where(eq(taxCodes.entityId, entityId))
@@ -376,6 +380,8 @@ export class ReportingRepository {
       reverseCharge: row.reverseCharge,
       deductionCode: row.deductionCode,
       deductibility: row.deductibility,
+      validFrom: row.validFrom,
+      validTo: row.validTo,
     }))
   }
 

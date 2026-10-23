@@ -69,6 +69,29 @@ const SPECS: Readonly<Record<MoneybirdProblemCode, MoneybirdFixSpec>> = {
     honesty: null,
     changesBooks: false,
   },
+  null_percentage_vat_mismatch: {
+    code: 'null_percentage_vat_mismatch',
+    fixType: 'explainOnly',
+    severity: 'blocking',
+    honesty: null,
+    changesBooks: false,
+  },
+  self_assessed_vat_unsupported: {
+    code: 'self_assessed_vat_unsupported',
+    // Documents import; filing is blocked until #95. Honest dead end on the card.
+    fixType: 'explainOnly',
+    severity: 'warning',
+    honesty: null,
+    changesBooks: false,
+  },
+  tax_code_not_in_force: {
+    code: 'tax_code_not_in_force',
+    // No valid_from edit in #88; #99 tracks that. One-click re-read (#96 designer).
+    fixType: 'oneClick',
+    severity: 'blocking',
+    honesty: null,
+    changesBooks: false,
+  },
   trial_balance_account_missing: {
     code: 'trial_balance_account_missing',
     fixType: 'guided',

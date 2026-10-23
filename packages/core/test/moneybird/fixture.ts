@@ -110,76 +110,265 @@ const CONTACTS = [
   },
 ]
 
+/** Normal sales invoice (€100 + 21% VAT). */
+const SALE_NORMAL = {
+  id: 301,
+  contact_id: 100,
+  invoice_id: '2026-001',
+  state: 'open',
+  invoice_date: '2026-03-01',
+  due_date: '2026-03-31',
+  reference: null,
+  currency: 'EUR',
+  prices_are_incl_tax: false,
+  total_price_excl_tax: '100.00',
+  total_price_incl_tax: '121.00',
+  total_tax: '21.00',
+  original_sales_invoice_id: null,
+  details: [
+    {
+      id: 3011,
+      description: 'Advies',
+      amount: '1',
+      price: '100.00',
+      tax_rate_id: 21,
+      ledger_account_id: 7,
+    },
+  ],
+  attachments: [
+    {
+      id: 901,
+      filename: 'factuur-2026-001.pdf',
+      content_type: 'application/pdf',
+      size: 12,
+      download_url: 'https://moneybird.test/files/901',
+    },
+  ],
+}
+
+/** Sales credit note with negative amounts (signed-line path). */
+const SALE_CREDIT_NEGATIVE = {
+  id: 303,
+  contact_id: 100,
+  invoice_id: '2026-CN-NEG',
+  state: 'open',
+  invoice_date: '2026-03-08',
+  due_date: '2026-03-31',
+  reference: null,
+  currency: 'EUR',
+  prices_are_incl_tax: false,
+  total_price_excl_tax: '-100.00',
+  total_price_incl_tax: '-121.00',
+  total_tax: '-21.00',
+  original_sales_invoice_id: null,
+  details: [
+    {
+      id: 3031,
+      description: 'Credit advies',
+      amount: '1',
+      price: '-100.00',
+      tax_rate_id: 21,
+      ledger_account_id: 7,
+    },
+  ],
+  attachments: [],
+}
+
+/**
+ * Sales credit note identified only by original_sales_invoice_id with positive
+ * line amounts (Moneybird link shape — sign must be normalised before booking).
+ */
+const SALE_CREDIT_POSITIVE_LINKED = {
+  id: 304,
+  contact_id: 100,
+  invoice_id: '2026-CN-POS',
+  state: 'open',
+  invoice_date: '2026-03-09',
+  due_date: '2026-03-31',
+  reference: null,
+  currency: 'EUR',
+  prices_are_incl_tax: false,
+  total_price_excl_tax: '100.00',
+  total_price_incl_tax: '121.00',
+  total_tax: '21.00',
+  original_sales_invoice_id: 301,
+  details: [
+    {
+      id: 3041,
+      description: 'Credit advies (linked)',
+      amount: '1',
+      price: '100.00',
+      tax_rate_id: 21,
+      ledger_account_id: 7,
+    },
+  ],
+  attachments: [],
+}
+
+/** Sales invoice with a discount line (+€100, −€10, VAT €18.90). */
+const SALE_WITH_DISCOUNT = {
+  id: 305,
+  contact_id: 100,
+  invoice_id: '2026-DISC',
+  state: 'open',
+  invoice_date: '2026-03-12',
+  due_date: '2026-04-12',
+  reference: null,
+  currency: 'EUR',
+  prices_are_incl_tax: false,
+  total_price_excl_tax: '90.00',
+  total_price_incl_tax: '108.90',
+  total_tax: '18.90',
+  original_sales_invoice_id: null,
+  details: [
+    {
+      id: 3051,
+      description: 'Advies',
+      amount: '1',
+      price: '100.00',
+      tax_rate_id: 21,
+      ledger_account_id: 7,
+    },
+    {
+      id: 3052,
+      description: 'Korting',
+      amount: '1',
+      price: '-10.00',
+      tax_rate_id: 21,
+      ledger_account_id: 7,
+    },
+  ],
+  attachments: [],
+}
+
+/** Sales invoice with a fractional quantity (2.5 × €40 = €100 + VAT). */
+const SALE_FRACTIONAL_QTY = {
+  id: 306,
+  contact_id: 100,
+  invoice_id: '2026-FRAC',
+  state: 'open',
+  invoice_date: '2026-03-14',
+  due_date: '2026-04-14',
+  reference: null,
+  currency: 'EUR',
+  prices_are_incl_tax: false,
+  total_price_excl_tax: '100.00',
+  total_price_incl_tax: '121.00',
+  total_tax: '21.00',
+  original_sales_invoice_id: null,
+  details: [
+    {
+      id: 3061,
+      description: 'Uren',
+      amount: '2.5',
+      price: '40.00',
+      tax_rate_id: 21,
+      ledger_account_id: 7,
+    },
+  ],
+  attachments: [],
+}
+
 const SALES = [
-  {
-    id: 301,
-    contact_id: 100,
-    invoice_id: '2026-001',
-    state: 'open',
-    invoice_date: '2026-03-01',
-    due_date: '2026-03-31',
-    reference: null,
-    currency: 'EUR',
-    prices_are_incl_tax: false,
-    total_price_excl_tax: '100.00',
-    total_price_incl_tax: '121.00',
-    total_tax: '21.00',
-    original_sales_invoice_id: null,
-    details: [
-      {
-        id: 3011,
-        description: 'Advies',
-        amount: '1',
-        price: '100.00',
-        tax_rate_id: 21,
-        ledger_account_id: 7,
-      },
-    ],
-    attachments: [
-      {
-        id: 901,
-        filename: 'factuur-2026-001.pdf',
-        content_type: 'application/pdf',
-        size: 12,
-        download_url: 'https://moneybird.test/files/901',
-      },
-    ],
-  },
+  SALE_NORMAL,
+  SALE_CREDIT_NEGATIVE,
+  SALE_CREDIT_POSITIVE_LINKED,
+  SALE_WITH_DISCOUNT,
+  SALE_FRACTIONAL_QTY,
 ]
 
-const PURCHASES = [
-  {
-    id: 401,
-    contact_id: 200,
-    reference: 'LEV-88',
-    date: '2026-03-05',
-    due_date: '2026-04-05',
-    currency: 'EUR',
-    state: 'open',
-    total_price_excl_tax: '100.00',
-    total_price_incl_tax: '121.00',
-    total_tax: '21.00',
-    details: [
-      {
-        id: 4011,
-        description: 'Huur',
-        amount: '1',
-        price: '100.00',
-        tax_rate_id: 22,
-        ledger_account_id: 6,
-      },
-    ],
-    attachments: [
-      {
-        id: 903,
-        filename: 'bon-lev-88.pdf',
-        content_type: 'application/pdf',
-        size: 8,
-        download_url: 'https://moneybird.test/files/903',
-      },
-    ],
-  },
-]
+/** Normal purchase invoice (€100 + 21% VAT). */
+const PURCHASE_NORMAL = {
+  id: 401,
+  contact_id: 200,
+  reference: 'LEV-88',
+  date: '2026-03-05',
+  due_date: '2026-04-05',
+  currency: 'EUR',
+  state: 'open',
+  total_price_excl_tax: '100.00',
+  total_price_incl_tax: '121.00',
+  total_tax: '21.00',
+  details: [
+    {
+      id: 4011,
+      description: 'Huur',
+      amount: '1',
+      price: '100.00',
+      tax_rate_id: 22,
+      ledger_account_id: 6,
+    },
+  ],
+  attachments: [
+    {
+      id: 903,
+      filename: 'bon-lev-88.pdf',
+      content_type: 'application/pdf',
+      size: 8,
+      download_url: 'https://moneybird.test/files/903',
+    },
+  ],
+}
+
+/** Purchase credit note with negative amounts. */
+const PURCHASE_CREDIT = {
+  id: 402,
+  contact_id: 200,
+  reference: 'LEV-CN',
+  date: '2026-03-11',
+  due_date: '2026-04-11',
+  currency: 'EUR',
+  state: 'open',
+  total_price_excl_tax: '-100.00',
+  total_price_incl_tax: '-121.00',
+  total_tax: '-21.00',
+  details: [
+    {
+      id: 4021,
+      description: 'Credit huur',
+      amount: '1',
+      price: '-100.00',
+      tax_rate_id: 22,
+      ledger_account_id: 6,
+    },
+  ],
+  attachments: [],
+}
+
+/** Purchase invoice with a discount line (+€100, −€10, VAT €18.90). */
+const PURCHASE_WITH_DISCOUNT = {
+  id: 403,
+  contact_id: 200,
+  reference: 'LEV-DISC',
+  date: '2026-03-13',
+  due_date: '2026-04-13',
+  currency: 'EUR',
+  state: 'open',
+  total_price_excl_tax: '90.00',
+  total_price_incl_tax: '108.90',
+  total_tax: '18.90',
+  details: [
+    {
+      id: 4031,
+      description: 'Huur',
+      amount: '1',
+      price: '100.00',
+      tax_rate_id: 22,
+      ledger_account_id: 6,
+    },
+    {
+      id: 4032,
+      description: 'Korting',
+      amount: '1',
+      price: '-10.00',
+      tax_rate_id: 22,
+      ledger_account_id: 6,
+    },
+  ],
+  attachments: [],
+}
+
+const PURCHASES = [PURCHASE_NORMAL, PURCHASE_CREDIT, PURCHASE_WITH_DISCOUNT]
 
 const FINANCIAL_ACCOUNTS = [
   {
@@ -343,6 +532,15 @@ export const RAW = {
   contacts: CONTACTS,
   sales: SALES,
   purchases: PURCHASES,
+  /** Named samples for QA regression (#90 / #91 credit-note + discount pins). */
+  saleNormal: SALE_NORMAL,
+  saleCreditNegative: SALE_CREDIT_NEGATIVE,
+  saleCreditPositiveLinked: SALE_CREDIT_POSITIVE_LINKED,
+  saleWithDiscount: SALE_WITH_DISCOUNT,
+  saleFractionalQty: SALE_FRACTIONAL_QTY,
+  purchaseNormal: PURCHASE_NORMAL,
+  purchaseCredit: PURCHASE_CREDIT,
+  purchaseWithDiscount: PURCHASE_WITH_DISCOUNT,
   receipts: [] as Record<string, unknown>[],
   financialAccounts: FINANCIAL_ACCOUNTS,
   mutations: MUTATIONS,

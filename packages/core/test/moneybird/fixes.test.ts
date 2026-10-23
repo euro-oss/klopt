@@ -26,8 +26,8 @@ function problem(
 }
 
 describe('every MoneybirdProblemCode has a fix', () => {
-  it('covers all 17 codes', () => {
-    expect(MONEYBIRD_PROBLEM_CODES).toHaveLength(17)
+  it('covers all 20 codes', () => {
+    expect(MONEYBIRD_PROBLEM_CODES).toHaveLength(20)
     for (const code of MONEYBIRD_PROBLEM_CODES) {
       expect(fixSpecFor(code).code).toBe(code)
       expect(['oneClick', 'guided', 'explainOnly']).toContain(fixSpecFor(code).fixType)
@@ -38,6 +38,9 @@ describe('every MoneybirdProblemCode has a fix', () => {
     ['unmapped_account', 'guided'],
     ['unmapped_tax_rate', 'guided'],
     ['incompatible_tax_rate', 'guided'],
+    ['null_percentage_vat_mismatch', 'explainOnly'],
+    ['self_assessed_vat_unsupported', 'explainOnly'],
+    ['tax_code_not_in_force', 'oneClick'],
     ['trial_balance_account_missing', 'guided'],
     ['account_number_collision', 'guided'],
     ['contact_number_collision', 'oneClick'],

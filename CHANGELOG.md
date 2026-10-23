@@ -18,6 +18,45 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Moneybird: VAT tagging and filing blocks (#94)
+
+Moneybird imports now post one tagged VAT control line per mapped tax code.
+Filing a VAT return is hard-blocked when a period still has Moneybird-imported
+untagged VAT on a control account, or reverse-charge / intra-EU purchases whose
+self-assessed pair is not booked yet (#95). Those reverse-charge / EU documents
+still import (warning only); only filing is blocked. Import also raises
+`tax_code_not_in_force` when a mapped code’s validity window does not cover the
+document date (no in-app `valid_from` edit yet — #99). XAF keeps exporting and
+only warns (ASCII-safe header + orange Alert in the web app).
+
+**Self-hosted:** Filed a VAT return through Klopt before this version for a
+period with Moneybird-imported documents? It may under-report VAT in boxes
+1a/5b. See belastingdienst.nl, “Btw-aangifte corrigeren”.  
+**Self-hosted (NL):** Heb je vóór deze versie via Klopt een btw-aangifte
+ingediend over een periode met Moneybird-import? Dan kan daarin te weinig btw
+in rubriek 1a/5b staan. Zie belastingdienst.nl, “Btw-aangifte corrigeren”.
+
+### Moneybird: map tax rates without a percentage (#90)
+
+A Moneybird tax rate with a null / missing percentage (e.g. “Geen btw”, shown
+as —) can be mapped as 0%: the Resolve · VAT sheet offers the side-aware 0%
+Klopt codes (VGEEN for purchases, never auto-confirmed) with a muted “Voorstel”
+marker. Reverse-charge / intra-community / outside-EU names (ICP, ICV, art. 23,
+EU-levering, binnen EU, buiten EU / outside EU, …) still exclude VGEEN; a bare
+“eu” substring does not. Documents whose `totalTax` still carries VAT on a
+null-% rate raise `null_percentage_vat_mismatch` (zero tolerance when only
+null/0% lines; mixed documents allow signed half-up rounding ±1¢ per taxed
+line with exact decimal quantities; purchases respect `prices_are_incl_tax`)
+and refuse a 0% mapping. Empty candidates stay an honest dead-end (no “Zelf
+kiezen in de tabel”). Guided To review steps say “Opslaan” to match the sheet
+button. The import also **books** with signed line amounts: discount
+(negative) lines take the correct debit/credit side, fractional quantities
+(e.g. 2.5) book the exact amount, line VAT is rounded half-up per line, and
+incl.-VAT purchases book net = gross − rounded VAT. Credit notes identified
+by `originalSalesInvoiceId` whose amounts are still positive have their sign
+normalised once before that signed-line logic so they reverse like before
+(never double-flipped when amounts are already negative). No migration.
+
 ### Fixed
 
 - **Moneybird ECB rate refresh no longer OOMs the web process.** Refreshing a

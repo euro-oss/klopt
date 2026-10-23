@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { parseXaf, uuidv7, validateXafDocument } from '@klopt/core'
+import { encodeWarningMessagesHeader, parseXaf, uuidv7, validateXafDocument } from '@klopt/core'
 import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
@@ -526,6 +526,47 @@ describe('the XAF export', () => {
     )
     // 9999 has no mapping, so the file says so rather than pretending.
     expect(result.warnings.some((warning) => warning.message.includes('9999'))).toBe(true)
+  })
+
+  it('names Moneybird VAT gaps with their own message keys and ASCII-safe headers', async () => {
+    const { token } = await newEntity()
+    await handlePostJournalEntry(
+      await context(token, uuidv7()),
+      postJournalEntryBody.parse({
+        journalCode: 'MEM',
+        bookingDate: '2026-02-10',
+        documentDate: '2026-02-10',
+        description: 'Moneybird import',
+        sourceDocumentRef: 'moneybird:admin:sales_invoice:999',
+        lines: [
+          { accountNumber: '1300', debit: '12100' },
+          {
+            accountNumber: '8000',
+            credit: '10000',
+            taxCode: 'H21',
+            taxRole: 'base',
+            taxAmount: '2100',
+          },
+          { accountNumber: '1500', credit: '2100' },
+        ],
+      }),
+    )
+
+    const result = await handleExportAuditFile(await context(token), {
+      fiscalYear: '2026',
+      fromPeriod: null,
+      toPeriod: null,
+    })
+    const moneybird = result.warnings.filter((warning) => warning.code === 'moneybird_vat_export')
+    expect(moneybird.length).toBeGreaterThan(0)
+    expect(moneybird.every((warning) => warning.messageKey?.endsWith('_export'))).toBe(true)
+    expect(
+      moneybird.some((warning) => warning.messageKey === 'vat.moneybird_untagged_vat_export'),
+    ).toBe(true)
+    // Non-ASCII (é) must still encode to an ASCII header value (#94 engineering).
+    const encoded = encodeWarningMessagesHeader(moneybird.map((warning) => warning.message))
+    expect(/^[\x20-\x7E]*$/.test(encoded)).toBe(true)
+    expect(encoded).toContain('%')
   })
 
   it('balances, and its control totals match its contents', async () => {

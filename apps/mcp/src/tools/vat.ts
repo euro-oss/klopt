@@ -29,6 +29,12 @@ interface VatReturn {
   readonly rubrieken?: unknown
   readonly reconciliation?: unknown
   readonly warnings?: unknown
+  readonly findings?: readonly {
+    readonly code?: string
+    readonly severity?: string
+    readonly message?: string
+  }[]
+  readonly blocked?: boolean
 }
 
 export async function vatReturnPreview(
@@ -36,6 +42,14 @@ export async function vatReturnPreview(
   input: z.infer<typeof vatReturnPreviewInput>,
 ): Promise<Answer<Record<string, unknown>>> {
   const body = await context.api.get<VatReturn>(`/vat/returns/${encodeURIComponent(input.period)}`)
+
+  const findings = body.findings ?? []
+  const moneybirdBlocks = findings.filter(
+    (finding) =>
+      finding.severity === 'blocking' &&
+      (finding.code === 'moneybird_untagged_vat' ||
+        finding.code === 'moneybird_self_assessed_unsupported'),
+  )
 
   return answer(
     await context.provenance([`/api/v1/vat/returns/${input.period}`], { from: input.period }),
@@ -45,6 +59,13 @@ export async function vatReturnPreview(
       // have to infer the answer from the absence of a field.
       filed: body.status === 'filed' || body.status === 'accepted',
       note: 'This is the return as it stands now. Filing is deliberately not available to an agent — it is a human action.',
+      ...(moneybirdBlocks.length > 0
+        ? {
+            warnings: moneybirdBlocks.map(
+              (finding) => finding.message ?? finding.code ?? 'moneybird_vat_block',
+            ),
+          }
+        : {}),
     },
   )
 }

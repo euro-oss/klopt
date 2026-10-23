@@ -6,6 +6,7 @@ import {
   buildProfitAndLoss,
   diffRgsSchemes,
   generateXaf,
+  moneybirdVatExportWarnings,
   planXafImport,
   planYearClose,
   postJournalEntry,
@@ -18,7 +19,14 @@ import {
   type ProfitAndLoss,
   type StatementSection,
 } from '@klopt/core'
-import { withLedger, withReporting, withRgs, withXafExport, withYearClose } from '@klopt/db'
+import {
+  withLedger,
+  withReporting,
+  withRgs,
+  withVatRead,
+  withXafExport,
+  withYearClose,
+} from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
 import { referenceData } from '../reference-data.js'
@@ -305,7 +313,18 @@ export async function handleExportAuditFile(
     readonly fromPeriod: number | null
     readonly toPeriod: number | null
   },
-) {
+): Promise<{
+  readonly xml: string
+  readonly filename: string
+  readonly warnings: readonly {
+    readonly code: string
+    readonly path: string | null
+    readonly message: string
+    readonly messageKey: string
+    readonly detail?: Readonly<Record<string, string>>
+  }[]
+  readonly lineCount: number
+}> {
   requirePermission(context, 'ledger:export')
 
   const entity = await withReporting(context.database, (repository) =>
@@ -355,10 +374,39 @@ export async function handleExportAuditFile(
     )
   }
 
+  // XAF stays available for retention (#94 Legal). Moneybird VAT gaps are
+  // named as warnings so the file is not mistaken for a complete aangifte.
+  const year = Number(query.fiscalYear)
+  const vatReturn = Number.isInteger(year)
+    ? await withVatRead(context.database, (repository) =>
+        repository.buildReturn({
+          entityId: context.entityId,
+          from: `${String(year)}-01-01`,
+          to: `${String(year)}-12-31`,
+        }),
+      )
+    : null
+  const moneybirdWarnings = vatReturn === null ? [] : moneybirdVatExportWarnings(vatReturn, 'en')
+
+  const xafWarnings = validation.problems.filter((problem) => problem.severity === 'warning')
   return {
     xml: generateXaf(document),
     filename: `xaf-${entity.name.replace(/[^A-Za-z0-9]+/g, '-').toLowerCase()}-${query.fiscalYear}.xml`,
-    warnings: validation.problems.filter((problem) => problem.severity === 'warning'),
+    warnings: [
+      ...xafWarnings.map((problem) => ({
+        code: problem.code,
+        path: problem.path,
+        message: problem.message,
+        messageKey: problem.messageKey,
+        ...(problem.detail === undefined ? {} : { detail: problem.detail }),
+      })),
+      ...moneybirdWarnings.map((warning) => ({
+        code: 'moneybird_vat_export',
+        path: 'vat',
+        message: warning.message,
+        messageKey: warning.messageKey,
+      })),
+    ],
     lineCount: validation.lineCount,
   }
 }

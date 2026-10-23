@@ -67,6 +67,8 @@ const FINDING_KEY: Record<string, MessageKey> = {
   code_declares_no_vat: 'vatReturn.finding.code_declares_no_vat',
   code_declares_no_base: 'vatReturn.finding.code_declares_no_base',
   untagged_control_movement: 'vatReturn.finding.untagged_control_movement',
+  moneybird_untagged_vat: 'vatReturn.finding.moneybird_untagged_vat',
+  moneybird_self_assessed_unsupported: 'vatReturn.finding.moneybird_self_assessed_unsupported',
   rate_mismatch: 'vatReturn.finding.rate_mismatch',
   control_account_difference: 'vatReturn.finding.control_account_difference',
 }
@@ -219,7 +221,13 @@ function VatReturnScreen() {
         <Stat label={t('vatReturn.owed')} value={<Money amount={data.owed} />} />
         <Stat label={t('vatReturn.deductible')} value={<Money amount={data.deductible} />} />
         <Stat
-          label={BigInt(data.payable) < 0n ? t('vatReturn.refund') : t('vatReturn.toPay')}
+          label={
+            BigInt(data.payable) < 0n
+              ? t('vatReturn.refund')
+              : data.blocked
+                ? `${t('vatReturn.toPay')} (${t('vatReturn.provisional')})`
+                : t('vatReturn.toPay')
+          }
           value={<Money amount={data.payable} />}
           tone={data.blocked ? 'warn' : 'neutral'}
         />
@@ -519,31 +527,47 @@ function VatReturnScreen() {
               </td>
             </tr>
           )}
-          {data.reconciliation.map((account) => (
-            <tr key={account.accountNumber} className="border-border/50 border-t">
-              <th scope="row" className="py-1.5 pr-2 text-left font-normal">
-                <span className="tabular">{account.accountNumber}</span> {account.accountName}
-              </th>
-              <td className="py-1.5 pr-2 text-right">
-                <Money amount={account.taggedMovement} />
-              </td>
-              <td className="py-1.5 pr-2 text-right">
-                <Money amount={account.declared} />
-              </td>
-              <td className="py-1.5 pr-2 text-right">
-                {account.difference === '0' ? (
-                  <span className="text-muted-foreground">{t('vatReturn.reconciles')}</span>
-                ) : (
-                  <span className="text-destructive">
-                    <Money amount={account.difference} />
-                  </span>
-                )}
-              </td>
-              <td className="py-1.5 text-right">
-                <Money amount={account.untaggedMovement} />
-              </td>
-            </tr>
-          ))}
+          {data.reconciliation.map((account) => {
+            const moneybirdAffected = blocking.some(
+              (finding) =>
+                (finding.code === 'moneybird_untagged_vat' ||
+                  finding.code === 'moneybird_self_assessed_unsupported') &&
+                finding.lines.some((line) => line.accountNumber === account.accountNumber),
+            )
+            return (
+              <tr key={account.accountNumber} className="border-border/50 border-t">
+                <th scope="row" className="py-1.5 pr-2 text-left font-normal">
+                  <span className="tabular">{account.accountNumber}</span> {account.accountName}
+                </th>
+                <td className="py-1.5 pr-2 text-right">
+                  <Money amount={account.taggedMovement} />
+                </td>
+                <td className="py-1.5 pr-2 text-right">
+                  <Money amount={account.declared} />
+                </td>
+                <td className="py-1.5 pr-2 text-right">
+                  {account.difference === '0' && moneybirdAffected ? (
+                    <span className="text-destructive">{t('vatReturn.doesNotCount')}</span>
+                  ) : account.difference === '0' && data.blocked ? (
+                    // While filing is blocked, a zero difference is not a
+                    // positive "sluit aan" / "reconciles" (#96 designer).
+                    <span className="text-muted-foreground">
+                      <Money amount="0" />
+                    </span>
+                  ) : account.difference === '0' ? (
+                    <span className="text-muted-foreground">{t('vatReturn.reconciles')}</span>
+                  ) : (
+                    <span className="text-destructive">
+                      <Money amount={account.difference} />
+                    </span>
+                  )}
+                </td>
+                <td className="py-1.5 text-right">
+                  <Money amount={account.untaggedMovement} />
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
 

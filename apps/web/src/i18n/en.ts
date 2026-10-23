@@ -50,6 +50,19 @@ export const en: Record<MessageKey, string> = {
     'Without a tax code the return cannot place those lines.',
   'finding.why.moneybird.incompatible_tax_rate':
     'The wrong direction or rate puts sales VAT on input codes (or the reverse) and corrupts the return.',
+  'finding.why.moneybird.null_percentage_vat_mismatch':
+    'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
+  'finding.why.moneybird.null_percentage_vat_mismatch_one':
+    'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
+  'finding.why.moneybird.null_percentage_vat_mismatch_other':
+    'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
+  'finding.why.moneybird.self_assessed_vat_unsupported':
+    'Without the self-assessed VAT, boxes 2a/4a/4b and 5b are missing; filing through Klopt would under-declare VAT.',
+  'finding.why.moneybird.tax_code_not_in_force':
+    'Without a rule valid on the booking date the return cannot place those lines. A code’s start date cannot be changed in Klopt yet.',
+  'finding.moneybird.self_assessed_vat_unsupported_secondary':
+    'Mapped to {taxCode} · self-assessed VAT (2a/4a/4b and 5b)',
+  'finding.moneybird.tax_code_not_in_force_secondary': 'VAT code {taxCode}',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Without a single direction no VAT code can be chosen; the import stays blocked until Moneybird shows one side only.',
   'finding.why.moneybird.account_number_collision':
@@ -104,8 +117,11 @@ export const en: Record<MessageKey, string> = {
   'findingCard.openExplain': 'Explain',
   'findingCard.explainOnlyBody': 'You cannot fix this here.',
   'findingCard.oneClickSafe': 'Does not change your books',
-  'findingCard.guidedSteps': '{count} steps',
-  'findingCard.guidedHint': 'Follow the steps above. Escape closes this panel.',
+  'findingCard.guidedSteps_one': '{count} step',
+  'findingCard.guidedSteps_other': '{count} steps',
+  'findingCard.guidedHint': 'Follow the steps above.',
+  'findingCard.guidedHintEscape': 'Escape closes this panel.',
+  'findingCard.guidedHintNoSteps': 'Escape closes this panel.',
   'findingCard.preview': 'This changes the books',
   'findingCard.confirmFix': 'Apply',
   'findingCard.close': 'Close',
@@ -175,11 +191,15 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.showOtherRates': 'Show other rates',
   'importFindings.accountVat.showFewerRates': 'Show less',
   'importFindings.accountVat.vatHint': 'Moneybird had {rate}% VAT.',
-  'importFindings.accountVat.vatHintUnknown': 'Moneybird had no rate.',
+  'importFindings.accountVat.vatHintUnknown':
+    'Moneybird didn’t send a percentage for ‘{name}’. We assume 0%; please check.',
   'importFindings.accountVat.vatUnsupported':
-    'Klopt does not have a VAT code for this rate yet, so this import cannot continue.',
+    'Klopt has no VAT code for this rate yet, so this import cannot continue.',
   'importFindings.accountVat.vatUnknown':
-    'Moneybird did not send a rate, so this import cannot continue.',
+    'Moneybird didn’t send a percentage for ‘{name}’. We assume 0%; please check.',
+  'importFindings.accountVat.vatUnknownEmpty':
+    'Klopt has no VAT code for this rate yet, so this import cannot continue.',
+  'importFindings.accountVat.suggested': 'Suggested',
   'importFindings.accountVat.whatHappens': 'What happens',
   'importFindings.accountVat.whatHappensBody':
     'The Moneybird entries land on {account}, with {vat}. Nothing is posted yet; that happens when you import.',
@@ -688,6 +708,9 @@ export const en: Record<MessageKey, string> = {
   'auditFile.year': 'Book year',
   'auditFile.pickYear': 'Pick a book year',
   'auditFile.export': 'Download the audit file',
+  'auditFile.moneybirdGapTitle': 'Moneybird VAT missing from this export',
+  'auditFile.moneybirdGapBody':
+    'The VAT totals in this file leave out VAT from imported Moneybird documents. You can still download the file.',
   'auditFile.importTitle': 'Import',
   'auditFile.importBody':
     'Pick a file and see what it would do first. Nothing is posted until you confirm it.',
@@ -1271,6 +1294,7 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.deductible': '5b Input VAT',
   'vatReturn.refund': '5c To reclaim',
   'vatReturn.toPay': '5c To pay',
+  'vatReturn.provisional': 'provisional',
   'vatReturn.filed': 'Filed',
   'vatReturn.filedOn': ' on {date}',
   'vatReturn.asSupplement': ' as supplement {number}',
@@ -1313,6 +1337,7 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.declared': 'Declared',
   'vatReturn.difference': 'Difference',
   'vatReturn.untagged': 'Without a code',
+  'vatReturn.doesNotCount': 'does not count',
   'vatReturn.noMovements': 'No movements on a VAT account in this period.',
   'vatReturn.reconciles': 'reconciles',
   'vatReturn.findings': 'Findings ({blocking} blocking, {warnings} for review)',
@@ -1321,7 +1346,7 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.fileSupplement': 'File a supplementary return',
   'vatReturn.fileReturn': 'File the return',
   'vatReturn.blocked':
-    'This return cannot be filed while the reconciliation does not hold. Resolve the blocking findings above.',
+    'This return cannot be filed through Klopt. Resolve the blocking findings above, or file it yourself or with a tax adviser using corrected figures.',
   'vatReturn.noIdentity':
     'A return is identified by the turnover-tax number, and this administration does not have one yet. Fill it in under',
   'vatReturn.taxonomy':
@@ -1359,6 +1384,9 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.finding.code_declares_no_vat': 'VAT posted against a 0% code',
   'vatReturn.finding.code_declares_no_base': 'Taxable amount with no box',
   'vatReturn.finding.untagged_control_movement': 'Movement on a VAT account without a code',
+  'vatReturn.finding.moneybird_untagged_vat': 'VAT from Moneybird import missing from the return',
+  'vatReturn.finding.moneybird_self_assessed_unsupported':
+    'Self-assessed VAT missing for Moneybird reverse-charge/EU purchase',
   'vatReturn.finding.rate_mismatch': 'VAT differs from taxable amount times rate',
   'vatReturn.finding.control_account_difference': 'VAT account does not reconcile',
 
@@ -1690,6 +1718,9 @@ export const en: Record<MessageKey, string> = {
   'moneybird.fix.stepOpenMoneybird': 'Open Moneybird',
   'moneybird.fix.stepReread': 'Read again',
   'moneybird.fix.stepDoNotTransfer': 'Do not transfer',
+  'moneybird.fix.stepMapAccount': 'Choose category',
+  'moneybird.fix.stepMapTax': 'Choose VAT code',
+  'moneybird.fix.stepSave': 'Save',
   'moneybird.excluded': 'Not transferred (excluded)',
   'moneybird.fx.sourceEcb': 'Source: ECB',
   'moneybird.fx.sourceEcbDated': 'Source: ECB ({date})',

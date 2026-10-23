@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { violationMessage } from '~/i18n/labels'
 import { useT } from '~/i18n/provider'
@@ -10,6 +11,7 @@ import { useHydrated } from '~/lib/hydration'
 import { may, MAY_EXPORT_AUDIT_FILE, MAY_IMPORT_AUDIT_FILE } from '~/lib/roles'
 import { importAuditFile } from '~/server/ledger'
 import { listFiscalYears } from '~/server/setup'
+import { getVatReturn } from '~/server/vat'
 
 /**
  * Auditfile — out and back in.
@@ -81,10 +83,47 @@ function AuditFile() {
   const [problems, setProblems] = useState<readonly string[] | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [preview, setPreview] = useState<{ xml: string; report: ImportReport } | null>(null)
+  // Soft Moneybird VAT gap for the selected year — same signal as the XAF
+  // warning header (Designer #96). Year is stored with the flag so a year
+  // change hides the banner without a synchronous setState in the effect.
+  const [moneybirdGapForYear, setMoneybirdGapForYear] = useState<{
+    readonly year: string
+    readonly gap: boolean
+  } | null>(null)
   const file = useRef<HTMLInputElement>(null)
 
   const mayImport = may(MAY_IMPORT_AUDIT_FILE, role)
   const mayExport = may(MAY_EXPORT_AUDIT_FILE, role)
+  const moneybirdGap =
+    mayExport &&
+    exportYear !== '' &&
+    moneybirdGapForYear?.year === exportYear &&
+    moneybirdGapForYear.gap
+
+  useEffect(() => {
+    if (!mayExport || exportYear === '') return
+    const year = exportYear
+    let cancelled = false
+    void getVatReturn({ data: { period: year } }).then((result) => {
+      if (cancelled) return
+      if (!result.ok) {
+        setMoneybirdGapForYear({ year, gap: false })
+        return
+      }
+      const findings = result.data.findings ?? []
+      setMoneybirdGapForYear({
+        year,
+        gap: findings.some(
+          (finding) =>
+            finding.code === 'moneybird_untagged_vat' ||
+            finding.code === 'moneybird_self_assessed_unsupported',
+        ),
+      })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [exportYear, mayExport])
 
   /**
    * Whether the chart can take the file as it stands.
@@ -174,30 +213,38 @@ function AuditFile() {
           )}
 
           {mayExport && (
-            <div className="mt-4 flex flex-wrap items-end gap-3">
-              <SelectField
-                label={t('auditFile.exportYear')}
-                value={exportYear}
-                onValueChange={setExportYear}
-                disabled={!hydrated}
-                placeholder={t('auditFile.pickYear')}
-                className="w-56"
-              >
-                {options.map((year) => (
-                  <SelectOption key={year.code} value={year.code}>
-                    {`${year.code} (${formatDate(year.startsOn)} – ${formatDate(year.endsOn)})`}
-                  </SelectOption>
-                ))}
-              </SelectField>
+            <div className="mt-4 space-y-3">
+              {moneybirdGap && (
+                <Alert variant="attention" role="status">
+                  <AlertTitle>{t('auditFile.moneybirdGapTitle')}</AlertTitle>
+                  <AlertDescription>{t('auditFile.moneybirdGapBody')}</AlertDescription>
+                </Alert>
+              )}
+              <div className="flex flex-wrap items-end gap-3">
+                <SelectField
+                  label={t('auditFile.exportYear')}
+                  value={exportYear}
+                  onValueChange={setExportYear}
+                  disabled={!hydrated}
+                  placeholder={t('auditFile.pickYear')}
+                  className="w-56"
+                >
+                  {options.map((year) => (
+                    <SelectOption key={year.code} value={year.code}>
+                      {`${year.code} (${formatDate(year.startsOn)} – ${formatDate(year.endsOn)})`}
+                    </SelectOption>
+                  ))}
+                </SelectField>
 
-              {/* A link rather than a fetch: the response is XML with a filename
-                on it, and the browser already knows what to do with that. */}
-              <a
-                href={`/api/v1/exports/audit-file?fiscalYear=${exportYear}`}
-                className="border-input border px-4 py-2 text-sm font-medium"
-              >
-                {t('auditFile.export')}
-              </a>
+                {/* A link rather than a fetch: the response is XML with a filename
+                  on it, and the browser already knows what to do with that. */}
+                <a
+                  href={`/api/v1/exports/audit-file?fiscalYear=${exportYear}`}
+                  className="border-input border px-4 py-2 text-sm font-medium"
+                >
+                  {t('auditFile.export')}
+                </a>
+              </div>
             </div>
           )}
         </section>

@@ -42,11 +42,14 @@ export function moneybirdFixtureFindings(handlers?: {
   readonly onOpenFx?: () => void
   readonly onConfirmYear?: () => void
   readonly onApplyTax?: () => void | Promise<void>
+  /** Guided VAT sheet (null-rate / map) — production path for unmapped_tax_rate (#90). */
+  readonly onMapTax?: () => void
 }): readonly FindingsListItem[] {
   const onMap = handlers?.onMapAccount ?? (() => undefined)
   const onFx = handlers?.onOpenFx ?? (() => undefined)
   const onYear = handlers?.onConfirmYear ?? (() => undefined)
   const onTax = handlers?.onApplyTax ?? (() => undefined)
+  const onMapTax = handlers?.onMapTax ?? (() => undefined)
 
   return [
     {
@@ -104,6 +107,70 @@ export function moneybirdFixtureFindings(handlers?: {
           ],
         },
         onApply: onTax,
+      },
+    },
+    {
+      // Production Moneybird path: guided sheet with steps (was empty before #90).
+      id: 'f3b',
+      code: 'unmapped_tax_rate',
+      path: 'tax_rates/389113871',
+      messageKey: 'moneybird.unmapped_tax_rate',
+      detail: { name: 'Geen btw', percentage: '—' },
+      message: 'Tax rate Geen btw (—) has no confirmed Klopt VAT code. Map it before importing.',
+      severity: 'blocking',
+      fix: {
+        type: 'guided',
+        label: 'Btw-tarief koppelen',
+        onOpen: onMapTax,
+        steps: ['Btw-code kiezen', 'Opslaan'],
+      },
+    },
+    {
+      // Documents still carry VAT on a null-% rate — explainOnly (#90 PM).
+      id: 'f3c',
+      code: 'null_percentage_vat_mismatch',
+      path: 'taxRates.95',
+      messageKey: 'moneybird.null_percentage_vat_mismatch_one',
+      detail: { name: 'Geen btw', count: '1', references: 'LEV-VAT' },
+      message:
+        'Tax rate Geen btw has no percentage, but 1 document still shows VAT (LEV-VAT). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
+      severity: 'blocking',
+      fix: {
+        type: 'explainOnly',
+        href: 'https://moneybird.com',
+        linkLabel: 'Open in Moneybird',
+      },
+    },
+    {
+      // Reverse-charge / EU — imports, filing blocked until #95 (#96 PM).
+      id: 'f3d',
+      code: 'self_assessed_vat_unsupported',
+      path: 'purchase_invoices/401',
+      messageKey: 'moneybird.self_assessed_vat_unsupported',
+      detail: { reference: 'LEV-RC', taxCode: 'VERL-ONTV' },
+      message:
+        'Klopt cannot book self-assessed VAT for reverse-charge or intra-EU purchases yet. LEV-RC will import, but filing through Klopt stays blocked. Filing through Klopt will work once Klopt supports this; don’t wait for that if your filing deadline comes first.',
+      severity: 'warning',
+      fix: {
+        type: 'explainOnly',
+        href: 'https://moneybird.com',
+        linkLabel: 'Open in Moneybird',
+      },
+    },
+    {
+      // Code not in force — one-click Opnieuw lezen, no /tax-codes (#96 / #99).
+      id: 'f3e',
+      code: 'tax_code_not_in_force',
+      path: 'salesInvoices/301',
+      messageKey: 'moneybird.tax_code_not_in_force',
+      detail: { reference: '2025-001', bookingDate: '2025-06-15', taxCode: 'H21' },
+      message:
+        '2025-001 is dated 2025-06-15, but that VAT code does not apply yet on that date in Klopt. There is no fix inside Klopt yet. Check the date and the rate in Moneybird.',
+      severity: 'blocking',
+      fix: {
+        type: 'oneClick',
+        label: 'Opnieuw lezen',
+        onApply: () => undefined,
       },
     },
     {

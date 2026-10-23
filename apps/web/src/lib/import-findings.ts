@@ -553,11 +553,24 @@ function toVatOption(
 }
 
 /**
+ * Parse a Moneybird percentage text for matching. Empty / missing / em-dash
+ * (and a trailing `%` from finding detail) count as 0% so "Geen btw" can still
+ * be mapped (#90). Non-numeric garbage stays undecidable.
+ */
+export function parseImportVatPercentage(percentage: string | null | undefined): number | null {
+  const raw = (percentage ?? '').trim().replace(',', '.').replace(/%$/u, '').trim()
+  if (raw === '' || raw === '—' || raw === '-' || raw === '–') return 0
+  const numeric = Number(raw)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+/**
  * Direction + rate matches via `rankVatCodes`: primary (H21/L9/VH21/VL9) first,
  * then other (0% sales, VERL-ONTV / ICV21 / INV23, …). PRIV21 and deduction
  * halves are never offered (#71).
  *
- * Empty / NaN percentage or unknown direction → empty groups (map by hand).
+ * Empty / missing percentage → 0% candidates (user must still confirm, #90).
+ * Unknown direction → empty groups.
  *
  * Prefer {@link vatCandidatesFromServer} on the Moneybird import sheet: the
  * preview already applied name-based guards (e.g. no VGEEN on verlegd / ICV /
@@ -573,10 +586,8 @@ export function vatCandidatesFor(input: {
     return { primary: [], other: [], suggestedCode: null }
   }
 
-  const raw = (input.percentage ?? '').trim().replace(',', '.')
-  if (raw === '') return { primary: [], other: [], suggestedCode: null }
-  const numeric = Number(raw)
-  if (!Number.isFinite(numeric)) return { primary: [], other: [], suggestedCode: null }
+  const numeric = parseImportVatPercentage(input.percentage)
+  if (numeric === null) return { primary: [], other: [], suggestedCode: null }
 
   const halves = deductionHalfCodes(input.rules)
   const ranked = rankVatCodes(input.rules, { percentage: numeric, taxRateType })
@@ -604,7 +615,7 @@ export interface ServerVatCandidate {
 /**
  * Drive the import sheet from server-computed candidates (same matcher the
  * saveMappings 422 validates against). Filters PRIV21 and deduction halves
- * like the client picker; empty list → honest “kan nog niet verder” (#86 PM).
+ * like the client picker; empty list → actionable status + jump to table (#90).
  */
 export function vatCandidatesFromServer(input: {
   readonly rules: readonly ImportVatRule[]

@@ -343,8 +343,14 @@ test('a hard-closed period keeps the user in the flow with named copy', async ({
     )
 
     await page.goto('/invoices/new')
+    // Same settle as the happy path: Verder is disabled until hydration, and
+    // the defaults line only appears once the search has a loaded match.
+    // Without that wait, Enter on a still-disabled Verder leaves step 1
+    // (seen on f4d75f3; passes on main / #91 when the race is not hit).
+    await hydrated(page)
     await page.locator('#cust-q').pressSequentially('Hotel', { delay: 30 })
     await expect(page.getByRole('option', { name: /Hotel Zeezicht/ })).toBeVisible()
+    await expect(page.getByText(/We vullen alvast in:/)).toBeVisible({ timeout: 10_000 })
     await page.getByRole('button', { name: /Verder/ }).press('Enter')
     await expect(page.getByText('Stap 2 van 4')).toBeVisible()
     await fillBreadLine(page)

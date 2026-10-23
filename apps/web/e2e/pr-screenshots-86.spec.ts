@@ -91,7 +91,9 @@ test('capture #86 btw sheet PNGs (VGEEN + verlegd empty)', async ({ browser }) =
       const sheet = page.getByRole('dialog')
       await expect(sheet).toBeVisible()
       await expect(sheet.getByRole('radio')).toHaveCount(0)
-      await expect(sheet.getByRole('status')).toContainText(/kan nog niet verder/)
+      await expect(sheet.getByRole('status')).toContainText(
+        /Klopt heeft nog geen btw-code voor dit tarief/,
+      )
       await expect(sheet.locator('[data-slot="vat-jump-to-mapping"]')).toHaveCount(0)
       await setTheme(page, theme)
       await shoot(page, `btw-verlegd0-${theme}-${label}.png`)
