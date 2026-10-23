@@ -526,7 +526,7 @@ function AccountVatSheetBody({
                         }}
                         className={cn(
                           'min-h-11 px-3 text-left text-sm outline-none',
-                          // Focus: dashed ring outside the control — never fill like checked (#90 designer).
+                          // Focus: solid ring outside the control — never fill like checked (#90 designer).
                           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                           vatOptions.length <= 3 && index > 0 && 'border-l',
                           checked

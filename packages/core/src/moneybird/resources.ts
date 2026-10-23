@@ -302,6 +302,11 @@ export interface MoneybirdPurchaseDocument {
   readonly dueDate: string | null
   readonly currency: string
   readonly state: string
+  /**
+   * Moneybird `prices_are_incl_tax` — purchase lines may be gross, same as sales.
+   * Missing / false means line `price` is net (#90 PM).
+   */
+  readonly pricesAreInclTax: boolean
   readonly totalExcl: bigint
   readonly totalIncl: bigint
   readonly totalTax: bigint
@@ -323,6 +328,7 @@ function parsePurchaseLike(
     dueDate: readDate(row, 'due_date'),
     currency: (readString(row, 'currency') ?? 'EUR').toUpperCase(),
     state: readString(row, 'state') ?? 'open',
+    pricesAreInclTax: readBoolean(row, 'prices_are_incl_tax'),
     totalExcl: readMinor(row, 'total_price_excl_tax') ?? 0n,
     totalIncl: readMinor(row, 'total_price_incl_tax') ?? 0n,
     totalTax: readMinor(row, 'total_tax') ?? 0n,

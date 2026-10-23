@@ -432,13 +432,23 @@ describe('matchVatCodes', () => {
     expect(
       isSpecialAcquisitionPurchaseRate({ name: 'Levering binnen EU', reportReference: null }),
     ).toBe(true)
-    // Bare "eu" / "buiten EU" must not drop VGEEN for domestic out-of-scope (#90).
+    // Outside-EU 0% purchases are almost always import / reverse-charged (#86 / #90 PM).
     expect(
       isSpecialAcquisitionPurchaseRate({ name: 'Geen btw (buiten EU)', reportReference: null }),
-    ).toBe(false)
+    ).toBe(true)
+    expect(
+      isSpecialAcquisitionPurchaseRate({ name: 'No VAT (outside EU)', reportReference: null }),
+    ).toBe(true)
+    expect(
+      isSpecialAcquisitionPurchaseRate({ name: 'No VAT (outside the EU)', reportReference: null }),
+    ).toBe(true)
+    // Bare "eu" substring alone must not drop VGEEN.
+    expect(isSpecialAcquisitionPurchaseRate({ name: 'Geen btw (eu)', reportReference: null })).toBe(
+      false,
+    )
   })
 
-  it('still suggests VGEEN for Geen btw (buiten EU) purchase rates', () => {
+  it('does not suggest VGEEN for Geen btw (buiten EU) purchase rates', () => {
     const chart = [
       {
         code: 'VGEEN',
@@ -463,7 +473,7 @@ describe('matchVatCodes', () => {
         reportReference: null,
       }),
     })
-    expect(ranked.candidates.map((row) => row.rule.code)).toContain('VGEEN')
+    expect(ranked.candidates.map((row) => row.rule.code)).not.toContain('VGEEN')
     expect(ranked.suggestedCode).toBeNull()
   })
 })

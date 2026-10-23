@@ -378,16 +378,15 @@ function FixPanel({
             ))}
           </ol>
         )}
-        <p className="text-sm">
-          {hasSteps ? (
-            <>
-              {t('findingCard.guidedHint')}
-              <span className="hidden md:inline"> {t('findingCard.guidedHintEscape')}</span>
-            </>
-          ) : (
-            <span className="hidden md:inline">{t('findingCard.guidedHintNoSteps')}</span>
-          )}
-        </p>
+        {hasSteps ? (
+          <p className="text-sm">
+            {t('findingCard.guidedHint')}
+            <span className="hidden md:inline"> {t('findingCard.guidedHintEscape')}</span>
+          </p>
+        ) : (
+          // Escape hint is desktop-only; skip the empty line on phone (#90 designer).
+          <p className="hidden text-sm md:block">{t('findingCard.guidedHintNoSteps')}</p>
+        )}
         <Button type="button" variant="ghost" size="xs" onClick={onClose}>
           {t('findingCard.close')}
         </Button>

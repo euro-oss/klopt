@@ -1253,6 +1253,218 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     })
   })
 
+  it('allows a mixed null-% + taxed document when totalTax matches half-up within 1¢/line', () => {
+    // €0.08 × 21% = 1.68¢ → truncated 1, half-up 2. Tolerance must not block (#90 PM).
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          ...base.taxRates,
+          {
+            id: '97',
+            name: 'Geen btw',
+            percentage: Number.NaN,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        purchaseInvoices: [
+          {
+            ...base.purchaseInvoices[0]!,
+            totalTax: 2n,
+            totalExcl: 10008n,
+            totalIncl: 10010n,
+            pricesAreInclTax: false,
+            details: [
+              {
+                ...base.purchaseInvoices[0]!.details[0]!,
+                id: 'mixed-taxed',
+                price: 8n,
+                taxRateId: '22',
+              },
+              {
+                ...base.purchaseInvoices[0]!.details[0]!,
+                id: 'mixed-null',
+                price: 10000n,
+                taxRateId: '97',
+              },
+            ],
+          },
+        ],
+      },
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '97': 'VGEEN' },
+      }),
+    )
+    expect(plan.problems.map((item) => item.code)).not.toContain('null_percentage_vat_mismatch')
+    expect(plan.taxRates.find((row) => row.moneybirdId === '97')).toMatchObject({
+      mapped: true,
+      mappedCode: 'VGEEN',
+    })
+  })
+
+  it('blocks a mixed null-% + taxed document when VAT exceeds half-up + 1¢/line', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          ...base.taxRates,
+          {
+            id: '98',
+            name: 'Geen btw',
+            percentage: Number.NaN,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        purchaseInvoices: [
+          {
+            ...base.purchaseInvoices[0]!,
+            // Expected half-up on €100 @ 21% = 2100; +21 as if the null line were taxed too.
+            totalTax: 2121n,
+            totalExcl: 20000n,
+            totalIncl: 22121n,
+            pricesAreInclTax: false,
+            details: [
+              {
+                ...base.purchaseInvoices[0]!.details[0]!,
+                id: 'over-taxed',
+                price: 10000n,
+                taxRateId: '22',
+              },
+              {
+                ...base.purchaseInvoices[0]!.details[0]!,
+                id: 'over-null',
+                price: 10000n,
+                taxRateId: '98',
+              },
+            ],
+          },
+        ],
+      },
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '98': 'VGEEN' },
+      }),
+    )
+    expect(plan.problems.map((item) => item.code)).toContain('null_percentage_vat_mismatch')
+    expect(plan.taxRates.find((row) => row.moneybirdId === '98')).toMatchObject({
+      mapped: false,
+      candidates: [],
+      proposedCode: null,
+    })
+  })
+
+  it('accepts an excl-VAT purchase mixed document when totalTax matches half-up', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          ...base.taxRates,
+          {
+            id: '99',
+            name: 'Geen btw',
+            percentage: Number.NaN,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        purchaseInvoices: [
+          {
+            ...base.purchaseInvoices[0]!,
+            totalTax: 2100n,
+            totalExcl: 15000n,
+            totalIncl: 17100n,
+            pricesAreInclTax: false,
+            details: [
+              {
+                ...base.purchaseInvoices[0]!.details[0]!,
+                id: 'excl-taxed',
+                price: 10000n,
+                taxRateId: '22',
+              },
+              {
+                ...base.purchaseInvoices[0]!.details[0]!,
+                id: 'excl-null',
+                price: 5000n,
+                taxRateId: '99',
+              },
+            ],
+          },
+        ],
+      },
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '99': 'VGEEN' },
+      }),
+    )
+    expect(plan.problems.map((item) => item.code)).not.toContain('null_percentage_vat_mismatch')
+  })
+
+  it('accepts an incl-VAT purchase mixed document using prices_are_incl_tax', () => {
+    // Gross €121 @ 21% → half-up tax 2100. Treating price as net would expect ~2541 and block.
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          ...base.taxRates,
+          {
+            id: '100',
+            name: 'Geen btw',
+            percentage: Number.NaN,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        purchaseInvoices: [
+          {
+            ...base.purchaseInvoices[0]!,
+            totalTax: 2100n,
+            totalExcl: 15000n,
+            totalIncl: 17100n,
+            pricesAreInclTax: true,
+            details: [
+              {
+                ...base.purchaseInvoices[0]!.details[0]!,
+                id: 'incl-taxed',
+                price: 12100n,
+                taxRateId: '22',
+              },
+              {
+                ...base.purchaseInvoices[0]!.details[0]!,
+                id: 'incl-null',
+                price: 5000n,
+                taxRateId: '100',
+              },
+            ],
+          },
+        ],
+      },
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '100': 'VGEEN' },
+      }),
+    )
+    expect(plan.problems.map((item) => item.code)).not.toContain('null_percentage_vat_mismatch')
+    expect(plan.taxRates.find((row) => row.moneybirdId === '100')).toMatchObject({
+      mapped: true,
+      mappedCode: 'VGEEN',
+    })
+  })
+
   it('does not suggest VGEEN for a null-percentage reverse-charge purchase name', () => {
     const base = snapshot()
     const plan = planMoneybirdImport(

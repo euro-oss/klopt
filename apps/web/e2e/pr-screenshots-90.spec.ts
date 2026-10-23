@@ -85,8 +85,6 @@ test('capture #90 null-rate suggested + confirmed + To review steps', async ({ b
       ).toBeVisible()
       await setTheme(page, theme)
       await shoot(page, `vat-null-rate-suggested-${theme}-${label}.png`)
-      // Keep legacy filename for the unselected/suggested state.
-      await shoot(page, `vat-null-rate-${theme}-${label}.png`)
       await context.close()
     }
   }
@@ -149,6 +147,25 @@ test('capture #90 null-rate suggested + confirmed + To review steps', async ({ b
       await guided.scrollIntoViewIfNeeded()
       await setTheme(page, theme)
       await shoot(page, `to-review-steps-${theme}-${label}.png`)
+      await context.close()
+    }
+  }
+
+  // Documents still carry VAT — explainOnly null_percentage_vat_mismatch card (#90 PM).
+  for (const theme of ['light', 'dark'] as const) {
+    for (const [label, size] of VIEWPORTS) {
+      const context = await browser.newContext({ viewport: size })
+      const page = await context.newPage()
+      await ready(page, `90 vat-doc-mismatch ${theme} ${label}`)
+      await openFindings(page, 'source=moneybird&state=open')
+      const card = page.locator(
+        '[data-slot="finding-card"][data-code="null_percentage_vat_mismatch"]',
+      )
+      await card.scrollIntoViewIfNeeded()
+      await expect(card).toContainText(/tonen nog btw|still show VAT/i)
+      await expect(card).toContainText('LEV-VAT')
+      await setTheme(page, theme)
+      await shoot(page, `vat-doc-mismatch-${theme}-${label}.png`)
       await context.close()
     }
   }

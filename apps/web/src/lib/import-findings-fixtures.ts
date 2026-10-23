@@ -126,6 +126,22 @@ export function moneybirdFixtureFindings(handlers?: {
       },
     },
     {
+      // Documents still carry VAT on a null-% rate — explainOnly (#90 PM).
+      id: 'f3c',
+      code: 'null_percentage_vat_mismatch',
+      path: 'taxRates.95',
+      messageKey: 'moneybird.null_percentage_vat_mismatch',
+      detail: { name: 'Geen btw', count: '1', references: 'LEV-VAT' },
+      message:
+        'Tax rate Geen btw has no percentage, but 1 document(s) still show VAT (LEV-VAT). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
+      severity: 'blocking',
+      fix: {
+        type: 'explainOnly',
+        href: 'https://moneybird.com',
+        linkLabel: 'Open in Moneybird',
+      },
+    },
+    {
       id: 'f4',
       code: 'fiscal_year_start_unknown',
       path: 'administration',

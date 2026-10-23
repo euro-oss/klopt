@@ -416,31 +416,76 @@ function taxFromPercent(net: bigint, percent: number): bigint {
   return (net * BigInt(Math.round(percent * 100))) / 10000n
 }
 
+/** Half-up division of non-negative integers (sign handled by callers). */
+function divideHalfUp(numerator: bigint, denominator: bigint): bigint {
+  if (denominator === 0n) return 0n
+  return (numerator * 2n + denominator) / (denominator * 2n)
+}
+
 /**
- * Line VAT as the planner would book it: a missing Moneybird percentage is 0%.
- * Used to catch documents whose `totalTax` still carries real VAT on a null-%
- * rate — mapping those to VGEEN / 0% sales would drop VAT from the return (#90 PM).
+ * Line VAT for the null-% plausibility check: half-up (Moneybird rounds), not
+ * truncated. Null / missing percentages contribute 0. When prices include VAT,
+ * the line `price` is gross and tax is `round(gross × rate / (100 + rate))`.
  */
-function lineTaxForDetail(
+function lineTaxHalfUp(
   detail: {
     readonly amount: string | null
     readonly price: bigint
     readonly taxRateId: string | null
   },
-  taxPercentById: ReadonlyMap<string, number>,
+  percent: number,
   pricesAreInclTax: boolean,
 ): bigint {
+  if (!Number.isFinite(percent) || percent === 0) return 0n
   const quantity = qtyOf(detail.amount)
-  let net = detail.price * BigInt(Math.round(quantity))
-  const rawPercent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
-  const percent = Number.isFinite(rawPercent) ? rawPercent : 0
-  if (pricesAreInclTax && Number.isFinite(percent) && percent !== 0) {
-    const grossLine = net
-    net = (grossLine * 10000n) / BigInt(Math.round((100 + percent) * 100))
+  let line = detail.price * BigInt(Math.round(quantity))
+  if (line < 0n) line = -line
+  if (line === 0n) return 0n
+  const bps = BigInt(Math.round(percent * 100))
+  if (pricesAreInclTax) {
+    return divideHalfUp(line * bps, 10000n + bps)
   }
-  if (net < 0n) net = -net
-  if (net === 0n) return 0n
-  return taxFromPercent(net, percent)
+  return divideHalfUp(line * bps, 10000n)
+}
+
+/**
+ * True when a document that uses a null-% rate has a `totalTax` that cannot be
+ * explained by its taxed lines (#90 PM):
+ *
+ * - Only null / 0% lines → zero tolerance (any VAT blocks).
+ * - Mixed with taxed lines → half-up line VAT, allow ≤ 1 cent per taxed line.
+ */
+function documentNullPercentageVatMismatch(
+  details: readonly {
+    readonly amount: string | null
+    readonly price: bigint
+    readonly taxRateId: string | null
+  }[],
+  totalTax: bigint,
+  taxPercentById: ReadonlyMap<string, number>,
+  nullRateIds: ReadonlySet<string>,
+  pricesAreInclTax: boolean,
+): boolean {
+  const usedNull = details.some(
+    (detail) => detail.taxRateId !== null && nullRateIds.has(detail.taxRateId),
+  )
+  if (!usedNull) return false
+
+  let taxedLines = 0n
+  let expected = 0n
+  for (const detail of details) {
+    if (detail.taxRateId === null) continue
+    if (nullRateIds.has(detail.taxRateId)) continue
+    const raw = taxPercentById.get(detail.taxRateId) ?? Number.NaN
+    if (!Number.isFinite(raw) || raw === 0) continue
+    taxedLines += 1n
+    expected += lineTaxHalfUp(detail, raw, pricesAreInclTax)
+  }
+
+  const actual = totalTax < 0n ? -totalTax : totalTax
+  if (taxedLines === 0n) return actual !== 0n
+  const diff = actual > expected ? actual - expected : expected - actual
+  return diff > taxedLines
 }
 
 /**
@@ -465,16 +510,17 @@ function nullPercentageVatMismatchRefs(
 
   for (const invoice of snapshot.salesInvoices) {
     if (DRAFT_STATES.has(invoice.state)) continue
-    const usedNull = invoice.details.some(
-      (detail) => detail.taxRateId !== null && nullRateIds.has(detail.taxRateId),
-    )
-    if (!usedNull) continue
-    let expected = 0n
-    for (const detail of invoice.details) {
-      expected += lineTaxForDetail(detail, taxPercentById, invoice.pricesAreInclTax)
+    if (
+      !documentNullPercentageVatMismatch(
+        invoice.details,
+        invoice.totalTax,
+        taxPercentById,
+        nullRateIds,
+        invoice.pricesAreInclTax,
+      )
+    ) {
+      continue
     }
-    const actual = invoice.totalTax < 0n ? -invoice.totalTax : invoice.totalTax
-    if (actual === expected) continue
     for (const detail of invoice.details) {
       if (detail.taxRateId !== null && nullRateIds.has(detail.taxRateId)) {
         note(detail.taxRateId, invoice.invoiceId)
@@ -484,16 +530,17 @@ function nullPercentageVatMismatchRefs(
 
   for (const document of [...snapshot.purchaseInvoices, ...snapshot.receipts]) {
     if (DRAFT_STATES.has(document.state)) continue
-    const usedNull = document.details.some(
-      (detail) => detail.taxRateId !== null && nullRateIds.has(detail.taxRateId),
-    )
-    if (!usedNull) continue
-    let expected = 0n
-    for (const detail of document.details) {
-      expected += lineTaxForDetail(detail, taxPercentById, false)
+    if (
+      !documentNullPercentageVatMismatch(
+        document.details,
+        document.totalTax,
+        taxPercentById,
+        nullRateIds,
+        document.pricesAreInclTax,
+      )
+    ) {
+      continue
     }
-    const actual = document.totalTax < 0n ? -document.totalTax : document.totalTax
-    if (actual === expected) continue
     for (const detail of document.details) {
       if (detail.taxRateId !== null && nullRateIds.has(detail.taxRateId)) {
         note(detail.taxRateId, document.reference)
