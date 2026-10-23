@@ -4,9 +4,15 @@
  * Ports the prototype Koers sheet: ECB daily rate pre-filled, editable field,
  * badge flips to Aangepast on edit, reset to ECB, live booking preview.
  * Amounts stay euro display strings (tabular-nums); yellow is never severity.
+ *
+ * While ECB lookup runs: spinner + status on the ECB button (aria-busy /
+ * aria-disabled so focus stays), rate field stays editable, polite live region
+ * outside the busy control, slow hint after ~3 s. Recoverable ECB failures use
+ * the attention (orange) tone — never destructive red, never yellow-as-error.
  */
 
-import { RiBankLine, RiPencilLine, RiRefreshLine } from '@remixicon/react'
+import { useId } from 'react'
+import { RiBankLine, RiLoader4Line, RiPencilLine, RiRefreshLine } from '@remixicon/react'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
 import { Keycap } from '~/components/ui/keycap'
@@ -20,6 +26,7 @@ import {
 } from '~/components/ui/sheet'
 import { useT } from '~/i18n/provider'
 import type { MessageKey } from '~/i18n/nl'
+import { formatFxAnnouncementDate, fxLookupLiveKind, showFxSourceBadge } from '~/lib/fx-rate-lookup'
 import { cn } from '~/lib/utils'
 
 export interface FxPreviewRow {
@@ -48,12 +55,19 @@ export interface FxRateSheetProps {
   readonly ecbInverse?: string | null
   readonly loading?: boolean
   readonly error?: string | null
+  /**
+   * Lab / screenshots: show the slow-path hint immediately while loading
+   * without waiting {@link FX_LOOKUP_SLOW_HINT_MS}.
+   */
+  readonly forceSlowHint?: boolean
   readonly previewRows: readonly FxPreviewRow[]
   readonly calcLine: string
   /** Geavanceerd: show account numbers and Debet/Credit columns. */
   readonly advanced?: boolean
   readonly onRateChange: (rate: string) => void
   readonly onResetEcb?: () => void
+  /** Re-fetch from ECB (ignored while `loading`). */
+  readonly onRefreshEcb?: () => void
   readonly onAccept: () => void
 }
 
@@ -72,16 +86,40 @@ export function FxRateSheet({
   ecbInverse = null,
   loading = false,
   error = null,
+  forceSlowHint = false,
   previewRows,
   calcLine,
   advanced = false,
   onRateChange,
   onResetEcb,
+  onRefreshEcb,
   onAccept,
 }: FxRateSheetProps) {
   const { t } = useT()
   const isEcb = source === 'ecb'
   const currencyName = fxCurrencyName(t, currency)
+  const regionId = useId()
+  const liveId = useId()
+  const dateLabel = formatFxAnnouncementDate(ecbDate)
+  const liveKind = fxLookupLiveKind({
+    loading,
+    error,
+    hasEcbRate: ecbRate !== '',
+  })
+  const announced =
+    liveKind === 'loading'
+      ? t('importFindings.fx.fetchingEcb')
+      : liveKind === 'error' && error !== null && error !== ''
+        ? error
+        : liveKind === 'success'
+          ? t('importFindings.fx.fetchSuccess', {
+              date: dateLabel,
+            })
+          : ''
+  const showSlowHint = forceSlowHint || loading
+  const refreshUnavailable = onRefreshEcb === undefined
+  // Empty override (e.g. error state) must not show a hollow "Aangepast" badge.
+  const showSourceBadge = showFxSourceBadge(source, rate)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -95,7 +133,7 @@ export function FxRateSheet({
             const target = event.target as HTMLElement
             if (target.id === 'fx-rate-input') {
               event.preventDefault()
-              if (!loading && rate.trim() !== '') onAccept()
+              if (rate.trim() !== '') onAccept()
             }
           }
         }}
@@ -124,68 +162,128 @@ export function FxRateSheet({
             ))}
           </dl>
 
-          <div className="flex items-baseline justify-between gap-2">
-            <label htmlFor="fx-rate-input" className="text-sm font-medium">
-              {t('moneybird.fx.rateLabel')}
-            </label>
-            <Badge variant={isEcb ? 'outline' : 'attention'} data-fx="badge">
-              {isEcb ? (
-                <>
-                  <RiBankLine className="size-3" aria-hidden />
-                  {t('importFindings.fx.badgeEcb', { date: ecbDate })}
-                </>
-              ) : (
-                <>
-                  <RiPencilLine className="size-3" aria-hidden />
-                  {t('importFindings.fx.badgeOverride', { date: ecbDate })}
-                </>
-              )}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground mb-2 text-xs">
-            {t('importFindings.fx.rateHint', { currencyName })}
-          </p>
-
-          <div className="flex items-stretch">
-            <span className="border-input bg-muted flex items-center border border-r-0 px-3 text-sm tabular-nums">
-              {t('importFindings.fx.perUnit', { currency })}
-            </span>
-            <div className="relative flex-1">
-              <input
-                id="fx-rate-input"
-                inputMode="decimal"
-                autoComplete="off"
-                disabled={loading}
-                value={rate}
-                onChange={(event) => onRateChange(event.target.value)}
-                aria-describedby="fx-rate-note"
-                className="border-input bg-background min-h-11 w-full border py-2 pr-9 pl-3 text-lg font-medium tabular-nums md:min-h-9 md:text-lg"
-              />
-              <RiPencilLine
-                className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
-                aria-hidden
-              />
+          <div id={regionId} data-slot="fx-rate-region">
+            <div className="flex items-baseline justify-between gap-2">
+              <label htmlFor="fx-rate-input" className="text-sm font-medium">
+                {t('moneybird.fx.rateLabel')}
+              </label>
+              {showSourceBadge ? (
+                <Badge variant={isEcb ? 'outline' : 'attention'} data-fx="badge">
+                  {isEcb ? (
+                    <>
+                      <RiBankLine className="size-3" aria-hidden />
+                      {t('importFindings.fx.badgeEcb', { date: dateLabel })}
+                    </>
+                  ) : (
+                    <>
+                      <RiPencilLine className="size-3" aria-hidden />
+                      {t('importFindings.fx.badgeOverride', { date: dateLabel })}
+                    </>
+                  )}
+                </Badge>
+              ) : null}
             </div>
-            <span className="border-input bg-muted flex items-center border border-l-0 px-3 text-sm">
-              EUR
-            </span>
-          </div>
+            <p className="text-muted-foreground mb-2 text-xs">
+              {t('importFindings.fx.rateHint', { currencyName })}
+            </p>
 
-          <p id="fx-rate-note" className="text-muted-foreground mt-2 text-xs">
-            {loading
-              ? t('moneybird.fx.loading')
-              : isEcb && ecbInverse !== null && ecbInverse !== ''
+            <div className="flex items-stretch">
+              <span className="border-input bg-muted flex items-center border border-r-0 px-3 text-sm tabular-nums">
+                {t('importFindings.fx.perUnit', { currency })}
+              </span>
+              <div className="relative flex-1">
+                <input
+                  id="fx-rate-input"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={rate}
+                  onChange={(event) => onRateChange(event.target.value)}
+                  aria-describedby="fx-rate-note"
+                  className="border-input bg-background min-h-11 w-full border py-2 pr-9 pl-3 text-lg font-medium tabular-nums md:min-h-9 md:text-lg"
+                />
+                <RiPencilLine
+                  className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
+                  aria-hidden
+                />
+              </div>
+              <span className="border-input bg-muted flex items-center border border-l-0 px-3 text-sm">
+                EUR
+              </span>
+            </div>
+
+            <p id="fx-rate-note" className="text-muted-foreground mt-2 text-xs">
+              {isEcb && ecbInverse !== null && ecbInverse !== ''
                 ? t('importFindings.fx.ecbNoteInverse', {
                     inverse: ecbInverse,
                     currency,
                   })
                 : isEcb
-                  ? t('importFindings.fx.ecbNote', { date: ecbDate })
+                  ? t('importFindings.fx.ecbNote', { date: dateLabel })
                   : t('importFindings.fx.overrideNote')}
-          </p>
+            </p>
+
+            {(onRefreshEcb !== undefined || loading) && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  // Keep focus on the control while busy: aria-disabled, not disabled.
+                  disabled={refreshUnavailable && !loading}
+                  aria-disabled={loading || undefined}
+                  aria-busy={loading || undefined}
+                  onClick={() => {
+                    if (loading || onRefreshEcb === undefined) return
+                    onRefreshEcb()
+                  }}
+                  data-slot="fx-ecb-refresh"
+                  className={cn(
+                    'min-h-11 gap-2 normal-case tracking-normal md:min-h-8',
+                    // Match aria-disabled: no clickable hover, not-allowed cursor.
+                    loading &&
+                      'cursor-not-allowed opacity-50 hover:bg-background hover:text-foreground',
+                  )}
+                >
+                  {loading ? (
+                    <>
+                      <RiLoader4Line
+                        className="size-3.5 animate-spin motion-reduce:animate-none"
+                        aria-hidden
+                      />
+                      {t('importFindings.fx.fetchingEcb')}
+                    </>
+                  ) : (
+                    <>
+                      <RiRefreshLine className="size-3.5" aria-hidden />
+                      {t('importFindings.fx.refreshEcb')}
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {showSlowHint && (
+              <p
+                data-slot="fx-slow-hint"
+                className={cn(
+                  'text-muted-foreground mt-2 text-xs',
+                  forceSlowHint
+                    ? 'animate-in-fade motion-reduce:animate-none'
+                    : 'fx-slow-hint-reveal',
+                )}
+              >
+                {t('importFindings.fx.slowHint')}
+              </p>
+            )}
+          </div>
+
+          {/* Outside aria-busy so polite announcements are not suppressed. */}
+          <div id={liveId} role="status" aria-live="polite" className="sr-only">
+            {announced}
+          </div>
 
           {error !== null && error !== '' && (
-            <p role="alert" className="text-destructive mt-2 text-sm">
+            <p className="text-warning mt-2 text-sm" data-slot="fx-error">
               {error}
             </p>
           )}
@@ -271,7 +369,7 @@ export function FxRateSheet({
           </Button>
           <Button
             type="button"
-            disabled={loading || rate.trim() === ''}
+            disabled={rate.trim() === ''}
             className="min-h-11 md:min-h-9"
             onClick={onAccept}
           >

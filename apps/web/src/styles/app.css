@@ -379,6 +379,22 @@
   }
 }
 
+/* Koers: soft hint after ~3 s of ECB lookup (prefers-reduced-motion → immediate). */
+.fx-slow-hint-reveal {
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+  overflow: hidden;
+  animation: fx-slow-hint-reveal 0s linear 3s forwards;
+}
+@keyframes fx-slow-hint-reveal {
+  to {
+    max-height: 4rem;
+    margin-top: 0.5rem;
+    opacity: 1;
+  }
+}
+
 .collapse-out {
   display: grid;
   grid-template-rows: 1fr;

@@ -474,11 +474,74 @@ describe('FX rate and mapping decisions', () => {
       await expect(
         handleRefreshMoneybirdFxRate(
           await context(token),
-          moneybirdFxRateQuery.parse({ currency: 'USD', documentDate: '2026-03-15' }),
+          // Unique code so a prior suite seed cannot cache-hit.
+          moneybirdFxRateQuery.parse({ currency: 'XPD', documentDate: '2026-03-15' }),
         ),
       ).rejects.toMatchObject({ code: 'conflict' })
     } finally {
       globalThis.fetch = previous
+    }
+  })
+
+  it('refresh fx-rate maps an ECB abort/timeout to conflict rather than 5xx', async () => {
+    const { token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+    const moneybirdFetch = globalThis.fetch
+    globalThis.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      if (!url.includes('ecb.europa.eu')) {
+        return moneybirdFetch(input, init)
+      }
+      // Production fetch uses AbortSignal.timeout(15_000); simulate that abort.
+      void init?.signal
+      return Promise.reject(
+        new DOMException('The operation was aborted due to timeout', 'TimeoutError'),
+      )
+    }
+    try {
+      await expect(
+        handleRefreshMoneybirdFxRate(
+          await context(token),
+          moneybirdFxRateQuery.parse({ currency: 'XPT', documentDate: '2026-03-15' }),
+        ),
+      ).rejects.toMatchObject({ code: 'conflict' })
+    } finally {
+      globalThis.fetch = moneybirdFetch
+    }
+  })
+
+  it('refresh fx-rate uses the cache without calling ECB when a qualifying row exists', async () => {
+    const { token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+    const ctx = await context(token)
+    await withEcbRates(ctx.database, (repository) =>
+      repository.upsertMany([{ currency: 'XAU', rateDate: '2026-03-14', rate: '0.5' }]),
+    )
+    let ecbCalls = 0
+    const moneybirdFetch = globalThis.fetch
+    globalThis.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      if (url.includes('ecb.europa.eu')) {
+        ecbCalls += 1
+        return Promise.resolve(new Response('nope', { status: 500 }))
+      }
+      return moneybirdFetch(input, init)
+    }
+    try {
+      const body = (
+        await handleRefreshMoneybirdFxRate(
+          ctx,
+          moneybirdFxRateQuery.parse({ currency: 'XAU', documentDate: '2026-03-15' }),
+        )
+      ).body
+      expect(Number(body.rate)).toBeCloseTo(0.5, 6)
+      expect(ecbCalls).toBe(0)
+    } finally {
+      globalThis.fetch = moneybirdFetch
     }
   })
 
@@ -487,8 +550,15 @@ describe('FX rate and mapping decisions', () => {
     fakeMoneybird()
     await connect(token)
     await choose(token)
+    // Fresh ISO code each run so a prior cache row cannot short-circuit the fetch.
+    const letters = crypto
+      .randomUUID()
+      .replace(/[^a-f]/gi, '')
+      .slice(0, 2)
+      .toUpperCase()
+    const currency = `Q${letters}`
     const moneybirdFetch = globalThis.fetch
-    const ecbXml = `<?xml version="1.0"?><gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref"><Cube><Cube time="2026-03-14"><Cube currency="USD" rate="1.0853"/></Cube></Cube></gesmes:Envelope>`
+    const ecbXml = `<?xml version="1.0"?><gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref"><Cube><Cube time="2026-03-14"><Cube currency="${currency}" rate="1.0853"/></Cube></Cube></gesmes:Envelope>`
     globalThis.fetch = (input, init) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
       if (url.includes('ecb.europa.eu')) {
@@ -501,7 +571,7 @@ describe('FX rate and mapping decisions', () => {
     try {
       await handleRefreshMoneybirdFxRate(
         await context(token),
-        moneybirdFxRateQuery.parse({ currency: 'USD', documentDate: '2026-03-15' }),
+        moneybirdFxRateQuery.parse({ currency, documentDate: '2026-03-15' }),
       )
       const audit = (
         await handleListAuditLog(
@@ -513,7 +583,7 @@ describe('FX rate and mapping decisions', () => {
         (row: { action: string }) => row.action === 'moneybird.refreshFxRate',
       )
       expect(refresh?.after).toMatchObject({
-        currency: 'USD',
+        currency,
         documentDate: '2026-03-15',
         feed: 'full',
       })

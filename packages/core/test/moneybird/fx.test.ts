@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ECB_MAX_LOOKBACK_DAYS,
+  addCalendarDays,
   applyFxToLines,
   calendarDaysBetween,
   convertMinorWithRate,
@@ -76,6 +77,11 @@ describe('ECB rate lookup', () => {
   it('flags documents older than 90 days for the full ECB history feed', () => {
     expect(isOlderThanDays('2026-01-01', 90, '2026-10-16')).toBe(true)
     expect(isOlderThanDays('2026-10-01', 90, '2026-10-16')).toBe(false)
+  })
+
+  it('shifts ISO dates by calendar days for the ECB fetch window', () => {
+    expect(addCalendarDays('2026-03-15', -ECB_MAX_LOOKBACK_DAYS)).toBe('2026-03-08')
+    expect(addCalendarDays('2026-03-01', -1)).toBe('2026-02-28')
   })
 })
 

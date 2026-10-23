@@ -18,6 +18,20 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Fixed
+
+- **Moneybird ECB rate refresh no longer OOMs the web process.** Refreshing a
+  Koers for a document older than ~90 days used to download `eurofxref-hist.xml`
+  (~8 MB), invert every currency×day into memory, and upsert ~220k rows in one
+  statement — blowing the Node heap (502 via Caddy) and never committing the
+  cache. Refresh is now cache-first, fetches with a 15 s timeout and 20 MB body
+  cap, keeps only the requested currency in the 7-day lookback window through
+  today, and batches upserts at 1_000 rows. Failures map to `conflict` with a
+  plain-Dutch message; the rate field stays editable, the ECB button shows a
+  loading state (spinner + live region; slow hint after 3 s), and typing during
+  the lookup wins over a late response. A worker full-history backfill remains a
+  follow-up.
+
 ### Btw-codes beheren (Beheer)
 
 Eigenaar and Accountant can open **Beheer → Btw-codes**, see every tax code on
