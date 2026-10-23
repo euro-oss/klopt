@@ -5,7 +5,7 @@ import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, signIn, uniqueEmail } from './support'
 
 /**
- * Public PNGs for #90 — null-rate VAT sheet (VGEEN) + To review steps.
+ * Public PNGs for #90 — null-rate VAT sheet (suggested + confirmed) + To review steps.
  *
  * Run with:
  *   CAPTURE_PR_SCREENSHOTS=1 PR_SCREENSHOT_NUMBER=91 \
@@ -63,29 +63,71 @@ const VIEWPORTS = [
   ['mobile-390', { width: 390, height: 844 }],
 ] as const
 
-test('capture #90 null-rate VAT sheet + To review steps', async ({ browser }) => {
+test('capture #90 null-rate suggested + confirmed + To review steps', async ({ browser }) => {
   test.setTimeout(600_000)
 
-  // Resolve · VAT — Geen btw (—%) with VGEEN offered, nothing preselected.
+  // Suggested: Voorstel marker, VGEEN unchecked, Opslaan disabled.
   for (const theme of ['light', 'dark'] as const) {
     for (const [label, size] of VIEWPORTS) {
       const context = await browser.newContext({ viewport: size })
       const page = await context.newPage()
-      await ready(page, `90 null-rate ${theme} ${label}`)
+      await ready(page, `90 suggested ${theme} ${label}`)
       await openFindings(page, 'source=moneybird&state=open&sheet=taxEmpty')
       const sheet = page.getByRole('dialog')
       await expect(sheet).toBeVisible()
       await expect(sheet.getByText('Geen btw', { exact: true })).toBeVisible()
       await expect(sheet.getByRole('radio')).toContainText(/Inkoop zonder btw/)
       await expect(sheet.getByRole('radio')).toHaveAttribute('aria-checked', 'false')
-      await expect(sheet.getByText(/Moneybird geeft geen percentage voor “Geen btw”/)).toBeVisible()
+      await expect(sheet.getByText('Voorstel')).toBeVisible()
+      await expect(sheet.getByRole('button', { name: 'Opslaan' })).toBeDisabled()
+      await expect(
+        sheet.getByText(/Moneybird gaf geen percentage mee voor ‘Geen btw’/),
+      ).toBeVisible()
       await setTheme(page, theme)
+      await shoot(page, `vat-null-rate-suggested-${theme}-${label}.png`)
+      // Keep legacy filename for the unselected/suggested state.
       await shoot(page, `vat-null-rate-${theme}-${label}.png`)
       await context.close()
     }
   }
 
-  // To review card — guided Geen btw finding with steps rendered (#90).
+  // Confirmed: VGEEN checked, Wat er gebeurt visible, Opslaan enabled.
+  for (const theme of ['light', 'dark'] as const) {
+    for (const [label, size] of VIEWPORTS) {
+      const context = await browser.newContext({ viewport: size })
+      const page = await context.newPage()
+      await ready(page, `90 confirmed ${theme} ${label}`)
+      await openFindings(page, 'source=moneybird&state=open&sheet=taxEmpty')
+      const sheet = page.getByRole('dialog')
+      await expect(sheet).toBeVisible()
+      await sheet.getByRole('radio').click()
+      await expect(sheet.getByRole('radio')).toHaveAttribute('aria-checked', 'true')
+      await expect(sheet.getByText('Wat er gebeurt')).toBeVisible()
+      await expect(sheet.getByRole('button', { name: 'Opslaan' })).toBeEnabled()
+      await setTheme(page, theme)
+      await shoot(page, `vat-null-rate-confirmed-${theme}-${label}.png`)
+      await context.close()
+    }
+  }
+
+  // Honest dead-end / no candidates (verlegd 0% purchase — mismatch with VGEEN).
+  for (const theme of ['light', 'dark'] as const) {
+    for (const [label, size] of VIEWPORTS) {
+      const context = await browser.newContext({ viewport: size })
+      const page = await context.newPage()
+      await ready(page, `90 mismatch ${theme} ${label}`)
+      await openFindings(page, 'source=moneybird&state=open&sheet=taxVerlegd0')
+      const sheet = page.getByRole('dialog')
+      await expect(sheet).toBeVisible()
+      await expect(sheet.getByRole('radio')).toHaveCount(0)
+      await expect(sheet.getByRole('status')).toContainText(/kan nog niet verder/)
+      await setTheme(page, theme)
+      await shoot(page, `vat-mismatch-${theme}-${label}.png`)
+      await context.close()
+    }
+  }
+
+  // To review card — guided Geen btw finding with Opslaan steps (#90).
   for (const theme of ['light', 'dark'] as const) {
     for (const [label, size] of VIEWPORTS) {
       const context = await browser.newContext({ viewport: size })
@@ -99,7 +141,7 @@ test('capture #90 null-rate VAT sheet + To review steps', async ({ browser }) =>
       await guided.getByRole('button', { name: 'Btw-tarief koppelen' }).click()
       await expect(guided).toHaveAttribute('data-fix-open', 'true')
       await expect(guided.getByText('Btw-code kiezen')).toBeVisible()
-      await expect(guided.getByText('Bewaren')).toBeVisible()
+      await expect(guided.getByText('Opslaan')).toBeVisible()
       await expect(guided.getByText(/Volg de stappen hierboven/)).toBeVisible()
       // Close the sheet so the card steps stay in frame.
       await page.keyboard.press('Escape')

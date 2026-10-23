@@ -40,6 +40,7 @@ export type MoneybirdProblemCode =
   | 'unmapped_account'
   | 'unmapped_tax_rate'
   | 'incompatible_tax_rate'
+  | 'null_percentage_vat_mismatch'
   | 'account_number_collision'
   | 'contact_number_collision'
   | 'resource_unreadable'
@@ -416,6 +417,94 @@ function taxFromPercent(net: bigint, percent: number): bigint {
 }
 
 /**
+ * Line VAT as the planner would book it: a missing Moneybird percentage is 0%.
+ * Used to catch documents whose `totalTax` still carries real VAT on a null-%
+ * rate — mapping those to VGEEN / 0% sales would drop VAT from the return (#90 PM).
+ */
+function lineTaxForDetail(
+  detail: {
+    readonly amount: string | null
+    readonly price: bigint
+    readonly taxRateId: string | null
+  },
+  taxPercentById: ReadonlyMap<string, number>,
+  pricesAreInclTax: boolean,
+): bigint {
+  const quantity = qtyOf(detail.amount)
+  let net = detail.price * BigInt(Math.round(quantity))
+  const rawPercent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
+  const percent = Number.isFinite(rawPercent) ? rawPercent : 0
+  if (pricesAreInclTax && Number.isFinite(percent) && percent !== 0) {
+    const grossLine = net
+    net = (grossLine * 10000n) / BigInt(Math.round((100 + percent) * 100))
+  }
+  if (net < 0n) net = -net
+  if (net === 0n) return 0n
+  return taxFromPercent(net, percent)
+}
+
+/**
+ * Null-% Moneybird rates whose documents' `totalTax` does not match line VAT
+ * when null-rate lines are treated as 0%. Keyed by tax rate id → document refs.
+ */
+function nullPercentageVatMismatchRefs(
+  snapshot: Pick<MoneybirdSnapshot, 'salesInvoices' | 'purchaseInvoices' | 'receipts' | 'taxRates'>,
+): ReadonlyMap<string, readonly string[]> {
+  const taxPercentById = new Map(snapshot.taxRates.map((rate) => [rate.id, rate.percentage]))
+  const nullRateIds = new Set(
+    snapshot.taxRates.filter((rate) => !Number.isFinite(rate.percentage)).map((rate) => rate.id),
+  )
+  if (nullRateIds.size === 0) return new Map()
+
+  const refsByRate = new Map<string, string[]>()
+  const note = (rateId: string, reference: string): void => {
+    const list = refsByRate.get(rateId)
+    if (list === undefined) refsByRate.set(rateId, [reference])
+    else if (!list.includes(reference)) list.push(reference)
+  }
+
+  for (const invoice of snapshot.salesInvoices) {
+    if (DRAFT_STATES.has(invoice.state)) continue
+    const usedNull = invoice.details.some(
+      (detail) => detail.taxRateId !== null && nullRateIds.has(detail.taxRateId),
+    )
+    if (!usedNull) continue
+    let expected = 0n
+    for (const detail of invoice.details) {
+      expected += lineTaxForDetail(detail, taxPercentById, invoice.pricesAreInclTax)
+    }
+    const actual = invoice.totalTax < 0n ? -invoice.totalTax : invoice.totalTax
+    if (actual === expected) continue
+    for (const detail of invoice.details) {
+      if (detail.taxRateId !== null && nullRateIds.has(detail.taxRateId)) {
+        note(detail.taxRateId, invoice.invoiceId)
+      }
+    }
+  }
+
+  for (const document of [...snapshot.purchaseInvoices, ...snapshot.receipts]) {
+    if (DRAFT_STATES.has(document.state)) continue
+    const usedNull = document.details.some(
+      (detail) => detail.taxRateId !== null && nullRateIds.has(detail.taxRateId),
+    )
+    if (!usedNull) continue
+    let expected = 0n
+    for (const detail of document.details) {
+      expected += lineTaxForDetail(detail, taxPercentById, false)
+    }
+    const actual = document.totalTax < 0n ? -document.totalTax : document.totalTax
+    if (actual === expected) continue
+    for (const detail of document.details) {
+      if (detail.taxRateId !== null && nullRateIds.has(detail.taxRateId)) {
+        note(detail.taxRateId, document.reference)
+      }
+    }
+  }
+
+  return refsByRate
+}
+
+/**
  * Effective Moneybird `tax_rate_type` for matching.
  *
  * When Moneybird omitted the direction, derive it from documents that use the
@@ -491,9 +580,15 @@ function taxMappingCompatible(
   taxRateType: string,
   code: string,
   rules: readonly ExistingTaxRule[],
+  options: { readonly refuseZeroPercent?: boolean } = {},
 ): boolean {
   if (!taxRateDecidable(rate, taxRateType)) return false
-  return matchVatCodes(rules, rateForMatching(rate, taxRateType)).some((rule) => rule.code === code)
+  const matches = matchVatCodes(rules, rateForMatching(rate, taxRateType))
+  const hit = matches.find((rule) => rule.code === code)
+  if (hit === undefined) return false
+  // Null-% rate whose documents still carry VAT: never accept a 0% Klopt code (#90 PM).
+  if (options.refuseZeroPercent === true && hit.rateBasisPoints === 0) return false
+  return true
 }
 
 /**
@@ -507,6 +602,7 @@ export function findIncompatibleTaxMappings(
   mappings: Readonly<Record<string, string>>,
 ): readonly MoneybirdProblem[] {
   const existingTaxCodes = new Set(rules.map((rule) => rule.code))
+  const vatMismatchRates = nullPercentageVatMismatchRefs(snapshot)
   const found: MoneybirdProblem[] = []
   for (const rate of snapshot.taxRates) {
     const confirmedRaw = mappings[rate.id]?.trim() || null
@@ -529,7 +625,8 @@ export function findIncompatibleTaxMappings(
       )
       continue
     }
-    if (!taxMappingCompatible(rate, taxRateType, confirmedRaw, rules)) {
+    const refuseZeroPercent = !Number.isFinite(rate.percentage) && vatMismatchRates.has(rate.id)
+    if (!taxMappingCompatible(rate, taxRateType, confirmedRaw, rules, { refuseZeroPercent })) {
       found.push(
         problem(
           'incompatible_tax_rate',
@@ -722,10 +819,31 @@ export function planMoneybirdImport(
   }
   for (const account of snapshot.financialAccounts) markAccount(account.ledgerAccountId)
 
+  const vatMismatchByRate = nullPercentageVatMismatchRefs(snapshot)
+  for (const [rateId, refs] of vatMismatchByRate) {
+    const rate = snapshot.taxRates.find((row) => row.id === rateId)
+    if (rate === undefined) continue
+    problems.push(
+      problem('null_percentage_vat_mismatch', `taxRates.${rateId}`, {
+        name: rate.name,
+        percentage: percentageFindingDetail(rate.percentage),
+        references: refs.join(', '),
+        count: String(refs.length),
+      }),
+    )
+  }
+
   const taxRates: MoneybirdPlannedTaxRate[] = snapshot.taxRates.map((rate) => {
     const taxRateType = resolveMoneybirdTaxRateType(rate, snapshot)
-    const proposed = proposeTaxCode(rate, taxRateType, options.existingTaxRules)
-    const candidates = vatCandidatesFor(rate, taxRateType, options.existingTaxRules)
+    const refuseZeroPercent = !Number.isFinite(rate.percentage) && vatMismatchByRate.has(rate.id)
+    // When documents still carry VAT on a null-% rate, offering 0% codes would
+    // invite a mapping that drops that VAT — leave the picker empty (#90 PM).
+    const candidates = refuseZeroPercent
+      ? []
+      : vatCandidatesFor(rate, taxRateType, options.existingTaxRules)
+    const proposed = refuseZeroPercent
+      ? null
+      : proposeTaxCode(rate, taxRateType, options.existingTaxRules)
     const confirmedRaw = options.confirmedTaxMappings[rate.id]?.trim() || null
     const used = usedTaxRateIds.has(rate.id)
 
@@ -735,7 +853,11 @@ export function planMoneybirdImport(
       // Accept only when direction (declared or derived) + rate (missing → 0%)
       // make the code a matchVatCodes hit. Unknown direction or a wrong code
       // is incompatible_tax_rate; never accept unvalidated (#70 / #90).
-      if (!taxMappingCompatible(rate, taxRateType, confirmedRaw, options.existingTaxRules)) {
+      if (
+        !taxMappingCompatible(rate, taxRateType, confirmedRaw, options.existingTaxRules, {
+          refuseZeroPercent,
+        })
+      ) {
         incompatible = true
         problems.push(
           problem(
@@ -759,8 +881,9 @@ export function planMoneybirdImport(
     // the finding asks the user to choose again (#70).
     const mappedCode = confirmed ?? (incompatible ? null : proposed)
     const mapped = mappedCode !== null && existingTaxCodes.has(mappedCode)
-    // incompatible_tax_rate already blocks; do not also emit unmapped_tax_rate.
-    if (used && !mapped && !incompatible) {
+    // incompatible_tax_rate / null_percentage_vat_mismatch already block; do
+    // not also emit unmapped_tax_rate for the same rate.
+    if (used && !mapped && !incompatible && !vatMismatchByRate.has(rate.id)) {
       problems.push(
         problem('unmapped_tax_rate', `taxRates.${rate.id}`, {
           name: rate.name,

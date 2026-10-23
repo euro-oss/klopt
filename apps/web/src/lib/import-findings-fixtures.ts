@@ -122,7 +122,7 @@ export function moneybirdFixtureFindings(handlers?: {
         type: 'guided',
         label: 'Btw-tarief koppelen',
         onOpen: onMapTax,
-        steps: ['Btw-code kiezen', 'Bewaren'],
+        steps: ['Btw-code kiezen', 'Opslaan'],
       },
     },
     {

@@ -50,6 +50,8 @@ export const en: Record<MessageKey, string> = {
     'Without a tax code the return cannot place those lines.',
   'finding.why.moneybird.incompatible_tax_rate':
     'The wrong direction or rate puts sales VAT on input codes (or the reverse) and corrupts the return.',
+  'finding.why.moneybird.null_percentage_vat_mismatch':
+    'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Without a single direction no VAT code can be chosen; the import stays blocked until Moneybird shows one side only.',
   'finding.why.moneybird.account_number_collision':
@@ -105,7 +107,8 @@ export const en: Record<MessageKey, string> = {
   'findingCard.explainOnlyBody': 'You cannot fix this here.',
   'findingCard.oneClickSafe': 'Does not change your books',
   'findingCard.guidedSteps': '{count} steps',
-  'findingCard.guidedHint': 'Follow the steps above. Escape closes this panel.',
+  'findingCard.guidedHint': 'Follow the steps above.',
+  'findingCard.guidedHintEscape': 'Escape closes this panel.',
   'findingCard.guidedHintNoSteps': 'Escape closes this panel.',
   'findingCard.preview': 'This changes the books',
   'findingCard.confirmFix': 'Apply',
@@ -177,13 +180,14 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.showFewerRates': 'Show less',
   'importFindings.accountVat.vatHint': 'Moneybird had {rate}% VAT.',
   'importFindings.accountVat.vatHintUnknown':
-    'Moneybird gives no percentage for “{name}”. Pick how Klopt should book it.',
+    'Moneybird didn’t send a percentage for ‘{name}’. We assume 0%; please check.',
   'importFindings.accountVat.vatUnsupported':
-    'Klopt does not have a VAT code for {rate}% yet. Choose it yourself in the table, or exclude the documents with this rate.',
+    'Klopt has no VAT code for this rate yet, so this import cannot continue.',
   'importFindings.accountVat.vatUnknown':
-    'Moneybird gives no percentage for “{name}”. Pick how Klopt should book it.',
+    'Moneybird didn’t send a percentage for ‘{name}’. We assume 0%; please check.',
   'importFindings.accountVat.vatUnknownEmpty':
-    'Moneybird gives no percentage for “{name}”, and Klopt has no matching VAT code here yet. Choose it yourself in the table, or exclude the documents with this rate.',
+    'Klopt has no VAT code for this rate yet, so this import cannot continue.',
+  'importFindings.accountVat.suggested': 'Suggested',
   'importFindings.accountVat.whatHappens': 'What happens',
   'importFindings.accountVat.whatHappensBody':
     'The Moneybird entries land on {account}, with {vat}. Nothing is posted yet; that happens when you import.',

@@ -117,6 +117,7 @@ function AccountVatSheetBody({
 }: AccountVatSheetProps) {
   const { t } = useT()
   const listId = useId()
+  const vatHintId = `${listId}-vat-hint`
   const candidates = useMemo(() => {
     if (serverCandidates !== undefined) {
       return vatCandidatesFromServer({
@@ -474,7 +475,7 @@ function AccountVatSheetBody({
 
         {mode === 'tax' && (
           <fieldset>
-            <legend className="mb-2 text-sm font-medium">
+            <legend id={`${vatListId}-legend`} className="mb-2 text-sm font-medium">
               {t('importFindings.accountVat.stepVatOnly')}
             </legend>
             {allVatOptions.length === 0 ? (
@@ -488,6 +489,8 @@ function AccountVatSheetBody({
                 <div
                   id={vatListId}
                   role="radiogroup"
+                  aria-labelledby={`${vatListId}-legend`}
+                  aria-describedby={vatHintId}
                   className={cn(
                     'border',
                     vatOptions.length <= 3
@@ -507,6 +510,9 @@ function AccountVatSheetBody({
                     const checked = option.code === vat
                     // Checked radio, else first visible when nothing checked (#71 PM).
                     const tabStop = checkedVatIndex >= 0 ? index === checkedVatIndex : index === 0
+                    // Single other-only option (e.g. VGEEN) is a suggestion, not a pick yet (#90 designer).
+                    const isSuggestion =
+                      !checked && otherOnly && vatOptions.length === 1 && option.group === 'other'
                     return (
                       <button
                         key={option.code}
@@ -520,14 +526,34 @@ function AccountVatSheetBody({
                         }}
                         className={cn(
                           'min-h-11 px-3 text-left text-sm outline-none',
-                          'focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
+                          // Focus: dashed ring outside the control — never fill like checked (#90 designer).
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                           vatOptions.length <= 3 && index > 0 && 'border-l',
                           checked
-                            ? 'bg-foreground text-background font-medium focus-visible:outline-background'
+                            ? 'bg-foreground text-background font-medium focus-visible:ring-offset-foreground'
                             : 'hover:bg-muted',
                         )}
                       >
-                        <span className="block">{vatLabel(option)}</span>
+                        <span className="flex items-center gap-2">
+                          <span className="min-w-0 flex-1">
+                            <span className="block">{vatLabel(option)}</span>
+                            {!advanced && option.code === 'VGEEN' && (
+                              <span
+                                className={cn(
+                                  'mt-0.5 block text-xs tabular-nums',
+                                  checked ? 'text-background/70' : 'text-muted-foreground',
+                                )}
+                              >
+                                0%
+                              </span>
+                            )}
+                          </span>
+                          {isSuggestion && (
+                            <Badge variant="outline" className="text-muted-foreground shrink-0">
+                              {t('importFindings.accountVat.suggested')}
+                            </Badge>
+                          )}
+                        </span>
                         {advanced && (
                           <span className="block text-xs opacity-70 tabular-nums">
                             {option.code}
@@ -574,7 +600,7 @@ function AccountVatSheetBody({
             )}
             {/* Hint only when a valid code exists — empty status already covers no options. */}
             {allVatOptions.length > 0 && (
-              <p className="text-muted-foreground mt-1.5 text-xs">
+              <p id={vatHintId} className="text-muted-foreground mt-1.5 text-xs">
                 {percentage !== null && percentage !== '' && percentageLabel !== '—'
                   ? t('importFindings.accountVat.vatHint', {
                       rate: percentageLabel.replace(/%$/u, ''),
@@ -609,8 +635,8 @@ function AccountVatSheetBody({
       </div>
 
       <SheetFooter className="flex-row flex-wrap justify-end gap-2 border-t px-5 py-3">
-        {/* Keep a way forward even when radios are empty (#90) — table / exclude. */}
-        {onJumpToMapping !== undefined && (
+        {/* Jump only when there is something to pick — empty candidates stay an honest dead-end (#90 PM). */}
+        {onJumpToMapping !== undefined && allVatOptions.length > 0 && (
           <Button
             type="button"
             variant="ghost"

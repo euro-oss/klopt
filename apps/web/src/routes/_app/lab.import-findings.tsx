@@ -376,7 +376,7 @@ function ImportFindingsLab() {
             open={taxEmptyOpen}
             onOpenChange={setTaxEmptyOpen}
             sourceName="Geen btw"
-            sourceDetail="—%"
+            sourceDetail="—"
             accounts={FIXTURE_ACCOUNTS}
             taxRules={NL_MKB_VAT_RULES}
             mode="tax"

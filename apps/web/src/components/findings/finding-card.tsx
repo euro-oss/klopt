@@ -379,7 +379,14 @@ function FixPanel({
           </ol>
         )}
         <p className="text-sm">
-          {hasSteps ? t('findingCard.guidedHint') : t('findingCard.guidedHintNoSteps')}
+          {hasSteps ? (
+            <>
+              {t('findingCard.guidedHint')}
+              <span className="hidden md:inline"> {t('findingCard.guidedHintEscape')}</span>
+            </>
+          ) : (
+            <span className="hidden md:inline">{t('findingCard.guidedHintNoSteps')}</span>
+          )}
         </p>
         <Button type="button" variant="ghost" size="xs" onClick={onClose}>
           {t('findingCard.close')}

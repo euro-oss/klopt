@@ -142,6 +142,8 @@ export const FINDING_MESSAGES = {
     'Tax rate {name} ({percentage}) cannot map to {mappedCode}: direction or rate does not match the chart.',
   'moneybird.incompatible_tax_rate_both_sides':
     'Direction unknown: this tax rate is used on both sales and purchase invoices.',
+  'moneybird.null_percentage_vat_mismatch':
+    'Tax rate {name} has no percentage, but {count} document(s) still show VAT ({references}). Mapping it to 0% would drop that VAT from the return — fix the rate or the documents in Moneybird first.',
   'moneybird.account_number_collision': 'Moneybird returned ledger number {number} twice ({name}).',
   'moneybird.contact_number_collision':
     'Moneybird returned contact number {number} twice ({name}).',

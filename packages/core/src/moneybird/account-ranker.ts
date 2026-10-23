@@ -127,28 +127,46 @@ export interface VatMatchQuery {
  *
  * Detected from the rate name / report_reference: Moneybird books many of these
  * at 0% on the invoice even though Klopt's paired codes carry 9%/21%.
+ *
+ * A bare `eu` substring is not enough: names like "Geen btw (buiten EU)" are
+ * domestic out-of-scope and must still offer VGEEN. Match only specific
+ * intra-community terms (ICP/ICV, EU-levering, binnen EU as whole words, …)
+ * and never "buiten EU" / "outside EU" (#90 designer / #91).
  */
 export function isSpecialAcquisitionPurchaseRate(rate: {
   readonly name: string
   readonly reportReference?: string | null
 }): boolean {
   const text = `${rate.name} ${rate.reportReference ?? ''}`.toLowerCase()
+  // Domestic "outside the EU" is not reverse-charge / ICP — keep VGEEN.
+  if (/\bbuiten\s+eu\b/.test(text) || /\boutside\s+(?:the\s+)?eu\b/.test(text)) {
+    return (
+      /verleg/.test(text) ||
+      /reverse/.test(text) ||
+      /invoer/.test(text) ||
+      /\bimport\b/.test(text) ||
+      /art\.?\s*23\b/.test(text) ||
+      /article\s*23\b/.test(text) ||
+      /artikel\s*23\b/.test(text)
+    )
+  }
   return (
     /verleg/.test(text) ||
     /reverse/.test(text) ||
     /intra\s*comm/.test(text) ||
     /intracommunautair/.test(text) ||
     /\bicp\b/.test(text) ||
-    /\beu\b/.test(text) ||
+    /\bicv\b/.test(text) ||
+    /\beu-levering\b/.test(text) ||
+    /\beu-verwerving\b/.test(text) ||
     /verwerving/.test(text) ||
     /invoer/.test(text) ||
     /\bimport\b/.test(text) ||
-    /binnen\s*eu/.test(text) ||
-    /buiten\s*eu/.test(text) ||
-    /within\s*eu/.test(text) ||
-    /outside\s*eu/.test(text) ||
-    /article\s*23/.test(text) ||
-    /artikel\s*23/.test(text)
+    /\bbinnen\s+eu\b/.test(text) ||
+    /\bwithin\s+(?:the\s+)?eu\b/.test(text) ||
+    /art\.?\s*23\b/.test(text) ||
+    /article\s*23\b/.test(text) ||
+    /artikel\s*23\b/.test(text)
   )
 }
 

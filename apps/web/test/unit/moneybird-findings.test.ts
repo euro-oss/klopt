@@ -102,7 +102,7 @@ describe('moneybird finding fix types', () => {
         stepReread: '',
         stepMapAccount: 'Categorie kiezen',
         stepMapTax: 'Btw-code kiezen',
-        stepSave: 'Bewaren',
+        stepSave: 'Opslaan',
       },
     } as unknown as MoneybirdFindingActions
 
@@ -132,7 +132,7 @@ describe('moneybird finding fix types', () => {
       labels: {
         mapTax: 'Btw-tarief koppelen',
         stepMapTax: 'Btw-code kiezen',
-        stepSave: 'Bewaren',
+        stepSave: 'Opslaan',
         mapAccount: '',
         renumberAccount: '',
         renumberContact: '',
@@ -166,7 +166,7 @@ describe('moneybird finding fix types', () => {
     )
     expect(card.fix.type).toBe('guided')
     if (card.fix.type !== 'guided') return
-    expect(card.fix.steps).toEqual(['Btw-code kiezen', 'Bewaren'])
+    expect(card.fix.steps).toEqual(['Btw-code kiezen', 'Opslaan'])
     card.fix.onOpen()
     expect(onMapTaxRate).toHaveBeenCalledOnce()
   })

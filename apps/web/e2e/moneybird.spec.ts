@@ -1,14 +1,14 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, signIn, uniqueEmail } from './support'
+import { startNullRateMoneybirdStandIn } from './support/moneybird-stand-in'
 
 /**
  * Overzetten uit Moneybird, in a browser (issue #32).
  *
- * Nothing here reaches Moneybird — the token and every read happen on the
- * server. What a browser can check is the part that goes wrong for a human:
- * later steps stay out of the way until there is a connection, and connecting
- * is refused without a token.
+ * Connecting and preview talk to a loopback Moneybird stand-in (allowed base
+ * URL), so null-% VAT mapping can be exercised on the real /moneybird page
+ * without reaching moneybird.com (#90).
  */
 
 test.beforeAll(async () => {
@@ -75,4 +75,75 @@ test('i m reaches Moneybird under Importeren', async ({ page }) => {
   await page.keyboard.press('m')
 
   await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
+})
+
+test('null-% purchase and sales rates open the sheet from server candidates (#90)', async ({
+  page,
+}) => {
+  test.setTimeout(120_000)
+  const standIn = await startNullRateMoneybirdStandIn()
+  try {
+    await anAdministration(page)
+    await page.goto('/moneybird')
+    await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
+
+    await page.getByLabel('API-adres').fill(standIn.baseUrl)
+    await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
+    await page.getByRole('button', { name: 'Verbinden met Moneybird' }).click()
+    await expect(page.getByRole('heading', { name: '2. Welke administratie' })).toBeVisible({
+      timeout: 30_000,
+    })
+
+    await page.getByRole('button', { name: 'Administraties ophalen' }).click()
+    await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
+    await page.getByRole('button', { name: 'kies deze' }).first().click()
+    await expect(page.getByRole('heading', { name: '3. Proefimport' })).toBeVisible({
+      timeout: 30_000,
+    })
+
+    await page.getByRole('button', { name: 'Proefimport uitvoeren' }).click()
+    await expect(
+      page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]'),
+    ).toHaveCount(2, { timeout: 60_000 })
+
+    const purchase = page
+      .locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+      .filter({ hasText: 'Geen btw' })
+      .filter({ hasNotText: 'verkoop' })
+      .first()
+    await purchase.getByRole('button', { name: 'Btw-tarief koppelen' }).click()
+    const sheet = page.getByRole('dialog')
+    await expect(sheet).toBeVisible()
+    await expect(sheet.getByRole('radio')).toHaveCount(1)
+    await expect(sheet.getByRole('radio')).toContainText(/Inkoop zonder btw/)
+    await expect(sheet.getByRole('radio')).toHaveAttribute('aria-checked', 'false')
+    await expect(sheet.getByText('Voorstel')).toBeVisible()
+    await expect(sheet.getByRole('button', { name: 'Opslaan' })).toBeDisabled()
+    await sheet.getByRole('radio').click()
+    await expect(sheet.getByRole('button', { name: 'Opslaan' })).toBeEnabled()
+    await sheet.getByRole('button', { name: 'Opslaan' }).click()
+    await expect(sheet).toHaveCount(0)
+
+    // Re-read / preview refresh should drop the purchase blocker once mapped.
+    await page.getByRole('button', { name: 'Proefimport uitvoeren' }).click()
+    await expect(
+      page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]'),
+    ).toHaveCount(1, { timeout: 60_000 })
+
+    const sales = page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]').first()
+    await expect(sales).toContainText(/Geen btw verkoop/)
+    // Re-preview can leave the guided panel open without the sheet — close, then open.
+    if ((await sales.getByRole('button', { name: 'Sluiten' }).count()) > 0) {
+      await sales.getByRole('button', { name: 'Sluiten' }).click()
+    }
+    await sales.getByRole('button', { name: 'Btw-tarief koppelen' }).click()
+    const salesSheet = page.getByRole('dialog')
+    await expect(salesSheet).toBeVisible()
+    await expect(salesSheet.getByRole('radio').first()).toHaveAttribute('aria-checked', 'false')
+    await expect(salesSheet.getByRole('button', { name: 'Opslaan' })).toBeDisabled()
+    // Server candidates for 0% sales — never H21, nothing pre-selected.
+    await expect(salesSheet.getByText('21% btw', { exact: true })).toHaveCount(0)
+  } finally {
+    await standIn.close()
+  }
 })
