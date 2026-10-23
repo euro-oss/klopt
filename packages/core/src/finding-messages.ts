@@ -122,7 +122,7 @@ export const FINDING_MESSAGES = {
   'vat.moneybird_untagged_vat_export':
     'Note: the VAT totals in this export (1a, 5b) leave out the VAT of imported Moneybird documents.',
   'vat.moneybird_self_assessed_unsupported_export':
-    'Note: this export leaves out self-assessed VAT (2a/4a/4b and 5b) from imported Moneybird reverse-charge or intra-EU documents. Klopt cannot import those yet.',
+    'Note: this export leaves out self-assessed VAT (2a/4a/4b and 5b) from imported Moneybird reverse-charge or intra-EU documents. Klopt does not book that VAT yet.',
   'xaf.accounts_without_rgs': '{unmapped} of {total} accounts have no RGS lead code: {accounts}',
   'xaf.date_outside_fiscal_year': '{trDt} is outside the fiscal year in the header.',
   'xaf.duplicate_account': 'Duplicate account {accID}.',

@@ -2588,7 +2588,7 @@ export const nl = {
   'finding.vat.moneybird_untagged_vat_export':
     'Let op: de btw-totalen in deze export (1a, 5b) missen de btw van geïmporteerde Moneybird-documenten.',
   'finding.vat.moneybird_self_assessed_unsupported_export':
-    'Let op: deze export mist de zelf af te dragen btw (2a/4a/4b en 5b) van geïmporteerde Moneybird-documenten met verlegging of EU-inkoop. Klopt kan die nog niet importeren.',
+    'Let op: deze export mist de zelf af te dragen btw (2a/4a/4b en 5b) van geïmporteerde Moneybird-documenten met verlegging of EU-inkoop. Klopt boekt die btw nog niet.',
   'finding.xaf.accounts_without_rgs':
     '{unmapped} van de {total} rekeningen hebben geen RGS-referentiecode: {accounts}',
   'finding.xaf.date_outside_fiscal_year': '{trDt} valt buiten het boekjaar uit de header.',

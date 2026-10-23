@@ -39,7 +39,7 @@ test('Moneybird fixture shows honesty grid, blocking counts, and j/k', async ({ 
   await expect(page.getByRole('heading', { level: 1, name: 'Moneybird' })).toBeVisible()
   await expect(page.getByText('Wat we gelezen hebben')).toBeVisible()
   await expect(page.getByText('Na te kijken')).toBeVisible()
-  await expect(page.getByText(/5 blokkeren/)).toBeVisible()
+  await expect(page.getByText(/6 blokkeren/)).toBeVisible()
   await expect(page.locator('[data-slot="honesty-grid"] [data-honesty="unread"]')).toBeVisible()
 
   const cards = page.locator('[data-slot="finding-card"]')

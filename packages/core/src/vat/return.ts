@@ -148,7 +148,7 @@ export function moneybirdUntaggedVatExportBanner(locale: 'nl' | 'en'): string {
 /** Plain-text banner when reverse-charge / intra-EU Moneybird documents are present. */
 export function moneybirdSelfAssessedExportBanner(locale: 'nl' | 'en'): string {
   return locale === 'nl'
-    ? 'Let op: deze export mist de zelf af te dragen btw (2a/4a/4b en 5b) van geïmporteerde Moneybird-documenten met verlegging of EU-inkoop. Klopt kan die nog niet importeren.'
+    ? 'Let op: deze export mist de zelf af te dragen btw (2a/4a/4b en 5b) van geïmporteerde Moneybird-documenten met verlegging of EU-inkoop. Klopt boekt die btw nog niet.'
     : renderFindingMessage('vat.moneybird_self_assessed_unsupported_export')
 }
 

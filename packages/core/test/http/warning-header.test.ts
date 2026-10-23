@@ -3,7 +3,10 @@ import {
   decodeWarningMessagesHeader,
   encodeWarningMessagesHeader,
 } from '../../src/http/warning-header.js'
-import { moneybirdSelfAssessedExportBanner, moneybirdUntaggedVatExportBanner } from '../../src/index.js'
+import {
+  moneybirdSelfAssessedExportBanner,
+  moneybirdUntaggedVatExportBanner,
+} from '../../src/index.js'
 
 describe('XAF warning-messages header encoding', () => {
   it('round-trips non-ASCII Dutch banners without corrupting the header', () => {
