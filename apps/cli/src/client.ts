@@ -1,8 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import {
-  KLOPT_WARNING_MESSAGES_HEADER,
-  decodeWarningMessagesHeader,
-} from '@klopt/core'
+import { KLOPT_WARNING_MESSAGES_HEADER, decodeWarningMessagesHeader } from '@klopt/core'
 
 /**
  * The one way this CLI reaches Klopt: an HTTP call to the public API.
