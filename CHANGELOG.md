@@ -34,7 +34,11 @@ kiezen in de tabel”). Guided To review steps say “Opslaan” to match the sh
 button. The import also **books** with signed line amounts: discount
 (negative) lines take the correct debit/credit side, fractional quantities
 (e.g. 2.5) book the exact amount, line VAT is rounded half-up per line, and
-incl.-VAT purchases book net = gross − rounded VAT. No migration.
+incl.-VAT purchases book net = gross − rounded VAT. Credit notes identified
+by `originalSalesInvoiceId` (or a purchase credit link/flag) whose amounts
+are still positive have their sign normalised once before that signed-line
+logic so they reverse like before (never double-flipped when amounts are
+already negative). No migration.
 
 ### Fixed
 

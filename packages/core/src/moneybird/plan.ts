@@ -1258,6 +1258,10 @@ export function planMoneybirdImport(
     }
 
     const isCredit = invoice.totalExcl < 0n || invoice.originalSalesInvoiceId !== null
+    // Credit notes identified by originalSalesInvoiceId often carry positive
+    // amounts. Normalise their sign before signedDebitCredit so they reverse
+    // like main; already-negative credit notes must not be flipped again (#90).
+    const flipSign = isCredit && invoice.totalExcl >= 0n
     const contactNumber =
       invoice.contactId === null ? null : (contactNumberById.get(invoice.contactId) ?? null)
     const revenueIsCredit = !isCredit
@@ -1276,12 +1280,16 @@ export function planMoneybirdImport(
 
     for (const detail of invoice.details) {
       const percent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
-      const tax = signedLineTaxHalfUp(detail, percent, invoice.pricesAreInclTax)
+      let tax = signedLineTaxHalfUp(detail, percent, invoice.pricesAreInclTax)
       let net: bigint
       if (invoice.pricesAreInclTax && Number.isFinite(percent) && percent !== 0) {
         net = signedLineMinor(detail) - tax
       } else {
         net = signedLineMinor(detail)
+      }
+      if (flipSign) {
+        net = -net
+        tax = -tax
       }
       if (net === 0n && tax === 0n) continue
       const taxCode =
@@ -1303,8 +1311,9 @@ export function planMoneybirdImport(
       )
     }
 
-    if (invoice.totalTax !== 0n) {
-      const vatSides = signedDebitCredit(invoice.totalTax, true)
+    const totalTax = flipSign ? -invoice.totalTax : invoice.totalTax
+    if (totalTax !== 0n) {
+      const vatSides = signedDebitCredit(totalTax, true)
       lines.push(
         line(vatPayableAccount, vatSides.debit, vatSides.credit, `BTW ${invoice.invoiceId}`),
       )
@@ -1344,6 +1353,9 @@ export function planMoneybirdImport(
     }
 
     const isCredit = document.totalExcl < 0n
+    // Same rule as sales: positive-amount purchase credit notes normalise once;
+    // already-negative amounts keep signed behaviour (#90).
+    const flipSign = isCredit && document.totalExcl >= 0n
     const contactNumber =
       document.contactId === null ? null : (contactNumberById.get(document.contactId) ?? null)
     const payableIsCredit = !isCredit
@@ -1352,12 +1364,16 @@ export function planMoneybirdImport(
 
     for (const detail of document.details) {
       const percent = detail.taxRateId === null ? 0 : (taxPercentById.get(detail.taxRateId) ?? 0)
-      const tax = signedLineTaxHalfUp(detail, percent, document.pricesAreInclTax)
+      let tax = signedLineTaxHalfUp(detail, percent, document.pricesAreInclTax)
       let net: bigint
       if (document.pricesAreInclTax && Number.isFinite(percent) && percent !== 0) {
         net = signedLineMinor(detail) - tax
       } else {
         net = signedLineMinor(detail)
+      }
+      if (flipSign) {
+        net = -net
+        tax = -tax
       }
       if (net === 0n && tax === 0n) continue
       const taxCode =
@@ -1378,8 +1394,9 @@ export function planMoneybirdImport(
       )
     }
 
-    if (document.totalTax !== 0n) {
-      const vatSides = signedDebitCredit(document.totalTax, false)
+    const totalTax = flipSign ? -document.totalTax : document.totalTax
+    if (totalTax !== 0n) {
+      const vatSides = signedDebitCredit(totalTax, false)
       lines.push(
         line(vatReceivableAccount, vatSides.debit, vatSides.credit, `BTW ${document.reference}`),
       )
