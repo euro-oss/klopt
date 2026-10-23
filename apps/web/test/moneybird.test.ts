@@ -288,20 +288,8 @@ describe('the dry run', () => {
     await connect(token)
     await choose(token)
     const preview = (await handlePreviewMoneybirdImport(await context(token))).body
-    const purchase = (
-      preview.taxRates as {
-        moneybirdId: string
-        proposedCode: string | null
-        candidates: { code: string; group: string }[]
-      }[]
-    ).find((row) => row.moneybirdId === '90')
-    const sales = (
-      preview.taxRates as {
-        moneybirdId: string
-        proposedCode: string | null
-        candidates: { code: string; group: string }[]
-      }[]
-    ).find((row) => row.moneybirdId === '91')
+    const purchase = preview.taxRates.find((row) => row.moneybirdId === '90')
+    const sales = preview.taxRates.find((row) => row.moneybirdId === '91')
     expect(purchase).toMatchObject({
       proposedCode: null,
       candidates: [{ code: 'VGEEN', group: 'other' }],
@@ -311,9 +299,7 @@ describe('the dry run', () => {
       expect.arrayContaining(['VERL', 'GEEN', 'NUL', 'ICP', 'ICPD']),
     )
     expect(sales?.candidates.some((row) => row.code === 'H21')).toBe(false)
-    expect(preview.problems.map((problem: { code: string }) => problem.code)).toContain(
-      'unmapped_tax_rate',
-    )
+    expect(preview.problems.map((problem) => problem.code)).toContain('unmapped_tax_rate')
 
     await handleSaveMoneybirdMappings(
       await context(token, crypto.randomUUID()),
@@ -323,14 +309,8 @@ describe('the dry run', () => {
       }),
     )
     const cleared = (await handlePreviewMoneybirdImport(await context(token))).body
-    expect(
-      cleared.problems.filter((problem: { code: string }) => problem.code === 'unmapped_tax_rate'),
-    ).toEqual([])
-    expect(
-      (cleared.taxRates as { moneybirdId: string; mappedCode: string | null }[]).find(
-        (row) => row.moneybirdId === '90',
-      )?.mappedCode,
-    ).toBe('VGEEN')
+    expect(cleared.problems.filter((problem) => problem.code === 'unmapped_tax_rate')).toEqual([])
+    expect(cleared.taxRates.find((row) => row.moneybirdId === '90')?.mappedCode).toBe('VGEEN')
   })
 
   it('blocks a null-% rate when the document still carries VAT (#90)', async () => {
@@ -382,16 +362,10 @@ describe('the dry run', () => {
     await connect(token)
     await choose(token)
     const preview = (await handlePreviewMoneybirdImport(await context(token))).body
-    expect(preview.problems.map((problem: { code: string }) => problem.code)).toContain(
+    expect(preview.problems.map((problem) => problem.code)).toContain(
       'null_percentage_vat_mismatch',
     )
-    const rate = (
-      preview.taxRates as {
-        moneybirdId: string
-        candidates: unknown[]
-        proposedCode: string | null
-      }[]
-    ).find((row) => row.moneybirdId === '90')
+    const rate = preview.taxRates.find((row) => row.moneybirdId === '90')
     expect(rate?.candidates).toEqual([])
     expect(rate?.proposedCode).toBeNull()
 
