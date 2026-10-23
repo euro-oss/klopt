@@ -1509,6 +1509,9 @@ export const nl = {
   'moneybird.fix.stepOpenMoneybird': 'Moneybird openen',
   'moneybird.fix.stepReread': 'Opnieuw lezen',
   'moneybird.fix.stepDoNotTransfer': 'Niet overzetten',
+  'moneybird.fix.stepMapAccount': 'Categorie kiezen',
+  'moneybird.fix.stepMapTax': 'Btw-code kiezen',
+  'moneybird.fix.stepSave': 'Bewaren',
   'moneybird.excluded': 'Niet overgezet (uitgesloten)',
   'moneybird.fx.sourceEcb': 'Bron: ECB',
   'moneybird.fx.sourceEcbDated': 'Bron: ECB ({date})',
@@ -1694,6 +1697,7 @@ export const nl = {
   'findingCard.oneClickSafe': 'Wijzigt niets in je boekhouding',
   'findingCard.guidedSteps': '{count} stappen',
   'findingCard.guidedHint': 'Volg de stappen hierboven. Escape sluit dit paneel.',
+  'findingCard.guidedHintNoSteps': 'Escape sluit dit paneel.',
   'findingCard.preview': 'Dit verandert de boeken',
   'findingCard.confirmFix': 'Toepassen',
   'findingCard.close': 'Sluiten',
@@ -1764,11 +1768,14 @@ export const nl = {
   'importFindings.accountVat.showOtherRates': 'Andere tarieven tonen',
   'importFindings.accountVat.showFewerRates': 'Minder tonen',
   'importFindings.accountVat.vatHint': 'In Moneybird stond {rate}% btw.',
-  'importFindings.accountVat.vatHintUnknown': 'In Moneybird stond geen tarief.',
+  'importFindings.accountVat.vatHintUnknown':
+    'Moneybird geeft geen percentage voor “{name}”. Kies hoe Klopt dit moet boeken.',
   'importFindings.accountVat.vatUnsupported':
-    'Klopt heeft nog geen btw-code voor dit tarief, dus deze import kan nog niet verder.',
+    'Klopt heeft nog geen btw-code voor {rate}%. Kies zelf in de tabel of sluit de documenten met dit tarief uit.',
   'importFindings.accountVat.vatUnknown':
-    'Moneybird gaf geen tarief mee, dus deze import kan nog niet verder.',
+    'Moneybird geeft geen percentage voor “{name}”. Kies hoe Klopt dit moet boeken.',
+  'importFindings.accountVat.vatUnknownEmpty':
+    'Moneybird geeft geen percentage voor “{name}”, en Klopt heeft hier nog geen passende btw-code. Kies zelf in de tabel of sluit de documenten met dit tarief uit.',
   'importFindings.accountVat.whatHappens': 'Wat er gebeurt',
   'importFindings.accountVat.whatHappensBody':
     'De boekingen uit Moneybird komen op {account}, met {vat}. Er wordt nu nog niets geboekt; dat gebeurt pas als je importeert.',

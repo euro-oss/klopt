@@ -435,9 +435,18 @@ export function resolveMoneybirdTaxRateType(
   return rate.taxRateType
 }
 
+/**
+ * Percentage used for chart matching. A null / missing Moneybird percentage
+ * (stored as NaN) is treated as 0% so "Geen btw" can map to VGEEN / 0% sales
+ * codes — never auto-confirmed; the user still picks (#90).
+ */
+function matchingPercentage(rate: MoneybirdTaxRate): number {
+  return Number.isFinite(rate.percentage) ? rate.percentage : 0
+}
+
 function rateForMatching(rate: MoneybirdTaxRate, taxRateType: string): VatMatchQuery {
   return {
-    percentage: rate.percentage,
+    percentage: matchingPercentage(rate),
     taxRateType,
     excludeOutOfScopeInput:
       taxRateType === 'purchase_invoice' && isSpecialAcquisitionPurchaseRate(rate),
@@ -468,12 +477,12 @@ function vatCandidatesFor(
   }))
 }
 
-/** True when direction + finite rate are known so matchVatCodes can decide. */
-function taxRateDecidable(rate: MoneybirdTaxRate, taxRateType: string): boolean {
-  return (
-    (taxRateType === 'sales_invoice' || taxRateType === 'purchase_invoice') &&
-    Number.isFinite(rate.percentage)
-  )
+/**
+ * True when direction is known so matchVatCodes can decide. A missing
+ * percentage is decidable as 0% (#90); mixed/unknown direction is not.
+ */
+function taxRateDecidable(_rate: MoneybirdTaxRate, taxRateType: string): boolean {
+  return taxRateType === 'sales_invoice' || taxRateType === 'purchase_invoice'
 }
 
 /** True when a confirmed mapping is direction- and rate-compatible with the chart. */
@@ -723,9 +732,9 @@ export function planMoneybirdImport(
     let confirmed: string | null = null
     let incompatible = false
     if (confirmedRaw !== null && existingTaxCodes.has(confirmedRaw)) {
-      // Accept only when direction (declared or derived) + finite rate make the
-      // code a matchVatCodes hit. Unknown / empty / NaN — or a wrong code —
-      // is incompatible_tax_rate; never accept unvalidated (#70 PM).
+      // Accept only when direction (declared or derived) + rate (missing → 0%)
+      // make the code a matchVatCodes hit. Unknown direction or a wrong code
+      // is incompatible_tax_rate; never accept unvalidated (#70 / #90).
       if (!taxMappingCompatible(rate, taxRateType, confirmedRaw, options.existingTaxRules)) {
         incompatible = true
         problems.push(

@@ -42,11 +42,14 @@ export function moneybirdFixtureFindings(handlers?: {
   readonly onOpenFx?: () => void
   readonly onConfirmYear?: () => void
   readonly onApplyTax?: () => void | Promise<void>
+  /** Guided VAT sheet (null-rate / map) — production path for unmapped_tax_rate (#90). */
+  readonly onMapTax?: () => void
 }): readonly FindingsListItem[] {
   const onMap = handlers?.onMapAccount ?? (() => undefined)
   const onFx = handlers?.onOpenFx ?? (() => undefined)
   const onYear = handlers?.onConfirmYear ?? (() => undefined)
   const onTax = handlers?.onApplyTax ?? (() => undefined)
+  const onMapTax = handlers?.onMapTax ?? (() => undefined)
 
   return [
     {
@@ -104,6 +107,22 @@ export function moneybirdFixtureFindings(handlers?: {
           ],
         },
         onApply: onTax,
+      },
+    },
+    {
+      // Production Moneybird path: guided sheet with steps (was empty before #90).
+      id: 'f3b',
+      code: 'unmapped_tax_rate',
+      path: 'tax_rates/389113871',
+      messageKey: 'moneybird.unmapped_tax_rate',
+      detail: { name: 'Geen btw', percentage: '—' },
+      message: 'Tax rate Geen btw (—) has no confirmed Klopt VAT code. Map it before importing.',
+      severity: 'blocking',
+      fix: {
+        type: 'guided',
+        label: 'Btw-tarief koppelen',
+        onOpen: onMapTax,
+        steps: ['Btw-code kiezen', 'Bewaren'],
       },
     },
     {

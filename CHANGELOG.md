@@ -18,6 +18,16 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Moneybird: map tax rates without a percentage (#90)
+
+A Moneybird tax rate with a null / missing percentage (e.g. “Geen btw”, shown
+as —%) can be mapped as 0%: the Resolve · VAT sheet offers the side-aware 0%
+Klopt codes (VGEEN for purchases, never auto-confirmed). Reverse-charge / EU
+rate names still exclude VGEEN. Dead-end copy is gone; unsupported rates keep
+“Zelf kiezen in de tabel”. Guided To review cards for VAT / category now render
+their steps (the empty Steps block was guided fixes with no `steps` array while
+the hint still said “Volg de stappen hierboven”). No migration.
+
 ### Fixed
 
 - **Moneybird ECB rate refresh no longer OOMs the web process.** Refreshing a

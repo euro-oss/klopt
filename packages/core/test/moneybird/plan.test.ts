@@ -727,9 +727,15 @@ describe('VAT mapping direction and rate (#70)', () => {
     expect(rate?.proposedCode).toBeNull()
     expect(rate?.mappedCode).toBeNull()
     expect(rate?.proposedCode).not.toBe('H21')
+    // Missing % is matched as 0% candidates (sales other codes), never auto-confirmed (#90).
+    expect(rate?.candidates.some((row) => row.code === 'H21')).toBe(false)
+    expect(rate?.candidates.map((row) => row.code)).toEqual(
+      expect.arrayContaining(['VERL', 'GEEN', 'NUL', 'ICP', 'ICPD']),
+    )
+    expect(plan.problems.map((item) => item.code)).toContain('unmapped_tax_rate')
   })
 
-  it('never auto-maps a NaN percentage', () => {
+  it('never auto-maps a NaN percentage but offers purchase 0% candidates', () => {
     const base = snapshot()
     const plan = planMoneybirdImport(
       {
@@ -737,7 +743,7 @@ describe('VAT mapping direction and rate (#70)', () => {
         taxRates: [
           {
             id: '41',
-            name: 'NaN rate',
+            name: 'Geen btw',
             percentage: Number.NaN,
             taxRateType: 'purchase_invoice',
             country: 'NL',
@@ -750,9 +756,12 @@ describe('VAT mapping direction and rate (#70)', () => {
           details: invoice.details.map((detail) => ({ ...detail, taxRateId: '41' })),
         })),
       },
-      options({ existingTaxRules: CHART_RULES }),
+      options({ existingTaxRules: nlMkbTaxRules }),
     )
-    expect(plan.taxRates.find((rate) => rate.moneybirdId === '41')?.proposedCode).toBeNull()
+    const rate = plan.taxRates.find((row) => row.moneybirdId === '41')
+    expect(rate?.proposedCode).toBeNull()
+    expect(rate?.candidates).toEqual([{ code: 'VGEEN', group: 'other' }])
+    expect(plan.problems.map((item) => item.code)).toContain('unmapped_tax_rate')
   })
 
   it('derives unknown direction from sales invoices and may preselect H21', () => {
@@ -1045,7 +1054,7 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     })
   })
 
-  it('rejects an empty/NaN percentage hand-pick as incompatible_tax_rate', () => {
+  it('rejects a 21% hand-pick on an empty/NaN percentage (matched as 0%)', () => {
     const base = snapshot()
     const empty = parseTaxRate({
       id: 45,
@@ -1075,6 +1084,121 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     expect(finding?.message).toContain('(—)')
     expect(finding?.message).not.toContain('(—%)')
     expect(finding?.message).not.toContain('(%)')
+  })
+
+  it('accepts a confirmed 0% mapping for null/missing/empty percentage and unblocks all docs', () => {
+    const base = snapshot()
+    const nullRate = parseTaxRate({
+      id: 90,
+      name: 'Geen btw',
+      percentage: null,
+      tax_rate_type: 'purchase_invoice',
+      country: 'NL',
+      active: true,
+    })
+    const missing = parseTaxRate({
+      id: 91,
+      name: 'Geen btw missing',
+      tax_rate_type: 'purchase_invoice',
+      country: 'NL',
+      active: true,
+    })
+    const empty = parseTaxRate({
+      id: 92,
+      name: 'Geen btw empty',
+      percentage: '',
+      tax_rate_type: 'purchase_invoice',
+      country: 'NL',
+      active: true,
+    })
+    for (const rate of [nullRate, missing, empty]) {
+      expect(Number.isFinite(rate.percentage)).toBe(false)
+    }
+    const confirmed = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [nullRate, missing, empty],
+        purchaseInvoices: [
+          {
+            ...base.purchaseInvoices[0]!,
+            id: 'p-null',
+            details: base.purchaseInvoices[0]!.details.map((detail) => ({
+              ...detail,
+              taxRateId: '90',
+            })),
+          },
+          {
+            ...base.purchaseInvoices[0]!,
+            id: 'p-missing',
+            details: base.purchaseInvoices[0]!.details.map((detail) => ({
+              ...detail,
+              taxRateId: '91',
+            })),
+          },
+          {
+            ...base.purchaseInvoices[0]!,
+            id: 'p-empty',
+            details: base.purchaseInvoices[0]!.details.map((detail) => ({
+              ...detail,
+              taxRateId: '92',
+            })),
+          },
+        ],
+      },
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '90': 'VGEEN', '91': 'VGEEN', '92': 'VGEEN' },
+      }),
+    )
+    for (const id of ['90', '91', '92']) {
+      expect(confirmed.taxRates.find((row) => row.moneybirdId === id)).toMatchObject({
+        mapped: true,
+        mappedCode: 'VGEEN',
+        proposedCode: null,
+        percentage: '—',
+      })
+    }
+    expect(confirmed.problems.map((item) => item.code)).not.toContain('unmapped_tax_rate')
+    expect(confirmed.problems.map((item) => item.code)).not.toContain('incompatible_tax_rate')
+  })
+
+  it('does not suggest VGEEN for a null-percentage reverse-charge purchase name', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          {
+            id: '93',
+            name: 'BTW verlegd naar u',
+            percentage: Number.NaN,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+          {
+            id: '94',
+            name: 'ICP intracommunautair EU',
+            percentage: Number.NaN,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        purchaseInvoices: base.purchaseInvoices.map((invoice) => ({
+          ...invoice,
+          details: invoice.details.map((detail) => ({ ...detail, taxRateId: '93' })),
+        })),
+      },
+      options({ existingTaxRules: nlMkbTaxRules }),
+    )
+    for (const id of ['93', '94']) {
+      const rate = plan.taxRates.find((row) => row.moneybirdId === id)
+      expect(rate?.proposedCode).toBeNull()
+      expect(rate?.candidates.map((row) => row.code)).not.toContain('VGEEN')
+    }
   })
 
   it('keeps a mixed-use unknown-direction rate undecidable (sales + purchase)', () => {

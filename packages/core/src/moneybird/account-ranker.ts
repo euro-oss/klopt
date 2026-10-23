@@ -135,9 +135,11 @@ export function isSpecialAcquisitionPurchaseRate(rate: {
   const text = `${rate.name} ${rate.reportReference ?? ''}`.toLowerCase()
   return (
     /verleg/.test(text) ||
-    /reverse\s*charg/.test(text) ||
+    /reverse/.test(text) ||
     /intra\s*comm/.test(text) ||
+    /intracommunautair/.test(text) ||
     /\bicp\b/.test(text) ||
+    /\beu\b/.test(text) ||
     /verwerving/.test(text) ||
     /invoer/.test(text) ||
     /\bimport\b/.test(text) ||
@@ -192,8 +194,9 @@ export interface RankedVatCodes {
  * Existing VAT rules that match this Moneybird rate by direction and bps.
  *
  * When exactly one rule matches, the UI may offer a one-click "Gebruik {code}".
- * Unknown direction and non-finite percentages match nothing — never guess
- * "output" or fall back to 21% (#70 / #69).
+ * Unknown direction matches nothing — never guess "output" (#70 / #69).
+ * Non-finite percentages (Infinity) match nothing; callers that treat a missing
+ * Moneybird percentage as 0% must coerce before calling (#90).
  */
 export function matchVatCodes(
   rules: readonly VatMatchRule[],

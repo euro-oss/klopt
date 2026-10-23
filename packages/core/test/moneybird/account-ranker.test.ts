@@ -407,6 +407,15 @@ describe('matchVatCodes', () => {
     expect(isSpecialAcquisitionPurchaseRate({ name: 'Geen btw', reportReference: null })).toBe(
       false,
     )
+    expect(
+      isSpecialAcquisitionPurchaseRate({ name: 'Reverse charge EU', reportReference: null }),
+    ).toBe(true)
+    expect(
+      isSpecialAcquisitionPurchaseRate({
+        name: 'Intracommunautaire verwerving',
+        reportReference: null,
+      }),
+    ).toBe(true)
   })
 })
 

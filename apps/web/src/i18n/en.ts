@@ -106,6 +106,7 @@ export const en: Record<MessageKey, string> = {
   'findingCard.oneClickSafe': 'Does not change your books',
   'findingCard.guidedSteps': '{count} steps',
   'findingCard.guidedHint': 'Follow the steps above. Escape closes this panel.',
+  'findingCard.guidedHintNoSteps': 'Escape closes this panel.',
   'findingCard.preview': 'This changes the books',
   'findingCard.confirmFix': 'Apply',
   'findingCard.close': 'Close',
@@ -175,11 +176,14 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.showOtherRates': 'Show other rates',
   'importFindings.accountVat.showFewerRates': 'Show less',
   'importFindings.accountVat.vatHint': 'Moneybird had {rate}% VAT.',
-  'importFindings.accountVat.vatHintUnknown': 'Moneybird had no rate.',
+  'importFindings.accountVat.vatHintUnknown':
+    'Moneybird gives no percentage for “{name}”. Pick how Klopt should book it.',
   'importFindings.accountVat.vatUnsupported':
-    'Klopt does not have a VAT code for this rate yet, so this import cannot continue.',
+    'Klopt does not have a VAT code for {rate}% yet. Choose it yourself in the table, or exclude the documents with this rate.',
   'importFindings.accountVat.vatUnknown':
-    'Moneybird did not send a rate, so this import cannot continue.',
+    'Moneybird gives no percentage for “{name}”. Pick how Klopt should book it.',
+  'importFindings.accountVat.vatUnknownEmpty':
+    'Moneybird gives no percentage for “{name}”, and Klopt has no matching VAT code here yet. Choose it yourself in the table, or exclude the documents with this rate.',
   'importFindings.accountVat.whatHappens': 'What happens',
   'importFindings.accountVat.whatHappensBody':
     'The Moneybird entries land on {account}, with {vat}. Nothing is posted yet; that happens when you import.',
@@ -1690,6 +1694,9 @@ export const en: Record<MessageKey, string> = {
   'moneybird.fix.stepOpenMoneybird': 'Open Moneybird',
   'moneybird.fix.stepReread': 'Read again',
   'moneybird.fix.stepDoNotTransfer': 'Do not transfer',
+  'moneybird.fix.stepMapAccount': 'Choose category',
+  'moneybird.fix.stepMapTax': 'Choose VAT code',
+  'moneybird.fix.stepSave': 'Save',
   'moneybird.excluded': 'Not transferred (excluded)',
   'moneybird.fx.sourceEcb': 'Source: ECB',
   'moneybird.fx.sourceEcbDated': 'Source: ECB ({date})',

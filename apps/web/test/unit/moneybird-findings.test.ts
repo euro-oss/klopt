@@ -82,7 +82,7 @@ describe('moneybird finding fix types', () => {
         stepDoNotTransfer: 'Niet overzetten',
         openMoneybird: 'Open in Moneybird',
         mapAccount: '',
-        mapTax: '',
+        mapTax: 'Btw-tarief koppelen',
         renumberAccount: '',
         renumberContact: '',
         pickType: '',
@@ -100,6 +100,9 @@ describe('moneybird finding fix types', () => {
         stepPermissions: '',
         stepOpenMoneybird: '',
         stepReread: '',
+        stepMapAccount: 'Categorie kiezen',
+        stepMapTax: 'Btw-code kiezen',
+        stepSave: 'Bewaren',
       },
     } as unknown as MoneybirdFindingActions
 
@@ -119,6 +122,53 @@ describe('moneybird finding fix types', () => {
     expect(onReviewPeriodLocked).toHaveBeenCalledOnce()
     expect(onExcludeDocument).not.toHaveBeenCalled()
     expect(onOpenPeriodSettings).not.toHaveBeenCalled()
+  })
+
+  it('gives unmapped_tax_rate guided steps so the To review card is not empty (#90)', () => {
+    const onMapTaxRate = vi.fn()
+    const actions = {
+      onMapTaxRate,
+      moneybirdHrefFor: () => null,
+      labels: {
+        mapTax: 'Btw-tarief koppelen',
+        stepMapTax: 'Btw-code kiezen',
+        stepSave: 'Bewaren',
+        mapAccount: '',
+        renumberAccount: '',
+        renumberContact: '',
+        pickType: '',
+        confirmEur: '',
+        chooseRate: '',
+        confirmYearStart: '',
+        acknowledgeEmpty: '',
+        reread: '',
+        exclude: '',
+        toFiscalYears: '',
+        deferAttachment: '',
+        openMoneybird: '',
+        settings: '',
+        drillDown: '',
+        stepRate: '',
+        stepPreview: '',
+        stepConfirm: '',
+        stepPermissions: '',
+        stepOpenMoneybird: '',
+        stepReread: '',
+        stepDoNotTransfer: '',
+        stepMapAccount: 'Categorie kiezen',
+      },
+    } as unknown as MoneybirdFindingActions
+
+    const card = moneybirdFindingCard(
+      problem('unmapped_tax_rate', 'taxRates.90', { name: 'Geen btw', percentage: '—' }),
+      'problems',
+      actions,
+    )
+    expect(card.fix.type).toBe('guided')
+    if (card.fix.type !== 'guided') return
+    expect(card.fix.steps).toEqual(['Btw-code kiezen', 'Bewaren'])
+    card.fix.onOpen()
+    expect(onMapTaxRate).toHaveBeenCalledOnce()
   })
 })
 

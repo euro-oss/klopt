@@ -480,7 +480,7 @@ function AccountVatSheetBody({
             {allVatOptions.length === 0 ? (
               <p className="text-muted-foreground border px-3 py-3 text-sm" role="status">
                 {percentageLabel === '—'
-                  ? t('importFindings.accountVat.vatUnknown')
+                  ? t('importFindings.accountVat.vatUnknownEmpty', { name: sourceName })
                   : t('importFindings.accountVat.vatUnsupported', { rate: percentageLabel })}
               </p>
             ) : (
@@ -572,12 +572,14 @@ function AccountVatSheetBody({
                 )}
               </>
             )}
-            {/* Hint only when a valid code exists — unsupported copy already covers empty. */}
+            {/* Hint only when a valid code exists — empty status already covers no options. */}
             {allVatOptions.length > 0 && (
               <p className="text-muted-foreground mt-1.5 text-xs">
                 {percentage !== null && percentage !== '' && percentageLabel !== '—'
-                  ? t('importFindings.accountVat.vatHint', { rate: percentageLabel })
-                  : t('importFindings.accountVat.vatHintUnknown')}
+                  ? t('importFindings.accountVat.vatHint', {
+                      rate: percentageLabel.replace(/%$/u, ''),
+                    })
+                  : t('importFindings.accountVat.vatHintUnknown', { name: sourceName })}
               </p>
             )}
           </fieldset>
@@ -607,8 +609,8 @@ function AccountVatSheetBody({
       </div>
 
       <SheetFooter className="flex-row flex-wrap justify-end gap-2 border-t px-5 py-3">
-        {/* No “Zelf kiezen in de tabel” when every pick would 422 (#71 PM). */}
-        {onJumpToMapping !== undefined && !(mode === 'tax' && allVatOptions.length === 0) && (
+        {/* Keep a way forward even when radios are empty (#90) — table / exclude. */}
+        {onJumpToMapping !== undefined && (
           <Button
             type="button"
             variant="ghost"

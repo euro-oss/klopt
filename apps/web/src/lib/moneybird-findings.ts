@@ -69,6 +69,10 @@ export interface MoneybirdFindingActions {
     readonly stepOpenMoneybird: string
     readonly stepReread: string
     readonly stepDoNotTransfer: string
+    /** Guided sheet: pick a category / VAT code, then save (#90). */
+    readonly stepMapAccount: string
+    readonly stepMapTax: string
+    readonly stepSave: string
   }
 }
 
@@ -94,6 +98,7 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'guided',
         label: labels.mapAccount,
         onOpen: () => actions.onMapAccount(problem),
+        steps: [labels.stepMapAccount, labels.stepSave],
       }
     case 'unmapped_tax_rate':
     case 'incompatible_tax_rate':
@@ -101,12 +106,14 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'guided',
         label: labels.mapTax,
         onOpen: () => actions.onMapTaxRate(problem),
+        steps: [labels.stepMapTax, labels.stepSave],
       }
     case 'account_number_collision':
       return {
         type: 'guided',
         label: labels.renumberAccount,
         onOpen: () => actions.onRenumberAccount(problem),
+        steps: [labels.renumberAccount, labels.stepSave],
       }
     case 'contact_number_collision':
       return {
@@ -119,6 +126,7 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'guided',
         label: labels.pickType,
         onOpen: () => actions.onPickAccountType(problem),
+        steps: [labels.pickType, labels.stepSave],
       }
     case 'unknown_currency':
       if (spec.fixType === 'oneClick') {
@@ -174,6 +182,7 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'guided',
         label: labels.drillDown,
         onOpen: () => actions.onDrillUnbalanced(problem),
+        steps: [labels.drillDown],
       }
     case 'period_locked':
       // Named year lives in finding.moneybird.period_locked / why. Primary is

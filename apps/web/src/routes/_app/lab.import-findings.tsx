@@ -135,6 +135,7 @@ function ImportFindingsLab() {
             onOpenFx: () => setFxOpen(true),
             onConfirmYear: () => resolveById('f4', 'Boekjaar begint in januari'),
             onApplyTax: () => resolveById('f3', 'Laag tarief → 9% btw'),
+            onMapTax: () => setTaxEmptyOpen(true),
           })
     return base.filter((finding) => !dismissed.has(finding.id ?? finding.code))
   }, [source, state, dismissed])
@@ -370,20 +371,23 @@ function ImportFindingsLab() {
             onJumpToMapping={noopJumpToMapping}
             onSave={() => undefined}
           />
-          {/* Empty / unknown rate → vatUnknown status, no duplicate hint. */}
+          {/* Null / missing percentage → 0% purchase options (VGEEN), no auto-confirm (#90). */}
           <AccountVatSheet
             open={taxEmptyOpen}
             onOpenChange={setTaxEmptyOpen}
-            sourceName="Onbekend tarief"
-            sourceDetail="—"
+            sourceName="Geen btw"
+            sourceDetail="—%"
             accounts={FIXTURE_ACCOUNTS}
             taxRules={NL_MKB_VAT_RULES}
             mode="tax"
             taxRateType="purchase_invoice"
-            percentage=""
+            percentage={null}
+            serverCandidates={[{ code: 'VGEEN', group: 'other' }]}
             advanced={advanced}
             onJumpToMapping={noopJumpToMapping}
-            onSave={() => undefined}
+            onSave={(choice) => {
+              resolveById('f3', `Geen btw → ${choice.vatCode ?? '—'}`)
+            }}
           />
           {showMapFail && (
             <MoneybirdMappingReview

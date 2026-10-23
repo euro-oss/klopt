@@ -139,8 +139,10 @@ export interface MoneybirdTaxRate {
 }
 
 export function parseTaxRate(row: Record<string, unknown>): MoneybirdTaxRate {
-  // Empty / missing percentage stays non-finite (NaN); missing direction stays
-  // empty. Do not invent 0% or sales_invoice — that would auto-map VERL or H21 (#70).
+  // Empty / missing percentage stays non-finite (NaN) so UI copy can show "—%"
+  // and distinguish "Moneybird sent no rate" from a real 0. Matching treats
+  // NaN as 0% later (see plan `matchingPercentage`) without auto-confirming
+  // (#70 / #90). Missing direction stays empty — never invent sales_invoice.
   return {
     id: requireId(row, 'id'),
     name: readString(row, 'name') ?? requireId(row, 'id'),

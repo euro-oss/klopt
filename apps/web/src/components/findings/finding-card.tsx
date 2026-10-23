@@ -367,16 +367,20 @@ function FixPanel({
   }
 
   if (fix.type === 'guided') {
+    const steps = fix.steps ?? []
+    const hasSteps = steps.length > 0
     return (
       <div className="flex flex-col items-start gap-3">
-        {fix.steps !== undefined && fix.steps.length > 0 && (
+        {hasSteps && (
           <ol className="text-muted-foreground list-decimal space-y-1 pl-5 text-sm">
-            {fix.steps.map((step) => (
+            {steps.map((step) => (
               <li key={step}>{step}</li>
             ))}
           </ol>
         )}
-        <p className="text-sm">{t('findingCard.guidedHint')}</p>
+        <p className="text-sm">
+          {hasSteps ? t('findingCard.guidedHint') : t('findingCard.guidedHintNoSteps')}
+        </p>
         <Button type="button" variant="ghost" size="xs" onClick={onClose}>
           {t('findingCard.close')}
         </Button>
