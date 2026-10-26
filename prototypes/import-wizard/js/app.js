@@ -1402,16 +1402,18 @@
   // they are counted here instead of disappearing (#96).
   function alreadyInKlopt(beforeImport) {
     const e = D.earlierImport
+    const scope =
+      '<p class="mt-2 text-sm text-muted-foreground">Wat je eerder uit deze administratie hebt overgezet, zetten we niet nog een keer over. Wat je zelf al in Klopt hebt geboekt, herkennen we niet: controleer dat op dubbele boekingen.</p>'
     if (!isEarlier())
       return section(
         'Al in Klopt',
-        `<p class="text-sm text-muted-foreground">${beforeImport ? 'Niets. Dit is je eerste import van deze administratie. Wat al in Klopt staat, slaan we bij een volgende import over.' : 'Niets van een eerdere import.'}</p>`,
+        `<p class="text-sm text-muted-foreground">${beforeImport ? 'Niets. Dit is je eerste import van deze administratie.' : 'Niets van een eerdere import.'}</p>${scope}`,
       )
     return section(
       'Al in Klopt',
       `<ul role="list" class="divide-y border">
         <li class="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-center sm:gap-4">
-          <span class="min-w-0 flex-1"><span class="block font-medium">Uit de import van ${e.date}</span><span class="block text-xs text-muted-foreground">Staan al in Klopt. We slaan ze over, dus niets wordt dubbel geboekt.</span></span>
+          <span class="min-w-0 flex-1"><span class="block font-medium">Uit de import van ${e.date}</span></span>
           <span class="inline-flex min-h-11 items-center tabular sm:min-h-0">${plural(e.total, 'document', 'documenten')}</span></li>
         <li class="flex flex-col gap-2 border-l-4 border-l-destructive px-4 py-3 text-sm sm:flex-row sm:items-start sm:gap-4">
           <span class="min-w-0 flex-1">
@@ -1421,7 +1423,7 @@
             <span class="mt-0.5 block text-xs text-muted-foreground tabular">${e.vatToCheckRefs}${S.adv ? ' · moneybird_untagged_vat · rubriek 1a en 5b' : ''}</span>
           </span>
           <span class="flex flex-col gap-1 sm:items-end"><span class="tabular">${plural(e.vatToCheck, 'bonnetje', 'bonnetjes')}</span><a href="#" data-action="todo" class="inline-flex min-h-11 items-center gap-1 text-sm underline underline-offset-4 md:min-h-0">Naar ${e.quarter}${icon('arrowRight', 'size-3.5')}</a></span>
-        </li></ul>`,
+        </li></ul>${scope}`,
       `<span class="text-sm text-muted-foreground tabular">${plural(e.total, 'document', 'documenten')}</span>`,
     )
   }
@@ -1887,13 +1889,13 @@
         : null
     const body = `${r.assumption ? `<div class="mb-4">${statusBlock('neutral', `<p>${r.assumption}</p>`)}</div>` : ''}
       <p class="mb-2 text-sm text-muted-foreground tabular">${r.side === 'verkoop' ? 'Verkoop' : 'Inkoop'} · ${r.pct || 'geen percentage'} · ${plural(r.docs, 'document', 'documenten')}</p>
-      <fieldset ${err ? 'aria-describedby="pick-err"' : ''}><legend class="mb-2 text-sm font-medium">Btw-code in Klopt${free ? ' · alle inkoopcodes' : ''}</legend><div class="divide-y border ${err ? 'border-warning' : ''}">${opts
+      <fieldset ${err ? 'aria-describedby="pick-err"' : ''}><legend class="mb-2 text-sm font-medium">Btw-code in Klopt${free ? ' · alle inkoopcodes' : ''}</legend><div class="divide-y border ${err ? 'border-destructive' : ''}">${opts
         .map(
           (o) =>
             `<label class="flex min-h-11 cursor-pointer items-start gap-3 px-4 py-3 hover:bg-muted"><input type="radio" name="rate-pick" value="${o.code}" data-pct="${o.pct || ''}" class="mt-1 size-4 accent-[var(--foreground)]" data-focus="pick-${o.code}" ${o.code === refused ? `checked data-autofocus` : ''} ${err ? 'aria-describedby="pick-err"' : ''}/><span class="text-sm">${free ? `<span class="block">${o.label}</span><span class="block text-xs text-muted-foreground tabular">${o.code} · ${sub(o)}</span>` : codeLabel(o.label, o.code, o.rubriek && o.rubriek !== '—' ? 'rubriek ' + o.rubriek + ' · ' + o.ledger : 'geen rubriek')}</span></label>`,
         )
         .join('')}</div>
-      ${err ? `<p id="pick-err" class="mt-2 flex gap-1.5 text-sm text-warning">${icon('alert', 'mt-0.5 size-4 shrink-0')}<span>Klopt weigert ${refused} voor dit tarief: het tarief is ${r.pct} en ${refused} is 21%. Kies een code met hetzelfde percentage, of zet deze documenten niet over.</span></p>` : ''}</fieldset>
+      ${err ? `<p id="pick-err" class="mt-2 flex gap-1.5 text-sm text-destructive">${icon('alert', 'mt-0.5 size-4 shrink-0')}<span>Klopt weigert ${refused} voor dit tarief: het tarief is ${r.pct} en ${refused} is 21%. Kies een code met hetzelfde percentage, of zet deze documenten niet over.</span></p>` : ''}</fieldset>
       <p class="mt-3 text-xs text-muted-foreground">${free ? 'Klopt controleert bij opslaan of het percentage past. PRIV21, losse voorbelasting-helften en correctiecodes staan hier niet tussen.' : 'We kiezen niets voor: ook als er maar één code past, kies je hem zelf.'}</p>`
     return sheet(
       r.name,
