@@ -50,6 +50,12 @@ export const en: Record<MessageKey, string> = {
     'Without a tax code the return cannot place those lines.',
   'finding.why.moneybird.incompatible_tax_rate':
     'The wrong direction or rate puts sales VAT on input codes (or the reverse) and corrupts the return.',
+  'finding.why.moneybird.null_percentage_vat_mismatch':
+    'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
+  'finding.why.moneybird.null_percentage_vat_mismatch_one':
+    'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
+  'finding.why.moneybird.null_percentage_vat_mismatch_other':
+    'Moneybird booked real VAT on a rate with no percentage. Mapping it to 0% would silently drop that VAT from the return.',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Without a single direction no VAT code can be chosen; the import stays blocked until Moneybird shows one side only.',
   'finding.why.moneybird.account_number_collision':
@@ -105,7 +111,9 @@ export const en: Record<MessageKey, string> = {
   'findingCard.explainOnlyBody': 'You cannot fix this here.',
   'findingCard.oneClickSafe': 'Does not change your books',
   'findingCard.guidedSteps': '{count} steps',
-  'findingCard.guidedHint': 'Follow the steps above. Escape closes this panel.',
+  'findingCard.guidedHint': 'Follow the steps above.',
+  'findingCard.guidedHintEscape': 'Escape closes this panel.',
+  'findingCard.guidedHintNoSteps': 'Escape closes this panel.',
   'findingCard.preview': 'This changes the books',
   'findingCard.confirmFix': 'Apply',
   'findingCard.close': 'Close',
@@ -175,11 +183,15 @@ export const en: Record<MessageKey, string> = {
   'importFindings.accountVat.showOtherRates': 'Show other rates',
   'importFindings.accountVat.showFewerRates': 'Show less',
   'importFindings.accountVat.vatHint': 'Moneybird had {rate}% VAT.',
-  'importFindings.accountVat.vatHintUnknown': 'Moneybird had no rate.',
+  'importFindings.accountVat.vatHintUnknown':
+    'Moneybird didn’t send a percentage for ‘{name}’. We assume 0%; please check.',
   'importFindings.accountVat.vatUnsupported':
-    'Klopt does not have a VAT code for this rate yet, so this import cannot continue.',
+    'Klopt has no VAT code for this rate yet, so this import cannot continue.',
   'importFindings.accountVat.vatUnknown':
-    'Moneybird did not send a rate, so this import cannot continue.',
+    'Moneybird didn’t send a percentage for ‘{name}’. We assume 0%; please check.',
+  'importFindings.accountVat.vatUnknownEmpty':
+    'Klopt has no VAT code for this rate yet, so this import cannot continue.',
+  'importFindings.accountVat.suggested': 'Suggested',
   'importFindings.accountVat.whatHappens': 'What happens',
   'importFindings.accountVat.whatHappensBody':
     'The Moneybird entries land on {account}, with {vat}. Nothing is posted yet; that happens when you import.',
@@ -1690,6 +1702,9 @@ export const en: Record<MessageKey, string> = {
   'moneybird.fix.stepOpenMoneybird': 'Open Moneybird',
   'moneybird.fix.stepReread': 'Read again',
   'moneybird.fix.stepDoNotTransfer': 'Do not transfer',
+  'moneybird.fix.stepMapAccount': 'Choose category',
+  'moneybird.fix.stepMapTax': 'Choose VAT code',
+  'moneybird.fix.stepSave': 'Save',
   'moneybird.excluded': 'Not transferred (excluded)',
   'moneybird.fx.sourceEcb': 'Source: ECB',
   'moneybird.fx.sourceEcbDated': 'Source: ECB ({date})',

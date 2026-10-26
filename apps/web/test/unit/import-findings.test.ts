@@ -357,8 +357,26 @@ describe('vatOptionsFor / vatCandidatesFor (NL_MKB_VAT_RULES)', () => {
     )
   })
 
-  it('returns [] for empty percentage, NaN, unknown direction, or unmatched rate', () => {
-    expect(vatOptionsFor({ rules, taxRateType: 'sales_invoice', percentage: '' })).toEqual([])
+  it('treats empty / missing / em-dash percentage as 0% (never auto-suggests)', () => {
+    expect(
+      vatOptionsFor({ rules, taxRateType: 'purchase_invoice', percentage: '' }).map((o) => o.code),
+    ).toEqual(['VGEEN'])
+    expect(
+      vatOptionsFor({ rules, taxRateType: 'purchase_invoice', percentage: null }).map(
+        (o) => o.code,
+      ),
+    ).toEqual(['VGEEN'])
+    expect(
+      vatOptionsFor({ rules, taxRateType: 'purchase_invoice', percentage: '—' }).map((o) => o.code),
+    ).toEqual(['VGEEN'])
+    expect(
+      vatOptionsFor({ rules, taxRateType: 'sales_invoice', percentage: '' }).map((o) => o.code),
+    ).toEqual(['VERL', 'GEEN', 'NUL', 'ICP', 'ICPD'])
+    expect(suggestVatCode({ rules, taxRateType: 'purchase_invoice', percentage: '' })).toBeNull()
+    expect(suggestVatCode({ rules, taxRateType: 'sales_invoice', percentage: '—' })).toBeNull()
+  })
+
+  it('returns [] for garbage percentage, unknown direction, or unmatched rate', () => {
     expect(vatOptionsFor({ rules, taxRateType: 'sales_invoice', percentage: 'abc' })).toEqual([])
     expect(vatOptionsFor({ rules, taxRateType: null, percentage: '21' })).toEqual([])
     expect(vatOptionsFor({ rules, taxRateType: 'other', percentage: '21' })).toEqual([])

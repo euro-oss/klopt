@@ -65,7 +65,9 @@ async function openFindings(page: Page, search: string): Promise<void> {
 /** Expand the states Designer item 1 lists into view before a full-page shot. */
 async function revealReviewStates(page: Page): Promise<void> {
   // One-click fix with its preview open.
-  const tax = page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+  const tax = page
+    .locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+    .filter({ hasText: 'Laag tarief' })
   await tax.scrollIntoViewIfNeeded()
   await tax.getByRole('button', { name: 'Gebruik 9% btw' }).click()
   await expect(tax).toHaveAttribute('data-fix-open', 'true')
@@ -203,17 +205,16 @@ test('capture import findings PNGs (1440/390 × light/dark + sheets + states)', 
       await context.close()
     }
   }
-  // Empty / unknown rate: vatUnknown status once, no duplicate hint (#69 design).
+  // Null / missing percentage → 0% VGEEN picker, no dead-end (#90).
   {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     const page = await context.newPage()
     await ready(page, 'Tax empty rate')
     await openFindings(page, 'source=moneybird&state=open&sheet=taxEmpty')
-    await expect(page.getByRole('dialog')).toBeVisible()
-    await expect(page.getByRole('status')).toContainText(/We weten niet welk tarief dit is/)
-    await expect(
-      page.getByRole('dialog').getByText(/We weten niet welk tarief dit is/),
-    ).toHaveCount(1)
+    const sheet = page.getByRole('dialog')
+    await expect(sheet).toBeVisible()
+    await expect(sheet.getByRole('radio')).toContainText(/Inkoop zonder btw/)
+    await expect(sheet.getByText(/Moneybird gaf geen percentage mee voor ‘Geen btw’/)).toBeVisible()
     await setTheme(page, 'light')
     await shoot(page, 'fix-tax-vat-empty-light-desktop-1440.png')
     await context.close()

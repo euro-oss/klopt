@@ -295,20 +295,17 @@ function BindingKeycaps({ id }: { id: string }) {
 function ExplainOnlyLink({ fix }: { fix: Extract<FindingFix, { type: 'explainOnly' }> }) {
   if (fix.href === undefined || fix.linkLabel === undefined) return null
   const external = fix.href.startsWith('http://') || fix.href.startsWith('https://')
+  // min-h-11: 44px tap target at 390 (#90 designer).
+  const linkClass = 'inline-flex min-h-11 items-center text-sm underline underline-offset-4'
   if (external) {
     return (
-      <a
-        href={fix.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-sm underline underline-offset-4"
-      >
+      <a href={fix.href} target="_blank" rel="noopener noreferrer" className={linkClass}>
         {fix.linkLabel} ↗
       </a>
     )
   }
   return (
-    <Link to={fix.href} className="text-sm underline underline-offset-4">
+    <Link to={fix.href} className={linkClass}>
       {fix.linkLabel} ↗
     </Link>
   )
@@ -367,16 +364,26 @@ function FixPanel({
   }
 
   if (fix.type === 'guided') {
+    const steps = fix.steps ?? []
+    const hasSteps = steps.length > 0
     return (
       <div className="flex flex-col items-start gap-3">
-        {fix.steps !== undefined && fix.steps.length > 0 && (
+        {hasSteps && (
           <ol className="text-muted-foreground list-decimal space-y-1 pl-5 text-sm">
-            {fix.steps.map((step) => (
+            {steps.map((step) => (
               <li key={step}>{step}</li>
             ))}
           </ol>
         )}
-        <p className="text-sm">{t('findingCard.guidedHint')}</p>
+        {hasSteps ? (
+          <p className="text-sm">
+            {t('findingCard.guidedHint')}
+            <span className="hidden md:inline"> {t('findingCard.guidedHintEscape')}</span>
+          </p>
+        ) : (
+          // Escape hint is desktop-only; skip the empty line on phone (#90 designer).
+          <p className="hidden text-sm md:block">{t('findingCard.guidedHintNoSteps')}</p>
+        )}
         <Button type="button" variant="ghost" size="xs" onClick={onClose}>
           {t('findingCard.close')}
         </Button>
