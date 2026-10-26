@@ -34,13 +34,37 @@
   }
 
   function resetData() {
+    const na72 = S.p.get('na72') === '1'
     S.rates = D.rates.map((r) => ({ ...r }))
+    // After #72 the EU rate gets ICV21 as its only option, not preselected.
+    if (na72) {
+      const eu = S.rates.find((r) => r.id === 'r6')
+      eu.state = 'choose'
+      eu.secondary = true
+      eu.candidates = [eu.secondaryCode]
+    }
     S.accounts = D.accounts.map((a) => ({ ...a }))
-    S.problems = D.problems.map((x) => ({ ...x, done: null }))
+    S.problems = D.problems
+      .filter((x) => !x.na72 || na72)
+      .flatMap((x) =>
+        x.perCode
+          ? D.notInForce.map((c) => ({
+              ...x,
+              ...c,
+              id: 'p-nif-' + c.code,
+              taxCode: c.code,
+              code: x.code,
+              title: `Btw-code ${c.code} geldt nog niet in 2025`,
+              body: `${plural(c.docs, 'document', 'documenten')} uit 2025 gebruiken btw-code ${c.code}, maar die geldt in Klopt pas vanaf 01-01-2026. Er is hier nog geen oplossing. Zet je 2025 nu niet over, vink het dan uit bij Administratie en jaren.`,
+              bodyAfter: `${plural(c.docs, 'document', 'documenten')} uit 2025 gebruiken btw-code ${c.code}, maar die geldt in Klopt pas vanaf 01-01-2026.`,
+              secondary: `Btw-code ${c.code} · ${c.side === 'verkoop' ? 'verkoop' : 'inkoop'} · ${c.range}`,
+            }))
+          : [x],
+      )
+      .map((x) => ({ ...x, done: null }))
     S.takeover = D.exactTakeover.map((t) => ({ ...t }))
     S.contactFixed = false
   }
-  resetData()
 
   // ------------------------------------------------------------- helpers
 
@@ -73,6 +97,7 @@
     const t = S.p.get('theme')
     if (t) q.set('theme', t)
     if (S.p.get('proto') === '0') q.set('proto', '0')
+    ;['eerder', 'role', 'na72'].forEach((k) => S.p.get(k) && q.set(k, S.p.get(k)))
     if (extra) Object.entries(extra).forEach(([k, v]) => q.set(k, v))
     const s = q.toString()
     return '#/' + stepId + (s ? '?' + s : '')
@@ -134,6 +159,41 @@
 
   const isMb = () => S.src === 'moneybird'
   const srcLabel = () => D.sources[S.src].label
+  const isEarlier = () => isMb() && S.p.get('eerder') === '1'
+  const isBookkeeper = () => S.p.get('role') === 'boekhouder'
+  const after99 = () => S.p.get('na99') === '1'
+  const isNa72 = () => isMb() && S.p.get('na72') === '1'
+
+  // What the import books per kind (steps 8–10). An earlier import's
+  // documents are already in Klopt and are skipped, so they drop out here.
+  const BOOKED = [
+    ['Verkoopfacturen', 96, 71],
+    ['Inkoopfacturen', 58, 44],
+    ['Bonnetjes', 61, 39],
+    ['Bankmutaties', 92, 63],
+    ['Memoriaalposten', 10, 7],
+  ]
+  // Inkoop 2026 loses the rates you chose ‘Niet overzetten’ for: 12 from
+  // outside the EU, and the 9 EU purchases unless ICV21 was chosen (na #72).
+  const skippedRates = () =>
+    isNa72()
+      ? [['r7', 12]]
+      : [
+          ['r7', 12],
+          ['r6', 9],
+        ]
+  function booked() {
+    const e = isEarlier() ? D.earlierImport.byKind : [0, 0, 0, 0, 0]
+    const rateSkip = skippedRates().reduce((n, [, c]) => n + c, 0)
+    return BOOKED.map(([label, y25, y26], i) => ({
+      label,
+      y25,
+      y26: y26 - e[i] - (i === 1 ? rateSkip : 0),
+    }))
+  }
+  const bookedTotal = () => booked().reduce((s, k) => s + k.y25 + k.y26, 0)
+  // 41 from 2024, 4 concepten, memoriaalpost 2025-M011, plus the skipped rates.
+  const notTransferred = () => 46 + skippedRates().reduce((n, [, c]) => n + c, 0)
 
   // ------------------------------------------------------------- routing
 
@@ -153,6 +213,14 @@
 
     resetData()
     if (p.get('excluded') === '1') S.rates.find((r) => r.id === 'r7').state = 'excluded'
+    if (p.get('picked') === '1')
+      S.rates.forEach((r) => {
+        if (r.state === 'suggested' || (r.state === 'choose' && !r.secondary)) {
+          r.state = 'confirmed'
+          if (!r.code) Object.assign(r, r.candidates[0])
+        }
+      })
+    S.sheetError = p.get('error')
     S.busy = p.get('busy')
     S.overlay = null
     S.sheetFor = null
@@ -162,9 +230,12 @@
       S.sheetFor = p.get('sheet')
     }
     if (p.get('menu') === '1') S.overlay = 'steps'
-    // Later steps assume the earlier ones are done.
+    // Later steps show what you chose on step 5; the product never picks for
+    // you. Both rates without a code: you chose ‘Niet overzetten’. After #72
+    // you chose ICV21 for the EU purchases (#95 then applies).
     if (S.idx > 4)
       S.rates.forEach((r) => {
+        if (r.secondary) return Object.assign(r, r.candidates[0], { state: 'rc' })
         if (r.state === 'suggested' || r.state === 'choose') {
           r.state = 'confirmed'
           if (!r.code) Object.assign(r, r.candidates[0])
@@ -224,9 +295,10 @@
   }
 
   function userButton() {
+    const u = isBookkeeper() ? D.entity.bookkeeper : D.entity.user
     return `<div class="border-t border-sidebar-border p-2"><button type="button" data-action="todo" class="flex min-h-11 w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-background/70 md:min-h-0">
-      <span class="flex size-7 items-center justify-center bg-foreground text-xs font-semibold text-background">${D.entity.user.initials}</span>
-      <span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium">${D.entity.user.name}</span><span class="block text-xs text-muted-foreground">${D.entity.user.roleLabel} · Geavanceerd ${S.adv ? 'aan' : 'uit'}</span></span>${icon('chevronDown', 'size-4 -rotate-90 text-muted-foreground')}</button></div>`
+      <span class="flex size-7 items-center justify-center bg-foreground text-xs font-semibold text-background">${u.initials}</span>
+      <span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium">${u.name}</span><span class="block text-xs text-muted-foreground">${u.roleLabel} · Geavanceerd ${S.adv ? 'aan' : 'uit'}</span></span>${icon('chevronDown', 'size-4 -rotate-90 text-muted-foreground')}</button></div>`
   }
 
   function themeButton() {
@@ -259,6 +331,8 @@
         ['Fout token', { state: 'error' }],
         ['Verbonden', { state: 'connected' }],
         ['Verbreken?', { state: 'connected', confirm: 'disconnect' }],
+        ['Verbreken? (na 0037)', { state: 'connected', confirm: 'disconnect', na0037: '1' }],
+        ['Geen sleutel', { state: 'nokey' }],
       ],
       exact: [
         ['Standaard', {}],
@@ -272,18 +346,29 @@
     btw: {
       moneybird: [
         ['Standaard', {}],
+        ['Nog 2 zonder code', { picked: '1' }],
         ['Niet overzetten', { excluded: '1', toast: '1' }],
         ['Tarief kiezen', { sheet: 'r5' }],
+        ['Zelf kiezen', { adv: '1', sheet: 'r7' }],
+        ['Code geweigerd', { adv: '1', sheet: 'r7', error: 'rate' }],
         ['Terug na pauze', { resumed: '1' }],
       ],
       exact: [['Standaard', {}]],
     },
-    problemen: [
-      ['Standaard', {}],
-      ['Opnieuw lezen bezig', { busy: 'p-nif' }],
-      ['Koers kiezen', { sheet: 'fx' }],
-      ['Alles opgelost', { resolved: '1' }],
-    ],
+    problemen: {
+      moneybird: [
+        ['Standaard', {}],
+        ['Opnieuw lezen bezig', { busy: 'p-nif-H21' }],
+        ['Na #99', { na99: '1' }],
+        ['Koers kiezen', { sheet: 'fx' }],
+        ['Alles opgelost', { resolved: '1' }],
+      ],
+      exact: [
+        ['Geen rechten', {}],
+        ['Rechten wel', { rights: 'true' }],
+        ['Onbekend', { rights: 'unknown' }],
+      ],
+    },
     overzicht: [
       ['Standaard', {}],
       ['Bevestigen', { confirm: 'import' }],
@@ -293,10 +378,21 @@
       ['Live', {}],
       ['Geweigerd', { state: 'refused' }],
     ],
-    klaar: [
-      ['Met blokkade', {}],
-      ['Zonder blokkade', { state: 'clean' }],
-    ],
+    klaar: [['Standaard', {}]],
+  }
+
+  // A mock-bar toggle for a param that sticks across steps (eerder, role).
+  function paramToggle(key, options) {
+    const stepId = D.steps[S.idx].id
+    const cur = S.p.get(key) || ''
+    return `<span class="hidden shrink-0 border border-dashed border-muted-foreground md:flex">${options
+      .map(([v, label]) => {
+        const p = new URLSearchParams(S.p)
+        v ? p.set(key, v) : p.delete(key)
+        const h = '#/' + stepId + (p.toString() ? '?' + p : '')
+        return `<a href="${h}" class="inline-flex min-h-7 shrink-0 items-center px-2 ${cur === v ? 'bg-foreground text-background' : 'hover:text-foreground'}">${label}</a>`
+      })
+      .join('')}</span>`
   }
 
   function protoBar() {
@@ -312,6 +408,8 @@
       const a = strip(q)
       const b = strip(cur)
       ;['theme', 'proto'].forEach((k) => (a.delete(k), b.delete(k)))
+      a.sort()
+      b.sort()
       const active = a.toString() === b.toString()
       return `<a href="${h}" class="inline-flex min-h-11 shrink-0 items-center px-1.5 md:min-h-7 ${active ? 'text-foreground underline underline-offset-4' : 'hover:text-foreground'}">${label}</a>`
     }
@@ -332,6 +430,26 @@
         )
         .join('')}</select></label>
       <span class="flex shrink-0 border border-dashed border-muted-foreground">${srcBtn('moneybird', 'Moneybird')}${srcBtn('exact', 'Exact')}</span>
+      ${
+        isMb()
+          ? paramToggle('eerder', [
+              ['', 'Eerste import'],
+              ['1', 'Eerdere import'],
+            ])
+          : ''
+      }
+      ${
+        isMb()
+          ? paramToggle('na72', [
+              ['', 'Vandaag'],
+              ['1', 'Na #72'],
+            ])
+          : ''
+      }
+      ${paramToggle('role', [
+        ['', 'Eigenaar'],
+        ['boekhouder', 'Boekhouder'],
+      ])}
       ${states.length ? `<div class="proto-states -mx-4 flex w-[calc(100%+2rem)] items-center gap-x-1 border-t border-dashed border-muted-foreground px-4 md:mx-0 md:w-auto md:min-w-0 md:flex-1 md:border-0 md:px-0"><span class="hidden shrink-0 md:inline">·</span>${states.map(([l, e]) => link(l, e)).join('')}</div>` : ''}
     </div>`
   }
@@ -358,7 +476,7 @@
       'Verbonden',
       mb ? '2025 en 2026' : 'Boekjaar 2026',
       mb ? '542 documenten gelezen' : '312 rekeningen, 47 posten',
-      mb ? '8 tarieven' : '5 van 7 herkend',
+      mb ? `${S.rates.length} tarieven` : '5 van 7 herkend',
       mb ? '8 nagekeken · 186 relaties' : '4 rekeningen gekozen',
       'Niets blokkeert meer',
       'Nagekeken',
@@ -465,7 +583,7 @@
       return `<div role="radio" aria-checked="${checked}" aria-labelledby="src-${id}-l" tabindex="${checked ? 0 : -1}" data-action="pick-src" data-src="${id}" data-focus="src-${id}" class="src-card relative flex cursor-pointer gap-4 ${checked ? 'border-2 border-foreground p-[19px]' : 'border p-5 hover:bg-muted'}">
         <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border ${checked ? 'border-2 border-foreground' : 'border-input'}" aria-hidden="true">${checked ? '<span class="size-2.5 rounded-full bg-foreground"></span>' : ''}</span>
         <span class="min-w-0 flex-1">
-          <span class="flex flex-wrap items-center gap-2"><span id="src-${id}-l" class="text-[15px] font-medium">${s.label}</span>${id === 'moneybird' ? badge('neutral', 'Nog nooit geïmporteerd') : badge('neutral', 'Eén boekjaar')}</span>
+          <span class="flex flex-wrap items-center gap-2"><span id="src-${id}-l" class="text-[15px] font-medium">${s.label}</span>${id === 'moneybird' ? badge('neutral', S.p.get('eerder') === '1' ? 'Eerder geïmporteerd op ' + D.earlierImport.date : 'Nog nooit geïmporteerd') : badge('neutral', 'Eén boekjaar')}</span>
           <span class="mt-1 block text-sm">${s.scope}</span>
           <span class="mt-1 block text-sm text-muted-foreground">${s.notIncluded}</span>
           ${s.setupLine ? `<span class="mt-2 block text-xs text-muted-foreground">${s.setupLine}</span>` : ''}
@@ -512,11 +630,21 @@
 
   // ---------------------------------------------------------------- step 2
 
+  // Moneybird token and Exact secret both go through encryptSecret.
+  function noKeyBlock(what) {
+    return statusBlock(
+      'error',
+      `<p class="font-medium">Verbinden kan nog niet</p><p>Klopt kan ${what} niet veilig bewaren: er is geen KLOPT_ENCRYPTION_KEY ingesteld. Onversleuteld bewaren doen we niet.</p><p class="text-muted-foreground">Wie Klopt beheert, zet die sleutel eerst. Daarna kun je hier verder.</p><p class="text-muted-foreground">Raak je die sleutel kwijt of verander je hem, dan maak je opnieuw verbinding. Je boekhouding zelf is niet met die sleutel versleuteld.</p>`,
+      'nokey',
+    )
+  }
+
   function stepVerbinden() {
     const st = S.p.get('state')
     if (isMb()) {
       const error = st === 'error'
       const connected = st === 'connected'
+      const nokey = st === 'nokey'
       const body = connected
         ? statusBlock(
             'success',
@@ -526,7 +654,7 @@
         : `<form class="max-w-lg space-y-5" onsubmit="return false">
             <div>
               <label for="mb-token" class="mb-1.5 block text-sm font-medium">API-token</label>
-              <input id="mb-token" data-focus="token" type="password" autocomplete="off" spellcheck="false" class="field ${error ? 'border-destructive' : ''}" placeholder="Plak hier je token" ${error ? 'value="mb-token-placeholder" aria-invalid="true" aria-describedby="token-err"' : 'aria-describedby="token-help"'} />
+              <input id="mb-token" data-focus="token" type="password" autocomplete="off" spellcheck="false" class="field ${error ? 'border-destructive' : ''}" placeholder="Plak hier je token" ${nokey ? 'disabled ' : ''}${error ? 'value="mb-token-placeholder" aria-invalid="true" aria-describedby="token-err"' : 'aria-describedby="token-help"'} />
               ${error ? `<p id="token-err" class="mt-1.5 flex gap-1.5 text-sm text-destructive">${icon('alert', 'mt-0.5 size-4')}Moneybird kent dit token niet. Maak in Moneybird een nieuw token aan en plak het hier.</p>` : `<p id="token-help" class="mt-1.5 text-sm text-muted-foreground">We bewaren het versleuteld en laten het nooit meer zien.</p>`}
             </div>
             <details class="border px-4 py-3 text-sm" ${error ? 'open' : ''}>
@@ -540,13 +668,33 @@
           stepHeader(
             'Verbind met Moneybird',
             'Met een token uit Moneybird kunnen we je administratie lezen.',
-          ) + body,
+          ) +
+          (nokey ? `<div class="mb-6">${noKeyBlock('je token')}</div>` : '') +
+          body,
+        notes: connected
+          ? [
+              note(
+                'Verbreken · vandaag en na 0037',
+                'Vandaag verwijdert verbreken de hele koppeling, keuzes voor btw-codes en rekeningen inbegrepen (MoneybirdConnectionRepository.remove). Daarom zegt de dialoog dat ze ook verwijderd worden. “Je keuzes blijven bewaard” (zie “Verbreken? (na 0037)”) is het doel na #100: het kan pas mee als migratie 0037 (keuzes per administratie) er is.',
+              ),
+            ]
+          : [],
         status: connected
           ? 'Verbonden'
-          : error
-            ? 'Token niet geaccepteerd'
-            : 'Plak je token om verder te gaan',
-        next: connected ? { label: 'Volgende' } : { label: 'Verbinden', action: 'connect' },
+          : nokey
+            ? 'Wacht op de beheerder'
+            : error
+              ? 'Token niet geaccepteerd'
+              : 'Plak je token om verder te gaan',
+        next: connected
+          ? { label: 'Volgende' }
+          : nokey
+            ? {
+                label: 'Verbinden',
+                disabled: true,
+                reason: 'Er is eerst een versleutelsleutel nodig.',
+              }
+            : { label: 'Verbinden', action: 'connect' },
       }
     }
     const nokey = st === 'nokey'
@@ -564,9 +712,7 @@
           'Verbind met Exact Online',
           'Je gaat zo naar Exact om in te loggen. Daarna kom je vanzelf hier terug.',
         ) +
-        (nokey
-          ? `<div class="mb-6">${statusBlock('error', `<p class="font-medium">Verbinden kan nog niet</p><p>Klopt kan je client secret niet veilig bewaren: er is geen KLOPT_ENCRYPTION_KEY ingesteld. Onversleuteld bewaren doen we niet.</p><p class="text-muted-foreground">Wie Klopt beheert, zet die sleutel eerst. Daarna kun je hier verder.</p>`, 'nokey')}</div>`
-          : '') +
+        (nokey ? `<div class="mb-6">${noKeyBlock('je client secret')}</div>` : '') +
         form,
       notes: [
         note(
@@ -606,7 +752,7 @@
             <td class="py-3 pr-3 pl-4"><input type="checkbox" class="mt-0.5 size-4 accent-[var(--foreground)]" aria-label="${y.year} overzetten" ${closed ? 'disabled' : 'checked'} /></td>
             <td class="py-3 pr-3 text-sm font-medium tabular">${y.year}</td>
             <td class="py-3 pr-3 text-right text-sm tabular">${nf(y.docs)}</td>
-            <td class="py-3 pr-4 text-sm">${closed ? `${badge('neutral', 'Afgesloten', 'lock')}<span class="mt-1 block text-xs text-muted-foreground">${y.note} We zetten het niet over.</span>` : `<span class="block">Open</span>${S.adv ? `<span class="block text-xs text-muted-foreground tabular">01-01-${y.year} – 31-12-${y.year}</span>` : y.note ? `<span class="block text-xs text-muted-foreground tabular">${y.note}</span>` : ''}${y.block ? `<span class="mt-2 block">${badge('error', 'Blokkeert import', 'alert')}</span><span class="mt-1 block text-xs">${y.block}</span>${S.adv ? `<span class="block text-xs text-muted-foreground tabular">${y.blockAdv}</span>` : ''}` : ''}${y.warn ? `<span class="mt-2 flex gap-1.5 text-xs text-warning">${icon('alert', 'mt-px size-3.5 shrink-0')}<span>${y.warn}</span></span>` : ''}`}</td>
+            <td class="py-3 pr-4 text-sm">${closed ? `${badge('neutral', 'Afgesloten', 'lock')}<span class="mt-1 block text-xs text-muted-foreground">${y.note} We zetten het niet over.</span>` : `<span class="block">Open</span>${S.adv ? `<span class="block text-xs text-muted-foreground tabular">01-01-${y.year} – 31-12-${y.year}</span>` : y.note ? `<span class="block text-xs text-muted-foreground tabular">${y.note}</span>` : ''}${y.block ? `<span class="mt-2 block">${badge('error', 'Blokkeert import', 'alert')}</span><span class="mt-1 block text-xs font-medium">${y.block}</span><span class="mt-0.5 block text-xs">${y.blockSub}</span>${S.adv ? `<span class="block text-xs text-muted-foreground tabular">${y.blockAdv}</span>` : ''}` : ''}${y.warn ? `<span class="mt-2 flex gap-1.5 text-xs text-warning">${icon('alert', 'mt-px size-3.5 shrink-0')}<span>${y.warn}</span></span>` : ''}`}</td>
           </tr>`
         })
         .join('')
@@ -774,14 +920,19 @@
           section(
             'Gevonden in Moneybird',
             `<div class="overflow-x-auto border"><table class="w-full text-left"><thead class="bg-muted text-xs text-muted-foreground"><tr><th class="py-2 pr-3 pl-4 font-medium">Soort</th><th class="py-2 pr-3 text-right font-medium">2025</th><th class="py-2 pr-3 text-right font-medium">2026</th><th class="py-2 pr-4 text-right font-medium">Totaal</th></tr></thead><tbody>${rows}<tr class="border-t bg-muted/60"><td class="py-2.5 pr-3 pl-4 text-sm font-medium">Totaal</td><td class="py-2.5 pr-3 text-right text-sm tabular">318</td><td class="py-2.5 pr-3 text-right text-sm tabular">224</td><td class="py-2.5 pr-4 text-right text-sm font-medium tabular">542</td></tr></tbody></table></div>
-            <p class="mt-2 text-xs text-muted-foreground">Ook gelezen, niet overgezet: 4 concepten en 41 documenten uit 2024.</p>`,
+            <p class="mt-2 text-xs text-muted-foreground">Ook gelezen, niet overgezet: 4 concepten en 41 documenten uit 2024.${isEarlier() ? ` ${D.earlierImport.total} documenten staan al in Klopt (import van ${D.earlierImport.date}); die slaan we over.` : ''}</p>`,
           ) +
           section(
             'Wat moet je nog doen',
             todoList([
-              [4, 'Btw-codes', 'Nog 3 tarieven kiezen', 'attention'],
+              [
+                4,
+                'Btw-codes',
+                `Nog ${rateLeft()} tarieven kiezen · 2 zonder passende code`,
+                'attention',
+              ],
               [5, 'Rekeningen en relaties', 'Nog 4 nakijken', 'attention'],
-              [6, 'Problemen', '4 houden de import tegen · 2 om te weten', 'error'],
+              [6, 'Problemen', `${blockingLeft()} houden de import tegen · 1 om te weten`, 'error'],
             ]),
           ) +
           recon,
@@ -864,7 +1015,13 @@
         mapped(r.label, r.code, r.rubriek, r.ledger) +
         `<p class="mt-2 text-xs text-muted-foreground">De enige code die past. Bevestig hem zelf.</p>
         <div class="mt-3 flex flex-wrap gap-2"><button type="button" data-action="confirm-rate" data-id="${r.id}" class="btn btn-outline">${icon('check')}Bevestigen</button><button type="button" data-action="open-sheet" data-id="${r.id}" class="btn btn-ghost">Andere kiezen</button></div>`
-    if (r.state === 'choose')
+    if (r.state === 'choose' && r.secondary)
+      body = `<div class="mt-3">${statusBlock(
+        'neutral',
+        `<p>Alleen ${r.candidates[0].code} past (${r.candidates[0].label}). Dat is geen standaardcode, dus we stellen hem niet voor. Kies je hem, dan komen de inkopen over, maar de btw-aangifte voor ${r.periods} kun je dan niet via Klopt indienen.</p>`,
+      )}</div>
+        <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap"><button type="button" data-action="open-sheet" data-id="${r.id}" class="btn btn-outline">Btw-code kiezen${icon('arrowRight')}</button><button type="button" data-action="exclude-rate" data-id="${r.id}" class="btn btn-outline">${icon('ban')}${r.docs} documenten niet overzetten</button></div>`
+    else if (r.state === 'choose')
       body = `<div class="mt-3">${statusBlock('neutral', `<p>${r.assumption}</p>`)}</div>
         <div class="mt-3 flex flex-wrap gap-2"><button type="button" data-action="open-sheet" data-id="${r.id}" class="btn btn-outline">Btw-code kiezen${icon('arrowRight')}</button></div>`
     if (r.state === 'rc')
@@ -888,7 +1045,7 @@
         </div>`
     if (r.state === 'excluded')
       body = `<p class="mt-3 text-sm">Deze ${r.docs} documenten zetten we niet over <span class="text-muted-foreground tabular">(${r.years})</span>. Ze tellen niet mee voor dit tarief en staan in het overzicht onder ‘Niet overgezet’.</p>
-        <div class="mt-3"><button type="button" data-action="undo-exclude" class="btn btn-outline">${icon('undo')}Ongedaan maken</button></div>`
+        <div class="mt-3"><button type="button" data-action="undo-exclude" data-id="${r.id}" class="btn btn-outline">${icon('undo')}Ongedaan maken</button></div>`
     const left = {
       confirmed: 'border-l-success',
       suggested: 'border-l-[var(--line-strong)]',
@@ -908,7 +1065,7 @@
             `<tr class="border-t align-top"><td class="py-2.5 pr-3 pl-4 text-sm">${codeLabel(v.name, 'Exact-code ' + v.code)}</td><td class="py-2.5 pr-4 text-sm">${
               v.klopt
                 ? codeLabel(v.label, v.klopt)
-                : `<span class="flex items-center gap-1.5 text-warning">${icon('alert', 'size-3.5')}Klopt herkent deze niet</span><span class="mt-0.5 block text-xs text-muted-foreground tabular">${plural(v.accounts, 'rekening krijgt', 'rekeningen krijgen')} geen standaard btw-code${S.adv ? ': ' + v.lose : ''}</span>`
+                : `<span class="flex items-center gap-1.5 text-warning">${icon('alert', 'size-3.5')}Klopt herkent deze niet</span><span class="mt-0.5 block text-xs text-muted-foreground tabular">${v.accounts === 1 ? 'De rekening komt' : `De ${v.accounts} rekeningen komen`} over zonder standaard btw-code${S.adv ? ': ' + v.lose : '.'}</span>`
             }</td></tr>`,
         )
         .join('')
@@ -956,13 +1113,21 @@
           'Regels',
           'Nooit verkoop en inkoop door elkaar, geen 21%-terugval. Een voorstel alleen als er precies één code past; VGEEN en 0%-verkoopcodes nooit. Eén Enter bevestigt nooit meer dan het tarief met focus.',
         ),
+        note(
+          'Blijft blokkeren',
+          'Een tarief zonder passende code zetten we nooit zelf op “Niet overzetten”. Volgende blijft uit (met de reden erbij) tot je per tarief kiest: opnieuw lezen na een aanpassing in Moneybird, of niet overzetten. Stap 6–10 tonen de stand nadat je voor beide tarieven zonder code “Niet overzetten” koos; na #72 koos je ICV21 voor de EU-inkopen.',
+        ),
+        note(
+          'EU-inkoop · vandaag en na #72',
+          'Vandaag biedt Klopt alleen codes met hetzelfde percentage aan, dus een EU-inkoop van 0% krijgt niets: hetzelfde doodlopende punt als #92/#93. Na #72 (schakelaar “Na #72”) staat ICV21 in de keuzelijst, maar nooit voorgekozen en zonder Bevestigen: het is geen standaardcode.',
+        ),
       ],
       status: left ? `Nog ${plural(left, 'tarief', 'tarieven')} kiezen` : 'Alle tarieven gekozen',
       next: left
         ? {
             label: 'Volgende',
             disabled: true,
-            reason: `Kies eerst een btw-code voor ${left === 1 ? 'het laatste tarief' : 'elk tarief'}, of zet de documenten op niet overzetten.`,
+            reason: `Kies eerst voor ${plural(left, 'tarief', 'tarieven')} wat Klopt doet.`,
           }
         : { label: 'Volgende' },
     }
@@ -1088,7 +1253,21 @@
         (busy
           ? `<button type="button" disabled aria-busy="true" class="btn btn-primary">${icon('loader', 'spin size-4')}Bezig met lezen…</button><span class="sr-only" aria-live="polite">Bezig met opnieuw lezen</span>`
           : `<button type="button" data-action="reread" data-id="${x.id}" class="btn btn-primary">${icon('refresh')}Opnieuw lezen</button>`) +
-        external('Open in Moneybird', 'Open inkoopfactuur 2025-0412 in Moneybird (nieuw tabblad)')
+        external(
+          'Open in Moneybird',
+          `Bekijk de documenten met ${x.taxCode} in Moneybird (nieuw tabblad)`,
+        ) +
+        (after99() && !isBookkeeper()
+          ? `<button type="button" data-action="valid-from" data-code="${x.taxCode}" class="btn btn-outline">${icon('calendar')}Geldig vanaf aanpassen</button>`
+          : '') +
+        `<a href="${hrefFor('administratie')}" class="inline-flex min-h-11 items-center gap-1 text-sm underline underline-offset-4 md:min-h-0">Naar Administratie en jaren${icon('arrowRight', 'size-3.5')}</a>`
+    const post99 = x.fix === 'reread' && after99()
+    const body = post99 ? x.bodyAfter : x.body
+    const why = post99 ? x.whyAfter : x.why
+    const roleLine =
+      post99 && isBookkeeper()
+        ? `<p class="mt-2 text-xs text-muted-foreground">${x.bookkeeperHint}</p>`
+        : ''
     if (x.fix === 'mbReread')
       actions = `${external('Open in Moneybird', 'Open bonnetje 2026-0088 in Moneybird (nieuw tabblad)')}<button type="button" data-action="reread" data-id="${x.id}" class="btn btn-outline">${icon('refresh')}Opnieuw lezen</button>`
     if (x.fix === 'fx')
@@ -1102,22 +1281,32 @@
     return `<li><article data-card="${x.id}" data-focus="card-${x.id}" tabindex="0" aria-labelledby="pt-${x.id}" class="border border-l-4 bg-card p-4 md:p-5 ${blocking ? 'border-l-destructive' : 'border-l-[var(--line-strong)]'}">
       <div class="mb-2 flex flex-wrap items-center gap-2">${blocking ? badge('error', 'Blokkeert import', 'alert') : badge('neutral', 'Let op')}${S.adv ? `<code class="ml-auto font-mono text-[11px] text-muted-foreground">${x.code}</code>` : ''}</div>
       <h3 id="pt-${x.id}" class="text-[15px] leading-snug font-medium">${x.title}</h3>
-      <p class="mt-1 text-sm">${x.body}</p>
+      <p class="mt-1 text-sm">${body}</p>
       ${x.secondary ? `<p class="mt-1 text-xs text-muted-foreground tabular">${x.secondary}${S.adv && x.secondaryAdv ? ' · ' + x.secondaryAdv : ''}</p>` : ''}
       ${x.next ? `<p class="mt-2 text-sm"><span class="font-medium">Wat je kunt doen:</span> ${x.next}</p>` : ''}
-      <p class="mt-2 text-sm text-muted-foreground"><span class="font-medium text-foreground">Waarom dit telt:</span> ${x.why}</p>
+      <p class="mt-2 text-sm text-muted-foreground"><span class="font-medium text-foreground">Waarom dit telt:</span> ${why}</p>
       ${S.adv && x.whyAdv ? `<p class="text-xs text-muted-foreground tabular">${x.whyAdv}</p>` : ''}
       <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">${actions}</div>
+      ${roleLine}
     </article></li>`
   }
 
   function stepProblemen() {
     if (!isMb()) {
+      // Follows exact/plan.ts diagnose(): only UserHasRights === false blames the user's rights.
+      const rights = S.p.get('rights') || 'false'
+      const exBody = {
+        false:
+          'Exact zegt dat de gebruiker waarmee je verbond je openstaande posten niet mag bekijken. Pas de rollen van die gebruiker aan in Exact (Stamgegevens → Gebruikers), of verbind als iemand die dat wel mag, en lees opnieuw.',
+        true: 'De gebruiker heeft wel rechten, maar Exact geeft toch geen toegang. Waarschijnlijk zit de module niet in het abonnement van deze administratie, of beperkt de app-koppeling de toegang.',
+        unknown:
+          'Dat kan liggen aan de rechten van de gebruiker, het abonnement, de administratie of de app-koppeling. Controleer eerst de rollen onder Stamgegevens → Gebruikers en lees opnieuw.',
+      }[rights]
       const card = `<li><article data-card="ex1" tabindex="0" class="border border-l-4 border-l-destructive bg-card p-4 md:p-5">
-        <div class="mb-2 flex flex-wrap items-center gap-2">${badge('error', 'Blokkeert import', 'alert')}${S.adv ? '<code class="ml-auto font-mono text-[11px] text-muted-foreground">resource_unreadable · 403</code>' : ''}</div>
+        <div class="mb-2 flex flex-wrap items-center gap-2">${badge('error', 'Blokkeert import', 'alert')}${S.adv ? `<code class="ml-auto font-mono text-[11px] text-muted-foreground">resource_unreadable · 403 · UserHasRights ${rights === 'unknown' ? 'onbekend' : rights}</code>` : ''}</div>
         <h3 class="text-[15px] font-medium">Exact gaf geen toegang tot je openstaande posten</h3>
-        <p class="mt-1 text-sm">De Exact-gebruiker waarmee je verbond mag openstaande posten niet bekijken. Zonder die posten klopt je beginbalans niet.</p>
-        <p class="mt-2 text-sm"><span class="font-medium">Wat je kunt doen:</span> geef die gebruiker in Exact het recht ‘Financieel – Openstaande posten bekijken’ en lees opnieuw.</p>
+        <p class="mt-1 text-sm">${exBody}</p>
+        <p class="mt-2 text-sm text-muted-foreground"><span class="font-medium text-foreground">Waarom dit telt:</span> Zonder die posten kan Klopt geen beginbalans boeken.</p>
         <div class="mt-4 flex flex-wrap gap-2"><button type="button" data-action="reread" data-id="ex1" class="btn btn-primary">${icon('refresh')}Opnieuw lezen</button>${external('Open Exact')}</div></article></li>`
       return {
         body:
@@ -1129,6 +1318,10 @@
           note(
             'Afhankelijk van #46',
             'Exact-bevindingen zijn nu Engels en alleen uitleg. Deze kaart gaat uit van #46: NL/EN-teksten en het patroon bevinding-met-oplossing.',
+          ),
+          note(
+            'Drie varianten',
+            'Volgt diagnose() in exact/plan.ts. Alleen als UserHasRights false is, noemen we de rechten van de gebruiker. Zie “Rechten wel” en “Onbekend”. We noemen geen specifiek recht: niets controleert die naam.',
           ),
         ],
         status: 'Nog 1 ding om op te lossen',
@@ -1170,16 +1363,20 @@
         `<div class="key-strip hidden flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-xs text-muted-foreground md:flex"><span class="inline-flex items-center gap-1.5">${keycaps('j k')}Volgend, vorig punt</span><span class="inline-flex items-center gap-1.5">${keycaps('enter')}Eerste actie van het punt</span></div>`,
       notes: [
         note(
-          '#99 na release',
-          'Zodra #99 er is, krijgt deze kaart “Geldig vanaf aanpassen” voor Eigenaar en Accountant. Een Boekhouder houdt dezelfde weg als nu: de datum in Moneybird controleren en dan Opnieuw lezen.',
+          '#99 · één kaart per btw-code',
+          'Alle btw-codes in Klopt gelden vanaf 01-01-2026, het begin van het eerste boekjaar. Daarom raakt #99 bijna elk document uit 2025: 215, verdeeld over H21, L9, VH21, VL9 en VGEEN. Eén kaart per code met het aantal, samen het getal van stap 3. Stap 8–10 tonen 2025 alsof dit is opgelost; zonder #99 vink je 2025 uit en valt die kolom weg.',
         ),
         note(
-          'Open vraag voor PM · #99 en rollen',
-          'Mag een Boekhouder “Geldig vanaf aanpassen” ook zelf? Zo niet, dan krijgt hij geen doorverwijzing, alleen de weg hierboven.',
+          '#99 na release · per rol',
+          'Zie “Na #99”. Eigenaar en Accountant: dezelfde kaart met “Geldig vanaf aanpassen” erbij. Boekhouder (role=boekhouder): dezelfde kaart zonder die knop, met één regel “De eigenaar of accountant kan de begindatum aanpassen.” Vóór #99: Opnieuw lezen, Open in Moneybird en Naar Administratie en jaren, voor iedereen.',
         ),
         note(
-          'Open vraag · #96 na een eerdere import',
-          'Deze kaart blokkeert alleen vóór de import. Documenten die al in Klopt staan van een eerdere import slaan we bij opnieuw lezen over; daarvoor geldt de tekst op het aangiftescherm: zelf of met een belastingadviseur indienen.',
+          '#96 btw zonder btw-tarief · nieuw importwerk',
+          'De importer meldt dit vandaag niet. Deze kaart vraagt een eigen importercode, moneybird_vat_without_tax_rate, los van de aangiftebevinding moneybird_untagged_vat die pas na de import verschijnt.',
+        ),
+        note(
+          '#96 na een eerdere import',
+          'Deze kaart blokkeert alleen vóór de import. Documenten uit een eerdere import slaan we bij opnieuw lezen over; ze verdwijnen niet stil. Overzicht en Klaar tellen ze als “Al in Klopt (eerdere import), btw nog te controleren” (zie eerder=1), en voor die periode geldt het aangiftescherm: zelf of met een belastingadviseur indienen.',
         ),
       ],
       status: left
@@ -1199,6 +1396,34 @@
 
   function numLink(n, step, cls) {
     return `<a href="${hrefFor(D.steps[step].id)}" class="tabular underline decoration-[var(--line-strong)] underline-offset-4 hover:decoration-foreground ${cls || ''}">${n}</a>`
+  }
+
+  // Steps 8 and 10. Documents from an earlier import are skipped on re-read, so
+  // they are counted here instead of disappearing (#96).
+  function alreadyInKlopt(beforeImport) {
+    const e = D.earlierImport
+    if (!isEarlier())
+      return section(
+        'Al in Klopt',
+        `<p class="text-sm text-muted-foreground">${beforeImport ? 'Niets. Dit is je eerste import van deze administratie. Wat al in Klopt staat, slaan we bij een volgende import over.' : 'Niets van een eerdere import.'}</p>`,
+      )
+    return section(
+      'Al in Klopt',
+      `<ul role="list" class="divide-y border">
+        <li class="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-center sm:gap-4">
+          <span class="min-w-0 flex-1"><span class="block font-medium">Uit de import van ${e.date}</span><span class="block text-xs text-muted-foreground">Staan al in Klopt. We slaan ze over, dus niets wordt dubbel geboekt.</span></span>
+          <span class="inline-flex min-h-11 items-center tabular sm:min-h-0">${plural(e.total, 'document', 'documenten')}</span></li>
+        <li class="flex flex-col gap-2 border-l-4 border-l-destructive px-4 py-3 text-sm sm:flex-row sm:items-start sm:gap-4">
+          <span class="min-w-0 flex-1">
+            <span class="block">${badge('error', 'Blokkeert indienen', 'alert')}</span>
+            <span class="mt-1.5 block font-medium">Al in Klopt (eerdere import), btw nog te controleren</span>
+            <span class="mt-0.5 block text-xs">Op deze bonnetjes staat btw zonder btw-tarief. Een correctie in Moneybird komt niet meer mee, want we slaan ze over. De btw-aangifte voor ${e.quarter} kun je daarom niet via Klopt indienen. Je kunt de aangifte zelf of met een belastingadviseur indienen op basis van gecorrigeerde cijfers.</span>
+            <span class="mt-0.5 block text-xs text-muted-foreground tabular">${e.vatToCheckRefs}${S.adv ? ' · moneybird_untagged_vat · rubriek 1a en 5b' : ''}</span>
+          </span>
+          <span class="flex flex-col gap-1 sm:items-end"><span class="tabular">${plural(e.vatToCheck, 'bonnetje', 'bonnetjes')}</span><a href="#" data-action="todo" class="inline-flex min-h-11 items-center gap-1 text-sm underline underline-offset-4 md:min-h-0">Naar ${e.quarter}${icon('arrowRight', 'size-3.5')}</a></span>
+        </li></ul>`,
+      `<span class="text-sm text-muted-foreground tabular">${plural(e.total, 'document', 'documenten')}</span>`,
+    )
   }
 
   function stepOverzicht() {
@@ -1244,18 +1469,37 @@
         next: { label: 'Beginbalans boeken', action: 'confirm-import' },
       }
     }
-    const k = D.kinds.map((x) => ({ ...x }))
-    k[1].y2025 -= 7
-    k[1].y2026 -= 5
-    k[4].y2025 -= 1
+    const k = booked()
+    const t25 = k.reduce((n, x) => n + x.y25, 0)
+    const t26 = k.reduce((n, x) => n + x.y26, 0)
+    const total = t25 + t26
     const rows = k
       .map(
         (x) =>
-          `<tr class="border-t"><td class="py-2.5 pr-3 pl-4 text-sm">${x.label}</td><td class="py-2.5 pr-3 text-right text-sm">${numLink(nf(x.y2025), 3)}</td><td class="py-2.5 pr-3 text-right text-sm">${numLink(nf(x.y2026), 3)}</td><td class="py-2.5 pr-4 text-right text-sm font-medium tabular">${nf(x.y2025 + x.y2026)}</td></tr>`,
+          `<tr class="border-t"><td class="py-2.5 pr-3 pl-4 text-sm">${x.label}</td><td class="py-2.5 pr-3 text-right text-sm">${numLink(nf(x.y25), 3)}</td><td class="py-2.5 pr-3 text-right text-sm">${numLink(nf(x.y26), 3)}</td><td class="py-2.5 pr-4 text-right text-sm font-medium tabular">${nf(x.y25 + x.y26)}</td></tr>`,
       )
       .join('')
     const skipped = [
-      ['Geen btw (buiten EU)', 12, 'inkoopfacturen', 'Jij koos ‘Niet overzetten’', 4, true],
+      [
+        'Geen btw (buiten EU)',
+        12,
+        'inkoopfacturen',
+        'Jij koos ‘Niet overzetten’: geen passende btw-code',
+        4,
+        true,
+      ],
+      ...(isNa72()
+        ? []
+        : [
+            [
+              'EU-inkoop 21% (verlegd)',
+              9,
+              'inkoopfacturen',
+              'Jij koos ‘Niet overzetten’: geen passende btw-code',
+              4,
+              true,
+            ],
+          ]),
       ['Memoriaalpost 2025-M011', 1, 'memoriaalpost', 'Sluit niet', 6, false],
       ['2024', 41, 'documenten', 'Boekjaar afgesloten in Klopt', 2, false],
       ['Concepten', 4, 'concepten', 'Concepten zetten we niet over', 3, false],
@@ -1280,27 +1524,31 @@
           'Dit gaat er gebeuren',
           'Lees het na. Er is nog niets geboekt. Elk getal brengt je terug naar de stap waar het vandaan komt.',
         ) +
-        `<div class="mb-8">${statusBlock(
-          'attention',
-          `<p class="font-medium">Na de import kun je de btw-aangifte voor Q2 en Q3 2025 niet via Klopt indienen</p><p>9 EU-inkopen worden wel geïmporteerd, maar Klopt boekt de zelf af te dragen btw nog niet. Je kunt de aangifte zelf of met een belastingadviseur indienen op basis van gecorrigeerde cijfers.</p><p class="text-muted-foreground">Indienen via Klopt kan zodra Klopt dit ondersteunt; wacht daar niet op als je aangiftetermijn eerder afloopt.</p>`,
-        )}</div>` +
+        (isNa72()
+          ? `<div class="mb-8">${statusBlock(
+              'attention',
+              `<p class="font-medium">Na de import kun je de btw-aangifte voor Q3 2026 niet via Klopt indienen</p><p>9 EU-inkopen worden wel geïmporteerd, maar Klopt boekt de zelf af te dragen btw nog niet. Je kunt de aangifte zelf of met een belastingadviseur indienen op basis van gecorrigeerde cijfers.</p><p class="text-muted-foreground">Indienen via Klopt kan zodra Klopt dit ondersteunt; wacht daar niet op als je aangiftetermijn eerder afloopt.</p>`,
+            )}</div>`
+          : '') +
         section(
           'Wordt geïmporteerd',
-          `<div class="overflow-x-auto border"><table class="w-full text-left"><thead class="bg-muted text-xs text-muted-foreground"><tr><th class="py-2 pr-3 pl-4 font-medium">Soort</th><th class="py-2 pr-3 text-right font-medium">2025</th><th class="py-2 pr-3 text-right font-medium">2026</th><th class="py-2 pr-4 text-right font-medium">Totaal</th></tr></thead><tbody>${rows}<tr class="border-t bg-muted/60"><td class="py-2.5 pr-3 pl-4 text-sm font-medium">Totaal</td><td class="py-2.5 pr-3 text-right text-sm tabular">310</td><td class="py-2.5 pr-3 text-right text-sm tabular">219</td><td class="py-2.5 pr-4 text-right text-sm font-medium tabular">529</td></tr></tbody></table></div>`,
+          `<div class="overflow-x-auto border"><table class="w-full text-left"><thead class="bg-muted text-xs text-muted-foreground"><tr><th class="py-2 pr-3 pl-4 font-medium">Soort</th><th class="py-2 pr-3 text-right font-medium">2025</th><th class="py-2 pr-3 text-right font-medium">2026</th><th class="py-2 pr-4 text-right font-medium">Totaal</th></tr></thead><tbody>${rows}<tr class="border-t bg-muted/60"><td class="py-2.5 pr-3 pl-4 text-sm font-medium">Totaal</td><td class="py-2.5 pr-3 text-right text-sm tabular">${nf(t25)}</td><td class="py-2.5 pr-3 text-right text-sm tabular">${nf(t26)}</td><td class="py-2.5 pr-4 text-right text-sm font-medium tabular">${nf(total)}</td></tr></tbody></table></div>`,
         ) +
         section(
           'Niet overgezet',
           `<ul role="list" class="divide-y border">${skipped}</ul>`,
-          '<span class="text-sm text-muted-foreground tabular">58 documenten</span>',
+          `<span class="text-sm text-muted-foreground tabular">${plural(notTransferred(), 'document', 'documenten')}</span>`,
         ) +
-        section(
-          'Al in Klopt',
-          '<p class="text-sm text-muted-foreground">Niets. Dit is je eerste import van deze administratie. Wat al in Klopt staat, slaan we bij een volgende import over.</p>',
-        ) +
+        alreadyInKlopt(true) +
         section(
           'Je keuzes',
           `<dl class="divide-y border">${[
-            ['Btw-tarieven', '8', '7 gekoppeld, 1 niet overzetten', 4],
+            [
+              'Btw-tarieven',
+              String(S.rates.length),
+              isNa72() ? '6 gekoppeld, 1 niet overzetten' : '5 gekoppeld, 2 niet overzetten',
+              4,
+            ],
             ['Rekeningen', '24', '1 nieuw', 5],
             ['Relaties', '186', '1 nieuw nummer', 5],
             ['Koersen', '1', 'GBP op 16-10-2025: 1,1531', 6],
@@ -1314,8 +1562,14 @@
         (S.adv
           ? `<p class="-mt-4 text-xs text-muted-foreground tabular">Plan 7F3A-21C9 · gelezen 26-10-2026 19:12 · de server voert precies dit plan uit.</p>`
           : ''),
-      status: '529 documenten klaar om te importeren',
-      next: { label: '529 documenten importeren', action: 'confirm-import' },
+      notes: [
+        note(
+          '2025 en #99',
+          'Dit overzicht telt 2025 mee alsof de btw-codes vanaf 01-01-2025 gelden (Geldig vanaf aanpassen, #99). Zonder #99 vink je 2025 uit bij stap 3: dan valt de kolom 2025 weg en blijft 2026 zoals hier.',
+        ),
+      ],
+      status: `${nf(total)} documenten klaar om te importeren`,
+      next: { label: `${nf(total)} documenten importeren`, action: 'confirm-import' },
     }
   }
 
@@ -1337,13 +1591,7 @@
     const pct = S.pct
     const done = pct >= 100
     const kinds = isMb()
-      ? [
-          ['Verkoopfacturen', 167],
-          ['Inkoopfacturen', 90],
-          ['Bonnetjes', 100],
-          ['Bankmutaties', 155],
-          ['Memoriaalposten', 17],
-        ]
+      ? booked().map((k) => [k.label, k.y25 + k.y26])
       : [
           ['Rekeningen', 312],
           ['Relaties', 186],
@@ -1376,10 +1624,14 @@
         ) +
         `<div class="border p-5"><div class="flex items-baseline justify-between text-sm"><span class="font-medium">${done ? 'Klaar' : 'Bezig'}</span><span class="tabular" data-pct>${pct}%</span></div><div class="bar mt-2 h-2"><span data-bar style="width:${pct}%"></span></div><p class="sr-only" aria-live="polite" data-live>${pct}% overgezet</p></div>
         <ul role="list" class="mt-4 divide-y border" data-rows>${rows}</ul>
-        <div class="mt-4 space-y-1 text-sm text-muted-foreground"><p>Je kunt dit scherm sluiten; we gaan door. Kom je terug, dan zie je hier hoe ver we zijn.</p><p>Dubbel boeken kan niet: wat al in Klopt staat, slaan we over.</p></div>`,
+        <div class="mt-4 space-y-1 text-sm text-muted-foreground"><p>Je kunt dit scherm sluiten; we gaan door. Kom je terug, dan zie je hier hoe ver we zijn.</p>${isMb() ? '<p>Wat je eerder uit deze administratie hebt overgezet, zetten we niet nog een keer over. Wat je zelf al in Klopt hebt geboekt, herkennen we niet: controleer dat op dubbele boekingen.</p>' : ''}</div>`,
       notes: isMb()
         ? []
         : [
+            note(
+              'Geen regel over dubbel boeken',
+              'Exact heeft geen lijst van wat al is overgezet. Een tweede run wordt alleen tegengehouden door de idempotency-sleutel of de unieke factuurnummers: hij faalt, hij slaat niets over. Daarom hier geen regel over dubbel boeken tot het gedrag bij opnieuw draaien vastligt.',
+            ),
             note(
               'Eng: Exact wordt async',
               'POST /exact/import is nu synchroon (201). Deze voortgang vraagt een async run zoals Moneybird, of minstens een “bezig”-status die een herlaadbeurt overleeft.',
@@ -1396,13 +1648,29 @@
   // --------------------------------------------------------------- step 10
 
   function stepKlaar() {
-    const clean = S.p.get('state') === 'clean' || !isMb()
+    const clean = !isMb() || (!isNa72() && !isEarlier())
     const nextSteps = [
       ['Nakijken in de werklijst', '6 punten om even naar te kijken', 'list'],
-      ['Btw-periode Q3 2026 controleren', 'Aangifte uiterlijk 31-10-2026', 'calendar'],
+      [
+        'Btw-periode Q3 2026 controleren',
+        [
+          'Aangifte uiterlijk 31-10-2026',
+          isNa72() ? 'indienen via Klopt kan nog niet (9 EU-inkopen)' : '',
+          isEarlier() ? `${D.earlierImport.vatToCheck} bonnetjes met btw nog te controleren` : '',
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        'calendar',
+      ],
       ['Bank koppelen', '38 bankmutaties nog zonder factuur', 'bank'],
       ...(isMb()
-        ? [['Niet overgezet bekijken', '58 documenten, met de reden erbij', 'ban']]
+        ? [
+            [
+              'Niet overgezet bekijken',
+              `${plural(notTransferred(), 'document', 'documenten')}, met de reden erbij · ${isNa72() ? 12 : 21} inkopen zonder btw-code tellen niet mee in je aangifte`,
+              'ban',
+            ],
+          ]
         : [
             [
               'Documenten uit Exact overzetten',
@@ -1419,25 +1687,19 @@
     const headIcon = clean
       ? `<span class="flex size-12 items-center justify-center border border-success text-success"><svg viewBox="0 0 24 24" class="check-draw size-7" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>`
       : `<span class="flex size-12 items-center justify-center border border-foreground">${icon('file', 'size-6')}</span>`
-    const block = clean
+    const block = !isNa72()
       ? ''
       : `<article class="mb-8 border border-l-4 border-l-destructive p-4 md:p-5" aria-labelledby="blk-h">
         <div class="mb-2">${badge('error', 'Blokkeert indienen', 'alert')}</div>
-        <h2 id="blk-h" class="text-[15px] font-medium">Btw-aangifte Q2 en Q3 2025: indienen via Klopt kan nog niet</h2>
-        <p class="mt-1 text-sm">Klopt kan dit nog niet oplossen: bij 9 geïmporteerde Moneybird-inkopen met btw-verlegging of uit de EU hoort zelf af te dragen btw, en die boekt de import niet. Je kunt deze periodes niet via Klopt indienen.</p>
-        <p class="mt-1 text-xs text-muted-foreground tabular">ICV21 · 9 inkopen van 08-04-2025 tot en met 22-09-2025${S.adv ? ' · rubriek 2a/4a/4b en 5b' : ''}</p>
+        <h2 id="blk-h" class="text-[15px] font-medium">Btw-aangifte Q3 2026: indienen via Klopt kan nog niet</h2>
+        <p class="mt-1 text-sm">Klopt kan dit nog niet oplossen: bij 9 geïmporteerde Moneybird-inkopen met btw-verlegging of uit de EU hoort zelf af te dragen btw, en die boekt de import niet. Je kunt deze periode niet via Klopt indienen.</p>
+        <p class="mt-1 text-xs text-muted-foreground tabular">ICV21 · 9 inkopen van 04-08-2026 tot en met 22-09-2026${S.adv ? ' · moneybird_self_assessed_unsupported · rubriek 2a/4a/4b en 5b' : ''}</p>
         <p class="mt-2 text-sm"><span class="font-medium">Wat je kunt doen:</span> je kunt de aangifte zelf of met een belastingadviseur indienen op basis van gecorrigeerde cijfers. Indienen via Klopt kan zodra Klopt dit ondersteunt; wacht daar niet op als je aangiftetermijn eerder afloopt.</p>
-        <div class="mt-4 flex flex-wrap gap-2"><a href="#" data-action="todo" class="btn btn-outline">Naar Q2 2025${icon('arrowRight')}</a><a href="#" data-action="todo" class="btn btn-outline">Naar Q3 2025${icon('arrowRight')}</a></div>
+        <div class="mt-4 flex flex-wrap gap-2"><a href="#" data-action="todo" class="btn btn-outline">Naar Q3 2026${icon('arrowRight')}</a></div>
       </article>`
     const counts = (
       isMb()
-        ? [
-            ['Verkoopfacturen', 167],
-            ['Inkoopfacturen', 90],
-            ['Bonnetjes', 100],
-            ['Bankmutaties', 155],
-            ['Memoriaalposten', 17],
-          ]
+        ? booked().map((k) => [k.label, k.y25 + k.y26])
         : [
             ['Rekeningen', 312],
             ['Relaties', 186],
@@ -1452,8 +1714,9 @@
     return {
       body:
         `<div class="mb-6 flex items-start gap-4">${headIcon}<div class="min-w-0 flex-1"><h1 id="step-title" tabindex="-1" class="text-2xl tracking-tight outline-none md:text-[28px]">${isMb() ? 'Je boeken staan in Klopt' : 'Je beginbalans staat in Klopt'}</h1>
-        <p class="mt-1 text-sm text-muted-foreground tabular">${isMb() ? '529 documenten overgezet op 26-10-2026 om 19:24. 58 niet overgezet.' : 'Geboekt op 01-01-2026, op 26-10-2026 om 19:24.'}</p></div></div>` +
+        <p class="mt-1 text-sm text-muted-foreground tabular">${isMb() ? `${nf(bookedTotal())} documenten overgezet op 26-10-2026 om 19:24. ${nf(notTransferred())} niet overgezet.${isEarlier() ? ` ${D.earlierImport.total} stonden al in Klopt.` : ''}` : 'Geboekt op 01-01-2026, op 26-10-2026 om 19:24.'}</p></div></div>` +
         block +
+        (isEarlier() ? alreadyInKlopt(false) : '') +
         section('Wat nu', `<ul role="list" class="divide-y border">${nextSteps}</ul>`) +
         section('Overgezet', `<dl class="divide-y border">${counts}</dl>`),
       notes: clean
@@ -1461,7 +1724,7 @@
         : [
             note(
               'Geen groen vinkje',
-              'Zolang een btw-periode geblokkeerd is: geen vinkje en geen “alles klopt”. Zonder blokkade (zie “Zonder blokkade”) wel.',
+              'Zolang een btw-periode geblokkeerd is: geen vinkje en geen “alles klopt”. Zonder blokkade (Vandaag, Eerste import) wel.',
             ),
           ],
       back: false,
@@ -1499,7 +1762,7 @@
         ${back}
         <p class="hidden min-w-0 flex-1 text-sm md:block tabular ${n.disabled ? '' : 'text-muted-foreground'}">${n.disabled && n.reason ? n.reason : v.status || ''}</p>
         <span class="flex-1 md:hidden"></span>
-        <button type="button" data-action="next" data-focus="next" class="btn btn-primary flex-1 md:flex-none" ${n.disabled ? 'disabled aria-describedby="next-why"' : ''}>${n.label || 'Volgende'}${n.ext ? icon('external', 'size-3.5') : n.disabled ? '' : keycaps('enter', onPrimary)}</button>
+        <button type="button" data-action="next" data-focus="next" class="btn btn-primary flex-1 md:flex-none" ${n.disabled ? 'aria-disabled="true" aria-describedby="next-why"' : ''}>${n.label || 'Volgende'}${n.ext ? icon('external', 'size-3.5') : n.disabled ? '' : keycaps('enter', onPrimary)}</button>
       </div>
       <p class="mt-2 hidden text-right text-xs text-muted-foreground md:block">${keycaps('mod enter')} vanuit een veld · ${keycaps('escape')} sluit eerst een venster</p>
     </div>`
@@ -1610,21 +1873,31 @@
   }
 
   function rateSheet(r) {
-    const opts = r.candidates || [
-      { code: r.code, label: r.label, rubriek: r.rubriek, ledger: r.ledger },
-    ]
+    // Geavanceerd "Zelf kiezen in de tabel": every purchase code on the chart
+    // you could pick, nothing preselected; the server checks the rate on save.
+    const free = !r.candidates && r.state === 'none'
+    const opts = free
+      ? D.purchasePicker
+      : r.candidates || [{ code: r.code, label: r.label, rubriek: r.rubriek, ledger: r.ledger }]
+    const err = free && S.sheetError === 'rate'
+    const refused = err ? 'INV23' : null
+    const sub = (o) =>
+      free
+        ? `${o.pct}${o.pair ? ' · met ' + o.pair : ''}${o.rubriek !== '—' ? ' · rubriek ' + o.rubriek : ''}`
+        : null
     const body = `${r.assumption ? `<div class="mb-4">${statusBlock('neutral', `<p>${r.assumption}</p>`)}</div>` : ''}
       <p class="mb-2 text-sm text-muted-foreground tabular">${r.side === 'verkoop' ? 'Verkoop' : 'Inkoop'} · ${r.pct || 'geen percentage'} · ${plural(r.docs, 'document', 'documenten')}</p>
-      <fieldset><legend class="mb-2 text-sm font-medium">Btw-code in Klopt</legend><div class="divide-y border">${opts
+      <fieldset ${err ? 'aria-describedby="pick-err"' : ''}><legend class="mb-2 text-sm font-medium">Btw-code in Klopt${free ? ' · alle inkoopcodes' : ''}</legend><div class="divide-y border ${err ? 'border-warning' : ''}">${opts
         .map(
           (o) =>
-            `<label class="flex min-h-11 cursor-pointer items-start gap-3 px-4 py-3 hover:bg-muted"><input type="radio" name="rate-pick" class="mt-1 size-4 accent-[var(--foreground)]" data-focus="pick-${o.code}"/><span class="text-sm">${codeLabel(o.label, o.code, o.rubriek && o.rubriek !== '—' ? 'rubriek ' + o.rubriek + ' · ' + o.ledger : 'geen rubriek')}</span></label>`,
+            `<label class="flex min-h-11 cursor-pointer items-start gap-3 px-4 py-3 hover:bg-muted"><input type="radio" name="rate-pick" value="${o.code}" data-pct="${o.pct || ''}" class="mt-1 size-4 accent-[var(--foreground)]" data-focus="pick-${o.code}" ${o.code === refused ? `checked data-autofocus` : ''} ${err ? 'aria-describedby="pick-err"' : ''}/><span class="text-sm">${free ? `<span class="block">${o.label}</span><span class="block text-xs text-muted-foreground tabular">${o.code} · ${sub(o)}</span>` : codeLabel(o.label, o.code, o.rubriek && o.rubriek !== '—' ? 'rubriek ' + o.rubriek + ' · ' + o.ledger : 'geen rubriek')}</span></label>`,
         )
-        .join('')}</div></fieldset>
-      <p class="mt-3 text-xs text-muted-foreground">We kiezen niets voor: ook als er maar één code past, kies je hem zelf.</p>`
+        .join('')}</div>
+      ${err ? `<p id="pick-err" class="mt-2 flex gap-1.5 text-sm text-warning">${icon('alert', 'mt-0.5 size-4 shrink-0')}<span>Klopt weigert ${refused} voor dit tarief: het tarief is ${r.pct} en ${refused} is 21%. Kies een code met hetzelfde percentage, of zet deze documenten niet over.</span></p>` : ''}</fieldset>
+      <p class="mt-3 text-xs text-muted-foreground">${free ? 'Klopt controleert bij opslaan of het percentage past. PRIV21, losse voorbelasting-helften en correctiecodes staan hier niet tussen.' : 'We kiezen niets voor: ook als er maar één code past, kies je hem zelf.'}</p>`
     return sheet(
       r.name,
-      'Btw-code kiezen',
+      free ? 'Zelf kiezen in de tabel' : 'Btw-code kiezen',
       body,
       `<button type="button" data-action="close-overlay" class="btn btn-outline">Annuleren${keycaps('escape', 'ml-1')}</button><button type="button" data-action="save-rate" data-id="${r.id}" data-default class="btn btn-primary">Opslaan${keycaps('enter', onPrimary)}</button>`,
     )
@@ -1669,8 +1942,10 @@
       html = dialog(
         'dc',
         'Verbinding met Moneybird verbreken?',
-        'We gooien je token weg. Voor een nieuwe import maak je opnieuw verbinding.',
-        '<p class="mt-2 text-sm text-muted-foreground">Je keuzes voor btw-codes en rekeningen blijven bewaard voor deze administratie. Wat al geïmporteerd is, blijft staan.</p>',
+        'We verwijderen je token uit Klopt. In Moneybird blijft het geldig; trek het daar in als je het niet meer gebruikt. Wat al geïmporteerd is, blijft staan.',
+        S.p.get('na0037') === '1'
+          ? '<p class="mt-2 text-sm text-muted-foreground">Je keuzes voor btw-codes en rekeningen blijven bewaard voor deze administratie.</p><p class="mt-2 text-xs text-muted-foreground">Doel na #100, als migratie 0037 er is.</p>'
+          : '<p class="mt-2 text-sm text-muted-foreground">Je keuzes voor btw-codes en rekeningen worden ook verwijderd.</p>',
         'Annuleren',
         'Verbreken',
         'disconnect',
@@ -1680,9 +1955,9 @@
       html = isMb()
         ? dialog(
             'im',
-            '529 documenten importeren?',
+            `${nf(bookedTotal())} documenten importeren?`,
             `We boeken ze in ${D.entity.name}, in 2025 en 2026.`,
-            `<dl class="mt-4 space-y-1 border-y py-3 text-sm"><div class="flex justify-between"><dt class="text-muted-foreground">Overzetten</dt><dd class="tabular">529</dd></div><div class="flex justify-between"><dt class="text-muted-foreground">Niet overzetten</dt><dd class="tabular">58</dd></div></dl><p class="mt-3 text-sm text-muted-foreground">Een import haal je niet terug met één knop. Een fout herstel je met een tegenboeking.</p>`,
+            `<dl class="mt-4 space-y-1 border-y py-3 text-sm"><div class="flex justify-between"><dt class="text-muted-foreground">Overzetten</dt><dd class="tabular">${nf(bookedTotal())}</dd></div><div class="flex justify-between"><dt class="text-muted-foreground">Niet overzetten</dt><dd class="tabular">${nf(notTransferred())}</dd></div>${isEarlier() ? `<div class="flex justify-between"><dt class="text-muted-foreground">Al in Klopt, overslaan</dt><dd class="tabular">${D.earlierImport.total}</dd></div>` : ''}</dl><p class="mt-3 text-sm text-muted-foreground">Een import kun je niet in één keer ongedaan maken. Een fout herstel je per boeking met een correctie, eventueel samen met je accountant.</p>`,
             'Annuleren',
             'Importeren',
             'run-import',
@@ -1691,7 +1966,7 @@
             'im',
             'Beginbalans boeken?',
             `We boeken één beginbalans op 01-01-2026 in ${D.entity.name}.`,
-            '<p class="mt-3 text-sm text-muted-foreground">Een boeking haal je niet terug met één knop. Een fout herstel je met een tegenboeking.</p>',
+            '<p class="mt-3 text-sm text-muted-foreground">Een boeking kun je niet ongedaan maken. Een fout in de beginbalans herstel je met één correctieboeking, eventueel samen met je accountant. Overgenomen rekeningen en relaties blijven staan.</p>',
             'Annuleren',
             'Boeken',
             'run-import',
@@ -1729,6 +2004,7 @@
 
   function next() {
     const n = current && current.next
+    if (n && n.disabled && n.reason && !S.overlay) return toast(n.reason, { tone: 'info' })
     if (!n || n.disabled || S.overlay) return
     if (n.action === 'confirm-import') return openOverlay('confirm-import')
     if (n.action === 'todo') return toast('Niet in deze mock', { tone: 'info' })
@@ -1762,6 +2038,10 @@
 
   const actions = {
     todo: () => toast('Niet in deze mock', { tone: 'info' }),
+    'valid-from': (el) =>
+      toast(`Opent ‘Geldig vanaf’ van btw-code ${el.dataset.code} (#99, niet in deze mock)`, {
+        tone: 'info',
+      }),
     external: () => toast('Opent Moneybird in een nieuw tabblad', { tone: 'info' }),
     copy: () => toast('Redirect-URI gekopieerd'),
     theme: () => {
@@ -1802,9 +2082,10 @@
       location.hash = hrefFor('bron')
     },
     disconnect: () => {
+      const kept = S.p.get('na0037') === '1'
       S.overlay = null
       location.hash = hrefFor('verbinden')
-      toast('Verbinding verbroken. Je keuzes zijn bewaard.')
+      toast(kept ? 'Verbinding verbroken. Je keuzes zijn bewaard.' : 'Verbinding verbroken.')
     },
     'run-import': () => {
       S.overlay = null
@@ -1823,8 +2104,25 @@
       const r = S.rates.find((x) => x.id === el.dataset.id)
       const picked = overlayRoot.querySelector('input[name="rate-pick"]:checked')
       if (!picked) return toast('Kies eerst een btw-code', { tone: 'info' })
+      if (picked.dataset.pct && picked.dataset.pct !== r.pct) {
+        S.sheetError = 'rate'
+        renderOverlay()
+        const el = overlayRoot.querySelector(`input[value="${picked.value}"]`)
+        el.checked = true
+        const msg = overlayRoot.querySelector('#pick-err span')
+        msg.textContent = msg.textContent
+          .replaceAll('INV23', picked.value)
+          .replace(' is 21%', ` is ${picked.dataset.pct}`)
+        el.focus()
+        return
+      }
+      S.sheetError = null
       if (r.candidates) Object.assign(r, r.candidates[0])
-      r.state = 'confirmed'
+      else {
+        const o = D.purchasePicker.find((x) => x.code === picked.value)
+        if (o) Object.assign(r, { code: o.code, label: o.label, rubriek: o.rubriek, ledger: '—' })
+      }
+      r.state = r.secondary ? 'rc' : 'confirmed'
       S.overlay = null
       renderOverlay()
       rerender()
@@ -1833,16 +2131,21 @@
     },
     'exclude-rate': (el) => {
       const r = S.rates.find((x) => x.id === el.dataset.id)
+      r.prevState = r.state
+      S.lastExcluded = r.id
       r.state = 'excluded'
       rerender()
       toast(`${r.docs} documenten niet overzetten`, { undo: 'undo-exclude', tone: 'info' })
       focusCard(r.id)
     },
-    'undo-exclude': () => {
-      S.rates.find((x) => x.id === 'r7').state = 'none'
+    'undo-exclude': (el) => {
+      const id = (el && el.dataset && el.dataset.id) || S.lastExcluded || 'r7'
+      const r = S.rates.find((x) => x.id === id)
+      r.state = r.prevState || D.rates.find((x) => x.id === id).state
+      if (r.secondary) r.state = 'choose'
       clearToast()
       rerender()
-      focusCard('r7')
+      focusCard(id)
     },
     'reread-rate': () => reread('rate'),
     reread: (el) => reread(el.dataset.id),

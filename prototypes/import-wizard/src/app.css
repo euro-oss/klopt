@@ -210,7 +210,8 @@
       min-height: 2.25rem;
     }
   }
-  .btn:disabled {
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
     opacity: 0.45;
     cursor: not-allowed;
   }
@@ -218,7 +219,7 @@
     background: var(--color-primary);
     color: var(--color-primary-foreground);
   }
-  .btn-primary:hover:not(:disabled) {
+  .btn-primary:hover:not(:disabled, [aria-disabled='true']) {
     background: color-mix(in oklab, var(--color-primary) 82%, var(--color-background));
   }
   .btn-outline {

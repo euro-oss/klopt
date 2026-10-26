@@ -51,20 +51,30 @@ const SHOTS = [
   ...EXACT_STEPS.map(([n, h]) => [
     `${n}-exact`,
     h,
-    { vp: ['desktop'], themes: ['light'], fullPage: true },
+    {
+      vp: ['04', '05', '07', '08', '10'].includes(n.slice(0, 2))
+        ? ['desktop', 'mobile']
+        : ['desktop'],
+      themes: both,
+      fullPage: true,
+    },
   ]),
   ...ALL_STEPS.map(([n, h]) => [
     `${n}-moneybird`,
     h,
-    {
-      vp: ['mobile'],
-      themes: ['07-problemen', '08-overzicht', '10-klaar'].includes(n) ? both : ['light'],
-      fullPage: true,
-    },
+    { vp: ['mobile'], themes: both, fullPage: true },
   ]),
   // Dead ends
-  ['deadend-95-rc-eu-btw', '#/btw?focus=card-r6', { vp: ['desktop'], themes: both }],
-  ['deadend-95-rc-eu-klaar', '#/klaar', { vp: ['mobile'], themes: both }],
+  ['deadend-eu-geen-code', '#/btw?focus=card-r6', { vp: ['desktop', 'mobile'], themes: both }],
+  ['na72-eu-icv21-kiezen', '#/btw?na72=1&focus=card-r6', { vp: ['desktop'], themes: both }],
+  ['na72-eu-icv21-sheet', '#/btw?na72=1&sheet=r6', { vp: ['desktop'], themes: ['light'] }],
+  [
+    'na72-problemen-95',
+    '#/problemen?na72=1',
+    { vp: ['desktop'], themes: ['light'], scrollTo: '[data-card="p-rc"]' },
+  ],
+  ['na72-overzicht', '#/overzicht?na72=1', { vp: ['desktop'], themes: ['light'], fullPage: true }],
+  ['deadend-95-rc-eu-klaar', '#/klaar?na72=1', { vp: ['desktop', 'mobile'], themes: both }],
   [
     'deadend-96-untagged',
     '#/problemen?focus=card-p-untagged',
@@ -72,14 +82,40 @@ const SHOTS = [
   ],
   [
     'deadend-99-not-in-force-busy',
-    '#/problemen?busy=p-nif',
-    { vp: ['desktop', 'mobile'], themes: both, scrollTo: '[data-card="p-nif"]' },
+    '#/problemen?busy=p-nif-H21',
+    { vp: ['desktop', 'mobile'], themes: both, scrollTo: '[data-card="p-nif-H21"]' },
   ],
   ['deadend-92-93-no-code', '#/btw?focus=card-r7', { vp: ['desktop', 'mobile'], themes: both }],
   [
     'deadend-92-excluded-undo',
     '#/btw?excluded=1&toast=1',
     { vp: ['desktop', 'mobile'], themes: both },
+  ],
+  // PM decisions: #99 per role after release, #96 after an earlier import
+  [
+    'na99-eigenaar',
+    '#/problemen?na99=1',
+    { vp: ['desktop', 'mobile'], themes: both, scrollTo: '[data-card="p-nif-H21"]' },
+  ],
+  [
+    'na99-boekhouder',
+    '#/problemen?na99=1&role=boekhouder',
+    { vp: ['desktop', 'mobile'], themes: both, scrollTo: '[data-card="p-nif-H21"]' },
+  ],
+  [
+    'eerdere-import-overzicht',
+    '#/overzicht?eerder=1',
+    { vp: ['desktop', 'mobile'], themes: both, fullPage: true },
+  ],
+  [
+    'eerdere-import-bevestigen-dialog',
+    '#/overzicht?eerder=1&confirm=import',
+    { vp: ['desktop'], themes: ['light'] },
+  ],
+  [
+    'eerdere-import-klaar',
+    '#/klaar?eerder=1',
+    { vp: ['desktop', 'mobile'], themes: both, fullPage: true },
   ],
   // Geavanceerd
   ['geavanceerd-uit-btw', '#/btw', { vp: ['desktop'], themes: ['light'] }],
@@ -143,7 +179,41 @@ const SHOTS = [
     { vp: ['desktop', 'mobile'], themes: both },
   ],
   ['importeren-geweigerd', '#/importeren?state=refused', { vp: ['desktop'], themes: ['light'] }],
-  ['klaar-zonder-blokkade', '#/klaar?state=clean', { vp: ['desktop'], themes: ['light'] }],
+  [
+    'btw-nog-2-zonder-code',
+    '#/btw?picked=1&focus=next',
+    { vp: ['desktop', 'mobile'], themes: both },
+  ],
+  [
+    'btw-zelf-kiezen-sheet',
+    '#/btw?adv=1&sheet=r7',
+    { vp: ['desktop', 'mobile'], themes: ['light'] },
+  ],
+  [
+    'btw-code-geweigerd',
+    '#/btw?adv=1&sheet=r7&error=rate',
+    { vp: ['desktop', 'mobile'], themes: both },
+  ],
+  [
+    'verbinden-moneybird-geen-sleutel',
+    '#/verbinden?state=nokey',
+    { vp: ['desktop', 'mobile'], themes: ['light'] },
+  ],
+  [
+    'verbinden-verbreken-dialog-na-0037',
+    '#/verbinden?state=connected&confirm=disconnect&na0037=1',
+    { vp: ['desktop'], themes: ['light'] },
+  ],
+  [
+    'problemen-exact-rechten-wel',
+    '#/problemen?src=exact&rights=true',
+    { vp: ['desktop'], themes: ['light'] },
+  ],
+  [
+    'problemen-exact-rechten-onbekend',
+    '#/problemen?src=exact&rights=unknown',
+    { vp: ['desktop'], themes: ['light'] },
+  ],
   ['stappen-sheet', '#/btw?menu=1', { vp: ['mobile'], themes: ['light'] }],
 ]
 

@@ -8,6 +8,7 @@
     fiscalYear: '2026',
     fiscalYearRange: '1 jan – 31 dec',
     user: { name: 'Hidde de Vries', initials: 'HV', roleLabel: 'Eigenaar' },
+    bookkeeper: { name: 'Sanne Bakker', initials: 'SB', roleLabel: 'Boekhouder' },
   }
 
   const navigation = [
@@ -94,6 +95,18 @@
     },
   }
 
+  // Variant ?eerder=1: an earlier import (July 2026 documents) is already in Klopt.
+  // Re-reading skips those documents; 3 of them carry btw without a btw-tarief (#96).
+  const earlierImport = {
+    date: '03-08-2026',
+    total: 37,
+    // per kind, same order as `kinds`; all from 2026
+    byKind: [9, 6, 8, 14, 0],
+    vatToCheck: 3,
+    vatToCheckRefs: 'Bonnetjes 2026-0142, 2026-0149 en 2026-0156',
+    quarter: 'Q3 2026',
+  }
+
   const resume = {
     source: 'moneybird',
     step: 5,
@@ -115,12 +128,109 @@
       year: '2025',
       docs: 318,
       klopt: 'open',
-      block:
-        '1 document valt vóór de startdatum van zijn btw-code in Klopt. Je ziet het bij Problemen.',
-      blockAdv: 'Inkoopfactuur 2025-0412 · VAUTO21 geldt vanaf 01-07-2025',
-      warn: '9 EU-inkopen: de btw-aangifte voor Q2 en Q3 2025 kun je niet via Klopt indienen.',
+      block: 'In 2025 gelden de btw-codes van Klopt nog niet: 215 documenten.',
+      blockSub:
+        'Ze gelden vanaf 01-01-2026, het begin van je eerste boekjaar in Klopt. Je ziet ze per btw-code bij Problemen. Wil je nu alleen 2026 overzetten? Vink 2025 dan uit.',
+      blockAdv: 'tax_code_not_in_force · H21 63 · L9 33 · VH21 66 · VL9 37 · VGEEN 16',
     },
-    { year: '2026', docs: 224, klopt: 'open', note: 't/m 26-10-2026' },
+    {
+      year: '2026',
+      docs: 224,
+      klopt: 'open',
+      note: 't/m 26-10-2026',
+      warn: '21 inkopen hebben geen passende btw-code: 9 EU-inkopen en 12 van buiten de EU. Bij Btw-codes kies je wat Klopt ermee doet.',
+    },
+  ]
+
+  // Every seeded nl-mkb code starts on the first fiscal year (01-01-2026), so
+  // each 2025 document with btw raises tax_code_not_in_force (#99). One card
+  // per code; together they are the 215 on step 3.
+  const notInForce = [
+    {
+      code: 'H21',
+      label: 'BTW hoog 21%',
+      side: 'verkoop',
+      docs: 63,
+      range: '02-01-2025 tot en met 30-12-2025',
+    },
+    {
+      code: 'L9',
+      label: 'BTW laag 9%',
+      side: 'verkoop',
+      docs: 33,
+      range: '03-01-2025 tot en met 23-12-2025',
+    },
+    {
+      code: 'VH21',
+      label: 'Voorbelasting hoog 21%',
+      side: 'inkoop',
+      docs: 66,
+      range: '06-01-2025 tot en met 31-12-2025',
+    },
+    {
+      code: 'VL9',
+      label: 'Voorbelasting laag 9%',
+      side: 'inkoop',
+      docs: 37,
+      range: '07-01-2025 tot en met 19-12-2025',
+    },
+    {
+      code: 'VGEEN',
+      label: 'Inkoop zonder btw',
+      side: 'inkoop',
+      docs: 16,
+      range: '14-01-2025 tot en met 12-12-2025',
+    },
+  ]
+
+  // Purchase codes for Geavanceerd "Zelf kiezen in de tabel" (nl-mkb chart):
+  // no PRIV21, no standalone -VOOR half, no correction-only VL6 / VH19.
+  const purchasePicker = [
+    { code: 'VH21', label: 'Voorbelasting hoog 21%', pct: '21%', rubriek: '5b' },
+    { code: 'VL9', label: 'Voorbelasting laag 9%', pct: '9%', rubriek: '5b' },
+    { code: 'VGEEN', label: 'Inkoop zonder btw', pct: '0%', rubriek: '—' },
+    {
+      code: 'VERL-ONTV',
+      label: 'BTW verlegd naar u, verschuldigd',
+      pct: '21%',
+      rubriek: '2a en 5b',
+      pair: 'VERL-VOOR',
+    },
+    {
+      code: 'VERL9-ONTV',
+      label: 'BTW verlegd naar u 9%, verschuldigd',
+      pct: '9%',
+      rubriek: '2a en 5b',
+      pair: 'VERL9-VOOR',
+    },
+    {
+      code: 'ICV21',
+      label: 'Intracommunautaire verwerving 21%, verschuldigd',
+      pct: '21%',
+      rubriek: '4b en 5b',
+      pair: 'ICV21-VOOR',
+    },
+    {
+      code: 'ICV9',
+      label: 'Intracommunautaire verwerving 9%, verschuldigd',
+      pct: '9%',
+      rubriek: '4b en 5b',
+      pair: 'ICV9-VOOR',
+    },
+    {
+      code: 'INV23',
+      label: 'Invoer met artikel 23-verlegging, verschuldigd',
+      pct: '21%',
+      rubriek: '4a en 5b',
+      pair: 'INV23-VOOR',
+    },
+    {
+      code: 'INV9',
+      label: 'Invoer met artikel 23-verlegging 9%, verschuldigd',
+      pct: '9%',
+      rubriek: '4a en 5b',
+      pair: 'INV9-VOOR',
+    },
   ]
 
   // Counts per kind, per selected year (preview).
@@ -144,7 +254,7 @@
       name: '21% btw',
       pct: '21%',
       side: 'verkoop',
-      docs: 131,
+      docs: 109,
       state: 'confirmed',
       code: 'H21',
       label: '21% btw',
@@ -178,23 +288,11 @@
       ledger: '1520 Voorbelasting',
     },
     {
-      id: 'r8',
-      name: '21% btw auto',
-      pct: '21%',
-      side: 'inkoop',
-      docs: 14,
-      state: 'confirmed',
-      code: 'VAUTO21',
-      label: '21% btw autokosten',
-      rubriek: '5b',
-      ledger: '1520 Voorbelasting',
-    },
-    {
       id: 'r4',
       name: '9% btw',
       pct: '9%',
       side: 'inkoop',
-      docs: 64,
+      docs: 49,
       state: 'suggested',
       code: 'VL9',
       label: '9% btw',
@@ -206,7 +304,7 @@
       name: 'Geen btw',
       pct: null,
       side: 'inkoop',
-      docs: 23,
+      docs: 20,
       state: 'choose',
       assumption:
         'Moneybird gaf geen percentage mee voor ‘Geen btw’. We gaan uit van 0%; controleer dit.',
@@ -218,12 +316,17 @@
       pct: '0%',
       side: 'inkoop',
       docs: 9,
-      state: 'rc',
-      periods: 'Q2 en Q3 2025',
-      code: 'ICV21',
-      label: '21% btw over inkoop uit de EU',
-      rubriek: '4b en 5b',
-      ledger: '1512 Af te dragen btw verlegd · 1520 Voorbelasting',
+      // Today the engine only offers codes at the same rate: 0% gets nothing
+      // (#92/#93). After #72 (?na72=1) ICV21 is offered, never preselected.
+      state: 'none',
+      years: '9 in 2026',
+      periods: 'Q3 2026',
+      secondaryCode: {
+        code: 'ICV21',
+        label: '21% btw over inkoop uit de EU',
+        rubriek: '4b en 5b',
+        ledger: '1512 Af te dragen btw verlegd · 1520 Voorbelasting',
+      },
     },
     {
       id: 'r7',
@@ -232,7 +335,7 @@
       side: 'inkoop',
       docs: 12,
       state: 'none',
-      years: '7 in 2025, 5 in 2026',
+      years: '12 in 2026',
     },
   ]
 
@@ -313,26 +416,28 @@
 
   // Problems left after steps 5 and 6 (step 7), blocking first.
   const problems = [
+    // #99: expanded to one card per code in `notInForce` (app.js).
     {
       id: 'p-nif',
       code: 'tax_code_not_in_force',
       severity: 'blocking',
       issue: '#99',
-      title: 'Btw-code geldt nog niet op de factuurdatum',
-      body: 'Inkoopfactuur 2025-0412 van Garage Van Dijk is gedateerd op 14-05-2025, maar die btw-code geldt in Klopt nog niet op die datum. Er is hier nog geen oplossing. Controleer de datum en het tarief in Moneybird.',
-      secondary: 'Btw-code VAUTO21 · geldt in Klopt vanaf 01-07-2025',
-      why: 'Zonder geldige code op de boekdatum kan de aangifte die regels niet plaatsen. De begindatum kun je in Klopt nog niet wijzigen.',
+      perCode: true,
       fix: 'reread',
+      why: 'Zonder geldige code op de boekdatum kan de aangifte die regels niet plaatsen. De begindatum kun je in Klopt nog niet wijzigen.',
+      whyAfter: 'Zonder geldige code op de boekdatum kan de aangifte die regels niet plaatsen.',
+      bookkeeperHint: 'De eigenaar of accountant kan de begindatum aanpassen.',
     },
     {
       id: 'p-untagged',
-      code: 'moneybird_untagged_vat',
+      // New importer code: the importer does not raise this today (#96).
+      code: 'moneybird_vat_without_tax_rate',
       severity: 'blocking',
       issue: '#96',
       title: 'Btw zonder btw-tarief',
       body: 'Op bonnetje 2026-0088 van Makro Amsterdam staat € 14,70 btw, maar de regels hebben geen btw-tarief dat die btw draagt. Klopt kan die btw dan nergens in de aangifte zetten.',
       secondary: 'Bonnetje 2026-0088 · 03-03-2026 · € 84,70',
-      why: 'Btw zonder tarief telt niet mee in de aangifte. Die periode zou je dan niet via Klopt kunnen indienen.',
+      why: 'Btw zonder tarief telt niet mee in de aangifte, dus die zou te laag uitvallen. Die periode kun je dan niet via Klopt indienen.',
       whyAdv: 'Rubriek 1a en 5b',
       next: 'Pas het tarief op het bonnetje aan in Moneybird en lees opnieuw. Weet je niet welk tarief het moet zijn? Vraag het je accountant.',
       fix: 'mbReread',
@@ -359,12 +464,14 @@
     },
     {
       id: 'p-rc',
-      code: 'self_assessed_vat_unsupported',
+      // Only after #72 (?na72=1), when you chose ICV21 for the EU purchases.
+      code: 'moneybird_self_assessed_unsupported',
       severity: 'warning',
       issue: '#95',
+      na72: true,
       title: '9 EU-inkopen: indienen via Klopt kan nog niet',
-      body: 'Klopt kan zelf af te dragen btw voor inkopen met btw-verlegging of uit de EU nog niet boeken. Deze 9 inkopen worden wel geïmporteerd, maar de btw-aangifte voor Q2 en Q3 2025 kun je niet via Klopt indienen.',
-      secondary: 'Gekoppeld aan ICV21 · 9 inkopen van 08-04-2025 tot en met 22-09-2025',
+      body: 'Klopt kan zelf af te dragen btw voor inkopen met btw-verlegging of uit de EU nog niet boeken. Deze 9 inkopen worden wel geïmporteerd, maar de btw-aangifte voor Q3 2026 kun je niet via Klopt indienen.',
+      secondary: 'Gekoppeld aan ICV21 · 9 inkopen van 04-08-2026 tot en met 22-09-2026',
       secondaryAdv: 'zelf af te dragen btw (2a/4a/4b en 5b)',
       why: 'Zonder de zelf af te dragen btw zou indienen via Klopt te weinig btw aangeven.',
       whyAdv: 'Rubriek 2a/4a/4b en 5b',
@@ -467,6 +574,9 @@
     steps,
     sources,
     resume,
+    earlierImport,
+    notInForce,
+    purchasePicker,
     administrations,
     years,
     kinds,

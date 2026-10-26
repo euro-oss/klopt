@@ -17,18 +17,18 @@ switches step, source and state. Add `theme=dark`, `adv=1` (Geavanceerd),
 `src=exact`, `notes=0` (hide design notes) or `proto=0` (hide the Mock bar) to any
 link.
 
-| Step                      | Hash                                                                                                                                   |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Bron                   | `#/bron`, resume entry `#/bron?resume=1`, restart dialog `#/bron?resume=1&confirm=restart`                                             |
-| 2. Verbinden              | `#/verbinden`, `?state=error`, `?state=connected`, `?state=connected&confirm=disconnect`; Exact `?src=exact`, `?src=exact&state=nokey` |
-| 3. Administratie en jaren | `#/administratie` (Exact: `?src=exact`)                                                                                                |
-| 4. Voorbeeld              | `#/voorbeeld`, `?state=reading`                                                                                                        |
-| 5. Btw-codes              | `#/btw`, `?excluded=1&toast=1` (#92), `?sheet=r5` (picker), `?resumed=1` (back after a break); Exact read-only list `?src=exact`       |
-| 6. Rekeningen en relaties | `#/rekeningen` (Exact takeover accounts: `?src=exact`)                                                                                 |
-| 7. Problemen              | `#/problemen`, `?busy=p-nif` (#99 Opnieuw lezen busy), `?sheet=fx`, `?resolved=1`                                                      |
-| 8. Overzicht              | `#/overzicht`, `?confirm=import`                                                                                                       |
-| 9. Importeren             | `#/importeren` (live), `?pct=61` (frozen), `?state=refused`                                                                            |
-| 10. Klaar                 | `#/klaar` (period blocked, #95), `?state=clean`                                                                                        |
+| Step                      | Hash                                                                                                                                                                                                                                                                                                 |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Bron                   | `#/bron`, resume entry `#/bron?resume=1`, restart dialog `#/bron?resume=1&confirm=restart`                                                                                                                                                                                                           |
+| 2. Verbinden              | `#/verbinden`, `?state=error`, `?state=nokey`, `?state=connected`, `?state=connected&confirm=disconnect` (today: choices deleted), `?state=connected&confirm=disconnect&na0037=1` (post-#100 target); Exact `?src=exact`, `?src=exact&state=nokey`                                                   |
+| 3. Administratie en jaren | `#/administratie` (2025: grouped #99 warning, 215 documents; Exact: `?src=exact`)                                                                                                                                                                                                                    |
+| 4. Voorbeeld              | `#/voorbeeld`, `?state=reading`                                                                                                                                                                                                                                                                      |
+| 5. Btw-codes              | `#/btw`, `?picked=1` (only the 2 rates without a code left, Volgende aria-disabled), `?excluded=1&toast=1` (#92), `?sheet=r5` (picker), `?adv=1&sheet=r7` (Zelf kiezen in de tabel), `?adv=1&sheet=r7&error=rate` (refused code), `?na72=1` (ICV21 offered for EU), `?resumed=1`; Exact `?src=exact` |
+| 6. Rekeningen en relaties | `#/rekeningen` (Exact takeover accounts: `?src=exact`)                                                                                                                                                                                                                                               |
+| 7. Problemen              | `#/problemen` (one #99 card per code), `?busy=p-nif-H21`, `?na99=1`, `?na99=1&role=boekhouder`, `?na72=1` (#95), `?sheet=fx`, `?resolved=1`; Exact `?src=exact`, `?src=exact&rights=true`, `?src=exact&rights=unknown`                                                                               |
+| 8. Overzicht              | `#/overzicht`, `?confirm=import`, `?eerder=1`, `?na72=1`                                                                                                                                                                                                                                             |
+| 9. Importeren             | `#/importeren` (live), `?pct=61` (frozen), `?state=refused`                                                                                                                                                                                                                                          |
+| 10. Klaar                 | `#/klaar` (no blocked period), `?na72=1` (Q3 2026 blocked, #95), `?eerder=1` (#96)                                                                                                                                                                                                                   |
 
 ## Keyboard
 
