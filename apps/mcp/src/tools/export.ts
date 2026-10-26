@@ -35,7 +35,7 @@ export async function exportXaf(
   // Fetched to prove it works, then measured rather than returned. An agent
   // that hands somebody a URL which turns out to 422 has wasted their time in
   // a way that is hard to trace back.
-  const xml = await context.api.getText(path)
+  const { text: xml, warningMessages } = await context.api.getTextWithMeta(path)
 
   return answer(
     await context.provenance([`/api/v1${path}`], {
@@ -50,6 +50,7 @@ export async function exportXaf(
       format: 'XAF 3.2',
       url: `/api/v1${path}`,
       note: 'The auditfile is not returned here — it is megabytes of XML. Fetch the URL with the same token to download it.',
+      ...(warningMessages.length > 0 ? { warnings: warningMessages } : {}),
     },
   )
 }

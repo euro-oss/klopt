@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { KLOPT_WARNING_MESSAGES_HEADER, decodeWarningMessagesHeader } from '@klopt/core'
 /**
  * The one way this server reaches Klopt: an HTTP call to the public API.
  *
@@ -104,7 +105,17 @@ export class ApiClient {
    * signature would fail on the one route that most needs to work.
    */
   async getText(path: string): Promise<string> {
-    return this.request(path)
+    return (await this.getTextWithMeta(path)).text
+  }
+
+  /** Like `getText`, plus soft-warning headers from the response. */
+  async getTextWithMeta(
+    path: string,
+  ): Promise<{ readonly text: string; readonly warningMessages: readonly string[] }> {
+    const { text, headers } = await this.requestWithHeaders(path)
+    const raw = headers.get(KLOPT_WARNING_MESSAGES_HEADER) ?? ''
+    const warningMessages = [...decodeWarningMessagesHeader(raw)]
+    return { text, warningMessages }
   }
 
   /**
@@ -137,6 +148,13 @@ export class ApiClient {
     path: string,
     options: { readonly method?: string; readonly body?: unknown } = {},
   ): Promise<string> {
+    return (await this.requestWithHeaders(path, options)).text
+  }
+
+  private async requestWithHeaders(
+    path: string,
+    options: { readonly method?: string; readonly body?: unknown } = {},
+  ): Promise<{ readonly text: string; readonly headers: Headers }> {
     const url = `${this.base}/api/v1${path}`
     const method = options.method ?? 'GET'
 
@@ -185,6 +203,6 @@ export class ApiClient {
       throw new ApiError(detail, response.status, code, path, readViolations(problem.violations))
     }
 
-    return text
+    return { text, headers: response.headers }
   }
 }

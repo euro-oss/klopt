@@ -128,6 +128,7 @@ export class VatRepository {
         // report that names a line as '' names nothing. The entry's
         // description is what a bookkeeper would have called it.
         entryDescription: journalEntries.description,
+        sourceDocumentRef: journalEntries.sourceDocumentRef,
         taxCode: journalLines.taxCode,
         taxRole: journalLines.taxRole,
         debit: journalLines.functionalDebitMinorUnits,
@@ -164,6 +165,7 @@ export class VatRepository {
       description: row.description ?? row.entryDescription,
       taxCode: row.taxCode,
       taxRole: row.taxRole,
+      sourceDocumentRef: row.sourceDocumentRef,
       // The functional amounts, because the return is in euro whatever the
       // invoice was written in.
       signedMinorUnits: row.debit - row.credit,

@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { KLOPT_WARNING_MESSAGES_HEADER, encodeWarningMessagesHeader } from '@klopt/core'
 import { handleExportAuditFile } from '~/api/handlers/compliance'
 import { auditFileQuery } from '~/api/schemas'
 import { parse, searchParams } from '~/api/runtime'
@@ -32,6 +33,10 @@ export const Route = createFileRoute('/api/v1/exports/audit-file')({
               'content-disposition': `attachment; filename="${result.filename}"`,
               'x-klopt-line-count': String(result.lineCount),
               'x-klopt-warnings': String(result.warnings.length),
+              // Percent-encoded JSON: raw UTF-8 in a header breaks non-ASCII (#94).
+              [KLOPT_WARNING_MESSAGES_HEADER]: encodeWarningMessagesHeader(
+                result.warnings.map((warning) => warning.message),
+              ),
               'x-request-id': context.requestId,
             },
           })

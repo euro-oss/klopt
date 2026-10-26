@@ -18,6 +18,24 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Moneybird: VAT tagging and filing blocks (#94)
+
+Moneybird imports now post one tagged VAT control line per mapped tax code.
+Filing a VAT return is hard-blocked when a period still has Moneybird-imported
+untagged VAT on a control account, or reverse-charge / intra-EU purchases whose
+self-assessed pair is not booked yet (#95). Those reverse-charge / EU documents
+still import (warning only); only filing is blocked. Import also raises
+`tax_code_not_in_force` when a mapped code’s validity window does not cover the
+document date (no in-app `valid_from` edit yet — #99). XAF keeps exporting and
+only warns (ASCII-safe header + orange Alert in the web app).
+
+**Self-hosted:** Filed a VAT return through Klopt before this version for a
+period with Moneybird-imported documents? It may under-report VAT in boxes
+1a/5b. See belastingdienst.nl, “Btw-aangifte corrigeren”.  
+**Self-hosted (NL):** Heb je vóór deze versie via Klopt een btw-aangifte
+ingediend over een periode met Moneybird-import? Dan kan daarin te weinig btw
+in rubriek 1a/5b staan. Zie belastingdienst.nl, “Btw-aangifte corrigeren”.
+
 ### Moneybird: map tax rates without a percentage (#90)
 
 A Moneybird tax rate with a null / missing percentage (e.g. “Geen btw”, shown

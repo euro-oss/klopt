@@ -2045,11 +2045,193 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     expect(found.map((item) => item.path)).not.toContain('taxRates.22')
     expect(found.every((item) => item.code === 'incompatible_tax_rate')).toBe(true)
   })
+
+  it('tags VAT control lines with taxRole tax per mapped code (#94)', () => {
+    const plan = planMoneybirdImport(
+      snapshot(),
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '21': 'H21', '22': 'VH21' },
+      }),
+    )
+    const sale = plan.entries.find((entry) => entry.externalId === 'sales_invoice:301')
+    const saleVat = sale?.lines.filter((item) => item.accountNumber === '1500')
+    expect(saleVat).toEqual([
+      expect.objectContaining({
+        credit: 2100n,
+        taxCode: 'H21',
+        taxRole: 'tax',
+        taxAmount: 2100n,
+      }),
+    ])
+
+    const purchase = plan.entries.find((entry) => entry.externalId === 'purchase_invoice:401')
+    const purchaseVat = purchase?.lines.filter((item) => item.accountNumber === '1510')
+    expect(purchaseVat).toEqual([
+      expect.objectContaining({
+        debit: 2100n,
+        taxCode: 'VH21',
+        taxRole: 'tax',
+        taxAmount: 2100n,
+      }),
+    ])
+  })
+
+  it('splits a mixed-rate document into one tagged VAT line per code', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          ...base.taxRates,
+          {
+            id: '29',
+            name: 'BTW laag 9%',
+            percentage: 9,
+            taxRateType: 'sales_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        salesInvoices: [
+          {
+            ...base.salesInvoices[0]!,
+            totalTax: 3000n,
+            totalExcl: 20000n,
+            totalIncl: 23000n,
+            details: [
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'mix-h21',
+                price: 10000n,
+                amount: '1',
+                taxRateId: '21',
+              },
+              {
+                ...base.salesInvoices[0]!.details[0]!,
+                id: 'mix-l9',
+                price: 10000n,
+                amount: '1',
+                taxRateId: '29',
+              },
+            ],
+          },
+        ],
+      },
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '21': 'H21', '29': 'L9' },
+      }),
+    )
+    const sale = plan.entries.find((entry) => entry.externalId === 'sales_invoice:301')
+    const vatLines = sale?.lines
+      .filter((item) => item.taxRole === 'tax')
+      .sort((a, b) => (a.taxCode ?? '').localeCompare(b.taxCode ?? ''))
+    expect(vatLines).toEqual([
+      expect.objectContaining({ taxCode: 'H21', taxRole: 'tax', credit: 2100n, taxAmount: 2100n }),
+      expect.objectContaining({ taxCode: 'L9', taxRole: 'tax', credit: 900n, taxAmount: 900n }),
+    ])
+  })
+
+  it('blocks reverse-charge / intra-EU purchase mappings until #95', () => {
+    const base = snapshot()
+    // Moneybird books these at 0% on the document; Klopt's paired code is 21%.
+    // Matching uses the Moneybird percentage, so the chart rule in the test is
+    // 0% — same shape the import sees after a user confirms the mapping.
+    const rules: readonly ExistingTaxRule[] = [
+      ...nlMkbTaxRules.filter((rule) => rule.code !== 'VERL-ONTV' && rule.code !== 'VERL-VOOR'),
+      {
+        code: 'VERL-ONTV',
+        rateBasisPoints: 0,
+        direction: 'input',
+        scope: 'domestic',
+        reverseCharge: 'domestic',
+        deductionCode: 'VERL-VOOR',
+      },
+      {
+        code: 'VERL-VOOR',
+        rateBasisPoints: 0,
+        direction: 'input',
+        scope: 'domestic',
+        reverseCharge: 'none',
+        deductibility: 'full',
+      },
+    ]
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [
+          {
+            id: '80',
+            name: 'Verlegd naar u',
+            percentage: 0,
+            taxRateType: 'purchase_invoice',
+            country: 'NL',
+            active: true,
+            reportReference: null,
+          },
+        ],
+        purchaseInvoices: base.purchaseInvoices.map((invoice) => ({
+          ...invoice,
+          totalTax: 0n,
+          totalExcl: 10000n,
+          totalIncl: 10000n,
+          details: invoice.details.map((detail) => ({ ...detail, taxRateId: '80' })),
+        })),
+      },
+      options({
+        existingTaxRules: rules,
+        confirmedTaxMappings: { '80': 'VERL-ONTV' },
+      }),
+    )
+    // Warning only — document still imports; filing is blocked on the return (#96 PM).
+    expect(plan.problems.map((item) => item.code)).not.toContain('self_assessed_vat_unsupported')
+    expect(plan.warnings.map((item) => item.code)).toContain('self_assessed_vat_unsupported')
+    const finding = plan.warnings.find((item) => item.code === 'self_assessed_vat_unsupported')
+    expect(finding?.detail?.['taxCode']).toBe('VERL-ONTV')
+    expect(finding?.message).toMatch(
+      /will import|wordt wel|filing deadline|aangiftetermijn|supports this|ondersteunt/i,
+    )
+    expect(finding?.message).not.toMatch(
+      /book .* by hand|boek .* zelf|wait for the update|wacht op de update|Wait until Klopt supports this\.?$|Wacht tot Klopt dit ondersteunt\.?$/i,
+    )
+    expect(plan.entries.some((entry) => entry.kind === 'purchase_invoice')).toBe(true)
+  })
+
+  it('blocks when a document date falls before the tax code valid_from', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        salesInvoices: base.salesInvoices.map((invoice) => ({
+          ...invoice,
+          invoiceDate: '2025-06-15',
+        })),
+      },
+      options({
+        existingTaxRules: nlMkbTaxRules.map((rule) =>
+          rule.code === 'H21' ? { ...rule, validFrom: '2026-01-01', validTo: null } : rule,
+        ),
+        confirmedTaxMappings: { '21': 'H21', '22': 'VH21' },
+      }),
+    )
+    expect(plan.problems.map((item) => item.code)).toContain('tax_code_not_in_force')
+    const finding = plan.problems.find((item) => item.code === 'tax_code_not_in_force')
+    expect(finding?.detail).toMatchObject({
+      taxCode: 'H21',
+      bookingDate: '2025-06-15',
+    })
+    expect(finding?.message).toMatch(/does not apply yet|no fix inside Klopt|Moneybird/i)
+    expect(finding?.message).not.toMatch(
+      /valid from|geldig vanaf|Btw-codes|year whose codes|jaar waarvan/i,
+    )
+  })
 })
 
 /**
  * Full-entry posting pins for signed line amounts (#90 / #91 PM addendum).
- * VAT control lines on 1500/1510 are intentionally untagged today (#94).
+ * VAT control lines on 1500/1510 are tagged per mapped code (#94).
  */
 describe('Moneybird posting pins (signed lines, #91 PM)', () => {
   type LinePin = {
@@ -2103,8 +2285,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
       [
         { accountNumber: '1300', debit: 12100n, credit: 0n, taxCode: null, taxAmount: null },
         { accountNumber: '8000', debit: 0n, credit: 10000n, taxCode: 'H21', taxAmount: 2100n },
-        // Untagged VAT control line — #94, do not “fix” tagging here.
-        { accountNumber: '1500', debit: 0n, credit: 2100n, taxCode: null, taxAmount: null },
+        { accountNumber: '1500', debit: 0n, credit: 2100n, taxCode: 'H21', taxAmount: 2100n },
       ],
     )
     expectBalanced(plan)
@@ -2119,7 +2300,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
       plan.entries.find((item) => item.kind === 'purchase_invoice'),
       [
         { accountNumber: '4000', debit: 10000n, credit: 0n, taxCode: 'VH21', taxAmount: 2100n },
-        { accountNumber: '1510', debit: 2100n, credit: 0n, taxCode: null, taxAmount: null },
+        { accountNumber: '1510', debit: 2100n, credit: 0n, taxCode: 'VH21', taxAmount: 2100n },
         { accountNumber: '1600', debit: 0n, credit: 12100n, taxCode: null, taxAmount: null },
       ],
     )
@@ -2145,7 +2326,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
       [
         { accountNumber: '1300', debit: 0n, credit: 12100n, taxCode: null, taxAmount: null },
         { accountNumber: '8000', debit: 10000n, credit: 0n, taxCode: 'H21', taxAmount: -2100n },
-        { accountNumber: '1500', debit: 2100n, credit: 0n, taxCode: null, taxAmount: null },
+        { accountNumber: '1500', debit: 2100n, credit: 0n, taxCode: 'H21', taxAmount: -2100n },
       ],
     )
     expectBalanced(plan)
@@ -2174,7 +2355,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
       [
         { accountNumber: '1300', debit: 0n, credit: 12100n, taxCode: null, taxAmount: null },
         { accountNumber: '8000', debit: 10000n, credit: 0n, taxCode: 'H21', taxAmount: -2100n },
-        { accountNumber: '1500', debit: 2100n, credit: 0n, taxCode: null, taxAmount: null },
+        { accountNumber: '1500', debit: 2100n, credit: 0n, taxCode: 'H21', taxAmount: -2100n },
       ],
     )
     expectBalanced(plan)
@@ -2200,7 +2381,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
       plan.entries.find((item) => item.kind === 'purchase_invoice'),
       [
         { accountNumber: '4000', debit: 0n, credit: 10000n, taxCode: 'VH21', taxAmount: -2100n },
-        { accountNumber: '1510', debit: 0n, credit: 2100n, taxCode: null, taxAmount: null },
+        { accountNumber: '1510', debit: 0n, credit: 2100n, taxCode: 'VH21', taxAmount: -2100n },
         { accountNumber: '1600', debit: 12100n, credit: 0n, taxCode: null, taxAmount: null },
       ],
     )
@@ -2228,7 +2409,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
         { accountNumber: '1300', debit: 10890n, credit: 0n, taxCode: null, taxAmount: null },
         { accountNumber: '8000', debit: 0n, credit: 10000n, taxCode: 'H21', taxAmount: 2100n },
         { accountNumber: '8000', debit: 1000n, credit: 0n, taxCode: 'H21', taxAmount: -210n },
-        { accountNumber: '1500', debit: 0n, credit: 1890n, taxCode: null, taxAmount: null },
+        { accountNumber: '1500', debit: 0n, credit: 1890n, taxCode: 'H21', taxAmount: 1890n },
       ],
     )
     expectBalanced(plan)
@@ -2254,7 +2435,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
       [
         { accountNumber: '4000', debit: 10000n, credit: 0n, taxCode: 'VH21', taxAmount: 2100n },
         { accountNumber: '4000', debit: 0n, credit: 1000n, taxCode: 'VH21', taxAmount: -210n },
-        { accountNumber: '1510', debit: 1890n, credit: 0n, taxCode: null, taxAmount: null },
+        { accountNumber: '1510', debit: 1890n, credit: 0n, taxCode: 'VH21', taxAmount: 1890n },
         { accountNumber: '1600', debit: 0n, credit: 10890n, taxCode: null, taxAmount: null },
       ],
     )
@@ -2281,7 +2462,7 @@ describe('Moneybird posting pins (signed lines, #91 PM)', () => {
       [
         { accountNumber: '1300', debit: 12100n, credit: 0n, taxCode: null, taxAmount: null },
         { accountNumber: '8000', debit: 0n, credit: 10000n, taxCode: 'H21', taxAmount: 2100n },
-        { accountNumber: '1500', debit: 0n, credit: 2100n, taxCode: null, taxAmount: null },
+        { accountNumber: '1500', debit: 0n, credit: 2100n, taxCode: 'H21', taxAmount: 2100n },
       ],
     )
     expectBalanced(plan)

@@ -49,6 +49,12 @@ export {
 
 export { isUuid, uuidv7, uuidv7Timestamp } from './ids.js'
 
+export {
+  KLOPT_WARNING_MESSAGES_HEADER,
+  decodeWarningMessagesHeader,
+  encodeWarningMessagesHeader,
+} from './http/warning-header.js'
+
 export * from './ledger/index.js'
 export * from './rgs/index.js'
 export * from './xaf/index.js'

@@ -122,6 +122,11 @@ describe('rendering a message', () => {
     expect(translatePlural('en', 'common.count', 3)).toBe('3 lines')
     expect(translatePlural('nl', 'common.count', 1)).toBe('1 regel')
     expect(translatePlural('nl', 'common.count', 0)).toBe('0 regels')
+    // Finding card step count (#96 designer / #91 one-step cards).
+    expect(translatePlural('nl', 'findingCard.guidedSteps', 1)).toBe('1 stap')
+    expect(translatePlural('nl', 'findingCard.guidedSteps', 2)).toBe('2 stappen')
+    expect(translatePlural('en', 'findingCard.guidedSteps', 1)).toBe('1 step')
+    expect(translatePlural('en', 'findingCard.guidedSteps', 2)).toBe('2 steps')
   })
 })
 

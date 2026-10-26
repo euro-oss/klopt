@@ -88,9 +88,10 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
   },
   ref,
 ) {
-  const { t, tag } = useT()
+  const { t, tag, plural } = useT()
   const panelId = useId()
   const [confirming, setConfirming] = useState(false)
+  const [oneClickBusy, setOneClickBusy] = useState(false)
   const confirmRef = useRef<HTMLButtonElement>(null)
   const classes = severityClasses(severity)
   const displayDetail = detailForDisplay(detail, tag)
@@ -104,7 +105,28 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
     if (showPreview) confirmRef.current?.focus()
   }, [showPreview])
 
-  const openFix = (): void => {
+  function activateOneClick(): void {
+    if (fix.type !== 'oneClick') return
+    if (!oneClickMayApplyImmediately(fix) && !showPreview) {
+      setConfirming(true)
+      return
+    }
+    setOneClickBusy(true)
+    void Promise.resolve(fix.onApply())
+      .catch(() => undefined)
+      .finally(() => {
+        setOneClickBusy(false)
+        setConfirming(false)
+        onFixOpenChange?.(false)
+      })
+  }
+
+  function openFix(): void {
+    if (fix.type === 'oneClick' && oneClickMayApplyImmediately(fix)) {
+      // No preview → apply on the first click; no leftover panel (#96 designer).
+      activateOneClick()
+      return
+    }
     onFixOpenChange?.(true)
     if (fix.type === 'guided') {
       setConfirming(false)
@@ -115,21 +137,9 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
     setConfirming(fix.type === 'oneClick' && fix.preview !== undefined)
   }
 
-  const closeFix = (): void => {
+  function closeFix(): void {
     setConfirming(false)
     onFixOpenChange?.(false)
-  }
-
-  const activateOneClick = (): void => {
-    if (fix.type !== 'oneClick') return
-    if (!oneClickMayApplyImmediately(fix) && !showPreview) {
-      setConfirming(true)
-      return
-    }
-    void Promise.resolve(fix.onApply()).then(() => {
-      setConfirming(false)
-      onFixOpenChange?.(false)
-    })
   }
 
   return (
@@ -198,7 +208,7 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
             {severity === 'blocking' && <RiErrorWarningLine className="size-3" aria-hidden />}
             {severity === 'blocking' ? t('findingCard.blocking') : t('findingCard.warning')}
           </Badge>
-          <span className="text-muted-foreground text-xs">{fixTypeLabel(t, fix)}</span>
+          <span className="text-muted-foreground text-xs">{fixTypeLabel(t, plural, fix)}</span>
           <code className="text-muted-foreground ml-auto hidden text-[11px] tracking-normal normal-case sm:block">
             {code}
           </code>
@@ -209,6 +219,13 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
         >
           {explanation}
         </ItemDescription>
+
+        {(messageKey === 'moneybird.self_assessed_vat_unsupported' ||
+          messageKey === 'moneybird.tax_code_not_in_force') && (
+          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+            {t(`finding.${messageKey}_secondary` as MessageKey, displayDetail)}
+          </p>
+        )}
 
         <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
           <span className="font-medium text-foreground">{t('findingCard.whyItMatters')}: </span>
@@ -257,12 +274,14 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
               variant={fix.type === 'oneClick' ? 'outline' : 'default'}
               size="default"
               onClick={openFix}
+              disabled={oneClickBusy}
+              aria-busy={oneClickBusy || undefined}
               className="min-h-11 gap-2 md:min-h-9"
             >
-              {fixActionLabel(t, fix)}
-              {selected && <BindingKeycaps id="finding.openFix" />}
+              {oneClickBusy ? t('common.busy') : fixActionLabel(t, fix)}
+              {!oneClickBusy && selected && <BindingKeycaps id="finding.openFix" />}
             </Button>
-            {fix.type === 'oneClick' && fix.preview === undefined && (
+            {fix.type === 'oneClick' && fix.preview === undefined && !oneClickBusy && (
               <span className="text-muted-foreground text-xs">{t('findingCard.oneClickSafe')}</span>
             )}
             {fix.type === 'oneClick' && fix.preview !== undefined && (
@@ -322,12 +341,15 @@ function fixActionLabel(
 
 function fixTypeLabel(
   t: (key: MessageKey, values?: Record<string, string>) => string,
+  plural: (key: string, count: number, values?: Record<string, string>) => string,
   fix: FindingFix,
 ): string {
   if (fix.type === 'oneClick') return t('findingCard.fixType.oneClick')
   if (fix.type === 'guided') {
     if (fix.steps !== undefined && fix.steps.length > 0) {
-      return t('findingCard.guidedSteps', { count: String(fix.steps.length) })
+      return plural('findingCard.guidedSteps', fix.steps.length, {
+        count: String(fix.steps.length),
+      })
     }
     return t('findingCard.fixType.guided')
   }

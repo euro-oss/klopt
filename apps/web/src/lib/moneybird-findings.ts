@@ -218,6 +218,19 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'explainOnly',
         ...(moneybirdHref === null ? {} : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
       }
+    case 'self_assessed_vat_unsupported':
+      // Imports anyway; filing blocked until #95. Moneybird link is look-only.
+      return {
+        type: 'explainOnly',
+        ...(moneybirdHref === null ? {} : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
+      }
+    case 'tax_code_not_in_force':
+      // No valid_from control yet (#99). One-click re-read — no leftover panel.
+      return {
+        type: 'oneClick',
+        label: labels.reread,
+        onApply: () => actions.onRereadResource(problem),
+      }
     default: {
       const _exhaustive: never = problem.code
       void _exhaustive
