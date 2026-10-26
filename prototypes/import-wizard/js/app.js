@@ -30,6 +30,7 @@
     takeover: [],
     pct: 61,
     timer: null,
+    toast: null,
   }
 
   function resetData() {
@@ -82,20 +83,53 @@
     location.hash = hrefFor(D.steps[i].id, extra)
   }
 
-  function toast(message, opts) {
-    const o = opts || {}
+  // The toast lives in a slot at the top of the action bar, so it takes its own
+  // space instead of floating over the page. Pages without a bar fall back to fixed.
+  function toastMarkup(t, inSlot) {
+    const o = t.opts || {}
     const tone = o.tone || 'success'
     const ic =
       tone === 'success'
         ? '<svg viewBox="0 0 24 24" class="check-draw size-5" fill="none" stroke="currentColor" stroke-width="2.25"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
         : icon('info', 'size-5')
-    toastRoot.innerHTML = `<div role="status" class="animate-in-up fixed inset-x-4 bottom-24 z-[60] flex items-center gap-3 border bg-background p-3 text-sm md:inset-x-auto md:right-6 md:bottom-28 md:min-w-80">
-      <span class="flex size-6 items-center justify-center ${tone === 'success' ? 'text-success' : 'text-info'}">${ic}</span>
-      <span class="min-w-0 flex-1 tabular">${message}</span>
-      ${o.undo ? `<button type="button" data-action="${o.undo}" class="btn btn-ghost -my-1 -mr-1 underline underline-offset-4">${icon('undo')}Ongedaan maken</button>` : ''}
+    const place = inSlot
+      ? 'mb-2 md:ml-auto md:max-w-lg'
+      : 'fixed inset-x-4 bottom-4 z-[60] md:inset-x-auto md:right-6 md:bottom-6 md:min-w-80'
+    return `<div role="status" class="animate-in-up flex items-center gap-3 border bg-background p-3 text-sm ${place}">
+      <span class="flex size-6 shrink-0 items-center justify-center ${tone === 'success' ? 'text-success' : 'text-info'}">${ic}</span>
+      <span class="min-w-0 flex-1 tabular">${t.message}</span>
+      ${o.undo ? `<button type="button" data-action="${o.undo}" class="btn btn-ghost -my-1 -mr-1 shrink-0 underline underline-offset-4">${icon('undo')}Ongedaan maken</button>` : ''}
     </div>`
+  }
+
+  function paintToast() {
+    const slot = document.querySelector('[data-toast-slot]')
+    if (slot) {
+      slot.innerHTML = S.toast ? toastMarkup(S.toast, true) : ''
+      toastRoot.innerHTML = ''
+    } else toastRoot.innerHTML = S.toast ? toastMarkup(S.toast, false) : ''
+    reserveFooter()
+  }
+
+  // Below md the action bar is fixed; keep the page's last line above it.
+  function reserveFooter() {
+    const f = document.querySelector('[data-footer]')
+    const page = document.querySelector('[data-page]')
+    if (!page) return
+    page.style.paddingBottom =
+      f && getComputedStyle(f).position === 'fixed' ? f.offsetHeight + 24 + 'px' : ''
+  }
+
+  function toast(message, opts) {
+    S.toast = { message, opts }
+    paintToast()
     clearTimeout(toast.timer)
-    if (!S.p.has('toast')) toast.timer = setTimeout(() => (toastRoot.innerHTML = ''), 5000)
+    if (!S.p.has('toast')) toast.timer = setTimeout(clearToast, 5000)
+  }
+  function clearToast() {
+    clearTimeout(toast.timer)
+    S.toast = null
+    paintToast()
   }
 
   const isMb = () => S.src === 'moneybird'
@@ -289,16 +323,16 @@
         S.src = keep
         return h
       })()}" class="inline-flex min-h-11 shrink-0 items-center px-2 md:min-h-7 ${S.src === s ? 'bg-foreground text-background' : 'hover:text-foreground'}">${label}</a>`
-    return `<div class="proto-bar flex items-center gap-2 overflow-x-auto px-4 text-muted-foreground md:px-8" aria-label="Mock-bediening (geen onderdeel van de app)">
+    return `<div class="proto-bar flex flex-wrap items-center gap-x-2 px-4 text-muted-foreground md:flex-nowrap md:px-8" aria-label="Mock-bediening (geen onderdeel van de app)">
       <span class="shrink-0 font-semibold text-foreground">Mock</span>
-      <label class="flex shrink-0 items-center gap-1"><span class="sr-only">Stap</span><select data-action="proto-step" class="h-7 border border-dashed border-muted-foreground bg-background px-1 text-xs">${D.steps
+      <label class="flex min-w-0 items-center gap-1"><span class="sr-only">Stap</span><select data-action="proto-step" class="h-7 max-w-[9.5rem] border border-dashed border-muted-foreground bg-background px-1 text-xs md:max-w-none">${D.steps
         .map(
           (s, i) =>
             `<option value="${i}" ${i === S.idx ? 'selected' : ''}>${i + 1}. ${s.short}</option>`,
         )
         .join('')}</select></label>
       <span class="flex shrink-0 border border-dashed border-muted-foreground">${srcBtn('moneybird', 'Moneybird')}${srcBtn('exact', 'Exact')}</span>
-      ${states.length ? '<span class="shrink-0">·</span>' + states.map(([l, e]) => link(l, e)).join('') : ''}
+      ${states.length ? `<div class="proto-states -mx-4 flex w-[calc(100%+2rem)] items-center gap-x-1 border-t border-dashed border-muted-foreground px-4 md:mx-0 md:w-auto md:min-w-0 md:flex-1 md:border-0 md:px-0"><span class="hidden shrink-0 md:inline">·</span>${states.map(([l, e]) => link(l, e)).join('')}</div>` : ''}
     </div>`
   }
 
@@ -324,8 +358,8 @@
       'Verbonden',
       mb ? '2025 en 2026' : 'Boekjaar 2026',
       mb ? '542 documenten gelezen' : '312 rekeningen, 47 posten',
-      mb ? '7 tarieven' : '5 van 7 herkend',
-      mb ? '8 rekeningen, 186 relaties' : '4 rekeningen gekozen',
+      mb ? '8 tarieven' : '5 van 7 herkend',
+      mb ? '8 nagekeken · 186 relaties' : '4 rekeningen gekozen',
       'Niets blokkeert meer',
       'Nagekeken',
       'Klaar',
@@ -342,7 +376,7 @@
     if (i === 6 && state === 'current') ((count = blockingLeft()), (tone = 'error'))
     const box =
       state === 'done'
-        ? `<span class="flex size-6 shrink-0 items-center justify-center border border-foreground bg-foreground text-background">${icon('check', 'size-3.5')}</span>`
+        ? `<span class="flex size-6 shrink-0 items-center justify-center text-foreground" aria-hidden="true">${icon('check', 'size-4')}</span>`
         : state === 'current'
           ? `<span class="flex size-6 shrink-0 items-center justify-center border border-foreground border-b-[3px] border-b-accent text-xs font-semibold tabular">${i + 1}</span>`
           : `<span class="flex size-6 shrink-0 items-center justify-center border text-xs text-muted-foreground tabular">${i + 1}</span>`
@@ -352,7 +386,7 @@
         : state === 'current' && count
           ? `<span class="${tone === 'error' ? 'text-destructive' : 'text-warning'}">Nog ${count}</span>`
           : ''
-    const inner = `${box}<span class="min-w-0 flex-1 pt-0.5"><span class="block text-sm leading-tight ${state === 'current' ? 'font-medium' : state === 'todo' ? 'text-muted-foreground' : ''}">${s.short}</span>${sub ? `<span class="mt-0.5 block truncate text-xs text-muted-foreground tabular">${sub}</span>` : ''}</span>`
+    const inner = `${box}<span class="min-w-0 flex-1 pt-0.5"><span class="block text-sm leading-tight ${state === 'current' ? 'font-medium' : state === 'todo' ? 'text-muted-foreground' : ''}">${s.short}${state === 'done' ? '<span class="sr-only"> (klaar)</span>' : ''}</span>${sub ? `<span class="mt-0.5 block truncate text-xs text-muted-foreground tabular">${sub}</span>` : ''}</span>`
     const cls = `flex items-start gap-3 px-2 py-1.5 ${mobile ? 'min-h-11' : ''}`
     if (state === 'todo')
       return `<li><span class="${cls}" aria-disabled="true">${inner}</span></li>`
@@ -428,10 +462,10 @@
     const card = (id) => {
       const s = D.sources[id]
       const checked = S.src === id
-      return `<div role="radio" aria-checked="${checked}" tabindex="${checked ? 0 : -1}" data-action="pick-src" data-src="${id}" data-focus="src-${id}" class="relative flex cursor-pointer gap-4 border p-5 ${checked ? 'border-foreground outline outline-1 -outline-offset-2 outline-foreground' : 'hover:bg-muted'}">
-        <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center border ${checked ? 'border-foreground bg-foreground text-background' : 'border-input'}">${checked ? icon('check', 'size-3.5') : ''}</span>
+      return `<div role="radio" aria-checked="${checked}" aria-labelledby="src-${id}-l" tabindex="${checked ? 0 : -1}" data-action="pick-src" data-src="${id}" data-focus="src-${id}" class="src-card relative flex cursor-pointer gap-4 ${checked ? 'border-2 border-foreground p-[19px]' : 'border p-5 hover:bg-muted'}">
+        <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border ${checked ? 'border-2 border-foreground' : 'border-input'}" aria-hidden="true">${checked ? '<span class="size-2.5 rounded-full bg-foreground"></span>' : ''}</span>
         <span class="min-w-0 flex-1">
-          <span class="flex flex-wrap items-center gap-2"><span class="text-[15px] font-medium">${s.label}</span>${id === 'moneybird' ? badge('neutral', 'Nog nooit geïmporteerd') : badge('neutral', 'Eén boekjaar')}</span>
+          <span class="flex flex-wrap items-center gap-2"><span id="src-${id}-l" class="text-[15px] font-medium">${s.label}</span>${id === 'moneybird' ? badge('neutral', 'Nog nooit geïmporteerd') : badge('neutral', 'Eén boekjaar')}</span>
           <span class="mt-1 block text-sm">${s.scope}</span>
           <span class="mt-1 block text-sm text-muted-foreground">${s.notIncluded}</span>
           ${s.setupLine ? `<span class="mt-2 block text-xs text-muted-foreground">${s.setupLine}</span>` : ''}
@@ -572,7 +606,7 @@
             <td class="py-3 pr-3 pl-4"><input type="checkbox" class="mt-0.5 size-4 accent-[var(--foreground)]" aria-label="${y.year} overzetten" ${closed ? 'disabled' : 'checked'} /></td>
             <td class="py-3 pr-3 text-sm font-medium tabular">${y.year}</td>
             <td class="py-3 pr-3 text-right text-sm tabular">${nf(y.docs)}</td>
-            <td class="py-3 pr-4 text-sm">${closed ? `${badge('neutral', 'Afgesloten', 'lock')}<span class="mt-1 block text-xs text-muted-foreground">${y.note} We zetten het niet over.</span>` : `<span class="block">Open</span>${S.adv ? `<span class="block text-xs text-muted-foreground tabular">01-01-${y.year} – 31-12-${y.year}</span>` : y.note ? `<span class="block text-xs text-muted-foreground tabular">${y.note}</span>` : ''}${y.warn ? `<span class="mt-1 flex gap-1.5 text-xs text-warning">${icon('alert', 'mt-px size-3.5')}<span>${y.warn}</span></span>` : ''}`}</td>
+            <td class="py-3 pr-4 text-sm">${closed ? `${badge('neutral', 'Afgesloten', 'lock')}<span class="mt-1 block text-xs text-muted-foreground">${y.note} We zetten het niet over.</span>` : `<span class="block">Open</span>${S.adv ? `<span class="block text-xs text-muted-foreground tabular">01-01-${y.year} – 31-12-${y.year}</span>` : y.note ? `<span class="block text-xs text-muted-foreground tabular">${y.note}</span>` : ''}${y.block ? `<span class="mt-2 block">${badge('error', 'Blokkeert import', 'alert')}</span><span class="mt-1 block text-xs">${y.block}</span>${S.adv ? `<span class="block text-xs text-muted-foreground tabular">${y.blockAdv}</span>` : ''}` : ''}${y.warn ? `<span class="mt-2 flex gap-1.5 text-xs text-warning">${icon('alert', 'mt-px size-3.5 shrink-0')}<span>${y.warn}</span></span>` : ''}`}</td>
           </tr>`
         })
         .join('')
@@ -725,7 +759,7 @@
             ]
               .map(
                 ([a, d, c, s]) =>
-                  `<tr class="border-t"><td class="py-2 pr-3 pl-4 tabular">${a}</td><td class="py-2 pr-3 text-right tabular">€ ${d}</td><td class="py-2 pr-3 text-right tabular">€ ${c}</td><td class="py-2 pr-4">${s === 'ok' ? badge('success', 'Klopt', 'check') : badge('attention', 'Verschil € 45,00')}</td></tr>`,
+                  `<tr class="border-t"><td class="py-2 pr-3 pl-4 tabular">${a}</td><td class="py-2 pr-3 text-right tabular">€ ${d}</td><td class="py-2 pr-3 text-right tabular">€ ${c}</td><td class="py-2 pr-4">${s === 'ok' ? badge('success', 'Klopt', 'check') : badge('error', 'Verschil € 45,00', 'alert')}</td></tr>`,
               )
               .join('')}</tbody></table></div>`,
           )
@@ -838,7 +872,7 @@
         mapped(r.label, r.code, r.rubriek, r.ledger) +
         `<div class="mt-3">${statusBlock(
           'attention',
-          `<p class="font-medium">Deze ${r.docs} inkopen worden gewoon geïmporteerd.</p><p>Alleen de btw-aangifte voor die periodes kun je nog niet via Klopt indienen: Klopt boekt de zelf af te dragen btw nog niet. Dien die aangifte zelf of met een belastingadviseur in, op basis van gecorrigeerde cijfers.</p><p class="text-muted-foreground">Wacht niet op Klopt als je aangiftetermijn eerder afloopt.</p>`,
+          `<p class="font-medium">Deze ${r.docs} inkopen worden gewoon geïmporteerd.</p><p>Alleen de btw-aangifte voor ${r.periods} kun je nog niet via Klopt indienen: Klopt boekt de zelf af te dragen btw nog niet. Je kunt de aangifte zelf of met een belastingadviseur indienen op basis van gecorrigeerde cijfers.</p><p class="text-muted-foreground">Indienen via Klopt kan zodra Klopt dit ondersteunt; wacht daar niet op als je aangiftetermijn eerder afloopt.</p>`,
         )}</div>`
     if (r.state === 'none')
       body = `<div class="mt-3">${statusBlock(
@@ -1050,9 +1084,11 @@
     const busy = S.busy === x.id
     let actions = ''
     if (x.fix === 'reread')
-      actions = busy
-        ? `<button type="button" disabled aria-busy="true" class="btn btn-primary">${icon('loader', 'spin size-4')}Bezig met lezen…</button><span class="sr-only" aria-live="polite">Bezig met opnieuw lezen</span>`
-        : `<button type="button" data-action="reread" data-id="${x.id}" class="btn btn-primary">${icon('refresh')}Opnieuw lezen</button>${external('Open in Moneybird', 'Open inkoopfactuur 2025-0412 in Moneybird (nieuw tabblad)')}`
+      actions =
+        (busy
+          ? `<button type="button" disabled aria-busy="true" class="btn btn-primary">${icon('loader', 'spin size-4')}Bezig met lezen…</button><span class="sr-only" aria-live="polite">Bezig met opnieuw lezen</span>`
+          : `<button type="button" data-action="reread" data-id="${x.id}" class="btn btn-primary">${icon('refresh')}Opnieuw lezen</button>`) +
+        external('Open in Moneybird', 'Open inkoopfactuur 2025-0412 in Moneybird (nieuw tabblad)')
     if (x.fix === 'mbReread')
       actions = `${external('Open in Moneybird', 'Open bonnetje 2026-0088 in Moneybird (nieuw tabblad)')}<button type="button" data-action="reread" data-id="${x.id}" class="btn btn-outline">${icon('refresh')}Opnieuw lezen</button>`
     if (x.fix === 'fx')
@@ -1067,9 +1103,10 @@
       <div class="mb-2 flex flex-wrap items-center gap-2">${blocking ? badge('error', 'Blokkeert import', 'alert') : badge('neutral', 'Let op')}${S.adv ? `<code class="ml-auto font-mono text-[11px] text-muted-foreground">${x.code}</code>` : ''}</div>
       <h3 id="pt-${x.id}" class="text-[15px] leading-snug font-medium">${x.title}</h3>
       <p class="mt-1 text-sm">${x.body}</p>
-      ${x.secondary ? `<p class="mt-1 text-xs text-muted-foreground tabular">${x.secondary}</p>` : ''}
+      ${x.secondary ? `<p class="mt-1 text-xs text-muted-foreground tabular">${x.secondary}${S.adv && x.secondaryAdv ? ' · ' + x.secondaryAdv : ''}</p>` : ''}
       ${x.next ? `<p class="mt-2 text-sm"><span class="font-medium">Wat je kunt doen:</span> ${x.next}</p>` : ''}
       <p class="mt-2 text-sm text-muted-foreground"><span class="font-medium text-foreground">Waarom dit telt:</span> ${x.why}</p>
+      ${S.adv && x.whyAdv ? `<p class="text-xs text-muted-foreground tabular">${x.whyAdv}</p>` : ''}
       <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">${actions}</div>
     </article></li>`
   }
@@ -1134,7 +1171,15 @@
       notes: [
         note(
           '#99 na release',
-          'Zodra #99 er is, krijgt de btw-code-kaart “Geldig vanaf aanpassen” (Eigenaar/Accountant). Een Boekhouder ziet dan “Vraag de eigenaar of accountant”. Nu: alleen Opnieuw lezen.',
+          'Zodra #99 er is, krijgt deze kaart “Geldig vanaf aanpassen” voor Eigenaar en Accountant. Een Boekhouder houdt dezelfde weg als nu: de datum in Moneybird controleren en dan Opnieuw lezen.',
+        ),
+        note(
+          'Open vraag voor PM · #99 en rollen',
+          'Mag een Boekhouder “Geldig vanaf aanpassen” ook zelf? Zo niet, dan krijgt hij geen doorverwijzing, alleen de weg hierboven.',
+        ),
+        note(
+          'Open vraag · #96 na een eerdere import',
+          'Deze kaart blokkeert alleen vóór de import. Documenten die al in Klopt staan van een eerdere import slaan we bij opnieuw lezen over; daarvoor geldt de tekst op het aangiftescherm: zelf of met een belastingadviseur indienen.',
         ),
       ],
       status: left
@@ -1237,7 +1282,7 @@
         ) +
         `<div class="mb-8">${statusBlock(
           'attention',
-          `<p class="font-medium">Na de import kun je de btw-aangifte voor Q2 en Q3 2025 niet via Klopt indienen</p><p>9 EU-inkopen worden wel geïmporteerd, maar Klopt boekt de zelf af te dragen btw nog niet. Dien die aangiftes zelf of met een belastingadviseur in, op basis van gecorrigeerde cijfers.</p>`,
+          `<p class="font-medium">Na de import kun je de btw-aangifte voor Q2 en Q3 2025 niet via Klopt indienen</p><p>9 EU-inkopen worden wel geïmporteerd, maar Klopt boekt de zelf af te dragen btw nog niet. Je kunt de aangifte zelf of met een belastingadviseur indienen op basis van gecorrigeerde cijfers.</p><p class="text-muted-foreground">Indienen via Klopt kan zodra Klopt dit ondersteunt; wacht daar niet op als je aangiftetermijn eerder afloopt.</p>`,
         )}</div>` +
         section(
           'Wordt geïmporteerd',
@@ -1255,7 +1300,7 @@
         section(
           'Je keuzes',
           `<dl class="divide-y border">${[
-            ['Btw-tarieven', '7', '6 gekoppeld, 1 niet overzetten', 4],
+            ['Btw-tarieven', '8', '7 gekoppeld, 1 niet overzetten', 4],
             ['Rekeningen', '24', '1 nieuw', 5],
             ['Relaties', '186', '1 nieuw nummer', 5],
             ['Koersen', '1', 'GBP op 16-10-2025: 1,1531', 6],
@@ -1379,8 +1424,9 @@
       : `<article class="mb-8 border border-l-4 border-l-destructive p-4 md:p-5" aria-labelledby="blk-h">
         <div class="mb-2">${badge('error', 'Blokkeert indienen', 'alert')}</div>
         <h2 id="blk-h" class="text-[15px] font-medium">Btw-aangifte Q2 en Q3 2025: indienen via Klopt kan nog niet</h2>
-        <p class="mt-1 text-sm">Klopt kan dit nog niet oplossen: bij 9 geïmporteerde Moneybird-inkopen met btw-verlegging of uit de EU hoort zelf af te dragen btw in rubriek 2a/4a/4b en 5b, en die boekt de import niet.</p>
-        <p class="mt-2 text-sm"><span class="font-medium">Wat je kunt doen:</span> dien de aangifte voor deze periodes zelf of met een belastingadviseur in, op basis van gecorrigeerde cijfers. Wacht niet op Klopt als je aangiftetermijn eerder afloopt.</p>
+        <p class="mt-1 text-sm">Klopt kan dit nog niet oplossen: bij 9 geïmporteerde Moneybird-inkopen met btw-verlegging of uit de EU hoort zelf af te dragen btw, en die boekt de import niet. Je kunt deze periodes niet via Klopt indienen.</p>
+        <p class="mt-1 text-xs text-muted-foreground tabular">ICV21 · 9 inkopen van 08-04-2025 tot en met 22-09-2025${S.adv ? ' · rubriek 2a/4a/4b en 5b' : ''}</p>
+        <p class="mt-2 text-sm"><span class="font-medium">Wat je kunt doen:</span> je kunt de aangifte zelf of met een belastingadviseur indienen op basis van gecorrigeerde cijfers. Indienen via Klopt kan zodra Klopt dit ondersteunt; wacht daar niet op als je aangiftetermijn eerder afloopt.</p>
         <div class="mt-4 flex flex-wrap gap-2"><a href="#" data-action="todo" class="btn btn-outline">Naar Q2 2025${icon('arrowRight')}</a><a href="#" data-action="todo" class="btn btn-outline">Naar Q3 2025${icon('arrowRight')}</a></div>
       </article>`
     const counts = (
@@ -1447,6 +1493,7 @@
         ? '<span class="hidden md:block"></span>'
         : `<a href="${hrefFor(D.steps[S.idx - 1].id)}" data-action="back" class="btn btn-outline">${icon('arrowLeft')}Terug${keycaps('escape', 'ml-1')}</a>`
     return `<div data-footer class="fixed inset-x-0 bottom-0 z-20 border-t bg-background px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:sticky md:mt-10 md:px-0 md:py-4">
+      <div data-toast-slot></div>
       ${v.status || n.reason ? `<p id="next-why" class="mb-2 text-xs md:hidden ${n.disabled ? 'text-foreground' : 'text-muted-foreground'} tabular">${n.disabled && n.reason ? n.reason : v.status}</p>` : ''}
       <div class="flex items-center gap-3">
         ${back}
@@ -1493,6 +1540,7 @@
       </div>`
     root.innerHTML = html.replace(/([€£]) /g, '$1' + NBSP)
     S.lastIdx = S.idx
+    paintToast()
     renderOverlay()
     if (S.idx === 8 && !S.p.has('pct') && S.p.get('state') !== 'refused') runProgress()
   }
@@ -1536,15 +1584,17 @@
 
   // ------------------------------------------------------------- overlays
 
-  function dialog(id, title, desc, extra, cancel, confirmLabel, confirmAction) {
+  // `safe`: focus and ↵ sit on Annuleren, for confirms that throw work away.
+  function dialog(id, title, desc, extra, cancel, confirmLabel, confirmAction, safe) {
+    const def = 'data-autofocus data-default'
     return `<div class="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <div class="animate-in-fade absolute inset-0 bg-black/40" data-action="close-overlay"></div>
       <section role="alertdialog" aria-modal="true" aria-labelledby="${id}-t" aria-describedby="${id}-d" class="animate-in-pop relative w-full border bg-background p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:max-w-md">
         <h2 id="${id}-t" class="text-lg">${title}</h2>
         <p id="${id}-d" class="mt-2 text-sm text-muted-foreground">${desc}</p>${extra || ''}
         <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button type="button" data-action="close-overlay" class="btn btn-outline">${cancel}${keycaps('escape', 'ml-1')}</button>
-          <button type="button" data-action="${confirmAction}" data-autofocus class="btn btn-primary">${confirmLabel}${keycaps('enter', onPrimary)}</button>
+          <button type="button" data-action="close-overlay" ${safe ? def : ''} class="btn btn-outline">${cancel}${keycaps(safe ? 'enter' : 'escape', 'ml-1')}</button>
+          <button type="button" data-action="${confirmAction}" ${safe ? '' : def} class="btn btn-primary">${confirmLabel}${safe ? '' : keycaps('enter', onPrimary)}</button>
         </div></section></div>`
   }
 
@@ -1576,7 +1626,7 @@
       r.name,
       'Btw-code kiezen',
       body,
-      `<button type="button" data-action="close-overlay" class="btn btn-outline">Annuleren${keycaps('escape', 'ml-1')}</button><button type="button" data-action="save-rate" data-id="${r.id}" class="btn btn-primary">Opslaan${keycaps('enter', onPrimary)}</button>`,
+      `<button type="button" data-action="close-overlay" class="btn btn-outline">Annuleren${keycaps('escape', 'ml-1')}</button><button type="button" data-action="save-rate" data-id="${r.id}" data-default class="btn btn-primary">Opslaan${keycaps('enter', onPrimary)}</button>`,
     )
   }
 
@@ -1590,7 +1640,7 @@
       'Koers voor INV-20931',
       'Koers kiezen',
       body,
-      `<button type="button" data-action="close-overlay" class="btn btn-outline">Annuleren${keycaps('escape', 'ml-1')}</button><button type="button" data-action="save-fx" class="btn btn-primary">Opslaan${keycaps('enter', onPrimary)}</button>`,
+      `<button type="button" data-action="close-overlay" class="btn btn-outline">Annuleren${keycaps('escape', 'ml-1')}</button><button type="button" data-action="save-fx" data-default class="btn btn-primary">Opslaan${keycaps('enter', onPrimary)}</button>`,
     )
   }
 
@@ -1613,6 +1663,7 @@
         'Annuleren',
         'Opnieuw beginnen',
         'restart',
+        true,
       )
     if (o === 'confirm-disconnect')
       html = dialog(
@@ -1623,6 +1674,7 @@
         'Annuleren',
         'Verbreken',
         'disconnect',
+        true,
       )
     if (o === 'confirm-import')
       html = isMb()
@@ -1654,7 +1706,9 @@
     if (o === 'steps') html = stepsSheet()
     overlayRoot.innerHTML = html.replace(/([€£]) /g, '$1' + NBSP)
     if (html) {
-      const f = overlayRoot.querySelector('[data-autofocus], [data-focus], input, button')
+      const f =
+        overlayRoot.querySelector('[data-autofocus]') ||
+        overlayRoot.querySelector('[data-focus], input, button')
       if (f) f.focus()
     }
   }
@@ -1744,6 +1798,7 @@
     'close-overlay': closeOverlay,
     restart: () => {
       S.overlay = null
+      S.toast = null
       location.hash = hrefFor('bron')
     },
     disconnect: () => {
@@ -1785,7 +1840,7 @@
     },
     'undo-exclude': () => {
       S.rates.find((x) => x.id === 'r7').state = 'none'
-      toastRoot.innerHTML = ''
+      clearToast()
       rerender()
       focusCard('r7')
     },
@@ -1812,7 +1867,7 @@
     },
     'undo-problem-last': () => {
       S.problems.find((x) => x.id === 'p-unbal').done = null
-      toastRoot.innerHTML = ''
+      clearToast()
       rerender()
     },
     defer: (el) => {
@@ -1849,9 +1904,20 @@
   document.addEventListener('keydown', (e) => {
     const t = e.target
     const inField = t.matches && t.matches('input, textarea, select, [contenteditable]')
+    const inCombobox =
+      t.matches && t.matches('[role="combobox"], [aria-haspopup="listbox"], [aria-expanded="true"]')
     if (e.key === 'Escape') {
       if (S.overlay) return (e.preventDefault(), closeOverlay())
+      // Esc only means Terug from the page itself: never from a field, a
+      // combobox or an open popover, and never once the import has started.
+      const popover = t.closest && t.closest('details[open]')
+      if (popover) {
+        popover.open = false
+        popover.querySelector('summary').focus()
+        return
+      }
       if (inField) return t.blur()
+      if (inCombobox || S.idx >= 8) return
       return back()
     }
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -1860,7 +1926,7 @@
     }
     if (S.overlay) {
       if (e.key === 'Enter' && !inField && !(t.closest && t.closest('button, a'))) {
-        const p = overlayRoot.querySelector('.btn-primary')
+        const p = overlayRoot.querySelector('[data-default]')
         if (p) p.click()
       }
       return
@@ -1905,12 +1971,15 @@
       toast('12 documenten niet overzetten', { undo: 'undo-exclude', tone: 'info' })
   }
 
+  window.addEventListener('resize', reserveFooter)
+
   window.addEventListener('hashchange', () => {
+    if (S.toast && S.toast.opts && S.toast.opts.undo) S.toast = null
     readHash()
     render()
     hashToast()
     const h = document.getElementById('step-title')
-    if (h) h.focus({ preventScroll: true })
+    if (h && !S.overlay) h.focus({ preventScroll: true })
     window.scrollTo(0, 0)
   })
 

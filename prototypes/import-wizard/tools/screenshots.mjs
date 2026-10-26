@@ -73,7 +73,7 @@ const SHOTS = [
   [
     'deadend-99-not-in-force-busy',
     '#/problemen?busy=p-nif',
-    { vp: ['desktop', 'mobile'], themes: both },
+    { vp: ['desktop', 'mobile'], themes: both, scrollTo: '[data-card="p-nif"]' },
   ],
   ['deadend-92-93-no-code', '#/btw?focus=card-r7', { vp: ['desktop', 'mobile'], themes: both }],
   [
@@ -94,6 +94,12 @@ const SHOTS = [
     '#/voorbeeld?adv=1',
     { vp: ['desktop'], themes: ['light'], fullPage: true },
   ],
+  [
+    'geavanceerd-aan-problemen',
+    '#/problemen?adv=1',
+    { vp: ['desktop'], themes: ['light'], fullPage: true },
+  ],
+  ['geavanceerd-aan-klaar', '#/klaar?adv=1', { vp: ['desktop'], themes: ['light'] }],
   // Focus, resume, other states
   ['focus-bron-card', '#/bron?focus=src-moneybird', { vp: ['desktop'], themes: both }],
   ['focus-btw-card', '#/btw?focus=card-r4', { vp: ['desktop'], themes: both }],
@@ -169,6 +175,22 @@ for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
       await page.goto(indexUrl + hash + sep + 'theme=' + theme)
       await page.evaluate(() => document.fonts.ready)
       if (opts.fullPage) await page.evaluate(() => document.documentElement.classList.add('shot'))
+      const focusId = new URLSearchParams(hash.split('?')[1] || '').get('focus')
+      if (opts.scrollTo)
+        await page.evaluate((sel) => {
+          const el = document.querySelector(sel)
+          window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 16)
+        }, opts.scrollTo)
+      if (focusId) {
+        // A key press puts Chrome in keyboard modality, so :focus-visible matches.
+        await page.keyboard.press('Shift')
+        await page.evaluate((id) => {
+          const el = document.querySelector(`[data-focus="${id}"]`)
+          el.blur()
+          el.focus()
+          el.scrollIntoView({ block: 'center' })
+        }, focusId)
+      }
       await page.waitForTimeout(150)
       if (vpName === 'mobile') {
         const sw = await page.evaluate(() => document.documentElement.scrollWidth)

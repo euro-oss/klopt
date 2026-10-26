@@ -35,14 +35,14 @@ link.
 Follows `docs/keyboard-map.md` and the redesign's guided invoice: `Enter` commits
 the thing you are in, `Escape` abandons it.
 
-| Key            | Action                                                                                |
-| -------------- | ------------------------------------------------------------------------------------- |
-| `↵`            | Volgende, when focus is not on a field, button or card                                |
-| `⌘↵` / `Ctrl↵` | Volgende from anywhere, including inside a field                                      |
-| `Esc`          | Closes a sheet or dialog first; then leaves a field; then Terug                       |
-| `↑` `↓`        | Move between the source cards (step 1)                                                |
-| `j` `k`        | Next / previous card (steps 5 and 7)                                                  |
-| `↵` on a card  | That card's first action only. One `Enter` never confirms more than the focused rate. |
+| Key            | Action                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `↵`            | Volgende, when focus is not on a field, button or card                                                                          |
+| `⌘↵` / `Ctrl↵` | Volgende from anywhere, including inside a field                                                                                |
+| `Esc`          | Closes a sheet, dialog or popover first; in a field it only leaves the field; never Terug from a combobox, or on steps 9 and 10 |
+| `↑` `↓`        | Move between the source cards (step 1)                                                                                          |
+| `j` `k`        | Next / previous card (steps 5 and 7)                                                                                            |
+| `↵` on a card  | That card's first action only. One `Enter` never confirms more than the focused rate.                                           |
 
 Keycaps are printed on desktop and hidden below 768 px. Focus moves to the step
 heading on every step change and returns to the trigger when a sheet closes.

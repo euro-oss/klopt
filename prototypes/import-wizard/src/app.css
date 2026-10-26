@@ -437,6 +437,18 @@
   border-bottom: 1px dashed var(--color-muted-foreground);
   font-family: var(--font-mono);
   font-size: 0.75rem;
+  white-space: nowrap;
+}
+/* Below md the state links get their own row and scroll on their own. */
+.proto-states {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+/* WIZARD: the selected source card already has a 2px ink border, so its focus ring sits clear of it. */
+.src-card:focus-visible {
+  outline-offset: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {
