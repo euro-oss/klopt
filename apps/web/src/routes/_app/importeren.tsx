@@ -184,6 +184,10 @@ function ImportWizardPage() {
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
   const [accountMappings, setAccountMappings] = useState<Record<string, string>>({})
   const [taxMappings, setTaxMappings] = useState<Record<string, string>>({})
+  /** Latest mappings + a save queue so parallel Bevestigen clicks merge. */
+  const taxMappingsRef = useRef(taxMappings)
+  taxMappingsRef.current = taxMappings
+  const persistChainRef = useRef(Promise.resolve(true))
   /** 0037-restored mappings awaiting Bevestigen this session (#105 PM). */
   const [previousTaxMappings, setPreviousTaxMappings] = useState<Record<string, string>>({})
   const [importProgress, setImportProgress] = useState(0)
@@ -373,40 +377,58 @@ function ImportWizardPage() {
 
   async function persistMappings(next?: {
     accountMappings?: Record<string, string>
+    /** Full replacement of tax mappings (rare). */
     taxMappings?: Record<string, string>
+    /** Merge one or more rate confirmations into the latest known map. */
+    taxMappingPatch?: Record<string, string>
     importDecisions?: MoneybirdImportDecisions
   }) {
-    const previousTax = taxMappings
-    const attemptedTax = next?.taxMappings ?? taxMappings
-    if (next?.taxMappings !== undefined) setTaxMappings(next.taxMappings)
-    if (next?.accountMappings !== undefined) setAccountMappings(next.accountMappings)
-    setTaxViolations({})
-    setBusy(true)
-    setError(null)
-    const result = await saveMoneybirdMappings({
-      data: {
-        accountMappings: next?.accountMappings ?? accountMappings,
-        taxMappings: attemptedTax,
-        importDecisions: next?.importDecisions ?? decisions,
-        idempotencyKey: crypto.randomUUID(),
-      },
-    })
-    setBusy(false)
-    if (!result.ok) {
-      setError(result.problem?.detail ?? t('common.unknownError'))
-      const applied = applyTaxMappingSaveFailure({
-        previous: previousTax,
-        attempted: attemptedTax,
-        violations: result.problem?.violations ?? [],
-        t,
+    const run = async (): Promise<boolean> => {
+      const previousTax = taxMappingsRef.current
+      const attemptedTax =
+        next?.taxMappingPatch !== undefined
+          ? { ...previousTax, ...next.taxMappingPatch }
+          : (next?.taxMappings ?? previousTax)
+      if (next?.taxMappings !== undefined || next?.taxMappingPatch !== undefined) {
+        setTaxMappings(attemptedTax)
+        taxMappingsRef.current = attemptedTax
+      }
+      if (next?.accountMappings !== undefined) setAccountMappings(next.accountMappings)
+      setTaxViolations({})
+      setBusy(true)
+      setError(null)
+      const result = await saveMoneybirdMappings({
+        data: {
+          accountMappings: next?.accountMappings ?? accountMappings,
+          taxMappings: attemptedTax,
+          importDecisions: next?.importDecisions ?? decisions,
+          idempotencyKey: crypto.randomUUID(),
+        },
       })
-      setTaxViolations(applied.taxViolations)
-      setTaxMappings(applied.taxMappings)
-      return false
+      setBusy(false)
+      if (!result.ok) {
+        setError(result.problem?.detail ?? t('common.unknownError'))
+        const applied = applyTaxMappingSaveFailure({
+          previous: previousTax,
+          attempted: attemptedTax,
+          violations: result.problem?.violations ?? [],
+          t,
+        })
+        setTaxViolations(applied.taxViolations)
+        setTaxMappings(applied.taxMappings)
+        taxMappingsRef.current = applied.taxMappings
+        return false
+      }
+      if (next?.importDecisions !== undefined) setDecisions(next.importDecisions)
+      await runPreview()
+      return true
     }
-    if (next?.importDecisions !== undefined) setDecisions(next.importDecisions)
-    await runPreview()
-    return true
+    const queued = persistChainRef.current.then(run, run)
+    persistChainRef.current = queued.then(
+      () => true,
+      () => true,
+    )
+    return queued
   }
 
   const findingActions: MoneybirdFindingActions = {
@@ -1022,12 +1044,14 @@ function ImportWizardPage() {
                         setAccountMappings(row.accountMappings)
                         setPreviousTaxMappings(row.taxMappings)
                         setTaxMappings({})
+                        taxMappingsRef.current = {}
                         setExcludedRateIds(new Set())
                         setExcludedByRate({})
                         setDecisions(row.importDecisions)
                       } else {
                         setPreviousTaxMappings({})
                         setTaxMappings({})
+                        taxMappingsRef.current = {}
                       }
                       await router.invalidate()
                       await runPreview()
@@ -1397,7 +1421,7 @@ function ImportWizardPage() {
                             className="min-h-11 md:min-h-9"
                             onClick={() =>
                               void persistMappings({
-                                taxMappings: { ...taxMappings, [rate.moneybirdId]: previous },
+                                taxMappingPatch: { [rate.moneybirdId]: previous },
                               })
                             }
                           >
@@ -1420,8 +1444,7 @@ function ImportWizardPage() {
                             className="min-h-11 md:min-h-9"
                             onClick={() =>
                               void persistMappings({
-                                taxMappings: {
-                                  ...taxMappings,
+                                taxMappingPatch: {
                                   [rate.moneybirdId]: rate.proposedCode!,
                                 },
                               })
@@ -1905,7 +1928,7 @@ function ImportWizardPage() {
             onSave={async (choice) => {
               if (choice.vatCode === null) return false
               const ok = await persistMappings({
-                taxMappings: { ...taxMappings, [sheetRate.moneybirdId]: choice.vatCode },
+                taxMappingPatch: { [sheetRate.moneybirdId]: choice.vatCode },
               })
               if (!ok) return false
               setSheetRateId(null)

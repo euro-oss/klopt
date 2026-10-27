@@ -58,13 +58,25 @@ async function pickAdminAndWaitForYears(page: Page, yearLabel: string): Promise<
   })
 }
 
+function waitForTaxMappingSave(page: Page) {
+  return page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      (response.url().includes('/api/v1/moneybird/mappings') ||
+        response.url().includes('/api/v1/import-wizard/mappings')),
+    { timeout: 60_000 },
+  )
+}
+
 /** Map every unresolved rate via confirm / AccountVatSheet / exclude. */
 async function mapAllOpenRates(page: Page): Promise<void> {
   for (let i = 0; i < 16; i += 1) {
     const confirm = page.getByRole('button', { name: 'Bevestigen' })
     if ((await confirm.count()) > 0) {
       const before = await confirm.count()
+      const saved = waitForTaxMappingSave(page)
       await confirm.first().click()
+      await saved
       await expect(confirm).toHaveCount(before - 1, { timeout: 30_000 })
       continue
     }
@@ -78,7 +90,9 @@ async function mapAllOpenRates(page: Page): Promise<void> {
       await radio.click()
       const save = sheet.getByRole('button', { name: 'Opslaan' })
       await expect(save).toBeEnabled({ timeout: 15_000 })
+      const saved = waitForTaxMappingSave(page)
       await save.click()
+      await saved
       await expect(sheet).toHaveCount(0, { timeout: 60_000 })
       continue
     }
