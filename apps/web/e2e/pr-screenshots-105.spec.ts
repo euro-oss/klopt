@@ -555,17 +555,34 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
         process.env['KLOPT_ENCRYPTION_KEY'] = 'e2e-encryption-key-not-for-production-01234'
         const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
         const { createFilesystemDocumentStore } = await import('@klopt/adapters')
-        const { createDatabase, closeDatabase } = await import('@klopt/db')
+        const { createDatabase, closeDatabase, MoneybirdImportRepository } = await import(
+          '@klopt/db'
+        )
         const directory = mkdtempSync(join(tmpdir(), 'mb-shot-fail-'))
         const db = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+        // Force onCommitted report-save failure → failedPartial (stand-in has
+        // no attachments, so store.put alone would not fail the job).
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- prototype stub
+        const originalFinish = MoneybirdImportRepository.prototype.finish
+        let blockedRunning = false
+        MoneybirdImportRepository.prototype.finish = async function finishOverride(
+          this: InstanceType<typeof MoneybirdImportRepository>,
+          request: Parameters<typeof originalFinish>[0],
+        ) {
+          if (!blockedRunning && request.state === 'running') {
+            blockedRunning = true
+            throw new Error('report save failed after commit')
+          }
+          return originalFinish.call(this, request)
+        }
         try {
           const store = createFilesystemDocumentStore({ directory })
-          store.put = () => Promise.reject(new Error('attachment store failed after commit'))
           for (let i = 0; i < 8; i += 1) {
             const result = await importMoneybirdAdministration(db, store)
             if (result.state === 'idle') break
           }
         } finally {
+          MoneybirdImportRepository.prototype.finish = originalFinish
           await closeDatabase(db)
         }
 
