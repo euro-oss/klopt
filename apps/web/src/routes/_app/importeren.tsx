@@ -369,6 +369,40 @@ function ImportWizardPage() {
     yearDocuments,
   ])
 
+  function docsForRate(rateId: string): string[] {
+    const problem = [...problems, ...warnings].find(
+      (row) =>
+        (row.code === 'null_percentage_vat_mismatch' || row.code === 'unmapped_tax_rate') &&
+        row.path === `taxRates.${rateId}`,
+    )
+    if (problem === undefined) return []
+    const refs = (problem.detail['references'] ?? '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+    if (refs.length === 0) return []
+    return yearDocuments
+      .filter((doc) =>
+        refs.some((ref) => doc.reference === ref || doc.externalId.endsWith(`:${ref}`)),
+      )
+      .map((doc) => doc.externalId)
+  }
+
+  /** Persist exclusions only — list/undo rebuild from decisions (Legal #105). */
+  const rebuiltExcluded = useMemo(
+    () =>
+      rebuildExcludedRates({
+        excludedExternalIds: decisions.excludedExternalIds ?? [],
+        rates: usedRates,
+        docsForRate,
+      }),
+    // docsForRate depends on problems/warnings/yearDocuments
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [decisions.excludedExternalIds, usedRates, problems, warnings, yearDocuments],
+  )
+  const excludedRateIds = rebuiltExcluded.rateIds
+  const excludedByRate = rebuiltExcluded.byRate
+
   const blockingProblems = problems.filter((problem) => {
     if (problem.code === 'tax_code_not_in_force') {
       const date = problem.detail['bookingDate'] ?? ''
@@ -607,40 +641,6 @@ function ImportWizardPage() {
       stepSave: t('moneybird.fix.stepSave'),
     },
   }
-
-  function docsForRate(rateId: string): string[] {
-    const problem = [...problems, ...warnings].find(
-      (row) =>
-        (row.code === 'null_percentage_vat_mismatch' || row.code === 'unmapped_tax_rate') &&
-        row.path === `taxRates.${rateId}`,
-    )
-    if (problem === undefined) return []
-    const refs = (problem.detail['references'] ?? '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean)
-    if (refs.length === 0) return []
-    return yearDocuments
-      .filter((doc) =>
-        refs.some((ref) => doc.reference === ref || doc.externalId.endsWith(`:${ref}`)),
-      )
-      .map((doc) => doc.externalId)
-  }
-
-  /** Persist exclusions only — list/undo rebuild from decisions (Legal #105). */
-  const rebuiltExcluded = useMemo(
-    () =>
-      rebuildExcludedRates({
-        excludedExternalIds: decisions.excludedExternalIds ?? [],
-        rates: usedRates,
-        docsForRate,
-      }),
-    // docsForRate depends on problems/warnings/yearDocuments
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [decisions.excludedExternalIds, usedRates, problems, warnings, yearDocuments],
-  )
-  const excludedRateIds = rebuiltExcluded.rateIds
-  const excludedByRate = rebuiltExcluded.byRate
 
   async function excludeRate(rateId: string) {
     const ids = docsForRate(rateId)
