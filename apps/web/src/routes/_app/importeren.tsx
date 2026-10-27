@@ -945,7 +945,43 @@ function ImportWizardPage() {
                     className="min-h-11 md:min-h-9"
                     onClick={() => {
                       setShowResume(false)
-                      if (isImportWizardStep(saved.step)) void goTo(saved.step)
+                      void (async () => {
+                        const adminId = saved.administrationId ?? administrationId
+                        if (adminId !== null && adminId !== undefined && adminId !== '') {
+                          const mapped = await getImportAdministrationMappings({
+                            data: { source: 'moneybird', administrationId: adminId },
+                          })
+                          if (mapped.ok && mapped.data.mappings !== null) {
+                            const row = mapped.data.mappings as {
+                              accountMappings: Record<string, string>
+                              taxMappings: Record<string, string>
+                              importDecisions: MoneybirdImportDecisions
+                            }
+                            setAccountMappings({})
+                            setTaxMappings({})
+                            setPreviousAccountMappings(row.accountMappings)
+                            setPreviousTaxMappings(row.taxMappings)
+                            setDecisions(row.importDecisions)
+                          } else {
+                            const connResult = await getMoneybirdConnection()
+                            const kept = connResult.ok ? connResult.data.connection : null
+                            setAccountMappings({})
+                            setTaxMappings({})
+                            setPreviousAccountMappings(
+                              (kept?.accountMappings as Record<string, string> | undefined) ?? {},
+                            )
+                            setPreviousTaxMappings(
+                              (kept?.taxMappings as Record<string, string> | undefined) ?? {},
+                            )
+                            setDecisions(
+                              (kept?.importDecisions as MoneybirdImportDecisions | undefined) ??
+                                emptyDecisions(),
+                            )
+                          }
+                        }
+                        await runPreview()
+                        if (isImportWizardStep(saved.step)) await goTo(saved.step)
+                      })()
                     }}
                   >
                     {t('wizard.resume.continue')}

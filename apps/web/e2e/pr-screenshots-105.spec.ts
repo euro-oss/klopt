@@ -223,32 +223,29 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
         await shoot(page, `05-btw-${theme}-${label}.png`)
 
-        // Confirm one primary proposal so 0037 gets a tax mapping, then re-pick
-        // the same administration → Vorige keuze next to remaining Voorstel.
+        // Confirm one primary proposal so 0037 gets a tax mapping, then remount
+        // via resume → Vorige keuze next to remaining Voorstel rows.
         const firstConfirm = page.getByRole('button', { name: 'Bevestigen' })
         if ((await firstConfirm.count()) > 0) {
           const before = await firstConfirm.count()
           await firstConfirm.first().click()
           await expect(firstConfirm).toHaveCount(before - 1, { timeout: 30_000 })
         }
-        await page.getByRole('button', { name: 'Terug' }).click()
-        await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible()
-        await page.getByRole('button', { name: 'Terug' }).click()
+        await page.goto('/')
         await expect(
-          page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
+          page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
         ).toBeVisible()
-        await page.getByText('Voorbeeld BV').click()
-        await expect(page.getByRole('checkbox', { name: /^202\d$/ }).first()).toBeVisible({
-          timeout: 60_000,
-        })
-        await clickNext(page)
-        await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
+        await page.goto('/importeren')
+        await expect(page.getByRole('heading', { name: /Welkom terug/ })).toBeVisible({
           timeout: 30_000,
         })
-        await clickNext(page)
-        await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
+        await page.getByRole('button', { name: /Doorgaan/i }).click()
+        await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible({
+          timeout: 60_000,
+        })
         await expect(page.getByText('Vorige keuze').first()).toBeVisible({ timeout: 30_000 })
         await expect(page.getByText('Voorstel').first()).toBeVisible()
+        await setTheme(page, theme)
         await shoot(page, `05-btw-voorstel-${theme}-${label}.png`)
 
         // Sheet picker — save from the open sheet (no Escape; that left rates stuck).
