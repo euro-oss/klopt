@@ -536,12 +536,23 @@ function documentNullPercentageVatMismatch(
   return diff > taxedLines
 }
 
-/** Document-level VAT with no line carrying a btw-tarief (#96). */
+/**
+ * Document-level VAT with no line carrying a btw-tarief that actually bears
+ * that VAT (#96). Matches Legal's "geen btw-tarief dat die btw draagt": a
+ * document with totalTax ≠ 0 where every line is untariffed or only 0%/null-%
+ * still books an untagged VAT line in `pushTaggedVatLines` (`byCode` empty).
+ */
 function documentVatWithoutTaxRate(
   totalTax: bigint,
   details: readonly { readonly taxRateId: string | null }[],
+  taxPercentById: ReadonlyMap<string, number>,
 ): boolean {
-  return totalTax !== 0n && details.every((detail) => detail.taxRateId === null)
+  if (totalTax === 0n) return false
+  return !details.some((detail) => {
+    if (detail.taxRateId === null) return false
+    const percent = taxPercentById.get(detail.taxRateId)
+    return percent !== undefined && Number.isFinite(percent) && percent !== 0
+  })
 }
 
 function moneybirdImportDocumentPath(kind: MoneybirdPurchaseDocument['kind'], id: string): string {
@@ -1389,24 +1400,42 @@ export function planMoneybirdImport(
     }
 
     const salesExternalId = `sales_invoice:${invoice.id}`
-    if (
-      !existingExternal.has(salesExternalId) &&
-      documentVatWithoutTaxRate(invoice.totalTax, invoice.details)
-    ) {
-      problems.push(
-        problem(
-          'moneybird_vat_without_tax_rate',
-          `salesInvoices.${invoice.id}`,
-          vatWithoutTaxRateDetail(
-            snapshot,
-            invoice.invoiceId,
-            invoice.invoiceDate,
-            invoice.totalTax,
-            invoice.contactId,
+    if (documentVatWithoutTaxRate(invoice.totalTax, invoice.details, taxPercentById)) {
+      if (existingExternal.has(salesExternalId)) {
+        // Already in Klopt from an earlier import (#96 / #105 Klaar blocked).
+        warnings.push(
+          problem(
+            'moneybird_vat_without_tax_rate',
+            `salesInvoices.${invoice.id}`,
+            {
+              ...vatWithoutTaxRateDetail(
+                snapshot,
+                invoice.invoiceId,
+                invoice.invoiceDate,
+                invoice.totalTax,
+                invoice.contactId,
+              ),
+              alreadyImported: 'true',
+            },
+            'moneybird.vat_without_tax_rate',
           ),
-          'moneybird.vat_without_tax_rate',
-        ),
-      )
+        )
+      } else {
+        problems.push(
+          problem(
+            'moneybird_vat_without_tax_rate',
+            `salesInvoices.${invoice.id}`,
+            vatWithoutTaxRateDetail(
+              snapshot,
+              invoice.invoiceId,
+              invoice.invoiceDate,
+              invoice.totalTax,
+              invoice.contactId,
+            ),
+            'moneybird.vat_without_tax_rate',
+          ),
+        )
+      }
     }
 
     const isCredit = invoice.totalExcl < 0n || invoice.originalSalesInvoiceId !== null
@@ -1519,24 +1548,41 @@ export function planMoneybirdImport(
     }
 
     const purchaseExternalId = `${document.kind}:${document.id}`
-    if (
-      !existingExternal.has(purchaseExternalId) &&
-      documentVatWithoutTaxRate(document.totalTax, document.details)
-    ) {
-      problems.push(
-        problem(
-          'moneybird_vat_without_tax_rate',
-          moneybirdImportDocumentPath(document.kind, document.id),
-          vatWithoutTaxRateDetail(
-            snapshot,
-            document.reference,
-            document.date,
-            document.totalTax,
-            document.contactId,
+    if (documentVatWithoutTaxRate(document.totalTax, document.details, taxPercentById)) {
+      if (existingExternal.has(purchaseExternalId)) {
+        warnings.push(
+          problem(
+            'moneybird_vat_without_tax_rate',
+            moneybirdImportDocumentPath(document.kind, document.id),
+            {
+              ...vatWithoutTaxRateDetail(
+                snapshot,
+                document.reference,
+                document.date,
+                document.totalTax,
+                document.contactId,
+              ),
+              alreadyImported: 'true',
+            },
+            'moneybird.vat_without_tax_rate',
           ),
-          'moneybird.vat_without_tax_rate',
-        ),
-      )
+        )
+      } else {
+        problems.push(
+          problem(
+            'moneybird_vat_without_tax_rate',
+            moneybirdImportDocumentPath(document.kind, document.id),
+            vatWithoutTaxRateDetail(
+              snapshot,
+              document.reference,
+              document.date,
+              document.totalTax,
+              document.contactId,
+            ),
+            'moneybird.vat_without_tax_rate',
+          ),
+        )
+      }
     }
 
     const isCredit = document.totalExcl < 0n

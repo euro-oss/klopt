@@ -112,6 +112,7 @@ export {
 export {
   executeMoneybirdImport,
   MoneybirdPlanRefused,
+  MoneybirdPostCommitFailed,
   type MoneybirdRunReport,
   type MoneybirdRunRequest,
   type MoneybirdYearReconciliation,

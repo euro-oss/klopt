@@ -2646,11 +2646,13 @@ export const nl = {
   'wizard.resume.continue': 'Doorgaan',
   'wizard.resume.restart': 'Opnieuw beginnen',
   'wizard.resume.restartConfirm': 'Je voortgang wissen en opnieuw beginnen?',
+  // Legal VERBATIM (#105 comment 6442468175)
   'wizard.resume.restartConfirmBody':
-    'Je begint weer bij stap 1. Er is nog niets geboekt, dus in je boekhouding gaat niets verloren. Je keuzes voor btw-codes en rekeningen per administratie blijven bewaard.',
+    'Je begint weer bij stap 1. We wissen alleen waar je in deze wizard was. Wat al is overgezet, blijft in je boekhouding staan; opnieuw beginnen maakt geen import ongedaan. Je keuzes voor btw-codes en rekeningen per administratie blijven bewaard.',
   'wizard.bron.title': 'Waar komen je boeken vandaan?',
+  // Legal soft (#105 comment 6442468175)
   'wizard.bron.intro':
-    'Kies het pakket waaruit je wilt overzetten. Er wordt niets geboekt tot je op Importeren drukt.',
+    'Kies het pakket waaruit je wilt overzetten. Er wordt niets geboekt tot je het overzetten bevestigt.',
   'wizard.bron.moneybird.scope': 'Alle facturen, bonnetjes, bankmutaties en memoriaalposten.',
   'wizard.bron.moneybird.notIncluded': 'Concepten en offertes komen niet mee.',
   'wizard.bron.exact.scope':
@@ -2695,10 +2697,24 @@ export const nl = {
   'wizard.administratie.open': 'Open',
   'wizard.administratie.closed': 'Afgesloten',
   'wizard.administratie.closedHint': 'Dit jaar is afgesloten. We zetten het niet over.',
-  'wizard.administratie.docsLine': '{currency} · boekjaar begint in januari · {count} documenten',
-  'wizard.administratie.docsLine_one': '{currency} · boekjaar begint in januari · {count} document',
+  'wizard.administratie.docsLine': '{currency} · boekjaar begint in {month} · {count} documenten',
+  'wizard.administratie.docsLine_one': '{currency} · boekjaar begint in {month} · {count} document',
   'wizard.administratie.docsLine_other':
-    '{currency} · boekjaar begint in januari · {count} documenten',
+    '{currency} · boekjaar begint in {month} · {count} documenten',
+  'wizard.administratie.docsLine_zero': '{currency} · boekjaar begint in {month}',
+  'wizard.administratie.docsLineUnknown': '{currency}',
+  'wizard.administratie.month.1': 'januari',
+  'wizard.administratie.month.2': 'februari',
+  'wizard.administratie.month.3': 'maart',
+  'wizard.administratie.month.4': 'april',
+  'wizard.administratie.month.5': 'mei',
+  'wizard.administratie.month.6': 'juni',
+  'wizard.administratie.month.7': 'juli',
+  'wizard.administratie.month.8': 'augustus',
+  'wizard.administratie.month.9': 'september',
+  'wizard.administratie.month.10': 'oktober',
+  'wizard.administratie.month.11': 'november',
+  'wizard.administratie.month.12': 'december',
   'wizard.administratie.selectedSummary': '{years} jaren · {docs} documenten',
   'wizard.administratie.selectedSummary_other': '{years} jaren · {docs} documenten',
   'wizard.administratie.selectedSummary_one': '{years} jaar · {docs} documenten',
@@ -2739,12 +2755,13 @@ export const nl = {
   'wizard.btw.excludeDocs_other': '{count} documenten niet overzetten',
   'wizard.btw.excludeDocs_one': '{count} document niet overzetten',
   'wizard.btw.excludeUndo': 'Ongedaan maken',
+  // Legal VERBATIM (#105 comment 6442468175)
   'wizard.btw.excludedBody':
-    'Deze {count} documenten zetten we niet over. Hun bedragen en btw staan dan niet in Klopt en ook niet in je aangifte; boek ze zelf als ze in deze boeken horen. Je vindt ze in het overzicht onder ‘Niet overgezet’.',
+    'Deze {count} documenten zetten we niet over. Hun bedragen en btw staan dan niet in Klopt en ook niet in je aangifte. Boek ze niet zelf in Klopt: een volgende import herkent dat niet, en dan staan ze er dubbel in. Staat er in Moneybird een verkeerd tarief, pas het daar aan, maak ‘Niet overzetten’ ongedaan, lees opnieuw en zet opnieuw over. Wat al is overgezet, zetten we niet nog een keer over. Is het tarief juist, doe dan de btw-aangifte over die periode buiten Klopt, bijvoorbeeld in Moneybird. Je vindt ze in het overzicht onder ‘Niet overgezet’.',
   'wizard.btw.excludedBody_other':
-    'Deze {count} documenten zetten we niet over. Hun bedragen en btw staan dan niet in Klopt en ook niet in je aangifte; boek ze zelf als ze in deze boeken horen. Je vindt ze in het overzicht onder ‘Niet overgezet’.',
+    'Deze {count} documenten zetten we niet over. Hun bedragen en btw staan dan niet in Klopt en ook niet in je aangifte. Boek ze niet zelf in Klopt: een volgende import herkent dat niet, en dan staan ze er dubbel in. Staat er in Moneybird een verkeerd tarief, pas het daar aan, maak ‘Niet overzetten’ ongedaan, lees opnieuw en zet opnieuw over. Wat al is overgezet, zetten we niet nog een keer over. Is het tarief juist, doe dan de btw-aangifte over die periode buiten Klopt, bijvoorbeeld in Moneybird. Je vindt ze in het overzicht onder ‘Niet overgezet’.',
   'wizard.btw.excludedBody_one':
-    'Dit {count} document zetten we niet over. Het bedrag en de btw staan dan niet in Klopt en ook niet in je aangifte; boek het zelf als het in deze boeken hoort. Je vindt het in het overzicht onder ‘Niet overgezet’.',
+    'Dit document zetten we niet over. Het bedrag en de btw staan dan niet in Klopt en ook niet in je aangifte. Boek het niet zelf in Klopt: een volgende import herkent dat niet, en dan staat het er dubbel in. Staat er in Moneybird een verkeerd tarief, pas het daar aan, maak ‘Niet overzetten’ ongedaan, lees opnieuw en zet opnieuw over. Wat al is overgezet, zetten we niet nog een keer over. Is het tarief juist, doe dan de btw-aangifte over die periode buiten Klopt, bijvoorbeeld in Moneybird. Je vindt het in het overzicht onder ‘Niet overgezet’.',
   'wizard.btw.chooseInTable': 'Zelf kiezen in de tabel',
   'wizard.btw.leftToChoose': 'Nog {count} tarieven kiezen',
   'wizard.btw.allChosen': 'Alle tarieven gekozen',
@@ -2798,27 +2815,64 @@ export const nl = {
   'wizard.klaar.summary': '{count} documenten overgezet.',
   'wizard.klaar.summary_one': '{count} document overgezet.',
   'wizard.klaar.summary_other': '{count} documenten overgezet.',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.klaar.summaryNone': 'Er is niets nieuws overgezet.',
   'wizard.klaar.nextVat': 'Naar btw-aangifte',
   'wizard.klaar.nextEntries': 'Naar journaalposten',
   'wizard.klaar.blocked':
     'Sommige periodes kun je nog niet via Klopt indienen. Bij de btw-aangifte zie je welke en wat je kunt doen.',
   'wizard.klaar.noGreen': 'Nog niet alles is overgezet. Bekijk de problemen opnieuw.',
   'wizard.overzicht.notTransferred': 'Niet overgezet',
+  'wizard.overzicht.notTransferredEmpty': 'Niets. Alles is overgezet.',
+  'wizard.overzicht.notTransferredRates': 'Tarieven',
+  'wizard.overzicht.notTransferredDocs': 'Documenten',
   'wizard.overzicht.alreadyInKlopt': 'Al in Klopt',
-  'wizard.overzicht.alreadyInKloptEmpty': 'Niets. Dit is je eerste import van deze administratie.',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.overzicht.alreadyInKloptEmpty': 'Nog niets uit deze administratie.',
+  'wizard.overzicht.alreadyInKloptCount':
+    '{count} documenten uit deze administratie staan al in Klopt. Die zetten we niet nog een keer over.',
+  'wizard.overzicht.alreadyInKloptCount_other':
+    '{count} documenten uit deze administratie staan al in Klopt. Die zetten we niet nog een keer over.',
+  'wizard.overzicht.alreadyInKloptCount_one':
+    '{count} document uit deze administratie staat al in Klopt. Dat zetten we niet nog een keer over.',
   'wizard.overzicht.reasonExcluded': 'Niet overzetten gekozen',
-  'wizard.klaar.booksInKlopt': 'Je boeken staan in Klopt',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.klaar.booksInKlopt': 'Wat je hebt overgezet, staat in Klopt.',
   'wizard.klaar.blockedBadge': 'Blokkeert indienen',
   'wizard.klaar.viewNotTransferred': 'Niet overgezet bekijken',
-  'wizard.klaar.whyBlocked': 'Je kunt de aangifte zelf of met een belastingadviseur indienen.',
+  'wizard.klaar.viewNotTransferredDetail':
+    '{docs} documenten, met de reden erbij · {rates} inkopen zonder btw-code tellen niet mee in je aangifte',
+  'wizard.klaar.viewNotTransferredDetail_other':
+    '{docs} documenten, met de reden erbij · {rates} inkopen zonder btw-code tellen niet mee in je aangifte',
+  'wizard.klaar.viewNotTransferredDetail_one':
+    '{docs} document, met de reden erbij · {rates} inkopen zonder btw-code tellen niet mee in je aangifte',
+  // Legal VERBATIM (#105 comment 6442468175) — deadline only for #95
+  'wizard.klaar.whyBlocked':
+    'Klopt past die cijfers niet zelf aan. Je kunt de aangifte over die periodes zelf of met een belastingadviseur indienen, buiten Klopt, op basis van gecorrigeerde cijfers.',
+  'wizard.klaar.whyBlockedDeadline':
+    'Indienen via Klopt kan zodra Klopt dit ondersteunt; wacht daar niet op als je aangiftetermijn eerder afloopt.',
   'wizard.importeren.pctLive': '{pct}% overgezet',
   'wizard.importeren.failed': 'We hebben niets geboekt',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.importeren.failedPartial': 'De import is gestopt. Een deel kan al geboekt zijn.',
+  'wizard.importeren.failedPartialBody':
+    'Kijk bij Journaalposten wat er al staat. Zet je opnieuw over, dan zetten we wat al uit deze administratie is overgezet niet nog een keer over. Een fout herstel je per boeking met een correctie.',
   'wizard.importeren.busy': 'Bezig',
+  'wizard.importeren.pending': 'In de wachtrij…',
+  'wizard.importeren.running': 'Bezig met boeken…',
   'wizard.notInForce.why':
     'Waarom dit telt: Zonder geldige code op de boekdatum kan de aangifte die regels niet plaatsen. De begindatum kun je in Klopt nog niet wijzigen.',
   'wizard.problemen.reconciliation': 'Aansluiting',
+  'wizard.problemen.reconciliationRead': 'gelezen',
+  'wizard.problemen.reconciliationSkipped': 'overgeslagen',
+  'wizard.problemen.reconciliationFailed': 'mislukt',
   'wizard.problemen.blockingSection': 'Houdt de import tegen',
   'wizard.problemen.infoSection': 'Om te weten',
+  'wizard.rekeningen.confirm': 'Bevestigen',
+  'wizard.rekeningen.suggested': 'Voorstel',
+  'wizard.rekeningen.previous': 'Vorige keuze',
+  'wizard.rekeningen.chosen': 'Gekozen',
+  'wizard.btw.nullPercent': 'geen %',
   'nav.importMoneybird': 'Moneybird',
   'nav.importExact': 'Exact Online',
   'wizard.status.pickSource': 'Kies een bron om verder te gaan',

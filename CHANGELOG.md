@@ -18,6 +18,22 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Moneybird: block VAT with no bearing tax rate (#96)
+
+Import planning now raises the blocking finding
+`moneybird_vat_without_tax_rate` when a document has non-zero `totalTax` but no
+line carries a non-zero tagged btw-tarief (including the case where lines only
+have a 0% rate). Already-imported external ids are skipped for booking and
+surface as a warning so Klaar can show the filing block. Finding copy is Legal
+verbatim (`moneybird.vat_without_tax_rate`).
+
+### Import preview: proposed codes are not mapped (#105)
+
+`previewImport` / the Moneybird plan no longer treats a proposed VAT code as
+mapped. Clients receive `unmapped_tax_rate` until the user confirms (saves) a
+mapping. Restored “Vorige keuze” rows also need Bevestigen before Volgende
+advances.
+
 ### Import wizard Phase 1: Moneybird (#100)
 
 A guided ten-step import wizard at **Importeren** walks Moneybird from source

@@ -236,6 +236,13 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           await expect(sheet).toHaveCount(0, { timeout: 60_000 })
         }
 
+        // 05 with Voorstel / Vorige keuze still visible (before Bevestigen)
+        await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
+        await expect(page.getByText(/Voorstel|Vorige keuze/).first()).toBeVisible({
+          timeout: 15_000,
+        })
+        await shoot(page, `05-btw-voorstel-${theme}-${label}.png`)
+
         await mapAllOpenRates(page)
         await expect(page.getByText(/Kies eerst voor/i)).toHaveCount(0)
         await clickNext(page)
@@ -246,6 +253,14 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           timeout: 30_000,
         })
         await shoot(page, `06-rekeningen-${theme}-${label}.png`)
+        // Confirm account proposals so Geavanceerd-off path stays name→name
+        for (let i = 0; i < 12; i += 1) {
+          const confirm = page.getByRole('button', { name: 'Bevestigen' })
+          if ((await confirm.count()) === 0) break
+          const before = await confirm.count()
+          await confirm.first().click()
+          await expect(confirm).toHaveCount(before - 1, { timeout: 30_000 })
+        }
         await clickNext(page)
 
         // 07 Problemen
@@ -267,24 +282,29 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           await shoot(page, `08-overzicht-confirm-${theme}-${label}.png`)
           await confirmDialog.getByRole('button', { name: /Overzetten bevestigen/i }).click()
 
-          await expect(
-            page.getByRole('heading', {
-              name: /Bezig met overzetten|Alles is overgezet|Klaar|We hebben niets|boeken staan in Klopt|Import klaar/,
-            }),
-          ).toBeVisible({ timeout: 60_000 })
+          // Step 9 must show progress — not Klaar. Hold the worker until after the shot.
+          await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
+            timeout: 60_000,
+          })
           await shoot(page, `09-importeren-${theme}-${label}.png`)
 
-          await page.waitForTimeout(1500)
-          const klaar = page.getByRole('heading', {
-            name: /boeken staan in Klopt|Import klaar|We hebben niets/,
-          })
-          if ((await klaar.count()) > 0) {
-            await shoot(page, `10-klaar-${theme}-${label}.png`)
-          } else {
-            // Stay on importeren until klaar advances
-            await expect(klaar).toBeVisible({ timeout: 60_000 })
-            await shoot(page, `10-klaar-${theme}-${label}.png`)
+          const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
+          const { createFilesystemDocumentStore } = await import('@klopt/adapters')
+          const { mkdtempSync } = await import('node:fs')
+          const { join: pathJoin, tmpdir } = await import('node:path')
+          const { createDatabase, closeDatabase } = await import('@klopt/db')
+          const directory = mkdtempSync(pathJoin(tmpdir(), 'mb-shot-'))
+          const db = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+          try {
+            await importMoneybirdAdministration(db, createFilesystemDocumentStore({ directory }))
+          } finally {
+            await closeDatabase(db)
           }
+
+          await expect(page.getByRole('heading', { name: /^Import klaar$/ })).toBeVisible({
+            timeout: 120_000,
+          })
+          await shoot(page, `10-klaar-${theme}-${label}.png`)
         }
 
         await context.close()

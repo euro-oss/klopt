@@ -209,6 +209,7 @@ export async function handleListMoneybirdAdministrations(context: RequestContext
           label: administration.label,
           currency: administration.currency,
           country: administration.country,
+          fiscalYearStartMonth: administration.fiscalYearStartMonth,
         })),
       },
     }
@@ -237,8 +238,9 @@ export async function handleChooseMoneybirdAdministration(
       `This Moneybird token cannot reach administration ${body.administrationId}.`,
     )
   }
-  // Restore per-administration mappings when present (#100 / 0037); otherwise
-  // keep whatever is on the connection (stale switch behaviour unchanged).
+  // Restore per-administration mappings when present (#100 / 0037). When this
+  // administration has no saved row, clear the connection so Vorige keuze from
+  // another administration cannot leak (#105 PM).
   const saved = await withImportWizard(context.database, (wizard) =>
     wizard.findMappings(context.entityId, 'moneybird', chosen.id),
   )
@@ -255,6 +257,13 @@ export async function handleChooseMoneybirdAdministration(
         accountMappings: saved.accountMappings,
         taxMappings: saved.taxMappings,
         importDecisions: saved.importDecisions,
+      })
+    } else {
+      await repository.saveMappings({
+        entityId: context.entityId,
+        accountMappings: {},
+        taxMappings: {},
+        importDecisions: {},
       })
     }
   })
@@ -716,6 +725,18 @@ function serialisePlan(
     reconciliation: plan.reconciliation.map(serialiseYear),
     notImported: plan.notImported,
     excluded: plan.excluded,
+    /** Documents already remembered from an earlier import (#105 Legal/PM). */
+    alreadyInKlopt: {
+      count: plan.entries.filter((entry) => entry.exists).length,
+      sample: plan.entries
+        .filter((entry) => entry.exists)
+        .slice(0, 50)
+        .map((entry) => ({
+          externalId: entry.externalId,
+          reference: entry.documentNumber || entry.description || entry.externalId,
+          kind: entry.kind,
+        })),
+    },
     lockedYears,
     warnings: plan.warnings,
     problems: plan.problems,

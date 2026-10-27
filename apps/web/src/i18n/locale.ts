@@ -111,6 +111,13 @@ export function translatePlural(
   count: number,
   values?: Values,
 ): string {
+  // Prefer an explicit `_zero` catalogue entry when present (Designer/Legal).
+  if (count === 0) {
+    const zeroKey = `${key}_zero` as MessageKey
+    if (CATALOGUES[locale][zeroKey] !== undefined) {
+      return translate(locale, zeroKey, { count, ...values })
+    }
+  }
   const suffix = count === 1 ? '_one' : '_other'
   return translate(locale, `${key}${suffix}` as MessageKey, { count, ...values })
 }

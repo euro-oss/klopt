@@ -820,6 +820,23 @@ describe('VAT mapping direction and rate (#70)', () => {
     })
   })
 
+  it('raises unmapped_tax_rate when only a proposal exists (#105 confirm-only)', () => {
+    const plan = planMoneybirdImport(
+      snapshot(),
+      options({
+        existingTaxRules: CHART_RULES,
+        confirmedTaxMappings: {},
+      }),
+    )
+    const sales = plan.taxRates.find((rate) => rate.moneybirdId === '21')
+    expect(sales).toMatchObject({
+      proposedCode: 'H21',
+      mappedCode: null,
+      mapped: false,
+    })
+    expect(plan.problems.map((item) => item.code)).toContain('unmapped_tax_rate')
+  })
+
   it('still accepts a valid sales → H21 mapping', () => {
     const plan = planMoneybirdImport(
       snapshot(),
@@ -2298,7 +2315,7 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     expect(purchaseFinding?.message).toMatch(/no VAT rate|btw-tarief/i)
   })
 
-  it('skips moneybird_vat_without_tax_rate for already-imported external ids', () => {
+  it('warns (not blocks) moneybird_vat_without_tax_rate for already-imported external ids', () => {
     const base = snapshot()
     const plan = planMoneybirdImport(
       {
@@ -2318,6 +2335,98 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
       options({ existingExternalIds: ['purchase_invoice:401'] }),
     )
     expect(plan.problems.map((item) => item.code)).not.toContain('moneybird_vat_without_tax_rate')
+    expect(plan.warnings.map((item) => item.code)).toContain('moneybird_vat_without_tax_rate')
+    expect(
+      plan.warnings.find((item) => item.code === 'moneybird_vat_without_tax_rate')?.detail?.[
+        'alreadyImported'
+      ],
+    ).toBe('true')
+  })
+
+  it('blocks when document VAT has only 0% line rates (#96)', () => {
+    const base = snapshot()
+    const zeroRate = {
+      id: '50',
+      name: '0% purchase',
+      percentage: 0,
+      taxRateType: 'purchase_invoice' as const,
+      country: 'NL',
+      active: true,
+      reportReference: null,
+    }
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [...base.taxRates, zeroRate],
+        purchaseInvoices: base.purchaseInvoices.map((invoice) =>
+          invoice.id === '401'
+            ? {
+                ...invoice,
+                totalTax: 2100n,
+                details: [
+                  { ...invoice.details[0]!, taxRateId: '50' },
+                  {
+                    id: '4019',
+                    description: 'untariffed',
+                    amount: '1',
+                    price: 0n,
+                    taxRateId: null,
+                    ledgerAccountId: '6',
+                    period: null,
+                  },
+                ],
+              }
+            : invoice,
+        ),
+        receipts: [],
+        salesInvoices: [],
+      },
+      options(),
+    )
+    expect(plan.problems.map((item) => item.code)).toContain('moneybird_vat_without_tax_rate')
+    expect(
+      plan.problems.find(
+        (item) =>
+          item.code === 'moneybird_vat_without_tax_rate' && item.path === 'purchaseInvoices.401',
+      ),
+    ).toMatchObject({
+      messageKey: 'moneybird.vat_without_tax_rate',
+      detail: { reference: 'LEV-88' },
+    })
+
+    const mixed = planMoneybirdImport(
+      {
+        ...base,
+        taxRates: [...base.taxRates, zeroRate],
+        purchaseInvoices: base.purchaseInvoices.map((invoice) =>
+          invoice.id === '401'
+            ? {
+                ...invoice,
+                totalTax: 2100n,
+                details: [
+                  { ...invoice.details[0]!, taxRateId: '50' },
+                  {
+                    id: '4018',
+                    description: 'with 21%',
+                    amount: '1',
+                    price: 10000n,
+                    taxRateId: '22',
+                    ledgerAccountId: '6',
+                    period: null,
+                  },
+                ],
+              }
+            : invoice,
+        ),
+        receipts: [],
+        salesInvoices: [],
+      },
+      options({
+        existingTaxRules: nlMkbTaxRules,
+        confirmedTaxMappings: { '22': 'VH21', '50': 'VGEEN' },
+      }),
+    )
+    expect(mixed.problems.map((item) => item.code)).not.toContain('moneybird_vat_without_tax_rate')
   })
 })
 

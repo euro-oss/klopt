@@ -187,6 +187,26 @@ describe('choosing an administration', () => {
       ),
     ).rejects.toMatchObject({ code: 'not_found' })
   })
+
+  it('clears Vorige keuze when switching to an administration with no saved mappings', async () => {
+    const { token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token, '123456')
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse(MAPPINGS),
+    )
+    const before = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(before.connection?.taxMappings).toEqual(MAPPINGS.taxMappings)
+
+    // 654321 has no 0037 row — connection maps from 123456 must not leak.
+    await choose(token, '654321')
+    const after = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(after.connection?.administrationId).toBe('654321')
+    expect(after.connection?.taxMappings).toEqual({})
+    expect(after.connection?.accountMappings).toEqual({})
+  })
 })
 
 describe('the dry run', () => {
@@ -544,6 +564,14 @@ describe('the import job', () => {
     )
     expect(second.state).toBe('done')
     expect(await counts(entityId)).toEqual(first)
+
+    // Re-preview after commit: entries exist → alreadyInKlopt for Legal count.
+    const againPreview = (await handlePreviewMoneybirdImport(await context(token))).body
+    expect(againPreview.alreadyInKlopt.count).toBeGreaterThan(0)
+    expect(againPreview.alreadyInKlopt.sample[0]).toMatchObject({
+      externalId: expect.stringMatching(/^(sales_invoice|purchase_invoice|journal|bank_mutation):/),
+    })
+    expect(typeof againPreview.alreadyInKlopt.sample[0]?.reference).toBe('string')
   })
 
   it('does not call an unreadable source reconciled on the commit report', async () => {
@@ -610,6 +638,54 @@ describe('the import job', () => {
     await expect(
       handleRunMoneybirdImport(await context(token, crypto.randomUUID())),
     ).rejects.toMatchObject({ code: 'validation_failed' })
+  })
+
+  it('keeps commit counts on the failed report when attachments fail after booking', async () => {
+    const { entityId, token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse(MAPPINGS),
+    )
+    await handleRunMoneybirdImport(await context(token, crypto.randomUUID()))
+
+    const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
+    const boomStore = {
+      name: 'boom',
+      async put(): Promise<never> {
+        throw new Error('attachment store failed after commit')
+      },
+      async get(): Promise<null> {
+        return null
+      },
+      async has(): Promise<boolean> {
+        return false
+      },
+      async remove(): Promise<'absent'> {
+        return 'absent'
+      },
+      async delete(): Promise<{ outcome: 'absent' }> {
+        return { outcome: 'absent' }
+      },
+    }
+
+    const outcome = await importMoneybirdAdministration(database, boomStore as never)
+    expect(outcome.state).toBe('failed')
+    expect(outcome.failure).toMatch(/attachment store failed/)
+
+    const status = (await handleMoneybirdImportStatus(await context(token))).body
+    expect(status.requested).toBe(true)
+    if (!status.requested) throw new Error('expected a Moneybird import run')
+    expect(status.state).toBe('failed')
+    // dryRun:false → imported:true with entriesPosted — UI chooses failedPartial.
+    expect(status.report).toMatchObject({ imported: true, dryRun: false })
+    if (status.report === null || !status.report.imported) {
+      throw new Error('expected a booked commit report after post-commit failure')
+    }
+    expect(status.report.entriesPosted).toBeGreaterThan(0)
+    expect(await countRows('journal_entries', entityId)).toBeGreaterThan(0)
   })
 })
 

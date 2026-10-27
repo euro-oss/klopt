@@ -38,6 +38,15 @@ export interface MoneybirdRunRequest {
   readonly requestId: string | null
   readonly ip: string | null
   readonly mayPostToSoftClosedPeriod: boolean
+  /**
+   * Called after journal commit succeeds and before attachments /
+   * reconciliation / opening. Persist a booked report here so a later
+   * failure still proves entries were posted (Legal: failedPartial).
+   */
+  readonly onCommitted?: (partial: {
+    readonly plan: MoneybirdImportPlan
+    readonly commit: MoneybirdCommitResult
+  }) => Promise<void>
 }
 
 export interface MoneybirdAccountBalance {
@@ -141,145 +150,162 @@ export async function executeMoneybirdImport(
     mayPostToSoftClosedPeriod: request.mayPostToSoftClosedPeriod,
   })
 
+  // Journal rows are durable here. Persist before attachments / TB / opening
+  // so a later failure still carries booked counts (failedPartial, not failed).
+  await request.onCommitted?.({ plan, commit })
+
   let attachmentsStored = 0
   let attachmentsSkipped = 0
-  const wanted = plan.documents.flatMap((document) =>
-    document.attachments.map((attachment) => ({ document, attachment })),
-  )
-  const known = await database.transaction(async (tx) =>
-    new MoneybirdImportRepository(tx).knownAttachments(
-      entityId,
-      wanted.map((item) => item.attachment.id),
-    ),
-  )
-
-  for (const { document, attachment } of wanted) {
-    if (attachment.downloadUrl === null) continue
-    if (known.has(attachment.id)) {
-      attachmentsSkipped += 1
-      continue
-    }
-    const bytes = await request.client.download(attachment.downloadUrl)
-    const contentType = attachment.contentType ?? contentTypeFor(attachment.filename)
-    const stored = await request.store.put(bytes, { contentType })
-    await database.transaction(async (tx) => {
-      const inbox = new InboxRepository(tx)
-      const imported = new MoneybirdImportRepository(tx)
-      const recorded = await inbox.recordDocument({
-        entityId,
-        sha256: stored.sha256 ?? sha256Hex(bytes),
-        sizeBytes: bytes.byteLength,
-        contentType,
-        filename: attachment.filename,
-      })
-      await imported.rememberAttachment({
-        entityId,
-        moneybirdAttachmentId: attachment.id,
-        moneybirdDocumentId: document.moneybirdId,
-        documentId: recorded.id,
-      })
-      const journalEntryId = await imported.journalEntryId(
-        entityId,
-        `${document.kind}:${document.moneybirdId}`,
-      )
-      if (journalEntryId !== null) {
-        await inbox.link({
-          entityId,
-          documentId: recorded.id,
-          subjectKind: 'journal_entry',
-          subjectId: journalEntryId,
-          role: 'attachment',
-        })
-        const [purchase] = await tx
-          .select({ id: purchaseInvoices.id })
-          .from(purchaseInvoices)
-          .where(eq(purchaseInvoices.journalEntryId, journalEntryId))
-          .limit(1)
-        if (purchase !== undefined) {
-          await inbox.link({
-            entityId,
-            documentId: recorded.id,
-            subjectKind: 'purchase_invoice',
-            subjectId: purchase.id,
-            role: 'attachment',
-          })
-        }
-        const [sale] = await tx
-          .select({ id: salesInvoices.id })
-          .from(salesInvoices)
-          .where(eq(salesInvoices.journalEntryId, journalEntryId))
-          .limit(1)
-        if (sale !== undefined) {
-          await inbox.link({
-            entityId,
-            documentId: recorded.id,
-            subjectKind: 'sales_invoice',
-            subjectId: sale.id,
-            role: 'attachment',
-          })
-        }
-      }
-    })
-    attachmentsStored += 1
-  }
-
   const reconciliation: MoneybirdYearReconciliation[] = []
-  for (const year of plan.reconciliation) {
-    const rows = await database.transaction(async (tx) =>
-      new ReportingRepository(tx).trialBalanceRows({
-        entityId,
-        fiscalYearCode: String(year.year),
-        fromPeriod: 1,
-        toPeriod: 12,
-        currency: here.entity!.functionalCurrency,
-      }),
-    )
-    const klopt = buildTrialBalance(
-      {
-        entityId,
-        currency: here.entity.functionalCurrency,
-        fiscalYearCode: String(year.year),
-        fromPeriod: 1,
-        toPeriod: 12,
-        includeZeroRows: false,
-      },
-      rows,
-    )
-    const plannedByAccount = new Map(
-      year.lines.map((line) => [line.accountNumber, line.debit - line.credit]),
-    )
-    const kloptByAccount = new Map(
-      klopt.lines.map((line) => [line.accountNumber, line.debit - line.credit]),
-    )
-    const numbers = [...new Set([...plannedByAccount.keys(), ...kloptByAccount.keys()])].sort()
-    const accounts = numbers.map((accountNumber) => {
-      const planned = plannedByAccount.get(accountNumber) ?? 0n
-      const ours = kloptByAccount.get(accountNumber) ?? 0n
-      return {
-        accountNumber,
-        planned: amount(planned) ?? '0.00',
-        klopt: amount(ours) ?? '0.00',
-        difference: amount(ours - planned) ?? '0.00',
-      }
-    })
+  let opening: MoneybirdOpeningBalance | null = null
 
-    const differences = accounts.filter(
-      (row) => row.difference !== '0.00' && row.difference !== '-0.00',
+  try {
+    const wanted = plan.documents.flatMap((document) =>
+      document.attachments.map((attachment) => ({ document, attachment })),
     )
-    reconciliation.push({
-      year: year.year,
-      source: year.source,
-      plannedDebit: amount(year.totalDebit),
-      plannedCredit: amount(year.totalCredit),
-      kloptDebit: amount(klopt.totalDebit),
-      kloptCredit: amount(klopt.totalCredit),
-      balanced: year.source === 'unreadable' ? null : differences.length === 0,
-      accounts,
-      differences,
+    const known = await database.transaction(async (tx) =>
+      new MoneybirdImportRepository(tx).knownAttachments(
+        entityId,
+        wanted.map((item) => item.attachment.id),
+      ),
+    )
+
+    for (const { document, attachment } of wanted) {
+      if (attachment.downloadUrl === null) continue
+      if (known.has(attachment.id)) {
+        attachmentsSkipped += 1
+        continue
+      }
+      const bytes = await request.client.download(attachment.downloadUrl)
+      const contentType = attachment.contentType ?? contentTypeFor(attachment.filename)
+      const stored = await request.store.put(bytes, { contentType })
+      await database.transaction(async (tx) => {
+        const inbox = new InboxRepository(tx)
+        const imported = new MoneybirdImportRepository(tx)
+        const recorded = await inbox.recordDocument({
+          entityId,
+          sha256: stored.sha256 ?? sha256Hex(bytes),
+          sizeBytes: bytes.byteLength,
+          contentType,
+          filename: attachment.filename,
+        })
+        await imported.rememberAttachment({
+          entityId,
+          moneybirdAttachmentId: attachment.id,
+          moneybirdDocumentId: document.moneybirdId,
+          documentId: recorded.id,
+        })
+        const journalEntryId = await imported.journalEntryId(
+          entityId,
+          `${document.kind}:${document.moneybirdId}`,
+        )
+        if (journalEntryId !== null) {
+          await inbox.link({
+            entityId,
+            documentId: recorded.id,
+            subjectKind: 'journal_entry',
+            subjectId: journalEntryId,
+            role: 'attachment',
+          })
+          const [purchase] = await tx
+            .select({ id: purchaseInvoices.id })
+            .from(purchaseInvoices)
+            .where(eq(purchaseInvoices.journalEntryId, journalEntryId))
+            .limit(1)
+          if (purchase !== undefined) {
+            await inbox.link({
+              entityId,
+              documentId: recorded.id,
+              subjectKind: 'purchase_invoice',
+              subjectId: purchase.id,
+              role: 'attachment',
+            })
+          }
+          const [sale] = await tx
+            .select({ id: salesInvoices.id })
+            .from(salesInvoices)
+            .where(eq(salesInvoices.journalEntryId, journalEntryId))
+            .limit(1)
+          if (sale !== undefined) {
+            await inbox.link({
+              entityId,
+              documentId: recorded.id,
+              subjectKind: 'sales_invoice',
+              subjectId: sale.id,
+              role: 'attachment',
+            })
+          }
+        }
+      })
+      attachmentsStored += 1
+    }
+
+    for (const year of plan.reconciliation) {
+      const rows = await database.transaction(async (tx) =>
+        new ReportingRepository(tx).trialBalanceRows({
+          entityId,
+          fiscalYearCode: String(year.year),
+          fromPeriod: 1,
+          toPeriod: 12,
+          currency: here.entity!.functionalCurrency,
+        }),
+      )
+      const klopt = buildTrialBalance(
+        {
+          entityId,
+          currency: here.entity.functionalCurrency,
+          fiscalYearCode: String(year.year),
+          fromPeriod: 1,
+          toPeriod: 12,
+          includeZeroRows: false,
+        },
+        rows,
+      )
+      const plannedByAccount = new Map(
+        year.lines.map((line) => [line.accountNumber, line.debit - line.credit]),
+      )
+      const kloptByAccount = new Map(
+        klopt.lines.map((line) => [line.accountNumber, line.debit - line.credit]),
+      )
+      const numbers = [...new Set([...plannedByAccount.keys(), ...kloptByAccount.keys()])].sort()
+      const accounts = numbers.map((accountNumber) => {
+        const planned = plannedByAccount.get(accountNumber) ?? 0n
+        const ours = kloptByAccount.get(accountNumber) ?? 0n
+        return {
+          accountNumber,
+          planned: amount(planned) ?? '0.00',
+          klopt: amount(ours) ?? '0.00',
+          difference: amount(ours - planned) ?? '0.00',
+        }
+      })
+
+      const differences = accounts.filter(
+        (row) => row.difference !== '0.00' && row.difference !== '-0.00',
+      )
+      reconciliation.push({
+        year: year.year,
+        source: year.source,
+        plannedDebit: amount(year.totalDebit),
+        plannedCredit: amount(year.totalCredit),
+        kloptDebit: amount(klopt.totalDebit),
+        kloptCredit: amount(klopt.totalCredit),
+        balanced: year.source === 'unreadable' ? null : differences.length === 0,
+        accounts,
+        differences,
+      })
+    }
+
+    opening = await openingBalance(database, entityId, snapshot, plan)
+  } catch (error: unknown) {
+    throw new MoneybirdPostCommitFailed(error, {
+      plan,
+      commit,
+      attachmentsStored,
+      attachmentsSkipped,
+      reconciliation,
+      opening,
     })
   }
-
-  const opening = await openingBalance(database, entityId, snapshot, plan)
 
   return {
     dryRun: false,
@@ -355,5 +381,41 @@ export class MoneybirdPlanRefused extends Error {
   constructor(readonly plan: MoneybirdImportPlan) {
     super('This Moneybird administration cannot be imported as it stands.')
     this.name = 'MoneybirdPlanRefused'
+  }
+}
+
+/**
+ * Commit succeeded; attachments / reconciliation / opening did not.
+ * Carries the booked commit so the worker can finish `failed` with counts
+ * (UI: failedPartial) instead of wiping the report.
+ */
+export class MoneybirdPostCommitFailed extends Error {
+  readonly plan: MoneybirdImportPlan
+  readonly commit: MoneybirdCommitResult
+  readonly attachmentsStored: number
+  readonly attachmentsSkipped: number
+  readonly reconciliation: readonly MoneybirdYearReconciliation[]
+  readonly opening: MoneybirdOpeningBalance | null
+
+  constructor(
+    cause: unknown,
+    partial: {
+      readonly plan: MoneybirdImportPlan
+      readonly commit: MoneybirdCommitResult
+      readonly attachmentsStored: number
+      readonly attachmentsSkipped: number
+      readonly reconciliation: readonly MoneybirdYearReconciliation[]
+      readonly opening: MoneybirdOpeningBalance | null
+    },
+  ) {
+    const message = cause instanceof Error ? cause.message : String(cause)
+    super(message, cause instanceof Error ? { cause } : undefined)
+    this.name = 'MoneybirdPostCommitFailed'
+    this.plan = partial.plan
+    this.commit = partial.commit
+    this.attachmentsStored = partial.attachmentsStored
+    this.attachmentsSkipped = partial.attachmentsSkipped
+    this.reconciliation = partial.reconciliation
+    this.opening = partial.opening
   }
 }

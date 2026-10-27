@@ -22,7 +22,6 @@ import {
 import { Button } from '~/components/ui/button'
 import { AccountVatSheet } from '~/components/findings/account-vat-sheet'
 import { FindingCard } from '~/components/findings/finding-card'
-import { MoneybirdMappingReview } from '~/components/findings/moneybird-mapping-review'
 import {
   AttentionBlock,
   WizardFooter,
@@ -30,6 +29,16 @@ import {
   WizardStatusToast,
   WizardStepHeader,
 } from '~/components/import-wizard/wizard-shell'
+import {
+  importFailureKind,
+  importProgressPercent,
+  isImportRunDone,
+  klaarFilingBlocked,
+  klaarTransferCount,
+  rebuildExcludedRates,
+  type ImportRunStatusView,
+} from '~/lib/import-wizard-run'
+import { refusedRateMessage } from '~/lib/refused-rate-message'
 import { Badge } from '~/components/ui/badge'
 import { Checkbox } from '~/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
@@ -106,6 +115,7 @@ interface AdministrationOption {
   readonly label: string
   readonly currency: string | null
   readonly country: string | null
+  readonly fiscalYearStartMonth?: number | null
 }
 
 interface TaxSample {
@@ -143,7 +153,7 @@ function ImportWizardPage() {
     taxCodes: taxCodesResult,
   } = Route.useLoaderData()
   const { bron: bronParam } = Route.useSearch()
-  const { t, plural } = useT()
+  const { t, plural, tag } = useT()
   const router = useRouter()
   const hydrated = useHydrated()
   const { advanced } = useAdvancedMode()
@@ -192,7 +202,10 @@ function ImportWizardPage() {
   }, [taxMappings])
   /** 0037-restored mappings awaiting Bevestigen this session (#105 PM). */
   const [previousTaxMappings, setPreviousTaxMappings] = useState<Record<string, string>>({})
-  const [importProgress, setImportProgress] = useState(0)
+  const [previousAccountMappings, setPreviousAccountMappings] = useState<Record<string, string>>({})
+  const [liveRun, setLiveRun] = useState<ImportRunStatusView | null>(() =>
+    runStatus.ok ? (runStatus.data as ImportRunStatusView) : null,
+  )
   const [importFailed, setImportFailed] = useState(false)
   const [taxViolations, setTaxViolations] = useState<
     Readonly<Record<string, TaxMappingViolationView>>
@@ -205,8 +218,13 @@ function ImportWizardPage() {
   const [excludedByRate, setExcludedByRate] = useState<Record<string, string[]>>({})
   const [sheetRateId, setSheetRateId] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
-  const [imported, setImported] = useState(false)
+  const [imported, setImported] = useState(() =>
+    runStatus.ok ? (runStatus.data as ImportRunStatusView).state === 'done' : false,
+  )
+  const [enqueueAcked, setEnqueueAcked] = useState(false)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const importProgress = importProgressPercent(liveRun, enqueueAcked || importing)
+  const failureKind = importFailureKind(liveRun)
 
   const kloptAccounts: readonly RankableAccount[] = useMemo(() => {
     if (!accountsResult.ok) return []
@@ -271,12 +289,35 @@ function ImportWizardPage() {
     ((preview?.['lockedYears'] as string[] | undefined) ?? []).map(String),
   )
   const excluded = (preview?.['excluded'] as string[] | undefined) ?? []
+  const alreadyInKlopt = (preview?.['alreadyInKlopt'] as
+    { count: number; sample: { externalId: string; reference: string }[] } | undefined) ?? {
+    count: 0,
+    sample: [],
+  }
   const transferCount =
     (counts['salesInvoices'] ?? 0) +
     (counts['purchaseInvoices'] ?? 0) +
     (counts['receipts'] ?? 0) +
     (counts['bankMutations'] ?? 0) +
     (counts['journalDocuments'] ?? 0)
+  const runReport = liveRun?.report ?? null
+  const klaarCount = klaarTransferCount(runReport)
+  const filingBlock = klaarFilingBlocked({ problems, warnings })
+
+  /** ISO validFrom per code — compare as ISO, not DD-MM-YYYY text. */
+  const taxCodeValidFromIso = useMemo(() => {
+    const map = new Map<string, string>()
+    if (!taxCodesResult.ok) return map
+    for (const row of taxCodesResult.data.taxCodes as readonly {
+      readonly code: string
+      readonly validFrom?: string
+    }[]) {
+      if (row.validFrom === undefined || row.validFrom === '') continue
+      const existing = map.get(row.code)
+      if (existing === undefined || row.validFrom < existing) map.set(row.code, row.validFrom)
+    }
+    return map
+  }, [taxCodesResult])
 
   const notInForceByYear = useMemo(() => {
     const map = new Map<string, { count: number; codes: Set<string> }>()
@@ -291,8 +332,41 @@ function ImportWizardPage() {
       if (code) row.codes.add(code)
       map.set(year, row)
     }
+    // First visit: derive from tax-code validFrom + proposed/previous/mapped codes
+    // before tax_code_not_in_force problems exist (Designer #105).
+    if (map.size === 0) {
+      for (const year of previewYears) {
+        const yearStart = `${year}-01-01`
+        const codes = new Set<string>()
+        let count = 0
+        for (const rate of usedRates) {
+          const code =
+            taxMappings[rate.moneybirdId] ??
+            previousTaxMappings[rate.moneybirdId] ??
+            rate.proposedCode ??
+            rate.candidates?.[0]?.code ??
+            null
+          if (code === null || code === '') continue
+          const validFrom = taxCodeValidFromIso.get(code)
+          if (validFrom === undefined || validFrom <= yearStart) continue
+          codes.add(code)
+          count += yearDocuments.filter((doc) => String(doc.year) === year).length
+        }
+        if (codes.size > 0 && count > 0) {
+          map.set(year, { count, codes })
+        }
+      }
+    }
     return map
-  }, [problems])
+  }, [
+    problems,
+    previewYears,
+    usedRates,
+    taxMappings,
+    previousTaxMappings,
+    taxCodeValidFromIso,
+    yearDocuments,
+  ])
 
   const blockingProblems = problems.filter((problem) => {
     if (problem.code === 'tax_code_not_in_force') {
@@ -561,11 +635,13 @@ function ImportWizardPage() {
         importDecisions: withExcludedExternalIds(decisions, ids),
       })
     }
-    showToast(plural('wizard.btw.excludeDocs', Math.max(ids.length, 1)))
+    if (ids.length > 0) showToast(plural('wizard.btw.excludeDocs', ids.length))
   }
 
   async function undoExcludeRate(rateId: string) {
-    const ids = excludedByRate[rateId] ?? []
+    const ids =
+      excludedByRate[rateId] ??
+      docsForRate(rateId).filter((id) => (decisions.excludedExternalIds ?? []).includes(id))
     setExcludedRateIds((current) => {
       const next = new Set(current)
       next.delete(rateId)
@@ -582,6 +658,20 @@ function ImportWizardPage() {
       })
     }
   }
+
+  /** Rebuild session excluded-rate chrome from persisted decisions (Legal #105). */
+  useEffect(() => {
+    if (usedRates.length === 0) return
+    const rebuilt = rebuildExcludedRates({
+      excludedExternalIds: decisions.excludedExternalIds ?? [],
+      rates: usedRates,
+      docsForRate,
+    })
+    setExcludedRateIds(rebuilt.rateIds)
+    setExcludedByRate(rebuilt.byRate)
+    // docsForRate closes over problems/yearDocuments; rebuild when those settle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional on decisions + preview
+  }, [decisions.excludedExternalIds, preview])
 
   const canNext = (() => {
     switch (step) {
@@ -609,7 +699,7 @@ function ImportWizardPage() {
       case 'overzicht':
         return true
       case 'importeren':
-        return imported || (runStatus.ok && (runStatus.data as { state?: string }).state === 'done')
+        return imported || isImportRunDone(liveRun)
       case 'klaar':
         return false
     }
@@ -695,26 +785,49 @@ function ImportWizardPage() {
     }
   }
 
+  async function pollUntilTerminal(): Promise<ImportRunStatusView | null> {
+    for (let attempt = 0; attempt < 180; attempt += 1) {
+      const status = await moneybirdImportStatus()
+      if (!status.ok) {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        continue
+      }
+      const body = status.data as ImportRunStatusView
+      setLiveRun(body)
+      if (body.state === 'done' || body.state === 'failed') return body
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+    }
+    return liveRun
+  }
+
   async function startImport() {
     setImportConfirmOpen(false)
     setImporting(true)
     setImportFailed(false)
-    setImportProgress(8)
+    setEnqueueAcked(false)
+    setImported(false)
     setError(null)
     await goTo('importeren')
-    setImportProgress(42)
     const result = await runMoneybirdImport({ data: { idempotencyKey: crypto.randomUUID() } })
-    setImporting(false)
     if (!result.ok) {
+      setImporting(false)
       setImportFailed(true)
-      setImportProgress(0)
+      setLiveRun({ state: 'failed', report: null, lastError: result.problem?.detail ?? null })
       setError(result.problem?.detail ?? t('common.unknownError'))
       return
     }
-    setImportProgress(100)
-    setImported(true)
+    setEnqueueAcked(true)
+    setLiveRun(result.data as ImportRunStatusView)
+    const terminal = await pollUntilTerminal()
+    setImporting(false)
     await router.invalidate()
-    await goTo('klaar')
+    if (terminal?.state === 'done') {
+      setImported(true)
+      await goTo('klaar')
+      return
+    }
+    setImportFailed(true)
+    setError(terminal?.lastError ?? t('common.unknownError'))
   }
 
   async function handleBack() {
@@ -1093,15 +1206,19 @@ function ImportWizardPage() {
                           taxMappings: Record<string, string>
                           importDecisions: MoneybirdImportDecisions
                         }
-                        setAccountMappings(row.accountMappings)
+                        setAccountMappings({})
+                        setPreviousAccountMappings(row.accountMappings)
                         setPreviousTaxMappings(row.taxMappings)
                         setTaxMappings({})
                         setExcludedRateIds(new Set())
                         setExcludedByRate({})
                         setDecisions(row.importDecisions)
                       } else {
+                        setAccountMappings({})
+                        setPreviousAccountMappings({})
                         setPreviousTaxMappings({})
                         setTaxMappings({})
+                        setDecisions(emptyDecisions())
                       }
                       await router.invalidate()
                       await runPreview()
@@ -1111,7 +1228,16 @@ function ImportWizardPage() {
                   aria-label={t('wizard.administratie.admins')}
                 >
                   {administrations.map((admin) => {
-                    const docsForAdmin = yearDocuments.length
+                    const monthKey =
+                      admin.fiscalYearStartMonth !== undefined &&
+                      admin.fiscalYearStartMonth !== null &&
+                      admin.fiscalYearStartMonth >= 1 &&
+                      admin.fiscalYearStartMonth <= 12
+                        ? (`wizard.administratie.month.${String(admin.fiscalYearStartMonth)}` as MessageKey)
+                        : null
+                    const docsForAdmin =
+                      administrationId === admin.id && preview !== null ? yearDocuments.length : 0
+                    const monthLabel = monthKey !== null ? t(monthKey) : null
                     return (
                       <label
                         key={admin.id}
@@ -1124,10 +1250,21 @@ function ImportWizardPage() {
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-medium">{admin.name}</span>
                           <span className="text-muted-foreground block text-xs tabular-nums">
-                            {plural('wizard.administratie.docsLine', docsForAdmin, {
-                              currency: admin.currency ?? 'EUR',
-                              count: String(docsForAdmin),
-                            })}
+                            {monthLabel === null
+                              ? t('wizard.administratie.docsLineUnknown', {
+                                  currency: admin.currency ?? 'EUR',
+                                })
+                              : administrationId === admin.id && preview !== null
+                                ? plural('wizard.administratie.docsLine', docsForAdmin, {
+                                    currency: admin.currency ?? 'EUR',
+                                    month: monthLabel,
+                                    count: String(docsForAdmin),
+                                  })
+                                : t('wizard.administratie.docsLine_zero', {
+                                    currency: admin.currency ?? 'EUR',
+                                    month: monthLabel,
+                                    count: '0',
+                                  })}
                             {advanced ? ` · ${admin.id}` : ''}
                           </span>
                         </span>
@@ -1177,93 +1314,89 @@ function ImportWizardPage() {
                                     docsForRate(rate.moneybirdId).includes(doc.externalId),
                                   ),
                               ).length
+                        const nifCodes = nif !== undefined ? [...nif.codes] : []
+                        const earliestIso =
+                          nifCodes
+                            .map((code) => taxCodeValidFromIso.get(code))
+                            .filter((iso): iso is string => iso !== undefined)
+                            .sort()[0] ?? null
                         const validFrom =
-                          [...taxCodeValidFromLabel.values()].sort()[0] ?? `01-01-${year}`
+                          earliestIso !== null
+                            ? (taxCodeValidFromLabel.get(nifCodes[0] ?? '') ??
+                              (() => {
+                                const [y, m, d] = earliestIso.split('-')
+                                return y && m && d ? `${d}-${m}-${y}` : earliestIso
+                              })())
+                            : `01-01-${year}`
                         return (
                           <tr key={year} className="border-border border-t align-top">
-                            <td className="p-0" colSpan={4}>
-                              <label
+                            <td className="px-4 py-3">
+                              <Checkbox
+                                checked={checked}
+                                disabled={closed}
+                                aria-label={year}
+                                aria-describedby={
+                                  nif !== undefined && nif.count > 0
+                                    ? `${warnId} ${helpId}`
+                                    : undefined
+                                }
+                                onCheckedChange={(value) => {
+                                  if (closed) return
+                                  const on = value === true
+                                  setSelectedYears((current) =>
+                                    on
+                                      ? [...new Set([...current, year])]
+                                      : current.filter((item) => item !== year),
+                                  )
+                                }}
+                              />
+                            </td>
+                            <td className="py-3 pr-3 align-top">
+                              <span
                                 className={cn(
-                                  'flex min-h-11 cursor-pointer items-start gap-3 px-4 py-3',
-                                  closed && 'cursor-not-allowed opacity-70',
+                                  'font-medium tabular-nums',
+                                  nif !== undefined && nif.count > 0 && 'text-destructive',
                                 )}
                               >
-                                <Checkbox
-                                  className="mt-1"
-                                  checked={checked}
-                                  disabled={closed}
-                                  aria-label={year}
-                                  aria-describedby={
-                                    nif !== undefined && nif.count > 0
-                                      ? `${warnId} ${helpId}`
-                                      : undefined
-                                  }
-                                  onCheckedChange={(value) => {
-                                    if (closed) return
-                                    const on = value === true
-                                    setSelectedYears((current) =>
-                                      on
-                                        ? [...new Set([...current, year])]
-                                        : current.filter((item) => item !== year),
-                                    )
-                                  }}
-                                />
-                                <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1.2fr)] items-start gap-3">
-                                  <span
-                                    className={cn(
-                                      'font-medium tabular-nums',
-                                      nif !== undefined && nif.count > 0 && 'text-destructive',
-                                    )}
+                                {year}
+                              </span>
+                              {nif !== undefined && nif.count > 0 && (
+                                <div className="mt-2">
+                                  <Badge variant="destructive">{t('findingCard.blocking')}</Badge>
+                                  <p
+                                    id={warnId}
+                                    className="text-destructive mt-1 text-xs font-medium"
                                   >
-                                    {year}
-                                  </span>
-                                  <span className="text-right tabular-nums">{docs}</span>
-                                  <span>
-                                    <span className="block">
-                                      {closed
-                                        ? t('wizard.administratie.closed')
-                                        : t('wizard.administratie.open')}
-                                    </span>
-                                    {closed && (
-                                      <p className="text-muted-foreground mt-1 text-xs">
-                                        {t('wizard.administratie.closedHint')}
-                                      </p>
-                                    )}
-                                    {nif !== undefined && nif.count > 0 && (
-                                      <div className="mt-2">
-                                        <Badge variant="destructive">
-                                          {t('findingCard.blocking')}
-                                        </Badge>
-                                        <p
-                                          id={warnId}
-                                          className="text-destructive mt-1 text-xs font-medium"
-                                        >
-                                          {plural('wizard.year.notInForce', nif.count, {
-                                            year,
-                                            count: String(nif.count),
-                                          })}
-                                        </p>
-                                        <p
-                                          id={helpId}
-                                          className="text-muted-foreground mt-0.5 text-xs"
-                                        >
-                                          {t('wizard.year.notInForceHelp', {
-                                            validFrom,
-                                            year,
-                                          })}
-                                        </p>
-                                      </div>
-                                    )}
-                                    {noFitCount > 0 && (
-                                      <p className="text-warning mt-2 text-xs">
-                                        {plural('wizard.year.noFittingCode', noFitCount, {
-                                          count: String(noFitCount),
-                                        })}
-                                      </p>
-                                    )}
-                                  </span>
-                                </span>
-                              </label>
+                                    {plural('wizard.year.notInForce', nif.count, {
+                                      year,
+                                      count: String(nif.count),
+                                    })}
+                                  </p>
+                                  <p id={helpId} className="text-muted-foreground mt-0.5 text-xs">
+                                    {t('wizard.year.notInForceHelp', { validFrom, year })}
+                                  </p>
+                                </div>
+                              )}
+                              {noFitCount > 0 && (
+                                <p className="text-warning mt-2 text-xs">
+                                  {plural('wizard.year.noFittingCode', noFitCount, {
+                                    count: String(noFitCount),
+                                  })}
+                                </p>
+                              )}
+                            </td>
+                            <td className="py-3 pr-3 text-right align-top tabular-nums">{docs}</td>
+                            <td className="py-3 pr-4 align-top">
+                              <span className="block">
+                                {closed
+                                  ? t('wizard.administratie.closed')
+                                  : t('wizard.administratie.open')}
+                              </span>
+                              {closed && (
+                                <p className="text-muted-foreground mt-1 text-xs">
+                                  {t('wizard.administratie.closedHint')}
+                                </p>
+                              )}
                             </td>
                           </tr>
                         )
@@ -1383,7 +1516,13 @@ function ImportWizardPage() {
                         <div className="min-w-0">
                           <h3 className="text-[15px] font-medium">{rate.name}</h3>
                           <p className="text-muted-foreground text-xs tabular-nums">
-                            {rate.percentage || '—'}%{advanced ? ` · ${rate.moneybirdId}` : ''}
+                            {rate.percentage === '' ||
+                            rate.percentage === null ||
+                            rate.percentage === undefined ||
+                            rate.percentage === '—'
+                              ? t('wizard.btw.nullPercent')
+                              : `${rate.percentage}%`}
+                            {advanced ? ` · ${rate.moneybirdId}` : ''}
                           </p>
                         </div>
                         {excluded ? (
@@ -1403,9 +1542,13 @@ function ImportWizardPage() {
                       {excluded ? (
                         <div className="mt-3">
                           <p className="text-sm">
-                            {plural('wizard.btw.excludedBody', Math.max(excludeCount, 1), {
-                              count: String(excludeCount),
-                            })}
+                            {plural(
+                              'wizard.btw.excludedBody',
+                              excludeCount > 0 ? excludeCount : 1,
+                              {
+                                count: String(excludeCount > 0 ? excludeCount : 1),
+                              },
+                            )}
                           </p>
                           <Button
                             type="button"
@@ -1443,10 +1586,9 @@ function ImportWizardPage() {
                               >
                                 {plural(
                                   'wizard.btw.excludeDocs',
-                                  Math.max(
-                                    docs.length || problemCountForRate(problems, rate.moneybirdId),
+                                  docs.length ||
+                                    problemCountForRate(problems, rate.moneybirdId) ||
                                     1,
-                                  ),
                                 )}
                               </Button>
                               {advanced && (
@@ -1565,29 +1707,76 @@ function ImportWizardPage() {
               intro={t('wizard.rekeningen.intro')}
             />
             {preview !== null ? (
-              <MoneybirdMappingReview
-                accounts={accountSample}
-                taxRates={taxRates}
-                accountMappings={accountMappings}
-                taxMappings={taxMappings}
-                taxViolations={taxViolations}
-                advanced={advanced}
-                onAccountChange={(id, value) =>
-                  setAccountMappings((current) => ({ ...current, [id]: value }))
-                }
-                onTaxChange={(id, value) => {
-                  setTaxViolations((current) => {
-                    if (current[id] === undefined) return current
-                    const next = { ...current }
-                    delete next[id]
-                    return next
-                  })
-                  setTaxMappings((current) => ({ ...current, [id]: value }))
-                }}
-                onSave={() => void persistMappings({})}
-                busy={busy}
-                hydrated={hydrated}
-              />
+              <ul role="list" className="mb-6 divide-y overflow-x-hidden border">
+                {accountSample.map((account) => {
+                  const confirmed = accountMappings[account.moneybirdId]
+                  const previous = previousAccountMappings[account.moneybirdId]
+                  const proposed = account.proposedNumber
+                  const chosenNumber = confirmed ?? previous ?? proposed
+                  const kloptName =
+                    kloptAccounts.find((row) => row.number === chosenNumber)?.name ?? chosenNumber
+                  const badge =
+                    confirmed !== undefined
+                      ? t('wizard.rekeningen.chosen')
+                      : previous !== undefined
+                        ? t('wizard.rekeningen.previous')
+                        : t('wizard.rekeningen.suggested')
+                  return (
+                    <li key={account.moneybirdId} className="px-4 py-3">
+                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium break-words">
+                            {account.name}
+                            <span className="text-muted-foreground font-normal"> → </span>
+                            {kloptName}
+                          </p>
+                          <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">
+                            {advanced ? `${account.number} → ${chosenNumber}` : chosenNumber}
+                            {advanced && account.rgsCode ? ` · ${account.rgsCode}` : ''}
+                          </p>
+                          <Badge variant="secondary" className="mt-2">
+                            {badge}
+                          </Badge>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          {confirmed === undefined && (
+                            <Button
+                              type="button"
+                              className="min-h-11 md:min-h-9"
+                              disabled={busy}
+                              onClick={() => {
+                                const next = {
+                                  ...accountMappings,
+                                  [account.moneybirdId]: chosenNumber,
+                                }
+                                setAccountMappings(next)
+                                void persistMappings({ accountMappings: next })
+                              }}
+                            >
+                              {t('wizard.rekeningen.confirm')}
+                            </Button>
+                          )}
+                          {advanced && (
+                            <label className="flex min-h-11 items-center gap-2 text-sm md:min-h-9">
+                              <span className="sr-only">{t('wizard.rekeningen.title')}</span>
+                              <input
+                                className="border-input bg-background h-9 w-24 border px-2 tabular-nums"
+                                value={accountMappings[account.moneybirdId] ?? chosenNumber}
+                                onChange={(event) =>
+                                  setAccountMappings((current) => ({
+                                    ...current,
+                                    [account.moneybirdId]: event.target.value,
+                                  }))
+                                }
+                              />
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
             ) : (
               <Button type="button" onClick={() => void runPreview()}>
                 {t('wizard.voorbeeld.reread')}
@@ -1692,13 +1881,37 @@ function ImportWizardPage() {
               <section className="mb-6">
                 <h2 className="mb-2 text-base">{t('wizard.problemen.reconciliation')}</h2>
                 <ul className="text-muted-foreground space-y-1 text-sm tabular-nums">
-                  {reconciliationRows.map((row) => (
-                    <li key={row.year}>
-                      {row.year}: {row.source}
-                      {row.totalDebit !== null ? ` · D ${row.totalDebit}` : ''}
-                      {row.totalCredit !== null ? ` · C ${row.totalCredit}` : ''}
-                    </li>
-                  ))}
+                  {reconciliationRows.map((row) => {
+                    const sourceKey =
+                      row.source === 'read'
+                        ? 'wizard.problemen.reconciliationRead'
+                        : row.source === 'empty'
+                          ? 'wizard.overzicht.notTransferredEmpty'
+                          : row.source === 'unreadable'
+                            ? 'wizard.problemen.reconciliationFailed'
+                            : null
+                    const sourceLabel =
+                      sourceKey !== null ? t(sourceKey as MessageKey) : String(row.source)
+                    const money = (value: string | null) => {
+                      if (value === null || value === '') return null
+                      const amount = Number.parseFloat(value)
+                      if (!Number.isFinite(amount)) return value
+                      return new Intl.NumberFormat(tag, {
+                        style: 'currency',
+                        currency: 'EUR',
+                      }).format(amount)
+                    }
+                    const debit = money(row.totalDebit)
+                    const credit = money(row.totalCredit)
+                    return (
+                      <li key={row.year}>
+                        {row.year}: {sourceLabel}
+                        {advanced && debit !== null ? ` · D ${debit}` : ''}
+                        {advanced && credit !== null ? ` · C ${credit}` : ''}
+                        {!advanced && debit !== null ? ` · ${debit}` : ''}
+                      </li>
+                    )
+                  })}
                 </ul>
               </section>
             )}
@@ -1739,42 +1952,88 @@ function ImportWizardPage() {
             </dl>
             <section className="mt-6">
               <h2 className="mb-2 text-base">{t('wizard.overzicht.notTransferred')}</h2>
-              {excludedRateIds.size === 0 && excluded.length === 0 ? (
-                <p className="text-muted-foreground text-sm">—</p>
+              {excludedRateIds.size === 0 &&
+              (decisions.excludedExternalIds ?? []).length === 0 &&
+              excluded.length === 0 ? (
+                <p className="text-sm">{t('wizard.overzicht.notTransferredEmpty')}</p>
               ) : (
-                <ul role="list" className="divide-y border">
-                  {[...excludedRateIds].map((rateId) => {
-                    const rate = taxRates.find((row) => row.moneybirdId === rateId)
-                    const n = excludedByRate[rateId]?.length ?? 0
+                <div className="space-y-4">
+                  {excludedRateIds.size > 0 && (
+                    <div>
+                      <h3 className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">
+                        {t('wizard.overzicht.notTransferredRates')}
+                      </h3>
+                      <ul role="list" className="divide-y border">
+                        {[...excludedRateIds].map((rateId) => {
+                          const rate = taxRates.find((row) => row.moneybirdId === rateId)
+                          const n = excludedByRate[rateId]?.length ?? 0
+                          return (
+                            <li
+                              key={rateId}
+                              className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                            >
+                              <span>
+                                <span className="font-medium">{rate?.name ?? rateId}</span>
+                                <span className="text-muted-foreground mt-0.5 block text-xs">
+                                  {t('wizard.overzicht.reasonExcluded')}
+                                  {n > 0 ? ` · ${String(n)}` : ''}
+                                </span>
+                              </span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="min-h-11 md:min-h-9"
+                                onClick={() => void undoExcludeRate(rateId)}
+                              >
+                                {t('wizard.btw.excludeUndo')}
+                              </Button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  {(() => {
+                    const rateDocIds = new Set(Object.values(excludedByRate).flat())
+                    const docIds = [
+                      ...new Set([...(decisions.excludedExternalIds ?? []), ...excluded]),
+                    ].filter((id) => !rateDocIds.has(id))
+                    if (docIds.length === 0) return null
                     return (
-                      <li
-                        key={rateId}
-                        className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
-                      >
-                        <span>
-                          <span className="font-medium">{rate?.name ?? rateId}</span>
-                          <span className="text-muted-foreground mt-0.5 block text-xs">
-                            {t('wizard.overzicht.reasonExcluded')}
-                            {n > 0 ? ` · ${String(n)}` : ''}
-                          </span>
-                        </span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="min-h-11 md:min-h-9"
-                          onClick={() => void undoExcludeRate(rateId)}
-                        >
-                          {t('wizard.btw.excludeUndo')}
-                        </Button>
-                      </li>
+                      <div>
+                        <h3 className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">
+                          {t('wizard.overzicht.notTransferredDocs')}
+                        </h3>
+                        <ul role="list" className="divide-y border">
+                          {docIds.map((id) => {
+                            const doc = yearDocuments.find((row) => row.externalId === id)
+                            return (
+                              <li key={id} className="px-4 py-3 text-sm">
+                                <span className="font-medium">{doc?.reference ?? id}</span>
+                                <span className="text-muted-foreground mt-0.5 block text-xs">
+                                  {t('wizard.overzicht.reasonExcluded')}
+                                </span>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </div>
                     )
-                  })}
-                </ul>
+                  })()}
+                </div>
               )}
             </section>
             <section className="mt-6">
               <h2 className="mb-2 text-base">{t('wizard.overzicht.alreadyInKlopt')}</h2>
-              <p className="text-sm">{t('wizard.overzicht.alreadyInKloptEmpty')}</p>
+              {alreadyInKlopt.count === 0 ? (
+                <p className="text-sm">{t('wizard.overzicht.alreadyInKloptEmpty')}</p>
+              ) : (
+                <p className="text-sm">
+                  {plural('wizard.overzicht.alreadyInKloptCount', alreadyInKlopt.count, {
+                    count: String(alreadyInKlopt.count),
+                  })}
+                </p>
+              )}
               <p className="text-muted-foreground mt-2 text-sm">
                 {t('wizard.overzicht.dedupLegal')}
               </p>
@@ -1794,17 +2053,32 @@ function ImportWizardPage() {
               titleId={titleId}
               step={step}
               title={
-                importFailed
-                  ? t('wizard.importeren.failed')
+                importFailed || failureKind !== 'none'
+                  ? failureKind === 'failedPartial'
+                    ? t('wizard.importeren.failedPartial')
+                    : t('wizard.importeren.failed')
                   : imported
                     ? t('wizard.status.done')
                     : t('wizard.importeren.title')
               }
-              intro={t('wizard.importeren.intro')}
+              {...(importFailed || failureKind !== 'none'
+                ? {}
+                : { intro: t('wizard.importeren.intro') })}
             />
-            {importFailed ? (
-              <AttentionBlock title={t('wizard.importeren.failed')}>
-                <p>{error ?? t('common.unknownError')}</p>
+            {importFailed || failureKind !== 'none' ? (
+              <AttentionBlock
+                tone="error"
+                title={
+                  failureKind === 'failedPartial'
+                    ? t('wizard.importeren.failedPartial')
+                    : t('wizard.importeren.failed')
+                }
+              >
+                {failureKind === 'failedPartial' ? (
+                  <p>{t('wizard.importeren.failedPartialBody')}</p>
+                ) : (
+                  <p>{error ?? liveRun?.lastError ?? t('common.unknownError')}</p>
+                )}
                 <Button
                   type="button"
                   className="mt-3 min-h-11 md:min-h-9"
@@ -1820,15 +2094,19 @@ function ImportWizardPage() {
                     <span className="font-medium">
                       {imported
                         ? t('wizard.status.done')
-                        : importing
-                          ? t('wizard.status.importing')
-                          : t('wizard.importeren.busy')}
+                        : liveRun?.state === 'running'
+                          ? t('wizard.importeren.running')
+                          : liveRun?.state === 'pending'
+                            ? t('wizard.importeren.pending')
+                            : importing
+                              ? t('wizard.status.importing')
+                              : t('wizard.importeren.busy')}
                     </span>
                     <span className="tabular-nums">{importProgress}%</span>
                   </div>
                   <div className="bg-border mt-2 h-2">
                     <div
-                      className="bg-foreground h-2 transition-[width]"
+                      className="bg-foreground h-2 transition-[width] motion-reduce:transition-none"
                       style={{ width: `${String(importProgress)}%` }}
                     />
                   </div>
@@ -1854,43 +2132,67 @@ function ImportWizardPage() {
           </>
         )}
 
-        {step === 'klaar' && (
+        {step === 'klaar' && imported && isImportRunDone(liveRun) && (
           <>
             <WizardStepHeader
               titleId={titleId}
               step={step}
-              title={t('wizard.klaar.booksInKlopt')}
-              intro={plural('wizard.klaar.summary', Math.max(transferCount, 1), {
-                count: String(transferCount),
-              })}
+              title={t('wizard.klaar.title')}
+              intro={
+                klaarCount === 0
+                  ? t('wizard.klaar.summaryNone')
+                  : plural('wizard.klaar.summary', klaarCount, {
+                      count: String(klaarCount),
+                    })
+              }
             />
-            {(blockingProblems.length > 0 || groupNotInForce(problems).length > 0) && (
+            <p className="text-muted-foreground mb-4 text-sm">{t('wizard.klaar.booksInKlopt')}</p>
+            {filingBlock.blocked && (
               <AttentionBlock
                 tone="error"
                 badge={<Badge variant="destructive">{t('wizard.klaar.blockedBadge')}</Badge>}
                 title={t('wizard.klaar.blocked')}
               >
                 <p>{t('wizard.klaar.whyBlocked')}</p>
+                {filingBlock.showDeadline && (
+                  <p className="mt-2">{t('wizard.klaar.whyBlockedDeadline')}</p>
+                )}
               </AttentionBlock>
             )}
-            <ul role="list" className="mt-6 divide-y border">
-              <li>
-                <button
-                  type="button"
-                  className="hover:bg-muted flex min-h-11 w-full items-center justify-between px-4 py-3 text-left text-sm"
-                  onClick={() => void goTo('overzicht')}
-                >
-                  <span>
-                    <span className="block font-medium">
-                      {t('wizard.klaar.viewNotTransferred')}
-                    </span>
-                    <span className="text-muted-foreground block text-xs tabular-nums">
-                      {String(excluded.length + excludedRateIds.size)}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            </ul>
+            {(() => {
+              const excludedDocs = [
+                ...new Set([...(decisions.excludedExternalIds ?? []), ...excluded]),
+              ]
+              const rateCount = excludedRateIds.size
+              if (excludedDocs.length === 0 && rateCount === 0) return null
+              return (
+                <ul role="list" className="mt-6 divide-y border">
+                  <li>
+                    <button
+                      type="button"
+                      className="hover:bg-muted flex min-h-11 w-full items-center justify-between px-4 py-3 text-left text-sm"
+                      onClick={() => void goTo('overzicht')}
+                    >
+                      <span>
+                        <span className="block font-medium">
+                          {t('wizard.klaar.viewNotTransferred')}
+                        </span>
+                        <span className="text-muted-foreground block text-xs">
+                          {plural(
+                            'wizard.klaar.viewNotTransferredDetail',
+                            excludedDocs.length || 1,
+                            {
+                              docs: String(excludedDocs.length),
+                              rates: String(rateCount),
+                            },
+                          )}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                </ul>
+              )
+            })()}
             <div className="mt-6 flex flex-wrap gap-2">
               <Button asChild className="min-h-11 md:min-h-9">
                 <Link to="/vat">{t('wizard.klaar.nextVat')}</Link>
@@ -2019,9 +2321,11 @@ function ImportWizardPage() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {plural('wizard.overzicht.confirmTitleCount', Math.max(transferCount, 1), {
-                  count: String(transferCount),
-                })}
+                {transferCount === 0
+                  ? t('wizard.klaar.summaryNone')
+                  : plural('wizard.overzicht.confirmTitleCount', transferCount, {
+                      count: String(transferCount),
+                    })}
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {t('wizard.overzicht.undoLegal')}
@@ -2058,36 +2362,6 @@ function problemCountForRate(problems: readonly MoneybirdProblem[], rateId: stri
   if (problem === undefined) return 0
   const count = problem.detail['count']
   return count !== undefined && count !== '' ? Number(count) || 0 : 0
-}
-
-function ratePctLabel(percentage: string): string {
-  const trimmed = percentage.trim().replace(/%$/u, '')
-  return trimmed === '' ? '—' : `${trimmed}%`
-}
-
-function codePctLabel(
-  code: string,
-  rules: readonly { readonly code: string; readonly rateBasisPoints: number }[],
-): string {
-  const rule = rules.find((row) => row.code === code)
-  if (rule === undefined) return '—'
-  const pct = rule.rateBasisPoints / 100
-  return `${Number.isInteger(pct) ? String(pct) : pct.toFixed(2)}%`
-}
-
-function refusedRateMessage(
-  rate: { readonly percentage: string },
-  violation: { readonly rejected: string; readonly message: string },
-  t: (key: MessageKey, values?: Record<string, string>) => string,
-  rules: readonly { readonly code: string; readonly rateBasisPoints: number }[],
-): string {
-  const code = violation.rejected.trim()
-  if (code === '') return violation.message
-  return t('wizard.btw.refusedRate', {
-    code,
-    ratePct: ratePctLabel(rate.percentage),
-    codePct: codePctLabel(code, rules),
-  })
 }
 
 function groupNotInForce(

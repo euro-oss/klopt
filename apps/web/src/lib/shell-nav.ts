@@ -1,5 +1,5 @@
 import type { MessageKey } from '~/i18n/nl'
-import { MAY_EXPORT_AUDIT_FILE, MAY_MANAGE_TAX_CODES, MAY_OPEN_YEAR } from '~/lib/roles'
+import { MAY_EXPORT_AUDIT_FILE, MAY_MANAGE_TAX_CODES, MAY_OPEN_YEAR } from './roles'
 
 /**
  * Shell navigation IA (#61 slice 2 / #57).
@@ -184,17 +184,50 @@ export const NAVIGATION: readonly NavGroup[] = [
   },
 ]
 
-/** Prefer the longest matching destination so `/bank` does not steal `/bank/match`. */
-export function isNavActive(path: string, to: string): boolean {
+/** Search bag from the router (`location.search`) or a plain record / URLSearchParams. */
+export type NavSearch =
+  | Readonly<Record<string, unknown>>
+  | URLSearchParams
+  | { readonly bron?: string }
+  | null
+  | undefined
+
+function searchBron(search: NavSearch): string | undefined {
+  if (search === undefined || search === null) return undefined
+  if (search instanceof URLSearchParams) {
+    const value = search.get('bron')
+    return value === null || value === '' ? undefined : value
+  }
+  const value = (search as Record<string, unknown>)['bron']
+  return typeof value === 'string' && value !== '' ? value : undefined
+}
+
+/**
+ * Prefer the longest matching destination so `/bank` does not steal `/bank/match`.
+ *
+ * When `itemSearch` carries `bron` (import wizard), the current `bron` must
+ * match. Missing current `bron` defaults to moneybird so only that row lights up.
+ */
+export function isNavActive(
+  path: string,
+  to: string,
+  currentSearch?: NavSearch,
+  itemSearch?: Readonly<Record<string, string>>,
+): boolean {
   if (to === '/') return path === '/'
   if (path !== to && !path.startsWith(`${to}/`)) return false
   const destinations = NAVIGATION.flatMap((group) => group.items.map((item) => item.to))
-  return !destinations.some(
+  const pathActive = !destinations.some(
     (other) =>
       other !== to &&
       other.startsWith(`${to}/`) &&
       (path === other || path.startsWith(`${other}/`)),
   )
+  if (!pathActive) return false
+  const itemBron = itemSearch?.['bron']
+  if (itemBron === undefined) return true
+  const currentBron = searchBron(currentSearch) ?? 'moneybird'
+  return currentBron === itemBron
 }
 
 export function navLabelKey(item: NavItem, advanced: boolean): MessageKey {
@@ -202,11 +235,15 @@ export function navLabelKey(item: NavItem, advanced: boolean): MessageKey {
 }
 
 /** Active page title from the nav, or null when the path is not a destination. */
-export function pageTitleKey(path: string, advanced: boolean): MessageKey | null {
+export function pageTitleKey(
+  path: string,
+  advanced: boolean,
+  currentSearch?: NavSearch,
+): MessageKey | null {
   let best: { to: string; key: MessageKey } | null = null
   for (const group of NAVIGATION) {
     for (const item of group.items) {
-      if (!isNavActive(path, item.to)) continue
+      if (!isNavActive(path, item.to, currentSearch, item.search)) continue
       if (best === null || item.to.length > best.to.length) {
         best = { to: item.to, key: navLabelKey(item, advanced) }
       }

@@ -16109,6 +16109,12 @@
                               "string",
                               "null"
                             ]
+                          },
+                          "fiscalYearStartMonth": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
                           }
                         },
                         "required": [
@@ -16116,7 +16122,8 @@
                           "name",
                           "label",
                           "currency",
-                          "country"
+                          "country",
+                          "fiscalYearStartMonth"
                         ]
                       }
                     }
@@ -18836,6 +18843,47 @@
                         "type": "string"
                       }
                     },
+                    "alreadyInKlopt": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "type": "number"
+                        },
+                        "sample": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "externalId": {
+                                "type": "string"
+                              },
+                              "reference": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "enum": [
+                                  "sales_invoice",
+                                  "credit_note",
+                                  "purchase_invoice",
+                                  "receipt",
+                                  "journal",
+                                  "bank_mutation"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "externalId",
+                              "reference",
+                              "kind"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "sample"
+                      ]
+                    },
                     "lockedYears": {
                       "type": "array",
                       "items": {
@@ -19144,6 +19192,7 @@
                     "reconciliation",
                     "notImported",
                     "excluded",
+                    "alreadyInKlopt",
                     "lockedYears",
                     "warnings",
                     "problems",

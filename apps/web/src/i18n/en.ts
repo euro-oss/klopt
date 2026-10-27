@@ -2270,11 +2270,13 @@ export const en: Record<MessageKey, string> = {
   'wizard.resume.continue': 'Continue',
   'wizard.resume.restart': 'Start over',
   'wizard.resume.restartConfirm': 'Clear your progress and start over?',
+  // Legal VERBATIM (#105 comment 6442468175)
   'wizard.resume.restartConfirmBody':
-    'You start again at step 1. Nothing has been booked yet, so nothing in your books is lost. VAT and account choices per administration stay.',
+    "You start again at step 1. We only clear where you were in this wizard. Anything already transferred stays in your books; starting over doesn't undo an import. Your VAT and account choices per administration stay saved.",
   'wizard.bron.title': 'Where do your books come from?',
+  // Legal soft (#105 comment 6442468175)
   'wizard.bron.intro':
-    'Pick the package you want to transfer from. Nothing is booked until you press Import.',
+    'Pick the package you want to transfer from. Nothing is booked until you confirm the transfer.',
   'wizard.bron.moneybird.scope': 'All invoices, receipts, bank mutations and journal entries.',
   'wizard.bron.moneybird.notIncluded': 'Drafts and quotes are not transferred.',
   'wizard.bron.exact.scope':
@@ -2316,11 +2318,25 @@ export const en: Record<MessageKey, string> = {
   'wizard.administratie.open': 'Open',
   'wizard.administratie.closed': 'Closed',
   'wizard.administratie.closedHint': 'This year is closed. We will not transfer it.',
-  'wizard.administratie.docsLine': '{currency} · fiscal year starts in January · {count} documents',
+  'wizard.administratie.docsLine': '{currency} · fiscal year starts in {month} · {count} documents',
   'wizard.administratie.docsLine_one':
-    '{currency} · fiscal year starts in January · {count} document',
+    '{currency} · fiscal year starts in {month} · {count} document',
   'wizard.administratie.docsLine_other':
-    '{currency} · fiscal year starts in January · {count} documents',
+    '{currency} · fiscal year starts in {month} · {count} documents',
+  'wizard.administratie.docsLine_zero': '{currency} · fiscal year starts in {month}',
+  'wizard.administratie.docsLineUnknown': '{currency}',
+  'wizard.administratie.month.1': 'January',
+  'wizard.administratie.month.2': 'February',
+  'wizard.administratie.month.3': 'March',
+  'wizard.administratie.month.4': 'April',
+  'wizard.administratie.month.5': 'May',
+  'wizard.administratie.month.6': 'June',
+  'wizard.administratie.month.7': 'July',
+  'wizard.administratie.month.8': 'August',
+  'wizard.administratie.month.9': 'September',
+  'wizard.administratie.month.10': 'October',
+  'wizard.administratie.month.11': 'November',
+  'wizard.administratie.month.12': 'December',
   'wizard.administratie.selectedSummary': '{years} years · {docs} documents',
   'wizard.administratie.selectedSummary_other': '{years} years · {docs} documents',
   'wizard.administratie.selectedSummary_one': '{years} year · {docs} documents',
@@ -2359,12 +2375,13 @@ export const en: Record<MessageKey, string> = {
   'wizard.btw.excludeDocs_other': 'Do not transfer {count} documents',
   'wizard.btw.excludeDocs_one': 'Do not transfer {count} document',
   'wizard.btw.excludeUndo': 'Undo',
+  // Legal VERBATIM (#105 comment 6442468175)
   'wizard.btw.excludedBody':
-    "We won't transfer these {count} documents. Their amounts and VAT won't be in Klopt or in your return; book them yourself if they belong in these books. They're listed under “Not transferred” in the summary.",
+    "We won't transfer these {count} documents. Their amounts and VAT won't be in Klopt or in your return. Don't book them yourself in Klopt: a later import won't recognise that, and they'd end up in your books twice. If the rate in Moneybird is wrong, correct it there, undo “Do not transfer”, read again and transfer again. Anything already transferred won't be transferred twice. If the rate is correct, do the VAT return for that period outside Klopt, for example in Moneybird. They're listed under “Not transferred” in the summary.",
   'wizard.btw.excludedBody_other':
-    "We won't transfer these {count} documents. Their amounts and VAT won't be in Klopt or in your return; book them yourself if they belong in these books. They're listed under “Not transferred” in the summary.",
+    "We won't transfer these {count} documents. Their amounts and VAT won't be in Klopt or in your return. Don't book them yourself in Klopt: a later import won't recognise that, and they'd end up in your books twice. If the rate in Moneybird is wrong, correct it there, undo “Do not transfer”, read again and transfer again. Anything already transferred won't be transferred twice. If the rate is correct, do the VAT return for that period outside Klopt, for example in Moneybird. They're listed under “Not transferred” in the summary.",
   'wizard.btw.excludedBody_one':
-    "We won't transfer this {count} document. Its amount and VAT won't be in Klopt or in your return; book it yourself if it belongs in these books. It's listed under “Not transferred” in the summary.",
+    "We won't transfer this document. Its amount and VAT won't be in Klopt or in your return. Don't book it yourself in Klopt: a later import won't recognise that, and it'd end up in your books twice. If the rate in Moneybird is wrong, correct it there, undo “Do not transfer”, read again and transfer again. Anything already transferred won't be transferred twice. If the rate is correct, do the VAT return for that period outside Klopt, for example in Moneybird. It's listed under “Not transferred” in the summary.",
   'wizard.btw.chooseInTable': 'Choose yourself in the table',
   'wizard.btw.leftToChoose': '{count} rates left to choose',
   'wizard.btw.allChosen': 'All rates chosen',
@@ -2417,28 +2434,64 @@ export const en: Record<MessageKey, string> = {
   'wizard.klaar.summary': '{count} documents transferred.',
   'wizard.klaar.summary_one': '{count} document transferred.',
   'wizard.klaar.summary_other': '{count} documents transferred.',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.klaar.summaryNone': 'Nothing new was transferred.',
   'wizard.klaar.nextVat': 'Go to VAT return',
   'wizard.klaar.nextEntries': 'Go to journal entries',
   'wizard.klaar.blocked':
     "Some periods can't be filed via Klopt yet. The VAT return shows which ones and what you can do.",
   'wizard.klaar.noGreen': 'Not everything was transferred. Review the problems again.',
   'wizard.overzicht.notTransferred': 'Not transferred',
+  'wizard.overzicht.notTransferredEmpty': 'Nothing. Everything was transferred.',
+  'wizard.overzicht.notTransferredRates': 'Rates',
+  'wizard.overzicht.notTransferredDocs': 'Documents',
   'wizard.overzicht.alreadyInKlopt': 'Already in Klopt',
-  'wizard.overzicht.alreadyInKloptEmpty':
-    'None. This is your first import from this administration.',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.overzicht.alreadyInKloptEmpty': 'Nothing from this administration yet.',
+  'wizard.overzicht.alreadyInKloptCount':
+    "{count} documents from this administration are already in Klopt. We won't transfer them again.",
+  'wizard.overzicht.alreadyInKloptCount_other':
+    "{count} documents from this administration are already in Klopt. We won't transfer them again.",
+  'wizard.overzicht.alreadyInKloptCount_one':
+    "{count} document from this administration is already in Klopt. We won't transfer it again.",
   'wizard.overzicht.reasonExcluded': 'Chose not to transfer',
-  'wizard.klaar.booksInKlopt': 'Your books are in Klopt',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.klaar.booksInKlopt': 'What you transferred is in Klopt.',
   'wizard.klaar.blockedBadge': 'Blocks filing',
   'wizard.klaar.viewNotTransferred': 'View not transferred',
-  'wizard.klaar.whyBlocked': 'You can file the return yourself or with a tax adviser.',
+  'wizard.klaar.viewNotTransferredDetail':
+    '{docs} documents, with the reason · {rates} purchases without a VAT code do not count in your return',
+  'wizard.klaar.viewNotTransferredDetail_other':
+    '{docs} documents, with the reason · {rates} purchases without a VAT code do not count in your return',
+  'wizard.klaar.viewNotTransferredDetail_one':
+    '{docs} document, with the reason · {rates} purchases without a VAT code do not count in your return',
+  // Legal VERBATIM (#105 comment 6442468175) — deadline only for #95
+  'wizard.klaar.whyBlocked':
+    "Klopt doesn't adjust those figures itself. You can file the return for those periods yourself or with a tax adviser, outside Klopt, using corrected figures.",
+  'wizard.klaar.whyBlockedDeadline':
+    "Filing through Klopt will work once Klopt supports this; don't wait for that if your filing deadline comes first.",
   'wizard.importeren.pctLive': '{pct}% transferred',
   'wizard.importeren.failed': 'We booked nothing',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.importeren.failedPartial': 'The import stopped. Part of it may already be booked.',
+  'wizard.importeren.failedPartialBody':
+    "Check Journal entries to see what's already there. If you transfer again, we won't transfer anything already transferred from this administration a second time. You fix a mistake per booking with a correction.",
   'wizard.importeren.busy': 'In progress',
+  'wizard.importeren.pending': 'Queued…',
+  'wizard.importeren.running': 'Booking…',
   'wizard.notInForce.why':
     'Why this matters: Without a valid code on the booking date the return cannot place those lines. A code’s start date cannot be changed in Klopt yet.',
   'wizard.problemen.reconciliation': 'Reconciliation',
+  'wizard.problemen.reconciliationRead': 'read',
+  'wizard.problemen.reconciliationSkipped': 'skipped',
+  'wizard.problemen.reconciliationFailed': 'failed',
   'wizard.problemen.blockingSection': 'Blocks the import',
   'wizard.problemen.infoSection': 'To know',
+  'wizard.rekeningen.confirm': 'Confirm',
+  'wizard.rekeningen.suggested': 'Suggestion',
+  'wizard.rekeningen.previous': 'Previous choice',
+  'wizard.rekeningen.chosen': 'Chosen',
+  'wizard.btw.nullPercent': 'no %',
   'nav.importMoneybird': 'Moneybird',
   'nav.importExact': 'Exact Online',
   'wizard.status.pickSource': 'Pick a source to continue',

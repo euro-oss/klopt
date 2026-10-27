@@ -31,7 +31,14 @@ import type { FiscalYearOption, FiscalYearScope } from '~/lib/fiscal-year'
 import { DEFAULT_THEME_PREFERENCE, type ThemePreference } from '~/lib/theme'
 import { setTheme } from '~/server/theme'
 import { BINDINGS_BY_ID, bindingChips, isApple } from '~/lib/keyboard'
-import { NAVIGATION, isNavActive, navLabelKey, pageTitleKey, type NavGroup } from '~/lib/shell-nav'
+import {
+  NAVIGATION,
+  isNavActive,
+  navLabelKey,
+  pageTitleKey,
+  type NavGroup,
+  type NavSearch,
+} from '~/lib/shell-nav'
 import { CommandPalette } from './command-palette'
 
 /** #63 focus ring: solid outline, never outline-none (Tailwind 4 trap). */
@@ -123,6 +130,7 @@ export function AppShell({
   onSelectYear: (code: string) => void
 }) {
   const path = useRouterState({ select: (state) => state.location.pathname })
+  const search = useRouterState({ select: (state) => state.location.search })
   const main = useFocusOnRoute(path)
   // The keys are listened for in an effect, so they do nothing until React has
   // taken over. Advertising them before then is the same broken promise as
@@ -138,7 +146,7 @@ export function AppShell({
   // does not leave the drawer covering the screen it just opened (#38).
   const [navOpen, setNavOpen] = useState(false)
 
-  const titleKey = pageTitleKey(path, advanced)
+  const titleKey = pageTitleKey(path, advanced, search)
   const pageTitle = titleKey !== null ? t(titleKey) : 'Klopt'
 
   // Role filter, then Geavanceerd: Journaalposten / Proefbalans leave the nav
@@ -155,6 +163,7 @@ export function AppShell({
   const railChrome = (
     <ShellNavChrome
       path={path}
+      search={search}
       groups={groups}
       advanced={advanced}
       entities={entities}
@@ -174,6 +183,7 @@ export function AppShell({
   const sheetChrome = (
     <ShellNavChrome
       path={path}
+      search={search}
       groups={groups}
       advanced={advanced}
       entities={entities}
@@ -357,6 +367,7 @@ export function AppShell({
  */
 function ShellNavChrome({
   path,
+  search,
   groups,
   advanced,
   entities,
@@ -373,6 +384,7 @@ function ShellNavChrome({
   onNavigate,
 }: {
   path: string
+  search: NavSearch
   groups: readonly NavGroup[]
   advanced: boolean
   entities: readonly ShellEntity[]
@@ -429,7 +441,7 @@ function ShellNavChrome({
               {group.items.map((item) => {
                 const binding =
                   item.binding === undefined ? undefined : BINDINGS_BY_ID.get(item.binding)
-                const isActive = isNavActive(path, item.to)
+                const isActive = isNavActive(path, item.to, search, item.search)
                 const labelKey = navLabelKey(item, advanced)
                 const rowKey = item.binding ?? `${item.to}:${item.key}`
                 return (
