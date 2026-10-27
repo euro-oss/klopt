@@ -555,9 +555,8 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
         process.env['KLOPT_ENCRYPTION_KEY'] = 'e2e-encryption-key-not-for-production-01234'
         const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
         const { createFilesystemDocumentStore } = await import('@klopt/adapters')
-        const { createDatabase, closeDatabase, MoneybirdImportRepository } = await import(
-          '@klopt/db'
-        )
+        const { createDatabase, closeDatabase, MoneybirdImportRepository } =
+          await import('@klopt/db')
         const directory = mkdtempSync(join(tmpdir(), 'mb-shot-fail-'))
         const db = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
         // Force onCommitted report-save failure → failedPartial (stand-in has
