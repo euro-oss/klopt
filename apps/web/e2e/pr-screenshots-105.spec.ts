@@ -928,7 +928,7 @@ test('capture Klaar blocked (#95) and cheap follow-ups', async ({ browser }) => 
     // Al in Klopt — second import after a completed one (best-effort).
     {
       const context = await browser.newContext({
-        viewport: VIEWPORTS[0]![1],
+        viewport: { width: 1440, height: 900 },
       })
       const page = await context.newPage()
       try {
