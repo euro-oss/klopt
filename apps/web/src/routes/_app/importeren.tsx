@@ -1278,13 +1278,9 @@ function ImportWizardPage() {
               nextDisabled={
                 connected ? false : !canStoreSecrets || apiToken === '' || busy || tokenRefused
               }
-              nextReason={
-                !canStoreSecrets
-                  ? t('wizard.verbinden.noKeyTitle')
-                  : tokenRefused && error !== null && error !== ''
-                    ? error
-                    : null
-              }
+              // Token / reachability errors stay inline under the field only
+              // (Designer r5) — do not also put them in the footer or toast.
+              nextReason={!canStoreSecrets ? t('wizard.verbinden.noKeyTitle') : null}
               onNext={() => void handleNext()}
             />
           </>

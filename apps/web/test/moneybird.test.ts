@@ -196,9 +196,27 @@ describe('connecting', () => {
     })
   })
 
-  // 429 is retried inside the Moneybird client (no terminal throw), so connect
-  // coverage for rate-limit → unreachable is the classifier below — not a
-  // hanging fetch mock.
+  it('maps Moneybird 429 on connect to moneybird_unreachable after one short retry', async () => {
+    const { token } = await newEntity()
+    // Retry-After: 0 keeps the single bounded retry from sleeping; the second
+    // 429 exhausts rateLimitRetries: 1 and surfaces as unreachable.
+    globalThis.fetch = () =>
+      Promise.resolve(new Response('slow down', { status: 429, headers: { 'Retry-After': '0' } }))
+    await expect(
+      handleConnectMoneybird(
+        await context(token, crypto.randomUUID()),
+        connectMoneybirdBody.parse({
+          apiToken: 'mb-test-token',
+          baseUrl: 'https://moneybird.com/api/v2',
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      violations: [expect.objectContaining({ code: 'moneybird_unreachable', path: 'apiToken' })],
+    })
+    const body = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(body.connection).toBeNull()
+  })
 
   it('classifies 401/403 as invalid_token and 5xx/429/network as unreachable', () => {
     expect(

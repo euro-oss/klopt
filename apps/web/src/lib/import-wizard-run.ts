@@ -56,8 +56,10 @@ export function bookedCountFromReport(report: ImportRunReportView | null | undef
  *
  * Opening-balance journals are never documents on Klaar (#105 PM r4). New
  * reports keep them in `openingEntriesPosted` (not in `entriesPosted`). Legacy
- * reports that folded them into `entriesPosted` subtract one when `opening` is
- * present.
+ * reports that folded them into `entriesPosted` subtract exactly one when
+ * `opening` is present — even if Moneybird had more than one `origin: opening`
+ * journal. That approximation only affects old reports without
+ * `openingEntriesPosted` (#105 PM r5 nit).
  */
 export function klaarTransferCount(report: ImportRunReportView | null | undefined): number {
   if (report === null || report === undefined) return 0
@@ -65,6 +67,7 @@ export function klaarTransferCount(report: ImportRunReportView | null | undefine
     if (typeof report.openingEntriesPosted === 'number') {
       return report.entriesPosted
     }
+    // Legacy: subtract exactly one opening journal when `opening` is set.
     const legacyOpening = report.opening !== null && report.opening !== undefined ? 1 : 0
     return Math.max(0, report.entriesPosted - legacyOpening)
   }

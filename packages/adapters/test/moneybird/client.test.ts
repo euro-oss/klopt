@@ -47,4 +47,25 @@ describe('the Moneybird client', () => {
     ).rejects.toBeInstanceOf(MoneybirdApiError)
     expect(moneybird.log[0]).toMatchObject({ status: 403 })
   })
+
+  it('retries 429 once then throws when rateLimitRetries is 1', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(new Response('slow', { status: 429, headers: { 'Retry-After': '0' } }))
+    const sleep = vi.fn().mockResolvedValue(undefined)
+    const moneybird = createMoneybirdClient({
+      token: 'mb-token',
+      fetch: fetch as unknown as typeof globalThis.fetch,
+      sleep,
+      rateLimitRetries: 1,
+      maxRetryAfterMs: 500,
+    })
+    await expect(moneybird.administrations()).rejects.toMatchObject({
+      status: 429,
+      path: '/administrations.json',
+    })
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(sleep).toHaveBeenCalledTimes(1)
+    expect(sleep).toHaveBeenCalledWith(0)
+  })
 })

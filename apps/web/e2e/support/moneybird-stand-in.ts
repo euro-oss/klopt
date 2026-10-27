@@ -660,3 +660,34 @@ export async function startSelfAssessedVatMoneybirdStandIn(): Promise<MoneybirdS
       }),
   }
 }
+
+/**
+ * Always answers 503 so connect maps to `moneybird_unreachable` (#105 PM r5).
+ * Auth uses a valid Bearer so the failure is reachability, not 401.
+ */
+export async function startUnreachableMoneybirdStandIn(): Promise<MoneybirdStandIn> {
+  const token = 'mb-e2e-unreachable-token'
+  const server: Server = createServer((req, res) => {
+    const auth = req.headers.authorization ?? ''
+    if (auth !== `Bearer ${token}`) {
+      res.writeHead(401)
+      res.end('unauthorised')
+      return
+    }
+    res.writeHead(503, { 'content-type': 'text/plain' })
+    res.end('unavailable')
+  })
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve())
+  })
+  const address = server.address() as AddressInfo
+  const baseUrl = `http://127.0.0.1:${String(address.port)}/api/v2`
+  return {
+    baseUrl,
+    token,
+    close: () =>
+      new Promise((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()))
+      }),
+  }
+}

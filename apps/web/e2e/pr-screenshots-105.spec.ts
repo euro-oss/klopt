@@ -10,6 +10,7 @@ import {
   startNullRateVatMismatchMoneybirdStandIn,
   startPreValidFromMoneybirdStandIn,
   startSelfAssessedVatMoneybirdStandIn,
+  startUnreachableMoneybirdStandIn,
   type MoneybirdStandIn,
 } from './support/moneybird-stand-in'
 
@@ -400,24 +401,30 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         )
         await expect(page.getByText(/geldt nog niet/i).first()).toBeVisible()
         await shoot(page, `07-problemen-99-${theme}-${label}.png`)
-        // Real busy: reread in flight — must differ from the static #99 shot.
+        // Hold preview open so the busy chrome is still in flight when we shoot.
+        let releasePreview: (() => void) | null = null
+        const held = new Promise<void>((resolve) => {
+          releasePreview = resolve
+        })
+        await page.route('**/api/v1/moneybird/import/preview**', async (route) => {
+          await held
+          await route.abort()
+        })
         const reread = page.getByRole('button', { name: /Opnieuw lezen|Reread|Herlezen/i }).first()
         if ((await reread.count()) > 0) {
-          await Promise.all([
-            page
-              .waitForResponse(
-                (res) => res.url().includes('preview') || res.url().includes('moneybird'),
-                { timeout: 15_000 },
-              )
-              .catch(() => null),
-            reread.click(),
-          ])
+          await reread.click()
+          await expect(page.locator('button[data-focus="next"]')).toHaveAttribute(
+            'aria-disabled',
+            'true',
+            { timeout: 5_000 },
+          )
           await shoot(page, `07-problemen-busy-${theme}-${label}.png`)
         } else {
-          // Fallback: collapse a detail so the frame is not byte-identical to #99.
           await page.evaluate(() => window.scrollBy(0, 48))
           await shoot(page, `07-problemen-busy-${theme}-${label}.png`)
         }
+        releasePreview?.()
+        await page.unroute('**/api/v1/moneybird/import/preview**').catch(() => null)
         await context.close()
       }
     }
@@ -474,6 +481,10 @@ test('capture resume, verbinden states, #92/#93, failures', async ({ browser }) 
         await shoot(page, `02-verbinden-disconnect-${theme}-${label}.png`)
         await disconnect.getByRole('button', { name: /verbreken/i }).click()
         await expect(page.getByLabel('Persoonlijk API-token')).toBeVisible({ timeout: 30_000 })
+        // Disconnect toast must be gone before further Verbinden shots (PM/Designer r5).
+        await expect(page.locator('[data-slot="wizard-toast"]')).toHaveCount(0, {
+          timeout: 6_000,
+        })
 
         // Geavanceerd shadcn Checkbox — 44px touch row (esp. at 390), before
         // token-error so the frame is not byte-identical to that shot.
@@ -481,26 +492,36 @@ test('capture resume, verbinden states, #92/#93, failures', async ({ browser }) 
         await setTheme(page, theme)
         await shoot(page, `02-verbinden-geavanceerd-checkbox-${theme}-${label}.png`)
 
-        // Dark focus ring on Volgende — before token-error so the hashes differ.
+        // Dark focus ring via keyboard Tab so :focus-visible paints.
         await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
         await page.getByLabel('API-adres').fill(standIn.baseUrl)
         await page.getByLabel('Persoonlijk API-token').fill('token-for-focus-ring')
         if (theme === 'dark') {
-          await page.locator('button[data-focus="next"]').focus()
+          await page.getByLabel('Persoonlijk API-token').click()
+          for (let i = 0; i < 10; i += 1) {
+            await page.keyboard.press('Tab')
+            if (
+              await page
+                .locator('button[data-focus="next"]')
+                .evaluate((el) => el === document.activeElement)
+            ) {
+              break
+            }
+          }
           await expect(page.locator('button[data-focus="next"]')).toBeFocused()
           await setTheme(page, theme)
           await shoot(page, `02-verbinden-dark-focus-${label}.png`)
         }
 
-        // Token error on step 2 (real Moneybird refuse) — not administratie.
+        // Token error — Legal verbatim, inline only, no stray toast.
         await page.getByLabel('Persoonlijk API-token').fill('definitely-wrong-token')
         await page.locator('button[data-focus="next"]').click()
         await expect(page.getByRole('alert')).toContainText(
-          /Moneybird accepteert dit token niet/i,
-          {
-            timeout: 30_000,
-          },
+          /Moneybird accepteert dit token niet\. Controleer of je het helemaal hebt geplakt/i,
+          { timeout: 30_000 },
         )
+        await expect(page.locator('#wizard-next-why')).toHaveCount(0)
+        await expect(page.locator('[data-slot="wizard-toast"]')).toHaveCount(0)
         await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
         await setTheme(page, theme)
         await shoot(page, `02-verbinden-token-error-${theme}-${label}.png`)
@@ -517,15 +538,64 @@ test('capture resume, verbinden states, #92/#93, failures', async ({ browser }) 
           await page.getByRole('button', { name: /^Bron/ }).click()
         }
         await expect(bronHeading.first()).toBeVisible({ timeout: 30_000 })
-        // On 390 the nav lives in the Sheet — open it so Exact (oud) is visible.
+        // On 390 the nav lives in the Sheet — open it and scroll so Importeren shows.
         if (label.includes('390')) {
           const menu = page.getByRole('button', { name: /Menu|menu|Navigatie/i }).first()
           if ((await menu.count()) > 0) await menu.click()
+          const sheet = page.locator('[data-slot="sheet-content"], [role="dialog"]').first()
+          const importeren = sheet
+            .getByText(/^Importeren$/i)
+            .or(sheet.getByRole('link', { name: /Importeren/i }))
+          if ((await importeren.count()) > 0) {
+            await importeren.first().scrollIntoViewIfNeeded()
+          }
         }
         await setTheme(page, theme)
         await shoot(page, `01-bron-advanced-${theme}-${label}.png`)
 
         await context.close()
+      }
+    }
+
+    // Unreachable Verbinden — 503 stand-in, Legal unreachable copy, Volgende off.
+    {
+      const unreachable = await startUnreachableMoneybirdStandIn()
+      try {
+        for (const theme of ['light', 'dark'] as const) {
+          for (const [label, size] of VIEWPORTS) {
+            const context = await browser.newContext({ viewport: size })
+            const page = await context.newPage()
+            await ready(page, `105 unreachable ${theme} ${label}`)
+            await page.goto('/importeren')
+            await wizardBronReady(page)
+            await page.getByRole('radio', { name: /Moneybird/ }).click()
+            await clickNext(page)
+            await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
+            await page
+              .locator('details')
+              .filter({ hasText: 'Geavanceerd' })
+              .locator('summary')
+              .click()
+            await page.getByLabel('API-adres').fill(unreachable.baseUrl)
+            await page.getByLabel('Persoonlijk API-token').fill(unreachable.token)
+            await page.locator('button[data-focus="next"]').click()
+            await expect(page.getByRole('alert')).toContainText(
+              /We konden Moneybird nu niet bereiken/i,
+              { timeout: 30_000 },
+            )
+            await expect(page.locator('#wizard-next-why')).toHaveCount(0)
+            await expect(page.locator('[data-slot="wizard-toast"]')).toHaveCount(0)
+            await expect(page.locator('button[data-focus="next"]')).toHaveAttribute(
+              'aria-disabled',
+              'true',
+            )
+            await setTheme(page, theme)
+            await shoot(page, `02-verbinden-unreachable-${theme}-${label}.png`)
+            await context.close()
+          }
+        }
+      } finally {
+        await unreachable.close()
       }
     }
 

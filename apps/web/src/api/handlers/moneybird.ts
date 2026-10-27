@@ -130,8 +130,16 @@ export async function handleConnectMoneybird(context: RequestContext, body: Conn
   requireIdempotencyKey(context)
 
   // Validate against Moneybird before storing — a wrong token must not mark
-  // the wizard connected (#105 Designer r4).
-  const probe = createMoneybirdClient({ token: body.apiToken, base: body.baseUrl })
+  // the wizard connected (#105 Designer r4). Bounded 429 retry + short timeout
+  // so a rate-limited probe reaches moneybird_unreachable quickly (PM r5);
+  // the import worker keeps unlimited 429 retries.
+  const probe = createMoneybirdClient({
+    token: body.apiToken,
+    base: body.baseUrl,
+    timeoutMs: 5_000,
+    rateLimitRetries: 1,
+    maxRetryAfterMs: 500,
+  })
   try {
     await probe.administrations()
   } catch (error: unknown) {

@@ -18,6 +18,17 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Import wizard: connect probe and opening count (#105)
+
+Connecting (`POST /api/v1/moneybird/connection`) now probes Moneybird before
+storing the token and returns **422** `invalid_token` on auth rejection or
+**409** `moneybird_unreachable` on network / 5xx / rate-limit failures. The
+probe retries a 429 at most once with a short backoff so Verbinden does not
+hang. The import report gains `openingEntriesPosted`; `entriesPosted` no longer
+counts the opening-balance journal. For old reports without
+`openingEntriesPosted`, Klaar still subtracts exactly one when `opening` is
+set.
+
 ### Import wizard: remove legacy `/moneybird` (#105)
 
 The old `/moneybird` page is gone. Bookmarks and subpaths redirect to
