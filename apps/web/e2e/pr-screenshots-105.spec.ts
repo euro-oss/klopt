@@ -440,42 +440,32 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
         await expect(restart).toBeVisible()
         await shoot(page, `01-restart-dialog-${theme}-${label}.png`)
         await restart.getByRole('button', { name: /Annuleren|Cancel/i }).click()
-        // Confirm restart so the next Verbinden shots start from a clean Bron.
-        await page.getByRole('button', { name: /Opnieuw beginnen/i }).click()
-        await expect(page.getByRole('alertdialog')).toBeVisible()
-        await page
-          .getByRole('alertdialog')
-          .getByRole('button', { name: /Opnieuw beginnen/i })
-          .click()
-        await wizardBronReady(page)
-
-        // Verbinden: token error, connected, disconnect
-        await page.getByRole('radio', { name: /Moneybird/ }).click()
-        await clickNext(page)
-        await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
-        await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
-        await page.getByLabel('API-adres').fill(standIn.baseUrl)
-        await page.getByLabel('Persoonlijk API-token').fill('definitely-wrong-token')
-        await page.locator('button[data-focus="next"]').click()
-        await expect(page.getByText(/ongeldig|geweigerd|401|token/i).first()).toBeVisible({
-          timeout: 30_000,
-        })
-        await setTheme(page, theme)
-        await shoot(page, `02-verbinden-token-error-${theme}-${label}.png`)
-
-        await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
-        await clickNext(page)
+        // Doorgaan keeps the live Moneybird connection — shoot connected + disconnect.
+        await page.getByRole('button', { name: /Doorgaan/i }).click()
         await expect(
           page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
         ).toBeVisible({ timeout: 30_000 })
         await page.getByRole('button', { name: 'Terug' }).click()
+        await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
         await expect(page.getByText(/Verbonden met Moneybird/i)).toBeVisible()
+        await setTheme(page, theme)
         await shoot(page, `02-verbinden-connected-${theme}-${label}.png`)
         await page.getByRole('button', { name: /verbreken/i }).click()
         const disconnect = page.getByRole('alertdialog')
         await expect(disconnect).toBeVisible()
         await shoot(page, `02-verbinden-disconnect-${theme}-${label}.png`)
-        await disconnect.getByRole('button', { name: /Annuleren|Cancel/i }).click()
+        await disconnect.getByRole('button', { name: /verbreken/i }).click()
+        await expect(page.getByLabel('Persoonlijk API-token')).toBeVisible({ timeout: 30_000 })
+
+        // Token error after disconnect
+        await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+        await page.getByLabel('API-adres').fill(standIn.baseUrl)
+        await page.getByLabel('Persoonlijk API-token').fill('definitely-wrong-token')
+        await page.locator('button[data-focus="next"]').click()
+        await expect(page.getByText(/ongeldig|geweigerd|401|token|niet/i).first()).toBeVisible({
+          timeout: 30_000,
+        })
+        await shoot(page, `02-verbinden-token-error-${theme}-${label}.png`)
 
         // Dark focus ring on Volgende
         if (theme === 'dark') {
@@ -486,7 +476,15 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
         // Geavanceerd on — Bron with legacy (oud) links visible in nav
         await enableAdvancedMode(page)
         await page.goto('/importeren')
-        await wizardBronReady(page)
+        // After disconnect + failed token the wizard may still be on verbinden;
+        // jump via rail or URL reload shows Bron (or resume).
+        const bronHeading = page.getByRole('heading', {
+          name: /Waar komen je boeken vandaan|Welkom terug/,
+        })
+        if ((await bronHeading.count()) === 0) {
+          await page.getByRole('button', { name: /^Bron/ }).click()
+        }
+        await expect(bronHeading.first()).toBeVisible({ timeout: 30_000 })
         await setTheme(page, theme)
         await shoot(page, `01-bron-advanced-${theme}-${label}.png`)
 
