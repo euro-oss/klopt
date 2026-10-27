@@ -168,6 +168,8 @@ export const FINDING_MESSAGES = {
     'Klopt cannot book self-assessed VAT for reverse-charge or intra-EU purchases yet. {reference} will import, but filing through Klopt stays blocked. Filing through Klopt will work once Klopt supports this; don’t wait for that if your filing deadline comes first.',
   'moneybird.tax_code_not_in_force':
     '{reference} is dated {bookingDate}, but that VAT code does not apply yet on that date in Klopt. There is no fix inside Klopt yet. Check the date and the rate in Moneybird.',
+  'moneybird.vat_without_tax_rate':
+    '{reference} dated {bookingDate} shows VAT, but its lines have no VAT rate that carries that VAT. Klopt cannot place that VAT in the return.',
   'moneybird.account_number_collision': 'Moneybird returned ledger number {number} twice ({name}).',
   'moneybird.contact_number_collision':
     'Moneybird returned contact number {number} twice ({name}).',

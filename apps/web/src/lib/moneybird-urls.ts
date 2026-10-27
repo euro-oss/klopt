@@ -63,6 +63,20 @@ export function parseMoneybirdExternalId(
 }
 
 /**
+ * Absolute URL to Moneybird tax rate settings for one administration.
+ * Used by #92/#93 “Open in Moneybird” when no single document applies.
+ */
+export function moneybirdTaxSettingsUrl(
+  apiBaseUrl: string,
+  administrationId: string | null | undefined,
+): string | null {
+  if (administrationId === null || administrationId === undefined || administrationId === '') {
+    return null
+  }
+  return `${moneybirdWebOrigin(apiBaseUrl)}/${administrationId}/tax_rates`
+}
+
+/**
  * Absolute URL to open a Moneybird document in the browser, or null when the
  * external id / administration is unknown.
  */

@@ -42,13 +42,13 @@ describe('resolving a keystroke', () => {
     expect(resolveKeystroke(stroke('i'), null)).toEqual({ action: 'arm', prefix: 'i' })
 
     const moneybird = resolveKeystroke(stroke('m'), 'i')
-    expect(moneybird.action === 'trigger' && moneybird.binding.to).toBe('/moneybird')
+    expect(moneybird.action === 'trigger' && moneybird.binding.to).toBe('/importeren')
 
     const exact = resolveKeystroke(stroke('x'), 'i')
-    expect(exact.action === 'trigger' && exact.binding.to).toBe('/exact')
+    expect(exact.action === 'trigger' && exact.binding.to).toBe('/importeren')
 
     const alias = resolveKeystroke(stroke('x'), 'g')
-    expect(alias.action === 'trigger' && alias.binding.to).toBe('/exact')
+    expect(alias.action === 'trigger' && alias.binding.to).toBe('/importeren')
   })
 
   it('swallows a second key that means nothing', () => {

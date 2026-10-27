@@ -1,6 +1,6 @@
 /**
- * Moneybird import mapping table — shared by the real `/moneybird` screen and
- * the import-findings lab so 422 inline errors share one path (#71 PM).
+ * Moneybird import mapping table — shared by the import-findings lab (and any
+ * remaining mapping UI) so 422 inline errors share one path (#71 PM).
  */
 
 import { Fragment } from 'react'

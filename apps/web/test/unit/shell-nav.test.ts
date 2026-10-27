@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { isNavActive, pageTitleKey } from '../../src/lib/shell-nav.js'
 
 /**
  * Shared shell nav (#64): CSS dual chrome, palette order, Geavanceerd deferral.
+ * Also asserts Moneybird vs Exact `?bron=` active state (import wizard).
  */
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src')
 const nav = readFileSync(join(root, 'lib', 'shell-nav.ts'), 'utf8')
@@ -38,5 +40,42 @@ describe('shell-nav', () => {
     expect(sheet).toContain('top-0.5 right-1')
     expect(sheet).toContain('size-[18px]')
     expect(shell).toContain('<Keycap>K</Keycap>')
+  })
+})
+
+describe('isNavActive with ?bron=', () => {
+  const moneybird = { bron: 'moneybird' } as const
+  const exact = { bron: 'exact' } as const
+
+  it('activates only Moneybird when bron is moneybird', () => {
+    expect(isNavActive('/importeren', '/importeren', { bron: 'moneybird' }, moneybird)).toBe(true)
+    expect(isNavActive('/importeren', '/importeren', { bron: 'moneybird' }, exact)).toBe(false)
+  })
+
+  it('activates only Exact when bron is exact', () => {
+    expect(isNavActive('/importeren', '/importeren', { bron: 'exact' }, exact)).toBe(true)
+    expect(isNavActive('/importeren', '/importeren', { bron: 'exact' }, moneybird)).toBe(false)
+  })
+
+  it('defaults missing bron to Moneybird only', () => {
+    expect(isNavActive('/importeren', '/importeren', {}, moneybird)).toBe(true)
+    expect(isNavActive('/importeren', '/importeren', {}, exact)).toBe(false)
+    expect(isNavActive('/importeren', '/importeren', undefined, moneybird)).toBe(true)
+    expect(isNavActive('/importeren', '/importeren', undefined, exact)).toBe(false)
+  })
+
+  it('reads bron from URLSearchParams', () => {
+    expect(
+      isNavActive('/importeren', '/importeren', new URLSearchParams('bron=exact'), exact),
+    ).toBe(true)
+    expect(
+      isNavActive('/importeren', '/importeren', new URLSearchParams('bron=exact'), moneybird),
+    ).toBe(false)
+  })
+
+  it('pageTitleKey picks Moneybird vs Exact from bron', () => {
+    expect(pageTitleKey('/importeren', false, { bron: 'moneybird' })).toBe('nav.importMoneybird')
+    expect(pageTitleKey('/importeren', false, { bron: 'exact' })).toBe('nav.importExact')
+    expect(pageTitleKey('/importeren', false, {})).toBe('nav.importMoneybird')
   })
 })

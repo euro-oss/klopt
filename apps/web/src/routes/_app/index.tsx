@@ -93,12 +93,14 @@ const DESTINATIONS: Record<
   }
 > = {
   'import.blocking': {
-    to: '/moneybird',
+    to: '/importeren',
+    search: { bron: 'moneybird' },
     title: 'queue.importBlocking',
     titlePlural: true,
     body: 'queue.importBlockingBody',
     action: 'queue.importBlockingAction',
   },
+
   'sales.draft': {
     to: '/invoices',
     search: { status: 'draft' },

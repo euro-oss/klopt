@@ -1454,33 +1454,12 @@ export const nl = {
   'exactCallback.startOver': 'Begin opnieuw op de',
   'exactCallback.exactPage': 'Exact-pagina',
 
-  'nav.moneybird': 'Moneybird',
-  'moneybird.title': 'Moneybird',
-  'moneybird.intro':
-    'Zet een Moneybird-administratie over: grootboek, relaties, geboekte historie, bankmutaties en documenten.',
+  'nav.importWizard': 'Importeren',
+  'nav.exactAdvanced': 'Exact Online (oud)',
   'moneybird.disconnect': 'Verbinding verbreken',
-  'moneybird.step1Connect': '1. Verbinden',
-  'moneybird.step1Intro':
-    'Een persoonlijk API-token uit Moneybird (Instellingen → Ontwikkelaars). Het token wordt versleuteld bewaard, net als andere geheimen.',
-  'moneybird.noEncryptionKey':
-    'Er is geen KLOPT_ENCRYPTION_KEY ingesteld, dus een token kan niet versleuteld worden opgeslagen. Zet die eerst; onversleuteld bewaren doet dit systeem niet.',
   'moneybird.apiToken': 'Persoonlijk API-token',
   'moneybird.connect': 'Verbinden met Moneybird',
-  'moneybird.step1Connected': '1. Verbonden',
-  'moneybird.lastImported': ' · laatst overgezet {date}',
-  'moneybird.step2': '2. Welke administratie',
-  'moneybird.step2Intro':
-    'Eén token bereikt élke Moneybird-administratie waar deze gebruiker bij hoort. Kies de juiste: achteraf is aan de cijfers niet te zien welke het was.',
-  'moneybird.fetchAdministrations': 'Administraties ophalen',
-  'moneybird.fetchAgain': 'Opnieuw ophalen',
   'moneybird.administration': 'Administratie',
-  'moneybird.chooseThis': 'kies deze',
-  'moneybird.isChosen': 'gekozen',
-  'moneybird.chosen': 'Gekozen:',
-  'moneybird.step3': '3. Proefimport',
-  'moneybird.step3Intro':
-    'Leest de administratie, toont de mapping van rekeningen en btw-codes, en sluit aan op de proefbalans. Er wordt niets overgezet.',
-  'moneybird.runPreview': 'Proefimport uitvoeren',
   'moneybird.mapping': 'Mapping controleren',
   'moneybird.mappingIntro':
     'Elke Moneybird-rekening en elk tarief moet een Klopt-rekening of btw-code hebben voordat er geboekt wordt.',
@@ -1490,9 +1469,6 @@ export const nl = {
   'moneybird.kloptAccount': 'Klopt-rekening',
   'moneybird.kloptTax': 'Klopt-btw-code',
   'moneybird.category': 'Categorie',
-  'moneybird.advanced': 'Geavanceerd',
-  'moneybird.advancedHint':
-    'Toont grootboeknummers en btw-codes. Uit voor Eigenaar, aan voor Boekhouder, Accountant en Controleur.',
   'moneybird.fix.mapAccount': 'Categorie kiezen',
   'moneybird.fix.mapTax': 'Btw-tarief koppelen',
   'moneybird.fix.renumberAccount': 'Ander nummer kiezen',
@@ -1504,7 +1480,6 @@ export const nl = {
   'moneybird.fix.acknowledgeEmpty': 'Ik weet dat {year} leeg is',
   'moneybird.fix.reread': 'Opnieuw lezen',
   'moneybird.fix.exclude': 'Niet overzetten',
-  'moneybird.fix.reopenYear': 'Boekjaar heropenen',
   'moneybird.fix.toFiscalYears': 'Naar Boekjaren',
   'moneybird.fix.deferAttachment': 'Later toevoegen',
   'moneybird.fix.openMoneybird': 'Open in Moneybird',
@@ -1520,87 +1495,20 @@ export const nl = {
   'moneybird.fix.stepMapAccount': 'Categorie kiezen',
   'moneybird.fix.stepMapTax': 'Btw-code kiezen',
   'moneybird.fix.stepSave': 'Opslaan',
-  'moneybird.excluded': 'Niet overgezet (uitgesloten)',
-  'moneybird.fx.sourceEcb': 'Bron: ECB',
-  'moneybird.fx.sourceEcbDated': 'Bron: ECB ({date})',
-  'moneybird.fx.override': 'Aanpassen',
-  'moneybird.fx.badge': 'Koers: ECB, aanpasbaar',
-  'moneybird.fx.badgeManual': 'Koers: handmatig invoeren',
   'moneybird.fx.rateLabel': 'Koers',
-  'moneybird.fx.accept': 'Koers bewaren',
-  'moneybird.fx.invalidRate': 'Voer een positieve koers in (0,9214 of 0.9214).',
-  'moneybird.fx.noEcb': 'Geen ECB-koers binnen 7 dagen — voer zelf een koers in.',
   'moneybird.fx.refreshFailed':
     'We konden de ECB-koers nu niet ophalen. Vul de koers zelf in of probeer het later opnieuw.',
-  'moneybird.fx.conversion': '{foreign} × {rate} = {functional}',
-  'moneybird.fx.entryPreview': 'Resulterende boeking',
-  'moneybird.fx.loading': 'ECB-koers ophalen…',
-  'moneybird.side.debit': 'Debet',
-  'moneybird.side.credit': 'Credit',
-  'moneybird.side.expense': 'Uitgave',
-  'moneybird.side.income': 'Inkomst',
-  'moneybird.side.out': 'Af',
-  'moneybird.side.in': 'Bij',
   'moneybird.moneybirdName': 'Moneybird',
-  'moneybird.drillNoDocuments':
-    'Geen documenten die bij dit verschil horen (alles in dit jaar sluit op zichzelf).',
-  'moneybird.typePicker': 'Rekeningtype',
-  'moneybird.typeSave': 'Type bewaren',
-  'moneybird.unbalancedPanel': 'Dit document is niet in balans',
-  'moneybird.unbalancedSides': '{reference} — {debitLabel} {debit} / {creditLabel} {credit}',
-  'moneybird.drillUnbalanced': 'Proefbalans is niet in balans',
-  'moneybird.drillUnbalancedHint':
-    '{debit} vs {credit} voor {year}. Herstel de bron in Moneybird of sluit documenten uit.',
-  'moneybird.step4': '4. Overzetten',
-  'moneybird.step4Intro':
-    'Zet de administratie over via de worker. Alles gaat door postJournalEntry. Opnieuw draaien voegt alleen nieuwe posten toe.',
-  'moneybird.commit': 'Definitief overzetten',
-  'moneybird.imported':
-    'Opdracht geplaatst. De worker zet {accounts} rekeningen, {contacts} relaties en de geboekte historie over.',
-  'moneybird.notImported': 'Niet overgezet',
-  'moneybird.counts': 'Aantallen',
   'moneybird.ledgerAccounts': 'Grootboekrekeningen',
   'moneybird.contacts': 'Relaties',
   'moneybird.salesInvoices': 'Verkoopfacturen',
-  'moneybird.creditNotes': 'Creditfacturen',
   'moneybird.purchaseInvoices': 'Inkoopfacturen',
   'moneybird.receipts': 'Bonnen',
-  'moneybird.financialAccounts': 'Financiële rekeningen',
   'moneybird.bankMutations': 'Bankmutaties',
-  'moneybird.journalDocuments': 'Memoriaal',
   'moneybird.taxRates': 'Btw-tarieven',
-  'moneybird.documents': 'Documenten',
-  'moneybird.trialBalanceLabel': 'Proefbalans {year}',
-  'moneybird.notRead': 'niet gelezen',
-  'moneybird.noBalances': 'geen saldi',
-  'moneybird.doesNotBalance': 'sluit niet',
-  'moneybird.balances': 'sluit',
-  'moneybird.debitCredit': '{debit} debet / {credit} credit',
   'moneybird.baseUrl': 'API-adres',
-  'moneybird.currency': 'Valuta',
-  'moneybird.unknownUser': 'verbonden',
-  'moneybird.administrationChosen': '{name} is gekozen.',
-  'moneybird.blocking': '{count} blokkerende bevindingen',
-  'moneybird.warnings': '{count} waarschuwingen',
-  'moneybird.nothingToReport': 'Niets te melden.',
-  'moneybird.requests': '{count} verzoeken, {rows} rijen, {seconds} s',
-  'moneybird.resource': 'Bron',
-  'moneybird.statusColumn': 'Status',
-  'moneybird.rowsColumn': 'Rijen',
-  'moneybird.durationColumn': 'Duur',
-  'moneybird.years': 'Boekjaren',
   'moneybird.unmappedCount': '{count} nog te mappen',
-  'moneybird.status': 'Status:',
   'moneybird.refresh': 'Vernieuwen',
-  'moneybird.workerSilent':
-    'De opdracht staat klaar, maar de worker heeft hem niet opgepakt. Draai',
-  'moneybird.plannedColumn': 'gepland uit Moneybird',
-  'moneybird.kloptColumn': 'Klopt',
-  'moneybird.differenceColumn': 'Verschil',
-  'moneybird.accountColumn': 'Rekening',
-  'moneybird.reconciliationIntro':
-    'Per rekening: wat het plan uit Moneybird zou boeken, tegen wat hier staat. Dat is geen Moneybird-proefbalans.',
-  'moneybird.openingLabel': 'Openingsbalans {year}',
   'finding.moneybird.unknown_currency':
     'Deze administratie is in {currency} en deze boeken zijn in {functionalCurrency}. Importeren zou elk bedrag omrekenen tegen een koers die niemand heeft gekozen.',
   'finding.moneybird.unknown_currency_document':
@@ -1626,6 +1534,8 @@ export const nl = {
   'finding.moneybird.tax_code_not_in_force':
     '{reference} is gedateerd op {bookingDate}, maar die btw-code geldt in Klopt nog niet op die datum. Er is hier nog geen oplossing. Controleer de datum en het tarief in Moneybird.',
   'finding.moneybird.tax_code_not_in_force_secondary': 'Btw-code {taxCode}',
+  'finding.moneybird.vat_without_tax_rate':
+    'Op {reference} van {bookingDate} staat btw, maar de regels hebben geen btw-tarief dat die btw draagt. Klopt kan die btw dan nergens in de aangifte zetten.',
   'finding.moneybird.account_number_collision':
     'Moneybird gaf grootboeknummer {number} twee keer terug ({name}).',
   'finding.moneybird.contact_number_collision':
@@ -1673,6 +1583,8 @@ export const nl = {
     'Zonder de zelf af te dragen btw ontbreken rubriek 2a/4a/4b en 5b; indienen via Klopt zou te weinig btw aangeven.',
   'finding.why.moneybird.tax_code_not_in_force':
     'Zonder geldige code op de boekdatum kan de aangifte die regels niet plaatsen. De begindatum kun je in Klopt nog niet wijzigen.',
+  'finding.why.moneybird.vat_without_tax_rate':
+    'Btw zonder tarief telt niet mee in de aangifte, dus die zou te laag uitvallen. Die periode kun je dan niet via Klopt indienen.',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Zonder eenduidige richting kan geen btw-code gekozen worden; de import blijft geblokkeerd tot Moneybird één kant aangeeft.',
   'finding.why.moneybird.account_number_collision':
@@ -2614,6 +2526,276 @@ export const nl = {
   'finding.xaf.unknown_party': 'Verwijst naar onbekende relatie {custSupID}.',
   'finding.xaf.unknown_period': 'Periode {periodNumber} is niet aangegeven.',
   'finding.xaf.unknown_vat_code': 'Verwijst naar onbekende btw-code {vatID}.',
+
+  // Import wizard (#100 Phase 1). Legal VERBATIM strings are marked; Legal-pending
+  // keys are easy one-line swaps when Legal signs off (#99 / #92 copy).
+  'wizard.title': 'Boeken overzetten',
+  'wizard.steps': 'Stappen',
+  'wizard.stepOf': 'Stap {step} van {total}: {label}',
+  'wizard.step.bron': 'Bron',
+  'wizard.step.verbinden': 'Verbinden',
+  'wizard.step.administratie': 'Administratie en jaren',
+  'wizard.step.voorbeeld': 'Voorbeeld',
+  'wizard.step.btw': 'Btw-codes',
+  'wizard.step.rekeningen': 'Rekeningen en relaties',
+  'wizard.step.problemen': 'Problemen',
+  'wizard.step.overzicht': 'Overzicht',
+  'wizard.step.importeren': 'Importeren',
+  'wizard.step.klaar': 'Klaar',
+  'wizard.next': 'Volgende',
+  'wizard.back': 'Terug',
+  'wizard.connect': 'Verbinden',
+  'wizard.done': 'Klaar',
+  'wizard.resume.title': 'Welkom terug',
+  'wizard.resume.body': 'Je was {source} aan het overzetten. We bewaarden waar je was.',
+  'wizard.resume.continue': 'Doorgaan',
+  'wizard.resume.restart': 'Opnieuw beginnen',
+  'wizard.resume.restartConfirm': 'Je voortgang wissen en opnieuw beginnen?',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.resume.restartConfirmBody':
+    'Je begint weer bij stap 1. We wissen alleen waar je in deze wizard was. Wat al is overgezet, blijft in je boekhouding staan; opnieuw beginnen maakt geen import ongedaan. Je keuzes voor btw-codes en rekeningen per administratie blijven bewaard.',
+  'wizard.bron.title': 'Waar komen je boeken vandaan?',
+  // Legal soft (#105 comment 6442468175)
+  'wizard.bron.intro':
+    'Kies het pakket waaruit je wilt overzetten. Er wordt niets geboekt tot je het overzetten bevestigt.',
+  'wizard.bron.moneybird.scope': 'Alle facturen, bonnetjes, bankmutaties en memoriaalposten.',
+  'wizard.bron.moneybird.notIncluded': 'Concepten en offertes komen niet mee.',
+  'wizard.bron.exact.scope':
+    'Rekeningschema, relaties en openstaande posten van één boekjaar, als beginbalans.',
+  'wizard.bron.exact.notIncluded':
+    'Losse boekingen komen niet mee. Documenten zet je daarna apart over, als je dat wilt.',
+  'wizard.bron.exact.deadEnd':
+    'Overzetten uit Exact kan nog niet in deze wizard. Gebruik Exact onder Geavanceerd.',
+  'wizard.bron.exact.openLegacy': 'Naar Exact (oud)',
+  'wizard.verbinden.title': 'Verbind met Moneybird',
+  'wizard.verbinden.intro': 'Met een token uit Moneybird kunnen we je administratie lezen.',
+  'wizard.verbinden.tokenHelp': 'We bewaren het versleuteld en laten het nooit meer zien.',
+  // Legal VERBATIM (#105) — auth rejection only (401/403).
+  'wizard.verbinden.tokenInvalid':
+    'Moneybird accepteert dit token niet. Controleer of je het helemaal hebt geplakt, of maak in Moneybird een nieuw token aan en plak het hier.',
+  // Plain je-voice for Legal (#105) — network / 5xx / 429; not a bad-token claim.
+  'wizard.verbinden.unreachable': 'We konden Moneybird nu niet bereiken. Probeer het zo opnieuw.',
+  'wizard.verbinden.tokenWhere': 'Waar vind ik dit?',
+  'wizard.verbinden.tokenSteps':
+    'Ga in Moneybird naar Instellingen → Externe koppelingen. Kies API-token aanmaken. Leesrechten zijn genoeg. Kopieer het token en plak het hierboven.',
+  'wizard.verbinden.baseUrlHelp': 'Alleen aanpassen als je een testomgeving gebruikt.',
+  'wizard.verbinden.connected': 'Verbonden met Moneybird',
+  'wizard.verbinden.connectedHint': 'We lezen alleen; in Moneybird verandert niets.',
+  'wizard.verbinden.noKeyTitle': 'Verbinden kan nog niet',
+  'wizard.verbinden.noKeyBody':
+    'Klopt kan je token niet veilig bewaren: er is geen KLOPT_ENCRYPTION_KEY ingesteld. Onversleuteld bewaren doen we niet.',
+  'wizard.verbinden.noKeyAdmin':
+    'Wie Klopt beheert, zet die sleutel eerst. Daarna kun je hier verder.',
+  // Legal soft line (encryption key) — VERBATIM
+  'wizard.verbinden.encryptionSoft':
+    'Raak je die sleutel kwijt of verander je hem, dan maak je opnieuw verbinding. Je boekhouding zelf is niet met die sleutel versleuteld.',
+  // Legal disconnect — VERBATIM
+  'wizard.verbinden.disconnectLegal':
+    'We verwijderen je token uit Klopt. In Moneybird blijft het geldig; trek het daar in als je het niet meer gebruikt. Wat al geïmporteerd is, blijft staan.',
+  // Post-0037 — VERBATIM
+  'wizard.verbinden.mappingsKept':
+    'Je keuzes voor btw-codes en rekeningen blijven bewaard voor deze administratie.',
+  'wizard.verbinden.disconnectConfirm': 'Verbinding met Moneybird verbreken?',
+  'wizard.verbinden.disconnectToast': 'Verbinding verbroken.',
+  'wizard.administratie.title': 'Welke administratie en welke jaren?',
+  'wizard.administratie.intro':
+    'Kies welke boeken we overzetten. Je kunt dit tot de import nog aanpassen.',
+  'wizard.administratie.admins': 'Administratie in Moneybird',
+  'wizard.administratie.years': 'Jaren',
+  'wizard.administratie.docs': 'Documenten',
+  'wizard.administratie.inKlopt': 'In Klopt',
+  'wizard.administratie.open': 'Open',
+  'wizard.administratie.closed': 'Afgesloten',
+  'wizard.administratie.closedHint': 'Dit jaar is afgesloten. We zetten het niet over.',
+  'wizard.administratie.docsLine': '{currency} · boekjaar begint in {month} · {count} documenten',
+  'wizard.administratie.docsLine_one': '{currency} · boekjaar begint in {month} · {count} document',
+  'wizard.administratie.docsLine_other':
+    '{currency} · boekjaar begint in {month} · {count} documenten',
+  'wizard.administratie.docsLine_zero': '{currency} · boekjaar begint in {month}',
+  'wizard.administratie.docsLineUnknown': '{currency}',
+  'wizard.administratie.month.1': 'januari',
+  'wizard.administratie.month.2': 'februari',
+  'wizard.administratie.month.3': 'maart',
+  'wizard.administratie.month.4': 'april',
+  'wizard.administratie.month.5': 'mei',
+  'wizard.administratie.month.6': 'juni',
+  'wizard.administratie.month.7': 'juli',
+  'wizard.administratie.month.8': 'augustus',
+  'wizard.administratie.month.9': 'september',
+  'wizard.administratie.month.10': 'oktober',
+  'wizard.administratie.month.11': 'november',
+  'wizard.administratie.month.12': 'december',
+  'wizard.administratie.selectedSummary': '{years} jaren · {docs} documenten',
+  'wizard.administratie.selectedSummary_other': '{years} jaren · {docs} documenten',
+  'wizard.administratie.selectedSummary_one': '{years} jaar · {docs} documenten',
+  'wizard.administratie.fetch': 'Administraties ophalen',
+  // Legal-pending (#99 year warning)
+  'wizard.year.notInForce': 'In {year} gelden de btw-codes van Klopt nog niet: {count} documenten.',
+  'wizard.year.notInForce_other':
+    'In {year} gelden de btw-codes van Klopt nog niet: {count} documenten.',
+  'wizard.year.notInForce_one':
+    'In {year} gelden de btw-codes van Klopt nog niet: {count} document.',
+  'wizard.year.notInForceHelp':
+    'Ze gelden vanaf {validFrom}, het begin van je eerste boekjaar in Klopt. Je ziet ze per btw-code bij Problemen. Wil je nu alleen latere jaren overzetten? Vink {year} dan uit.',
+  'wizard.year.noFittingCode':
+    '{count} documenten hebben geen passende btw-code (EU en niet-EU). Bij Btw-codes zie je wat je kunt doen.',
+  'wizard.year.noFittingCode_other':
+    '{count} documenten hebben geen passende btw-code (EU en niet-EU). Bij Btw-codes zie je wat je kunt doen.',
+  'wizard.year.noFittingCode_one':
+    '{count} document heeft geen passende btw-code (EU of niet-EU). Bij Btw-codes zie je wat je kunt doen.',
+  'wizard.voorbeeld.title': 'Wat we gaan overzetten',
+  'wizard.voorbeeld.intro':
+    'Dit is een voorbeeld: er wordt nog niets overgezet. Controleer de aantallen.',
+  'wizard.voorbeeld.reread': 'Opnieuw lezen',
+  'wizard.voorbeeld.reading': 'Bezig met lezen…',
+  'wizard.btw.title': 'Welke btw-code hoort bij elk tarief?',
+  'wizard.btw.intro':
+    'Hier kan je aangifte stil fout gaan, dus we kiezen niets voor je. Een voorstel bevestig je zelf.',
+  'wizard.btw.confirm': 'Bevestigen',
+  'wizard.btw.chooseOther': 'Andere kiezen',
+  'wizard.btw.chooseCode': 'Btw-code kiezen',
+  'wizard.btw.suggested': 'Voorstel',
+  'wizard.btw.chosen': 'Gekozen',
+  'wizard.btw.previous': 'Vorige keuze',
+  'wizard.btw.needChoice': 'Kies een code',
+  'wizard.btw.noCode': 'Geen passende code',
+  'wizard.btw.excluded': 'Niet overzetten',
+  'wizard.btw.fixRateInMoneybird': 'Pas het tarief aan in Moneybird en lees opnieuw.',
+  'wizard.btw.excludeDocs': '{count} documenten niet overzetten',
+  'wizard.btw.excludeDocs_other': '{count} documenten niet overzetten',
+  'wizard.btw.excludeDocs_one': '{count} document niet overzetten',
+  'wizard.btw.excludeUndo': 'Ongedaan maken',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.btw.excludedBody':
+    'Deze {count} documenten zetten we niet over. Hun bedragen en btw staan dan niet in Klopt en ook niet in je aangifte. Boek ze niet zelf in Klopt: een volgende import herkent dat niet, en dan staan ze er dubbel in. Staat er in Moneybird een verkeerd tarief, pas het daar aan, maak ‘Niet overzetten’ ongedaan, lees opnieuw en zet opnieuw over. Wat al is overgezet, zetten we niet nog een keer over. Is het tarief juist, doe dan de btw-aangifte over die periode buiten Klopt, bijvoorbeeld in Moneybird. Je vindt ze in het overzicht onder ‘Niet overgezet’.',
+  'wizard.btw.excludedBody_other':
+    'Deze {count} documenten zetten we niet over. Hun bedragen en btw staan dan niet in Klopt en ook niet in je aangifte. Boek ze niet zelf in Klopt: een volgende import herkent dat niet, en dan staan ze er dubbel in. Staat er in Moneybird een verkeerd tarief, pas het daar aan, maak ‘Niet overzetten’ ongedaan, lees opnieuw en zet opnieuw over. Wat al is overgezet, zetten we niet nog een keer over. Is het tarief juist, doe dan de btw-aangifte over die periode buiten Klopt, bijvoorbeeld in Moneybird. Je vindt ze in het overzicht onder ‘Niet overgezet’.',
+  'wizard.btw.excludedBody_one':
+    'Dit document zetten we niet over. Het bedrag en de btw staan dan niet in Klopt en ook niet in je aangifte. Boek het niet zelf in Klopt: een volgende import herkent dat niet, en dan staat het er dubbel in. Staat er in Moneybird een verkeerd tarief, pas het daar aan, maak ‘Niet overzetten’ ongedaan, lees opnieuw en zet opnieuw over. Wat al is overgezet, zetten we niet nog een keer over. Is het tarief juist, doe dan de btw-aangifte over die periode buiten Klopt, bijvoorbeeld in Moneybird. Je vindt het in het overzicht onder ‘Niet overgezet’.',
+  'wizard.btw.chooseInTable': 'Zelf kiezen in de tabel',
+  'wizard.btw.leftToChoose': 'Nog {count} tarieven kiezen',
+  'wizard.btw.allChosen': 'Alle tarieven gekozen',
+  'wizard.btw.chooseFirst': 'Kies eerst voor {count} tarieven wat Klopt doet.',
+  'wizard.btw.chooseFirst_other': 'Kies eerst voor {count} tarieven wat Klopt doet.',
+  'wizard.btw.chooseFirst_one': 'Kies eerst voor {count} tarief wat Klopt doet.',
+  // Legal VERBATIM (#105 comment 6438953957)
+  'wizard.btw.refusedRate':
+    'Klopt weigert {code} voor dit tarief: het tarief is {ratePct} en {code} is {codePct}. Kies de code die echt bij deze documenten hoort; die heeft hetzelfde percentage. Twijfel je, vraag het je accountant of zet deze documenten niet over.',
+  'wizard.btw.refusedRateFootnote':
+    'Klopt controleert bij opslaan of het percentage past. PRIV21, losse voorbelasting-helften en correctiecodes staan hier niet tussen.',
+  'wizard.rekeningen.title': 'Waar komen je rekeningen terecht?',
+  'wizard.rekeningen.intro':
+    'Elke rekening uit Moneybird krijgt een plek in Klopt. Je vorige keuzes staan er al.',
+  'wizard.problemen.title': 'Wat we nog moeten oplossen',
+  'wizard.problemen.intro': 'Los blokkerende punten op voordat je overzet.',
+  'wizard.problemen.toAdministratie': 'Naar Administratie en jaren',
+  'wizard.problemen.allClear': 'Geen blokkerende problemen. Je kunt verder.',
+  'wizard.problemen.stillBlocked': 'Er houdt nog iets de import tegen.',
+  // Legal VERBATIM (#105 comment 6438953957) — #99 per-code card
+  'wizard.notInForce.title': 'Btw-code {code} geldt nog niet in {year}',
+  'wizard.notInForce.body':
+    '{count} documenten uit {year} gebruiken btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Klopt kan dit nog niet oplossen: de begindatum van een btw-code kun je in Klopt nog niet wijzigen. Wat je kunt doen: vink {year} uit bij Administratie en jaren en zet alleen latere jaren over. De boekhouding en btw-aangifte over {year} doe je dan buiten Klopt, bijvoorbeeld in Moneybird. Staat er in Moneybird een verkeerde datum, pas die daar aan en lees opnieuw. Een juiste datum verander je niet om verder te kunnen.',
+  'wizard.notInForce.body_one':
+    '{count} document uit {year} gebruikt btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Klopt kan dit nog niet oplossen: de begindatum van een btw-code kun je in Klopt nog niet wijzigen. Wat je kunt doen: vink {year} uit bij Administratie en jaren en zet alleen latere jaren over. De boekhouding en btw-aangifte over {year} doe je dan buiten Klopt, bijvoorbeeld in Moneybird. Staat er in Moneybird een verkeerde datum, pas die daar aan en lees opnieuw. Een juiste datum verander je niet om verder te kunnen.',
+  'wizard.notInForce.body_other':
+    '{count} documenten uit {year} gebruiken btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Klopt kan dit nog niet oplossen: de begindatum van een btw-code kun je in Klopt nog niet wijzigen. Wat je kunt doen: vink {year} uit bij Administratie en jaren en zet alleen latere jaren over. De boekhouding en btw-aangifte over {year} doe je dan buiten Klopt, bijvoorbeeld in Moneybird. Staat er in Moneybird een verkeerde datum, pas die daar aan en lees opnieuw. Een juiste datum verander je niet om verder te kunnen.',
+  // Kept for #99 (editable valid_from); do not render until that ships.
+  'wizard.notInForce.boekhouder': 'De eigenaar of accountant kan de begindatum aanpassen.',
+  'wizard.overzicht.title': 'Klaar om over te zetten?',
+  'wizard.overzicht.intro': 'Controleer de samenvatting. Daarna begint de import.',
+  'wizard.overzicht.transfer': 'Overzetten',
+  'wizard.overzicht.skip': 'Niet overzetten',
+  'wizard.overzicht.confirm': 'Overzetten bevestigen',
+  'wizard.overzicht.confirmTitle': 'Boeken overzetten?',
+  'wizard.overzicht.confirmTitleCount': '{count} documenten importeren?',
+  'wizard.overzicht.confirmTitleCount_one': '{count} document importeren?',
+  'wizard.overzicht.confirmTitleCount_other': '{count} documenten importeren?',
+  // Legal Moneybird dedup — VERBATIM
+  'wizard.overzicht.dedupLegal':
+    'Wat je eerder uit deze administratie hebt overgezet, zetten we niet nog een keer over. Wat je zelf al in Klopt hebt geboekt, herkennen we niet: controleer dat op dubbele boekingen.',
+  // Legal import confirm — VERBATIM
+  'wizard.overzicht.undoLegal':
+    'Een import kun je niet in één keer ongedaan maken. Een fout herstel je per boeking met een correctie, eventueel samen met je accountant.',
+  'wizard.importeren.title': 'Bezig met overzetten',
+  // Plain wording for Legal (#105 PM r4) — failed / failedPartial on step 9.
+  'wizard.importeren.stoppedTitle': 'Import gestopt',
+  'wizard.importeren.stoppedFooter': 'Import gestopt',
+  'wizard.importeren.intro':
+    'Je kunt dit scherm sluiten; we gaan door. Kom je terug, dan zie je hier hoe ver we zijn.',
+  'wizard.importeren.progress': '{pct}% · {done} van {total}',
+  'wizard.klaar.title': 'Import klaar',
+  'wizard.klaar.intro': 'Dit is overgezet. Controleer je boeken en ga verder met boeken in Klopt.',
+  'wizard.klaar.summary': '{count} documenten overgezet.',
+  'wizard.klaar.summary_one': '{count} document overgezet.',
+  'wizard.klaar.summary_other': '{count} documenten overgezet.',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.klaar.summaryNone': 'Er is niets nieuws overgezet.',
+  'wizard.klaar.nextVat': 'Naar btw-aangifte',
+  'wizard.klaar.nextEntries': 'Naar journaalposten',
+  'wizard.klaar.blocked':
+    'Sommige periodes kun je nog niet via Klopt indienen. Bij de btw-aangifte zie je welke en wat je kunt doen.',
+  'wizard.klaar.noGreen': 'Nog niet alles is overgezet. Bekijk de problemen opnieuw.',
+  'wizard.overzicht.notTransferred': 'Niet overgezet',
+  'wizard.overzicht.notTransferredEmpty': 'Niets. Alles is overgezet.',
+  'wizard.overzicht.notTransferredRates': 'Tarieven',
+  'wizard.overzicht.notTransferredDocs': 'Documenten',
+  'wizard.overzicht.alreadyInKlopt': 'Al in Klopt',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.overzicht.alreadyInKloptEmpty': 'Nog niets uit deze administratie.',
+  'wizard.overzicht.alreadyInKloptCount':
+    '{count} documenten uit deze administratie staan al in Klopt. Die zetten we niet nog een keer over.',
+  'wizard.overzicht.alreadyInKloptCount_other':
+    '{count} documenten uit deze administratie staan al in Klopt. Die zetten we niet nog een keer over.',
+  'wizard.overzicht.alreadyInKloptCount_one':
+    '{count} document uit deze administratie staat al in Klopt. Dat zetten we niet nog een keer over.',
+  'wizard.overzicht.reasonExcluded': 'Niet overzetten gekozen',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.klaar.booksInKlopt': 'Wat je hebt overgezet, staat in Klopt.',
+  'wizard.klaar.blockedBadge': 'Blokkeert indienen',
+  'wizard.klaar.viewNotTransferred': 'Niet overgezet bekijken',
+  'wizard.klaar.viewNotTransferredDetail':
+    '{docs} documenten, met de reden erbij · {rates} inkopen zonder btw-code tellen niet mee in je aangifte',
+  'wizard.klaar.viewNotTransferredDetail_other':
+    '{docs} documenten, met de reden erbij · {rates} inkopen zonder btw-code tellen niet mee in je aangifte',
+  'wizard.klaar.viewNotTransferredDetail_one':
+    '{docs} document, met de reden erbij · {rates} inkopen zonder btw-code tellen niet mee in je aangifte',
+  // Legal VERBATIM (#105 comment 6442468175) — deadline only for #95
+  'wizard.klaar.whyBlocked':
+    'Klopt past die cijfers niet zelf aan. Je kunt de aangifte over die periodes zelf of met een belastingadviseur indienen, buiten Klopt, op basis van gecorrigeerde cijfers.',
+  'wizard.klaar.whyBlockedDeadline':
+    'Indienen via Klopt kan zodra Klopt dit ondersteunt; wacht daar niet op als je aangiftetermijn eerder afloopt.',
+  'wizard.importeren.pctLive': '{pct}% overgezet',
+  'wizard.importeren.failed': 'We hebben niets geboekt',
+  // Legal VERBATIM (#105 comment 6442468175)
+  'wizard.importeren.failedPartial': 'De import is gestopt. Een deel kan al geboekt zijn.',
+  'wizard.importeren.failedPartialBody':
+    'Kijk bij Journaalposten wat er al staat. Zet je opnieuw over, dan zetten we wat al uit deze administratie is overgezet niet nog een keer over. Een fout herstel je per boeking met een correctie.',
+  'wizard.importeren.busy': 'Bezig',
+  'wizard.importeren.pending': 'In de wachtrij…',
+  'wizard.importeren.running': 'Bezig met boeken…',
+  'wizard.notInForce.why':
+    'Waarom dit telt: Zonder geldige code op de boekdatum kan de aangifte die regels niet plaatsen. De begindatum kun je in Klopt nog niet wijzigen.',
+  'wizard.problemen.reconciliation': 'Aansluiting',
+  'wizard.problemen.reconciliationRead': 'gelezen',
+  'wizard.problemen.reconciliationSkipped': 'overgeslagen',
+  'wizard.problemen.reconciliationFailed': 'mislukt',
+  'wizard.problemen.reconciliationAmount': 'debet {amount}',
+  'wizard.problemen.blockingSection': 'Houdt de import tegen',
+  'wizard.problemen.infoSection': 'Om te weten',
+  'wizard.rekeningen.confirm': 'Bevestigen',
+  'wizard.rekeningen.suggested': 'Voorstel',
+  'wizard.rekeningen.previous': 'Vorige keuze',
+  'wizard.rekeningen.chosen': 'Gekozen',
+  'wizard.btw.nullPercent': 'geen %',
+  'nav.importMoneybird': 'Moneybird',
+  'nav.importExact': 'Exact Online',
+  'wizard.status.pickSource': 'Kies een bron om verder te gaan',
+  'wizard.status.exactBlocked': 'Exact kan hier nog niet.',
+  'wizard.status.pasteToken': 'Plak je token om verder te gaan',
+  'wizard.status.needAdmin': 'Kies een administratie en ten minste één jaar',
+  'wizard.status.needPreview': 'Lees eerst een voorbeeld',
+  'wizard.status.importing': 'Bezig met importeren…',
+  'wizard.status.done': 'Klaar',
 } as const
 
 export type MessageKey = keyof typeof nl

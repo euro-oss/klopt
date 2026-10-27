@@ -1,7 +1,7 @@
 /**
  * Loopback Moneybird REST stand-in for browser e2e (#90).
  *
- * The Moneybird page stores a base URL; localhost / 127.0.0.1 is allowed so a
+ * The import wizard stores a base URL; localhost / 127.0.0.1 is allowed so a
  * real HTTP stand-in can drive connect → choose → preview without reaching
  * moneybird.com. Shapes match the fake used by unit tests.
  */
@@ -75,12 +75,19 @@ export interface MoneybirdStandIn {
   readonly baseUrl: string
   readonly token: string
   close(): Promise<void>
+  /**
+   * When set, every subsequent HTTP response waits on this promise first.
+   * Used to hold a Moneybird preview reread in flight for busy screenshots.
+   */
+  holdResponses?(until: Promise<void>): void
 }
 
 /** Null-% purchase + sales rates with totalTax 0 so VGEEN / 0% sales are offered. */
-export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn> {
+export async function startNullRateMoneybirdStandIn(
+  options: { readonly withPrimaryProposal?: boolean } = {},
+): Promise<MoneybirdStandIn> {
   const token = 'mb-e2e-null-rate-token'
-  const taxRates = [
+  const taxRates: Record<string, unknown>[] = [
     {
       id: 90,
       name: 'Geen btw',
@@ -98,6 +105,17 @@ export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn>
       active: true,
     },
   ]
+  if (options.withPrimaryProposal === true) {
+    // Screenshot-only: primary H21 proposal for Designer “05 voorstel”.
+    taxRates.push({
+      id: 21,
+      name: '21% btw',
+      percentage: '21.0',
+      tax_rate_type: 'sales_invoice',
+      country: 'NL',
+      active: true,
+    })
+  }
   const purchases = [
     {
       id: 401,
@@ -123,7 +141,7 @@ export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn>
       attachments: [],
     },
   ]
-  const sales = [
+  const sales: Record<string, unknown>[] = [
     {
       id: 301,
       contact_id: 100,
@@ -149,6 +167,32 @@ export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn>
       attachments: [],
     },
   ]
+  if (options.withPrimaryProposal === true) {
+    sales.push({
+      id: 302,
+      contact_id: 100,
+      invoice_id: '2026-21',
+      state: 'open',
+      invoice_date: '2026-03-02',
+      due_date: '2026-03-31',
+      currency: 'EUR',
+      prices_are_incl_tax: false,
+      total_price_excl_tax: '100.00',
+      total_price_incl_tax: '121.00',
+      total_tax: '21.00',
+      details: [
+        {
+          id: 3021,
+          description: 'Advies 21%',
+          amount: '1',
+          price: '100.00',
+          tax_rate_id: 21,
+          ledger_account_id: 7,
+        },
+      ],
+      attachments: [],
+    })
+  }
 
   const server: Server = createServer((req, res) => {
     const url = req.url ?? '/'
@@ -211,6 +255,157 @@ export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn>
   return {
     baseUrl,
     token,
+    close: () =>
+      new Promise((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()))
+      }),
+  }
+}
+
+/**
+ * Null-% rates on 2025 documents — after mapping to Klopt codes that start in
+ * the fiscal year (2026), preview raises `tax_code_not_in_force` (#99).
+ */
+export async function startPreValidFromMoneybirdStandIn(): Promise<MoneybirdStandIn> {
+  const token = 'mb-e2e-pre-valid-from-token'
+  let responseHold: Promise<void> | null = null
+  const taxRates = [
+    {
+      id: 90,
+      name: 'Geen btw',
+      percentage: null,
+      tax_rate_type: 'purchase_invoice',
+      country: 'NL',
+      active: true,
+    },
+    {
+      id: 91,
+      name: 'Geen btw verkoop',
+      percentage: null,
+      tax_rate_type: 'sales_invoice',
+      country: 'NL',
+      active: true,
+    },
+  ]
+  const purchases = [
+    {
+      id: 401,
+      contact_id: 200,
+      reference: 'LEV-2025',
+      date: '2025-06-15',
+      due_date: '2025-07-15',
+      currency: 'EUR',
+      state: 'open',
+      total_price_excl_tax: '100.00',
+      total_price_incl_tax: '100.00',
+      total_tax: '0.00',
+      details: [
+        {
+          id: 4011,
+          description: 'Huur 2025',
+          amount: '1',
+          price: '100.00',
+          tax_rate_id: 90,
+          ledger_account_id: 6,
+        },
+      ],
+      attachments: [],
+    },
+  ]
+  const sales = [
+    {
+      id: 301,
+      contact_id: 100,
+      invoice_id: '2025-NULL',
+      state: 'open',
+      invoice_date: '2025-06-15',
+      due_date: '2025-07-15',
+      currency: 'EUR',
+      prices_are_incl_tax: false,
+      total_price_excl_tax: '50.00',
+      total_price_incl_tax: '50.00',
+      total_tax: '0.00',
+      details: [
+        {
+          id: 3011,
+          description: 'Advies 2025',
+          amount: '1',
+          price: '50.00',
+          tax_rate_id: 91,
+          ledger_account_id: 7,
+        },
+      ],
+      attachments: [],
+    },
+  ]
+
+  const server: Server = createServer((req, res) => {
+    void (async () => {
+      if (responseHold !== null) await responseHold
+      const url = req.url ?? '/'
+      const auth = req.headers.authorization ?? ''
+      if (auth !== `Bearer ${token}`) {
+        res.writeHead(401)
+        res.end('unauthorised')
+        return
+      }
+      const json = (body: unknown): void => {
+        res.writeHead(200, { 'content-type': 'application/json' })
+        res.end(JSON.stringify(body))
+      }
+      if (url.includes('/administrations.json')) {
+        json([ADMIN])
+        return
+      }
+      if (url.includes('ledger_accounts.json')) {
+        json(LEDGER)
+        return
+      }
+      if (url.includes('tax_rates.json')) {
+        json(taxRates)
+        return
+      }
+      if (url.includes('contacts.json')) {
+        json(CONTACTS)
+        return
+      }
+      if (url.includes('sales_invoices.json')) {
+        json(sales)
+        return
+      }
+      if (url.includes('purchase_invoices.json')) {
+        json(purchases)
+        return
+      }
+      if (url.includes('general_journal_documents.json')) {
+        json(JOURNAL)
+        return
+      }
+      if (
+        url.includes('receipts.json') ||
+        url.includes('financial_accounts.json') ||
+        url.includes('financial_mutations.json') ||
+        url.includes('general_documents.json')
+      ) {
+        json([])
+        return
+      }
+      json([])
+    })()
+  })
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve())
+  })
+  const address = server.address() as AddressInfo
+  const baseUrl = `http://127.0.0.1:${String(address.port)}/api/v2`
+
+  return {
+    baseUrl,
+    token,
+    holdResponses(until) {
+      responseHold = until
+    },
     close: () =>
       new Promise((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()))
@@ -319,6 +514,186 @@ export async function startNullRateVatMismatchMoneybirdStandIn(): Promise<Moneyb
   const address = server.address() as AddressInfo
   const baseUrl = `http://127.0.0.1:${String(address.port)}/api/v2`
 
+  return {
+    baseUrl,
+    token,
+    close: () =>
+      new Promise((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()))
+      }),
+  }
+}
+
+/**
+ * 21% purchase “Verlegd naar u” — pick VERL-ONTV under other for
+ * `self_assessed_vat_unsupported` (#95). Real nl-mkb VERL-ONTV is 21% bps, so a
+ * 0% Moneybird verlegd rate is an honest dead-end (no candidates); 21% lets the
+ * picker offer VERL-ONTV. Warning only: the document still imports; Klaar shows
+ * the filing block with whyBlockedDeadline (#105 Designer r4 item 4).
+ */
+export async function startSelfAssessedVatMoneybirdStandIn(): Promise<MoneybirdStandIn> {
+  const token = 'mb-e2e-self-assessed-vat-token'
+  const taxRates = [
+    {
+      id: 80,
+      name: 'Verlegd naar u',
+      percentage: '21.0',
+      tax_rate_type: 'purchase_invoice',
+      country: 'NL',
+      active: true,
+      report_reference: 'verlegd',
+    },
+    {
+      id: 21,
+      name: '21% btw',
+      percentage: '21.0',
+      tax_rate_type: 'sales_invoice',
+      country: 'NL',
+      active: true,
+    },
+  ]
+  const purchases = [
+    {
+      id: 401,
+      contact_id: 200,
+      reference: 'LEV-VERL',
+      date: '2026-03-05',
+      due_date: '2026-04-05',
+      currency: 'EUR',
+      state: 'open',
+      prices_are_incl_tax: false,
+      total_price_excl_tax: '100.00',
+      total_price_incl_tax: '121.00',
+      total_tax: '21.00',
+      details: [
+        {
+          id: 4011,
+          description: 'Onderaanneming',
+          amount: '1',
+          price: '100.00',
+          tax_rate_id: 80,
+          ledger_account_id: 6,
+        },
+      ],
+      attachments: [],
+    },
+  ]
+  const sales = [
+    {
+      id: 301,
+      contact_id: 100,
+      invoice_id: '2026-021',
+      state: 'open',
+      invoice_date: '2026-03-01',
+      due_date: '2026-03-31',
+      currency: 'EUR',
+      prices_are_incl_tax: false,
+      total_price_excl_tax: '100.00',
+      total_price_incl_tax: '121.00',
+      total_tax: '21.00',
+      details: [
+        {
+          id: 3011,
+          description: 'Advies',
+          amount: '1',
+          price: '100.00',
+          tax_rate_id: 21,
+          ledger_account_id: 7,
+        },
+      ],
+      attachments: [],
+    },
+  ]
+
+  const server: Server = createServer((req, res) => {
+    const url = req.url ?? '/'
+    const auth = req.headers.authorization ?? ''
+    if (auth !== `Bearer ${token}`) {
+      res.writeHead(401)
+      res.end('unauthorised')
+      return
+    }
+    const json = (body: unknown): void => {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify(body))
+    }
+    if (url.includes('/administrations.json')) {
+      json([ADMIN])
+      return
+    }
+    if (url.includes('ledger_accounts.json')) {
+      json(LEDGER)
+      return
+    }
+    if (url.includes('tax_rates.json')) {
+      json(taxRates)
+      return
+    }
+    if (url.includes('contacts.json')) {
+      json(CONTACTS)
+      return
+    }
+    if (url.includes('sales_invoices.json')) {
+      json(sales)
+      return
+    }
+    if (url.includes('purchase_invoices.json')) {
+      json(purchases)
+      return
+    }
+    if (url.includes('general_journal_documents.json')) {
+      json(JOURNAL)
+      return
+    }
+    if (
+      url.includes('receipts.json') ||
+      url.includes('financial_accounts.json') ||
+      url.includes('financial_mutations.json') ||
+      url.includes('general_documents.json')
+    ) {
+      json([])
+      return
+    }
+    json([])
+  })
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve())
+  })
+  const address = server.address() as AddressInfo
+  const baseUrl = `http://127.0.0.1:${String(address.port)}/api/v2`
+
+  return {
+    baseUrl,
+    token,
+    close: () =>
+      new Promise((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()))
+      }),
+  }
+}
+
+/**
+ * Always answers 503 so connect maps to `moneybird_unreachable` (#105 PM r5).
+ * Auth uses a valid Bearer so the failure is reachability, not 401.
+ */
+export async function startUnreachableMoneybirdStandIn(): Promise<MoneybirdStandIn> {
+  const token = 'mb-e2e-unreachable-token'
+  const server: Server = createServer((req, res) => {
+    const auth = req.headers.authorization ?? ''
+    if (auth !== `Bearer ${token}`) {
+      res.writeHead(401)
+      res.end('unauthorised')
+      return
+    }
+    res.writeHead(503, { 'content-type': 'text/plain' })
+    res.end('unavailable')
+  })
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve())
+  })
+  const address = server.address() as AddressInfo
+  const baseUrl = `http://127.0.0.1:${String(address.port)}/api/v2`
   return {
     baseUrl,
     token,

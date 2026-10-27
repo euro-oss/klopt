@@ -8,6 +8,7 @@ import { PaymentsRepository } from './repositories/payments.js'
 import { InboxRepository } from './repositories/inbox.js'
 import { ExactConnectionRepository } from './repositories/exact.js'
 import { MoneybirdConnectionRepository } from './repositories/moneybird.js'
+import { ImportWizardRepository } from './repositories/import-wizard.js'
 import { EcbRateRepository } from './repositories/ecb-rates.js'
 import { InboundSourceRepository } from './repositories/inbound-sources.js'
 import { AuditRepository } from './repositories/audit.js'
@@ -433,6 +434,23 @@ export async function withMoneybirdConnection<T>(
   work: (repository: MoneybirdConnectionRepository) => Promise<T>,
 ): Promise<T> {
   return database.transaction(async (tx) => work(new MoneybirdConnectionRepository(tx)))
+}
+
+export async function withImportWizardRead<T>(
+  database: Database,
+  work: (repository: ImportWizardRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new ImportWizardRepository(tx)), {
+    accessMode: 'read only',
+    isolationLevel: 'repeatable read',
+  })
+}
+
+export async function withImportWizard<T>(
+  database: Database,
+  work: (repository: ImportWizardRepository) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) => work(new ImportWizardRepository(tx)))
 }
 
 export async function withEcbRates<T>(

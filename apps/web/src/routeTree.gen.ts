@@ -21,6 +21,7 @@ import { Route as AppAuditFileRouteImport } from './routes/_app/audit-file'
 import { Route as AppAuditLogRouteImport } from './routes/_app/audit-log'
 import { Route as AppDunningRouteImport } from './routes/_app/dunning'
 import { Route as AppFiscalYearsRouteImport } from './routes/_app/fiscal-years'
+import { Route as AppImporterenRouteImport } from './routes/_app/importeren'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppRetentionRouteImport } from './routes/_app/retention'
@@ -48,6 +49,7 @@ import { Route as AppInvoicesNewRouteImport } from './routes/_app/invoices.new'
 import { Route as AppLabGuidedInvoiceRouteImport } from './routes/_app/lab.guided-invoice'
 import { Route as AppLabImportFindingsRouteImport } from './routes/_app/lab.import-findings'
 import { Route as AppMoneybirdIndexRouteImport } from './routes/_app/moneybird.index'
+import { Route as AppMoneybirdSplatRouteImport } from './routes/_app/moneybird.$'
 import { Route as AppPaymentsIndexRouteImport } from './routes/_app/payments.index'
 import { Route as AppPaymentsBatchIdRouteImport } from './routes/_app/payments.$batchId'
 import { Route as AppPurchasesIndexRouteImport } from './routes/_app/purchases.index'
@@ -102,6 +104,8 @@ import { Route as ApiV1ExactDocumentsRouteImport } from './routes/api/v1/exact.d
 import { Route as ApiV1ExactImportRouteImport } from './routes/api/v1/exact.import'
 import { Route as ApiV1ExportsAuditFileRouteImport } from './routes/api/v1/exports.audit-file'
 import { Route as ApiV1FiscalYearsCloseRouteImport } from './routes/api/v1/fiscal-years.close'
+import { Route as ApiV1ImportWizardMappingsRouteImport } from './routes/api/v1/import-wizard.mappings'
+import { Route as ApiV1ImportWizardStateRouteImport } from './routes/api/v1/import-wizard.state'
 import { Route as ApiV1ImportsAuditFileRouteImport } from './routes/api/v1/imports.audit-file'
 import { Route as ApiV1InboxSourcesRouteImport } from './routes/api/v1/inbox.sources'
 import { Route as ApiV1JournalEntriesEntryIdRouteImport } from './routes/api/v1/journal-entries.$entryId'
@@ -231,6 +235,11 @@ const AppDunningRoute = AppDunningRouteImport.update({
 const AppFiscalYearsRoute = AppFiscalYearsRouteImport.update({
   id: '/fiscal-years',
   path: '/fiscal-years',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImporterenRoute = AppImporterenRouteImport.update({
+  id: '/importeren',
+  path: '/importeren',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInboxRoute = AppInboxRouteImport.update({
@@ -366,6 +375,11 @@ const AppLabImportFindingsRoute = AppLabImportFindingsRouteImport.update({
 const AppMoneybirdIndexRoute = AppMoneybirdIndexRouteImport.update({
   id: '/moneybird/',
   path: '/moneybird/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMoneybirdSplatRoute = AppMoneybirdSplatRouteImport.update({
+  id: '/moneybird/$',
+  path: '/moneybird/$',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPaymentsIndexRoute = AppPaymentsIndexRouteImport.update({
@@ -641,6 +655,17 @@ const ApiV1FiscalYearsCloseRoute = ApiV1FiscalYearsCloseRouteImport.update({
   id: '/close',
   path: '/close',
   getParentRoute: () => ApiV1FiscalYearsRoute,
+} as any)
+const ApiV1ImportWizardMappingsRoute =
+  ApiV1ImportWizardMappingsRouteImport.update({
+    id: '/api/v1/import-wizard/mappings',
+    path: '/api/v1/import-wizard/mappings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1ImportWizardStateRoute = ApiV1ImportWizardStateRouteImport.update({
+  id: '/api/v1/import-wizard/state',
+  path: '/api/v1/import-wizard/state',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1ImportsAuditFileRoute = ApiV1ImportsAuditFileRouteImport.update({
   id: '/api/v1/imports/audit-file',
@@ -1043,6 +1068,7 @@ export interface FileRoutesByFullPath {
   '/audit-log': typeof AppAuditLogRoute
   '/dunning': typeof AppDunningRoute
   '/fiscal-years': typeof AppFiscalYearsRoute
+  '/importeren': typeof AppImporterenRoute
   '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
   '/retention': typeof AppRetentionRoute
@@ -1064,6 +1090,7 @@ export interface FileRoutesByFullPath {
   '/invoices/new': typeof AppInvoicesNewRoute
   '/lab/guided-invoice': typeof AppLabGuidedInvoiceRoute
   '/lab/import-findings': typeof AppLabImportFindingsRoute
+  '/moneybird/$': typeof AppMoneybirdSplatRoute
   '/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
   '/purchases/new': typeof AppPurchasesNewRoute
@@ -1124,6 +1151,8 @@ export interface FileRoutesByFullPath {
   '/api/v1/exact/import': typeof ApiV1ExactImportRouteWithChildren
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
+  '/api/v1/import-wizard/mappings': typeof ApiV1ImportWizardMappingsRoute
+  '/api/v1/import-wizard/state': typeof ApiV1ImportWizardStateRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
   '/api/v1/inbox/sources': typeof ApiV1InboxSourcesRouteWithChildren
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
@@ -1205,6 +1234,7 @@ export interface FileRoutesByTo {
   '/audit-log': typeof AppAuditLogRoute
   '/dunning': typeof AppDunningRoute
   '/fiscal-years': typeof AppFiscalYearsRoute
+  '/importeren': typeof AppImporterenRoute
   '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
   '/retention': typeof AppRetentionRoute
@@ -1227,6 +1257,7 @@ export interface FileRoutesByTo {
   '/invoices/new': typeof AppInvoicesNewRoute
   '/lab/guided-invoice': typeof AppLabGuidedInvoiceRoute
   '/lab/import-findings': typeof AppLabImportFindingsRoute
+  '/moneybird/$': typeof AppMoneybirdSplatRoute
   '/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
   '/purchases/new': typeof AppPurchasesNewRoute
@@ -1287,6 +1318,8 @@ export interface FileRoutesByTo {
   '/api/v1/exact/import': typeof ApiV1ExactImportRouteWithChildren
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
+  '/api/v1/import-wizard/mappings': typeof ApiV1ImportWizardMappingsRoute
+  '/api/v1/import-wizard/state': typeof ApiV1ImportWizardStateRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
   '/api/v1/inbox/sources': typeof ApiV1InboxSourcesRouteWithChildren
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
@@ -1370,6 +1403,7 @@ export interface FileRoutesById {
   '/_app/audit-log': typeof AppAuditLogRoute
   '/_app/dunning': typeof AppDunningRoute
   '/_app/fiscal-years': typeof AppFiscalYearsRoute
+  '/_app/importeren': typeof AppImporterenRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/retention': typeof AppRetentionRoute
@@ -1392,6 +1426,7 @@ export interface FileRoutesById {
   '/_app/invoices/new': typeof AppInvoicesNewRoute
   '/_app/lab/guided-invoice': typeof AppLabGuidedInvoiceRoute
   '/_app/lab/import-findings': typeof AppLabImportFindingsRoute
+  '/_app/moneybird/$': typeof AppMoneybirdSplatRoute
   '/_app/payments/$batchId': typeof AppPaymentsBatchIdRoute
   '/_app/purchases/$invoiceId': typeof AppPurchasesInvoiceIdRoute
   '/_app/purchases/new': typeof AppPurchasesNewRoute
@@ -1452,6 +1487,8 @@ export interface FileRoutesById {
   '/api/v1/exact/import': typeof ApiV1ExactImportRouteWithChildren
   '/api/v1/exports/audit-file': typeof ApiV1ExportsAuditFileRoute
   '/api/v1/fiscal-years/close': typeof ApiV1FiscalYearsCloseRoute
+  '/api/v1/import-wizard/mappings': typeof ApiV1ImportWizardMappingsRoute
+  '/api/v1/import-wizard/state': typeof ApiV1ImportWizardStateRoute
   '/api/v1/imports/audit-file': typeof ApiV1ImportsAuditFileRoute
   '/api/v1/inbox/sources': typeof ApiV1InboxSourcesRouteWithChildren
   '/api/v1/journal-entries/$entryId': typeof ApiV1JournalEntriesEntryIdRouteWithChildren
@@ -1536,6 +1573,7 @@ export interface FileRouteTypes {
     | '/audit-log'
     | '/dunning'
     | '/fiscal-years'
+    | '/importeren'
     | '/inbox'
     | '/members'
     | '/retention'
@@ -1557,6 +1595,7 @@ export interface FileRouteTypes {
     | '/invoices/new'
     | '/lab/guided-invoice'
     | '/lab/import-findings'
+    | '/moneybird/$'
     | '/payments/$batchId'
     | '/purchases/$invoiceId'
     | '/purchases/new'
@@ -1617,6 +1656,8 @@ export interface FileRouteTypes {
     | '/api/v1/exact/import'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
+    | '/api/v1/import-wizard/mappings'
+    | '/api/v1/import-wizard/state'
     | '/api/v1/imports/audit-file'
     | '/api/v1/inbox/sources'
     | '/api/v1/journal-entries/$entryId'
@@ -1698,6 +1739,7 @@ export interface FileRouteTypes {
     | '/audit-log'
     | '/dunning'
     | '/fiscal-years'
+    | '/importeren'
     | '/inbox'
     | '/members'
     | '/retention'
@@ -1720,6 +1762,7 @@ export interface FileRouteTypes {
     | '/invoices/new'
     | '/lab/guided-invoice'
     | '/lab/import-findings'
+    | '/moneybird/$'
     | '/payments/$batchId'
     | '/purchases/$invoiceId'
     | '/purchases/new'
@@ -1780,6 +1823,8 @@ export interface FileRouteTypes {
     | '/api/v1/exact/import'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
+    | '/api/v1/import-wizard/mappings'
+    | '/api/v1/import-wizard/state'
     | '/api/v1/imports/audit-file'
     | '/api/v1/inbox/sources'
     | '/api/v1/journal-entries/$entryId'
@@ -1862,6 +1907,7 @@ export interface FileRouteTypes {
     | '/_app/audit-log'
     | '/_app/dunning'
     | '/_app/fiscal-years'
+    | '/_app/importeren'
     | '/_app/inbox'
     | '/_app/members'
     | '/_app/retention'
@@ -1884,6 +1930,7 @@ export interface FileRouteTypes {
     | '/_app/invoices/new'
     | '/_app/lab/guided-invoice'
     | '/_app/lab/import-findings'
+    | '/_app/moneybird/$'
     | '/_app/payments/$batchId'
     | '/_app/purchases/$invoiceId'
     | '/_app/purchases/new'
@@ -1944,6 +1991,8 @@ export interface FileRouteTypes {
     | '/api/v1/exact/import'
     | '/api/v1/exports/audit-file'
     | '/api/v1/fiscal-years/close'
+    | '/api/v1/import-wizard/mappings'
+    | '/api/v1/import-wizard/state'
     | '/api/v1/imports/audit-file'
     | '/api/v1/inbox/sources'
     | '/api/v1/journal-entries/$entryId'
@@ -2063,6 +2112,8 @@ export interface RootRouteChildren {
   ApiV1ExactDocumentsRoute: typeof ApiV1ExactDocumentsRoute
   ApiV1ExactImportRoute: typeof ApiV1ExactImportRouteWithChildren
   ApiV1ExportsAuditFileRoute: typeof ApiV1ExportsAuditFileRoute
+  ApiV1ImportWizardMappingsRoute: typeof ApiV1ImportWizardMappingsRoute
+  ApiV1ImportWizardStateRoute: typeof ApiV1ImportWizardStateRoute
   ApiV1ImportsAuditFileRoute: typeof ApiV1ImportsAuditFileRoute
   ApiV1LedgerChainVerificationRoute: typeof ApiV1LedgerChainVerificationRoute
   ApiV1MoneybirdAdministrationRoute: typeof ApiV1MoneybirdAdministrationRoute
@@ -2174,6 +2225,13 @@ declare module '@tanstack/react-router' {
       path: '/fiscal-years'
       fullPath: '/fiscal-years'
       preLoaderRoute: typeof AppFiscalYearsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/importeren': {
+      id: '/_app/importeren'
+      path: '/importeren'
+      fullPath: '/importeren'
+      preLoaderRoute: typeof AppImporterenRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/inbox': {
@@ -2363,6 +2421,13 @@ declare module '@tanstack/react-router' {
       path: '/moneybird'
       fullPath: '/moneybird/'
       preLoaderRoute: typeof AppMoneybirdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/moneybird/$': {
+      id: '/_app/moneybird/$'
+      path: '/moneybird/$'
+      fullPath: '/moneybird/$'
+      preLoaderRoute: typeof AppMoneybirdSplatRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/payments/': {
@@ -2742,6 +2807,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/fiscal-years/close'
       preLoaderRoute: typeof ApiV1FiscalYearsCloseRouteImport
       parentRoute: typeof ApiV1FiscalYearsRoute
+    }
+    '/api/v1/import-wizard/mappings': {
+      id: '/api/v1/import-wizard/mappings'
+      path: '/api/v1/import-wizard/mappings'
+      fullPath: '/api/v1/import-wizard/mappings'
+      preLoaderRoute: typeof ApiV1ImportWizardMappingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/import-wizard/state': {
+      id: '/api/v1/import-wizard/state'
+      path: '/api/v1/import-wizard/state'
+      fullPath: '/api/v1/import-wizard/state'
+      preLoaderRoute: typeof ApiV1ImportWizardStateRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/v1/imports/audit-file': {
       id: '/api/v1/imports/audit-file'
@@ -3235,6 +3314,7 @@ interface AppRouteChildren {
   AppAuditLogRoute: typeof AppAuditLogRoute
   AppDunningRoute: typeof AppDunningRoute
   AppFiscalYearsRoute: typeof AppFiscalYearsRoute
+  AppImporterenRoute: typeof AppImporterenRoute
   AppInboxRoute: typeof AppInboxRoute
   AppMembersRoute: typeof AppMembersRoute
   AppRetentionRoute: typeof AppRetentionRoute
@@ -3252,6 +3332,7 @@ interface AppRouteChildren {
   AppInvoicesNewRoute: typeof AppInvoicesNewRoute
   AppLabGuidedInvoiceRoute: typeof AppLabGuidedInvoiceRoute
   AppLabImportFindingsRoute: typeof AppLabImportFindingsRoute
+  AppMoneybirdSplatRoute: typeof AppMoneybirdSplatRoute
   AppPaymentsBatchIdRoute: typeof AppPaymentsBatchIdRoute
   AppPurchasesInvoiceIdRoute: typeof AppPurchasesInvoiceIdRoute
   AppPurchasesNewRoute: typeof AppPurchasesNewRoute
@@ -3279,6 +3360,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAuditLogRoute: AppAuditLogRoute,
   AppDunningRoute: AppDunningRoute,
   AppFiscalYearsRoute: AppFiscalYearsRoute,
+  AppImporterenRoute: AppImporterenRoute,
   AppInboxRoute: AppInboxRoute,
   AppMembersRoute: AppMembersRoute,
   AppRetentionRoute: AppRetentionRoute,
@@ -3296,6 +3378,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInvoicesNewRoute: AppInvoicesNewRoute,
   AppLabGuidedInvoiceRoute: AppLabGuidedInvoiceRoute,
   AppLabImportFindingsRoute: AppLabImportFindingsRoute,
+  AppMoneybirdSplatRoute: AppMoneybirdSplatRoute,
   AppPaymentsBatchIdRoute: AppPaymentsBatchIdRoute,
   AppPurchasesInvoiceIdRoute: AppPurchasesInvoiceIdRoute,
   AppPurchasesNewRoute: AppPurchasesNewRoute,
@@ -3789,6 +3872,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ExactDocumentsRoute: ApiV1ExactDocumentsRoute,
   ApiV1ExactImportRoute: ApiV1ExactImportRouteWithChildren,
   ApiV1ExportsAuditFileRoute: ApiV1ExportsAuditFileRoute,
+  ApiV1ImportWizardMappingsRoute: ApiV1ImportWizardMappingsRoute,
+  ApiV1ImportWizardStateRoute: ApiV1ImportWizardStateRoute,
   ApiV1ImportsAuditFileRoute: ApiV1ImportsAuditFileRoute,
   ApiV1LedgerChainVerificationRoute: ApiV1LedgerChainVerificationRoute,
   ApiV1MoneybirdAdministrationRoute: ApiV1MoneybirdAdministrationRoute,

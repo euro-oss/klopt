@@ -7,7 +7,9 @@ import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from 
 import { resolveRequestContext } from '../src/api/auth.js'
 import { ApiError } from '../src/api/errors.js'
 import { setDatabaseForTest } from '../src/api/database.js'
+import { MoneybirdApiError } from '@klopt/adapters'
 import {
+  classifyMoneybirdConnectProbeError,
   handleChooseMoneybirdAdministration,
   handleConnectMoneybird,
   handleDisconnectMoneybird,
@@ -129,18 +131,129 @@ afterAll(async () => {
 })
 
 describe('connecting', () => {
-  it('stores the token encrypted and does not call Moneybird yet', async () => {
+  it('validates the token against Moneybird then stores it encrypted', async () => {
     const { token } = await newEntity()
     const moneybird = fakeMoneybird()
     await connect(token)
-    expect(moneybird.asked).toEqual([])
+    expect(moneybird.asked.some((url) => url.includes('/administrations.json'))).toBe(true)
     const body = (await handleGetMoneybirdConnection(await context(token))).body
     expect(body.connection).toMatchObject({ connected: true, ready: false, administrationId: null })
     expect(JSON.stringify(body)).not.toContain('mb-test-token')
   })
 
+  it('refuses an invalid Moneybird token (401) as invalid_token without connecting', async () => {
+    const { token } = await newEntity()
+    fakeMoneybird()
+    await expect(
+      handleConnectMoneybird(
+        await context(token, crypto.randomUUID()),
+        connectMoneybirdBody.parse({
+          apiToken: 'definitely-wrong-token',
+          baseUrl: 'https://moneybird.com/api/v2',
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'validation_failed',
+      violations: [expect.objectContaining({ code: 'invalid_token', path: 'apiToken' })],
+    })
+    const body = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(body.connection).toBeNull()
+  })
+
+  it('maps Moneybird 5xx on connect to moneybird_unreachable, not invalid_token', async () => {
+    const { token } = await newEntity()
+    globalThis.fetch = () => Promise.resolve(new Response('boom', { status: 503 }))
+    await expect(
+      handleConnectMoneybird(
+        await context(token, crypto.randomUUID()),
+        connectMoneybirdBody.parse({
+          apiToken: 'mb-test-token',
+          baseUrl: 'https://moneybird.com/api/v2',
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      violations: [expect.objectContaining({ code: 'moneybird_unreachable', path: 'apiToken' })],
+    })
+    const body = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(body.connection).toBeNull()
+  })
+
+  it('maps a network failure on connect to moneybird_unreachable', async () => {
+    const { token } = await newEntity()
+    globalThis.fetch = () => Promise.reject(new Error('ECONNREFUSED'))
+    await expect(
+      handleConnectMoneybird(
+        await context(token, crypto.randomUUID()),
+        connectMoneybirdBody.parse({
+          apiToken: 'mb-test-token',
+          baseUrl: 'https://moneybird.com/api/v2',
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      violations: [expect.objectContaining({ code: 'moneybird_unreachable', path: 'apiToken' })],
+    })
+  })
+
+  it('maps Moneybird 429 on connect to moneybird_unreachable after one short retry', async () => {
+    const { token } = await newEntity()
+    // Retry-After: 0 keeps the single bounded retry from sleeping; the second
+    // 429 exhausts rateLimitRetries: 1 and surfaces as unreachable.
+    globalThis.fetch = () =>
+      Promise.resolve(new Response('slow down', { status: 429, headers: { 'Retry-After': '0' } }))
+    await expect(
+      handleConnectMoneybird(
+        await context(token, crypto.randomUUID()),
+        connectMoneybirdBody.parse({
+          apiToken: 'mb-test-token',
+          baseUrl: 'https://moneybird.com/api/v2',
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      violations: [expect.objectContaining({ code: 'moneybird_unreachable', path: 'apiToken' })],
+    })
+    const body = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(body.connection).toBeNull()
+  })
+
+  it('classifies 401/403 as invalid_token and 5xx/429/network as unreachable', () => {
+    expect(
+      classifyMoneybirdConnectProbeError(
+        new MoneybirdApiError('nope', 401, '/administrations.json'),
+      ),
+    ).toBe('invalid_token')
+    expect(
+      classifyMoneybirdConnectProbeError(
+        new MoneybirdApiError('nope', 403, '/administrations.json'),
+      ),
+    ).toBe('invalid_token')
+    expect(
+      classifyMoneybirdConnectProbeError(
+        new MoneybirdApiError('busy', 429, '/administrations.json'),
+      ),
+    ).toBe('unreachable')
+    expect(
+      classifyMoneybirdConnectProbeError(
+        new MoneybirdApiError('boom', 503, '/administrations.json'),
+      ),
+    ).toBe('unreachable')
+    expect(
+      classifyMoneybirdConnectProbeError(
+        new MoneybirdApiError(
+          'Moneybird could not be reached: timeout',
+          0,
+          '/administrations.json',
+        ),
+      ),
+    ).toBe('unreachable')
+    expect(classifyMoneybirdConnectProbeError(new Error('other'))).toBeNull()
+  })
+
   it('refuses to store a token without an encryption key', async () => {
     const { token } = await newEntity()
+    fakeMoneybird()
     const key = process.env['KLOPT_ENCRYPTION_KEY']
     delete process.env['KLOPT_ENCRYPTION_KEY']
     try {
@@ -187,6 +300,63 @@ describe('choosing an administration', () => {
       ),
     ).rejects.toMatchObject({ code: 'not_found' })
   })
+
+  it('clears Vorige keuze when switching to an administration with no saved mappings', async () => {
+    const { token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token, '123456')
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse({
+        ...MAPPINGS,
+        importDecisions: { excludedExternalIds: ['sales_invoice:99'] },
+      }),
+    )
+    const before = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(before.connection?.taxMappings).toEqual(MAPPINGS.taxMappings)
+
+    // 654321 has no 0037 row — connection maps from 123456 must not leak.
+    await choose(token, '654321')
+    const after = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(after.connection?.administrationId).toBe('654321')
+    expect(after.connection?.taxMappings).toEqual({})
+    expect(after.connection?.accountMappings).toEqual({})
+    expect(after.connection?.importDecisions?.excludedExternalIds ?? []).toEqual([])
+  })
+
+  it('keeps mappings when re-picking the same administration with no 0037 row', async () => {
+    const { entityId, token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token, '123456')
+    // Pre-0037 / unsaved path: write onto the connection only (no mappings row).
+    const { withMoneybirdConnection } = await import('@klopt/db')
+    await withMoneybirdConnection(database, (repository) =>
+      repository.saveMappings({
+        entityId,
+        accountMappings: MAPPINGS.accountMappings,
+        taxMappings: MAPPINGS.taxMappings,
+        importDecisions: { excludedExternalIds: ['sales_invoice:1', 'purchase_invoice:2'] },
+      }),
+    )
+    const before = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(before.connection?.taxMappings).toEqual(MAPPINGS.taxMappings)
+    expect(before.connection?.importDecisions?.excludedExternalIds).toEqual([
+      'sales_invoice:1',
+      'purchase_invoice:2',
+    ])
+
+    await choose(token, '123456')
+    const after = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(after.connection?.administrationId).toBe('123456')
+    expect(after.connection?.taxMappings).toEqual(MAPPINGS.taxMappings)
+    expect(after.connection?.accountMappings).toEqual(MAPPINGS.accountMappings)
+    expect(after.connection?.importDecisions?.excludedExternalIds).toEqual([
+      'sales_invoice:1',
+      'purchase_invoice:2',
+    ])
+  })
 })
 
 describe('the dry run', () => {
@@ -195,6 +365,11 @@ describe('the dry run', () => {
     fakeMoneybird()
     await connect(token)
     await choose(token)
+    // Confirmed mappings only — proposals never auto-fill (#105 PM).
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse(MAPPINGS),
+    )
     const preview = (await handlePreviewMoneybirdImport(await context(token))).body
     expect(preview.dryRun).toBe(true)
     expect(preview.problems).toEqual([])
@@ -467,8 +642,10 @@ describe('the import job', () => {
     const outcome = await importMoneybirdAdministration(
       database,
       createFilesystemDocumentStore({ directory }),
+      undefined,
+      { entityId },
     )
-    expect(outcome.state).toBe('done')
+    expect(outcome.state, outcome.failure ?? undefined).toBe('done')
 
     const status = (await handleMoneybirdImportStatus(await context(token))).body
     expect(status.requested).toBe(true)
@@ -487,6 +664,9 @@ describe('the import job', () => {
     expect(year?.differences).toEqual([])
 
     expect(status.report.opening).toMatchObject({ year: 2026 })
+    // Opening-balance journal is booked separately — never a Klaar document (#105 PM).
+    expect(status.report.openingEntriesPosted).toBe(1)
+    expect(status.report.entriesPosted).toBeGreaterThan(0)
     const opening = Object.fromEntries(
       (status.report.opening?.accounts ?? []).map((row) => [row.accountNumber, row]),
     )
@@ -528,6 +708,8 @@ describe('the import job', () => {
     const again = await importMoneybirdAdministration(
       database,
       createFilesystemDocumentStore({ directory }),
+      undefined,
+      { entityId },
     )
     expect(again.state).toBe('idle')
 
@@ -536,13 +718,24 @@ describe('the import job', () => {
     const second = await importMoneybirdAdministration(
       database,
       createFilesystemDocumentStore({ directory }),
+      undefined,
+      { entityId },
     )
     expect(second.state).toBe('done')
     expect(await counts(entityId)).toEqual(first)
+
+    // Re-preview after commit: entries exist → alreadyInKlopt for Legal count.
+    const againPreview = (await handlePreviewMoneybirdImport(await context(token))).body
+    expect(againPreview.alreadyInKlopt.count).toBeGreaterThan(0)
+    const sample = againPreview.alreadyInKlopt.sample[0]
+    expect(sample?.externalId).toMatch(
+      /^(sales_invoice|purchase_invoice|journal|bank_mutation|credit_note|receipt):/,
+    )
+    expect(typeof sample?.reference).toBe('string')
   })
 
   it('does not call an unreadable source reconciled on the commit report', async () => {
-    const { token } = await newEntity()
+    const { entityId, token } = await newEntity()
     const moneybird = fakeMoneybird()
     moneybird.forbidden.add('sales_invoices.json')
     await connect(token)
@@ -558,8 +751,10 @@ describe('the import job', () => {
     const outcome = await importMoneybirdAdministration(
       database,
       createFilesystemDocumentStore({ directory }),
+      undefined,
+      { entityId },
     )
-    expect(outcome.state).toBe('done')
+    expect(outcome.state, outcome.failure ?? undefined).toBe('done')
     const status = (await handleMoneybirdImportStatus(await context(token))).body
     if (!status.requested || status.report === null || !status.report.imported) {
       throw new Error('expected a commit report')
@@ -570,7 +765,7 @@ describe('the import job', () => {
   })
 
   it('does not call an unreadable purchase source reconciled on the commit report', async () => {
-    const { token } = await newEntity()
+    const { entityId, token } = await newEntity()
     const moneybird = fakeMoneybird()
     moneybird.forbidden.add('documents/purchase_invoices.json')
     await connect(token)
@@ -586,8 +781,10 @@ describe('the import job', () => {
     const outcome = await importMoneybirdAdministration(
       database,
       createFilesystemDocumentStore({ directory }),
+      undefined,
+      { entityId },
     )
-    expect(outcome.state).toBe('done')
+    expect(outcome.state, outcome.failure ?? undefined).toBe('done')
     const status = (await handleMoneybirdImportStatus(await context(token))).body
     if (!status.requested || status.report === null || !status.report.imported) {
       throw new Error('expected a commit report')
@@ -605,6 +802,92 @@ describe('the import job', () => {
     await expect(
       handleRunMoneybirdImport(await context(token, crypto.randomUUID())),
     ).rejects.toMatchObject({ code: 'validation_failed' })
+  })
+
+  it('keeps commit counts on the failed report when attachments fail after booking', async () => {
+    const { entityId, token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse(MAPPINGS),
+    )
+    await handleRunMoneybirdImport(await context(token, crypto.randomUUID()))
+
+    const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
+    const { createFilesystemDocumentStore } = await import('@klopt/adapters')
+    // Real store, then force attachment failure by pointing download URLs at a
+    // dead host — commit still lands so the failed report keeps booked counts.
+    const directory = mkdtempSync(join(tmpdir(), 'mb-partial-'))
+    const store = createFilesystemDocumentStore({ directory })
+    store.put = () => Promise.reject(new Error('attachment store failed after commit'))
+
+    const outcome = await importMoneybirdAdministration(database, store, undefined, { entityId })
+    expect(outcome.state, outcome.failure ?? undefined).toBe('failed')
+    expect(outcome.failure).toMatch(/attachment store failed/)
+
+    const status = (await handleMoneybirdImportStatus(await context(token))).body
+    expect(status.requested).toBe(true)
+    if (!status.requested) throw new Error('expected a Moneybird import run')
+    expect(status.state).toBe('failed')
+    // dryRun:false → imported:true with entriesPosted — UI chooses failedPartial.
+    expect(status.report).toMatchObject({ imported: true, dryRun: false })
+    if (status.report === null || !status.report.imported) {
+      throw new Error('expected a booked commit report after post-commit failure')
+    }
+    expect(status.report.entriesPosted).toBeGreaterThan(0)
+    expect(await countRows('journal_entries', entityId)).toBeGreaterThan(0)
+  })
+
+  it('treats a booked-report save failure in onCommitted as failedPartial', async () => {
+    const { entityId, token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse(MAPPINGS),
+    )
+    await handleRunMoneybirdImport(await context(token, crypto.randomUUID()))
+
+    const { MoneybirdImportRepository } = await import('@klopt/db')
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- prototype stub
+    const originalFinish = MoneybirdImportRepository.prototype.finish
+    let blockedRunningSave = false
+    MoneybirdImportRepository.prototype.finish = async function finishOverride(
+      this: InstanceType<typeof MoneybirdImportRepository>,
+      request: Parameters<typeof originalFinish>[0],
+    ) {
+      if (!blockedRunningSave && request.state === 'running') {
+        blockedRunningSave = true
+        throw new Error('report save failed after commit')
+      }
+      return originalFinish.call(this, request)
+    }
+
+    try {
+      const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
+      const { createFilesystemDocumentStore } = await import('@klopt/adapters')
+      const directory = mkdtempSync(join(tmpdir(), 'mb-report-save-'))
+      const store = createFilesystemDocumentStore({ directory })
+      const outcome = await importMoneybirdAdministration(database, store, undefined, { entityId })
+      expect(outcome.state, outcome.failure ?? undefined).toBe('failed')
+      expect(outcome.failure).toMatch(/report save failed/)
+
+      const status = (await handleMoneybirdImportStatus(await context(token))).body
+      expect(status.requested).toBe(true)
+      if (!status.requested) throw new Error('expected a Moneybird import run')
+      expect(status.state).toBe('failed')
+      expect(status.report).toMatchObject({ imported: true, dryRun: false })
+      if (status.report === null || !status.report.imported) {
+        throw new Error('expected booked counts after onCommitted report-save failure')
+      }
+      expect(status.report.entriesPosted).toBeGreaterThan(0)
+      expect(await countRows('journal_entries', entityId)).toBeGreaterThan(0)
+    } finally {
+      MoneybirdImportRepository.prototype.finish = originalFinish
+    }
   })
 })
 
@@ -732,13 +1015,18 @@ describe('FX rate and mapping decisions', () => {
     fakeMoneybird()
     await connect(token)
     await choose(token)
-    // Fresh ISO code each run so a prior cache row cannot short-circuit the fetch.
+    // Exactly 3 chars (schema). Clear any prior cache row first — a hit skips
+    // the audit, and Q+2 hex is only 256 slots across shared DATABASE_URL runs.
     const letters = crypto
       .randomUUID()
       .replace(/[^a-f]/gi, '')
       .slice(0, 2)
       .toUpperCase()
     const currency = `Q${letters}`
+    const ctx = await context(token)
+    await ctx.database.execute(
+      `delete from klopt.ecb_reference_rates where currency = '${currency}'`,
+    )
     const moneybirdFetch = globalThis.fetch
     const ecbXml = `<?xml version="1.0"?><gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref"><Cube><Cube time="2026-03-14"><Cube currency="${currency}" rate="1.0853"/></Cube></Cube></gesmes:Envelope>`
     globalThis.fetch = (input, init) => {
@@ -752,7 +1040,7 @@ describe('FX rate and mapping decisions', () => {
     }
     try {
       await handleRefreshMoneybirdFxRate(
-        await context(token),
+        ctx,
         moneybirdFxRateQuery.parse({ currency, documentDate: '2026-03-15' }),
       )
       const audit = (

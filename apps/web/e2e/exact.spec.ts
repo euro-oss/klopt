@@ -39,7 +39,8 @@ async function anAdministration(page: Page): Promise<void> {
 test('the Exact screen offers only the step that can be done', async ({ page }) => {
   await anAdministration(page)
 
-  await page.getByRole('link', { name: 'Exact Online' }).click()
+  // Legacy /exact stays under Geavanceerd for one release (#100); open by URL.
+  await page.goto('/exact')
   await expect(page.getByRole('heading', { name: 'Exact Online' })).toBeVisible()
 
   await expect(page.getByRole('heading', { name: '1. Verbinden' })).toBeVisible()
@@ -116,12 +117,13 @@ test('the callback screen shows Exact’s own refusal', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('access_denied')
 })
 
-test('g x reaches the Exact screen', async ({ page }) => {
+test('g x reaches the import wizard (#100)', async ({ page }) => {
   await anAdministration(page)
 
   // The listener lives in an effect, so it exists only after hydration — and
   // the sidebar prints a key only once it works, which makes the hint the
   // honest thing to wait for. Pressing before then loses the keystroke.
+  // `g x` stays as a muscle-memory alias and now opens the wizard (#100).
   await expect(
     page
       .getByRole('link', { name: /^Dashboard/ })
@@ -135,10 +137,10 @@ test('g x reaches the Exact screen', async ({ page }) => {
   await expect(page.getByText('G …')).toBeVisible()
   await page.keyboard.press('x')
 
-  await expect(page.getByRole('heading', { name: 'Exact Online' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
 })
 
-test('i x reaches Exact under Importeren', async ({ page }) => {
+test('i x reaches the import wizard under Importeren (#100)', async ({ page }) => {
   await anAdministration(page)
 
   await expect(
@@ -147,11 +149,13 @@ test('i x reaches Exact under Importeren', async ({ page }) => {
       .locator('kbd')
       .first(),
   ).toBeVisible()
-  // Printed chord under Importeren is `i` then `x`; `g x` stays as the alias.
-  await expect(page.getByRole('navigation').getByText('Importeren')).toBeVisible()
+  // Printed chord under Importeren is `i` then `x` (and `i m`); both open the wizard.
+  await expect(
+    page.getByRole('navigation').getByRole('link', { name: /^Exact Online(?! \(oud\))/ }),
+  ).toBeVisible()
   await expect(
     page
-      .getByRole('link', { name: /Exact Online/ })
+      .getByRole('link', { name: /^Exact Online(?! \(oud\))/ })
       .locator('kbd')
       .first(),
   ).toContainText(/i/)
@@ -160,7 +164,7 @@ test('i x reaches Exact under Importeren', async ({ page }) => {
   await expect(page.getByText('I …')).toBeVisible()
   await page.keyboard.press('x')
 
-  await expect(page.getByRole('heading', { name: 'Exact Online' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
 })
 
 test('the pickers have real data behind them', async ({ page }) => {

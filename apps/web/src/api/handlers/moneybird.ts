@@ -30,6 +30,7 @@ import {
   secretsAvailable,
   withEcbRates,
   withEcbRatesRead,
+  withImportWizard,
   withMoneybirdConnection,
   withMoneybirdConnectionRead,
   withMoneybirdImport,
@@ -51,6 +52,19 @@ function requireIdempotencyKey(context: RequestContext): string {
     throw new ApiError('idempotency_key_required', 'Every write needs an Idempotency-Key header.')
   }
   return context.idempotencyKey
+}
+
+/**
+ * Classify a Moneybird probe failure on connect (#105 Legal).
+ * Auth rejections → `invalid_token`; anything else reachable as MoneybirdApiError
+ * (5xx, 429, network/status 0) → `unreachable` — never blame the token.
+ */
+export function classifyMoneybirdConnectProbeError(
+  error: unknown,
+): 'invalid_token' | 'unreachable' | null {
+  if (!(error instanceof MoneybirdApiError)) return null
+  if (error.status === 401 || error.status === 403) return 'invalid_token'
+  return 'unreachable'
 }
 
 function requirePermission(context: RequestContext, permission: string): void {
@@ -84,6 +98,7 @@ function serialiseConnection(row: {
       acknowledgedEmptyYears: row.importDecisions.acknowledgedEmptyYears,
       excludedExternalIds: row.importDecisions.excludedExternalIds,
       excludedLockedYears: row.importDecisions.excludedLockedYears,
+      excludedYears: row.importDecisions.excludedYears,
       contactNumberOverrides: row.importDecisions.contactNumberOverrides,
       accountTypeOverrides: row.importDecisions.accountTypeOverrides,
       exchangeRates: row.importDecisions.exchangeRates,
@@ -113,6 +128,35 @@ export async function handleGetMoneybirdConnection(context: RequestContext) {
 export async function handleConnectMoneybird(context: RequestContext, body: ConnectMoneybirdBody) {
   requirePermission(context, 'ledger:configure')
   requireIdempotencyKey(context)
+
+  // Validate against Moneybird before storing — a wrong token must not mark
+  // the wizard connected (#105 Designer r4). Bounded 429 retry + short timeout
+  // so a rate-limited probe reaches moneybird_unreachable quickly (PM r5);
+  // the import worker keeps unlimited 429 retries.
+  const probe = createMoneybirdClient({
+    token: body.apiToken,
+    base: body.baseUrl,
+    timeoutMs: 5_000,
+    rateLimitRetries: 1,
+    maxRetryAfterMs: 500,
+  })
+  try {
+    await probe.administrations()
+  } catch (error: unknown) {
+    const kind = classifyMoneybirdConnectProbeError(error)
+    if (kind === 'invalid_token') {
+      throw new ApiError('validation_failed', 'Moneybird refused this token.', [
+        { code: 'invalid_token', path: 'apiToken', message: 'Moneybird refused this token.' },
+      ])
+    }
+    if (kind === 'unreachable') {
+      const message = error instanceof Error ? error.message : String(error)
+      throw new ApiError('conflict', `Moneybird could not be reached: ${message}`, [
+        { code: 'moneybird_unreachable', path: 'apiToken', message },
+      ])
+    }
+    throw error
+  }
 
   try {
     await withMoneybirdConnection(context.database, (repository) =>
@@ -207,6 +251,7 @@ export async function handleListMoneybirdAdministrations(context: RequestContext
           label: administration.label,
           currency: administration.currency,
           country: administration.country,
+          fiscalYearStartMonth: administration.fiscalYearStartMonth,
         })),
       },
     }
@@ -235,19 +280,48 @@ export async function handleChooseMoneybirdAdministration(
       `This Moneybird token cannot reach administration ${body.administrationId}.`,
     )
   }
-  await withMoneybirdConnection(context.database, (repository) =>
-    repository.chooseAdministration({
+  // Restore per-administration mappings when present (#100 / 0037). Clear
+  // connection mappings only when switching to a *different* administration
+  // with no saved row — same-admin re-pick must keep pre-0037 / unsaved
+  // mappings and excludedExternalIds (#105 PM r3).
+  const saved = await withImportWizard(context.database, (wizard) =>
+    wizard.findMappings(context.entityId, 'moneybird', chosen.id),
+  )
+  await withMoneybirdConnection(context.database, async (repository) => {
+    const current = await repository.find(context.entityId)
+    await repository.chooseAdministration({
       entityId: context.entityId,
       id: chosen.id,
       name: chosen.name,
       currency: chosen.currency,
-    }),
-  )
+    })
+    if (saved !== null) {
+      await repository.saveMappings({
+        entityId: context.entityId,
+        accountMappings: saved.accountMappings,
+        taxMappings: saved.taxMappings,
+        importDecisions: saved.importDecisions,
+      })
+    } else if (current?.administrationId !== chosen.id) {
+      // Different admin (or first pick): start empty. Same-admin re-pick with
+      // no 0037 row: leave connection mappings / exclusions alone.
+      await repository.saveMappings({
+        entityId: context.entityId,
+        accountMappings: {},
+        taxMappings: {},
+        importDecisions: {},
+      })
+    }
+  })
   await recordAudit(context, {
     action: 'moneybird.chooseAdministration',
     resourceType: 'moneybird_connection',
     resourceId: context.entityId,
-    after: { administrationId: chosen.id, administrationName: chosen.name },
+    after: {
+      administrationId: chosen.id,
+      administrationName: chosen.name,
+      restoredMappings: saved !== null,
+    },
   })
   return {
     status: 200,
@@ -256,6 +330,7 @@ export async function handleChooseMoneybirdAdministration(
       administrationName: chosen.name,
       currency: chosen.currency,
       label: chosen.label,
+      restoredMappings: saved !== null,
     },
   }
 }
@@ -277,6 +352,7 @@ function decisionsFromBody(
     ...(body.excludedLockedYears === undefined
       ? {}
       : { excludedLockedYears: body.excludedLockedYears }),
+    ...(body.excludedYears === undefined ? {} : { excludedYears: body.excludedYears }),
     ...(body.contactNumberOverrides === undefined
       ? {}
       : { contactNumberOverrides: body.contactNumberOverrides }),
@@ -307,6 +383,9 @@ function auditDecisionFields(
   }
   if (decisions.excludedLockedYears !== undefined && decisions.excludedLockedYears.length > 0) {
     after['excludedLockedYears'] = decisions.excludedLockedYears.join(',')
+  }
+  if (decisions.excludedYears !== undefined && decisions.excludedYears.length > 0) {
+    after['excludedYears'] = decisions.excludedYears.join(',')
   }
   if (
     decisions.acknowledgedEmptyYears !== undefined &&
@@ -409,14 +488,30 @@ export async function handleSaveMoneybirdMappings(
     }
   }
 
-  await withMoneybirdConnection(context.database, (repository) =>
-    repository.saveMappings({
+  const savedConnection = await withMoneybirdConnection(context.database, async (repository) => {
+    await repository.saveMappings({
       entityId: context.entityId,
       accountMappings: body.accountMappings,
       taxMappings: body.taxMappings,
       ...(normalizedDecisions === undefined ? {} : { importDecisions: normalizedDecisions }),
-    }),
-  )
+    })
+    return repository.find(context.entityId)
+  })
+  // Persist per administration so disconnect keeps the choices (#100 / 0037).
+  const administrationId = savedConnection?.administrationId ?? null
+  if (administrationId !== null && savedConnection !== null) {
+    const decisions = normalizedDecisions ?? savedConnection.importDecisions
+    await withImportWizard(context.database, (wizard) =>
+      wizard.upsertMappings({
+        entityId: context.entityId,
+        source: 'moneybird',
+        administrationId,
+        accountMappings: body.accountMappings,
+        taxMappings: body.taxMappings,
+        importDecisions: decisions,
+      }),
+    )
+  }
   await recordAudit(context, {
     action: 'moneybird.saveMappings',
     resourceType: 'moneybird_connection',
@@ -597,7 +692,11 @@ function serialiseEntryLines(entry: MoneybirdImportPlan['entries'][number]) {
   }
 }
 
-function serialisePlan(plan: MoneybirdImportPlan, functionalCurrency: string) {
+function serialisePlan(
+  plan: MoneybirdImportPlan,
+  functionalCurrency: string,
+  lockedYears: readonly string[] = [],
+) {
   const ofKind = (kind: string) => plan.entries.filter((entry) => entry.kind === kind)
   /** Documents evaluated per year (including unbalanced) for TB drill-down. */
   const yearDocuments = plan.yearDocuments.map((doc) => ({
@@ -672,6 +771,19 @@ function serialisePlan(plan: MoneybirdImportPlan, functionalCurrency: string) {
     reconciliation: plan.reconciliation.map(serialiseYear),
     notImported: plan.notImported,
     excluded: plan.excluded,
+    /** Documents already remembered from an earlier import (#105 Legal/PM). */
+    alreadyInKlopt: {
+      count: plan.entries.filter((entry) => entry.exists).length,
+      sample: plan.entries
+        .filter((entry) => entry.exists)
+        .slice(0, 50)
+        .map((entry) => ({
+          externalId: entry.externalId,
+          reference: entry.documentNumber || entry.description || entry.externalId,
+          kind: entry.kind,
+        })),
+    },
+    lockedYears,
     warnings: plan.warnings,
     problems: plan.problems,
   }
@@ -729,6 +841,7 @@ async function planFor(context: RequestContext, client: ReturnType<typeof create
     snapshot,
     connection,
     functionalCurrency: here.entity.functionalCurrency,
+    lockedYears: here.years.filter((year) => year.status === 'closed').map((year) => year.code),
   }
 }
 
@@ -736,7 +849,7 @@ export async function handlePreviewMoneybirdImport(context: RequestContext) {
   requirePermission(context, 'ledger:import')
   const { client } = await clientFor(context)
   try {
-    const { plan, functionalCurrency } = await planFor(context, client)
+    const { plan, functionalCurrency, lockedYears } = await planFor(context, client)
     await withMoneybirdConnection(context.database, (repository) =>
       repository.recordSuccess(context.entityId),
     )
@@ -744,7 +857,7 @@ export async function handlePreviewMoneybirdImport(context: RequestContext) {
       status: 200,
       body: {
         dryRun: true as const,
-        ...serialisePlan(plan, functionalCurrency),
+        ...serialisePlan(plan, functionalCurrency, lockedYears),
         requests: client.log,
       },
     }
@@ -905,6 +1018,7 @@ function serialiseStoredReport(report: unknown) {
     accountsCreated: asNumber(commit['accountsCreated']),
     contactsCreated: asNumber(commit['contactsCreated']),
     entriesPosted: asNumber(commit['entriesPosted']),
+    openingEntriesPosted: asNumber(commit['openingEntriesPosted']),
     entriesReplayed: asNumber(commit['entriesReplayed']),
     entriesSkipped: asNumber(commit['entriesSkipped']),
     bankAccountsCreated: asNumber(commit['bankAccountsCreated']),

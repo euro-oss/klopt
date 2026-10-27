@@ -25,6 +25,17 @@ export interface MoneybirdClientOptions {
   readonly timeoutMs?: number
   readonly sleep?: (ms: number) => Promise<void>
   readonly maxRequests?: number
+  /**
+   * How many times to retry after HTTP 429. Omit for unlimited retries
+   * (import worker). Connect probes pass `1` so a rate-limited token check
+   * reaches `moneybird_unreachable` quickly (#105 PM r5).
+   */
+  readonly rateLimitRetries?: number
+  /**
+   * Cap on the Retry-After wait in ms (default 60_000). Connect probes pass a
+   * short cap so the probe does not sit on a 60s Moneybird hint.
+   */
+  readonly maxRetryAfterMs?: number
 }
 
 export class MoneybirdApiError extends Error {
@@ -47,11 +58,16 @@ export function createMoneybirdClient(options: MoneybirdClientOptions): Moneybir
   const sleep = options.sleep ?? ((ms: number) => new Promise((done) => setTimeout(done, ms)))
   const maxRequests = options.maxRequests ?? DEFAULT_MAX_REQUESTS
   const timeoutMs = options.timeoutMs ?? 30_000
+  const maxRetryAfterMs = options.maxRetryAfterMs ?? 60_000
+  const rateLimitRetries = options.rateLimitRetries
 
   let requests = 0
   const log: MoneybirdRequestLog[] = []
 
-  async function ask(path: string): Promise<{ status: number; body: unknown; durationMs: number }> {
+  async function ask(
+    path: string,
+    rateLimitUsed = 0,
+  ): Promise<{ status: number; body: unknown; durationMs: number }> {
     requests += 1
     if (requests > maxRequests) {
       throw new MoneybirdApiError(
@@ -86,10 +102,15 @@ export function createMoneybirdClient(options: MoneybirdClientOptions): Moneybir
     }
 
     if (response.status === 429) {
+      if (rateLimitRetries !== undefined && rateLimitUsed >= rateLimitRetries) {
+        const durationMs = Date.now() - started
+        log.push({ method: 'GET', path, status: 429, durationMs, rows: 0 })
+        throw new MoneybirdApiError(`Moneybird answered 429 for ${path}.`, 429, path)
+      }
       const retryAfter = Number(response.headers.get('Retry-After') ?? '2')
-      const waitMs = Number.isFinite(retryAfter) ? Math.min(retryAfter, 60) * 1000 : 2_000
-      await sleep(waitMs)
-      return ask(path)
+      const hintedMs = Number.isFinite(retryAfter) ? Math.min(retryAfter, 60) * 1000 : 2_000
+      await sleep(Math.min(hintedMs, maxRetryAfterMs))
+      return ask(path, rateLimitUsed + 1)
     }
 
     const text = await response.text()

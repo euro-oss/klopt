@@ -65,14 +65,27 @@ export interface AccountVatSheetProps {
   readonly mode?: 'account' | 'tax'
   /** Geavanceerd: show account numbers, RGS codes and btw codes. */
   readonly advanced?: boolean
-  /** #42 fallback: jump to the MappingReview row under the sheet. */
+  /**
+   * #42 / #92–#93: jump to the MappingReview row. Only offered when there is
+   * something to pick (and typically only under Geavanceerd in the wizard).
+   */
   readonly onJumpToMapping?: () => void
+  /** #92/#93 empty candidates: re-read Moneybird after fixing the rate there. */
+  readonly onReread?: () => void
+  /** #92/#93: exclude documents on this rate (count for the button label). */
+  readonly onExcludeRate?: () => void
+  readonly excludeCount?: number
+  /** Absolute Moneybird tax-settings URL for “Open in Moneybird”. */
+  readonly moneybirdHref?: string | null
   readonly onSave: (choice: {
     readonly accountNumber: string | null
     readonly accountName: string | null
     readonly vatCode: ImportVatCode | null
     readonly isNewAccount?: boolean
-  }) => void
+  }) => boolean | void | Promise<boolean | void>
+  /** Refused-rate (or other) error shown inside the sheet (#105 Designer). */
+  readonly saveError?: string | null
+  readonly saveErrorFootnote?: string | null
 }
 
 export function AccountVatSheet(props: AccountVatSheetProps) {
@@ -113,7 +126,13 @@ function AccountVatSheetBody({
   mode = 'account',
   advanced = false,
   onJumpToMapping,
+  onReread,
+  onExcludeRate,
+  excludeCount,
+  moneybirdHref = null,
   onSave,
+  saveError = null,
+  saveErrorFootnote = null,
 }: AccountVatSheetProps) {
   const { t } = useT()
   const listId = useId()
@@ -192,33 +211,45 @@ function AccountVatSheetBody({
         : chosen !== null
 
   const saveAccount = (account: RankableAccount): void => {
-    onSave({
-      accountNumber: account.number,
-      accountName: account.name,
-      vatCode: null,
+    void Promise.resolve(
+      onSave({
+        accountNumber: account.number,
+        accountName: account.name,
+        vatCode: null,
+      }),
+    ).then((ok) => {
+      if (ok === false) return
+      onOpenChange(false)
     })
-    onOpenChange(false)
   }
 
   const save = (): void => {
     if (!canSave) return
     if (mode === 'tax') {
-      onSave({
-        accountNumber: null,
-        accountName: null,
-        vatCode: vat,
+      void Promise.resolve(
+        onSave({
+          accountNumber: null,
+          accountName: null,
+          vatCode: vat,
+        }),
+      ).then((ok) => {
+        if (ok === false) return
+        onOpenChange(false)
       })
-      onOpenChange(false)
       return
     }
     if (newAccount) {
-      onSave({
-        accountNumber: sourceNumber.trim(),
-        accountName: sourceName,
-        vatCode: null,
-        isNewAccount: true,
+      void Promise.resolve(
+        onSave({
+          accountNumber: sourceNumber.trim(),
+          accountName: sourceName,
+          vatCode: null,
+          isNewAccount: true,
+        }),
+      ).then((ok) => {
+        if (ok === false) return
+        onOpenChange(false)
       })
-      onOpenChange(false)
       return
     }
     if (chosen === null) return
@@ -479,20 +510,74 @@ function AccountVatSheetBody({
               {t('importFindings.accountVat.stepVatOnly')}
             </legend>
             {allVatOptions.length === 0 ? (
-              <p className="text-muted-foreground border px-3 py-3 text-sm" role="status">
-                {percentageLabel === '—'
-                  ? t('importFindings.accountVat.vatUnknownEmpty', { name: sourceName })
-                  : t('importFindings.accountVat.vatUnsupported', { rate: percentageLabel })}
-              </p>
+              <div
+                className="border-warning/40 bg-warning/8 text-warning border border-l-[3px] border-l-warning px-3 py-3 text-sm"
+                role="status"
+                data-slot="vat-empty-attention"
+              >
+                <p className="font-medium text-foreground">{t('wizard.btw.fixRateInMoneybird')}</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {percentageLabel === '—'
+                    ? t('importFindings.accountVat.vatUnknownEmpty', { name: sourceName })
+                    : t('importFindings.accountVat.vatUnsupported', { rate: percentageLabel })}
+                </p>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  {moneybirdHref !== null && moneybirdHref !== '' && (
+                    <Button asChild variant="outline" className="min-h-11 md:min-h-9">
+                      <a href={moneybirdHref} target="_blank" rel="noreferrer">
+                        {t('moneybird.fix.openMoneybird')}
+                      </a>
+                    </Button>
+                  )}
+                  {onReread !== undefined && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11 md:min-h-9"
+                      onClick={onReread}
+                    >
+                      {t('moneybird.fix.reread')}
+                    </Button>
+                  )}
+                  {onExcludeRate !== undefined && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11 md:min-h-9"
+                      onClick={onExcludeRate}
+                    >
+                      {excludeCount !== undefined && excludeCount > 0
+                        ? t('wizard.btw.excludeDocs', { count: String(excludeCount) })
+                        : t('moneybird.fix.exclude')}
+                    </Button>
+                  )}
+                  {advanced && onJumpToMapping !== undefined && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="min-h-11 md:min-h-9"
+                      data-slot="vat-jump-to-mapping"
+                      onClick={onJumpToMapping}
+                    >
+                      {t('wizard.btw.chooseInTable')}
+                    </Button>
+                  )}
+                </div>
+              </div>
             ) : (
               <>
                 <div
                   id={vatListId}
                   role="radiogroup"
                   aria-labelledby={`${vatListId}-legend`}
-                  aria-describedby={vatHintId}
+                  aria-describedby={
+                    saveError !== null && saveError !== ''
+                      ? `${vatListId}-error ${vatHintId}`
+                      : vatHintId
+                  }
                   className={cn(
                     'border',
+                    saveError !== null && saveError !== '' && 'border-destructive',
                     vatOptions.length <= 3
                       ? 'grid'
                       : 'flex max-h-64 flex-col divide-y overflow-y-auto',
@@ -563,6 +648,18 @@ function AccountVatSheetBody({
                     )
                   })}
                 </div>
+                {saveError !== null && saveError !== '' && (
+                  <div
+                    id={`${vatListId}-error`}
+                    role="alert"
+                    className="text-destructive mt-2 text-sm"
+                  >
+                    <p>{saveError}</p>
+                    {saveErrorFootnote !== null && saveErrorFootnote !== '' && (
+                      <p className="mt-1 text-xs">{saveErrorFootnote}</p>
+                    )}
+                  </div>
+                )}
                 {/* Hide disclosure while a non-primary is selected so Minder tonen
                     cannot be a no-op; list stays open via selectedIsOther (#71 designer). */}
                 {canDiscloseOther && !selectedIsOther && (
@@ -635,7 +732,7 @@ function AccountVatSheetBody({
       </div>
 
       <SheetFooter className="flex-row flex-wrap justify-end gap-2 border-t px-5 py-3">
-        {/* Jump only when there is something to pick — empty candidates stay an honest dead-end (#90 PM). */}
+        {/* Jump only when there is something to pick — empty candidates stay an honest dead-end (#90 / #92). */}
         {onJumpToMapping !== undefined && allVatOptions.length > 0 && (
           <Button
             type="button"
@@ -656,10 +753,13 @@ function AccountVatSheetBody({
           {t('common.cancel')}
           <Keycap className="ml-1 hidden md:inline-flex">Esc</Keycap>
         </Button>
-        <Button type="button" disabled={!canSave} className="min-h-11 md:min-h-9" onClick={save}>
-          {t('common.save')}
-          <Keycap className="ml-1 hidden md:inline-flex">↵</Keycap>
-        </Button>
+        {/* Empty candidates: no Save — actions live in the attention block (#92/#93). */}
+        {!(mode === 'tax' && allVatOptions.length === 0) && (
+          <Button type="button" disabled={!canSave} className="min-h-11 md:min-h-9" onClick={save}>
+            {t('common.save')}
+            <Keycap className="ml-1 hidden md:inline-flex">↵</Keycap>
+          </Button>
+        )}
       </SheetFooter>
     </SheetContent>
   )

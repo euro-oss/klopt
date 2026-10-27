@@ -156,21 +156,36 @@ export const BINDINGS: readonly Binding[] = [
   // `i` is the second prefix — **i**mporteren — because the `g` alphabet is
   // full (docs/keyboard-map.md). `i x` / `i m` are the printed chords; `g x`
   // stays as a muscle-memory alias for Exact and must not free a `g` letter.
-  { id: 'go.exact', label: 'nav.exact', group: 'keys.group.goTo', keys: 'i x', to: '/exact' },
+  {
+    id: 'go.exact',
+    label: 'nav.importExact',
+    group: 'keys.group.goTo',
+    keys: 'i x',
+    to: '/importeren',
+  },
   {
     id: 'go.exactAlias',
-    label: 'nav.exact',
+    label: 'nav.importExact',
     group: 'keys.group.goTo',
     keys: 'g x',
-    to: '/exact',
+    to: '/importeren',
   },
   {
     id: 'go.moneybird',
-    label: 'nav.moneybird',
+    label: 'nav.importMoneybird',
     group: 'keys.group.goTo',
     keys: 'i m',
-    to: '/moneybird',
+    to: '/importeren',
   },
+  // Palette-only: legacy Exact under Geavanceerd (#105). No global chord —
+  // the `i` / `g` alphabets are full; find it in ⌘K when Advanced is on.
+  {
+    id: 'go.exactLegacy',
+    label: 'nav.exactAdvanced',
+    group: 'keys.group.goTo',
+    to: '/exact',
+  },
+
   // `s` for **s**luiten. Every letter in *boekjaren* was taken by the time this
   // screen arrived, which is what happens when a keyboard map is real, and
   // closing a year is what people come here to do.

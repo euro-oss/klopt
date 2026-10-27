@@ -44,6 +44,7 @@ export type MoneybirdProblemCode =
   | 'null_percentage_vat_mismatch'
   | 'self_assessed_vat_unsupported'
   | 'tax_code_not_in_force'
+  | 'moneybird_vat_without_tax_rate'
   | 'account_number_collision'
   | 'contact_number_collision'
   | 'resource_unreadable'
@@ -135,6 +136,11 @@ export interface MoneybirdImportDecisions {
   readonly excludedExternalIds?: readonly string[]
   /** Locked years the user chose to leave out entirely. */
   readonly excludedLockedYears?: readonly string[]
+  /**
+   * Open (or any) years the user chose not to import in the wizard (#100).
+   * Unselected years are simply not imported — no blocking finding.
+   */
+  readonly excludedYears?: readonly string[]
   /** Contact renumbers after a collision ("Volgend vrij nummer"). */
   readonly contactNumberOverrides?: Readonly<Record<string, string>>
   /** Account-type picks after `derived_account_type`. */
@@ -248,6 +254,8 @@ export interface MoneybirdPlannedEntry {
   readonly financialAccountId: string | null
   readonly lines: readonly JournalLineInput[]
   readonly attachmentIds: readonly string[]
+  /** Moneybird `origin: opening` journal — booked, not a Klaar document. */
+  readonly isOpening?: boolean
 }
 
 export interface MoneybirdPlannedFinancialAccount {
@@ -528,6 +536,48 @@ function documentNullPercentageVatMismatch(
   if (taxedLines === 0n) return totalTax !== 0n
   const diff = expected > totalTax ? expected - totalTax : totalTax - expected
   return diff > taxedLines
+}
+
+/**
+ * Document-level VAT with no line carrying a btw-tarief that actually bears
+ * that VAT (#96). Matches Legal's "geen btw-tarief dat die btw draagt": a
+ * document with totalTax ≠ 0 where every line is untariffed or only 0%/null-%
+ * still books an untagged VAT line in `pushTaggedVatLines` (`byCode` empty).
+ */
+function documentVatWithoutTaxRate(
+  totalTax: bigint,
+  details: readonly { readonly taxRateId: string | null }[],
+  taxPercentById: ReadonlyMap<string, number>,
+): boolean {
+  if (totalTax === 0n) return false
+  return !details.some((detail) => {
+    if (detail.taxRateId === null) return false
+    const percent = taxPercentById.get(detail.taxRateId)
+    return percent !== undefined && Number.isFinite(percent) && percent !== 0
+  })
+}
+
+function moneybirdImportDocumentPath(kind: MoneybirdPurchaseDocument['kind'], id: string): string {
+  return kind === 'purchase_invoice' ? `purchaseInvoices.${id}` : `receipts.${id}`
+}
+
+function vatWithoutTaxRateDetail(
+  snapshot: MoneybirdSnapshot,
+  reference: string,
+  bookingDate: string,
+  totalTax: bigint,
+  contactId: string | null,
+): Record<string, string> {
+  const detail: Record<string, string> = {
+    reference,
+    bookingDate,
+    totalTax: totalTax.toString(),
+  }
+  if (contactId !== null) {
+    const contact = snapshot.contacts.find((entry) => entry.id === contactId)
+    if (contact !== undefined) detail['contactName'] = contactName(contact)
+  }
+  return detail
 }
 
 /**
@@ -851,6 +901,7 @@ export function planMoneybirdImport(
   const decisions = options.decisions ?? {}
   const excludedExternal = new Set(decisions.excludedExternalIds ?? [])
   const excludedLockedYears = new Set(decisions.excludedLockedYears ?? [])
+  const excludedYears = new Set(decisions.excludedYears ?? [])
   const acknowledgedEmptyYears = new Set(decisions.acknowledgedEmptyYears ?? [])
   const deferredAttachments = new Set(decisions.deferredAttachmentIds ?? [])
   const contactOverrides = decisions.contactNumberOverrides ?? {}
@@ -1070,9 +1121,10 @@ export function planMoneybirdImport(
       }
     }
 
-    // After rejecting a bad confirmed pick, do not silently apply proposed —
-    // the finding asks the user to choose again (#70).
-    const mappedCode = confirmed ?? (incompatible ? null : proposed)
+    // Only a confirmed mapping counts as mapped. Proposed is a suggestion the
+    // wizard must Bevestigen (#105 PM: never auto-confirm single-fit / restored).
+    // After rejecting a bad confirmed pick, do not silently apply proposed (#70).
+    const mappedCode = confirmed
     const mapped = mappedCode !== null && existingTaxCodes.has(mappedCode)
     // incompatible_tax_rate / null_percentage_vat_mismatch already block; do
     // not also emit unmapped_tax_rate for the same rate.
@@ -1242,8 +1294,13 @@ export function planMoneybirdImport(
       return
     }
     const year = String(entry.year)
+    // Wizard year selection (#100): unselected years are simply not imported.
+    if (excludedYears.has(year) || excludedLockedYears.has(year)) {
+      excluded.push(entry.externalId)
+      return
+    }
     if (lockedYears.has(year)) {
-      if (excludedLockedYears.has(year) || excludedExternal.has(entry.externalId)) {
+      if (excludedExternal.has(entry.externalId)) {
         excluded.push(entry.externalId)
         return
       }
@@ -1342,6 +1399,45 @@ export function planMoneybirdImport(
         }),
       )
       continue
+    }
+
+    const salesExternalId = `sales_invoice:${invoice.id}`
+    if (documentVatWithoutTaxRate(invoice.totalTax, invoice.details, taxPercentById)) {
+      if (existingExternal.has(salesExternalId)) {
+        // Already in Klopt from an earlier import (#96 / #105 Klaar blocked).
+        warnings.push(
+          problem(
+            'moneybird_vat_without_tax_rate',
+            `salesInvoices.${invoice.id}`,
+            {
+              ...vatWithoutTaxRateDetail(
+                snapshot,
+                invoice.invoiceId,
+                invoice.invoiceDate,
+                invoice.totalTax,
+                invoice.contactId,
+              ),
+              alreadyImported: 'true',
+            },
+            'moneybird.vat_without_tax_rate',
+          ),
+        )
+      } else {
+        problems.push(
+          problem(
+            'moneybird_vat_without_tax_rate',
+            `salesInvoices.${invoice.id}`,
+            vatWithoutTaxRateDetail(
+              snapshot,
+              invoice.invoiceId,
+              invoice.invoiceDate,
+              invoice.totalTax,
+              invoice.contactId,
+            ),
+            'moneybird.vat_without_tax_rate',
+          ),
+        )
+      }
     }
 
     const isCredit = invoice.totalExcl < 0n || invoice.originalSalesInvoiceId !== null
@@ -1451,6 +1547,44 @@ export function planMoneybirdImport(
         }),
       )
       continue
+    }
+
+    const purchaseExternalId = `${document.kind}:${document.id}`
+    if (documentVatWithoutTaxRate(document.totalTax, document.details, taxPercentById)) {
+      if (existingExternal.has(purchaseExternalId)) {
+        warnings.push(
+          problem(
+            'moneybird_vat_without_tax_rate',
+            moneybirdImportDocumentPath(document.kind, document.id),
+            {
+              ...vatWithoutTaxRateDetail(
+                snapshot,
+                document.reference,
+                document.date,
+                document.totalTax,
+                document.contactId,
+              ),
+              alreadyImported: 'true',
+            },
+            'moneybird.vat_without_tax_rate',
+          ),
+        )
+      } else {
+        problems.push(
+          problem(
+            'moneybird_vat_without_tax_rate',
+            moneybirdImportDocumentPath(document.kind, document.id),
+            vatWithoutTaxRateDetail(
+              snapshot,
+              document.reference,
+              document.date,
+              document.totalTax,
+              document.contactId,
+            ),
+            'moneybird.vat_without_tax_rate',
+          ),
+        )
+      }
     }
 
     const isCredit = document.totalExcl < 0n
@@ -1589,6 +1723,7 @@ export function planMoneybirdImport(
       )
     })
     const externalId = `journal:${journal.id}`
+    const isOpening = (journal.origin ?? '').toLowerCase() === 'opening'
     pushEntry({
       externalId,
       kind: 'journal',
@@ -1607,6 +1742,7 @@ export function planMoneybirdImport(
       financialAccountId: null,
       lines,
       attachmentIds: noteAttachment(journal.attachments, `journal.${journal.id}`),
+      isOpening,
     })
   }
 

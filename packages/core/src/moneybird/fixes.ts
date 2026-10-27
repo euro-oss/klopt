@@ -92,6 +92,13 @@ const SPECS: Readonly<Record<MoneybirdProblemCode, MoneybirdFixSpec>> = {
     honesty: null,
     changesBooks: false,
   },
+  moneybird_vat_without_tax_rate: {
+    code: 'moneybird_vat_without_tax_rate',
+    fixType: 'oneClick',
+    severity: 'blocking',
+    honesty: null,
+    changesBooks: false,
+  },
   trial_balance_account_missing: {
     code: 'trial_balance_account_missing',
     fixType: 'guided',

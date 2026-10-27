@@ -552,6 +552,34 @@ export const routeManifest: readonly RouteBinding[] = [
     module: 'api/v1/moneybird.import.ts',
   },
 
+  {
+    operationId: 'importWizard.getState',
+    method: 'GET',
+    path: '/import-wizard/state',
+    module: 'api/v1/import-wizard.state.ts',
+  },
+  {
+    operationId: 'importWizard.saveState',
+    method: 'POST',
+    path: '/import-wizard/state',
+    module: 'api/v1/import-wizard.state.ts',
+    request: { body: 'saveImportWizardStateBody' },
+  },
+  {
+    operationId: 'importWizard.resetState',
+    method: 'DELETE',
+    path: '/import-wizard/state',
+    module: 'api/v1/import-wizard.state.ts',
+    request: { body: 'resetImportWizardStateBody' },
+  },
+  {
+    operationId: 'importWizard.getMappings',
+    method: 'GET',
+    path: '/import-wizard/mappings',
+    module: 'api/v1/import-wizard.mappings.ts',
+    request: { query: 'importWizardMappingsQuery' },
+  },
+
   // Sales (M1).
   {
     operationId: 'sales.listContacts',

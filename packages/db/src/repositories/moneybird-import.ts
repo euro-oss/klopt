@@ -72,16 +72,22 @@ export class MoneybirdImportRepository {
     return (await this.find(request.entityId))!
   }
 
-  async claim(now: Date): Promise<MoneybirdImportRunRow | null> {
+  async claim(
+    now: Date,
+    options: { readonly entityId?: string } = {},
+  ): Promise<MoneybirdImportRunRow | null> {
     const stale = new Date(now.getTime() - MONEYBIRD_CLAIM_LEASE_MS)
+    const claimable = or(
+      eq(moneybirdImportRuns.state, 'pending'),
+      and(eq(moneybirdImportRuns.state, 'running'), lt(moneybirdImportRuns.startedAt, stale)),
+    )
     const [row] = await this.tx
       .select()
       .from(moneybirdImportRuns)
       .where(
-        or(
-          eq(moneybirdImportRuns.state, 'pending'),
-          and(eq(moneybirdImportRuns.state, 'running'), lt(moneybirdImportRuns.startedAt, stale)),
-        ),
+        options.entityId === undefined
+          ? claimable
+          : and(eq(moneybirdImportRuns.entityId, options.entityId), claimable),
       )
       .orderBy(moneybirdImportRuns.requestedAt)
       .limit(1)

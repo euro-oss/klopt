@@ -365,19 +365,19 @@ test('Geavanceerd is isolated per user on the same browser', async ({ page }) =>
   )
 })
 
-test('Moneybird Geavanceerd checkbox shares the shell toggle', async ({ page }) => {
+test('Importeren Geavanceerd checkbox shares the shell toggle', async ({ page }) => {
   await anAdministration(page, 'Moneybird Sync BV')
 
-  await page.goto('/moneybird')
-  await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
+  await page.goto('/importeren?bron=moneybird')
+  await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
   // Full navigation remounts the tree; click before hydration toggles the DOM
   // without React onChange, so the shell switch stays off.
   await hydrated(page)
 
-  const moneybird = page.getByRole('checkbox', { name: /Geavanceerd|Advanced/ })
-  await expect(moneybird).not.toBeChecked()
+  const wizard = page.getByRole('checkbox', { name: /Geavanceerd|Advanced/ })
+  await expect(wizard).not.toBeChecked()
 
-  await moneybird.check()
+  await wizard.check()
   await expect(page.getByRole('region', { name: 'Profiel' })).toContainText(/Geavanceerd aan/)
   await openAccountMenu(page)
   await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
@@ -391,7 +391,7 @@ test('Moneybird Geavanceerd checkbox shares the shell toggle', async ({ page }) 
   )
   await page.keyboard.press('Escape')
 
-  await expect(moneybird).not.toBeChecked()
+  await expect(wizard).not.toBeChecked()
 })
 
 test('⌘K and the URL still reach Proefbalans when Geavanceerd is off', async ({ page }) => {

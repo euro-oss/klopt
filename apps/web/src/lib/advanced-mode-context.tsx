@@ -30,7 +30,7 @@ const AdvancedModeContext = createContext<AdvancedModeContextValue | null>(null)
 const SAVE_FAILED_DISMISS_MS = 6_000
 
 /**
- * Geavanceerd for the shell, the palette, Moneybird, and any screen that asks.
+ * Geavanceerd for the shell, the palette, the import wizard, and any screen that asks.
  *
  * - No explicit choice yet → follow the role default for the *active*
  *   administration (Eigenaar off; Boekhouder / Accountant / Controleur on).

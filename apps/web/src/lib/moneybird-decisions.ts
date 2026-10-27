@@ -50,6 +50,38 @@ export function withExcludedLockedYear(
   return { ...decisions, excludedLockedYears: [...existing, year] }
 }
 
+/** Wizard year selection (#100): years not selected are simply not imported. */
+export function withExcludedYears(
+  decisions: MoneybirdImportDecisions,
+  years: readonly string[],
+): MoneybirdImportDecisions {
+  const unique = [...new Set(years.filter((year) => year.trim() !== ''))]
+  return { ...decisions, excludedYears: unique }
+}
+
+export function withoutExcludedExternalIds(
+  decisions: MoneybirdImportDecisions,
+  externalIds: readonly string[],
+): MoneybirdImportDecisions {
+  const remove = new Set(externalIds)
+  const existing = decisions.excludedExternalIds ?? []
+  return {
+    ...decisions,
+    excludedExternalIds: existing.filter((id) => !remove.has(id)),
+  }
+}
+
+export function withExcludedExternalIds(
+  decisions: MoneybirdImportDecisions,
+  externalIds: readonly string[],
+): MoneybirdImportDecisions {
+  const existing = new Set(decisions.excludedExternalIds ?? [])
+  for (const id of externalIds) {
+    if (id.trim() !== '') existing.add(id)
+  }
+  return { ...decisions, excludedExternalIds: [...existing] }
+}
+
 export function withContactNumber(
   decisions: MoneybirdImportDecisions,
   moneybirdId: string,

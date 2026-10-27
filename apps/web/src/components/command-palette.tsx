@@ -332,7 +332,13 @@ export function CommandPalette({ role = '' }: { role?: string }) {
       if (binding.id === 'new.entry' && !advanced) return
       if (binding.to !== undefined) {
         setOpen(null)
-        void navigate({ to: binding.to })
+        const bron =
+          binding.id === 'go.exact' || binding.id === 'go.exactAlias'
+            ? 'exact'
+            : binding.id === 'go.moneybird'
+              ? 'moneybird'
+              : null
+        void navigate(bron !== null ? { to: binding.to, search: { bron } } : { to: binding.to })
       }
     },
     [navigate, advanced],
@@ -409,14 +415,25 @@ export function CommandPalette({ role = '' }: { role?: string }) {
     if (row.kind === 'nav') {
       if (row.nav.binding.to === undefined) return
       setOpen(null)
-      void navigate({ to: row.nav.binding.to })
+      const search = row.nav.item.search
+      void navigate(
+        search !== undefined ? { to: row.nav.binding.to, search } : { to: row.nav.binding.to },
+      )
       return
     }
 
     if (row.kind === 'binding') {
       if (row.binding.to === undefined) return
       setOpen(null)
-      void navigate({ to: row.binding.to })
+      const bron =
+        row.binding.id === 'go.exact' || row.binding.id === 'go.exactAlias'
+          ? 'exact'
+          : row.binding.id === 'go.moneybird'
+            ? 'moneybird'
+            : null
+      void navigate(
+        bron !== null ? { to: row.binding.to, search: { bron } } : { to: row.binding.to },
+      )
       return
     }
 

@@ -18,6 +18,66 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Import wizard: connect probe and opening count (#105)
+
+Connecting (`POST /api/v1/moneybird/connection`) now probes Moneybird before
+storing the token and returns **422** `invalid_token` on auth rejection or
+**409** `moneybird_unreachable` on network / 5xx / rate-limit failures. The
+probe retries a 429 at most once with a short backoff so Verbinden does not
+hang. The import report gains `openingEntriesPosted`; `entriesPosted` no longer
+counts the opening-balance journal. For old reports without
+`openingEntriesPosted`, Klaar still subtracts exactly one when `opening` is
+set.
+
+### Import wizard: remove legacy `/moneybird` (#105)
+
+The old `/moneybird` page is gone. Bookmarks and subpaths redirect to
+`/importeren?bron=moneybird`. Geavanceerd no longer lists Moneybird (oud);
+Exact under Geavanceerd is unchanged. Dashboard import-blocking CTAs, ⌘K and
+nav all open the wizard. Dead page-only i18n keys are removed (NL/EN parity
+kept).
+
+### Import wizard: PM/Designer round 3 (#105)
+
+Same-administration re-pick no longer clears connection mappings when there is
+no `import_administration_mappings` row yet (pre-0037 / unsaved choices stay).
+A failure while saving the booked report after commit is treated as
+`failedPartial`. Step 3’s not-in-force count is distinct documents per year;
+Klaar counts every booked document type and shows “Al in Klopt”; Bron selection
+writes `?bron=` so the header and nav follow Exact vs Moneybird.
+
+### Moneybird: block VAT with no bearing tax rate (#96)
+
+Import planning now raises the blocking finding
+`moneybird_vat_without_tax_rate` when a document has non-zero `totalTax` but no
+line carries a non-zero tagged btw-tarief (including the case where lines only
+have a 0% rate). Already-imported external ids are skipped for booking and
+surface as a warning so Klaar can show the filing block. Finding copy is Legal
+verbatim (`moneybird.vat_without_tax_rate`).
+
+### Import preview: proposed codes are not mapped (#105)
+
+`previewImport` / the Moneybird plan no longer treats a proposed VAT code as
+mapped. Clients receive `unmapped_tax_rate` until the user confirms (saves) a
+mapping. Restored “Vorige keuze” rows also need Bevestigen before Volgende
+advances.
+
+### Import wizard Phase 1: Moneybird (#100)
+
+A guided ten-step import wizard at **Importeren** walks Moneybird from source
+choice through connect, administration and years, preview, btw-codes, accounts,
+problems, summary, import and done. Exact is an honest dead-end on Bron until
+Phase 2. Per-administration mappings and wizard resume state live in migration
+**0037** and survive disconnect. Unselected years are simply not imported
+(`excludedYears`). #92/#93 empty VAT candidates get Open in Moneybird, Opnieuw
+lezen, Niet overzetten (undoable) and Geavanceerd-only Zelf kiezen. #99
+`tax_code_not_in_force` stays an honest dead end (Opnieuw lezen / Open in
+Moneybird / Naar Administratie en jaren) until editable `valid_from` ships.
+`/exact` stays under Geavanceerd until the Exact wizard ships; legacy
+`/moneybird` redirects to the Moneybird wizard (see above).
+Legal disconnect, dedup and import-confirm copy is verbatim; Legal-pending
+strings use stable `wizard.*` keys.
+
 ### Moneybird: VAT tagging and filing blocks (#94)
 
 Moneybird imports now post one tagged VAT control line per mapped tax code.
@@ -136,7 +196,7 @@ through `postJournalEntry`. Foreign-currency administrations are refused.
 Out-of-scope surfaces are listed on the report as not imported.
 
 - Routes: `moneybird.*` under `/api/v1/moneybird/…`
-- Screen: `/moneybird` (command palette and settings; no `g` chord)
+- Screen: `/importeren?bron=moneybird` (legacy `/moneybird` redirects here)
 - Worker job: `moneybird.import` every two minutes
 
 ### Peppol Schematron is fetched, not redistributed
