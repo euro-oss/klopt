@@ -1500,14 +1500,17 @@ function ImportWizardPage() {
                 const previous = previousTaxMappings[rate.moneybirdId]
                 const excluded = excludedRateIds.has(rate.moneybirdId)
                 const empty = (rate.candidates ?? []).length === 0
+                // Restored mappings win over a live proposal — Vorige keuze must
+                // show even when previous === proposedCode (#105 Designer/PM).
+                const showPrevious =
+                  confirmed === undefined && previous !== undefined && previous !== ''
                 const suggested =
                   confirmed === undefined &&
+                  !showPrevious &&
                   rate.proposedCode !== null &&
                   (rate.candidates ?? []).some(
                     (c) => c.code === rate.proposedCode && c.group === 'primary',
                   )
-                const showPrevious =
-                  confirmed === undefined && previous !== undefined && previous !== '' && !suggested
                 const docs = docsForRate(rate.moneybirdId)
                 const excludeCount = docs.length || excludedByRate[rate.moneybirdId]?.length || 0
                 return (
