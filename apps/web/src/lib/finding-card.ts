@@ -59,6 +59,9 @@ export type FindingFix =
        */
       readonly preview?: FindingFixPreview
       readonly onApply: () => void | Promise<void>
+      /** Optional external link shown beside the one-click action (#96). */
+      readonly href?: string
+      readonly linkLabel?: string
     }
   | {
       readonly type: 'guided'

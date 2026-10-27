@@ -44,6 +44,7 @@ export type MoneybirdProblemCode =
   | 'null_percentage_vat_mismatch'
   | 'self_assessed_vat_unsupported'
   | 'tax_code_not_in_force'
+  | 'moneybird_vat_without_tax_rate'
   | 'account_number_collision'
   | 'contact_number_collision'
   | 'resource_unreadable'
@@ -533,6 +534,40 @@ function documentNullPercentageVatMismatch(
   if (taxedLines === 0n) return totalTax !== 0n
   const diff = expected > totalTax ? expected - totalTax : totalTax - expected
   return diff > taxedLines
+}
+
+/** Document-level VAT with no line carrying a btw-tarief (#96). */
+function documentVatWithoutTaxRate(
+  totalTax: bigint,
+  details: readonly { readonly taxRateId: string | null }[],
+): boolean {
+  return totalTax !== 0n && details.every((detail) => detail.taxRateId === null)
+}
+
+function moneybirdImportDocumentPath(
+  kind: MoneybirdPurchaseDocument['kind'],
+  id: string,
+): string {
+  return kind === 'purchase_invoice' ? `purchaseInvoices.${id}` : `receipts.${id}`
+}
+
+function vatWithoutTaxRateDetail(
+  snapshot: MoneybirdSnapshot,
+  reference: string,
+  bookingDate: string,
+  totalTax: bigint,
+  contactId: string | null,
+): Record<string, string> {
+  const detail: Record<string, string> = {
+    reference,
+    bookingDate,
+    totalTax: totalTax.toString(),
+  }
+  if (contactId !== null) {
+    const contact = snapshot.contacts.find((entry) => entry.id === contactId)
+    if (contact !== undefined) detail['contactName'] = contactName(contact)
+  }
+  return detail
 }
 
 /**
@@ -1355,6 +1390,27 @@ export function planMoneybirdImport(
       continue
     }
 
+    const salesExternalId = `sales_invoice:${invoice.id}`
+    if (
+      !existingExternal.has(salesExternalId) &&
+      documentVatWithoutTaxRate(invoice.totalTax, invoice.details)
+    ) {
+      problems.push(
+        problem(
+          'moneybird_vat_without_tax_rate',
+          `salesInvoices.${invoice.id}`,
+          vatWithoutTaxRateDetail(
+            snapshot,
+            invoice.invoiceId,
+            invoice.invoiceDate,
+            invoice.totalTax,
+            invoice.contactId,
+          ),
+          'moneybird.vat_without_tax_rate',
+        ),
+      )
+    }
+
     const isCredit = invoice.totalExcl < 0n || invoice.originalSalesInvoiceId !== null
     // Credit notes identified by originalSalesInvoiceId often carry positive
     // amounts. Normalise their sign before signedDebitCredit so they reverse
@@ -1462,6 +1518,27 @@ export function planMoneybirdImport(
         }),
       )
       continue
+    }
+
+    const purchaseExternalId = `${document.kind}:${document.id}`
+    if (
+      !existingExternal.has(purchaseExternalId) &&
+      documentVatWithoutTaxRate(document.totalTax, document.details)
+    ) {
+      problems.push(
+        problem(
+          'moneybird_vat_without_tax_rate',
+          moneybirdImportDocumentPath(document.kind, document.id),
+          vatWithoutTaxRateDetail(
+            snapshot,
+            document.reference,
+            document.date,
+            document.totalTax,
+            document.contactId,
+          ),
+          'moneybird.vat_without_tax_rate',
+        ),
+      )
     }
 
     const isCredit = document.totalExcl < 0n

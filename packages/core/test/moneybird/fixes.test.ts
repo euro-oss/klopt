@@ -26,8 +26,8 @@ function problem(
 }
 
 describe('every MoneybirdProblemCode has a fix', () => {
-  it('covers all 20 codes', () => {
-    expect(MONEYBIRD_PROBLEM_CODES).toHaveLength(20)
+  it('covers all 21 codes', () => {
+    expect(MONEYBIRD_PROBLEM_CODES).toHaveLength(21)
     for (const code of MONEYBIRD_PROBLEM_CODES) {
       expect(fixSpecFor(code).code).toBe(code)
       expect(['oneClick', 'guided', 'explainOnly']).toContain(fixSpecFor(code).fixType)
@@ -41,6 +41,7 @@ describe('every MoneybirdProblemCode has a fix', () => {
     ['null_percentage_vat_mismatch', 'explainOnly'],
     ['self_assessed_vat_unsupported', 'explainOnly'],
     ['tax_code_not_in_force', 'oneClick'],
+    ['moneybird_vat_without_tax_rate', 'oneClick'],
     ['trial_balance_account_missing', 'guided'],
     ['account_number_collision', 'guided'],
     ['contact_number_collision', 'oneClick'],

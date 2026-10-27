@@ -60,6 +60,8 @@ export const en: Record<MessageKey, string> = {
     'Without the self-assessed VAT, boxes 2a/4a/4b and 5b are missing; filing through Klopt would under-declare VAT.',
   'finding.why.moneybird.tax_code_not_in_force':
     'Without a rule valid on the booking date the return cannot place those lines. A code’s start date cannot be changed in Klopt yet.',
+  'finding.why.moneybird.vat_without_tax_rate':
+    'VAT without a rate does not count in the return, so the return would come out too low. You cannot file that period via Klopt.',
   'finding.moneybird.self_assessed_vat_unsupported_secondary':
     'Mapped to {taxCode} · self-assessed VAT (2a/4a/4b and 5b)',
   'finding.moneybird.tax_code_not_in_force_secondary': 'VAT code {taxCode}',
@@ -2319,7 +2321,7 @@ export const en: Record<MessageKey, string> = {
   'wizard.year.notInForceHelp':
     'They apply from the start of your first fiscal year in Klopt. You will see them per VAT code under Problems. Want to transfer later years only? Uncheck this year.',
   'wizard.year.noFittingCode':
-    '{count} documents have no matching VAT code. On VAT codes you choose what Klopt does with them.',
+    "{count} documents have no matching VAT code. On VAT codes you'll see what you can do.",
   'wizard.voorbeeld.title': 'What we will transfer',
   'wizard.voorbeeld.intro': 'This is a preview: nothing is transferred yet. Check the counts.',
   'wizard.voorbeeld.reread': 'Read again',
@@ -2340,13 +2342,14 @@ export const en: Record<MessageKey, string> = {
   'wizard.btw.excludeDocs': 'Do not transfer {count} documents',
   'wizard.btw.excludeUndo': 'Undo',
   'wizard.btw.excludedBody':
-    'We will not transfer these {count} documents. They do not count for this rate and appear under “Not transferred” in the summary.',
+    "We won't transfer these {count} documents. Their amounts and VAT won't be in Klopt or in your return; book them yourself if they belong in these books. They're listed under “Not transferred” in the summary.",
   'wizard.btw.chooseInTable': 'Choose yourself in the table',
   'wizard.btw.leftToChoose': '{count} rates left to choose',
   'wizard.btw.allChosen': 'All rates chosen',
   'wizard.btw.chooseFirst': 'First choose what Klopt does for {count} rates.',
+  // Legal VERBATIM (#105 comment 6438953957)
   'wizard.btw.refusedRate':
-    'Klopt refuses {code} for this rate: the rate is {ratePct} and {code} is {codePct}. Choose a code with the same percentage, or do not transfer these documents.',
+    'Klopt refuses {code} for this rate: the rate is {ratePct} and {code} is {codePct}. Choose the code that actually fits these documents; it has the same percentage. If in doubt, ask your accountant or don\'t transfer these documents.',
   'wizard.btw.refusedRateFootnote':
     'Klopt checks on save whether the percentage fits. PRIV21, standalone input-VAT halves and correction codes are not listed here.',
   'wizard.rekeningen.title': 'Where do your accounts land?',
@@ -2357,13 +2360,15 @@ export const en: Record<MessageKey, string> = {
   'wizard.problemen.toAdministratie': 'Go to Administration and years',
   'wizard.problemen.allClear': 'No blocking problems. You can continue.',
   'wizard.problemen.stillBlocked': 'Something still blocks the import.',
+  // Legal VERBATIM (#105 comment 6438953957) — #99 per-code card
   'wizard.notInForce.title': 'VAT code {code} is not in force yet in {year}',
   'wizard.notInForce.body':
-    '{count} documents from {year} use VAT code {code}, but in Klopt it only applies from {validFrom}. There is no fix here yet. If you do not want to transfer {year} now, uncheck it under Administration and years.',
+    "{count} documents from {year} use VAT code {code}, but in Klopt it only applies from {validFrom}. Klopt can't fix this yet: the start date of a VAT code can't be changed in Klopt. What you can do: uncheck {year} under Administration and years and transfer later years only. Keep the books and VAT returns for {year} outside Klopt, for example in Moneybird. If a date in Moneybird is wrong, correct it there and read again. Don't change a correct date to get past this step.",
   'wizard.notInForce.body_one':
-    '{count} document from {year} uses VAT code {code}, but in Klopt it only applies from {validFrom}. There is no fix here yet. If you do not want to transfer {year} now, uncheck it under Administration and years.',
+    "{count} document from {year} uses VAT code {code}, but in Klopt it only applies from {validFrom}. Klopt can't fix this yet: the start date of a VAT code can't be changed in Klopt. What you can do: uncheck {year} under Administration and years and transfer later years only. Keep the books and VAT returns for {year} outside Klopt, for example in Moneybird. If a date in Moneybird is wrong, correct it there and read again. Don't change a correct date to get past this step.",
   'wizard.notInForce.body_other':
-    '{count} documents from {year} use VAT code {code}, but in Klopt it only applies from {validFrom}. There is no fix here yet. If you do not want to transfer {year} now, uncheck it under Administration and years.',
+    "{count} documents from {year} use VAT code {code}, but in Klopt it only applies from {validFrom}. Klopt can't fix this yet: the start date of a VAT code can't be changed in Klopt. What you can do: uncheck {year} under Administration and years and transfer later years only. Keep the books and VAT returns for {year} outside Klopt, for example in Moneybird. If a date in Moneybird is wrong, correct it there and read again. Don't change a correct date to get past this step.",
+  // Kept for #99 (editable valid_from); do not render until that ships.
   'wizard.notInForce.boekhouder': 'The owner or accountant can adjust the start date.',
   'wizard.overzicht.title': 'Ready to transfer?',
   'wizard.overzicht.intro': 'Check the summary. Then the import starts.',
@@ -2379,12 +2384,13 @@ export const en: Record<MessageKey, string> = {
   'wizard.importeren.intro':
     'You can close this screen; we continue. When you return, you see how far we are.',
   'wizard.importeren.progress': '{pct}% · {done} of {total}',
-  'wizard.klaar.title': 'Import prepared',
+  'wizard.klaar.title': 'Import done',
   'wizard.klaar.intro':
     'This has been transferred. Check your books and continue booking in Klopt.',
   'wizard.klaar.nextVat': 'Go to VAT return',
   'wizard.klaar.nextEntries': 'Go to journal entries',
-  'wizard.klaar.blocked': 'Some periods cannot be filed via Klopt yet. Resolve that first.',
+  'wizard.klaar.blocked':
+    "Some periods can't be filed via Klopt yet. The VAT return shows which ones and what you can do.",
   'wizard.klaar.noGreen': 'Not everything was transferred. Review the problems again.',
   'wizard.status.pickSource': 'Pick a source to continue',
   'wizard.status.exactBlocked': 'Exact follows later',

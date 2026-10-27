@@ -2242,6 +2242,81 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
       /valid from|geldig vanaf|Btw-codes|year whose codes|jaar waarvan/i,
     )
   })
+
+  it('blocks when document VAT has no line btw-tarief (#96)', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        purchaseInvoices: base.purchaseInvoices.map((invoice) =>
+          invoice.id === '401'
+            ? {
+                ...invoice,
+                totalTax: 2100n,
+                details: invoice.details.map((detail) => ({ ...detail, taxRateId: null })),
+              }
+            : invoice,
+        ),
+        receipts: [
+          {
+            ...base.purchaseInvoices[0]!,
+            id: '501',
+            kind: 'receipt' as const,
+            reference: 'BON-501',
+            date: '2026-03-06',
+            totalTax: 500n,
+            details: [
+              {
+                id: '5011',
+                description: 'Koffie',
+                amount: '1',
+                price: 2500n,
+                taxRateId: null,
+                ledgerAccountId: '6',
+              },
+            ],
+          },
+        ],
+      },
+      options(),
+    )
+    const codes = plan.problems.map((item) => item.code)
+    expect(codes).toContain('moneybird_vat_without_tax_rate')
+    const purchaseFinding = plan.problems.find(
+      (item) => item.code === 'moneybird_vat_without_tax_rate' && item.path === 'purchaseInvoices.401',
+    )
+    expect(purchaseFinding).toMatchObject({
+      messageKey: 'moneybird.vat_without_tax_rate',
+      detail: { reference: 'LEV-88', bookingDate: '2026-03-05' },
+    })
+    const receiptFinding = plan.problems.find(
+      (item) => item.code === 'moneybird_vat_without_tax_rate' && item.path === 'receipts.501',
+    )
+    expect(receiptFinding?.detail?.reference).toBe('BON-501')
+    expect(purchaseFinding?.message).toMatch(/no VAT rate|btw-tarief/i)
+  })
+
+  it('skips moneybird_vat_without_tax_rate for already-imported external ids', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      {
+        ...base,
+        purchaseInvoices: base.purchaseInvoices.map((invoice) =>
+          invoice.id === '401'
+            ? {
+                ...invoice,
+                totalTax: 2100n,
+                details: invoice.details.map((detail) => ({ ...detail, taxRateId: null })),
+              }
+            : invoice,
+        ),
+        receipts: [],
+        salesInvoices: [],
+      },
+      options({ existingExternalIds: ['purchase_invoice:401'] }),
+    )
+    expect(plan.problems.map((item) => item.code)).not.toContain('moneybird_vat_without_tax_rate')
+  })
 })
 
 /**

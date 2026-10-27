@@ -231,6 +231,15 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         label: labels.reread,
         onApply: () => actions.onRereadResource(problem),
       }
+    case 'moneybird_vat_without_tax_rate':
+      return {
+        type: 'oneClick',
+        label: labels.reread,
+        onApply: () => actions.onRereadResource(problem),
+        ...(moneybirdHref === null
+          ? {}
+          : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
+      }
     default: {
       const _exhaustive: never = problem.code
       void _exhaustive

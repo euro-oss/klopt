@@ -1629,6 +1629,8 @@ export const nl = {
   'finding.moneybird.tax_code_not_in_force':
     '{reference} is gedateerd op {bookingDate}, maar die btw-code geldt in Klopt nog niet op die datum. Er is hier nog geen oplossing. Controleer de datum en het tarief in Moneybird.',
   'finding.moneybird.tax_code_not_in_force_secondary': 'Btw-code {taxCode}',
+  'finding.moneybird.vat_without_tax_rate':
+    'Op {reference} van {bookingDate} staat btw, maar de regels hebben geen btw-tarief dat die btw draagt. Klopt kan die btw dan nergens in de aangifte zetten.',
   'finding.moneybird.account_number_collision':
     'Moneybird gaf grootboeknummer {number} twee keer terug ({name}).',
   'finding.moneybird.contact_number_collision':
@@ -1676,6 +1678,8 @@ export const nl = {
     'Zonder de zelf af te dragen btw ontbreken rubriek 2a/4a/4b en 5b; indienen via Klopt zou te weinig btw aangeven.',
   'finding.why.moneybird.tax_code_not_in_force':
     'Zonder geldige code op de boekdatum kan de aangifte die regels niet plaatsen. De begindatum kun je in Klopt nog niet wijzigen.',
+  'finding.why.moneybird.vat_without_tax_rate':
+    'Btw zonder tarief telt niet mee in de aangifte, dus die zou te laag uitvallen. Die periode kun je dan niet via Klopt indienen.',
   'finding.why.moneybird.incompatible_tax_rate_both_sides':
     'Zonder eenduidige richting kan geen btw-code gekozen worden; de import blijft geblokkeerd tot Moneybird één kant aangeeft.',
   'finding.why.moneybird.account_number_collision':
@@ -2697,7 +2701,7 @@ export const nl = {
   'wizard.year.notInForceHelp':
     'Ze gelden vanaf het begin van je eerste boekjaar in Klopt. Je ziet ze per btw-code bij Problemen. Wil je nu alleen latere jaren overzetten? Vink dit jaar dan uit.',
   'wizard.year.noFittingCode':
-    '{count} documenten hebben geen passende btw-code. Bij Btw-codes kies je wat Klopt ermee doet.',
+    '{count} documenten hebben geen passende btw-code. Bij Btw-codes zie je wat je kunt doen.',
   'wizard.voorbeeld.title': 'Wat we gaan overzetten',
   'wizard.voorbeeld.intro':
     'Dit is een voorbeeld: er wordt nog niets overgezet. Controleer de aantallen.',
@@ -2719,14 +2723,14 @@ export const nl = {
   'wizard.btw.excludeDocs': '{count} documenten niet overzetten',
   'wizard.btw.excludeUndo': 'Ongedaan maken',
   'wizard.btw.excludedBody':
-    'Deze {count} documenten zetten we niet over. Ze tellen niet mee voor dit tarief en staan in het overzicht onder ‘Niet overgezet’.',
+    'Deze {count} documenten zetten we niet over. Hun bedragen en btw staan dan niet in Klopt en ook niet in je aangifte; boek ze zelf als ze in deze boeken horen. Je vindt ze in het overzicht onder ‘Niet overgezet’.',
   'wizard.btw.chooseInTable': 'Zelf kiezen in de tabel',
   'wizard.btw.leftToChoose': 'Nog {count} tarieven kiezen',
   'wizard.btw.allChosen': 'Alle tarieven gekozen',
-  // Legal-pending (PM new strings; Legal re-check)
   'wizard.btw.chooseFirst': 'Kies eerst voor {count} tarieven wat Klopt doet.',
+  // Legal VERBATIM (#105 comment 6438953957)
   'wizard.btw.refusedRate':
-    'Klopt weigert {code} voor dit tarief: het tarief is {ratePct} en {code} is {codePct}. Kies een code met hetzelfde percentage, of zet deze documenten niet over.',
+    'Klopt weigert {code} voor dit tarief: het tarief is {ratePct} en {code} is {codePct}. Kies de code die echt bij deze documenten hoort; die heeft hetzelfde percentage. Twijfel je, vraag het je accountant of zet deze documenten niet over.',
   'wizard.btw.refusedRateFootnote':
     'Klopt controleert bij opslaan of het percentage past. PRIV21, losse voorbelasting-helften en correctiecodes staan hier niet tussen.',
   'wizard.rekeningen.title': 'Waar komen je rekeningen terecht?',
@@ -2737,14 +2741,15 @@ export const nl = {
   'wizard.problemen.toAdministratie': 'Naar Administratie en jaren',
   'wizard.problemen.allClear': 'Geen blokkerende problemen. Je kunt verder.',
   'wizard.problemen.stillBlocked': 'Er houdt nog iets de import tegen.',
-  // Legal-pending (#99 per-code card)
+  // Legal VERBATIM (#105 comment 6438953957) — #99 per-code card
   'wizard.notInForce.title': 'Btw-code {code} geldt nog niet in {year}',
   'wizard.notInForce.body':
-    '{count} documenten uit {year} gebruiken btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Er is hier nog geen oplossing. Zet je {year} nu niet over, vink het dan uit bij Administratie en jaren.',
+    '{count} documenten uit {year} gebruiken btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Klopt kan dit nog niet oplossen: de begindatum van een btw-code kun je in Klopt nog niet wijzigen. Wat je kunt doen: vink {year} uit bij Administratie en jaren en zet alleen latere jaren over. De boekhouding en btw-aangifte over {year} doe je dan buiten Klopt, bijvoorbeeld in Moneybird. Staat er in Moneybird een verkeerde datum, pas die daar aan en lees opnieuw. Een juiste datum verander je niet om verder te kunnen.',
   'wizard.notInForce.body_one':
-    '{count} document uit {year} gebruikt btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Er is hier nog geen oplossing. Zet je {year} nu niet over, vink het dan uit bij Administratie en jaren.',
+    '{count} document uit {year} gebruikt btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Klopt kan dit nog niet oplossen: de begindatum van een btw-code kun je in Klopt nog niet wijzigen. Wat je kunt doen: vink {year} uit bij Administratie en jaren en zet alleen latere jaren over. De boekhouding en btw-aangifte over {year} doe je dan buiten Klopt, bijvoorbeeld in Moneybird. Staat er in Moneybird een verkeerde datum, pas die daar aan en lees opnieuw. Een juiste datum verander je niet om verder te kunnen.',
   'wizard.notInForce.body_other':
-    '{count} documenten uit {year} gebruiken btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Er is hier nog geen oplossing. Zet je {year} nu niet over, vink het dan uit bij Administratie en jaren.',
+    '{count} documenten uit {year} gebruiken btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Klopt kan dit nog niet oplossen: de begindatum van een btw-code kun je in Klopt nog niet wijzigen. Wat je kunt doen: vink {year} uit bij Administratie en jaren en zet alleen latere jaren over. De boekhouding en btw-aangifte over {year} doe je dan buiten Klopt, bijvoorbeeld in Moneybird. Staat er in Moneybird een verkeerde datum, pas die daar aan en lees opnieuw. Een juiste datum verander je niet om verder te kunnen.',
+  // Kept for #99 (editable valid_from); do not render until that ships.
   'wizard.notInForce.boekhouder': 'De eigenaar of accountant kan de begindatum aanpassen.',
   'wizard.overzicht.title': 'Klaar om over te zetten?',
   'wizard.overzicht.intro': 'Controleer de samenvatting. Daarna begint de import.',
@@ -2762,11 +2767,12 @@ export const nl = {
   'wizard.importeren.intro':
     'Je kunt dit scherm sluiten; we gaan door. Kom je terug, dan zie je hier hoe ver we zijn.',
   'wizard.importeren.progress': '{pct}% · {done} van {total}',
-  'wizard.klaar.title': 'Import voorbereid',
+  'wizard.klaar.title': 'Import klaar',
   'wizard.klaar.intro': 'Dit is overgezet. Controleer je boeken en ga verder met boeken in Klopt.',
   'wizard.klaar.nextVat': 'Naar btw-aangifte',
   'wizard.klaar.nextEntries': 'Naar journaalposten',
-  'wizard.klaar.blocked': 'Sommige periodes kun je nog niet via Klopt indienen. Los dat eerst op.',
+  'wizard.klaar.blocked':
+    'Sommige periodes kun je nog niet via Klopt indienen. Bij de btw-aangifte zie je welke en wat je kunt doen.',
   'wizard.klaar.noGreen': 'Nog niet alles is overgezet. Bekijk de problemen opnieuw.',
   'wizard.status.pickSource': 'Kies een bron om verder te gaan',
   'wizard.status.exactBlocked': 'Exact volgt later',

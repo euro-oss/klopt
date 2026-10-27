@@ -14,6 +14,7 @@ const CODES = [
   'null_percentage_vat_mismatch',
   'self_assessed_vat_unsupported',
   'tax_code_not_in_force',
+  'moneybird_vat_without_tax_rate',
   'trial_balance_account_missing',
   'account_number_collision',
   'contact_number_collision',
@@ -177,6 +178,59 @@ describe('moneybird finding fix types', () => {
     expect(card.fix.preview).toBeUndefined()
     void card.fix.onApply()
     expect(onRereadResource).toHaveBeenCalledOnce()
+  })
+
+  it('wires moneybird_vat_without_tax_rate as one-click reread with Open in Moneybird (#96)', () => {
+    const onRereadResource = vi.fn()
+    const actions = {
+      onRereadResource,
+      moneybirdHrefFor: () => 'https://moneybird.example/receipts/501',
+      labels: {
+        reread: 'Opnieuw lezen',
+        openMoneybird: 'Open in Moneybird',
+        mapAccount: '',
+        mapTax: '',
+        renumberAccount: '',
+        renumberContact: '',
+        pickType: '',
+        confirmEur: '',
+        chooseRate: '',
+        confirmYearStart: '',
+        acknowledgeEmpty: '',
+        exclude: '',
+        toFiscalYears: '',
+        deferAttachment: '',
+        settings: '',
+        drillDown: '',
+        stepRate: '',
+        stepPreview: '',
+        stepConfirm: '',
+        stepPermissions: '',
+        stepOpenMoneybird: '',
+        stepReread: '',
+        stepDoNotTransfer: '',
+        stepMapAccount: '',
+        stepMapTax: '',
+        stepSave: '',
+      },
+    } as unknown as MoneybirdFindingActions
+
+    const card = moneybirdFindingCard(
+      {
+        code: 'moneybird_vat_without_tax_rate',
+        path: 'receipts.501',
+        messageKey: 'moneybird.vat_without_tax_rate' as FindingMessageKey,
+        detail: { reference: 'BON-501', bookingDate: '2026-03-06' },
+        message: 'VAT without rate',
+      },
+      'problems',
+      actions,
+    )
+    expect(card.fix.type).toBe('oneClick')
+    if (card.fix.type !== 'oneClick') return
+    expect(card.fix.label).toBe('Opnieuw lezen')
+    expect(card.fix.href).toBe('https://moneybird.example/receipts/501')
+    expect(card.fix.linkLabel).toBe('Open in Moneybird')
   })
 
   it('keeps self_assessed_vat_unsupported as explainOnly look-link (no Niet overzetten)', () => {
