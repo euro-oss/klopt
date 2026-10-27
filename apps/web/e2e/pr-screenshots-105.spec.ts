@@ -109,7 +109,7 @@ async function throughAdmin(page: Page, standIn: MoneybirdStandIn): Promise<void
   await page.getByRole('button', { name: 'Administraties ophalen' }).click()
   await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
   await page.getByText('Voorbeeld BV').click()
-  await expect(page.getByRole('checkbox', { name: /202[0-9]/ }).first().toBeVisible({
+  await expect(page.getByRole('checkbox', { name: /^202\d$/ }).first()).toBeVisible({
     timeout: 60_000,
   })
 }
@@ -160,7 +160,7 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         await page.getByRole('button', { name: 'Administraties ophalen' }).click()
         await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
         await page.getByText('Voorbeeld BV').click()
-        await expect(page.getByRole('checkbox', { name: /202[0-9]/ }).first().toBeVisible({
+        await expect(page.getByRole('checkbox', { name: /^202\d$/ }).first()).toBeVisible({
           timeout: 60_000,
         })
         await shoot(page, `03-administratie-${theme}-${label}.png`)
@@ -216,13 +216,17 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           await page.getByRole('button', { name: /Overzetten bevestigen|bevestigen/i }).click()
 
           await expect(
-            page.getByRole('heading', { name: /Bezig met overzetten|Alles is overgezet|Klaar|We hebben niets/ }),
+            page.getByRole('heading', {
+              name: /Bezig met overzetten|Alles is overgezet|Klaar|We hebben niets/,
+            }),
           ).toBeVisible({ timeout: 60_000 })
           await shoot(page, `09-importeren-${theme}-${label}.png`)
 
           // May auto-advance to klaar
           await page.waitForTimeout(1000)
-          if (await page.getByRole('heading', { name: /boeken staan in Klopt|Import klaar/ }).count()) {
+          if (
+            await page.getByRole('heading', { name: /boeken staan in Klopt|Import klaar/ }).count()
+          ) {
             await shoot(page, `10-klaar-${theme}-${label}.png`)
           }
         }
@@ -252,9 +256,11 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           timeout: 30_000,
         })
         await page.getByRole('button', { name: 'Volgende' }).click()
-        await expect(page.getByRole('heading', { name: /Wat we nog moeten oplossen/ })).toBeVisible({
-          timeout: 30_000,
-        })
+        await expect(page.getByRole('heading', { name: /Wat we nog moeten oplossen/ })).toBeVisible(
+          {
+            timeout: 30_000,
+          },
+        )
         await expect(page.getByText(/geldt nog niet/i).first()).toBeVisible()
         await setTheme(page, theme)
         await shoot(page, `07-problemen-99-${theme}-${label}.png`)
