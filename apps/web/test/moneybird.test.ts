@@ -195,6 +195,11 @@ describe('the dry run', () => {
     fakeMoneybird()
     await connect(token)
     await choose(token)
+    // Confirmed mappings only — proposals never auto-fill (#105 PM).
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse(MAPPINGS),
+    )
     const preview = (await handlePreviewMoneybirdImport(await context(token))).body
     expect(preview.dryRun).toBe(true)
     expect(preview.problems).toEqual([])

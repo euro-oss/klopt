@@ -1674,8 +1674,18 @@ describe('Moneybird, from connecting to disconnecting', () => {
         await handleSaveMoneybirdMappings(
           await contextFor(key()),
           schemas.saveMoneybirdMappingsBody.parse({
-            accountMappings: { '1': '1100' },
-            taxMappings: { '21': 'H21' },
+            accountMappings: {
+              '1': '1100',
+              '2': '1300',
+              '3': '1500',
+              '4': '1510',
+              '5': '1600',
+              '6': '4000',
+              '7': '8000',
+              '8': '0500',
+            },
+            // Both rates the fake Moneybird uses — confirmed only (#105 PM).
+            taxMappings: { '21': 'H21', '22': 'VH21' },
           }),
         )
       ).body,

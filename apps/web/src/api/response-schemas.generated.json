@@ -2981,6 +2981,7 @@
                     "moneybird.null_percentage_vat_mismatch_other",
                     "moneybird.self_assessed_vat_unsupported",
                     "moneybird.tax_code_not_in_force",
+                    "moneybird.vat_without_tax_rate",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -3579,6 +3580,7 @@
                     "moneybird.null_percentage_vat_mismatch_other",
                     "moneybird.self_assessed_vat_unsupported",
                     "moneybird.tax_code_not_in_force",
+                    "moneybird.vat_without_tax_rate",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -3966,6 +3968,7 @@
                                   "moneybird.null_percentage_vat_mismatch_other",
                                   "moneybird.self_assessed_vat_unsupported",
                                   "moneybird.tax_code_not_in_force",
+                                  "moneybird.vat_without_tax_rate",
                                   "moneybird.account_number_collision",
                                   "moneybird.contact_number_collision",
                                   "moneybird.resource_unreadable",
@@ -4476,6 +4479,7 @@
                             "moneybird.null_percentage_vat_mismatch_other",
                             "moneybird.self_assessed_vat_unsupported",
                             "moneybird.tax_code_not_in_force",
+                            "moneybird.vat_without_tax_rate",
                             "moneybird.account_number_collision",
                             "moneybird.contact_number_collision",
                             "moneybird.resource_unreadable",
@@ -8338,6 +8342,12 @@
               "type": "string"
             }
           },
+          "lockedYears": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "warnings": {
             "type": "array",
             "items": {
@@ -8447,6 +8457,7 @@
                     "moneybird.null_percentage_vat_mismatch_other",
                     "moneybird.self_assessed_vat_unsupported",
                     "moneybird.tax_code_not_in_force",
+                    "moneybird.vat_without_tax_rate",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -8588,6 +8599,7 @@
                     "moneybird.null_percentage_vat_mismatch_other",
                     "moneybird.self_assessed_vat_unsupported",
                     "moneybird.tax_code_not_in_force",
+                    "moneybird.vat_without_tax_rate",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -8622,12 +8634,6 @@
           },
           "dryRun": {
             "const": true
-          },
-          "lockedYears": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         },
         "required": [
@@ -8644,6 +8650,7 @@
           "reconciliation",
           "notImported",
           "excluded",
+          "lockedYears",
           "warnings",
           "problems",
           "dryRun"
@@ -9508,6 +9515,7 @@
                     "moneybird.null_percentage_vat_mismatch_other",
                     "moneybird.self_assessed_vat_unsupported",
                     "moneybird.tax_code_not_in_force",
+                    "moneybird.vat_without_tax_rate",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -9824,6 +9832,7 @@
                     "moneybird.null_percentage_vat_mismatch_other",
                     "moneybird.self_assessed_vat_unsupported",
                     "moneybird.tax_code_not_in_force",
+                    "moneybird.vat_without_tax_rate",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -10087,6 +10096,7 @@
                     "moneybird.null_percentage_vat_mismatch_other",
                     "moneybird.self_assessed_vat_unsupported",
                     "moneybird.tax_code_not_in_force",
+                    "moneybird.vat_without_tax_rate",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -10489,6 +10499,7 @@
                     "moneybird.null_percentage_vat_mismatch_other",
                     "moneybird.self_assessed_vat_unsupported",
                     "moneybird.tax_code_not_in_force",
+                    "moneybird.vat_without_tax_rate",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -14017,6 +14028,7 @@
                     "moneybird.null_percentage_vat_mismatch_other",
                     "moneybird.self_assessed_vat_unsupported",
                     "moneybird.tax_code_not_in_force",
+                    "moneybird.vat_without_tax_rate",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -14630,6 +14642,7 @@
                     "moneybird.null_percentage_vat_mismatch_other",
                     "moneybird.self_assessed_vat_unsupported",
                     "moneybird.tax_code_not_in_force",
+                    "moneybird.vat_without_tax_rate",
                     "moneybird.account_number_collision",
                     "moneybird.contact_number_collision",
                     "moneybird.resource_unreadable",
@@ -15581,6 +15594,7 @@
         "null_percentage_vat_mismatch",
         "self_assessed_vat_unsupported",
         "tax_code_not_in_force",
+        "moneybird_vat_without_tax_rate",
         "period_locked",
         "unbalanced_document",
         "draft_skipped",
