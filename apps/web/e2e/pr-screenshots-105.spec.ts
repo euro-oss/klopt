@@ -217,9 +217,13 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         await shoot(page, `04-voorbeeld-${theme}-${label}.png`)
 
         await clickNext(page)
-        // 05 Btw
+        // 05 Btw — shoot Voorstel/Vorige keuze before any Bevestigen (Designer #105).
         await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
         await shoot(page, `05-btw-${theme}-${label}.png`)
+        await expect(page.getByText(/Voorstel|Vorige keuze/).first()).toBeVisible({
+          timeout: 15_000,
+        })
+        await shoot(page, `05-btw-voorstel-${theme}-${label}.png`)
 
         // Sheet picker — save from the open sheet (no Escape; that left rates stuck).
         const choose = page.getByRole('button', { name: 'Btw-code kiezen' })
@@ -236,13 +240,6 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           await save.click()
           await expect(sheet).toHaveCount(0, { timeout: 60_000 })
         }
-
-        // 05 with Voorstel / Vorige keuze still visible (before Bevestigen)
-        await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
-        await expect(page.getByText(/Voorstel|Vorige keuze/).first()).toBeVisible({
-          timeout: 15_000,
-        })
-        await shoot(page, `05-btw-voorstel-${theme}-${label}.png`)
 
         await mapAllOpenRates(page)
         await expect(page.getByText(/Kies eerst voor/i)).toHaveCount(0)
@@ -289,13 +286,22 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           })
           await shoot(page, `09-importeren-${theme}-${label}.png`)
 
+          // Match playwright.config webServer encryption key — tokens written by
+          // vite dev only decrypt with that key, not the shell .env.
+          process.env['KLOPT_ENCRYPTION_KEY'] = 'e2e-encryption-key-not-for-production-01234'
           const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
           const { createFilesystemDocumentStore } = await import('@klopt/adapters')
           const { createDatabase, closeDatabase } = await import('@klopt/db')
           const directory = mkdtempSync(join(tmpdir(), 'mb-shot-'))
           const db = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
           try {
-            await importMoneybirdAdministration(db, createFilesystemDocumentStore({ directory }))
+            // Drain every pending claim — a prior e2e run may have left stale jobs
+            // ahead of this viewport's import on the shared DATABASE_URL.
+            const store = createFilesystemDocumentStore({ directory })
+            for (let i = 0; i < 8; i += 1) {
+              const result = await importMoneybirdAdministration(db, store)
+              if (result.state === 'idle') break
+            }
           } finally {
             await closeDatabase(db)
           }

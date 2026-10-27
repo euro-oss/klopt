@@ -77,7 +77,8 @@ export interface MoneybirdStandIn {
   close(): Promise<void>
 }
 
-/** Null-% purchase + sales rates with totalTax 0 so VGEEN / 0% sales are offered. */
+/** Null-% purchase + sales rates with totalTax 0 so VGEEN / 0% sales are offered.
+ * Also includes a 21% sales rate so the wizard shows a primary “Voorstel” (H21). */
 export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn> {
   const token = 'mb-e2e-null-rate-token'
   const taxRates = [
@@ -93,6 +94,14 @@ export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn>
       id: 91,
       name: 'Geen btw verkoop',
       percentage: null,
+      tax_rate_type: 'sales_invoice',
+      country: 'NL',
+      active: true,
+    },
+    {
+      id: 21,
+      name: '21% btw',
+      percentage: '21.0',
       tax_rate_type: 'sales_invoice',
       country: 'NL',
       active: true,
@@ -143,6 +152,30 @@ export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn>
           amount: '1',
           price: '50.00',
           tax_rate_id: 91,
+          ledger_account_id: 7,
+        },
+      ],
+      attachments: [],
+    },
+    {
+      id: 302,
+      contact_id: 100,
+      invoice_id: '2026-21',
+      state: 'open',
+      invoice_date: '2026-03-02',
+      due_date: '2026-03-31',
+      currency: 'EUR',
+      prices_are_incl_tax: false,
+      total_price_excl_tax: '100.00',
+      total_price_incl_tax: '121.00',
+      total_tax: '21.00',
+      details: [
+        {
+          id: 3021,
+          description: 'Advies 21%',
+          amount: '1',
+          price: '100.00',
+          tax_rate_id: 21,
           ledger_account_id: 7,
         },
       ],
