@@ -22,7 +22,7 @@ export interface ImportRunReportView {
 
 export interface ImportRunStatusView {
   readonly requested?: boolean
-  readonly state?: ImportRunState | string
+  readonly state?: ImportRunState
   readonly workerSilent?: boolean
   readonly report?: ImportRunReportView | null
   readonly lastError?: string | null

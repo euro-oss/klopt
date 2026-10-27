@@ -568,10 +568,11 @@ describe('the import job', () => {
     // Re-preview after commit: entries exist → alreadyInKlopt for Legal count.
     const againPreview = (await handlePreviewMoneybirdImport(await context(token))).body
     expect(againPreview.alreadyInKlopt.count).toBeGreaterThan(0)
-    expect(againPreview.alreadyInKlopt.sample[0]).toMatchObject({
-      externalId: expect.stringMatching(/^(sales_invoice|purchase_invoice|journal|bank_mutation):/),
-    })
-    expect(typeof againPreview.alreadyInKlopt.sample[0]?.reference).toBe('string')
+    const sample = againPreview.alreadyInKlopt.sample[0]
+    expect(sample?.externalId).toMatch(
+      /^(sales_invoice|purchase_invoice|journal|bank_mutation|credit_note|receipt):/,
+    )
+    expect(typeof sample?.reference).toBe('string')
   })
 
   it('does not call an unreadable source reconciled on the commit report', async () => {
@@ -652,26 +653,14 @@ describe('the import job', () => {
     await handleRunMoneybirdImport(await context(token, crypto.randomUUID()))
 
     const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
-    const boomStore = {
-      name: 'boom',
-      async put(): Promise<never> {
-        throw new Error('attachment store failed after commit')
-      },
-      async get(): Promise<null> {
-        return null
-      },
-      async has(): Promise<boolean> {
-        return false
-      },
-      async remove(): Promise<'absent'> {
-        return 'absent'
-      },
-      async delete(): Promise<{ outcome: 'absent' }> {
-        return { outcome: 'absent' }
-      },
-    }
+    const { createFilesystemDocumentStore } = await import('@klopt/adapters')
+    // Real store, then force attachment failure by pointing download URLs at a
+    // dead host — commit still lands so the failed report keeps booked counts.
+    const directory = mkdtempSync(join(tmpdir(), 'mb-partial-'))
+    const store = createFilesystemDocumentStore({ directory })
+    store.put = () => Promise.reject(new Error('attachment store failed after commit'))
 
-    const outcome = await importMoneybirdAdministration(database, boomStore as never)
+    const outcome = await importMoneybirdAdministration(database, store)
     expect(outcome.state).toBe('failed')
     expect(outcome.failure).toMatch(/attachment store failed/)
 

@@ -204,7 +204,7 @@ function ImportWizardPage() {
   const [previousTaxMappings, setPreviousTaxMappings] = useState<Record<string, string>>({})
   const [previousAccountMappings, setPreviousAccountMappings] = useState<Record<string, string>>({})
   const [liveRun, setLiveRun] = useState<ImportRunStatusView | null>(() =>
-    runStatus.ok ? (runStatus.data as ImportRunStatusView) : null,
+    runStatus.ok ? (runStatus.data satisfies ImportRunStatusView) : null,
   )
   const [importFailed, setImportFailed] = useState(false)
   const [taxViolations, setTaxViolations] = useState<
@@ -214,8 +214,6 @@ function ImportWizardPage() {
     const fromConn = conn as { importDecisions?: MoneybirdImportDecisions } | null
     return fromConn?.importDecisions ?? emptyDecisions()
   })
-  const [excludedRateIds, setExcludedRateIds] = useState<Set<string>>(() => new Set())
-  const [excludedByRate, setExcludedByRate] = useState<Record<string, string[]>>({})
   const [sheetRateId, setSheetRateId] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [imported, setImported] = useState(() =>
@@ -277,7 +275,10 @@ function ImportWizardPage() {
   const usedRates = taxRates.filter((rate) => rate.used)
   const accountSample =
     (preview?.['accounts'] as { sample: AccountSample[] } | undefined)?.sample ?? []
-  const yearDocuments = (preview?.['yearDocuments'] as YearDoc[] | undefined) ?? []
+  const yearDocuments = useMemo(
+    () => (preview?.['yearDocuments'] as YearDoc[] | undefined) ?? [],
+    [preview],
+  )
   const problems = useMemo(
     () => (preview?.['problems'] as MoneybirdProblem[] | undefined) ?? [],
     [preview],
@@ -626,52 +627,39 @@ function ImportWizardPage() {
       .map((doc) => doc.externalId)
   }
 
+  /** Persist exclusions only — list/undo rebuild from decisions (Legal #105). */
+  const rebuiltExcluded = useMemo(
+    () =>
+      rebuildExcludedRates({
+        excludedExternalIds: decisions.excludedExternalIds ?? [],
+        rates: usedRates,
+        docsForRate,
+      }),
+    // docsForRate depends on problems/warnings/yearDocuments
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [decisions.excludedExternalIds, usedRates, problems, warnings, yearDocuments],
+  )
+  const excludedRateIds = rebuiltExcluded.rateIds
+  const excludedByRate = rebuiltExcluded.byRate
+
   async function excludeRate(rateId: string) {
     const ids = docsForRate(rateId)
-    setExcludedRateIds((current) => new Set([...current, rateId]))
-    setExcludedByRate((current) => ({ ...current, [rateId]: ids }))
-    if (ids.length > 0) {
-      await persistMappings({
-        importDecisions: withExcludedExternalIds(decisions, ids),
-      })
-    }
-    if (ids.length > 0) showToast(plural('wizard.btw.excludeDocs', ids.length))
+    if (ids.length === 0) return
+    const next = withExcludedExternalIds(decisions, ids)
+    setDecisions(next)
+    await persistMappings({ importDecisions: next })
+    showToast(plural('wizard.btw.excludeDocs', ids.length))
   }
 
   async function undoExcludeRate(rateId: string) {
     const ids =
       excludedByRate[rateId] ??
       docsForRate(rateId).filter((id) => (decisions.excludedExternalIds ?? []).includes(id))
-    setExcludedRateIds((current) => {
-      const next = new Set(current)
-      next.delete(rateId)
-      return next
-    })
-    setExcludedByRate((current) => {
-      const next = { ...current }
-      delete next[rateId]
-      return next
-    })
-    if (ids.length > 0) {
-      await persistMappings({
-        importDecisions: withoutExcludedExternalIds(decisions, ids),
-      })
-    }
+    if (ids.length === 0) return
+    const next = withoutExcludedExternalIds(decisions, ids)
+    setDecisions(next)
+    await persistMappings({ importDecisions: next })
   }
-
-  /** Rebuild session excluded-rate chrome from persisted decisions (Legal #105). */
-  useEffect(() => {
-    if (usedRates.length === 0) return
-    const rebuilt = rebuildExcludedRates({
-      excludedExternalIds: decisions.excludedExternalIds ?? [],
-      rates: usedRates,
-      docsForRate,
-    })
-    setExcludedRateIds(rebuilt.rateIds)
-    setExcludedByRate(rebuilt.byRate)
-    // docsForRate closes over problems/yearDocuments; rebuild when those settle.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional on decisions + preview
-  }, [decisions.excludedExternalIds, preview])
 
   const canNext = (() => {
     switch (step) {
@@ -817,7 +805,7 @@ function ImportWizardPage() {
       return
     }
     setEnqueueAcked(true)
-    setLiveRun(result.data as ImportRunStatusView)
+    setLiveRun(result.data)
     const terminal = await pollUntilTerminal()
     setImporting(false)
     await router.invalidate()
@@ -1210,8 +1198,6 @@ function ImportWizardPage() {
                         setPreviousAccountMappings(row.accountMappings)
                         setPreviousTaxMappings(row.taxMappings)
                         setTaxMappings({})
-                        setExcludedRateIds(new Set())
-                        setExcludedByRate({})
                         setDecisions(row.importDecisions)
                       } else {
                         setAccountMappings({})
@@ -1890,8 +1876,7 @@ function ImportWizardPage() {
                           : row.source === 'unreadable'
                             ? 'wizard.problemen.reconciliationFailed'
                             : null
-                    const sourceLabel =
-                      sourceKey !== null ? t(sourceKey as MessageKey) : String(row.source)
+                    const sourceLabel = sourceKey !== null ? t(sourceKey) : String(row.source)
                     const money = (value: string | null) => {
                       if (value === null || value === '') return null
                       const amount = Number.parseFloat(value)
