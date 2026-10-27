@@ -51,6 +51,10 @@ describe('wizard step 5 btw gates (#105 PM)', () => {
   })
 })
 
+// PM must-fix 6 case 5 (proposal-only → unmapped_tax_rate) lives in
+// packages/core/test/moneybird/plan.test.ts — "raises unmapped_tax_rate when
+// only a proposal exists (#105 confirm-only)".
+
 describe('wizard.btw.refusedRate placeholders (#105 Legal/PM)', () => {
   it('fills code, ratePct and codePct in NL and EN', () => {
     const rules = [{ code: 'H21', rateBasisPoints: 2100 }]

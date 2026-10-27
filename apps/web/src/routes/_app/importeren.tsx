@@ -1528,13 +1528,9 @@ function ImportWizardPage() {
                       {excluded ? (
                         <div className="mt-3">
                           <p className="text-sm">
-                            {plural(
-                              'wizard.btw.excludedBody',
-                              excludeCount > 0 ? excludeCount : 1,
-                              {
-                                count: String(excludeCount > 0 ? excludeCount : 1),
-                              },
-                            )}
+                            {plural('wizard.btw.excludedBody', excludeCount, {
+                              count: String(excludeCount),
+                            })}
                           </p>
                           <Button
                             type="button"
@@ -1572,9 +1568,7 @@ function ImportWizardPage() {
                               >
                                 {plural(
                                   'wizard.btw.excludeDocs',
-                                  docs.length ||
-                                    problemCountForRate(problems, rate.moneybirdId) ||
-                                    1,
+                                  docs.length || problemCountForRate(problems, rate.moneybirdId),
                                 )}
                               </Button>
                               {advanced && (
@@ -2163,14 +2157,10 @@ function ImportWizardPage() {
                           {t('wizard.klaar.viewNotTransferred')}
                         </span>
                         <span className="text-muted-foreground block text-xs">
-                          {plural(
-                            'wizard.klaar.viewNotTransferredDetail',
-                            excludedDocs.length || 1,
-                            {
-                              docs: String(excludedDocs.length),
-                              rates: String(rateCount),
-                            },
-                          )}
+                          {plural('wizard.klaar.viewNotTransferredDetail', excludedDocs.length, {
+                            docs: String(excludedDocs.length),
+                            rates: String(rateCount),
+                          })}
                         </span>
                       </span>
                     </button>

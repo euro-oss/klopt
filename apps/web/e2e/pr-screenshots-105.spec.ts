@@ -1,4 +1,5 @@
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
@@ -290,11 +291,8 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
 
           const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
           const { createFilesystemDocumentStore } = await import('@klopt/adapters')
-          const { mkdtempSync } = await import('node:fs')
-          const { join: pathJoin } = await import('node:path')
-          const os = await import('node:os')
           const { createDatabase, closeDatabase } = await import('@klopt/db')
-          const directory = mkdtempSync(pathJoin(os.tmpdir(), 'mb-shot-'))
+          const directory = mkdtempSync(join(tmpdir(), 'mb-shot-'))
           const db = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
           try {
             await importMoneybirdAdministration(db, createFilesystemDocumentStore({ directory }))
