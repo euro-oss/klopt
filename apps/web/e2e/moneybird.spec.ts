@@ -34,7 +34,8 @@ async function anAdministration(page: Page): Promise<void> {
 test('the Moneybird screen offers only the step that can be done', async ({ page }) => {
   await anAdministration(page)
 
-  await page.getByRole('link', { name: 'Moneybird' }).click()
+  // Legacy /moneybird stays under Geavanceerd for one release (#100); open by URL.
+  await page.goto('/moneybird')
   await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
 
   await expect(page.getByRole('heading', { name: '1. Verbinden' })).toBeVisible()
@@ -54,21 +55,21 @@ test('connecting is refused until there is a token', async ({ page }) => {
   await expect(button).toBeEnabled()
 })
 
-test('i m reaches Moneybird under Importeren', async ({ page }) => {
+test('i m reaches the import wizard under Importeren (#100)', async ({ page }) => {
   await anAdministration(page)
 
   // Same hydration wait as Exact: the sidebar only prints a chord once the
-  // listener is live (#37).
+  // listener is live (#37). `i m` opens the wizard; legacy Moneybird is advanced-only.
   await expect(
     page
       .getByRole('link', { name: /^Dashboard/ })
       .locator('kbd')
       .first(),
   ).toBeVisible()
-  await expect(page.getByRole('navigation').getByText('Importeren')).toBeVisible()
+  await expect(page.getByRole('navigation').getByRole('link', { name: /Importeren/ })).toBeVisible()
   await expect(
     page
-      .getByRole('link', { name: /Moneybird/ })
+      .getByRole('link', { name: /Importeren/ })
       .locator('kbd')
       .first(),
   ).toContainText(/i/)
@@ -77,7 +78,7 @@ test('i m reaches Moneybird under Importeren', async ({ page }) => {
   await expect(page.getByText('I …')).toBeVisible()
   await page.keyboard.press('m')
 
-  await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
 })
 
 test('null-% purchase and sales rates open the sheet from server candidates (#90)', async ({
