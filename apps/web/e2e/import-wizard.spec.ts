@@ -140,12 +140,12 @@ test('picking Exact on Bron updates ?bron= and the page title', async ({ page })
   await expect(moneybird).toBeEnabled({ timeout: 15_000 })
   await moneybird.click()
   await expect(page).toHaveURL(/bron=moneybird/)
-  await expect(page.locator('header').getByText('Moneybird', { exact: true })).toBeVisible()
+  await expect(page.getByRole('banner').getByText('Moneybird', { exact: true })).toBeVisible()
 
   await page.getByRole('radio', { name: /Exact Online/ }).click()
   await expect(page).toHaveURL(/bron=exact/)
   await expect(page.getByText(/kan nog niet in deze wizard/i)).toBeVisible()
-  await expect(page.locator('header').getByText('Exact Online', { exact: true })).toBeVisible()
+  await expect(page.getByRole('banner').getByText('Exact Online', { exact: true })).toBeVisible()
   await expect(
     page.getByRole('navigation').getByRole('link', { name: /^Exact Online(?! \(oud\))/ }),
   ).toHaveAttribute('aria-current', 'page')
