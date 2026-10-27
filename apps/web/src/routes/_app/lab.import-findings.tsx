@@ -116,7 +116,7 @@ function ImportFindingsLab() {
     source === 'moneybird' ? MONEYBIRD_FIXTURE_RESOLVED : [],
   )
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(() => new Set())
-  // Lab uses the same MoneybirdMappingReview + applyTaxMappingSaveFailure as /moneybird.
+  // Lab uses the same MoneybirdMappingReview + applyTaxMappingSaveFailure as the wizard.
   const [mapTax, setMapTax] = useState<Record<string, string>>({ '21': 'H21' })
   const [mapViolations, setMapViolations] = useState<
     Readonly<Record<string, TaxMappingViolationView>>

@@ -473,7 +473,7 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
           await shoot(page, `02-verbinden-dark-focus-${label}.png`)
         }
 
-        // Geavanceerd on — Bron with legacy (oud) links visible in nav
+        // Geavanceerd on — Bron with Exact (oud) visible in nav; Moneybird (oud) removed
         await enableAdvancedMode(page)
         await page.goto('/importeren')
         // After disconnect + failed token the wizard may still be on verbinden;

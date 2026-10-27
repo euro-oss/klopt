@@ -122,7 +122,7 @@ test('i m opens the import wizard under Importeren', async ({ page }) => {
       .first(),
   ).toBeVisible()
   await expect(
-    page.getByRole('navigation').getByRole('link', { name: /^Moneybird(?! \(oud\))/ }),
+    page.getByRole('navigation').getByRole('link', { name: /^Moneybird$/ }),
   ).toBeVisible()
 
   await page.keyboard.press('i')

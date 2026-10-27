@@ -177,20 +177,15 @@ export const BINDINGS: readonly Binding[] = [
     keys: 'i m',
     to: '/importeren',
   },
-  // Palette-only: legacy pages under Geavanceerd (#105 Designer). No global chord —
-  // the `i` / `g` alphabets are full; find them in ⌘K when Advanced is on.
-  {
-    id: 'go.moneybirdLegacy',
-    label: 'nav.moneybirdAdvanced',
-    group: 'keys.group.goTo',
-    to: '/moneybird',
-  },
+  // Palette-only: legacy Exact under Geavanceerd (#105). No global chord —
+  // the `i` / `g` alphabets are full; find it in ⌘K when Advanced is on.
   {
     id: 'go.exactLegacy',
     label: 'nav.exactAdvanced',
     group: 'keys.group.goTo',
     to: '/exact',
   },
+
   // `s` for **s**luiten. Every letter in *boekjaren* was taken by the time this
   // screen arrived, which is what happens when a keyboard map is real, and
   // closing a year is what people come here to do.

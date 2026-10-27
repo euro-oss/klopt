@@ -1,7 +1,7 @@
 /**
  * Loopback Moneybird REST stand-in for browser e2e (#90).
  *
- * The Moneybird page stores a base URL; localhost / 127.0.0.1 is allowed so a
+ * The import wizard stores a base URL; localhost / 127.0.0.1 is allowed so a
  * real HTTP stand-in can drive connect → choose → preview without reaching
  * moneybird.com. Shapes match the fake used by unit tests.
  */

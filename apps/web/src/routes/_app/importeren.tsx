@@ -158,7 +158,7 @@ function ImportWizardPage() {
   const { t, plural, tag } = useT()
   const router = useRouter()
   const hydrated = useHydrated()
-  const { advanced } = useAdvancedMode()
+  const { advanced, setAdvanced, saving: advancedSaving } = useAdvancedMode()
   const titleId = useId()
 
   const saved = wizard.ok ? (wizard.data.state as WizardStateRow | null) : null
@@ -971,6 +971,26 @@ function ImportWizardPage() {
         />
       </aside>
       <div className="min-w-0 flex-1">
+        {/*
+          Same Geavanceerd preference as the shell (#44). On this screen so
+          toggling here updates the account-menu switch without a reload — and so
+          e2e can assert the single source of truth without a live Moneybird token.
+        */}
+        <div className="mb-4 flex items-center gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={advanced}
+              disabled={!hydrated}
+              aria-busy={advancedSaving || undefined}
+              onChange={(event) => {
+                void setAdvanced(event.target.checked)
+              }}
+              className="border-border size-4 rounded-none"
+            />
+            {t('shell.advanced')}
+          </label>
+        </div>
         {error !== null && error !== '' && step !== 'importeren' && (
           <p role="alert" className="text-destructive mb-4 text-sm">
             {error}
@@ -1622,6 +1642,33 @@ function ImportWizardPage() {
                       ) : empty ? (
                         <div className="mt-3">
                           <AttentionBlock title={t('wizard.btw.fixRateInMoneybird')}>
+                            {docs.length > 0 && (
+                              <p className="text-muted-foreground mt-2 text-xs">
+                                {docs
+                                  .map(
+                                    (id) =>
+                                      yearDocuments.find((row) => row.externalId === id)
+                                        ?.reference ?? id,
+                                  )
+                                  .join(', ')}
+                              </p>
+                            )}
+                            {(() => {
+                              const mismatch = [...problems, ...warnings].find(
+                                (row) =>
+                                  row.code === 'null_percentage_vat_mismatch' &&
+                                  row.path === `taxRates.${rate.moneybirdId}`,
+                              )
+                              if (mismatch === undefined) return null
+                              return (
+                                <div className="mt-3">
+                                  <FindingCard
+                                    {...moneybirdFindingCard(mismatch, 'problems', findingActions)}
+                                    showPath={advanced}
+                                  />
+                                </div>
+                              )
+                            })()}
                             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                               {taxHref !== null && (
                                 <Button asChild variant="outline" className="min-h-11 md:min-h-9">

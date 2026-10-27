@@ -75,12 +75,12 @@ palette prints the key beside the label, which is what makes that survivable.
 Alpha 3 took the last two. Importers use the `i` prefix rather than freeing a
 `g` letter: `i m` opens Moneybird on `/importeren`, and `i x` (with muscle-memory
 alias `g x`) opens Exact on the same wizard (Exact is a dead-end inside the
-wizard in Phase 1). Both chords are printed in the nav and ⌘K. The legacy
-`/moneybird` and `/exact` pages stay under Geavanceerd and are reachable from
-⌘K only when Advanced is on (no global chord — the alphabets are full).
-`test/unit/shortcuts.test.ts` asserts the `g` alphabet is still exhausted and
-that the `i` prefix resolves both importers, so a stolen letter or a missing
-chord arrives as a failing test rather than as a collision.
+wizard in Phase 1). Both chords are printed in the nav and ⌘K. Legacy
+`/moneybird` redirects to the wizard; `/exact` stays under Geavanceerd and is
+reachable from ⌘K only when Advanced is on (no global chord — the alphabets
+are full). `test/unit/shortcuts.test.ts` asserts the `g` alphabet is still
+exhausted and that the `i` prefix resolves both importers, so a stolen letter
+or a missing chord arrives as a failing test rather than as a collision.
 
 `/` for "focus search" was in this table for three milestones with nothing behind
 it. There is a global search now — it lives in the palette, where `Cmd/Ctrl` `K`

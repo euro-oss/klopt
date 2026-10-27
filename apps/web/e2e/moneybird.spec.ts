@@ -4,14 +4,15 @@ import { DATABASE_URL, signIn, uniqueEmail } from './support'
 import {
   startNullRateMoneybirdStandIn,
   startNullRateVatMismatchMoneybirdStandIn,
+  type MoneybirdStandIn,
 } from './support/moneybird-stand-in'
 
 /**
- * Overzetten uit Moneybird, in a browser (issue #32).
+ * Overzetten uit Moneybird, in a browser (issue #32 / #105).
  *
  * Connecting and preview talk to a loopback Moneybird stand-in (allowed base
- * URL), so null-% VAT mapping can be exercised on the real /moneybird page
- * without reaching moneybird.com (#90).
+ * URL), so null-% VAT mapping can be exercised on `/importeren` without
+ * reaching moneybird.com (#90). Legacy `/moneybird` redirects here.
  */
 
 test.beforeAll(async () => {
@@ -31,35 +32,90 @@ async function anAdministration(page: Page): Promise<void> {
   ).toBeVisible()
 }
 
+/** Volgende uses aria-disabled instead of the native disabled attribute. */
+async function clickNext(page: Page): Promise<void> {
+  const next = page.locator('button[data-focus="next"]')
+  await expect
+    .poll(
+      async () => {
+        const aria = await next.getAttribute('aria-disabled')
+        return aria !== 'true' && aria !== ''
+      },
+      { timeout: 60_000 },
+    )
+    .toBe(true)
+  await next.click()
+}
+
+/** Open Verbinden with Moneybird pre-selected via ?bron=. */
+async function openVerbinden(page: Page): Promise<void> {
+  await page.goto('/importeren?bron=moneybird')
+  await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
+  const moneybird = page.getByRole('radio', { name: /Moneybird/ })
+  await expect(moneybird).toBeChecked()
+  await clickNext(page)
+  await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
+}
+
+/** Reach Btw-codes with a stand-in connection and a chosen administration. */
+async function reachBtwStep(page: Page, standIn: MoneybirdStandIn): Promise<void> {
+  await openVerbinden(page)
+  await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+  await page.getByLabel('API-adres').fill(standIn.baseUrl)
+  await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
+  await clickNext(page)
+  await expect(
+    page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
+  ).toBeVisible({ timeout: 30_000 })
+
+  await page.getByRole('button', { name: 'Administraties ophalen' }).click()
+  await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
+  await page.getByText('Voorbeeld BV').click()
+  await expect(page.getByRole('checkbox', { name: '2026' })).toBeVisible({
+    timeout: 60_000,
+  })
+  await clickNext(page)
+  await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
+    timeout: 30_000,
+  })
+  await clickNext(page)
+  await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible({
+    timeout: 30_000,
+  })
+}
+
 test('the Moneybird screen offers only the step that can be done', async ({ page }) => {
   await anAdministration(page)
 
-  // Legacy /moneybird stays under Geavanceerd for one release (#100); open by URL.
-  await page.goto('/moneybird')
-  await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
+  await page.goto('/importeren?bron=moneybird')
+  await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
+  await expect(page.getByRole('banner').getByText('Moneybird', { exact: true })).toBeVisible()
 
-  await expect(page.getByRole('heading', { name: '1. Verbinden' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: '2. Welke administratie' })).toBeHidden()
-  await expect(page.getByRole('heading', { name: '3. Proefimport' })).toBeHidden()
+  await clickNext(page)
+  await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
+  ).toBeHidden()
+  await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeHidden()
 })
 
 test('connecting is refused until there is a token', async ({ page }) => {
   await anAdministration(page)
-  await page.goto('/moneybird')
+  await openVerbinden(page)
 
   await expect(page.getByLabel('Persoonlijk API-token')).toBeEnabled()
-  const button = page.getByRole('button', { name: 'Verbinden met Moneybird' })
-  await expect(button).toBeDisabled()
+  const button = page.locator('button[data-focus="next"]')
+  await expect(button).toHaveAttribute('aria-disabled', 'true')
 
   await page.getByLabel('Persoonlijk API-token').fill('not-a-real-token')
-  await expect(button).toBeEnabled()
+  await expect(button).not.toHaveAttribute('aria-disabled', 'true')
 })
 
 test('i m reaches the import wizard under Importeren (#100)', async ({ page }) => {
   await anAdministration(page)
 
   // Same hydration wait as Exact: the sidebar only prints a chord once the
-  // listener is live (#37). `i m` opens the wizard; legacy Moneybird is advanced-only.
+  // listener is live (#37). `i m` opens the wizard.
   await expect(
     page
       .getByRole('link', { name: /^Dashboard/ })
@@ -67,11 +123,11 @@ test('i m reaches the import wizard under Importeren (#100)', async ({ page }) =
       .first(),
   ).toBeVisible()
   await expect(
-    page.getByRole('navigation').getByRole('link', { name: /^Moneybird(?! \(oud\))/ }),
+    page.getByRole('navigation').getByRole('link', { name: /^Moneybird$/ }),
   ).toBeVisible()
   await expect(
     page
-      .getByRole('link', { name: /^Moneybird(?! \(oud\))/ })
+      .getByRole('link', { name: /^Moneybird$/ })
       .locator('kbd')
       .first(),
   ).toContainText(/i/)
@@ -90,34 +146,19 @@ test('null-% purchase and sales rates open the sheet from server candidates (#90
   const standIn = await startNullRateMoneybirdStandIn()
   try {
     await anAdministration(page)
-    await page.goto('/moneybird')
-    await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
-
-    await page.getByLabel('API-adres').fill(standIn.baseUrl)
-    await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
-    await page.getByRole('button', { name: 'Verbinden met Moneybird' }).click()
-    await expect(page.getByRole('heading', { name: '2. Welke administratie' })).toBeVisible({
-      timeout: 30_000,
-    })
-
-    await page.getByRole('button', { name: 'Administraties ophalen' }).click()
-    await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
-    await page.getByRole('button', { name: 'kies deze' }).first().click()
-    await expect(page.getByRole('heading', { name: '3. Proefimport' })).toBeVisible({
-      timeout: 30_000,
-    })
-
-    await page.getByRole('button', { name: 'Proefimport uitvoeren' }).click()
-    await expect(
-      page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]'),
-    ).toHaveCount(2, { timeout: 60_000 })
+    await reachBtwStep(page, standIn)
 
     const purchase = page
-      .locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]')
+      .locator('article')
       .filter({ hasText: 'Geen btw' })
       .filter({ hasNotText: 'verkoop' })
       .first()
-    await purchase.getByRole('button', { name: 'Btw-tarief koppelen' }).click()
+    const sales = page.locator('article').filter({ hasText: 'Geen btw verkoop' }).first()
+    await expect(purchase).toBeVisible({ timeout: 60_000 })
+    await expect(sales).toBeVisible()
+    await expect(page.locator('article').filter({ hasText: /^Geen btw/ })).toHaveCount(2)
+
+    await purchase.getByRole('button', { name: /Btw-code kiezen|Andere kiezen/ }).click()
     const sheet = page.getByRole('dialog')
     await expect(sheet).toBeVisible()
     await expect(sheet.getByRole('radio')).toHaveCount(1)
@@ -130,19 +171,15 @@ test('null-% purchase and sales rates open the sheet from server candidates (#90
     await sheet.getByRole('button', { name: 'Opslaan' }).click()
     await expect(sheet).toHaveCount(0)
 
-    // Re-read / preview refresh should drop the purchase blocker once mapped.
-    await page.getByRole('button', { name: 'Proefimport uitvoeren' }).click()
+    // After mapping purchase, only the sales rate still needs a choice.
     await expect(
-      page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]'),
-    ).toHaveCount(1, { timeout: 60_000 })
+      purchase.getByRole('button', { name: /Btw-code kiezen|Andere kiezen|Bevestigen/ }),
+    ).toHaveCount(0, { timeout: 60_000 })
+    await expect(
+      sales.getByRole('button', { name: /Btw-code kiezen|Andere kiezen|Bevestigen/ }),
+    ).toHaveCount(1)
 
-    const sales = page.locator('[data-slot="finding-card"][data-code="unmapped_tax_rate"]').first()
-    await expect(sales).toContainText(/Geen btw verkoop/)
-    // Re-preview can leave the guided panel open without the sheet — close, then open.
-    if ((await sales.getByRole('button', { name: 'Sluiten' }).count()) > 0) {
-      await sales.getByRole('button', { name: 'Sluiten' }).click()
-    }
-    await sales.getByRole('button', { name: 'Btw-tarief koppelen' }).click()
+    await sales.getByRole('button', { name: /Btw-code kiezen|Andere kiezen/ }).click()
     const salesSheet = page.getByRole('dialog')
     await expect(salesSheet).toBeVisible()
     await expect(salesSheet.getByRole('radio').first()).toHaveAttribute('aria-checked', 'false')
@@ -161,24 +198,8 @@ test('null-% purchase that still carries VAT shows the mismatch card and no VGEE
   const standIn = await startNullRateVatMismatchMoneybirdStandIn()
   try {
     await anAdministration(page)
-    await page.goto('/moneybird')
-    await expect(page.getByRole('heading', { name: 'Moneybird' })).toBeVisible()
+    await reachBtwStep(page, standIn)
 
-    await page.getByLabel('API-adres').fill(standIn.baseUrl)
-    await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
-    await page.getByRole('button', { name: 'Verbinden met Moneybird' }).click()
-    await expect(page.getByRole('heading', { name: '2. Welke administratie' })).toBeVisible({
-      timeout: 30_000,
-    })
-
-    await page.getByRole('button', { name: 'Administraties ophalen' }).click()
-    await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
-    await page.getByRole('button', { name: 'kies deze' }).first().click()
-    await expect(page.getByRole('heading', { name: '3. Proefimport' })).toBeVisible({
-      timeout: 30_000,
-    })
-
-    await page.getByRole('button', { name: 'Proefimport uitvoeren' }).click()
     const mismatch = page.locator(
       '[data-slot="finding-card"][data-code="null_percentage_vat_mismatch"]',
     )
@@ -197,4 +218,18 @@ test('null-% purchase that still carries VAT shows the mismatch card and no VGEE
   } finally {
     await standIn.close()
   }
+})
+
+test('/moneybird redirects to the import wizard with bron=moneybird (#105)', async ({ page }) => {
+  await anAdministration(page)
+  await page.goto('/moneybird')
+  await expect(page).toHaveURL(/\/importeren\?bron=moneybird/)
+  await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
+})
+
+test('/moneybird/legacy bookmarks redirect to the wizard (#105)', async ({ page }) => {
+  await anAdministration(page)
+  await page.goto('/moneybird/anything')
+  await expect(page).toHaveURL(/\/importeren\?bron=moneybird/)
+  await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
 })

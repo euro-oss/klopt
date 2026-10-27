@@ -107,13 +107,6 @@ export const NAVIGATION: readonly NavGroup[] = [
         search: { bron: 'exact' },
       },
       {
-        to: '/moneybird',
-        key: 'nav.moneybirdAdvanced',
-        binding: 'go.moneybirdLegacy',
-        roles: ['owner', 'accountant', 'bookkeeper'],
-        advancedOnly: true,
-      },
-      {
         to: '/exact',
         key: 'nav.exactAdvanced',
         binding: 'go.exactLegacy',
@@ -266,12 +259,8 @@ export function paletteNavItems(
     for (const item of group.items) {
       if (item.binding === undefined) continue
       if (item.roles !== undefined && !item.roles.includes(role)) continue
-      // Legacy Moneybird/Exact (oud): ⌘K only when Geavanceerd is on (#105 Designer).
-      if (
-        !advanced &&
-        item.advancedOnly === true &&
-        (item.binding === 'go.moneybirdLegacy' || item.binding === 'go.exactLegacy')
-      ) {
+      // Legacy Exact (oud): ⌘K only when Geavanceerd is on (#105 Designer).
+      if (!advanced && item.advancedOnly === true && item.binding === 'go.exactLegacy') {
         continue
       }
       const row = { item, groupKey: group.key }

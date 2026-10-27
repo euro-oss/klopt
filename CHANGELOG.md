@@ -18,6 +18,14 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Import wizard: remove legacy `/moneybird` (#105)
+
+The old `/moneybird` page is gone. Bookmarks and subpaths redirect to
+`/importeren?bron=moneybird`. Geavanceerd no longer lists Moneybird (oud);
+Exact under Geavanceerd is unchanged. Dashboard import-blocking CTAs, ⌘K and
+nav all open the wizard. Dead page-only i18n keys are removed (NL/EN parity
+kept).
+
 ### Import wizard: PM/Designer round 3 (#105)
 
 Same-administration re-pick no longer clears connection mappings when there is
@@ -54,7 +62,8 @@ Phase 2. Per-administration mappings and wizard resume state live in migration
 lezen, Niet overzetten (undoable) and Geavanceerd-only Zelf kiezen. #99
 `tax_code_not_in_force` stays an honest dead end (Opnieuw lezen / Open in
 Moneybird / Naar Administratie en jaren) until editable `valid_from` ships.
-Old `/moneybird` and `/exact` pages stay under Geavanceerd for one release.
+`/exact` stays under Geavanceerd until the Exact wizard ships; legacy
+`/moneybird` redirects to the Moneybird wizard (see above).
 Legal disconnect, dedup and import-confirm copy is verbatim; Legal-pending
 strings use stable `wizard.*` keys.
 
@@ -176,7 +185,7 @@ through `postJournalEntry`. Foreign-currency administrations are refused.
 Out-of-scope surfaces are listed on the report as not imported.
 
 - Routes: `moneybird.*` under `/api/v1/moneybird/…`
-- Screen: `/moneybird` (command palette and settings; no `g` chord)
+- Screen: `/importeren?bron=moneybird` (legacy `/moneybird` redirects here)
 - Worker job: `moneybird.import` every two minutes
 
 ### Peppol Schematron is fetched, not redistributed
