@@ -2195,9 +2195,12 @@ export const en: Record<MessageKey, string> = {
   'wizard.verbinden.title': 'Connect to Moneybird',
   'wizard.verbinden.intro': 'With a token from Moneybird we can read your administration.',
   'wizard.verbinden.tokenHelp': 'We store it encrypted and never show it again.',
-  // Plain je-voice for Legal (#105 Designer r4 / PM).
+  // Legal VERBATIM (#105) — auth rejection only (401/403).
   'wizard.verbinden.tokenInvalid':
-    "Moneybird doesn't know this token. Create a new token in Moneybird and paste it here.",
+    "Moneybird didn't accept this token. Check that you pasted all of it, or create a new token in Moneybird and paste it here.",
+  // Plain je-voice for Legal (#105) — network / 5xx / 429; not a bad-token claim.
+  'wizard.verbinden.unreachable':
+    "We couldn't reach Moneybird right now. Please try again shortly.",
   'wizard.verbinden.tokenWhere': 'Where do I find this?',
   'wizard.verbinden.tokenSteps':
     'In Moneybird go to Settings → External integrations. Create an API token. Read access is enough. Copy the token and paste it above.',

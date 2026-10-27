@@ -7,7 +7,9 @@ import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from 
 import { resolveRequestContext } from '../src/api/auth.js'
 import { ApiError } from '../src/api/errors.js'
 import { setDatabaseForTest } from '../src/api/database.js'
+import { MoneybirdApiError } from '@klopt/adapters'
 import {
+  classifyMoneybirdConnectProbeError,
   handleChooseMoneybirdAdministration,
   handleConnectMoneybird,
   handleDisconnectMoneybird,
@@ -139,7 +141,7 @@ describe('connecting', () => {
     expect(JSON.stringify(body)).not.toContain('mb-test-token')
   })
 
-  it('refuses an invalid Moneybird token without marking connected', async () => {
+  it('refuses an invalid Moneybird token (401) as invalid_token without connecting', async () => {
     const { token } = await newEntity()
     fakeMoneybird()
     await expect(
@@ -156,6 +158,80 @@ describe('connecting', () => {
     })
     const body = (await handleGetMoneybirdConnection(await context(token))).body
     expect(body.connection).toBeNull()
+  })
+
+  it('maps Moneybird 5xx on connect to moneybird_unreachable, not invalid_token', async () => {
+    const { token } = await newEntity()
+    globalThis.fetch = () => Promise.resolve(new Response('boom', { status: 503 }))
+    await expect(
+      handleConnectMoneybird(
+        await context(token, crypto.randomUUID()),
+        connectMoneybirdBody.parse({
+          apiToken: 'mb-test-token',
+          baseUrl: 'https://moneybird.com/api/v2',
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      violations: [expect.objectContaining({ code: 'moneybird_unreachable', path: 'apiToken' })],
+    })
+    const body = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(body.connection).toBeNull()
+  })
+
+  it('maps a network failure on connect to moneybird_unreachable', async () => {
+    const { token } = await newEntity()
+    globalThis.fetch = () => Promise.reject(new Error('ECONNREFUSED'))
+    await expect(
+      handleConnectMoneybird(
+        await context(token, crypto.randomUUID()),
+        connectMoneybirdBody.parse({
+          apiToken: 'mb-test-token',
+          baseUrl: 'https://moneybird.com/api/v2',
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      violations: [expect.objectContaining({ code: 'moneybird_unreachable', path: 'apiToken' })],
+    })
+  })
+
+  it('maps Moneybird 429 on connect to moneybird_unreachable, not invalid_token', async () => {
+    const { token } = await newEntity()
+    globalThis.fetch = () => Promise.resolve(new Response('slow down', { status: 429 }))
+    await expect(
+      handleConnectMoneybird(
+        await context(token, crypto.randomUUID()),
+        connectMoneybirdBody.parse({
+          apiToken: 'mb-test-token',
+          baseUrl: 'https://moneybird.com/api/v2',
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      violations: [expect.objectContaining({ code: 'moneybird_unreachable', path: 'apiToken' })],
+    })
+  })
+
+  it('classifies 401/403 as invalid_token and 5xx/429/network as unreachable', () => {
+    expect(
+      classifyMoneybirdConnectProbeError(new MoneybirdApiError('nope', 401, '/administrations.json')),
+    ).toBe('invalid_token')
+    expect(
+      classifyMoneybirdConnectProbeError(new MoneybirdApiError('nope', 403, '/administrations.json')),
+    ).toBe('invalid_token')
+    expect(
+      classifyMoneybirdConnectProbeError(new MoneybirdApiError('busy', 429, '/administrations.json')),
+    ).toBe('unreachable')
+    expect(
+      classifyMoneybirdConnectProbeError(new MoneybirdApiError('boom', 503, '/administrations.json')),
+    ).toBe('unreachable')
+    expect(
+      classifyMoneybirdConnectProbeError(
+        new MoneybirdApiError('Moneybird could not be reached: timeout', 0, '/administrations.json'),
+      ),
+    ).toBe('unreachable')
+    expect(classifyMoneybirdConnectProbeError(new Error('other'))).toBeNull()
   })
 
   it('refuses to store a token without an encryption key', async () => {

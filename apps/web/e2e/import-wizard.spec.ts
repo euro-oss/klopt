@@ -1,9 +1,13 @@
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, signIn, uniqueEmail } from './support'
 import {
   startNullRateMoneybirdStandIn,
   startPreValidFromMoneybirdStandIn,
+  startSelfAssessedVatMoneybirdStandIn,
   type MoneybirdStandIn,
 } from './support/moneybird-stand-in'
 
@@ -201,7 +205,7 @@ test('a wrong Moneybird token stays on Verbinden with the token error (#105)', a
     await clickNext(page)
 
     const alert = page.getByRole('alert')
-    await expect(alert).toContainText(/Moneybird kent dit token niet/i)
+    await expect(alert).toContainText(/Moneybird accepteert dit token niet/i)
     await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
     await expect(page.getByRole('heading', { name: /Welke administratie/ })).toHaveCount(0)
     await expect(page.locator('button[data-focus="next"]')).toHaveAttribute('aria-disabled', 'true')
@@ -244,6 +248,134 @@ test('#99 tax_code_not_in_force shows an honest dead end with a way forward', as
     ).toBeVisible()
     await expect(page.getByText(/alles klopt/i)).toHaveCount(0)
     await expect(page.getByText(/Geen blokkerende problemen/i)).toHaveCount(0)
+  } finally {
+    await standIn.close()
+  }
+})
+
+/**
+ * Confirm plain proposals (H21), then map Verlegd → VERL-ONTV via Andere kiezen
+ * (do not Bevestigen VH21 on that rate — that would skip #95).
+ */
+async function mapRatesForSelfAssessed(page: Page): Promise<void> {
+  const verlCard = page.locator('article').filter({ has: page.getByRole('heading', { name: /Verlegd/i }) })
+  await expect(verlCard).toBeVisible({ timeout: 30_000 })
+  const openVerl =
+    (await verlCard.getByRole('button', { name: 'Andere kiezen' }).count()) > 0
+      ? verlCard.getByRole('button', { name: 'Andere kiezen' })
+      : verlCard.getByRole('button', { name: 'Btw-code kiezen' })
+  await openVerl.click()
+  const sheet = page.getByRole('dialog')
+  await expect(sheet).toBeVisible()
+  const other = sheet.locator('[data-slot="vat-show-other"]')
+  if ((await other.count()) > 0) {
+    const expanded = await other.getAttribute('aria-expanded')
+    if (expanded !== 'true') await other.click()
+  }
+  const verl = sheet.getByRole('radio', { name: /VERL-ONTV|verlegd naar jou|Btw verlegd naar jou/i })
+  await expect(verl.first()).toBeVisible({ timeout: 15_000 })
+  await verl.first().click()
+  const save = sheet.getByRole('button', { name: 'Opslaan' })
+  await expect(save).toBeEnabled({ timeout: 15_000 })
+  await save.click()
+  await expect(sheet).toHaveCount(0, { timeout: 60_000 })
+
+  for (let i = 0; i < 8; i += 1) {
+    const confirm = page.getByRole('button', { name: 'Bevestigen' })
+    if ((await confirm.count()) === 0) break
+    const before = await confirm.count()
+    await confirm.first().click()
+    await expect(confirm).toHaveCount(before - 1, { timeout: 30_000 })
+  }
+  for (let i = 0; i < 8; i += 1) {
+    const choose = page.getByRole('button', { name: 'Btw-code kiezen' })
+    if ((await choose.count()) === 0) break
+    await choose.first().click()
+    const leftover = page.getByRole('dialog')
+    await expect(leftover).toBeVisible()
+    await leftover.getByRole('radio').first().click()
+    const leftoverSave = leftover.getByRole('button', { name: 'Opslaan' })
+    await expect(leftoverSave).toBeEnabled({ timeout: 15_000 })
+    await leftoverSave.click()
+    await expect(leftover).toHaveCount(0, { timeout: 60_000 })
+  }
+  await expect(page.getByRole('button', { name: 'Btw-code kiezen' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Bevestigen' })).toHaveCount(0)
+}
+
+test('#95 self-assessed VAT lands on Klaar with the filing block (#105)', async ({ page }) => {
+  test.setTimeout(300_000)
+  const standIn = await startSelfAssessedVatMoneybirdStandIn()
+  try {
+    await anAdministration(page)
+    await connectStandIn(page, standIn)
+    await pickAdminAndWaitForYears(page, '2026')
+    await clickNext(page)
+    await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
+      timeout: 30_000,
+    })
+    await clickNext(page)
+    await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
+    await mapRatesForSelfAssessed(page)
+    await clickNext(page)
+    await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
+      timeout: 30_000,
+    })
+    for (let i = 0; i < 12; i += 1) {
+      const confirm = page.getByRole('button', { name: 'Bevestigen' })
+      if ((await confirm.count()) === 0) break
+      const before = await confirm.count()
+      await confirm.first().click()
+      await expect(confirm).toHaveCount(before - 1, { timeout: 30_000 })
+    }
+    await clickNext(page)
+    await expect(
+      page.getByRole('heading', { name: /Wat we nog moeten oplossen|Niets houdt/ }),
+    ).toBeVisible({ timeout: 30_000 })
+    // #95 is a warning — must not block Volgende.
+    await clickNext(page)
+    await expect(page.getByRole('heading', { name: /Klaar om over te zetten/ })).toBeVisible()
+    await clickNext(page)
+    const confirmDialog = page.getByRole('alertdialog')
+    await expect(confirmDialog).toBeVisible()
+    await confirmDialog.getByRole('button', { name: /Overzetten bevestigen/i }).click()
+    await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
+      timeout: 60_000,
+    })
+
+    process.env['KLOPT_ENCRYPTION_KEY'] = 'e2e-encryption-key-not-for-production-01234'
+    const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
+    const { createFilesystemDocumentStore } = await import('@klopt/adapters')
+    const { createDatabase, closeDatabase } = await import('@klopt/db')
+    const directory = mkdtempSync(join(tmpdir(), 'mb-95-'))
+    const db = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+    try {
+      const store = createFilesystemDocumentStore({ directory })
+      for (let i = 0; i < 8; i += 1) {
+        const result = await importMoneybirdAdministration(db, store)
+        if (result.state === 'idle') break
+      }
+    } finally {
+      await closeDatabase(db)
+    }
+
+    await expect(page.getByRole('heading', { name: /^Import klaar$/ })).toBeVisible({
+      timeout: 120_000,
+    })
+    await expect(page.getByText('Blokkeert indienen')).toBeVisible()
+    await expect(
+      page.getByText(/Sommige periodes kun je nog niet via Klopt indienen/i),
+    ).toBeVisible()
+    await expect(
+      page.getByText(
+        /Klopt past die cijfers niet zelf aan\. Je kunt de aangifte over die periodes zelf of met een belastingadviseur indienen/i,
+      ),
+    ).toBeVisible()
+    await expect(
+      page.getByText(
+        /Indienen via Klopt kan zodra Klopt dit ondersteunt; wacht daar niet op als je aangiftetermijn eerder afloopt/i,
+      ),
+    ).toBeVisible()
   } finally {
     await standIn.close()
   }

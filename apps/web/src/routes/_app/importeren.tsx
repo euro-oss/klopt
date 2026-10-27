@@ -740,15 +740,18 @@ function ImportWizardPage() {
         })
         setBusy(false)
         if (!result.ok) {
-          const invalid = (result.problem?.violations ?? []).some(
-            (row) => row.code === 'invalid_token',
-          )
+          const codes = new Set((result.problem?.violations ?? []).map((row) => row.code))
+          const invalid = codes.has('invalid_token')
+          const unreachable = codes.has('moneybird_unreachable')
           setError(
             invalid
               ? t('wizard.verbinden.tokenInvalid')
-              : (result.problem?.detail ?? t('common.unknownError')),
+              : unreachable
+                ? t('wizard.verbinden.unreachable')
+                : (result.problem?.detail ?? t('common.unknownError')),
           )
-          if (invalid) setTokenRefused(true)
+          // Auth or reachability failure — Volgende stays off until the field changes.
+          if (invalid || unreachable) setTokenRefused(true)
           return
         }
         setTokenRefused(false)
@@ -1278,8 +1281,8 @@ function ImportWizardPage() {
               nextReason={
                 !canStoreSecrets
                   ? t('wizard.verbinden.noKeyTitle')
-                  : tokenRefused
-                    ? t('wizard.verbinden.tokenInvalid')
+                  : tokenRefused && error !== null && error !== ''
+                    ? error
                     : null
               }
               onNext={() => void handleNext()}

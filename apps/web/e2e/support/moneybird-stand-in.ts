@@ -511,3 +511,152 @@ export async function startNullRateVatMismatchMoneybirdStandIn(): Promise<Moneyb
       }),
   }
 }
+
+/**
+ * 21% purchase “Verlegd naar u” — pick VERL-ONTV under other for
+ * `self_assessed_vat_unsupported` (#95). Real nl-mkb VERL-ONTV is 21% bps, so a
+ * 0% Moneybird verlegd rate is an honest dead-end (no candidates); 21% lets the
+ * picker offer VERL-ONTV. Warning only: the document still imports; Klaar shows
+ * the filing block with whyBlockedDeadline (#105 Designer r4 item 4).
+ */
+export async function startSelfAssessedVatMoneybirdStandIn(): Promise<MoneybirdStandIn> {
+  const token = 'mb-e2e-self-assessed-vat-token'
+  const taxRates = [
+    {
+      id: 80,
+      name: 'Verlegd naar u',
+      percentage: '21.0',
+      tax_rate_type: 'purchase_invoice',
+      country: 'NL',
+      active: true,
+      report_reference: 'verlegd',
+    },
+    {
+      id: 21,
+      name: '21% btw',
+      percentage: '21.0',
+      tax_rate_type: 'sales_invoice',
+      country: 'NL',
+      active: true,
+    },
+  ]
+  const purchases = [
+    {
+      id: 401,
+      contact_id: 200,
+      reference: 'LEV-VERL',
+      date: '2026-03-05',
+      due_date: '2026-04-05',
+      currency: 'EUR',
+      state: 'open',
+      prices_are_incl_tax: false,
+      total_price_excl_tax: '100.00',
+      total_price_incl_tax: '121.00',
+      total_tax: '21.00',
+      details: [
+        {
+          id: 4011,
+          description: 'Onderaanneming',
+          amount: '1',
+          price: '100.00',
+          tax_rate_id: 80,
+          ledger_account_id: 6,
+        },
+      ],
+      attachments: [],
+    },
+  ]
+  const sales = [
+    {
+      id: 301,
+      contact_id: 100,
+      invoice_id: '2026-021',
+      state: 'open',
+      invoice_date: '2026-03-01',
+      due_date: '2026-03-31',
+      currency: 'EUR',
+      prices_are_incl_tax: false,
+      total_price_excl_tax: '100.00',
+      total_price_incl_tax: '121.00',
+      total_tax: '21.00',
+      details: [
+        {
+          id: 3011,
+          description: 'Advies',
+          amount: '1',
+          price: '100.00',
+          tax_rate_id: 21,
+          ledger_account_id: 7,
+        },
+      ],
+      attachments: [],
+    },
+  ]
+
+  const server: Server = createServer((req, res) => {
+    const url = req.url ?? '/'
+    const auth = req.headers.authorization ?? ''
+    if (auth !== `Bearer ${token}`) {
+      res.writeHead(401)
+      res.end('unauthorised')
+      return
+    }
+    const json = (body: unknown): void => {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify(body))
+    }
+    if (url.includes('/administrations.json')) {
+      json([ADMIN])
+      return
+    }
+    if (url.includes('ledger_accounts.json')) {
+      json(LEDGER)
+      return
+    }
+    if (url.includes('tax_rates.json')) {
+      json(taxRates)
+      return
+    }
+    if (url.includes('contacts.json')) {
+      json(CONTACTS)
+      return
+    }
+    if (url.includes('sales_invoices.json')) {
+      json(sales)
+      return
+    }
+    if (url.includes('purchase_invoices.json')) {
+      json(purchases)
+      return
+    }
+    if (url.includes('general_journal_documents.json')) {
+      json(JOURNAL)
+      return
+    }
+    if (
+      url.includes('receipts.json') ||
+      url.includes('financial_accounts.json') ||
+      url.includes('financial_mutations.json') ||
+      url.includes('general_documents.json')
+    ) {
+      json([])
+      return
+    }
+    json([])
+  })
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve())
+  })
+  const address = server.address() as AddressInfo
+  const baseUrl = `http://127.0.0.1:${String(address.port)}/api/v2`
+
+  return {
+    baseUrl,
+    token,
+    close: () =>
+      new Promise((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()))
+      }),
+  }
+}

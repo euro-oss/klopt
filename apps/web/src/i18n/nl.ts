@@ -2570,9 +2570,12 @@ export const nl = {
   'wizard.verbinden.title': 'Verbind met Moneybird',
   'wizard.verbinden.intro': 'Met een token uit Moneybird kunnen we je administratie lezen.',
   'wizard.verbinden.tokenHelp': 'We bewaren het versleuteld en laten het nooit meer zien.',
-  // Plain je-voice for Legal (#105 Designer r4 / PM).
+  // Legal VERBATIM (#105) — auth rejection only (401/403).
   'wizard.verbinden.tokenInvalid':
-    'Moneybird kent dit token niet. Maak in Moneybird een nieuw token aan en plak het hier.',
+    'Moneybird accepteert dit token niet. Controleer of je het helemaal hebt geplakt, of maak in Moneybird een nieuw token aan en plak het hier.',
+  // Plain je-voice for Legal (#105) — network / 5xx / 429; not a bad-token claim.
+  'wizard.verbinden.unreachable':
+    'We konden Moneybird nu niet bereiken. Probeer het zo opnieuw.',
   'wizard.verbinden.tokenWhere': 'Waar vind ik dit?',
   'wizard.verbinden.tokenSteps':
     'Ga in Moneybird naar Instellingen → Externe koppelingen. Kies API-token aanmaken. Leesrechten zijn genoeg. Kopieer het token en plak het hierboven.',

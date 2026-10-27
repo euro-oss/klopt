@@ -54,6 +54,19 @@ function requireIdempotencyKey(context: RequestContext): string {
   return context.idempotencyKey
 }
 
+/**
+ * Classify a Moneybird probe failure on connect (#105 Legal).
+ * Auth rejections → `invalid_token`; anything else reachable as MoneybirdApiError
+ * (5xx, 429, network/status 0) → `unreachable` — never blame the token.
+ */
+export function classifyMoneybirdConnectProbeError(
+  error: unknown,
+): 'invalid_token' | 'unreachable' | null {
+  if (!(error instanceof MoneybirdApiError)) return null
+  if (error.status === 401 || error.status === 403) return 'invalid_token'
+  return 'unreachable'
+}
+
 function requirePermission(context: RequestContext, permission: string): void {
   if (!hasPermission(context, permission)) {
     throw new ApiError('forbidden', `This token does not have ${permission}.`)
@@ -122,14 +135,16 @@ export async function handleConnectMoneybird(context: RequestContext, body: Conn
   try {
     await probe.administrations()
   } catch (error: unknown) {
-    if (error instanceof MoneybirdApiError && (error.status === 401 || error.status === 403)) {
+    const kind = classifyMoneybirdConnectProbeError(error)
+    if (kind === 'invalid_token') {
       throw new ApiError('validation_failed', 'Moneybird refused this token.', [
         { code: 'invalid_token', path: 'apiToken', message: 'Moneybird refused this token.' },
       ])
     }
-    if (error instanceof MoneybirdApiError) {
-      throw new ApiError('conflict', `Moneybird could not be reached: ${error.message}`, [
-        { code: 'moneybird_unreachable', path: 'apiToken', message: error.message },
+    if (kind === 'unreachable') {
+      const message = error instanceof Error ? error.message : String(error)
+      throw new ApiError('conflict', `Moneybird could not be reached: ${message}`, [
+        { code: 'moneybird_unreachable', path: 'apiToken', message },
       ])
     }
     throw error
