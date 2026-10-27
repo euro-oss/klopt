@@ -121,8 +121,9 @@ test('i m opens the import wizard under Importeren', async ({ page }) => {
       .locator('kbd')
       .first(),
   ).toBeVisible()
+  // Accessible name includes the printed chord; allow trailing text, never "(oud)".
   await expect(
-    page.getByRole('navigation').getByRole('link', { name: /^Moneybird$/ }),
+    page.getByRole('navigation').getByRole('link', { name: /^Moneybird(?! \(oud\))/ }),
   ).toBeVisible()
 
   await page.keyboard.press('i')
