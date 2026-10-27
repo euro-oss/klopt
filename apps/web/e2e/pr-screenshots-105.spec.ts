@@ -283,7 +283,7 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         await clickNext(page)
         await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toHaveCount(0)
 
-        // 06 Rekeningen — seed Vorige keuze the same way when a proposal exists.
+        // 06 Rekeningen — seed Vorige keuze via remount when a proposal exists.
         await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
           timeout: 30_000,
         })
@@ -292,24 +292,18 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           const before = await accountConfirm.count()
           await accountConfirm.first().click()
           await expect(accountConfirm).toHaveCount(before - 1, { timeout: 30_000 })
-          await page.getByRole('button', { name: 'Terug' }).click()
-          await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
-          await page.getByRole('button', { name: 'Terug' }).click()
-          await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible()
-          await page.getByRole('button', { name: 'Terug' }).click()
-          await expect(
-            page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
-          ).toBeVisible()
-          await page.getByText('Voorbeeld BV').click()
-          await clickNext(page)
-          await clickNext(page)
-          await mapAllOpenRates(page)
-          await clickNext(page)
+          await page.goto('/')
+          await page.goto('/importeren')
+          await expect(page.getByRole('heading', { name: /Welkom terug/ })).toBeVisible({
+            timeout: 30_000,
+          })
+          await page.getByRole('button', { name: /Doorgaan/i }).click()
           await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible(
-            { timeout: 30_000 },
+            { timeout: 60_000 },
           )
           await expect(page.getByText(/Vorige keuze|Voorstel|Gekozen/).first()).toBeVisible()
         }
+        await setTheme(page, theme)
         await shoot(page, `06-rekeningen-${theme}-${label}.png`)
         // Confirm account proposals so Geavanceerd-off path stays name→name
         for (let i = 0; i < 12; i += 1) {

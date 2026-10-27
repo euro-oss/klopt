@@ -896,6 +896,58 @@ function ImportWizardPage() {
         }[]
       | undefined) ?? []
 
+  async function selectAdministration(id: string) {
+    const previousAdminId = administrationId
+    setAdministrationId(id)
+    setBusy(true)
+    const result = await chooseMoneybirdAdministration({
+      data: { administrationId: id, idempotencyKey: crypto.randomUUID() },
+    })
+    setBusy(false)
+    if (!result.ok) {
+      setError(result.problem?.detail ?? t('common.unknownError'))
+      return
+    }
+    const mapped = await getImportAdministrationMappings({
+      data: { source: 'moneybird', administrationId: id },
+    })
+    if (mapped.ok && mapped.data.mappings !== null) {
+      const row = mapped.data.mappings as {
+        accountMappings: Record<string, string>
+        taxMappings: Record<string, string>
+        importDecisions: MoneybirdImportDecisions
+      }
+      setAccountMappings({})
+      setPreviousAccountMappings(row.accountMappings)
+      setPreviousTaxMappings(row.taxMappings)
+      setTaxMappings({})
+      setDecisions(row.importDecisions)
+    } else if (previousAdminId === id) {
+      // Same admin, no 0037 row yet: keep connection-side mappings / exclusions
+      // (pre-0037 beta) as Vorige keuze.
+      const connResult = await getMoneybirdConnection()
+      const kept = connResult.ok ? connResult.data.connection : null
+      setAccountMappings({})
+      setTaxMappings({})
+      setPreviousAccountMappings(
+        (kept?.accountMappings as Record<string, string> | undefined) ?? {},
+      )
+      setPreviousTaxMappings((kept?.taxMappings as Record<string, string> | undefined) ?? {})
+      setDecisions(
+        (kept?.importDecisions as MoneybirdImportDecisions | undefined) ?? emptyDecisions(),
+      )
+    } else {
+      setAccountMappings({})
+      setPreviousAccountMappings({})
+      setPreviousTaxMappings({})
+      setTaxMappings({})
+      setDecisions(emptyDecisions())
+    }
+    await persistWizard({ administrationId: id, step: 'administratie' })
+    await router.invalidate()
+    await runPreview()
+  }
+
   return (
     <div
       className="mx-auto flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:items-start"
@@ -1212,58 +1264,7 @@ function ImportWizardPage() {
                 <RadioGroup
                   value={administrationId}
                   onValueChange={(id) => {
-                    const previousAdminId = administrationId
-                    setAdministrationId(id)
-                    setBusy(true)
-                    void chooseMoneybirdAdministration({
-                      data: { administrationId: id, idempotencyKey: crypto.randomUUID() },
-                    }).then(async (result) => {
-                      setBusy(false)
-                      if (!result.ok) {
-                        setError(result.problem?.detail ?? t('common.unknownError'))
-                        return
-                      }
-                      const mapped = await getImportAdministrationMappings({
-                        data: { source: 'moneybird', administrationId: id },
-                      })
-                      if (mapped.ok && mapped.data.mappings !== null) {
-                        const row = mapped.data.mappings as {
-                          accountMappings: Record<string, string>
-                          taxMappings: Record<string, string>
-                          importDecisions: MoneybirdImportDecisions
-                        }
-                        setAccountMappings({})
-                        setPreviousAccountMappings(row.accountMappings)
-                        setPreviousTaxMappings(row.taxMappings)
-                        setTaxMappings({})
-                        setDecisions(row.importDecisions)
-                      } else if (previousAdminId === id) {
-                        // Same admin, no 0037 row yet: keep connection-side
-                        // mappings / exclusions (pre-0037 beta) as Vorige keuze.
-                        const connResult = await getMoneybirdConnection()
-                        const kept = connResult.ok ? connResult.data.connection : null
-                        setAccountMappings({})
-                        setTaxMappings({})
-                        setPreviousAccountMappings(
-                          (kept?.accountMappings as Record<string, string> | undefined) ?? {},
-                        )
-                        setPreviousTaxMappings(
-                          (kept?.taxMappings as Record<string, string> | undefined) ?? {},
-                        )
-                        setDecisions(
-                          (kept?.importDecisions as MoneybirdImportDecisions | undefined) ??
-                            emptyDecisions(),
-                        )
-                      } else {
-                        setAccountMappings({})
-                        setPreviousAccountMappings({})
-                        setPreviousTaxMappings({})
-                        setTaxMappings({})
-                        setDecisions(emptyDecisions())
-                      }
-                      await router.invalidate()
-                      await runPreview()
-                    })
+                    void selectAdministration(id)
                   }}
                   className="border-border divide-y border"
                   aria-label={t('wizard.administratie.admins')}
@@ -1286,6 +1287,12 @@ function ImportWizardPage() {
                           'flex min-h-11 cursor-pointer items-start gap-3 px-4 py-3',
                           administrationId === admin.id ? 'bg-muted' : 'hover:bg-muted',
                         )}
+                        onClick={() => {
+                          // RadioGroup skips onValueChange when the value is
+                          // already selected — same-admin re-pick must still
+                          // reload Vorige keuze from 0037 / the connection.
+                          if (administrationId === admin.id) void selectAdministration(admin.id)
+                        }}
                       >
                         <RadioGroupItem value={admin.id} className="mt-1" />
                         <span className="min-w-0 flex-1">
