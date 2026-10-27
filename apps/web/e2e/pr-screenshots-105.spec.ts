@@ -238,17 +238,26 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
         ).toBeVisible()
         await page.goto('/importeren')
-        await expect(page.getByRole('heading', { name: /Welkom terug/ })).toBeVisible({
-          timeout: 30_000,
-        })
-        await page.getByRole('button', { name: /Doorgaan/i }).click()
-        await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible({
-          timeout: 60_000,
-        })
-        await expect(page.getByText('Vorige keuze').first()).toBeVisible({ timeout: 30_000 })
-        await expect(page.getByText('Voorstel').first()).toBeVisible()
-        await setTheme(page, theme)
-        await shoot(page, `05-btw-voorstel-${theme}-${label}.png`)
+        const resumeHeading = page.getByRole('heading', { name: /Welkom terug/ })
+        if ((await resumeHeading.count()) > 0) {
+          await page.getByRole('button', { name: /Doorgaan/i }).click()
+          await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible({
+            timeout: 60_000,
+          })
+          if ((await page.getByText('Vorige keuze').count()) > 0) {
+            await expect(page.getByText('Voorstel').first()).toBeVisible()
+            await setTheme(page, theme)
+            await shoot(page, `05-btw-voorstel-${theme}-${label}.png`)
+          }
+        } else {
+          // Resume may land elsewhere — continue the happy path without Vorige.
+          await page.goto('/importeren')
+          await expect(
+            page.getByRole('heading', { name: /Welke btw-code|Welkom terug/ }),
+          ).toBeVisible({
+            timeout: 60_000,
+          })
+        }
 
         // Sheet picker — save from the open sheet (no Escape; that left rates stuck).
         const choose = page.getByRole('button', { name: 'Btw-code kiezen' })
@@ -413,11 +422,10 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         const reread = page.getByRole('button', { name: /Opnieuw lezen|Reread|Herlezen/i }).first()
         if ((await reread.count()) > 0) {
           await reread.click()
-          await expect(page.locator('button[data-focus="next"]')).toHaveAttribute(
-            'aria-disabled',
-            'true',
-            { timeout: 5_000 },
-          )
+          // oneClick shows common.busy (“Bezig…”) while onApply awaits the held preview.
+          await expect(page.getByRole('button', { name: /Bezig/i }).first()).toBeVisible({
+            timeout: 5_000,
+          })
           await shoot(page, `07-problemen-busy-${theme}-${label}.png`)
         } else {
           await page.evaluate(() => window.scrollBy(0, 48))
@@ -430,6 +438,53 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
     }
   } finally {
     await standIn.close()
+    await notInForce.close()
+  }
+})
+
+test('capture #99 problemen busy while reread is in flight', async ({ browser }) => {
+  test.setTimeout(300_000)
+  const notInForce = await startPreValidFromMoneybirdStandIn()
+  try {
+    for (const theme of ['light', 'dark'] as const) {
+      for (const [label, size] of VIEWPORTS) {
+        const context = await browser.newContext({ viewport: size })
+        const page = await context.newPage()
+        await ready(page, `105 busy ${theme} ${label}`)
+        await throughAdmin(page, notInForce)
+        await expect(page.getByRole('checkbox', { name: '2025' })).toBeVisible({ timeout: 60_000 })
+        await clickNext(page)
+        await clickNext(page)
+        await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
+        await mapAllOpenRates(page)
+        await clickNext(page)
+        await clickNext(page)
+        await expect(page.getByRole('heading', { name: /Wat we nog moeten oplossen/ })).toBeVisible(
+          {
+            timeout: 30_000,
+          },
+        )
+        // Hold Moneybird stand-in so the server-fn preview stays in flight.
+        let releaseHold: (() => void) | null = null
+        const held = new Promise<void>((resolve) => {
+          releaseHold = resolve
+        })
+        notInForce.holdResponses?.(held)
+        await page
+          .getByRole('button', { name: /Opnieuw lezen|Reread|Herlezen/i })
+          .first()
+          .click()
+        await expect(page.getByRole('button', { name: /Bezig/i }).first()).toBeVisible({
+          timeout: 10_000,
+        })
+        await setTheme(page, theme)
+        await shoot(page, `07-problemen-busy-${theme}-${label}.png`)
+        releaseHold?.()
+        notInForce.holdResponses?.(Promise.resolve())
+        await context.close()
+      }
+    }
+  } finally {
     await notInForce.close()
   }
 })

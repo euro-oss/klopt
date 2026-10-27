@@ -595,7 +595,8 @@ function ImportWizardPage() {
     onOpenFxStep: () => undefined,
     onConfirmFiscalYearStart: () => undefined,
     onAcknowledgeEmptyYear: () => undefined,
-    onRereadResource: () => void runPreview(),
+    // Return the preview promise so FindingCard can keep “Bezig…” until it settles.
+    onRereadResource: () => runPreview(),
     onExcludeDocument: (problem) => {
       if (problem.path !== null) {
         void persistMappings({
@@ -1983,9 +1984,11 @@ function ImportWizardPage() {
                         type="button"
                         variant="outline"
                         className="min-h-11 md:min-h-9"
+                        disabled={busy}
+                        aria-busy={busy || undefined}
                         onClick={() => void runPreview()}
                       >
-                        {t('moneybird.fix.reread')}
+                        {busy ? t('common.busy') : t('moneybird.fix.reread')}
                       </Button>
                       {taxHref !== null && (
                         <Button asChild variant="outline" className="min-h-11 md:min-h-9">

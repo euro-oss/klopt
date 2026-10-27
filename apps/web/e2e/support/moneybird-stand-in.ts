@@ -75,6 +75,11 @@ export interface MoneybirdStandIn {
   readonly baseUrl: string
   readonly token: string
   close(): Promise<void>
+  /**
+   * When set, every subsequent HTTP response waits on this promise first.
+   * Used to hold a Moneybird preview reread in flight for busy screenshots.
+   */
+  holdResponses?(until: Promise<void>): void
 }
 
 /** Null-% purchase + sales rates with totalTax 0 so VGEEN / 0% sales are offered. */
@@ -263,6 +268,7 @@ export async function startNullRateMoneybirdStandIn(
  */
 export async function startPreValidFromMoneybirdStandIn(): Promise<MoneybirdStandIn> {
   const token = 'mb-e2e-pre-valid-from-token'
+  let responseHold: Promise<void> | null = null
   const taxRates = [
     {
       id: 90,
@@ -334,55 +340,58 @@ export async function startPreValidFromMoneybirdStandIn(): Promise<MoneybirdStan
   ]
 
   const server: Server = createServer((req, res) => {
-    const url = req.url ?? '/'
-    const auth = req.headers.authorization ?? ''
-    if (auth !== `Bearer ${token}`) {
-      res.writeHead(401)
-      res.end('unauthorised')
-      return
-    }
-    const json = (body: unknown): void => {
-      res.writeHead(200, { 'content-type': 'application/json' })
-      res.end(JSON.stringify(body))
-    }
-    if (url.includes('/administrations.json')) {
-      json([ADMIN])
-      return
-    }
-    if (url.includes('ledger_accounts.json')) {
-      json(LEDGER)
-      return
-    }
-    if (url.includes('tax_rates.json')) {
-      json(taxRates)
-      return
-    }
-    if (url.includes('contacts.json')) {
-      json(CONTACTS)
-      return
-    }
-    if (url.includes('sales_invoices.json')) {
-      json(sales)
-      return
-    }
-    if (url.includes('purchase_invoices.json')) {
-      json(purchases)
-      return
-    }
-    if (url.includes('general_journal_documents.json')) {
-      json(JOURNAL)
-      return
-    }
-    if (
-      url.includes('receipts.json') ||
-      url.includes('financial_accounts.json') ||
-      url.includes('financial_mutations.json') ||
-      url.includes('general_documents.json')
-    ) {
+    void (async () => {
+      if (responseHold !== null) await responseHold
+      const url = req.url ?? '/'
+      const auth = req.headers.authorization ?? ''
+      if (auth !== `Bearer ${token}`) {
+        res.writeHead(401)
+        res.end('unauthorised')
+        return
+      }
+      const json = (body: unknown): void => {
+        res.writeHead(200, { 'content-type': 'application/json' })
+        res.end(JSON.stringify(body))
+      }
+      if (url.includes('/administrations.json')) {
+        json([ADMIN])
+        return
+      }
+      if (url.includes('ledger_accounts.json')) {
+        json(LEDGER)
+        return
+      }
+      if (url.includes('tax_rates.json')) {
+        json(taxRates)
+        return
+      }
+      if (url.includes('contacts.json')) {
+        json(CONTACTS)
+        return
+      }
+      if (url.includes('sales_invoices.json')) {
+        json(sales)
+        return
+      }
+      if (url.includes('purchase_invoices.json')) {
+        json(purchases)
+        return
+      }
+      if (url.includes('general_journal_documents.json')) {
+        json(JOURNAL)
+        return
+      }
+      if (
+        url.includes('receipts.json') ||
+        url.includes('financial_accounts.json') ||
+        url.includes('financial_mutations.json') ||
+        url.includes('general_documents.json')
+      ) {
+        json([])
+        return
+      }
       json([])
-      return
-    }
-    json([])
+    })()
   })
 
   await new Promise<void>((resolve) => {
@@ -394,6 +403,9 @@ export async function startPreValidFromMoneybirdStandIn(): Promise<MoneybirdStan
   return {
     baseUrl,
     token,
+    holdResponses(until) {
+      responseHold = until
+    },
     close: () =>
       new Promise((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()))

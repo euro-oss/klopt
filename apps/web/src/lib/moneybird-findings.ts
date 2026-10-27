@@ -30,7 +30,7 @@ export interface MoneybirdFindingActions {
   readonly onOpenFxStep: (problem: MoneybirdProblem) => void
   readonly onConfirmFiscalYearStart: (problem: MoneybirdProblem) => void
   readonly onAcknowledgeEmptyYear: (problem: MoneybirdProblem) => void
-  readonly onRereadResource: (problem: MoneybirdProblem) => void
+  readonly onRereadResource: (problem: MoneybirdProblem) => void | Promise<void>
   readonly onExcludeDocument: (problem: MoneybirdProblem) => void
   readonly onOpenPeriodSettings: (problem: MoneybirdProblem) => void
   readonly onDeferAttachment: (problem: MoneybirdProblem) => void
