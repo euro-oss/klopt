@@ -2741,6 +2741,10 @@ export const nl = {
   'wizard.notInForce.title': 'Btw-code {code} geldt nog niet in {year}',
   'wizard.notInForce.body':
     '{count} documenten uit {year} gebruiken btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Er is hier nog geen oplossing. Zet je {year} nu niet over, vink het dan uit bij Administratie en jaren.',
+  'wizard.notInForce.body_one':
+    '{count} document uit {year} gebruikt btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Er is hier nog geen oplossing. Zet je {year} nu niet over, vink het dan uit bij Administratie en jaren.',
+  'wizard.notInForce.body_other':
+    '{count} documenten uit {year} gebruiken btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Er is hier nog geen oplossing. Zet je {year} nu niet over, vink het dan uit bij Administratie en jaren.',
   'wizard.notInForce.boekhouder': 'De eigenaar of accountant kan de begindatum aanpassen.',
   'wizard.overzicht.title': 'Klaar om over te zetten?',
   'wizard.overzicht.intro': 'Controleer de samenvatting. Daarna begint de import.',

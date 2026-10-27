@@ -2360,6 +2360,10 @@ export const en: Record<MessageKey, string> = {
   'wizard.notInForce.title': 'VAT code {code} is not in force yet in {year}',
   'wizard.notInForce.body':
     '{count} documents from {year} use VAT code {code}, but in Klopt it only applies from {validFrom}. There is no fix here yet. If you do not want to transfer {year} now, uncheck it under Administration and years.',
+  'wizard.notInForce.body_one':
+    '{count} document from {year} uses VAT code {code}, but in Klopt it only applies from {validFrom}. There is no fix here yet. If you do not want to transfer {year} now, uncheck it under Administration and years.',
+  'wizard.notInForce.body_other':
+    '{count} documents from {year} use VAT code {code}, but in Klopt it only applies from {validFrom}. There is no fix here yet. If you do not want to transfer {year} now, uncheck it under Administration and years.',
   'wizard.notInForce.boekhouder': 'The owner or accountant can adjust the start date.',
   'wizard.overzicht.title': 'Ready to transfer?',
   'wizard.overzicht.intro': 'Check the summary. Then the import starts.',

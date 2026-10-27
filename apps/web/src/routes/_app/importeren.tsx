@@ -139,7 +139,7 @@ function ImportWizardPage() {
     accounts: accountsResult,
     taxCodes: taxCodesResult,
   } = Route.useLoaderData()
-  const { t } = useT()
+  const { t, plural } = useT()
   const router = useRouter()
   const hydrated = useHydrated()
   const { advanced } = useAdvancedMode()
@@ -215,6 +215,27 @@ function ImportWizardPage() {
       readonly proRataBasisPoints?: number | null
     }[]
     return importVatRulesFromListTaxCodes(rows)
+  }, [taxCodesResult])
+
+  /** Earliest validFrom per code (ISO → dd-mm-yyyy) for #99 copy. */
+  const taxCodeValidFromLabel = useMemo(() => {
+    const map = new Map<string, string>()
+    if (!taxCodesResult.ok) return map
+    const rows = taxCodesResult.data.taxCodes as readonly {
+      readonly code: string
+      readonly validFrom?: string
+    }[]
+    for (const row of rows) {
+      if (row.validFrom === undefined || row.validFrom === '') continue
+      const existing = map.get(row.code)
+      if (existing === undefined || row.validFrom < existing) map.set(row.code, row.validFrom)
+    }
+    const labels = new Map<string, string>()
+    for (const [code, iso] of map) {
+      const [y, m, d] = iso.split('-')
+      labels.set(code, y && m && d ? `${d}-${m}-${y}` : iso)
+    }
+    return labels
   }, [taxCodesResult])
 
   const connected = conn?.connected === true
@@ -524,7 +545,14 @@ function ImportWizardPage() {
     if (step === 'verbinden') return t('wizard.status.pasteToken')
     if (step === 'administratie') return t('wizard.status.needAdmin')
     if (step === 'voorbeeld') return t('wizard.status.needPreview')
-    if (step === 'btw') return t('wizard.btw.chooseFirst')
+    if (step === 'btw') {
+      const left = usedRates.filter(
+        (rate) =>
+          !(rate.mappedCode ?? taxMappings[rate.moneybirdId]) &&
+          !excludedRateIds.has(rate.moneybirdId),
+      ).length
+      return t('wizard.btw.chooseFirst', { count: String(left) })
+    }
     if (step === 'problemen') return t('wizard.problemen.stillBlocked')
     if (step === 'importeren') return t('wizard.status.importing')
     return null
@@ -722,7 +750,23 @@ function ImportWizardPage() {
             </section>
           )}
           {!showResume && (
-            <ul role="list" className="grid gap-3 sm:grid-cols-2">
+            <div
+              role="radiogroup"
+              aria-label={t('wizard.bron.title')}
+              className="grid gap-3 sm:grid-cols-2"
+              onKeyDown={(event) => {
+                if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+                event.preventDefault()
+                const order = ['moneybird', 'exact'] as const
+                const current = source === null ? -1 : order.indexOf(source)
+                const delta = event.key === 'ArrowDown' ? 1 : -1
+                const next = order[(current + delta + order.length) % order.length] ?? 'moneybird'
+                setSource(next)
+                void persistWizard({ source: next, step: 'bron' })
+                const el = document.querySelector<HTMLElement>(`[data-source-card="${next}"]`)
+                el?.focus()
+              }}
+            >
               {(
                 [
                   {
@@ -741,27 +785,30 @@ function ImportWizardPage() {
               ).map((item) => {
                 const selected = source === item.id
                 return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      aria-pressed={selected}
-                      className={cn(
-                        'border-border flex min-h-11 w-full flex-col items-start border p-4 text-left',
-                        selected && 'bg-muted border-foreground',
-                      )}
-                      onClick={() => {
-                        setSource(item.id)
-                        void persistWizard({ source: item.id, step: 'bron' })
-                      }}
-                    >
-                      <span className="font-medium">{item.label}</span>
-                      <span className="text-muted-foreground mt-1 text-sm">{item.scope}</span>
-                      <span className="text-muted-foreground mt-1 text-xs">{item.notIncluded}</span>
-                    </button>
-                  </li>
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    data-source-card={item.id}
+                    disabled={!hydrated}
+                    tabIndex={selected || (source === null && item.id === 'moneybird') ? 0 : -1}
+                    className={cn(
+                      'border-border flex min-h-11 w-full flex-col items-start border p-4 text-left',
+                      selected && 'bg-muted border-2 border-foreground p-[15px]',
+                    )}
+                    onClick={() => {
+                      setSource(item.id)
+                      void persistWizard({ source: item.id, step: 'bron' })
+                    }}
+                  >
+                    <span className="font-medium">{item.label}</span>
+                    <span className="text-muted-foreground mt-1 text-sm">{item.scope}</span>
+                    <span className="text-muted-foreground mt-1 text-xs">{item.notIncluded}</span>
+                  </button>
                 )
               })}
-            </ul>
+            </div>
           )}
           {source === 'exact' && !showResume && (
             <div className="mt-6">
@@ -776,7 +823,7 @@ function ImportWizardPage() {
             <WizardFooter
               showBack={false}
               nextLabel={t('wizard.next')}
-              nextDisabled={!canNext}
+              nextDisabled={!hydrated || !canNext}
               nextReason={nextReason}
               onNext={() => void handleNext()}
             />
@@ -1334,11 +1381,11 @@ function ImportWizardPage() {
                 title={t('wizard.notInForce.title', { code: group.code, year: group.year })}
               >
                 <p>
-                  {t('wizard.notInForce.body', {
+                  {plural('wizard.notInForce.body', group.count, {
                     count: String(group.count),
                     year: group.year,
                     code: group.code,
-                    validFrom: '01-01-2026',
+                    validFrom: taxCodeValidFromLabel.get(group.code) ?? '—',
                   })}
                 </p>
                 <p className="text-xs">{t('wizard.notInForce.boekhouder')}</p>
