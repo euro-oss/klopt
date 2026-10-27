@@ -68,7 +68,7 @@ export function WizardProgressRail({
           <span
             className={cls}
             aria-current={state === 'current' ? 'step' : undefined}
-            aria-disabled={state === 'todo' ? true : undefined}
+            aria-disabled={state === 'todo' ? 'true' : undefined}
           >
             {inner}
           </span>
