@@ -922,13 +922,18 @@ describe('FX rate and mapping decisions', () => {
     fakeMoneybird()
     await connect(token)
     await choose(token)
-    // Fresh ISO code each run so a prior cache row cannot short-circuit the fetch.
+    // Exactly 3 chars (schema). Clear any prior cache row first — a hit skips
+    // the audit, and Q+2 hex is only 256 slots across shared DATABASE_URL runs.
     const letters = crypto
       .randomUUID()
       .replace(/[^a-f]/gi, '')
       .slice(0, 2)
       .toUpperCase()
     const currency = `Q${letters}`
+    const ctx = await context(token)
+    await ctx.database.execute(
+      `delete from klopt.ecb_reference_rates where currency = '${currency}'`,
+    )
     const moneybirdFetch = globalThis.fetch
     const ecbXml = `<?xml version="1.0"?><gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref"><Cube><Cube time="2026-03-14"><Cube currency="${currency}" rate="1.0853"/></Cube></Cube></gesmes:Envelope>`
     globalThis.fetch = (input, init) => {
@@ -942,7 +947,7 @@ describe('FX rate and mapping decisions', () => {
     }
     try {
       await handleRefreshMoneybirdFxRate(
-        await context(token),
+        ctx,
         moneybirdFxRateQuery.parse({ currency, documentDate: '2026-03-15' }),
       )
       const audit = (
