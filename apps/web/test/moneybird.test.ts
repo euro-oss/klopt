@@ -736,22 +736,18 @@ describe('the import job', () => {
     await handleRunMoneybirdImport(await context(token, crypto.randomUUID()))
 
     const { MoneybirdImportRepository } = await import('@klopt/db')
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- prototype stub
     const originalFinish = MoneybirdImportRepository.prototype.finish
     let blockedRunningSave = false
     MoneybirdImportRepository.prototype.finish = async function finishOverride(
       this: InstanceType<typeof MoneybirdImportRepository>,
-      request: {
-        readonly id: string
-        readonly state: string
-        readonly report: unknown
-        readonly lastError: string | null
-      },
+      request: Parameters<typeof originalFinish>[0],
     ) {
       if (!blockedRunningSave && request.state === 'running') {
         blockedRunningSave = true
         throw new Error('report save failed after commit')
       }
-      return originalFinish.call(this, request as Parameters<typeof originalFinish>[0])
+      return originalFinish.call(this, request)
     }
 
     try {

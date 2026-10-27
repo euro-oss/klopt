@@ -374,6 +374,8 @@ function ImportWizardPage() {
       }
     }
     return map
+    // docsForRate closes over problems/warnings/yearDocuments (listed below).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
   }, [
     problems,
     previewYears,
@@ -1328,7 +1330,6 @@ function ImportWizardPage() {
                               (row): row is { code: string; iso: string } => row.iso !== undefined,
                             )
                             .sort((a, b) => a.iso.localeCompare(b.iso))[0] ?? null
-                        const earliestIso = earliestCode?.iso ?? null
                         const validFrom =
                           earliestCode !== null
                             ? (taxCodeValidFromLabel.get(earliestCode.code) ??

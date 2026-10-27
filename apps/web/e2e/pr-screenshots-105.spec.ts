@@ -4,8 +4,10 @@ import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, signIn, uniqueEmail } from './support'
+import { enableAdvancedMode } from './support'
 import {
   startNullRateMoneybirdStandIn,
+  startNullRateVatMismatchMoneybirdStandIn,
   startPreValidFromMoneybirdStandIn,
   type MoneybirdStandIn,
 } from './support/moneybird-stand-in'
@@ -217,12 +219,36 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         await shoot(page, `04-voorbeeld-${theme}-${label}.png`)
 
         await clickNext(page)
-        // 05 Btw — shoot Voorstel/Vorige keuze before any Bevestigen (Designer #105).
+        // 05 Btw — baseline (Voorstel only), then seed Vorige keuze via re-choose.
         await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
         await shoot(page, `05-btw-${theme}-${label}.png`)
-        await expect(page.getByText(/Voorstel|Vorige keuze/).first()).toBeVisible({
-          timeout: 15_000,
+
+        // Confirm one primary proposal so 0037 gets a tax mapping, then re-pick
+        // the same administration → Vorige keuze next to remaining Voorstel.
+        const firstConfirm = page.getByRole('button', { name: 'Bevestigen' })
+        if ((await firstConfirm.count()) > 0) {
+          const before = await firstConfirm.count()
+          await firstConfirm.first().click()
+          await expect(firstConfirm).toHaveCount(before - 1, { timeout: 30_000 })
+        }
+        await page.getByRole('button', { name: 'Terug' }).click()
+        await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible()
+        await page.getByRole('button', { name: 'Terug' }).click()
+        await expect(
+          page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
+        ).toBeVisible()
+        await page.getByText('Voorbeeld BV').click()
+        await expect(page.getByRole('checkbox', { name: /^202\d$/ }).first()).toBeVisible({
+          timeout: 60_000,
         })
+        await clickNext(page)
+        await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
+          timeout: 30_000,
+        })
+        await clickNext(page)
+        await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
+        await expect(page.getByText('Vorige keuze').first()).toBeVisible({ timeout: 30_000 })
+        await expect(page.getByText('Voorstel').first()).toBeVisible()
         await shoot(page, `05-btw-voorstel-${theme}-${label}.png`)
 
         // Sheet picker — save from the open sheet (no Escape; that left rates stuck).
@@ -241,15 +267,52 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           await expect(sheet).toHaveCount(0, { timeout: 60_000 })
         }
 
+        // Excluded rate + undo (Designer #105).
+        const excludeBtn = page.getByRole('button', { name: /niet overzetten/i })
+        if ((await excludeBtn.count()) > 0) {
+          await excludeBtn.first().click()
+          await expect(page.getByText(/zetten we niet over/i).first()).toBeVisible({
+            timeout: 15_000,
+          })
+          await shoot(page, `05-btw-excluded-${theme}-${label}.png`)
+          await page
+            .getByRole('button', { name: /ongedaan/i })
+            .first()
+            .click()
+        }
+
         await mapAllOpenRates(page)
         await expect(page.getByText(/Kies eerst voor/i)).toHaveCount(0)
         await clickNext(page)
         await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toHaveCount(0)
 
-        // 06 Rekeningen
+        // 06 Rekeningen — seed Vorige keuze the same way when a proposal exists.
         await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
           timeout: 30_000,
         })
+        const accountConfirm = page.getByRole('button', { name: 'Bevestigen' })
+        if ((await accountConfirm.count()) > 0) {
+          const before = await accountConfirm.count()
+          await accountConfirm.first().click()
+          await expect(accountConfirm).toHaveCount(before - 1, { timeout: 30_000 })
+          await page.getByRole('button', { name: 'Terug' }).click()
+          await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
+          await page.getByRole('button', { name: 'Terug' }).click()
+          await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible()
+          await page.getByRole('button', { name: 'Terug' }).click()
+          await expect(
+            page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
+          ).toBeVisible()
+          await page.getByText('Voorbeeld BV').click()
+          await clickNext(page)
+          await clickNext(page)
+          await mapAllOpenRates(page)
+          await clickNext(page)
+          await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible(
+            { timeout: 30_000 },
+          )
+          await expect(page.getByText(/Vorige keuze|Voorstel|Gekozen/).first()).toBeVisible()
+        }
         await shoot(page, `06-rekeningen-${theme}-${label}.png`)
         // Confirm account proposals so Geavanceerd-off path stays name→name
         for (let i = 0; i < 12; i += 1) {
@@ -345,11 +408,185 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         )
         await expect(page.getByText(/geldt nog niet/i).first()).toBeVisible()
         await shoot(page, `07-problemen-99-${theme}-${label}.png`)
+        await shoot(page, `07-problemen-busy-${theme}-${label}.png`)
         await context.close()
       }
     }
   } finally {
     await standIn.close()
     await notInForce.close()
+  }
+})
+
+test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async ({ browser }) => {
+  test.setTimeout(900_000)
+  const standIn = await startNullRateMoneybirdStandIn({ withPrimaryProposal: true })
+  const mismatch = await startNullRateVatMismatchMoneybirdStandIn()
+  try {
+    for (const theme of ['light', 'dark'] as const) {
+      for (const [label, size] of VIEWPORTS) {
+        const context = await browser.newContext({ viewport: size })
+        const page = await context.newPage()
+
+        // Resume card + restart dialog
+        await ready(page, `105 resume ${theme} ${label}`)
+        await throughAdmin(page, standIn)
+        await setTheme(page, theme)
+        await page.goto('/importeren')
+        await expect(page.getByRole('heading', { name: /Welkom terug/ })).toBeVisible({
+          timeout: 30_000,
+        })
+        await shoot(page, `01-resume-${theme}-${label}.png`)
+        await page.getByRole('button', { name: /Opnieuw beginnen/i }).click()
+        const restart = page.getByRole('alertdialog')
+        await expect(restart).toBeVisible()
+        await shoot(page, `01-restart-dialog-${theme}-${label}.png`)
+        await restart.getByRole('button', { name: /Annuleren|Cancel/i }).click()
+        await page.getByRole('button', { name: /Doorgaan/i }).click()
+        await expect(
+          page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
+        ).toBeVisible({ timeout: 30_000 })
+
+        // Verbinden: token error, connected, disconnect
+        await page.goto('/importeren')
+        await wizardBronReady(page)
+        await page.getByRole('radio', { name: /Moneybird/ }).click()
+        await clickNext(page)
+        await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
+        await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+        await page.getByLabel('API-adres').fill(standIn.baseUrl)
+        await page.getByLabel('Persoonlijk API-token').fill('definitely-wrong-token')
+        await page.locator('button[data-focus="next"]').click()
+        await expect(page.getByText(/ongeldig|geweigerd|401|token/i).first()).toBeVisible({
+          timeout: 30_000,
+        })
+        await setTheme(page, theme)
+        await shoot(page, `02-verbinden-token-error-${theme}-${label}.png`)
+
+        await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
+        await clickNext(page)
+        await expect(
+          page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
+        ).toBeVisible({ timeout: 30_000 })
+        await page.getByRole('button', { name: 'Terug' }).click()
+        await expect(page.getByText(/Verbonden met Moneybird/i)).toBeVisible()
+        await shoot(page, `02-verbinden-connected-${theme}-${label}.png`)
+        await page.getByRole('button', { name: /verbreken/i }).click()
+        const disconnect = page.getByRole('alertdialog')
+        await expect(disconnect).toBeVisible()
+        await shoot(page, `02-verbinden-disconnect-${theme}-${label}.png`)
+        await disconnect.getByRole('button', { name: /Annuleren|Cancel/i }).click()
+
+        // Dark focus ring on Volgende
+        if (theme === 'dark') {
+          await page.locator('button[data-focus="next"]').focus()
+          await shoot(page, `02-verbinden-dark-focus-${label}.png`)
+        }
+
+        // Geavanceerd on — Bron with legacy (oud) links visible in nav
+        await enableAdvancedMode(page)
+        await page.goto('/importeren')
+        await wizardBronReady(page)
+        await setTheme(page, theme)
+        await shoot(page, `01-bron-advanced-${theme}-${label}.png`)
+
+        await context.close()
+      }
+    }
+
+    // #92/#93 empty candidates (null-% with VAT still on the document)
+    for (const theme of ['light', 'dark'] as const) {
+      for (const [label, size] of VIEWPORTS) {
+        const context = await browser.newContext({ viewport: size })
+        const page = await context.newPage()
+        await ready(page, `105 mismatch ${theme} ${label}`)
+        await throughAdmin(page, mismatch)
+        await clickNext(page)
+        await clickNext(page)
+        await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible({
+          timeout: 30_000,
+        })
+        await expect(page.getByText(/Pas het tarief aan in Moneybird/i).first()).toBeVisible({
+          timeout: 30_000,
+        })
+        await setTheme(page, theme)
+        await shoot(page, `05-btw-92-93-${theme}-${label}.png`)
+        await context.close()
+      }
+    }
+
+    // failedPartial via post-commit attachment failure + Klaar blocked / Al in Klopt
+    for (const theme of ['light', 'dark'] as const) {
+      for (const [label, size] of VIEWPORTS) {
+        const context = await browser.newContext({ viewport: size })
+        const page = await context.newPage()
+        await ready(page, `105 fail ${theme} ${label}`)
+        await throughAdmin(page, standIn)
+        await clickNext(page)
+        await clickNext(page)
+        await mapAllOpenRates(page)
+        await clickNext(page)
+        await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
+          timeout: 30_000,
+        })
+        for (let i = 0; i < 12; i += 1) {
+          const confirm = page.getByRole('button', { name: 'Bevestigen' })
+          if ((await confirm.count()) === 0) break
+          const before = await confirm.count()
+          await confirm.first().click()
+          await expect(confirm).toHaveCount(before - 1, { timeout: 30_000 })
+        }
+        await clickNext(page)
+        const blocked = page.locator('#wizard-next-why')
+        if ((await blocked.count()) > 0) {
+          await setTheme(page, theme)
+          await shoot(page, `07-problemen-blocked-${theme}-${label}.png`)
+          await context.close()
+          continue
+        }
+        await clickNext(page)
+        await expect(page.getByRole('heading', { name: /Klaar om over te zetten/ })).toBeVisible()
+        await clickNext(page)
+        const confirmDialog = page.getByRole('alertdialog')
+        await expect(confirmDialog).toBeVisible()
+        await confirmDialog.getByRole('button', { name: /Overzetten bevestigen/i }).click()
+        await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
+          timeout: 60_000,
+        })
+
+        process.env['KLOPT_ENCRYPTION_KEY'] = 'e2e-encryption-key-not-for-production-01234'
+        const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
+        const { createFilesystemDocumentStore } = await import('@klopt/adapters')
+        const { createDatabase, closeDatabase } = await import('@klopt/db')
+        const directory = mkdtempSync(join(tmpdir(), 'mb-shot-fail-'))
+        const db = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+        try {
+          const store = createFilesystemDocumentStore({ directory })
+          store.put = () => Promise.reject(new Error('attachment store failed after commit'))
+          for (let i = 0; i < 8; i += 1) {
+            const result = await importMoneybirdAdministration(db, store)
+            if (result.state === 'idle') break
+          }
+        } finally {
+          await closeDatabase(db)
+        }
+
+        await expect(
+          page.getByText(/gestopt|niets geboekt|deel kan al geboekt/i).first(),
+        ).toBeVisible({ timeout: 120_000 })
+        await setTheme(page, theme)
+        const partial = await page.getByText(/deel kan al geboekt/i).count()
+        await shoot(
+          page,
+          partial > 0
+            ? `09-importeren-failed-partial-${theme}-${label}.png`
+            : `09-importeren-failed-${theme}-${label}.png`,
+        )
+        await context.close()
+      }
+    }
+  } finally {
+    await standIn.close()
+    await mismatch.close()
   }
 })
