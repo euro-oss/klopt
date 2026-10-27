@@ -492,8 +492,10 @@ describe('the import job', () => {
     const outcome = await importMoneybirdAdministration(
       database,
       createFilesystemDocumentStore({ directory }),
+      undefined,
+      { entityId },
     )
-    expect(outcome.state).toBe('done')
+    expect(outcome.state, outcome.failure ?? undefined).toBe('done')
 
     const status = (await handleMoneybirdImportStatus(await context(token))).body
     expect(status.requested).toBe(true)
@@ -553,6 +555,8 @@ describe('the import job', () => {
     const again = await importMoneybirdAdministration(
       database,
       createFilesystemDocumentStore({ directory }),
+      undefined,
+      { entityId },
     )
     expect(again.state).toBe('idle')
 
@@ -561,6 +565,8 @@ describe('the import job', () => {
     const second = await importMoneybirdAdministration(
       database,
       createFilesystemDocumentStore({ directory }),
+      undefined,
+      { entityId },
     )
     expect(second.state).toBe('done')
     expect(await counts(entityId)).toEqual(first)
@@ -576,7 +582,7 @@ describe('the import job', () => {
   })
 
   it('does not call an unreadable source reconciled on the commit report', async () => {
-    const { token } = await newEntity()
+    const { entityId, token } = await newEntity()
     const moneybird = fakeMoneybird()
     moneybird.forbidden.add('sales_invoices.json')
     await connect(token)
@@ -592,8 +598,10 @@ describe('the import job', () => {
     const outcome = await importMoneybirdAdministration(
       database,
       createFilesystemDocumentStore({ directory }),
+      undefined,
+      { entityId },
     )
-    expect(outcome.state).toBe('done')
+    expect(outcome.state, outcome.failure ?? undefined).toBe('done')
     const status = (await handleMoneybirdImportStatus(await context(token))).body
     if (!status.requested || status.report === null || !status.report.imported) {
       throw new Error('expected a commit report')
@@ -604,7 +612,7 @@ describe('the import job', () => {
   })
 
   it('does not call an unreadable purchase source reconciled on the commit report', async () => {
-    const { token } = await newEntity()
+    const { entityId, token } = await newEntity()
     const moneybird = fakeMoneybird()
     moneybird.forbidden.add('documents/purchase_invoices.json')
     await connect(token)
@@ -620,8 +628,10 @@ describe('the import job', () => {
     const outcome = await importMoneybirdAdministration(
       database,
       createFilesystemDocumentStore({ directory }),
+      undefined,
+      { entityId },
     )
-    expect(outcome.state).toBe('done')
+    expect(outcome.state, outcome.failure ?? undefined).toBe('done')
     const status = (await handleMoneybirdImportStatus(await context(token))).body
     if (!status.requested || status.report === null || !status.report.imported) {
       throw new Error('expected a commit report')
@@ -660,8 +670,8 @@ describe('the import job', () => {
     const store = createFilesystemDocumentStore({ directory })
     store.put = () => Promise.reject(new Error('attachment store failed after commit'))
 
-    const outcome = await importMoneybirdAdministration(database, store)
-    expect(outcome.state).toBe('failed')
+    const outcome = await importMoneybirdAdministration(database, store, undefined, { entityId })
+    expect(outcome.state, outcome.failure ?? undefined).toBe('failed')
     expect(outcome.failure).toMatch(/attachment store failed/)
 
     const status = (await handleMoneybirdImportStatus(await context(token))).body

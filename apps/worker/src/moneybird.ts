@@ -50,12 +50,20 @@ export async function importMoneybirdAdministration(
   database: Database,
   store = storeFor(),
   fetchImpl?: typeof globalThis.fetch,
+  options: { readonly entityId?: string } = {},
 ): Promise<{
   readonly entityId: string | null
   readonly state: string
   readonly failure: string | null
 }> {
-  const run = await withMoneybirdImport(database, (repository) => repository.claim(new Date()))
+  // Optional entityId keeps vitest file workers from stealing each other's
+  // pending runs (response-shapes enqueues; moneybird.test drives the worker).
+  const run = await withMoneybirdImport(database, (repository) =>
+    repository.claim(
+      new Date(),
+      options.entityId === undefined ? {} : { entityId: options.entityId },
+    ),
+  )
   if (run === null) return { entityId: null, state: 'idle', failure: null }
 
   const connection = await withMoneybirdConnection(database, (repository) =>
