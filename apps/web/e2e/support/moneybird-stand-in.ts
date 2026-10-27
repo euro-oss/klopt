@@ -77,11 +77,12 @@ export interface MoneybirdStandIn {
   close(): Promise<void>
 }
 
-/** Null-% purchase + sales rates with totalTax 0 so VGEEN / 0% sales are offered.
- * Also includes a 21% sales rate so the wizard shows a primary “Voorstel” (H21). */
-export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn> {
+/** Null-% purchase + sales rates with totalTax 0 so VGEEN / 0% sales are offered. */
+export async function startNullRateMoneybirdStandIn(
+  options: { readonly withPrimaryProposal?: boolean } = {},
+): Promise<MoneybirdStandIn> {
   const token = 'mb-e2e-null-rate-token'
-  const taxRates = [
+  const taxRates: Record<string, unknown>[] = [
     {
       id: 90,
       name: 'Geen btw',
@@ -98,15 +99,18 @@ export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn>
       country: 'NL',
       active: true,
     },
-    {
+  ]
+  if (options.withPrimaryProposal === true) {
+    // Screenshot-only: primary H21 proposal for Designer “05 voorstel”.
+    taxRates.push({
       id: 21,
       name: '21% btw',
       percentage: '21.0',
       tax_rate_type: 'sales_invoice',
       country: 'NL',
       active: true,
-    },
-  ]
+    })
+  }
   const purchases = [
     {
       id: 401,
@@ -132,7 +136,7 @@ export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn>
       attachments: [],
     },
   ]
-  const sales = [
+  const sales: Record<string, unknown>[] = [
     {
       id: 301,
       contact_id: 100,
@@ -157,7 +161,9 @@ export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn>
       ],
       attachments: [],
     },
-    {
+  ]
+  if (options.withPrimaryProposal === true) {
+    sales.push({
       id: 302,
       contact_id: 100,
       invoice_id: '2026-21',
@@ -180,8 +186,8 @@ export async function startNullRateMoneybirdStandIn(): Promise<MoneybirdStandIn>
         },
       ],
       attachments: [],
-    },
-  ]
+    })
+  }
 
   const server: Server = createServer((req, res) => {
     const url = req.url ?? '/'

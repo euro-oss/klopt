@@ -165,7 +165,7 @@ const VIEWPORTS = [
 
 test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
   test.setTimeout(900_000)
-  const standIn = await startNullRateMoneybirdStandIn()
+  const standIn = await startNullRateMoneybirdStandIn({ withPrimaryProposal: true })
   const notInForce = await startPreValidFromMoneybirdStandIn()
   try {
     for (const theme of ['light', 'dark'] as const) {
