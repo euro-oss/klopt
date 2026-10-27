@@ -158,24 +158,38 @@ export const BINDINGS: readonly Binding[] = [
   // stays as a muscle-memory alias for Exact and must not free a `g` letter.
   {
     id: 'go.exact',
-    label: 'nav.importWizard',
+    label: 'nav.importExact',
     group: 'keys.group.goTo',
     keys: 'i x',
     to: '/importeren',
   },
   {
     id: 'go.exactAlias',
-    label: 'nav.importWizard',
+    label: 'nav.importExact',
     group: 'keys.group.goTo',
     keys: 'g x',
     to: '/importeren',
   },
   {
     id: 'go.moneybird',
-    label: 'nav.importWizard',
+    label: 'nav.importMoneybird',
     group: 'keys.group.goTo',
     keys: 'i m',
     to: '/importeren',
+  },
+  // Palette-only: legacy pages under Geavanceerd (#105 Designer). No global chord —
+  // the `i` / `g` alphabets are full; find them in ⌘K when Advanced is on.
+  {
+    id: 'go.moneybirdLegacy',
+    label: 'nav.moneybirdAdvanced',
+    group: 'keys.group.goTo',
+    to: '/moneybird',
+  },
+  {
+    id: 'go.exactLegacy',
+    label: 'nav.exactAdvanced',
+    group: 'keys.group.goTo',
+    to: '/exact',
   },
   // `s` for **s**luiten. Every letter in *boekjaren* was taken by the time this
   // screen arrived, which is what happens when a keyboard map is real, and

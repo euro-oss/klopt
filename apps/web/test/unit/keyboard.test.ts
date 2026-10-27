@@ -25,6 +25,8 @@ describe('the keyboard map', () => {
     const collisions: string[] = []
 
     for (const binding of BINDINGS) {
+      // Palette-only destinations have no chord; they cannot collide on keys.
+      if (binding.keys === undefined || binding.keys === '') continue
       const chord = [...(binding.modifiers ?? [])].sort().join('+')
       const key = `${binding.group} ${chord} ${binding.keys}`
       const previous = seen.get(key)

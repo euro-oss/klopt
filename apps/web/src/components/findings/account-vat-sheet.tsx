@@ -82,7 +82,10 @@ export interface AccountVatSheetProps {
     readonly accountName: string | null
     readonly vatCode: ImportVatCode | null
     readonly isNewAccount?: boolean
-  }) => void
+  }) => boolean | void | Promise<boolean | void>
+  /** Refused-rate (or other) error shown inside the sheet (#105 Designer). */
+  readonly saveError?: string | null
+  readonly saveErrorFootnote?: string | null
 }
 
 export function AccountVatSheet(props: AccountVatSheetProps) {
@@ -128,6 +131,8 @@ function AccountVatSheetBody({
   excludeCount,
   moneybirdHref = null,
   onSave,
+  saveError = null,
+  saveErrorFootnote = null,
 }: AccountVatSheetProps) {
   const { t } = useT()
   const listId = useId()
@@ -206,33 +211,45 @@ function AccountVatSheetBody({
         : chosen !== null
 
   const saveAccount = (account: RankableAccount): void => {
-    onSave({
-      accountNumber: account.number,
-      accountName: account.name,
-      vatCode: null,
+    void Promise.resolve(
+      onSave({
+        accountNumber: account.number,
+        accountName: account.name,
+        vatCode: null,
+      }),
+    ).then((ok) => {
+      if (ok === false) return
+      onOpenChange(false)
     })
-    onOpenChange(false)
   }
 
   const save = (): void => {
     if (!canSave) return
     if (mode === 'tax') {
-      onSave({
-        accountNumber: null,
-        accountName: null,
-        vatCode: vat,
+      void Promise.resolve(
+        onSave({
+          accountNumber: null,
+          accountName: null,
+          vatCode: vat,
+        }),
+      ).then((ok) => {
+        if (ok === false) return
+        onOpenChange(false)
       })
-      onOpenChange(false)
       return
     }
     if (newAccount) {
-      onSave({
-        accountNumber: sourceNumber.trim(),
-        accountName: sourceName,
-        vatCode: null,
-        isNewAccount: true,
+      void Promise.resolve(
+        onSave({
+          accountNumber: sourceNumber.trim(),
+          accountName: sourceName,
+          vatCode: null,
+          isNewAccount: true,
+        }),
+      ).then((ok) => {
+        if (ok === false) return
+        onOpenChange(false)
       })
-      onOpenChange(false)
       return
     }
     if (chosen === null) return
@@ -553,9 +570,14 @@ function AccountVatSheetBody({
                   id={vatListId}
                   role="radiogroup"
                   aria-labelledby={`${vatListId}-legend`}
-                  aria-describedby={vatHintId}
+                  aria-describedby={
+                    saveError !== null && saveError !== ''
+                      ? `${vatListId}-error ${vatHintId}`
+                      : vatHintId
+                  }
                   className={cn(
                     'border',
+                    saveError !== null && saveError !== '' && 'border-destructive',
                     vatOptions.length <= 3
                       ? 'grid'
                       : 'flex max-h-64 flex-col divide-y overflow-y-auto',
@@ -626,6 +648,18 @@ function AccountVatSheetBody({
                     )
                   })}
                 </div>
+                {saveError !== null && saveError !== '' && (
+                  <div
+                    id={`${vatListId}-error`}
+                    role="alert"
+                    className="text-destructive mt-2 text-sm"
+                  >
+                    <p>{saveError}</p>
+                    {saveErrorFootnote !== null && saveErrorFootnote !== '' && (
+                      <p className="mt-1 text-xs">{saveErrorFootnote}</p>
+                    )}
+                  </div>
+                )}
                 {/* Hide disclosure while a non-primary is selected so Minder tonen
                     cannot be a no-op; list stays open via selectedIsOther (#71 designer). */}
                 {canDiscloseOther && !selectedIsOther && (

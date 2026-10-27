@@ -637,7 +637,11 @@ function serialiseEntryLines(entry: MoneybirdImportPlan['entries'][number]) {
   }
 }
 
-function serialisePlan(plan: MoneybirdImportPlan, functionalCurrency: string) {
+function serialisePlan(
+  plan: MoneybirdImportPlan,
+  functionalCurrency: string,
+  lockedYears: readonly string[] = [],
+) {
   const ofKind = (kind: string) => plan.entries.filter((entry) => entry.kind === kind)
   /** Documents evaluated per year (including unbalanced) for TB drill-down. */
   const yearDocuments = plan.yearDocuments.map((doc) => ({
@@ -712,6 +716,7 @@ function serialisePlan(plan: MoneybirdImportPlan, functionalCurrency: string) {
     reconciliation: plan.reconciliation.map(serialiseYear),
     notImported: plan.notImported,
     excluded: plan.excluded,
+    lockedYears,
     warnings: plan.warnings,
     problems: plan.problems,
   }
@@ -769,6 +774,7 @@ async function planFor(context: RequestContext, client: ReturnType<typeof create
     snapshot,
     connection,
     functionalCurrency: here.entity.functionalCurrency,
+    lockedYears: here.years.filter((year) => year.status === 'closed').map((year) => year.code),
   }
 }
 
@@ -776,7 +782,7 @@ export async function handlePreviewMoneybirdImport(context: RequestContext) {
   requirePermission(context, 'ledger:import')
   const { client } = await clientFor(context)
   try {
-    const { plan, functionalCurrency } = await planFor(context, client)
+    const { plan, functionalCurrency, lockedYears } = await planFor(context, client)
     await withMoneybirdConnection(context.database, (repository) =>
       repository.recordSuccess(context.entityId),
     )
@@ -784,7 +790,7 @@ export async function handlePreviewMoneybirdImport(context: RequestContext) {
       status: 200,
       body: {
         dryRun: true as const,
-        ...serialisePlan(plan, functionalCurrency),
+        ...serialisePlan(plan, functionalCurrency, lockedYears),
         requests: client.log,
       },
     }

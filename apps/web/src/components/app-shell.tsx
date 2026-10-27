@@ -431,10 +431,12 @@ function ShellNavChrome({
                   item.binding === undefined ? undefined : BINDINGS_BY_ID.get(item.binding)
                 const isActive = isNavActive(path, item.to)
                 const labelKey = navLabelKey(item, advanced)
+                const rowKey = item.binding ?? `${item.to}:${item.key}`
                 return (
-                  <li key={item.to}>
+                  <li key={rowKey}>
                     <Link
                       to={item.to}
+                      {...(item.search !== undefined ? { search: item.search } : {})}
                       onClick={onNavigate}
                       aria-current={isActive ? 'page' : undefined}
                       className={cn(
@@ -451,7 +453,7 @@ function ShellNavChrome({
                         // no chord keyboard, and crowding the Sheet helps nobody.
                         <span className="hidden items-center gap-0.5 md:inline-flex">
                           {bindingChips(binding).map((chip, position) => (
-                            <Keycap key={`${item.to}-${String(position)}`}>{chip}</Keycap>
+                            <Keycap key={`${rowKey}-${String(position)}`}>{chip}</Keycap>
                           ))}
                         </span>
                       )}

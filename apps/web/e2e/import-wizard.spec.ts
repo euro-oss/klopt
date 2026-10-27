@@ -91,7 +91,9 @@ test('i m opens the import wizard under Importeren', async ({ page }) => {
       .locator('kbd')
       .first(),
   ).toBeVisible()
-  await expect(page.getByRole('navigation').getByRole('link', { name: /Importeren/ })).toBeVisible()
+  await expect(
+    page.getByRole('navigation').getByRole('link', { name: /^Moneybird$/ }),
+  ).toBeVisible()
 
   await page.keyboard.press('i')
   await expect(page.getByText('I …')).toBeVisible()

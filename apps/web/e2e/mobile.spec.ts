@@ -60,14 +60,15 @@ test('the Sheet opens Importeren and navigates', async ({ page }) => {
 
   const sheetNav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
   await expect(sheetNav.getByText('Verkoop', { exact: true })).toBeVisible()
-  await expect(sheetNav.getByRole('link', { name: /^Importeren/ })).toBeVisible()
+  await expect(sheetNav.getByRole('link', { name: /^Moneybird$/ })).toBeVisible()
   // Legacy Moneybird/Exact sit under Geavanceerd for one release (#100).
-  await expect(sheetNav.getByRole('link', { name: /Moneybird/ })).toHaveCount(0)
-  await expect(sheetNav.getByRole('link', { name: /Exact Online/ })).toHaveCount(0)
+  await expect(sheetNav.getByRole('link', { name: /Moneybird \(oud\)/ })).toHaveCount(0)
+  await expect(sheetNav.getByRole('link', { name: /Exact Online \(oud\)/ })).toHaveCount(0)
+  await expect(sheetNav.getByRole('link', { name: /^Exact Online$/ })).toBeVisible()
   // Eigenaar default: Journaalposten stays out of the nav (#44).
   await expect(sheetNav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
 
-  await sheetNav.getByRole('link', { name: /^Importeren/ }).click()
+  await sheetNav.getByRole('link', { name: /^Moneybird$/ }).click()
   await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
   // Closed on navigate: the drawer must not cover the destination.
   await expect(sheetNav).toBeHidden()

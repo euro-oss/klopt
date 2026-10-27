@@ -19,7 +19,7 @@ function problem(
   return {
     code,
     path,
-    messageKey: `moneybird.${code}`,
+    messageKey: `moneybird.${code === 'moneybird_vat_without_tax_rate' ? 'vat_without_tax_rate' : code}`,
     detail,
     message: code,
   }

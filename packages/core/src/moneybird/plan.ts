@@ -1111,9 +1111,10 @@ export function planMoneybirdImport(
       }
     }
 
-    // After rejecting a bad confirmed pick, do not silently apply proposed —
-    // the finding asks the user to choose again (#70).
-    const mappedCode = confirmed ?? (incompatible ? null : proposed)
+    // Only a confirmed mapping counts as mapped. Proposed is a suggestion the
+    // wizard must Bevestigen (#105 PM: never auto-confirm single-fit / restored).
+    // After rejecting a bad confirmed pick, do not silently apply proposed (#70).
+    const mappedCode = confirmed
     const mapped = mappedCode !== null && existingTaxCodes.has(mappedCode)
     // incompatible_tax_rate / null_percentage_vat_mismatch already block; do
     // not also emit unmapped_tax_rate for the same rate.

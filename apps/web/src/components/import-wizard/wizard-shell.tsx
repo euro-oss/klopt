@@ -2,14 +2,16 @@
  * Shared chrome for the import wizard: progress rail + Volgende/Terug footer.
  */
 
-import { RiCheckLine } from '@remixicon/react'
-import type { ReactNode } from 'react'
+import { RiCheckLine, RiListCheck } from '@remixicon/react'
+import { useState, type ReactNode } from 'react'
 import { Button } from '~/components/ui/button'
 import { Keycap } from '~/components/ui/keycap'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '~/components/ui/sheet'
 import { useT } from '~/i18n/provider'
 import {
   IMPORT_WIZARD_STEP_COUNT,
   IMPORT_WIZARD_STEP_KEYS,
+  IMPORT_WIZARD_STEPS,
   stepIndex,
   type ImportWizardStep,
 } from '~/lib/import-wizard'
@@ -18,55 +20,127 @@ import { cn } from '~/lib/utils'
 export function WizardProgressRail({
   step,
   onJump,
+  sublines,
 }: {
   readonly step: ImportWizardStep
   readonly onJump?: (step: ImportWizardStep) => void
+  readonly sublines?: readonly (string | null | undefined)[]
 }) {
   const { t } = useT()
   const current = stepIndex(step)
-  return (
-    <ol
-      className="border-border mb-6 hidden grid-cols-5 border md:grid lg:grid-cols-10"
-      aria-label={t('wizard.steps')}
-    >
-      {IMPORT_WIZARD_STEP_KEYS.map((key, index) => {
-        const state = index < current ? 'done' : index === current ? 'current' : 'todo'
-        const clickable = onJump !== undefined && index < current
-        return (
-          <li
-            key={key}
+  const [open, setOpen] = useState(false)
+
+  function renderItem(
+    key: (typeof IMPORT_WIZARD_STEP_KEYS)[number],
+    index: number,
+    mobile: boolean,
+  ) {
+    const state = index < current ? 'done' : index === current ? 'current' : 'todo'
+    const clickable = onJump !== undefined && index <= current
+    const id = IMPORT_WIZARD_STEPS[index]!
+    const sub = sublines?.[index]
+    const inner = (
+      <>
+        <StepGlyph state={state} n={index + 1} />
+        <span className="min-w-0 flex-1 pt-0.5">
+          <span
             className={cn(
-              'flex min-h-11 items-center gap-2 px-2 text-xs',
-              index > 0 && 'border-border border-l',
-              state === 'current'
-                ? 'border-b-accent border-b-[3px] font-medium'
-                : 'border-b-[3px] border-b-transparent',
+              'block text-sm leading-tight whitespace-normal',
+              state === 'current' && 'font-medium',
               state === 'todo' && 'text-muted-foreground',
             )}
-            aria-current={state === 'current' ? 'step' : undefined}
           >
-            {clickable ? (
-              <button
-                type="button"
-                className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                onClick={() => {
-                  const id = key.replace('wizard.step.', '') as ImportWizardStep
-                  onJump(id)
-                }}
-              >
-                <StepGlyph state={state} n={index + 1} />
-                <span className="truncate">{t(key)}</span>
-              </button>
-            ) : (
-              <>
-                <StepGlyph state={state} n={index + 1} />
-                <span className="truncate">{t(key)}</span>
-              </>
-            )}
-          </li>
-        )
-      })}
-    </ol>
+            {t(key)}
+            {state === 'done' ? <span className="sr-only"> (klaar)</span> : null}
+          </span>
+          {sub !== undefined && sub !== null && sub !== '' ? (
+            <span className="text-muted-foreground mt-0.5 block truncate text-xs tabular-nums">
+              {sub}
+            </span>
+          ) : null}
+        </span>
+      </>
+    )
+    const cls = cn('flex items-start gap-3 px-2 py-1.5', mobile && 'min-h-11')
+    if (state === 'todo' || !clickable) {
+      return (
+        <li key={key}>
+          <span
+            className={cls}
+            aria-current={state === 'current' ? 'step' : undefined}
+            aria-disabled={state === 'todo' ? true : undefined}
+          >
+            {inner}
+          </span>
+        </li>
+      )
+    }
+    return (
+      <li key={key}>
+        <button
+          type="button"
+          className={cn(cls, 'hover:bg-muted w-full text-left', state === 'current' && 'bg-muted')}
+          aria-current={state === 'current' ? 'step' : undefined}
+          onClick={() => {
+            onJump?.(id)
+            setOpen(false)
+          }}
+        >
+          {inner}
+        </button>
+      </li>
+    )
+  }
+
+  return (
+    <>
+      <div className="mb-5 md:hidden">
+        <div className="flex items-center justify-between gap-2 text-sm">
+          <span className="tabular-nums">
+            {t('wizard.stepOf', {
+              step: String(current + 1),
+              total: String(IMPORT_WIZARD_STEP_COUNT),
+              label: t(IMPORT_WIZARD_STEP_KEYS[current]!),
+            })}
+          </span>
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button type="button" variant="ghost" className="-mr-3 px-3" aria-haspopup="dialog">
+                <RiListCheck className="size-4" aria-hidden />
+                {t('wizard.steps')}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 sm:max-w-72" closeLabel={t('common.close')}>
+              <SheetHeader>
+                <SheetTitle>{t('wizard.steps')}</SheetTitle>
+              </SheetHeader>
+              <nav aria-label={t('wizard.steps')} className="mt-4">
+                <ol className="space-y-0.5">
+                  {IMPORT_WIZARD_STEP_KEYS.map((key, index) => renderItem(key, index, true))}
+                </ol>
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </div>
+        <div className="mt-1 grid grid-cols-10 gap-1" aria-hidden="true">
+          {IMPORT_WIZARD_STEP_KEYS.map((key, index) => (
+            <span
+              key={key}
+              className={cn(
+                'h-1',
+                index < current ? 'bg-foreground' : index === current ? 'bg-accent' : 'bg-border',
+              )}
+            />
+          ))}
+        </div>
+      </div>
+
+      <nav aria-label={t('wizard.steps')} className="mb-6 hidden md:block lg:mb-0">
+        <ol className="space-y-0.5">
+          {IMPORT_WIZARD_STEP_KEYS.map((key, index) => renderItem(key, index, false))}
+        </ol>
+      </nav>
+    </>
   )
 }
 
@@ -80,11 +154,14 @@ function StepGlyph({
   return (
     <span
       className={cn(
-        'flex size-5 shrink-0 items-center justify-center text-[11px] tabular-nums',
-        state === 'done' ? 'bg-foreground text-background' : 'border-border border',
+        'flex size-6 shrink-0 items-center justify-center text-xs tabular-nums',
+        state === 'done' && 'text-foreground',
+        state === 'current' &&
+          'border-foreground border border-b-accent border-b-[3px] font-semibold',
+        state === 'todo' && 'border-border text-muted-foreground border',
       )}
     >
-      {state === 'done' ? <RiCheckLine className="size-3" aria-hidden /> : n}
+      {state === 'done' ? <RiCheckLine className="size-4" aria-hidden /> : n}
     </span>
   )
 }
@@ -104,7 +181,7 @@ export function WizardStepHeader({
   const index = stepIndex(step)
   return (
     <header className="mb-6">
-      <p className="text-muted-foreground text-sm">
+      <p className="text-muted-foreground hidden text-sm md:block">
         {t('wizard.stepOf', {
           step: String(index + 1),
           total: String(IMPORT_WIZARD_STEP_COUNT),
@@ -124,6 +201,7 @@ export function WizardStepHeader({
 export function WizardFooter({
   onBack,
   onNext,
+  onNextBlocked,
   nextLabel,
   nextDisabled,
   nextReason,
@@ -132,6 +210,7 @@ export function WizardFooter({
 }: {
   readonly onBack?: () => void
   readonly onNext?: () => void
+  readonly onNextBlocked?: () => void
   readonly nextLabel: string
   readonly nextDisabled?: boolean
   readonly nextReason?: string | null
@@ -139,6 +218,7 @@ export function WizardFooter({
   readonly showNextKeycap?: boolean
 }) {
   const { t } = useT()
+  const blocked = nextDisabled === true
   return (
     <footer className="border-border mt-8 flex flex-wrap items-center gap-3 border-t pt-4">
       {showBack && onBack !== undefined && (
@@ -148,7 +228,7 @@ export function WizardFooter({
         </Button>
       )}
       <div className="ml-auto flex flex-col items-end gap-1">
-        {nextDisabled && nextReason !== null && nextReason !== undefined && nextReason !== '' && (
+        {blocked && nextReason !== null && nextReason !== undefined && nextReason !== '' && (
           <p id="wizard-next-why" className="text-muted-foreground max-w-sm text-right text-xs">
             {nextReason}
           </p>
@@ -156,14 +236,20 @@ export function WizardFooter({
         {onNext !== undefined && (
           <Button
             type="button"
-            className="min-h-11 md:min-h-9"
-            disabled={nextDisabled}
-            aria-describedby={nextDisabled && nextReason ? 'wizard-next-why' : undefined}
-            onClick={onNext}
+            className={cn('min-h-11 md:min-h-9', blocked && 'opacity-50')}
+            aria-disabled={blocked || undefined}
+            aria-describedby={blocked && nextReason ? 'wizard-next-why' : undefined}
+            onClick={() => {
+              if (blocked) {
+                onNextBlocked?.()
+                return
+              }
+              onNext()
+            }}
             data-focus="next"
           >
             {nextLabel}
-            {showNextKeycap && !nextDisabled && (
+            {showNextKeycap && !blocked && (
               <Keycap className="ml-1 hidden md:inline-flex">↵</Keycap>
             )}
           </Button>
@@ -191,10 +277,12 @@ export function AttentionBlock({
   children,
   actions,
   tone = 'attention',
+  badge,
 }: {
   readonly title: string
   readonly children?: ReactNode
   readonly actions?: ReactNode
+  readonly badge?: ReactNode
   /** #99 dead ends use error (red); #92/#93 use attention (orange). Never yellow. */
   readonly tone?: 'attention' | 'error' | 'info'
 }) {
@@ -206,6 +294,7 @@ export function AttentionBlock({
         : 'border-warning/40 bg-warning/8 border-l-warning'
   return (
     <div className={cn('border border-l-[3px] px-4 py-3 text-sm', toneClass)} role="status">
+      {badge !== undefined && <div className="mb-2">{badge}</div>}
       <p className="font-medium text-foreground">{title}</p>
       {children !== undefined && (
         <div className="text-muted-foreground mt-1 space-y-1">{children}</div>

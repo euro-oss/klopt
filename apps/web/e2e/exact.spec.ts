@@ -150,10 +150,12 @@ test('i x reaches the import wizard under Importeren (#100)', async ({ page }) =
       .first(),
   ).toBeVisible()
   // Printed chord under Importeren is `i` then `x` (and `i m`); both open the wizard.
-  await expect(page.getByRole('navigation').getByRole('link', { name: /Importeren/ })).toBeVisible()
+  await expect(
+    page.getByRole('navigation').getByRole('link', { name: /^Exact Online$/ }),
+  ).toBeVisible()
   await expect(
     page
-      .getByRole('link', { name: /Importeren/ })
+      .getByRole('link', { name: /^Exact Online$/ })
       .locator('kbd')
       .first(),
   ).toContainText(/i/)

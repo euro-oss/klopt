@@ -19,6 +19,8 @@ export interface NavItem {
   readonly roles?: readonly string[]
   /** Hidden from the nav when Geavanceerd is off; still in ⌘K. */
   readonly advancedOnly?: boolean
+  /** Optional search params (e.g. import wizard `?bron=`). */
+  readonly search?: Readonly<Record<string, string>>
 }
 
 export interface NavGroup {
@@ -92,19 +94,29 @@ export const NAVIGATION: readonly NavGroup[] = [
     items: [
       {
         to: '/importeren',
-        key: 'nav.importWizard',
+        key: 'nav.importMoneybird',
         binding: 'go.moneybird',
         roles: ['owner', 'accountant', 'bookkeeper'],
+        search: { bron: 'moneybird' },
+      },
+      {
+        to: '/importeren',
+        key: 'nav.importExact',
+        binding: 'go.exact',
+        roles: ['owner', 'accountant', 'bookkeeper'],
+        search: { bron: 'exact' },
       },
       {
         to: '/moneybird',
         key: 'nav.moneybirdAdvanced',
+        binding: 'go.moneybirdLegacy',
         roles: ['owner', 'accountant', 'bookkeeper'],
         advancedOnly: true,
       },
       {
         to: '/exact',
         key: 'nav.exactAdvanced',
+        binding: 'go.exactLegacy',
         roles: ['owner', 'accountant', 'bookkeeper'],
         advancedOnly: true,
       },
@@ -217,6 +229,14 @@ export function paletteNavItems(
     for (const item of group.items) {
       if (item.binding === undefined) continue
       if (item.roles !== undefined && !item.roles.includes(role)) continue
+      // Legacy Moneybird/Exact (oud): ⌘K only when Geavanceerd is on (#105 Designer).
+      if (
+        !advanced &&
+        item.advancedOnly === true &&
+        (item.binding === 'go.moneybirdLegacy' || item.binding === 'go.exactLegacy')
+      ) {
+        continue
+      }
       const row = { item, groupKey: group.key }
       if (!advanced && item.advancedOnly === true) deferred.push(row)
       else primary.push(row)

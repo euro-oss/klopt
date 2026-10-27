@@ -2266,14 +2266,15 @@ export const en: Record<MessageKey, string> = {
   'wizard.connect': 'Connect',
   'wizard.done': 'Done',
   'wizard.resume.title': 'Welcome back',
-  'wizard.resume.body': 'You were transferring from {source}. We kept your place.',
+  'wizard.resume.body': 'You were transferring from {source}. We saved where you left off.',
   'wizard.resume.continue': 'Continue',
   'wizard.resume.restart': 'Start over',
   'wizard.resume.restartConfirm': 'Clear your progress and start over?',
   'wizard.resume.restartConfirmBody':
-    'VAT and account choices per administration stay. Only where you were in the wizard is cleared.',
+    'You start again at step 1. Nothing has been booked yet, so nothing in your books is lost. VAT and account choices per administration stay.',
   'wizard.bron.title': 'Where do your books come from?',
-  'wizard.bron.intro': 'Pick the package you want to transfer from.',
+  'wizard.bron.intro':
+    'Pick the package you want to transfer from. Nothing is booked until you press Import.',
   'wizard.bron.moneybird.scope': 'All invoices, receipts, bank mutations and journal entries.',
   'wizard.bron.moneybird.notIncluded': 'Drafts and quotes are not transferred.',
   'wizard.bron.exact.scope':
@@ -2281,7 +2282,7 @@ export const en: Record<MessageKey, string> = {
   'wizard.bron.exact.notIncluded':
     'Individual postings are not transferred. Documents can be brought across separately afterwards.',
   'wizard.bron.exact.deadEnd':
-    'Exact Online follows in a later version. Until then use Exact under Advanced.',
+    'Transferring from Exact is not available in this wizard yet. Use Exact under Advanced.',
   'wizard.bron.exact.openLegacy': 'Go to Exact (legacy)',
   'wizard.verbinden.title': 'Connect to Moneybird',
   'wizard.verbinden.intro': 'With a token from Moneybird we can read your administration.',
@@ -2303,7 +2304,7 @@ export const en: Record<MessageKey, string> = {
     'We remove your token from Klopt. In Moneybird it stays valid; revoke it there if you no longer use it. What was already imported stays.',
   'wizard.verbinden.mappingsKept':
     'Your VAT code and account choices stay saved for this administration.',
-  'wizard.verbinden.disconnectConfirm': 'Disconnect?',
+  'wizard.verbinden.disconnectConfirm': 'Disconnect from Moneybird?',
   'wizard.verbinden.disconnectToast': 'Disconnected.',
   'wizard.administratie.title': 'Which administration and which years?',
   'wizard.administratie.intro':
@@ -2315,13 +2316,28 @@ export const en: Record<MessageKey, string> = {
   'wizard.administratie.open': 'Open',
   'wizard.administratie.closed': 'Closed',
   'wizard.administratie.closedHint': 'This year is closed. We will not transfer it.',
+  'wizard.administratie.docsLine': '{currency} · fiscal year starts in January · {count} documents',
+  'wizard.administratie.docsLine_one':
+    '{currency} · fiscal year starts in January · {count} document',
+  'wizard.administratie.docsLine_other':
+    '{currency} · fiscal year starts in January · {count} documents',
   'wizard.administratie.selectedSummary': '{years} years · {docs} documents',
+  'wizard.administratie.selectedSummary_other': '{years} years · {docs} documents',
+  'wizard.administratie.selectedSummary_one': '{years} year · {docs} documents',
   'wizard.administratie.fetch': 'Fetch administrations',
   'wizard.year.notInForce': 'In {year} Klopt’s VAT codes are not in force yet: {count} documents.',
+  'wizard.year.notInForce_other':
+    'In {year} Klopt’s VAT codes are not in force yet: {count} documents.',
+  'wizard.year.notInForce_one':
+    'In {year} Klopt’s VAT codes are not in force yet: {count} document.',
   'wizard.year.notInForceHelp':
-    'They apply from the start of your first fiscal year in Klopt. You will see them per VAT code under Problems. Want to transfer later years only? Uncheck this year.',
+    'They apply from {validFrom}, the start of your first fiscal year in Klopt. You will see them per VAT code under Problems. Want to transfer later years only? Uncheck {year}.',
   'wizard.year.noFittingCode':
-    "{count} documents have no matching VAT code. On VAT codes you'll see what you can do.",
+    '{count} documents have no matching VAT code (EU and non-EU). On VAT codes you’ll see what you can do.',
+  'wizard.year.noFittingCode_other':
+    '{count} documents have no matching VAT code (EU and non-EU). On VAT codes you’ll see what you can do.',
+  'wizard.year.noFittingCode_one':
+    '{count} document has no matching VAT code (EU or non-EU). On VAT codes you’ll see what you can do.',
   'wizard.voorbeeld.title': 'What we will transfer',
   'wizard.voorbeeld.intro': 'This is a preview: nothing is transferred yet. Check the counts.',
   'wizard.voorbeeld.reread': 'Read again',
@@ -2340,16 +2356,24 @@ export const en: Record<MessageKey, string> = {
   'wizard.btw.excluded': 'Do not transfer',
   'wizard.btw.fixRateInMoneybird': 'Adjust the rate in Moneybird and read again.',
   'wizard.btw.excludeDocs': 'Do not transfer {count} documents',
+  'wizard.btw.excludeDocs_other': 'Do not transfer {count} documents',
+  'wizard.btw.excludeDocs_one': 'Do not transfer {count} document',
   'wizard.btw.excludeUndo': 'Undo',
   'wizard.btw.excludedBody':
     "We won't transfer these {count} documents. Their amounts and VAT won't be in Klopt or in your return; book them yourself if they belong in these books. They're listed under “Not transferred” in the summary.",
+  'wizard.btw.excludedBody_other':
+    "We won't transfer these {count} documents. Their amounts and VAT won't be in Klopt or in your return; book them yourself if they belong in these books. They're listed under “Not transferred” in the summary.",
+  'wizard.btw.excludedBody_one':
+    "We won't transfer this {count} document. Its amount and VAT won't be in Klopt or in your return; book it yourself if it belongs in these books. It's listed under “Not transferred” in the summary.",
   'wizard.btw.chooseInTable': 'Choose yourself in the table',
   'wizard.btw.leftToChoose': '{count} rates left to choose',
   'wizard.btw.allChosen': 'All rates chosen',
   'wizard.btw.chooseFirst': 'First choose what Klopt does for {count} rates.',
+  'wizard.btw.chooseFirst_other': 'First choose what Klopt does for {count} rates.',
+  'wizard.btw.chooseFirst_one': 'First choose what Klopt does for {count} rate.',
   // Legal VERBATIM (#105 comment 6438953957)
   'wizard.btw.refusedRate':
-    'Klopt refuses {code} for this rate: the rate is {ratePct} and {code} is {codePct}. Choose the code that actually fits these documents; it has the same percentage. If in doubt, ask your accountant or don\'t transfer these documents.',
+    "Klopt refuses {code} for this rate: the rate is {ratePct} and {code} is {codePct}. Choose the code that actually fits these documents; it has the same percentage. If in doubt, ask your accountant or don't transfer these documents.",
   'wizard.btw.refusedRateFootnote':
     'Klopt checks on save whether the percentage fits. PRIV21, standalone input-VAT halves and correction codes are not listed here.',
   'wizard.rekeningen.title': 'Where do your accounts land?',
@@ -2376,6 +2400,9 @@ export const en: Record<MessageKey, string> = {
   'wizard.overzicht.skip': 'Do not transfer',
   'wizard.overzicht.confirm': 'Confirm transfer',
   'wizard.overzicht.confirmTitle': 'Transfer books?',
+  'wizard.overzicht.confirmTitleCount': 'Import {count} documents?',
+  'wizard.overzicht.confirmTitleCount_one': 'Import {count} document?',
+  'wizard.overzicht.confirmTitleCount_other': 'Import {count} documents?',
   'wizard.overzicht.dedupLegal':
     'What you previously transferred from this administration we will not transfer again. What you already booked yourself in Klopt we do not recognise: check for duplicate bookings.',
   'wizard.overzicht.undoLegal':
@@ -2387,13 +2414,35 @@ export const en: Record<MessageKey, string> = {
   'wizard.klaar.title': 'Import done',
   'wizard.klaar.intro':
     'This has been transferred. Check your books and continue booking in Klopt.',
+  'wizard.klaar.summary': '{count} documents transferred.',
+  'wizard.klaar.summary_one': '{count} document transferred.',
+  'wizard.klaar.summary_other': '{count} documents transferred.',
   'wizard.klaar.nextVat': 'Go to VAT return',
   'wizard.klaar.nextEntries': 'Go to journal entries',
   'wizard.klaar.blocked':
     "Some periods can't be filed via Klopt yet. The VAT return shows which ones and what you can do.",
   'wizard.klaar.noGreen': 'Not everything was transferred. Review the problems again.',
+  'wizard.overzicht.notTransferred': 'Not transferred',
+  'wizard.overzicht.alreadyInKlopt': 'Already in Klopt',
+  'wizard.overzicht.alreadyInKloptEmpty':
+    'None. This is your first import from this administration.',
+  'wizard.overzicht.reasonExcluded': 'Chose not to transfer',
+  'wizard.klaar.booksInKlopt': 'Your books are in Klopt',
+  'wizard.klaar.blockedBadge': 'Blocks filing',
+  'wizard.klaar.viewNotTransferred': 'View not transferred',
+  'wizard.klaar.whyBlocked': 'You can file the return yourself or with a tax adviser.',
+  'wizard.importeren.pctLive': '{pct}% transferred',
+  'wizard.importeren.failed': 'We booked nothing',
+  'wizard.importeren.busy': 'In progress',
+  'wizard.notInForce.why':
+    'Why this matters: Without a valid code on the booking date the return cannot place those lines. A code’s start date cannot be changed in Klopt yet.',
+  'wizard.problemen.reconciliation': 'Reconciliation',
+  'wizard.problemen.blockingSection': 'Blocks the import',
+  'wizard.problemen.infoSection': 'To know',
+  'nav.importMoneybird': 'Moneybird',
+  'nav.importExact': 'Exact Online',
   'wizard.status.pickSource': 'Pick a source to continue',
-  'wizard.status.exactBlocked': 'Exact follows later',
+  'wizard.status.exactBlocked': 'Exact is not available here yet.',
   'wizard.status.pasteToken': 'Paste your token to continue',
   'wizard.status.needAdmin': 'Pick an administration and at least one year',
   'wizard.status.needPreview': 'Read a preview first',

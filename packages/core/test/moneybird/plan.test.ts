@@ -2273,6 +2273,7 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
                 price: 2500n,
                 taxRateId: null,
                 ledgerAccountId: '6',
+                period: '202603',
               },
             ],
           },
@@ -2292,7 +2293,7 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     const receiptFinding = plan.problems.find(
       (item) => item.code === 'moneybird_vat_without_tax_rate' && item.path === 'receipts.501',
     )
-    expect(receiptFinding?.detail?.reference).toBe('BON-501')
+    expect(receiptFinding?.detail?.['reference']).toBe('BON-501')
     expect(purchaseFinding?.message).toMatch(/no VAT rate|btw-tarief/i)
   })
 
