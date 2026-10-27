@@ -829,153 +829,98 @@ test('capture Klaar blocked (#95) and cheap follow-ups', async ({ browser }) => 
       }
     }
 
-    // 06 Vorige keuze on Rekeningen (Geavanceerd off) + refused rate on Btw
+    // Cheap follow-ups — best-effort; skip a viewport when the state does not
+    // appear (Designer r4: nice-to-have, not blocking).
     for (const theme of ['light', 'dark'] as const) {
       for (const [label, size] of VIEWPORTS) {
         const context = await browser.newContext({ viewport: size })
         const page = await context.newPage()
-        await ready(page, `105 follow ${theme} ${label}`)
-        await throughAdmin(page, standIn)
-        await clickNext(page)
-        await clickNext(page)
-        await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
+        try {
+          await ready(page, `105 follow ${theme} ${label}`)
+          await throughAdmin(page, standIn)
+          await clickNext(page)
+          await clickNext(page)
+          await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
 
-        // Refused rate: map a null-% purchase to H21 (incompatible).
-        const choose = page.getByRole('button', { name: 'Btw-code kiezen' })
-        if ((await choose.count()) > 0) {
-          await choose.first().click()
-          const sheet = page.getByRole('dialog')
-          await expect(sheet).toBeVisible()
-          const other = sheet.locator('[data-slot="vat-show-other"]')
-          if ((await other.count()) > 0) {
-            const expanded = await other.getAttribute('aria-expanded')
-            if (expanded !== 'true') await other.click()
+          const choose = page.getByRole('button', { name: 'Btw-code kiezen' })
+          if ((await choose.count()) > 0) {
+            await choose.first().click()
+            const sheet = page.getByRole('dialog')
+            await expect(sheet).toBeVisible()
+            const other = sheet.locator('[data-slot="vat-show-other"]')
+            if ((await other.count()) > 0) {
+              const expanded = await other.getAttribute('aria-expanded')
+              if (expanded !== 'true') await other.click()
+            }
+            const bad = sheet.getByRole('radio', { name: /H21|BTW hoog/i })
+            if ((await bad.count()) > 0) await bad.first().click()
+            else await sheet.getByRole('radio').first().click()
+            const save = sheet.getByRole('button', { name: 'Opslaan' })
+            if (await save.isEnabled()) {
+              await save.click()
+              await expect(sheet).toHaveCount(0, { timeout: 60_000 }).catch(() => null)
+            } else {
+              await page.keyboard.press('Escape')
+            }
+            if ((await page.getByText(/past niet|refused|hoort niet|niet bij/i).count()) > 0) {
+              await setTheme(page, theme)
+              await shoot(page, `05-btw-refused-${theme}-${label}.png`)
+            }
           }
-          // Pick a clearly wrong direction/code when available; else first radio + hope.
-          const bad = sheet.getByRole('radio', { name: /H21|BTW hoog/i })
-          if ((await bad.count()) > 0) await bad.first().click()
-          else await sheet.getByRole('radio').first().click()
-          const save = sheet.getByRole('button', { name: 'Opslaan' })
-          if (await save.isEnabled()) {
-            await save.click()
-            await expect(sheet).toHaveCount(0, { timeout: 60_000 }).catch(() => null)
-          } else {
-            await page.keyboard.press('Escape')
-          }
-          if ((await page.getByText(/past niet|refused|hoort niet|niet bij/i).count()) > 0) {
+
+          const excludeBtn = page.getByRole('button', { name: /niet overzetten/i })
+          if ((await excludeBtn.count()) > 0) {
+            await excludeBtn.first().click()
+            await expect(page.getByText(/zetten we niet over/i).first()).toBeVisible({
+              timeout: 15_000,
+            })
             await setTheme(page, theme)
-            await shoot(page, `05-btw-refused-${theme}-${label}.png`)
+            await shoot(page, `05-btw-excluded-undo-${theme}-${label}.png`)
+            await page.getByRole('button', { name: /ongedaan/i }).first().click()
           }
-        }
 
-        // Excluded + undo already covered in the main capture; re-shoot if still open.
-        const excludeBtn = page.getByRole('button', { name: /niet overzetten/i })
-        if ((await excludeBtn.count()) > 0) {
-          await excludeBtn.first().click()
-          await expect(page.getByText(/zetten we niet over/i).first()).toBeVisible({
-            timeout: 15_000,
-          })
-          await setTheme(page, theme)
-          await shoot(page, `05-btw-excluded-undo-${theme}-${label}.png`)
-          await page.getByRole('button', { name: /ongedaan/i }).first().click()
-        }
-
-        await mapAllOpenRates(page)
-        await clickNext(page)
-        await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
-          timeout: 30_000,
-        })
-        const accountConfirm = page.getByRole('button', { name: 'Bevestigen' })
-        if ((await accountConfirm.count()) > 0) {
-          const before = await accountConfirm.count()
-          await accountConfirm.first().click()
-          await expect(accountConfirm).toHaveCount(before - 1, { timeout: 30_000 })
-          await page.goto('/')
-          await page.goto('/importeren')
-          await expect(page.getByRole('heading', { name: /Welkom terug/ })).toBeVisible({
+          await mapAllOpenRates(page)
+          await clickNext(page)
+          await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
             timeout: 30_000,
           })
-          await page.getByRole('button', { name: /Doorgaan/i }).click()
-          await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible(
-            { timeout: 60_000 },
-          )
-          await expect(page.getByText(/Vorige keuze/i).first()).toBeVisible({ timeout: 30_000 })
-          await setTheme(page, theme)
-          await shoot(page, `06-rekeningen-vorige-${theme}-${label}.png`)
+          const accountConfirm = page.getByRole('button', { name: 'Bevestigen' })
+          if ((await accountConfirm.count()) > 0) {
+            const before = await accountConfirm.count()
+            await accountConfirm.first().click()
+            await expect(accountConfirm).toHaveCount(before - 1, { timeout: 30_000 })
+            await page.goto('/')
+            await page.goto('/importeren')
+            const resume = page.getByRole('heading', { name: /Welkom terug/ })
+            if ((await resume.count()) > 0) {
+              await page.getByRole('button', { name: /Doorgaan/i }).click()
+              await expect(
+                page.getByRole('heading', { name: /Waar komen je rekeningen/ }),
+              ).toBeVisible({ timeout: 60_000 })
+              if ((await page.getByText(/Vorige keuze/i).count()) > 0) {
+                await setTheme(page, theme)
+                await shoot(page, `06-rekeningen-vorige-${theme}-${label}.png`)
+              }
+            }
+          }
+        } catch {
+          // Opportunistic — leave the frame unset rather than fail the suite.
+        } finally {
+          await context.close()
         }
-        await context.close()
       }
     }
 
-    // Al in Klopt — second import after a completed one
+    // Al in Klopt — second import after a completed one (best-effort).
     {
       const context = await browser.newContext({
         viewport: VIEWPORTS[0]![1],
       })
       const page = await context.newPage()
-      await ready(page, '105 alinklopt')
-      await throughAdmin(page, standIn)
-      await clickNext(page)
-      await clickNext(page)
-      await mapAllOpenRates(page)
-      await clickNext(page)
-      for (let i = 0; i < 12; i += 1) {
-        const confirm = page.getByRole('button', { name: 'Bevestigen' })
-        if ((await confirm.count()) === 0) break
-        const before = await confirm.count()
-        await confirm.first().click()
-        await expect(confirm).toHaveCount(before - 1, { timeout: 30_000 })
-      }
-      await clickNext(page)
-      if ((await page.locator('#wizard-next-why').count()) === 0) {
+      try {
+        await ready(page, '105 alinklopt')
+        await throughAdmin(page, standIn)
         await clickNext(page)
-        await clickNext(page)
-        const confirmDialog = page.getByRole('alertdialog')
-        await expect(confirmDialog).toBeVisible()
-        await confirmDialog.getByRole('button', { name: /Overzetten bevestigen/i }).click()
-        await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
-          timeout: 60_000,
-        })
-        await drainWorker('mb-shot-al1-')
-        await expect(page.getByRole('heading', { name: /^Import klaar$/ })).toBeVisible({
-          timeout: 120_000,
-        })
-        // Restart and re-import the same admin → Al in Klopt on Overzicht/Klaar.
-        await page.goto('/importeren')
-        await expect(page.getByRole('heading', { name: /Welkom terug/ })).toBeVisible({
-          timeout: 30_000,
-        })
-        await page.getByRole('button', { name: /Opnieuw beginnen/i }).click()
-        const restart = page.getByRole('alertdialog')
-        await expect(restart).toBeVisible()
-        await restart.getByRole('button', { name: /Opnieuw beginnen|Beginnen/i }).click()
-        await wizardBronReady(page)
-        await page.getByRole('radio', { name: /Moneybird/ }).click()
-        await clickNext(page)
-        // Still connected after restart? May land on verbinden connected or admin.
-        if ((await page.getByRole('heading', { name: /Verbind met Moneybird/ }).count()) > 0) {
-          if ((await page.getByText(/Verbonden met Moneybird/i).count()) > 0) {
-            await clickNext(page)
-          } else {
-            await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
-            await page.getByLabel('API-adres').fill(standIn.baseUrl)
-            await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
-            await clickNext(page)
-          }
-        }
-        await expect(
-          page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
-        ).toBeVisible({ timeout: 30_000 })
-        await page.getByRole('button', { name: 'Administraties ophalen' }).click()
-        await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
-        await page.getByText('Voorbeeld BV').click()
-        await expect(page.getByRole('checkbox', { name: /^202\d$/ }).first()).toBeVisible({
-          timeout: 60_000,
-        })
-        await clickNext(page)
-        await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
-          timeout: 30_000,
-        })
         await clickNext(page)
         await mapAllOpenRates(page)
         await clickNext(page)
@@ -989,15 +934,76 @@ test('capture Klaar blocked (#95) and cheap follow-ups', async ({ browser }) => 
         await clickNext(page)
         if ((await page.locator('#wizard-next-why').count()) === 0) {
           await clickNext(page)
-          await expect(page.getByRole('heading', { name: /Klaar om over te zetten/ })).toBeVisible()
-          await expect(page.getByText(/Al in Klopt/i).first()).toBeVisible()
-          await setTheme(page, 'light')
-          await shoot(page, `08-overzicht-al-in-klopt-light-desktop-1440.png`)
-          await setTheme(page, 'dark')
-          await shoot(page, `08-overzicht-al-in-klopt-dark-desktop-1440.png`)
+          await clickNext(page)
+          const confirmDialog = page.getByRole('alertdialog')
+          await expect(confirmDialog).toBeVisible()
+          await confirmDialog.getByRole('button', { name: /Overzetten bevestigen/i }).click()
+          await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
+            timeout: 60_000,
+          })
+          await drainWorker('mb-shot-al1-')
+          await expect(page.getByRole('heading', { name: /^Import klaar$/ })).toBeVisible({
+            timeout: 120_000,
+          })
+          // Completed import resumes on Klaar, not Welkom terug — restart via rail.
+          await page.getByRole('button', { name: /^Bron/ }).click()
+          await wizardBronReady(page)
+          await page.getByRole('radio', { name: /Moneybird/ }).click()
+          await clickNext(page)
+          if ((await page.getByRole('heading', { name: /Verbind met Moneybird/ }).count()) > 0) {
+            if ((await page.getByText(/Verbonden met Moneybird/i).count()) > 0) {
+              await clickNext(page)
+            } else {
+              await page
+                .locator('details')
+                .filter({ hasText: 'Geavanceerd' })
+                .locator('summary')
+                .click()
+              await page.getByLabel('API-adres').fill(standIn.baseUrl)
+              await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
+              await clickNext(page)
+            }
+          }
+          await expect(
+            page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
+          ).toBeVisible({ timeout: 30_000 })
+          await page.getByRole('button', { name: 'Administraties ophalen' }).click()
+          await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
+          await page.getByText('Voorbeeld BV').click()
+          await expect(page.getByRole('checkbox', { name: /^202\d$/ }).first()).toBeVisible({
+            timeout: 60_000,
+          })
+          await clickNext(page)
+          await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
+            timeout: 30_000,
+          })
+          await clickNext(page)
+          await mapAllOpenRates(page)
+          await clickNext(page)
+          for (let i = 0; i < 12; i += 1) {
+            const confirm = page.getByRole('button', { name: 'Bevestigen' })
+            if ((await confirm.count()) === 0) break
+            const before = await confirm.count()
+            await confirm.first().click()
+            await expect(confirm).toHaveCount(before - 1, { timeout: 30_000 })
+          }
+          await clickNext(page)
+          if ((await page.locator('#wizard-next-why').count()) === 0) {
+            await clickNext(page)
+            await expect(page.getByRole('heading', { name: /Klaar om over te zetten/ })).toBeVisible()
+            if ((await page.getByText(/Al in Klopt/i).count()) > 0) {
+              await setTheme(page, 'light')
+              await shoot(page, `08-overzicht-al-in-klopt-light-desktop-1440.png`)
+              await setTheme(page, 'dark')
+              await shoot(page, `08-overzicht-al-in-klopt-dark-desktop-1440.png`)
+            }
+          }
         }
+      } catch {
+        // Opportunistic.
+      } finally {
+        await context.close()
       }
-      await context.close()
     }
   } finally {
     await selfAssessed.close()
