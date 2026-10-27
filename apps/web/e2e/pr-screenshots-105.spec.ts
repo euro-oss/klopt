@@ -428,14 +428,21 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
         const context = await browser.newContext({ viewport: size })
         const page = await context.newPage()
 
-        // Resume card + restart dialog
+        // Resume card + restart dialog (leave mid-flow, then reopen)
         await ready(page, `105 resume ${theme} ${label}`)
         await throughAdmin(page, standIn)
-        await setTheme(page, theme)
+        await expect(
+          page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
+        ).toBeVisible()
+        await page.goto('/')
+        await expect(
+          page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+        ).toBeVisible()
         await page.goto('/importeren')
         await expect(page.getByRole('heading', { name: /Welkom terug/ })).toBeVisible({
           timeout: 30_000,
         })
+        await setTheme(page, theme)
         await shoot(page, `01-resume-${theme}-${label}.png`)
         await page.getByRole('button', { name: /Opnieuw beginnen/i }).click()
         const restart = page.getByRole('alertdialog')
