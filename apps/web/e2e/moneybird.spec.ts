@@ -67,11 +67,11 @@ test('i m reaches the import wizard under Importeren (#100)', async ({ page }) =
       .first(),
   ).toBeVisible()
   await expect(
-    page.getByRole('navigation').getByRole('link', { name: /^Moneybird$/ }),
+    page.getByRole('navigation').getByRole('link', { name: /^Moneybird(?! \(oud\))/ }),
   ).toBeVisible()
   await expect(
     page
-      .getByRole('link', { name: /^Moneybird$/ })
+      .getByRole('link', { name: /^Moneybird(?! \(oud\))/ })
       .locator('kbd')
       .first(),
   ).toContainText(/i/)

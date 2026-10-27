@@ -37,14 +37,13 @@ async function connectStandIn(page: Page, standIn: MoneybirdStandIn): Promise<vo
   await expect(moneybird).toBeEnabled({ timeout: 15_000 })
   await moneybird.click()
   await expect(moneybird).toBeChecked()
-  await expect(page.getByRole('button', { name: 'Volgende' })).toBeEnabled()
-  await page.getByRole('button', { name: 'Volgende' }).click()
+  await clickNext(page)
   await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
 
   await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
   await page.getByLabel('API-adres').fill(standIn.baseUrl)
   await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
-  await page.getByRole('button', { name: 'Verbinden' }).click()
+  await clickNext(page)
   await expect(
     page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
   ).toBeVisible({ timeout: 30_000 })
@@ -59,27 +58,48 @@ async function pickAdminAndWaitForYears(page: Page, yearLabel: string): Promise<
   })
 }
 
-/** Map every unresolved rate via the AccountVatSheet (pick first radio → Opslaan). */
+/** Map every unresolved rate via confirm / AccountVatSheet / exclude. */
 async function mapAllOpenRates(page: Page): Promise<void> {
-  const choose = page.getByRole('button', { name: 'Btw-code kiezen' })
-  while ((await choose.count()) > 0) {
-    await choose.first().click()
-    const sheet = page.getByRole('dialog')
-    await expect(sheet).toBeVisible()
-    const radio = sheet.getByRole('radio').first()
-    await expect(radio).toBeVisible()
-    await radio.click()
-    await sheet.getByRole('button', { name: 'Opslaan' }).click()
-    await expect(sheet).toHaveCount(0)
+  for (let i = 0; i < 16; i += 1) {
+    const confirm = page.getByRole('button', { name: 'Bevestigen' })
+    if ((await confirm.count()) > 0) {
+      const before = await confirm.count()
+      await confirm.first().click()
+      await expect(confirm).toHaveCount(before - 1, { timeout: 30_000 })
+      continue
+    }
+    const choose = page.getByRole('button', { name: 'Btw-code kiezen' })
+    if ((await choose.count()) > 0) {
+      await choose.first().click()
+      const sheet = page.getByRole('dialog')
+      await expect(sheet).toBeVisible()
+      const radio = sheet.getByRole('radio').first()
+      await expect(radio).toBeVisible()
+      await radio.click()
+      const save = sheet.getByRole('button', { name: 'Opslaan' })
+      await expect(save).toBeEnabled({ timeout: 15_000 })
+      await save.click()
+      await expect(sheet).toHaveCount(0, { timeout: 60_000 })
+      continue
+    }
+    const exclude = page.getByRole('button', { name: /niet overzetten/i })
+    if ((await exclude.count()) > 0) {
+      const before = await exclude.count()
+      await exclude.first().click()
+      await expect(exclude).toHaveCount(before - 1, { timeout: 30_000 })
+      continue
+    }
+    break
   }
-  const confirm = page.getByRole('button', { name: 'Bevestigen' })
-  while ((await confirm.count()) > 0) {
-    await confirm.first().click()
-  }
-  const exclude = page.getByRole('button', { name: /niet overzetten/i })
-  while ((await exclude.count()) > 0) {
-    await exclude.first().click()
-  }
+  await expect(page.getByRole('button', { name: 'Btw-code kiezen' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Bevestigen' })).toHaveCount(0)
+}
+
+/** Volgende uses aria-disabled instead of the native disabled attribute. */
+async function clickNext(page: Page): Promise<void> {
+  const next = page.locator('button[data-focus="next"]')
+  await expect(next).not.toHaveAttribute('aria-disabled', 'true', { timeout: 60_000 })
+  await next.click()
 }
 
 test('i m opens the import wizard under Importeren', async ({ page }) => {
@@ -92,7 +112,7 @@ test('i m opens the import wizard under Importeren', async ({ page }) => {
       .first(),
   ).toBeVisible()
   await expect(
-    page.getByRole('navigation').getByRole('link', { name: /^Moneybird$/ }),
+    page.getByRole('navigation').getByRole('link', { name: /^Moneybird(?! \(oud\))/ }),
   ).toBeVisible()
 
   await page.keyboard.press('i')
@@ -140,26 +160,26 @@ test('#99 tax_code_not_in_force shows an honest dead end with a way forward', as
     await connectStandIn(page, standIn)
     await pickAdminAndWaitForYears(page, '2025')
 
-    await page.getByRole('button', { name: 'Volgende' }).click()
+    await clickNext(page)
     await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
       timeout: 30_000,
     })
-    await page.getByRole('button', { name: 'Volgende' }).click()
+    await clickNext(page)
     await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
 
     await mapAllOpenRates(page)
-    await expect(page.getByRole('button', { name: 'Volgende' })).toBeEnabled({ timeout: 30_000 })
-    await page.getByRole('button', { name: 'Volgende' }).click()
+    await clickNext(page)
     await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
       timeout: 30_000,
     })
-    await page.getByRole('button', { name: 'Volgende' }).click()
+    await clickNext(page)
     await expect(page.getByRole('heading', { name: /Wat we nog moeten oplossen/ })).toBeVisible({
       timeout: 30_000,
     })
 
     await expect(page.getByText(/geldt nog niet/i).first()).toBeVisible()
-    await expect(page.getByText(/Er is hier nog geen oplossing/i).first()).toBeVisible()
+    await expect(page.getByText(/Klopt kan dit nog niet oplossen/i).first()).toBeVisible()
+    await expect(page.getByText(/Waarom dit telt/i).first()).toBeVisible()
     await expect(
       page.getByRole('button', { name: /Naar Administratie en jaren/i }).first(),
     ).toBeVisible()

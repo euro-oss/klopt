@@ -36,7 +36,7 @@ export function WizardProgressRail({
     mobile: boolean,
   ) {
     const state = index < current ? 'done' : index === current ? 'current' : 'todo'
-    const clickable = onJump !== undefined && index <= current
+    const clickable = onJump !== undefined && index < current
     const id = IMPORT_WIZARD_STEPS[index]!
     const sub = sublines?.[index]
     const inner = (

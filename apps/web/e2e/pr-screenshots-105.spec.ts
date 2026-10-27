@@ -71,37 +71,72 @@ async function connectStandIn(page: Page, standIn: MoneybirdStandIn): Promise<vo
   const moneybird = page.getByRole('radio', { name: /Moneybird/ })
   await moneybird.click()
   await expect(moneybird).toBeChecked()
-  await page.getByRole('button', { name: 'Volgende' }).click()
+  await clickNext(page)
   await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
   await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
   await page.getByLabel('API-adres').fill(standIn.baseUrl)
   await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
-  await page.getByRole('button', { name: 'Verbinden' }).click()
+  await clickNext(page)
   await expect(
     page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
   ).toBeVisible({ timeout: 30_000 })
 }
 
+/**
+ * Resolve every open rate: confirm suggestions, pick a sheet code, or exclude.
+ * Waits until Volgende is no longer aria-disabled.
+ */
 async function mapAllOpenRates(page: Page): Promise<void> {
-  const choose = page.getByRole('button', { name: 'Btw-code kiezen' })
-  while ((await choose.count()) > 0) {
-    await choose.first().click()
-    const sheet = page.getByRole('dialog')
-    await expect(sheet).toBeVisible()
-    await sheet.getByRole('radio').first().click()
-    await sheet.getByRole('button', { name: 'Opslaan' }).click()
-    await expect(sheet).toHaveCount(0, { timeout: 30_000 })
+  for (let i = 0; i < 16; i += 1) {
+    const confirm = page.getByRole('button', { name: 'Bevestigen' })
+    if ((await confirm.count()) > 0) {
+      const before = await confirm.count()
+      await confirm.first().click()
+      await expect(confirm).toHaveCount(before - 1, { timeout: 30_000 })
+      continue
+    }
+
+    const choose = page.getByRole('button', { name: 'Btw-code kiezen' })
+    if ((await choose.count()) > 0) {
+      await choose.first().click()
+      const sheet = page.getByRole('dialog')
+      await expect(sheet).toBeVisible()
+      const radio = sheet.getByRole('radio').first()
+      await expect(radio).toBeVisible({ timeout: 15_000 })
+      await radio.click()
+      const save = sheet.getByRole('button', { name: 'Opslaan' })
+      await expect(save).toBeEnabled({ timeout: 15_000 })
+      await save.click()
+      await expect(sheet).toHaveCount(0, { timeout: 60_000 })
+      continue
+    }
+
+    const exclude = page.getByRole('button', { name: /niet overzetten/i })
+    if ((await exclude.count()) > 0) {
+      const before = await exclude.count()
+      await exclude.first().click()
+      await expect(exclude).toHaveCount(before - 1, { timeout: 30_000 })
+      continue
+    }
+
+    break
   }
-  const confirm = page.getByRole('button', { name: 'Bevestigen' })
-  while ((await confirm.count()) > 0) {
-    await confirm.first().click()
-    await page.waitForTimeout(200)
-  }
-  const exclude = page.getByRole('button', { name: /niet overzetten/i })
-  while ((await exclude.count()) > 0) {
-    await exclude.first().click()
-    await page.waitForTimeout(200)
-  }
+
+  await expect(page.getByRole('button', { name: 'Btw-code kiezen' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Bevestigen' })).toHaveCount(0)
+  await expectNextReady(page)
+}
+
+/** Volgende uses aria-disabled (not the native disabled attribute). */
+async function expectNextReady(page: Page): Promise<void> {
+  const next = page.locator('button[data-focus="next"]')
+  await expect(next).toBeVisible()
+  await expect(next).not.toHaveAttribute('aria-disabled', 'true', { timeout: 60_000 })
+}
+
+async function clickNext(page: Page): Promise<void> {
+  await expectNextReady(page)
+  await page.locator('button[data-focus="next"]').click()
 }
 
 async function throughAdmin(page: Page, standIn: MoneybirdStandIn): Promise<void> {
@@ -143,7 +178,7 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
 
         // 02 Verbinden
         await page.getByRole('radio', { name: /Moneybird/ }).click()
-        await page.getByRole('button', { name: 'Volgende' }).click()
+        await clickNext(page)
         await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
         await shoot(page, `02-verbinden-${theme}-${label}.png`)
 
@@ -151,7 +186,7 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
         await page.getByLabel('API-adres').fill(standIn.baseUrl)
         await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
-        await page.getByRole('button', { name: 'Verbinden' }).click()
+        await clickNext(page)
         await expect(
           page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
         ).toBeVisible({ timeout: 30_000 })
@@ -165,14 +200,14 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         })
         await shoot(page, `03-administratie-${theme}-${label}.png`)
 
-        await page.getByRole('button', { name: 'Volgende' }).click()
+        await clickNext(page)
         // 04 Voorbeeld
         await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
           timeout: 30_000,
         })
         await shoot(page, `04-voorbeeld-${theme}-${label}.png`)
 
-        await page.getByRole('button', { name: 'Volgende' }).click()
+        await clickNext(page)
         // 05 Btw
         await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
         await shoot(page, `05-btw-${theme}-${label}.png`)
@@ -184,49 +219,53 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           await expect(page.getByRole('dialog')).toBeVisible()
           await shoot(page, `05-btw-sheet-${theme}-${label}.png`)
           await page.keyboard.press('Escape')
+          await expect(page.getByRole('dialog')).toHaveCount(0)
         }
 
         await mapAllOpenRates(page)
-        await page.getByRole('button', { name: 'Volgende' }).click()
+        await clickNext(page)
 
         // 06 Rekeningen
         await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
           timeout: 30_000,
         })
         await shoot(page, `06-rekeningen-${theme}-${label}.png`)
-        await page.getByRole('button', { name: 'Volgende' }).click()
+        await clickNext(page)
 
-        // 07 Problemen (may be clear with null-rate stand-in)
+        // 07 Problemen
         await expect(
           page.getByRole('heading', { name: /Wat we nog moeten oplossen|Niets houdt/ }),
         ).toBeVisible({ timeout: 30_000 })
         await shoot(page, `07-problemen-${theme}-${label}.png`)
 
-        // If blocked, skip to #99 stand-in path later; else continue
-        const next = page.getByRole('button', { name: 'Volgende' })
+        // Continue when nothing blocks; otherwise #99 path covers the blocked shot
         const why = page.locator('#wizard-next-why')
         if ((await why.count()) === 0) {
-          await next.click()
+          await clickNext(page)
           await expect(page.getByRole('heading', { name: /Klaar om over te zetten/ })).toBeVisible()
           await shoot(page, `08-overzicht-${theme}-${label}.png`)
 
-          await next.click()
+          await clickNext(page)
           await expect(page.getByRole('dialog')).toBeVisible()
           await shoot(page, `08-overzicht-confirm-${theme}-${label}.png`)
           await page.getByRole('button', { name: /Overzetten bevestigen|bevestigen/i }).click()
 
           await expect(
             page.getByRole('heading', {
-              name: /Bezig met overzetten|Alles is overgezet|Klaar|We hebben niets/,
+              name: /Bezig met overzetten|Alles is overgezet|Klaar|We hebben niets|boeken staan in Klopt|Import klaar/,
             }),
           ).toBeVisible({ timeout: 60_000 })
           await shoot(page, `09-importeren-${theme}-${label}.png`)
 
-          // May auto-advance to klaar
-          await page.waitForTimeout(1000)
-          if (
-            await page.getByRole('heading', { name: /boeken staan in Klopt|Import klaar/ }).count()
-          ) {
+          await page.waitForTimeout(1500)
+          const klaar = page.getByRole('heading', {
+            name: /boeken staan in Klopt|Import klaar|We hebben niets/,
+          })
+          if ((await klaar.count()) > 0) {
+            await shoot(page, `10-klaar-${theme}-${label}.png`)
+          } else {
+            // Stay on importeren until klaar advances
+            await expect(klaar).toBeVisible({ timeout: 60_000 })
             await shoot(page, `10-klaar-${theme}-${label}.png`)
           }
         }
@@ -243,26 +282,26 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         await ready(page, `105 nif ${theme} ${label}`)
         await throughAdmin(page, notInForce)
         await expect(page.getByRole('checkbox', { name: '2025' })).toBeVisible({ timeout: 60_000 })
+        await setTheme(page, theme)
         await shoot(page, `03-administratie-99-${theme}-${label}.png`)
-        await page.getByRole('button', { name: 'Volgende' }).click()
+        await clickNext(page)
         await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
           timeout: 30_000,
         })
-        await page.getByRole('button', { name: 'Volgende' }).click()
+        await clickNext(page)
         await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
         await mapAllOpenRates(page)
-        await page.getByRole('button', { name: 'Volgende' }).click()
+        await clickNext(page)
         await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
           timeout: 30_000,
         })
-        await page.getByRole('button', { name: 'Volgende' }).click()
+        await clickNext(page)
         await expect(page.getByRole('heading', { name: /Wat we nog moeten oplossen/ })).toBeVisible(
           {
             timeout: 30_000,
           },
         )
         await expect(page.getByText(/geldt nog niet/i).first()).toBeVisible()
-        await setTheme(page, theme)
         await shoot(page, `07-problemen-99-${theme}-${label}.png`)
         await context.close()
       }
