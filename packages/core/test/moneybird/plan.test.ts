@@ -2284,7 +2284,8 @@ describe('VAT ranking against the full nl-mkb chart (#70)', () => {
     const codes = plan.problems.map((item) => item.code)
     expect(codes).toContain('moneybird_vat_without_tax_rate')
     const purchaseFinding = plan.problems.find(
-      (item) => item.code === 'moneybird_vat_without_tax_rate' && item.path === 'purchaseInvoices.401',
+      (item) =>
+        item.code === 'moneybird_vat_without_tax_rate' && item.path === 'purchaseInvoices.401',
     )
     expect(purchaseFinding).toMatchObject({
       messageKey: 'moneybird.vat_without_tax_rate',

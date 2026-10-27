@@ -132,10 +132,13 @@ async function expectNextReady(page: Page): Promise<void> {
   const next = page.locator('button[data-focus="next"]')
   await expect(next).toBeVisible()
   await expect
-    .poll(async () => {
-      const aria = await next.getAttribute('aria-disabled')
-      return aria !== 'true' && aria !== ''
-    }, { timeout: 60_000 })
+    .poll(
+      async () => {
+        const aria = await next.getAttribute('aria-disabled')
+        return aria !== 'true' && aria !== ''
+      },
+      { timeout: 60_000 },
+    )
     .toBe(true)
 }
 

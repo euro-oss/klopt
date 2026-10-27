@@ -281,13 +281,11 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
               {oneClickBusy ? t('common.busy') : fixActionLabel(t, fix)}
               {!oneClickBusy && selected && <BindingKeycaps id="finding.openFix" />}
             </Button>
-            {fix.type === 'oneClick' &&
-              fix.href !== undefined &&
-              fix.linkLabel !== undefined && (
-                <ExplainOnlyLink
-                  fix={{ type: 'explainOnly', href: fix.href, linkLabel: fix.linkLabel }}
-                />
-              )}
+            {fix.type === 'oneClick' && fix.href !== undefined && fix.linkLabel !== undefined && (
+              <ExplainOnlyLink
+                fix={{ type: 'explainOnly', href: fix.href, linkLabel: fix.linkLabel }}
+              />
+            )}
             {fix.type === 'oneClick' && fix.preview === undefined && !oneClickBusy && (
               <span className="text-muted-foreground text-xs">{t('findingCard.oneClickSafe')}</span>
             )}

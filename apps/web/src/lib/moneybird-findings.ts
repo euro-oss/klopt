@@ -236,9 +236,7 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
         type: 'oneClick',
         label: labels.reread,
         onApply: () => actions.onRereadResource(problem),
-        ...(moneybirdHref === null
-          ? {}
-          : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
+        ...(moneybirdHref === null ? {} : { href: moneybirdHref, linkLabel: labels.openMoneybird }),
       }
     default: {
       const _exhaustive: never = problem.code

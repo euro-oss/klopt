@@ -544,10 +544,7 @@ function documentVatWithoutTaxRate(
   return totalTax !== 0n && details.every((detail) => detail.taxRateId === null)
 }
 
-function moneybirdImportDocumentPath(
-  kind: MoneybirdPurchaseDocument['kind'],
-  id: string,
-): string {
+function moneybirdImportDocumentPath(kind: MoneybirdPurchaseDocument['kind'], id: string): string {
   return kind === 'purchase_invoice' ? `purchaseInvoices.${id}` : `receipts.${id}`
 }
 
