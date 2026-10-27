@@ -474,6 +474,12 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
         await disconnect.getByRole('button', { name: /verbreken/i }).click()
         await expect(page.getByLabel('Persoonlijk API-token')).toBeVisible({ timeout: 30_000 })
 
+        // Geavanceerd shadcn Checkbox — 44px touch row (esp. at 390), before
+        // token-error so the frame is not byte-identical to that shot.
+        await expect(page.getByRole('checkbox', { name: /Geavanceerd|Advanced/ })).toBeVisible()
+        await setTheme(page, theme)
+        await shoot(page, `02-verbinden-geavanceerd-checkbox-${theme}-${label}.png`)
+
         // Dark focus ring on Volgende — before token-error so the hashes differ.
         await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
         await page.getByLabel('API-adres').fill(standIn.baseUrl)
@@ -494,10 +500,6 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
         await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
         await setTheme(page, theme)
         await shoot(page, `02-verbinden-token-error-${theme}-${label}.png`)
-
-        // Geavanceerd shadcn Checkbox — 44px touch row (esp. at 390).
-        await setTheme(page, theme)
-        await shoot(page, `02-verbinden-geavanceerd-checkbox-${theme}-${label}.png`)
 
         // Geavanceerd on — Bron with Exact (oud) visible in nav; Moneybird (oud) removed
         await enableAdvancedMode(page)
