@@ -259,9 +259,10 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           await shoot(page, `08-overzicht-${theme}-${label}.png`)
 
           await clickNext(page)
-          await expect(page.getByRole('dialog')).toBeVisible()
+          const confirmDialog = page.getByRole('alertdialog')
+          await expect(confirmDialog).toBeVisible()
           await shoot(page, `08-overzicht-confirm-${theme}-${label}.png`)
-          await page.getByRole('button', { name: /Overzetten bevestigen|bevestigen/i }).click()
+          await confirmDialog.getByRole('button', { name: /Overzetten bevestigen/i }).click()
 
           await expect(
             page.getByRole('heading', {
