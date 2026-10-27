@@ -186,8 +186,10 @@ function ImportWizardPage() {
   const [taxMappings, setTaxMappings] = useState<Record<string, string>>({})
   /** Latest mappings + a save queue so parallel Bevestigen clicks merge. */
   const taxMappingsRef = useRef(taxMappings)
-  taxMappingsRef.current = taxMappings
   const persistChainRef = useRef(Promise.resolve(true))
+  useEffect(() => {
+    taxMappingsRef.current = taxMappings
+  }, [taxMappings])
   /** 0037-restored mappings awaiting Bevestigen this session (#105 PM). */
   const [previousTaxMappings, setPreviousTaxMappings] = useState<Record<string, string>>({})
   const [importProgress, setImportProgress] = useState(0)
@@ -375,33 +377,64 @@ function ImportWizardPage() {
     return report
   }
 
+  /** Render-safe save (no ref access). Finding cards may close over this. */
   async function persistMappings(next?: {
     accountMappings?: Record<string, string>
-    /** Full replacement of tax mappings (rare). */
     taxMappings?: Record<string, string>
-    /** Merge one or more rate confirmations into the latest known map. */
-    taxMappingPatch?: Record<string, string>
     importDecisions?: MoneybirdImportDecisions
   }) {
+    const previousTax = taxMappings
+    const attemptedTax = next?.taxMappings ?? taxMappings
+    if (next?.taxMappings !== undefined) setTaxMappings(attemptedTax)
+    if (next?.accountMappings !== undefined) setAccountMappings(next.accountMappings)
+    setTaxViolations({})
+    setBusy(true)
+    setError(null)
+    const result = await saveMoneybirdMappings({
+      data: {
+        accountMappings: next?.accountMappings ?? accountMappings,
+        taxMappings: attemptedTax,
+        importDecisions: next?.importDecisions ?? decisions,
+        idempotencyKey: crypto.randomUUID(),
+      },
+    })
+    setBusy(false)
+    if (!result.ok) {
+      setError(result.problem?.detail ?? t('common.unknownError'))
+      const applied = applyTaxMappingSaveFailure({
+        previous: previousTax,
+        attempted: attemptedTax,
+        violations: result.problem?.violations ?? [],
+        t,
+      })
+      setTaxViolations(applied.taxViolations)
+      setTaxMappings(applied.taxMappings)
+      return false
+    }
+    if (next?.importDecisions !== undefined) setDecisions(next.importDecisions)
+    await runPreview()
+    return true
+  }
+
+  /**
+   * Event-handler-only: merge rate confirms through a queue + ref so parallel
+   * Bevestigen clicks cannot clobber each other. Must not be closed over by
+   * finding-card actions (react-hooks/refs).
+   */
+  async function confirmTaxMappingPatch(patch: Record<string, string>): Promise<boolean> {
     const run = async (): Promise<boolean> => {
       const previousTax = taxMappingsRef.current
-      const attemptedTax =
-        next?.taxMappingPatch !== undefined
-          ? { ...previousTax, ...next.taxMappingPatch }
-          : (next?.taxMappings ?? previousTax)
-      if (next?.taxMappings !== undefined || next?.taxMappingPatch !== undefined) {
-        setTaxMappings(attemptedTax)
-        taxMappingsRef.current = attemptedTax
-      }
-      if (next?.accountMappings !== undefined) setAccountMappings(next.accountMappings)
+      const attemptedTax = { ...previousTax, ...patch }
+      setTaxMappings(attemptedTax)
+      taxMappingsRef.current = attemptedTax
       setTaxViolations({})
       setBusy(true)
       setError(null)
       const result = await saveMoneybirdMappings({
         data: {
-          accountMappings: next?.accountMappings ?? accountMappings,
+          accountMappings,
           taxMappings: attemptedTax,
-          importDecisions: next?.importDecisions ?? decisions,
+          importDecisions: decisions,
           idempotencyKey: crypto.randomUUID(),
         },
       })
@@ -419,7 +452,6 @@ function ImportWizardPage() {
         taxMappingsRef.current = applied.taxMappings
         return false
       }
-      if (next?.importDecisions !== undefined) setDecisions(next.importDecisions)
       await runPreview()
       return true
     }
@@ -744,6 +776,26 @@ function ImportWizardPage() {
     administrationId ?? conn?.administrationId,
   )
 
+  const otherBlockingCards = problems
+    .filter((problem) => problem.code !== 'tax_code_not_in_force')
+    .filter((problem) =>
+      blockingProblems.some((row) => row.code === problem.code && row.path === problem.path),
+    )
+    .map((problem) => moneybirdFindingCard(problem, 'problems', findingActions))
+  const infoCards = warnings.map((warning) =>
+    moneybirdFindingCard(warning, 'warnings', findingActions),
+  )
+  const reconciliationRows =
+    (preview?.['reconciliation'] as
+      | {
+          year: number
+          source: string
+          totalDebit: string | null
+          totalCredit: string | null
+          balanced: boolean | null
+        }[]
+      | undefined) ?? []
+
   return (
     <div
       className="mx-auto flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:items-start"
@@ -1044,14 +1096,12 @@ function ImportWizardPage() {
                         setAccountMappings(row.accountMappings)
                         setPreviousTaxMappings(row.taxMappings)
                         setTaxMappings({})
-                        taxMappingsRef.current = {}
                         setExcludedRateIds(new Set())
                         setExcludedByRate({})
                         setDecisions(row.importDecisions)
                       } else {
                         setPreviousTaxMappings({})
                         setTaxMappings({})
-                        taxMappingsRef.current = {}
                       }
                       await router.invalidate()
                       await runPreview()
@@ -1420,9 +1470,7 @@ function ImportWizardPage() {
                             variant="outline"
                             className="min-h-11 md:min-h-9"
                             onClick={() =>
-                              void persistMappings({
-                                taxMappingPatch: { [rate.moneybirdId]: previous },
-                              })
+                              void confirmTaxMappingPatch({ [rate.moneybirdId]: previous })
                             }
                           >
                             {t('wizard.btw.confirm')}
@@ -1443,10 +1491,8 @@ function ImportWizardPage() {
                             variant="outline"
                             className="min-h-11 md:min-h-9"
                             onClick={() =>
-                              void persistMappings({
-                                taxMappingPatch: {
-                                  [rate.moneybirdId]: rate.proposedCode!,
-                                },
+                              void confirmTaxMappingPatch({
+                                [rate.moneybirdId]: rate.proposedCode!,
                               })
                             }
                           >
@@ -1618,71 +1664,44 @@ function ImportWizardPage() {
                 </div>
               )
             })}
-            {(() => {
-              const otherBlocking = problems
-                .filter((problem) => problem.code !== 'tax_code_not_in_force')
-                .filter((problem) =>
-                  blockingProblems.some(
-                    (row) => row.code === problem.code && row.path === problem.path,
-                  ),
-                )
-                .map((problem) => moneybirdFindingCard(problem, 'problems', findingActions))
-              const infoCards = warnings.map((warning) =>
-                moneybirdFindingCard(warning, 'warnings', findingActions),
-              )
-              const reconciliation =
-                (preview?.['reconciliation'] as
-                  | {
-                      year: number
-                      source: string
-                      totalDebit: string | null
-                      totalCredit: string | null
-                      balanced: boolean | null
-                    }[]
-                  | undefined) ?? []
-              return (
-                <>
-                  {otherBlocking.length > 0 && (
-                    <section className="mb-6">
-                      <h2 className="mb-2 text-base">{t('wizard.problemen.blockingSection')}</h2>
-                      <ul role="list" className="space-y-3">
-                        {otherBlocking.map((card) => (
-                          <li key={`${card.code}:${card.path ?? ''}`}>
-                            <FindingCard {...card} showPath={advanced} />
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  )}
-                  {infoCards.length > 0 && (
-                    <section className="mb-6">
-                      <h2 className="mb-2 text-base">{t('wizard.problemen.infoSection')}</h2>
-                      <ul role="list" className="space-y-3">
-                        {infoCards.map((card) => (
-                          <li key={`${card.code}:${card.path ?? ''}`}>
-                            <FindingCard {...card} showPath={advanced} />
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  )}
-                  {reconciliation.length > 0 && (
-                    <section className="mb-6">
-                      <h2 className="mb-2 text-base">{t('wizard.problemen.reconciliation')}</h2>
-                      <ul className="text-muted-foreground space-y-1 text-sm tabular-nums">
-                        {reconciliation.map((row) => (
-                          <li key={row.year}>
-                            {row.year}: {row.source}
-                            {row.totalDebit !== null ? ` · D ${row.totalDebit}` : ''}
-                            {row.totalCredit !== null ? ` · C ${row.totalCredit}` : ''}
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  )}
-                </>
-              )
-            })()}
+            {otherBlockingCards.length > 0 && (
+              <section className="mb-6">
+                <h2 className="mb-2 text-base">{t('wizard.problemen.blockingSection')}</h2>
+                <ul role="list" className="space-y-3">
+                  {otherBlockingCards.map((card) => (
+                    <li key={`${card.code}:${card.path ?? ''}`}>
+                      <FindingCard {...card} showPath={advanced} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {infoCards.length > 0 && (
+              <section className="mb-6">
+                <h2 className="mb-2 text-base">{t('wizard.problemen.infoSection')}</h2>
+                <ul role="list" className="space-y-3">
+                  {infoCards.map((card) => (
+                    <li key={`${card.code}:${card.path ?? ''}`}>
+                      <FindingCard {...card} showPath={advanced} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {reconciliationRows.length > 0 && (
+              <section className="mb-6">
+                <h2 className="mb-2 text-base">{t('wizard.problemen.reconciliation')}</h2>
+                <ul className="text-muted-foreground space-y-1 text-sm tabular-nums">
+                  {reconciliationRows.map((row) => (
+                    <li key={row.year}>
+                      {row.year}: {row.source}
+                      {row.totalDebit !== null ? ` · D ${row.totalDebit}` : ''}
+                      {row.totalCredit !== null ? ` · C ${row.totalCredit}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             {blockingProblems.length === 0 && groupNotInForce(problems).length === 0 && (
               <p className="text-muted-foreground mt-4 text-sm">{t('wizard.problemen.allClear')}</p>
             )}
@@ -1927,8 +1946,8 @@ function ImportWizardPage() {
               : {})}
             onSave={async (choice) => {
               if (choice.vatCode === null) return false
-              const ok = await persistMappings({
-                taxMappingPatch: { [sheetRate.moneybirdId]: choice.vatCode },
+              const ok = await confirmTaxMappingPatch({
+                [sheetRate.moneybirdId]: choice.vatCode,
               })
               if (!ok) return false
               setSheetRateId(null)

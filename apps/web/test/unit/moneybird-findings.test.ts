@@ -219,7 +219,7 @@ describe('moneybird finding fix types', () => {
       {
         code: 'moneybird_vat_without_tax_rate',
         path: 'receipts.501',
-        messageKey: 'moneybird.vat_without_tax_rate' as FindingMessageKey,
+        messageKey: 'moneybird.vat_without_tax_rate',
         detail: { reference: 'BON-501', bookingDate: '2026-03-06' },
         message: 'VAT without rate',
       },
