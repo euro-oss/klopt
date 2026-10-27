@@ -495,9 +495,12 @@ test('capture resume, verbinden states, #92/#93, failures', async ({ browser }) 
         // Token error on step 2 (real Moneybird refuse) — not administratie.
         await page.getByLabel('Persoonlijk API-token').fill('definitely-wrong-token')
         await page.locator('button[data-focus="next"]').click()
-        await expect(page.getByRole('alert')).toContainText(/Moneybird accepteert dit token niet/i, {
-          timeout: 30_000,
-        })
+        await expect(page.getByRole('alert')).toContainText(
+          /Moneybird accepteert dit token niet/i,
+          {
+            timeout: 30_000,
+          },
+        )
         await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
         await setTheme(page, theme)
         await shoot(page, `02-verbinden-token-error-${theme}-${label}.png`)
@@ -647,7 +650,9 @@ test('capture resume, verbinden states, #92/#93, failures', async ({ browser }) 
  * proposals. Do not Bevestigen VH21 on Verlegd — that skips #95.
  */
 async function mapRatesForSelfAssessed(page: Page): Promise<void> {
-  const verlCard = page.locator('article').filter({ has: page.getByRole('heading', { name: /Verlegd/i }) })
+  const verlCard = page
+    .locator('article')
+    .filter({ has: page.getByRole('heading', { name: /Verlegd/i }) })
   await expect(verlCard).toBeVisible({ timeout: 30_000 })
   const openVerl =
     (await verlCard.getByRole('button', { name: 'Andere kiezen' }).count()) > 0
@@ -661,7 +666,9 @@ async function mapRatesForSelfAssessed(page: Page): Promise<void> {
     const expanded = await other.getAttribute('aria-expanded')
     if (expanded !== 'true') await other.click()
   }
-  const verl = sheet.getByRole('radio', { name: /VERL-ONTV|verlegd naar jou|Btw verlegd naar jou/i })
+  const verl = sheet.getByRole('radio', {
+    name: /VERL-ONTV|verlegd naar jou|Btw verlegd naar jou/i,
+  })
   await expect(verl.first()).toBeVisible({ timeout: 15_000 })
   await verl.first().click()
   const save = sheet.getByRole('button', { name: 'Opslaan' })
@@ -858,7 +865,9 @@ test('capture Klaar blocked (#95) and cheap follow-ups', async ({ browser }) => 
             const save = sheet.getByRole('button', { name: 'Opslaan' })
             if (await save.isEnabled()) {
               await save.click()
-              await expect(sheet).toHaveCount(0, { timeout: 60_000 }).catch(() => null)
+              await expect(sheet)
+                .toHaveCount(0, { timeout: 60_000 })
+                .catch(() => null)
             } else {
               await page.keyboard.press('Escape')
             }
@@ -876,14 +885,19 @@ test('capture Klaar blocked (#95) and cheap follow-ups', async ({ browser }) => 
             })
             await setTheme(page, theme)
             await shoot(page, `05-btw-excluded-undo-${theme}-${label}.png`)
-            await page.getByRole('button', { name: /ongedaan/i }).first().click()
+            await page
+              .getByRole('button', { name: /ongedaan/i })
+              .first()
+              .click()
           }
 
           await mapAllOpenRates(page)
           await clickNext(page)
-          await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
-            timeout: 30_000,
-          })
+          await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible(
+            {
+              timeout: 30_000,
+            },
+          )
           const accountConfirm = page.getByRole('button', { name: 'Bevestigen' })
           if ((await accountConfirm.count()) > 0) {
             const before = await accountConfirm.count()
@@ -990,7 +1004,9 @@ test('capture Klaar blocked (#95) and cheap follow-ups', async ({ browser }) => 
           await clickNext(page)
           if ((await page.locator('#wizard-next-why').count()) === 0) {
             await clickNext(page)
-            await expect(page.getByRole('heading', { name: /Klaar om over te zetten/ })).toBeVisible()
+            await expect(
+              page.getByRole('heading', { name: /Klaar om over te zetten/ }),
+            ).toBeVisible()
             if ((await page.getByText(/Al in Klopt/i).count()) > 0) {
               await setTheme(page, 'light')
               await shoot(page, `08-overzicht-al-in-klopt-light-desktop-1440.png`)

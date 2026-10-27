@@ -202,20 +202,32 @@ describe('connecting', () => {
 
   it('classifies 401/403 as invalid_token and 5xx/429/network as unreachable', () => {
     expect(
-      classifyMoneybirdConnectProbeError(new MoneybirdApiError('nope', 401, '/administrations.json')),
+      classifyMoneybirdConnectProbeError(
+        new MoneybirdApiError('nope', 401, '/administrations.json'),
+      ),
     ).toBe('invalid_token')
     expect(
-      classifyMoneybirdConnectProbeError(new MoneybirdApiError('nope', 403, '/administrations.json')),
+      classifyMoneybirdConnectProbeError(
+        new MoneybirdApiError('nope', 403, '/administrations.json'),
+      ),
     ).toBe('invalid_token')
     expect(
-      classifyMoneybirdConnectProbeError(new MoneybirdApiError('busy', 429, '/administrations.json')),
-    ).toBe('unreachable')
-    expect(
-      classifyMoneybirdConnectProbeError(new MoneybirdApiError('boom', 503, '/administrations.json')),
+      classifyMoneybirdConnectProbeError(
+        new MoneybirdApiError('busy', 429, '/administrations.json'),
+      ),
     ).toBe('unreachable')
     expect(
       classifyMoneybirdConnectProbeError(
-        new MoneybirdApiError('Moneybird could not be reached: timeout', 0, '/administrations.json'),
+        new MoneybirdApiError('boom', 503, '/administrations.json'),
+      ),
+    ).toBe('unreachable')
+    expect(
+      classifyMoneybirdConnectProbeError(
+        new MoneybirdApiError(
+          'Moneybird could not be reached: timeout',
+          0,
+          '/administrations.json',
+        ),
       ),
     ).toBe('unreachable')
     expect(classifyMoneybirdConnectProbeError(new Error('other'))).toBeNull()

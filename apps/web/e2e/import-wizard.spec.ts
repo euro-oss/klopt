@@ -258,7 +258,9 @@ test('#99 tax_code_not_in_force shows an honest dead end with a way forward', as
  * (do not Bevestigen VH21 on that rate — that would skip #95).
  */
 async function mapRatesForSelfAssessed(page: Page): Promise<void> {
-  const verlCard = page.locator('article').filter({ has: page.getByRole('heading', { name: /Verlegd/i }) })
+  const verlCard = page
+    .locator('article')
+    .filter({ has: page.getByRole('heading', { name: /Verlegd/i }) })
   await expect(verlCard).toBeVisible({ timeout: 30_000 })
   const openVerl =
     (await verlCard.getByRole('button', { name: 'Andere kiezen' }).count()) > 0
@@ -272,7 +274,9 @@ async function mapRatesForSelfAssessed(page: Page): Promise<void> {
     const expanded = await other.getAttribute('aria-expanded')
     if (expanded !== 'true') await other.click()
   }
-  const verl = sheet.getByRole('radio', { name: /VERL-ONTV|verlegd naar jou|Btw verlegd naar jou/i })
+  const verl = sheet.getByRole('radio', {
+    name: /VERL-ONTV|verlegd naar jou|Btw verlegd naar jou/i,
+  })
   await expect(verl.first()).toBeVisible({ timeout: 15_000 })
   await verl.first().click()
   const save = sheet.getByRole('button', { name: 'Opslaan' })
