@@ -18,6 +18,21 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Import wizard Phase 1: Moneybird (#100)
+
+A guided ten-step import wizard at **Importeren** walks Moneybird from source
+choice through connect, administration and years, preview, btw-codes, accounts,
+problems, summary, import and done. Exact is an honest dead-end on Bron until
+Phase 2. Per-administration mappings and wizard resume state live in migration
+**0037** and survive disconnect. Unselected years are simply not imported
+(`excludedYears`). #92/#93 empty VAT candidates get Open in Moneybird, Opnieuw
+lezen, Niet overzetten (undoable) and Geavanceerd-only Zelf kiezen. #99
+`tax_code_not_in_force` stays an honest dead end (Opnieuw lezen / Open in
+Moneybird / Naar Administratie en jaren) until editable `valid_from` ships.
+Old `/moneybird` and `/exact` pages stay under Geavanceerd for one release.
+Legal disconnect, dedup and import-confirm copy is verbatim; Legal-pending
+strings use stable `wizard.*` keys.
+
 ### Moneybird: VAT tagging and filing blocks (#94)
 
 Moneybird imports now post one tagged VAT control line per mapped tax code.

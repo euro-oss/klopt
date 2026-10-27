@@ -314,6 +314,21 @@ describe('finding fixes on the plan', () => {
     )
   })
 
+  it('skips unselected wizard years without raising period_locked (#100)', () => {
+    const base = snapshot()
+    const plan = planMoneybirdImport(
+      base,
+      options({
+        decisions: { excludedYears: ['2026'] },
+      }),
+    )
+    expect(plan.problems.map((item) => item.code)).not.toContain('period_locked')
+    expect(plan.entries.every((entry) => String(entry.year) !== '2026')).toBe(true)
+    expect(plan.excluded.some((id) => id.includes('sales_invoice') || id.includes('301'))).toBe(
+      true,
+    )
+  })
+
   it('applies a contact renumber override', () => {
     const base = snapshot()
     const plan = planMoneybirdImport(

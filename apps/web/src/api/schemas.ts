@@ -1252,6 +1252,8 @@ const moneybirdImportDecisions = z
     acknowledgedEmptyYears: z.array(z.string().trim().min(1).max(16)).optional(),
     excludedExternalIds: z.array(z.string().trim().min(1).max(80)).optional(),
     excludedLockedYears: z.array(z.string().trim().min(1).max(16)).optional(),
+    /** Wizard: unselected years are simply not imported (#100). */
+    excludedYears: z.array(z.string().trim().min(1).max(16)).optional(),
     contactNumberOverrides: z.record(z.string(), z.string().trim().min(1).max(40)).optional(),
     accountTypeOverrides: z
       .record(z.string(), z.enum(['asset', 'liability', 'equity', 'revenue', 'expense']))
@@ -1260,6 +1262,45 @@ const moneybirdImportDecisions = z
     deferredAttachmentIds: z.array(z.string().trim().min(1).max(40)).optional(),
   })
   .strict()
+
+export const importWizardStepSchema = z.enum([
+  'bron',
+  'verbinden',
+  'administratie',
+  'voorbeeld',
+  'btw',
+  'rekeningen',
+  'problemen',
+  'overzicht',
+  'importeren',
+  'klaar',
+])
+
+export const importWizardSourceSchema = z.enum(['moneybird', 'exact'])
+
+export const saveImportWizardStateBody = z.object({
+  source: importWizardSourceSchema.nullable(),
+  step: importWizardStepSchema,
+  administrationId: z.string().trim().min(1).max(40).nullable().optional(),
+  selectedYears: z.array(z.string().trim().min(1).max(16)).optional(),
+  previewHash: z.string().trim().min(1).max(128).nullable().optional(),
+  previewStale: z.boolean().optional(),
+})
+
+export type SaveImportWizardStateBody = z.infer<typeof saveImportWizardStateBody>
+
+export const resetImportWizardStateBody = z.object({
+  confirm: z.literal(true),
+})
+
+export type ResetImportWizardStateBody = z.infer<typeof resetImportWizardStateBody>
+
+export const importWizardMappingsQuery = z.object({
+  source: importWizardSourceSchema,
+  administrationId: z.string().trim().min(1).max(40),
+})
+
+export type ImportWizardMappingsQuery = z.infer<typeof importWizardMappingsQuery>
 
 export const saveMoneybirdMappingsBody = z.object({
   accountMappings: z.record(z.string(), z.string().trim().min(1).max(20)),

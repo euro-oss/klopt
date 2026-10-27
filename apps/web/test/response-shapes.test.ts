@@ -88,6 +88,12 @@ import {
   handleRunMoneybirdImport,
   handleSaveMoneybirdMappings,
 } from '../src/api/handlers/moneybird.js'
+import {
+  handleGetImportAdministrationMappings,
+  handleGetImportWizardState,
+  handleResetImportWizardState,
+  handleSaveImportWizardState,
+} from '../src/api/handlers/import-wizard.js'
 import { withEcbRates } from '@klopt/db'
 import {
   handleDiscardInboxItem,
@@ -533,6 +539,10 @@ describe('every collection read matches its published schema', () => {
       figure: 'account',
       accountNumber: '1300',
       fiscalYear: FISCAL_YEAR,
+    },
+    'importWizard.getMappings': {
+      source: 'moneybird',
+      administrationId: '123456',
     },
   }
 
@@ -1726,6 +1736,42 @@ describe('Moneybird, from connecting to disconnecting', () => {
       (await handleDisconnectMoneybird(await contextFor(key()))).body,
     )
   }, 60_000)
+})
+
+describe('Import wizard state and per-administration mappings (#100)', () => {
+  it('every operation the wizard has', async () => {
+    conforms('importWizard.getState', (await handleGetImportWizardState(await contextFor())).body)
+    conforms(
+      'importWizard.saveState',
+      (
+        await handleSaveImportWizardState(
+          await contextFor(key()),
+          schemas.saveImportWizardStateBody.parse({
+            source: 'moneybird',
+            step: 'btw',
+            administrationId: '123456',
+            selectedYears: ['2026'],
+          }),
+        )
+      ).body,
+    )
+    conforms(
+      'importWizard.getMappings',
+      (
+        await handleGetImportAdministrationMappings(
+          await contextFor(),
+          schemas.importWizardMappingsQuery.parse({
+            source: 'moneybird',
+            administrationId: '123456',
+          }),
+        )
+      ).body,
+    )
+    conforms(
+      'importWizard.resetState',
+      (await handleResetImportWizardState(await contextFor(key()))).body,
+    )
+  })
 })
 
 /**

@@ -135,6 +135,11 @@ export interface MoneybirdImportDecisions {
   readonly excludedExternalIds?: readonly string[]
   /** Locked years the user chose to leave out entirely. */
   readonly excludedLockedYears?: readonly string[]
+  /**
+   * Open (or any) years the user chose not to import in the wizard (#100).
+   * Unselected years are simply not imported — no blocking finding.
+   */
+  readonly excludedYears?: readonly string[]
   /** Contact renumbers after a collision ("Volgend vrij nummer"). */
   readonly contactNumberOverrides?: Readonly<Record<string, string>>
   /** Account-type picks after `derived_account_type`. */
@@ -851,6 +856,7 @@ export function planMoneybirdImport(
   const decisions = options.decisions ?? {}
   const excludedExternal = new Set(decisions.excludedExternalIds ?? [])
   const excludedLockedYears = new Set(decisions.excludedLockedYears ?? [])
+  const excludedYears = new Set(decisions.excludedYears ?? [])
   const acknowledgedEmptyYears = new Set(decisions.acknowledgedEmptyYears ?? [])
   const deferredAttachments = new Set(decisions.deferredAttachmentIds ?? [])
   const contactOverrides = decisions.contactNumberOverrides ?? {}
@@ -1242,8 +1248,13 @@ export function planMoneybirdImport(
       return
     }
     const year = String(entry.year)
+    // Wizard year selection (#100): unselected years are simply not imported.
+    if (excludedYears.has(year) || excludedLockedYears.has(year)) {
+      excluded.push(entry.externalId)
+      return
+    }
     if (lockedYears.has(year)) {
-      if (excludedLockedYears.has(year) || excludedExternal.has(entry.externalId)) {
+      if (excludedExternal.has(entry.externalId)) {
         excluded.push(entry.externalId)
         return
       }

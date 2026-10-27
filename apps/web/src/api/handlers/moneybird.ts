@@ -30,6 +30,7 @@ import {
   secretsAvailable,
   withEcbRates,
   withEcbRatesRead,
+  withImportWizard,
   withMoneybirdConnection,
   withMoneybirdConnectionRead,
   withMoneybirdImport,
@@ -84,6 +85,7 @@ function serialiseConnection(row: {
       acknowledgedEmptyYears: row.importDecisions.acknowledgedEmptyYears,
       excludedExternalIds: row.importDecisions.excludedExternalIds,
       excludedLockedYears: row.importDecisions.excludedLockedYears,
+      excludedYears: row.importDecisions.excludedYears,
       contactNumberOverrides: row.importDecisions.contactNumberOverrides,
       accountTypeOverrides: row.importDecisions.accountTypeOverrides,
       exchangeRates: row.importDecisions.exchangeRates,
@@ -235,19 +237,36 @@ export async function handleChooseMoneybirdAdministration(
       `This Moneybird token cannot reach administration ${body.administrationId}.`,
     )
   }
-  await withMoneybirdConnection(context.database, (repository) =>
-    repository.chooseAdministration({
+  // Restore per-administration mappings when present (#100 / 0037); otherwise
+  // keep whatever is on the connection (stale switch behaviour unchanged).
+  const saved = await withImportWizard(context.database, (wizard) =>
+    wizard.findMappings(context.entityId, 'moneybird', chosen.id),
+  )
+  await withMoneybirdConnection(context.database, async (repository) => {
+    await repository.chooseAdministration({
       entityId: context.entityId,
       id: chosen.id,
       name: chosen.name,
       currency: chosen.currency,
-    }),
-  )
+    })
+    if (saved !== null) {
+      await repository.saveMappings({
+        entityId: context.entityId,
+        accountMappings: saved.accountMappings,
+        taxMappings: saved.taxMappings,
+        importDecisions: saved.importDecisions,
+      })
+    }
+  })
   await recordAudit(context, {
     action: 'moneybird.chooseAdministration',
     resourceType: 'moneybird_connection',
     resourceId: context.entityId,
-    after: { administrationId: chosen.id, administrationName: chosen.name },
+    after: {
+      administrationId: chosen.id,
+      administrationName: chosen.name,
+      restoredMappings: saved !== null,
+    },
   })
   return {
     status: 200,
@@ -256,6 +275,7 @@ export async function handleChooseMoneybirdAdministration(
       administrationName: chosen.name,
       currency: chosen.currency,
       label: chosen.label,
+      restoredMappings: saved !== null,
     },
   }
 }
@@ -277,6 +297,7 @@ function decisionsFromBody(
     ...(body.excludedLockedYears === undefined
       ? {}
       : { excludedLockedYears: body.excludedLockedYears }),
+    ...(body.excludedYears === undefined ? {} : { excludedYears: body.excludedYears }),
     ...(body.contactNumberOverrides === undefined
       ? {}
       : { contactNumberOverrides: body.contactNumberOverrides }),
@@ -307,6 +328,9 @@ function auditDecisionFields(
   }
   if (decisions.excludedLockedYears !== undefined && decisions.excludedLockedYears.length > 0) {
     after['excludedLockedYears'] = decisions.excludedLockedYears.join(',')
+  }
+  if (decisions.excludedYears !== undefined && decisions.excludedYears.length > 0) {
+    after['excludedYears'] = decisions.excludedYears.join(',')
   }
   if (
     decisions.acknowledgedEmptyYears !== undefined &&
@@ -409,14 +433,30 @@ export async function handleSaveMoneybirdMappings(
     }
   }
 
-  await withMoneybirdConnection(context.database, (repository) =>
-    repository.saveMappings({
+  const savedConnection = await withMoneybirdConnection(context.database, async (repository) => {
+    await repository.saveMappings({
       entityId: context.entityId,
       accountMappings: body.accountMappings,
       taxMappings: body.taxMappings,
       ...(normalizedDecisions === undefined ? {} : { importDecisions: normalizedDecisions }),
-    }),
-  )
+    })
+    return repository.find(context.entityId)
+  })
+  // Persist per administration so disconnect keeps the choices (#100 / 0037).
+  const administrationId = savedConnection?.administrationId ?? null
+  if (administrationId !== null && savedConnection !== null) {
+    const decisions = normalizedDecisions ?? savedConnection.importDecisions
+    await withImportWizard(context.database, (wizard) =>
+      wizard.upsertMappings({
+        entityId: context.entityId,
+        source: 'moneybird',
+        administrationId,
+        accountMappings: body.accountMappings,
+        taxMappings: body.taxMappings,
+        importDecisions: decisions,
+      }),
+    )
+  }
   await recordAudit(context, {
     action: 'moneybird.saveMappings',
     resourceType: 'moneybird_connection',

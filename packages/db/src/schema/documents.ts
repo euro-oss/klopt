@@ -508,3 +508,54 @@ export const moneybirdAttachments = klopt.table(
     }),
   ],
 )
+
+/**
+ * Per-administration import mappings (issue #100 phase 1 / migration 0037).
+ *
+ * Survive disconnect. Keyed by (entity, source, administration).
+ */
+export const importAdministrationMappings = klopt.table(
+  'import_administration_mappings',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    source: text('source').notNull(),
+    administrationId: text('administration_id').notNull(),
+    accountMappings: jsonb('account_mappings').notNull().default({}),
+    taxMappings: jsonb('tax_mappings').notNull().default({}),
+    importDecisions: jsonb('import_decisions').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('import_administration_mappings_entity_source_admin').on(
+      table.entityId,
+      table.source,
+      table.administrationId,
+    ),
+  ],
+)
+
+/**
+ * Server-side import wizard resume state (issue #100 phase 1 / migration 0037).
+ * One row per entity.
+ */
+export const importWizardStates = klopt.table(
+  'import_wizard_states',
+  {
+    id: uuid('id').primaryKey(),
+    entityId: uuid('entity_id')
+      .notNull()
+      .references(() => entities.id),
+    source: text('source'),
+    step: text('step').notNull().default('bron'),
+    administrationId: text('administration_id'),
+    selectedYears: jsonb('selected_years').notNull().default([]),
+    previewHash: text('preview_hash'),
+    previewStale: boolean('preview_stale').notNull().default(false),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex('import_wizard_states_entity').on(table.entityId)],
+)

@@ -89,6 +89,7 @@ function asImportDecisions(value: unknown): MoneybirdImportDecisions {
     acknowledgedEmptyYears: asStringArray(row['acknowledgedEmptyYears']),
     excludedExternalIds: asStringArray(row['excludedExternalIds']),
     excludedLockedYears: asStringArray(row['excludedLockedYears']),
+    excludedYears: asStringArray(row['excludedYears']),
     contactNumberOverrides: asStringMap(row['contactNumberOverrides']),
     accountTypeOverrides,
     exchangeRates,

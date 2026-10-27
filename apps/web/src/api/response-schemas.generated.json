@@ -3140,6 +3140,273 @@
         ]
       }
     },
+    "importWizard.getMappings": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "mappings": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "$ref": "#/components/schemas/ImportSource"
+                  },
+                  "administrationId": {
+                    "type": "string"
+                  },
+                  "accountMappings": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "taxMappings": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "importDecisions": {
+                    "type": "object",
+                    "properties": {
+                      "confirmedCurrencyIsFunctional": {
+                        "type": "boolean"
+                      },
+                      "confirmedFiscalYearStart": {
+                        "type": "boolean"
+                      },
+                      "acknowledgedEmptyYears": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "excludedExternalIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "excludedLockedYears": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "excludedYears": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "contactNumberOverrides": {
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "accountTypeOverrides": {
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": {
+                          "$ref": "#/components/schemas/AccountType"
+                        }
+                      },
+                      "exchangeRates": {
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "rate": {
+                              "type": "string"
+                            },
+                            "source": {
+                              "$ref": "#/components/schemas/FxRateSourceKind"
+                            },
+                            "date": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "rate",
+                            "source",
+                            "date"
+                          ]
+                        }
+                      },
+                      "deferredAttachmentIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "updatedAt": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "source",
+                  "administrationId",
+                  "accountMappings",
+                  "taxMappings",
+                  "importDecisions",
+                  "updatedAt"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "mappings"
+        ]
+      }
+    },
+    "importWizard.getState": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "moneybird",
+                      "exact",
+                      null
+                    ]
+                  },
+                  "step": {
+                    "$ref": "#/components/schemas/ImportWizardStep"
+                  },
+                  "administrationId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "selectedYears": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "previewHash": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "previewStale": {
+                    "type": "boolean"
+                  },
+                  "updatedAt": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "source",
+                  "step",
+                  "administrationId",
+                  "selectedYears",
+                  "previewHash",
+                  "previewStale",
+                  "updatedAt"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      }
+    },
+    "importWizard.resetState": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cleared": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cleared"
+        ]
+      }
+    },
+    "importWizard.saveState": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "enum": [
+                  "moneybird",
+                  "exact",
+                  null
+                ]
+              },
+              "step": {
+                "$ref": "#/components/schemas/ImportWizardStep"
+              },
+              "administrationId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "selectedYears": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "previewHash": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "previewStale": {
+                "type": "boolean"
+              },
+              "updatedAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "source",
+              "step",
+              "administrationId",
+              "selectedYears",
+              "previewHash",
+              "previewStale",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      }
+    },
     "inbox.addSource": {
       "schema": {
         "type": "object",
@@ -6760,13 +7027,17 @@
           },
           "label": {
             "type": "string"
+          },
+          "restoredMappings": {
+            "type": "boolean"
           }
         },
         "required": [
           "administrationId",
           "administrationName",
           "currency",
-          "label"
+          "label",
+          "restoredMappings"
         ]
       }
     },
@@ -6918,6 +7189,12 @@
                         }
                       },
                       "excludedLockedYears": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "excludedYears": {
                         "type": "array",
                         "items": {
                           "type": "string"
@@ -15130,6 +15407,26 @@
         "vat_number_unproven",
         "proof_predates_period",
         "icp_mismatch"
+      ]
+    },
+    "ImportSource": {
+      "enum": [
+        "moneybird",
+        "exact"
+      ]
+    },
+    "ImportWizardStep": {
+      "enum": [
+        "bron",
+        "verbinden",
+        "administratie",
+        "voorbeeld",
+        "btw",
+        "rekeningen",
+        "problemen",
+        "overzicht",
+        "importeren",
+        "klaar"
       ]
     },
     "InboundFindingCode": {

@@ -1450,6 +1450,50 @@ export const moneybirdOperations: Readonly<Record<string, OperationDefinition>> 
 }
 
 /**
+ * Import wizard resume state and per-administration mapping reads (#100).
+ *
+ * Separate from Moneybird/Exact connect operations: the wizard remembers where
+ * you were and which years you picked, and mappings survive disconnect.
+ */
+export const importWizardOperations: Readonly<Record<string, OperationDefinition>> = {
+  getState: defineOperation({
+    id: 'importWizard.getState',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Where the import wizard left off for this administration, if anywhere.',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+
+  saveState: defineOperation({
+    id: 'importWizard.saveState',
+    kind: 'write',
+    permission: 'ledger:import',
+    summary: 'Save import wizard progress (source, step, years, preview hash).',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  resetState: defineOperation({
+    id: 'importWizard.resetState',
+    kind: 'write',
+    permission: 'ledger:import',
+    summary: 'Clear import wizard resume state so the next visit starts from Bron.',
+    agentExposure: 'none',
+    idempotent: true,
+  }),
+
+  getMappings: defineOperation({
+    id: 'importWizard.getMappings',
+    kind: 'read',
+    permission: 'ledger:read',
+    summary: 'Account and VAT mappings stored for one source administration (survive disconnect).',
+    agentExposure: 'read',
+    idempotent: true,
+  }),
+}
+
+/**
  * The two questions that are not about one resource (spec 10.3).
  *
  * `search` and `explainNumber` are the tools the spec names and the MCP server

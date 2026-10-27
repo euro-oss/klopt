@@ -1455,6 +1455,9 @@ export const nl = {
   'exactCallback.exactPage': 'Exact-pagina',
 
   'nav.moneybird': 'Moneybird',
+  'nav.importWizard': 'Importeren',
+  'nav.moneybirdAdvanced': 'Moneybird (oud)',
+  'nav.exactAdvanced': 'Exact Online (oud)',
   'moneybird.title': 'Moneybird',
   'moneybird.intro':
     'Zet een Moneybird-administratie over: grootboek, relaties, geboekte historie, bankmutaties en documenten.',
@@ -2614,6 +2617,160 @@ export const nl = {
   'finding.xaf.unknown_party': 'Verwijst naar onbekende relatie {custSupID}.',
   'finding.xaf.unknown_period': 'Periode {periodNumber} is niet aangegeven.',
   'finding.xaf.unknown_vat_code': 'Verwijst naar onbekende btw-code {vatID}.',
+
+  // Import wizard (#100 Phase 1). Legal VERBATIM strings are marked; Legal-pending
+  // keys are easy one-line swaps when Legal signs off (#99 / #92 copy).
+  'wizard.title': 'Boeken overzetten',
+  'wizard.steps': 'Stappen',
+  'wizard.stepOf': 'Stap {step} van {total}: {label}',
+  'wizard.step.bron': 'Bron',
+  'wizard.step.verbinden': 'Verbinden',
+  'wizard.step.administratie': 'Administratie en jaren',
+  'wizard.step.voorbeeld': 'Voorbeeld',
+  'wizard.step.btw': 'Btw-codes',
+  'wizard.step.rekeningen': 'Rekeningen en relaties',
+  'wizard.step.problemen': 'Problemen',
+  'wizard.step.overzicht': 'Overzicht',
+  'wizard.step.importeren': 'Importeren',
+  'wizard.step.klaar': 'Klaar',
+  'wizard.next': 'Volgende',
+  'wizard.back': 'Terug',
+  'wizard.connect': 'Verbinden',
+  'wizard.done': 'Klaar',
+  'wizard.resume.title': 'Welkom terug',
+  'wizard.resume.body': 'Je was bezig met {source}. We bewaarden je plek.',
+  'wizard.resume.continue': 'Doorgaan',
+  'wizard.resume.restart': 'Opnieuw beginnen',
+  'wizard.resume.restartConfirm': 'Je voortgang wissen en opnieuw beginnen?',
+  'wizard.resume.restartConfirmBody':
+    'Je keuzes voor btw-codes en rekeningen per administratie blijven bewaard. Alleen waar je was in de wizard wordt gewist.',
+  'wizard.bron.title': 'Waar komen je boeken vandaan?',
+  'wizard.bron.intro': 'Kies het pakket waaruit je wilt overzetten.',
+  'wizard.bron.moneybird.scope': 'Alle facturen, bonnetjes, bankmutaties en memoriaalposten.',
+  'wizard.bron.moneybird.notIncluded': 'Concepten en offertes komen niet mee.',
+  'wizard.bron.exact.scope':
+    'Rekeningschema, relaties en openstaande posten van één boekjaar, als beginbalans.',
+  'wizard.bron.exact.notIncluded':
+    'Losse boekingen komen niet mee. Documenten zet je daarna apart over, als je dat wilt.',
+  'wizard.bron.exact.deadEnd':
+    'Exact Online volgt in een latere versie. Tot die tijd gebruik je Exact onder Geavanceerd.',
+  'wizard.bron.exact.openLegacy': 'Naar Exact (oud)',
+  'wizard.verbinden.title': 'Verbind met Moneybird',
+  'wizard.verbinden.intro': 'Met een token uit Moneybird kunnen we je administratie lezen.',
+  'wizard.verbinden.tokenHelp': 'We bewaren het versleuteld en laten het nooit meer zien.',
+  'wizard.verbinden.tokenWhere': 'Waar vind ik dit?',
+  'wizard.verbinden.tokenSteps':
+    'Ga in Moneybird naar Instellingen → Externe koppelingen. Kies API-token aanmaken. Leesrechten zijn genoeg. Kopieer het token en plak het hierboven.',
+  'wizard.verbinden.baseUrlHelp': 'Alleen aanpassen als je een testomgeving gebruikt.',
+  'wizard.verbinden.connected': 'Verbonden met Moneybird',
+  'wizard.verbinden.connectedHint': 'We lezen alleen; in Moneybird verandert niets.',
+  'wizard.verbinden.noKeyTitle': 'Verbinden kan nog niet',
+  'wizard.verbinden.noKeyBody':
+    'Klopt kan je token niet veilig bewaren: er is geen KLOPT_ENCRYPTION_KEY ingesteld. Onversleuteld bewaren doen we niet.',
+  'wizard.verbinden.noKeyAdmin':
+    'Wie Klopt beheert, zet die sleutel eerst. Daarna kun je hier verder.',
+  // Legal soft line (encryption key) — VERBATIM
+  'wizard.verbinden.encryptionSoft':
+    'Raak je die sleutel kwijt of verander je hem, dan maak je opnieuw verbinding. Je boekhouding zelf is niet met die sleutel versleuteld.',
+  // Legal disconnect — VERBATIM
+  'wizard.verbinden.disconnectLegal':
+    'We verwijderen je token uit Klopt. In Moneybird blijft het geldig; trek het daar in als je het niet meer gebruikt. Wat al geïmporteerd is, blijft staan.',
+  // Post-0037 — VERBATIM
+  'wizard.verbinden.mappingsKept':
+    'Je keuzes voor btw-codes en rekeningen blijven bewaard voor deze administratie.',
+  'wizard.verbinden.disconnectConfirm': 'Verbinding verbreken?',
+  'wizard.verbinden.disconnectToast': 'Verbinding verbroken.',
+  'wizard.administratie.title': 'Welke administratie en welke jaren?',
+  'wizard.administratie.intro':
+    'Kies welke boeken we overzetten. Je kunt dit tot de import nog aanpassen.',
+  'wizard.administratie.admins': 'Administratie in Moneybird',
+  'wizard.administratie.years': 'Jaren',
+  'wizard.administratie.docs': 'Documenten',
+  'wizard.administratie.inKlopt': 'In Klopt',
+  'wizard.administratie.open': 'Open',
+  'wizard.administratie.closed': 'Afgesloten',
+  'wizard.administratie.closedHint': 'Dit jaar is afgesloten. We zetten het niet over.',
+  'wizard.administratie.selectedSummary': '{years} jaren · {docs} documenten',
+  'wizard.administratie.fetch': 'Administraties ophalen',
+  // Legal-pending (#99 year warning)
+  'wizard.year.notInForce': 'In {year} gelden de btw-codes van Klopt nog niet: {count} documenten.',
+  'wizard.year.notInForceHelp':
+    'Ze gelden vanaf het begin van je eerste boekjaar in Klopt. Je ziet ze per btw-code bij Problemen. Wil je nu alleen latere jaren overzetten? Vink dit jaar dan uit.',
+  'wizard.year.noFittingCode':
+    '{count} documenten hebben geen passende btw-code. Bij Btw-codes kies je wat Klopt ermee doet.',
+  'wizard.voorbeeld.title': 'Wat we gaan overzetten',
+  'wizard.voorbeeld.intro':
+    'Dit is een voorbeeld: er wordt nog niets overgezet. Controleer de aantallen.',
+  'wizard.voorbeeld.reread': 'Opnieuw lezen',
+  'wizard.voorbeeld.reading': 'Bezig met lezen…',
+  'wizard.btw.title': 'Welke btw-code hoort bij elk tarief?',
+  'wizard.btw.intro':
+    'Hier kan je aangifte stil fout gaan, dus we kiezen niets voor je. Een voorstel bevestig je zelf.',
+  'wizard.btw.confirm': 'Bevestigen',
+  'wizard.btw.chooseOther': 'Andere kiezen',
+  'wizard.btw.chooseCode': 'Btw-code kiezen',
+  'wizard.btw.suggested': 'Voorstel',
+  'wizard.btw.chosen': 'Gekozen',
+  'wizard.btw.previous': 'Vorige keuze',
+  'wizard.btw.needChoice': 'Kies een code',
+  'wizard.btw.noCode': 'Geen passende code',
+  'wizard.btw.excluded': 'Niet overzetten',
+  'wizard.btw.fixRateInMoneybird': 'Pas het tarief aan in Moneybird en lees opnieuw.',
+  'wizard.btw.excludeDocs': '{count} documenten niet overzetten',
+  'wizard.btw.excludeUndo': 'Ongedaan maken',
+  'wizard.btw.excludedBody':
+    'Deze {count} documenten zetten we niet over. Ze tellen niet mee voor dit tarief en staan in het overzicht onder ‘Niet overgezet’.',
+  'wizard.btw.chooseInTable': 'Zelf kiezen in de tabel',
+  'wizard.btw.leftToChoose': 'Nog {count} tarieven kiezen',
+  'wizard.btw.allChosen': 'Alle tarieven gekozen',
+  // Legal-pending (PM new strings; Legal re-check)
+  'wizard.btw.chooseFirst': 'Kies eerst voor {count} tarieven wat Klopt doet.',
+  'wizard.btw.refusedRate':
+    'Klopt weigert {code} voor dit tarief: het tarief is {ratePct} en {code} is {codePct}. Kies een code met hetzelfde percentage, of zet deze documenten niet over.',
+  'wizard.btw.refusedRateFootnote':
+    'Klopt controleert bij opslaan of het percentage past. PRIV21, losse voorbelasting-helften en correctiecodes staan hier niet tussen.',
+  'wizard.rekeningen.title': 'Waar komen je rekeningen terecht?',
+  'wizard.rekeningen.intro':
+    'Elke rekening uit Moneybird krijgt een plek in Klopt. Je vorige keuzes staan er al.',
+  'wizard.problemen.title': 'Wat we nog moeten oplossen',
+  'wizard.problemen.intro': 'Los blokkerende punten op voordat je overzet.',
+  'wizard.problemen.toAdministratie': 'Naar Administratie en jaren',
+  'wizard.problemen.allClear': 'Geen blokkerende problemen. Je kunt verder.',
+  'wizard.problemen.stillBlocked': 'Er houdt nog iets de import tegen.',
+  // Legal-pending (#99 per-code card)
+  'wizard.notInForce.title': 'Btw-code {code} geldt nog niet in {year}',
+  'wizard.notInForce.body':
+    '{count} documenten uit {year} gebruiken btw-code {code}, maar die geldt in Klopt pas vanaf {validFrom}. Er is hier nog geen oplossing. Zet je {year} nu niet over, vink het dan uit bij Administratie en jaren.',
+  'wizard.notInForce.boekhouder': 'De eigenaar of accountant kan de begindatum aanpassen.',
+  'wizard.overzicht.title': 'Klaar om over te zetten?',
+  'wizard.overzicht.intro': 'Controleer de samenvatting. Daarna begint de import.',
+  'wizard.overzicht.transfer': 'Overzetten',
+  'wizard.overzicht.skip': 'Niet overzetten',
+  'wizard.overzicht.confirm': 'Overzetten bevestigen',
+  'wizard.overzicht.confirmTitle': 'Boeken overzetten?',
+  // Legal Moneybird dedup — VERBATIM
+  'wizard.overzicht.dedupLegal':
+    'Wat je eerder uit deze administratie hebt overgezet, zetten we niet nog een keer over. Wat je zelf al in Klopt hebt geboekt, herkennen we niet: controleer dat op dubbele boekingen.',
+  // Legal import confirm — VERBATIM
+  'wizard.overzicht.undoLegal':
+    'Een import kun je niet in één keer ongedaan maken. Een fout herstel je per boeking met een correctie, eventueel samen met je accountant.',
+  'wizard.importeren.title': 'Bezig met overzetten',
+  'wizard.importeren.intro':
+    'Je kunt dit scherm sluiten; we gaan door. Kom je terug, dan zie je hier hoe ver we zijn.',
+  'wizard.importeren.progress': '{pct}% · {done} van {total}',
+  'wizard.klaar.title': 'Import voorbereid',
+  'wizard.klaar.intro': 'Dit is overgezet. Controleer je boeken en ga verder met boeken in Klopt.',
+  'wizard.klaar.nextVat': 'Naar btw-aangifte',
+  'wizard.klaar.nextEntries': 'Naar journaalposten',
+  'wizard.klaar.blocked': 'Sommige periodes kun je nog niet via Klopt indienen. Los dat eerst op.',
+  'wizard.klaar.noGreen': 'Nog niet alles is overgezet. Bekijk de problemen opnieuw.',
+  'wizard.status.pickSource': 'Kies een bron om verder te gaan',
+  'wizard.status.exactBlocked': 'Exact volgt later',
+  'wizard.status.pasteToken': 'Plak je token om verder te gaan',
+  'wizard.status.needAdmin': 'Kies een administratie en ten minste één jaar',
+  'wizard.status.needPreview': 'Lees eerst een voorbeeld',
+  'wizard.status.importing': 'Bezig met importeren…',
+  'wizard.status.done': 'Klaar',
 } as const
 
 export type MessageKey = keyof typeof nl

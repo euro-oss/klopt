@@ -205,6 +205,7 @@ export {
   discoveryOperations,
   exactOperations,
   moneybirdOperations,
+  importWizardOperations,
   inboxOperations,
   ledgerOperations,
   membershipOperations,

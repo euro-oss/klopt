@@ -33,6 +33,9 @@
       "name": "import"
     },
     {
+      "name": "importWizard"
+    },
+    {
       "name": "inbox"
     },
     {
@@ -229,6 +232,26 @@
           "vat_number_unproven",
           "proof_predates_period",
           "icp_mismatch"
+        ]
+      },
+      "ImportSource": {
+        "enum": [
+          "moneybird",
+          "exact"
+        ]
+      },
+      "ImportWizardStep": {
+        "enum": [
+          "bron",
+          "verbinden",
+          "administratie",
+          "voorbeeld",
+          "btw",
+          "rekeningen",
+          "problemen",
+          "overzicht",
+          "importeren",
+          "klaar"
         ]
       },
       "InboundFindingCode": {
@@ -8667,6 +8690,615 @@
         }
       }
     },
+    "/api/v1/import-wizard/mappings": {
+      "get": {
+        "operationId": "importWizard.getMappings",
+        "summary": "Account and VAT mappings stored for one source administration (survive disconnect).",
+        "tags": [
+          "importWizard"
+        ],
+        "x-klopt-permission": "ledger:read",
+        "x-klopt-kind": "read",
+        "x-klopt-agent-exposure": "read",
+        "responses": {
+          "200": {
+            "description": "The request succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mappings": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "source": {
+                              "$ref": "#/components/schemas/ImportSource"
+                            },
+                            "administrationId": {
+                              "type": "string"
+                            },
+                            "accountMappings": {
+                              "type": "object",
+                              "properties": {},
+                              "additionalProperties": {
+                                "type": "string"
+                              }
+                            },
+                            "taxMappings": {
+                              "type": "object",
+                              "properties": {},
+                              "additionalProperties": {
+                                "type": "string"
+                              }
+                            },
+                            "importDecisions": {
+                              "type": "object",
+                              "properties": {
+                                "confirmedCurrencyIsFunctional": {
+                                  "type": "boolean"
+                                },
+                                "confirmedFiscalYearStart": {
+                                  "type": "boolean"
+                                },
+                                "acknowledgedEmptyYears": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "excludedExternalIds": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "excludedLockedYears": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "excludedYears": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "contactNumberOverrides": {
+                                  "type": "object",
+                                  "properties": {},
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                },
+                                "accountTypeOverrides": {
+                                  "type": "object",
+                                  "properties": {},
+                                  "additionalProperties": {
+                                    "$ref": "#/components/schemas/AccountType"
+                                  }
+                                },
+                                "exchangeRates": {
+                                  "type": "object",
+                                  "properties": {},
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "rate": {
+                                        "type": "string"
+                                      },
+                                      "source": {
+                                        "$ref": "#/components/schemas/FxRateSourceKind"
+                                      },
+                                      "date": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "rate",
+                                      "source",
+                                      "date"
+                                    ]
+                                  }
+                                },
+                                "deferredAttachmentIds": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "updatedAt": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "source",
+                            "administrationId",
+                            "accountMappings",
+                            "taxMappings",
+                            "importDecisions",
+                            "updatedAt"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "mappings"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "moneybird",
+                "exact"
+              ]
+            }
+          },
+          {
+            "name": "administrationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/import-wizard/state": {
+      "delete": {
+        "operationId": "importWizard.resetState",
+        "summary": "Clear import wizard resume state so the next visit starts from Bron.",
+        "tags": [
+          "importWizard"
+        ],
+        "x-klopt-permission": "ledger:import",
+        "x-klopt-kind": "write",
+        "x-klopt-agent-exposure": "none",
+        "responses": {
+          "200": {
+            "description": "The request succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cleared": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "cleared"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/IdempotencyKeyRequired"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "description": "A client-chosen key. Retrying with the same key and the same body replays the original result rather than acting twice; the same key with a different body is a 409.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirm": {
+                    "type": "boolean",
+                    "const": true
+                  }
+                },
+                "required": [
+                  "confirm"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "importWizard.getState",
+        "summary": "Where the import wizard left off for this administration, if anywhere.",
+        "tags": [
+          "importWizard"
+        ],
+        "x-klopt-permission": "ledger:read",
+        "x-klopt-kind": "read",
+        "x-klopt-agent-exposure": "read",
+        "responses": {
+          "200": {
+            "description": "The request succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "source": {
+                              "enum": [
+                                "moneybird",
+                                "exact",
+                                null
+                              ]
+                            },
+                            "step": {
+                              "$ref": "#/components/schemas/ImportWizardStep"
+                            },
+                            "administrationId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "selectedYears": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "previewHash": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "previewStale": {
+                              "type": "boolean"
+                            },
+                            "updatedAt": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "source",
+                            "step",
+                            "administrationId",
+                            "selectedYears",
+                            "previewHash",
+                            "previewStale",
+                            "updatedAt"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "importWizard.saveState",
+        "summary": "Save import wizard progress (source, step, years, preview hash).",
+        "tags": [
+          "importWizard"
+        ],
+        "x-klopt-permission": "ledger:import",
+        "x-klopt-kind": "write",
+        "x-klopt-agent-exposure": "none",
+        "responses": {
+          "200": {
+            "description": "Replayed, or a dry run.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "type": "object",
+                      "properties": {
+                        "source": {
+                          "enum": [
+                            "moneybird",
+                            "exact",
+                            null
+                          ]
+                        },
+                        "step": {
+                          "$ref": "#/components/schemas/ImportWizardStep"
+                        },
+                        "administrationId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "selectedYears": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "previewHash": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "previewStale": {
+                          "type": "boolean"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "source",
+                        "step",
+                        "administrationId",
+                        "selectedYears",
+                        "previewHash",
+                        "previewStale",
+                        "updatedAt"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "type": "object",
+                      "properties": {
+                        "source": {
+                          "enum": [
+                            "moneybird",
+                            "exact",
+                            null
+                          ]
+                        },
+                        "step": {
+                          "$ref": "#/components/schemas/ImportWizardStep"
+                        },
+                        "administrationId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "selectedYears": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "previewHash": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "previewStale": {
+                          "type": "boolean"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "source",
+                        "step",
+                        "administrationId",
+                        "selectedYears",
+                        "previewHash",
+                        "previewStale",
+                        "updatedAt"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/IdempotencyKeyRequired"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "description": "A client-chosen key. Retrying with the same key and the same body replays the original result rather than acting twice; the same key with a different body is a 409.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "moneybird",
+                          "exact"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "step": {
+                    "type": "string",
+                    "enum": [
+                      "bron",
+                      "verbinden",
+                      "administratie",
+                      "voorbeeld",
+                      "btw",
+                      "rekeningen",
+                      "problemen",
+                      "overzicht",
+                      "importeren",
+                      "klaar"
+                    ]
+                  },
+                  "administrationId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "selectedYears": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 16
+                    }
+                  },
+                  "previewHash": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "previewStale": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "source",
+                  "step"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/imports/audit-file": {
       "post": {
         "operationId": "import.auditFile",
@@ -15314,13 +15946,17 @@
                     },
                     "label": {
                       "type": "string"
+                    },
+                    "restoredMappings": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "administrationId",
                     "administrationName",
                     "currency",
-                    "label"
+                    "label",
+                    "restoredMappings"
                   ]
                 }
               }
@@ -15347,13 +15983,17 @@
                     },
                     "label": {
                       "type": "string"
+                    },
+                    "restoredMappings": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "administrationId",
                     "administrationName",
                     "currency",
-                    "label"
+                    "label",
+                    "restoredMappings"
                   ]
                 }
               }
@@ -15636,6 +16276,12 @@
                                   }
                                 },
                                 "excludedLockedYears": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "excludedYears": {
                                   "type": "array",
                                   "items": {
                                     "type": "string"
@@ -18638,6 +19284,14 @@
                         }
                       },
                       "excludedLockedYears": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 16
+                        }
+                      },
+                      "excludedYears": {
                         "type": "array",
                         "items": {
                           "type": "string",

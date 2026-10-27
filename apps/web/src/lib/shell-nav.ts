@@ -91,16 +91,22 @@ export const NAVIGATION: readonly NavGroup[] = [
     key: 'nav.group.import',
     items: [
       {
-        to: '/exact',
-        key: 'nav.exact',
-        binding: 'go.exact',
+        to: '/importeren',
+        key: 'nav.importWizard',
+        binding: 'go.moneybird',
         roles: ['owner', 'accountant', 'bookkeeper'],
       },
       {
         to: '/moneybird',
-        key: 'nav.moneybird',
-        binding: 'go.moneybird',
+        key: 'nav.moneybirdAdvanced',
         roles: ['owner', 'accountant', 'bookkeeper'],
+        advancedOnly: true,
+      },
+      {
+        to: '/exact',
+        key: 'nav.exactAdvanced',
+        roles: ['owner', 'accountant', 'bookkeeper'],
+        advancedOnly: true,
       },
     ],
   },
