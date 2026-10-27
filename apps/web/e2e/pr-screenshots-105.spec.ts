@@ -440,14 +440,16 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
         await expect(restart).toBeVisible()
         await shoot(page, `01-restart-dialog-${theme}-${label}.png`)
         await restart.getByRole('button', { name: /Annuleren|Cancel/i }).click()
-        await page.getByRole('button', { name: /Doorgaan/i }).click()
-        await expect(
-          page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
-        ).toBeVisible({ timeout: 30_000 })
+        // Confirm restart so the next Verbinden shots start from a clean Bron.
+        await page.getByRole('button', { name: /Opnieuw beginnen/i }).click()
+        await expect(page.getByRole('alertdialog')).toBeVisible()
+        await page
+          .getByRole('alertdialog')
+          .getByRole('button', { name: /Opnieuw beginnen/i })
+          .click()
+        await wizardBronReady(page)
 
         // Verbinden: token error, connected, disconnect
-        await page.goto('/importeren')
-        await wizardBronReady(page)
         await page.getByRole('radio', { name: /Moneybird/ }).click()
         await clickNext(page)
         await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
