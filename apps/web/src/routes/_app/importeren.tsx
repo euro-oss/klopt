@@ -165,17 +165,25 @@ function ImportWizardPage() {
   const conn = connection.ok ? connection.data.connection : null
   const canStoreSecrets = connection.ok ? connection.data.canStoreSecrets === true : false
 
-  const [step, setStep] = useState<ImportWizardStep>(() =>
-    saved !== null && isImportWizardStep(saved.step) ? saved.step : 'bron',
-  )
+  // Resume card lives on the Bron step. Keep step at bron until Doorgaan /
+  // Opnieuw beginnen — otherwise a mid-flow remount jumps straight to btw and
+  // skips Welkom terug (#105 Designer).
+  const resuming =
+    saved !== null &&
+    isImportWizardStep(saved.step) &&
+    saved.step !== 'bron' &&
+    saved.step !== 'klaar'
+  const [step, setStep] = useState<ImportWizardStep>(() => {
+    if (resuming) return 'bron'
+    if (saved !== null && isImportWizardStep(saved.step)) return saved.step
+    return 'bron'
+  })
   const [source, setSource] = useState<ImportWizardSource | null>(
     () =>
       (saved?.source as ImportWizardSource | null) ??
       (bronParam === 'moneybird' || bronParam === 'exact' ? bronParam : null),
   )
-  const [showResume, setShowResume] = useState(
-    () => saved !== null && saved.step !== 'bron' && saved.step !== 'klaar',
-  )
+  const [showResume, setShowResume] = useState(resuming)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
