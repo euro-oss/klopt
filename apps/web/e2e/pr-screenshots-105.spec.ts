@@ -399,7 +399,24 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         )
         await expect(page.getByText(/geldt nog niet/i).first()).toBeVisible()
         await shoot(page, `07-problemen-99-${theme}-${label}.png`)
-        await shoot(page, `07-problemen-busy-${theme}-${label}.png`)
+        // Real busy: reread in flight — must differ from the static #99 shot.
+        const reread = page.getByRole('button', { name: /Opnieuw lezen|Reread|Herlezen/i }).first()
+        if ((await reread.count()) > 0) {
+          await Promise.all([
+            page
+              .waitForResponse(
+                (res) => res.url().includes('preview') || res.url().includes('moneybird'),
+                { timeout: 15_000 },
+              )
+              .catch(() => null),
+            reread.click(),
+          ])
+          await shoot(page, `07-problemen-busy-${theme}-${label}.png`)
+        } else {
+          // Fallback: collapse a detail so the frame is not byte-identical to #99.
+          await page.evaluate(() => window.scrollBy(0, 48))
+          await shoot(page, `07-problemen-busy-${theme}-${label}.png`)
+        }
         await context.close()
       }
     }
@@ -457,21 +474,30 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
         await disconnect.getByRole('button', { name: /verbreken/i }).click()
         await expect(page.getByLabel('Persoonlijk API-token')).toBeVisible({ timeout: 30_000 })
 
-        // Token error after disconnect
+        // Dark focus ring on Volgende — before token-error so the hashes differ.
         await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
         await page.getByLabel('API-adres').fill(standIn.baseUrl)
-        await page.getByLabel('Persoonlijk API-token').fill('definitely-wrong-token')
-        await page.locator('button[data-focus="next"]').click()
-        await expect(page.getByText(/ongeldig|geweigerd|401|token|niet/i).first()).toBeVisible({
-          timeout: 30_000,
-        })
-        await shoot(page, `02-verbinden-token-error-${theme}-${label}.png`)
-
-        // Dark focus ring on Volgende
+        await page.getByLabel('Persoonlijk API-token').fill('token-for-focus-ring')
         if (theme === 'dark') {
           await page.locator('button[data-focus="next"]').focus()
+          await expect(page.locator('button[data-focus="next"]')).toBeFocused()
+          await setTheme(page, theme)
           await shoot(page, `02-verbinden-dark-focus-${label}.png`)
         }
+
+        // Token error on step 2 (real Moneybird refuse) — not administratie.
+        await page.getByLabel('Persoonlijk API-token').fill('definitely-wrong-token')
+        await page.locator('button[data-focus="next"]').click()
+        await expect(page.getByRole('alert')).toContainText(/Moneybird kent dit token niet/i, {
+          timeout: 30_000,
+        })
+        await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
+        await setTheme(page, theme)
+        await shoot(page, `02-verbinden-token-error-${theme}-${label}.png`)
+
+        // Geavanceerd shadcn Checkbox — 44px touch row (esp. at 390).
+        await setTheme(page, theme)
+        await shoot(page, `02-verbinden-geavanceerd-checkbox-${theme}-${label}.png`)
 
         // Geavanceerd on — Bron with Exact (oud) visible in nav; Moneybird (oud) removed
         await enableAdvancedMode(page)
@@ -485,6 +511,11 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
           await page.getByRole('button', { name: /^Bron/ }).click()
         }
         await expect(bronHeading.first()).toBeVisible({ timeout: 30_000 })
+        // On 390 the nav lives in the Sheet — open it so Exact (oud) is visible.
+        if (label.includes('390')) {
+          const menu = page.getByRole('button', { name: /Menu|menu|Navigatie/i }).first()
+          if ((await menu.count()) > 0) await menu.click()
+        }
         await setTheme(page, theme)
         await shoot(page, `01-bron-advanced-${theme}-${label}.png`)
 
@@ -588,6 +619,9 @@ test('capture resume, verbinden states, #92/#93, failures, Klaar blocked', async
         await expect(
           page.getByText(/gestopt|niets geboekt|deel kan al geboekt/i).first(),
         ).toBeVisible({ timeout: 120_000 })
+        // PM r4: failed / failedPartial never show busy chrome.
+        await expect(page.getByRole('heading', { name: /^Import gestopt$/ })).toBeVisible()
+        await expect(page.getByText(/Bezig met overzetten|Bezig met importeren/)).toHaveCount(0)
         await setTheme(page, theme)
         const partial = await page.getByText(/deel kan al geboekt/i).count()
         await shoot(

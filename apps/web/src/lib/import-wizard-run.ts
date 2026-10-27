@@ -10,10 +10,13 @@ export type ImportRunState = 'pending' | 'running' | 'paused' | 'done' | 'failed
 export interface ImportRunReportView {
   readonly imported?: boolean
   readonly entriesPosted?: number | null
+  /** Opening-balance journals posted; booked but not Klaar documents (#105 PM). */
+  readonly openingEntriesPosted?: number | null
   readonly invoicesImported?: number | null
   readonly entriesReplayed?: number | null
   readonly entriesSkipped?: number | null
   readonly bankTransactionsCreated?: number | null
+  readonly opening?: { readonly year?: number } | null
   readonly problems?: readonly { readonly code: string }[]
   readonly warnings?: readonly { readonly code: string }[]
   readonly excluded?: readonly string[]
@@ -32,10 +35,17 @@ export interface ImportRunStatusView {
 export function bookedCountFromReport(report: ImportRunReportView | null | undefined): number {
   if (report === null || report === undefined) return 0
   const posted = report.entriesPosted ?? 0
+  const openings = report.openingEntriesPosted ?? 0
   const invoices = report.invoicesImported ?? 0
   const replayed = report.entriesReplayed ?? 0
   const bank = report.bankTransactionsCreated ?? 0
-  return Math.max(posted, 0) + Math.max(invoices, 0) + Math.max(replayed, 0) + Math.max(bank, 0)
+  return (
+    Math.max(posted, 0) +
+    Math.max(openings, 0) +
+    Math.max(invoices, 0) +
+    Math.max(replayed, 0) +
+    Math.max(bank, 0)
+  )
 }
 
 /**
@@ -43,11 +53,20 @@ export function bookedCountFromReport(report: ImportRunReportView | null | undef
  * report (invoices, journals, bank mutations, …), so Klaar matches step 8.
  * Prefer `entriesPosted` (one journal entry per transferred document); fall
  * back to typed counters when the flattened report omits it.
+ *
+ * Opening-balance journals are never documents on Klaar (#105 PM r4). New
+ * reports keep them in `openingEntriesPosted` (not in `entriesPosted`). Legacy
+ * reports that folded them into `entriesPosted` subtract one when `opening` is
+ * present.
  */
 export function klaarTransferCount(report: ImportRunReportView | null | undefined): number {
   if (report === null || report === undefined) return 0
   if (typeof report.entriesPosted === 'number' && report.entriesPosted >= 0) {
-    return report.entriesPosted
+    if (typeof report.openingEntriesPosted === 'number') {
+      return report.entriesPosted
+    }
+    const legacyOpening = report.opening !== null && report.opening !== undefined ? 1 : 0
+    return Math.max(0, report.entriesPosted - legacyOpening)
   }
   const invoices = report.invoicesImported ?? 0
   const bank = report.bankTransactionsCreated ?? 0
@@ -112,6 +131,18 @@ export function importFailureKind(
   if (status === null || status === undefined) return 'none'
   if (status.state !== 'failed') return 'none'
   return bookedCountFromReport(status.report) > 0 ? 'failedPartial' : 'failed'
+}
+
+/**
+ * Step 9 title/footer when the run has stopped (#105 PM r4).
+ * Never return busy/transferring copy for `failed` / `failedPartial`.
+ */
+export function importerenStoppedChrome(failureKind: ImportFailureKind): {
+  readonly stopped: boolean
+} {
+  return {
+    stopped: failureKind === 'failed' || failureKind === 'failedPartial',
+  }
 }
 
 export function isImportRunDone(status: ImportRunStatusView | null | undefined): boolean {

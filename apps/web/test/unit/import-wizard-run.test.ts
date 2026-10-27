@@ -3,6 +3,7 @@ import {
   bookedCountFromReport,
   countNotInForceDocuments,
   importFailureKind,
+  importerenStoppedChrome,
   importProgressPercent,
   klaarFilingBlocked,
   klaarTransferCount,
@@ -31,6 +32,25 @@ describe('import wizard run helpers (#105 Legal/PM)', () => {
     expect(klaarTransferCount({ entriesPosted: 4 })).toBe(4)
     expect(klaarTransferCount({ invoicesImported: 2, bankTransactionsCreated: 1 })).toBe(3)
     expect(klaarTransferCount(null)).toBe(0)
+  })
+
+  it('never counts the opening-balance entry as a Klaar document', () => {
+    // Worker excludes openings from entriesPosted and reports openingEntriesPosted.
+    expect(
+      klaarTransferCount({ entriesPosted: 3, openingEntriesPosted: 1, opening: { year: 2026 } }),
+    ).toBe(3)
+    expect(klaarTransferCount({ entriesPosted: 0, openingEntriesPosted: 1 })).toBe(0)
+    // Legacy reports that still folded the opening into entriesPosted.
+    expect(klaarTransferCount({ entriesPosted: 4, opening: { year: 2026 } })).toBe(3)
+    expect(klaarTransferCount({ entriesPosted: 1, opening: { year: 2026 } })).toBe(0)
+    // Opening alone is still booked for failedPartial detection.
+    expect(bookedCountFromReport({ entriesPosted: 0, openingEntriesPosted: 1 })).toBeGreaterThan(0)
+  })
+
+  it('marks importeren chrome stopped for failed and failedPartial', () => {
+    expect(importerenStoppedChrome('failed')).toEqual({ stopped: true })
+    expect(importerenStoppedChrome('failedPartial')).toEqual({ stopped: true })
+    expect(importerenStoppedChrome('none')).toEqual({ stopped: false })
   })
 
   it('counts distinct not-in-force documents per year (not yearDocs × rates)', () => {

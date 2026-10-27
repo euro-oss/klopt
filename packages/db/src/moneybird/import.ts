@@ -36,6 +36,8 @@ export interface MoneybirdCommitResult {
   readonly accountsCreated: number
   readonly contactsCreated: number
   readonly entriesPosted: number
+  /** Opening-balance journals posted; excluded from Klaar document count. */
+  readonly openingEntriesPosted: number
   readonly entriesReplayed: number
   readonly entriesSkipped: number
   readonly bankAccountsCreated: number
@@ -157,6 +159,7 @@ async function runImport(
   }
 
   let entriesPosted = 0
+  let openingEntriesPosted = 0
   let entriesReplayed = 0
   let entriesSkipped = 0
   let invoicesImported = 0
@@ -208,6 +211,7 @@ async function runImport(
     )
 
     if (posted.replayed) entriesReplayed += 1
+    else if (entry.isOpening === true) openingEntriesPosted += 1
     else entriesPosted += 1
 
     await imported.remember({
@@ -282,6 +286,7 @@ async function runImport(
     accountsCreated: newAccounts.length,
     contactsCreated,
     entriesPosted,
+    openingEntriesPosted,
     entriesReplayed,
     entriesSkipped,
     bankAccountsCreated,

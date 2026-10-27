@@ -254,6 +254,8 @@ export interface MoneybirdPlannedEntry {
   readonly financialAccountId: string | null
   readonly lines: readonly JournalLineInput[]
   readonly attachmentIds: readonly string[]
+  /** Moneybird `origin: opening` journal — booked, not a Klaar document. */
+  readonly isOpening?: boolean
 }
 
 export interface MoneybirdPlannedFinancialAccount {
@@ -1721,6 +1723,7 @@ export function planMoneybirdImport(
       )
     })
     const externalId = `journal:${journal.id}`
+    const isOpening = (journal.origin ?? '').toLowerCase() === 'opening'
     pushEntry({
       externalId,
       kind: 'journal',
@@ -1739,6 +1742,7 @@ export function planMoneybirdImport(
       financialAccountId: null,
       lines,
       attachmentIds: noteAttachment(journal.attachments, `journal.${journal.id}`),
+      isOpening,
     })
   }
 

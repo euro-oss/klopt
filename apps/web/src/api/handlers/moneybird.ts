@@ -116,6 +116,25 @@ export async function handleConnectMoneybird(context: RequestContext, body: Conn
   requirePermission(context, 'ledger:configure')
   requireIdempotencyKey(context)
 
+  // Validate against Moneybird before storing — a wrong token must not mark
+  // the wizard connected (#105 Designer r4).
+  const probe = createMoneybirdClient({ token: body.apiToken, base: body.baseUrl })
+  try {
+    await probe.administrations()
+  } catch (error: unknown) {
+    if (error instanceof MoneybirdApiError && (error.status === 401 || error.status === 403)) {
+      throw new ApiError('validation_failed', 'Moneybird refused this token.', [
+        { code: 'invalid_token', path: 'apiToken', message: 'Moneybird refused this token.' },
+      ])
+    }
+    if (error instanceof MoneybirdApiError) {
+      throw new ApiError('conflict', `Moneybird could not be reached: ${error.message}`, [
+        { code: 'moneybird_unreachable', path: 'apiToken', message: error.message },
+      ])
+    }
+    throw error
+  }
+
   try {
     await withMoneybirdConnection(context.database, (repository) =>
       repository.upsertToken({
@@ -976,6 +995,7 @@ function serialiseStoredReport(report: unknown) {
     accountsCreated: asNumber(commit['accountsCreated']),
     contactsCreated: asNumber(commit['contactsCreated']),
     entriesPosted: asNumber(commit['entriesPosted']),
+    openingEntriesPosted: asNumber(commit['openingEntriesPosted']),
     entriesReplayed: asNumber(commit['entriesReplayed']),
     entriesSkipped: asNumber(commit['entriesSkipped']),
     bankAccountsCreated: asNumber(commit['bankAccountsCreated']),

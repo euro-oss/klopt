@@ -7385,6 +7385,9 @@
                       "entriesPosted": {
                         "type": "null"
                       },
+                      "openingEntriesPosted": {
+                        "type": "null"
+                      },
                       "entriesReplayed": {
                         "type": "null"
                       },
@@ -7447,6 +7450,9 @@
                         "type": "number"
                       },
                       "entriesPosted": {
+                        "type": "number"
+                      },
+                      "openingEntriesPosted": {
                         "type": "number"
                       },
                       "entriesReplayed": {
@@ -7716,6 +7722,7 @@
                       "accountsCreated",
                       "contactsCreated",
                       "entriesPosted",
+                      "openingEntriesPosted",
                       "entriesReplayed",
                       "entriesSkipped",
                       "bankAccountsCreated",
@@ -8848,6 +8855,9 @@
                   "entriesPosted": {
                     "type": "null"
                   },
+                  "openingEntriesPosted": {
+                    "type": "null"
+                  },
                   "entriesReplayed": {
                     "type": "null"
                   },
@@ -8910,6 +8920,9 @@
                     "type": "number"
                   },
                   "entriesPosted": {
+                    "type": "number"
+                  },
+                  "openingEntriesPosted": {
                     "type": "number"
                   },
                   "entriesReplayed": {
@@ -9179,6 +9192,7 @@
                   "accountsCreated",
                   "contactsCreated",
                   "entriesPosted",
+                  "openingEntriesPosted",
                   "entriesReplayed",
                   "entriesSkipped",
                   "bankAccountsCreated",

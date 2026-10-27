@@ -182,6 +182,35 @@ test('unchecking a year leaves it out of the selection (#100 open question 1)', 
   }
 })
 
+test('a wrong Moneybird token stays on Verbinden with the token error (#105)', async ({ page }) => {
+  test.setTimeout(60_000)
+  const standIn = await startNullRateMoneybirdStandIn()
+  try {
+    await anAdministration(page)
+    await page.goto('/importeren')
+    await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
+    const moneybird = page.getByRole('radio', { name: /Moneybird/ })
+    await expect(moneybird).toBeEnabled({ timeout: 15_000 })
+    await moneybird.click()
+    await clickNext(page)
+    await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
+
+    await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+    await page.getByLabel('API-adres').fill(standIn.baseUrl)
+    await page.getByLabel('Persoonlijk API-token').fill('definitely-wrong-token')
+    await clickNext(page)
+
+    const alert = page.getByRole('alert')
+    await expect(alert).toContainText(/Moneybird kent dit token niet/i)
+    await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Welke administratie/ })).toHaveCount(0)
+    await expect(page.locator('button[data-focus="next"]')).toHaveAttribute('aria-disabled', 'true')
+    await expect(page.getByLabel('Persoonlijk API-token')).toHaveAttribute('aria-invalid', 'true')
+  } finally {
+    await standIn.close()
+  }
+})
+
 test('#99 tax_code_not_in_force shows an honest dead end with a way forward', async ({ page }) => {
   test.setTimeout(180_000)
   const standIn = await startPreValidFromMoneybirdStandIn()

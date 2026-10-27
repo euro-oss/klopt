@@ -129,18 +129,38 @@ afterAll(async () => {
 })
 
 describe('connecting', () => {
-  it('stores the token encrypted and does not call Moneybird yet', async () => {
+  it('validates the token against Moneybird then stores it encrypted', async () => {
     const { token } = await newEntity()
     const moneybird = fakeMoneybird()
     await connect(token)
-    expect(moneybird.asked).toEqual([])
+    expect(moneybird.asked.some((url) => url.includes('/administrations.json'))).toBe(true)
     const body = (await handleGetMoneybirdConnection(await context(token))).body
     expect(body.connection).toMatchObject({ connected: true, ready: false, administrationId: null })
     expect(JSON.stringify(body)).not.toContain('mb-test-token')
   })
 
+  it('refuses an invalid Moneybird token without marking connected', async () => {
+    const { token } = await newEntity()
+    fakeMoneybird()
+    await expect(
+      handleConnectMoneybird(
+        await context(token, crypto.randomUUID()),
+        connectMoneybirdBody.parse({
+          apiToken: 'definitely-wrong-token',
+          baseUrl: 'https://moneybird.com/api/v2',
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'validation_failed',
+      violations: [expect.objectContaining({ code: 'invalid_token', path: 'apiToken' })],
+    })
+    const body = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(body.connection).toBeNull()
+  })
+
   it('refuses to store a token without an encryption key', async () => {
     const { token } = await newEntity()
+    fakeMoneybird()
     const key = process.env['KLOPT_ENCRYPTION_KEY']
     delete process.env['KLOPT_ENCRYPTION_KEY']
     try {
@@ -551,6 +571,9 @@ describe('the import job', () => {
     expect(year?.differences).toEqual([])
 
     expect(status.report.opening).toMatchObject({ year: 2026 })
+    // Opening-balance journal is booked separately — never a Klaar document (#105 PM).
+    expect(status.report.openingEntriesPosted).toBe(1)
+    expect(status.report.entriesPosted).toBeGreaterThan(0)
     const opening = Object.fromEntries(
       (status.report.opening?.accounts ?? []).map((row) => [row.accountNumber, row]),
     )

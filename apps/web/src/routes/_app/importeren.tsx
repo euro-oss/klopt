@@ -32,6 +32,7 @@ import {
 import {
   countNotInForceDocuments,
   importFailureKind,
+  importerenStoppedChrome,
   importProgressPercent,
   isImportRunDone,
   klaarFilingBlocked,
@@ -188,6 +189,8 @@ function ImportWizardPage() {
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [apiToken, setApiToken] = useState('')
+  /** After an invalid token, Volgende stays off until the field changes (#105). */
+  const [tokenRefused, setTokenRefused] = useState(false)
   const [baseUrl, setBaseUrl] = useState('https://moneybird.com/api/v2')
   const [disconnectOpen, setDisconnectOpen] = useState(false)
   const [restartOpen, setRestartOpen] = useState(false)
@@ -700,6 +703,8 @@ function ImportWizardPage() {
     }
   })()
 
+  const importStopped = importerenStoppedChrome(failureKind).stopped
+
   const nextReason = (() => {
     if (canNext) return null
     if (step === 'bron' && source === 'exact') return t('wizard.status.exactBlocked')
@@ -714,7 +719,9 @@ function ImportWizardPage() {
       return plural('wizard.btw.chooseFirst', left)
     }
     if (step === 'problemen') return t('wizard.problemen.stillBlocked')
-    if (step === 'importeren') return t('wizard.status.importing')
+    if (step === 'importeren') {
+      return importStopped ? t('wizard.importeren.stoppedFooter') : t('wizard.status.importing')
+    }
     return null
   })()
 
@@ -733,9 +740,18 @@ function ImportWizardPage() {
         })
         setBusy(false)
         if (!result.ok) {
-          setError(result.problem?.detail ?? t('common.unknownError'))
+          const invalid = (result.problem?.violations ?? []).some(
+            (row) => row.code === 'invalid_token',
+          )
+          setError(
+            invalid
+              ? t('wizard.verbinden.tokenInvalid')
+              : (result.problem?.detail ?? t('common.unknownError')),
+          )
+          if (invalid) setTokenRefused(true)
           return
         }
+        setTokenRefused(false)
         setApiToken('')
         await router.invalidate()
       }
@@ -972,26 +988,21 @@ function ImportWizardPage() {
       </aside>
       <div className="min-w-0 flex-1">
         {/*
-          Same Geavanceerd preference as the shell (#44). On this screen so
-          toggling here updates the account-menu switch without a reload — and so
-          e2e can assert the single source of truth without a live Moneybird token.
+          Same Geavanceerd preference as the shell (#44). shadcn Checkbox in a
+          44px touch row (#105 Designer r4 / PM) so 390 hits the target.
         */}
-        <div className="mb-4 flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={advanced}
-              disabled={!hydrated}
-              aria-busy={advancedSaving || undefined}
-              onChange={(event) => {
-                void setAdvanced(event.target.checked)
-              }}
-              className="border-border size-4 rounded-none"
-            />
-            {t('shell.advanced')}
-          </label>
-        </div>
-        {error !== null && error !== '' && step !== 'importeren' && (
+        <label className="mb-4 flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+          <Checkbox
+            checked={advanced}
+            disabled={!hydrated}
+            aria-busy={advancedSaving || undefined}
+            onCheckedChange={(value) => {
+              void setAdvanced(value === true)
+            }}
+          />
+          {t('shell.advanced')}
+        </label>
+        {error !== null && error !== '' && step !== 'importeren' && step !== 'verbinden' && (
           <p role="alert" className="text-destructive mb-4 text-sm">
             {error}
           </p>
@@ -1212,14 +1223,26 @@ function ImportWizardPage() {
                     spellCheck={false}
                     disabled={!hydrated || !canStoreSecrets}
                     value={apiToken}
-                    onChange={(event) => setApiToken(event.target.value)}
+                    onChange={(event) => {
+                      setApiToken(event.target.value)
+                      if (error !== null) setError(null)
+                      if (tokenRefused) setTokenRefused(false)
+                    }}
                     className="field-control mt-1.5 tabular-nums"
-                    aria-describedby="token-help"
+                    aria-invalid={error !== null && error !== '' ? true : undefined}
+                    aria-describedby={
+                      error !== null && error !== '' ? 'token-help token-error' : 'token-help'
+                    }
                   />
                 </label>
                 <p id="token-help" className="text-muted-foreground text-sm">
                   {t('wizard.verbinden.tokenHelp')}
                 </p>
+                {error !== null && error !== '' && (
+                  <p id="token-error" role="alert" className="text-destructive text-sm">
+                    {error}
+                  </p>
+                )}
                 <details className="border-border border px-4 py-3 text-sm">
                   <summary className="-mx-4 -my-3 flex min-h-11 cursor-pointer items-center px-4 font-medium">
                     {t('wizard.verbinden.tokenWhere')}
@@ -1249,8 +1272,16 @@ function ImportWizardPage() {
               showBack
               onBack={() => void handleBack()}
               nextLabel={connected ? t('wizard.next') : t('wizard.connect')}
-              nextDisabled={connected ? false : !canStoreSecrets || apiToken === '' || busy}
-              nextReason={!canStoreSecrets ? t('wizard.verbinden.noKeyTitle') : null}
+              nextDisabled={
+                connected ? false : !canStoreSecrets || apiToken === '' || busy || tokenRefused
+              }
+              nextReason={
+                !canStoreSecrets
+                  ? t('wizard.verbinden.noKeyTitle')
+                  : tokenRefused
+                    ? t('wizard.verbinden.tokenInvalid')
+                    : null
+              }
               onNext={() => void handleNext()}
             />
           </>
@@ -1710,49 +1741,68 @@ function ImportWizardPage() {
                           </AttentionBlock>
                         </div>
                       ) : showPrevious && previous !== undefined ? (
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <p className="text-muted-foreground text-sm tabular-nums">{previous}</p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="min-h-11 md:min-h-9"
-                            onClick={() =>
-                              void confirmTaxMappingPatch({ [rate.moneybirdId]: previous })
-                            }
-                          >
-                            {t('wizard.btw.confirm')}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="min-h-11 md:min-h-9"
-                            onClick={() => setSheetRateId(rate.moneybirdId)}
-                          >
-                            {t('wizard.btw.chooseOther')}
-                          </Button>
+                        <div className="mt-3 space-y-3">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {kloptTaxRules.find((rule) => rule.code === previous)?.description ??
+                                previous}
+                            </p>
+                            <p className="text-muted-foreground text-xs tabular-nums">{previous}</p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="min-h-11 md:min-h-9"
+                              onClick={() =>
+                                void confirmTaxMappingPatch({ [rate.moneybirdId]: previous })
+                              }
+                            >
+                              {t('wizard.btw.confirm')}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="min-h-11 md:min-h-9"
+                              onClick={() => setSheetRateId(rate.moneybirdId)}
+                            >
+                              {t('wizard.btw.chooseOther')}
+                            </Button>
+                          </div>
                         </div>
                       ) : suggested && rate.proposedCode !== null ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="min-h-11 md:min-h-9"
-                            onClick={() =>
-                              void confirmTaxMappingPatch({
-                                [rate.moneybirdId]: rate.proposedCode!,
-                              })
-                            }
-                          >
-                            {t('wizard.btw.confirm')}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="min-h-11 md:min-h-9"
-                            onClick={() => setSheetRateId(rate.moneybirdId)}
-                          >
-                            {t('wizard.btw.chooseOther')}
-                          </Button>
+                        <div className="mt-3 space-y-3">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {kloptTaxRules.find((rule) => rule.code === rate.proposedCode)
+                                ?.description ?? rate.proposedCode}
+                            </p>
+                            <p className="text-muted-foreground text-xs tabular-nums">
+                              {rate.proposedCode}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="min-h-11 md:min-h-9"
+                              onClick={() =>
+                                void confirmTaxMappingPatch({
+                                  [rate.moneybirdId]: rate.proposedCode!,
+                                })
+                              }
+                            >
+                              {t('wizard.btw.confirm')}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="min-h-11 md:min-h-9"
+                              onClick={() => setSheetRateId(rate.moneybirdId)}
+                            >
+                              {t('wizard.btw.chooseOther')}
+                            </Button>
+                          </div>
                         </div>
                       ) : confirmed === undefined ? (
                         <div className="mt-3">
@@ -2161,7 +2211,9 @@ function ImportWizardPage() {
               title={
                 imported && failureKind === 'none'
                   ? t('wizard.status.done')
-                  : t('wizard.importeren.title')
+                  : importStopped
+                    ? t('wizard.importeren.stoppedTitle')
+                    : t('wizard.importeren.title')
               }
               {...(importFailed || failureKind !== 'none'
                 ? {}

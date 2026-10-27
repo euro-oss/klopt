@@ -2570,6 +2570,9 @@ export const nl = {
   'wizard.verbinden.title': 'Verbind met Moneybird',
   'wizard.verbinden.intro': 'Met een token uit Moneybird kunnen we je administratie lezen.',
   'wizard.verbinden.tokenHelp': 'We bewaren het versleuteld en laten het nooit meer zien.',
+  // Plain je-voice for Legal (#105 Designer r4 / PM).
+  'wizard.verbinden.tokenInvalid':
+    'Moneybird kent dit token niet. Maak in Moneybird een nieuw token aan en plak het hier.',
   'wizard.verbinden.tokenWhere': 'Waar vind ik dit?',
   'wizard.verbinden.tokenSteps':
     'Ga in Moneybird naar Instellingen → Externe koppelingen. Kies API-token aanmaken. Leesrechten zijn genoeg. Kopieer het token en plak het hierboven.',
@@ -2712,6 +2715,9 @@ export const nl = {
   'wizard.overzicht.undoLegal':
     'Een import kun je niet in één keer ongedaan maken. Een fout herstel je per boeking met een correctie, eventueel samen met je accountant.',
   'wizard.importeren.title': 'Bezig met overzetten',
+  // Plain wording for Legal (#105 PM r4) — failed / failedPartial on step 9.
+  'wizard.importeren.stoppedTitle': 'Import gestopt',
+  'wizard.importeren.stoppedFooter': 'Import gestopt',
   'wizard.importeren.intro':
     'Je kunt dit scherm sluiten; we gaan door. Kom je terug, dan zie je hier hoe ver we zijn.',
   'wizard.importeren.progress': '{pct}% · {done} van {total}',

@@ -2195,6 +2195,9 @@ export const en: Record<MessageKey, string> = {
   'wizard.verbinden.title': 'Connect to Moneybird',
   'wizard.verbinden.intro': 'With a token from Moneybird we can read your administration.',
   'wizard.verbinden.tokenHelp': 'We store it encrypted and never show it again.',
+  // Plain je-voice for Legal (#105 Designer r4 / PM).
+  'wizard.verbinden.tokenInvalid':
+    "Moneybird doesn't know this token. Create a new token in Moneybird and paste it here.",
   'wizard.verbinden.tokenWhere': 'Where do I find this?',
   'wizard.verbinden.tokenSteps':
     'In Moneybird go to Settings → External integrations. Create an API token. Read access is enough. Copy the token and paste it above.',
@@ -2331,6 +2334,9 @@ export const en: Record<MessageKey, string> = {
   'wizard.overzicht.undoLegal':
     'You cannot undo an import in one go. You fix a mistake per booking with a correction, possibly together with your accountant.',
   'wizard.importeren.title': 'Transferring',
+  // Plain wording for Legal (#105 PM r4) — failed / failedPartial on step 9.
+  'wizard.importeren.stoppedTitle': 'Import stopped',
+  'wizard.importeren.stoppedFooter': 'Import stopped',
   'wizard.importeren.intro':
     'You can close this screen; we continue. When you return, you see how far we are.',
   'wizard.importeren.progress': '{pct}% · {done} of {total}',
