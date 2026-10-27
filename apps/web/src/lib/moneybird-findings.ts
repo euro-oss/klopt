@@ -168,7 +168,9 @@ function fixFor(problem: MoneybirdProblem, actions: MoneybirdFindingActions): Fi
       return {
         type: 'guided',
         label: labels.reread,
-        onOpen: () => actions.onRereadResource(problem),
+        onOpen: () => {
+          void actions.onRereadResource(problem)
+        },
         steps: [labels.stepPermissions, labels.stepOpenMoneybird, labels.stepReread],
       }
     case 'trial_balance_empty':

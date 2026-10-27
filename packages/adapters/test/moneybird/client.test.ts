@@ -55,7 +55,7 @@ describe('the Moneybird client', () => {
     const sleep = vi.fn().mockResolvedValue(undefined)
     const moneybird = createMoneybirdClient({
       token: 'mb-token',
-      fetch: fetch as unknown as typeof globalThis.fetch,
+      fetch: fetch as typeof globalThis.fetch,
       sleep,
       rateLimitRetries: 1,
       maxRetryAfterMs: 500,
