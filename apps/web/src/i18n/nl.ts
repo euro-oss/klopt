@@ -2866,6 +2866,7 @@ export const nl = {
   'wizard.problemen.reconciliationRead': 'gelezen',
   'wizard.problemen.reconciliationSkipped': 'overgeslagen',
   'wizard.problemen.reconciliationFailed': 'mislukt',
+  'wizard.problemen.reconciliationAmount': 'debet {amount}',
   'wizard.problemen.blockingSection': 'Houdt de import tegen',
   'wizard.problemen.infoSection': 'Om te weten',
   'wizard.rekeningen.confirm': 'Bevestigen',

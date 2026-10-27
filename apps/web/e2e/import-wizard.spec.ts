@@ -132,6 +132,25 @@ test('i m opens the import wizard under Importeren', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
 })
 
+test('picking Exact on Bron updates ?bron= and the page title', async ({ page }) => {
+  await anAdministration(page)
+  await page.goto('/importeren')
+  await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
+  const moneybird = page.getByRole('radio', { name: /Moneybird/ })
+  await expect(moneybird).toBeEnabled({ timeout: 15_000 })
+  await moneybird.click()
+  await expect(page).toHaveURL(/bron=moneybird/)
+  await expect(page.locator('header').getByText('Moneybird', { exact: true })).toBeVisible()
+
+  await page.getByRole('radio', { name: /Exact Online/ }).click()
+  await expect(page).toHaveURL(/bron=exact/)
+  await expect(page.getByText(/kan nog niet in deze wizard/i)).toBeVisible()
+  await expect(page.locator('header').getByText('Exact Online', { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('navigation').getByRole('link', { name: /^Exact Online(?! \(oud\))/ }),
+  ).toHaveAttribute('aria-current', 'page')
+})
+
 test('Moneybird wizard happy path reaches Administratie with years (#100)', async ({ page }) => {
   test.setTimeout(120_000)
   const standIn = await startNullRateMoneybirdStandIn()

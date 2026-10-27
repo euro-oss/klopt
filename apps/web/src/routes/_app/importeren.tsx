@@ -30,6 +30,7 @@ import {
   WizardStepHeader,
 } from '~/components/import-wizard/wizard-shell'
 import {
+  countNotInForceDocuments,
   importFailureKind,
   importProgressPercent,
   isImportRunDone,
@@ -153,6 +154,7 @@ function ImportWizardPage() {
     taxCodes: taxCodesResult,
   } = Route.useLoaderData()
   const { bron: bronParam } = Route.useSearch()
+  const navigate = Route.useNavigate()
   const { t, plural, tag } = useT()
   const router = useRouter()
   const hydrated = useHydrated()
@@ -320,55 +322,6 @@ function ImportWizardPage() {
     return map
   }, [taxCodesResult])
 
-  const notInForceByYear = useMemo(() => {
-    const map = new Map<string, { count: number; codes: Set<string> }>()
-    for (const problem of problems) {
-      if (problem.code !== 'tax_code_not_in_force') continue
-      const date = problem.detail['bookingDate'] ?? ''
-      const year = date.slice(0, 4)
-      if (year.length !== 4) continue
-      const row = map.get(year) ?? { count: 0, codes: new Set<string>() }
-      row.count += 1
-      const code = problem.detail['taxCode']
-      if (code) row.codes.add(code)
-      map.set(year, row)
-    }
-    // First visit: derive from tax-code validFrom + proposed/previous/mapped codes
-    // before tax_code_not_in_force problems exist (Designer #105).
-    if (map.size === 0) {
-      for (const year of previewYears) {
-        const yearStart = `${year}-01-01`
-        const codes = new Set<string>()
-        let count = 0
-        for (const rate of usedRates) {
-          const code =
-            taxMappings[rate.moneybirdId] ??
-            previousTaxMappings[rate.moneybirdId] ??
-            rate.proposedCode ??
-            rate.candidates?.[0]?.code ??
-            null
-          if (code === null || code === '') continue
-          const validFrom = taxCodeValidFromIso.get(code)
-          if (validFrom === undefined || validFrom <= yearStart) continue
-          codes.add(code)
-          count += yearDocuments.filter((doc) => String(doc.year) === year).length
-        }
-        if (codes.size > 0 && count > 0) {
-          map.set(year, { count, codes })
-        }
-      }
-    }
-    return map
-  }, [
-    problems,
-    previewYears,
-    usedRates,
-    taxMappings,
-    previousTaxMappings,
-    taxCodeValidFromIso,
-    yearDocuments,
-  ])
-
   function docsForRate(rateId: string): string[] {
     const problem = [...problems, ...warnings].find(
       (row) =>
@@ -387,6 +340,50 @@ function ImportWizardPage() {
       )
       .map((doc) => doc.externalId)
   }
+
+  const notInForceByYear = useMemo(() => {
+    const map = new Map<string, { count: number; codes: Set<string> }>()
+    for (const problem of problems) {
+      if (problem.code !== 'tax_code_not_in_force') continue
+      const date = problem.detail['bookingDate'] ?? ''
+      const year = date.slice(0, 4)
+      if (year.length !== 4) continue
+      const row = map.get(year) ?? { count: 0, codes: new Set<string>() }
+      row.count += 1
+      const code = problem.detail['taxCode']
+      if (code) row.codes.add(code)
+      map.set(year, row)
+    }
+    // First visit: derive from tax-code validFrom + proposed/previous/mapped codes
+    // before tax_code_not_in_force problems exist (Designer #105). Count distinct
+    // documents per year via docsForRate — never yearDocs × affected rates.
+    if (map.size === 0) {
+      for (const year of previewYears) {
+        const { count, codes } = countNotInForceDocuments({
+          year,
+          usedRates,
+          taxMappings,
+          previousTaxMappings,
+          taxCodeValidFromIso,
+          docsForRate,
+          yearDocuments,
+        })
+        if (codes.size > 0 && count > 0) {
+          map.set(year, { count, codes: new Set(codes) })
+        }
+      }
+    }
+    return map
+  }, [
+    problems,
+    previewYears,
+    usedRates,
+    taxMappings,
+    previousTaxMappings,
+    taxCodeValidFromIso,
+    yearDocuments,
+    warnings,
+  ])
 
   /** Persist exclusions only — list/undo rebuild from decisions (Legal #105). */
   const rebuiltExcluded = useMemo(
@@ -976,6 +973,7 @@ function ImportWizardPage() {
                   const next = order[(current + delta + order.length) % order.length] ?? 'moneybird'
                   setSource(next)
                   void persistWizard({ source: next, step: 'bron' })
+                  void navigate({ search: { bron: next }, replace: true })
                   const el = document.querySelector<HTMLElement>(`[data-source-card="${next}"]`)
                   el?.focus()
                 }}
@@ -1013,6 +1011,7 @@ function ImportWizardPage() {
                       onClick={() => {
                         setSource(item.id)
                         void persistWizard({ source: item.id, step: 'bron' })
+                        void navigate({ search: { bron: item.id }, replace: true })
                       }}
                     >
                       <span className="font-medium">{item.label}</span>
@@ -1175,6 +1174,7 @@ function ImportWizardPage() {
                 <RadioGroup
                   value={administrationId}
                   onValueChange={(id) => {
+                    const previousAdminId = administrationId
                     setAdministrationId(id)
                     setBusy(true)
                     void chooseMoneybirdAdministration({
@@ -1199,6 +1199,23 @@ function ImportWizardPage() {
                         setPreviousTaxMappings(row.taxMappings)
                         setTaxMappings({})
                         setDecisions(row.importDecisions)
+                      } else if (previousAdminId === id) {
+                        // Same admin, no 0037 row yet: keep connection-side
+                        // mappings / exclusions (pre-0037 beta) as Vorige keuze.
+                        const connResult = await getMoneybirdConnection()
+                        const kept = connResult.ok ? connResult.data.connection : null
+                        setAccountMappings({})
+                        setTaxMappings({})
+                        setPreviousAccountMappings(
+                          (kept?.accountMappings as Record<string, string> | undefined) ?? {},
+                        )
+                        setPreviousTaxMappings(
+                          (kept?.taxMappings as Record<string, string> | undefined) ?? {},
+                        )
+                        setDecisions(
+                          (kept?.importDecisions as MoneybirdImportDecisions | undefined) ??
+                            emptyDecisions(),
+                        )
                       } else {
                         setAccountMappings({})
                         setPreviousAccountMappings({})
@@ -1301,17 +1318,23 @@ function ImportWizardPage() {
                                   ),
                               ).length
                         const nifCodes = nif !== undefined ? [...nif.codes] : []
-                        const earliestIso =
+                        const earliestCode =
                           nifCodes
-                            .map((code) => taxCodeValidFromIso.get(code))
-                            .filter((iso): iso is string => iso !== undefined)
-                            .sort()[0] ?? null
+                            .map((code) => ({
+                              code,
+                              iso: taxCodeValidFromIso.get(code),
+                            }))
+                            .filter(
+                              (row): row is { code: string; iso: string } => row.iso !== undefined,
+                            )
+                            .sort((a, b) => a.iso.localeCompare(b.iso))[0] ?? null
+                        const earliestIso = earliestCode?.iso ?? null
                         const validFrom =
-                          earliestIso !== null
-                            ? (taxCodeValidFromLabel.get(nifCodes[0] ?? '') ??
+                          earliestCode !== null
+                            ? (taxCodeValidFromLabel.get(earliestCode.code) ??
                               (() => {
-                                const [y, m, d] = earliestIso.split('-')
-                                return y && m && d ? `${d}-${m}-${y}` : earliestIso
+                                const [y, m, d] = earliestCode.iso.split('-')
+                                return y && m && d ? `${d}-${m}-${y}` : earliestCode.iso
                               })())
                             : `01-01-${year}`
                         return (
@@ -1887,7 +1910,9 @@ function ImportWizardPage() {
                         {row.year}: {sourceLabel}
                         {advanced && debit !== null ? ` · D ${debit}` : ''}
                         {advanced && credit !== null ? ` · C ${credit}` : ''}
-                        {!advanced && debit !== null ? ` · ${debit}` : ''}
+                        {!advanced && debit !== null
+                          ? ` · ${t('wizard.problemen.reconciliationAmount', { amount: debit })}`
+                          : ''}
                       </li>
                     )
                   })}
@@ -2032,13 +2057,9 @@ function ImportWizardPage() {
               titleId={titleId}
               step={step}
               title={
-                importFailed || failureKind !== 'none'
-                  ? failureKind === 'failedPartial'
-                    ? t('wizard.importeren.failedPartial')
-                    : t('wizard.importeren.failed')
-                  : imported
-                    ? t('wizard.status.done')
-                    : t('wizard.importeren.title')
+                imported && failureKind === 'none'
+                  ? t('wizard.status.done')
+                  : t('wizard.importeren.title')
               }
               {...(importFailed || failureKind !== 'none'
                 ? {}
@@ -2055,9 +2076,7 @@ function ImportWizardPage() {
               >
                 {failureKind === 'failedPartial' ? (
                   <p>{t('wizard.importeren.failedPartialBody')}</p>
-                ) : (
-                  <p>{error ?? liveRun?.lastError ?? t('common.unknownError')}</p>
-                )}
+                ) : null}
                 <Button
                   type="button"
                   className="mt-3 min-h-11 md:min-h-9"
@@ -2126,6 +2145,18 @@ function ImportWizardPage() {
               }
             />
             <p className="text-muted-foreground mb-4 text-sm">{t('wizard.klaar.booksInKlopt')}</p>
+            <div className="mb-6">
+              <h2 className="mb-2 text-base">{t('wizard.overzicht.alreadyInKlopt')}</h2>
+              {alreadyInKlopt.count === 0 ? (
+                <p className="text-sm">{t('wizard.overzicht.alreadyInKloptEmpty')}</p>
+              ) : (
+                <p className="text-sm">
+                  {plural('wizard.overzicht.alreadyInKloptCount', alreadyInKlopt.count, {
+                    count: String(alreadyInKlopt.count),
+                  })}
+                </p>
+              )}
+            </div>
             {filingBlock.blocked && (
               <AttentionBlock
                 tone="error"

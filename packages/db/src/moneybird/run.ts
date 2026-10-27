@@ -152,7 +152,20 @@ export async function executeMoneybirdImport(
 
   // Journal rows are durable here. Persist before attachments / TB / opening
   // so a later failure still carries booked counts (failedPartial, not failed).
-  await request.onCommitted?.({ plan, commit })
+  // onCommitted itself (e.g. saving the booked report) must also surface as
+  // post-commit failure — not the pre-commit `report: null` path (#105 PM r3).
+  try {
+    await request.onCommitted?.({ plan, commit })
+  } catch (error: unknown) {
+    throw new MoneybirdPostCommitFailed(error, {
+      plan,
+      commit,
+      attachmentsStored: 0,
+      attachmentsSkipped: 0,
+      reconciliation: [],
+      opening: null,
+    })
+  }
 
   let attachmentsStored = 0
   let attachmentsSkipped = 0

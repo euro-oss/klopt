@@ -2469,7 +2469,7 @@ export const en: Record<MessageKey, string> = {
   'wizard.klaar.whyBlocked':
     "Klopt doesn't adjust those figures itself. You can file the return for those periods yourself or with a tax adviser, outside Klopt, using corrected figures.",
   'wizard.klaar.whyBlockedDeadline':
-    "Filing through Klopt will work once Klopt supports this; don't wait for that if your filing deadline comes first.",
+    'Filing through Klopt will work once Klopt supports this; don’t wait for that if your filing deadline comes first.',
   'wizard.importeren.pctLive': '{pct}% transferred',
   'wizard.importeren.failed': 'We booked nothing',
   // Legal VERBATIM (#105 comment 6442468175)
@@ -2485,6 +2485,7 @@ export const en: Record<MessageKey, string> = {
   'wizard.problemen.reconciliationRead': 'read',
   'wizard.problemen.reconciliationSkipped': 'skipped',
   'wizard.problemen.reconciliationFailed': 'failed',
+  'wizard.problemen.reconciliationAmount': 'debit {amount}',
   'wizard.problemen.blockingSection': 'Blocks the import',
   'wizard.problemen.infoSection': 'To know',
   'wizard.rekeningen.confirm': 'Confirm',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   bookedCountFromReport,
+  countNotInForceDocuments,
   importFailureKind,
   importProgressPercent,
   klaarFilingBlocked,
@@ -24,10 +25,56 @@ describe('import wizard run helpers (#105 Legal/PM)', () => {
     expect(bookedCountFromReport({ entriesPosted: 3, invoicesImported: 2 })).toBeGreaterThan(0)
   })
 
-  it('takes Klaar summary counts from the run report', () => {
-    expect(klaarTransferCount({ invoicesImported: 7, entriesPosted: 9 })).toBe(7)
+  it('takes Klaar summary counts from every booked document type', () => {
+    // Prefer entriesPosted so journals/bank mutations match step 8 (Designer #105).
+    expect(klaarTransferCount({ invoicesImported: 3, entriesPosted: 4 })).toBe(4)
     expect(klaarTransferCount({ entriesPosted: 4 })).toBe(4)
+    expect(klaarTransferCount({ invoicesImported: 2, bankTransactionsCreated: 1 })).toBe(3)
     expect(klaarTransferCount(null)).toBe(0)
+  })
+
+  it('counts distinct not-in-force documents per year (not yearDocs × rates)', () => {
+    const docs = [
+      { year: 2025, externalId: 'sales_invoice:1' },
+      { year: 2025, externalId: 'purchase_invoice:2' },
+      { year: 2026, externalId: 'sales_invoice:3' },
+    ]
+    const withRefs = countNotInForceDocuments({
+      year: '2025',
+      usedRates: [
+        { moneybirdId: 'r1', proposedCode: 'VGEEN' },
+        { moneybirdId: 'r2', proposedCode: 'GEEN' },
+      ],
+      taxMappings: {},
+      previousTaxMappings: {},
+      taxCodeValidFromIso: new Map([
+        ['VGEEN', '2026-01-01'],
+        ['GEEN', '2026-01-01'],
+      ]),
+      docsForRate: (id) =>
+        id === 'r1' ? ['sales_invoice:1'] : id === 'r2' ? ['purchase_invoice:2'] : [],
+      yearDocuments: docs,
+    })
+    expect(withRefs.count).toBe(2)
+    expect([...withRefs.codes].sort()).toEqual(['GEEN', 'VGEEN'])
+
+    // Without per-rate refs, still de-dupe — never 2 rates × 2 docs = 4.
+    const withoutRefs = countNotInForceDocuments({
+      year: '2025',
+      usedRates: [
+        { moneybirdId: 'r1', proposedCode: 'VGEEN' },
+        { moneybirdId: 'r2', proposedCode: 'GEEN' },
+      ],
+      taxMappings: {},
+      previousTaxMappings: {},
+      taxCodeValidFromIso: new Map([
+        ['VGEEN', '2026-01-01'],
+        ['GEEN', '2026-01-01'],
+      ]),
+      docsForRate: () => [],
+      yearDocuments: docs,
+    })
+    expect(withoutRefs.count).toBe(2)
   })
 
   it('never reports 100% until done', () => {

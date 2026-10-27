@@ -238,13 +238,15 @@ export async function handleChooseMoneybirdAdministration(
       `This Moneybird token cannot reach administration ${body.administrationId}.`,
     )
   }
-  // Restore per-administration mappings when present (#100 / 0037). When this
-  // administration has no saved row, clear the connection so Vorige keuze from
-  // another administration cannot leak (#105 PM).
+  // Restore per-administration mappings when present (#100 / 0037). Clear
+  // connection mappings only when switching to a *different* administration
+  // with no saved row — same-admin re-pick must keep pre-0037 / unsaved
+  // mappings and excludedExternalIds (#105 PM r3).
   const saved = await withImportWizard(context.database, (wizard) =>
     wizard.findMappings(context.entityId, 'moneybird', chosen.id),
   )
   await withMoneybirdConnection(context.database, async (repository) => {
+    const current = await repository.find(context.entityId)
     await repository.chooseAdministration({
       entityId: context.entityId,
       id: chosen.id,
@@ -258,7 +260,9 @@ export async function handleChooseMoneybirdAdministration(
         taxMappings: saved.taxMappings,
         importDecisions: saved.importDecisions,
       })
-    } else {
+    } else if (current?.administrationId !== chosen.id) {
+      // Different admin (or first pick): start empty. Same-admin re-pick with
+      // no 0037 row: leave connection mappings / exclusions alone.
       await repository.saveMappings({
         entityId: context.entityId,
         accountMappings: {},

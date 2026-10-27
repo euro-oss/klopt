@@ -18,6 +18,15 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Import wizard: PM/Designer round 3 (#105)
+
+Same-administration re-pick no longer clears connection mappings when there is
+no `import_administration_mappings` row yet (pre-0037 / unsaved choices stay).
+A failure while saving the booked report after commit is treated as
+`failedPartial`. Step 3’s not-in-force count is distinct documents per year;
+Klaar counts every booked document type and shows “Al in Klopt”; Bron selection
+writes `?bron=` so the header and nav follow Exact vs Moneybird.
+
 ### Moneybird: block VAT with no bearing tax rate (#96)
 
 Import planning now raises the blocking finding

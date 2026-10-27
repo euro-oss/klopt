@@ -195,7 +195,10 @@ describe('choosing an administration', () => {
     await choose(token, '123456')
     await handleSaveMoneybirdMappings(
       await context(token, crypto.randomUUID()),
-      saveMoneybirdMappingsBody.parse(MAPPINGS),
+      saveMoneybirdMappingsBody.parse({
+        ...MAPPINGS,
+        importDecisions: { excludedExternalIds: ['sales_invoice:99'] },
+      }),
     )
     const before = (await handleGetMoneybirdConnection(await context(token))).body
     expect(before.connection?.taxMappings).toEqual(MAPPINGS.taxMappings)
@@ -206,6 +209,40 @@ describe('choosing an administration', () => {
     expect(after.connection?.administrationId).toBe('654321')
     expect(after.connection?.taxMappings).toEqual({})
     expect(after.connection?.accountMappings).toEqual({})
+    expect(after.connection?.importDecisions?.excludedExternalIds ?? []).toEqual([])
+  })
+
+  it('keeps mappings when re-picking the same administration with no 0037 row', async () => {
+    const { entityId, token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token, '123456')
+    // Pre-0037 / unsaved path: write onto the connection only (no mappings row).
+    const { withMoneybirdConnection } = await import('@klopt/db')
+    await withMoneybirdConnection(database, (repository) =>
+      repository.saveMappings({
+        entityId,
+        accountMappings: MAPPINGS.accountMappings,
+        taxMappings: MAPPINGS.taxMappings,
+        importDecisions: { excludedExternalIds: ['sales_invoice:1', 'purchase_invoice:2'] },
+      }),
+    )
+    const before = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(before.connection?.taxMappings).toEqual(MAPPINGS.taxMappings)
+    expect(before.connection?.importDecisions?.excludedExternalIds).toEqual([
+      'sales_invoice:1',
+      'purchase_invoice:2',
+    ])
+
+    await choose(token, '123456')
+    const after = (await handleGetMoneybirdConnection(await context(token))).body
+    expect(after.connection?.administrationId).toBe('123456')
+    expect(after.connection?.taxMappings).toEqual(MAPPINGS.taxMappings)
+    expect(after.connection?.accountMappings).toEqual(MAPPINGS.accountMappings)
+    expect(after.connection?.importDecisions?.excludedExternalIds).toEqual([
+      'sales_invoice:1',
+      'purchase_invoice:2',
+    ])
   })
 })
 
@@ -685,6 +722,60 @@ describe('the import job', () => {
     }
     expect(status.report.entriesPosted).toBeGreaterThan(0)
     expect(await countRows('journal_entries', entityId)).toBeGreaterThan(0)
+  })
+
+  it('treats a booked-report save failure in onCommitted as failedPartial', async () => {
+    const { entityId, token } = await newEntity()
+    fakeMoneybird()
+    await connect(token)
+    await choose(token)
+    await handleSaveMoneybirdMappings(
+      await context(token, crypto.randomUUID()),
+      saveMoneybirdMappingsBody.parse(MAPPINGS),
+    )
+    await handleRunMoneybirdImport(await context(token, crypto.randomUUID()))
+
+    const { MoneybirdImportRepository } = await import('@klopt/db')
+    const originalFinish = MoneybirdImportRepository.prototype.finish
+    let blockedRunningSave = false
+    MoneybirdImportRepository.prototype.finish = async function finishOverride(
+      this: InstanceType<typeof MoneybirdImportRepository>,
+      request: {
+        readonly id: string
+        readonly state: string
+        readonly report: unknown
+        readonly lastError: string | null
+      },
+    ) {
+      if (!blockedRunningSave && request.state === 'running') {
+        blockedRunningSave = true
+        throw new Error('report save failed after commit')
+      }
+      return originalFinish.call(this, request as Parameters<typeof originalFinish>[0])
+    }
+
+    try {
+      const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
+      const { createFilesystemDocumentStore } = await import('@klopt/adapters')
+      const directory = mkdtempSync(join(tmpdir(), 'mb-report-save-'))
+      const store = createFilesystemDocumentStore({ directory })
+      const outcome = await importMoneybirdAdministration(database, store, undefined, { entityId })
+      expect(outcome.state, outcome.failure ?? undefined).toBe('failed')
+      expect(outcome.failure).toMatch(/report save failed/)
+
+      const status = (await handleMoneybirdImportStatus(await context(token))).body
+      expect(status.requested).toBe(true)
+      if (!status.requested) throw new Error('expected a Moneybird import run')
+      expect(status.state).toBe('failed')
+      expect(status.report).toMatchObject({ imported: true, dryRun: false })
+      if (status.report === null || !status.report.imported) {
+        throw new Error('expected booked counts after onCommitted report-save failure')
+      }
+      expect(status.report.entriesPosted).toBeGreaterThan(0)
+      expect(await countRows('journal_entries', entityId)).toBeGreaterThan(0)
+    } finally {
+      MoneybirdImportRepository.prototype.finish = originalFinish
+    }
   })
 })
 
