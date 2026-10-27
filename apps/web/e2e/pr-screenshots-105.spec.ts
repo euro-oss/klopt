@@ -292,9 +292,9 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
           const { createFilesystemDocumentStore } = await import('@klopt/adapters')
           const { mkdtempSync } = await import('node:fs')
           const { join: pathJoin } = await import('node:path')
-          const { tmpdir } = await import('node:os')
+          const os = await import('node:os')
           const { createDatabase, closeDatabase } = await import('@klopt/db')
-          const directory = mkdtempSync(pathJoin(tmpdir(), 'mb-shot-'))
+          const directory = mkdtempSync(pathJoin(os.tmpdir(), 'mb-shot-'))
           const db = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
           try {
             await importMoneybirdAdministration(db, createFilesystemDocumentStore({ directory }))
