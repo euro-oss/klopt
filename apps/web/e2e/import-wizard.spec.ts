@@ -100,7 +100,12 @@ async function mapAllOpenRates(page: Page): Promise<void> {
 /** Volgende uses aria-disabled instead of the native disabled attribute. */
 async function clickNext(page: Page): Promise<void> {
   const next = page.locator('button[data-focus="next"]')
-  await expect(next).not.toHaveAttribute('aria-disabled', 'true', { timeout: 60_000 })
+  await expect
+    .poll(async () => {
+      const aria = await next.getAttribute('aria-disabled')
+      return aria !== 'true' && aria !== ''
+    }, { timeout: 60_000 })
+    .toBe(true)
   await next.click()
 }
 

@@ -237,7 +237,8 @@ export function WizardFooter({
           <Button
             type="button"
             className={cn('min-h-11 md:min-h-9', blocked && 'opacity-50')}
-            aria-disabled={blocked || undefined}
+            // String 'true' — a boolean can serialise as aria-disabled="" and break checks.
+            aria-disabled={blocked ? 'true' : undefined}
             aria-describedby={blocked && nextReason ? 'wizard-next-why' : undefined}
             onClick={() => {
               if (blocked) {

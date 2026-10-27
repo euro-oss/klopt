@@ -131,7 +131,12 @@ async function mapAllOpenRates(page: Page): Promise<void> {
 async function expectNextReady(page: Page): Promise<void> {
   const next = page.locator('button[data-focus="next"]')
   await expect(next).toBeVisible()
-  await expect(next).not.toHaveAttribute('aria-disabled', 'true', { timeout: 60_000 })
+  await expect
+    .poll(async () => {
+      const aria = await next.getAttribute('aria-disabled')
+      return aria !== 'true' && aria !== ''
+    }, { timeout: 60_000 })
+    .toBe(true)
 }
 
 async function clickNext(page: Page): Promise<void> {
@@ -212,18 +217,26 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
         await shoot(page, `05-btw-${theme}-${label}.png`)
 
-        // Sheet picker
+        // Sheet picker — save from the open sheet (no Escape; that left rates stuck).
         const choose = page.getByRole('button', { name: 'Btw-code kiezen' })
         if ((await choose.count()) > 0) {
           await choose.first().click()
-          await expect(page.getByRole('dialog')).toBeVisible()
+          const sheet = page.getByRole('dialog')
+          await expect(sheet).toBeVisible()
           await shoot(page, `05-btw-sheet-${theme}-${label}.png`)
-          await page.keyboard.press('Escape')
-          await expect(page.getByRole('dialog')).toHaveCount(0)
+          const radio = sheet.getByRole('radio').first()
+          await expect(radio).toBeVisible({ timeout: 15_000 })
+          await radio.click()
+          const save = sheet.getByRole('button', { name: 'Opslaan' })
+          await expect(save).toBeEnabled({ timeout: 15_000 })
+          await save.click()
+          await expect(sheet).toHaveCount(0, { timeout: 60_000 })
         }
 
         await mapAllOpenRates(page)
+        await expect(page.getByText(/Kies eerst voor/i)).toHaveCount(0)
         await clickNext(page)
+        await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toHaveCount(0)
 
         // 06 Rekeningen
         await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
