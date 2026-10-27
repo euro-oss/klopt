@@ -595,8 +595,10 @@ function ImportWizardPage() {
     onOpenFxStep: () => undefined,
     onConfirmFiscalYearStart: () => undefined,
     onAcknowledgeEmptyYear: () => undefined,
-    // Return the preview promise so FindingCard can keep “Bezig…” until it settles.
-    onRereadResource: () => runPreview(),
+    // Await preview so FindingCard can keep “Bezig…” until it settles.
+    onRereadResource: async () => {
+      await runPreview()
+    },
     onExcludeDocument: (problem) => {
       if (problem.path !== null) {
         void persistMappings({

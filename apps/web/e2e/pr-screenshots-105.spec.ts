@@ -410,29 +410,25 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         )
         await expect(page.getByText(/geldt nog niet/i).first()).toBeVisible()
         await shoot(page, `07-problemen-99-${theme}-${label}.png`)
-        // Hold preview open so the busy chrome is still in flight when we shoot.
-        let releasePreview: (() => void) | null = null
+        // Hold Moneybird stand-in so Opnieuw lezen shows Bezig… in flight.
+        let releaseHold = (): void => undefined
         const held = new Promise<void>((resolve) => {
-          releasePreview = resolve
+          releaseHold = resolve
         })
-        await page.route('**/api/v1/moneybird/import/preview**', async (route) => {
-          await held
-          await route.abort()
-        })
+        notInForce.holdResponses?.(held)
         const reread = page.getByRole('button', { name: /Opnieuw lezen|Reread|Herlezen/i }).first()
         if ((await reread.count()) > 0) {
           await reread.click()
-          // oneClick shows common.busy (“Bezig…”) while onApply awaits the held preview.
           await expect(page.getByRole('button', { name: /Bezig/i }).first()).toBeVisible({
-            timeout: 5_000,
+            timeout: 10_000,
           })
           await shoot(page, `07-problemen-busy-${theme}-${label}.png`)
         } else {
           await page.evaluate(() => window.scrollBy(0, 48))
           await shoot(page, `07-problemen-busy-${theme}-${label}.png`)
         }
-        releasePreview?.()
-        await page.unroute('**/api/v1/moneybird/import/preview**').catch(() => null)
+        releaseHold()
+        notInForce.holdResponses?.(Promise.resolve())
         await context.close()
       }
     }
@@ -465,7 +461,7 @@ test('capture #99 problemen busy while reread is in flight', async ({ browser })
           },
         )
         // Hold Moneybird stand-in so the server-fn preview stays in flight.
-        let releaseHold: (() => void) | null = null
+        let releaseHold = (): void => undefined
         const held = new Promise<void>((resolve) => {
           releaseHold = resolve
         })
@@ -479,7 +475,7 @@ test('capture #99 problemen busy while reread is in flight', async ({ browser })
         })
         await setTheme(page, theme)
         await shoot(page, `07-problemen-busy-${theme}-${label}.png`)
-        releaseHold?.()
+        releaseHold()
         notInForce.holdResponses?.(Promise.resolve())
         await context.close()
       }
