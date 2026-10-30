@@ -18,7 +18,7 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
-### Install: bin shims for `klopt-mcp` and `klopt`
+### Install: bin shims for `klopt-mcp` and `klopt` (#108)
 
 `@klopt/mcp` and `@klopt/cli` point their package `bin` entries at committed
 executable shims under `bin/` that import `dist/main.js`. A clean
