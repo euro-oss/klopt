@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Settings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.ch{display:flex;align-items:center;gap:12px}
+.lk{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line-soft);text-decoration:none;color:var(--ink)}
+.lk .m{font-size:13px;color:var(--ink-muted);text-align:right}
+.ok{color:var(--success);font-weight:500}
+.warn{color:var(--brand-ink);font-weight:500}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 960px;">
+  <dc-import name="Sidebar" active="settings" theme="{{theme}}" hint-size="248px,960px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box;">
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px;">
+      <div style="flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 4px;">
+        <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em;">Settings</h1>
+        <p style="margin: 0; color: var(--ink-2);">Everything about Demo BV that you set once and rarely touch.</p>
+      </div>
+      <div class="k-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; max-width: 520px;">
+        <span style="display: flex; flex-direction: column; gap: 2px; font-size: 13px;">
+          <span style="font-weight: 600; font-size: 14px;">Show accounting detail</span>
+          <span style="color: var(--ink-2);">Ledger numbers, RGS and VAT codes everywhere. Bookkeepers and accountants have it on.</span>
+        </span>
+        <button type="button" class="k-switch" role="switch" aria-checked="false" aria-label="Show accounting detail"></button>
+      </div>
+    </header>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+      <section class="k-card" aria-labelledby="s1" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="ch"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></span>
+          <span style="display: flex; flex-direction: column;"><h2 id="s1" class="k-card-title">Your company</h2><span class="warn" style="font-size: 13px;">2 details missing for e-invoicing</span></span></div>
+        <div>
+          <a href="SettingsCompany.dc.html" class="lk"><span>Name, address, KvK and VAT number</span><span class="m warn">Incomplete</span></a>
+          <a href="SettingsCompany.dc.html" class="lk"><span>Bank details on invoices</span><span class="m">IBAN, BIC</span></a>
+          <a href="SettingsCompany.dc.html" class="lk"><span>E-invoicing (Peppol)</span><span class="m">Uses KvK number</span></a>
+          <a href="SettingsCompany.dc.html" class="lk"><span>Invoice defaults</span><span class="m">VAT per invoice, bank charges</span></a>
+        </div>
+      </section>
+
+      <section class="k-card" aria-labelledby="s2" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="ch"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg></span>
+          <span style="display: flex; flex-direction: column;"><h2 id="s2" class="k-card-title">People and access</h2><span class="k-muted" style="font-size: 13px;">2 people, both owner</span></span></div>
+        <div>
+          <a href="SettingsAccess.dc.html" class="lk"><span>People and roles</span><span class="m">Invite a bookkeeper</span></a>
+          <a href="SettingsAccess.dc.html" class="lk"><span>API tokens and AI assistants</span><span class="m">MCP, read or make drafts</span></a>
+          <a href="SettingsAccess.dc.html" class="lk"><span>Who did what</span><span class="m">Append-only log</span></a>
+        </div>
+      </section>
+
+      <section class="k-card" aria-labelledby="s3" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="ch"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></span>
+          <span style="display: flex; flex-direction: column;"><h2 id="s3" class="k-card-title">Books</h2><span class="ok" style="font-size: 13px;">All 31 accounts mapped to RGS</span></span></div>
+        <div>
+          <a href="SettingsBooks.dc.html" class="lk"><span>Book years and periods</span><span class="m">2025 open · 3 periods closed</span></a>
+          <a href="SettingsBooks.dc.html" class="lk"><span>Categories (ledger accounts)</span><span class="m">31 · RGS 3.7</span></a>
+          <a href="SettingsBooks.dc.html" class="lk"><span>VAT codes</span><span class="m">27 codes, 5 in use</span></a>
+        </div>
+      </section>
+
+      <section class="k-card" aria-labelledby="s4" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="ch"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></span>
+          <span style="display: flex; flex-direction: column;"><h2 id="s4" class="k-card-title">Switching to Klopt</h2><span class="k-muted" style="font-size: 13px;">Bring your history across</span></span></div>
+        <div>
+          <a href="ImportSource.dc.html" class="lk"><span>From Moneybird</span><span class="m">API token</span></a>
+          <a href="ImportSource.dc.html" class="lk"><span>From Exact Online</span><span class="m">Connect your account</span></a>
+          <a href="SettingsData.dc.html" class="lk"><span>From any package</span><span class="m">XAF audit file</span></a>
+        </div>
+      </section>
+
+      <section class="k-card" aria-labelledby="s5" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="ch"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></span>
+          <span style="display: flex; flex-direction: column;"><h2 id="s5" class="k-card-title">Your data, anywhere</h2><span class="k-muted" style="font-size: 13px;">Export and connect</span></span></div>
+        <div>
+          <a href="SettingsData.dc.html" class="lk"><span>Download audit file</span><span class="m">XAF 3.2 with RGS</span></a>
+          <a href="SettingsData.dc.html" class="lk"><span>Webhooks</span><span class="m">None yet</span></a>
+        </div>
+      </section>
+
+      <section class="k-card" aria-labelledby="s6" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="ch"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <span style="display: flex; flex-direction: column;"><h2 id="s6" class="k-card-title">Proof and retention</h2><span class="ok" style="font-size: 13px;">2025 sealed, no drift</span></span></div>
+        <div>
+          <a href="SettingsData.dc.html" class="lk"><span>Sealed snapshots</span><span class="m">1 seal · 216 entries</span></a>
+          <a href="SettingsData.dc.html" class="lk"><span>Retention</span><span class="m">7 years, as the law asks</span></a>
+        </div>
+      </section>
+    </div>
+
+    <p class="k-muted" style="margin: 0; font-size: 13px;">Every page here is also in <a href="Command.dc.html">⌘K</a>, so typing “webhooks” or “RGS” gets you there directly.</p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light', }; }
+}
+</script>
+</body>
+</html>

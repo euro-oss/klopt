@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Import</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1000px;">
+  <dc-import name="Sidebar" active="import" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 24px; box-sizing: border-box; max-width: 1100px;">
+    <header style="display: flex; flex-direction: column; gap: 16px;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em;">Import</h1>
+      <ol class="k-steps" aria-label="Import steps">
+        <li class="k-step is-done"><span class="k-step-n">✓</span>Source</li>
+        <li class="k-step is-current" aria-current="step"><span class="k-step-n">2</span>Connect</li>
+        <li class="k-step"><span class="k-step-n">3</span>Years</li>
+        <li class="k-step"><span class="k-step-n">4</span>Preview</li>
+        <li class="k-step"><span class="k-step-n">5</span>Problems</li>
+        <li class="k-step"><span class="k-step-n">6</span>Import</li>
+      </ol>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+      <section aria-labelledby="src" style="flex: 1 1 320px; max-width: 380px; display: flex; flex-direction: column; gap: 10px;">
+        <h2 id="src" class="k-card-title">Where do your books come from?</h2>
+        <button type="button" class="{{optMb}}" onClick="{{pickMb}}">
+          <span class="k-option-key">1</span>
+          <span class="k-option-body"><span class="k-option-title">Moneybird</span><span class="k-option-meta">All invoices, receipts, bank lines and journal entries. Drafts and quotes stay behind.</span></span>
+        </button>
+        <button type="button" class="{{optEx}}" onClick="{{pickEx}}">
+          <span class="k-option-key">2</span>
+          <span class="k-option-body"><span class="k-option-title">Exact Online</span><span class="k-option-meta">Chart, contacts and open items for one year, as an opening balance. Documents can follow later.</span></span>
+        </button>
+        <a href="SettingsData.dc.html" class="k-option" style="text-decoration: none;">
+          <span class="k-option-key">3</span>
+          <span class="k-option-body"><span class="k-option-title">Any other package</span><span class="k-option-meta">An XAF audit file, which every Dutch package can export</span></span>
+        </a>
+        <p class="k-muted" style="margin: 4px 0 0; font-size: 13px; line-height: 1.5;">Nothing is booked until the last step, and you see every problem first. You can stop at any point.</p>
+      </section>
+
+      <section class="k-card" style="flex: 999 1 420px; min-width: 0; padding: 24px; display: flex; flex-direction: column; gap: 18px;">
+        <sc-if value="{{isMb}}" hint-placeholder-val="{{true}}">
+          <h2 class="k-card-title" style="font-size: 18px;">Connect Moneybird</h2>
+          <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Klopt reads your administration with a personal API token. It only reads; nothing in Moneybird changes.</p>
+          <ol style="margin: 0; padding-left: 20px; color: var(--ink-2); line-height: 1.7;">
+            <li>In Moneybird, open <strong>Settings</strong>, then <strong>Developers</strong></li>
+            <li>Create a personal API token with read access</li>
+            <li>Paste it here</li>
+          </ol>
+          <div class="k-field">
+            <label class="k-label" for="tok">Personal API token</label>
+            <input id="tok" class="k-input" type="password" placeholder="Paste the token">
+            <span class="k-help">Stored encrypted, deleted when the import is done.</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{isEx}}" hint-placeholder-val="{{false}}">
+          <h2 class="k-card-title" style="font-size: 18px;">Connect Exact Online</h2>
+          <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Exact needs an app registration from whoever runs this Klopt installation. On the hosted version this is done for you; self-hosted, register once in the Exact App Center.</p>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+            <div class="k-field"><label class="k-label" for="env">Exact environment</label><select id="env" class="k-input"><option>Netherlands (start.exactonline.nl)</option><option>Belgium</option></select></div>
+            <div class="k-field"><label class="k-label" for="cid">Client ID</label><input id="cid" class="k-input k-num" placeholder="From the App Center"></div>
+          </div>
+          <div class="k-field"><label class="k-label" for="sec">Client secret</label><input id="sec" class="k-input" type="password" placeholder="From the App Center"></div>
+          <div class="k-field">
+            <label class="k-label" for="ru">Redirect URI</label>
+            <div style="display: flex; gap: 8px;"><input id="ru" class="k-input k-num" readonly value="https://klopt.euro.computer/exact/callback"><button type="button" class="k-btn">Copy <span class="k-kbd">C</span></button></div>
+            <span class="k-help">Paste this exactly into the App Center. Exact compares it letter for letter.</span>
+          </div>
+        </sc-if>
+        <div style="display: flex; gap: 12px; align-items: center; padding-top: 4px;">
+          <button type="button" class="k-btn">Back <span class="k-kbd">Esc</span></button>
+          <button type="button" class="k-btn k-btn--primary">{{cta}} <span class="k-kbd k-kbd--on-primary">↵</span></button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { src: 'ex' };
+  }
+  renderVals() {
+    const ex = this.state.src === 'ex';
+    return {
+      theme: this.props.theme ?? 'light', isEx: ex, isMb: !ex,
+      optMb: ex ? 'k-option' : 'k-option is-suggested', optEx: ex ? 'k-option is-suggested' : 'k-option',
+      cta: ex ? 'Sign in to Exact' : 'Check the token',
+      pickMb: () => this.setState({ src: 'mb' }), pickEx: () => this.setState({ src: 'ex' })
+    };
+  }
+}
+</script>
+</body>
+</html>

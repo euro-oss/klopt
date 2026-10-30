@@ -1,0 +1,438 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-30T08:50:00Z"
+ },
+ "title": "Klopt redesign",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 1040,
+   "title": "Home",
+   "expand": "fill"
+  },
+  "Invoices.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 1040,
+   "title": "Sales · invoice list + preview",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Editor.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 1040,
+   "title": "New invoice · one page, live preview",
+   "expand": "fill"
+  },
+  "Match.dc.html": {
+   "x": 0,
+   "y": 1460,
+   "w": 1440,
+   "h": 960,
+   "title": "Bank · match one line at a time",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Command.dc.html": {
+   "x": 1520,
+   "y": 1460,
+   "w": 1440,
+   "h": 960,
+   "title": "Command bar + shortcut sheet"
+  },
+  "Settings.dc.html": {
+   "x": 3040,
+   "y": 1460,
+   "w": 1440,
+   "h": 960,
+   "title": "Settings hub (was 11 menu items)",
+   "expand": "fill"
+  },
+  "Sidebar.dc.html": {
+   "x": 4600,
+   "y": 0,
+   "w": 248,
+   "h": 1100,
+   "title": "Component · navigation"
+  },
+  "Inbox.dc.html": {
+   "x": 0,
+   "y": 2840,
+   "w": 1440,
+   "h": 960,
+   "title": "Inbox · first run",
+   "expand": "fill"
+  },
+  "Costs.dc.html": {
+   "x": 1520,
+   "y": 2840,
+   "w": 1440,
+   "h": 1040,
+   "title": "Costs · bills list + preview",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Vat.dc.html": {
+   "x": 3040,
+   "y": 2840,
+   "w": 1440,
+   "h": 1100,
+   "title": "VAT · return Q4 2025",
+   "expand": "fill"
+  },
+  "Reports.dc.html": {
+   "x": 4560,
+   "y": 2840,
+   "w": 1440,
+   "h": 1040,
+   "title": "Reports · P&L, balance sheet, ageing, trial balance",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Contacts.dc.html": {
+   "x": 6080,
+   "y": 2840,
+   "w": 1440,
+   "h": 1040,
+   "title": "Contacts · list + contact card",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "SignIn.dc.html": {
+   "x": 0,
+   "y": 4300,
+   "w": 1440,
+   "h": 900,
+   "title": "Sign-in · email and code"
+  },
+  "Setup.dc.html": {
+   "x": 1520,
+   "y": 4300,
+   "w": 1440,
+   "h": 960,
+   "title": "Setup · new administration",
+   "expand": "fill"
+  },
+  "OAuth.dc.html": {
+   "x": 3040,
+   "y": 4300,
+   "w": 1440,
+   "h": 900,
+   "title": "AI assistant consent (MCP)"
+  },
+  "Switcher.dc.html": {
+   "x": 4560,
+   "y": 4300,
+   "w": 1440,
+   "h": 900,
+   "title": "Administration and book year switcher"
+  },
+  "Journal.dc.html": {
+   "x": 0,
+   "y": 5680,
+   "w": 1440,
+   "h": 1040,
+   "title": "Journal · entries list + entry",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "EntryNew.dc.html": {
+   "x": 1520,
+   "y": 5680,
+   "w": 1440,
+   "h": 1040,
+   "title": "New journal entry",
+   "expand": "fill"
+  },
+  "Ledger.dc.html": {
+   "x": 3040,
+   "y": 5680,
+   "w": 1440,
+   "h": 1040,
+   "title": "General ledger per account",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Reminders.dc.html": {
+   "x": 0,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "Sales · reminders",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "BillNew.dc.html": {
+   "x": 1520,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "Costs · enter a bill",
+   "expand": "fill"
+  },
+  "InboxReview.dc.html": {
+   "x": 3040,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "Inbox · check and book a document",
+   "expand": "fill"
+  },
+  "PaymentBatch.dc.html": {
+   "x": 4560,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "Payment batch · prepare, approve, download",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "BankAccounts.dc.html": {
+   "x": 6080,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "Bank · accounts and statement import",
+   "expand": "fill"
+  },
+  "Icp.dc.html": {
+   "x": 7600,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "VAT · ICP return",
+   "expand": "fill"
+  },
+  "ImportSource.dc.html": {
+   "x": 0,
+   "y": 8600,
+   "w": 1440,
+   "h": 1000,
+   "title": "Import · source and connect (Moneybird, Exact)",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "ImportFindings.dc.html": {
+   "x": 1520,
+   "y": 8600,
+   "w": 1440,
+   "h": 1000,
+   "title": "Import · problems to resolve",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "SettingsCompany.dc.html": {
+   "x": 0,
+   "y": 10020,
+   "w": 1440,
+   "h": 1100,
+   "title": "Settings · company, bank, Peppol",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "SettingsBooks.dc.html": {
+   "x": 1520,
+   "y": 10020,
+   "w": 1440,
+   "h": 1100,
+   "title": "Settings · book years, categories, VAT codes",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "SettingsAccess.dc.html": {
+   "x": 3040,
+   "y": 10020,
+   "w": 1440,
+   "h": 1100,
+   "title": "Settings · people, tokens, who did what",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "SettingsData.dc.html": {
+   "x": 4560,
+   "y": 10020,
+   "w": 1440,
+   "h": 1100,
+   "title": "Settings · audit file, webhooks, retention, seals",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "PhoneHome.dc.html": {
+   "x": 0,
+   "y": 11540,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · home"
+  },
+  "PhoneSales.dc.html": {
+   "x": 470,
+   "y": 11540,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · sales"
+  },
+  "PhoneInvoice.dc.html": {
+   "x": 940,
+   "y": 11540,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · invoice"
+  },
+  "PhoneMatch.dc.html": {
+   "x": 1410,
+   "y": 11540,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · match"
+  },
+  "HomeDark.dc.html": {
+   "x": 1960,
+   "y": 11540,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · home",
+   "expand": "fill"
+  },
+  "InvoicesDark.dc.html": {
+   "x": 3480,
+   "y": 11540,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · sales",
+   "expand": "fill"
+  },
+  "MatchDark.dc.html": {
+   "x": 5000,
+   "y": 11540,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · bank matching",
+   "expand": "fill"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Invoices.dc.html",
+  "Editor.dc.html",
+  "Match.dc.html",
+  "Command.dc.html",
+  "Settings.dc.html",
+  "Sidebar.dc.html",
+  "Inbox.dc.html",
+  "Costs.dc.html",
+  "Vat.dc.html",
+  "Reports.dc.html",
+  "Contacts.dc.html",
+  "SignIn.dc.html",
+  "Setup.dc.html",
+  "OAuth.dc.html",
+  "Switcher.dc.html",
+  "Journal.dc.html",
+  "EntryNew.dc.html",
+  "Ledger.dc.html",
+  "Reminders.dc.html",
+  "BillNew.dc.html",
+  "InboxReview.dc.html",
+  "PaymentBatch.dc.html",
+  "BankAccounts.dc.html",
+  "Icp.dc.html",
+  "ImportSource.dc.html",
+  "ImportFindings.dc.html",
+  "SettingsCompany.dc.html",
+  "SettingsBooks.dc.html",
+  "SettingsAccess.dc.html",
+  "SettingsData.dc.html",
+  "PhoneHome.dc.html",
+  "PhoneSales.dc.html",
+  "PhoneInvoice.dc.html",
+  "PhoneMatch.dc.html",
+  "HomeDark.dc.html",
+  "InvoicesDark.dc.html",
+  "MatchDark.dc.html"
+ ],
+ "notes": {
+  "t1": {
+   "x": 0,
+   "y": -300,
+   "text": "Daily flows",
+   "kind": "title1",
+   "maxW": 4480
+  },
+  "t2": {
+   "x": 0,
+   "y": 1160,
+   "text": "Bank, keyboard, admin",
+   "kind": "title1",
+   "maxW": 4480
+  },
+  "t3": {
+   "x": 0,
+   "y": 2540,
+   "text": "Inbox, costs, VAT, reports, contacts",
+   "kind": "title1",
+   "maxW": 7520
+  },
+  "t4": {
+   "x": 0,
+   "y": 4000,
+   "text": "Getting in: sign-in, setup, AI consent, switcher",
+   "kind": "title1",
+   "maxW": 9040
+  },
+  "t5": {
+   "x": 0,
+   "y": 5380,
+   "text": "Books: journal, entries, ledger",
+   "kind": "title1",
+   "maxW": 9040
+  },
+  "t6": {
+   "x": 0,
+   "y": 6840,
+   "text": "Money in and out, every state",
+   "kind": "title1",
+   "maxW": 9040
+  },
+  "t7": {
+   "x": 0,
+   "y": 8300,
+   "text": "Import",
+   "kind": "title1",
+   "maxW": 9040
+  },
+  "t8": {
+   "x": 0,
+   "y": 9720,
+   "text": "Settings, every page",
+   "kind": "title1",
+   "maxW": 9040
+  },
+  "t9": {
+   "x": 0,
+   "y": 11240,
+   "text": "Phone (390) and dark mode",
+   "kind": "title1",
+   "maxW": 6440
+  }
+ },
+ "designSystems": [
+  {
+   "title": "Klopt Design System",
+   "namespace": "klopt",
+   "artifact": "https://claude.ai/artifact/D4qysFzcTMgWEjrZFpe4XK",
+   "version": "1793355715-eaec",
+   "copiedAt": "2026-10-30T10:45:00Z"
+  }
+ ]
+}

@@ -1,0 +1,55 @@
+<!-- @dsCard height=300 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Klopt cover</title>
+<style>
+  body{margin:0;background:var(--ground)}
+  .wrap{position:relative;width:960px;height:300px;overflow:hidden;background:var(--ground);font-family:var(--font-sans)}
+  .brand{fill:var(--brand)}
+  .ink{fill:var(--ink)}
+  .surf{fill:var(--surface)}
+  .tint{fill:var(--brand-tint)}
+  .edge{fill:var(--selection-edge)}
+  .key{stroke:var(--line);stroke-width:1;fill:var(--surface)}
+  .r-xl{rx:12px}
+  .r-md{rx:8px}
+  .r-xs{rx:4px}
+  .name{position:absolute;left:40px;bottom:40px;max-width:440px}
+  .name h1{margin:0;font-size:120px;line-height:.92;font-weight:700;letter-spacing:-0.04em;color:var(--ink)}
+  .name p{margin:16px 0 0;font-size:14px;color:var(--ink-muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!--
+    blocks: brand 216×300 (bleeds top and bottom), ink 192×168, brand-tint 168×108, surface 192×108 with a 3px selection-edge bar (a selected row) — corners radius-xl
+    arrangement: one tall yellow slab with satellites, stepped right of x=480, like a list with its cursor row
+    pattern: keyboard keys (radius-xs squares, line stroke) in a 4-step grid on the ink block — Klopt is keyboard-first, so the key is its shape
+    scales: gaps space-6 (24), key 32 + gap 8 (space-2), radii radius-xs / radius-md / radius-xl
+  -->
+  <svg width="960" height="300" viewBox="0 0 960 300" aria-hidden="true" style="position:absolute;inset:0">
+    <rect class="brand" x="504" y="-12" width="216" height="324" rx="12"/>
+    <rect class="ink r-xl" x="744" y="24" width="192" height="168"/>
+    <rect class="tint r-xl" x="744" y="216" width="168" height="108"/>
+    <rect class="surf r-xl" x="528" y="168" width="168" height="108"/>
+    <rect class="edge" x="528" y="192" width="3" height="60"/>
+    <g>
+      <rect class="key r-xs" x="768" y="48" width="32" height="32"/>
+      <rect class="key r-xs" x="808" y="48" width="32" height="32"/>
+      <rect class="key r-xs" x="848" y="48" width="32" height="32"/>
+      <rect class="key r-xs" x="888" y="48" width="32" height="32"/>
+      <rect class="key r-xs" x="768" y="88" width="72" height="32"/>
+      <rect class="key r-xs" x="848" y="88" width="32" height="32"/>
+      <rect class="key r-xs" x="768" y="128" width="32" height="32"/>
+      <rect class="brand r-xs" x="808" y="128" width="32" height="32"/>
+      <rect class="key r-xs" x="848" y="128" width="72" height="32"/>
+    </g>
+    <rect class="ink r-md" x="552" y="40" width="56" height="56"/>
+  </svg>
+  <div class="name">
+    <h1>Klopt</h1>
+    <p>Open-source Dutch bookkeeping that adds up, by keyboard.</p>
+  </div>
+</div>
+</body>
+</html>

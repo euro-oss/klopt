@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Enter a bill</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.cell{height:var(--control-h);padding:0 10px;border:0;border-right:1px solid var(--line-soft);background:transparent;font:400 14px var(--font-sans);color:var(--ink);box-sizing:border-box;width:100%;min-width:0}
+.brow{display:grid;grid-template-columns:minmax(150px,1fr) 170px 120px 100px 90px;border-top:1px solid var(--line-soft);align-items:center}
+.bhead{background:var(--surface-hover);font:600 12px/16px var(--font-sans);color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;height:34px}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="costs" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--surface);">
+      <a href="Costs.dc.html" style="color: var(--ink-2); text-decoration: none;">Costs</a>
+      <span style="color: var(--ink-faint);" aria-hidden="true">/</span>
+      <h1 style="margin: 0; font-size: 16px; line-height: 22px; font-weight: 600;">New bill</h1>
+      <span class="k-pill k-pill--draft">Draft</span>
+      <span style="flex: 1;"></span>
+      <a href="Costs.dc.html" class="k-btn">Close <span class="k-kbd">Esc</span></a>
+      <button type="button" class="k-btn">Save draft <span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">S</span></span></button>
+      <button type="button" class="k-btn k-btn--primary">Book <span class="k-chord"><span class="k-kbd k-kbd--on-primary">⌘</span><span class="k-kbd k-kbd--on-primary">↵</span></span></button>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 28px; padding: 24px 32px 40px; align-items: flex-start;">
+      <form style="flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+        <p style="margin: 0; color: var(--ink-2);">Copy what the document says. Klopt checks the sums; it never recalculates what the supplier asks for.</p>
+        <section class="k-card" style="padding: 20px 24px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+          <div class="k-field" style="grid-column: span 2;">
+            <label class="k-label" for="sup">Supplier</label>
+            <select id="sup" class="k-input"><option>Verzekering Fictief (demo) · S009</option></select>
+          </div>
+          <div class="k-field">
+            <label class="k-label" for="kind">Kind</label>
+            <select id="kind" class="k-input"><option>Bill</option><option>Credit note</option></select>
+          </div>
+          <div class="k-field">
+            <label class="k-label" for="no">Their number</label>
+            <input id="no" class="k-input k-num" value="INK-DEMO-2025-0039">
+          </div>
+          <div class="k-field">
+            <label class="k-label" for="d1">Bill date</label>
+            <input id="d1" class="k-input k-num" value="11-01-2025">
+          </div>
+          <div class="k-field">
+            <label class="k-label" for="d2">Due</label>
+            <input id="d2" class="k-input k-num" value="10-02-2025">
+            <span class="k-help">As on the document</span>
+          </div>
+          <div class="k-field">
+            <label class="k-label" for="ref">Payment reference <small>optional</small></label>
+            <input id="ref" class="k-input k-num" placeholder="From the document">
+          </div>
+        </section>
+
+        <section class="k-card" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 12px;">
+          <h2 class="k-card-title" style="font-size: 15px;">The totals on the document</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+            <div class="k-field"><label class="k-label" for="t1">Excluding VAT</label><input id="t1" class="k-input k-num" value="200,33"></div>
+            <div class="k-field"><label class="k-label" for="t2">VAT</label><input id="t2" class="k-input k-num" value="42,07"></div>
+            <div class="k-field"><label class="k-label" for="t3">Total</label><input id="t3" class="k-input k-num" value="242,40" style="font-weight: 600;"></div>
+          </div>
+        </section>
+
+        <section class="k-card k-card--flush" aria-labelledby="lh">
+          <div class="k-card-head" style="padding: 16px 24px;"><h2 id="lh" class="k-card-title" style="font-size: 15px;">What it was for</h2><span class="k-muted" style="font-size: 13px;">One line is enough for most bills</span></div>
+          <div style="overflow-x: auto;"><div style="min-width: 600px;">
+            <div class="brow bhead"><span style="padding: 0 10px 0 24px;">Description</span><span style="padding: 0 10px;">Category</span><span style="padding: 0 10px;">VAT</span><span style="padding: 0 10px; text-align: right;">Excl. VAT</span><span style="padding: 0 10px; text-align: right;">VAT</span></div>
+            <div class="brow">
+              <input class="cell" aria-label="Description" value="Business insurance, Q1" style="padding-left: 24px;">
+              <select class="cell" aria-label="Category"><option>General costs</option><option>Rent</option><option>Phone and internet</option><option>Office costs</option></select>
+              <select class="cell" aria-label="VAT"><option>21% you can claim</option><option>9% you can claim</option><option>No VAT</option><option>EU purchase</option><option>Reverse charge</option></select>
+              <span class="k-num" style="padding: 0 10px; text-align: right;">200,33</span>
+              <span class="k-num" style="padding: 0 10px; text-align: right;">42,07</span>
+            </div>
+          </div></div>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 24px 18px; border-top: 1px solid var(--line-soft);">
+            <button type="button" class="k-btn k-btn--sm k-btn--dashed">+ Split over another category</button>
+            <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Lines add up to the document: € 242,40</span>
+          </div>
+        </section>
+        <p class="k-muted" style="margin: 0; font-size: 13px; line-height: 1.5;">Saving keeps a draft and books nothing. Booking creates what you owe and the VAT you can claim, dated on the bill date. With two people on the administration, a bill waits for the second person's approval before it can be paid.</p>
+      </form>
+
+      <aside aria-label="Document" style="flex: 1 1 380px; max-width: 480px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+        <div class="k-drop" style="padding: 40px 24px;">
+          <span class="k-tile k-tile--brand" style="width: 48px; height: 48px; border-radius: 12px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 18v-6M9 15l3-3 3 3"/></svg></span>
+          <strong style="color: var(--ink);">Drop the bill here</strong>
+          <span>PDF, photo or UBL. Klopt fills in what it can read and shows the document next to the form.</span>
+          <button type="button" class="k-btn k-btn--sm">Choose a file <span class="k-kbd">U</span></button>
+        </div>
+        <section class="k-card" style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+          <strong style="font-size: 14px;">Verzekering Fictief, earlier</strong>
+          <div style="display: flex; justify-content: space-between;"><span class="k-muted">Bills in 2025</span><span class="k-num">4</span></div>
+          <div style="display: flex; justify-content: space-between;"><span class="k-muted">Usually booked to</span><span>[category from earlier bills]</span></div>
+          <div style="display: flex; justify-content: space-between;"><span class="k-muted">Pays in</span><span>30 days</span></div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>

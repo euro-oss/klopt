@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Sign in</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.digit{width:52px;height:60px;border-radius:var(--radius-md);border:1px solid var(--line-control);background:var(--surface);text-align:center;font:600 24px var(--font-mono);color:var(--ink)}
+.digit.is-focus{outline:2px solid var(--focus-ring);outline-offset:1px}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="width: 1440px; height: 900px; display: grid; grid-template-columns: 560px 1fr;">
+  <aside style="background: var(--brand); color: var(--on-brand); padding: 56px; display: flex; flex-direction: column; gap: 24px; box-sizing: border-box;">
+    <span style="display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 700;"><span class="k-mark" style="background: var(--on-brand); color: var(--brand); width: 40px; height: 40px; font-size: 20px;">K</span>Klopt</span>
+    <div style="flex: 1;"></div>
+    <h1 style="margin: 0; font-size: 44px; line-height: 1.05; font-weight: 700; letter-spacing: -0.03em; max-width: 420px;">Bookkeeping that adds up, by keyboard.</h1>
+    <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 15px; font-weight: 500;">
+      <li style="display: flex; gap: 10px;"><span aria-hidden="true">✓</span>Open source, Apache-2.0, and it stays that way</li>
+      <li style="display: flex; gap: 10px;"><span aria-hidden="true">✓</span>Your books leave whenever you want, as an audit file</li>
+      <li style="display: flex; gap: 10px;"><span aria-hidden="true">✓</span>Hosted in Europe, or on your own server</li>
+    </ul>
+  </aside>
+
+  <main style="display: flex; align-items: center; justify-content: center; gap: 32px; padding: 48px; box-sizing: border-box;">
+    <section class="k-card" aria-labelledby="s1" style="width: 380px; padding: 32px; display: flex; flex-direction: column; gap: 20px;">
+      <span class="k-pill k-pill--draft" style="align-self: flex-start;">Step 1</span>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <h2 id="s1" style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 600;">Sign in</h2>
+        <p style="margin: 0; color: var(--ink-2);">No password. We email you a code.</p>
+      </div>
+      <div class="k-field">
+        <label class="k-label" for="em">Email</label>
+        <input id="em" class="k-input" type="email" value="hidde@neverhide.nl">
+      </div>
+      <button type="button" class="k-btn k-btn--primary" style="justify-content: center;">Send me a code <span class="k-kbd k-kbd--on-primary">↵</span></button>
+      <p class="k-muted" style="margin: 0; font-size: 13px;">New here? The same button creates your account.</p>
+    </section>
+
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--ink-faint); flex: none;"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+
+    <section class="k-card" aria-labelledby="s2" style="width: 420px; padding: 32px; display: flex; flex-direction: column; gap: 20px;">
+      <span class="k-pill k-pill--draft" style="align-self: flex-start;">Step 2</span>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <h2 id="s2" style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 600;">Check your email</h2>
+        <p style="margin: 0; color: var(--ink-2);">We sent a 6-digit code to <strong>hidde@neverhide.nl</strong>. <a href="#">Change</a></p>
+      </div>
+      <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;">
+        <legend class="k-label" style="padding: 0; margin-bottom: 8px;">Code</legend>
+        <div style="display: flex; gap: 8px;">
+          <input class="digit" aria-label="Digit 1" value="4">
+          <input class="digit" aria-label="Digit 2" value="8">
+          <input class="digit" aria-label="Digit 3" value="1">
+          <input class="digit is-focus" aria-label="Digit 4" value="">
+          <input class="digit" aria-label="Digit 5" value="">
+          <input class="digit" aria-label="Digit 6" value="">
+        </div>
+        <span class="k-help">Paste the whole code at once with <span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">V</span></span>. It signs you in by itself.</span>
+      </fieldset>
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+        <span class="k-muted">Valid for 10 minutes, works once</span>
+        <a href="#">Send a new code</a>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>

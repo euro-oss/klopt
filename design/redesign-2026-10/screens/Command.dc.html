@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Command bar and shortcuts</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ic{width:28px;height:28px;border-radius:7px}
+.sr{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-top:1px solid var(--line-soft)}
+.sr > span:first-child{color:var(--ink-2)}
+.sh{margin:0 0 6px;font:600 12px/16px var(--font-sans);color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="width: 1440px; height: 960px; box-sizing: border-box; background: var(--ink-faint); display: flex; gap: 40px; padding: 96px 80px; align-items: flex-start; justify-content: center;">
+
+  <div class="k-cmd" role="dialog" aria-label="Command bar">
+    <div class="k-cmd-input">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input aria-label="Search or run a command" value="zand">
+      <span class="k-kbd">Esc</span>
+    </div>
+
+    <p class="k-cmd-group">Contact</p>
+    <div class="k-cmd-item" aria-selected="true">
+      <span class="k-tile ic" style="background: var(--primary); color: var(--on-primary); font-size: 11px; font-weight: 600;">ZA</span>
+      <span style="flex: 1;"><strong>Zand</strong>bank Advies <span class="k-muted">· customer · 4 invoices · € 958,34 overdue</span></span>
+      <span class="k-kbd">↵</span>
+    </div>
+
+    <p class="k-cmd-group">Do something with it</p>
+    <div class="k-cmd-item">
+      <span class="k-tile ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+      <span style="flex: 1;">New invoice for <strong>Zand</strong>bank Advies</span>
+      <span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">↵</span></span>
+    </div>
+    <div class="k-cmd-item">
+      <span class="k-tile ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      <span style="flex: 1;">Send final notice for 2025-0036 <span class="k-muted">· 128 days late</span></span>
+    </div>
+
+    <p class="k-cmd-group">Invoices</p>
+    <div class="k-cmd-item">
+      <span class="k-tile ic" style="font: 600 10px var(--font-mono);">#</span>
+      <span class="k-num" style="flex: 1;">2025-0016 <span class="k-muted">· 28 Nov · paid</span></span>
+      <span class="k-num" style="color: var(--ink-2);">€ 478,42</span>
+    </div>
+    <div class="k-cmd-item">
+      <span class="k-tile ic" style="font: 600 10px var(--font-mono);">#</span>
+      <span class="k-num" style="flex: 1;">2025-0036 <span style="color: var(--danger);">· 26 Jul · overdue</span></span>
+      <span class="k-num" style="color: var(--ink-2);">€ 958,34</span>
+    </div>
+    <div class="k-cmd-item">
+      <span class="k-tile ic" style="font: 600 10px var(--font-mono);">#</span>
+      <span class="k-num" style="flex: 1;">2025-0026 <span class="k-muted">· 22 Jul · paid</span></span>
+      <span class="k-num" style="color: var(--ink-2);">€ 967,00</span>
+    </div>
+
+    <div class="k-cmd-foot" style="margin-top: 8px;">
+      <span><span class="k-kbd">↑</span> <span class="k-kbd">↓</span> move</span>
+      <span><span class="k-kbd">↵</span> open</span>
+      <span><span class="k-kbd">Tab</span> actions for this item</span>
+      <span style="flex: 1; text-align: right;">Type &gt; for commands only</span>
+    </div>
+  </div>
+
+  <section aria-labelledby="sc-h" class="k-card" style="width: 520px; border-radius: var(--radius-2xl); border: 0; box-shadow: var(--shadow-overlay); padding: 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 id="sc-h" style="margin: 0; font-size: 18px; line-height: 24px; font-weight: 600;">Keyboard shortcuts</h2>
+      <span class="k-muted" style="font-size: 13px;">Press <span class="k-kbd">?</span> anywhere</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 28px;">
+      <div>
+        <h3 class="sh">Go to</h3>
+        <div class="sr"><span>Home</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">D</span></span></div>
+        <div class="sr"><span>Inbox</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">E</span></span></div>
+        <div class="sr"><span>Sales</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">F</span></span></div>
+        <div class="sr"><span>Costs</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">N</span></span></div>
+        <div class="sr"><span>Bank</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">K</span></span></div>
+        <div class="sr"><span>VAT</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">G</span></span></div>
+        <div class="sr"><span>Reports</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">W</span></span></div>
+        <div class="sr"><span>Contacts</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">R</span></span></div>
+        <div class="sr"><span>Settings</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">I</span></span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div>
+          <h3 class="sh">Create</h3>
+          <div class="sr"><span>Invoice</span><span class="k-chord"><span class="k-kbd">N</span><span class="k-kbd">F</span></span></div>
+          <div class="sr"><span>Receipt or bill</span><span class="k-chord"><span class="k-kbd">N</span><span class="k-kbd">R</span></span></div>
+          <div class="sr"><span>Contact</span><span class="k-chord"><span class="k-kbd">N</span><span class="k-kbd">C</span></span></div>
+        </div>
+        <div>
+          <h3 class="sh">In any list</h3>
+          <div class="sr"><span>Next, previous</span><span class="k-chord"><span class="k-kbd">J</span><span class="k-kbd">K</span></span></div>
+          <div class="sr"><span>Open</span><span class="k-kbd">↵</span></div>
+          <div class="sr"><span>Select</span><span class="k-kbd">X</span></div>
+          <div class="sr"><span>Filter</span><span class="k-kbd">/</span></div>
+          <div class="sr"><span>Switch tab</span><span class="k-chord"><span class="k-kbd">1</span><span class="k-kbd">–</span><span class="k-kbd">4</span></span></div>
+        </div>
+        <div>
+          <h3 class="sh">Anywhere</h3>
+          <div class="sr"><span>Search or command</span><span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">K</span></span></div>
+          <div class="sr"><span>Save and continue</span><span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">↵</span></span></div>
+          <div class="sr"><span>Close, go back</span><span class="k-kbd">Esc</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light', }; }
+}
+</script>
+</body>
+</html>

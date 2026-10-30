@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Inbox, check and book</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.hl{background:rgba(255,212,59,.45);border-radius:2px;padding:0 2px}
+.read{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--success);font-weight:500}
+.check{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--brand-ink);font-weight:600}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="inbox" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; padding: 20px 32px 24px; gap: 16px; box-sizing: border-box;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; flex: 1;">Inbox</h1>
+      <span class="k-pill k-pill--draft">Example documents</span>
+      <a href="BillNew.dc.html" class="k-btn">Add files <span class="k-chord"><span class="k-kbd">N</span><span class="k-kbd">R</span></span></a>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+      <section aria-label="Documents" class="k-card k-card--flush" style="flex: 1 1 260px; max-width: 300px;">
+        <div class="k-seg" style="padding: 10px;" role="tablist" aria-label="Status">
+          <button type="button" role="tab" class="k-seg-item" aria-selected="true">To handle <span class="k-count">3</span></button>
+          <button type="button" role="tab" class="k-seg-item" aria-selected="false">Booked</button>
+        </div>
+        <button type="button" class="k-row" aria-selected="true" style="padding: 12px 16px;">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;"><strong style="font-weight: 600;">Telecom Fictief</strong><span class="k-muted" style="font-size: 12px;">factuur-november.pdf · email</span></span>
+          <span class="k-num" style="font-weight: 500;">€ 407,31</span>
+        </button>
+        <button type="button" class="k-row" style="padding: 12px 16px;">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;"><strong style="font-weight: 600;">Brandstof Teststation</strong><span class="k-muted" style="font-size: 12px;">photo · phone</span></span>
+          <span class="k-num" style="font-weight: 500;">€ 159,21</span>
+        </button>
+        <button type="button" class="k-row" style="padding: 12px 16px;">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;"><strong style="font-weight: 600;">Internet Voorbeeld</strong><span class="k-muted" style="font-size: 12px;">e-invoice · Peppol</span></span>
+          <span class="k-pill k-pill--paid">Ready</span>
+        </button>
+      </section>
+
+      <section aria-label="Document" style="flex: 1 1 360px; min-width: 0;">
+        <article class="k-paper" style="padding: 36px; font-size: 12px; line-height: 1.5; display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; justify-content: space-between;"><strong style="font-size: 16px;">Telecom Fictief (demo)</strong><span style="color: #63636b;">FACTUUR</span></div>
+          <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px 14px;">
+            <span style="color: #63636b;">Factuurnummer</span><span><span class="hl">INK-DEMO-2025-0002</span></span>
+            <span style="color: #63636b;">Factuurdatum</span><span><span class="hl">24-11-2025</span></span>
+            <span style="color: #63636b;">Vervaldatum</span><span><span class="hl">24-12-2025</span></span>
+          </div>
+          <div style="border-top: 1.5px solid #18181b; padding-top: 8px; display: flex; justify-content: space-between;"><span>Zakelijk abonnement, november</span><span class="k-num">336,62</span></div>
+          <div style="margin-left: auto; display: grid; grid-template-columns: auto 80px; gap: 4px 16px; text-align: right;" class="k-num">
+            <span style="color: #63636b;">Subtotaal</span><span><span class="hl">336,62</span></span>
+            <span style="color: #63636b;">BTW 21%</span><span><span class="hl">70,69</span></span>
+            <strong>Totaal</strong><strong><span class="hl">407,31</span></strong>
+          </div>
+          <div style="flex: 1;"></div>
+          <span style="color: #63636b;">Highlighted: what Klopt read from the document</span>
+        </article>
+      </section>
+
+      <section aria-label="Check and book" class="k-card" style="flex: 1 1 300px; max-width: 360px; display: flex; flex-direction: column; gap: 14px;">
+        <h2 class="k-card-title">Check and book</h2>
+        <div class="k-field"><label class="k-label" for="a">Supplier <span class="read">✓ known</span></label><input id="a" class="k-input" value="Telecom Fictief (demo)"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="k-field"><label class="k-label" for="b">Bill date <span class="read">✓</span></label><input id="b" class="k-input k-num" value="24-11-2025"></div>
+          <div class="k-field"><label class="k-label" for="c">Due <span class="read">✓</span></label><input id="c" class="k-input k-num" value="24-12-2025"></div>
+        </div>
+        <div class="k-field"><label class="k-label" for="d">Total <span class="read">✓ sums check out</span></label><input id="d" class="k-input k-num" value="407,31"></div>
+        <div class="k-field"><label class="k-label" for="e">Category <span class="check">check this</span></label>
+          <select id="e" class="k-input" style="border: 2px solid var(--selection-edge);"><option>Phone and internet · 21%</option></select>
+          <span class="k-help">Suggested from this supplier's earlier bills</span></div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+          <button type="button" class="k-btn k-btn--primary" style="justify-content: center;">Book and next <span class="k-kbd k-kbd--on-primary">↵</span></button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="k-btn k-btn--sm" style="flex: 1; justify-content: center;">Set aside <span class="k-kbd">S</span></button>
+            <button type="button" class="k-btn k-btn--sm" style="flex: 1; justify-content: center;">Not a bill <span class="k-kbd">D</span></button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="k-hints"><span><span class="k-kbd">J</span> <span class="k-kbd">K</span> next, previous document</span><span><span class="k-kbd">Tab</span> next field</span><span><span class="k-kbd">Space</span> enlarge document</span></div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>

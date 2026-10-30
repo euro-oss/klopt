@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · ICP return</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.igrid{display:grid;grid-template-columns:minmax(180px,1fr) 60px 150px 110px 110px;gap:12px}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="vat" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; max-width: 1180px;">
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px;">
+      <div style="flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 2px;">
+        <a href="Vat.dc.html" style="font-size: 13px; color: var(--ink-2); text-decoration: none;">VAT · Q4 2025</a>
+        <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em;">ICP return</h1>
+        <p style="margin: 0; color: var(--ink-muted);">Sales to businesses in other EU countries, at 0% VAT. Due with the VAT return, by 31 January 2026.</p>
+      </div>
+      <span class="k-pill k-pill--draft">Example data</span>
+      <button type="button" class="k-btn">Download</button>
+      <button type="button" class="k-btn k-btn--primary" disabled>File with the tax office</button>
+    </header>
+
+    <section class="k-callout">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex: none; color: var(--ink-muted); margin-top: 1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+      <div class="k-callout-body">
+        <span class="k-callout-title">Demo BV had no EU sales this quarter</span>
+        <span class="k-callout-text">So the real return is empty and there is nothing to file. This board shows how it looks with two EU customers; the names and numbers are made up.</span>
+      </div>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+      <div class="k-stat"><span class="k-stat-label">Goods to EU businesses</span><span class="k-stat-value">€ 1.840,00</span><span class="k-stat-meta">Box 3b of the VAT return</span></div>
+      <div class="k-stat"><span class="k-stat-label">Services to EU businesses</span><span class="k-stat-value">€ 2.500,00</span><span class="k-stat-meta">Box 3b of the VAT return</span></div>
+      <div class="k-stat"><span class="k-stat-label">Matches the VAT return</span><span class="k-stat-value" style="color: var(--success);">Yes</span><span class="k-stat-meta">€ 4.340,00 on both</span></div>
+    </div>
+
+    <section class="k-card k-card--flush" aria-labelledby="h">
+      <div class="k-card-head"><h2 id="h" class="k-card-title">Per customer</h2><span class="k-muted" style="font-size: 13px;">VAT numbers checked against VIES on the invoice date</span></div>
+      <div style="overflow-x: auto;"><div style="min-width: 640px;">
+        <div class="k-row k-row--head igrid"><span>Customer</span><span>Country</span><span>VAT number</span><span style="text-align: right;">Goods</span><span style="text-align: right;">Services</span></div>
+        <div class="k-row igrid k-num"><span style="display: flex; flex-direction: column;"><span style="font-weight: 500;">Rheinblick GmbH (example)</span><span style="font-size: 12px; color: var(--success);">✓ valid in VIES</span></span><span><span class="k-code">DE</span></span><span class="k-code" style="justify-self: start;">DE000000000</span><span style="text-align: right;">1.840,00</span><span style="text-align: right;">0,00</span></div>
+        <div class="k-row igrid k-num"><span style="display: flex; flex-direction: column;"><span style="font-weight: 500;">Atelier Escaut SA (example)</span><span style="font-size: 12px; color: var(--danger);">VIES not checked: service offline on 12 Nov</span></span><span><span class="k-code">BE</span></span><span class="k-code" style="justify-self: start;">BE0000000000</span><span style="text-align: right;">0,00</span><span style="text-align: right;">2.500,00</span></div>
+        <div class="k-row igrid k-num" style="cursor: default; background: var(--surface-hover); font-weight: 600;"><span>Total</span><span></span><span></span><span style="text-align: right;">1.840,00</span><span style="text-align: right;">2.500,00</span></div>
+      </div></div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <button type="button" class="k-btn k-btn--sm">Check VIES again <span class="k-kbd">V</span></button>
+      <span class="k-muted" style="font-size: 13px;">A customer with an invalid VAT number can't get 0%; Klopt flags the invoice so you can correct it with a credit note.</span>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>

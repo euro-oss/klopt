@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Reminders</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.rgrid{display:grid;grid-template-columns:20px minmax(160px,1fr) 92px 110px 120px;gap:12px}
+.lvl{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--radius-md);background:var(--surface-sunken);flex:1}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="sales" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 32px 0;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; flex: 1;">Sales</h1>
+      <button type="button" class="k-btn k-btn--primary">Send all 5 reminders <span class="k-chord"><span class="k-kbd k-kbd--on-primary">⌘</span><span class="k-kbd k-kbd--on-primary">↵</span></span></button>
+      <nav class="k-tabs" aria-label="Sales sections" style="flex-basis: 100%; margin-top: 4px;">
+        <a href="Invoices.dc.html" class="k-tab">Invoices</a>
+        <a href="#" class="k-tab is-active" aria-current="page">Reminders <span class="k-badge k-badge--danger">5</span></a>
+        <a href="Contacts.dc.html" class="k-tab">Customers</a>
+      </nav>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; padding: 16px 32px 0; align-items: flex-start;">
+      <section aria-label="Reminders to send" style="flex: 999 1 540px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+        <div class="k-card" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px 20px;">
+          <span style="flex: 1 1 200px; display: flex; flex-direction: column;"><strong>Your reminder schedule</strong><span class="k-muted" style="font-size: 13px;">Days after the due date. Klopt prepares each step, you press send.</span></span>
+          <span class="lvl"><span class="k-muted" style="font-size: 12px;">After 7 days</span><strong style="font-size: 13px;">Friendly reminder</strong></span>
+          <span class="lvl"><span class="k-muted" style="font-size: 12px;">After 21 days</span><strong style="font-size: 13px;">Second reminder</strong></span>
+          <span class="lvl"><span class="k-muted" style="font-size: 12px;">After 42 days</span><strong style="font-size: 13px;">Final notice</strong></span>
+          <a href="#" style="font-size: 13px;">Change</a>
+        </div>
+        <div class="k-card k-card--flush">
+          <div style="overflow-x: auto;"><div style="min-width: 600px;">
+            <div class="k-row k-row--head rgrid"><input type="checkbox" checked aria-label="Select all" style="margin: 0;"><span>Customer</span><span>Invoice</span><span style="text-align: right;">Amount</span><span>Next step</span></div>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+              <button type="button" class="k-row rgrid k-num" aria-selected="{{r.sel}}" onClick="{{r.pick}}">
+                <span style="width: 16px; height: 16px; border-radius: var(--radius-xs); background: var(--primary); color: var(--on-primary); font-size: 11px; display: flex; align-items: center; justify-content: center;">✓</span>
+                <span style="display: flex; flex-direction: column; min-width: 0;"><span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{r.cust}}</span><span style="font-size: 12px; color: var(--danger);">{{r.days}} days late</span></span>
+                <span style="color: var(--ink-2);">{{r.no}}</span>
+                <span style="text-align: right; font-weight: 500;">€ {{r.amtF}}</span>
+                <span><span class="k-pill k-pill--late">Final notice</span></span>
+              </button>
+            </sc-for>
+          </div></div>
+          <div class="k-muted" style="display: flex; justify-content: space-between; padding: 12px 20px; border-top: 1px solid var(--line-soft); font-size: 13px;"><span>5 selected</span><span class="k-num">€ 4.710,44 outstanding</span></div>
+        </div>
+        <section class="k-callout">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted); margin-top: 1px;"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>
+          <div class="k-callout-body">
+            <span class="k-callout-title">Only invoices the bank hasn't paid</span>
+            <span class="k-callout-text">An invoice leaves this list the moment its payment is matched in Bank, so nobody gets a reminder for something they paid. Match the open bank lines first if you're unsure.</span>
+          </div>
+          <a href="Match.dc.html" style="font-weight: 600; white-space: nowrap;">Open Match</a>
+        </section>
+      </section>
+
+      <aside aria-label="Preview" class="k-card k-card--flush" style="flex: 1 1 380px; max-width: 460px; min-width: 0;">
+        <div style="padding: 16px 24px; border-bottom: 1px solid var(--line-soft); display: flex; align-items: center; gap: 8px;">
+          <strong style="flex: 1;">Email preview</strong>
+          <span class="k-pill k-pill--draft">Dutch</span>
+          <button type="button" class="k-btn k-btn--sm">Edit text <span class="k-kbd">E</span></button>
+        </div>
+        <dl class="k-dl" style="padding: 16px 24px; border-bottom: 1px solid var(--line-soft); font-size: 13px;">
+          <dt>To</dt><dd>[billing email of {{s.cust}}]</dd>
+          <dt>Subject</dt><dd style="font-weight: 600;">Laatste herinnering: factuur {{s.no}}</dd>
+          <dt>Attached</dt><dd>{{s.no}}.pdf, UBL</dd>
+        </dl>
+        <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; line-height: 1.6; color: var(--ink-2);">
+          <p style="margin: 0;">Beste {{s.cust}},</p>
+          <p style="margin: 0;">Factuur {{s.no}} van € {{s.amtF}} stond op {{s.due}} open en is nu {{s.days}} dagen over de vervaldatum. We hebben nog geen betaling ontvangen.</p>
+          <p style="margin: 0;">Wilt u het bedrag binnen 14 dagen overmaken naar NL69 TEST 0000 0000 01 onder vermelding van {{s.no}}? Heeft u al betaald, dan kunt u dit bericht negeren.</p>
+          <p style="margin: 0;">Met vriendelijke groet,<br>Demo BV</p>
+        </div>
+        <div class="k-hints" style="padding: 0 24px 20px;"><span><span class="k-kbd">J</span> <span class="k-kbd">K</span> next customer</span><span><span class="k-kbd">X</span> leave out</span></div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: '2025-0037' };
+  }
+  renderVals() {
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const all = [
+      ['2025-0037','Molenaar Media',985.93,324,'10-02-2025'],
+      ['2025-0039','Havenmeester Horeca',902.79,281,'25-03-2025'],
+      ['2025-0038','Dijkzicht Design',1152.34,175,'09-07-2025'],
+      ['2025-0036','Zandbank Advies',958.34,128,'25-08-2025'],
+      ['2025-0040','Windvaan Workshops',711.04,76,'16-10-2025']
+    ].map(([no, cust, amt, days, due]) => ({ no, cust, amtF: f(amt), days, due }));
+    const rows = all.map((r) => ({ ...r, sel: r.no === this.state.sel ? 'true' : 'false', pick: () => this.setState({ sel: r.no }) }));
+    const s = all.find((r) => r.no === this.state.sel) || all[0];
+    return { theme: this.props.theme ?? 'light', rows, s };
+  }
+}
+</script>
+</body>
+</html>

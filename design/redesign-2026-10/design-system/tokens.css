@@ -1,0 +1,36 @@
+/* Klopt Design System — generated from tokens.json */
+:root, [data-theme="light"] {
+  --ground: #f5f5f2; --surface: #ffffff; --surface-sunken: #f0f0ec; --surface-hover: #fafaf7;
+  --line: #e4e3dd; --line-soft: #efeee9; --line-control: #c9c8c1;
+  --ink: #18181b; --ink-2: #3f3f46; --ink-muted: #63636b; --ink-faint: #a1a1aa;
+  --brand: #ffd43b; --on-brand: #18181b; --brand-tint: #fff6d1; --brand-ink: #8a6a00;
+  --selection: #fff8db; --selection-edge: #e8b500; --focus-ring: #18181b;
+  --primary: #18181b; --on-primary: #ffffff;
+  --success: #15703a; --success-bg: #e8f5ec; --danger: #b42318; --danger-bg: #fdecea;
+  --info: #1d4ed8; --info-bg: #eaf0fe; --neutral-bg: #eeeeea; --warning: #d97706;
+  --chart-1: #18181b; --chart-2: #a1a1aa; --backdrop: rgba(17, 17, 19, 0.45);
+  --shadow-raised: 0 0 0 1px #e4e3dd, 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-paper: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.28);
+}
+[data-theme="dark"] {
+  --ground: #111113; --surface: #1a1a1d; --surface-sunken: #151517; --surface-hover: #222226;
+  --line: #2e2e33; --line-soft: #26262a; --line-control: #4a4a51;
+  --ink: #f4f4f5; --ink-2: #d4d4d8; --ink-muted: #a1a1aa; --ink-faint: #5a5a62;
+  --brand: #ffd43b; --on-brand: #18181b; --brand-tint: #33290a; --brand-ink: #f5c518;
+  --selection: #2e2812; --selection-edge: #f5c518; --focus-ring: #ffd43b;
+  --primary: #f4f4f5; --on-primary: #18181b;
+  --success: #4ade80; --success-bg: #10291a; --danger: #f87171; --danger-bg: #3a1513;
+  --info: #93b4ff; --info-bg: #172144; --neutral-bg: #2a2a2f; --warning: #f59e0b;
+  --chart-1: #f4f4f5; --chart-2: #71717a; --backdrop: rgba(0, 0, 0, 0.6);
+  --shadow-raised: 0 0 0 1px #2e2e33, 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-paper: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+:root {
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+  --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 10px; --radius-xl: 12px; --radius-2xl: 14px; --radius-pill: 999px;
+  --control-h: 40px; --control-h-sm: 32px; --row-h: 48px; --nav-h: 36px; --sidebar-w: 248px;
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}

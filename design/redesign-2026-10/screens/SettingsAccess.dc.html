@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Settings, people and access</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.pgrid{display:grid;grid-template-columns:36px minmax(200px,1fr) 150px 120px 90px;gap:12px}
+.agrid{display:grid;grid-template-columns:150px 150px minmax(200px,1fr);gap:12px}
+.role{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:var(--radius-md);background:var(--surface-sunken)}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1100px;">
+  <dc-import name="Sidebar" active="settings" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box;">
+    <header style="display: flex; flex-direction: column; gap: 2px;">
+      <a href="Settings.dc.html" style="font-size: 13px; color: var(--ink-2); text-decoration: none;">Settings</a>
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em;">People and access</h1>
+    </header>
+    <div style="display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start;">
+      <nav class="k-subnav" aria-label="Access settings" style="flex: 0 0 220px;">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+          <button type="button" class="k-subnav-item" aria-selected="{{t.on}}" onClick="{{t.pick}}">{{t.label}} <span class="k-code">{{t.count}}</span></button>
+        </sc-for>
+      </nav>
+
+      <section style="flex: 1 1 560px; min-width: 0; max-width: 880px; display: flex; flex-direction: column; gap: 20px;">
+        <sc-if value="{{v.people}}" hint-placeholder-val="{{true}}">
+          <section class="k-card k-card--flush">
+            <div class="k-row k-row--head pgrid"><span></span><span>Person</span><span>Role</span><span>Since</span><span></span></div>
+            <div class="k-row pgrid" style="cursor: default;"><span class="k-tile" style="width: 32px; height: 32px; border-radius: 16px;">H</span><span>hidde@neverhide.nl <span class="k-muted">· you</span></span><span><select class="k-input" style="height: 32px;" aria-label="Role of hidde@neverhide.nl"><option>Owner</option></select></span><span class="k-num k-muted">17-10-2026</span><span></span></div>
+            <div class="k-row pgrid" style="cursor: default;"><span class="k-tile" style="width: 32px; height: 32px; border-radius: 16px;">O</span><span>owner@demo.invalid <span class="k-muted">· Demo Seed Owner</span></span><span><select class="k-input" style="height: 32px;" aria-label="Role of owner@demo.invalid"><option>Owner</option><option>Bookkeeper</option><option>Accountant</option><option>Auditor</option></select></span><span class="k-num k-muted">17-10-2026</span><span style="text-align: right;"><button type="button" class="k-btn k-btn--sm k-btn--ghost">Remove</button></span></div>
+          </section>
+          <section class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+            <h2 class="k-card-title">Invite someone</h2>
+            <div style="display: grid; grid-template-columns: minmax(200px, 1fr) 180px auto; gap: 12px; align-items: end;">
+              <div class="k-field"><label class="k-label" for="ie">Email</label><input id="ie" class="k-input" placeholder="name@company.nl"></div>
+              <div class="k-field"><label class="k-label" for="ir">Role</label><select id="ir" class="k-input"><option>Bookkeeper</option><option>Accountant</option><option>Auditor</option><option>Owner</option></select></div>
+              <button type="button" class="k-btn k-btn--primary">Send invite</button>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; font-size: 13px;">
+              <div class="role"><strong>Owner</strong><span class="k-muted">Everything, including access and tokens</span></div>
+              <div class="role"><strong>Bookkeeper</strong><span class="k-muted">Books and sets up. No year close</span></div>
+              <div class="role"><strong>Accountant</strong><span class="k-muted">Also posts in closed periods, and closes</span></div>
+              <div class="role"><strong>Auditor</strong><span class="k-muted">Reads and exports only</span></div>
+            </div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{v.tokens}}" hint-placeholder-val="{{false}}">
+          <section class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;"><h2 class="k-card-title" style="flex: 1;">AI assistants</h2><a href="OAuth.dc.html" class="k-btn k-btn--sm">What connecting looks like</a></div>
+            <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Assistants connect over MCP and ask your permission first. None are connected yet.</p>
+            <div class="k-muted" style="padding: 16px; border-radius: var(--radius-md); background: var(--surface-sunken); font-size: 13px;">Connected assistants show here, with what they may do and when they last did something. You can disconnect one at any time.</div>
+          </section>
+          <section class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+            <h2 class="k-card-title">API tokens for scripts</h2>
+            <div style="display: grid; grid-template-columns: minmax(200px, 1fr) 200px auto; gap: 12px; align-items: end;">
+              <div class="k-field"><label class="k-label" for="tn">Name</label><input id="tn" class="k-input" placeholder="What will use it, e.g. Monthly export"></div>
+              <div class="k-field"><label class="k-label" for="ts">May</label><select id="ts" class="k-input"><option>Read only</option><option>Read and make drafts</option></select></div>
+              <button type="button" class="k-btn k-btn--primary">Create token</button>
+            </div>
+            <span class="k-help">The token shows once. A token never posts, sends or pays; drafts wait for a person.</span>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{v.log}}" hint-placeholder-val="{{false}}">
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+            <div class="k-seg" role="tablist" aria-label="Kind"><button type="button" role="tab" class="k-seg-item" aria-selected="true">All</button><button type="button" role="tab" class="k-seg-item">Bookings</button><button type="button" role="tab" class="k-seg-item">Invoices</button><button type="button" role="tab" class="k-seg-item">Settings</button><button type="button" role="tab" class="k-seg-item">Sign-ins</button></div>
+            <span style="flex: 1;"></span><button type="button" class="k-btn k-btn--sm">Export</button>
+          </div>
+          <section class="k-card k-card--flush">
+            <div class="k-row k-row--head agrid"><span>When</span><span>What</span><span>Who</span></div>
+            <sc-for list="{{log}}" as="l" hint-placeholder-count="6">
+              <div class="k-row agrid k-num" style="cursor: default;"><span style="color: var(--ink-2);">{{l.when}}</span><span>{{l.what}}</span><span class="k-muted">{{l.who}}</span></div>
+            </sc-for>
+          </section>
+          <p class="k-muted" style="margin: 0; font-size: 13px;">Append-only: a correction is a new line, just like in the journal. Each line also keeps the address and request it came from.</p>
+        </sc-if>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'people' };
+  }
+  renderVals() {
+    const t = this.state.tab;
+    const tabs = [['people','People','2'],['tokens','Tokens and assistants','0'],['log','Who did what','200']]
+      .map(([k, label, count]) => ({ label, count, on: k === t ? 'true' : 'false', pick: () => this.setState({ tab: k }) }));
+    const log = [
+      ['30-10-2026 08:38','Signed in','hidde@neverhide.nl'],['30-10-2026 08:38','Asked for a sign-in code','hidde@neverhide.nl'],
+      ['29-10-2026 07:46','Signed in','hidde@neverhide.nl'],['29-10-2026 07:46','Asked for a sign-in code','hidde@neverhide.nl'],
+      ['19-10-2026 04:15','Signed in','hidde@neverhide.nl'],['18-10-2026','Sealed book year 2025','worker'],
+      ['17-10-2026','Joined as owner','hidde@neverhide.nl']
+    ].map(([when, what, who]) => ({ when, what, who }));
+    return { theme: this.props.theme ?? 'light', tabs, log, v: { people: t === 'people', tokens: t === 'tokens', log: t === 'log' } };
+  }
+}
+</script>
+</body>
+</html>
