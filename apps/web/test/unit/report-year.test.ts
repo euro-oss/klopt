@@ -96,17 +96,14 @@ describe('the shell', () => {
     expect(shell).toContain('activeYear.endsOn')
   })
 
-  it('offers ageing under Rapporten (redesign IA, #61 slice 2)', () => {
+  it('offers ageing under Rapporten tabs (Phase 0 flat IA, #107)', () => {
+    // Ageing lives on the Reports tab strip (digits 3–4), not a sidebar group.
     expect(nav).toContain('/reports/debtor-ageing')
     expect(nav).toContain('/reports/creditor-ageing')
-    expect(nav).toContain('nav.group.reports')
-    // Daily work first: Verkoop before Boekhouden; no separate ageing group.
-    const sales = nav.indexOf("key: 'nav.group.sales'")
-    const books = nav.indexOf("key: 'nav.group.books'")
-    const reports = nav.indexOf("key: 'nav.group.reports'")
-    expect(sales).toBeGreaterThan(-1)
-    expect(books).toBeGreaterThan(sales)
-    expect(reports).toBeGreaterThan(books)
+    expect(nav).toContain('REPORTS_TABS')
+    expect(nav).toContain("id: 'debtors'")
+    expect(nav).toContain("id: 'creditors'")
     expect(nav).not.toContain("key: 'nav.group.ageing'")
+    expect(nav).not.toContain("key: 'nav.group.reports'")
   })
 })
