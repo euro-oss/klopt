@@ -140,8 +140,14 @@ test('Escape gives the keyboard back to the rest of the application', async ({ p
   await aDraftInvoice(page)
 
   await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
   await hydrated(page)
   const row = page.getByRole('link', { name: /concept(en)? om te versturen/i })
+  // Wait for the queue row before j: hydrated only proves the shell, and the
+  // WorkQueue keydown listener attaches after items arrive. Pressing earlier
+  // loses the keystroke and flakes on focus.
+  await expect(row).toBeVisible()
+  await expect(row).not.toBeFocused()
   await page.keyboard.press('j')
   await expect(row).toBeFocused()
 
