@@ -2075,7 +2075,7 @@ export const en: Record<MessageKey, string> = {
   'palette.nothingFound': 'Nothing found.',
   'palette.escapeNote': 'Close with Escape. G, I and N are prefixes; they lapse after 1.5 seconds.',
   'palette.advancedNote':
-    'Accounting details deliberately have no shortcut: capital letters are for type-ahead in tables. Turn them on or off here.',
+    'Accounting details deliberately have no shortcut: capital letters are for type-ahead in tables. Turn them on or off with ⌘K or under Settings.',
   'palette.actions': 'Actions',
   'dropZone.chooseFile': 'Choose a file',
   'palette.navigation': 'Navigation',
