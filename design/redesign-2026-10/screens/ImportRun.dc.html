@@ -161,7 +161,7 @@ class Component extends DCLogic {
     const partial = variant === 'stopped-partial';
     return { ...base, title: 'Import stopped', intro: '',
       stop: partial
-        ? { title: n(docs) + ' documents are already booked', text: 'Transferring again skips what\'s already in Klopt; check Journal for anything you booked yourself.', link: 'Open journal entries', href: 'Journal.dc.html' }
+        ? { title: docs === 1 ? '1 document is already booked' : n(docs) + ' documents are already booked', text: 'Transferring again skips what\'s already in Klopt from Moneybird. We don\'t recognise anything you booked yourself, so check Journal for duplicates. Fix a mistake per booking with a correction.', link: 'Open journal entries', href: 'Journal.dc.html' }
         : { title: 'We booked nothing', text: 'Moneybird didn\'t answer after 10:46 on 30-10-2026. You can try again as it is; if it fails again, check the problems first.', link: 'What we still need to fix', href: 'ImportFindings.dc.html' },
       p: { state: partial ? 'At purchase invoice 2024-0158' : 'Before the first booking', pct, line: pct + '% · ' + n(docs) + ' of 800', meta: partial ? n(800 - docs) + ' documents still to go. Contacts and ledger accounts are all in.' : 'Contacts come first; none of them are in yet.', foot: partial ? '' : dedup },
       f: partial
