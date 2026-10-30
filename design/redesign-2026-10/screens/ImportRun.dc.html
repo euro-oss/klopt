@@ -109,7 +109,7 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
           <div class="k-row rgrid k-num" style="cursor: default;"><span class="{{r.ico}}" aria-hidden="true">{{r.mark}}</span><span>{{r.name}}</span><span style="text-align: right;">{{r.n}}</span><span style="{{r.stStyle}}">{{r.st}}</span></div>
         </sc-for>
       </section>
-      <p class="k-muted" style="margin: 0; max-width: 760px; font-size: 13px; line-height: 1.5;">{{p.foot}}</p>
+      <sc-if value="{{p.foot}}" hint-placeholder-val="{{true}}"><p class="k-muted" style="margin: 0; max-width: 760px; font-size: 13px; line-height: 1.5;">{{p.foot}}</p></sc-if>
     </sc-if>
 
     <sc-if value="{{v.footer}}" hint-placeholder-val="{{true}}">
@@ -161,11 +161,11 @@ class Component extends DCLogic {
     const partial = variant === 'stopped-partial';
     return { ...base, title: 'Import stopped', intro: '',
       stop: partial
-        ? { title: 'The import stopped. Part of it may already be booked.', text: 'Check Journal entries to see what\'s already there. If you transfer again, we won\'t transfer anything already transferred from this administration a second time. You fix a mistake per booking with a correction.', link: 'Open journal entries', href: 'Journal.dc.html' }
-        : { title: 'We booked nothing', text: 'Moneybird stopped answering on 30-10-2026 at 10:46. Nothing from this import is in your books, so you can try again as it is. If it stops again, check the problems first.', link: 'What we still need to fix', href: 'ImportFindings.dc.html' },
-      p: { state: partial ? 'Stopped at purchase invoice 2024-0158' : 'Stopped before the first booking', pct, line: pct + '% · ' + n(docs) + ' of 800', meta: partial ? n(docs) + ' documents booked, ' + n(800 - docs) + ' not. Contacts and ledger accounts are all in.' : '0 of 800 documents booked.', foot: dedup },
+        ? { title: n(docs) + ' documents are already booked', text: 'Transferring again skips what\'s already in Klopt; check Journal for anything you booked yourself.', link: 'Open journal entries', href: 'Journal.dc.html' }
+        : { title: 'We booked nothing', text: 'Moneybird didn\'t answer after 10:46 on 30-10-2026. You can try again as it is; if it fails again, check the problems first.', link: 'What we still need to fix', href: 'ImportFindings.dc.html' },
+      p: { state: partial ? 'At purchase invoice 2024-0158' : 'Before the first booking', pct, line: pct + '% · ' + n(docs) + ' of 800', meta: partial ? n(800 - docs) + ' documents still to go. Contacts and ledger accounts are all in.' : 'Contacts come first; none of them are in yet.', foot: partial ? '' : dedup },
       f: partial
-        ? { text: 'Transferring again picks up the ' + n(800 - docs) + ' that are not booked yet.', style: 'color: var(--ink-2);', disabled: false, cta: 'Transfer the rest' }
+        ? { text: '', style: '', disabled: false, cta: 'Transfer the rest' }
         : { text: 'Nothing to clean up first.', style: 'color: var(--ink-2);', disabled: false, cta: 'Try again' },
       hints: partial
         ? [{ keys: ['⌘', '↵'], label: 'transfer the rest' }, { keys: ['G', 'J'], label: 'open the journal' }]

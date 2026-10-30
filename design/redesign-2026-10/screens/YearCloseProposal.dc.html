@@ -25,7 +25,7 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
 .k-root[data-theme="light"]{--line-control:#86857e}
 .k-option{border-color:var(--line-control)}
 .lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}
-.per{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
+.per{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
 .per span{height:28px;border-radius:var(--radius-xs);font:500 11px/28px var(--font-mono);text-align:center}
 .per .shut{background:var(--neutral-bg);color:var(--ink-2)}
 .per .late{background:var(--danger-bg);color:var(--danger);box-shadow:inset 0 0 0 1px var(--danger)}
@@ -62,8 +62,8 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
           <a href="SettingsBooks.dc.html" class="lnk" style="font-size: 13px; font-weight: 400; color: var(--ink-2); align-self: flex-start;">Book years</a>
           <div style="display: flex; align-items: center; gap: 12px;"><h2 class="k-card-title" style="flex: 1; font-size: 20px; line-height: 26px;">Close book year 2025</h2><span class="{{pill}}">{{pillText}}</span></div>
           <span style="color: var(--ink-2);">The proposal first, then close. Klopt sets the profit and loss to zero on 31-12-2025, moves the result to equity and opens 2026 with the balances.</span>
-          <div class="per" aria-label="Periods of 2025">
-            <sc-for list="{{periods}}" as="p" hint-placeholder-count="12"><span class="{{p.cls}}" aria-label="{{p.label}}">{{p.n}}</span></sc-for>
+          <div class="per" aria-label="VAT periods of 2025">
+            <sc-for list="{{periods}}" as="p" hint-placeholder-count="4"><span class="{{p.cls}}" aria-label="{{p.label}}">{{p.n}}</span></sc-for>
           </div>
           <span class="k-muted" style="font-size: 13px;">{{perNote}}</span>
         </div>
@@ -147,20 +147,19 @@ class Component extends DCLogic {
   renderVals() {
     const blocked = (this.props.variant ?? 'ready') === 'blocked';
     const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const periods = months.map((m, i) => {
-      const open = blocked && i >= 10;
-      return { n: i + 1, cls: open ? 'late' : 'shut', label: m + (open ? ', open' : ', closed') };
+    const periods = ['Q1', 'Q2', 'Q3', 'Q4'].map((q, i) => {
+      const open = blocked && i === 3;
+      return { n: q, cls: open ? 'late' : 'shut', label: q + ' 2025, ' + (open ? 'open' : 'closed') };
     });
     const ok = (title, meta) => ({ ico: 'chk-ico ok', mark: '✓', title, meta, titleStyle: 'font-weight: 600;', href: '', fix: '' });
     const no = (title, meta, fix, href) => ({ ico: 'chk-ico no', mark: '!', title, meta, titleStyle: 'font-weight: 600; color: var(--danger);', href, fix });
     const checks = [
       ok('Book year 2026 is open', '1 January to 31 December 2026. 2025 carries its balances into it.'),
       blocked
-        ? no('November and December are still open', 'Someone could still post in 2025 while you close it. Close periods 11 and 12 first.', 'Close periods 11 and 12', 'SettingsBooks.dc.html')
-        : ok('All 12 periods are closed', 'Nobody can post in 2025 any more, so the figures below stay put.'),
+        ? no('Q4 2025\'s VAT period is still open', 'No VAT period inside 2025 may be open when the year closes, or VAT could still land in it afterwards.', 'Open VAT period Q4', 'Vat.dc.html')
+        : ok('All four VAT periods of 2025 are closed', 'Q1 to Q4 are closed, so no VAT can land in 2025 any more and the figures below stay put.'),
       blocked
-        ? no('4 bank lines from 2025 are not matched', 'Together € 1.271,00 that isn\'t in the books yet, so the result would be wrong. 4 of the 15 lines waiting in Bank are from December 2025.', 'Match 4 lines', 'Match.dc.html')
+        ? no('4 bank lines from 2025 are not matched', 'Together € 1.271,00 that isn\'t in the books yet, so the result would be wrong. 4 of the 15 lines waiting in Bank are from December 2025.', 'Match 4 lines', 'Match.dc.html?year=2025')
         : ok('Every 2025 bank line is matched', 'The 15 lines waiting in Bank are from 2026; they don\'t block 2025.')
     ];
     const pl = [['4200','Huur bedrijfsruimte',1551.16],['4300','Brandstofkosten',971.21],['4400','Kantoorkosten',846.15],['4410','Telefoon- en internetkosten',1527.19],['4420','Boekhouding en administratie',1244.89],['4500','Reclame- en advertentiekosten',1013.96],['4900','Algemene kosten',1848.16]];
@@ -186,7 +185,7 @@ class Component extends DCLogic {
     return {
       theme: this.props.theme ?? 'light', blocked, periods, checks, entries,
       pill: blocked ? 'k-pill k-pill--late' : 'k-pill k-pill--draft', pillText: blocked ? 'Blocked' : 'Proposal',
-      perNote: blocked ? 'Grey: closed. Red: still open, so 2025 can\'t close.' : 'Grey: closed. All 12 periods are closed, so nothing changes under the proposal.',
+      perNote: blocked ? 'VAT periods, quarterly. Grey: closed. Red: still open, so 2025 can\'t close.' : 'VAT periods, quarterly. Grey: closed. All four are closed, so nothing changes under the proposal.',
       checksMeta: blocked ? '1 of 3 done' : '3 of 3 done',
       entriesMeta: blocked ? 'As it stands now; changes once the 4 lines are matched' : '2 entries, both balance',
       ackOn: ack ? 'true' : 'false', boxCls: ack ? 'box on' : 'box',
