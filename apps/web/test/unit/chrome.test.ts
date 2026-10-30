@@ -36,7 +36,8 @@ describe('the bottom of the sidebar', () => {
       'action="/sign-out"',
       'shell.account.signOut',
       'shell.advanced',
-      'role="switch"',
+      // Phase 0: Geavanceerd uses ui/switch (Radix role="switch" at runtime).
+      '<Switch',
     ]) {
       expect(menu, inside).toContain(inside)
     }

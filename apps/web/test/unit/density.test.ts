@@ -21,8 +21,8 @@ function read(relative: string): string {
 describe('Alpha 5 density and dark mode', () => {
   it('keeps main inset and page headers tight', () => {
     const shell = read('components/app-shell.tsx')
-    // Phone keeps p-4; desktop gets the redesign's roomier px/py (#57).
-    expect(shell).toContain('min-w-0 flex-1 scroll-mt-12 p-4 outline-none md:p-8')
+    // Phone keeps p-4 + bottom pad for PhoneTabBar; desktop md:p-8 / md:pb-8 (#107).
+    expect(shell).toContain('min-w-0 flex-1 scroll-mt-12 p-4 pb-24 outline-none md:p-8 md:pb-8')
     // Header stacks CTAs full-width below md so 390px does not overflow (#67).
     expect(shell).toContain(
       'mb-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between',
