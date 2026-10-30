@@ -78,155 +78,30 @@ export function dayPartAt(hour: number): DayPart {
   return 'evening'
 }
 
-/** Last four digits of an IBAN for "ING ··· 4821". */
-export function ibanTail(iban: string): string {
-  const compact = iban.replace(/\s+/g, '')
-  return compact.length <= 4 ? compact : compact.slice(-4)
-}
-
 /**
- * A month label key suffix from a 1-based calendar month.
- * Used for chart axis and period rows (nl/en share the same keys).
+ * How a kerncijfer tile renders its value line (PM #112):
+ * - `omit` — no data yet (no bank account, no statement): drop the value line
+ * - `empty` — read failed: leave the value empty, show Unavailable meta
+ * - `amount` — show the money
  */
-export function monthKey(month: number): `dash.month.${number}` {
-  return `dash.month.${month}`
+export type FigureValueKind = 'omit' | 'empty' | 'amount'
+
+export function bankFigureValueKind(
+  bank:
+    | null
+    | { readonly status: 'unavailable' }
+    | { readonly status: 'ok'; readonly balance: string | null },
+): FigureValueKind {
+  if (bank === null) return 'omit'
+  if (bank.status === 'unavailable') return 'empty'
+  if (bank.balance === null) return 'omit'
+  return 'amount'
 }
 
-export interface MonthBar {
-  /** 1–12 calendar month of the period start. */
-  readonly month: number
-  /** Period sequence in the boekjaar. */
-  readonly sequence: number
-  /** Income (revenue) in minor units. */
-  readonly income: string
-  /** Expenses in minor units. */
-  readonly expenses: string
-  /** True when today falls inside this period. */
-  readonly partial: boolean
+export function payablesFigureValueKind(total: string | null): FigureValueKind {
+  return total === null ? 'empty' : 'amount'
 }
 
-/**
- * Scale bar heights so the tallest month fills the chart.
- * Returns a percentage 0–100 for CSS height.
- */
-export function barHeightPercent(value: string, max: bigint): number {
-  if (max <= 0n) return 0
-  const amount = BigInt(value)
-  if (amount <= 0n) return 0
-  const pct = Number((amount * 1000n) / max) / 10
-  return Math.min(100, Math.max(2, pct))
-}
-
-export function maxMonthAmount(months: readonly MonthBar[]): bigint {
-  let max = 0n
-  for (const month of months) {
-    const income = BigInt(month.income)
-    const expenses = BigInt(month.expenses)
-    if (income > max) max = income
-    if (expenses > max) max = expenses
-  }
-  return max
-}
-
-/**
- * The six periods ending at the current one (or the latest that has started),
- * not the last six of the boekjaar — so November/December stay off the chart
- * in October.
- */
-export function chartPeriodsThroughToday<T extends { readonly startsOn: string }>(
-  periods: readonly T[],
-  today: string,
-  window = 6,
-): T[] {
-  const through = periods.filter((period) => period.startsOn <= today)
-  return through.slice(Math.max(0, through.length - window))
-}
-
-export interface PeriodRow {
-  readonly id: string
-  readonly kind: 'month' | 'quarter' | 'year'
-  /** Calendar month 1–12 for kind=month; quarter 1–4 for kind=quarter; year code for year. */
-  readonly labelRef: string
-  readonly status: 'open' | 'closed'
-}
-
-/**
- * Build the "Periodes" list: current open month, last closed quarter (if any),
- * previous closed year (if any). Quarters are derived from monthly periods
- * (no separate quarter-close API — see PR notes).
- */
-export function buildPeriodRows(input: {
-  readonly years: readonly {
-    readonly code: string
-    readonly status: string
-    readonly periods: readonly {
-      readonly sequence: number
-      readonly startsOn: string
-      readonly endsOn: string
-      readonly status: string
-    }[]
-  }[]
-  readonly activeCode: string
-  readonly today: string
-}): readonly PeriodRow[] {
-  const rows: PeriodRow[] = []
-  const active = input.years.find((year) => year.code === input.activeCode)
-  if (active !== undefined) {
-    const current =
-      active.periods.find(
-        (period) => period.startsOn <= input.today && input.today <= period.endsOn,
-      ) ?? active.periods.find((period) => period.status === 'open')
-
-    if (current !== undefined) {
-      const month = Number(current.startsOn.slice(5, 7))
-      rows.push({
-        id: `month-${String(current.sequence)}`,
-        kind: 'month',
-        labelRef: String(month),
-        status: current.status === 'open' ? 'open' : 'closed',
-      })
-    }
-
-    // Calendar quarters from monthly periods (no separate quarter-close API).
-    const sorted = [...active.periods].sort((a, b) => a.sequence - b.sequence)
-    const closedQuarters: PeriodRow[] = []
-    for (let q = 1; q <= 4; q += 1) {
-      const slice = sorted.filter((period) => {
-        const month = Number(period.startsOn.slice(5, 7))
-        return Math.ceil(month / 3) === q
-      })
-      if (slice.length < 3) continue
-      const allClosed = slice.every(
-        (period) => period.status === 'soft_closed' || period.status === 'hard_closed',
-      )
-      const last = slice[slice.length - 1]
-      if (last === undefined) continue
-      const ended = last.endsOn < input.today
-      if (allClosed && ended) {
-        closedQuarters.push({
-          id: `quarter-${String(q)}`,
-          kind: 'quarter',
-          labelRef: String(q),
-          status: 'closed',
-        })
-      }
-    }
-    // Most recent closed quarter only, like the prototype.
-    const latestQuarter = closedQuarters[closedQuarters.length - 1]
-    if (latestQuarter !== undefined) rows.push(latestQuarter)
-  }
-
-  const previousClosed = [...input.years]
-    .filter((year) => year.code !== input.activeCode && year.status === 'closed')
-    .sort((a, b) => b.code.localeCompare(a.code))[0]
-  if (previousClosed !== undefined) {
-    rows.push({
-      id: `year-${previousClosed.code}`,
-      kind: 'year',
-      labelRef: previousClosed.code,
-      status: 'closed',
-    })
-  }
-
-  return rows
+export function profitFigureValueKind(result: string | null): FigureValueKind {
+  return result === null ? 'empty' : 'amount'
 }

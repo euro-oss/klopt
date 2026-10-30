@@ -1,16 +1,16 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   ATTENTION_TONE,
-  barHeightPercent,
-  buildPeriodRows,
+  bankFigureValueKind,
   calendarParts,
   capitalizeWord,
-  chartPeriodsThroughToday,
   dayPartAt,
   glanceBarPercent,
   greetingName,
-  ibanTail,
-  maxMonthAmount,
+  payablesFigureValueKind,
+  profitFigureValueKind,
 } from '../../src/lib/dashboard.js'
 import { WORK_QUEUE_ORDER } from '../../src/lib/work-queue.js'
 
@@ -37,84 +37,6 @@ describe('dashboard greeting helpers', () => {
     expect(dayPartAt(12)).toBe('afternoon')
     expect(dayPartAt(19)).toBe('evening')
   })
-
-  it('prints the last four of an IBAN', () => {
-    expect(ibanTail('NL91 ABNA 0417 1643 00')).toBe('4300')
-  })
-})
-
-describe('dashboard chart scale', () => {
-  it('fills the tallest bar and keeps a short bar visible', () => {
-    const max = maxMonthAmount([
-      { month: 5, sequence: 5, income: '100000', expenses: '50000', partial: false },
-      { month: 6, sequence: 6, income: '10000', expenses: '0', partial: true },
-    ])
-    expect(max).toBe(100000n)
-    expect(barHeightPercent('100000', max)).toBe(100)
-    expect(barHeightPercent('10000', max)).toBeGreaterThanOrEqual(2)
-    expect(barHeightPercent('0', max)).toBe(0)
-  })
-
-  it('takes the six periods ending at today, not future boekjaar months', () => {
-    const periods = Array.from({ length: 12 }, (_, index) => ({
-      sequence: index + 1,
-      startsOn: `2026-${String(index + 1).padStart(2, '0')}-01`,
-    }))
-    const window = chartPeriodsThroughToday(periods, '2026-10-19')
-    expect(window.map((period) => period.sequence)).toEqual([5, 6, 7, 8, 9, 10])
-  })
-})
-
-describe('dashboard period rows', () => {
-  it('lists the open month, a closed quarter, and a closed prior year', () => {
-    const rows = buildPeriodRows({
-      today: '2026-10-18',
-      activeCode: '2026',
-      years: [
-        {
-          code: '2025',
-          status: 'closed',
-          periods: [],
-        },
-        {
-          code: '2026',
-          status: 'open',
-          periods: [
-            {
-              sequence: 7,
-              startsOn: '2026-07-01',
-              endsOn: '2026-07-31',
-              status: 'hard_closed',
-            },
-            {
-              sequence: 8,
-              startsOn: '2026-08-01',
-              endsOn: '2026-08-31',
-              status: 'hard_closed',
-            },
-            {
-              sequence: 9,
-              startsOn: '2026-09-01',
-              endsOn: '2026-09-30',
-              status: 'hard_closed',
-            },
-            {
-              sequence: 10,
-              startsOn: '2026-10-01',
-              endsOn: '2026-10-31',
-              status: 'open',
-            },
-          ],
-        },
-      ],
-    })
-
-    expect(rows).toEqual([
-      { id: 'month-10', kind: 'month', labelRef: '10', status: 'open' },
-      { id: 'quarter-3', kind: 'quarter', labelRef: '3', status: 'closed' },
-      { id: 'year-2025', kind: 'year', labelRef: '2025', status: 'closed' },
-    ])
-  })
 })
 
 describe('werklijst tones', () => {
@@ -129,12 +51,33 @@ describe('werklijst tones', () => {
   })
 })
 
+describe('figure tile value kinds (PM #112)', () => {
+  it('bank: no account / no statement omit the value; failed read leaves it empty', () => {
+    expect(bankFigureValueKind(null)).toBe('omit')
+    expect(bankFigureValueKind({ status: 'unavailable' })).toBe('empty')
+    expect(bankFigureValueKind({ status: 'ok', balance: null })).toBe('omit')
+    expect(bankFigureValueKind({ status: 'ok', balance: '125000' })).toBe('amount')
+  })
+
+  it('payables: failed read is empty; a real zero is still an amount', () => {
+    expect(payablesFigureValueKind(null)).toBe('empty')
+    expect(payablesFigureValueKind('0')).toBe('amount')
+    expect(payablesFigureValueKind('4200')).toBe('amount')
+  })
+
+  it('profit: failed read is empty; a real zero is still an amount', () => {
+    expect(profitFigureValueKind(null)).toBe('empty')
+    expect(profitFigureValueKind('0')).toBe('amount')
+    expect(profitFigureValueKind('-1200')).toBe('amount')
+  })
+})
+
 describe('honest kerncijfers copy', () => {
   it('labels the overdue-only figure as te laat bij klanten, not as all receivables', async () => {
     const { nl } = await import('../../src/i18n/nl.js')
     const { en } = await import('../../src/i18n/en.js')
     expect(nl['dash.figure.receivables']).toBe('Te laat bij klanten')
-    expect(en['dash.figure.receivables']).toBe('Overdue')
+    expect(en['dash.figure.receivables']).toBe('Overdue from customers')
     expect(nl['dash.figure.receivablesEmpty']).toBe('Niets te laat')
     expect(en['dash.figure.receivablesEmpty']).toBe('Nothing overdue')
     expect(nl['dash.figure.receivables']).not.toMatch(/Nog te ontvangen|Te laat betaald/)
@@ -166,9 +109,60 @@ describe('honest kerncijfers copy', () => {
     expect(en['dash.greetingSubCount_one']).not.toMatch(/minute/i)
   })
 
+  it('keeps Legal #112 Unavailable / emptyBody / exportBody verbatim', async () => {
+    const { nl } = await import('../../src/i18n/nl.js')
+    const { en } = await import('../../src/i18n/en.js')
+    expect(nl['dash.figure.payablesUnavailable']).toBe('Niet beschikbaar')
+    expect(en['dash.figure.payablesUnavailable']).toBe('Not available')
+    expect(nl['dash.figure.profitUnavailable']).toBe('Niet beschikbaar')
+    expect(en['dash.figure.profitUnavailable']).toBe('Not available')
+    expect(nl['dash.figure.bankUnavailable']).toBe('Niet beschikbaar')
+    expect(en['dash.figure.bankUnavailable']).toBe('Not available')
+    expect(nl['queue.emptyBody']).toBe('Voor dit boekjaar staat er nu niets voor je klaar.')
+    expect(en['queue.emptyBody']).toBe('Nothing is waiting for you in this book year right now.')
+    expect(nl['dash.exportBody']).toBe(
+      'Kies een boekjaar en download het als XAF 3.2-auditfile, met RGS-codes waar je rekeningen gekoppeld zijn.',
+    )
+    expect(en['dash.exportBody']).toBe(
+      'Pick a book year and download it as an XAF 3.2 audit file, with RGS codes where your accounts are mapped.',
+    )
+    expect(nl['dash.glance.ageTitle']).toBe('Hoe laat klanten betalen')
+    expect(nl['ageing.bucket.over90']).toBe('Meer dan 90 dagen')
+    expect(en['ageing.bucket.over90']).toBe('More than 90 days')
+  })
+
   it('scales P&L glance bars against the larger of income and expenses', () => {
     expect(glanceBarPercent('100000', 100000n)).toBe(100)
     expect(glanceBarPercent('39000', 100000n)).toBe(39)
     expect(glanceBarPercent('0', 100000n)).toBe(0)
+  })
+})
+
+describe('Home overdue parity with debtor-ageing (PM + Legal #112)', () => {
+  it('does not filter overdue invoices by due-date withinFiscalYear', () => {
+    const source = readFileSync(join(import.meta.dirname, '../../src/server/dashboard.ts'), 'utf8')
+    expect(source).toContain('const overdueInvoices = overdue.body.invoices')
+    expect(source).not.toMatch(
+      /overdue\.body\.invoices\.filter\(\(invoice\) =>\s*withinFiscalYear\(scope, invoice\.dueDate\)/,
+    )
+    expect(source).toContain('debtorAgeing(overdueInvoices)')
+    // Failed payables stay null — never coerce to '0'.
+    expect(source).toContain('total: payables === null ? null : payables.body.total')
+    expect(source).not.toContain("payables?.body.total ?? '0'")
+  })
+
+  it('Home passes fiscalYear on ageing Details and bucket links', () => {
+    const source = readFileSync(
+      join(import.meta.dirname, '../../src/routes/_app/index.tsx'),
+      'utf8',
+    )
+    expect(source).toContain('search={{ ...yearSearch, bucket }}')
+    expect(source).toMatch(/AgeingGlance[\s\S]*yearCode/)
+    expect(source).toContain("item.kind === 'sales.overdue' ? { fiscalYear: Number(fiscalYear) }")
+    // Bonnetje → /inbox shows the real inbox shortcut, not n r.
+    expect(source).toMatch(/to="\/inbox"[\s\S]*?<Keycap>g<\/Keycap>/)
+    expect(source).not.toMatch(/to="\/inbox"[\s\S]*?<Keycap>n<\/Keycap>\s*<Keycap>r<\/Keycap>/)
+    // No Kloppen de boeken block on Home.
+    expect(source).not.toContain('dash.healthTitle')
   })
 })

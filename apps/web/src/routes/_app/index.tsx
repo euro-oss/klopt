@@ -10,7 +10,7 @@ import {
   RiUploadLine,
 } from '@remixicon/react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { PageHeader, Stat } from '~/components/app-shell'
+import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import { Button } from '~/components/ui/button'
 import {
@@ -26,11 +26,15 @@ import { useT } from '~/i18n/provider'
 import { formatMinorUnits } from '~/lib/format'
 import {
   ATTENTION_TONE,
+  bankFigureValueKind,
   calendarParts,
   capitalizeWord,
   glanceBarPercent,
   greetingName,
+  payablesFigureValueKind,
+  profitFigureValueKind,
   type AttentionTone,
+  type FigureValueKind,
 } from '~/lib/dashboard'
 import { DEBTOR_AGEING_BUCKETS, type DebtorAgeingBucket } from '~/lib/ageing'
 import { fiscalYearSearch } from '~/lib/fiscal-year'
@@ -44,7 +48,7 @@ import type { WorkQueueItem, WorkQueueKind } from '~/lib/work-queue'
 import { getDashboard, type DashboardAgeing, type DashboardFigures } from '~/server/dashboard'
 import { getEntity } from '~/server/entity'
 import { getSession } from '~/server/context'
-import { getRgsCoverage, getTrialBalance } from '~/server/ledger'
+import { getRgsCoverage } from '~/server/ledger'
 
 /**
  * Home — Main / PhoneHome / HomeDark (redesign Phase 1 / #107).
@@ -60,14 +64,13 @@ export const Route = createFileRoute('/_app/')({
   loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
   loader: async ({ deps }) => {
     const year = deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) }
-    const [dashboard, coverage, trial, entity, session] = await Promise.all([
+    const [dashboard, coverage, entity, session] = await Promise.all([
       getDashboard({ data: year }),
       getRgsCoverage({ data: {} }),
-      getTrialBalance({ data: year }),
       getEntity(),
       getSession(),
     ])
-    return { dashboard, coverage, trial, entity, session }
+    return { dashboard, coverage, entity, session }
   },
   pendingComponent: DashboardPending,
   component: Dashboard,
@@ -164,9 +167,9 @@ const AGE_BUCKET_LABEL: Record<DebtorAgeingBucket, MessageKey> = {
   over90: 'ageing.bucket.over90',
 }
 
-/** Export chart colours for the four debtor-ageing bands. */
+/** Export chart colours for the four debtor-ageing bands (status tokens only). */
 const AGE_BUCKET_COLOR: Record<DebtorAgeingBucket, string> = {
-  upTo30: 'bg-[var(--line)]',
+  upTo30: 'bg-info',
   upTo60: 'bg-[var(--chart-2)]',
   upTo90: 'bg-[var(--warning)]',
   over90: 'bg-destructive',
@@ -189,7 +192,7 @@ function DashboardPending() {
 }
 
 function Dashboard() {
-  const { dashboard, coverage, trial, entity, session } = Route.useLoaderData()
+  const { dashboard, coverage, entity, session } = Route.useLoaderData()
   const { t, plural } = useT()
   const { advanced } = useAdvancedMode()
   const hydrated = useHydrated()
@@ -238,34 +241,27 @@ function Dashboard() {
             : greetingSub
         }
         actions={
-          <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:justify-end">
-            <Button
-              asChild
-              variant="outline"
-              className="min-h-11 w-full flex-1 md:min-h-9 md:w-auto"
-            >
+          // Phone: CTAs leave the header; one secondary Bonnetje sits under Te doen.
+          <div className="hidden w-full flex-col gap-2 md:flex md:w-auto md:flex-row md:justify-end">
+            <Button asChild variant="outline" className="min-h-9">
               <Link to="/inbox">
                 <RiUploadLine data-icon="inline-start" aria-hidden="true" />
                 {t('dash.addReceipt')}
                 {hydrated && (
-                  <span className="ml-1 hidden gap-0.5 normal-case md:inline-flex">
-                    <Keycap>n</Keycap>
-                    <Keycap>r</Keycap>
+                  <span className="ml-1 inline-flex gap-0.5 normal-case">
+                    <Keycap>g</Keycap>
+                    <Keycap>e</Keycap>
                   </span>
                 )}
               </Link>
             </Button>
             {/* Home only: New invoice is secondary; the top to-do owns primary (PM #107). */}
-            <Button
-              asChild
-              variant="outline"
-              className="min-h-11 w-full flex-1 md:min-h-9 md:w-auto"
-            >
+            <Button asChild variant="outline" className="min-h-9">
               <Link to="/invoices/new">
                 <RiAddLine data-icon="inline-start" aria-hidden="true" />
                 {t('dash.newInvoice')}
                 {hydrated && (
-                  <span className="ml-1 hidden gap-0.5 normal-case md:inline-flex">
+                  <span className="ml-1 inline-flex gap-0.5 normal-case">
                     <Keycap>n</Keycap>
                     <Keycap>f</Keycap>
                   </span>
@@ -286,7 +282,15 @@ function Dashboard() {
 
           <div className="mt-6 flex flex-wrap items-start gap-6">
             <div className="min-w-0 flex-[2_1_520px]">
-              <WorkQueue items={dashboard.data.items} />
+              <WorkQueue items={dashboard.data.items} fiscalYear={dashboard.data.fiscalYear.code} />
+              <div className="mt-3 md:hidden">
+                <Button asChild variant="outline" className="min-h-11 w-full">
+                  <Link to="/inbox">
+                    <RiUploadLine data-icon="inline-start" aria-hidden="true" />
+                    {t('dash.addReceipt')}
+                  </Link>
+                </Button>
+              </div>
             </div>
             <aside className="hidden min-w-0 flex-[1_1_300px] flex-col gap-6 md:flex">
               <ProfitGlance
@@ -295,43 +299,14 @@ function Dashboard() {
                 expenses={dashboard.data.figures.profit.expenses}
                 result={dashboard.data.figures.profit.result}
               />
-              <AgeingGlance ageing={dashboard.data.ageing} />
+              <AgeingGlance
+                ageing={dashboard.data.ageing}
+                yearCode={dashboard.data.fiscalYear.code}
+              />
               <AuditCard />
             </aside>
           </div>
         </>
-      )}
-
-      {advanced && (
-        <section className="mt-8">
-          <h2 className="mb-3 font-medium">{t('dash.healthTitle')}</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Stat
-              label={t('dash.trialBalance')}
-              value={trial.ok ? <Money amount={trial.data.difference} /> : '—'}
-              hint={
-                trial.ok && trial.data.difference === '0'
-                  ? t('dash.trialBalanceEqual')
-                  : t('dash.trialBalanceDifference')
-              }
-              tone={trial.ok && trial.data.difference === '0' ? 'good' : 'warn'}
-            />
-            <Stat
-              label={t('dash.rgsCoverage')}
-              value={coverage.ok ? `${String(coverage.data.mappedPercentage)}%` : '—'}
-              hint={
-                coverage.ok
-                  ? t('dash.rgsCoverageHint', {
-                      mapped: String(coverage.data.mappedCount),
-                      total: String(coverage.data.accountCount),
-                      version: coverage.data.version,
-                    })
-                  : undefined
-              }
-              tone={coverage.ok && coverage.data.unmappedCount === 0 ? 'good' : 'warn'}
-            />
-          </div>
-        </section>
       )}
 
       {advanced && coverage.ok && coverage.data.unmappedCount > 0 && (
@@ -362,33 +337,37 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
   const profit = profitResult === null ? null : BigInt(profitResult)
   const prior = figures.profit.priorResult === null ? null : BigInt(figures.profit.priorResult)
   const delta = profit === null || prior === null ? null : profit - prior
+  const yearSearch = { fiscalYear: Number(yearCode) }
 
-  const bankMeta = ((): { text: string; danger: boolean } => {
-    if (bank === null) return { text: t('dash.figure.bankEmpty'), danger: false }
-    if (bank.balance === null) return { text: t('dash.figure.bankNoStatement'), danger: false }
+  const bankValueKind = bankFigureValueKind(bank)
+  const bankMeta = ((): string => {
+    if (bank === null) return t('dash.figure.bankEmpty')
+    if (bank.status === 'unavailable') return t('dash.figure.bankUnavailable')
+    if (bank.balance === null) return t('dash.figure.bankNoStatement')
     const date = bank.statementDate === null ? null : dayMonthLabel(bank.statementDate, t)
     if (date !== null && bank.unmatchedCount > 0) {
-      return {
-        text: plural('dash.figure.bankHintMatch', bank.unmatchedCount, { date }),
-        danger: false,
-      }
+      return plural('dash.figure.bankHintMatch', bank.unmatchedCount, { date })
     }
-    if (date !== null) return { text: t('dash.figure.bankHint', { date }), danger: false }
+    if (date !== null) return t('dash.figure.bankHint', { date })
     if (bank.unmatchedCount > 0) {
-      return {
-        text: plural('dash.figure.bankHintMatchOnly', bank.unmatchedCount),
-        danger: false,
-      }
+      return plural('dash.figure.bankHintMatchOnly', bank.unmatchedCount)
     }
-    return {
-      text: t('dash.figure.bankHintNoDate', { name: bank.name, iban: bank.iban.slice(-4) }),
-      danger: false,
-    }
+    return t('dash.figure.bankHintNoDate', { name: bank.name, iban: bank.iban.slice(-4) })
   })()
 
+  const payablesValueKind = payablesFigureValueKind(figures.payables.total)
+  const payablesMeta =
+    figures.payables.total === null
+      ? t('dash.figure.payablesUnavailable')
+      : figures.payables.count === 0
+        ? t('dash.figure.payablesEmpty')
+        : plural('dash.figure.payablesHint', figures.payables.count)
+
+  const profitValueKind = profitFigureValueKind(profitResult)
+  // Failed P&L: Unavailable only — never "Boekjaar {year}" on a failed read (PM #112).
   const profitMeta =
-    profit === null
-      ? t('dash.figure.profitNoPrior', { year: yearCode })
+    profitResult === null
+      ? t('dash.figure.profitUnavailable')
       : delta === null
         ? t('dash.figure.profitNoPrior', { year: yearCode })
         : delta === 0n
@@ -405,12 +384,19 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
       <StatTile
         to="/bank/match"
         label={t('dash.figure.bank')}
-        value={bank === null || bank.balance === null ? '—' : <EuroAmount amount={bank.balance} />}
-        meta={bankMeta.text}
+        valueKind={bankValueKind}
+        value={
+          bank !== null && bank.status === 'ok' && bank.balance !== null ? (
+            <EuroAmount amount={bank.balance} />
+          ) : null
+        }
+        meta={bankMeta}
       />
       <StatTile
         to="/reports/debtor-ageing"
+        search={yearSearch}
         label={t('dash.figure.receivables')}
+        valueKind="amount"
         value={<EuroAmount amount={figures.receivables.total} />}
         meta={
           figures.receivables.count === 0
@@ -424,22 +410,23 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
         className="hidden md:flex"
         to="/purchases"
         label={t('dash.figure.payables')}
-        value={<EuroAmount amount={figures.payables.total} />}
-        meta={
-          figures.payables.count === 0
-            ? t('dash.figure.payablesEmpty')
-            : plural('dash.figure.payablesHint', figures.payables.count)
+        valueKind={payablesValueKind}
+        value={
+          figures.payables.total === null ? null : <EuroAmount amount={figures.payables.total} />
         }
+        meta={payablesMeta}
       />
       <StatTile
         className="hidden md:flex"
         to="/reports/profit-and-loss"
+        search={yearSearch}
         label={
           profit !== null && profit < 0n
             ? t('dash.figure.loss', { year: yearCode })
             : t('dash.figure.profit', { year: yearCode })
         }
-        value={profitResult === null ? '—' : <EuroAmount amount={profitResult} />}
+        valueKind={profitValueKind}
+        value={profitResult === null ? null : <EuroAmount amount={profitResult} />}
         meta={profitMeta}
       />
     </section>
@@ -448,14 +435,18 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
 
 function StatTile({
   to,
+  search,
   label,
+  valueKind,
   value,
   meta,
   metaDanger = false,
   className,
 }: {
   to: string
+  search?: Record<string, string | number>
   label: string
+  valueKind: FigureValueKind
   value: ReactNode
   meta: string
   metaDanger?: boolean
@@ -464,15 +455,18 @@ function StatTile({
   return (
     <Link
       to={to}
+      {...(search === undefined ? {} : { search })}
       className={cn(
         'bg-card text-card-foreground border-border flex flex-col gap-1.5 rounded-[var(--radius-xl)] border px-4 py-[18px] no-underline transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:px-5',
         className,
       )}
     >
       <span className="text-muted-foreground text-[13px]">{label}</span>
-      <span className="text-[20px] leading-[26px] font-semibold tracking-tight tabular md:text-[26px] md:leading-8">
-        {value}
-      </span>
+      {valueKind !== 'omit' && (
+        <span className="text-[20px] leading-[26px] font-semibold tracking-tight tabular md:text-[26px] md:leading-8">
+          {valueKind === 'empty' ? null : value}
+        </span>
+      )}
       <span
         className={cn(
           'text-[13px]',
@@ -521,6 +515,7 @@ function ProfitGlance({
   if (income === null || expenses === null || result === null) return null
 
   const max = BigInt(income) > BigInt(expenses) ? BigInt(income) : BigInt(expenses)
+  const yearSearch = { fiscalYear: Number(yearCode) }
 
   return (
     <section
@@ -533,6 +528,7 @@ function ProfitGlance({
         </h2>
         <Link
           to="/reports/profit-and-loss"
+          search={yearSearch}
           className="text-link text-[13px] underline underline-offset-4"
         >
           {t('dash.glance.plLink')}
@@ -571,6 +567,9 @@ function GlanceBar({
   width: number
   tone: 'income' | 'expense'
 }) {
+  // Hide € 0,00 bars (Design #112) — keep the label/amount row only when non-zero.
+  if (BigInt(amount) === 0n) return null
+
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex justify-between text-[13px]">
@@ -589,13 +588,14 @@ function GlanceBar({
   )
 }
 
-function AgeingGlance({ ageing }: { ageing: DashboardAgeing }) {
+function AgeingGlance({ ageing, yearCode }: { ageing: DashboardAgeing; yearCode: string }) {
   const { t } = useT()
   const present = DEBTOR_AGEING_BUCKETS.filter((bucket) => BigInt(ageing[bucket]) > 0n)
   // Nothing overdue → omit the card (never show € 0,00 placeholders).
   if (present.length === 0) return null
 
   const total = present.reduce((sum, bucket) => sum + BigInt(ageing[bucket]), 0n)
+  const yearSearch = { fiscalYear: Number(yearCode) }
 
   return (
     <section
@@ -608,6 +608,7 @@ function AgeingGlance({ ageing }: { ageing: DashboardAgeing }) {
         </h2>
         <Link
           to="/reports/debtor-ageing"
+          search={yearSearch}
           className="text-link text-[13px] underline underline-offset-4"
         >
           {t('dash.glance.ageLink')}
@@ -631,7 +632,7 @@ function AgeingGlance({ ageing }: { ageing: DashboardAgeing }) {
           <li key={bucket}>
             <Link
               to="/reports/debtor-ageing"
-              search={{ bucket }}
+              search={{ ...yearSearch, bucket }}
               className="text-foreground hover:bg-muted -mx-1 flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-0.5 no-underline"
             >
               <span
@@ -767,7 +768,7 @@ function rowCopy(
  * Only the top item's action is primary. `Enter` opens (native link),
  * `Escape` leaves the list. Empty → "Nothing waiting" / "Niets te doen".
  */
-function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
+function WorkQueue({ items, fiscalYear }: { items: readonly WorkQueueItem[]; fiscalYear: string }) {
   const { t, plural } = useT()
   const hydrated = useHydrated()
   const [cursor, setCursor] = useState(0)
@@ -863,11 +864,16 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
           const copy = rowCopy(item, t, plural)
           const selected = index === cursor
           const isTop = index === 0
+          const search = {
+            ...(destination.search ?? {}),
+            // Ageing / overdue open the same boekjaar the Home is showing (PM #112).
+            ...(item.kind === 'sales.overdue' ? { fiscalYear: Number(fiscalYear) } : {}),
+          }
           return (
             <li key={item.kind}>
               <Link
                 to={destination.to}
-                {...(destination.search === undefined ? {} : { search: destination.search })}
+                {...(Object.keys(search).length === 0 ? {} : { search })}
                 ref={(element: HTMLAnchorElement | null) => {
                   rows.current[index] = element
                 }}

@@ -25,12 +25,17 @@ To-do list is ordered by consequence; only the top item's action is primary,
 and the header "Nieuwe factuur" is secondary on Home. Empty state says
 "Niets te doen" / "Nothing waiting" — no "Haal je boekhouding over" row.
 Four linked stat tiles keep honest labels (overdue-only receivables until
-#68). P&L glance, debtor-ageing glance (same buckets and overdue query as
-`/reports/debtor-ageing`; not-yet-due stay out; zero buckets omitted), and
-an audit-file card with an underlined link in the card text colour to
-`/audit-file`. Phone shows two tiles + compact to-dos; side cards are
-desktop. Copy drops invented estimates, card-payment summaries and
-four-eyes wording.
+#68). P&L glance, debtor-ageing glance (same buckets and overdue list as
+`/reports/debtor-ageing`; asOf only, no due-date boekjaar filter; not-yet-due
+stay out; zero buckets omitted; Details/bucket/`sales.overdue` carry
+`fiscalYear`), and an audit-file card with Legal export copy and an
+underlined link in the card text colour to `/audit-file`. Tile rule: no data
+drops the value line; a failed read leaves the value empty and shows
+`dash.figure.*Unavailable` ("Niet beschikbaar" / "Not available") — never
+€ 0,00 or "Niets open" on a failed payables/profit/bank read. Phone hides
+header CTAs and keeps one secondary Bonnetje under Te doen; the inbox
+shortcut chip is `g e`. No "Kloppen de boeken?" strip. Copy drops invented
+estimates, card-payment summaries and four-eyes wording.
 
 ### Redesign Phase 0: tokens, theme, components, shell (#107)
 

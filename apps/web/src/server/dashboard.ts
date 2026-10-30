@@ -29,21 +29,31 @@ import { contextFromRequest, reportYear, run } from './internal'
  * aggregate API yet (#68) — leave those numbers out rather than inventing 0.
  * The bank tile shows the unmatched count alone, with no suggestion subtitle.
  * Debtor-ageing buckets reuse `debtorAgeing()` on the same overdue list the
- * report reads — not-yet-due invoices stay out of the buckets.
+ * report reads — not-yet-due invoices stay out of the buckets. Overdue /
+ * receivables / ageing / sales.overdue use that list as-of only (no due-date
+ * boekjaar filter), matching `/reports/debtor-ageing`.
  */
 
 const SCAN_LIMIT = 1000
 
 export interface DashboardFigures {
-  readonly bank: {
-    /** `null` when the account has no imported statement yet — render "—". */
-    readonly balance: string | null
-    readonly name: string
-    readonly iban: string
-    readonly statementDate: string | null
-    /** Unmatched lines in this book year — honest count, never a suggestion. */
-    readonly unmatchedCount: number
-  } | null
+  /**
+   * Bank tile. `null` = no account yet (omit the value). `unavailable` = the
+   * accounts read failed (empty value + Unavailable meta). `ok` with
+   * `balance: null` = account but no statement yet (omit the value).
+   */
+  readonly bank:
+    | { readonly status: 'unavailable' }
+    | {
+        readonly status: 'ok'
+        readonly balance: string | null
+        readonly name: string
+        readonly iban: string
+        readonly statementDate: string | null
+        /** Unmatched lines in this book year — honest count, never a suggestion. */
+        readonly unmatchedCount: number
+      }
+    | null
   readonly receivables: {
     /**
      * Overdue outstanding only. Labelled "Te laat bij klanten" until a full
@@ -54,11 +64,15 @@ export interface DashboardFigures {
     readonly overdueCount: number
   }
   readonly payables: {
-    readonly total: string
+    /**
+     * `null` when the creditor-ageing read failed — empty value + Unavailable,
+     * never € 0,00 / "Niets open".
+     */
+    readonly total: string | null
     readonly count: number
   }
   readonly profit: {
-    /** `null` when the P&L read failed — render "—", not € 0,00. */
+    /** `null` when the P&L read failed — empty value + Unavailable, not € 0,00. */
     readonly result: string | null
     readonly priorResult: string | null
     /** Year income / expenses for the P&L glance; null when the read failed. */
@@ -109,7 +123,7 @@ async function loadDashboard(
     }),
     handleListInbox(context, { state: 'new' }),
     handleListPurchaseInvoices(context, listPurchaseInvoicesQuery.parse({})),
-    handleListBankAccounts(context),
+    handleListBankAccounts(context).catch(() => null),
     handleGetCreditorAgeing(context, { asOf: scope.asOf }).catch(() => null),
     handleGetProfitAndLoss(context, {
       fiscalYear: scope.code,
@@ -129,9 +143,9 @@ async function loadDashboard(
     handleMoneybirdImportStatus(context).catch(() => null),
   ])
 
-  const overdueInYear = overdue.body.invoices.filter((invoice) =>
-    withinFiscalYear(scope, invoice.dueDate),
-  )
+  // Same overdue list as `/reports/debtor-ageing` — asOf only, no due-date
+  // boekjaar filter (PM + Legal #112).
+  const overdueInvoices = overdue.body.invoices
   const purchasesInYear = purchases.body.invoices.filter((invoice) =>
     withinFiscalYear(scope, invoice.invoiceDate),
   )
@@ -139,7 +153,7 @@ async function loadDashboard(
     withinFiscalYear(scope, transaction.bookingDate),
   ).length
 
-  const ranked = [...overdueInYear].sort((a, b) => b.daysOverdue - a.daysOverdue)
+  const ranked = [...overdueInvoices].sort((a, b) => b.daysOverdue - a.daysOverdue)
   const topOverdue = ranked[0]
 
   const moneybirdBody = moneybird?.body
@@ -168,8 +182,8 @@ async function loadDashboard(
       salesDrafts: drafts.body.invoices.filter((invoice) =>
         withinFiscalYear(scope, invoice.issueDate),
       ).length,
-      salesOverdue: overdueInYear.length,
-      salesOverdueTotal: overdueInYear
+      salesOverdue: overdueInvoices.length,
+      salesOverdueTotal: overdueInvoices
         .reduce((sum, invoice) => sum + BigInt(invoice.total), 0n)
         .toString(),
       salesOverdueTop:
@@ -198,32 +212,38 @@ async function loadDashboard(
   )
 
   const primaryBank =
-    bankAccounts.body.accounts.find(
-      (account) => account.reconciliation.statementBalance !== null,
-    ) ??
-    bankAccounts.body.accounts[0] ??
-    null
+    bankAccounts === null
+      ? null
+      : (bankAccounts.body.accounts.find(
+          (account) => account.reconciliation.statementBalance !== null,
+        ) ??
+        bankAccounts.body.accounts[0] ??
+        null)
 
   const figures: DashboardFigures = {
     bank:
-      primaryBank === null
-        ? null
-        : {
-            // No statement yet → no balance. Do not invent € 0,00 (PM #67).
-            balance: primaryBank.reconciliation.statementBalance,
-            name: primaryBank.name,
-            iban: primaryBank.iban,
-            statementDate: primaryBank.reconciliation.statementDate,
-            unmatchedCount: bankUnmatchedCount,
-          },
+      bankAccounts === null
+        ? { status: 'unavailable' }
+        : primaryBank === null
+          ? null
+          : {
+              status: 'ok',
+              // No statement yet → no balance. Do not invent € 0,00 (PM #67).
+              balance: primaryBank.reconciliation.statementBalance,
+              name: primaryBank.name,
+              iban: primaryBank.iban,
+              statementDate: primaryBank.reconciliation.statementDate,
+              unmatchedCount: bankUnmatchedCount,
+            },
     receivables: {
-      total: overdueInYear.reduce((sum, invoice) => sum + BigInt(invoice.total), 0n).toString(),
-      count: overdueInYear.length,
-      overdueCount: overdueInYear.length,
+      total: overdueInvoices.reduce((sum, invoice) => sum + BigInt(invoice.total), 0n).toString(),
+      count: overdueInvoices.length,
+      overdueCount: overdueInvoices.length,
     },
     payables: {
-      total: payables?.body.total ?? '0',
-      count: payables?.body.buckets.length ?? 0,
+      // Failed read → null, never coerce to '0' (Legal / PM #112).
+      total: payables === null ? null : payables.body.total,
+      count: payables === null ? 0 : payables.body.buckets.length,
     },
     profit: {
       // A failed P&L read is not € 0,00 — leave the figure absent (PM #67).
@@ -235,7 +255,7 @@ async function loadDashboard(
   }
 
   // Same overdue list + same `debtorAgeing` helper as `/reports/debtor-ageing`.
-  const ageing = debtorAgeing(overdueInYear).totals
+  const ageing = debtorAgeing(overdueInvoices).totals
 
   return {
     fiscalYear: scope,

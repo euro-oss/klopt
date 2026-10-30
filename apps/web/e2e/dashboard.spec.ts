@@ -165,11 +165,10 @@ test('the queue lists what is waiting and opens the screen where it is done', as
   await expect(page.getByRole('row')).toHaveCount(2)
 })
 
-test('Geavanceerd off hides the whole health strip on the dashboard', async ({ page }) => {
+test('Home drops the Kloppen de boeken health strip', async ({ page }) => {
   await anAdministration(page, 'Eenvoudig Dashboard BV')
 
-  // Owner defaults to Geavanceerd off (#65 / designer #67): jargon health
-  // (Kloppen de boeken?, RGS, Proefbalans) stays out until advanced is on.
+  // Phase 1 Home: no jargon health block (Design #112).
   await expect(page.getByRole('heading', { name: 'Kloppen de boeken?' })).toHaveCount(0)
   await expect(page.locator('#main').getByText('RGS-dekking')).toHaveCount(0)
   await expect(page.locator('#main').getByText('Proefbalans')).toHaveCount(0)
@@ -186,6 +185,45 @@ test('kerncijfers label overdue outstanding honestly, not as all receivables', a
   // Bank suggestions and Exact finding counts stay out — no invented 0.
   await expect(page.getByText(/suggestie/i)).toHaveCount(0)
   await expect(page.getByRole('link', { name: /Exact.*0|0.*Exact/i })).toHaveCount(0)
+
+  // No-data tiles drop the value line (no em dash, no € 0,00 on bank).
+  const bank = figures.getByRole('link', { name: /Op de bank/ })
+  await expect(bank).toContainText('Nog geen bankrekening')
+  await expect(bank).not.toContainText('—')
+  await expect(bank).not.toContainText('Niet beschikbaar')
+  // Successful payables zero still shows the amount + empty meta (not Unavailable).
+  const payables = figures.getByRole('link', { name: /Nog te betalen/ })
+  await expect(payables).toContainText('€')
+  await expect(payables).toContainText('Niets open')
+  await expect(payables).not.toContainText('Niet beschikbaar')
+  // Successful P&L zero is an amount, not Unavailable.
+  const profit = figures.getByRole('link', { name: /Winst|Verlies/ })
+  await expect(profit).toContainText('€')
+  await expect(profit).not.toContainText('Niet beschikbaar')
+})
+
+test('Bonnetje goes to inbox with g e, and phone keeps one secondary under Te doen', async ({
+  page,
+}) => {
+  await anAdministration(page, 'Bonnetje Shortcut BV')
+  await hydrated(page)
+
+  const desktopReceipt = page
+    .locator('#main header')
+    .getByRole('link', { name: /Bonnetje toevoegen/ })
+  await expect(desktopReceipt).toBeVisible()
+  // Real inbox shortcut is g e — not n r (that opens /purchases/new).
+  const keycaps = desktopReceipt.locator('kbd')
+  await expect(keycaps).toHaveText(['g', 'e'])
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(
+    page.locator('#main header').getByRole('link', { name: /Bonnetje toevoegen/ }),
+  ).toHaveCount(0)
+  const phoneReceipt = page.locator('#main').getByRole('link', { name: /Bonnetje toevoegen/ })
+  await expect(phoneReceipt).toBeVisible()
+  await phoneReceipt.click()
+  await expect(page).toHaveURL(/\/inbox$/)
 })
 
 test('Escape gives the keyboard back to the rest of the application', async ({ page }) => {
