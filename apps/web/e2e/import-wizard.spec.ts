@@ -45,7 +45,11 @@ async function connectStandIn(page: Page, standIn: MoneybirdStandIn): Promise<vo
   await clickNext(page)
   await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
 
-  await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+  await page
+    .locator('details')
+    .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
+    .locator('summary')
+    .click()
   await page.getByLabel('API-adres').fill(standIn.baseUrl)
   await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
   await clickNext(page)
@@ -196,7 +200,11 @@ test('a wrong Moneybird token stays on Verbinden with the token error (#105)', a
     await clickNext(page)
     await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
 
-    await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+    await page
+      .locator('details')
+      .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
+      .locator('summary')
+      .click()
     await page.getByLabel('API-adres').fill(standIn.baseUrl)
     await page.getByLabel('Persoonlijk API-token').fill('definitely-wrong-token')
     await clickNext(page)
@@ -230,7 +238,11 @@ test('an unreachable Moneybird stays on Verbinden with the generic try-again (#1
     await clickNext(page)
     await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
 
-    await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+    await page
+      .locator('details')
+      .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
+      .locator('summary')
+      .click()
     await page.getByLabel('API-adres').fill(standIn.baseUrl)
     await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
     await clickNext(page)

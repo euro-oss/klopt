@@ -78,7 +78,11 @@ async function connectStandIn(page: Page, standIn: MoneybirdStandIn): Promise<vo
   await expect(moneybird).toBeChecked()
   await clickNext(page)
   await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
-  await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+  await page
+    .locator('details')
+    .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
+    .locator('summary')
+    .click()
   await page.getByLabel('API-adres').fill(standIn.baseUrl)
   await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
   await clickNext(page)
@@ -196,7 +200,11 @@ test('capture wizard steps 1–10 and key dialogs', async ({ browser }) => {
         await shoot(page, `02-verbinden-${theme}-${label}.png`)
 
         // Connect via stand-in for remaining steps
-        await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+        await page
+          .locator('details')
+          .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
+          .locator('summary')
+          .click()
         await page.getByLabel('API-adres').fill(standIn.baseUrl)
         await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
         await clickNext(page)
@@ -539,12 +547,20 @@ test('capture resume, verbinden states, #92/#93, failures', async ({ browser }) 
 
         // Geavanceerd shadcn Checkbox — 44px touch row (esp. at 390), before
         // token-error so the frame is not byte-identical to that shot.
-        await expect(page.getByRole('checkbox', { name: /Geavanceerd|Advanced/ })).toBeVisible()
+        await expect(
+          page.getByRole('checkbox', {
+            name: /Geavanceerd|Boekhouddetails|Advanced|Accounting details/,
+          }),
+        ).toBeVisible()
         await setTheme(page, theme)
         await shoot(page, `02-verbinden-geavanceerd-checkbox-${theme}-${label}.png`)
 
         // Dark focus ring via keyboard Tab so :focus-visible paints.
-        await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+        await page
+          .locator('details')
+          .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
+          .locator('summary')
+          .click()
         await page.getByLabel('API-adres').fill(standIn.baseUrl)
         await page.getByLabel('Persoonlijk API-token').fill('token-for-focus-ring')
         if (theme === 'dark') {
@@ -624,7 +640,7 @@ test('capture resume, verbinden states, #92/#93, failures', async ({ browser }) 
             await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
             await page
               .locator('details')
-              .filter({ hasText: 'Geavanceerd' })
+              .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
               .locator('summary')
               .click()
             await page.getByLabel('API-adres').fill(unreachable.baseUrl)
@@ -1091,7 +1107,7 @@ test('capture Klaar blocked (#95) and cheap follow-ups', async ({ browser }) => 
             } else {
               await page
                 .locator('details')
-                .filter({ hasText: 'Geavanceerd' })
+                .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
                 .locator('summary')
                 .click()
               await page.getByLabel('API-adres').fill(standIn.baseUrl)

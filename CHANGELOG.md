@@ -32,7 +32,7 @@ CodeChip, DropZone, Stepper, PhoneTabBar, SubNav, …) and shown on
 Shortcuts pinned; Journal top-level (`g j`) with Entries / Trial SubNav (Ledger
 [API] omitted); Proefbalans also Reports tab 5; no Geavanceerd gate on these.
 PhoneTabBar at 390 (More → existing Sheet until Batch 3). [API] items stay out
-of nav and ⌘K. Keymap per v2 + aliases (`⌘S`, `⇧⌘↵`, `/` list filter).
+of nav and ⌘K. Keymap per v2 + aliases (`⇧⌘↵`, `/` list filter).
 GuidedInvoice is dropped — the Editor phase removes the guided flow. Docs:
 `docs/design/tokens-2026-10.md`, `docs/design/component-mapping-2026-10.md`.
 

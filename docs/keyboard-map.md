@@ -56,7 +56,7 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `i` then `m`   | Go to Moneybird (**M**oneybird)                         |
 | `n` then `i`   | New inkoopfactuur (alias of `n r`)                      |
 | `n` then `r`   | New receipt or bill                                     |
-| `n` then `c`   | New contact (relatie)                                   |
+| `n` then `c`   | Go to contacts (relaties)                               |
 | `n` then `j`   | New journal entry                                       |
 | `n` then `f`   | New sales invoice                                       |
 | `Escape`       | Close overlay, cancel edit, clear focus — in that order |

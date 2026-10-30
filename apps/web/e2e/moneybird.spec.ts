@@ -60,7 +60,11 @@ async function openVerbinden(page: Page): Promise<void> {
 /** Reach Btw-codes with a stand-in connection and a chosen administration. */
 async function reachBtwStep(page: Page, standIn: MoneybirdStandIn): Promise<void> {
   await openVerbinden(page)
-  await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+  await page
+    .locator('details')
+    .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
+    .locator('summary')
+    .click()
   await page.getByLabel('API-adres').fill(standIn.baseUrl)
   await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
   await clickNext(page)

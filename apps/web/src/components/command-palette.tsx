@@ -183,8 +183,9 @@ function helpRowsForGroup(group: MessageKey, role: string, advanced: boolean): r
   }))
 }
 
-/** One row the cursor can be on: a nav destination, an extra, or a hit. */
+/** One row the cursor can be on: an action, a nav destination, an extra, or a hit. */
 type Row =
+  | { readonly kind: 'action'; readonly id: 'toggle-advanced' }
   | { readonly kind: 'nav'; readonly nav: NavRow }
   | { readonly kind: 'binding'; readonly binding: Binding }
   | { readonly kind: 'hit'; readonly hit: SearchHit }
@@ -202,6 +203,24 @@ export function CommandPalette({ role = '' }: { role?: string }) {
   const advanced = advancedMode?.advanced ?? false
   const navigation = useMemo(() => searchNav(t, role, advanced, query), [t, role, advanced, query])
   const extras = useMemo(() => searchExtras(t, query), [t, query])
+
+  // Boekhouddetails toggle is open to every role when the preference is loaded.
+  const showAdvancedAction = useMemo(() => {
+    if (advancedMode === null) return false
+    const needle = query.trim().toLowerCase()
+    if (needle === '') return true
+    const labels = [
+      t('shell.advancedToggleOn'),
+      t('shell.advancedToggleOff'),
+      t('shell.advanced'),
+      t('settings.accountingDetails'),
+      'boekhouddetails',
+      'geavanceerd',
+      'accounting details',
+      'advanced',
+    ]
+    return labels.some((label) => label.toLowerCase().includes(needle))
+  }, [advancedMode, query, t])
 
   /**
    * The server's last answer, and **which question it answers**.
@@ -233,14 +252,16 @@ export function CommandPalette({ role = '' }: { role?: string }) {
   const searching = open === 'palette' && isSearchable(needle) && current === null
 
   const groups: readonly SearchGroup[] = useMemo(() => groupHits(current?.hits ?? []), [current])
-  const rows: readonly Row[] = useMemo(
-    () => [
+  const rows: readonly Row[] = useMemo(() => {
+    const actionRows: Row[] = showAdvancedAction ? [{ kind: 'action', id: 'toggle-advanced' }] : []
+    return [
+      ...actionRows,
       ...navigation.map((nav): Row => ({ kind: 'nav', nav })),
       ...extras.map((binding): Row => ({ kind: 'binding', binding })),
       ...flattenGroups(groups).map((hit): Row => ({ kind: 'hit', hit })),
-    ],
-    [navigation, extras, groups],
-  )
+    ]
+  }, [showAdvancedAction, navigation, extras, groups])
+  const actionCount = showAdvancedAction ? 1 : 0
   const navCount = navigation.length
 
   /**
@@ -386,6 +407,15 @@ export function CommandPalette({ role = '' }: { role?: string }) {
   const go = (row: Row | undefined): void => {
     if (row === undefined) return
 
+    if (row.kind === 'action') {
+      if (row.id === 'toggle-advanced' && advancedMode !== null) {
+        if (advancedMode.saving) return
+        void advancedMode.toggleAdvanced()
+        setOpen(null)
+      }
+      return
+    }
+
     if (row.kind === 'nav') {
       if (row.nav.binding.to === undefined) return
       setOpen(null)
@@ -506,6 +536,48 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                     </p>
                   )}
 
+                  {showAdvancedAction && advancedMode !== null && (
+                    <section>
+                      <h3 className="text-muted-foreground px-4 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">
+                        {t('palette.actions')}
+                      </h3>
+                      <ul>
+                        <li>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={cursor === 0}
+                            aria-busy={advancedMode.saving || undefined}
+                            onMouseEnter={() => {
+                              setCursor(0)
+                            }}
+                            onClick={() => {
+                              go({ kind: 'action', id: 'toggle-advanced' })
+                            }}
+                            className={cn(
+                              'flex min-h-11 w-full items-center justify-between px-4 py-2 text-left text-sm md:min-h-0',
+                              cursor === 0 && 'bg-accent text-accent-foreground',
+                            )}
+                          >
+                            <span>
+                              {advancedMode.advanced
+                                ? t('shell.advancedToggleOff')
+                                : t('shell.advancedToggleOn')}
+                            </span>
+                            <span
+                              className={cn(
+                                'text-xs',
+                                cursor === 0 ? 'text-accent-foreground' : 'text-muted-foreground',
+                              )}
+                            >
+                              {t('shell.advancedNoShortcut')}
+                            </span>
+                          </button>
+                        </li>
+                      </ul>
+                    </section>
+                  )}
+
                   {navigation.length > 0 && (
                     <section>
                       <h3 className="text-muted-foreground px-4 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">
@@ -513,7 +585,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                       </h3>
                       <ul>
                         {navigation.map((nav, navIndex) => {
-                          const index = navIndex
+                          const index = actionCount + navIndex
                           const label = t(navLabelKey(nav.item, advanced))
                           const active = index === cursor
                           return (
@@ -576,7 +648,7 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                       </h3>
                       <ul>
                         {extras.map((binding, extraIndex) => {
-                          const index = navCount + extraIndex
+                          const index = actionCount + navCount + extraIndex
                           const active = index === cursor
                           return (
                             <li key={binding.id}>
@@ -655,7 +727,10 @@ export function CommandPalette({ role = '' }: { role?: string }) {
                           <ul>
                             {group.hits.map((hit) => {
                               const index =
-                                navCount + extras.length + flattenGroups(groups).indexOf(hit)
+                                actionCount +
+                                navCount +
+                                extras.length +
+                                flattenGroups(groups).indexOf(hit)
                               const active = index === cursor
                               return (
                                 <li key={`${hit.type}-${hit.id}`}>

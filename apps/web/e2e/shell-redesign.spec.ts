@@ -97,10 +97,10 @@ test('⌘K reaches Journaal when boekhouddetails is off', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+k')
   const palette = page.getByRole('dialog', { name: 'Commando’s' })
   await expect(palette).toBeVisible()
-  // Toggle lives on Settings now — not a ⌘K action.
+  // Boekhouddetails toggle is a ⌘K action for every role (Settings switch stays).
   await expect(
-    palette.getByRole('option', { name: /Geavanceerd|Boekhouddetails|advanced/i }),
-  ).toHaveCount(0)
+    palette.getByRole('option', { name: /Boekhouddetails aanzetten|Turn accounting details on/i }),
+  ).toBeVisible()
 
   await page.keyboard.type('journaal')
   await expect(palette.getByRole('option', { name: /^Journaal/ })).toBeVisible()
@@ -135,11 +135,11 @@ test('? opens keyboard help and mentions boekhouddetails is unbound', async ({ p
   await expect(help).toBeVisible()
   await expect(
     help.getByText(
-      /Boekhouddetails heeft bewust geen sneltoets|Geavanceerd heeft bewust geen sneltoets/,
+      /Boekhouddetails hebben bewust geen sneltoets|Accounting details deliberately have no shortcut/,
     ),
   ).toBeVisible()
   await expect(help.getByRole('heading', { name: 'Tabbladen' })).toBeVisible()
-  await expect(help.getByText(/Tabs wisselen/)).toBeVisible()
+  await expect(help.getByText(/Tabblad wisselen \(Rapporten, Journaal\)/)).toBeVisible()
   await expect(help.getByText('1–5')).toBeVisible()
 })
 
@@ -289,7 +289,9 @@ test('Reports Proefbalans stays visible when boekhouddetails is off', async ({ p
   await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
 })
 
-test('a Boekhouder gets boekhouddetails on by default', async ({ browser }) => {
+test('a Boekhouder gets boekhouddetails on by default and can toggle it from ⌘K', async ({
+  browser,
+}) => {
   const owner = await browser.newContext()
   const keeper = await browser.newContext()
 
@@ -324,6 +326,22 @@ test('a Boekhouder gets boekhouddetails on by default', async ({ browser }) => {
 
     await keeperPage.goto('/settings')
     await expect(advancedModeSwitch(keeperPage)).toHaveAttribute('aria-checked', 'true')
+
+    // Non-owner: ⌘K Boekhouddetails toggle is open to every role.
+    // Open from Home so the chord is not swallowed by a focused Settings control.
+    await keeperPage.goto('/')
+    await hydrated(keeperPage)
+    await keeperPage.keyboard.press('ControlOrMeta+k')
+    const palette = keeperPage.getByRole('dialog', { name: 'Commando’s' })
+    await expect(palette).toBeVisible()
+    const toggle = palette.getByRole('option', {
+      name: /Boekhouddetails uitzetten|Turn accounting details off/i,
+    })
+    await expect(toggle).toBeVisible()
+    await toggle.click()
+    await expect(palette).toHaveCount(0)
+    await keeperPage.goto('/settings')
+    await expect(advancedModeSwitch(keeperPage)).toHaveAttribute('aria-checked', 'false')
   } finally {
     await owner.close()
     await keeper.close()
@@ -398,7 +416,7 @@ test('boekhouddetails is isolated per user on the same browser', async ({ page }
   await expect(advancedModeSwitch(page)).toHaveAttribute('aria-checked', 'false')
 })
 
-test('Importeren Geavanceerd checkbox shares the Settings toggle', async ({ page }) => {
+test('Importeren Boekhouddetails checkbox shares the Settings toggle', async ({ page }) => {
   await anAdministration(page, 'Moneybird Sync BV')
 
   await page.goto('/importeren?bron=moneybird')
@@ -407,7 +425,7 @@ test('Importeren Geavanceerd checkbox shares the Settings toggle', async ({ page
   // without React onChange, so the shell switch stays off.
   await hydrated(page)
 
-  const wizard = page.getByRole('checkbox', { name: /Geavanceerd|Advanced/ })
+  const wizard = page.getByRole('checkbox', { name: /Boekhouddetails|Accounting details/i })
   await expect(wizard).not.toBeChecked()
 
   await wizard.check()
@@ -418,7 +436,9 @@ test('Importeren Geavanceerd checkbox shares the Settings toggle', async ({ page
 
   await page.goto('/importeren?bron=moneybird')
   await hydrated(page)
-  await expect(page.getByRole('checkbox', { name: /Geavanceerd|Advanced/ })).not.toBeChecked()
+  await expect(
+    page.getByRole('checkbox', { name: /Boekhouddetails|Accounting details/i }),
+  ).not.toBeChecked()
 })
 
 test('⌘K and the URL still reach Proefbalans when boekhouddetails is off', async ({ page }) => {
@@ -533,6 +553,12 @@ test('Settings hub lists Overstappen naar Klopt', async ({ page }) => {
   await page.goto('/settings')
   await expect(page.getByRole('heading', { name: 'Overstappen naar Klopt' })).toBeVisible()
   await expect(advancedModeSwitch(page)).toBeVisible()
+  const overstappen = page.getByRole('region', { name: 'Overstappen naar Klopt' })
+  await expect(overstappen.getByRole('link', { name: /Exact Online/ })).toBeVisible()
+  await expect(overstappen.getByText('Niet in deze wizard')).toBeVisible()
+  await expect(
+    overstappen.getByRole('link', { name: /Uit een auditfile \(XAF 3\.2\)/ }),
+  ).toBeVisible()
   await page.getByRole('link', { name: /Vanuit Moneybird/ }).click()
   await expect(page).toHaveURL(/\/importeren/)
 })
