@@ -24,13 +24,37 @@ test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
 
-async function anAdministration(page: Page, name: string): Promise<void> {
+const MONTHS_NL = [
+  'januari',
+  'februari',
+  'maart',
+  'april',
+  'mei',
+  'juni',
+  'juli',
+  'augustus',
+  'september',
+  'oktober',
+  'november',
+  'december',
+] as const
+
+async function anAdministration(
+  page: Page,
+  name: string,
+  options?: { readonly startInCurrentMonth?: boolean },
+): Promise<void> {
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill(name)
+  // Keyboard specs that assume a draft is the top to-do need no closed VAT
+  // period waiting — start the book year in the current month for those.
+  if (options?.startInCurrentMonth === true) {
+    await chooseOption(page, 'Begint in', MONTHS_NL[new Date().getMonth()]!)
+  }
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -94,7 +118,7 @@ test('an empty administration shows the redesigned dashboard and a way to start'
 })
 
 test('the queue lists what is waiting and opens the screen where it is done', async ({ page }) => {
-  await anAdministration(page, 'Werklijst BV')
+  await anAdministration(page, 'Werklijst BV', { startInCurrentMonth: true })
   await aDraftInvoice(page)
 
   await page.goto('/')
@@ -165,7 +189,7 @@ test('kerncijfers label overdue outstanding honestly, not as all receivables', a
 })
 
 test('Escape gives the keyboard back to the rest of the application', async ({ page }) => {
-  await anAdministration(page, 'Ontsnapping BV')
+  await anAdministration(page, 'Ontsnapping BV', { startInCurrentMonth: true })
   await aDraftInvoice(page)
 
   await page.goto('/')
