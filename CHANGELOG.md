@@ -36,6 +36,13 @@ of nav and ⌘K. Keymap per v2 + aliases (`⇧⌘↵`, `/` list filter).
 GuidedInvoice is dropped — the Editor phase removes the guided flow. Docs:
 `docs/design/tokens-2026-10.md`, `docs/design/component-mapping-2026-10.md`.
 
+### Install: bin shims for `klopt-mcp` and `klopt` (#108)
+
+`@klopt/mcp` and `@klopt/cli` point their package `bin` entries at committed
+executable shims under `bin/` that import `dist/main.js`. A clean
+`pnpm install` (and the Docker build) no longer warns that `dist/main.js` is
+missing before those packages are built.
+
 ### Import wizard: connect probe and opening count (#105)
 
 Connecting (`POST /api/v1/moneybird/connection`) now probes Moneybird before
