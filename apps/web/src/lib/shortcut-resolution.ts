@@ -21,7 +21,12 @@ import { BINDINGS, type Binding } from './keyboard'
  * listener that fired `Enter` would fight every form on every page.
  */
 export const GLOBAL_BINDINGS: readonly Binding[] = BINDINGS.filter(
-  (binding) => binding.to !== undefined || binding.id === 'palette' || binding.id === 'help',
+  (binding) =>
+    binding.to !== undefined ||
+    binding.id === 'palette' ||
+    binding.id === 'help' ||
+    // `/` focuses a list filter when the page exposes one (#107).
+    binding.id === 'list.filter',
 )
 
 /** The distinct first keys of every two-key binding: `g`, `i` and `n`. */

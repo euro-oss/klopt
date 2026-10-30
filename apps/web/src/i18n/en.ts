@@ -259,6 +259,14 @@ export const en: Record<MessageKey, string> = {
   'importFindings.fx.currency.fallback': '{currency}',
 
   'nav.dashboard': 'Dashboard',
+  // Flat rail labels (#107). `nav.dashboard` stays for older chords / copy.
+  'nav.home': 'Home',
+  'nav.sales': 'Sales',
+  'nav.costs': 'Costs',
+  'nav.reports': 'Reports',
+  'nav.shortcuts': 'Shortcuts',
+  'nav.import': 'Import',
+  'nav.bankStatements': 'Bank statements',
   'nav.entries': 'Journal entries',
   'nav.accounts': 'Chart of accounts',
   // Simple-mode label for the chart of accounts (#43 / #44).
@@ -1435,6 +1443,12 @@ export const en: Record<MessageKey, string> = {
 
   // The administration's own details.
   'settings.title': 'Settings',
+  'settings.switchToKlopt': 'Switching to Klopt',
+  'settings.switchToKloptBody':
+    'Bring your books over from Moneybird or Exact. The wizard stays reachable via ⌘K.',
+  'settings.switchToKloptAction': 'Open import',
+  'settings.hubCompany': 'Your company',
+  'settings.hubCompanyBody': 'Name, address and chamber of commerce — what goes on your invoices.',
   'settings.intro': "This administration's own details. An e-invoice cannot do without them.",
   'settings.saved': 'Saved.',
   'settings.registration': 'Name and registration',
@@ -1991,6 +2005,8 @@ export const en: Record<MessageKey, string> = {
   'keys.goProfitAndLoss': 'Profit and loss account',
   'keys.goVat': 'VAT return',
   'keys.newInvoice': 'New invoice',
+  'keys.newContact': 'New contact',
+  'keys.newReceipt': 'New receipt',
   'keys.matchConfirm': 'Open the panel / confirm',
   'keys.matchNext': 'Next',
   'keys.matchPrevious': 'Previous',
@@ -2007,6 +2023,7 @@ export const en: Record<MessageKey, string> = {
   'keys.listPrevious': 'Previous row',
   'keys.listOpen': 'Open the row',
   'keys.listSelect': 'Select the row',
+  'keys.listFilter': 'Focus the filter',
   'keys.listSelectAll': 'Select everything',
   'keys.listCopy': 'Copy as a table',
   'keys.listTypeAhead': 'Jump to what you type',

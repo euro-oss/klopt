@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { statementSectionLabel } from '~/i18n/labels'
 import type { StatementSectionKey } from '@klopt/core'
 import { PageHeader } from '~/components/app-shell'
+import { ReportsTabs } from '~/components/reports-tabs'
 import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
 import { fiscalYearSearch } from '~/lib/fiscal-year'
@@ -83,6 +84,7 @@ function BalanceSheet() {
 
   return (
     <>
+      <ReportsTabs />
       <PageHeader
         title={t('balance.title')}
         description={t('balance.intro', { date: sheet.asOf, currency: sheet.currency })}

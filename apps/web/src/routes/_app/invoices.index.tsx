@@ -139,7 +139,12 @@ function Invoices() {
         }
       />
 
-      <nav aria-label={t('invoices.filter')} className="mb-4 flex gap-1">
+      <nav
+        aria-label={t('invoices.filter')}
+        data-list-filter=""
+        tabIndex={-1}
+        className="mb-4 flex gap-1 outline-none"
+      >
         {FILTERS.map((filter) => (
           <Link
             key={filter.key}

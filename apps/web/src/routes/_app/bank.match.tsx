@@ -44,6 +44,9 @@ import { listFiscalYears } from '~/server/setup'
 /**
  * Koppelen — bank statement lines matched to invoices and bookings (#61 slice 6).
  *
+ * TODO(#107): when ChoiceOption 1–4 lands (Phase 5), option 4 deep-links to
+ * Journaalposten (`/entries`). Digits are not booking shortcuts here.
+ *
  * Ports the #57 prototype: Af/Bij table, suggestion panel (520px desktop /
  * full-width phone sheet), confirm / ignore, locked closed-period rows, and
  * the matched-today list. Suggestions stay per-selected-line (#68: no invented

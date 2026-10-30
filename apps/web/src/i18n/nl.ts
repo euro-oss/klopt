@@ -28,6 +28,14 @@
 export const nl = {
   // The shell, which is on every screen.
   'nav.dashboard': 'Dashboard',
+  // Flat rail labels (#107). `nav.dashboard` stays for older chords / copy.
+  'nav.home': 'Home',
+  'nav.sales': 'Verkoop',
+  'nav.costs': 'Kosten',
+  'nav.reports': 'Rapporten',
+  'nav.shortcuts': 'Sneltoetsen',
+  'nav.import': 'Importeren',
+  'nav.bankStatements': 'Bankafschriften',
   'nav.entries': 'Journaalposten',
   'nav.accounts': 'Grootboek',
   // Simple-mode label for the chart of accounts (#43 / #44).
@@ -1229,6 +1237,12 @@ export const nl = {
 
   // The administration's own details.
   'settings.title': 'Instellingen',
+  'settings.switchToKlopt': 'Overstappen naar Klopt',
+  'settings.switchToKloptBody':
+    'Haal je boeken over uit Moneybird of Exact. De wizard blijft bereikbaar via ⌘K.',
+  'settings.switchToKloptAction': 'Importeren openen',
+  'settings.hubCompany': 'Je bedrijf',
+  'settings.hubCompanyBody': 'Naam, adres en KvK — wat op je facturen komt.',
   'settings.intro': 'De gegevens van deze administratie. Een e-factuur kan niet zonder.',
   'settings.saved': 'Opgeslagen.',
   'settings.registration': 'Naam en registratie',
@@ -2056,6 +2070,8 @@ export const nl = {
   'keys.goProfitAndLoss': 'Winst- en verliesrekening',
   'keys.goVat': 'BTW-aangifte',
   'keys.newInvoice': 'Nieuwe factuur',
+  'keys.newContact': 'Nieuwe relatie',
+  'keys.newReceipt': 'Nieuw bonnetje',
   'keys.matchConfirm': 'Paneel openen / voorstel boeken',
   'keys.matchNext': 'Volgende',
   'keys.matchPrevious': 'Vorige',
@@ -2072,6 +2088,7 @@ export const nl = {
   'keys.listPrevious': 'Vorige regel',
   'keys.listOpen': 'Regel openen',
   'keys.listSelect': 'Regel selecteren',
+  'keys.listFilter': 'Filter focussen',
   'keys.listSelectAll': 'Alles selecteren',
   'keys.listCopy': 'Kopiëren als tabel',
   'keys.listTypeAhead': 'Springen naar wat je typt',

@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { violationMessage } from '~/i18n/labels'
 import { useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
@@ -171,6 +171,28 @@ function Settings() {
   return (
     <>
       <PageHeader title={t('settings.title')} description={t('settings.intro')} />
+
+      {/*
+        Settings hub seed (#107): Overstappen naar Klopt. Full hub grouping is
+        Phase 10; this row is the Placement decision for Importeren.
+      */}
+      <section
+        aria-label={t('settings.switchToKlopt')}
+        className="border-border bg-surface mb-6 border p-4"
+        style={{ borderRadius: 'var(--radius-xl)' }}
+      >
+        <h2 className="text-base font-semibold">{t('settings.switchToKlopt')}</h2>
+        <p className="text-muted-foreground mt-1 text-sm">{t('settings.switchToKloptBody')}</p>
+        <Link
+          to="/importeren"
+          className="text-link mt-3 inline-flex min-h-11 items-center text-sm font-medium md:min-h-9"
+        >
+          {t('settings.switchToKloptAction')}
+        </Link>
+      </section>
+
+      <h2 className="mb-3 text-base font-semibold">{t('settings.hubCompany')}</h2>
+      <p className="text-muted-foreground mb-4 text-sm">{t('settings.hubCompanyBody')}</p>
 
       {notice !== null && (
         <p className="border-border text-muted-foreground mb-4 rounded-md border p-3 text-sm">

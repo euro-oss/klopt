@@ -1,0 +1,299 @@
+/**
+ * Klopt design tokens — Phase 0 (#107), from design/redesign-2026-10/.
+ *
+ * ONE central layer. Every open decision (radius, shadow, greys, fonts, accent,
+ * link colour, status colours, sidebar width) is a custom property here. Change
+ * the value in this file (or the light/dark block) — never hard-code colours,
+ * radii, shadows or font names in components.
+ *
+ * Consumed by `app.css` (Tailwind / shadcn theme mapping). Documented in
+ * `docs/design/tokens-2026-10.md`.
+ *
+ * Theme: `:root` = light (default). `.dark` overrides. The export's
+ * `[data-theme="dark"]` is remapped to `.dark` only.
+ */
+
+:root {
+  /*
+    -------------------------------------------------------------------------
+    OPEN / SWAPPABLE — change these in one place (see docs/design/tokens-2026-10.md)
+    -------------------------------------------------------------------------
+  */
+
+  /*
+    Fonts (current: Inter + JetBrains Mono; alt sans: Ubuntu Sans Variable).
+    Prefixed --token-* so @theme can map --font-sans without a cycle.
+    To swap sans, set --token-font-sans to the Ubuntu Sans Variable stack.
+  */
+  --token-font-sans: 'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif;
+  --token-font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Radius (current: export 4–14px + pill; alt: set every --token-radius-* to 0) */
+  --token-radius-xs: 4px;
+  --token-radius-sm: 6px;
+  --token-radius-md: 8px;
+  --token-radius-lg: 10px;
+  --token-radius-xl: 12px;
+  --token-radius-2xl: 14px;
+  --token-radius-pill: 999px;
+  /* Convenience aliases used in components and docs */
+  --radius-xs: var(--token-radius-xs);
+  --radius-sm: var(--token-radius-sm);
+  --radius-md: var(--token-radius-md);
+  --radius-lg: var(--token-radius-lg);
+  --radius-xl: var(--token-radius-xl);
+  --radius-2xl: var(--token-radius-2xl);
+  --radius-pill: var(--token-radius-pill);
+  /* shadcn single --radius tracks the control/card step */
+  --radius: var(--token-radius-md);
+  --font-sans: var(--token-font-sans);
+  --font-mono: var(--token-font-mono);
+
+  /* Spacing / size (export) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --control-h: 40px;
+  --control-h-sm: 32px;
+  /* Touch floor (a11y deviation): interactive hit area ≥44px below md */
+  --control-h-touch: 44px;
+  --row-h: 48px;
+  --nav-h: 36px;
+  --sidebar-w: 248px;
+
+  /* Warm greys (current: export; alt: pure white/black) */
+  --ground: #f5f5f2;
+  --surface: #ffffff;
+  --surface-sunken: #f0f0ec;
+  --surface-hover: #fafaf7;
+  --line: #e4e3dd;
+  --line-soft: #efeee9;
+  /* Export line-control is 1.68:1 — decorative only. Accessible input uses --input. */
+  --line-control: #c9c8c1;
+  --ink: #18181b;
+  --ink-2: #3f3f46;
+  --ink-muted: #63636b;
+  --ink-faint: #a1a1aa;
+
+  /* Brand yellow (export #ffd43b; previous product #FFD51E) */
+  --brand: #ffd43b;
+  --on-brand: #18181b;
+  --brand-tint: #fff6d1;
+  --brand-ink: #8a6a00;
+  --selection: #fff8db;
+  --selection-edge: #e8b500;
+  --focus-ring: #18181b;
+
+  --primary: #18181b;
+  --on-primary: #ffffff;
+
+  /* Export status only */
+  --success: #15703a;
+  --success-bg: #e8f5ec;
+  --danger: #b42318;
+  --danger-bg: #fdecea;
+  --info: #1d4ed8;
+  --info-bg: #eaf0fe;
+  --neutral-bg: #eeeeea;
+  /* Charts only (export) */
+  --chart-warning: #d97706;
+
+  /*
+    status-attention = recoverable states (overdue, needs a look).
+    Current: export danger red (light #b42318 / dark #f87171).
+    Pending Hidde: orange #a75000 light / #ed914c dark — flip this one token.
+  */
+  --status-attention: var(--danger);
+  --status-attention-bg: var(--danger-bg);
+
+  /*
+    #105 Geen btw — keep the orange look from main until Hidde rules on orange.
+    Not an export status; do not reuse for new UI.
+  */
+  --status-geen-btw: oklch(0.53 0.14 55);
+  --status-geen-btw-dark: oklch(0.74 0.14 55);
+
+  /*
+    Link colour a11y deviation: export yellow-as-text is ~1.43:1.
+    Use brand-ink (keeps the yellow feel) + underline. Measured ≥4.5:1:
+    light #8a6a00 on #ffffff ≈ 5.07:1; dark #f5c518 on #111113 ≈ 11.57:1.
+  */
+  --link: var(--brand-ink);
+  --link-underline: underline;
+
+  /*
+    Input / control border a11y deviation: export --line-control fails 3:1
+    (~1.68:1 on white). Accessible border #8a8980 ≈ 3.52:1 on #ffffff,
+    ≈ 3.22:1 on --ground #f5f5f2.
+  */
+  --input-border: #8a8980;
+
+  --chart-1: #18181b;
+  --chart-2: #a1a1aa;
+  --backdrop: rgba(17, 17, 19, 0.45);
+
+  /* Shadows (current: export; alt: none — set each --token-shadow-* to none) */
+  --token-shadow-raised: 0 0 0 1px #e4e3dd, 0 1px 2px rgba(0, 0, 0, 0.04);
+  --token-shadow-paper: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --token-shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.28);
+  --shadow-raised: var(--token-shadow-raised);
+  --shadow-paper: var(--token-shadow-paper);
+  --shadow-overlay: var(--token-shadow-overlay);
+
+  /* --- shadcn / app aliases (derived; prefer editing the open tokens above) --- */
+  --white: #ffffff;
+  --black: #000000;
+  --yellow: var(--brand);
+
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary-foreground: var(--on-primary);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--brand);
+  --accent-foreground: var(--on-brand);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--on-primary);
+  --success-foreground: var(--success);
+  --warning: var(--status-geen-btw);
+  --info-foreground: var(--info);
+  --border: var(--line);
+  --input: var(--input-border);
+  --ring: var(--focus-ring);
+  --overlay: var(--backdrop);
+  --line-strong: var(--input-border);
+  --quiet: var(--ink-muted);
+
+  --status-error: var(--danger);
+  --status-success: var(--success);
+  --status-info: var(--info);
+
+  --sidebar: var(--surface-sunken);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--on-primary);
+  --sidebar-accent: var(--brand);
+  --sidebar-accent-foreground: var(--on-brand);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--focus-ring);
+
+  --chart-3: var(--ink-muted);
+  --chart-4: var(--ink-faint);
+  --chart-5: var(--line);
+
+  --debit: var(--foreground);
+  --credit: var(--foreground);
+  --amount-negative: var(--danger);
+  --unreconciled: var(--status-attention);
+
+  color-scheme: light;
+}
+
+.dark {
+  --ground: #111113;
+  --surface: #1a1a1d;
+  --surface-sunken: #151517;
+  --surface-hover: #222226;
+  --line: #2e2e33;
+  --line-soft: #26262a;
+  --line-control: #4a4a51;
+  --ink: #f4f4f5;
+  --ink-2: #d4d4d8;
+  --ink-muted: #a1a1aa;
+  --ink-faint: #5a5a62;
+
+  --brand: #ffd43b;
+  --on-brand: #18181b;
+  --brand-tint: #33290a;
+  --brand-ink: #f5c518;
+  --selection: #2e2812;
+  --selection-edge: #f5c518;
+  --focus-ring: #ffd43b;
+
+  --primary: #f4f4f5;
+  --on-primary: #18181b;
+
+  --success: #4ade80;
+  --success-bg: #10291a;
+  --danger: #f87171;
+  --danger-bg: #3a1513;
+  --info: #93b4ff;
+  --info-bg: #172144;
+  --neutral-bg: #2a2a2f;
+  --chart-warning: #f59e0b;
+
+  --status-attention: var(--danger);
+  --status-attention-bg: var(--danger-bg);
+  --status-geen-btw: var(--status-geen-btw-dark);
+
+  --link: var(--brand-ink);
+
+  /* Dark input border ≥3:1 on ground #111113 — #8a8980 is light-oriented;
+     use a lifted grey that keeps the warm feel. */
+  --input-border: #8a8980;
+
+  --chart-1: #f4f4f5;
+  --chart-2: #71717a;
+  --backdrop: rgba(0, 0, 0, 0.6);
+
+  --token-shadow-raised: 0 0 0 1px #2e2e33, 0 1px 2px rgba(0, 0, 0, 0.3);
+  --token-shadow-paper: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --token-shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --shadow-raised: var(--token-shadow-raised);
+  --shadow-paper: var(--token-shadow-paper);
+  --shadow-overlay: var(--token-shadow-overlay);
+
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary-foreground: var(--on-primary);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--brand);
+  --accent-foreground: var(--on-brand);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--on-primary);
+  --warning: var(--status-geen-btw);
+  --border: var(--line);
+  --input: var(--input-border);
+  --ring: var(--focus-ring);
+  --overlay: var(--backdrop);
+  --line-strong: var(--input-border);
+  --quiet: var(--ink-muted);
+
+  --sidebar: var(--surface-sunken);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--on-primary);
+  --sidebar-accent: var(--brand);
+  --sidebar-accent-foreground: var(--on-brand);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--focus-ring);
+
+  --chart-3: var(--ink-muted);
+  --chart-4: var(--ink-faint);
+  --chart-5: var(--line);
+
+  --debit: var(--foreground);
+  --credit: var(--foreground);
+  --amount-negative: var(--danger);
+  --unreconciled: var(--status-attention);
+
+  color-scheme: dark;
+}

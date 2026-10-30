@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BINDINGS, BINDINGS_BY_ID, bindingChips, type Binding } from '~/lib/keyboard'
 import { Keycap } from '~/components/ui/keycap'
 import { useOptionalAdvancedMode } from '~/lib/advanced-mode-context'
+import { focusListFilter } from '~/lib/list-filter-focus'
 import { useShortcuts } from '~/lib/use-shortcuts'
 import { cn } from '~/lib/utils'
 import {
@@ -44,9 +45,7 @@ import { navLabelKey, paletteNavItems, type NavItem } from '~/lib/shell-nav'
  * somebody a validation failure for typing. The hits come back grouped by kind
  * and `Enter` opens the record rather than a list it might be on.
  *
- * `/` stays unbound. The palette is where search lives (docs/keyboard-map.md),
- * and a second way in that focuses a field this dialogue owns would be a key
- * that means "open the thing ⌘K opens".
+ * `/` focuses the filter on list pages only (#107). The palette stays on ⌘K.
  *
  * The cursor walks both halves as one list, because that is what the arrows do:
  * a reader does not know or care which half the row they want came from.
@@ -70,6 +69,7 @@ const EXTRA_NAVIGABLE: readonly Binding[] = BINDINGS.filter(
       'go.inbox',
       'go.contacts',
       'go.bank',
+      'go.bankStatements',
       'go.match',
       'go.payments',
       'go.dunning',
@@ -80,6 +80,7 @@ const EXTRA_NAVIGABLE: readonly Binding[] = BINDINGS.filter(
       'go.audit',
       'go.retention',
       'go.snapshots',
+      'go.import',
       'go.exact',
       'go.exactAlias',
       'go.moneybird',
@@ -328,6 +329,11 @@ export function CommandPalette({ role = '' }: { role?: string }) {
         setOpen((current) => (current === 'help' ? null : 'help'))
         return
       }
+      // `/` focuses the list filter when a page exposes one (#107).
+      if (binding.id === 'list.filter') {
+        focusListFilter()
+        return
+      }
       // `n j` is Geavanceerd chrome — same gate as ⌘K and the help sheet.
       if (binding.id === 'new.entry' && !advanced) return
       if (binding.to !== undefined) {
@@ -358,9 +364,14 @@ export function CommandPalette({ role = '' }: { role?: string }) {
       setCursor(0)
       setOpen('palette')
     }
+    const onHelp = (): void => {
+      setOpen('help')
+    }
     window.addEventListener('klopt:open-palette', onOpen)
+    window.addEventListener('klopt:open-help', onHelp)
     return () => {
       window.removeEventListener('klopt:open-palette', onOpen)
+      window.removeEventListener('klopt:open-help', onHelp)
     }
   }, [])
 

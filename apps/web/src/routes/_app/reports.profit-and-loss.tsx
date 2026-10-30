@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
+import { ReportsTabs } from '~/components/reports-tabs'
 import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
 import { fiscalYearSearch } from '~/lib/fiscal-year'
@@ -56,6 +57,7 @@ function ProfitAndLoss() {
 
   return (
     <>
+      <ReportsTabs />
       <PageHeader
         title={t('profit.title')}
         description={t('profit.intro', {

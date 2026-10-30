@@ -40,40 +40,48 @@ async function anAdministration(
   return email
 }
 
-test('daily-work groups come first in the rail', async ({ page }) => {
+test('flat rail lists the eight export destinations then Settings', async ({ page }) => {
   await anAdministration(page, 'IA BV')
 
   const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
-  // Exact headings: "Verkoop" is also a prefix of "Verkoopfacturen". Order is
-  // document order — innerText of the rail drops groups that sit below the
-  // scroll fold.
-  const order = await nav.evaluate((root) =>
-    [...root.querySelectorAll('p')].map((el) => el.textContent?.trim() ?? ''),
+  const labels = await nav.evaluate((root) =>
+    [...root.querySelectorAll('a, button')].map(
+      (el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+    ),
   )
-  const expected = ['Verkoop', 'Inkoop', 'Geld', 'Boekhouden', 'Rapporten', 'Importeren', 'Beheer']
+  const expected = ['Home', 'Postvak', 'Verkoop', 'Kosten', 'Bank', 'BTW', 'Rapporten', 'Relaties']
   let previous = -1
   for (const label of expected) {
-    const at = order.indexOf(label)
+    const at = labels.findIndex((text) => text.startsWith(label))
     expect(at, label).toBeGreaterThan(previous)
     previous = at
   }
-
-  await expect(nav.getByRole('link', { name: /^Koppelen/ })).toBeVisible()
+  expect(labels.some((text) => text.startsWith('Instellingen'))).toBe(true)
+  expect(labels.some((text) => text.startsWith('Sneltoetsen'))).toBe(true)
+  // Importeren / journal / trial stay out of the flat rail.
+  expect(labels.some((text) => text.includes('Journaalposten'))).toBe(false)
+  expect(labels.some((text) => text.includes('Proefbalans'))).toBe(false)
+  expect(labels.some((text) => text.includes('Importeren'))).toBe(false)
 })
 
-test('Geavanceerd hides Journaalposten and Proefbalans from the nav', async ({ page }) => {
+test('Geavanceerd shows Proefbalans and Journaalposten on Reports tabs only', async ({ page }) => {
   await anAdministration(page, 'Eenvoud BV')
 
   const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
   await expect(nav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
   await expect(nav.getByRole('link', { name: /Proefbalans/ })).toHaveCount(0)
-  await expect(nav.getByRole('link', { name: /Categorieën/ })).toBeVisible()
+
+  await page.goto('/reports/profit-and-loss')
+  const tabs = page.locator('[data-reports-tabs]')
+  await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toHaveCount(0)
+  await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
 
   await enableAdvancedMode(page)
-
-  await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
-  await expect(nav.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
-  await expect(nav.getByRole('link', { name: /Grootboek/ })).toBeVisible()
+  await page.goto('/reports/profit-and-loss')
+  await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
+  await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+  // Still not in the flat rail.
+  await expect(nav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
 })
 
 test('⌘K still reaches Journaalposten when Geavanceerd is off', async ({ page }) => {
@@ -219,13 +227,15 @@ test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) =>
     .filter({ has: page.getByRole('heading', { name: 'Ga naar' }) })
   await expect(goTo.getByRole('heading', { name: 'Ga naar' })).toBeVisible()
 
-  // Simple labels + shell order; advanced destinations last (#64).
+  // Flat rail first; advanced destinations (Journaalposten / Proefbalans) last (#107).
   const labels = await goTo.locator('dt').allTextContents()
   const trimmed = labels.map((label) => label.trim())
+  expect(trimmed.indexOf('Home')).toBeGreaterThan(-1)
+  expect(trimmed.indexOf('Rapporten')).toBeGreaterThan(-1)
   expect(trimmed.indexOf('Categorieën')).toBeGreaterThan(-1)
   expect(trimmed.indexOf('Grootboekrekeningen')).toBe(-1)
   expect(trimmed.indexOf('Categorieën')).toBeLessThan(trimmed.indexOf('Journaalposten'))
-  expect(trimmed.indexOf('Winst & verlies')).toBeLessThan(trimmed.indexOf('Proefbalans'))
+  expect(trimmed.indexOf('Rapporten')).toBeLessThan(trimmed.indexOf('Proefbalans'))
   expect(trimmed.indexOf('Journaalposten')).toBeGreaterThan(trimmed.indexOf('Momentopnames'))
   expect(trimmed.indexOf('Proefbalans')).toBe(trimmed.length - 1)
   // ⌘K is two chips; letter capital after the modifier.
@@ -240,17 +250,20 @@ test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) =>
   expect(paletteChips).toEqual(['Ctrl', 'K'])
 })
 
-test('turning Geavanceerd off from the menu hides the advanced nav again', async ({ page }) => {
+test('turning Geavanceerd off from the menu hides advanced Reports tabs again', async ({
+  page,
+}) => {
   await anAdministration(page, 'Toggle BV')
   await enableAdvancedMode(page)
 
-  const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
-  await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+  await page.goto('/reports/profit-and-loss')
+  const tabs = page.locator('[data-reports-tabs]')
+  await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
 
   await setAdvancedMode(page, false)
-
-  await expect(nav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
-  await expect(nav.getByRole('link', { name: /Proefbalans/ })).toHaveCount(0)
+  await page.goto('/reports/profit-and-loss')
+  await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
+  await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toHaveCount(0)
 })
 
 test('a Boekhouder gets Geavanceerd on by default', async ({ browser }) => {
@@ -282,9 +295,10 @@ test('a Boekhouder gets Geavanceerd on by default', async ({ browser }) => {
     ).toBeVisible()
     await hydrated(keeperPage)
 
-    const nav = keeperPage.getByRole('navigation', { name: 'Hoofdnavigatie' })
-    await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
-    await expect(nav.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
+    await keeperPage.goto('/reports/profit-and-loss')
+    const tabs = keeperPage.locator('[data-reports-tabs]')
+    await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+    await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
 
     await openAccountMenu(keeperPage)
     await expect(keeperPage.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
@@ -327,12 +341,14 @@ test('switching administration re-derives Geavanceerd from the active role', asy
     ).toBeVisible()
     await hydrated(ownerPage)
 
-    const nav = ownerPage.getByRole('navigation', { name: 'Hoofdnavigatie' })
-    await expect(nav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
+    await ownerPage.goto('/reports/profit-and-loss')
+    const tabs = ownerPage.locator('[data-reports-tabs]')
+    await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
 
     await chooseOption(ownerPage, 'Administratie', 'Admin B')
-    await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
-    await expect(nav.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
+    await ownerPage.goto('/reports/profit-and-loss')
+    await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+    await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
 
     await openAccountMenu(ownerPage)
     await expect(ownerPage.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
@@ -348,8 +364,12 @@ test('switching administration re-derives Geavanceerd from the active role', asy
 test('Geavanceerd is isolated per user on the same browser', async ({ page }) => {
   await anAdministration(page, 'User X BV')
   await enableAdvancedMode(page)
-  const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
-  await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+  await openAccountMenu(page)
+  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  )
+  await page.keyboard.press('Escape')
 
   await signOut(page)
   await expect(page).toHaveURL(/\/sign-in$/)
@@ -357,7 +377,6 @@ test('Geavanceerd is isolated per user on the same browser', async ({ page }) =>
   // Same browser context, different user — must see Eigenaar default (off),
   // not the previous account's explicit on.
   await anAdministration(page, 'User Y BV')
-  await expect(nav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
   await openAccountMenu(page)
   await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
     'aria-checked',
@@ -420,14 +439,21 @@ test('Geavanceerd choice persists across a fresh browser context for the same us
     await anAdministration(page, 'Persist BV', email)
     await enableAdvancedMode(page)
 
-    const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
-    await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+    await openAccountMenu(page)
+    await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
 
     // Reload once so we know the server write landed before we throw the
     // cookie jar away — the next context has no cookies of its own.
     await page.reload()
     await hydrated(page)
-    await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+    await openAccountMenu(page)
+    await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
   } finally {
     await first.close()
   }
@@ -442,8 +468,10 @@ test('Geavanceerd choice persists across a fresh browser context for the same us
     ).toBeVisible()
     await hydrated(page)
 
-    const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
-    await expect(nav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+    await page.goto('/reports/profit-and-loss')
+    await expect(
+      page.locator('[data-reports-tabs]').getByRole('link', { name: /Journaalposten/ }),
+    ).toBeVisible()
     await openAccountMenu(page)
     await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
       'aria-checked',
@@ -452,4 +480,54 @@ test('Geavanceerd choice persists across a fresh browser context for the same us
   } finally {
     await second.close()
   }
+})
+
+test('n c opens Relaties and n r opens inkoop nieuw', async ({ page }) => {
+  await anAdministration(page, 'Nieuw Chord BV')
+
+  await page.keyboard.press('n')
+  await page.keyboard.press('c')
+  await expect(page).toHaveURL(/\/contacts/)
+  await expect(page.getByRole('heading', { name: /Relaties/ })).toBeVisible()
+
+  await page.keyboard.press('n')
+  await page.keyboard.press('r')
+  await expect(page).toHaveURL(/\/purchases\/new/)
+})
+
+test('digit keys switch Reports tabs when Geavanceerd is on', async ({ page }) => {
+  await anAdministration(page, 'Tabs BV')
+  await enableAdvancedMode(page)
+  await page.goto('/reports/profit-and-loss')
+  await hydrated(page)
+
+  await page.keyboard.press('5')
+  await expect(page).toHaveURL(/\/reports\/trial-balance/)
+  await expect(page.getByRole('heading', { name: 'Proefbalans' })).toBeVisible()
+
+  await page.keyboard.press('6')
+  await expect(page).toHaveURL(/\/entries/)
+  await expect(page.getByRole('heading', { name: 'Journaalposten' })).toBeVisible()
+
+  await page.keyboard.press('1')
+  await expect(page).toHaveURL(/\/reports\/profit-and-loss/)
+})
+
+test('Settings hub lists Overstappen naar Klopt', async ({ page }) => {
+  await anAdministration(page, 'Settings Hub BV')
+  await page.goto('/settings')
+  await expect(page.getByRole('heading', { name: 'Overstappen naar Klopt' })).toBeVisible()
+  await page.getByRole('link', { name: 'Importeren openen' }).click()
+  await expect(page).toHaveURL(/\/importeren/)
+})
+
+test('⌘K Importeren action reaches the wizard', async ({ page }) => {
+  await anAdministration(page, 'Import Palette BV')
+  await page.keyboard.press('ControlOrMeta+k')
+  const palette = page.getByRole('dialog', { name: 'Commando’s' })
+  await expect(palette).toBeVisible()
+  await page.keyboard.type('importeren')
+  await expect(palette.getByRole('option', { name: /^Importeren/ })).toBeVisible()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/\/importeren/)
 })

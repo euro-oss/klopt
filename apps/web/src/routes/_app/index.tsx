@@ -92,6 +92,9 @@ const DESTINATIONS: Record<
     readonly action: MessageKey
   }
 > = {
+  // TODO(#107 Phase 0): also surface "no import yet" and unfinished Exact /
+  // Moneybird wizard runs when those states are cheap to read from the server.
+  // Today only Moneybird reports with `problems` become a to-do (existing data).
   'import.blocking': {
     to: '/importeren',
     search: { bron: 'moneybird' },

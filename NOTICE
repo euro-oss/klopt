@@ -12,6 +12,11 @@ that foundation is planned when it exists. Until then, Hidde Stokvis is
 the copyright holder named in this NOTICE. Contributor inbound licences
 remain Apache-2.0 via DCO (see CONTRIBUTING.md).
 
+This product includes the Inter font family (SIL Open Font License 1.1),
+JetBrains Mono (SIL Open Font License 1.1), and Ubuntu Sans (Ubuntu Font
+Licence 1.0), self-hosted as woff2 under apps/web/src/assets/fonts/ with the
+licence texts Inter-OFL.txt, JetBrainsMono-OFL.txt and UbuntuSans-OFL.txt.
+
 This product includes UI components derived from shadcn/ui
 (https://ui.shadcn.com/), under the MIT License. The attribution below covers
 the components in apps/web/src/components/ui/, including badge.tsx, button.tsx,

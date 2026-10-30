@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
+import { ReportsTabs } from '~/components/reports-tabs'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
@@ -60,6 +61,7 @@ function Entries() {
 
   return (
     <>
+      <ReportsTabs />
       <PageHeader title={t('entries.title')} description={t('entries.intro')} />
       <LedgerTable
         columns={columns}

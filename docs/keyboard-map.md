@@ -55,7 +55,10 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `i` then `x`   | Go to Exact Online (E**x**act)                          |
 | `i` then `m`   | Go to Moneybird (**M**oneybird)                         |
 | `n` then `i`   | New inkoopfactuur                                       |
+| `n` then `r`   | New receipt (bonnetje) — same screen as inkoop for now  |
+| `n` then `c`   | New contact (relatie)                                   |
 | `n` then `j`   | New journal entry                                       |
+| `n` then `f`   | New sales invoice                                       |
 | `Escape`       | Close overlay, cancel edit, clear focus — in that order |
 
 `g`, `i` and `n` are prefixes. `g` and `n` follow the convention people already
@@ -82,10 +85,8 @@ are full). `test/unit/shortcuts.test.ts` asserts the `g` alphabet is still
 exhausted and that the `i` prefix resolves both importers, so a stolen letter
 or a missing chord arrives as a failing test rather than as a collision.
 
-`/` for "focus search" was in this table for three milestones with nothing behind
-it. There is a global search now — it lives in the palette, where `Cmd/Ctrl` `K`
-already puts the cursor in a field — and `/` stays out anyway. See "What is
-deliberately not bound" below.
+`/` focuses a list filter when the current page exposes one (`data-list-filter`).
+Global search stays on `Cmd/Ctrl` `K` in the palette.
 
 ## What is built, and what is not
 
@@ -109,7 +110,8 @@ Every table built from `LedgerTable`, which is every list in the application.
 | `PageUp` `PageDown` | Move by a screenful                                |
 | `Home` `End`        | First / last row                                   |
 | `Enter`             | Open the focused row, where a row opens onto       |
-| `Space`             | Select the focused row                             |
+| `Space` or `x`      | Select the focused row                             |
+| `/`                 | Focus the list filter (pages that expose one)      |
 | `Shift` `↑`/`↓`     | Extend the selection                               |
 | `Cmd/Ctrl` `A`      | Select every loaded row                            |
 | type any character  | Type-ahead on the sort column                      |
@@ -405,10 +407,9 @@ numbered — `1 · POSTVAK`, `2 · NAKIJKEN` — because the spine is a sequence
 reader should be able to see which half the keyboard is in without pressing
 anything.
 
-**Not printed, and not bound: `/` to focus a list filter.** The boards show a
-search box above the invoice list with `/` focusing it. There is no filter field
-on that list, and inventing one here would be inventing a feature rather than a
-key. Searching the books is a palette job (see below), not a per-list one.
+**`/` focuses the list filter** when the page exposes one (`data-list-filter`,
+e.g. the invoice status strip). It does not open the palette — that stays on
+`Cmd/Ctrl`+`K`. Pages without a filter control ignore the key.
 
 ## Zoeken in het palet
 

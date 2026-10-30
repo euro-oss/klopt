@@ -18,6 +18,19 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign Phase 0: tokens, theme, shell (#107)
+
+Design tokens from the 2026-10 export live in `apps/web/src/styles/tokens.css`
+(swappable radius, shadows, greys, fonts, accent, link, status, sidebar width).
+Self-hosted Inter + JetBrains Mono (Ubuntu Sans kept as a swap); no Google Fonts
+CDN. shadcn/ui theme maps through those tokens. Flat sidebar: Home, Inbox,
+Sales, Costs, Bank, VAT, Reports, Contacts; Settings and Shortcuts in the
+footer. Importeren / Journaalposten / Proefbalans stay on ⌘K; Reports tabs add
+Proefbalans and Journaalposten when Geavanceerd is on; Settings gets
+“Overstappen naar Klopt”. New chords: `n c`, `n r`, `x` select, `/` list filter;
+`g o` / `g y` / `g m` kept. Docs: `docs/design/tokens-2026-10.md`,
+`docs/design/component-mapping-2026-10.md`.
+
 ### Import wizard: connect probe and opening count (#105)
 
 Connecting (`POST /api/v1/moneybird/connection`) now probes Moneybird before

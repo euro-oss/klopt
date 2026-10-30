@@ -21,7 +21,7 @@ const buttonVariants = cva(
           'bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30',
         success: 'bg-success/10 text-success hover:bg-success/20',
         info: 'bg-info/10 text-info hover:bg-info/20',
-        attention: 'bg-warning/10 text-warning hover:bg-warning/20',
+        attention: 'bg-unreconciled/10 text-unreconciled hover:bg-unreconciled/20',
         link: 'text-foreground underline underline-offset-4 hover:underline',
       },
       size: {

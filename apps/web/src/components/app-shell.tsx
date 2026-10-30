@@ -32,11 +32,12 @@ import { DEFAULT_THEME_PREFERENCE, type ThemePreference } from '~/lib/theme'
 import { setTheme } from '~/server/theme'
 import { BINDINGS_BY_ID, bindingChips, isApple } from '~/lib/keyboard'
 import {
-  NAVIGATION,
   isNavActive,
   navLabelKey,
   pageTitleKey,
-  type NavGroup,
+  sidebarFooterItems,
+  sidebarPrimaryItems,
+  type NavItem,
   type NavSearch,
 } from '~/lib/shell-nav'
 import { CommandPalette } from './command-palette'
@@ -149,22 +150,17 @@ export function AppShell({
   const titleKey = pageTitleKey(path, advanced, search)
   const pageTitle = titleKey !== null ? t(titleKey) : 'Klopt'
 
-  // Role filter, then Geavanceerd: Journaalposten / Proefbalans leave the nav
-  // when the toggle is off but stay in ⌘K (#44). Empty groups drop out.
-  const groups = NAVIGATION.map((group) => ({
-    ...group,
-    items: group.items.filter(
-      (item) =>
-        (item.roles === undefined || item.roles.includes(role)) &&
-        (item.advancedOnly !== true || advanced),
-    ),
-  })).filter((group) => group.items.length > 0)
+  // Flat eight + footer (#107). Journaalposten / Proefbalans / Importeren stay
+  // in ⌘K (and Reports tabs when Geavanceerd is on) — not in the rail.
+  const primary = sidebarPrimaryItems(role, advanced)
+  const footer = sidebarFooterItems(role, advanced)
 
   const railChrome = (
     <ShellNavChrome
       path={path}
       search={search}
-      groups={groups}
+      primary={primary}
+      footer={footer}
       advanced={advanced}
       entities={entities}
       activeEntityId={active?.entityId ?? ''}
@@ -184,7 +180,8 @@ export function AppShell({
     <ShellNavChrome
       path={path}
       search={search}
-      groups={groups}
+      primary={primary}
+      footer={footer}
       advanced={advanced}
       entities={entities}
       activeEntityId={active?.entityId ?? ''}
@@ -221,16 +218,18 @@ export function AppShell({
         */}
         <nav
           aria-label={t('shell.navigation')}
-          className="border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r md:flex"
+          className="border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 hidden h-screen shrink-0 flex-col border-r md:flex"
+          style={{ width: 'var(--sidebar-w)' }}
         >
-          <div className="flex h-12 items-center gap-2 px-4">
+          <div className="flex h-12 items-center gap-2 px-3">
             <Link
               to="/"
               className="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
             >
               <span
                 aria-hidden="true"
-                className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-semibold"
+                className="bg-accent text-accent-foreground flex size-8 items-center justify-center text-[16px] font-bold"
+                style={{ borderRadius: 'var(--radius-md)' }}
               >
                 {t('shell.brandMark')}
               </span>
@@ -361,14 +360,14 @@ export function AppShell({
 /**
  * The shared body of the side-nav and the phone Sheet.
  *
- * One list, two hosts: the desktop rail shows the brand above this block, the
- * Sheet puts it in the dialog title. Keeping the destinations here is what
- * stops Importeren (and every other group) from existing in only one surface.
+ * Flat primary list + footer (Settings / Shortcuts), then the profile row.
+ * Palette-only destinations live in `SHELL_NAV` with `placement: 'palette'`.
  */
 function ShellNavChrome({
   path,
   search,
-  groups,
+  primary,
+  footer,
   advanced,
   entities,
   activeEntityId,
@@ -385,7 +384,8 @@ function ShellNavChrome({
 }: {
   path: string
   search: NavSearch
-  groups: readonly NavGroup[]
+  primary: readonly NavItem[]
+  footer: readonly NavItem[]
   advanced: boolean
   entities: readonly ShellEntity[]
   activeEntityId: string
@@ -403,6 +403,71 @@ function ShellNavChrome({
 }) {
   const { t } = useT()
 
+  function renderItem(item: NavItem): ReactNode {
+    const binding = item.binding === undefined ? undefined : BINDINGS_BY_ID.get(item.binding)
+    const isActive =
+      item.openShortcuts === true
+        ? false
+        : isNavActive(path, item.to, search, item.search, item.alsoActiveFor)
+    const labelKey = navLabelKey(item, advanced)
+    const rowKey = item.binding ?? `${item.to}:${item.key}`
+
+    const className = cn(
+      'flex items-center gap-2 px-2.5 text-sm font-medium',
+      'min-h-11 md:min-h-0',
+      isActive
+        ? 'bg-surface text-ink shadow-[var(--shadow-raised)]'
+        : 'text-ink-2 hover:bg-line-soft hover:text-ink',
+    )
+    const style = { height: 'var(--nav-h)', borderRadius: 'var(--radius-md)' }
+
+    if (item.openShortcuts === true) {
+      return (
+        <li key={rowKey}>
+          <button
+            type="button"
+            disabled={!hydrated}
+            onClick={() => {
+              onNavigate?.()
+              window.dispatchEvent(new Event('klopt:open-help'))
+            }}
+            className={cn(className, 'w-full text-left')}
+            style={style}
+          >
+            <span className="min-w-0 flex-1 truncate">{t(labelKey)}</span>
+            {binding !== undefined && shortcutsLive && (
+              <span className="text-ink-muted hidden font-mono text-[11px] tracking-wide opacity-70 md:inline">
+                ?
+              </span>
+            )}
+          </button>
+        </li>
+      )
+    }
+
+    return (
+      <li key={rowKey}>
+        <Link
+          to={item.to}
+          {...(item.search !== undefined ? { search: item.search } : {})}
+          onClick={onNavigate}
+          aria-current={isActive ? 'page' : undefined}
+          className={className}
+          style={style}
+        >
+          <span className="min-w-0 flex-1 truncate">{t(labelKey)}</span>
+          {binding !== undefined && shortcutsLive && (
+            <span className="text-ink-muted hidden items-center gap-0.5 font-mono text-[11px] tracking-wide opacity-0 transition-opacity group-hover/nav:opacity-100 md:inline-flex md:opacity-70">
+              {bindingChips(binding).map((chip, position) => (
+                <Keycap key={`${rowKey}-${String(position)}`}>{chip}</Keycap>
+              ))}
+            </span>
+          )}
+        </Link>
+      </li>
+    )
+  }
+
   return (
     <>
       <EntitySwitcher
@@ -415,67 +480,14 @@ function ShellNavChrome({
         hydrated={hydrated}
       />
 
-      {/* Nieuwe journaalpost is a Geavanceerd action; Eigenaar finds invoices
-          on the dashboard instead (#44 / #57). */}
-      {advanced && (
-        <div className="mx-2 mb-2">
-          <Link
-            to="/entries/new"
-            onClick={onNavigate}
-            className="touch-cta touch-cta-primary w-full text-center text-sm"
-          >
-            {t('shell.newEntry')}
-          </Link>
-        </div>
-      )}
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-        {groups.map((group, index) => (
-          <div key={group.key ?? 'start'} className={cn(index > 0 ? 'mt-2' : 'mt-0.5')}>
-            {group.key !== undefined && (
-              <p className="text-muted-foreground px-3 pb-0.5 text-[11px] font-medium tracking-wide uppercase">
-                {t(group.key)}
-              </p>
-            )}
-            <ul role="list">
-              {group.items.map((item) => {
-                const binding =
-                  item.binding === undefined ? undefined : BINDINGS_BY_ID.get(item.binding)
-                const isActive = isNavActive(path, item.to, search, item.search)
-                const labelKey = navLabelKey(item, advanced)
-                const rowKey = item.binding ?? `${item.to}:${item.key}`
-                return (
-                  <li key={rowKey}>
-                    <Link
-                      to={item.to}
-                      {...(item.search !== undefined ? { search: item.search } : {})}
-                      onClick={onNavigate}
-                      aria-current={isActive ? 'page' : undefined}
-                      className={cn(
-                        'flex items-center gap-2 border-l-[3px] px-3 text-sm',
-                        'min-h-11 md:h-7 md:min-h-0',
-                        isActive
-                          ? 'border-accent bg-background font-medium'
-                          : 'text-sidebar-foreground/85 border-transparent hover:bg-background/70',
-                      )}
-                    >
-                      <span className="min-w-0 flex-1 truncate">{t(labelKey)}</span>
-                      {binding !== undefined && shortcutsLive && (
-                        // Printed keycaps on desktop only (#57): a phone has
-                        // no chord keyboard, and crowding the Sheet helps nobody.
-                        <span className="hidden items-center gap-0.5 md:inline-flex">
-                          {bindingChips(binding).map((chip, position) => (
-                            <Keycap key={`${rowKey}-${String(position)}`}>{chip}</Keycap>
-                          ))}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
+      <div className="group/nav min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+        <ul role="list" className="flex flex-col gap-0.5">
+          {primary.map(renderItem)}
+        </ul>
+        <div className="min-h-6 flex-1" aria-hidden="true" />
+        <ul role="list" className="mt-2 flex flex-col gap-0.5">
+          {footer.map(renderItem)}
+        </ul>
       </div>
 
       <Profile userName={userName} userEmail={userEmail} role={role} />

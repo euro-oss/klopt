@@ -32,7 +32,7 @@ const badgeVariants = cva(
           'h-[1.375rem] border border-current bg-success/8 px-1.5 py-0 text-xs font-medium tracking-normal text-success normal-case [a]:hover:text-success/70',
         info: 'h-[1.375rem] border border-current bg-info/8 px-1.5 py-0 text-xs font-medium tracking-normal text-info normal-case [a]:hover:text-info/70',
         attention:
-          'h-[1.375rem] border border-current bg-warning/8 px-1.5 py-0 text-xs font-medium tracking-normal text-warning normal-case [a]:hover:text-warning/70',
+          'h-[1.375rem] border border-current bg-unreconciled/8 px-1.5 py-0 text-xs font-medium tracking-normal text-unreconciled normal-case [a]:hover:text-unreconciled/70',
       },
     },
     defaultVariants: {

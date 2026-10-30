@@ -93,7 +93,22 @@ export const BINDINGS: readonly Binding[] = [
     keys: 'g r',
     to: '/contacts',
   },
-  { id: 'go.bank', label: 'nav.bank', group: 'keys.group.goTo', keys: 'g k', to: '/bank' },
+  // Bank in the flat rail opens the match queue (work first). `g k` stays the
+  // Bank chord; statements remain at /bank via go.bankStatements (⌘K only).
+  {
+    id: 'go.bank',
+    label: 'nav.bank',
+    group: 'keys.group.goTo',
+    keys: 'g k',
+    to: '/bank/match',
+  },
+  {
+    id: 'go.bankStatements',
+    label: 'nav.bankStatements',
+    group: 'keys.group.goTo',
+    to: '/bank',
+  },
+  // Kept as a chord with no menu item (#107): match / payments / dunning.
   {
     id: 'go.match',
     label: 'match.title',
@@ -109,6 +124,13 @@ export const BINDINGS: readonly Binding[] = [
     to: '/payments',
   },
   { id: 'go.dunning', label: 'nav.dunning', group: 'keys.group.goTo', keys: 'g m', to: '/dunning' },
+  // Single ⌘K action "Importeren"; i m / i x / g x stay as source-specific chords.
+  {
+    id: 'go.import',
+    label: 'nav.import',
+    group: 'keys.group.goTo',
+    to: '/importeren',
+  },
   // `g g` for aan**g**ifte. `g b`, `g t` and `g w` were all taken by the time
   // BTW arrived, which is what happens when a keyboard map is real.
   { id: 'go.vat', label: 'keys.goVat', group: 'keys.group.goTo', keys: 'g g', to: '/vat' },
@@ -252,6 +274,22 @@ export const BINDINGS: readonly Binding[] = [
     keys: 'n i',
     to: '/purchases/new',
   },
+  {
+    id: 'new.contact',
+    label: 'keys.newContact',
+    group: 'keys.group.new',
+    keys: 'n c',
+    to: '/contacts',
+  },
+  // N R — no chord collision with n i / n f / n j (#107). Same destination as
+  // purchase-new until a dedicated receipt route exists; label is "bonnetje".
+  {
+    id: 'new.receipt',
+    label: 'keys.newReceipt',
+    group: 'keys.group.new',
+    keys: 'n r',
+    to: '/purchases/new',
+  },
 
   // Every ledger table. `j`/`k` are printed rather than the arrows because
   // `formatBinding` renders a key name, and "ARROWDOWN" is not a key anybody
@@ -260,6 +298,10 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'list.previous', label: 'keys.listPrevious', group: 'keys.group.list', keys: 'k' },
   { id: 'list.open', label: 'keys.listOpen', group: 'keys.group.list', keys: 'enter' },
   { id: 'list.select', label: 'keys.listSelect', group: 'keys.group.list', keys: 'space' },
+  // X selects as well as Space (#107). Match booking deliberately does not use X.
+  { id: 'list.selectX', label: 'keys.listSelect', group: 'keys.group.list', keys: 'x' },
+  // `/` focuses the filter on list pages only (not the palette).
+  { id: 'list.filter', label: 'keys.listFilter', group: 'keys.group.list', keys: '/' },
   {
     id: 'list.selectAll',
     label: 'keys.listSelectAll',
