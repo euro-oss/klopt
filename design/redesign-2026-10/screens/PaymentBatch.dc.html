@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Payment batch</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.pgrid{display:grid;grid-template-columns:minmax(170px,1fr) 150px 170px 110px;gap:12px}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="costs" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 32px 0;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; flex: 1;">Costs</h1>
+      <nav class="k-tabs" aria-label="Costs sections" style="flex-basis: 100%; margin-top: 4px;">
+        <a href="Costs.dc.html" class="k-tab">Bills</a>
+        <a href="Costs.dc.html" class="k-tab">To approve <span class="k-badge k-badge--neutral">40</span></a>
+        <a href="#" class="k-tab is-active" aria-current="page">Payment batches</a>
+        <a href="Contacts.dc.html" class="k-tab">Suppliers</a>
+      </nav>
+    </header>
+
+    <div style="padding: 20px 32px 32px; display: flex; flex-direction: column; gap: 20px; max-width: 1120px; box-sizing: border-box; width: 100%;">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px;">
+        <div style="flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 2px;">
+          <h2 style="margin: 0; font-size: 20px; line-height: 26px; font-weight: 600;">Batch of 30 October · 5 bills</h2>
+          <span class="k-num" style="font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.02em;">€ 1.191,78</span>
+        </div>
+        <ol class="k-steps" aria-label="Batch progress">
+          <sc-for list="{{steps}}" as="st" hint-placeholder-count="4">
+            <li class="{{st.cls}}"><span class="k-step-n">{{st.n}}</span>{{st.label}}</li>
+          </sc-for>
+        </ol>
+      </div>
+
+      <sc-if value="{{v.prep}}" hint-placeholder-val="{{true}}">
+        <section class="k-callout k-callout--warn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px;"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          <div class="k-callout-body">
+            <span class="k-callout-title">These suppliers have no IBAN yet</span>
+            <span class="k-callout-text">The bank file needs one for every payment. Add them on the supplier, or paste it below from the bill.</span>
+          </div>
+          <a href="Contacts.dc.html" style="font-weight: 600; white-space: nowrap;">Open suppliers</a>
+        </section>
+      </sc-if>
+
+      <section class="k-card k-card--flush">
+        <div style="overflow-x: auto;"><div style="min-width: 640px;">
+          <div class="k-row k-row--head pgrid"><span>Supplier</span><span>Bill</span><span>Pay to</span><span style="text-align: right;">Amount</span></div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+            <div class="k-row pgrid k-num" style="cursor: default;">
+              <span style="font-weight: 500;">{{r.sup}}</span>
+              <span class="k-muted" style="font-size: 13px;">{{r.no}}</span>
+              <span><span class="{{r.ibanCls}}">{{r.iban}}</span></span>
+              <span style="text-align: right; font-weight: 500;">€ {{r.amtF}}</span>
+            </div>
+          </sc-for>
+          <div class="k-row pgrid k-num" style="cursor: default; background: var(--surface-hover); font-weight: 600;"><span>Total, from Demo bankrekening ··· 0001</span><span></span><span></span><span style="text-align: right;">€ 1.191,78</span></div>
+        </div></div>
+      </section>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+        <section class="k-card" style="flex: 1 1 360px; display: flex; flex-direction: column; gap: 12px;">
+          <h3 class="k-card-title">Four eyes</h3>
+          <div style="display: flex; gap: 12px; align-items: center;"><span class="k-tile" style="width: 32px; height: 32px; border-radius: 16px;">H</span><span style="flex: 1; display: flex; flex-direction: column;"><span>Prepared by hidde@neverhide.nl</span><span class="k-muted" style="font-size: 12px;">30 Oct, 10:42</span></span><span class="k-pill k-pill--paid">Done</span></div>
+          <div style="display: flex; gap: 12px; align-items: center;"><span class="k-tile" style="width: 32px; height: 32px; border-radius: 16px;">O</span><span style="flex: 1; display: flex; flex-direction: column;"><span>Approved by owner@demo.invalid</span><span class="k-muted" style="font-size: 12px;">The person who prepares can't approve</span></span><span class="{{approvalCls}}">{{approvalLabel}}</span></div>
+        </section>
+        <section class="k-card" style="flex: 1 1 360px; display: flex; flex-direction: column; gap: 12px;">
+          <h3 class="k-card-title">{{next.title}}</h3>
+          <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">{{next.text}}</p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="k-btn k-btn--primary" onClick="{{advance}}">{{next.cta}} <span class="k-chord"><span class="k-kbd k-kbd--on-primary">⌘</span><span class="k-kbd k-kbd--on-primary">↵</span></span></button>
+            <button type="button" class="k-btn" onClick="{{reset}}">Start the demo again</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: 0 };
+  }
+  renderVals() {
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const st = this.state.step;
+    const labels = ['Prepare', 'Approve', 'Download', 'Paid'];
+    const steps = labels.map((label, i) => ({ label, n: i < st ? '✓' : String(i + 1), cls: i < st ? 'k-step is-done' : (i === st ? 'k-step is-current' : 'k-step') }));
+    const ibanOk = st > 0;
+    const rows = [
+      ['Software Licentie Demo','INK-DEMO-2025-0037',467.00],
+      ['Internet Voorbeeld','INK-DEMO-2025-0040',252.83],
+      ['Verzekering Fictief','INK-DEMO-2025-0039',242.40],
+      ['Schoonmaak Voorbeeld','INK-DEMO-2025-0038',155.39],
+      ['Reclame Sample','INK-DEMO-2025-0036',74.16]
+    ].map(([sup, no, amt]) => ({ sup, no, amtF: f(amt), iban: ibanOk ? 'NL·· ···· ···· ·· [added]' : 'No IBAN yet', ibanCls: ibanOk ? 'k-code' : 'k-pill k-pill--late' }));
+    const nexts = [
+      { title: 'Next: ask for approval', text: 'Once the IBANs are in, the batch goes to the second owner. They get a message and approve it here.', cta: 'Send for approval' },
+      { title: 'Next: approve', text: 'Check the five payments and approve. Klopt then makes the bank file.', cta: 'Approve batch' },
+      { title: 'Next: download for your bank', text: 'A SEPA payment file (pain.001) for Demo bankrekening. Upload it in your banking app; nothing is paid until you sign there.', cta: 'Download pain.001' },
+      { title: 'Waiting for the bank', text: 'When the payments show up on a statement, Match links them to these bills by itself and the batch closes.', cta: 'Open Match' }
+    ];
+    return {
+      theme: this.props.theme ?? 'light', steps, rows, next: nexts[st], v: { prep: st === 0 },
+      approvalLabel: st >= 2 ? 'Done' : 'Waiting', approvalCls: st >= 2 ? 'k-pill k-pill--paid' : 'k-pill k-pill--open',
+      advance: () => this.setState({ step: Math.min(3, st + 1) }), reset: () => this.setState({ step: 0 })
+    };
+  }
+}
+</script>
+</body>
+</html>

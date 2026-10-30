@@ -12,17 +12,18 @@
 <helmet>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#f5f5f2}
-a{color:#18181b}a:hover{color:#000}
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
 .line{display:grid;grid-template-columns:minmax(160px,1fr) minmax(120px,2fr) 120px;gap:16px;align-items:center;padding:10px 20px;border-top:1px solid var(--line-soft);font-size:14px}
 .sum{display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--line);font-weight:600;background:var(--surface-hover)}
 .bar{height:8px;border-radius:4px;background:var(--line-soft)}
+.tbgrid{display:grid;grid-template-columns:minmax(220px,1.4fr) 120px repeat(4,110px);gap:12px}
 .agrid{display:grid;grid-template-columns:minmax(180px,1fr) repeat(4,100px) 110px;gap:12px}
 .bal{display:flex;justify-content:space-between;padding:10px 20px;border-top:1px solid var(--line-soft);font-size:14px}
 </style>
 </helmet>
-<div class="k-root" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
-  <dc-import name="Sidebar" active="reports" hint-size="248px,1040px"></dc-import>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="reports" theme="{{theme}}" hint-size="248px,1040px"></dc-import>
 
   <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
     <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 32px 0;">
@@ -92,6 +93,22 @@ a{color:#18181b}a:hover{color:#000}
         </section>
       </sc-if>
 
+      <sc-if value="{{v.tb}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+          <p style="margin: 0; flex: 1; color: var(--ink-muted);">Every account that moved in book year 2025, periods 1 to 13. For your accountant: debit and credit must agree, and they do.</p>
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--success); font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Debit equals credit</span>
+        </div>
+        <section class="k-card k-card--flush">
+          <div style="overflow-x: auto;"><div style="min-width: 820px;">
+            <div class="k-row k-row--head tbgrid"><span>Account</span><span></span><span style="text-align: right;">Opening</span><span style="text-align: right;">Debit</span><span style="text-align: right;">Credit</span><span style="text-align: right;">Closing</span></div>
+            <sc-for list="{{tbRows}}" as="r" hint-placeholder-count="14">
+              <a href="Ledger.dc.html" class="k-row tbgrid k-num"><span style="display: flex; gap: 10px; align-items: center; min-width: 0;"><span class="k-code">{{r.no}}</span><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{r.name}}</span></span><span class="k-code" style="justify-self: start;">{{r.rgs}}</span><span style="text-align: right; color: var(--ink-muted);">0,00</span><span style="text-align: right;">{{r.d}}</span><span style="text-align: right;">{{r.c}}</span><span style="text-align: right; font-weight: 600;">{{r.close}}</span></a>
+            </sc-for>
+            <div class="sum k-num tbgrid" style="display: grid;"><span>Total</span><span></span><span></span><span style="text-align: right;">118.421,93</span><span style="text-align: right;">118.421,93</span><span style="text-align: right;">0,00</span></div>
+          </div></div>
+        </section>
+        <p class="k-muted" style="margin: 0; font-size: 13px;">Ledger numbers and RGS codes always show here: this report is for people who read them. <span class="k-kbd">↵</span> on a line opens that account's ledger.</p>
+      </sc-if>
       <sc-if value="{{v.deb}}" hint-placeholder-val="{{false}}">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
           <div class="k-stat"><span class="k-stat-label">Overdue in total</span><span class="k-stat-value">€ 4.710,44</span><span class="k-stat-meta">5 invoices, 5 customers</span></div>
@@ -129,7 +146,7 @@ a{color:#18181b}a:hover{color:#000}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -154,10 +171,26 @@ class Component extends DCLogic {
       ['Schoonmaak Voorbeeld',z,z,z,'155,39','155,39'],
       ['Reclame Sample',z,z,z,'74,16','74,16']
     ].map(([name, a, b, c, d, t]) => ({ name, a, b, c, d, t }));
+    const tbRows = [
+      ['0500','Aandelenkapitaal','BEivGokGea','','50.000,00','−50.000,00'],
+      ['1100','Bank','BLimBanRba','72.186,43','9.386,55','62.799,88'],
+      ['1300','Debiteuren','BVorDebHad','26.896,87','22.186,43','4.710,44'],
+      ['1500','Te betalen omzetbelasting','BSchBepBtw','','3.732,04','−3.732,04'],
+      ['1510','Terug te vorderen omzetbelasting','BVorVbkTvo','1.575,61','','1.575,61'],
+      ['1600','Crediteuren','BSchCreHac','8.760,30','9.952,08','−1.191,78'],
+      ['4200','Huur bedrijfsruimte','WBedHuiBeh','1.551,16','','1.551,16'],
+      ['4300','Brandstofkosten','WBedAutBra','971,21','','971,21'],
+      ['4400','Kantoorkosten','WBedKanCea','846,15','','846,15'],
+      ['4410','Telefoon- en internetkosten','WBedKanTef','1.527,19','','1.527,19'],
+      ['4420','Boekhouding en administratie','WBedKanBoe','1.244,89','','1.244,89'],
+      ['4500','Reclame- en advertentiekosten','WBedVkkRea','1.013,96','','1.013,96'],
+      ['4900','Algemene kosten','WBedAlkOal','1.848,16','','1.848,16'],
+      ['8000','Omzet','WOmzGrpGr1','','23.164,83','−23.164,83']
+    ].map(([no, name, rgs, d, c, close]) => ({ no, name, rgs, d, c, close }));
     const view = this.state.view;
-    const tabs = [['pl','Profit and loss','1'],['bs','Balance sheet','2'],['deb','Customers owe you','3'],['cred','You owe','4']]
+    const tabs = [['pl','Profit and loss','1'],['bs','Balance sheet','2'],['deb','Customers owe you','3'],['cred','You owe','4'],['tb','Trial balance','5']]
       .map(([k, label, key]) => ({ label, key, on: k === view ? 'true' : 'false', pick: () => this.setState({ view: k }) }));
-    return { costs, debtors, creditors, tabs, v: { pl: view === 'pl', bs: view === 'bs', deb: view === 'deb', cred: view === 'cred' } };
+    return { theme: this.props.theme ?? 'light',  costs, debtors, creditors, tabs, v: { pl: view === 'pl', bs: view === 'bs', deb: view === 'deb', cred: view === 'cred', tb: view === 'tb' }, tbRows };
   }
 }
 </script>

@@ -1,7 +1,9 @@
-# Klopt redesign export (30 October 2026)
+# Klopt redesign export (30 October 2026, v2)
 
-- `screens/`: the 12 screens plus the sidebar component from the Klopt redesign canvas, as Design Component files (`.dc.html`), with `canvas.json` for the layout. They render inside the Claude Design canvas; outside it, use them as markup and style reference.
+- `screens/`: 39 Design Component files (`.dc.html`): every route of the app, phone layouts at 390px and dark-mode boards, plus the shared `Sidebar.dc.html`. `canvas.json` holds the layout and a title per board. They render inside Claude Design; outside it, use them as markup and style reference.
 - `screens/ds/klopt/`: the design-system copy the screens load (`tokens.css`, `tokens.json`, `components/bundle.css`).
-- `design-system/`: the Klopt Design System: `README.md` (brand book), `tokens.json`, `tokens.css`, `components/bundle.css` and a folder per component with guidelines and a live HTML preview.
+- `design-system/`: the Klopt Design System v2: `README.md` (brand book, layout, phone and dark-mode rules, keyboard map), `tokens.json`, `tokens.css`, `components/bundle.css` and a folder per component with guidelines and a live preview.
 
-To use the system in plain HTML: load `tokens.css`, then `components/bundle.css`, wrap the app in `class="k-root"`, and use the `.k-*` classes described in each component README.
+Every screen takes a `theme` of `light` or `dark` on its root (`data-theme`). Boards marked "Example" (inbox documents, import findings, ICP) use made-up data; everything else uses the demo administration's real figures.
+
+To use the system in plain HTML: load `tokens.css`, then `components/bundle.css`, wrap the app in `class="k-root"` with `data-theme`, and use the `.k-*` classes described in each component README.

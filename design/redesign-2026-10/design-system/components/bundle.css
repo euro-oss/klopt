@@ -137,3 +137,53 @@
 
 /* Paper: invoice and document previews */
 .k-paper{background:#ffffff;color:#18181b;border-radius:var(--radius-xs);box-shadow:var(--shadow-paper);aspect-ratio:1/1.414;box-sizing:border-box;padding:44px}
+
+/* ---- v2: patterns for flows, settings, phone and dark ---- */
+
+/* Nav group label (sidebar sections) */
+.k-nav-group{margin:12px 10px 4px;font:600 11px/16px var(--font-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-muted)}
+
+/* Stepper: numbered steps of a wizard */
+.k-steps{display:flex;flex-wrap:wrap;gap:4px;list-style:none;margin:0;padding:0}
+.k-step{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px 0 6px;border-radius:var(--radius-pill);font:500 13px var(--font-sans);color:var(--ink-muted);background:transparent}
+.k-step-n{width:20px;height:20px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;justify-content:center;font:600 11px var(--font-mono);background:var(--surface-sunken);color:var(--ink-2)}
+.k-step.is-done{color:var(--ink-2)}
+.k-step.is-done .k-step-n{background:var(--success-bg);color:var(--success)}
+.k-step.is-current{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow-raised)}
+.k-step.is-current .k-step-n{background:var(--primary);color:var(--on-primary)}
+
+/* Menu: popover list (administration switcher, more actions) */
+.k-menu{background:var(--surface);border-radius:var(--radius-xl);box-shadow:var(--shadow-overlay);padding:6px;min-width:260px;box-sizing:border-box;color:var(--ink)}
+.k-menu-label{padding:8px 10px 4px;font:600 11px/16px var(--font-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-muted)}
+.k-menu-item{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:6px 10px;border:0;border-radius:var(--radius-md);background:transparent;font:400 14px var(--font-sans);color:var(--ink);text-align:left;cursor:pointer;box-sizing:border-box;text-decoration:none}
+.k-menu-item:hover{background:var(--surface-hover)}
+.k-menu-item[aria-selected="true"],.k-menu-item.is-selected{background:var(--selection)}
+.k-menu-sep{height:1px;background:var(--line-soft);margin:6px 4px}
+
+/* Settings sub-navigation: vertical list inside a settings page */
+.k-subnav{display:flex;flex-direction:column;gap:2px}
+.k-subnav-item{display:flex;align-items:center;justify-content:space-between;gap:8px;height:36px;padding:0 10px;border:0;border-radius:var(--radius-md);background:transparent;font:500 14px var(--font-sans);color:var(--ink-2);text-align:left;cursor:pointer;text-decoration:none}
+.k-subnav-item:hover{background:var(--surface-hover);color:var(--ink)}
+.k-subnav-item[aria-selected="true"],.k-subnav-item.is-active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-raised)}
+
+/* Drop zone: where files land */
+.k-drop{border:2px dashed var(--line-control);border-radius:var(--radius-xl);background:var(--surface);padding:32px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:var(--ink-2)}
+.k-drop.is-over{border-color:var(--selection-edge);background:var(--brand-tint)}
+
+/* Code chip: VAT codes, RGS codes, ledger numbers, hashes */
+.k-code{display:inline-block;font:500 11px/18px var(--font-mono);padding:0 6px;border-radius:var(--radius-xs);background:var(--surface-sunken);color:var(--ink-2);white-space:nowrap}
+
+/* Definition list: label/value pairs in panels */
+.k-dl{margin:0;display:grid;grid-template-columns:minmax(110px,max-content) 1fr;column-gap:16px;row-gap:10px}
+.k-dl dt{color:var(--ink-muted)}
+.k-dl dd{margin:0}
+
+/* Phone: 390px frame, top bar and bottom tab bar */
+.k-phone{width:390px;min-height:844px;display:flex;flex-direction:column;background:var(--ground);color:var(--ink);font-family:var(--font-sans);box-sizing:border-box;overflow:hidden}
+.k-phone-top{display:flex;align-items:center;gap:12px;padding:16px 16px 12px;background:var(--ground)}
+.k-phone-body{flex:1;padding:0 16px 16px;display:flex;flex-direction:column;gap:16px}
+.k-tabbar{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--surface);padding:6px 4px 22px}
+.k-tabbar-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:48px;border:0;background:transparent;font:500 11px var(--font-sans);color:var(--ink-muted);text-decoration:none;position:relative}
+.k-tabbar-item svg{color:currentColor}
+.k-tabbar-item.is-active{color:var(--ink)}
+.k-tabbar-item .k-badge{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;font-size:11px}

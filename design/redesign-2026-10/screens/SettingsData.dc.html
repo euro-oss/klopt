@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Settings, your data</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.dgrid{display:grid;grid-template-columns:minmax(200px,1fr) 120px 140px 90px;gap:12px}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1100px;">
+  <dc-import name="Sidebar" active="settings" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box;">
+    <header style="display: flex; flex-direction: column; gap: 2px;">
+      <a href="Settings.dc.html" style="font-size: 13px; color: var(--ink-2); text-decoration: none;">Settings</a>
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em;">Your data</h1>
+    </header>
+    <div style="display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start;">
+      <nav class="k-subnav" aria-label="Data settings" style="flex: 0 0 220px;">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+          <button type="button" class="k-subnav-item" aria-selected="{{t.on}}" onClick="{{t.pick}}">{{t.label}}</button>
+        </sc-for>
+      </nav>
+
+      <section style="flex: 1 1 560px; min-width: 0; max-width: 860px; display: flex; flex-direction: column; gap: 20px;">
+        <sc-if value="{{v.xaf}}" hint-placeholder-val="{{true}}">
+          <div class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+            <h2 class="k-card-title">Download your books</h2>
+            <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">One XAF 3.2 audit file with RGS codes, checked against the official schema. Your accountant, the tax office and every Dutch package can read it, including Klopt itself.</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+              <div class="k-field" style="width: 200px;"><label class="k-label" for="by">Book year</label><select id="by" class="k-input"><option>2025</option></select></div>
+              <button type="button" class="k-btn k-btn--primary">Download 2025.xaf <span class="k-kbd k-kbd--on-primary">D</span></button>
+              <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-weight: 500; font-size: 13px;">✓ Passes the XAF 3.2 schema</span>
+            </div>
+          </div>
+          <div class="k-drop">
+            <strong style="color: var(--ink);">Import an audit file</strong>
+            <span>An .xaf from any package. You see everything it contains, and every problem, before anything is booked.</span>
+            <a href="ImportFindings.dc.html" class="k-btn k-btn--sm">Choose a file</a>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{v.hooks}}" hint-placeholder-val="{{false}}">
+          <div class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+            <h2 class="k-card-title">Webhooks</h2>
+            <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Klopt calls your address when something happens, for example to post paid invoices to a team channel. None set up yet.</p>
+            <div style="display: grid; grid-template-columns: minmax(240px, 1fr) 220px auto; gap: 12px; align-items: end;">
+              <div class="k-field"><label class="k-label" for="wu">Address</label><input id="wu" class="k-input" placeholder="https://"></div>
+              <div class="k-field"><label class="k-label" for="we">When</label><select id="we" class="k-input"><option>An invoice is paid</option><option>An invoice is sent</option><option>A bill is booked</option><option>Anything is posted</option></select></div>
+              <button type="button" class="k-btn k-btn--primary">Add webhook</button>
+            </div>
+            <span class="k-help">Every call is signed, so your side can check it came from Klopt.</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{v.ret}}" hint-placeholder-val="{{false}}">
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+            <div class="k-stat"><span class="k-stat-label">Documents</span><span class="k-stat-value">2</span></div>
+            <div class="k-stat"><span class="k-stat-label">Term expired</span><span class="k-stat-value">0</span></div>
+            <div class="k-stat"><span class="k-stat-label">On legal hold</span><span class="k-stat-value">0</span></div>
+            <div class="k-stat"><span class="k-stat-label">Without book year</span><span class="k-stat-value" style="color: var(--brand-ink);">2</span></div>
+          </div>
+          <div class="k-card" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;">
+            <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Seven years, ten for property, counted from the end of the book year a document belongs to. Nothing is ever deleted automatically. Storage is locked in compliance mode, so not even Klopt can delete early.</p>
+            <div style="display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: var(--radius-md); background: var(--surface-sunken);">
+              <span style="flex: 1; display: flex; flex-direction: column;"><strong>Legal hold on the whole administration</strong><span class="k-muted" style="font-size: 13px;">Stops all deletion, whatever the term. For a dispute or a tax audit.</span></span>
+              <button type="button" class="k-switch" role="switch" aria-checked="false" aria-label="Legal hold"></button>
+            </div>
+          </div>
+          <section class="k-card k-card--flush">
+            <div class="k-row k-row--head dgrid"><span>Document</span><span>Book year</span><span>Keep until</span><span style="text-align: right;">Size</span></div>
+            <div class="k-row dgrid" style="cursor: default;"><span>2025.xaf.xml</span><span class="k-muted">–</span><span><span class="k-pill k-pill--open">No year yet</span></span><span class="k-num" style="text-align: right;">245 kB</span></div>
+            <div class="k-row dgrid" style="cursor: default;"><span>2025.manifest.txt</span><span class="k-muted">–</span><span><span class="k-pill k-pill--open">No year yet</span></span><span class="k-num" style="text-align: right;">341 B</span></div>
+          </section>
+          <p class="k-muted" style="margin: 0; font-size: 13px;">Without a book year there's no end date, and not knowing how long to keep something is never a reason to throw it away.</p>
+        </sc-if>
+
+        <sc-if value="{{v.seal}}" hint-placeholder-val="{{false}}">
+          <div class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;"><h2 class="k-card-title" style="flex: 1;">Book year 2025, sealed</h2><span class="k-pill k-pill--paid">No drift</span></div>
+            <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">A seal is one fingerprint over every entry, every document and the audit file. Write it down or give it to your accountant: if anything in seven years of books ever changes, the check fails.</p>
+            <dl class="k-dl" style="font-size: 13px;">
+              <dt>Sealed</dt><dd class="k-num">18-10-2026, automatically</dd>
+              <dt>Entries</dt><dd class="k-num">216</dd>
+              <dt>Documents</dt><dd class="k-num">0</dd>
+              <dt>Seal</dt><dd><span class="k-code" style="white-space: normal; word-break: break-all;">68cf575fc908e8404e4cb51aedafb316707f4dcb5acefca8c5e2a747c7069b7e</span></dd>
+            </dl>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;"><button type="button" class="k-btn k-btn--primary">Check it now</button><button type="button" class="k-btn">Check with the audit file</button><button type="button" class="k-btn k-btn--ghost">Manifest</button></div>
+          </div>
+        </sc-if>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'xaf' };
+  }
+  renderVals() {
+    const t = this.state.tab;
+    const tabs = [['xaf','Audit file in and out'],['hooks','Webhooks'],['ret','Retention'],['seal','Sealed snapshots']]
+      .map(([k, label]) => ({ label, on: k === t ? 'true' : 'false', pick: () => this.setState({ tab: k }) }));
+    return { theme: this.props.theme ?? 'light', tabs, v: { xaf: t === 'xaf', hooks: t === 'hooks', ret: t === 'ret', seal: t === 'seal' } };
+  }
+}
+</script>
+</body>
+</html>

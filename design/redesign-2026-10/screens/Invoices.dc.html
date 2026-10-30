@@ -12,13 +12,13 @@
 <helmet>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#f5f5f2}
-a{color:#18181b}a:hover{color:#000}
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
 .igrid{display:grid;grid-template-columns:20px 92px minmax(140px,1fr) 80px 120px 110px;gap:12px}
 </style>
 </helmet>
-<div class="k-root" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
-  <dc-import name="Sidebar" active="sales" hint-size="248px,1040px"></dc-import>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="sales" theme="{{theme}}" hint-size="248px,1040px"></dc-import>
 
   <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
     <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 32px 0;">
@@ -34,7 +34,7 @@ a{color:#18181b}a:hover{color:#000}
       </a>
       <nav class="k-tabs" aria-label="Sales sections" style="flex-basis: 100%; margin-top: 4px;">
         <a href="#" class="k-tab is-active" aria-current="page">Invoices</a>
-        <a href="#" class="k-tab">Reminders <span class="k-badge k-badge--danger">5</span></a>
+        <a href="Reminders.dc.html" class="k-tab">Reminders <span class="k-badge k-badge--danger">5</span></a>
         <a href="Contacts.dc.html" class="k-tab">Customers</a>
       </nav>
     </header>
@@ -140,7 +140,7 @@ a{color:#18181b}a:hover{color:#000}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -170,7 +170,7 @@ class Component extends DCLogic {
     const short = (d) => parseInt(d.slice(0,2),10) + ' ' + months[parseInt(d.slice(3,5),10)-1];
     const all = data.map((d) => {
       const late = !d[5];
-      return {
+      return { theme: this.props.theme ?? 'light', 
         no: d[0], cust: d[1], date: d[2], due: d[3], total: d[4], paidOn: d[5], days: d[6], late, paid: !late,
         dateShort: short(d[2]), totalF: f(d[4]),
         pill: late ? d[6] + ' days late' : 'Paid',
@@ -201,7 +201,7 @@ class Component extends DCLogic {
     const tabDefs = [['all','All','40'],['open','Open','5'],['paid','Paid','35'],['draft','Drafts','0']];
     const tabs = tabDefs.map(([k, label, count]) => ({ label, count, on: k === flt ? 'true' : 'false', pick: () => this.setState({ filter: k }) }));
     const sum = shown.reduce((a, r) => a + r.total, 0);
-    return { rows, s, tabs, sumF: f(Math.round(sum * 100) / 100), shownLabel: 'Showing ' + shown.length + (flt === 'all' ? ' of 40, newest first' : '') };
+    return { theme: this.props.theme ?? 'light',  rows, s, tabs, sumF: f(Math.round(sum * 100) / 100), shownLabel: 'Showing ' + shown.length + (flt === 'all' ? ' of 40, newest first' : '') };
   }
 }
 </script>

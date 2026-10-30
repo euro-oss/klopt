@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Settings, books</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.cgrid{display:grid;grid-template-columns:70px minmax(180px,1fr) 100px 40px 130px;gap:12px}
+.vgrid{display:grid;grid-template-columns:minmax(220px,1fr) 90px 60px 90px 110px;gap:12px}
+.per{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
+.per span{height:28px;border-radius:var(--radius-xs);font:500 11px/28px var(--font-mono);text-align:center}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1100px;">
+  <dc-import name="Sidebar" active="settings" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box;">
+    <header style="display: flex; flex-direction: column; gap: 2px;">
+      <a href="Settings.dc.html" style="font-size: 13px; color: var(--ink-2); text-decoration: none;">Settings</a>
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em;">Books</h1>
+    </header>
+    <div style="display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start;">
+      <nav class="k-subnav" aria-label="Books settings" style="flex: 0 0 220px;">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+          <button type="button" class="k-subnav-item" aria-selected="{{t.on}}" onClick="{{t.pick}}">{{t.label}} <span class="k-code">{{t.count}}</span></button>
+        </sc-for>
+      </nav>
+
+      <section style="flex: 1 1 560px; min-width: 0; max-width: 860px; display: flex; flex-direction: column; gap: 20px;">
+        <sc-if value="{{v.years}}" hint-placeholder-val="{{true}}">
+          <div class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;"><h2 class="k-card-title" style="flex: 1;">Book year 2025</h2><span class="k-pill k-pill--open">Open</span></div>
+            <span class="k-muted">1 January to 31 December 2025, 12 periods</span>
+            <div class="per" aria-label="Periods">
+              <span style="background: var(--neutral-bg); color: var(--ink-2);">1</span><span style="background: var(--neutral-bg); color: var(--ink-2);">2</span><span style="background: var(--neutral-bg); color: var(--ink-2);">3</span>
+              <span style="background: var(--surface-sunken); color: var(--ink-muted); box-shadow: inset 0 0 0 1px var(--line);">4</span><span style="background: var(--surface-sunken); color: var(--ink-muted); box-shadow: inset 0 0 0 1px var(--line);">5</span><span style="background: var(--surface-sunken); color: var(--ink-muted); box-shadow: inset 0 0 0 1px var(--line);">6</span><span style="background: var(--surface-sunken); color: var(--ink-muted); box-shadow: inset 0 0 0 1px var(--line);">7</span><span style="background: var(--surface-sunken); color: var(--ink-muted); box-shadow: inset 0 0 0 1px var(--line);">8</span><span style="background: var(--surface-sunken); color: var(--ink-muted); box-shadow: inset 0 0 0 1px var(--line);">9</span><span style="background: var(--surface-sunken); color: var(--ink-muted); box-shadow: inset 0 0 0 1px var(--line);">10</span><span style="background: var(--surface-sunken); color: var(--ink-muted); box-shadow: inset 0 0 0 1px var(--line);">11</span><span style="background: var(--surface-sunken); color: var(--ink-muted); box-shadow: inset 0 0 0 1px var(--line);">12</span>
+            </div>
+            <span class="k-muted" style="font-size: 13px;">Grey: closed for now (only an accountant can post). Outlined: open.</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+            <div class="k-card" style="flex: 1 1 300px; padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+              <h3 class="k-card-title">Open book year 2026</h3>
+              <span style="color: var(--ink-2);">Runs 1 January to 31 December 2026, following your start month. 2025 needs it before it can carry its balance forward.</span>
+              <button type="button" class="k-btn k-btn--primary" style="align-self: flex-start;">Open 2026</button>
+            </div>
+            <div class="k-card" style="flex: 1 1 300px; padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+              <h3 class="k-card-title">Close book year 2025</h3>
+              <ol style="margin: 0; padding-left: 20px; color: var(--ink-2); line-height: 1.7;"><li>Open 2026 first</li><li>Klopt proposes the closing entries: result to equity</li><li>You check, then close. This can't be undone.</li></ol>
+              <button type="button" class="k-btn" disabled style="align-self: flex-start;">See the proposal</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{v.chart}}" hint-placeholder-val="{{false}}">
+          <div style="display: flex; align-items: center; gap: 12px;"><span style="display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-weight: 500; flex: 1;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>31 of 31 mapped to RGS 3.7, the whole balance is reportable</span><button type="button" class="k-btn k-btn--sm">Add a category</button></div>
+          <section class="k-card k-card--flush">
+            <div class="k-row k-row--head cgrid"><span>No.</span><span>Name</span><span>Kind</span><span>D/C</span><span>RGS</span></div>
+            <sc-for list="{{chart}}" as="c" hint-placeholder-count="12">
+              <button type="button" class="k-row cgrid"><span class="k-code">{{c.no}}</span><span>{{c.name}}</span><span class="k-muted">{{c.kind}}</span><span class="k-muted">{{c.dc}}</span><span class="k-code" style="justify-self: start;">{{c.rgs}}</span></button>
+            </sc-for>
+            <div class="k-muted" style="padding: 12px 20px; border-top: 1px solid var(--line-soft); font-size: 13px;">Showing 12 of 31 · <span class="k-kbd">↵</span> on a category to change its name or RGS code</div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{v.vat}}" hint-placeholder-val="{{false}}">
+          <p style="margin: 0; color: var(--ink-2);">Only the standard Dutch codes, so every one lands in the right box of the return. Hide the ones you never use.</p>
+          <section class="k-card k-card--flush">
+            <div class="k-row k-row--head vgrid"><span>Code</span><span>Direction</span><span>Rate</span><span>In use</span><span></span></div>
+            <sc-for list="{{vat}}" as="x" hint-placeholder-count="10">
+              <div class="k-row vgrid" style="cursor: default;"><span style="display: flex; flex-direction: column;"><span>{{x.name}}</span><span><span class="k-code">{{x.code}}</span></span></span><span class="k-muted">{{x.dir}}</span><span class="k-num">{{x.rate}}</span><span><span class="{{x.useCls}}">{{x.use}}</span></span><span style="text-align: right;"><span class="{{x.btnCls}}">{{x.btn}}</span></span></div>
+            </sc-for>
+            <div class="k-muted" style="padding: 12px 20px; border-top: 1px solid var(--line-soft); font-size: 13px;">Showing 10 of 27 · 5 in use</div>
+          </section>
+        </sc-if>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'years' };
+  }
+  renderVals() {
+    const t = this.state.tab;
+    const tabs = [['years','Book years','1'],['chart','Categories','31'],['vat','VAT codes','27']]
+      .map(([k, label, count]) => ({ label, count, on: k === t ? 'true' : 'false', pick: () => this.setState({ tab: k }) }));
+    const chart = [
+      ['0500','Aandelenkapitaal','Equity','C','BEivGokGea'],['1000','Kas','Assets','D','BLimKasKas'],['1100','Bank','Assets','D','BLimBanRba'],
+      ['1300','Debiteuren','Assets','D','BVorDebHad'],['1500','Te betalen omzetbelasting','Liabilities','C','BSchBepBtw'],['1510','Terug te vorderen omzetbelasting','Assets','D','BVorVbkTvo'],
+      ['1600','Crediteuren','Liabilities','C','BSchCreHac'],['4200','Huur bedrijfsruimte','Expenses','D','WBedHuiBeh'],['4410','Telefoon- en internetkosten','Expenses','D','WBedKanTef'],
+      ['4900','Algemene kosten','Expenses','D','WBedAlkOal'],['8000','Omzet','Revenue','C','WOmzGrpGr1'],['9400','Rentelasten','Expenses','D','WFbeOrlOrl']
+    ].map(([no, name, kind, dc, rgs]) => ({ no, name, kind, dc, rgs }));
+    const vat = [
+      ['21% VAT','H21','Sales','21%',true],['9% VAT','L9','Sales','9%',true],['VAT-exempt','GEEN','Sales','0%',true],
+      ['21% VAT','VH21','Purchase','21%',true],['9% VAT','VL9','Purchase','9%',true],
+      ['0% EU goods supply','ICP','Sales','0%',false],['0% EU service','ICPD','Sales','0%',false],['VAT reverse-charged','VERL','Sales','0%',false],
+      ['21% VAT on purchases from the EU','ICV21','Purchase','21%',false],['Purchase without VAT','VGEEN','Purchase','0%',false]
+    ].map(([name, code, dir, rate, used]) => ({ name, code, dir, rate, use: used ? 'In use' : 'Unused', useCls: used ? 'k-pill k-pill--paid' : 'k-pill k-pill--draft', btn: used ? '' : 'Hide', btnCls: used ? '' : 'k-btn k-btn--sm k-btn--ghost' }));
+    return { theme: this.props.theme ?? 'light', tabs, chart, vat, v: { years: t === 'years', chart: t === 'chart', vat: t === 'vat' } };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Klopt
 
-Klopt is open-source Dutch bookkeeping, the first product of euro.computer. The interface should feel as calm and obvious as the best consumer bookkeeping apps while staying fast enough for a bookkeeper who never touches the mouse. This system is extracted from the Klopt redesign canvas (Home, Sales, New invoice, Bank matching, Command bar, Settings).
+Klopt is open-source Dutch bookkeeping, the first product of euro.computer. The interface should feel as calm and obvious as the best consumer bookkeeping apps while staying fast enough for a bookkeeper who never touches the mouse. This system is extracted from the Klopt redesign canvas, which covers every route of the app.
 
 ## Principles
 
@@ -50,16 +50,26 @@ Inter for everything, JetBrains Mono for keyboard keys only. Amounts always use 
 
 ## Layout
 
-- App shell: sidebar (`sidebar-w`, 248px) on `surface-sunken` + content on `ground`. On phones the sidebar stacks above.
-- Eight top-level destinations, in this order: Home, Inbox, Sales, Costs, Bank, VAT, Reports, Contacts; Settings and Shortcuts pinned at the bottom. Second-level pages are underline **tabs** on the page, not menu items.
+- App shell: sidebar (`sidebar-w`, 248px) on `surface-sunken` + content on `ground`.
+- The sidebar is grouped. Ungrouped at the top: Home, Inbox. **Money**: Sales, Costs, Bank, Contacts. **Books**: Journal, VAT, Reports. Pinned at the bottom: Import, Settings, Shortcuts. Group labels use `.k-nav-group`. Second-level pages are underline **tabs** on the page, not menu items.
 - List pages: page header (title, filter, primary action) → section tabs → segmented status filter → list card → hint bar. A detail preview sits to the right of the list rather than on a new page.
+- Wizards (import, setup, guided invoice) show their steps with `.k-steps`; one decision per step, `↵` goes forward, `Esc` back.
+- Settings sub-pages use a `.k-subnav` column on the left of the page, never extra sidebar items.
+
+## Phone
+
+Phones get their own layout at 390px (`.k-phone`), not a squeezed desktop. A bottom `.k-tabbar` holds five destinations: Home, Sales, Inbox (the camera for receipts), Bank, More. Lists become full-width cards, the preview pane becomes a page, and there are no hover states or keyboard hints. Touch targets are at least 44px.
+
+## Dark mode
+
+Every screen sets `data-theme` on its root (`light` or `dark`) and uses tokens only, never hex, so the dark theme is the same markup. The exceptions are documents that are paper (`.k-paper`): an invoice stays white in both themes. The focus ring turns yellow in dark.
 
 ## Keyboard
 
 | Keys | Does |
 | --- | --- |
-| `G` then a letter | Go to: `D` Home, `E` Inbox, `F` Sales, `N` Costs, `K` Bank, `G` VAT, `W` Reports, `R` Contacts, `I` Settings |
-| `N` then a letter | New: `F` invoice, `R` receipt, `C` contact |
+| `G` then a letter | Go to: `D` Home, `E` Inbox, `F` Sales, `N` Costs, `K` Bank, `R` Contacts, `J` Journal, `G` VAT, `W` Reports, `I` Settings |
+| `N` then a letter | New: `F` invoice, `R` receipt or bill, `C` contact, `J` journal entry |
 | `⌘K` | Search or run any command |
 | `J` / `K`, `↵`, `X`, `/` | Move, open, select, filter in any list |
 | `1`–`4` | Switch status tab, or pick an option in a choice list |

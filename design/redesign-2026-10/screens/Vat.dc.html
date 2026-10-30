@@ -12,8 +12,8 @@
 <helmet>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#f5f5f2}
-a{color:#18181b}a:hover{color:#000}
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
 .per{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-md);text-decoration:none;color:var(--ink);font-size:14px}
 .per:hover{background:var(--surface-hover)}
 .per.on{background:var(--selection);box-shadow:inset 3px 0 0 var(--selection-edge)}
@@ -21,8 +21,8 @@ a{color:#18181b}a:hover{color:#000}
 .code{font:500 11px/18px var(--font-mono);padding:0 6px;border-radius:var(--radius-xs);background:var(--surface-sunken);color:var(--ink-2);justify-self:start}
 </style>
 </helmet>
-<div class="k-root" style="display: flex; flex-wrap: wrap; min-height: 1100px;">
-  <dc-import name="Sidebar" active="vat" hint-size="248px,1100px"></dc-import>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1100px;">
+  <dc-import name="Sidebar" active="vat" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
 
   <main style="flex: 999 1 560px; min-width: 0; padding: 20px 32px 40px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; box-sizing: border-box;">
     <nav aria-label="VAT periods" style="flex: 1 1 220px; max-width: 260px; display: flex; flex-direction: column; gap: 4px;">
@@ -38,6 +38,7 @@ a{color:#18181b}a:hover{color:#000}
       <div class="k-card" style="margin-top: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
         <strong style="font-size: 14px;">ICP return</strong>
         <span class="k-muted">No sales to EU businesses this quarter, so there is nothing to report.</span>
+        <a href="Icp.dc.html" style="font-weight: 600;">How a filled ICP return looks</a>
       </div>
     </nav>
 
@@ -105,9 +106,9 @@ a{color:#18181b}a:hover{color:#000}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
 class Component extends DCLogic {
-  renderVals() { return {}; }
+  renderVals() { return { theme: this.props.theme ?? 'light', }; }
 }
 </script>
 </body>

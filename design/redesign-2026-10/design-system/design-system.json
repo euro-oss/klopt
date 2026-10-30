@@ -1,14 +1,25 @@
 {
   "v": 3,
-  "layout": "files",
-  "createdOnFiles": {"v": 1, "at": "2026-10-30T08:55:00Z"},
-  "title": "Klopt Design System",
-  "namespace": "Klopt",
-  "libraries": [],
-  "sections": {},
-  "groups": [],
   "assetGroups": {},
   "blobs": {},
-  "docs": {"readme": "project/README.md", "sections": []},
-  "lastChange": {"by": "Hidde", "at": "2026-10-30T08:55:00Z", "via": "Claude chat", "note": "First version, extracted from the Klopt redesign canvas"}
+  "createdOnFiles": {
+    "at": "2026-10-30T08:55:00Z",
+    "v": 1
+  },
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "groups": [],
+  "lastChange": {
+    "at": "2026-10-30T10:40:00Z",
+    "by": "Hidde",
+    "note": "v2: stepper, menu, sub-nav, drop zone, code chip, phone tab bar; grouped sidebar, phone and dark mode rules",
+    "via": "Claude chat"
+  },
+  "layout": "files",
+  "libraries": [],
+  "namespace": "Klopt",
+  "sections": {},
+  "title": "Klopt Design System"
 }

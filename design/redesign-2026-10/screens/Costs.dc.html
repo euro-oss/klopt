@@ -12,13 +12,13 @@
 <helmet>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#f5f5f2}
-a{color:#18181b}a:hover{color:#000}
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
 .cgrid{display:grid;grid-template-columns:20px minmax(150px,1fr) 150px 72px 120px 96px;gap:12px}
 </style>
 </helmet>
-<div class="k-root" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
-  <dc-import name="Sidebar" active="costs" hint-size="248px,1040px"></dc-import>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="costs" theme="{{theme}}" hint-size="248px,1040px"></dc-import>
 
   <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
     <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 32px 0;">
@@ -28,14 +28,14 @@ a{color:#18181b}a:hover{color:#000}
         <input type="text" aria-label="Filter bills" placeholder="Supplier, number, amount">
         <span class="k-kbd">/</span>
       </label>
-      <a href="Inbox.dc.html" class="k-btn k-btn--primary">
+      <a href="BillNew.dc.html" class="k-btn k-btn--primary">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
         Add a bill <span class="k-chord"><span class="k-kbd k-kbd--on-primary">N</span><span class="k-kbd k-kbd--on-primary">R</span></span>
       </a>
       <nav class="k-tabs" aria-label="Costs sections" style="flex-basis: 100%; margin-top: 4px;">
         <a href="#" class="k-tab is-active" aria-current="page">Bills</a>
         <a href="#" class="k-tab">To approve <span class="k-badge k-badge--neutral">40</span></a>
-        <a href="#" class="k-tab">Payment batches</a>
+        <a href="PaymentBatch.dc.html" class="k-tab">Payment batches</a>
         <a href="#" class="k-tab">Suppliers</a>
       </nav>
     </header>
@@ -47,7 +47,7 @@ a{color:#18181b}a:hover{color:#000}
           <span class="k-callout-title">5 bills are past their due date · € 1.191,78</span>
           <span class="k-callout-text">Put them in one payment batch. A second person approves it, then you upload it to your bank.</span>
         </div>
-        <button type="button" class="k-btn k-btn--sm" style="background: var(--surface);">Prepare batch <span class="k-kbd">B</span></button>
+        <a href="PaymentBatch.dc.html" class="k-btn k-btn--sm" style="background: var(--surface);">Prepare batch <span class="k-kbd">B</span></a>
       </section>
     </div>
 
@@ -125,7 +125,7 @@ a{color:#18181b}a:hover{color:#000}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -154,7 +154,7 @@ class Component extends DCLogic {
     const short = (d) => parseInt(d.slice(0,2),10) + ' ' + months[parseInt(d.slice(3,5),10)-1];
     const all = data.map((d) => {
       const open = d[5] > 0;
-      return {
+      return { theme: this.props.theme ?? 'light', 
         no: d[0], sup: d[1], date: d[2], due: d[3], total: d[4], out: d[5], open,
         dateShort: short(d[2]), totalF: f(d[4]), outF: f(d[5]),
         pill: open ? d[6] + ' days late' : 'Paid',
@@ -168,7 +168,7 @@ class Component extends DCLogic {
     const s = all.find((r) => r.no === this.state.sel) || all[0];
     const tabs = [['all','All','40'],['open','To pay','5'],['paid','Paid','35']].map(([k, label, count]) => ({ label, count, on: k === flt ? 'true' : 'false', pick: () => this.setState({ filter: k }) }));
     const sum = shownRows.reduce((a, r) => a + r.total, 0);
-    return { rows, s, tabs, sumF: f(Math.round(sum * 100) / 100), shown: 'Showing ' + shownRows.length + (flt === 'all' ? ' of 40, newest first' : '') };
+    return { theme: this.props.theme ?? 'light',  rows, s, tabs, sumF: f(Math.round(sum * 100) / 100), shown: 'Showing ' + shownRows.length + (flt === 'all' ? ' of 40, newest first' : '') };
   }
 }
 </script>

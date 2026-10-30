@@ -12,12 +12,12 @@
 <helmet>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#f5f5f2}
-a{color:#18181b}a:hover{color:#000}
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
 </style>
 </helmet>
-<div class="k-root" style="display: flex; flex-wrap: wrap; min-height: 960px;">
-  <dc-import name="Sidebar" active="inbox" hint-size="248px,960px"></dc-import>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 960px;">
+  <dc-import name="Sidebar" active="inbox" theme="{{theme}}" hint-size="248px,960px"></dc-import>
 
   <main style="flex: 999 1 560px; min-width: 0; padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box;">
     <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
@@ -34,6 +34,7 @@ a{color:#18181b}a:hover{color:#000}
 
     <div class="k-seg" role="tablist" aria-label="Inbox status">
       <button type="button" role="tab" class="k-seg-item" aria-selected="true">To handle <span class="k-count">0</span></button>
+      <a href="InboxReview.dc.html" class="k-seg-item" style="text-decoration: none;">See it with documents</a>
       <button type="button" role="tab" class="k-seg-item" aria-selected="false">Booked <span class="k-count">0</span></button>
       <button type="button" role="tab" class="k-seg-item" aria-selected="false">Set aside <span class="k-count">0</span></button>
     </div>
@@ -82,9 +83,9 @@ a{color:#18181b}a:hover{color:#000}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":960}}'>
 class Component extends DCLogic {
-  renderVals() { return {}; }
+  renderVals() { return { theme: this.props.theme ?? 'light', }; }
 }
 </script>
 </body>

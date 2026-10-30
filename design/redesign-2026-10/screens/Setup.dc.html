@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · New administration</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="min-height: 960px; display: flex; flex-direction: column;">
+  <header style="display: flex; align-items: center; gap: 12px; padding: 20px 40px; border-bottom: 1px solid var(--line);">
+    <span class="k-mark" aria-hidden="true">K</span>
+    <strong style="font-size: 16px;">Klopt</strong>
+    <span style="flex: 1;"></span>
+    <span class="k-muted" style="font-size: 13px;">Signed in as hidde@neverhide.nl</span>
+    <a href="SignIn.dc.html" class="k-btn k-btn--ghost k-btn--sm">Sign out</a>
+  </header>
+
+  <main style="flex: 1; display: flex; flex-wrap: wrap; gap: 40px; padding: 40px; max-width: 1180px; width: 100%; margin: 0 auto; box-sizing: border-box; align-items: flex-start;">
+    <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+      <ol class="k-steps" aria-label="Setup">
+        <li class="k-step is-current" aria-current="step"><span class="k-step-n">1</span>Your company</li>
+        <li class="k-step"><span class="k-step-n">2</span>Your history</li>
+        <li class="k-step"><span class="k-step-n">3</span>Your bank</li>
+      </ol>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <h1 style="margin: 0; font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.02em;">Set up your administration</h1>
+        <p style="margin: 0; color: var(--ink-2);">A name is enough to start. Everything else you can change later, except the book year's first month.</p>
+      </div>
+
+      <section class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 18px;">
+        <div class="k-field">
+          <label class="k-label" for="n">Name</label>
+          <input id="n" class="k-input" value="Demo BV">
+          <span class="k-help">What you call the company. It shows in the switcher and on screens.</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+          <div class="k-field">
+            <label class="k-label" for="kvk">KvK number <small>optional</small></label>
+            <input id="kvk" class="k-input k-num" placeholder="8 digits">
+            <span class="k-help">Fills in your legal name and address for you.</span>
+          </div>
+          <div class="k-field">
+            <label class="k-label" for="vat">VAT number <small>optional</small></label>
+            <input id="vat" class="k-input k-num" placeholder="NL123456789B01">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+          <div class="k-field">
+            <label class="k-label" for="by">Book year starts in</label>
+            <select id="by" class="k-input"><option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select>
+            <span class="k-help">A year opening in July 2026 is called 2026.</span>
+          </div>
+          <div class="k-field">
+            <label class="k-label" for="cur">Currency</label>
+            <select id="cur" class="k-input"><option>Euro (EUR)</option></select>
+          </div>
+        </div>
+        <div style="display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; border-radius: var(--radius-md); background: var(--surface-sunken);">
+          <span class="k-tile" style="background: var(--surface);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></span>
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+            <strong>Dutch SME chart of accounts</strong>
+            <span style="color: var(--ink-2); font-size: 13px;">31 categories, 5 journals and 27 VAT codes, all mapped to RGS 3.7. Your accountant will recognise it.</span>
+          </span>
+          <a href="#" style="font-size: 13px; white-space: nowrap;">Other chart</a>
+        </div>
+      </section>
+
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <button type="button" class="k-btn k-btn--primary">Create administration <span class="k-chord"><span class="k-kbd k-kbd--on-primary">⌘</span><span class="k-kbd k-kbd--on-primary">↵</span></span></button>
+        <span class="k-muted" style="font-size: 13px;">Next you choose whether to bring your history across.</span>
+      </div>
+    </div>
+
+    <aside style="flex: 1 1 320px; max-width: 380px; display: flex; flex-direction: column; gap: 16px;">
+      <h2 class="k-card-title">Coming from another package?</h2>
+      <a href="ImportSource.dc.html" class="k-option" style="text-decoration: none;">
+        <span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></span>
+        <span class="k-option-body"><span class="k-option-title">From Moneybird</span><span class="k-option-meta">Invoices, receipts, bank and journal entries</span></span>
+      </a>
+      <a href="ImportSource.dc.html" class="k-option" style="text-decoration: none;">
+        <span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></span>
+        <span class="k-option-body"><span class="k-option-title">From Exact Online</span><span class="k-option-meta">Chart, contacts and open items as an opening balance</span></span>
+      </a>
+      <a href="SettingsData.dc.html" class="k-option" style="text-decoration: none;">
+        <span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg></span>
+        <span class="k-option-body"><span class="k-option-title">From any package</span><span class="k-option-meta">An XAF audit file, which every Dutch package can export</span></span>
+      </a>
+      <p class="k-muted" style="margin: 0; font-size: 13px; line-height: 1.5;">You can also start empty and import later from the Import page. Nothing is booked until you confirm.</p>
+    </aside>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>
