@@ -122,7 +122,9 @@ test('i m opens the import wizard under Importeren', async ({ page }) => {
 
   await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
   // Moneybird is palette-only (#107); footer Importeren + chord `i m`.
-  await expect(page.getByRole('navigation').getByRole('link', { name: /^Importeren/ })).toBeVisible()
+  await expect(
+    page.getByRole('navigation').getByRole('link', { name: /^Importeren/ }),
+  ).toBeVisible()
 
   await page.keyboard.press('i')
   await expect(page.getByText('I …')).toBeVisible()

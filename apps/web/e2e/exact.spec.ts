@@ -140,7 +140,9 @@ test('i x reaches the import wizard under Importeren (#100)', async ({ page }) =
 
   await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
   // Exact is palette-only (#107); footer keeps Importeren. Chord `i` then `x` opens the wizard.
-  await expect(page.getByRole('navigation').getByRole('link', { name: /^Importeren/ })).toBeVisible()
+  await expect(
+    page.getByRole('navigation').getByRole('link', { name: /^Importeren/ }),
+  ).toBeVisible()
 
   await page.keyboard.press('i')
   await expect(page.getByText('I …')).toBeVisible()

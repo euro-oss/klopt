@@ -212,7 +212,10 @@ test('a report can be pointed at another book year, and the link carries it', as
   // And walking to another report keeps the year, though the link carries no
   // parameter: that is the cookie doing the remembering.
   // Reports tab accessible name includes the digit hint (`Balans` + `2`).
-  await page.getByRole('navigation', { name: 'Rapporten' }).getByRole('link', { name: /Balans/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Rapporten' })
+    .getByRole('link', { name: /Balans/ })
+    .click()
   await expect(page.getByRole('heading', { name: 'Balans' })).toBeVisible()
   await expect(page.getByText(`${next}-12-31`)).toBeVisible()
 })

@@ -178,6 +178,8 @@ test('and the same screens stay Dutch for a Dutch reader', async ({ browser }) =
 test('a domain refusal is in the reader’s language, with its numbers intact', async ({
   browser,
 }) => {
+  // NL + EN half, each with enableAdvancedMode / form fill / confirm dialog.
+  test.setTimeout(60_000)
   const context = await browser.newContext({ locale: 'nl-NL' })
   const page = await context.newPage()
   await anAdministration(page)
@@ -206,6 +208,7 @@ test('a domain refusal is in the reader’s language, with its numbers intact', 
   // And the same refusal in English, for somebody who asked for English.
   await chooseInAccountMenu(page, 'Taal', 'EN')
   await page.goto('/entries/new')
+  await expect(page.getByRole('button', { name: /^Post$/ }).first()).toBeEnabled()
   await page.getByLabel('Description', { exact: true }).fill('Wrong account')
   await page.getByLabel('Account line 1').fill('9999')
   await page.getByLabel('Debit line 1').fill('1000,00')
