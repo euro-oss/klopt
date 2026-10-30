@@ -6,7 +6,7 @@
   "description": "The operator's surface. A thin client over the same public API the UI and the MCP server use.",
   "license": "Apache-2.0",
   "bin": {
-    "klopt": "./dist/main.js"
+    "klopt": "./bin/klopt.mjs"
   },
   "scripts": {
     "build": "tsc -b tsconfig.build.json",

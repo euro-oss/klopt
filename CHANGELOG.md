@@ -18,6 +18,13 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Install: bin shims for `klopt-mcp` and `klopt`
+
+`@klopt/mcp` and `@klopt/cli` point their package `bin` entries at committed
+executable shims under `bin/` that import `dist/main.js`. A clean
+`pnpm install` (and the Docker build) no longer warns that `dist/main.js` is
+missing before those packages are built.
+
 ### Import wizard: connect probe and opening count (#105)
 
 Connecting (`POST /api/v1/moneybird/connection`) now probes Moneybird before
