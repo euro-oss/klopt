@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Import, preview</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board (batch 1), not drawn by Hidde. Import step 4 of 6. Content and copy from
+  apps/web /importeren, steps "voorbeeld" and "overzicht" (wizard.voorbeeld.*,
+  wizard.overzicht.notTransferred*, wizard.overzicht.alreadyInKlopt*). NL strings: ../DERIVED.md.
+  Example data, same administration and years as ImportYears.
+  A11y deviations (new boards only): --line-control #86857e, underlined ink text links,
+  44px targets under 600px, self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.k-root[data-theme="light"]{--line-control:#86857e}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}
+.pgrid{display:grid;grid-template-columns:minmax(180px,1fr) 130px 150px 130px;gap:12px}
+.ngrid{display:grid;grid-template-columns:minmax(160px,1fr) 90px;gap:12px;padding:12px 20px;border-top:1px solid var(--line-soft);align-items:start}
+@media (max-width:600px){.k-btn,.k-row,.lnk{min-height:44px}.lnk{display:inline-flex;align-items:center}}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1000px;">
+  <dc-import name="Sidebar" active="import" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; max-width: 1100px;">
+    <header style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+        <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; flex: 1;">Import from Moneybird</h1>
+        <span class="k-pill k-pill--draft">Example administration</span>
+      </div>
+      <ol class="k-steps" aria-label="Import steps">
+        <li class="k-step is-done"><span class="k-step-n">✓</span>Source</li>
+        <li class="k-step is-done"><span class="k-step-n">✓</span>Connect</li>
+        <li class="k-step is-done"><span class="k-step-n">✓</span>Years</li>
+        <li class="k-step is-current" aria-current="step"><span class="k-step-n">4</span>Preview</li>
+        <li class="k-step"><span class="k-step-n">5</span>Problems</li>
+        <li class="k-step"><span class="k-step-n">6</span>Import</li>
+      </ol>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
+      <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 4px;">
+        <h2 class="k-card-title" style="font-size: 18px;">What we will transfer</h2>
+        <p style="margin: 0; color: var(--ink-2);">This is a preview: nothing is transferred yet. Check the counts.</p>
+      </div>
+      <span class="k-muted" style="font-size: 13px;">Read from Demo BV at 10:42</span>
+      <button type="button" class="k-btn k-btn--sm">Read again <span class="k-kbd">R</span></button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+      <div class="k-stat"><span class="k-stat-label">Comes over</span><span class="k-stat-value">800</span><span class="k-stat-meta">Documents from 2024 and 2025</span></div>
+      <div class="k-stat"><span class="k-stat-label">Already in Klopt</span><span class="k-stat-value">38</span><span class="k-stat-meta">Transferred before, so skipped</span></div>
+      <div class="k-stat"><span class="k-stat-label">Not transferred</span><span class="k-stat-value">307</span><span class="k-stat-meta">Each with its reason, below</span></div>
+    </div>
+
+    <section class="k-card k-card--flush" aria-label="Counts per type">
+      <div class="k-row k-row--head pgrid"><span>Type</span><span style="text-align: right;">In Moneybird</span><span style="text-align: right;">Already in Klopt</span><span style="text-align: right;">Comes over</span></div>
+      <sc-for list="{{types}}" as="t" hint-placeholder-count="5">
+        <div class="k-row pgrid k-num" style="cursor: default;"><span>{{t.name}}</span><span style="text-align: right; color: var(--ink-2);">{{t.found}}</span><span style="text-align: right; color: var(--ink-2);">{{t.have}}</span><span style="text-align: right; font-weight: 600;">{{t.over}}</span></div>
+      </sc-for>
+      <div class="k-row pgrid k-num" style="cursor: default; font-weight: 600; background: var(--surface-hover);"><span>Documents</span><span style="text-align: right;">838</span><span style="text-align: right;">38</span><span style="text-align: right;">800</span></div>
+      <div class="k-muted" style="padding: 12px 20px; border-top: 1px solid var(--line-soft); font-size: 13px;">Also comes over: 75 contacts (12 are already in Klopt) and 31 ledger accounts, which you map under Problems.</div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+      <section class="k-card k-card--flush" aria-labelledby="nt" style="flex: 999 1 420px; min-width: 0;">
+        <div class="k-card-head"><h3 id="nt" class="k-card-title">Not transferred</h3><span class="k-muted k-num" style="font-size: 13px;">307 documents</span></div>
+        <sc-for list="{{skipped}}" as="s" hint-placeholder-count="3">
+          <div class="ngrid">
+            <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-weight: 600;">{{s.what}}</span><span class="k-muted" style="font-size: 13px; line-height: 1.5;">{{s.why}}</span><sc-if value="{{s.href}}" hint-placeholder-val="{{false}}"><a href="{{s.href}}" class="lnk" style="font-size: 13px; align-self: flex-start;">{{s.fix}}</a></sc-if></span>
+            <span class="k-num" style="text-align: right;">{{s.n}}</span>
+          </div>
+        </sc-for>
+      </section>
+      <section class="k-card" aria-labelledby="ak" style="flex: 1 1 300px; max-width: 400px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+        <h3 id="ak" class="k-card-title">Already in Klopt</h3>
+        <p style="margin: 0; line-height: 1.5;">38 documents from this administration are already in Klopt. We won't transfer them again.</p>
+        <p class="k-muted" style="margin: 0; font-size: 13px; line-height: 1.5;">What you previously transferred from this administration we will not transfer again. What you already booked yourself in Klopt we do not recognise: check for duplicate bookings.</p>
+        <a href="Journal.dc.html" class="lnk" style="font-size: 13px; align-self: flex-start;">See the 38 in the journal</a>
+      </section>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <span class="k-muted" style="flex: 1; min-width: 220px; font-size: 13px;">Next: Problems. 2024 still blocks the import there.</span>
+      <button type="button" class="k-btn">Back <span class="k-kbd">Esc</span></button>
+      <button type="button" class="k-btn k-btn--primary">Next <span class="k-chord"><span class="k-kbd k-kbd--on-primary">⌘</span><span class="k-kbd k-kbd--on-primary">↵</span></span></button>
+    </div>
+    <div class="k-hints"><span><span class="k-kbd">R</span> read again</span><span><span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">↵</span></span> next</span><span><span class="k-kbd">Esc</span> back to years</span></div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const n = (x) => x.toLocaleString('nl-NL');
+    const types = [['Sales invoices', 238, 24], ['Purchase invoices', 171, 9], ['Receipts', 131, 0], ['Bank mutations', 273, 5], ['Journal entries', 25, 0]]
+      .map(([name, found, have]) => ({ name, found: n(found), have: have ? n(have) : '–', over: n(found - have) }));
+    const skipped = [
+      { what: 'Everything from 2023', why: 'You left 2023 unchecked. It stays in Moneybird.', n: n(296), fix: 'Change the years', href: 'ImportYears.dc.html' },
+      { what: 'Draft invoices', why: 'Drafts are not transferred. Finish or copy them in Moneybird before you stop using it.', n: n(7), fix: '', href: '' },
+      { what: 'Quotes', why: 'Quotes are not transferred. Klopt has no quotes yet.', n: n(4), fix: '', href: '' }
+    ];
+    return { theme: this.props.theme ?? 'light', types, skipped };
+  }
+}
+</script>
+</body>
+</html>
