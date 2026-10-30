@@ -211,7 +211,8 @@ test('a report can be pointed at another book year, and the link carries it', as
 
   // And walking to another report keeps the year, though the link carries no
   // parameter: that is the cookie doing the remembering.
-  await page.getByRole('link', { name: 'Balans', exact: true }).click()
+  // Reports tab accessible name includes the digit hint (`Balans` + `2`).
+  await page.getByRole('navigation', { name: 'Rapporten' }).getByRole('link', { name: /Balans/ }).click()
   await expect(page.getByRole('heading', { name: 'Balans' })).toBeVisible()
   await expect(page.getByText(`${next}-12-31`)).toBeVisible()
 })
@@ -281,10 +282,12 @@ test('the theme is light to start with, and dark stays dark', async ({ page }) =
 test('ageing is in the navigation, on both sides', async ({ page }) => {
   await anAdministration(page, 'Ouderdom BV')
 
-  // Simple-mode label under Rapporten (#61 slice 2); Geavanceerd renames it Debiteuren.
-  await page.getByRole('link', { name: 'Openstaand bij klanten' }).click()
+  // Ageing is Reports SubNav + palette (#107), not a top-level rail item.
+  await page.goto('/reports/profit-and-loss')
+  const reports = page.getByRole('navigation', { name: 'Rapporten' })
+  await reports.getByRole('link', { name: /Openstaand bij klanten/ }).click()
   await expect(page.getByRole('heading', { name: 'Ouderdomsanalyse debiteuren' })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Crediteuren' }).click()
+  await reports.getByRole('link', { name: /Crediteuren/ }).click()
   await expect(page.getByRole('heading', { name: 'Ouderdomsanalyse crediteuren' })).toBeVisible()
 })

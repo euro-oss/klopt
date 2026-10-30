@@ -60,42 +60,39 @@ test('the Sheet opens Importeren and navigates', async ({ page }) => {
 
   const sheetNav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
   await expect(sheetNav.getByText('Verkoop', { exact: true })).toBeVisible()
-  await expect(sheetNav.getByRole('link', { name: /^Moneybird(?! \(oud\))/ })).toBeVisible()
-  // Legacy Moneybird (oud) removed (#105); Exact (oud) only under Geavanceerd.
-  await expect(sheetNav.getByRole('link', { name: /Moneybird \(oud\)/ })).toHaveCount(0)
-  await expect(sheetNav.getByRole('link', { name: /Exact Online \(oud\)/ })).toHaveCount(0)
-  await expect(sheetNav.getByRole('link', { name: /^Exact Online(?! \(oud\))/ })).toBeVisible()
-  // Eigenaar default: Journaalposten stays out of the nav (#44).
-  await expect(sheetNav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
+  // Moneybird / Exact are palette-only (#107); Sheet footer keeps Importeren.
+  await expect(sheetNav.getByRole('link', { name: /^Importeren/ })).toBeVisible()
+  await expect(sheetNav.getByRole('link', { name: /Moneybird/ })).toHaveCount(0)
+  await expect(sheetNav.getByRole('link', { name: /Exact Online/ })).toHaveCount(0)
+  // Journal is always on the rail (#107) — short label, not Journaalposten.
+  await expect(sheetNav.getByRole('link', { name: /^Journaal/ })).toBeVisible()
 
-  await sheetNav.getByRole('link', { name: /^Moneybird(?! \(oud\))/ }).click()
+  await sheetNav.getByRole('link', { name: /^Importeren/ }).click()
   await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
   // Closed on navigate: the drawer must not cover the destination.
   await expect(sheetNav).toBeHidden()
 })
 
-test('Geavanceerd in the Sheet profile reveals Journaalposten', async ({ page }) => {
+test('Geavanceerd in the Sheet profile keeps Journaal (not ledger [API])', async ({ page }) => {
   await anAdministration(page)
 
   await page.getByRole('button', { name: 'Menu openen' }).click()
   const sheetNav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
-  await expect(sheetNav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
+  await expect(sheetNav.getByRole('link', { name: /^Journaal/ })).toBeVisible()
+  await expect(sheetNav.getByRole('link', { name: /Grootboek/ })).toHaveCount(0)
 
   await enableAdvancedMode(page)
 
-  await expect(sheetNav.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
-  await expect(sheetNav.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
+  // Journal stays; categories / ledger-per-account stay [API] out of the Sheet.
+  await expect(sheetNav.getByRole('link', { name: /^Journaal/ })).toBeVisible()
+  await expect(sheetNav.getByRole('link', { name: /Grootboek/ })).toHaveCount(0)
+  await expect(sheetNav.getByRole('link', { name: /Categorieën/ })).toHaveCount(0)
 })
 
 test('a ledger table scrolls inside itself with a sticky first column', async ({ page }) => {
   await anAdministration(page)
-  // Per-user preference (#44), not a shared cookie — toggle via the Sheet profile.
-  await enableAdvancedMode(page)
-
-  await page
-    .getByRole('navigation', { name: 'Hoofdnavigatie' })
-    .getByRole('link', { name: /Grootboek/ })
-    .click()
+  // Route stays for sticky-column behaviour; [API] means no Sheet link (#107).
+  await page.goto('/accounts')
   await expect(page.getByRole('heading', { name: 'Grootboekrekeningen' })).toBeVisible()
 
   const scroller = page.locator('[data-ledger-scroll]').first()

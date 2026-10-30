@@ -121,10 +121,8 @@ test('i m opens the import wizard under Importeren', async ({ page }) => {
   await anAdministration(page)
 
   await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
-  // Accessible name includes the printed chord; allow trailing text, never "(oud)".
-  await expect(
-    page.getByRole('navigation').getByRole('link', { name: /^Moneybird(?! \(oud\))/ }),
-  ).toBeVisible()
+  // Moneybird is palette-only (#107); footer Importeren + chord `i m`.
+  await expect(page.getByRole('navigation').getByRole('link', { name: /^Importeren/ })).toBeVisible()
 
   await page.keyboard.press('i')
   await expect(page.getByText('I …')).toBeVisible()
@@ -147,8 +145,9 @@ test('picking Exact on Bron updates ?bron= and the page title', async ({ page })
   await expect(page).toHaveURL(/bron=exact/)
   await expect(page.getByText(/kan nog niet in deze wizard/i)).toBeVisible()
   await expect(page.getByRole('banner').getByText('Exact Online', { exact: true })).toBeVisible()
+  // Source-specific links are palette-only; the footer Import item stays current.
   await expect(
-    page.getByRole('navigation').getByRole('link', { name: /^Exact Online(?! \(oud\))/ }),
+    page.getByRole('navigation').getByRole('link', { name: /^Importeren/ }),
   ).toHaveAttribute('aria-current', 'page')
 })
 

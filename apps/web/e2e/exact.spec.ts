@@ -139,16 +139,8 @@ test('i x reaches the import wizard under Importeren (#100)', async ({ page }) =
   await anAdministration(page)
 
   await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
-  // Printed chord under Importeren is `i` then `x` (and `i m`); both open the wizard.
-  await expect(
-    page.getByRole('navigation').getByRole('link', { name: /^Exact Online(?! \(oud\))/ }),
-  ).toBeVisible()
-  await expect(
-    page
-      .getByRole('link', { name: /^Exact Online(?! \(oud\))/ })
-      .locator('kbd')
-      .first(),
-  ).toContainText(/i/)
+  // Exact is palette-only (#107); footer keeps Importeren. Chord `i` then `x` opens the wizard.
+  await expect(page.getByRole('navigation').getByRole('link', { name: /^Importeren/ })).toBeVisible()
 
   await page.keyboard.press('i')
   await expect(page.getByText('I …')).toBeVisible()

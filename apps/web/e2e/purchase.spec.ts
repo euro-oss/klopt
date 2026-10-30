@@ -94,10 +94,8 @@ test('a bookkeeper enters a supplier invoice, books it and gets it approved', as
   await anAdministration(page, 'Inkoop BV')
   await aSupplier(page)
 
-  await page
-    .getByRole('link', { name: /Inkoopfacturen/ })
-    .first()
-    .click()
+  // v2 rail label is Kosten; page heading stays Inkoopfacturen.
+  await page.getByRole('link', { name: /^Kosten/ }).first().click()
   await expect(page.getByRole('heading', { name: 'Inkoopfacturen' })).toBeVisible()
   await page.getByRole('link', { name: 'Factuur invoeren' }).click()
 

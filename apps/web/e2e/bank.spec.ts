@@ -46,7 +46,8 @@ async function anAdministration(page: Page, name: string): Promise<void> {
 test('a bookkeeper adds an account, previews a statement and reads it in', async ({ page }) => {
   await anAdministration(page, 'Bank BV')
 
-  await page.getByRole('link', { name: /^Bank/ }).click()
+  // Rail "Bank" opens match (#107); statements / accounts live at /bank.
+  await page.goto('/bank')
   await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
   await expect(page.getByText(/Nog geen bankrekening/)).toBeVisible()
 

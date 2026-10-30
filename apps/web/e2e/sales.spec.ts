@@ -56,7 +56,8 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
 
   // Drafting. No number is allocated and nothing is posted yet.
-  await page.getByRole('link', { name: /Verkoopfacturen/ }).click()
+  // v2 rail label is Verkoop; page heading stays Verkoopfacturen.
+  await page.getByRole('link', { name: /^Verkoop/ }).click()
   await page.getByRole('link', { name: 'Nieuwe factuur' }).click()
 
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
@@ -234,7 +235,8 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
   await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
-  await page.getByRole('link', { name: /Aanmaningen/ }).click()
+  // Dunning is palette-only (#107).
+  await page.goto('/dunning')
   await expect(page.getByRole('heading', { name: 'Aanmaningen' })).toBeVisible()
 
   const row = page.locator('tbody tr', { has: page.getByText('Trage Betaler B.V.') })
