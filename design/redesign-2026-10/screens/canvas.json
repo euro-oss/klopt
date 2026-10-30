@@ -1,0 +1,30 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-30T08:50:00Z"},
+  "title": "Klopt redesign",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 1040, "title": "Home", "expand": "fill"},
+    "Invoices.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 1040, "title": "Sales · invoice list + preview", "expand": "fill", "is_interactive": true},
+    "Editor.dc.html": {"x": 3040, "y": 0, "w": 1440, "h": 1040, "title": "New invoice · one page, live preview", "expand": "fill"},
+    "Match.dc.html": {"x": 0, "y": 1460, "w": 1440, "h": 960, "title": "Bank · match one line at a time", "expand": "fill", "is_interactive": true},
+    "Command.dc.html": {"x": 1520, "y": 1460, "w": 1440, "h": 960, "title": "Command bar + shortcut sheet"},
+    "Settings.dc.html": {"x": 3040, "y": 1460, "w": 1440, "h": 960, "title": "Settings hub (was 11 menu items)", "expand": "fill"},
+    "Sidebar.dc.html": {"x": 4600, "y": 0, "w": 248, "h": 1040, "title": "Component · navigation"},
+    "Inbox.dc.html": {"x": 0, "y": 2840, "w": 1440, "h": 960, "title": "Inbox · first run", "expand": "fill"},
+    "Costs.dc.html": {"x": 1520, "y": 2840, "w": 1440, "h": 1040, "title": "Costs · bills list + preview", "expand": "fill", "is_interactive": true},
+    "Vat.dc.html": {"x": 3040, "y": 2840, "w": 1440, "h": 1100, "title": "VAT · return Q4 2025", "expand": "fill"},
+    "Reports.dc.html": {"x": 4560, "y": 2840, "w": 1440, "h": 1040, "title": "Reports · profit and loss", "expand": "fill", "is_interactive": true},
+    "Contacts.dc.html": {"x": 6080, "y": 2840, "w": 1440, "h": 1040, "title": "Contacts · list + contact card", "expand": "fill", "is_interactive": true}
+  },
+  "order": ["Main.dc.html", "Invoices.dc.html", "Editor.dc.html", "Match.dc.html", "Command.dc.html", "Settings.dc.html", "Sidebar.dc.html", "Inbox.dc.html", "Costs.dc.html", "Vat.dc.html", "Reports.dc.html", "Contacts.dc.html"],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "Daily flows", "kind": "title1", "maxW": 4480},
+    "t2": {"x": 0, "y": 1160, "text": "Bank, keyboard, admin", "kind": "title1", "maxW": 4480},
+    "t3": {"x": 0, "y": 2540, "text": "Inbox, costs, VAT, reports, contacts", "kind": "title1", "maxW": 7520}
+  },
+  "designSystems": [
+    {"title": "Klopt Design System", "namespace": "klopt", "artifact": "https://claude.ai/artifact/D4qysFzcTMgWEjrZFpe4XK", "version": "1793350560-88f0", "copiedAt": "2026-10-30T09:05:00Z"}
+  ]
+}

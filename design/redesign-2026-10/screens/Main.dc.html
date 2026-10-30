@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Home</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f5f5f2}
+a{color:#18181b}a:hover{color:#000}
+</style>
+</helmet>
+<div class="k-root" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="home" hint-size="248px,1040px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 40px; border-bottom: 1px solid var(--line);">
+      <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px;">
+        <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em;">Good morning, Hidde</h1>
+        <p style="margin: 0; color: var(--ink-muted);">Friday 30 October · 5 things need you, about 10 minutes of work</p>
+      </div>
+      <a href="Inbox.dc.html" class="k-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Add a receipt <span class="k-chord"><span class="k-kbd">N</span><span class="k-kbd">R</span></span>
+      </a>
+      <a href="Editor.dc.html" class="k-btn k-btn--primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        New invoice <span class="k-chord"><span class="k-kbd k-kbd--on-primary">N</span><span class="k-kbd k-kbd--on-primary">F</span></span>
+      </a>
+    </header>
+
+    <div style="padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 24px; max-width: 1200px; width: 100%; box-sizing: border-box;">
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+        <a href="Match.dc.html" class="k-stat">
+          <span class="k-stat-label">In the bank</span>
+          <span class="k-stat-value">€ 62.428,63</span>
+          <span class="k-stat-meta">Updated 12 Dec · 15 lines to match</span>
+        </a>
+        <a href="Invoices.dc.html" class="k-stat">
+          <span class="k-stat-label">Customers owe you</span>
+          <span class="k-stat-value">€ 4.710,44</span>
+          <span class="k-stat-meta k-stat-meta--danger">All of it overdue · 5 invoices</span>
+        </a>
+        <a href="Costs.dc.html" class="k-stat">
+          <span class="k-stat-label">You owe suppliers</span>
+          <span class="k-stat-value">€ 1.191,78</span>
+          <span class="k-stat-meta k-stat-meta--danger">All 5 bills past their due date</span>
+        </a>
+        <a href="Reports.dc.html" class="k-stat">
+          <span class="k-stat-label">Profit 2025 so far</span>
+          <span class="k-stat-value">€ 14.162,11</span>
+          <span class="k-stat-meta">Before tax · 61% margin</span>
+        </a>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+        <section aria-labelledby="todo-h" class="k-card k-card--flush" style="flex: 2 1 520px; min-width: 0;">
+          <div class="k-card-head">
+            <h2 id="todo-h" class="k-card-title">To do</h2>
+            <span class="k-muted" style="font-size: 13px; display: flex; gap: 6px; align-items: center;"><span class="k-kbd">J</span><span class="k-kbd">K</span> move <span class="k-kbd">↵</span> do it</span>
+          </div>
+
+          <a href="Invoices.dc.html" class="k-todo is-selected">
+            <span class="k-tile k-tile--danger"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            <span class="k-todo-body">
+              <span class="k-todo-title">Chase 5 overdue invoices</span>
+              <span class="k-todo-meta">Final notices are ready for Molenaar Media, Havenmeester Horeca and 3 more</span>
+            </span>
+            <span class="k-num" style="font-size: 15px; font-weight: 600;">€ 4.710,44</span>
+            <span class="k-btn k-btn--primary k-btn--sm">Send reminders</span>
+          </a>
+
+          <a href="Match.dc.html" class="k-todo">
+            <span class="k-tile k-tile--brand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7h12M8 7l3-3M8 7l3 3M16 17H4m12 0-3-3m3 3-3 3"/></svg></span>
+            <span class="k-todo-body">
+              <span class="k-todo-title">Match 15 bank lines</span>
+              <span class="k-todo-meta">Small card payments from February to October, none linked to a receipt yet</span>
+            </span>
+            <span class="k-num k-muted" style="font-size: 15px;">€ 371,25 out</span>
+            <span class="k-btn k-btn--sm">Start matching</span>
+          </a>
+
+          <a href="Costs.dc.html" class="k-todo">
+            <span class="k-tile k-tile--info"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="k-todo-body">
+              <span class="k-todo-title">Approve 40 purchase invoices</span>
+              <span class="k-todo-meta">Booked by someone else, waiting for a second pair of eyes</span>
+            </span>
+            <span class="k-btn k-btn--sm">Review</span>
+          </a>
+
+          <a href="Vat.dc.html" class="k-todo">
+            <span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m19 5-14 14"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg></span>
+            <span class="k-todo-body">
+              <span class="k-todo-title">File the VAT return for Q4 2025</span>
+              <span class="k-todo-meta">Computed from the ledger and ready to check · due 31 January</span>
+            </span>
+            <span class="k-btn k-btn--sm">Check return</span>
+          </a>
+        </section>
+
+        <div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+          <section aria-labelledby="pl-h" class="k-card" style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <h2 id="pl-h" class="k-card-title">2025 at a glance</h2>
+              <a href="Reports.dc.html" style="font-size: 13px;">Profit &amp; loss</a>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; justify-content: space-between; font-size: 13px;"><span>Income</span><span class="k-num" style="font-weight: 600;">€ 23.164,83</span></div>
+              <div style="height: 10px; border-radius: 5px; background: var(--line-soft);"><div style="width: 100%; height: 10px; border-radius: 5px; background: var(--chart-1);"></div></div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; justify-content: space-between; font-size: 13px;"><span>Expenses</span><span class="k-num" style="font-weight: 600;">€ 9.002,72</span></div>
+              <div style="height: 10px; border-radius: 5px; background: var(--line-soft);"><div style="width: 39%; height: 10px; border-radius: 5px; background: var(--chart-2);"></div></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--line-soft);"><span style="font-weight: 600;">Result</span><span class="k-num" style="font-weight: 700;">€ 14.162,11</span></div>
+          </section>
+
+          <section aria-labelledby="age-h" class="k-card" style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <h2 id="age-h" class="k-card-title">How late customers are</h2>
+              <a href="Reports.dc.html" style="font-size: 13px;">Details</a>
+            </div>
+            <div style="display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 2px;">
+              <div style="width: 15%; background: var(--warning);"></div>
+              <div style="width: 85%; background: var(--danger);"></div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+              <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--warning);"></span><span style="flex: 1;">61 to 90 days</span><span class="k-num">€ 711,04</span></div>
+              <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--danger);"></span><span style="flex: 1;">More than 90 days</span><span class="k-num">€ 3.999,40</span></div>
+              <div class="k-muted" style="display: flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--line);"></span><span style="flex: 1;">Under 60 days</span><span class="k-num">€ 0,00</span></div>
+            </div>
+          </section>
+
+          <section class="k-card" style="background: var(--primary); border-color: var(--primary); color: var(--on-primary); display: flex; flex-direction: column; gap: 8px;">
+            <span style="font-size: 15px; font-weight: 600;">Your books leave whenever you want</span>
+            <span style="font-size: 13px; line-height: 1.5; opacity: .82;">One click gives a complete XAF 3.2 audit file with RGS codes. Self-hosted and hosted Klopt read the same file.</span>
+            <a href="Settings.dc.html" style="color: var(--brand); font-size: 13px; font-weight: 600;">Download audit file</a>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

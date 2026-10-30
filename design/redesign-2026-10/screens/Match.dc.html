@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Match bank lines</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f5f5f2}
+a{color:#18181b}a:hover{color:#000}
+.q{padding:10px 16px;min-height:0}
+.q[data-done="true"]{color:var(--ink-muted)}
+</style>
+</helmet>
+<div class="k-root" style="display: flex; flex-wrap: wrap; min-height: 960px;">
+  <dc-import name="Sidebar" active="bank" hint-size="248px,960px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 32px 0;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; flex: 1;">Bank</h1>
+      <span class="k-num" style="color: var(--ink-2);">Demo bankrekening ··· 0001 · <strong style="color: var(--ink);">€ 62.428,63</strong></span>
+      <button type="button" class="k-btn">Import statement</button>
+      <nav class="k-tabs" aria-label="Bank sections" style="flex-basis: 100%; margin-top: 4px;">
+        <a href="#" class="k-tab is-active" aria-current="page">To match <span class="k-badge k-badge--brand">{{left}}</span></a>
+        <a href="#" class="k-tab">All transactions</a>
+        <a href="Costs.dc.html" class="k-tab">Payment batches</a>
+        <a href="#" class="k-tab">Accounts</a>
+      </nav>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; padding: 20px 32px 24px; align-items: flex-start;">
+      <section aria-label="Lines to match" class="k-card k-card--flush" style="flex: 1 1 300px; max-width: 360px; min-width: 0;">
+        <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; font-size: 13px;"><span style="font-weight: 600;">{{doneCount}} of 15 done</span><span class="k-muted">newest first</span></div>
+          <div style="height: 6px; border-radius: 3px; background: var(--line-soft);"><div style="{{bar}}"></div></div>
+        </div>
+        <div style="max-height: 640px; overflow-y: auto;">
+          <sc-for list="{{lines}}" as="l" hint-placeholder-count="10">
+            <button type="button" class="k-row q" aria-selected="{{l.cur}}" data-done="{{l.isDone}}" onClick="{{l.pick}}">
+              <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px;">
+                <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{l.who}}</span>
+                <span style="font-size: 12px; color: var(--ink-muted);">{{l.sub}}</span>
+              </span>
+              <span class="k-num" style="font-weight: 500;">−{{l.amtF}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+
+      <section aria-label="Current line" style="flex: 999 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+        <sc-if value="{{allDone}}" hint-placeholder-val="{{false}}">
+          <div class="k-card" style="padding: 48px 32px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;">
+            <span style="font-size: 20px; line-height: 26px; font-weight: 600;">All lines matched</span>
+            <span style="color: var(--ink-2);">The bank balance and the books agree again.</span>
+            <button type="button" class="k-btn" onClick="{{reset}}" style="margin-top: 8px;">Start the demo again</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{notDone}}" hint-placeholder-val="{{true}}">
+          <div class="k-card" style="padding: 24px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+            <div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 4px;">
+              <span class="k-num k-muted" style="font-size: 13px;">{{c.date}} · debit</span>
+              <span style="font-size: 22px; line-height: 28px; font-weight: 600;">{{c.who}}</span>
+              <span style="color: var(--ink-2);">“{{c.desc}}”</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <span class="k-num" style="font-size: 30px; line-height: 36px; font-weight: 600; letter-spacing: -0.02em;">− € {{c.amtF}}</span>
+              <span class="k-muted" style="font-size: 13px;">Money out</span>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <h2 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--ink-2);">What was this?</h2>
+            <button type="button" class="k-option is-suggested" onClick="{{choose1}}">
+              <span class="k-option-key">1</span>
+              <span class="k-option-body">
+                <span class="k-option-title">A cost without a receipt yet</span>
+                <span class="k-option-meta k-num">General costs · 21% VAT (€ {{c.vatF}} back) · receipt can follow later</span>
+              </span>
+              <span class="k-option-tag">Suggested</span>
+            </button>
+            <button type="button" class="k-option" onClick="{{choose2}}">
+              <span class="k-option-key">2</span>
+              <span class="k-option-body">
+                <span class="k-option-title">Pays a purchase invoice</span>
+                <span class="k-option-meta">Pick from the 5 unpaid supplier invoices</span>
+              </span>
+            </button>
+            <button type="button" class="k-option" onClick="{{choose3}}">
+              <span class="k-option-key">3</span>
+              <span class="k-option-body">
+                <span class="k-option-title">Transfer to my savings account</span>
+                <span class="k-option-meta">Between your own accounts, no VAT</span>
+              </span>
+            </button>
+            <button type="button" class="k-option" onClick="{{choose4}}">
+              <span class="k-option-key">4</span>
+              <span class="k-option-body">
+                <span class="k-option-title">Something else</span>
+                <span class="k-option-meta">Choose any category, split over several, or post a journal entry</span>
+              </span>
+            </button>
+          </div>
+
+          <div class="k-hints" style="padding-top: 4px;">
+            <span><span class="k-kbd">1</span>–<span class="k-kbd">4</span> choose and go to the next line</span>
+            <span><span class="k-kbd">S</span> skip</span>
+            <span><span class="k-kbd">U</span> attach a receipt</span>
+            <span><span class="k-kbd">Z</span> undo the last one</span>
+          </div>
+        </sc-if>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { idx: 0, done: {} };
+  }
+  renderVals() {
+    const dates = ['20 Oct','2 Oct','14 Sep','27 Aug','9 Aug','22 Jul','4 Jul','16 Jun','29 May','11 May','23 Apr','5 Apr','18 Mar','28 Feb','10 Feb'];
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const done = this.state.done;
+    const all = dates.map((d, i) => {
+      const n = 15 - i;
+      const amt = 12.5 + (n - 1) * 1.75;
+      return { i, n, date: d + ' 2025', who: 'Open post ' + n + ' (demo)', desc: 'Ongeboekte demo-kosten ' + n, amt, amtF: f(amt), vatF: f(Math.round((amt - amt / 1.21) * 100) / 100) };
+    });
+    const nextOpen = (from, d) => {
+      for (let k = 1; k <= 15; k++) { const j = (from + k) % 15; if (!d[j]) return j; }
+      return -1;
+    };
+    const choose = (label) => () => {
+      const d = { ...this.state.done, [this.state.idx]: label };
+      const nx = nextOpen(this.state.idx, d);
+      this.setState({ done: d, idx: nx < 0 ? this.state.idx : nx });
+    };
+    const doneCount = Object.keys(done).length;
+    const lines = all.map((l) => ({
+      ...l,
+      sub: done[l.i] ? '✓ ' + done[l.i] : l.date,
+      cur: l.i === this.state.idx && !done[l.i] ? 'true' : 'false',
+      isDone: done[l.i] ? 'true' : 'false',
+      pick: () => this.setState({ idx: l.i })
+    }));
+    const c = all[this.state.idx];
+    const allDone = doneCount >= 15;
+    return {
+      lines, c, doneCount, allDone, notDone: !allDone, left: 15 - doneCount,
+      bar: 'height:6px;border-radius:3px;background:var(--primary);width:' + Math.round(doneCount / 15 * 100) + '%',
+      choose1: choose('General costs'), choose2: choose('Purchase invoice'), choose3: choose('Own transfer'), choose4: choose('Other'),
+      reset: () => this.setState({ idx: 0, done: {} })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Contacts</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f5f5f2}
+a{color:#18181b}a:hover{color:#000}
+.cg{display:grid;grid-template-columns:36px minmax(160px,1fr) 90px 120px;gap:12px}
+.av{width:32px;height:32px;border-radius:16px;background:var(--neutral-bg);color:var(--ink-2);font:600 12px var(--font-sans);display:flex;align-items:center;justify-content:center}
+.doc{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 24px;border-top:1px solid var(--line-soft);font-size:14px}
+</style>
+</helmet>
+<div class="k-root" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="contacts" hint-size="248px,1040px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 32px 0;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; flex: 1;">Contacts</h1>
+      <label class="k-search" style="width: 260px; max-width: 100%;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" aria-label="Filter contacts" placeholder="Name, VAT or KvK number">
+        <span class="k-kbd">/</span>
+      </label>
+      <button type="button" class="k-btn k-btn--primary">New contact <span class="k-chord"><span class="k-kbd k-kbd--on-primary">N</span><span class="k-kbd k-kbd--on-primary">C</span></span></button>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; padding: 16px 32px 0; align-items: flex-start;">
+      <section aria-label="Contact list" style="flex: 1 1 440px; max-width: 620px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+        <div class="k-seg" role="tablist" aria-label="Role">
+          <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+            <button type="button" role="tab" class="k-seg-item" aria-selected="{{t.on}}" onClick="{{t.pick}}">{{t.label}} <span class="k-count">{{t.count}}</span></button>
+          </sc-for>
+        </div>
+        <div class="k-card k-card--flush">
+          <div class="k-row k-row--head cg"><span></span><span>Name</span><span>Role</span><span style="text-align: right;">Open</span></div>
+          <div style="max-height: 720px; overflow-y: auto;">
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+              <button type="button" class="k-row cg" aria-selected="{{r.sel}}" onClick="{{r.pick}}">
+                <span class="av">{{r.ini}}</span>
+                <span style="display: flex; flex-direction: column; min-width: 0;"><span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{r.name}}</span><span style="font-size: 12px; color: var(--ink-muted);">{{r.sub}}</span></span>
+                <span style="color: var(--ink-2);">{{r.role}}</span>
+                <span class="k-num" style="{{r.openStyle}}">{{r.openF}}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <aside aria-label="Contact card" class="k-card k-card--flush" style="flex: 999 1 420px; min-width: 0; display: flex; flex-direction: column;">
+        <div style="padding: 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; border-bottom: 1px solid var(--line-soft);">
+          <span class="av" style="width: 56px; height: 56px; border-radius: 28px; font-size: 18px; background: var(--primary); color: var(--on-primary);">{{s.ini}}</span>
+          <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 20px; line-height: 26px; font-weight: 600;">{{s.name}}</span>
+            <span style="color: var(--ink-muted);">{{s.role}} · {{s.sub}}</span>
+          </div>
+          <sc-if value="{{s.isCust}}" hint-placeholder-val="{{true}}">
+            <a href="Editor.dc.html" class="k-btn k-btn--primary k-btn--sm">New invoice <span class="k-chord"><span class="k-kbd k-kbd--on-primary">N</span><span class="k-kbd k-kbd--on-primary">F</span></span></a>
+          </sc-if>
+          <button type="button" class="k-btn k-btn--sm">Edit <span class="k-kbd">E</span></button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--line-soft);">
+          <div style="padding: 16px 24px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--line-soft);"><span class="k-muted" style="font-size: 13px;">{{s.volLabel}}</span><span class="k-num" style="font-size: 20px; font-weight: 600;">€ {{s.volF}}</span></div>
+          <div style="padding: 16px 24px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--line-soft);"><span class="k-muted" style="font-size: 13px;">Documents</span><span class="k-num" style="font-size: 20px; font-weight: 600;">{{s.count}}</span></div>
+          <div style="padding: 16px 24px; display: flex; flex-direction: column; gap: 4px;"><span class="k-muted" style="font-size: 13px;">Still open</span><span class="k-num" style="{{s.openBig}}">€ {{s.openF}}</span></div>
+        </div>
+
+        <sc-if value="{{s.isCust}}" hint-placeholder-val="{{true}}">
+          <h2 style="margin: 0; padding: 16px 24px 8px; font: 600 12px/16px var(--font-sans); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted);">Invoices</h2>
+          <sc-for list="{{s.docs}}" as="d" hint-placeholder-count="4">
+            <a href="Invoices.dc.html" class="doc k-num" style="text-decoration: none; color: var(--ink);"><span style="flex: 1;">{{d.no}}</span><span class="{{d.pillCls}}">{{d.pill}}</span><span style="width: 100px; text-align: right;">€ {{d.amtF}}</span></a>
+          </sc-for>
+        </sc-if>
+        <sc-if value="{{s.isSup}}" hint-placeholder-val="{{false}}">
+          <div style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <span style="color: var(--ink-2);">{{s.supLine}}</span>
+            <a href="Costs.dc.html" class="k-btn k-btn--sm">Open in Costs</a>
+          </div>
+        </sc-if>
+
+        <dl style="margin: 0; padding: 16px 24px; display: grid; grid-template-columns: 150px 1fr; row-gap: 10px; font-size: 14px; border-top: 1px solid var(--line-soft);">
+          <dt style="color: var(--ink-muted);">Contact number</dt><dd class="k-num" style="margin: 0;">{{s.code}}</dd>
+          <dt style="color: var(--ink-muted);">VAT number</dt><dd class="k-num" style="margin: 0;">{{s.vat}}</dd>
+          <dt style="color: var(--ink-muted);">Payment terms</dt><dd style="margin: 0;">30 days</dd>
+          <dt style="color: var(--ink-muted);">Address, email, IBAN</dt><dd style="margin: 0;"><a href="#">Add details</a> <span class="k-muted">· needed for e-invoicing</span></dd>
+        </dl>
+
+        <div style="margin: 0 24px 24px; padding: 14px 16px; border-radius: var(--radius-md); background: var(--surface-sunken); display: flex; gap: 12px; align-items: flex-start; font-size: 13px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+            <strong style="font-size: 14px;">Privacy request</strong>
+            <span class="k-muted">{{s.privacy}}</span>
+          </span>
+          <button type="button" class="k-btn k-btn--sm" disabled="{{s.eraseBlocked}}">Erase personal data</button>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="k-hints" style="margin: 16px 32px 24px;">
+      <span><span class="k-kbd">J</span> <span class="k-kbd">K</span> next, previous</span>
+      <span><span class="k-kbd">E</span> edit</span>
+      <span><span class="k-kbd">N</span> <span class="k-kbd">F</span> invoice this customer</span>
+      <span><span class="k-kbd">1</span>–<span class="k-kbd">3</span> all, customers, suppliers</span>
+    </footer>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 'C006', filter: 'all' };
+  }
+  renderVals() {
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const cust = [
+      ['C001','Atlas Voorbeeld Handel','Amsterdam'],['C002','Noorderlicht Diensten','Utrecht'],['C003','Polder Soft B.V.','Rotterdam'],
+      ['C004','Kade & Co','Haarlem'],['C005','Fictieve Fietsen','Amersfoort'],['C006','Zandbank Advies','Amsterdam'],
+      ['C007','Molenaar Media','Utrecht'],['C008','Dijkzicht Design','Rotterdam'],['C009','Havenmeester Horeca','Haarlem'],['C010','Windvaan Workshops','Amersfoort']
+    ];
+    const inv = [
+      ['2025-0016','C006',478.42],['2025-0017','C007',745.01],['2025-0024','C004',385.05],['2025-0007','C007',156.87],['2025-0009','C009',1016.88],
+      ['2025-0004','C004',954.58],['2025-0031','C001',1074.94],['2025-0012','C002',895.81],['2025-0022','C002',193.07],['2025-0035','C005',528.86],
+      ['2025-0040','C010',711.04,76],['2025-0025','C005',1176.07],['2025-0014','C004',513.74],['2025-0005','C005',171.25],['2025-0021','C001',276.10],
+      ['2025-0008','C008',889.42],['2025-0036','C006',958.34,128],['2025-0026','C006',967.00],['2025-0010','C010',728.94],['2025-0006','C006',983.06],
+      ['2025-0029','C009',398.17],['2025-0011','C001',612.56],['2025-0033','C003',70.35],['2025-0020','C010',1055.92],['2025-0038','C008',1152.34,175],
+      ['2025-0028','C008',495.14],['2025-0034','C004',1087.26],['2025-0030','C010',1073.52],['2025-0001','C001',84.22],['2025-0018','C008',931.14],
+      ['2025-0023','C003',620.66],['2025-0027','C007',190.31],['2025-0015','C005',1079.73],['2025-0002','C002',488.46],['2025-0019','C009',949.80],
+      ['2025-0039','C009',902.79,281],['2025-0032','C002',425.39],['2025-0003','C003',280.97],['2025-0013','C003',207.76],['2025-0037','C007',985.93,324]
+    ];
+    const sup = [
+      ['S001','Kantoorpapier Proef',[85.11,352.70,306.12,82.11],0],['S002','Telecom Fictief',[407.31,153.60,228.16,189.46],0],
+      ['S003','Huur Demo Vastgoed',[52.54,33.02,265.11,447.43],0],['S004','Boekhoudhulp Voorbeeld',[73.82,462.63,286.00,418.73],0],
+      ['S005','Brandstof Teststation',[159.21,232.80,49.82,206.78],0],['S006','Reclame Sample',[496.83,31.08,342.22,74.16],74.16],
+      ['S007','Software Licentie Demo',[168.83,467.00,166.67,412.22],467.00],['S008','Schoonmaak Voorbeeld',[238.58,277.57,196.70,155.39],155.39],
+      ['S009','Verzekering Fictief',[368.24,173.11,221.31,242.40],242.40],['S010','Internet Voorbeeld',[252.83,294.65,426.90,452.93],252.83]
+    ];
+    const ini = (n) => n.replace(/[^A-Za-z ]/g, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+    const vat = (i) => 'NL0000010' + String(i).padStart(2, '0') + 'B99';
+    const people = [];
+    cust.forEach(([code, name, city], i) => {
+      const mine = inv.filter((x) => x[1] === code);
+      const open = mine.filter((x) => x[3]).reduce((a, x) => a + x[2], 0);
+      const late = mine.filter((x) => x[3]);
+      people.push({
+        code, name, ini: ini(name), sub: city, role: 'Customer', isCust: true, isSup: false, vat: vat(i),
+        vol: mine.reduce((a, x) => a + x[2], 0), count: mine.length + ' invoices', open, lateDays: late.length ? late[0][3] : 0,
+        docs: mine.map((x) => ({ no: x[0], amtF: f(x[2]), pill: x[3] ? x[3] + ' days late' : 'Paid', pillCls: x[3] ? 'k-pill k-pill--late' : 'k-pill k-pill--paid' }))
+      });
+    });
+    sup.forEach(([code, name, bills, open], i) => {
+      people.push({
+        code, name, ini: ini(name), sub: '4 bills in 2025', role: 'Supplier', isCust: false, isSup: true, vat: vat(10 + i),
+        vol: bills.reduce((a, x) => a + x, 0), count: bills.length + ' bills', open, docs: [],
+        supLine: open ? 'One bill of € ' + f(open) + ' is past its due date.' : 'All bills are paid.'
+      });
+    });
+    const flt = this.state.filter;
+    const shown = people.filter((p) => flt === 'all' || (flt === 'c' && p.isCust) || (flt === 's' && p.isSup));
+    const rows = shown.map((p) => ({
+      ...p, sel: p.code === this.state.sel ? 'true' : 'false', pick: () => this.setState({ sel: p.code }),
+      openF: p.open ? '€ ' + f(Math.round(p.open * 100) / 100) : '–',
+      openStyle: 'text-align:right;' + (p.open ? 'color:var(--danger);font-weight:600' : 'color:var(--ink-muted)')
+    }));
+    const s0 = people.find((p) => p.code === this.state.sel) || people[0];
+    const s = {
+      ...s0,
+      volLabel: s0.isCust ? 'Invoiced in 2025' : 'Billed to you in 2025',
+      volF: f(Math.round(s0.vol * 100) / 100), openF: f(Math.round(s0.open * 100) / 100),
+      openBig: 'font-size:20px;font-weight:600;' + (s0.open ? 'color:var(--danger)' : ''),
+      eraseBlocked: s0.open > 0,
+      privacy: s0.open > 0
+        ? 'Not possible yet: one document is still open. Settle or write it off first, an erased contact cannot be chased.'
+        : 'Erases name, email, phone, IBAN and address. Every invoice keeps its own copy, so the books do not change.'
+    };
+    const tabs = [['all','All','20'],['c','Customers','10'],['s','Suppliers','10']].map(([k, label, count]) => ({ label, count, on: k === flt ? 'true' : 'false', pick: () => this.setState({ filter: k }) }));
+    return { rows, s, tabs };
+  }
+}
+</script>
+</body>
+</html>

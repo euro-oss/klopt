@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Costs</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f5f5f2}
+a{color:#18181b}a:hover{color:#000}
+.cgrid{display:grid;grid-template-columns:20px minmax(150px,1fr) 150px 72px 120px 96px;gap:12px}
+</style>
+</helmet>
+<div class="k-root" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="costs" hint-size="248px,1040px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 32px 0;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; flex: 1;">Costs</h1>
+      <label class="k-search" style="width: 260px; max-width: 100%;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" aria-label="Filter bills" placeholder="Supplier, number, amount">
+        <span class="k-kbd">/</span>
+      </label>
+      <a href="Inbox.dc.html" class="k-btn k-btn--primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Add a bill <span class="k-chord"><span class="k-kbd k-kbd--on-primary">N</span><span class="k-kbd k-kbd--on-primary">R</span></span>
+      </a>
+      <nav class="k-tabs" aria-label="Costs sections" style="flex-basis: 100%; margin-top: 4px;">
+        <a href="#" class="k-tab is-active" aria-current="page">Bills</a>
+        <a href="#" class="k-tab">To approve <span class="k-badge k-badge--neutral">40</span></a>
+        <a href="#" class="k-tab">Payment batches</a>
+        <a href="#" class="k-tab">Suppliers</a>
+      </nav>
+    </header>
+
+    <div style="padding: 16px 32px 0;">
+      <section class="k-callout k-callout--danger" aria-label="Unpaid bills">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex: none; margin-top: 1px; color: var(--danger);"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <div class="k-callout-body">
+          <span class="k-callout-title">5 bills are past their due date · € 1.191,78</span>
+          <span class="k-callout-text">Put them in one payment batch. A second person approves it, then you upload it to your bank.</span>
+        </div>
+        <button type="button" class="k-btn k-btn--sm" style="background: var(--surface);">Prepare batch <span class="k-kbd">B</span></button>
+      </section>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; padding: 16px 32px 0; align-items: flex-start;">
+      <section aria-label="Bills" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+        <div class="k-seg" role="tablist" aria-label="Status">
+          <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+            <button type="button" role="tab" class="k-seg-item" aria-selected="{{t.on}}" onClick="{{t.pick}}">{{t.label}} <span class="k-count">{{t.count}}</span></button>
+          </sc-for>
+        </div>
+        <div class="k-card k-card--flush">
+          <div style="overflow-x: auto;">
+            <div style="min-width: 640px;">
+              <div class="k-row k-row--head cgrid">
+                <span></span><span>Supplier</span><span>Their number</span><span>Date</span><span>Status</span><span style="text-align: right;">Amount</span>
+              </div>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+                <button type="button" class="k-row cgrid k-num" aria-selected="{{r.sel}}" onClick="{{r.pick}}">
+                  <span style="width: 16px; height: 16px; border: 1.5px solid var(--line-control); border-radius: 4px; box-sizing: border-box;"></span>
+                  <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;">{{r.sup}}</span>
+                  <span style="color: var(--ink-muted); font-size: 13px;">{{r.no}}</span>
+                  <span style="color: var(--ink-2);">{{r.dateShort}}</span>
+                  <span><span class="{{r.pillCls}}">{{r.pill}}</span></span>
+                  <span style="text-align: right; font-weight: 500;">€ {{r.totalF}}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 12px 20px; border-top: 1px solid var(--line-soft); font-size: 13px; color: var(--ink-muted);">
+            <span>{{shown}}</span><span class="k-num">Total € {{sumF}}</span>
+          </div>
+        </div>
+      </section>
+
+      <aside aria-label="Bill preview" class="k-card k-card--flush" style="flex: 1 1 360px; max-width: 440px; min-width: 0; display: flex; flex-direction: column;">
+        <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--line-soft);">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="k-num" style="font-size: 13px; color: var(--ink-muted);">{{s.no}}</span>
+            <span class="{{s.pillCls}}">{{s.pillLong}}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 20px; line-height: 26px; font-weight: 600;">{{s.sup}}</span>
+            <span class="k-num" style="font-size: 32px; line-height: 38px; font-weight: 600; letter-spacing: -0.02em;">€ {{s.totalF}}</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <sc-if value="{{s.open}}" hint-placeholder-val="{{false}}">
+              <button type="button" class="k-btn k-btn--primary k-btn--sm">Add to payment batch <span class="k-kbd k-kbd--on-primary">P</span></button>
+            </sc-if>
+            <button type="button" class="k-btn k-btn--sm">Approve <span class="k-kbd">A</span></button>
+            <button type="button" class="k-btn k-btn--sm">Dispute <span class="k-kbd">D</span></button>
+          </div>
+        </div>
+        <div style="margin: 16px 24px; height: 160px; border-radius: var(--radius-md); background: var(--surface-sunken); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--ink-muted); font-size: 13px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+          The supplier's document shows here
+          <span><span class="k-kbd">Space</span> to enlarge</span>
+        </div>
+        <dl style="margin: 0; padding: 0 24px 16px; display: grid; grid-template-columns: 110px 1fr; row-gap: 10px; font-size: 14px; border-bottom: 1px solid var(--line-soft);">
+          <dt style="color: var(--ink-muted);">Bill date</dt><dd class="k-num" style="margin: 0;">{{s.date}}</dd>
+          <dt style="color: var(--ink-muted);">Due</dt><dd class="k-num" style="margin: 0;">{{s.due}}</dd>
+          <dt style="color: var(--ink-muted);">Still to pay</dt><dd class="k-num" style="margin: 0; font-weight: 600;">€ {{s.outF}}</dd>
+          <dt style="color: var(--ink-muted);">Approval</dt><dd style="margin: 0;">Waiting for a second person</dd>
+        </dl>
+        <p style="margin: 0; padding: 14px 24px 20px; font-size: 13px; color: var(--ink-muted); line-height: 1.5;">Amounts are the supplier's own. Klopt checks the sums and the VAT, it never recalculates them.</p>
+      </aside>
+    </div>
+
+    <footer class="k-hints" style="margin: 16px 32px 24px;">
+      <span><span class="k-kbd">J</span> <span class="k-kbd">K</span> next, previous</span>
+      <span><span class="k-kbd">A</span> approve</span>
+      <span><span class="k-kbd">P</span> add to payment batch</span>
+      <span><span class="k-kbd">X</span> select</span>
+      <span><span class="k-kbd">1</span>–<span class="k-kbd">3</span> switch status</span>
+    </footer>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 'INK-DEMO-2025-0037', filter: 'all' };
+  }
+  renderVals() {
+    const data = [
+      ['INK-DEMO-2025-0002','Telecom Fictief','24-11-2025','24-12-2025',407.31,0],
+      ['INK-DEMO-2025-0005','Brandstof Teststation','08-11-2025','08-12-2025',159.21,0],
+      ['INK-DEMO-2025-0007','Software Licentie Demo','30-10-2025','29-11-2025',168.83,0],
+      ['INK-DEMO-2025-0033','Huur Demo Vastgoed','12-10-2025','11-11-2025',52.54,0],
+      ['INK-DEMO-2025-0018','Schoonmaak Voorbeeld','03-10-2025','02-11-2025',238.58,0],
+      ['INK-DEMO-2025-0040','Internet Voorbeeld','02-10-2025','01-11-2025',252.83,252.83,60],
+      ['INK-DEMO-2025-0028','Schoonmaak Voorbeeld','01-10-2025','31-10-2025',277.57,0],
+      ['INK-DEMO-2025-0006','Reclame Sample','01-10-2025','31-10-2025',496.83,0],
+      ['INK-DEMO-2025-0016','Reclame Sample','26-09-2025','26-10-2025',31.08,0],
+      ['INK-DEMO-2025-0032','Telecom Fictief','14-09-2025','14-10-2025',153.60,0],
+      ['INK-DEMO-2025-0029','Verzekering Fictief','08-09-2025','08-10-2025',368.24,0],
+      ['INK-DEMO-2025-0037','Software Licentie Demo','13-07-2025','12-08-2025',467.00,467.00,141],
+      ['INK-DEMO-2025-0038','Schoonmaak Voorbeeld','04-06-2025','04-07-2025',155.39,155.39,180],
+      ['INK-DEMO-2025-0036','Reclame Sample','18-01-2025','17-02-2025',74.16,74.16,317],
+      ['INK-DEMO-2025-0039','Verzekering Fictief','11-01-2025','10-02-2025',242.40,242.40,324]
+    ];
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const short = (d) => parseInt(d.slice(0,2),10) + ' ' + months[parseInt(d.slice(3,5),10)-1];
+    const all = data.map((d) => {
+      const open = d[5] > 0;
+      return {
+        no: d[0], sup: d[1], date: d[2], due: d[3], total: d[4], out: d[5], open,
+        dateShort: short(d[2]), totalF: f(d[4]), outF: f(d[5]),
+        pill: open ? d[6] + ' days late' : 'Paid',
+        pillLong: open ? d[6] + ' days past due' : 'Paid',
+        pillCls: open ? 'k-pill k-pill--late' : 'k-pill k-pill--paid'
+      };
+    });
+    const flt = this.state.filter;
+    const shownRows = all.filter((r) => flt === 'all' || (flt === 'open' && r.open) || (flt === 'paid' && !r.open));
+    const rows = shownRows.map((r) => ({ ...r, sel: r.no === this.state.sel ? 'true' : 'false', pick: () => this.setState({ sel: r.no }) }));
+    const s = all.find((r) => r.no === this.state.sel) || all[0];
+    const tabs = [['all','All','40'],['open','To pay','5'],['paid','Paid','35']].map(([k, label, count]) => ({ label, count, on: k === flt ? 'true' : 'false', pick: () => this.setState({ filter: k }) }));
+    const sum = shownRows.reduce((a, r) => a + r.total, 0);
+    return { rows, s, tabs, sumF: f(Math.round(sum * 100) / 100), shown: 'Showing ' + shownRows.length + (flt === 'all' ? ' of 40, newest first' : '') };
+  }
+}
+</script>
+</body>
+</html>
