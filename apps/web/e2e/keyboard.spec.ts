@@ -87,12 +87,7 @@ async function anAdministration(page: Page): Promise<void> {
  */
 async function theKeyboardIsLive(page: Page): Promise<void> {
   // Home is always in the nav (v2 rail label for the dashboard chord).
-  await expect(
-    page
-      .getByRole('link', { name: /^Home/ })
-      .locator('kbd')
-      .first(),
-  ).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
 }
 
 /**

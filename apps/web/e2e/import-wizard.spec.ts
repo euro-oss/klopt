@@ -120,12 +120,7 @@ async function clickNext(page: Page): Promise<void> {
 test('i m opens the import wizard under Importeren', async ({ page }) => {
   await anAdministration(page)
 
-  await expect(
-    page
-      .getByRole('link', { name: /^Home/ })
-      .locator('kbd')
-      .first(),
-  ).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
   // Accessible name includes the printed chord; allow trailing text, never "(oud)".
   await expect(
     page.getByRole('navigation').getByRole('link', { name: /^Moneybird(?! \(oud\))/ }),

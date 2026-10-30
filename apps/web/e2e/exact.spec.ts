@@ -124,12 +124,7 @@ test('g x reaches the import wizard (#100)', async ({ page }) => {
   // the sidebar prints a key only once it works, which makes the hint the
   // honest thing to wait for. Pressing before then loses the keystroke.
   // `g x` stays as a muscle-memory alias and now opens the wizard (#100).
-  await expect(
-    page
-      .getByRole('link', { name: /^Home/ })
-      .locator('kbd')
-      .first(),
-  ).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
 
   await page.keyboard.press('g')
   // The armed prefix is shown: a shortcut that silently waits is one people
@@ -143,12 +138,7 @@ test('g x reaches the import wizard (#100)', async ({ page }) => {
 test('i x reaches the import wizard under Importeren (#100)', async ({ page }) => {
   await anAdministration(page)
 
-  await expect(
-    page
-      .getByRole('link', { name: /^Home/ })
-      .locator('kbd')
-      .first(),
-  ).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
   // Printed chord under Importeren is `i` then `x` (and `i m`); both open the wizard.
   await expect(
     page.getByRole('navigation').getByRole('link', { name: /^Exact Online(?! \(oud\))/ }),

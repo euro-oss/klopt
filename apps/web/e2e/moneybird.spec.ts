@@ -116,12 +116,7 @@ test('i m reaches the import wizard under Importeren (#100)', async ({ page }) =
 
   // Same hydration wait as Exact: the sidebar only prints a chord once the
   // listener is live (#37). `i m` opens the wizard.
-  await expect(
-    page
-      .getByRole('link', { name: /^Home/ })
-      .locator('kbd')
-      .first(),
-  ).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
   // Accessible name includes the printed chord (`Moneybird` + kbd); allow trailing text.
   await expect(
     page.getByRole('navigation').getByRole('link', { name: /^Moneybird(?! \(oud\))/ }),
