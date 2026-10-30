@@ -385,7 +385,7 @@
    "x": 6560,
    "y": 10020,
    "w": 1440,
-   "h": 2292,
+   "h": 2312,
    "title": "Settings · close book year, proposal (derived)",
    "expand": "fill",
    "is_interactive": true,
@@ -396,8 +396,28 @@
    "x": 8080,
    "y": 10020,
    "w": 1440,
-   "h": 2411,
+   "h": 2451,
    "title": "Settings · close book year, blocked (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "YearCloseBlockedMonthly.dc.html": {
+   "x": 9600,
+   "y": 10020,
+   "w": 1440,
+   "h": 2451,
+   "title": "Settings · close book year, blocked, monthly VAT (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "YearCloseBlockedAnnual.dc.html": {
+   "x": 11120,
+   "y": 10020,
+   "w": 1440,
+   "h": 2451,
+   "title": "Settings · close book year, blocked, annual VAT (derived)",
    "expand": "fill",
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
@@ -441,6 +461,8 @@
   "SettingsBooks.dc.html",
   "YearCloseProposal.dc.html",
   "YearCloseBlocked.dc.html",
+  "YearCloseBlockedMonthly.dc.html",
+  "YearCloseBlockedAnnual.dc.html",
   "SettingsAccess.dc.html",
   "SettingsData.dc.html",
   "PhoneHome.dc.html",
@@ -506,7 +528,7 @@
    "y": 9720,
    "text": "Settings, every page",
    "kind": "title1",
-   "maxW": 9520
+   "maxW": 12560
   },
   "t9": {
    "x": 0,

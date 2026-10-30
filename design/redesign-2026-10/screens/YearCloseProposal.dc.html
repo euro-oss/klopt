@@ -11,6 +11,8 @@
 <!--
   Derived board (batch 1), not drawn by Hidde. Shell and SubNav from SettingsBooks.dc.html.
   Variants via the `variant` prop: ready (default), blocked (YearCloseBlocked.dc.html).
+  VAT filing frequency via the `vat` prop: quarterly (default), monthly (YearCloseBlockedMonthly.dc.html),
+  annual (YearCloseBlockedAnnual.dc.html). Any open VAT period overlapping the book year blocks the close.
   Copy follows apps/web fiscal-years (en/nl fiscalYears.*). NL strings: ../DERIVED.md.
   A11y deviations (new boards only): --line-control #86857e (3.2:1 or more on every light surface),
   option and checkbox borders on --line-control, underlined ink text links, 44px targets under 600px,
@@ -25,10 +27,12 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
 .k-root[data-theme="light"]{--line-control:#86857e}
 .k-option{border-color:var(--line-control)}
 .lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}
-.per{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
-.per span{height:28px;border-radius:var(--radius-xs);font:500 11px/28px var(--font-mono);text-align:center}
+.per{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:4px}
+.per li>*{display:block;height:28px;border-radius:var(--radius-xs);font:500 11px/28px var(--font-mono);text-align:center;white-space:nowrap}
 .per .shut{background:var(--neutral-bg);color:var(--ink-2)}
-.per .late{background:var(--danger-bg);color:var(--danger);box-shadow:inset 0 0 0 1px var(--danger)}
+.per .late{background:var(--danger-bg);color:var(--ink);box-shadow:inset 0 0 0 1px var(--danger);text-decoration:underline;text-underline-offset:2px}
+.per .late:hover{color:var(--ink);box-shadow:inset 0 0 0 2px var(--danger)}
+.lnk:focus-visible,.per .late:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
 .chk-row{display:flex;gap:14px;align-items:flex-start;padding:14px 20px;border-top:1px solid var(--line-soft)}
 .chk-ico{width:28px;height:28px;border-radius:var(--radius-md);display:inline-flex;align-items:center;justify-content:center;flex:none;font-size:13px;font-weight:700}
 .chk-ico.ok{background:var(--success-bg);color:var(--success)}
@@ -39,7 +43,7 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
 .box.on{background:var(--primary);border-color:var(--primary)}
 .ack{display:flex;gap:10px;align-items:flex-start;cursor:pointer;background:transparent;border:0;padding:0;font:500 14px/20px var(--font-sans);color:var(--ink);text-align:left}
 .ack:disabled{cursor:not-allowed;color:var(--ink-muted)}
-@media (max-width:600px){.k-btn,.k-input,.k-subnav-item,.ack,.lnk{min-height:44px}.lnk{display:inline-flex;align-items:center}}
+@media (max-width:600px){.k-btn,.k-input,.k-subnav-item,.ack,.lnk{min-height:44px}.lnk{display:inline-flex;align-items:center}.per{grid-template-columns:repeat(var(--cols-phone),minmax(0,1fr))}.per li>*{height:44px;line-height:44px}}
 </style>
 </helmet>
 <div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1100px;">
@@ -62,9 +66,9 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
           <a href="SettingsBooks.dc.html" class="lnk" style="font-size: 13px; font-weight: 400; color: var(--ink-2); align-self: flex-start;">Book years</a>
           <div style="display: flex; align-items: center; gap: 12px;"><h2 class="k-card-title" style="flex: 1; font-size: 20px; line-height: 26px;">Close book year 2025</h2><span class="{{pill}}">{{pillText}}</span></div>
           <span style="color: var(--ink-2);">The proposal first, then close. Klopt sets the profit and loss to zero on 31-12-2025, moves the result to equity and opens 2026 with the balances.</span>
-          <div class="per" aria-label="VAT periods of 2025">
-            <sc-for list="{{periods}}" as="p" hint-placeholder-count="4"><span class="{{p.cls}}" aria-label="{{p.label}}">{{p.n}}</span></sc-for>
-          </div>
+          <ul class="per" aria-label="{{perLabel}}" style="--cols: {{cols}}; --cols-phone: {{colsPhone}};">
+            <sc-for list="{{periods}}" as="p" hint-placeholder-count="4"><li><sc-if value="{{p.open}}" hint-placeholder-val="{{false}}"><a href="{{p.href}}" class="late" aria-label="{{p.label}}">{{p.n}}</a></sc-if><sc-if value="{{p.shut}}" hint-placeholder-val="{{true}}"><span class="shut" aria-label="{{p.label}}">{{p.n}}</span></sc-if></li></sc-for>
+          </ul>
           <span class="k-muted" style="font-size: 13px;">{{perNote}}</span>
         </div>
 
@@ -138,7 +142,7 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"variant":{"editor":"enum","options":["ready","blocked"],"default":"ready"},"$preview":{"width":1440,"height":1960}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"variant":{"editor":"enum","options":["ready","blocked"],"default":"ready"},"vat":{"editor":"enum","options":["quarterly","monthly","annual"],"default":"quarterly"},"$preview":{"width":1440,"height":1960}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -147,17 +151,29 @@ class Component extends DCLogic {
   renderVals() {
     const blocked = (this.props.variant ?? 'ready') === 'blocked';
     const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const periods = ['Q1', 'Q2', 'Q3', 'Q4'].map((q, i) => {
-      const open = blocked && i === 3;
-      return { n: q, cls: open ? 'late' : 'shut', label: q + ' 2025, ' + (open ? 'open' : 'closed') };
+    const vat = this.props.vat ?? 'quarterly';
+    const filed = { quarterly: 'quarterly', monthly: 'monthly', annual: 'annually' }[vat];
+    const freq = {
+      quarterly: { codes: [1, 2, 3, 4].map((q) => '2025-Q' + q), open: ['2025-Q4'], cols: 4, colsPhone: 2, all: 'All four VAT periods of 2025 are closed' },
+      monthly: { codes: Array.from({ length: 12 }, (_, i) => '2025-' + String(i + 1).padStart(2, '0')), open: ['2025-11', '2025-12'], cols: 12, colsPhone: 4, all: 'All twelve VAT periods of 2025 are closed' },
+      annual: { codes: ['2025'], open: ['2025'], cols: 1, colsPhone: 1, all: 'VAT period 2025 is closed' }
+    }[vat];
+    const openCodes = blocked ? freq.open : [];
+    const periods = freq.codes.map((code) => {
+      const open = openCodes.includes(code);
+      return { n: code, open, shut: !open, href: 'Vat.dc.html?period=' + code, label: 'VAT period ' + code + ', ' + (open ? 'still open' : 'closed') };
     });
+    const span = freq.codes.length === 1 ? 'VAT period ' + freq.codes[0] : freq.codes[0] + ' to ' + freq.codes[freq.codes.length - 1];
+    const openTitle = openCodes.length === 1
+      ? 'VAT period ' + openCodes[0] + ' is still open'
+      : 'VAT periods ' + openCodes.slice(0, -1).join(', ') + ' and ' + openCodes[openCodes.length - 1] + ' are still open';
     const ok = (title, meta) => ({ ico: 'chk-ico ok', mark: '✓', title, meta, titleStyle: 'font-weight: 600;', href: '', fix: '' });
     const no = (title, meta, fix, href) => ({ ico: 'chk-ico no', mark: '!', title, meta, titleStyle: 'font-weight: 600; color: var(--danger);', href, fix });
     const checks = [
       ok('Book year 2026 is open', '1 January to 31 December 2026. 2025 carries its balances into it.'),
       blocked
-        ? no('Q4 2025\'s VAT period is still open', 'No VAT period inside 2025 may be open when the year closes, or VAT could still land in it afterwards.', 'Open VAT period Q4', 'Vat.dc.html')
-        : ok('All four VAT periods of 2025 are closed', 'Q1 to Q4 are closed, so no VAT can land in 2025 any more and the figures below stay put.'),
+        ? no(openTitle, 'Every VAT period that overlaps book year 2025 has to be closed first, or VAT could still land in 2025 after it closes.', 'Open VAT period ' + openCodes[0], 'Vat.dc.html?period=' + openCodes[0])
+        : ok(freq.all, (freq.codes.length === 1 ? span + ' is' : span + ' are') + ' closed, so no VAT can land in 2025 any more and the figures below stay put.'),
       blocked
         ? no('4 bank lines from 2025 are not matched', 'Together € 1.271,00 that isn\'t in the books yet, so the result would be wrong. 4 of the 15 lines waiting in Bank are from December 2025.', 'Match 4 lines', 'Match.dc.html?year=2025')
         : ok('Every 2025 bank line is matched', 'The 15 lines waiting in Bank are from 2026; they don\'t block 2025.')
@@ -184,8 +200,11 @@ class Component extends DCLogic {
     const ack = this.state.ack && !blocked;
     return {
       theme: this.props.theme ?? 'light', blocked, periods, checks, entries,
+      cols: freq.cols, colsPhone: freq.colsPhone, perLabel: 'VAT periods overlapping book year 2025, filed ' + filed,
       pill: blocked ? 'k-pill k-pill--late' : 'k-pill k-pill--draft', pillText: blocked ? 'Blocked' : 'Proposal',
-      perNote: blocked ? 'VAT periods, quarterly. Grey: closed. Red: still open, so 2025 can\'t close.' : 'VAT periods, quarterly. Grey: closed. All four are closed, so nothing changes under the proposal.',
+      perNote: 'VAT periods overlapping 2025, filed ' + filed + ' (set per administration). Grey: closed. ' + (blocked
+        ? 'Red and underlined: still open, so 2025 can\'t close. Select one to open it.'
+        : (freq.codes.length === 1 ? 'It is closed' : 'All are closed') + ', so nothing changes under the proposal.'),
       checksMeta: blocked ? '1 of 3 done' : '3 of 3 done',
       entriesMeta: blocked ? 'As it stands now; changes once the 4 lines are matched' : '2 entries, both balance',
       ackOn: ack ? 'true' : 'false', boxCls: ack ? 'box on' : 'box',
