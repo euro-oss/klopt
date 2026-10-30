@@ -4,29 +4,29 @@ Boards Hidde did not draw, derived by Design from his v2 system on his request. 
 
 ## Batch 1: year close, import steps 3, 4 and 6
 
-| Board | Variant | Derived from | Screenshot (1440, light) |
-| --- | --- | --- | --- |
-| `YearCloseProposal.dc.html` | ready (default `variant`) | SettingsBooks shell and SubNav; copy from `apps/web` fiscal years | `derived-shots/batch-1/YearCloseProposal.png` |
-| `YearCloseBlocked.dc.html` | YearCloseProposal, `variant="blocked"` | same | `derived-shots/batch-1/YearCloseBlocked.png` |
-| `ImportYears.dc.html` | step 3, Years | ImportSource layout; `/importeren` step "administratie" | `derived-shots/batch-1/ImportYears.png` |
-| `ImportPreview.dc.html` | step 4, Preview | ImportFindings layout; `/importeren` steps "voorbeeld" and "overzicht" | `derived-shots/batch-1/ImportPreview.png` |
-| `ImportConfirm.dc.html` | ImportRun, `variant="confirm"` | `/importeren` step "overzicht" confirm | `derived-shots/batch-1/ImportConfirm.png` |
-| `ImportRun.dc.html` | step 6, transferring (default `variant`) | `/importeren` step "importeren" | `derived-shots/batch-1/ImportRun.png` |
-| `ImportStopped.dc.html` | ImportRun, `variant="stopped-nothing"` | same, failure "We booked nothing" | `derived-shots/batch-1/ImportStopped.png` |
-| `ImportStoppedPartial.dc.html` | ImportRun, `variant="stopped-partial"` | same, failure "Part of it may already be booked" | `derived-shots/batch-1/ImportStoppedPartial.png` |
+| Board                          | Variant                                  | Derived from                                                           | Screenshot (1440, light)                         |
+| ------------------------------ | ---------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------ |
+| `YearCloseProposal.dc.html`    | ready (default `variant`)                | SettingsBooks shell and SubNav; copy from `apps/web` fiscal years      | `derived-shots/batch-1/YearCloseProposal.png`    |
+| `YearCloseBlocked.dc.html`     | YearCloseProposal, `variant="blocked"`   | same                                                                   | `derived-shots/batch-1/YearCloseBlocked.png`     |
+| `ImportYears.dc.html`          | step 3, Years                            | ImportSource layout; `/importeren` step "administratie"                | `derived-shots/batch-1/ImportYears.png`          |
+| `ImportPreview.dc.html`        | step 4, Preview                          | ImportFindings layout; `/importeren` steps "voorbeeld" and "overzicht" | `derived-shots/batch-1/ImportPreview.png`        |
+| `ImportConfirm.dc.html`        | ImportRun, `variant="confirm"`           | `/importeren` step "overzicht" confirm                                 | `derived-shots/batch-1/ImportConfirm.png`        |
+| `ImportRun.dc.html`            | step 6, transferring (default `variant`) | `/importeren` step "importeren"                                        | `derived-shots/batch-1/ImportRun.png`            |
+| `ImportStopped.dc.html`        | ImportRun, `variant="stopped-nothing"`   | same, failure "We booked nothing"                                      | `derived-shots/batch-1/ImportStopped.png`        |
+| `ImportStoppedPartial.dc.html` | ImportRun, `variant="stopped-partial"`   | same, failure "Part of it may already be booked"                       | `derived-shots/batch-1/ImportStoppedPartial.png` |
 
 Variant boards are thin wrappers that `dc-import` the main board with a prop, the same way `HomeDark.dc.html` wraps `Main`.
 
 ## Accessibility deviations (new boards only)
 
-| Rule | What the new boards do | Value |
-| --- | --- | --- |
-| Control borders at least 3:1 | `--line-control` darkened locally on `.k-root[data-theme="light"]`; `.k-option` and the checkbox use it too (v2 gives options the `line` border, 1.3:1) | `#86857e`, the same warm hue as `#c9c8c1`: 3.70:1 on `surface`, 3.39:1 on `ground`, 3.24:1 on `surface-sunken` and `danger-bg`, 3.41:1 on `brand-tint`. v2's `#c9c8c1` is 1.68:1 on white |
-| Text links not yellow on white | Links are `ink`, underlined (`.lnk`, offset 2px) | `#18181b`, 17.7:1 |
-| Targets at least 44px at phone width | Under 600px, buttons, inputs, options, rows, sub-nav items and links get `min-height: 44px` | 44px |
-| No `ink-faint` for text | Not used anywhere; muted text is `ink-muted` | `#63636b`, 5.95:1 on white |
-| Self-hosted fonts | New boards load `../design-system/fonts/fonts.css` (Inter 400, 500, 600, 700 and JetBrains Mono 500, latin subset, woff2, OFL 1.1 licences included) instead of the Google Fonts link | Fontsource 5.3.0 |
-| No dimming | The blocked year close keeps the entries at full contrast instead of fading them | n/a |
+| Rule                                 | What the new boards do                                                                                                                                                                | Value                                                                                                                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Control borders at least 3:1         | `--line-control` darkened locally on `.k-root[data-theme="light"]`; `.k-option` and the checkbox use it too (v2 gives options the `line` border, 1.3:1)                               | `#86857e`, the same warm hue as `#c9c8c1`: 3.70:1 on `surface`, 3.39:1 on `ground`, 3.24:1 on `surface-sunken` and `danger-bg`, 3.41:1 on `brand-tint`. v2's `#c9c8c1` is 1.68:1 on white |
+| Text links not yellow on white       | Links are `ink`, underlined (`.lnk`, offset 2px)                                                                                                                                      | `#18181b`, 17.7:1                                                                                                                                                                         |
+| Targets at least 44px at phone width | Under 600px, buttons, inputs, options, rows, sub-nav items and links get `min-height: 44px`                                                                                           | 44px                                                                                                                                                                                      |
+| No `ink-faint` for text              | Not used anywhere; muted text is `ink-muted`                                                                                                                                          | `#63636b`, 5.95:1 on white                                                                                                                                                                |
+| Self-hosted fonts                    | New boards load `../design-system/fonts/fonts.css` (Inter 400, 500, 600, 700 and JetBrains Mono 500, latin subset, woff2, OFL 1.1 licences included) instead of the Google Fonts link | Fontsource 5.3.0                                                                                                                                                                          |
+| No dimming                           | The blocked year close keeps the entries at full contrast instead of fading them                                                                                                      | n/a                                                                                                                                                                                       |
 
 The fonts are not fully off the CDN yet. `components/bundle.css` still starts with an `@import` of Google Fonts, and `Sidebar.dc.html` adds a Google Fonts `<link>` in its helmet, so a request still goes out. The local faces load after them and win, and the screenshots were rendered with Google Fonts blocked to prove the boards don't need it. Removing the CDN completely means dropping line 2 of `bundle.css` (both copies) and the Sidebar link. That changes Hidde's files, so it's left to him.
 
@@ -49,93 +49,93 @@ The dark theme's `--line-control` (`#4a4a51` on `#1a1a1d`, about 2:1) has the sa
 
 ## Copy, English and Dutch
 
-App strings are quoted from `apps/web/src/i18n/{en,nl}.ts`. Strings marked *new* are Design's.
+App strings are quoted from `apps/web/src/i18n/{en,nl}.ts`. Strings marked _new_ are Design's.
 
 ### Year close
 
-| English (board) | Nederlands | Source |
-| --- | --- | --- |
-| Close book year 2025 | Boekjaar 2025 afsluiten | fiscalYears.close |
-| The proposal first, then close. | Eerst het voorstel, dan afsluiten. | fiscalYears.closeBody |
-| Klopt sets the profit and loss to zero on 31-12-2025, moves the result to equity and opens 2026 with the balances. | Klopt zet de winst-en-verliesrekening op 31-12-2025 op nul, boekt het resultaat naar het eigen vermogen en opent 2026 met de saldi. | new |
-| Proposal / Blocked | Voorstel / Geblokkeerd | new |
-| Before you close | Voordat je afsluit | new |
-| Book year 2026 is open | Boekjaar 2026 is geopend | new |
-| All 12 periods are closed | Alle 12 periodes zijn afgesloten | new |
-| Every 2025 bank line is matched | Elke bankregel van 2025 is gekoppeld | new |
-| November and December are still open | November en december staan nog open | new |
-| Close periods 11 and 12 | Periodes 11 en 12 afsluiten | new |
-| 4 bank lines from 2025 are not matched | 4 bankregels uit 2025 zijn niet gekoppeld | new |
-| Match 4 lines | 4 regels koppelen | new |
-| Book year 2025 can't close yet | Boekjaar 2025 kan nog niet worden afgesloten | new |
-| Profit for 2025 / Moves to equity / 2026 opens with | Winst over 2025 / Naar eigen vermogen / 2026 opent met | new (fiscalYears.result: Resultaat) |
-| Result account | Resultaatrekening | fiscalYears.resultAccount |
-| An equity account; anything else is refused. | Een eigen-vermogenrekening; andere worden geweigerd. | fiscalYears.resultAccountHint |
-| Journal | Dagboek | fiscalYears.journal |
-| What closing 2025 books | Wat het afsluiten van 2025 boekt | fiscalYears.wouldPost |
-| Appropriation 2025 | Resultaatbestemming 2025 | fiscalYears.appropriation |
-| Opening balance 2026 | Beginbalans 2026 | fiscalYears.openingBalance |
-| Account / Debit / Credit | Rekening / Debet / Credit | fiscalYears.account, debit, credit |
-| Not booked | Niet geboekt | new |
-| Posts two real entries; no undo button here. | Boekt twee echte journaalposten; hier zit geen knop om dat terug te draaien. | fiscalYears.ack |
-| Fix the 2 things above first. | Los eerst de 2 punten hierboven op. | new |
+| English (board)                                                                                                    | Nederlands                                                                                                                          | Source                              |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Close book year 2025                                                                                               | Boekjaar 2025 afsluiten                                                                                                             | fiscalYears.close                   |
+| The proposal first, then close.                                                                                    | Eerst het voorstel, dan afsluiten.                                                                                                  | fiscalYears.closeBody               |
+| Klopt sets the profit and loss to zero on 31-12-2025, moves the result to equity and opens 2026 with the balances. | Klopt zet de winst-en-verliesrekening op 31-12-2025 op nul, boekt het resultaat naar het eigen vermogen en opent 2026 met de saldi. | new                                 |
+| Proposal / Blocked                                                                                                 | Voorstel / Geblokkeerd                                                                                                              | new                                 |
+| Before you close                                                                                                   | Voordat je afsluit                                                                                                                  | new                                 |
+| Book year 2026 is open                                                                                             | Boekjaar 2026 is geopend                                                                                                            | new                                 |
+| All 12 periods are closed                                                                                          | Alle 12 periodes zijn afgesloten                                                                                                    | new                                 |
+| Every 2025 bank line is matched                                                                                    | Elke bankregel van 2025 is gekoppeld                                                                                                | new                                 |
+| November and December are still open                                                                               | November en december staan nog open                                                                                                 | new                                 |
+| Close periods 11 and 12                                                                                            | Periodes 11 en 12 afsluiten                                                                                                         | new                                 |
+| 4 bank lines from 2025 are not matched                                                                             | 4 bankregels uit 2025 zijn niet gekoppeld                                                                                           | new                                 |
+| Match 4 lines                                                                                                      | 4 regels koppelen                                                                                                                   | new                                 |
+| Book year 2025 can't close yet                                                                                     | Boekjaar 2025 kan nog niet worden afgesloten                                                                                        | new                                 |
+| Profit for 2025 / Moves to equity / 2026 opens with                                                                | Winst over 2025 / Naar eigen vermogen / 2026 opent met                                                                              | new (fiscalYears.result: Resultaat) |
+| Result account                                                                                                     | Resultaatrekening                                                                                                                   | fiscalYears.resultAccount           |
+| An equity account; anything else is refused.                                                                       | Een eigen-vermogenrekening; andere worden geweigerd.                                                                                | fiscalYears.resultAccountHint       |
+| Journal                                                                                                            | Dagboek                                                                                                                             | fiscalYears.journal                 |
+| What closing 2025 books                                                                                            | Wat het afsluiten van 2025 boekt                                                                                                    | fiscalYears.wouldPost               |
+| Appropriation 2025                                                                                                 | Resultaatbestemming 2025                                                                                                            | fiscalYears.appropriation           |
+| Opening balance 2026                                                                                               | Beginbalans 2026                                                                                                                    | fiscalYears.openingBalance          |
+| Account / Debit / Credit                                                                                           | Rekening / Debet / Credit                                                                                                           | fiscalYears.account, debit, credit  |
+| Not booked                                                                                                         | Niet geboekt                                                                                                                        | new                                 |
+| Posts two real entries; no undo button here.                                                                       | Boekt twee echte journaalposten; hier zit geen knop om dat terug te draaien.                                                        | fiscalYears.ack                     |
+| Fix the 2 things above first.                                                                                      | Los eerst de 2 punten hierboven op.                                                                                                 | new                                 |
 
 ### Import, step 3 Years (Boekjaren)
 
-| English (board) | Nederlands | Source |
-| --- | --- | --- |
-| Years | Jaren | wizard.administratie.years (the stepper label "Boekjaren" is new) |
-| Administration in Moneybird | Administratie in Moneybird | wizard.administratie.admins |
-| EUR · fiscal year starts in January · 1.096 documents | EUR · boekjaar begint in januari · 1.096 documenten | wizard.administratie.docsLine |
-| Choose which books we transfer. You can still change this until the import. | Kies welke boeken we overzetten. Je kunt dit tot de import nog aanpassen. | wizard.administratie.intro |
-| Documents / In Klopt / Open | Documenten / In Klopt / Open | wizard.administratie.* |
-| Blocks import | Blokkeert import | findingCard.blocking |
-| In 2024 Klopt's VAT codes are not in force yet: 371 documents. | In 2024 gelden de btw-codes van Klopt nog niet: 371 documenten. | wizard.year.notInForce |
-| They apply from 01-01-2025, the start of your first fiscal year in Klopt. … Uncheck 2024. | Ze gelden vanaf 01-01-2025, het begin van je eerste boekjaar in Klopt. … Vink 2024 dan uit. | wizard.year.notInForceHelp |
-| Unchecked, so 2023 stays in Moneybird and doesn't block the import. | Uitgevinkt, dus 2023 blijft in Moneybird en blokkeert de import niet. | new |
-| 2 years · 800 documents | 2 jaren · 800 documenten | wizard.administratie.selectedSummary |
-| Next / Back | Volgende / Terug | wizard.next, wizard.back |
+| English (board)                                                                           | Nederlands                                                                                  | Source                                                            |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Years                                                                                     | Jaren                                                                                       | wizard.administratie.years (the stepper label "Boekjaren" is new) |
+| Administration in Moneybird                                                               | Administratie in Moneybird                                                                  | wizard.administratie.admins                                       |
+| EUR · fiscal year starts in January · 1.096 documents                                     | EUR · boekjaar begint in januari · 1.096 documenten                                         | wizard.administratie.docsLine                                     |
+| Choose which books we transfer. You can still change this until the import.               | Kies welke boeken we overzetten. Je kunt dit tot de import nog aanpassen.                   | wizard.administratie.intro                                        |
+| Documents / In Klopt / Open                                                               | Documenten / In Klopt / Open                                                                | wizard.administratie.*                                            |
+| Blocks import                                                                             | Blokkeert import                                                                            | findingCard.blocking                                              |
+| In 2024 Klopt's VAT codes are not in force yet: 371 documents.                            | In 2024 gelden de btw-codes van Klopt nog niet: 371 documenten.                             | wizard.year.notInForce                                            |
+| They apply from 01-01-2025, the start of your first fiscal year in Klopt. … Uncheck 2024. | Ze gelden vanaf 01-01-2025, het begin van je eerste boekjaar in Klopt. … Vink 2024 dan uit. | wizard.year.notInForceHelp                                        |
+| Unchecked, so 2023 stays in Moneybird and doesn't block the import.                       | Uitgevinkt, dus 2023 blijft in Moneybird en blokkeert de import niet.                       | new                                                               |
+| 2 years · 800 documents                                                                   | 2 jaren · 800 documenten                                                                    | wizard.administratie.selectedSummary                              |
+| Next / Back                                                                               | Volgende / Terug                                                                            | wizard.next, wizard.back                                          |
 
 ### Import, step 4 Preview (Voorbeeld)
 
-| English (board) | Nederlands | Source |
-| --- | --- | --- |
-| What we will transfer | Wat we gaan overzetten | wizard.voorbeeld.title |
-| This is a preview: nothing is transferred yet. Check the counts. | Dit is een voorbeeld: er wordt nog niets overgezet. Controleer de aantallen. | wizard.voorbeeld.intro |
-| Read again | Opnieuw lezen | wizard.voorbeeld.reread |
-| Comes over | Komt mee | new |
-| Already in Klopt | Al in Klopt | wizard.overzicht.alreadyInKlopt |
-| Not transferred | Niet overgezet | wizard.overzicht.notTransferred |
-| Sales invoices, Purchase invoices, Receipts, Bank mutations, Journal entries | Verkoopfacturen, Inkoopfacturen, Bonnen, Bankmutaties, Memoriaalposten | moneybird.* |
-| 38 documents from this administration are already in Klopt. We won't transfer them again. | 38 documenten uit deze administratie staan al in Klopt. Die zetten we niet nog een keer over. | wizard.overzicht.alreadyInKloptCount |
-| What you previously transferred … check for duplicate bookings. | Wat je eerder uit deze administratie hebt overgezet … controleer dat op dubbele boekingen. | wizard.overzicht.dedupLegal |
-| You left 2023 unchecked. It stays in Moneybird. | Je hebt 2023 uitgevinkt. Het blijft in Moneybird. | new |
-| Drafts are not transferred. / Quotes are not transferred. | Concepten komen niet mee. / Offertes komen niet mee. | from wizard.bron.moneybird.notIncluded |
+| English (board)                                                                           | Nederlands                                                                                    | Source                                 |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------- |
+| What we will transfer                                                                     | Wat we gaan overzetten                                                                        | wizard.voorbeeld.title                 |
+| This is a preview: nothing is transferred yet. Check the counts.                          | Dit is een voorbeeld: er wordt nog niets overgezet. Controleer de aantallen.                  | wizard.voorbeeld.intro                 |
+| Read again                                                                                | Opnieuw lezen                                                                                 | wizard.voorbeeld.reread                |
+| Comes over                                                                                | Komt mee                                                                                      | new                                    |
+| Already in Klopt                                                                          | Al in Klopt                                                                                   | wizard.overzicht.alreadyInKlopt        |
+| Not transferred                                                                           | Niet overgezet                                                                                | wizard.overzicht.notTransferred        |
+| Sales invoices, Purchase invoices, Receipts, Bank mutations, Journal entries              | Verkoopfacturen, Inkoopfacturen, Bonnen, Bankmutaties, Memoriaalposten                        | moneybird.*                            |
+| 38 documents from this administration are already in Klopt. We won't transfer them again. | 38 documenten uit deze administratie staan al in Klopt. Die zetten we niet nog een keer over. | wizard.overzicht.alreadyInKloptCount   |
+| What you previously transferred … check for duplicate bookings.                           | Wat je eerder uit deze administratie hebt overgezet … controleer dat op dubbele boekingen.    | wizard.overzicht.dedupLegal            |
+| You left 2023 unchecked. It stays in Moneybird.                                           | Je hebt 2023 uitgevinkt. Het blijft in Moneybird.                                             | new                                    |
+| Drafts are not transferred. / Quotes are not transferred.                                 | Concepten komen niet mee. / Offertes komen niet mee.                                          | from wizard.bron.moneybird.notIncluded |
 
 ### Import, step 6 Import (Importeren)
 
-| English (board) | Nederlands | Source |
-| --- | --- | --- |
-| Ready to transfer? | Klaar om over te zetten? | wizard.overzicht.title |
-| Check the summary. Then the import starts. | Controleer de samenvatting. Daarna begint de import. | wizard.overzicht.intro |
-| Import 800 documents? | 800 documenten importeren? | wizard.overzicht.confirmTitleCount |
-| Transfer / Do not transfer | Overzetten / Niet overzetten | wizard.overzicht.transfer, skip |
-| No undo for an import | Een import draai je niet terug | new |
-| You cannot undo an import in one go. … together with your accountant. | Een import kun je niet in één keer ongedaan maken. … eventueel samen met je accountant. | wizard.overzicht.undoLegal |
-| Confirm transfer | Overzetten bevestigen | wizard.overzicht.confirm |
-| Transferring | Bezig met overzetten | wizard.importeren.title |
-| You can close this screen; we continue. When you return, you see how far we are. | Je kunt dit scherm sluiten; we gaan door. Kom je terug, dan zie je hier hoe ver we zijn. | wizard.importeren.intro |
-| 62% · 497 of 800 | 62% · 497 van 800 | wizard.importeren.progress |
-| Booking… / Queued… / Done | Bezig met boeken… / In de wachtrij… / Klaar | wizard.importeren.running, pending, wizard.status.done |
-| Importing… | Bezig met importeren… | wizard.status.importing |
-| Import stopped | Import gestopt | wizard.importeren.stoppedTitle |
-| We booked nothing | We hebben niets geboekt | wizard.importeren.failed |
-| The import stopped. Part of it may already be booked. | De import is gestopt. Een deel kan al geboekt zijn. | wizard.importeren.failedPartial |
-| Check Journal entries to see what's already there. … with a correction. | Kijk bij Journaalposten wat er al staat. … met een correctie. | wizard.importeren.failedPartialBody |
-| What we still need to fix | Wat we nog moeten oplossen | wizard.problemen.title |
-| Open journal entries | Naar journaalposten | wizard.klaar.nextEntries |
-| Stopped here / Not booked | Hier gestopt / Niet geboekt | new |
-| Try again / Transfer the rest | Opnieuw proberen / De rest overzetten | new |
+| English (board)                                                                  | Nederlands                                                                               | Source                                                 |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Ready to transfer?                                                               | Klaar om over te zetten?                                                                 | wizard.overzicht.title                                 |
+| Check the summary. Then the import starts.                                       | Controleer de samenvatting. Daarna begint de import.                                     | wizard.overzicht.intro                                 |
+| Import 800 documents?                                                            | 800 documenten importeren?                                                               | wizard.overzicht.confirmTitleCount                     |
+| Transfer / Do not transfer                                                       | Overzetten / Niet overzetten                                                             | wizard.overzicht.transfer, skip                        |
+| No undo for an import                                                            | Een import draai je niet terug                                                           | new                                                    |
+| You cannot undo an import in one go. … together with your accountant.            | Een import kun je niet in één keer ongedaan maken. … eventueel samen met je accountant.  | wizard.overzicht.undoLegal                             |
+| Confirm transfer                                                                 | Overzetten bevestigen                                                                    | wizard.overzicht.confirm                               |
+| Transferring                                                                     | Bezig met overzetten                                                                     | wizard.importeren.title                                |
+| You can close this screen; we continue. When you return, you see how far we are. | Je kunt dit scherm sluiten; we gaan door. Kom je terug, dan zie je hier hoe ver we zijn. | wizard.importeren.intro                                |
+| 62% · 497 of 800                                                                 | 62% · 497 van 800                                                                        | wizard.importeren.progress                             |
+| Booking… / Queued… / Done                                                        | Bezig met boeken… / In de wachtrij… / Klaar                                              | wizard.importeren.running, pending, wizard.status.done |
+| Importing…                                                                       | Bezig met importeren…                                                                    | wizard.status.importing                                |
+| Import stopped                                                                   | Import gestopt                                                                           | wizard.importeren.stoppedTitle                         |
+| We booked nothing                                                                | We hebben niets geboekt                                                                  | wizard.importeren.failed                               |
+| The import stopped. Part of it may already be booked.                            | De import is gestopt. Een deel kan al geboekt zijn.                                      | wizard.importeren.failedPartial                        |
+| Check Journal entries to see what's already there. … with a correction.          | Kijk bij Journaalposten wat er al staat. … met een correctie.                            | wizard.importeren.failedPartialBody                    |
+| What we still need to fix                                                        | Wat we nog moeten oplossen                                                               | wizard.problemen.title                                 |
+| Open journal entries                                                             | Naar journaalposten                                                                      | wizard.klaar.nextEntries                               |
+| Stopped here / Not booked                                                        | Hier gestopt / Niet geboekt                                                              | new                                                    |
+| Try again / Transfer the rest                                                    | Opnieuw proberen / De rest overzetten                                                    | new                                                    |
 
 ## Rendering the screenshots
 
