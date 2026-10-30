@@ -1,6 +1,6 @@
 # Stepper
 
-The numbered steps of a wizard (import, setup, guided invoice), showing what is done, where you are and what comes next.
+The numbered steps of a wizard (import, setup), showing what is done, where you are and what comes next.
 
 ## Classes
 

@@ -53,7 +53,7 @@ Inter for everything, JetBrains Mono for keyboard keys only. Amounts always use 
 - App shell: sidebar (`sidebar-w`, 248px) on `surface-sunken` + content on `ground`.
 - The sidebar is grouped. Ungrouped at the top: Home, Inbox. **Money**: Sales, Costs, Bank, Contacts. **Books**: Journal, VAT, Reports. Pinned at the bottom: Import, Settings, Shortcuts. Group labels use `.k-nav-group`. Second-level pages are underline **tabs** on the page, not menu items.
 - List pages: page header (title, filter, primary action) → section tabs → segmented status filter → list card → hint bar. A detail preview sits to the right of the list rather than on a new page.
-- Wizards (import, setup, guided invoice) show their steps with `.k-steps`; one decision per step, `↵` goes forward, `Esc` back.
+- Wizards (import, setup) show their steps with `.k-steps`; one decision per step, `↵` goes forward, `Esc` back.
 - Settings sub-pages use a `.k-subnav` column on the left of the page, never extra sidebar items.
 
 ## Phone
