@@ -35,9 +35,9 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | -------------- | ------------------------------------------------------- |
 | `Cmd/Ctrl` `K` | Command palette                                         |
 | `?`            | Keyboard help                                           |
-| `g` then `d`   | Go to dashboard                                         |
-| `g` then `j`   | Go to journal entries                                   |
-| `g` then `a`   | Go to chart of accounts                                 |
+| `g` then `d`   | Go to dashboard (Home)                                  |
+| `g` then `j`   | Go to Journal (entries hub)                             |
+| `g` then `a`   | Go to chart of accounts (chord only; not in nav / ⌘K)   |
 | `g` then `b`   | Go to balance sheet                                     |
 | `g` then `w`   | Go to winst- en verliesrekening                         |
 | `g` then `p`   | Go to proefbalans (trial balance)                       |
@@ -54,9 +54,16 @@ most noticeable thing about using a bookkeeping system for eight hours.
 | `g` then `q`   | Go to de auditfile                                      |
 | `i` then `x`   | Go to Exact Online (E**x**act)                          |
 | `i` then `m`   | Go to Moneybird (**M**oneybird)                         |
-| `n` then `i`   | New inkoopfactuur                                       |
+| `n` then `i`   | New inkoopfactuur (alias of `n r`)                      |
+| `n` then `r`   | New receipt or bill                                     |
+| `n` then `c`   | Go to contacts (relaties)                               |
 | `n` then `j`   | New journal entry                                       |
+| `n` then `f`   | New sales invoice                                       |
 | `Escape`       | Close overlay, cancel edit, clear focus — in that order |
+
+Number keys `1`–`5` switch tabs on tabbed pages only (Reports has five tabs;
+Journal currently shows Entries + Trial balance as `1`–`2` — Ledger is [API]
+and omitted). The shortcut sheet lists tabs as `1`–`5` and includes `G J`.
 
 `g`, `i` and `n` are prefixes. `g` and `n` follow the convention people already
 know from GitHub and Linear; `i` is **i**mporteren, the second prefix space that
@@ -82,10 +89,8 @@ are full). `test/unit/shortcuts.test.ts` asserts the `g` alphabet is still
 exhausted and that the `i` prefix resolves both importers, so a stolen letter
 or a missing chord arrives as a failing test rather than as a collision.
 
-`/` for "focus search" was in this table for three milestones with nothing behind
-it. There is a global search now — it lives in the palette, where `Cmd/Ctrl` `K`
-already puts the cursor in a field — and `/` stays out anyway. See "What is
-deliberately not bound" below.
+`/` focuses a list filter when the current page exposes one (`data-list-filter`).
+Global search stays on `Cmd/Ctrl` `K` in the palette.
 
 ## What is built, and what is not
 
@@ -109,7 +114,8 @@ Every table built from `LedgerTable`, which is every list in the application.
 | `PageUp` `PageDown` | Move by a screenful                                |
 | `Home` `End`        | First / last row                                   |
 | `Enter`             | Open the focused row, where a row opens onto       |
-| `Space`             | Select the focused row                             |
+| `Space` or `x`      | Select the focused row                             |
+| `/`                 | Focus the list filter (pages that expose one)      |
 | `Shift` `↑`/`↓`     | Extend the selection                               |
 | `Cmd/Ctrl` `A`      | Select every loaded row                            |
 | type any character  | Type-ahead on the sort column                      |
@@ -146,8 +152,8 @@ The screen this whole document exists for.
 | `Tab` `Shift`+`Tab`        | Next / previous field                             |
 | `Enter` in an amount       | Commit the line and open the next one             |
 | `Cmd/Ctrl` `Enter`         | Show what will be posted; again, post it          |
-| `Cmd/Ctrl` `Shift` `Enter` | The same, and start another in the same journal   |
-| `Cmd/Ctrl` `D`             | Duplicate the focused line                        |
+| `Cmd/Ctrl` `Shift` `Enter` | Post and start another in the same journal        |
+| `Cmd/Ctrl` `D`             | Duplicate the focused line (editor only)          |
 | `Cmd/Ctrl` `Backspace`     | Delete the focused line                           |
 | `Escape`                   | Close the confirmation, back to the draft         |
 | `=` in an amount           | Fill with the amount that would balance the entry |
@@ -216,12 +222,9 @@ session. Accepting only one is a papercut a hundred times a day.
 - **Posting without confirmation.** `Cmd`+`Enter` shows what it is about to post
   and puts the cursor on the button that posts it. Posting is irreversible by
   design, so the key that does it asks — twice deliberate, still no mouse.
-- **`/` for "focus search".** In this document for three milestones with nothing
-  behind it, and still out now that there is something. Search lives in the
-  palette (#6): `Cmd/Ctrl`+`K` opens it with the cursor already in the field, so
-  `/` would be a second key meaning "open the thing `Cmd`+`K` opens", aimed at a
-  field that only exists inside a dialogue this key would have to open first.
-  One way in, and it is the one that was already there.
+- **`/` as a second palette opener.** Rejected. `/` focuses the list filter on
+  pages that expose one (`data-list-filter`); global search stays on
+  `Cmd/Ctrl`+`K` (#107).
 - **A column cursor in tables.** `←` `→` are unbound because no table addresses
   individual cells.
 - **Remapping.** One keyboard, the same on every installation. A remappable one
@@ -233,10 +236,11 @@ session. Accepting only one is a papercut a hundred times a day.
 - **Geavanceerd (Advanced mode).** Deliberately unbound (#44). `Shift`+letter is
   table type-ahead on the sort column (`Shift`+`K` reaches "Kantoorkosten" in
   one stroke); a `⇧G` toggle would steal every "G…" row. Reach it from the user
-  menu (switch row) or from ⌘K ("Geavanceerd aanzetten" / "uitzetten"). When it
-  is off, Journaalposten and Proefbalans leave the nav but stay in the palette;
-  Nieuwe journaalpost (`n j`) leaves the palette and the `?` Nieuw group as
-  well (same gate as the shell CTA).
+  menu (switch row) or from ⌘K ("Geavanceerd aanzetten" / "uitzetten"). v2
+  shows Journal and Proefbalans openly (no Geavanceerd gate on those). The mode
+  still controls ledger numbers, RGS and VAT codes elsewhere. Nieuwe
+  journaalpost (`n j`) still leaves the palette and the `?` Nieuw group when
+  Geavanceerd is off (same gate as the shell CTA).
 
 ## Implementation notes
 
@@ -405,10 +409,9 @@ numbered — `1 · POSTVAK`, `2 · NAKIJKEN` — because the spine is a sequence
 reader should be able to see which half the keyboard is in without pressing
 anything.
 
-**Not printed, and not bound: `/` to focus a list filter.** The boards show a
-search box above the invoice list with `/` focusing it. There is no filter field
-on that list, and inventing one here would be inventing a feature rather than a
-key. Searching the books is a palette job (see below), not a per-list one.
+**`/` focuses the list filter** when the page exposes one (`data-list-filter`,
+e.g. the invoice status strip). It does not open the palette — that stays on
+`Cmd/Ctrl`+`K`. Pages without a filter control ignore the key.
 
 ## Zoeken in het palet
 

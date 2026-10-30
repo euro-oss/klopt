@@ -172,17 +172,16 @@ test('the book year in the shell is the administration’s, and the reports agre
   await page.keyboard.press('Escape')
 
   // The shell switcher names the year; the redesigned dashboard greeting no
-  // longer repeats "Boekjaar YYYY:" in the page header.
-  const switcher =
-    (await page
-      .getByRole('button', { name: /Administratie en boekjaar|Administration and book year/ })
-      .textContent()) ?? ''
-  const year = /Boekjaar (\d{4})/.exec(switcher)?.[1] ?? ''
+  // longer repeats "Boekjaar YYYY:" in the page header. Designer: closed row is
+  // "Boekjaar 2026" only — no truncated date range.
+  const switcher = page.getByRole('button', {
+    name: /Administratie en boekjaar|Administration and book year/,
+  })
+  const switcherText = (await switcher.textContent()) ?? ''
+  const year = /Boekjaar (\d{4})/.exec(switcherText)?.[1] ?? ''
   expect(year).toMatch(/^\d{4}$/)
-
-  // The dates sit on the switcher row, because a boekjaar labelled 2025 may
-  // run into 2026 and a label alone is the guess this replaced.
-  await expect(page.getByText(/\d{2}-\d{2}-\d{4} – \d{2}-\d{2}-\d{4}/)).toBeVisible()
+  await expect(switcher).toContainText(`Boekjaar ${year}`)
+  await expect(switcher).not.toContainText(/\d{2}-\d{2}-\d{4}/)
 
   await page.goto('/reports/trial-balance')
   await expect(page.locator('#main').getByText(new RegExp(`Boekjaar ${year}`))).toBeVisible()
@@ -217,7 +216,11 @@ test('a report can be pointed at another book year, and the link carries it', as
 
   // And walking to another report keeps the year, though the link carries no
   // parameter: that is the cookie doing the remembering.
-  await page.getByRole('link', { name: 'Balans', exact: true }).click()
+  // Reports tab accessible name includes the digit hint (`Balans` + `2`).
+  await page
+    .getByRole('navigation', { name: 'Rapporten' })
+    .getByRole('link', { name: /Balans/ })
+    .click()
   await expect(page.getByRole('heading', { name: 'Balans' })).toBeVisible()
   await expect(page.getByText(`${next}-12-31`)).toBeVisible()
 })
@@ -240,12 +243,13 @@ test('a boekjaar that is not the calendar year is the one the screens use', asyn
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
   ).toBeVisible()
-  await expect(
-    page.getByRole('button', { name: /Administratie en boekjaar|Administration and book year/ }),
-  ).toContainText(`Boekjaar ${opened}`)
-  await expect(
-    page.getByText(`01-07-${opened} – 30-06-${String(Number(opened) + 1)}`),
-  ).toBeVisible()
+  const switcher = page.getByRole('button', {
+    name: /Administratie en boekjaar|Administration and book year/,
+  })
+  await expect(switcher).toContainText(`Boekjaar ${opened}`)
+  // Closed summary is year-only (#107 Designer); the July–June span still
+  // drives reports (ageing as-of below).
+  await expect(switcher).not.toContainText(`01-07-${opened}`)
 
   await page.goto('/reports/trial-balance')
   await expect(page.locator('#main').getByText(new RegExp(`Boekjaar ${opened}`))).toBeVisible()
@@ -287,10 +291,12 @@ test('the theme is light to start with, and dark stays dark', async ({ page }) =
 test('ageing is in the navigation, on both sides', async ({ page }) => {
   await anAdministration(page, 'Ouderdom BV')
 
-  // Simple-mode label under Rapporten (#61 slice 2); Geavanceerd renames it Debiteuren.
-  await page.getByRole('link', { name: 'Openstaand bij klanten' }).click()
+  // Ageing is Reports SubNav + palette (#107), not a top-level rail item.
+  await page.goto('/reports/profit-and-loss')
+  const reports = page.getByRole('navigation', { name: 'Rapporten' })
+  await reports.getByRole('link', { name: /Openstaand bij klanten/ }).click()
   await expect(page.getByRole('heading', { name: 'Ouderdomsanalyse debiteuren' })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Crediteuren' }).click()
+  await reports.getByRole('link', { name: /Crediteuren/ }).click()
   await expect(page.getByRole('heading', { name: 'Ouderdomsanalyse crediteuren' })).toBeVisible()
 })

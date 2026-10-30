@@ -29,8 +29,9 @@ export function Keycap({
   return (
     <kbd
       className={cn(
-        // normal-case: survives uppercase parents (primary buttons show Esc, not ESC).
-        'border-border bg-background text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center border border-b-2 px-1.5 font-sans text-[11px] font-medium tracking-normal normal-case tabular',
+        // JetBrains Mono is reserved for keycaps (#107). normal-case survives
+        // uppercase parents (primary buttons show Esc, not ESC).
+        'border-border bg-background text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center border border-b-2 px-1.5 font-mono text-[11px] font-medium tracking-normal normal-case',
         className,
       )}
     >

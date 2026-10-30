@@ -35,8 +35,8 @@ test('an owner invites somebody, sees them waiting, and withdraws it', async ({ 
   await anOwner(page, 'Toegang Test BV')
   const invitee = uniqueEmail()
 
-  // The nav entry exists at all only because this session is an owner.
-  await page.getByRole('link', { name: /Toegang/ }).click()
+  // Access is Settings SubNav + palette (#107), not a top-level rail item.
+  await page.goto('/members')
   await expect(page.getByRole('heading', { name: 'Toegang' })).toBeVisible()
 
   // Scoped to the invite form: every member row has a role select too, and

@@ -28,7 +28,17 @@
 export const nl = {
   // The shell, which is on every screen.
   'nav.dashboard': 'Dashboard',
+  // Flat rail labels (#107). `nav.dashboard` stays for older chords / copy.
+  'nav.home': 'Home',
+  'nav.sales': 'Verkoop',
+  'nav.costs': 'Kosten',
+  'nav.reports': 'Rapporten',
+  'nav.shortcuts': 'Sneltoetsen',
+  'nav.import': 'Importeren',
+  'nav.bankStatements': 'Bankafschriften',
   'nav.entries': 'Journaalposten',
+  'nav.journal': 'Journaal',
+  'nav.journalLedger': 'Grootboek',
   'nav.accounts': 'Grootboek',
   // Simple-mode label for the chart of accounts (#43 / #44).
   'nav.categories': 'Categorieën',
@@ -64,7 +74,7 @@ export const nl = {
   'shell.yearClosed': '{year} (afgesloten)',
   // Combined Administratie / Boekjaar control (#57 prototype).
   'shell.entitySwitcher': 'Administratie en boekjaar',
-  'shell.yearSummary': 'Boekjaar {year} · {range}',
+  'shell.yearSummary': 'Boekjaar {year}',
   // Desktop ⌘K trigger in the top bar.
   'shell.searchTrigger': 'Zoeken of opdracht',
   // Phone icon button — must not reuse palette.search (duplicate accessible name).
@@ -84,16 +94,21 @@ export const nl = {
   'shell.skipToContent': 'Naar de inhoud',
   'shell.navigation': 'Hoofdnavigatie',
   'shell.openMenu': 'Menu openen',
+  'shell.phoneNav': 'Telefoonnavigatie',
+  'nav.phoneReceipt': 'Bon',
+  'nav.phoneMore': 'Meer',
+  'shell.peopleAccess': 'Mensen en toegang',
+  'shell.newAdministration': 'Nieuwe administratie',
   'shell.newEntry': 'Nieuwe journaalpost',
   // Geavanceerd lives in the user menu and ⌘K — no dedicated shortcut (#44).
-  'shell.advanced': 'Geavanceerd',
+  'shell.advanced': 'Boekhouddetails',
   'shell.advancedHint': 'Toon grootboeknummers, btw-codes en boekingsregels',
   'shell.advancedOn': 'Geavanceerd aan',
   'shell.advancedOff': 'Geavanceerd uit',
   'shell.advancedEnabled': 'Geavanceerd staat aan. Je ziet nu grootboeknummers en btw-codes.',
   'shell.advancedDisabled': 'Geavanceerd staat uit.',
-  'shell.advancedToggleOn': 'Geavanceerd aanzetten',
-  'shell.advancedToggleOff': 'Geavanceerd uitzetten',
+  'shell.advancedToggleOn': 'Boekhouddetails aanzetten',
+  'shell.advancedToggleOff': 'Boekhouddetails uitzetten',
   'shell.advancedNoShortcut': 'Geen sneltoets',
   'shell.advancedSaveFailed': 'Geavanceerd is niet opgeslagen. Probeer het opnieuw.',
   'shell.brandMark': 'K',
@@ -519,7 +534,7 @@ export const nl = {
   'auditFile.chartMismatch':
     'Dit bestand noemt {accounts} rekeningen en {journals} dagboeken die deze administratie niet heeft.',
   'auditFile.chartMismatchWhat':
-    'Kies een bestand dat bij dit grootboek past: deze versie importeert alleen een bestand waarvan alle rekeningen en dagboeken hier al bestaan. Het grootboek uitbreiden uit een auditfile verandert de boeken en is een eigen beslissing; dat komt later.',
+    'Kies een bestand dat bij dit grootboek past: deze versie importeert alleen een bestand waarvan alle rekeningen en dagboeken hier al bestaan. Het grootboek uitbreiden uit een auditfile verandert de boeken en is een eigen beslissing.',
   'auditFile.unknownVatCodes': 'Onbekende btw-codes',
   'auditFile.warnings': 'Aandachtspunten',
   'auditFile.import': 'Importeren',
@@ -1229,6 +1244,26 @@ export const nl = {
 
   // The administration's own details.
   'settings.title': 'Instellingen',
+  'settings.switchToKlopt': 'Overstappen naar Klopt',
+  'settings.switchToKloptBody':
+    'Zet per administratie je boeken over uit Moneybird. Wat je eerder uit die administratie hebt overgezet, zetten we niet nog een keer over. Wat je zelf al in Klopt hebt geboekt, herkennen we niet: controleer dat op dubbele boekingen. Een import kun je niet in één keer ongedaan maken.',
+  'settings.switchToKloptAction': 'Importeren openen',
+  'settings.importFromMoneybird': 'Vanuit Moneybird',
+  'settings.importFromMoneybirdHint': 'API-token',
+  'settings.importFromExact': 'Exact Online',
+  'settings.importFromExactHint': 'Niet in deze wizard',
+  'settings.importFromXaf': 'Uit een auditfile (XAF 3.2)',
+  'settings.importFromXafHint':
+    'Alleen als je grootboek alle rekeningen en dagboeken uit het bestand al heeft',
+  'settings.accountingDetails': 'Boekhouddetails tonen',
+  'settings.accountingDetailsHint':
+    'Toont grootboeknummers, btw-codes en RGS-codes op de schermen die ze hebben. Standaard aan voor boekhouder, accountant en controleur.',
+  'settings.hubCompany': 'Je bedrijf',
+  'settings.hubCompanyBody': 'Naam, adres en KvK-nummer — wat op je facturen komt.',
+  'settings.hubBooks': 'Boeken',
+  'settings.hubAccess': 'Toegang',
+  'settings.hubData': 'Gegevens',
+  'settings.subnav': 'Instellingen-onderdelen',
   'settings.intro': 'De gegevens van deze administratie. Een e-factuur kan niet zonder.',
   'settings.saved': 'Opgeslagen.',
   'settings.registration': 'Naam en registratie',
@@ -2040,12 +2075,14 @@ export const nl = {
   'keys.group.match': 'Koppelen',
   'keys.group.queue': 'Werklijst',
   'keys.group.list': 'Lijsten en tabellen',
+  'keys.group.tabs': 'Tabbladen',
   'keys.group.inbox': 'Postvak',
   'keys.group.invoiceForm': 'Nieuwe factuur',
   'keys.group.invoice': 'Verkoopfactuur',
   'keys.group.picker': 'Kiezers',
   'keys.group.entry': 'Journaalpost',
   'keys.group.findings': 'Bevindingen',
+  'keys.tabsSwitch': 'Tabblad wisselen (Rapporten, Journaal)',
   'keys.findingNext': 'Volgende bevinding',
   'keys.findingPrevious': 'Vorige bevinding',
   'keys.findingOpenFix': 'Oplossen',
@@ -2056,6 +2093,8 @@ export const nl = {
   'keys.goProfitAndLoss': 'Winst- en verliesrekening',
   'keys.goVat': 'BTW-aangifte',
   'keys.newInvoice': 'Nieuwe factuur',
+  'keys.newContact': 'Naar relaties',
+  'keys.newReceipt': 'Nieuwe inkoopfactuur of bon',
   'keys.matchConfirm': 'Paneel openen / voorstel boeken',
   'keys.matchNext': 'Volgende',
   'keys.matchPrevious': 'Vorige',
@@ -2066,12 +2105,14 @@ export const nl = {
   'keys.queuePrevious': 'Vorige regel in de werklijst',
   'keys.queueLeave': 'Werklijst verlaten',
   'keys.queueMove': 'Volgende, vorige',
+  'keys.queueChoose': 'volgende, vorige',
   'keys.queueOpenShort': 'Openen',
   'keys.queueLeaveShort': 'Lijst verlaten',
   'keys.listNext': 'Volgende regel',
   'keys.listPrevious': 'Vorige regel',
   'keys.listOpen': 'Regel openen',
   'keys.listSelect': 'Regel selecteren',
+  'keys.listFilter': 'Filter focussen',
   'keys.listSelectAll': 'Alles selecteren',
   'keys.listCopy': 'Kopiëren als tabel',
   'keys.listTypeAhead': 'Springen naar wat je typt',
@@ -2100,8 +2141,9 @@ export const nl = {
   'palette.escapeNote':
     'Sluiten met Escape. G, I en N zijn voorvoegsels; na 1,5 seconde vervallen ze.',
   'palette.advancedNote':
-    'Geavanceerd heeft bewust geen sneltoets: hoofdletters zijn voor typen-om-te-zoeken in tabellen. Je vindt het in je gebruikersmenu en in ⌘K.',
+    'Boekhouddetails hebben bewust geen sneltoets: hoofdletters zijn voor typen-om-te-zoeken in tabellen. Je zet ze aan of uit met ⌘K of onder Instellingen.',
   'palette.actions': 'Acties',
+  'dropZone.chooseFile': 'Kies een bestand',
   'palette.navigation': 'Navigatie',
   'palette.content': 'Inhoud',
   'palette.searching': 'Zoeken…',
@@ -2565,7 +2607,7 @@ export const nl = {
   'wizard.bron.exact.notIncluded':
     'Losse boekingen komen niet mee. Documenten zet je daarna apart over, als je dat wilt.',
   'wizard.bron.exact.deadEnd':
-    'Overzetten uit Exact kan nog niet in deze wizard. Gebruik Exact onder Geavanceerd.',
+    'Overzetten uit Exact kan nog niet in deze wizard. Gebruik Exact Online (oud).',
   'wizard.bron.exact.openLegacy': 'Naar Exact (oud)',
   'wizard.verbinden.title': 'Verbind met Moneybird',
   'wizard.verbinden.intro': 'Met een token uit Moneybird kunnen we je administratie lezen.',

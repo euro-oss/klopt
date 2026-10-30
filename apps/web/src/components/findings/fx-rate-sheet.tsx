@@ -283,7 +283,7 @@ export function FxRateSheet({
           </div>
 
           {error !== null && error !== '' && (
-            <p className="text-warning mt-2 text-sm" data-slot="fx-error">
+            <p className="text-unreconciled mt-2 text-sm" data-slot="fx-error">
               {error}
             </p>
           )}

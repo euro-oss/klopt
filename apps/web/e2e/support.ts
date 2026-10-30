@@ -62,21 +62,16 @@ export async function codeFor(email: string): Promise<string> {
  * once the keys work. That is deliberate (see `AppShell`), and it makes the
  * hint the one honest, screen-independent "the page is live now".
  *
- * Waits on Dashboard rather than Journaalposten: Eigenaar has Geavanceerd off
- * by default (#44), so journal entries are absent from the nav until the toggle
- * is on — but they stay reachable via ⌘K and `g j`.
+ * Waits on Home (v2 rail label for the dashboard chord). Home is always in the
+ * nav; shortcut chips print only once the keys work.
  */
 export async function hydrated(page: Page): Promise<void> {
-  await expect(
-    page
-      .getByRole('link', { name: /^Dashboard/ })
-      .locator('kbd')
-      .first(),
-  ).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
 }
 
 /**
- * True when this response is the Geavanceerd save POST finishing.
+ * True when this response is the boekhouddetails / Geavanceerd save POST
+ * finishing.
  *
  * TanStack Start serialises the payload; matching on `enabled` keeps us from
  * racing an unrelated POST (language, theme, entity switch).
@@ -91,23 +86,29 @@ function isAdvancedModeSaveResponse(response: {
 }
 
 /**
- * Flip Geavanceerd to the given value from the account menu.
+ * Accessible name for the Settings hub display toggle
+ * (`settings.accountingDetails`: Boekhouddetails tonen / Show accounting details).
+ * Geavanceerd / Advanced remain as temporary fallbacks.
+ */
+export const ADVANCED_MODE_SWITCH_NAME =
+  /Boekhouddetails|accounting details|Show accounting|Geavanceerd|Advanced/i
+
+/** The boekhouddetails switch on `/settings` (same persist API as before). */
+export function advancedModeSwitch(page: Page): Locator {
+  return page.getByRole('switch', { name: ADVANCED_MODE_SWITCH_NAME })
+}
+
+/**
+ * Flip boekhouddetails (Geavanceerd) to the given value from Settings.
  *
  * Always waits for the save POST response before returning, so a later reload
  * or fresh context sees the stored choice rather than the role default.
  */
 export async function setAdvancedMode(page: Page, enabled: boolean): Promise<void> {
-  // Phone: the profile row lives inside the Sheet, so open that first.
-  const openMenu = page.getByRole('button', { name: /Menu openen|Open menu/ })
-  if (await openMenu.isVisible().catch(() => false)) {
-    await expect(openMenu).toBeEnabled()
-    if ((await openMenu.getAttribute('aria-expanded')) !== 'true') {
-      await openMenu.click()
-    }
-  }
-
-  await openAccountMenu(page)
-  const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
+  await page.goto('/settings')
+  await hydrated(page)
+  const toggle = advancedModeSwitch(page)
+  await expect(toggle).toBeVisible()
   const want = enabled ? 'true' : 'false'
   if ((await toggle.getAttribute('aria-checked')) !== want) {
     const persisted = page.waitForResponse(isAdvancedModeSaveResponse, { timeout: 15_000 })
@@ -115,10 +116,9 @@ export async function setAdvancedMode(page: Page, enabled: boolean): Promise<voi
     await persisted
   }
   await expect(toggle).toHaveAttribute('aria-checked', want)
-  await page.keyboard.press('Escape')
 }
 
-/** Turn Geavanceerd on from the account menu (owner default is off). */
+/** Turn boekhouddetails on from Settings (owner default is off). */
 export async function enableAdvancedMode(page: Page): Promise<void> {
   await setAdvancedMode(page, true)
 }
@@ -158,8 +158,9 @@ export async function openAccountMenu(page: Page): Promise<void> {
   // hydration the row is a button that opens nothing.
   await expect(trigger).toBeEnabled()
   await trigger.click()
-  // The Sheet is also a dialog — pin the account menu by the Geavanceerd switch.
-  await expect(page.getByRole('switch', { name: /Geavanceerd|Advanced/ })).toBeVisible()
+  // Pin the account menu open via Language/Theme or sign-out (boekhouddetails
+  // lives on Settings, not here).
+  await expect(page.getByRole('button', { name: /Uitloggen|Sign out/ })).toBeVisible()
 }
 
 /**
@@ -245,5 +246,5 @@ export async function chooseInAccountMenu(
   await page.getByRole('group', { name: label }).getByRole('button', { name: option }).click()
 
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('switch', { name: /Geavanceerd|Advanced/ })).toBeHidden()
+  await expect(page.getByRole('button', { name: /Uitloggen|Sign out/ })).toBeHidden()
 }

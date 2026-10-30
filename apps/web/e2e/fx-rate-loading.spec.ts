@@ -75,7 +75,8 @@ test('Koers error is warning-toned, single live announcement, no role=alert', as
   await expect(sheet).toBeVisible()
   const error = page.locator('[data-slot="fx-error"]')
   await expect(error).toContainText(/ECB-koers nu niet ophalen/)
-  await expect(error).toHaveClass(/text-warning/)
+  // WARN token → text-unreconciled (--status-attention) in Phase 0.
+  await expect(error).toHaveClass(/text-unreconciled/)
   await expect(error).not.toHaveAttribute('role', 'alert')
   await expect(sheet.locator('[role="alert"]')).toHaveCount(0)
   await expect(page.getByRole('status')).toContainText(/ECB-koers nu niet ophalen/)

@@ -124,14 +124,21 @@ describe('resolving a keystroke', () => {
 })
 
 describe('what the global listener claims', () => {
-  it('is exactly navigation plus the two overlays', () => {
+  it('is exactly navigation plus the two overlays (and list.filter)', () => {
     const owned = new Set(GLOBAL_BINDINGS.map((binding) => binding.id))
+    // list.filter (`/`) is global but only focuses when a list page marked
+    // `[data-list-filter]` is present (#107) — still not a screen-local bind.
     const screenLocal = BINDINGS.filter(
-      (binding) => binding.to === undefined && binding.id !== 'palette' && binding.id !== 'help',
+      (binding) =>
+        binding.to === undefined &&
+        binding.id !== 'palette' &&
+        binding.id !== 'help' &&
+        binding.id !== 'list.filter',
     )
 
     expect(owned.has('palette')).toBe(true)
     expect(owned.has('help')).toBe(true)
+    expect(owned.has('list.filter')).toBe(true)
     for (const binding of screenLocal) {
       expect(owned.has(binding.id)).toBe(false)
     }

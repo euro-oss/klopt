@@ -1,5 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { PageHeader, Stat } from '~/components/app-shell'
+import { ReportsTabs } from '~/components/reports-tabs'
 import { Money } from '~/components/finance/money'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Button } from '~/components/ui/button'
@@ -59,6 +60,7 @@ function DebtorAgeing() {
   if (!result.ok) {
     return (
       <>
+        <ReportsTabs />
         <PageHeader title={t('debtorAgeing.title')} />
         <p role="alert" className="text-destructive text-sm">
           {result.problem.detail}
@@ -101,6 +103,7 @@ function DebtorAgeing() {
 
   return (
     <>
+      <ReportsTabs />
       <PageHeader
         title={t('debtorAgeing.title')}
         description={t('debtorAgeing.intro', { date: formatDate(asOf) })}

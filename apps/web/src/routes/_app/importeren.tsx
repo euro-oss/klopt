@@ -1492,7 +1492,7 @@ function ImportWizardPage() {
                                 </div>
                               )}
                               {noFitCount > 0 && (
-                                <p className="text-warning mt-2 text-xs">
+                                <p className="text-unreconciled mt-2 text-xs">
                                   {plural('wizard.year.noFittingCode', noFitCount, {
                                     count: String(noFitCount),
                                   })}

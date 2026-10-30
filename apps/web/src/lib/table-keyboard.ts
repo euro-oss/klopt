@@ -97,6 +97,9 @@ export function resolveTableKey(stroke: TableKeystroke, state: TableCursorState)
       return { action: 'open', index: here }
     case ' ':
       return { action: 'toggle', index: here }
+    // X selects as well as Space (#107). Shift+X still type-aheads (falls through).
+    case 'x':
+      return { action: 'toggle', index: here }
     case 'Escape':
       return { action: 'leave' }
     default:

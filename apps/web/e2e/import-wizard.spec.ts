@@ -45,7 +45,11 @@ async function connectStandIn(page: Page, standIn: MoneybirdStandIn): Promise<vo
   await clickNext(page)
   await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
 
-  await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+  await page
+    .locator('details')
+    .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
+    .locator('summary')
+    .click()
   await page.getByLabel('API-adres').fill(standIn.baseUrl)
   await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
   await clickNext(page)
@@ -120,15 +124,10 @@ async function clickNext(page: Page): Promise<void> {
 test('i m opens the import wizard under Importeren', async ({ page }) => {
   await anAdministration(page)
 
+  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
+  // Moneybird is palette-only (#107); footer Importeren + chord `i m`.
   await expect(
-    page
-      .getByRole('link', { name: /^Dashboard/ })
-      .locator('kbd')
-      .first(),
-  ).toBeVisible()
-  // Accessible name includes the printed chord; allow trailing text, never "(oud)".
-  await expect(
-    page.getByRole('navigation').getByRole('link', { name: /^Moneybird(?! \(oud\))/ }),
+    page.getByRole('navigation').getByRole('link', { name: /^Importeren/ }),
   ).toBeVisible()
 
   await page.keyboard.press('i')
@@ -152,8 +151,9 @@ test('picking Exact on Bron updates ?bron= and the page title', async ({ page })
   await expect(page).toHaveURL(/bron=exact/)
   await expect(page.getByText(/kan nog niet in deze wizard/i)).toBeVisible()
   await expect(page.getByRole('banner').getByText('Exact Online', { exact: true })).toBeVisible()
+  // Source-specific links are palette-only; the footer Import item stays current.
   await expect(
-    page.getByRole('navigation').getByRole('link', { name: /^Exact Online(?! \(oud\))/ }),
+    page.getByRole('navigation').getByRole('link', { name: /^Importeren/ }),
   ).toHaveAttribute('aria-current', 'page')
 })
 
@@ -200,7 +200,11 @@ test('a wrong Moneybird token stays on Verbinden with the token error (#105)', a
     await clickNext(page)
     await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
 
-    await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+    await page
+      .locator('details')
+      .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
+      .locator('summary')
+      .click()
     await page.getByLabel('API-adres').fill(standIn.baseUrl)
     await page.getByLabel('Persoonlijk API-token').fill('definitely-wrong-token')
     await clickNext(page)
@@ -234,7 +238,11 @@ test('an unreachable Moneybird stays on Verbinden with the generic try-again (#1
     await clickNext(page)
     await expect(page.getByRole('heading', { name: /Verbind met Moneybird/ })).toBeVisible()
 
-    await page.locator('details').filter({ hasText: 'Geavanceerd' }).locator('summary').click()
+    await page
+      .locator('details')
+      .filter({ hasText: /Geavanceerd|Boekhouddetails/ })
+      .locator('summary')
+      .click()
     await page.getByLabel('API-adres').fill(standIn.baseUrl)
     await page.getByLabel('Persoonlijk API-token').fill(standIn.token)
     await clickNext(page)

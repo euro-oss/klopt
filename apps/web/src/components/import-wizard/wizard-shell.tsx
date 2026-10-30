@@ -292,7 +292,7 @@ export function AttentionBlock({
       ? 'border-destructive/50 bg-destructive/6 border-l-destructive'
       : tone === 'info'
         ? 'border-info/40 bg-info/6 border-l-info'
-        : 'border-warning/40 bg-warning/8 border-l-warning'
+        : 'border-status-geen-btw/40 bg-status-geen-btw/8 border-l-status-geen-btw'
   return (
     <div className={cn('border border-l-[3px] px-4 py-3 text-sm', toneClass)} role="status">
       {badge !== undefined && <div className="mb-2">{badge}</div>}

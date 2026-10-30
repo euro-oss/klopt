@@ -12,11 +12,17 @@ that foundation is planned when it exists. Until then, Hidde Stokvis is
 the copyright holder named in this NOTICE. Contributor inbound licences
 remain Apache-2.0 via DCO (see CONTRIBUTING.md).
 
+This product includes the Inter font family (SIL Open Font License 1.1) and
+JetBrains Mono (SIL Open Font License 1.1), self-hosted as woff2 under
+apps/web/src/assets/fonts/ with the licence texts Inter-OFL.txt and
+JetBrainsMono-OFL.txt. The fonts remain under their own licences and are not
+licensed under the Apache License.
+
 This product includes UI components derived from shadcn/ui
 (https://ui.shadcn.com/), under the MIT License. The attribution below covers
 the components in apps/web/src/components/ui/, including badge.tsx, button.tsx,
-empty.tsx, item.tsx, keycap.tsx, popover.tsx, select-field.tsx, select.tsx, and
-separator.tsx.
+dropdown-menu.tsx, empty.tsx, item.tsx, keycap.tsx, popover.tsx,
+select-field.tsx, select.tsx, separator.tsx, switch.tsx, and tabs.tsx.
 
 Copyright (c) 2023 shadcn
 

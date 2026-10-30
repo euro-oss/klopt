@@ -2,10 +2,21 @@ import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import {
   RiArrowDownSLine,
   RiArrowRightSLine,
+  RiBankLine,
+  RiBookOpenLine,
+  RiContactsLine,
+  RiFileList3Line,
+  RiHome5Line,
+  RiInbox2Line,
+  RiKeyboardLine,
   RiMenuLine,
   RiMoonLine,
+  RiPercentLine,
   RiSearchLine,
+  RiSettings3Line,
+  RiShoppingBagLine,
   RiSunLine,
+  RiUpload2Line,
 } from '@remixicon/react'
 import { Button } from '~/components/ui/button'
 import { Keycap } from '~/components/ui/keycap'
@@ -26,24 +37,41 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
-import { formatDate } from '~/lib/format'
 import type { FiscalYearOption, FiscalYearScope } from '~/lib/fiscal-year'
 import { DEFAULT_THEME_PREFERENCE, type ThemePreference } from '~/lib/theme'
 import { setTheme } from '~/server/theme'
 import { BINDINGS_BY_ID, bindingChips, isApple } from '~/lib/keyboard'
 import {
-  NAVIGATION,
   isNavActive,
   navLabelKey,
   pageTitleKey,
-  type NavGroup,
+  sidebarFooterItems,
+  sidebarPrimarySections,
+  type NavItem,
   type NavSearch,
 } from '~/lib/shell-nav'
 import { CommandPalette } from './command-palette'
+import { PhoneTabBar } from './phone-tab-bar'
 
 /** #63 focus ring: solid outline, never outline-none (Tailwind 4 trap). */
 const FOCUS_RING =
   'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+
+/** Export `.k-nav` icons — 16px ink-muted, one per primary/footer destination. */
+const NAV_ICONS: Readonly<Partial<Record<MessageKey, typeof RiHome5Line>>> = {
+  'nav.home': RiHome5Line,
+  'nav.inbox': RiInbox2Line,
+  'nav.sales': RiFileList3Line,
+  'nav.costs': RiShoppingBagLine,
+  'nav.bank': RiBankLine,
+  'nav.contacts': RiContactsLine,
+  'nav.journal': RiBookOpenLine,
+  'nav.vat': RiPercentLine,
+  'nav.reports': RiFileList3Line,
+  'nav.import': RiUpload2Line,
+  'nav.settings': RiSettings3Line,
+  'nav.shortcuts': RiKeyboardLine,
+}
 
 /**
  * The frame every screen sits in.
@@ -149,22 +177,16 @@ export function AppShell({
   const titleKey = pageTitleKey(path, advanced, search)
   const pageTitle = titleKey !== null ? t(titleKey) : 'Klopt'
 
-  // Role filter, then Geavanceerd: Journaalposten / Proefbalans leave the nav
-  // when the toggle is off but stay in ⌘K (#44). Empty groups drop out.
-  const groups = NAVIGATION.map((group) => ({
-    ...group,
-    items: group.items.filter(
-      (item) =>
-        (item.roles === undefined || item.roles.includes(role)) &&
-        (item.advancedOnly !== true || advanced),
-    ),
-  })).filter((group) => group.items.length > 0)
+  // v2 grouped rail: Money / Books; Import pinned in the footer (#107).
+  const sections = sidebarPrimarySections(role, advanced)
+  const footer = sidebarFooterItems(role, advanced)
 
   const railChrome = (
     <ShellNavChrome
       path={path}
       search={search}
-      groups={groups}
+      sections={sections}
+      footer={footer}
       advanced={advanced}
       entities={entities}
       activeEntityId={active?.entityId ?? ''}
@@ -184,7 +206,8 @@ export function AppShell({
     <ShellNavChrome
       path={path}
       search={search}
-      groups={groups}
+      sections={sections}
+      footer={footer}
       advanced={advanced}
       entities={entities}
       activeEntityId={active?.entityId ?? ''}
@@ -221,16 +244,18 @@ export function AppShell({
         */}
         <nav
           aria-label={t('shell.navigation')}
-          className="border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r md:flex"
+          className="border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 hidden h-screen shrink-0 flex-col border-r md:flex"
+          style={{ width: 'var(--sidebar-w)' }}
         >
-          <div className="flex h-12 items-center gap-2 px-4">
+          <div className="flex h-12 items-center gap-2 px-3">
             <Link
               to="/"
               className="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
             >
               <span
                 aria-hidden="true"
-                className="bg-accent text-accent-foreground flex size-6 items-center justify-center text-[13px] font-semibold"
+                className="bg-accent text-accent-foreground flex size-8 items-center justify-center text-[16px] font-bold"
+                style={{ borderRadius: 'var(--radius-md)' }}
               >
                 {t('shell.brandMark')}
               </span>
@@ -340,7 +365,7 @@ export function AppShell({
             id="main"
             ref={main}
             tabIndex={-1}
-            className="min-w-0 flex-1 scroll-mt-12 p-4 outline-none md:p-8"
+            className="min-w-0 flex-1 scroll-mt-12 p-4 pb-24 outline-none md:p-8 md:pb-8"
           >
             {active?.isDemo === true && (
               <div
@@ -352,6 +377,19 @@ export function AppShell({
             )}
             {children}
           </main>
+
+          {/*
+            v2 PhoneTabBar: five destinations at <md. More opens the left Sheet
+            (flat rail). Desktop keeps the 8-item sidebar.
+          */}
+          <PhoneTabBar
+            path={path}
+            search={search}
+            moreOpen={navOpen}
+            onMore={() => {
+              setNavOpen(true)
+            }}
+          />
         </div>
       </div>
     </div>
@@ -361,14 +399,14 @@ export function AppShell({
 /**
  * The shared body of the side-nav and the phone Sheet.
  *
- * One list, two hosts: the desktop rail shows the brand above this block, the
- * Sheet puts it in the dialog title. Keeping the destinations here is what
- * stops Importeren (and every other group) from existing in only one surface.
+ * v2 grouped primary list (Money / Books) + footer (Import / Settings /
+ * Shortcuts), then the profile row.
  */
 function ShellNavChrome({
   path,
   search,
-  groups,
+  sections,
+  footer,
   advanced,
   entities,
   activeEntityId,
@@ -385,7 +423,11 @@ function ShellNavChrome({
 }: {
   path: string
   search: NavSearch
-  groups: readonly NavGroup[]
+  sections: readonly {
+    readonly key: MessageKey | undefined
+    readonly items: readonly NavItem[]
+  }[]
+  footer: readonly NavItem[]
   advanced: boolean
   entities: readonly ShellEntity[]
   activeEntityId: string
@@ -403,6 +445,78 @@ function ShellNavChrome({
 }) {
   const { t } = useT()
 
+  function renderItem(item: NavItem): ReactNode {
+    const binding = item.binding === undefined ? undefined : BINDINGS_BY_ID.get(item.binding)
+    const isActive =
+      item.openShortcuts === true
+        ? false
+        : isNavActive(path, item.to, search, item.search, item.alsoActiveFor)
+    const labelKey = navLabelKey(item, advanced)
+    const rowKey = item.binding ?? `${item.to}:${item.key}`
+    const Icon = NAV_ICONS[item.key]
+
+    const className = cn(
+      'flex items-center gap-2 px-2.5 text-sm font-medium',
+      'min-h-11 md:min-h-0',
+      isActive
+        ? 'bg-surface text-ink shadow-[var(--shadow-raised)]'
+        : 'text-ink-2 hover:bg-line-soft hover:text-ink',
+    )
+    const style = { height: 'var(--nav-h)', borderRadius: 'var(--radius-md)' }
+    const icon =
+      Icon === undefined ? null : (
+        <Icon className="text-ink-muted size-4 shrink-0" aria-hidden="true" />
+      )
+
+    if (item.openShortcuts === true) {
+      return (
+        <li key={rowKey}>
+          <button
+            type="button"
+            disabled={!hydrated}
+            onClick={() => {
+              onNavigate?.()
+              window.dispatchEvent(new Event('klopt:open-help'))
+            }}
+            className={cn(className, 'w-full text-left')}
+            style={style}
+          >
+            {icon}
+            <span className="min-w-0 flex-1 truncate">{t(labelKey)}</span>
+            {binding !== undefined && shortcutsLive && (
+              <span className="text-ink-muted hidden font-mono text-[11px] tracking-wide opacity-0 transition-opacity group-hover/nav:opacity-100 group-focus-within/nav:opacity-100 md:inline">
+                ?
+              </span>
+            )}
+          </button>
+        </li>
+      )
+    }
+
+    return (
+      <li key={rowKey}>
+        <Link
+          to={item.to}
+          {...(item.search !== undefined ? { search: item.search } : {})}
+          onClick={onNavigate}
+          aria-current={isActive ? 'page' : undefined}
+          className={className}
+          style={style}
+        >
+          {icon}
+          <span className="min-w-0 flex-1 truncate">{t(labelKey)}</span>
+          {binding !== undefined && shortcutsLive && (
+            <span className="text-ink-muted hidden items-center gap-0.5 font-mono text-[11px] tracking-wide opacity-0 transition-opacity group-hover/nav:opacity-100 group-focus-within/nav:opacity-100 md:inline-flex">
+              {bindingChips(binding).map((chip, position) => (
+                <Keycap key={`${rowKey}-${String(position)}`}>{chip}</Keycap>
+              ))}
+            </span>
+          )}
+        </Link>
+      </li>
+    )
+  }
+
   return (
     <>
       <EntitySwitcher
@@ -413,69 +527,26 @@ function ShellNavChrome({
         activeYear={activeYear}
         onSelectYear={onSelectYear}
         hydrated={hydrated}
+        role={role}
       />
 
-      {/* Nieuwe journaalpost is a Geavanceerd action; Eigenaar finds invoices
-          on the dashboard instead (#44 / #57). */}
-      {advanced && (
-        <div className="mx-2 mb-2">
-          <Link
-            to="/entries/new"
-            onClick={onNavigate}
-            className="touch-cta touch-cta-primary w-full text-center text-sm"
-          >
-            {t('shell.newEntry')}
-          </Link>
-        </div>
-      )}
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-        {groups.map((group, index) => (
-          <div key={group.key ?? 'start'} className={cn(index > 0 ? 'mt-2' : 'mt-0.5')}>
-            {group.key !== undefined && (
-              <p className="text-muted-foreground px-3 pb-0.5 text-[11px] font-medium tracking-wide uppercase">
-                {t(group.key)}
+      <div className="group/nav min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+        {sections.map((section) => (
+          <div key={section.key ?? 'top'} className="mb-1">
+            {section.key !== undefined && (
+              <p className="text-ink-muted mt-3 mb-1 px-2.5 text-[11px] font-semibold tracking-[0.06em] uppercase">
+                {t(section.key)}
               </p>
             )}
-            <ul role="list">
-              {group.items.map((item) => {
-                const binding =
-                  item.binding === undefined ? undefined : BINDINGS_BY_ID.get(item.binding)
-                const isActive = isNavActive(path, item.to, search, item.search)
-                const labelKey = navLabelKey(item, advanced)
-                const rowKey = item.binding ?? `${item.to}:${item.key}`
-                return (
-                  <li key={rowKey}>
-                    <Link
-                      to={item.to}
-                      {...(item.search !== undefined ? { search: item.search } : {})}
-                      onClick={onNavigate}
-                      aria-current={isActive ? 'page' : undefined}
-                      className={cn(
-                        'flex items-center gap-2 border-l-[3px] px-3 text-sm',
-                        'min-h-11 md:h-7 md:min-h-0',
-                        isActive
-                          ? 'border-accent bg-background font-medium'
-                          : 'text-sidebar-foreground/85 border-transparent hover:bg-background/70',
-                      )}
-                    >
-                      <span className="min-w-0 flex-1 truncate">{t(labelKey)}</span>
-                      {binding !== undefined && shortcutsLive && (
-                        // Printed keycaps on desktop only (#57): a phone has
-                        // no chord keyboard, and crowding the Sheet helps nobody.
-                        <span className="hidden items-center gap-0.5 md:inline-flex">
-                          {bindingChips(binding).map((chip, position) => (
-                            <Keycap key={`${rowKey}-${String(position)}`}>{chip}</Keycap>
-                          ))}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                )
-              })}
+            <ul role="list" className="flex flex-col gap-0.5">
+              {section.items.map(renderItem)}
             </ul>
           </div>
         ))}
+        <div className="min-h-6 flex-1" aria-hidden="true" />
+        <ul role="list" className="mt-2 flex flex-col gap-0.5">
+          {footer.map(renderItem)}
+        </ul>
       </div>
 
       <Profile userName={userName} userEmail={userEmail} role={role} />
@@ -484,11 +555,11 @@ function ShellNavChrome({
 }
 
 /**
- * One combined Administratie / Boekjaar control (#57 prototype).
+ * v2 Switcher — administration + book year (Popover for Phase 0).
  *
- * The closed row shows the administration over the year + date range. Opening
- * it reveals the labelled SelectFields the e2e suite already drives, so
- * `chooseOption(…, 'Administratie' | 'Boekjaar', …)` keeps working.
+ * Closed row: administration over "Boekjaar {year}". Opening reveals the
+ * labelled SelectFields e2e already drives. New administration is [API]
+ * (Phase 14) — not linked. People/access is owner-only, matching SHELL_NAV.
  */
 function EntitySwitcher({
   entities,
@@ -498,6 +569,7 @@ function EntitySwitcher({
   activeYear,
   onSelectYear,
   hydrated,
+  role,
 }: {
   entities: readonly ShellEntity[]
   activeEntityId: string
@@ -506,6 +578,7 @@ function EntitySwitcher({
   activeYear: FiscalYearScope | null
   onSelectYear: (code: string) => void
   hydrated: boolean
+  role: string
 }) {
   const { t } = useT()
   const [open, setOpen] = useState(false)
@@ -518,72 +591,102 @@ function EntitySwitcher({
       : active.isDemo
         ? t('shell.demoEntity', { name: active.entityName })
         : active.entityName
-  const yearRange =
-    activeYear === null
-      ? ''
-      : t('shell.yearSummary', {
-          year: activeYear.code,
-          range: `${formatDate(activeYear.startsOn)} – ${formatDate(activeYear.endsOn)}`,
-        })
+  const yearLabel = activeYear === null ? '' : t('shell.yearSummary', { year: activeYear.code })
+  const showPeople = role === 'owner'
 
   return (
-    <div className="mx-2 mb-2">
+    <div className="mx-2 mb-2" data-entity-switcher="">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           disabled={!hydrated}
           className={cn(
-            'border-sidebar-border bg-background flex min-h-11 w-full items-center gap-2 border px-3 py-1.5 text-left md:min-h-0',
-            'hover:bg-background/70 data-[state=open]:bg-background',
+            'border-line bg-surface flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-md)] border px-3 py-1.5 text-left md:min-h-0',
+            'hover:bg-surface-hover data-[state=open]:bg-surface',
+            'shadow-[var(--shadow-raised)]',
             FOCUS_RING,
           )}
           aria-label={t('shell.entitySwitcher')}
         >
+          <span
+            aria-hidden="true"
+            className="bg-accent text-accent-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold"
+          >
+            {t('shell.brandMark')}
+          </span>
           <span className="min-w-0 flex-1">
             {entityLabel !== '' && (
               <span className="block truncate text-sm font-medium">{entityLabel}</span>
             )}
-            {yearRange !== '' && (
-              <span className="text-muted-foreground block truncate text-xs tabular">
-                {yearRange}
+            {yearLabel !== '' && (
+              <span className="text-ink-muted block truncate text-xs tabular-nums">
+                {yearLabel}
               </span>
             )}
           </span>
-          <RiArrowDownSLine aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
+          <RiArrowDownSLine aria-hidden="true" className="text-ink-muted size-4 shrink-0" />
         </PopoverTrigger>
-        <PopoverContent side="bottom" align="start" sideOffset={4} className="w-64 space-y-3 p-3">
+        <PopoverContent
+          side="bottom"
+          align="start"
+          sideOffset={4}
+          className="bg-surface w-80 space-y-1 p-1.5"
+        >
           {entities.length > 0 && (
-            <SelectField
-              label={t('shell.administration')}
-              value={activeEntityId}
-              onValueChange={onSwitchEntity}
-              disabled={!hydrated}
-              size="sm"
-            >
-              {entities.map((entity) => (
-                <SelectOption key={entity.entityId} value={entity.entityId}>
-                  {entity.isDemo
-                    ? t('shell.demoEntity', { name: entity.entityName })
-                    : entity.entityName}
-                </SelectOption>
-              ))}
-            </SelectField>
+            <div className="space-y-1 p-1.5">
+              <p className="text-ink-muted px-1 pt-1 text-[11px] font-semibold tracking-[0.06em] uppercase">
+                {t('shell.administration')}
+              </p>
+              <SelectField
+                label={t('shell.administration')}
+                value={activeEntityId}
+                onValueChange={onSwitchEntity}
+                disabled={!hydrated}
+                size="sm"
+              >
+                {entities.map((entity) => (
+                  <SelectOption key={entity.entityId} value={entity.entityId}>
+                    {entity.isDemo
+                      ? t('shell.demoEntity', { name: entity.entityName })
+                      : entity.entityName}
+                  </SelectOption>
+                ))}
+              </SelectField>
+            </div>
           )}
           {fiscalYears.length > 0 && activeYear !== null && (
-            <SelectField
-              label={t('shell.fiscalYear')}
-              value={activeYear.code}
-              onValueChange={onSelectYear}
-              disabled={!hydrated}
-              size="sm"
-            >
-              {fiscalYears.map((year) => (
-                <SelectOption key={year.code} value={year.code}>
-                  {year.status === 'closed'
-                    ? t('shell.yearClosed', { year: year.code })
-                    : year.code}
-                </SelectOption>
-              ))}
-            </SelectField>
+            <div className="border-line-soft space-y-1 border-t p-1.5">
+              <p className="text-ink-muted px-1 pt-1 text-[11px] font-semibold tracking-[0.06em] uppercase">
+                {t('shell.fiscalYear')}
+              </p>
+              <SelectField
+                label={t('shell.fiscalYear')}
+                value={activeYear.code}
+                onValueChange={onSelectYear}
+                disabled={!hydrated}
+                size="sm"
+              >
+                {fiscalYears.map((year) => (
+                  <SelectOption key={year.code} value={year.code}>
+                    {year.status === 'closed'
+                      ? t('shell.yearClosed', { year: year.code })
+                      : year.code}
+                  </SelectOption>
+                ))}
+              </SelectField>
+            </div>
+          )}
+          {showPeople && (
+            <div className="border-line-soft border-t p-1.5">
+              <Link
+                to="/members"
+                className="text-ink hover:bg-surface-hover flex h-10 items-center rounded-[var(--radius-md)] px-2.5 text-sm no-underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                onClick={() => {
+                  setOpen(false)
+                }}
+              >
+                {t('shell.peopleAccess')}
+              </Link>
+            </div>
           )}
         </PopoverContent>
       </Popover>
@@ -621,7 +724,6 @@ function Profile({
   role: string
 }) {
   const { t } = useT()
-  const { advanced, setAdvanced, saving } = useAdvancedMode()
   // A trigger that opens nothing is the failure `select.tsx` describes: this
   // is a Radix popover, so it does nothing at all until React has attached.
   const hydrated = useHydrated()
@@ -632,12 +734,8 @@ function Profile({
   // recognise as themselves.
   const shown = userName.trim() === '' ? userEmail : userName
   const roleKey = roleMessageKey(role)
-  const roleLine =
-    roleKey === null
-      ? advanced
-        ? t('shell.advancedOn')
-        : t('shell.advancedOff')
-      : `${t(roleKey)} · ${advanced ? t('shell.advancedOn') : t('shell.advancedOff')}`
+  // v2 footer: role only. Boekhouddetails lives on Settings, not here.
+  const roleLine = roleKey === null ? '' : t(roleKey)
 
   return (
     <section aria-label={t('shell.profile')} className="border-sidebar-border border-t p-2">
@@ -652,7 +750,7 @@ function Profile({
         >
           <span
             aria-hidden="true"
-            className="bg-foreground text-background flex size-7 shrink-0 items-center justify-center text-xs font-semibold"
+            className="bg-foreground text-background flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
           >
             {initialOf(shown)}
           </span>
@@ -660,7 +758,9 @@ function Profile({
             <span className="block truncate text-sm font-medium" title={shown}>
               {shown}
             </span>
-            <span className="text-muted-foreground block truncate text-xs">{roleLine}</span>
+            {roleLine !== '' && (
+              <span className="text-muted-foreground block truncate text-xs">{roleLine}</span>
+            )}
           </span>
           <RiArrowRightSLine
             aria-hidden="true"
@@ -680,46 +780,12 @@ function Profile({
             <span className="block truncate text-sm font-medium" title={shown}>
               {shown}
             </span>
-            <span className="text-muted-foreground block text-xs">{roleLine}</span>
+            {roleLine !== '' && (
+              <span className="text-muted-foreground block text-xs">{roleLine}</span>
+            )}
           </div>
 
-          {/* Geavanceerd (#44): no shortcut — Shift+letter is table type-ahead.
-              In-flight saves are ignored in setAdvanced (savingRef) without
-              disabling the control — disabled would flash opacity and drop
-              keyboard focus out of the menu in Chromium (#66 design review).
-              Failure is announced once by the fixed toast. */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={advanced}
-            aria-busy={saving || undefined}
-            disabled={!hydrated}
-            onClick={() => {
-              void setAdvanced(!advanced)
-            }}
-            className={cn(
-              'hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left',
-              FOCUS_RING,
-            )}
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium">{t('shell.advanced')}</span>
-              <span className="block text-xs opacity-70">{t('shell.advancedHint')}</span>
-            </span>
-            <span
-              aria-hidden="true"
-              className={cn(
-                'mt-0.5 flex h-6 w-10 shrink-0 items-center border px-0.5 transition-colors',
-                advanced
-                  ? 'border-foreground bg-foreground justify-end'
-                  : 'border-input justify-start',
-              )}
-            >
-              <span className={cn('size-4', advanced ? 'bg-background' : 'bg-muted-foreground')} />
-            </span>
-          </button>
-
-          <div className="border-border space-y-3 border-t px-3 py-3">
+          <div className="border-border space-y-3 px-3 py-3">
             <LanguagePicker />
             <ThemePicker />
           </div>

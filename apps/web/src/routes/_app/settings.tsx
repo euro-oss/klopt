@@ -1,11 +1,14 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { violationMessage } from '~/i18n/labels'
 import { useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
+import { SettingsSubNav } from '~/components/settings-subnav'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
+import { Switch } from '~/components/ui/switch'
 import { AccountPicker } from '~/components/finance/account-picker'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
+import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import { listAccounts } from '~/server/ledger'
 import { getEntity, updateEntity } from '~/server/entity'
@@ -44,6 +47,7 @@ function Settings() {
   const router = useRouter()
   const hydrated = useHydrated()
   const { t } = useT()
+  const { advanced, setAdvanced, saving: advancedSaving } = useAdvancedMode()
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -172,122 +176,216 @@ function Settings() {
     <>
       <PageHeader title={t('settings.title')} description={t('settings.intro')} />
 
-      {notice !== null && (
-        <p className="border-border text-muted-foreground mb-4 rounded-md border p-3 text-sm">
-          {notice}
-        </p>
-      )}
-      {error !== null && (
-        <p role="alert" className="text-destructive mb-4 text-sm">
-          {error}
-        </p>
-      )}
+      <div className="flex flex-col gap-8 md:flex-row md:gap-10">
+        {/* v2 SubNav — settings areas; never grows the sidebar. */}
+        <aside className="w-full shrink-0 md:w-56">
+          <SettingsSubNav />
+        </aside>
 
-      <form
-        onSubmit={(event) => {
-          void submit(event)
-        }}
-        className="max-w-2xl space-y-4"
-      >
-        <fieldset className="space-y-4">
-          <legend className="text-base font-medium">{t('settings.registration')}</legend>
-          <div className="grid grid-cols-2 gap-3">
-            {field('name', t('settings.tradeName'), current.name)}
-            {field('legalName', t('contacts.legalName'), current.legalName)}
-            {field('kvkNumber', t('contacts.kvkNumber'), current.kvkNumber, t('settings.kvkHint'))}
-            {field('vatNumber', t('contacts.vatNumber'), current.vatNumber, t('settings.vatHint'))}
-          </div>
-        </fieldset>
-
-        <fieldset className="space-y-4">
-          <legend className="text-base font-medium">{t('settings.address')}</legend>
-          <div className="grid grid-cols-[1fr_8rem] gap-3">
-            {field('street', t('contacts.street'), current.street)}
-            {field('houseNumber', t('settings.houseNumber'), current.houseNumber)}
-          </div>
-          <div className="grid grid-cols-[8rem_1fr_6rem] gap-3">
-            {field('postalCode', t('contacts.postalCode'), current.postalCode)}
-            {field('city', t('contacts.city'), current.city)}
-            {field('countryCode', t('contacts.country'), current.countryCode, undefined, {
-              maxLength: 2,
-            })}
-          </div>
-        </fieldset>
-
-        <fieldset className="space-y-4">
-          <legend className="text-base font-medium">{t('settings.contactAndPayment')}</legend>
-          <div className="grid grid-cols-2 gap-3">
-            {field('email', t('contacts.email'), current.email, undefined, { type: 'email' })}
-            {field('phone', t('contacts.phone'), current.phone)}
-            {field('iban', 'IBAN', current.iban, t('settings.ibanHint'))}
-            {field('bic', 'BIC', current.bic)}
-          </div>
-        </fieldset>
-
-        <fieldset className="space-y-4">
-          <legend className="text-base font-medium">{t('settings.eInvoicing')}</legend>
-          <p className="text-muted-foreground text-sm">{t('settings.eInvoicingIntro')}</p>
-          <div className="grid grid-cols-2 gap-3">
-            {field(
-              'electronicAddress',
-              t('settings.electronicAddress'),
-              current.electronicAddress,
-              t('settings.electronicAddressHint'),
-            )}
-            <SelectField
-              label={t('settings.scheme')}
-              name="electronicAddressScheme"
-              defaultValue={current.electronicAddressScheme ?? ''}
-              disabled={!hydrated}
-            >
-              {SCHEMES.map((scheme) => (
-                <SelectOption key={scheme.value} value={scheme.value}>
-                  {t(scheme.key)}
-                </SelectOption>
-              ))}
-            </SelectField>
-          </div>
-        </fieldset>
-
-        <fieldset className="space-y-4">
-          <legend className="text-base font-medium">{t('settings.vatRounding')}</legend>
-          <p className="text-muted-foreground text-sm">{t('settings.vatRoundingIntro')}</p>
-          <SelectField
-            label={t('settings.vatRounding')}
-            labelHidden
-            name="vatRounding"
-            defaultValue={current.vatRounding}
-            disabled={!hydrated}
-            className="max-w-xs"
+        <div className="min-w-0 flex-1">
+          {/*
+        Settings hub seed (#107): Overstappen naar Klopt. Full hub grouping is
+        Phase 12; these rows are the Placement decision for Importeren.
+      */}
+          <section
+            aria-label={t('settings.switchToKlopt')}
+            className="border-border bg-surface mb-6 border p-4"
+            style={{ borderRadius: 'var(--radius-xl)' }}
           >
-            <SelectOption value="per_invoice">{t('settings.perInvoice')}</SelectOption>
-            <SelectOption value="per_line">{t('settings.perLine')}</SelectOption>
-          </SelectField>
-        </fieldset>
+            <h2 className="text-base font-semibold">{t('settings.switchToKlopt')}</h2>
+            <p className="text-muted-foreground mt-1 text-sm">{t('settings.switchToKloptBody')}</p>
+            <ul className="mt-3 divide-y border-t">
+              <li>
+                <Link
+                  to="/importeren"
+                  search={{ bron: 'moneybird' }}
+                  className="text-ink hover:bg-surface-hover flex min-h-11 items-center justify-between gap-3 py-2.5 no-underline md:min-h-9"
+                >
+                  <span className="text-sm">
+                    <strong className="block font-medium">
+                      {t('settings.importFromMoneybird')}
+                    </strong>
+                    <span className="text-muted-foreground">
+                      {t('settings.importFromMoneybirdHint')}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/importeren"
+                  search={{ bron: 'exact' }}
+                  className="text-ink hover:bg-surface-hover flex min-h-11 items-center justify-between gap-3 py-2.5 no-underline md:min-h-9"
+                >
+                  <span className="text-sm">
+                    <strong className="block font-medium">{t('settings.importFromExact')}</strong>
+                    <span className="text-muted-foreground">
+                      {t('settings.importFromExactHint')}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/audit-file"
+                  className="text-ink hover:bg-surface-hover flex min-h-11 items-center justify-between gap-3 py-2.5 no-underline md:min-h-9"
+                >
+                  <span className="text-sm">
+                    <strong className="block font-medium">{t('settings.importFromXaf')}</strong>
+                    <span className="text-muted-foreground">{t('settings.importFromXafHint')}</span>
+                  </span>
+                </Link>
+              </li>
+            </ul>
+          </section>
 
-        <fieldset className="space-y-4">
-          <legend className="text-base font-medium">{t('settings.bankCharges')}</legend>
-          <p className="text-muted-foreground text-sm">{t('settings.bankChargesIntro')}</p>
-          <AccountPicker
-            label={t('settings.bankChargesAccount')}
-            labelHidden
-            name="bankChargesAccountNumber"
-            accounts={expenseAccounts}
-            defaultValue={current.bankChargesAccountNumber ?? ''}
-            disabled={!hydrated}
-            emptyOption={t('settings.bankChargesNone')}
-            className="max-w-md"
-          />
-        </fieldset>
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <span className="text-sm">
+              <strong className="block">{t('settings.accountingDetails')}</strong>
+              <span className="text-muted-foreground">{t('settings.accountingDetailsHint')}</span>
+            </span>
+            <Switch
+              checked={advanced}
+              disabled={advancedSaving}
+              aria-busy={advancedSaving || undefined}
+              aria-label={t('settings.accountingDetails')}
+              onCheckedChange={(checked) => {
+                void setAdvanced(checked)
+              }}
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={busy || !hydrated}
-          className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-        >
-          {busy ? t('common.busy') : t('common.save')}
-        </button>
-      </form>
+          <h2 className="mb-3 text-base font-semibold">{t('settings.hubCompany')}</h2>
+          <p className="text-muted-foreground mb-4 text-sm">{t('settings.hubCompanyBody')}</p>
+
+          {notice !== null && (
+            <p className="border-border text-muted-foreground mb-4 rounded-md border p-3 text-sm">
+              {notice}
+            </p>
+          )}
+          {error !== null && (
+            <p role="alert" className="text-destructive mb-4 text-sm">
+              {error}
+            </p>
+          )}
+
+          <form
+            onSubmit={(event) => {
+              void submit(event)
+            }}
+            className="max-w-2xl space-y-4"
+          >
+            <fieldset className="space-y-4">
+              <legend className="text-base font-medium">{t('settings.registration')}</legend>
+              <div className="grid grid-cols-2 gap-3">
+                {field('name', t('settings.tradeName'), current.name)}
+                {field('legalName', t('contacts.legalName'), current.legalName)}
+                {field(
+                  'kvkNumber',
+                  t('contacts.kvkNumber'),
+                  current.kvkNumber,
+                  t('settings.kvkHint'),
+                )}
+                {field(
+                  'vatNumber',
+                  t('contacts.vatNumber'),
+                  current.vatNumber,
+                  t('settings.vatHint'),
+                )}
+              </div>
+            </fieldset>
+
+            <fieldset className="space-y-4">
+              <legend className="text-base font-medium">{t('settings.address')}</legend>
+              <div className="grid grid-cols-[1fr_8rem] gap-3">
+                {field('street', t('contacts.street'), current.street)}
+                {field('houseNumber', t('settings.houseNumber'), current.houseNumber)}
+              </div>
+              <div className="grid grid-cols-[8rem_1fr_6rem] gap-3">
+                {field('postalCode', t('contacts.postalCode'), current.postalCode)}
+                {field('city', t('contacts.city'), current.city)}
+                {field('countryCode', t('contacts.country'), current.countryCode, undefined, {
+                  maxLength: 2,
+                })}
+              </div>
+            </fieldset>
+
+            <fieldset className="space-y-4">
+              <legend className="text-base font-medium">{t('settings.contactAndPayment')}</legend>
+              <div className="grid grid-cols-2 gap-3">
+                {field('email', t('contacts.email'), current.email, undefined, { type: 'email' })}
+                {field('phone', t('contacts.phone'), current.phone)}
+                {field('iban', 'IBAN', current.iban, t('settings.ibanHint'))}
+                {field('bic', 'BIC', current.bic)}
+              </div>
+            </fieldset>
+
+            <fieldset className="space-y-4">
+              <legend className="text-base font-medium">{t('settings.eInvoicing')}</legend>
+              <p className="text-muted-foreground text-sm">{t('settings.eInvoicingIntro')}</p>
+              <div className="grid grid-cols-2 gap-3">
+                {field(
+                  'electronicAddress',
+                  t('settings.electronicAddress'),
+                  current.electronicAddress,
+                  t('settings.electronicAddressHint'),
+                )}
+                <SelectField
+                  label={t('settings.scheme')}
+                  name="electronicAddressScheme"
+                  defaultValue={current.electronicAddressScheme ?? ''}
+                  disabled={!hydrated}
+                >
+                  {SCHEMES.map((scheme) => (
+                    <SelectOption key={scheme.value} value={scheme.value}>
+                      {t(scheme.key)}
+                    </SelectOption>
+                  ))}
+                </SelectField>
+              </div>
+            </fieldset>
+
+            <fieldset className="space-y-4">
+              <legend className="text-base font-medium">{t('settings.vatRounding')}</legend>
+              <p className="text-muted-foreground text-sm">{t('settings.vatRoundingIntro')}</p>
+              <SelectField
+                label={t('settings.vatRounding')}
+                labelHidden
+                name="vatRounding"
+                defaultValue={current.vatRounding}
+                disabled={!hydrated}
+                className="max-w-xs"
+              >
+                <SelectOption value="per_invoice">{t('settings.perInvoice')}</SelectOption>
+                <SelectOption value="per_line">{t('settings.perLine')}</SelectOption>
+              </SelectField>
+            </fieldset>
+
+            <fieldset className="space-y-4">
+              <legend className="text-base font-medium">{t('settings.bankCharges')}</legend>
+              <p className="text-muted-foreground text-sm">{t('settings.bankChargesIntro')}</p>
+              <AccountPicker
+                label={t('settings.bankChargesAccount')}
+                labelHidden
+                name="bankChargesAccountNumber"
+                accounts={expenseAccounts}
+                defaultValue={current.bankChargesAccountNumber ?? ''}
+                disabled={!hydrated}
+                emptyOption={t('settings.bankChargesNone')}
+                className="max-w-md"
+              />
+            </fieldset>
+
+            <button
+              type="submit"
+              disabled={busy || !hydrated}
+              className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {busy ? t('common.busy') : t('common.save')}
+            </button>
+          </form>
+        </div>
+      </div>
     </>
   )
 }

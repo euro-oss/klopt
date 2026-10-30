@@ -86,13 +86,8 @@ async function anAdministration(page: Page): Promise<void> {
  * an assertion retried afterwards cannot get it back.
  */
 async function theKeyboardIsLive(page: Page): Promise<void> {
-  // Dashboard is always in the nav; Journaalposten is Geavanceerd-only for Eigenaar.
-  await expect(
-    page
-      .getByRole('link', { name: /^Dashboard/ })
-      .locator('kbd')
-      .first(),
-  ).toBeVisible()
+  // Home is always in the nav (v2 rail label for the dashboard chord).
+  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
 }
 
 /**

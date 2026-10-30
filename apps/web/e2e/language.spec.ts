@@ -70,25 +70,28 @@ test('choosing a language sticks, and outranks the browser', async ({ browser })
   const page = await context.newPage()
   await anAdministration(page)
 
-  // Always-visible destinations (Geavanceerd is off for Eigenaar by default).
-  await expect(page.getByRole('link', { name: 'Verkoopfacturen' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Categorieën' })).toBeVisible()
+  // Always-visible v2 rail labels (Geavanceerd is off for Eigenaar by default).
+  await expect(page.getByRole('link', { name: /^Verkoop/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Relaties/ })).toBeVisible()
 
   await chooseInAccountMenu(page, 'Taal', 'EN')
 
   // The navigation changes without a reload.
-  await expect(page.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Categories' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Sales/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Contacts/ })).toBeVisible()
 
   // And it survives a fresh page, because the choice is a cookie rather than
   // something held in the tab.
   await page.reload()
-  await expect(page.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Sales/ })).toBeVisible()
 
-  // Advanced destinations keep English labels too (#44 chrome).
+  // Journal is always on the rail (#107); English label sticks after Advanced too.
   await enableAdvancedMode(page)
-  await expect(page.getByRole('link', { name: /Journal entries/ })).toBeVisible()
-  await expect(page.getByRole('link', { name: /Trial balance/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Journal/ })).toBeVisible()
+  await page.goto('/reports/profit-and-loss')
+  await expect(
+    page.getByRole('navigation', { name: 'Reports' }).getByRole('link', { name: /Trial balance/ }),
+  ).toBeVisible()
 
   await context.close()
 })
@@ -99,11 +102,11 @@ test('the choice survives a new tab on the same browser', async ({ browser }) =>
   await anAdministration(page)
 
   await chooseInAccountMenu(page, 'Taal', 'EN')
-  await expect(page.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Sales/ })).toBeVisible()
 
   const second = await context.newPage()
   await second.goto('/')
-  await expect(second.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
+  await expect(second.getByRole('link', { name: /^Sales/ })).toBeVisible()
 
   await context.close()
 })
@@ -127,7 +130,7 @@ test('a server-computed label follows the reader, not the server', async ({ brow
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
   ).toBeVisible()
   await chooseInAccountMenu(page, 'Taal', 'EN')
-  await expect(page.getByRole('link', { name: 'Sales invoices' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Sales/ })).toBeVisible()
 
   await page.goto('/reports/balance-sheet')
   // The section titles come off `getBalanceSheet` as `title: 'Activa'`, with
@@ -175,16 +178,18 @@ test('and the same screens stay Dutch for a Dutch reader', async ({ browser }) =
 test('a domain refusal is in the reader’s language, with its numbers intact', async ({
   browser,
 }) => {
+  // NL + EN half, each with enableAdvancedMode / form fill / confirm dialog.
+  test.setTimeout(60_000)
   const context = await browser.newContext({ locale: 'nl-NL' })
   const page = await context.newPage()
   await anAdministration(page)
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
   ).toBeVisible()
-  // Nieuwe journaalpost is Geavanceerd chrome (#44).
+  // Journal entry form is Geavanceerd chrome (#44); open by URL (not a rail link).
   await enableAdvancedMode(page)
 
-  await page.getByRole('link', { name: /Nieuwe journaalpost/ }).click()
+  await page.goto('/entries/new')
   await expect(page.getByRole('button', { name: /Boeken/ }).first()).toBeEnabled()
   await page.getByLabel('Omschrijving', { exact: true }).fill('Verkeerde rekening')
 
@@ -202,8 +207,8 @@ test('a domain refusal is in the reader’s language, with its numbers intact', 
 
   // And the same refusal in English, for somebody who asked for English.
   await chooseInAccountMenu(page, 'Taal', 'EN')
-  await page.getByRole('link', { name: 'Journal entries' }).click()
-  await page.getByRole('link', { name: /New journal entry/ }).click()
+  await page.goto('/entries/new')
+  await expect(page.getByRole('button', { name: /^Post$/ }).first()).toBeEnabled()
   await page.getByLabel('Description', { exact: true }).fill('Wrong account')
   await page.getByLabel('Account line 1').fill('9999')
   await page.getByLabel('Debit line 1').fill('1000,00')

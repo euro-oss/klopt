@@ -92,6 +92,8 @@ const DESTINATIONS: Record<
     readonly action: MessageKey
   }
 > = {
+  // Blocking Moneybird/Exact findings (existing). v2 Main does not add an
+  // “no import yet” to-do — Import lives in the footer / Settings hub.
   'import.blocking': {
     to: '/importeren',
     search: { bron: 'moneybird' },
@@ -458,7 +460,7 @@ function FigureTile({
       <p
         className={cn(
           'mt-1 text-xs',
-          hintTone === 'attention' ? 'text-warning' : 'text-muted-foreground',
+          hintTone === 'attention' ? 'text-unreconciled' : 'text-muted-foreground',
         )}
       >
         {hint}
@@ -593,7 +595,7 @@ function toneIcon(tone: AttentionTone): ReactNode {
     return <RiAlertLine aria-hidden="true" className="text-destructive size-[18px]" />
   }
   if (tone === 'attention') {
-    return <RiCalendarLine aria-hidden="true" className="text-warning size-[18px]" />
+    return <RiCalendarLine aria-hidden="true" className="text-unreconciled size-[18px]" />
   }
   if (tone === 'info') {
     return <RiInformationLine aria-hidden="true" className="text-info size-[18px]" />
@@ -756,9 +758,19 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         <h2 id="queue-title" className="text-base">
           {t('queue.title')}
         </h2>
-        <span className="text-muted-foreground text-sm tabular">
-          {plural('queue.count', items.length)}
-        </span>
+        <div className="text-muted-foreground flex items-center gap-3 text-sm">
+          <span className="tabular-nums">{plural('queue.count', items.length)}</span>
+          {hydrated && (
+            <span className="hidden items-center gap-1.5 text-[0.6875rem] md:inline-flex">
+              <Keycap>j</Keycap>
+              <Keycap>k</Keycap>
+              <span>{t('keys.queueChoose')}</span>
+              <span aria-hidden="true">·</span>
+              <Keycap>↵</Keycap>
+              <span>{t('keys.queueOpenShort')}</span>
+            </span>
+          )}
+        </div>
       </div>
 
       <ul role="list" className="divide-y border">
@@ -793,7 +805,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
                 {item.amount !== null &&
                   (item.kind !== 'sales.overdue' || item.count > 1) &&
                   item.kind !== 'vat.filing' && (
-                    <span className="text-sm tabular">
+                    <span className="text-sm tabular-nums">
                       <EuroAmount amount={item.amount} />
                     </span>
                   )}
@@ -806,24 +818,6 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
           )
         })}
       </ul>
-
-      {hydrated && (
-        <div className="border-accent text-muted-foreground mt-3 hidden flex-wrap items-center gap-x-3 gap-y-1.5 border px-2 py-1.5 text-[0.6875rem] md:flex">
-          <span className="flex items-center gap-1.5">
-            <Keycap>j</Keycap>
-            <Keycap>k</Keycap>
-            <span>{t('keys.queueMove')}</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Keycap>↵</Keycap>
-            <span>{t('keys.queueOpenShort')}</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Keycap>Esc</Keycap>
-            <span>{t('keys.queueLeaveShort')}</span>
-          </span>
-        </div>
-      )}
     </section>
   )
 }
