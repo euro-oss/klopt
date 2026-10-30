@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Close book year 2025</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board (batch 1), not drawn by Hidde. Shell and SubNav from SettingsBooks.dc.html.
+  Variants via the `variant` prop: ready (default), blocked (YearCloseBlocked.dc.html).
+  VAT filing frequency via the `vat` prop: quarterly (default), monthly (YearCloseBlockedMonthly.dc.html),
+  annual (YearCloseBlockedAnnual.dc.html). Any open VAT period overlapping the book year blocks the close.
+  Copy follows apps/web fiscal-years (en/nl fiscalYears.*). NL strings: ../DERIVED.md.
+  A11y deviations (new boards only): --line-control #86857e (3.2:1 or more on every light surface),
+  option and checkbox borders on --line-control, underlined ink text links, 44px targets under 600px,
+  self-hosted fonts from ../design-system/fonts/.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.k-root[data-theme="light"]{--line-control:#86857e}
+.k-option{border-color:var(--line-control)}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}
+.per{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:4px}
+.per li>*{display:block;height:28px;border-radius:var(--radius-xs);font:500 11px/28px var(--font-mono);text-align:center;white-space:nowrap}
+.per .shut{background:var(--neutral-bg);color:var(--ink-2)}
+.per .late{background:var(--danger-bg);color:var(--ink);box-shadow:inset 0 0 0 1px var(--danger);text-decoration:underline;text-underline-offset:2px}
+.per .late:hover{color:var(--ink);box-shadow:inset 0 0 0 2px var(--danger)}
+.lnk:focus-visible,.per .late:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+.chk-row{display:flex;gap:14px;align-items:flex-start;padding:14px 20px;border-top:1px solid var(--line-soft)}
+.chk-ico{width:28px;height:28px;border-radius:var(--radius-md);display:inline-flex;align-items:center;justify-content:center;flex:none;font-size:13px;font-weight:700}
+.chk-ico.ok{background:var(--success-bg);color:var(--success)}
+.chk-ico.no{background:var(--danger-bg);color:var(--danger)}
+.lgrid{display:grid;grid-template-columns:minmax(150px,1fr) 110px 110px;gap:12px;padding:10px 20px;border-top:1px solid var(--line-soft);align-items:center}
+.lhead{background:var(--surface-hover);font:600 12px/16px var(--font-sans);letter-spacing:.04em;text-transform:uppercase;color:var(--ink-muted)}
+.box{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:var(--radius-xs);border:1px solid var(--line-control);background:var(--surface);color:var(--on-primary);flex:none;box-sizing:border-box;margin-top:1px}
+.box.on{background:var(--primary);border-color:var(--primary)}
+.ack{display:flex;gap:10px;align-items:flex-start;cursor:pointer;background:transparent;border:0;padding:0;font:500 14px/20px var(--font-sans);color:var(--ink);text-align:left}
+.ack:disabled{cursor:not-allowed;color:var(--ink-muted)}
+@media (max-width:600px){.k-btn,.k-input,.k-subnav-item,.ack,.lnk{min-height:44px}.lnk{display:inline-flex;align-items:center}.per{grid-template-columns:repeat(var(--cols-phone),minmax(0,1fr))}.per li>*{height:44px;line-height:44px}}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1100px;">
+  <dc-import name="Sidebar" active="settings" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box;">
+    <header style="display: flex; flex-direction: column; gap: 2px;">
+      <a href="Settings.dc.html" class="lnk" style="font-size: 13px; color: var(--ink-2); font-weight: 400; align-self: flex-start;">Settings</a>
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em;">Books</h1>
+    </header>
+    <div style="display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start;">
+      <nav class="k-subnav" aria-label="Books settings" style="flex: 0 0 220px;">
+        <a href="SettingsBooks.dc.html" class="k-subnav-item is-active" aria-current="page">Book years <span class="k-code">2</span></a>
+        <a href="SettingsBooks.dc.html" class="k-subnav-item">Categories <span class="k-code">31</span></a>
+        <a href="SettingsBooks.dc.html" class="k-subnav-item">VAT codes <span class="k-code">27</span></a>
+      </nav>
+
+      <section style="flex: 1 1 560px; min-width: 0; max-width: 860px; display: flex; flex-direction: column; gap: 20px;">
+        <div class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+          <a href="SettingsBooks.dc.html" class="lnk" style="font-size: 13px; font-weight: 400; color: var(--ink-2); align-self: flex-start;">Book years</a>
+          <div style="display: flex; align-items: center; gap: 12px;"><h2 class="k-card-title" style="flex: 1; font-size: 20px; line-height: 26px;">Close book year 2025</h2><span class="{{pill}}">{{pillText}}</span></div>
+          <span style="color: var(--ink-2);">The proposal first, then close. Klopt sets the profit and loss to zero on 31-12-2025, moves the result to equity and opens 2026 with the balances.</span>
+          <ul class="per" aria-label="{{perLabel}}" style="--cols: {{cols}}; --cols-phone: {{colsPhone}};">
+            <sc-for list="{{periods}}" as="p" hint-placeholder-count="4"><li><sc-if value="{{p.open}}" hint-placeholder-val="{{false}}"><a href="{{p.href}}" class="late" aria-label="{{p.label}}">{{p.n}}</a></sc-if><sc-if value="{{p.shut}}" hint-placeholder-val="{{true}}"><span class="shut" aria-label="{{p.label}}">{{p.n}}</span></sc-if></li></sc-for>
+          </ul>
+          <span class="k-muted" style="font-size: 13px;">{{perNote}}</span>
+        </div>
+
+        <sc-if value="{{blocked}}" hint-placeholder-val="{{false}}">
+          <div class="k-callout k-callout--danger" role="alert">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--danger); flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
+            <div class="k-callout-body">
+              <span class="k-callout-title" style="color: var(--danger);">Book year 2025 can't close yet</span>
+              <span class="k-callout-text">2 things below block it. Fix them and this proposal updates by itself; nothing has been booked.</span>
+            </div>
+          </div>
+        </sc-if>
+
+        <section class="k-card k-card--flush" aria-labelledby="before">
+          <div class="k-card-head"><h3 id="before" class="k-card-title">Before you close</h3><span class="k-muted" style="font-size: 13px;">{{checksMeta}}</span></div>
+          <sc-for list="{{checks}}" as="c" hint-placeholder-count="3">
+            <div class="chk-row">
+              <span class="{{c.ico}}" aria-hidden="true">{{c.mark}}</span>
+              <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="{{c.titleStyle}}">{{c.title}}</span><span class="k-muted" style="font-size: 13px;">{{c.meta}}</span></span>
+              <sc-if value="{{c.href}}" hint-placeholder-val="{{false}}"><a href="{{c.href}}" class="lnk" style="font-size: 14px; white-space: nowrap; align-self: center;">{{c.fix}}</a></sc-if>
+            </div>
+          </sc-for>
+        </section>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+          <div class="k-stat"><span class="k-stat-label">Profit for 2025</span><span class="k-stat-value">€ 14.162,11</span><span class="k-stat-meta">Revenue <span class="k-num" style="white-space: nowrap;">€ 23.164,83</span> minus costs <span class="k-num" style="white-space: nowrap;">€ 9.002,72</span></span></div>
+          <div class="k-stat"><span class="k-stat-label">Moves to equity</span><span class="k-stat-value">€ 14.162,11</span><span class="k-stat-meta">Into Overige reserves <span class="k-code">0600</span></span></div>
+          <div class="k-stat"><span class="k-stat-label">2026 opens with</span><span class="k-stat-value">€ 69.085,93</span><span class="k-stat-meta">7 balance-sheet accounts, as at <span class="k-num" style="white-space: nowrap;">01-01-2026</span></span></div>
+        </div>
+
+        <div class="k-card" style="padding: 20px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+          <div class="k-field"><label class="k-label" for="ra">Result account</label><select id="ra" class="k-input" disabled="{{blocked}}"><option>0600 · Overige reserves</option><option>0700 · Onverdeelde winst</option></select><span class="k-help">An equity account; anything else is refused.</span></div>
+          <div class="k-field"><label class="k-label" for="jr">Journal</label><select id="jr" class="k-input" disabled="{{blocked}}"><option>MEM · Memorial</option></select><span class="k-help">Both entries go here, as entry 217 and 218.</span></div>
+        </div>
+
+        <div style="display: flex; align-items: baseline; gap: 12px;"><h3 class="k-card-title" style="flex: 1;">What closing 2025 books</h3><span class="k-muted" style="font-size: 13px;">{{entriesMeta}}</span></div>
+        <sc-for list="{{entries}}" as="e" hint-placeholder-count="2">
+          <section class="k-card k-card--flush" aria-label="{{e.title}}">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 16px 20px;">
+              <span class="k-muted k-num" style="font-size: 13px;">Entry {{e.n}} · Memorial</span>
+              <span class="k-pill k-pill--draft">Not booked</span>
+              <span style="flex: 1;"></span>
+              <span class="k-muted k-num" style="font-size: 13px;">{{e.date}}</span>
+            </div>
+            <div style="padding: 0 20px 14px; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600;">{{e.title}}</span><span class="k-muted" style="font-size: 13px;">{{e.why}}</span></div>
+            <div class="lgrid lhead"><span>Account</span><span style="text-align: right;">Debit</span><span style="text-align: right;">Credit</span></div>
+            <sc-for list="{{e.lines}}" as="l" hint-placeholder-count="8">
+              <div class="lgrid k-num"><span style="display: flex; gap: 8px; align-items: center; min-width: 0;"><span class="k-code">{{l.no}}</span><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{l.name}}</span></span><span style="text-align: right;">{{l.d}}</span><span style="text-align: right;">{{l.c}}</span></div>
+            </sc-for>
+            <div class="lgrid k-num" style="font-weight: 600; background: var(--surface-hover);"><span>Balances</span><span style="text-align: right;">€ {{e.total}}</span><span style="text-align: right;">€ {{e.total}}</span></div>
+          </section>
+        </sc-for>
+
+        <div class="k-card" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;">
+          <button type="button" class="ack" role="checkbox" aria-checked="{{ackOn}}" disabled="{{blocked}}" onClick="{{toggleAck}}">
+            <span class="{{boxCls}}" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span>Posts two real entries; no undo button here.</span>
+          </button>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; border-top: 1px solid var(--line-soft); padding-top: 16px;">
+            <span style="flex: 1; min-width: 220px; font-size: 13px; {{footStyle}}">{{footer}}</span>
+            <a href="SettingsBooks.dc.html" class="k-btn">Back <span class="k-kbd">Esc</span></a>
+            <button type="button" class="k-btn k-btn--primary" disabled="{{cantClose}}">Close book year 2025 <span class="k-chord"><span class="k-kbd k-kbd--on-primary">⌘</span><span class="k-kbd k-kbd--on-primary">↵</span></span></button>
+          </div>
+        </div>
+
+        <div class="k-hints">
+          <sc-for list="{{hints}}" as="h" hint-placeholder-count="3"><span><span class="k-chord"><sc-for list="{{h.keys}}" as="k" hint-placeholder-count="1"><span class="k-kbd">{{k}}</span></sc-for></span> {{h.label}}</span></sc-for>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"variant":{"editor":"enum","options":["ready","blocked"],"default":"ready"},"vat":{"editor":"enum","options":["quarterly","monthly","annual"],"default":"quarterly"},"$preview":{"width":1440,"height":1960}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ack: true };
+  }
+  renderVals() {
+    const blocked = (this.props.variant ?? 'ready') === 'blocked';
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const vat = this.props.vat ?? 'quarterly';
+    const filed = { quarterly: 'quarterly', monthly: 'monthly', annual: 'annually' }[vat];
+    const freq = {
+      quarterly: { codes: [1, 2, 3, 4].map((q) => '2025-Q' + q), open: ['2025-Q4'], cols: 4, colsPhone: 2, all: 'All four VAT periods of 2025 are closed' },
+      monthly: { codes: Array.from({ length: 12 }, (_, i) => '2025-' + String(i + 1).padStart(2, '0')), open: ['2025-11', '2025-12'], cols: 12, colsPhone: 4, all: 'All twelve VAT periods of 2025 are closed' },
+      annual: { codes: ['2025'], open: ['2025'], cols: 1, colsPhone: 1, all: 'VAT period 2025 is closed' }
+    }[vat];
+    const openCodes = blocked ? freq.open : [];
+    const periods = freq.codes.map((code) => {
+      const open = openCodes.includes(code);
+      return { n: code, open, shut: !open, href: 'Vat.dc.html?period=' + code, label: 'VAT period ' + code + ', ' + (open ? 'still open' : 'closed') };
+    });
+    const span = freq.codes.length === 1 ? 'VAT period ' + freq.codes[0] : freq.codes[0] + ' to ' + freq.codes[freq.codes.length - 1];
+    const openTitle = openCodes.length === 1
+      ? 'VAT period ' + openCodes[0] + ' is still open'
+      : 'VAT periods ' + openCodes.slice(0, -1).join(', ') + ' and ' + openCodes[openCodes.length - 1] + ' are still open';
+    const ok = (title, meta) => ({ ico: 'chk-ico ok', mark: '✓', title, meta, titleStyle: 'font-weight: 600;', href: '', fix: '' });
+    const no = (title, meta, fix, href) => ({ ico: 'chk-ico no', mark: '!', title, meta, titleStyle: 'font-weight: 600; color: var(--danger);', href, fix });
+    const checks = [
+      ok('Book year 2026 is open', '1 January to 31 December 2026. 2025 carries its balances into it.'),
+      blocked
+        ? no(openTitle, 'Every VAT period that overlaps book year 2025 has to be closed first, or VAT could still land in 2025 after it closes.', 'Open VAT period ' + openCodes[0], 'Vat.dc.html?period=' + openCodes[0])
+        : ok(freq.all, (freq.codes.length === 1 ? span + ' is' : span + ' are') + ' closed, so no VAT can land in 2025 any more and the figures below stay put.'),
+      blocked
+        ? no('4 bank lines from 2025 are not matched', 'Together € 1.271,00 that isn\'t in the books yet, so the result would be wrong. 4 of the 15 lines waiting in Bank are from December 2025.', 'Match 4 lines', 'Match.dc.html?year=2025')
+        : ok('Every 2025 bank line is matched', 'The 15 lines waiting in Bank are from 2026; they don\'t block 2025.')
+    ];
+    const pl = [['4200','Huur bedrijfsruimte',1551.16],['4300','Brandstofkosten',971.21],['4400','Kantoorkosten',846.15],['4410','Telefoon- en internetkosten',1527.19],['4420','Boekhouding en administratie',1244.89],['4500','Reclame- en advertentiekosten',1013.96],['4900','Algemene kosten',1848.16]];
+    const appropriation = [
+      { no: '8000', name: 'Omzet', d: f(23164.83), c: '' },
+      ...pl.map(([no, name, a]) => ({ no, name, d: '', c: f(a) })),
+      { no: '0600', name: 'Overige reserves (result 2025)', d: '', c: f(14162.11) }
+    ];
+    const opening = [
+      { no: '1100', name: 'Bank', d: f(62799.88), c: '' },
+      { no: '1300', name: 'Debiteuren', d: f(4710.44), c: '' },
+      { no: '1510', name: 'Terug te vorderen omzetbelasting', d: f(1575.61), c: '' },
+      { no: '0500', name: 'Aandelenkapitaal', d: '', c: f(50000) },
+      { no: '0600', name: 'Overige reserves', d: '', c: f(14162.11) },
+      { no: '1500', name: 'Te betalen omzetbelasting', d: '', c: f(3732.04) },
+      { no: '1600', name: 'Crediteuren', d: '', c: f(1191.78) }
+    ];
+    const entries = [
+      { n: 217, date: '31-12-2025', title: 'Appropriation 2025', why: 'Sets the 8 profit and loss accounts to zero. The difference, the profit, goes to the result account.', lines: appropriation, total: f(23164.83) },
+      { n: 218, date: '01-01-2026', title: 'Opening balance 2026', why: 'Carries the 7 balance-sheet accounts into 2026 as at 01-01-2026, including the profit now in equity.', lines: opening, total: f(69085.93) }
+    ];
+    const ack = this.state.ack && !blocked;
+    return {
+      theme: this.props.theme ?? 'light', blocked, periods, checks, entries,
+      cols: freq.cols, colsPhone: freq.colsPhone, perLabel: 'VAT periods overlapping book year 2025, filed ' + filed,
+      pill: blocked ? 'k-pill k-pill--late' : 'k-pill k-pill--draft', pillText: blocked ? 'Blocked' : 'Proposal',
+      perNote: 'VAT periods overlapping 2025, filed ' + filed + ' (set per administration). Grey: closed. ' + (blocked
+        ? 'Red and underlined: still open, so 2025 can\'t close. Select one to open it.'
+        : (freq.codes.length === 1 ? 'It is closed' : 'All are closed') + ', so nothing changes under the proposal.'),
+      checksMeta: blocked ? '1 of 3 done' : '3 of 3 done',
+      entriesMeta: blocked ? 'As it stands now; changes once the 4 lines are matched' : '2 entries, both balance',
+      ackOn: ack ? 'true' : 'false', boxCls: ack ? 'box on' : 'box',
+      toggleAck: () => this.setState({ ack: !this.state.ack }),
+      cantClose: blocked || !ack,
+      footer: blocked ? 'Fix the 2 things above first.' : (ack ? 'Books entry 217 and 218 in Memorial and locks 2025.' : 'Tick the box to close.'),
+      footStyle: blocked ? 'color: var(--danger); font-weight: 500;' : 'color: var(--ink-muted);',
+      hints: blocked
+        ? [{ keys: ['J', 'K'], label: 'next, previous blocker' }, { keys: ['↵'], label: 'open its fix' }, { keys: ['Esc'], label: 'back to book years' }]
+        : [{ keys: ['Space'], label: 'tick the note' }, { keys: ['⌘', '↵'], label: 'close book year 2025' }, { keys: ['Esc'], label: 'back to book years' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

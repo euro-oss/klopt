@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Import, years</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board (batch 1), not drawn by Hidde. Import step 3 of 6, between ImportSource (1, 2)
+  and ImportFindings (5). Content and copy from apps/web /importeren, step "administratie"
+  (wizard.administratie.*, wizard.year.*). NL strings: ../DERIVED.md. Example data.
+  A11y deviations (new boards only): --line-control #86857e, option and checkbox borders on
+  --line-control, underlined ink text links, 44px targets under 600px, self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.k-root[data-theme="light"]{--line-control:#86857e}
+.k-option{border-color:var(--line-control)}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}
+.ygrid{display:grid;grid-template-columns:28px minmax(220px,1fr) 100px 90px;gap:12px}
+.box{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:var(--radius-xs);border:1px solid var(--line-control);background:var(--surface);color:var(--on-primary);box-sizing:border-box}
+.box.on{background:var(--primary);border-color:var(--primary)}
+@media (max-width:600px){.k-btn,.k-option,.k-row{min-height:44px}}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1000px;">
+  <dc-import name="Sidebar" active="import" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 24px; box-sizing: border-box; max-width: 1100px;">
+    <header style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+        <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; flex: 1;">Import from Moneybird</h1>
+        <span class="k-pill k-pill--draft">Example administration</span>
+      </div>
+      <ol class="k-steps" aria-label="Import steps">
+        <li class="k-step is-done"><span class="k-step-n">✓</span>Source</li>
+        <li class="k-step is-done"><span class="k-step-n">✓</span>Connect</li>
+        <li class="k-step is-current" aria-current="step"><span class="k-step-n">3</span>Years</li>
+        <li class="k-step"><span class="k-step-n">4</span>Preview</li>
+        <li class="k-step"><span class="k-step-n">5</span>Problems</li>
+        <li class="k-step"><span class="k-step-n">6</span>Import</li>
+      </ol>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+      <section aria-labelledby="adm" style="flex: 1 1 320px; max-width: 380px; display: flex; flex-direction: column; gap: 10px;">
+        <h2 id="adm" class="k-card-title">Administration in Moneybird</h2>
+        <sc-for list="{{admins}}" as="a" hint-placeholder-count="2">
+          <button type="button" class="{{a.cls}}" onClick="{{a.pick}}" aria-pressed="{{a.on}}">
+            <span class="k-option-key">{{a.key}}</span>
+            <span class="k-option-body"><span class="k-option-title">{{a.name}}</span><span class="k-option-meta">{{a.meta}}</span></span>
+          </button>
+        </sc-for>
+        <p class="k-muted" style="margin: 4px 0 0; font-size: 13px; line-height: 1.5;">Choose which books we transfer. You can still change this until the import.</p>
+      </section>
+
+      <section class="k-card k-card--flush" aria-labelledby="yrs" style="flex: 999 1 420px; min-width: 0;">
+        <div style="padding: 24px 24px 16px; display: flex; flex-direction: column; gap: 6px;">
+          <h2 id="yrs" class="k-card-title" style="font-size: 18px;">Which years?</h2>
+          <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Klopt reads every year Moneybird has for {{admin}}. Tick the ones to bring across.</p>
+        </div>
+        <div class="k-row k-row--head ygrid"><span></span><span>Year</span><span style="text-align: right;">Documents</span><span>In Klopt</span></div>
+        <sc-for list="{{years}}" as="y" hint-placeholder-count="3">
+          <div class="k-row ygrid" role="checkbox" aria-checked="{{y.on}}" aria-selected="{{y.cur}}" aria-label="{{y.year}}" tabindex="0" onClick="{{y.toggle}}" style="align-items: start; padding-top: 14px; padding-bottom: 14px;">
+            <span class="{{y.box}}" aria-hidden="true" style="margin-top: 1px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+              <span style="display: flex; gap: 10px; align-items: center;"><span class="k-num" style="{{y.yearStyle}}">{{y.year}}</span><sc-if value="{{y.blocks}}" hint-placeholder-val="{{true}}"><span class="k-pill k-pill--late">Blocks import</span></sc-if></span>
+              <sc-if value="{{y.nif}}" hint-placeholder-val="{{true}}">
+                <span style="color: var(--danger); font-size: 13px; font-weight: 500;">{{y.warn}}</span>
+                <span style="color: var(--ink-2); font-size: 13px; line-height: 1.5;">{{y.help}}</span>
+              </sc-if>
+            </span>
+            <span class="k-num" style="text-align: right;">{{y.docs}}</span>
+            <span style="color: var(--ink-2);">Open</span>
+          </div>
+        </sc-for>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px 24px; border-top: 1px solid var(--line-soft);">
+          <span class="k-num" style="flex: 1; min-width: 200px; color: var(--ink-2); font-size: 13px;">{{summary}}</span>
+          <button type="button" class="k-btn">Back <span class="k-kbd">Esc</span></button>
+          <button type="button" class="k-btn k-btn--primary" disabled="{{none}}">Next <span class="k-chord"><span class="k-kbd k-kbd--on-primary">⌘</span><span class="k-kbd k-kbd--on-primary">↵</span></span></button>
+        </div>
+      </section>
+    </div>
+    <div class="k-hints"><span><span class="k-kbd">1</span> <span class="k-kbd">2</span> choose administration</span><span><span class="k-kbd">J</span> <span class="k-kbd">K</span> next, previous year</span><span><span class="k-kbd">X</span> tick or untick</span><span><span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">↵</span></span> next</span><span><span class="k-kbd">Esc</span> back</span></div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { admin: 0, picked: { 2025: true, 2024: true, 2023: false } };
+  }
+  renderVals() {
+    const n = (x) => x.toLocaleString('nl-NL');
+    const A = [['Demo BV', 'EUR · fiscal year starts in January · 1.096 documents'], ['Demo Holding BV', 'EUR · fiscal year starts in July']];
+    const admins = A.map(([name, meta], i) => ({ key: i + 1, name, meta, on: i === this.state.admin ? 'true' : 'false', cls: i === this.state.admin ? 'k-option is-suggested' : 'k-option', pick: () => this.setState({ admin: i }) }));
+    const Y = [[2025, 412, 0], [2024, 388, 371], [2023, 296, 280]];
+    const p = this.state.picked;
+    const years = Y.map(([year, docs, nif]) => ({
+      year, docs: n(docs), nif: nif > 0, blocks: nif > 0 && !!p[year], on: p[year] ? 'true' : 'false', cur: year === 2024 ? 'true' : 'false',
+      box: p[year] ? 'box on' : 'box',
+      yearStyle: nif > 0 ? 'font-weight: 600; color: var(--danger);' : 'font-weight: 600;',
+      warn: 'In ' + year + ' Klopt’s VAT codes are not in force yet: ' + n(nif) + ' documents.',
+      help: p[year] ? 'They apply from 01-01-2025, the start of your first fiscal year in Klopt. You will see them per VAT code under Problems. Want to transfer later years only? Uncheck ' + year + '.' : 'Unchecked, so ' + year + ' stays in Moneybird and doesn’t block the import.',
+      toggle: () => this.setState({ picked: { ...p, [year]: !p[year] } })
+    }));
+    const sel = Y.filter(([y]) => p[y]);
+    const docs = sel.reduce((s, [, d]) => s + d, 0);
+    return {
+      theme: this.props.theme ?? 'light', admins, years, admin: A[this.state.admin][0], none: sel.length === 0,
+      summary: sel.length === 0 ? 'Pick an administration and at least one year' : sel.length + (sel.length === 1 ? ' year · ' : ' years · ') + n(docs) + ' documents'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Import, transferring</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board (batch 1), not drawn by Hidde. Import step 6 of 6. Content and copy from
+  apps/web /importeren, steps "overzicht" (confirm) and "importeren" (wizard.overzicht.*,
+  wizard.importeren.*). NL strings: ../DERIVED.md. Example data, same import as ImportPreview.
+  Variants via the `variant` prop: running (default), confirm (ImportConfirm.dc.html),
+  stopped-nothing (ImportStopped.dc.html), stopped-partial (ImportStoppedPartial.dc.html).
+  A11y deviations (new boards only): --line-control #86857e, underlined ink text links,
+  44px targets under 600px, self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.k-root[data-theme="light"]{--line-control:#86857e}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}
+.bar{height:8px;border-radius:var(--radius-pill);background:var(--surface-sunken);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
+.bar span{display:block;height:100%;border-radius:var(--radius-pill);background:var(--primary)}
+.rgrid{display:grid;grid-template-columns:28px minmax(160px,1fr) 140px 120px;gap:12px}
+.st{width:22px;height:22px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.st.done{background:var(--success-bg);color:var(--success)}
+.st.busy{background:var(--primary);color:var(--on-primary)}
+.st.wait{background:var(--surface-sunken);color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line)}
+.st.stop{background:var(--danger-bg);color:var(--danger)}
+.sum{display:grid;grid-template-columns:minmax(160px,1fr) auto;gap:10px 24px;margin:0}
+.sum dt{color:var(--ink-2)}.sum dd{margin:0;text-align:right;font-weight:600}
+@media (max-width:600px){.k-btn,.k-row,.lnk{min-height:44px}.lnk{display:inline-flex;align-items:center}}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1000px;">
+  <dc-import name="Sidebar" active="import" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; max-width: 1100px;">
+    <header style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+        <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; flex: 1;">Import from Moneybird</h1>
+        <span class="k-pill k-pill--draft">Example administration</span>
+      </div>
+      <ol class="k-steps" aria-label="Import steps">
+        <li class="k-step is-done"><span class="k-step-n">✓</span>Source</li>
+        <li class="k-step is-done"><span class="k-step-n">✓</span>Connect</li>
+        <li class="k-step is-done"><span class="k-step-n">✓</span>Years</li>
+        <li class="k-step is-done"><span class="k-step-n">✓</span>Preview</li>
+        <li class="k-step is-done"><span class="k-step-n">✓</span>Problems</li>
+        <li class="k-step is-current" aria-current="step"><span class="k-step-n">6</span>Import</li>
+      </ol>
+    </header>
+
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <h2 class="k-card-title" style="font-size: 20px; line-height: 26px;">{{title}}</h2>
+      <sc-if value="{{intro}}" hint-placeholder-val="{{true}}"><p style="margin: 0; color: var(--ink-2);">{{intro}}</p></sc-if>
+    </div>
+
+    <sc-if value="{{v.confirm}}" hint-placeholder-val="{{false}}">
+      <section class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 18px; max-width: 760px;">
+        <h3 class="k-card-title">Import 800 documents?</h3>
+        <dl class="sum k-num">
+          <dt>Transfer</dt><dd>800</dd>
+          <dt>Do not transfer</dt><dd>307</dd>
+          <dt>Already in Klopt, skipped</dt><dd>38</dd>
+        </dl>
+        <p class="k-muted" style="margin: 0; font-size: 13px; line-height: 1.5;">What you previously transferred from this administration we will not transfer again. What you already booked yourself in Klopt we do not recognise: check for duplicate bookings.</p>
+        <div class="k-callout k-callout--warn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px;"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <div class="k-callout-body">
+            <span class="k-callout-title">No undo for an import</span>
+            <span class="k-callout-text">You cannot undo an import in one go. You fix a mistake per booking with a correction, possibly together with your accountant.</span>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; border-top: 1px solid var(--line-soft); padding-top: 16px;">
+          <span class="k-muted" style="flex: 1; min-width: 200px; font-size: 13px;">Starts as soon as you confirm. You can close the screen then.</span>
+          <a href="ImportFindings.dc.html" class="k-btn">Back <span class="k-kbd">Esc</span></a>
+          <button type="button" class="k-btn k-btn--primary">Confirm transfer <span class="k-chord"><span class="k-kbd k-kbd--on-primary">⌘</span><span class="k-kbd k-kbd--on-primary">↵</span></span></button>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{v.stopped}}" hint-placeholder-val="{{false}}">
+      <div class="k-callout k-callout--danger" role="alert" style="max-width: 760px; box-sizing: border-box;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--danger); flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
+        <div class="k-callout-body">
+          <span class="k-callout-title" style="color: var(--danger);">{{stop.title}}</span>
+          <span class="k-callout-text">{{stop.text}}</span>
+          <a href="{{stop.href}}" class="lnk" style="margin-top: 6px; align-self: flex-start;">{{stop.link}}</a>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{v.progress}}" hint-placeholder-val="{{true}}">
+      <section class="k-card k-card--flush" aria-label="Progress" style="max-width: 760px;">
+        <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: baseline; gap: 12px;"><span style="flex: 1; font-weight: 600;">{{p.state}}</span><span class="k-num" style="color: var(--ink-2);">{{p.line}}</span></div>
+          <div class="bar" role="progressbar" aria-label="Transferred" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{p.pct}}"><span style="width: {{p.pct}}%;"></span></div>
+          <span class="k-muted" style="font-size: 13px;">{{p.meta}}</span>
+        </div>
+        <div class="k-row k-row--head rgrid"><span></span><span>Type</span><span style="text-align: right;">Booked</span><span>Status</span></div>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+          <div class="k-row rgrid k-num" style="cursor: default;"><span class="{{r.ico}}" aria-hidden="true">{{r.mark}}</span><span>{{r.name}}</span><span style="text-align: right;">{{r.n}}</span><span style="{{r.stStyle}}">{{r.st}}</span></div>
+        </sc-for>
+      </section>
+      <sc-if value="{{p.foot}}" hint-placeholder-val="{{true}}"><p class="k-muted" style="margin: 0; max-width: 760px; font-size: 13px; line-height: 1.5;">{{p.foot}}</p></sc-if>
+    </sc-if>
+
+    <sc-if value="{{v.footer}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; max-width: 760px;">
+        <span style="flex: 1; min-width: 200px; font-size: 13px; {{f.style}}">{{f.text}}</span>
+        <button type="button" class="k-btn k-btn--primary" disabled="{{f.disabled}}">{{f.cta}} <span class="k-chord"><span class="k-kbd k-kbd--on-primary">⌘</span><span class="k-kbd k-kbd--on-primary">↵</span></span></button>
+      </div>
+    </sc-if>
+
+    <div class="k-hints"><sc-for list="{{hints}}" as="h" hint-placeholder-count="3"><span><span class="k-chord"><sc-for list="{{h.keys}}" as="k" hint-placeholder-count="1"><span class="k-kbd">{{k}}</span></sc-for></span> {{h.label}}</span></sc-for></div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"variant":{"editor":"enum","options":["confirm","running","stopped-nothing","stopped-partial"],"default":"running"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const variant = this.props.variant ?? 'running';
+    const n = (x) => x.toLocaleString('nl-NL');
+    const T = [['Contacts', 75, false], ['Ledger accounts', 31, false], ['Sales invoices', 214, true], ['Purchase invoices', 162, true], ['Receipts', 131, true], ['Bank mutations', 268, true], ['Journal entries', 25, true]];
+    const booked = {
+      running: [75, 31, 214, 162, 121, 0, 0],
+      'stopped-partial': [75, 31, 214, 57, 0, 0, 0],
+      'stopped-nothing': [0, 0, 0, 0, 0, 0, 0],
+      confirm: [0, 0, 0, 0, 0, 0, 0]
+    }[variant];
+    const at = booked.findIndex((b, i) => b < T[i][1]);
+    const rows = T.map(([name, total], i) => {
+      const b = booked[i];
+      const done = b === total;
+      const here = i === at;
+      let ico = 'st wait', mark = '', st = 'Queued…', stStyle = 'color: var(--ink-2);';
+      if (done) { ico = 'st done'; mark = '✓'; st = 'Done'; }
+      else if (here && variant === 'running') { ico = 'st busy'; mark = '•'; st = 'Booking…'; stStyle = 'font-weight: 600;'; }
+      else if (here && variant.startsWith('stopped')) { ico = 'st stop'; mark = '!'; st = 'Stopped here'; stStyle = 'color: var(--danger); font-weight: 600;'; }
+      else if (variant.startsWith('stopped')) { st = 'Not booked'; }
+      return { name, n: n(b) + ' of ' + n(total), ico, mark, st, stStyle };
+    });
+    const docs = T.reduce((s, t, i) => s + (t[2] ? booked[i] : 0), 0);
+    const pct = Math.floor(docs / 800 * 100);
+    const v = { confirm: variant === 'confirm', stopped: variant.startsWith('stopped'), progress: variant !== 'confirm', footer: variant !== 'confirm' };
+    const dedup = 'What you previously transferred from this administration we will not transfer again. What you already booked yourself in Klopt we do not recognise: check for duplicate bookings.';
+    const base = { theme: this.props.theme ?? 'light', v, rows };
+    if (variant === 'confirm') return { ...base, title: 'Ready to transfer?', intro: 'Check the summary. Then the import starts.', p: {}, f: {}, stop: {},
+      hints: [{ keys: ['⌘', '↵'], label: 'confirm transfer' }, { keys: ['Esc'], label: 'back to problems' }] };
+    if (variant === 'running') return { ...base, title: 'Transferring', intro: 'You can close this screen; we continue. When you return, you see how far we are.', stop: {},
+      p: { state: 'Booking…', pct, line: pct + '% · ' + n(docs) + ' of 800', meta: 'Started 30-10-2026 at 10:44 by hidde@neverhide.nl', foot: dedup },
+      f: { text: 'Importing…', style: 'color: var(--ink-muted);', disabled: true, cta: 'Next' },
+      hints: [{ keys: ['G', 'D'], label: 'go home, the import carries on' }, { keys: ['⌘', '↵'], label: 'next, once it is done' }] };
+    const partial = variant === 'stopped-partial';
+    return { ...base, title: 'Import stopped', intro: '',
+      stop: partial
+        ? { title: docs === 1 ? '1 document is already booked' : n(docs) + ' documents are already booked', text: 'Transferring again skips what\'s already in Klopt from Moneybird. We don\'t recognise anything you booked yourself, so check Journal for duplicates. Fix a mistake per booking with a correction.', link: 'Open journal entries', href: 'Journal.dc.html' }
+        : { title: 'We booked nothing', text: 'Moneybird didn\'t answer after 10:46 on 30-10-2026. You can try again as it is; if it fails again, check the problems first.', link: 'What we still need to fix', href: 'ImportFindings.dc.html' },
+      p: { state: partial ? 'At purchase invoice 2024-0158' : 'Before the first booking', pct, line: pct + '% · ' + n(docs) + ' of 800', meta: partial ? n(800 - docs) + ' documents still to go. Contacts and ledger accounts are all in.' : 'Contacts come first; none of them are in yet.', foot: partial ? '' : dedup },
+      f: partial
+        ? { text: '', style: '', disabled: false, cta: 'Transfer the rest' }
+        : { text: 'Nothing to clean up first.', style: 'color: var(--ink-2);', disabled: false, cta: 'Try again' },
+      hints: partial
+        ? [{ keys: ['⌘', '↵'], label: 'transfer the rest' }, { keys: ['G', 'J'], label: 'open the journal' }]
+        : [{ keys: ['⌘', '↵'], label: 'try again' }, { keys: ['Esc'], label: 'back to problems' }] };
+  }
+}
+</script>
+</body>
+</html>
