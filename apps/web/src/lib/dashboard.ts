@@ -7,19 +7,32 @@
 
 import type { WorkQueueKind } from './work-queue'
 
-/** Severity colour on a werklijst row — yellow is accent, never error. */
-export type AttentionTone = 'error' | 'attention' | 'info' | 'neutral'
+/**
+ * Severity colour on a Home to-do tile.
+ * Maps to export `.k-tile--danger|brand|info` (or neutral). Yellow is accent /
+ * brand tile only — never a severity for "money has gone wrong".
+ */
+export type AttentionTone = 'error' | 'attention' | 'info' | 'neutral' | 'brand'
 
 export const ATTENTION_TONE: Readonly<Record<WorkQueueKind, AttentionTone>> = {
   'import.blocking': 'error',
-  'sales.draft': 'neutral',
-  'sales.overdue': 'attention',
+  'sales.overdue': 'error',
   'dunning.waiting': 'attention',
-  'bank.unmatched': 'neutral',
-  'inbox.waiting': 'neutral',
+  'bank.unmatched': 'brand',
+  'purchase.approve': 'info',
   'purchase.book': 'neutral',
-  'purchase.approve': 'neutral',
-  'vat.filing': 'info',
+  'vat.filing': 'neutral',
+  'sales.draft': 'neutral',
+  'inbox.waiting': 'neutral',
+}
+
+/** Width of a P&L glance bar as a percentage of the larger of income/expenses. */
+export function glanceBarPercent(value: string, max: bigint): number {
+  if (max <= 0n) return 0
+  const amount = BigInt(value)
+  if (amount <= 0n) return 0
+  const pct = Number((amount * 1000n) / max) / 10
+  return Math.min(100, Math.max(2, pct))
 }
 
 /**

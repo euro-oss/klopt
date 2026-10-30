@@ -9,26 +9,27 @@ import { handleGetProfitAndLoss } from '~/api/handlers/compliance'
 import { handleListInbox } from '~/api/handlers/inbox'
 import { handleMoneybirdImportStatus } from '~/api/handlers/moneybird'
 import { handleGetCreditorAgeing, handleListPurchaseInvoices } from '~/api/handlers/purchase'
-import { handleListFiscalYears } from '~/api/handlers/setup'
 import { handleListVatPeriods } from '~/api/handlers/vat'
 import { hasPermission, type RequestContext } from '~/api/context'
 import { listPurchaseInvoicesQuery, listVatPeriodsQuery } from '~/api/schemas'
-import { buildPeriodRows, chartPeriodsThroughToday, type MonthBar } from '~/lib/dashboard'
+import { debtorAgeing, type DebtorAgeingBucket } from '~/lib/ageing'
 import { buildWorkQueue, type WorkQueueItem } from '~/lib/work-queue'
 import { isFiscalYearCode, withinFiscalYear, type FiscalYearScope } from '~/lib/fiscal-year'
 import { contextFromRequest, reportYear, run } from './internal'
 
 /**
- * What the redesigned dashboard needs, for one book year.
+ * What the redesigned Home needs, for one book year (Phase 1 / #107).
  *
  * One call rather than a dozen round trips. The reads are the same handlers
  * `/api/v1` serves; nothing new is modelled here and nothing is written.
  *
  * Import findings come from the last stored Moneybird dry-run / run report —
  * never from a live preview (that walk is too heavy for every dashboard load).
- * Bank match suggestion counts and Exact finding status have no aggregate API
- * yet — leave those numbers out entirely rather than inventing 0 (#61 follow-up).
- * The bank row shows the unmatched count alone, with no suggestion subtitle.
+ * Bank match suggestion counts, Exact finding status and full open-AR have no
+ * aggregate API yet (#68) — leave those numbers out rather than inventing 0.
+ * The bank tile shows the unmatched count alone, with no suggestion subtitle.
+ * Debtor-ageing buckets reuse `debtorAgeing()` on the same overdue list the
+ * report reads — not-yet-due invoices stay out of the buckets.
  */
 
 const SCAN_LIMIT = 1000
@@ -40,12 +41,13 @@ export interface DashboardFigures {
     readonly name: string
     readonly iban: string
     readonly statementDate: string | null
+    /** Unmatched lines in this book year — honest count, never a suggestion. */
+    readonly unmatchedCount: number
   } | null
   readonly receivables: {
     /**
      * Overdue outstanding only. Labelled "Te laat bij klanten" until a full
-     * open-AR aggregate exists (#61 follow-up). Do not present as "Nog te
-     * ontvangen".
+     * open-AR aggregate exists (#68). Do not present as "Nog te ontvangen".
      */
     readonly total: string
     readonly count: number
@@ -59,15 +61,20 @@ export interface DashboardFigures {
     /** `null` when the P&L read failed — render "—", not € 0,00. */
     readonly result: string | null
     readonly priorResult: string | null
+    /** Year income / expenses for the P&L glance; null when the read failed. */
+    readonly income: string | null
+    readonly expenses: string | null
   }
 }
+
+/** Debtor-ageing totals for the Home glance — same buckets as the report. */
+export type DashboardAgeing = Readonly<Record<DebtorAgeingBucket | 'total', string>>
 
 export interface DashboardPayload {
   readonly fiscalYear: FiscalYearScope
   readonly items: readonly WorkQueueItem[]
   readonly figures: DashboardFigures
-  readonly months: readonly MonthBar[]
-  readonly periods: ReturnType<typeof buildPeriodRows>
+  readonly ageing: DashboardAgeing
 }
 
 async function loadDashboard(
@@ -91,7 +98,6 @@ async function loadDashboard(
     priorProfit,
     vatPeriods,
     moneybird,
-    fiscalYears,
   ] = await Promise.all([
     handleListInvoices(context, { status: 'draft', limit: 500, updatedSince: null }),
     handleListOverdueInvoices(context, { asOf: scope.asOf }),
@@ -121,7 +127,6 @@ async function loadDashboard(
       () => null,
     ),
     handleMoneybirdImportStatus(context).catch(() => null),
-    handleListFiscalYears(context),
   ])
 
   const overdueInYear = overdue.body.invoices.filter((invoice) =>
@@ -130,6 +135,9 @@ async function loadDashboard(
   const purchasesInYear = purchases.body.invoices.filter((invoice) =>
     withinFiscalYear(scope, invoice.invoiceDate),
   )
+  const bankUnmatchedCount = transactions.body.transactions.filter((transaction) =>
+    withinFiscalYear(scope, transaction.bookingDate),
+  ).length
 
   const ranked = [...overdueInYear].sort((a, b) => b.daysOverdue - a.daysOverdue)
   const topOverdue = ranked[0]
@@ -176,9 +184,7 @@ async function loadDashboard(
       dunningWaiting: dunning.body.actions.filter(
         (action) => action.sendable && withinFiscalYear(scope, action.dueDate),
       ).length,
-      bankUnmatched: transactions.body.transactions.filter((transaction) =>
-        withinFiscalYear(scope, transaction.bookingDate),
-      ).length,
+      bankUnmatched: bankUnmatchedCount,
       inboxWaiting: inbox.body.items.filter((item) => withinFiscalYear(scope, item.receivedAt))
         .length,
       purchaseToBook: purchasesInYear.filter((invoice) => invoice.status === 'draft').length,
@@ -208,6 +214,7 @@ async function loadDashboard(
             name: primaryBank.name,
             iban: primaryBank.iban,
             statementDate: primaryBank.reconciliation.statementDate,
+            unmatchedCount: bankUnmatchedCount,
           },
     receivables: {
       total: overdueInYear.reduce((sum, invoice) => sum + BigInt(invoice.total), 0n).toString(),
@@ -222,52 +229,19 @@ async function loadDashboard(
       // A failed P&L read is not € 0,00 — leave the figure absent (PM #67).
       result: profit?.body.result ?? null,
       priorResult: priorProfit?.body.result ?? null,
+      income: profit?.body.revenue.total ?? null,
+      expenses: profit?.body.expenses.total ?? null,
     },
   }
 
-  const yearRow = fiscalYears.body.fiscalYears.find((year) => year.code === scope.code)
-  // Six periods ending at today — not the last six of the boekjaar (those can
-  // include months that have not started yet).
-  const chartPeriods = chartPeriodsThroughToday(yearRow?.periods ?? [], today)
-
-  const monthResults = await Promise.all(
-    chartPeriods.map(async (period) => {
-      try {
-        const statement = await handleGetProfitAndLoss(context, {
-          fiscalYear: scope.code,
-          fromPeriod: period.sequence,
-          toPeriod: period.sequence,
-          currency: 'EUR',
-        })
-        return {
-          month: Number(period.startsOn.slice(5, 7)),
-          sequence: period.sequence,
-          income: statement.body.revenue.total,
-          expenses: statement.body.expenses.total,
-          partial: period.startsOn <= today && today <= period.endsOn,
-        } satisfies MonthBar
-      } catch {
-        return {
-          month: Number(period.startsOn.slice(5, 7)),
-          sequence: period.sequence,
-          income: '0',
-          expenses: '0',
-          partial: period.startsOn <= today && today <= period.endsOn,
-        } satisfies MonthBar
-      }
-    }),
-  )
+  // Same overdue list + same `debtorAgeing` helper as `/reports/debtor-ageing`.
+  const ageing = debtorAgeing(overdueInYear).totals
 
   return {
     fiscalYear: scope,
     items,
     figures,
-    months: monthResults,
-    periods: buildPeriodRows({
-      years: fiscalYears.body.fiscalYears,
-      activeCode: scope.code,
-      today,
-    }),
+    ageing,
   }
 }
 

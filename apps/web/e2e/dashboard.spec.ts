@@ -73,12 +73,23 @@ test('an empty administration shows the redesigned dashboard and a way to start'
   // btw-aangifte may still appear (the period closed even with empty books).
   await expect(page.getByRole('link', { name: /concept(en)? om te versturen/i })).toHaveCount(0)
   await expect(page.getByRole('link', { name: /bankregels wachten/ })).toHaveCount(0)
+  // No invented "import your books" to-do (decision 2 / #107).
+  await expect(page.getByText(/Haal je boekhouding over/i)).toHaveCount(0)
+  // Empty queue → "Niets te doen" when nothing (incl. VAT) is waiting.
+  const todoHeading = page.getByRole('heading', { name: 'Te doen' })
+  const emptyHeading = page.getByRole('heading', { name: 'Niets te doen' })
+  const hasTodo = await todoHeading.isVisible().catch(() => false)
+  const hasEmpty = await emptyHeading.isVisible().catch(() => false)
+  expect(hasTodo || hasEmpty).toBeTruthy()
 
-  // Header CTA is the next step when the empty-state button is not shown.
-  await page
+  // Header "Nieuwe factuur" is secondary on Home (PM #107); only a top to-do
+  // owns primary. With an empty queue the empty-state action is also outline.
+  const newInvoice = page
+    .locator('#main')
     .getByRole('link', { name: /Nieuwe factuur/ })
     .first()
-    .click()
+  await expect(newInvoice).toHaveAttribute('data-variant', 'outline')
+  await newInvoice.click()
   await expect(page).toHaveURL(/\/invoices\/new$/)
 })
 
@@ -87,13 +98,31 @@ test('the queue lists what is waiting and opens the screen where it is done', as
   await aDraftInvoice(page)
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Te doen' })).toBeVisible()
   await hydrated(page)
   const row = page.getByRole('link', { name: /concept(en)? om te versturen/i })
   await expect(row).toBeVisible()
   // #5 AC: the count is in the title (PM #67). Singular form for count 1.
   await expect(row).toContainText('1 concept om te versturen')
   await expect(row).toContainText('Openen')
+
+  // Only the top to-do's action is primary (PM #107). Header invoice stays outline.
+  await expect(
+    page
+      .locator('#main')
+      .getByRole('link', { name: /Nieuwe factuur/ })
+      .first(),
+  ).toHaveAttribute('data-variant', 'outline')
+  const todoList = page
+    .locator('#main')
+    .getByRole('list')
+    .filter({
+      has: page.getByRole('link', { name: /concept(en)? om te versturen/i }),
+    })
+  await expect(todoList.locator('[data-todo-action="primary"]')).toHaveCount(1)
+  await expect(
+    todoList.getByRole('listitem').first().locator('[data-todo-action="primary"]'),
+  ).toHaveCount(1)
 
   // Do not steal focus on load — j/k start the cursor at row 0.
   // Arrow keys outside the list must not enter it (keep page scroll).
@@ -140,7 +169,7 @@ test('Escape gives the keyboard back to the rest of the application', async ({ p
   await aDraftInvoice(page)
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Te doen' })).toBeVisible()
   await hydrated(page)
   const row = page.getByRole('link', { name: /concept(en)? om te versturen/i })
   // Wait for the queue row before j: hydrated only proves the shell, and the

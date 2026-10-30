@@ -18,6 +18,20 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign Phase 1: Home (#107)
+
+Home matches Main / PhoneHome / HomeDark from the v2 export at `fa4093b`.
+To-do list is ordered by consequence; only the top item's action is primary,
+and the header "Nieuwe factuur" is secondary on Home. Empty state says
+"Niets te doen" / "Nothing waiting" — no "Haal je boekhouding over" row.
+Four linked stat tiles keep honest labels (overdue-only receivables until
+#68). P&L glance, debtor-ageing glance (same buckets and overdue query as
+`/reports/debtor-ageing`; not-yet-due stay out; zero buckets omitted), and
+an audit-file card with an underlined link in the card text colour to
+`/audit-file`. Phone shows two tiles + compact to-dos; side cards are
+desktop. Copy drops invented estimates, card-payment summaries and
+four-eyes wording.
+
 ### Redesign Phase 0: tokens, theme, components, shell (#107)
 
 Design tokens from the **v2** 2026-10 export (`design/redesign-2026-10/`) live in

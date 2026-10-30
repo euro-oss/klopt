@@ -7,6 +7,7 @@ import {
   capitalizeWord,
   chartPeriodsThroughToday,
   dayPartAt,
+  glanceBarPercent,
   greetingName,
   ibanTail,
   maxMonthAmount,
@@ -119,11 +120,12 @@ describe('dashboard period rows', () => {
 describe('werklijst tones', () => {
   it('assigns a tone to every queue kind, and never uses yellow for severity', () => {
     for (const kind of WORK_QUEUE_ORDER) {
-      expect(ATTENTION_TONE[kind]).toMatch(/^(error|attention|info|neutral)$/)
+      expect(ATTENTION_TONE[kind]).toMatch(/^(error|attention|info|neutral|brand)$/)
     }
     expect(ATTENTION_TONE['import.blocking']).toBe('error')
-    expect(ATTENTION_TONE['sales.overdue']).toBe('attention')
-    expect(ATTENTION_TONE['vat.filing']).toBe('info')
+    expect(ATTENTION_TONE['sales.overdue']).toBe('error')
+    expect(ATTENTION_TONE['bank.unmatched']).toBe('brand')
+    expect(ATTENTION_TONE['vat.filing']).toBe('neutral')
   })
 })
 
@@ -136,8 +138,11 @@ describe('honest kerncijfers copy', () => {
     expect(nl['dash.figure.receivablesEmpty']).toBe('Niets te laat')
     expect(en['dash.figure.receivablesEmpty']).toBe('Nothing overdue')
     expect(nl['dash.figure.receivables']).not.toMatch(/Nog te ontvangen|Te laat betaald/)
-    expect(en['dash.figure.receivables']).not.toMatch(/Still to receive/)
-    expect(nl['queue.empty']).toBe('Niets wacht op je')
+    expect(en['dash.figure.receivables']).not.toMatch(/Still to receive|Customers owe you/)
+    expect(nl['queue.empty']).toBe('Niets te doen')
+    expect(en['queue.empty']).toBe('Nothing waiting')
+    expect(nl['queue.title']).toBe('Te doen')
+    expect(en['queue.title']).toBe('To do')
     expect(nl['queue.emptyAction']).toBe('Nieuwe factuur')
     expect(nl['dash.figure.payablesHint_one']).toBe('{count} leverancier')
     expect(nl['dash.figure.payablesHint_other']).toBe('{count} leveranciers')
@@ -150,8 +155,20 @@ describe('honest kerncijfers copy', () => {
     expect(nl['queue.vatFilingBodyRefund']).toMatch(/terug te krijgen/)
     expect(nl['invoice.postedAsLink']).not.toMatch(/journaalpost/)
     expect(nl['queue.purchaseBookBody']).not.toMatch(/journaalpost/)
+    // No four-eyes promise until bill approval copy is confirmed (PM #107).
+    expect(nl['queue.purchaseApproveBody']).not.toMatch(/tweede paar|vier ogen/i)
+    expect(en['queue.purchaseApproveBody']).not.toMatch(/second pair|four.?eyes/i)
     // Bank body must not invent a suggestion count.
     expect(nl['queue.bankUnmatchedBody']).not.toMatch(/\d/)
     expect(en['queue.bankUnmatchedBody']).not.toMatch(/\d/)
+    // No invented work-time estimate.
+    expect(nl['dash.greetingSubCount_one']).not.toMatch(/minuut|minute/i)
+    expect(en['dash.greetingSubCount_one']).not.toMatch(/minute/i)
+  })
+
+  it('scales P&L glance bars against the larger of income and expenses', () => {
+    expect(glanceBarPercent('100000', 100000n)).toBe(100)
+    expect(glanceBarPercent('39000', 100000n)).toBe(39)
+    expect(glanceBarPercent('0', 100000n)).toBe(0)
   })
 })

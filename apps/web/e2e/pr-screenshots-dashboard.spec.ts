@@ -235,7 +235,7 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   }
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Te doen' })).toBeVisible()
   await expect(page.getByRole('link', { name: /Moneybird-import/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /concept(en)? om te versturen/i })).toBeVisible()
   const viewport = page.viewportSize()
@@ -273,7 +273,7 @@ function copyPrototype(name: string, dest: string): void {
 test('dashboard empty screenshots — no btw row', async ({ page }) => {
   await emptyAdministration(page, 'Screenshot Leeg BV')
 
-  await expect(page.getByRole('heading', { name: 'Niets wacht op je' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Niets te doen' })).toBeVisible()
   await expect(page.getByRole('link', { name: /Btw-aangifte/ })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Kloppen de boeken?' })).toHaveCount(0)
 
