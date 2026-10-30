@@ -2141,7 +2141,7 @@ export const nl = {
   'palette.escapeNote':
     'Sluiten met Escape. G, I en N zijn voorvoegsels; na 1,5 seconde vervallen ze.',
   'palette.advancedNote':
-    'Boekhouddetails hebben bewust geen sneltoets: hoofdletters zijn voor typen-om-te-zoeken in tabellen. Je zet ze aan of uit onder Instellingen.',
+    'Boekhouddetails hebben bewust geen sneltoets: hoofdletters zijn voor typen-om-te-zoeken in tabellen. Je zet ze hier aan of uit.',
   'palette.actions': 'Acties',
   'dropZone.chooseFile': 'Kies een bestand',
   'palette.navigation': 'Navigatie',
