@@ -56,9 +56,9 @@ describe('shell-nav Phase 0', () => {
   })
 
   it('keeps Importeren as a palette action (and Settings hub row elsewhere)', () => {
-    expect(SHELL_NAV.some((item) => item.binding === 'go.import' && item.placement === 'palette')).toBe(
-      true,
-    )
+    expect(
+      SHELL_NAV.some((item) => item.binding === 'go.import' && item.placement === 'palette'),
+    ).toBe(true)
     expect(sidebarPrimaryItems('owner', true).some((item) => item.to === '/importeren')).toBe(false)
   })
 
