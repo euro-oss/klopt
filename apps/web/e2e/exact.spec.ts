@@ -126,7 +126,7 @@ test('g x reaches the import wizard (#100)', async ({ page }) => {
   // `g x` stays as a muscle-memory alias and now opens the wizard (#100).
   await expect(
     page
-      .getByRole('link', { name: /^Dashboard/ })
+      .getByRole('link', { name: /^Home/ })
       .locator('kbd')
       .first(),
   ).toBeVisible()
@@ -145,7 +145,7 @@ test('i x reaches the import wizard under Importeren (#100)', async ({ page }) =
 
   await expect(
     page
-      .getByRole('link', { name: /^Dashboard/ })
+      .getByRole('link', { name: /^Home/ })
       .locator('kbd')
       .first(),
   ).toBeVisible()

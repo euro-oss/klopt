@@ -2,16 +2,18 @@ import type { MessageKey } from '~/i18n/nl'
 import { MAY_EXPORT_AUDIT_FILE, MAY_MANAGE_TAX_CODES, MAY_OPEN_YEAR } from './roles'
 
 /**
- * Shell navigation — Phase 0 redesign (#107).
+ * Shell navigation — Phase 0 redesign (#107), Designer v2 IA.
  *
- * One config array drives the rail, the phone Sheet, and ⌘K. Primary items are
- * the export's eight flat destinations; footer is Settings + Shortcuts.
- * Everything else (Importeren, journal, trial balance, Beheer pages, …) stays
- * reachable via ⌘K / existing routes — flip `placement` to put an item back in
- * the rail later without hunting call sites.
+ * One config array drives the rail, the phone Sheet, and ⌘K. v2 groups the
+ * rail (Money / Books); Import is pinned in the footer next to Settings.
+ * Journal is a top-level Books item with its own SubNav tabs — no Geavanceerd
+ * gating on Journal, Import, or Proefbalans.
  */
 
 export type NavPlacement = 'primary' | 'footer' | 'palette'
+
+/** Sidebar section headings (v2). `null` = ungrouped (Home, Inbox). */
+export type NavSection = 'money' | 'books' | null
 
 export interface NavItem {
   readonly to: string
@@ -20,27 +22,25 @@ export interface NavItem {
   readonly advancedKey?: MessageKey
   readonly binding?: string
   readonly roles?: readonly string[]
-  /** Hidden from the nav when Geavanceerd is off; still in ⌘K. */
+  /**
+   * Hidden from the rail when Geavanceerd is off; still in ⌘K.
+   * Not used for Journal / Import / Proefbalans (v2 — always visible).
+   */
   readonly advancedOnly?: boolean
   /** Optional search params (e.g. import wizard `?bron=`). */
   readonly search?: Readonly<Record<string, string>>
-  /**
-   * Where this row appears.
-   * - `primary` — the eight flat destinations
-   * - `footer` — Settings / Shortcuts under the spacer
-   * - `palette` — ⌘K (and help Ga naar) only
-   */
   readonly placement: NavPlacement
+  /** Primary-rail section (v2 Money / Books). Ignored for footer/palette. */
+  readonly section?: NavSection
   /**
-   * Extra path prefixes that light this item (e.g. Reports also covers
-   * `/entries` and every `/reports/*`).
+   * Extra path prefixes that light this item (e.g. Reports covers every
+   * `/reports/*`; Journal covers `/entries` and `/accounts`).
    */
   readonly alsoActiveFor?: readonly string[]
   /** Footer action that opens the shortcut sheet instead of navigating. */
   readonly openShortcuts?: boolean
 }
 
-/** @deprecated Groups are gone; kept as a thin wrapper for older call sites. */
 export interface NavGroup {
   readonly key?: MessageKey
   readonly items: readonly NavItem[]
@@ -49,33 +49,70 @@ export interface NavGroup {
 /**
  * Single source of truth for destinations.
  *
- * Order of `primary` is the rail order. Re-home Importeren / Journaalposten /
- * Proefbalans by changing `placement` (and optionally `advancedOnly`) only.
+ * Primary order matches v2 Sidebar.dc.html. Footer: Import, Settings, Shortcuts.
  */
 export const SHELL_NAV: readonly NavItem[] = [
-  // --- Eight flat destinations (export Sidebar) ---------------------------------
-  { to: '/', key: 'nav.home', binding: 'go.dashboard', placement: 'primary' },
-  { to: '/inbox', key: 'nav.inbox', binding: 'go.inbox', placement: 'primary' },
-  { to: '/invoices', key: 'nav.sales', binding: 'go.invoices', placement: 'primary' },
-  { to: '/purchases', key: 'nav.costs', binding: 'go.purchases', placement: 'primary' },
+  // --- Ungrouped -----------------------------------------------------------------
+  { to: '/', key: 'nav.home', binding: 'go.dashboard', placement: 'primary', section: null },
+  { to: '/inbox', key: 'nav.inbox', binding: 'go.inbox', placement: 'primary', section: null },
+
+  // --- Money ---------------------------------------------------------------------
+  {
+    to: '/invoices',
+    key: 'nav.sales',
+    binding: 'go.invoices',
+    placement: 'primary',
+    section: 'money',
+  },
+  {
+    to: '/purchases',
+    key: 'nav.costs',
+    binding: 'go.purchases',
+    placement: 'primary',
+    section: 'money',
+  },
   {
     to: '/bank/match',
     key: 'nav.bank',
     binding: 'go.bank',
     placement: 'primary',
+    section: 'money',
     alsoActiveFor: ['/bank'],
   },
-  { to: '/vat', key: 'nav.vat', binding: 'go.vat', placement: 'primary' },
+  {
+    to: '/contacts',
+    key: 'nav.contacts',
+    binding: 'go.contacts',
+    placement: 'primary',
+    section: 'money',
+  },
+
+  // --- Books ---------------------------------------------------------------------
+  {
+    to: '/entries',
+    key: 'nav.journal',
+    binding: 'go.journal',
+    placement: 'primary',
+    section: 'books',
+  },
+  { to: '/vat', key: 'nav.vat', binding: 'go.vat', placement: 'primary', section: 'books' },
   {
     to: '/reports/profit-and-loss',
     key: 'nav.reports',
     binding: 'go.profit',
     placement: 'primary',
-    alsoActiveFor: ['/reports', '/entries'],
+    section: 'books',
+    alsoActiveFor: ['/reports'],
   },
-  { to: '/contacts', key: 'nav.contacts', binding: 'go.contacts', placement: 'primary' },
 
-  // --- Footer --------------------------------------------------------------------
+  // --- Footer: Import + Settings + Shortcuts -------------------------------------
+  {
+    to: '/importeren',
+    key: 'nav.import',
+    binding: 'go.import',
+    roles: ['owner', 'accountant', 'bookkeeper'],
+    placement: 'footer',
+  },
   {
     to: '/settings',
     key: 'nav.settings',
@@ -91,14 +128,7 @@ export const SHELL_NAV: readonly NavItem[] = [
     openShortcuts: true,
   },
 
-  // --- Palette / chords only (placement flip restores them to the rail) ----------
-  {
-    to: '/importeren',
-    key: 'nav.import',
-    binding: 'go.import',
-    roles: ['owner', 'accountant', 'bookkeeper'],
-    placement: 'palette',
-  },
+  // --- Palette / chords only -----------------------------------------------------
   {
     to: '/importeren',
     key: 'nav.importMoneybird',
@@ -124,26 +154,13 @@ export const SHELL_NAV: readonly NavItem[] = [
     placement: 'palette',
   },
   {
-    to: '/entries',
-    key: 'nav.entries',
-    binding: 'go.journal',
-    advancedOnly: true,
-    placement: 'palette',
-  },
-  {
     to: '/reports/trial-balance',
     key: 'nav.trialBalance',
     binding: 'go.trial',
-    advancedOnly: true,
     placement: 'palette',
   },
-  {
-    to: '/accounts',
-    key: 'nav.categories',
-    advancedKey: 'nav.accounts',
-    binding: 'go.accounts',
-    placement: 'palette',
-  },
+  // Categories / Ledger per account are [API] (#107) — route stays, but not in
+  // the rail or ⌘K until PM scope sign-off.
   {
     to: '/reports/balance-sheet',
     key: 'nav.balanceSheet',
@@ -239,14 +256,25 @@ export const SHELL_NAV: readonly NavItem[] = [
   },
 ]
 
-/** Rail + Sheet: primary destinations then footer. */
+const SECTION_ORDER: readonly (NavSection | undefined)[] = [null, 'money', 'books']
+
+const SECTION_LABEL: Readonly<Record<'money' | 'books', MessageKey>> = {
+  money: 'nav.group.money',
+  books: 'nav.group.books',
+}
+
+function itemVisible(item: NavItem, role: string, advanced: boolean): boolean {
+  if (item.roles !== undefined && !item.roles.includes(role)) return false
+  if (item.advancedOnly === true && !advanced) return false
+  return true
+}
+
 export function sidebarNavItems(role: string, advanced: boolean): readonly NavItem[] {
-  return SHELL_NAV.filter((item) => {
-    if (item.placement !== 'primary' && item.placement !== 'footer') return false
-    if (item.roles !== undefined && !item.roles.includes(role)) return false
-    if (item.advancedOnly === true && !advanced) return false
-    return true
-  })
+  return SHELL_NAV.filter(
+    (item) =>
+      (item.placement === 'primary' || item.placement === 'footer') &&
+      itemVisible(item, role, advanced),
+  )
 }
 
 export function sidebarPrimaryItems(role: string, advanced: boolean): readonly NavItem[] {
@@ -257,16 +285,38 @@ export function sidebarFooterItems(role: string, advanced: boolean): readonly Na
   return sidebarNavItems(role, advanced).filter((item) => item.placement === 'footer')
 }
 
-/**
- * Back-compat grouped view for any caller still mapping groups. Phase 0 has no
- * group headings in the rail — one synthetic group of primary items.
- */
+/** Primary rail as v2 sections (ungrouped → Money → Books). */
+export function sidebarPrimarySections(
+  role: string,
+  advanced: boolean,
+): readonly { readonly key: MessageKey | undefined; readonly items: readonly NavItem[] }[] {
+  const primary = sidebarPrimaryItems(role, advanced)
+  const out: { key: MessageKey | undefined; items: NavItem[] }[] = []
+  for (const section of SECTION_ORDER) {
+    const items = primary.filter((item) => (item.section ?? null) === section)
+    if (items.length === 0) continue
+    out.push({
+      key: section === null || section === undefined ? undefined : SECTION_LABEL[section],
+      items,
+    })
+  }
+  return out
+}
+
+/** Back-compat grouped view. */
 export const NAVIGATION: readonly NavGroup[] = [
-  { items: SHELL_NAV.filter((item) => item.placement === 'primary') },
+  { items: SHELL_NAV.filter((item) => item.placement === 'primary' && item.section == null) },
+  {
+    key: 'nav.group.money',
+    items: SHELL_NAV.filter((item) => item.placement === 'primary' && item.section === 'money'),
+  },
+  {
+    key: 'nav.group.books',
+    items: SHELL_NAV.filter((item) => item.placement === 'primary' && item.section === 'books'),
+  },
   { items: SHELL_NAV.filter((item) => item.placement === 'footer') },
 ]
 
-/** Search bag from the router (`location.search`) or a plain record / URLSearchParams. */
 export type NavSearch =
   | Readonly<Record<string, unknown>>
   | URLSearchParams
@@ -289,12 +339,6 @@ function pathMatches(path: string, to: string): boolean {
   return path === to || path.startsWith(`${to}/`)
 }
 
-/**
- * Prefer the longest matching destination so `/bank` does not steal `/bank/match`.
- *
- * When `itemSearch` carries `bron` (import wizard), the current `bron` must
- * match. Missing current `bron` defaults to moneybird so only that row lights up.
- */
 export function isNavActive(
   path: string,
   to: string,
@@ -306,17 +350,18 @@ export function isNavActive(
   const matched = prefixes.some((prefix) => pathMatches(path, prefix))
   if (!matched) return false
 
-  // Another primary/footer destination with a longer/more specific `to` wins.
   const competitors = SHELL_NAV.filter(
     (item) => item.placement === 'primary' || item.placement === 'footer',
   )
   const stolen = competitors.some((other) => {
     if (other.to === to) return false
     if (!pathMatches(path, other.to)) return false
-    // Longer path prefix is more specific.
     return other.to.length > to.length
   })
   if (stolen) return false
+
+  // /reports/* prefers Reports over Journal (trial balance is shared).
+  if (to === '/entries' && path.startsWith('/reports/')) return false
 
   const itemBron = itemSearch?.['bron']
   if (itemBron === undefined) return true
@@ -328,7 +373,6 @@ export function navLabelKey(item: NavItem, advanced: boolean): MessageKey {
   return advanced && item.advancedKey !== undefined ? item.advancedKey : item.key
 }
 
-/** Active page title from the nav, or null when the path is not a destination. */
 export function pageTitleKey(
   path: string,
   advanced: boolean,
@@ -338,7 +382,6 @@ export function pageTitleKey(
   for (const item of SHELL_NAV) {
     if (item.openShortcuts === true) continue
     if (!isNavActive(path, item.to, currentSearch, item.search, item.alsoActiveFor)) continue
-    // Prefer a bron-specific Importeren row over the generic Importeren action.
     const specific = item.search === undefined ? 0 : Object.keys(item.search).length
     if (
       best === null ||
@@ -351,10 +394,6 @@ export function pageTitleKey(
   return best?.key ?? null
 }
 
-/**
- * Nav destinations for ⌘K: daily-work order (primary → footer → palette),
- * simple labels when Geavanceerd is off, and advanced-only items last.
- */
 export function paletteNavItems(
   role: string,
   advanced: boolean,
@@ -365,7 +404,6 @@ export function paletteNavItems(
     if (item.binding === undefined) continue
     if (item.openShortcuts === true) continue
     if (item.roles !== undefined && !item.roles.includes(role)) continue
-    // Legacy Exact (oud): ⌘K only when Geavanceerd is on (#105 Designer).
     if (!advanced && item.advancedOnly === true && item.binding === 'go.exactLegacy') {
       continue
     }
@@ -376,13 +414,12 @@ export function paletteNavItems(
   return advanced ? primary : [...primary, ...deferred]
 }
 
-/** Reports tab strip — order is product-locked for Phase 0. */
+/** Reports tab strip — v2 order; Proefbalans is tab 5; no Geavanceerd gate. */
 export interface ReportsTab {
   readonly id: string
   readonly to: string
   readonly key: MessageKey
   readonly digit: number
-  readonly advancedOnly?: boolean
 }
 
 export const REPORTS_TABS: readonly ReportsTab[] = [
@@ -390,22 +427,96 @@ export const REPORTS_TABS: readonly ReportsTab[] = [
   { id: 'balance', to: '/reports/balance-sheet', key: 'nav.balanceSheet', digit: 2 },
   { id: 'debtors', to: '/reports/debtor-ageing', key: 'nav.debtorsPlain', digit: 3 },
   { id: 'creditors', to: '/reports/creditor-ageing', key: 'nav.creditorAgeing', digit: 4 },
+  { id: 'trial', to: '/reports/trial-balance', key: 'nav.trialBalance', digit: 5 },
+]
+
+export function visibleReportsTabs(_advanced?: boolean): readonly ReportsTab[] {
+  return REPORTS_TABS
+}
+
+/**
+ * Journal tabs (v2): Entries / Trial balance.
+ *
+ * Ledger per account is [API] (#107) — omitted from the UI (no tab, no
+ * placeholder) until PM scope sign-off.
+ */
+export interface JournalTab {
+  readonly id: string
+  readonly to: string
+  readonly key: MessageKey
+  readonly digit: number
+  readonly alsoActiveFor?: readonly string[]
+}
+
+export const JOURNAL_TABS: readonly JournalTab[] = [
+  { id: 'entries', to: '/entries', key: 'nav.entries', digit: 1 },
+  { id: 'trial', to: '/reports/trial-balance', key: 'nav.trialBalance', digit: 2 },
+]
+
+export function visibleJournalTabs(): readonly JournalTab[] {
+  return JOURNAL_TABS
+}
+
+/**
+ * v2 PhoneTabBar — five destinations at 390px (#107 Phase 0).
+ *
+ * Home · Sales · Inbox · Bank · More. Receipt/More *contents* wait on Batch 3;
+ * until then More opens the existing #38 Sheet, and Inbox is the upload entry
+ * (no copy that promises reading a photo).
+ */
+export type PhoneTabId = 'home' | 'sales' | 'inbox' | 'bank' | 'more'
+
+export interface PhoneTab {
+  readonly id: PhoneTabId
+  readonly key: MessageKey
+  readonly to: string
+  readonly alsoActiveFor?: readonly string[]
+  readonly opensMore?: boolean
+}
+
+export const PHONE_TAB_BAR: readonly PhoneTab[] = [
+  { id: 'home', key: 'nav.home', to: '/' },
+  { id: 'sales', key: 'nav.sales', to: '/invoices' },
+  { id: 'inbox', key: 'nav.inbox', to: '/inbox' },
   {
-    id: 'trial',
-    to: '/reports/trial-balance',
-    key: 'nav.trialBalance',
-    digit: 5,
-    advancedOnly: true,
+    id: 'bank',
+    key: 'nav.bank',
+    to: '/bank/match',
+    alsoActiveFor: ['/bank'],
   },
+  { id: 'more', key: 'nav.phoneMore', to: '/', opensMore: true },
+]
+
+/** Settings SubNav areas (v2) — existing routes; hub grows in Phase 10. */
+export interface SettingsNavItem {
+  readonly id: string
+  readonly to: string
+  readonly key: MessageKey
+  readonly match?: readonly string[]
+}
+
+export const SETTINGS_SUBNAV: readonly SettingsNavItem[] = [
+  { id: 'company', to: '/settings', key: 'settings.hubCompany' },
   {
-    id: 'journal',
-    to: '/entries',
-    key: 'nav.entries',
-    digit: 6,
-    advancedOnly: true,
+    id: 'books',
+    to: '/fiscal-years',
+    key: 'settings.hubBooks',
+    // Categories (/accounts) are [API] for add/rename — not linked from SubNav.
+    match: ['/fiscal-years', '/tax-codes'],
+  },
+  { id: 'access', to: '/members', key: 'settings.hubAccess', match: ['/members'] },
+  {
+    id: 'data',
+    to: '/importeren',
+    key: 'settings.hubData',
+    match: ['/importeren', '/audit-file', '/exact'],
   },
 ]
 
-export function visibleReportsTabs(advanced: boolean): readonly ReportsTab[] {
-  return REPORTS_TABS.filter((tab) => advanced || tab.advancedOnly !== true)
+export function isSettingsNavActive(path: string, item: SettingsNavItem): boolean {
+  const prefixes = item.match ?? [item.to]
+  return prefixes.some((prefix) => {
+    if (prefix === '/settings') return path === '/settings'
+    return path === prefix || path.startsWith(`${prefix}/`)
+  })
 }

@@ -118,7 +118,7 @@ test('i m reaches the import wizard under Importeren (#100)', async ({ page }) =
   // listener is live (#37). `i m` opens the wizard.
   await expect(
     page
-      .getByRole('link', { name: /^Dashboard/ })
+      .getByRole('link', { name: /^Home/ })
       .locator('kbd')
       .first(),
   ).toBeVisible()

@@ -2,6 +2,7 @@ import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { violationMessage } from '~/i18n/labels'
 import { useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
+import { SettingsSubNav } from '~/components/settings-subnav'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
 import type { MessageKey } from '~/i18n/nl'
@@ -172,6 +173,13 @@ function Settings() {
     <>
       <PageHeader title={t('settings.title')} description={t('settings.intro')} />
 
+      <div className="flex flex-col gap-8 md:flex-row md:gap-10">
+        {/* v2 SubNav — settings areas; never grows the sidebar. */}
+        <aside className="w-full shrink-0 md:w-56">
+          <SettingsSubNav />
+        </aside>
+
+        <div className="min-w-0 flex-1">
       {/*
         Settings hub seed (#107): Overstappen naar Klopt. Full hub grouping is
         Phase 10; this row is the Placement decision for Importeren.
@@ -310,6 +318,8 @@ function Settings() {
           {busy ? t('common.busy') : t('common.save')}
         </button>
       </form>
+        </div>
+      </div>
     </>
   )
 }

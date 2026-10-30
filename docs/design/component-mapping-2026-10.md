@@ -1,57 +1,66 @@
-# Component mapping — redesign 2026-10 → shadcn/ui
+# Component mapping — redesign 2026-10-v2 → shadcn/ui
 
-Phase 0 of [#107](https://github.com/euro-oss/klopt/issues/107). The export’s
-`.k-*` classes are a **style reference**. We map them onto
+Phase 0 of [#107](https://github.com/euro-oss/klopt/issues/107). Source of truth
+is **v2** (`design/redesign-2026-10/`, sha256 `45a4d567…508a`; also on PR #106
+commit `85dd802`).
+
+The export’s `.k-*` classes are a **style reference**. We map them onto
 `apps/web/src/components/ui/*` and thin app components — we do **not** ship
 `bundle.css` as a second system.
 
-Reference: [#106](https://github.com/euro-oss/klopt/pull/106)
-`design/redesign-2026-10/`.
+## Mapping table (20 components from #107)
 
-## Mapping table
+| #107 component                          | shadcn / app target                   | Phase 0 status | Notes                                                            |
+| --------------------------------------- | ------------------------------------- | -------------- | ---------------------------------------------------------------- |
+| **Button**                              | `ui/button`                           | Mapped         | Primary = ink (`--primary`), never yellow                        |
+| **Badge** + **StatusPill**              | `ui/badge` variants                   | Mapped         | success / danger / info / attention (WARN); late = danger        |
+| **Input**                               | `ui/input` + `.field-control`         | Mapped         | Accessible `--input` border (≥3:1); 44px touch                   |
+| **Switch**                              | `ui/switch`                           | Mapped         | Profile Geavanceerd + lab                                        |
+| **Tabs**                                | `ui/tabs` (underline + segmented)     | Mapped         | Route strips stay Link-based (`reports-tabs`, `journal-tabs`)    |
+| **Kbd**                                 | `ui/keycap`                           | Mapped         | Mono via `--font-mono`                                           |
+| **ListRow**                             | `scroll-table` / `item`               | Mapped         | No screen port in Phase 0                                        |
+| **Callout**                             | `ui/alert`                            | Mapped         | attention / WARN → `--status-attention`; danger = red            |
+| **ChoiceOption**                        | `ui/choice-option` on `radio-group`   | Mapped         | Primitive only; Match 1–4 restyle is Phase 5                     |
+| **StatTile**, **TodoItem**, **NavItem** | app `Stat` / queue row / shell `Link` | Mapped         | v2 grouped rail in `app-shell` + `shell-nav.ts`                  |
+| **CommandBar**                          | `command-palette`                     | Mapped         | Grouped results later (Phase 13)                                 |
+| **Cover**                               | `ui/empty`                            | Mapped         |                                                                  |
+| **CodeChip**                            | `ui/code-chip`                        | Mapped         | Mono + sunken                                                    |
+| **DropZone**                            | `ui/drop-zone`                        | Mapped         | Honest copy only; wired into Inbox/import in later phases        |
+| **Menu**                                | `ui/dropdown-menu`                    | Mapped         | Switcher still uses Popover + SelectField for e2e `chooseOption` |
+| **PhoneTabBar**                         | `components/phone-tab-bar.tsx`        | Mapped         | Home · Sales · Inbox · Bank · More→#38 Sheet until Batch 3       |
+| **Stepper**                             | `ui/stepper`                          | Mapped         | Import wizard keeps its own rail until Phase 11                  |
+| **SubNav**                              | `settings-subnav.tsx` + Journal tabs  | Mapped         | Settings hub areas; Journal Entries / Trial (no Ledger)          |
 
-| Export component | shadcn / app target                                     | Status in Phase 0 | Notes                                                                                       |
-| ---------------- | ------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------- |
-| **Badge**        | `ui/badge`                                              | Reused            | Brand / danger / neutral count badges use existing variants + tokens                        |
-| **Button**       | `ui/button`                                             | Reused            | Primary = ink (`--primary`), never yellow                                                   |
-| **StatusPill**   | `ui/badge` variant                                      | Reused            | success / danger / info / neutral via badge variants                                        |
-| **Input**        | `ui/input` + `.field-control`                           | Reused            | Accessible `--input` border (≥3:1); 44px touch                                              |
-| **Switch**       | new `ui/switch` (later phase) / profile `role="switch"` | Reused for now    | Profile Geavanceerd switch stays; shadcn Switch when a screen needs it                      |
-| **Tabs**         | underline strip (Reports) + segmented filters           | Partial           | Reports tabs in `components/reports-tabs.tsx`; full shadcn `tabs` when more screens need it |
-| **Kbd**          | `ui/keycap`                                             | Reused            | Mono via `--font-mono`                                                                      |
-| **ListRow**      | `scroll-table` / `item`                                 | Reused            | No screen port in Phase 0                                                                   |
-| **Callout**      | `ui/alert`                                              | Reused            | attention → `--status-attention` (currently red)                                            |
-| **ChoiceOption** | `ui/radio-group` styled as option                       | Deferred          | Bank Match Phase 5; option **4** will deep-link to Journaalposten                           |
-| **StatTile**     | app `Stat` on `item`                                    | Reused            | `app-shell` `Stat`                                                                          |
-| **TodoItem**     | app queue row                                           | Reused            | Dashboard work queue; no visual port yet                                                    |
-| **NavItem**      | shell `Link` rows                                       | **New chrome**    | Flat rail in `app-shell` + `shell-nav.ts`                                                   |
-| **CommandBar**   | `command-palette`                                       | Reused            | Grouped results later (Phase 9)                                                             |
-| **Cover**        | `ui/empty`                                              | Reused            |                                                                                             |
+**GuidedInvoice** is not in the 20 — it is **dropped** (decision 1). Do not build it.
 
-## What’s new in Phase 0
+## Gaps vs #107 Phase 0 list
 
-- Token layer `styles/tokens.css` + self-hosted Inter / JetBrains Mono / Ubuntu Sans
-- Flat shell nav (8 + Settings/Shortcuts)
-- Reports tab strip (incl. Geavanceerd Proefbalans + Journaalposten)
-- Settings hub seed row “Overstappen naar Klopt”
-- Keyboard: `n c`, `n r`, `x` select, `/` list filter, digit tabs on Reports
+None missing as primitives. Intentional Phase 0 limits (not gaps in the list):
 
-## What’s reused
+1. **Journal Ledger tab** — [API]; omitted from UI (no tab, no placeholder).
+2. **PhoneTabBar Receipt / More contents** — wait on Batch 3; More opens the existing Sheet; middle tab is Inbox (honest, no photo-reading promise).
+3. **ChoiceOption Match 1–4** and **DropZone** on live upload screens — later phases; primitives ship in Phase 0 / `lab.primitives`.
+4. **Menu** on EntitySwitcher — Popover retained for e2e; `dropdown-menu` is the mapped Menu primitive in lab.
+5. **Stepper** not yet swapped into the import wizard rail — Phase 11.
 
-- All existing `ui/*` primitives and flows (import wizard, match, VAT, …) —
-  reskin-only in later phases
-- ⌘K, `?` help, Geavanceerd, entity switcher, phone Sheet (#38)
+## Sidebar (v2)
 
-## Later phases (not built now)
+Home, Inbox · **Money** (Sales, Costs, Bank, Contacts) · **Books** (Journal, VAT, Reports) · footer **Import**, Settings, Shortcuts.
 
-- **Invoice editor:** the one-page export editor **replaces** the guided flow
-  (#45 / `lab/guided-invoice`) — confirmed for a later phase; do not build in Phase 0
-- Full Settings hub grouping (Phase 10)
-- Match ChoiceOption 1–4 and option-4 → `/entries` (Phase 5)
-- Screen ports Home → Inbox → … per epic order
+- Journal is top-level (`g j`) with SubNav: Journaalposten / Proefbalans (Ledger [API] omitted).
+- Proefbalans is also Reports tab 5. No Geavanceerd gating on these.
+- Settings hub may show “Switching to Klopt” (v2 does). Everything stays in ⌘K except [API]-hidden items.
 
-## Sidebar config
+## [API] items hidden from nav and ⌘K
 
-Single array: `SHELL_NAV` in `apps/web/src/lib/shell-nav.ts`.  
-`placement: 'primary' | 'footer' | 'palette'` — moving Importeren / journal /
-trial balance is a one-field change.
+Ledger, reports PDF export, reminder settings, categories (`/accounts`), entry attachments, bank rename, OAuth “make drafts”, KvK/Peppol registration. Chord `g a` remains for alphabet fullness but is not printed in ⌘K.
+
+## Honest copy (shell / ⌘K)
+
+No strings that imply PDF or photo reading; Peppol is never shown as live; VAT wording leads with manual filing (screen phases refine further).
+
+## Config
+
+`SHELL_NAV` in `apps/web/src/lib/shell-nav.ts` (`section`, `placement`).
+Phone: `PHONE_TAB_BAR`. Journal: `JOURNAL_TABS`. Settings: `SETTINGS_SUBNAV`.
+`lab.primitives` shows every mapped primitive in light and dark.

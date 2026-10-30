@@ -13,10 +13,9 @@ import {
 } from './support'
 
 /**
- * Redesign shell slice 2 (#61): nav IA, Geavanceerd, ⌘K.
+ * Redesign shell Phase 0 (#107): v2 grouped IA, Geavanceerd, ⌘K, PhoneTabBar.
  *
- * Screen content is out of scope; these specs only pin the chrome contracts
- * that Product signed off against the #57 prototype.
+ * Screen content (phases 1–15) is out of scope; these specs pin the chrome.
  */
 
 test.beforeAll(async () => {
@@ -40,7 +39,9 @@ async function anAdministration(
   return email
 }
 
-test('flat rail lists the eight export destinations then Settings', async ({ page }) => {
+test('v2 rail: Home, Inbox, Money, Books; footer Import + Settings + Shortcuts', async ({
+  page,
+}) => {
   await anAdministration(page, 'IA BV')
 
   const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
@@ -49,42 +50,47 @@ test('flat rail lists the eight export destinations then Settings', async ({ pag
       (el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '',
     ),
   )
-  const expected = ['Home', 'Postvak', 'Verkoop', 'Kosten', 'Bank', 'BTW', 'Rapporten', 'Relaties']
+  const expected = [
+    'Home',
+    'Postvak',
+    'Verkoop',
+    'Kosten',
+    'Bank',
+    'Relaties',
+    'Journaal',
+    'BTW',
+    'Rapporten',
+    'Importeren',
+    'Instellingen',
+    'Sneltoetsen',
+  ]
   let previous = -1
   for (const label of expected) {
     const at = labels.findIndex((text) => text.startsWith(label))
     expect(at, label).toBeGreaterThan(previous)
     previous = at
   }
-  expect(labels.some((text) => text.startsWith('Instellingen'))).toBe(true)
-  expect(labels.some((text) => text.startsWith('Sneltoetsen'))).toBe(true)
-  // Importeren / journal / trial stay out of the flat rail.
-  expect(labels.some((text) => text.includes('Journaalposten'))).toBe(false)
-  expect(labels.some((text) => text.includes('Proefbalans'))).toBe(false)
-  expect(labels.some((text) => text.includes('Importeren'))).toBe(false)
+  // Categories / Ledger [API] stay out of the rail.
+  expect(labels.some((text) => text.includes('Categorieën'))).toBe(false)
+  expect(labels.some((text) => text === 'Grootboek' || text.startsWith('Grootboek '))).toBe(false)
 })
 
-test('Geavanceerd shows Proefbalans and Journaalposten on Reports tabs only', async ({ page }) => {
+test('Reports tabs always include Proefbalans as 5; no Journaalposten tab', async ({ page }) => {
   await anAdministration(page, 'Eenvoud BV')
-
-  const nav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
-  await expect(nav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
-  await expect(nav.getByRole('link', { name: /Proefbalans/ })).toHaveCount(0)
 
   await page.goto('/reports/profit-and-loss')
   const tabs = page.locator('[data-reports-tabs]')
-  await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toHaveCount(0)
+  await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
   await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
 
-  await enableAdvancedMode(page)
-  await page.goto('/reports/profit-and-loss')
-  await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
-  await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
-  // Still not in the flat rail.
-  await expect(nav.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
+  await page.goto('/entries')
+  const journal = page.locator('[data-journal-tabs]')
+  await expect(journal.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+  await expect(journal.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
+  await expect(journal.getByRole('link', { name: /Grootboek/ })).toHaveCount(0)
 })
 
-test('⌘K still reaches Journaalposten when Geavanceerd is off', async ({ page }) => {
+test('⌘K reaches Journaal when Geavanceerd is off', async ({ page }) => {
   await anAdministration(page, 'Palette BV')
 
   await page.keyboard.press('ControlOrMeta+k')
@@ -93,9 +99,28 @@ test('⌘K still reaches Journaalposten when Geavanceerd is off', async ({ page 
   await expect(palette.getByRole('option', { name: /Geavanceerd aanzetten/ })).toBeVisible()
 
   await page.keyboard.type('journaal')
-  await expect(palette.getByRole('option', { name: /Journaalposten/ })).toBeVisible()
+  await expect(palette.getByRole('option', { name: /^Journaal/ })).toBeVisible()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { name: 'Journaalposten' })).toBeVisible()
+})
+
+test('⌘K does not list categories (Categorieën) — [API]', async ({ page }) => {
+  await anAdministration(page, 'No Categories BV')
+  await page.keyboard.press('ControlOrMeta+k')
+  const palette = page.getByRole('dialog', { name: 'Commando’s' })
+  await expect(palette).toBeVisible()
+  await page.keyboard.type('categorie')
+  await expect(palette.getByRole('option', { name: /Categorieën/ })).toHaveCount(0)
+})
+
+test('PhoneTabBar More opens the existing Sheet at 390', async ({ page }) => {
+  await anAdministration(page, 'Phone More BV')
+  await page.setViewportSize({ width: 390, height: 844 })
+  const bar = page.locator('[data-phone-tab-bar]')
+  await expect(bar).toBeVisible()
+  await bar.getByRole('button', { name: 'Meer' }).click()
+  await expect(page.getByRole('navigation', { name: 'Hoofdnavigatie' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Journaal/ })).toBeVisible()
 })
 
 test('? opens keyboard help and mentions Geavanceerd is unbound', async ({ page }) => {
@@ -215,7 +240,7 @@ test('double-click while Geavanceerd save is in flight keeps focus in the menu',
   expect(posts).toBe(1)
 })
 
-test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) => {
+test('help Ga naar lists Journal and omits categories', async ({ page }) => {
   await anAdministration(page, 'Help Volgorde BV')
 
   await page.keyboard.press('?')
@@ -227,17 +252,14 @@ test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) =>
     .filter({ has: page.getByRole('heading', { name: 'Ga naar' }) })
   await expect(goTo.getByRole('heading', { name: 'Ga naar' })).toBeVisible()
 
-  // Flat rail first; advanced destinations (Journaalposten / Proefbalans) last (#107).
   const labels = await goTo.locator('dt').allTextContents()
   const trimmed = labels.map((label) => label.trim())
   expect(trimmed.indexOf('Home')).toBeGreaterThan(-1)
+  expect(trimmed.indexOf('Journaal')).toBeGreaterThan(-1)
   expect(trimmed.indexOf('Rapporten')).toBeGreaterThan(-1)
-  expect(trimmed.indexOf('Categorieën')).toBeGreaterThan(-1)
+  expect(trimmed.indexOf('Proefbalans')).toBeGreaterThan(-1)
+  expect(trimmed.indexOf('Categorieën')).toBe(-1)
   expect(trimmed.indexOf('Grootboekrekeningen')).toBe(-1)
-  expect(trimmed.indexOf('Categorieën')).toBeLessThan(trimmed.indexOf('Journaalposten'))
-  expect(trimmed.indexOf('Rapporten')).toBeLessThan(trimmed.indexOf('Proefbalans'))
-  expect(trimmed.indexOf('Journaalposten')).toBeGreaterThan(trimmed.indexOf('Momentopnames'))
-  expect(trimmed.indexOf('Proefbalans')).toBe(trimmed.length - 1)
   // ⌘K is two chips; letter capital after the modifier.
   const paletteChips = await help.evaluate((root) => {
     const dt = [...root.querySelectorAll('dt')].find(
@@ -250,20 +272,18 @@ test('help Ga naar matches ⌘K order with Geavanceerd off', async ({ page }) =>
   expect(paletteChips).toEqual(['Ctrl', 'K'])
 })
 
-test('turning Geavanceerd off from the menu hides advanced Reports tabs again', async ({
-  page,
-}) => {
+test('Reports Proefbalans stays visible when Geavanceerd is off', async ({ page }) => {
   await anAdministration(page, 'Toggle BV')
   await enableAdvancedMode(page)
 
   await page.goto('/reports/profit-and-loss')
   const tabs = page.locator('[data-reports-tabs]')
-  await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
+  await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
 
   await setAdvancedMode(page, false)
   await page.goto('/reports/profit-and-loss')
+  await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
   await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
-  await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toHaveCount(0)
 })
 
 test('a Boekhouder gets Geavanceerd on by default', async ({ browser }) => {
@@ -297,7 +317,6 @@ test('a Boekhouder gets Geavanceerd on by default', async ({ browser }) => {
 
     await keeperPage.goto('/reports/profit-and-loss')
     const tabs = keeperPage.locator('[data-reports-tabs]')
-    await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
     await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
 
     await openAccountMenu(keeperPage)
@@ -343,11 +362,16 @@ test('switching administration re-derives Geavanceerd from the active role', asy
 
     await ownerPage.goto('/reports/profit-and-loss')
     const tabs = ownerPage.locator('[data-reports-tabs]')
-    await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
+    await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
+
+    await openAccountMenu(ownerPage)
+    await expect(ownerPage.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    )
 
     await chooseOption(ownerPage, 'Administratie', 'Admin B')
     await ownerPage.goto('/reports/profit-and-loss')
-    await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toBeVisible()
     await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
 
     await openAccountMenu(ownerPage)
@@ -470,7 +494,7 @@ test('Geavanceerd choice persists across a fresh browser context for the same us
 
     await page.goto('/reports/profit-and-loss')
     await expect(
-      page.locator('[data-reports-tabs]').getByRole('link', { name: /Journaalposten/ }),
+      page.locator('[data-reports-tabs]').getByRole('link', { name: /Proefbalans/ }),
     ).toBeVisible()
     await openAccountMenu(page)
     await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
@@ -495,9 +519,8 @@ test('n c opens Relaties and n r opens inkoop nieuw', async ({ page }) => {
   await expect(page).toHaveURL(/\/purchases\/new/)
 })
 
-test('digit keys switch Reports tabs when Geavanceerd is on', async ({ page }) => {
+test('digit keys switch Reports tabs 1–5', async ({ page }) => {
   await anAdministration(page, 'Tabs BV')
-  await enableAdvancedMode(page)
   await page.goto('/reports/profit-and-loss')
   await hydrated(page)
 
@@ -505,12 +528,30 @@ test('digit keys switch Reports tabs when Geavanceerd is on', async ({ page }) =
   await expect(page).toHaveURL(/\/reports\/trial-balance/)
   await expect(page.getByRole('heading', { name: 'Proefbalans' })).toBeVisible()
 
-  await page.keyboard.press('6')
-  await expect(page).toHaveURL(/\/entries/)
-  await expect(page.getByRole('heading', { name: 'Journaalposten' })).toBeVisible()
-
   await page.keyboard.press('1')
   await expect(page).toHaveURL(/\/reports\/profit-and-loss/)
+})
+
+test('digit keys switch Journal tabs Entries / Trial', async ({ page }) => {
+  await anAdministration(page, 'Journal Tabs BV')
+  await page.goto('/entries')
+  await hydrated(page)
+
+  await page.keyboard.press('2')
+  await expect(page).toHaveURL(/\/reports\/trial-balance/)
+  await expect(page.getByRole('heading', { name: 'Proefbalans' })).toBeVisible()
+
+  await page.goto('/entries')
+  await page.keyboard.press('1')
+  await expect(page).toHaveURL(/\/entries/)
+})
+
+test('g j opens Journal', async ({ page }) => {
+  await anAdministration(page, 'Go Journal BV')
+  await page.keyboard.press('g')
+  await page.keyboard.press('j')
+  await expect(page).toHaveURL(/\/entries/)
+  await expect(page.locator('[data-journal-tabs]')).toBeVisible()
 })
 
 test('Settings hub lists Overstappen naar Klopt', async ({ page }) => {

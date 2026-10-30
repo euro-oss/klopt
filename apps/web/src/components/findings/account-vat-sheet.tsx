@@ -511,7 +511,7 @@ function AccountVatSheetBody({
             </legend>
             {allVatOptions.length === 0 ? (
               <div
-                className="border-warning/40 bg-warning/8 text-warning border border-l-[3px] border-l-warning px-3 py-3 text-sm"
+                className="border-status-geen-btw/40 bg-status-geen-btw/8 text-status-geen-btw border border-l-[3px] border-l-status-geen-btw px-3 py-3 text-sm"
                 role="status"
                 data-slot="vat-empty-attention"
               >

@@ -10,6 +10,7 @@ import {
 import { Button } from '~/components/ui/button'
 import { Keycap } from '~/components/ui/keycap'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
+import { Switch } from '~/components/ui/switch'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import {
   Sheet,
@@ -36,11 +37,12 @@ import {
   navLabelKey,
   pageTitleKey,
   sidebarFooterItems,
-  sidebarPrimaryItems,
+  sidebarPrimarySections,
   type NavItem,
   type NavSearch,
 } from '~/lib/shell-nav'
 import { CommandPalette } from './command-palette'
+import { PhoneTabBar } from './phone-tab-bar'
 
 /** #63 focus ring: solid outline, never outline-none (Tailwind 4 trap). */
 const FOCUS_RING =
@@ -150,16 +152,15 @@ export function AppShell({
   const titleKey = pageTitleKey(path, advanced, search)
   const pageTitle = titleKey !== null ? t(titleKey) : 'Klopt'
 
-  // Flat eight + footer (#107). Journaalposten / Proefbalans / Importeren stay
-  // in ⌘K (and Reports tabs when Geavanceerd is on) — not in the rail.
-  const primary = sidebarPrimaryItems(role, advanced)
+  // v2 grouped rail: Money / Books; Import pinned in the footer (#107).
+  const sections = sidebarPrimarySections(role, advanced)
   const footer = sidebarFooterItems(role, advanced)
 
   const railChrome = (
     <ShellNavChrome
       path={path}
       search={search}
-      primary={primary}
+      sections={sections}
       footer={footer}
       advanced={advanced}
       entities={entities}
@@ -180,7 +181,7 @@ export function AppShell({
     <ShellNavChrome
       path={path}
       search={search}
-      primary={primary}
+      sections={sections}
       footer={footer}
       advanced={advanced}
       entities={entities}
@@ -339,7 +340,7 @@ export function AppShell({
             id="main"
             ref={main}
             tabIndex={-1}
-            className="min-w-0 flex-1 scroll-mt-12 p-4 outline-none md:p-8"
+            className="min-w-0 flex-1 scroll-mt-12 p-4 pb-24 outline-none md:p-8 md:pb-8"
           >
             {active?.isDemo === true && (
               <div
@@ -351,6 +352,19 @@ export function AppShell({
             )}
             {children}
           </main>
+
+          {/*
+            v2 PhoneTabBar: five destinations at <md. More opens the left Sheet
+            (flat rail). Desktop keeps the 8-item sidebar.
+          */}
+          <PhoneTabBar
+            path={path}
+            search={search}
+            moreOpen={navOpen}
+            onMore={() => {
+              setNavOpen(true)
+            }}
+          />
         </div>
       </div>
     </div>
@@ -360,13 +374,13 @@ export function AppShell({
 /**
  * The shared body of the side-nav and the phone Sheet.
  *
- * Flat primary list + footer (Settings / Shortcuts), then the profile row.
- * Palette-only destinations live in `SHELL_NAV` with `placement: 'palette'`.
+ * v2 grouped primary list (Money / Books) + footer (Import / Settings /
+ * Shortcuts), then the profile row.
  */
 function ShellNavChrome({
   path,
   search,
-  primary,
+  sections,
   footer,
   advanced,
   entities,
@@ -384,7 +398,10 @@ function ShellNavChrome({
 }: {
   path: string
   search: NavSearch
-  primary: readonly NavItem[]
+  sections: readonly {
+    readonly key: MessageKey | undefined
+    readonly items: readonly NavItem[]
+  }[]
   footer: readonly NavItem[]
   advanced: boolean
   entities: readonly ShellEntity[]
@@ -481,9 +498,18 @@ function ShellNavChrome({
       />
 
       <div className="group/nav min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-        <ul role="list" className="flex flex-col gap-0.5">
-          {primary.map(renderItem)}
-        </ul>
+        {sections.map((section) => (
+          <div key={section.key ?? 'top'} className="mb-1">
+            {section.key !== undefined && (
+              <p className="text-ink-muted mt-3 mb-1 px-2.5 text-[11px] font-semibold tracking-[0.06em] uppercase">
+                {t(section.key)}
+              </p>
+            )}
+            <ul role="list" className="flex flex-col gap-0.5">
+              {section.items.map(renderItem)}
+            </ul>
+          </div>
+        ))}
         <div className="min-h-6 flex-1" aria-hidden="true" />
         <ul role="list" className="mt-2 flex flex-col gap-0.5">
           {footer.map(renderItem)}
@@ -496,11 +522,12 @@ function ShellNavChrome({
 }
 
 /**
- * One combined Administratie / Boekjaar control (#57 prototype).
+ * v2 Switcher — administration + book year (Menu pattern).
  *
  * The closed row shows the administration over the year + date range. Opening
  * it reveals the labelled SelectFields the e2e suite already drives, so
- * `chooseOption(…, 'Administratie' | 'Boekjaar', …)` keeps working.
+ * `chooseOption(…, 'Administratie' | 'Boekjaar', …)` keeps working, plus the
+ * v2 menu chrome (section labels, new administration, people link).
  */
 function EntitySwitcher({
   entities,
@@ -539,64 +566,105 @@ function EntitySwitcher({
         })
 
   return (
-    <div className="mx-2 mb-2">
+    <div className="mx-2 mb-2" data-entity-switcher="">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           disabled={!hydrated}
           className={cn(
-            'border-sidebar-border bg-background flex min-h-11 w-full items-center gap-2 border px-3 py-1.5 text-left md:min-h-0',
-            'hover:bg-background/70 data-[state=open]:bg-background',
+            'border-line bg-surface flex min-h-11 w-full items-center gap-2 rounded-md border px-3 py-1.5 text-left md:min-h-0',
+            'hover:bg-surface-hover data-[state=open]:bg-surface',
+            'shadow-[var(--shadow-raised)]',
             FOCUS_RING,
           )}
           aria-label={t('shell.entitySwitcher')}
         >
+          <span
+            aria-hidden="true"
+            className="bg-accent text-accent-foreground flex size-7 shrink-0 items-center justify-center text-[13px] font-semibold"
+            style={{ borderRadius: 'var(--radius-md)' }}
+          >
+            {t('shell.brandMark')}
+          </span>
           <span className="min-w-0 flex-1">
             {entityLabel !== '' && (
               <span className="block truncate text-sm font-medium">{entityLabel}</span>
             )}
             {yearRange !== '' && (
-              <span className="text-muted-foreground block truncate text-xs tabular">
-                {yearRange}
-              </span>
+              <span className="text-ink-muted block truncate text-xs tabular">{yearRange}</span>
             )}
           </span>
-          <RiArrowDownSLine aria-hidden="true" className="text-muted-foreground size-4 shrink-0" />
+          <RiArrowDownSLine aria-hidden="true" className="text-ink-muted size-4 shrink-0" />
         </PopoverTrigger>
-        <PopoverContent side="bottom" align="start" sideOffset={4} className="w-64 space-y-3 p-3">
+        <PopoverContent
+          side="bottom"
+          align="start"
+          sideOffset={4}
+          className="bg-surface w-80 space-y-1 rounded-[var(--radius-xl)] p-1.5 shadow-[var(--shadow-overlay)]"
+        >
           {entities.length > 0 && (
-            <SelectField
-              label={t('shell.administration')}
-              value={activeEntityId}
-              onValueChange={onSwitchEntity}
-              disabled={!hydrated}
-              size="sm"
-            >
-              {entities.map((entity) => (
-                <SelectOption key={entity.entityId} value={entity.entityId}>
-                  {entity.isDemo
-                    ? t('shell.demoEntity', { name: entity.entityName })
-                    : entity.entityName}
-                </SelectOption>
-              ))}
-            </SelectField>
+            <div className="space-y-1 p-1.5">
+              <p className="text-ink-muted px-1 pt-1 text-[11px] font-semibold tracking-[0.06em] uppercase">
+                {t('shell.administration')}
+              </p>
+              <SelectField
+                label={t('shell.administration')}
+                value={activeEntityId}
+                onValueChange={onSwitchEntity}
+                disabled={!hydrated}
+                size="sm"
+              >
+                {entities.map((entity) => (
+                  <SelectOption key={entity.entityId} value={entity.entityId}>
+                    {entity.isDemo
+                      ? t('shell.demoEntity', { name: entity.entityName })
+                      : entity.entityName}
+                  </SelectOption>
+                ))}
+              </SelectField>
+              <Link
+                to="/setup"
+                className="text-ink hover:bg-surface-hover flex min-h-10 items-center rounded-md px-2.5 text-sm no-underline"
+                onClick={() => {
+                  setOpen(false)
+                }}
+              >
+                {t('shell.newAdministration')}
+              </Link>
+            </div>
           )}
           {fiscalYears.length > 0 && activeYear !== null && (
-            <SelectField
-              label={t('shell.fiscalYear')}
-              value={activeYear.code}
-              onValueChange={onSelectYear}
-              disabled={!hydrated}
-              size="sm"
-            >
-              {fiscalYears.map((year) => (
-                <SelectOption key={year.code} value={year.code}>
-                  {year.status === 'closed'
-                    ? t('shell.yearClosed', { year: year.code })
-                    : year.code}
-                </SelectOption>
-              ))}
-            </SelectField>
+            <div className="border-line-soft space-y-1 border-t p-1.5">
+              <p className="text-ink-muted px-1 pt-1 text-[11px] font-semibold tracking-[0.06em] uppercase">
+                {t('shell.fiscalYear')}
+              </p>
+              <SelectField
+                label={t('shell.fiscalYear')}
+                value={activeYear.code}
+                onValueChange={onSelectYear}
+                disabled={!hydrated}
+                size="sm"
+              >
+                {fiscalYears.map((year) => (
+                  <SelectOption key={year.code} value={year.code}>
+                    {year.status === 'closed'
+                      ? t('shell.yearClosed', { year: year.code })
+                      : year.code}
+                  </SelectOption>
+                ))}
+              </SelectField>
+            </div>
           )}
+          <div className="border-line-soft border-t p-1.5">
+            <Link
+              to="/members"
+              className="text-ink hover:bg-surface-hover flex min-h-10 items-center rounded-md px-2.5 text-sm no-underline"
+              onClick={() => {
+                setOpen(false)
+              }}
+            >
+              {t('shell.peopleAccess')}
+            </Link>
+          </div>
         </PopoverContent>
       </Popover>
     </div>
@@ -700,36 +768,27 @@ function Profile({
               disabling the control — disabled would flash opacity and drop
               keyboard focus out of the menu in Chromium (#66 design review).
               Failure is announced once by the fixed toast. */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={advanced}
-            aria-busy={saving || undefined}
-            disabled={!hydrated}
-            onClick={() => {
-              void setAdvanced(!advanced)
-            }}
+          <div
             className={cn(
-              'hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left',
-              FOCUS_RING,
+              'hover:bg-muted flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left',
             )}
           >
-            <span className="min-w-0 flex-1">
+            <label htmlFor="shell-advanced-switch" className="min-w-0 flex-1 cursor-pointer">
               <span className="block text-sm font-medium">{t('shell.advanced')}</span>
               <span className="block text-xs opacity-70">{t('shell.advancedHint')}</span>
-            </span>
-            <span
-              aria-hidden="true"
-              className={cn(
-                'mt-0.5 flex h-6 w-10 shrink-0 items-center border px-0.5 transition-colors',
-                advanced
-                  ? 'border-foreground bg-foreground justify-end'
-                  : 'border-input justify-start',
-              )}
-            >
-              <span className={cn('size-4', advanced ? 'bg-background' : 'bg-muted-foreground')} />
-            </span>
-          </button>
+            </label>
+            <Switch
+              id="shell-advanced-switch"
+              className="mt-0.5"
+              checked={advanced}
+              disabled={!hydrated}
+              aria-busy={saving || undefined}
+              aria-label={t('shell.advanced')}
+              onCheckedChange={(checked) => {
+                void setAdvanced(checked)
+              }}
+            />
+          </div>
 
           <div className="border-border space-y-3 border-t px-3 py-3">
             <LanguagePicker />

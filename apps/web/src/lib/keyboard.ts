@@ -42,7 +42,9 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'help', label: 'keys.help', group: 'keys.group.global', keys: '?' },
 
   { id: 'go.dashboard', label: 'nav.dashboard', group: 'keys.group.goTo', keys: 'g d', to: '/' },
-  { id: 'go.journal', label: 'nav.entries', group: 'keys.group.goTo', keys: 'g j', to: '/entries' },
+  { id: 'go.journal', label: 'nav.journal', group: 'keys.group.goTo', keys: 'g j', to: '/entries' },
+  // Chord-only: categories add/rename is [API] (#107) — hidden from nav and ⌘K.
+  // `g a` stays so the g-alphabet remains full; the route itself still works.
   {
     id: 'go.accounts',
     label: 'accounts.title',
@@ -268,26 +270,25 @@ export const BINDINGS: readonly Binding[] = [
     to: '/invoices/new',
   },
   {
-    id: 'new.purchase',
-    label: 'purchaseNew.title',
-    group: 'keys.group.new',
-    keys: 'n i',
-    to: '/purchases/new',
-  },
-  {
     id: 'new.contact',
     label: 'keys.newContact',
     group: 'keys.group.new',
     keys: 'n c',
     to: '/contacts',
   },
-  // N R — no chord collision with n i / n f / n j (#107). Same destination as
-  // purchase-new until a dedicated receipt route exists; label is "bonnetje".
+  // v2: N R = receipt/bill. `n i` is an alias for the same destination (#107).
   {
     id: 'new.receipt',
     label: 'keys.newReceipt',
     group: 'keys.group.new',
     keys: 'n r',
+    to: '/purchases/new',
+  },
+  {
+    id: 'new.purchase',
+    label: 'purchaseNew.title',
+    group: 'keys.group.new',
+    keys: 'n i',
     to: '/purchases/new',
   },
 
@@ -396,6 +397,13 @@ export const BINDINGS: readonly Binding[] = [
     modifiers: ['mod'],
   },
 
+  {
+    id: 'entry.saveDraft',
+    label: 'keys.entrySaveDraft',
+    group: 'keys.group.entry',
+    keys: 's',
+    modifiers: ['mod'],
+  },
   {
     id: 'entry.post',
     label: 'keys.entryPost',

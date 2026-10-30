@@ -1,24 +1,22 @@
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { isTypingInto } from '~/lib/keyboard'
 import { cn } from '~/lib/utils'
 import { visibleReportsTabs } from '~/lib/shell-nav'
 import { useT } from '~/i18n/provider'
 
 /**
- * Reports section tabs (#107 Phase 0).
+ * Reports section tabs (#107 Phase 0, Designer v2).
  *
- * Order: P&L, Balans, Debiteuren, Crediteuren, then Proefbalans and
- * Journaalposten when Geavanceerd is on. Digit keys 1–6 switch tabs on this
- * strip only. Existing routes stay; the strip navigates between them.
+ * Order: P&L, Balans, Debiteuren, Crediteuren, Proefbalans. Digit keys 1–5
+ * switch tabs on this strip only. No Geavanceerd gate. Journaalposten lives
+ * under Journal, not here.
  */
 export function ReportsTabs() {
   const { t } = useT()
-  const { advanced } = useAdvancedMode()
   const path = useRouterState({ select: (state) => state.location.pathname })
   const navigate = useNavigate()
-  const tabs = visibleReportsTabs(advanced)
+  const tabs = visibleReportsTabs()
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {

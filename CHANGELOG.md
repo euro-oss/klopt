@@ -18,18 +18,23 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
-### Redesign Phase 0: tokens, theme, shell (#107)
+### Redesign Phase 0: tokens, theme, components, shell (#107)
 
-Design tokens from the 2026-10 export live in `apps/web/src/styles/tokens.css`
-(swappable radius, shadows, greys, fonts, accent, link, status, sidebar width).
-Self-hosted Inter + JetBrains Mono (Ubuntu Sans kept as a swap); no Google Fonts
-CDN. shadcn/ui theme maps through those tokens. Flat sidebar: Home, Inbox,
-Sales, Costs, Bank, VAT, Reports, Contacts; Settings and Shortcuts in the
-footer. Importeren / Journaalposten / Proefbalans stay on ⌘K; Reports tabs add
-Proefbalans and Journaalposten when Geavanceerd is on; Settings gets
-“Overstappen naar Klopt”. New chords: `n c`, `n r`, `x` select, `/` list filter;
-`g o` / `g y` / `g m` kept. Docs: `docs/design/tokens-2026-10.md`,
-`docs/design/component-mapping-2026-10.md`.
+Design tokens from the **v2** 2026-10 export (`design/redesign-2026-10/`) live in
+`apps/web/src/styles/tokens.css` (swappable radius, shadows, greys, fonts, accent,
+link, status, sidebar width). Self-hosted Inter + JetBrains Mono (Ubuntu Sans as
+a swap); no Google Fonts CDN. shadcn/ui theme maps through those tokens.
+`--status-attention` aliases the export WARN callout (`--brand-ink` /
+`--brand-tint`); red stays destructive. `#105` Geen btw orange stays on
+`--status-geen-btw`. All 20 export components are mapped (Switch, Tabs, Menu,
+CodeChip, DropZone, Stepper, PhoneTabBar, SubNav, …) and shown on
+`/lab/primitives`. v2 grouped sidebar (Money / Books) with Import + Settings +
+Shortcuts pinned; Journal top-level (`g j`) with Entries / Trial SubNav (Ledger
+[API] omitted); Proefbalans also Reports tab 5; no Geavanceerd gate on these.
+PhoneTabBar at 390 (More → existing Sheet until Batch 3). [API] items stay out
+of nav and ⌘K. Keymap per v2 + aliases (`⌘S`, `⇧⌘↵`, `/` list filter).
+GuidedInvoice is dropped — the Editor phase removes the guided flow. Docs:
+`docs/design/tokens-2026-10.md`, `docs/design/component-mapping-2026-10.md`.
 
 ### Import wizard: connect probe and opening count (#105)
 

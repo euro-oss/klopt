@@ -53,7 +53,12 @@ import { navLabelKey, paletteNavItems, type NavItem } from '~/lib/shell-nav'
 
 const GROUPS: readonly MessageKey[] = [...new Set(BINDINGS.map((binding) => binding.group))]
 
-/** Nav destinations that are not in the shared shell list (Nieuw …, aliases). */
+/**
+ * Nav destinations that are not in the shared shell list (Nieuw …, aliases).
+ *
+ * `go.accounts` (categories) is [API] (#107) — excluded here and absent from
+ * SHELL_NAV so it never appears in ⌘K. Chord `g a` still resolves.
+ */
 const EXTRA_NAVIGABLE: readonly Binding[] = BINDINGS.filter(
   (binding) =>
     binding.to !== undefined &&

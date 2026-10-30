@@ -122,7 +122,7 @@ test('i m opens the import wizard under Importeren', async ({ page }) => {
 
   await expect(
     page
-      .getByRole('link', { name: /^Dashboard/ })
+      .getByRole('link', { name: /^Home/ })
       .locator('kbd')
       .first(),
   ).toBeVisible()

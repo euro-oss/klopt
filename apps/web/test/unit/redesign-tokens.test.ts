@@ -132,19 +132,24 @@ describe('Phase 0 redesign tokens (#107)', () => {
     expect(css).toContain('--token-shadow-raised')
   })
 
-  it('points --status-attention at export danger red (orange alt documented)', () => {
+  it('points --status-attention at export WARN callout (brand-ink / brand-tint)', () => {
     const css = tokens()
-    expect(tokenIn(css, ':root', '--status-attention')).toBe('var(--danger)')
+    expect(tokenIn(css, ':root', '--status-attention')).toBe('var(--brand-ink)')
+    expect(tokenIn(css, ':root', '--status-attention-bg')).toBe('var(--brand-tint)')
+    expect(tokenIn(css, ':root', '--brand-ink')).toBe('#8a6a00')
+    expect(tokenIn(css, ':root', '--brand-tint')).toBe('#fff6d1')
+    expect(tokenIn(css, '.dark', '--brand-ink')).toBe('#f5c518')
+    expect(tokenIn(css, '.dark', '--brand-tint')).toBe('#33290a')
+    // Red stays destructive / blocking — not attention.
     expect(tokenIn(css, ':root', '--danger')).toBe('#b42318')
-    expect(tokenIn(css, '.dark', '--danger')).toBe('#f87171')
-    expect(css).toContain('#a75000')
-    expect(css).toContain('#ed914c')
+    expect(tokenIn(css, ':root', '--status-attention')).not.toBe('var(--danger)')
   })
 
-  it('keeps #105 Geen btw orange on --warning / --status-geen-btw', () => {
+  it('keeps #105 Geen btw orange on --status-geen-btw; --warning is chart token', () => {
     const css = tokens()
     expect(tokenIn(css, ':root', '--status-geen-btw')).toBe('oklch(0.53 0.14 55)')
-    expect(tokenIn(css, ':root', '--warning')).toBe('var(--status-geen-btw)')
+    expect(tokenIn(css, ':root', '--warning')).toBe('#d97706')
+    expect(tokenIn(css, '.dark', '--warning')).toBe('#f59e0b')
   })
 
   it('keeps tabular figures and maps fonts through tokens', () => {

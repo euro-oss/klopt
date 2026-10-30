@@ -92,9 +92,8 @@ const DESTINATIONS: Record<
     readonly action: MessageKey
   }
 > = {
-  // TODO(#107 Phase 0): also surface "no import yet" and unfinished Exact /
-  // Moneybird wizard runs when those states are cheap to read from the server.
-  // Today only Moneybird reports with `problems` become a to-do (existing data).
+  // Blocking Moneybird/Exact findings (existing). v2 Main does not add an
+  // “no import yet” to-do — Import lives in the footer / Settings hub.
   'import.blocking': {
     to: '/importeren',
     search: { bron: 'moneybird' },
@@ -461,7 +460,7 @@ function FigureTile({
       <p
         className={cn(
           'mt-1 text-xs',
-          hintTone === 'attention' ? 'text-warning' : 'text-muted-foreground',
+          hintTone === 'attention' ? 'text-unreconciled' : 'text-muted-foreground',
         )}
       >
         {hint}
@@ -596,7 +595,7 @@ function toneIcon(tone: AttentionTone): ReactNode {
     return <RiAlertLine aria-hidden="true" className="text-destructive size-[18px]" />
   }
   if (tone === 'attention') {
-    return <RiCalendarLine aria-hidden="true" className="text-warning size-[18px]" />
+    return <RiCalendarLine aria-hidden="true" className="text-unreconciled size-[18px]" />
   }
   if (tone === 'info') {
     return <RiInformationLine aria-hidden="true" className="text-info size-[18px]" />

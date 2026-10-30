@@ -77,13 +77,23 @@ test('shell and primitives lab screenshots', async ({ page }) => {
       await expect(page.locator('[data-reports-tabs]')).toBeVisible()
       await shoot(page, `02-shell-reports-tabs-${theme}-${vp.name}.png`)
 
+      await page.goto('/entries')
+      await expect(page.locator('[data-journal-tabs]')).toBeVisible()
+      await shoot(page, `03-shell-journal-tabs-${theme}-${vp.name}.png`)
+
       await page.goto('/settings')
       await expect(page.getByRole('heading', { name: 'Overstappen naar Klopt' })).toBeVisible()
-      await shoot(page, `03-settings-overstappen-${theme}-${vp.name}.png`)
+      await shoot(page, `04-settings-overstappen-${theme}-${vp.name}.png`)
 
       await page.goto('/lab/primitives')
       await expect(page.getByRole('heading', { name: 'Primitives lab' })).toBeVisible()
-      await shoot(page, `04-primitives-lab-${theme}-${vp.name}.png`)
+      await shoot(page, `05-primitives-lab-${theme}-${vp.name}.png`)
+
+      if (vp.width === 390) {
+        await page.goto('/')
+        await expect(page.locator('[data-phone-tab-bar]')).toBeVisible()
+        await shoot(page, `06-phone-tab-bar-${theme}-${vp.name}.png`)
+      }
     }
   }
 })

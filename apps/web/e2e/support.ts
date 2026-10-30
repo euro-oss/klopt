@@ -62,17 +62,11 @@ export async function codeFor(email: string): Promise<string> {
  * once the keys work. That is deliberate (see `AppShell`), and it makes the
  * hint the one honest, screen-independent "the page is live now".
  *
- * Waits on Dashboard rather than Journaalposten: Eigenaar has Geavanceerd off
- * by default (#44), so journal entries are absent from the nav until the toggle
- * is on — but they stay reachable via ⌘K and `g j`.
+ * Waits on Home (v2 rail label for the dashboard chord). Home is always in the
+ * nav; shortcut chips print only once the keys work.
  */
 export async function hydrated(page: Page): Promise<void> {
-  await expect(
-    page
-      .getByRole('link', { name: /^Dashboard/ })
-      .locator('kbd')
-      .first(),
-  ).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
 }
 
 /**

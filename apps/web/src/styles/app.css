@@ -41,14 +41,19 @@
   --color-surface: var(--surface);
   --color-surface-sunken: var(--surface-sunken);
   --color-surface-hover: var(--surface-hover);
+  --color-line: var(--line);
   --color-line-soft: var(--line-soft);
+  --color-line-control: var(--line-control);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-ink-muted: var(--ink-muted);
   --color-brand: var(--brand);
+  --color-brand-tint: var(--brand-tint);
   --color-selection: var(--selection);
   --color-selection-edge: var(--selection-edge);
   --color-status-attention: var(--status-attention);
+  --color-status-attention-bg: var(--status-attention-bg);
+  --color-status-geen-btw: var(--status-geen-btw);
 
   /*
     Radius scale tracks the open tokens in tokens.css. `rounded-md` still means

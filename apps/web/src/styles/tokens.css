@@ -1,5 +1,6 @@
 /**
- * Klopt design tokens — Phase 0 (#107), from design/redesign-2026-10/.
+ * Klopt design tokens — Phase 0 (#107), from design/redesign-2026-10-v2/
+ * (Hidde v2 export, 30 Oct 2026; sha256 45a4d567…508a). PR #106 remains v1.
  *
  * ONE central layer. Every open decision (radius, shadow, greys, fonts, accent,
  * link colour, status colours, sidebar width) is a custom property here. Change
@@ -100,20 +101,26 @@
   --info: #1d4ed8;
   --info-bg: #eaf0fe;
   --neutral-bg: #eeeeea;
-  /* Charts only (export) */
-  --chart-warning: #d97706;
+  /*
+    v2 `--warning`: charts only (61–90 days ageing band). Not for text.
+    Alias `--chart-warning` kept for older call sites.
+  */
+  --warning: #d97706;
+  --chart-warning: var(--warning);
 
   /*
     status-attention = recoverable states (overdue, needs a look).
-    Current: export danger red (light #b42318 / dark #f87171).
-    Pending Hidde: orange #a75000 light / #ed914c dark — flip this one token.
+    Alias of the export’s WARN callout tokens (`.k-callout--warn`):
+    text/icon `--brand-ink`, ground `--brand-tint`. Red (`--danger`) stays
+    for destructive / blocking only.
   */
-  --status-attention: var(--danger);
-  --status-attention-bg: var(--danger-bg);
+  --status-attention: var(--brand-ink);
+  --status-attention-bg: var(--brand-tint);
 
   /*
-    #105 Geen btw — keep the orange look from main until Hidde rules on orange.
-    Not an export status; do not reuse for new UI.
+    #105 Geen btw — keep the orange look from main (oklch). Not a v2 export
+    status; do not reuse for new UI. Was previously aliased through `--warning`;
+    v2 reclaimed `--warning` for charts.
   */
   --status-geen-btw: oklch(0.53 0.14 55);
   --status-geen-btw-dark: oklch(0.74 0.14 55);
@@ -166,7 +173,7 @@
   --destructive: var(--danger);
   --destructive-foreground: var(--on-primary);
   --success-foreground: var(--success);
-  --warning: var(--status-geen-btw);
+  /* --warning is the v2 chart token above; do not alias to Geen btw. */
   --info-foreground: var(--info);
   --border: var(--line);
   --input: var(--input-border);
@@ -231,10 +238,11 @@
   --info: #93b4ff;
   --info-bg: #172144;
   --neutral-bg: #2a2a2f;
-  --chart-warning: #f59e0b;
+  --warning: #f59e0b;
+  --chart-warning: var(--warning);
 
-  --status-attention: var(--danger);
-  --status-attention-bg: var(--danger-bg);
+  --status-attention: var(--brand-ink);
+  --status-attention-bg: var(--brand-tint);
   --status-geen-btw: var(--status-geen-btw-dark);
 
   --link: var(--brand-ink);
@@ -269,7 +277,6 @@
   --accent-foreground: var(--on-brand);
   --destructive: var(--danger);
   --destructive-foreground: var(--on-primary);
-  --warning: var(--status-geen-btw);
   --border: var(--line);
   --input: var(--input-border);
   --ring: var(--focus-ring);
