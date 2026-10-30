@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useState } from 'react'
 import { cn } from 'cn'
 import { Button } from '~/components/ui/button'
+import { useT } from '~/i18n/provider'
 
 /**
  * DropZone — maps export `.k-drop` (#107 Phase 0).
@@ -24,15 +25,17 @@ function DropZone({
   className,
   title,
   description,
-  chooseLabel = 'Kies een bestand',
+  chooseLabel,
   accept,
   multiple = false,
   disabled = false,
   onFiles,
   ...props
 }: DropZoneProps) {
+  const { t } = useT()
   const [over, setOver] = useState(false)
   const inputRef = React.useRef<HTMLInputElement | null>(null)
+  const label = chooseLabel ?? t('dropZone.chooseFile')
 
   function take(files: FileList | null): void {
     if (files === null || files.length === 0 || disabled) return
@@ -80,7 +83,7 @@ function DropZone({
           inputRef.current?.click()
         }}
       >
-        {chooseLabel}
+        {label}
       </Button>
       <input
         ref={inputRef}

@@ -35,16 +35,16 @@ describe('the bottom of the sidebar', () => {
       '<ThemePicker />',
       'action="/sign-out"',
       'shell.account.signOut',
-      'shell.advanced',
-      // Phase 0: Geavanceerd uses ui/switch (Radix role="switch" at runtime).
-      '<Switch',
     ]) {
       expect(menu, inside).toContain(inside)
     }
-    // Role line uses members.role.* + Geavanceerd aan/uit (#64 review #7).
+    // Boekhouddetails lives on Settings — not in the account menu.
+    expect(menu).not.toContain('shell.advanced')
+    expect(menu).not.toContain('<Switch')
+    // Role line is role only (#107).
     expect(shell).toContain('members.role.owner')
-    expect(shell).toContain('shell.advancedOn')
-    expect(shell).toContain('shell.advancedOff')
+    expect(shell).not.toContain('shell.advancedOn')
+    expect(shell).not.toContain('shell.advancedOff')
   })
 
   it('opens upward, because the trigger is the last thing on the screen', () => {

@@ -121,16 +121,18 @@
     font-weight: 600;
   }
 
-  /* Every figure in this application is tabular. Non-negotiable (spec 11.3). */
+  /*
+    Every figure is tabular (spec 11.3). Stay on the sans stack — JetBrains Mono
+    is for keycaps / codes only (#107 Designer review).
+  */
   .tabular {
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
-    font-family: var(--font-mono);
   }
 
   /*
     Accessible text links (a11y deviation from export yellow-as-text).
-    Colour is --link; underline keeps the affordance without relying on hue alone.
+    Colour is --ink with underline — brand-ink fails 4.5:1 on sunken / status bgs.
   */
   .text-link {
     color: var(--link);

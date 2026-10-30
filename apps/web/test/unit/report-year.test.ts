@@ -89,11 +89,12 @@ describe('the shell', () => {
     expect(shell).toContain('shell.fiscalYear')
   })
 
-  it('shows the dates of the chosen year, not only its label', () => {
-    // A boekjaar labelled 2025 may run from July 2025 to June 2026. A picker
-    // that shows only the label is the old guess with a dropdown on it.
-    expect(shell).toContain('activeYear.startsOn')
-    expect(shell).toContain('activeYear.endsOn')
+  it('shows Boekjaar {year} on the closed switcher (Designer: no date range)', () => {
+    // Phase 0 switcher second line is "Boekjaar 2026" only — no truncated
+    // "· 01-…" range in mono. Open SelectField still lists year codes.
+    expect(shell).toContain("t('shell.yearSummary', { year: activeYear.code })")
+    expect(shell).not.toContain('activeYear.startsOn')
+    expect(shell).not.toContain('activeYear.endsOn')
   })
 
   it('offers ageing under Rapporten tabs (Phase 0 flat IA, #107)', () => {

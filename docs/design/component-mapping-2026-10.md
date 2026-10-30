@@ -15,7 +15,7 @@ The export’s `.k-*` classes are a **style reference**. We map them onto
 | **Button**                              | `ui/button`                           | Mapped         | Primary = ink (`--primary`), never yellow                        |
 | **Badge** + **StatusPill**              | `ui/badge` variants                   | Mapped         | success / danger / info / attention (WARN); late = danger        |
 | **Input**                               | `ui/input` + `.field-control`         | Mapped         | Accessible `--input` border (≥3:1); 44px touch                   |
-| **Switch**                              | `ui/switch`                           | Mapped         | Profile Geavanceerd + lab                                        |
+| **Switch**                              | `ui/switch`                           | Mapped         | Settings boekhouddetails + lab                                   |
 | **Tabs**                                | `ui/tabs` (underline + segmented)     | Mapped         | Route strips stay Link-based (`reports-tabs`, `journal-tabs`)    |
 | **Kbd**                                 | `ui/keycap`                           | Mapped         | Mono via `--font-mono`                                           |
 | **ListRow**                             | `scroll-table` / `item`               | Mapped         | No screen port in Phase 0                                        |

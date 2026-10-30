@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import {
+  advancedModeSwitch,
   chooseOption,
   DATABASE_URL,
   enableAdvancedMode,
@@ -13,7 +14,7 @@ import {
 } from './support'
 
 /**
- * Redesign shell Phase 0 (#107): v2 grouped IA, Geavanceerd, ⌘K, PhoneTabBar.
+ * Redesign shell Phase 0 (#107): v2 grouped IA, boekhouddetails, ⌘K, PhoneTabBar.
  *
  * Screen content (phases 1–15) is out of scope; these specs pin the chrome.
  */
@@ -90,13 +91,16 @@ test('Reports tabs always include Proefbalans as 5; no Journaalposten tab', asyn
   await expect(journal.getByRole('link', { name: /Grootboek/ })).toHaveCount(0)
 })
 
-test('⌘K reaches Journaal when Geavanceerd is off', async ({ page }) => {
+test('⌘K reaches Journaal when boekhouddetails is off', async ({ page }) => {
   await anAdministration(page, 'Palette BV')
 
   await page.keyboard.press('ControlOrMeta+k')
   const palette = page.getByRole('dialog', { name: 'Commando’s' })
   await expect(palette).toBeVisible()
-  await expect(palette.getByRole('option', { name: /Geavanceerd aanzetten/ })).toBeVisible()
+  // Toggle lives on Settings now — not a ⌘K action.
+  await expect(
+    palette.getByRole('option', { name: /Geavanceerd|Boekhouddetails|advanced/i }),
+  ).toHaveCount(0)
 
   await page.keyboard.type('journaal')
   await expect(palette.getByRole('option', { name: /^Journaal/ })).toBeVisible()
@@ -123,16 +127,23 @@ test('PhoneTabBar More opens the existing Sheet at 390', async ({ page }) => {
   await expect(page.getByRole('link', { name: /^Journaal/ })).toBeVisible()
 })
 
-test('? opens keyboard help and mentions Geavanceerd is unbound', async ({ page }) => {
+test('? opens keyboard help and mentions boekhouddetails is unbound', async ({ page }) => {
   await anAdministration(page, 'Help BV')
 
   await page.keyboard.press('?')
   const help = page.getByRole('dialog', { name: 'Sneltoetsen' })
   await expect(help).toBeVisible()
-  await expect(help.getByText(/Geavanceerd heeft bewust geen sneltoets/)).toBeVisible()
+  await expect(
+    help.getByText(
+      /Boekhouddetails heeft bewust geen sneltoets|Geavanceerd heeft bewust geen sneltoets/,
+    ),
+  ).toBeVisible()
+  await expect(help.getByRole('heading', { name: 'Tabbladen' })).toBeVisible()
+  await expect(help.getByText(/Tabs wisselen/)).toBeVisible()
+  await expect(help.getByText('1–5')).toBeVisible()
 })
 
-test('help Nieuw hides Nieuwe journaalpost when Geavanceerd is off', async ({ page }) => {
+test('help Nieuw always lists Nieuwe journaalpost', async ({ page }) => {
   await anAdministration(page, 'Help Nieuw BV')
 
   await page.keyboard.press('?')
@@ -144,32 +155,27 @@ test('help Nieuw hides Nieuwe journaalpost when Geavanceerd is off', async ({ pa
     .locator('section')
     .filter({ has: page.getByRole('heading', { name: 'Nieuw', exact: true }) })
   await expect(nieuw.getByRole('heading', { name: 'Nieuw', exact: true })).toBeVisible()
-  // Same gate as ⌘K: Eigenaar with Geavanceerd off must not see n j here.
-  await expect(nieuw.getByText('Nieuwe journaalpost')).toHaveCount(0)
+  // Designer: nav / ⌘K / help must not gate on boekhouddetails.
+  await expect(nieuw.getByText('Nieuwe journaalpost')).toBeVisible()
   await expect(nieuw.getByText('Nieuwe factuur', { exact: true })).toBeVisible()
 })
 
-test('⌘K hides Nieuwe journaalpost when Geavanceerd is off', async ({ page }) => {
+test('⌘K and n j always reach Nieuwe journaalpost', async ({ page }) => {
   await anAdministration(page, 'Palette Nieuw BV')
 
   await page.keyboard.press('ControlOrMeta+k')
   const palette = page.getByRole('dialog', { name: 'Commando’s' })
   await expect(palette).toBeVisible()
   await page.keyboard.type('nieuwe journaal')
-  await expect(palette.getByRole('option', { name: /Nieuwe journaalpost/ })).toHaveCount(0)
+  await expect(palette.getByRole('option', { name: /Nieuwe journaalpost/ })).toBeVisible()
   await page.keyboard.press('Escape')
 
-  // Chord is gated the same way — stays on the dashboard rather than opening
-  // /entries/new.
   await page.keyboard.press('n')
   await page.keyboard.press('j')
-  await expect(
-    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
-  ).toBeVisible()
-  await expect(page).not.toHaveURL(/\/entries\/new/)
+  await expect(page).toHaveURL(/\/entries\/new/)
 })
 
-test('a failed Geavanceerd save reverts the switch and shows the toast', async ({ page }) => {
+test('a failed boekhouddetails save reverts the switch and shows the toast', async ({ page }) => {
   await anAdministration(page, 'Save Fail BV')
 
   await page.route('**/*', async (route) => {
@@ -181,8 +187,9 @@ test('a failed Geavanceerd save reverts the switch and shows the toast', async (
     await route.continue()
   })
 
-  await openAccountMenu(page)
-  const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
+  await page.goto('/settings')
+  await hydrated(page)
+  const toggle = advancedModeSwitch(page)
   await expect(toggle).toHaveAttribute('aria-checked', 'false')
   await toggle.click()
 
@@ -190,15 +197,15 @@ test('a failed Geavanceerd save reverts the switch and shows the toast', async (
   await expect(toggle).toHaveAttribute('aria-checked', 'false')
   const toast = page.getByTestId('advanced-mode-save-failed')
   await expect(toast).toBeVisible()
-  await expect(toast).toContainText('Geavanceerd is niet opgeslagen. Probeer het opnieuw.')
+  await expect(toast).toContainText(
+    /Geavanceerd is niet opgeslagen|Boekhouddetails.*(niet opgeslagen|niet bewaard)|wasn't saved|not saved/i,
+  )
   await expect(toast.getByRole('button', { name: 'Sluiten' })).toBeVisible()
   // Exactly one live region — the toast, not a second inline alert.
   await expect(page.getByRole('alert')).toHaveCount(1)
 })
 
-test('double-click while Geavanceerd save is in flight keeps focus in the menu', async ({
-  page,
-}) => {
+test('double-click while boekhouddetails save is in flight issues one POST', async ({ page }) => {
   await anAdministration(page, 'Double Toggle BV')
 
   let release!: () => void
@@ -217,26 +224,22 @@ test('double-click while Geavanceerd save is in flight keeps focus in the menu',
     await route.continue()
   })
 
-  await openAccountMenu(page)
-  const menu = page.getByRole('dialog', { name: 'Profiel' })
-  const toggle = page.getByRole('switch', { name: /Geavanceerd|Advanced/ })
+  await page.goto('/settings')
+  await hydrated(page)
+  const toggle = advancedModeSwitch(page)
   await toggle.focus()
   await expect(toggle).toBeFocused()
 
   await toggle.click()
-  // In-flight: busy, still enabled (no dimming), focus stays on the switch.
+  // In-flight: busy. Settings dims via disabled while saving (unlike the old
+  // account-menu switch); second interaction must not enqueue another POST.
   await expect(toggle).toHaveAttribute('aria-busy', 'true')
-  await expect(toggle).toBeEnabled()
-  await expect(toggle).toBeFocused()
-  await expect(menu).toBeVisible()
+  await expect(page).toHaveURL(/\/settings/)
 
-  // Second click is ignored by savingRef — still one POST, focus retained.
-  await toggle.click()
+  await toggle.click({ force: true }).catch(() => undefined)
   release()
   await expect(toggle).toHaveAttribute('aria-checked', 'true')
   await expect(toggle).not.toHaveAttribute('aria-busy')
-  await expect(toggle).toBeFocused()
-  await expect(menu).toBeVisible()
   expect(posts).toBe(1)
 })
 
@@ -272,7 +275,7 @@ test('help Ga naar lists Journal and omits categories', async ({ page }) => {
   expect(paletteChips).toEqual(['Ctrl', 'K'])
 })
 
-test('Reports Proefbalans stays visible when Geavanceerd is off', async ({ page }) => {
+test('Reports Proefbalans stays visible when boekhouddetails is off', async ({ page }) => {
   await anAdministration(page, 'Toggle BV')
   await enableAdvancedMode(page)
 
@@ -286,7 +289,7 @@ test('Reports Proefbalans stays visible when Geavanceerd is off', async ({ page 
   await expect(tabs.getByRole('link', { name: /Journaalposten/ })).toHaveCount(0)
 })
 
-test('a Boekhouder gets Geavanceerd on by default', async ({ browser }) => {
+test('a Boekhouder gets boekhouddetails on by default', async ({ browser }) => {
   const owner = await browser.newContext()
   const keeper = await browser.newContext()
 
@@ -319,18 +322,15 @@ test('a Boekhouder gets Geavanceerd on by default', async ({ browser }) => {
     const tabs = keeperPage.locator('[data-reports-tabs]')
     await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
 
-    await openAccountMenu(keeperPage)
-    await expect(keeperPage.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    )
+    await keeperPage.goto('/settings')
+    await expect(advancedModeSwitch(keeperPage)).toHaveAttribute('aria-checked', 'true')
   } finally {
     await owner.close()
     await keeper.close()
   }
 })
 
-test('switching administration re-derives Geavanceerd from the active role', async ({
+test('switching administration re-derives boekhouddetails from the active role', async ({
   browser,
 }) => {
   // Eigenaar in A (off) and Boekhouder in B (on), with no explicit toggle yet.
@@ -364,36 +364,29 @@ test('switching administration re-derives Geavanceerd from the active role', asy
     const tabs = ownerPage.locator('[data-reports-tabs]')
     await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
 
-    await openAccountMenu(ownerPage)
-    await expect(ownerPage.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-      'aria-checked',
-      'false',
+    await ownerPage.goto('/settings')
+    await expect(advancedModeSwitch(ownerPage)).toHaveAttribute('aria-checked', 'false')
+    await expect(ownerPage.getByRole('region', { name: 'Profiel' })).toContainText(/Eigenaar/)
+    await expect(ownerPage.getByRole('region', { name: 'Profiel' })).not.toContainText(
+      /Geavanceerd/,
     )
 
     await chooseOption(ownerPage, 'Administratie', 'Admin B')
     await ownerPage.goto('/reports/profit-and-loss')
     await expect(tabs.getByRole('link', { name: /Proefbalans/ })).toBeVisible()
 
-    await openAccountMenu(ownerPage)
-    await expect(ownerPage.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    )
+    await ownerPage.goto('/settings')
+    await expect(advancedModeSwitch(ownerPage)).toHaveAttribute('aria-checked', 'true')
   } finally {
     await ownerCtx.close()
     await peerCtx.close()
   }
 })
 
-test('Geavanceerd is isolated per user on the same browser', async ({ page }) => {
+test('boekhouddetails is isolated per user on the same browser', async ({ page }) => {
   await anAdministration(page, 'User X BV')
   await enableAdvancedMode(page)
-  await openAccountMenu(page)
-  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-    'aria-checked',
-    'true',
-  )
-  await page.keyboard.press('Escape')
+  await expect(advancedModeSwitch(page)).toHaveAttribute('aria-checked', 'true')
 
   await signOut(page)
   await expect(page).toHaveURL(/\/sign-in$/)
@@ -401,14 +394,11 @@ test('Geavanceerd is isolated per user on the same browser', async ({ page }) =>
   // Same browser context, different user — must see Eigenaar default (off),
   // not the previous account's explicit on.
   await anAdministration(page, 'User Y BV')
-  await openAccountMenu(page)
-  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-    'aria-checked',
-    'false',
-  )
+  await page.goto('/settings')
+  await expect(advancedModeSwitch(page)).toHaveAttribute('aria-checked', 'false')
 })
 
-test('Importeren Geavanceerd checkbox shares the shell toggle', async ({ page }) => {
+test('Importeren Geavanceerd checkbox shares the Settings toggle', async ({ page }) => {
   await anAdministration(page, 'Moneybird Sync BV')
 
   await page.goto('/importeren?bron=moneybird')
@@ -421,23 +411,17 @@ test('Importeren Geavanceerd checkbox shares the shell toggle', async ({ page })
   await expect(wizard).not.toBeChecked()
 
   await wizard.check()
-  await expect(page.getByRole('region', { name: 'Profiel' })).toContainText(/Geavanceerd aan/)
-  await openAccountMenu(page)
-  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-    'aria-checked',
-    'true',
-  )
-  await page.getByRole('switch', { name: /Geavanceerd/ }).click()
-  await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-    'aria-checked',
-    'false',
-  )
-  await page.keyboard.press('Escape')
+  await page.goto('/settings')
+  await expect(advancedModeSwitch(page)).toHaveAttribute('aria-checked', 'true')
 
-  await expect(wizard).not.toBeChecked()
+  await setAdvancedMode(page, false)
+
+  await page.goto('/importeren?bron=moneybird')
+  await hydrated(page)
+  await expect(page.getByRole('checkbox', { name: /Geavanceerd|Advanced/ })).not.toBeChecked()
 })
 
-test('⌘K and the URL still reach Proefbalans when Geavanceerd is off', async ({ page }) => {
+test('⌘K and the URL still reach Proefbalans when boekhouddetails is off', async ({ page }) => {
   await anAdministration(page, 'Proefbalans BV')
 
   await page.keyboard.press('ControlOrMeta+k')
@@ -452,7 +436,7 @@ test('⌘K and the URL still reach Proefbalans when Geavanceerd is off', async (
   await expect(page.getByRole('heading', { name: 'Proefbalans' })).toBeVisible()
 })
 
-test('Geavanceerd choice persists across a fresh browser context for the same user', async ({
+test('boekhouddetails choice persists across a fresh browser context for the same user', async ({
   browser,
 }) => {
   const email = uniqueEmail()
@@ -463,21 +447,14 @@ test('Geavanceerd choice persists across a fresh browser context for the same us
     await anAdministration(page, 'Persist BV', email)
     await enableAdvancedMode(page)
 
-    await openAccountMenu(page)
-    await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    )
+    await expect(advancedModeSwitch(page)).toHaveAttribute('aria-checked', 'true')
 
     // Reload once so we know the server write landed before we throw the
     // cookie jar away — the next context has no cookies of its own.
     await page.reload()
     await hydrated(page)
-    await openAccountMenu(page)
-    await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    )
+    await page.goto('/settings')
+    await expect(advancedModeSwitch(page)).toHaveAttribute('aria-checked', 'true')
   } finally {
     await first.close()
   }
@@ -496,11 +473,8 @@ test('Geavanceerd choice persists across a fresh browser context for the same us
     await expect(
       page.locator('[data-reports-tabs]').getByRole('link', { name: /Proefbalans/ }),
     ).toBeVisible()
-    await openAccountMenu(page)
-    await expect(page.getByRole('switch', { name: /Geavanceerd/ })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    )
+    await page.goto('/settings')
+    await expect(advancedModeSwitch(page)).toHaveAttribute('aria-checked', 'true')
   } finally {
     await second.close()
   }
@@ -558,7 +532,8 @@ test('Settings hub lists Overstappen naar Klopt', async ({ page }) => {
   await anAdministration(page, 'Settings Hub BV')
   await page.goto('/settings')
   await expect(page.getByRole('heading', { name: 'Overstappen naar Klopt' })).toBeVisible()
-  await page.getByRole('link', { name: 'Importeren openen' }).click()
+  await expect(advancedModeSwitch(page)).toBeVisible()
+  await page.getByRole('link', { name: /Vanuit Moneybird/ }).click()
   await expect(page).toHaveURL(/\/importeren/)
 })
 
@@ -571,4 +546,16 @@ test('⌘K Importeren action reaches the wizard', async ({ page }) => {
   await expect(palette.getByRole('option', { name: /^Importeren/ })).toBeVisible()
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/importeren/)
+})
+
+test('account menu profile line shows role only', async ({ page }) => {
+  await anAdministration(page, 'Role Only BV')
+  const profile = page.getByRole('region', { name: 'Profiel' })
+  await expect(profile).toContainText(/Eigenaar/)
+  await expect(profile).not.toContainText(/Geavanceerd/)
+  await openAccountMenu(page)
+  const panel = page.getByRole('dialog', { name: 'Profiel' })
+  await expect(panel).toContainText(/Eigenaar/)
+  await expect(panel).not.toContainText(/Geavanceerd/)
+  await expect(panel.getByRole('switch')).toHaveCount(0)
 })

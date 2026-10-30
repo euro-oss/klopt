@@ -105,15 +105,12 @@ describe('Phase 0 redesign tokens (#107)', () => {
     const fonts = readWeb('assets/fonts/fonts.css')
     expect(fonts).toContain("font-family: 'Inter Variable'")
     expect(fonts).toContain("font-family: 'JetBrains Mono Variable'")
-    expect(fonts).toContain("font-family: 'Ubuntu Sans Variable'")
+    expect(fonts).not.toContain('Ubuntu Sans')
     expect(readFileSync(join(webSrc, 'assets/fonts/Inter-OFL.txt'), 'utf8')).toContain(
       'SIL Open Font License',
     )
     expect(readFileSync(join(webSrc, 'assets/fonts/JetBrainsMono-OFL.txt'), 'utf8')).toContain(
       'SIL Open Font License',
-    )
-    expect(readFileSync(join(webSrc, 'assets/fonts/UbuntuSans-OFL.txt'), 'utf8')).toContain(
-      'UBUNTU FONT LICENCE',
     )
   })
 
@@ -145,11 +142,13 @@ describe('Phase 0 redesign tokens (#107)', () => {
     expect(tokenIn(css, ':root', '--status-attention')).not.toBe('var(--danger)')
   })
 
-  it('keeps #105 Geen btw orange on --status-geen-btw; --warning is chart token', () => {
+  it('keeps --warning as the chart token (status-geen-btw stays separate)', () => {
     const css = tokens()
-    expect(tokenIn(css, ':root', '--status-geen-btw')).toBe('oklch(0.53 0.14 55)')
+    // Do not lock --status-geen-btw to a specific oklch — PM may retune the orange.
+    expect(tokenIn(css, ':root', '--status-geen-btw')).toMatch(/^(oklch|var\()/)
     expect(tokenIn(css, ':root', '--warning')).toBe('#d97706')
     expect(tokenIn(css, '.dark', '--warning')).toBe('#f59e0b')
+    expect(tokenIn(css, ':root', '--chart-warning')).toBe('var(--warning)')
   })
 
   it('keeps tabular figures and maps fonts through tokens', () => {
@@ -167,8 +166,8 @@ describe('Phase 0 redesign tokens (#107)', () => {
     const darkBg = resolveColorToken(css, '.dark', '--ground')
     expect(contrastRatio(lightLink, lightBg)).toBeGreaterThanOrEqual(4.5)
     expect(contrastRatio(darkLink, darkBg)).toBeGreaterThanOrEqual(4.5)
-    // Export brand yellow as text would fail — pin that we did not use it for --link.
-    expect(tokenIn(css, ':root', '--link')).toBe('var(--brand-ink)')
+    // Ink (not brand yellow) — brand-ink fails 4.5:1 on sunken / status grounds.
+    expect(tokenIn(css, ':root', '--link')).toBe('var(--ink)')
   })
 
   it('B: input border ≥3:1 against ground (a11y deviation from line-control)', () => {

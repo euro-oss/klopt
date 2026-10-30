@@ -1,13 +1,14 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, enableAdvancedMode, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, signIn, uniqueEmail } from './support'
 
 /**
  * Phone viewport smoke for #38 / redesign shell (#61 slice 2).
  *
  * Desktop keyboard-first stays the contract; this suite checks that a phone
- * can open the Sheet nav (including Importeren), toggle Geavanceerd, sign in
- * without a zoom trap, and scroll a ledger with a sticky first column.
+ * can open the Sheet nav (including Importeren), sign in without a zoom trap,
+ * and scroll a ledger with a sticky first column. Boekhouddetails lives on
+ * Settings — the Sheet profile does not show it.
  */
 test.use({ viewport: { width: 390, height: 844 } })
 
@@ -73,20 +74,19 @@ test('the Sheet opens Importeren and navigates', async ({ page }) => {
   await expect(sheetNav).toBeHidden()
 })
 
-test('Geavanceerd in the Sheet profile keeps Journaal (not ledger [API])', async ({ page }) => {
+test('Sheet profile has no boekhouddetails switch; Journaal stays visible', async ({ page }) => {
   await anAdministration(page)
 
   await page.getByRole('button', { name: 'Menu openen' }).click()
   const sheetNav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
   await expect(sheetNav.getByRole('link', { name: /^Journaal/ })).toBeVisible()
   await expect(sheetNav.getByRole('link', { name: /Grootboek/ })).toHaveCount(0)
-
-  await enableAdvancedMode(page)
-
-  // Journal stays; categories / ledger-per-account stay [API] out of the Sheet.
-  await expect(sheetNav.getByRole('link', { name: /^Journaal/ })).toBeVisible()
-  await expect(sheetNav.getByRole('link', { name: /Grootboek/ })).toHaveCount(0)
   await expect(sheetNav.getByRole('link', { name: /Categorieën/ })).toHaveCount(0)
+
+  const profile = page.getByRole('region', { name: /^(Profiel|Profile)$/ })
+  await expect(profile).toBeVisible()
+  await expect(profile).not.toContainText(/Geavanceerd|Boekhouddetails|accounting details/i)
+  await expect(profile.getByRole('switch')).toHaveCount(0)
 })
 
 test('a ledger table scrolls inside itself with a sticky first column', async ({ page }) => {

@@ -151,7 +151,6 @@ The screen this whole document exists for.
 | -------------------------- | ------------------------------------------------- |
 | `Tab` `Shift`+`Tab`        | Next / previous field                             |
 | `Enter` in an amount       | Commit the line and open the next one             |
-| `Cmd/Ctrl` `S`             | Save draft                                        |
 | `Cmd/Ctrl` `Enter`         | Show what will be posted; again, post it          |
 | `Cmd/Ctrl` `Shift` `Enter` | Post and start another in the same journal        |
 | `Cmd/Ctrl` `D`             | Duplicate the focused line (editor only)          |

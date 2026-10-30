@@ -55,7 +55,8 @@ describe('Alpha 5 density and dark mode', () => {
     expect(keycap).toContain('text-[11px]')
     expect(keycap).not.toContain('border-ring')
     expect(keycap).not.toContain('border-primary')
-    expect(read('components/ui/button.tsx')).toMatch(/link:\s*'text-foreground/)
+    // Link variant uses --link (ink + underline), not bare foreground (#107 a11y).
+    expect(read('components/ui/button.tsx')).toMatch(/link:\s*'text-link/)
     expect(read('components/finance/ledger-table.tsx')).toContain('outline-ring')
     expect(read('components/finance/ledger-table.tsx')).not.toContain('outline-primary')
     expect(read('components/finance/ledger-table.tsx')).not.toContain('bg-primary/5')

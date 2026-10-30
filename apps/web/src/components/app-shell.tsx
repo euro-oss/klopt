@@ -2,15 +2,25 @@ import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import {
   RiArrowDownSLine,
   RiArrowRightSLine,
+  RiBankLine,
+  RiBookOpenLine,
+  RiContactsLine,
+  RiFileList3Line,
+  RiHome5Line,
+  RiInbox2Line,
+  RiKeyboardLine,
   RiMenuLine,
   RiMoonLine,
+  RiPercentLine,
   RiSearchLine,
+  RiSettings3Line,
+  RiShoppingBagLine,
   RiSunLine,
+  RiUpload2Line,
 } from '@remixicon/react'
 import { Button } from '~/components/ui/button'
 import { Keycap } from '~/components/ui/keycap'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
-import { Switch } from '~/components/ui/switch'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import {
   Sheet,
@@ -27,7 +37,6 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
-import { formatDate } from '~/lib/format'
 import type { FiscalYearOption, FiscalYearScope } from '~/lib/fiscal-year'
 import { DEFAULT_THEME_PREFERENCE, type ThemePreference } from '~/lib/theme'
 import { setTheme } from '~/server/theme'
@@ -47,6 +56,22 @@ import { PhoneTabBar } from './phone-tab-bar'
 /** #63 focus ring: solid outline, never outline-none (Tailwind 4 trap). */
 const FOCUS_RING =
   'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+
+/** Export `.k-nav` icons — 16px ink-muted, one per primary/footer destination. */
+const NAV_ICONS: Readonly<Partial<Record<MessageKey, typeof RiHome5Line>>> = {
+  'nav.home': RiHome5Line,
+  'nav.inbox': RiInbox2Line,
+  'nav.sales': RiFileList3Line,
+  'nav.costs': RiShoppingBagLine,
+  'nav.bank': RiBankLine,
+  'nav.contacts': RiContactsLine,
+  'nav.journal': RiBookOpenLine,
+  'nav.vat': RiPercentLine,
+  'nav.reports': RiFileList3Line,
+  'nav.import': RiUpload2Line,
+  'nav.settings': RiSettings3Line,
+  'nav.shortcuts': RiKeyboardLine,
+}
 
 /**
  * The frame every screen sits in.
@@ -428,6 +453,7 @@ function ShellNavChrome({
         : isNavActive(path, item.to, search, item.search, item.alsoActiveFor)
     const labelKey = navLabelKey(item, advanced)
     const rowKey = item.binding ?? `${item.to}:${item.key}`
+    const Icon = NAV_ICONS[item.key]
 
     const className = cn(
       'flex items-center gap-2 px-2.5 text-sm font-medium',
@@ -437,6 +463,10 @@ function ShellNavChrome({
         : 'text-ink-2 hover:bg-line-soft hover:text-ink',
     )
     const style = { height: 'var(--nav-h)', borderRadius: 'var(--radius-md)' }
+    const icon =
+      Icon === undefined ? null : (
+        <Icon className="text-ink-muted size-4 shrink-0" aria-hidden="true" />
+      )
 
     if (item.openShortcuts === true) {
       return (
@@ -451,9 +481,10 @@ function ShellNavChrome({
             className={cn(className, 'w-full text-left')}
             style={style}
           >
+            {icon}
             <span className="min-w-0 flex-1 truncate">{t(labelKey)}</span>
             {binding !== undefined && shortcutsLive && (
-              <span className="text-ink-muted hidden font-mono text-[11px] tracking-wide opacity-70 md:inline">
+              <span className="text-ink-muted hidden font-mono text-[11px] tracking-wide opacity-0 transition-opacity group-hover/nav:opacity-100 group-focus-within/nav:opacity-100 md:inline">
                 ?
               </span>
             )}
@@ -472,9 +503,10 @@ function ShellNavChrome({
           className={className}
           style={style}
         >
+          {icon}
           <span className="min-w-0 flex-1 truncate">{t(labelKey)}</span>
           {binding !== undefined && shortcutsLive && (
-            <span className="text-ink-muted hidden items-center gap-0.5 font-mono text-[11px] tracking-wide opacity-0 transition-opacity group-hover/nav:opacity-100 md:inline-flex md:opacity-70">
+            <span className="text-ink-muted hidden items-center gap-0.5 font-mono text-[11px] tracking-wide opacity-0 transition-opacity group-hover/nav:opacity-100 group-focus-within/nav:opacity-100 md:inline-flex">
               {bindingChips(binding).map((chip, position) => (
                 <Keycap key={`${rowKey}-${String(position)}`}>{chip}</Keycap>
               ))}
@@ -495,6 +527,7 @@ function ShellNavChrome({
         activeYear={activeYear}
         onSelectYear={onSelectYear}
         hydrated={hydrated}
+        role={role}
       />
 
       <div className="group/nav min-h-0 flex-1 overflow-y-auto px-2 pb-3">
@@ -522,12 +555,11 @@ function ShellNavChrome({
 }
 
 /**
- * v2 Switcher — administration + book year (Menu pattern).
+ * v2 Switcher — administration + book year (Popover for Phase 0).
  *
- * The closed row shows the administration over the year + date range. Opening
- * it reveals the labelled SelectFields the e2e suite already drives, so
- * `chooseOption(…, 'Administratie' | 'Boekjaar', …)` keeps working, plus the
- * v2 menu chrome (section labels, new administration, people link).
+ * Closed row: administration over "Boekjaar {year}". Opening reveals the
+ * labelled SelectFields e2e already drives. New administration is [API]
+ * (Phase 14) — not linked. People/access is owner-only, matching SHELL_NAV.
  */
 function EntitySwitcher({
   entities,
@@ -537,6 +569,7 @@ function EntitySwitcher({
   activeYear,
   onSelectYear,
   hydrated,
+  role,
 }: {
   entities: readonly ShellEntity[]
   activeEntityId: string
@@ -545,6 +578,7 @@ function EntitySwitcher({
   activeYear: FiscalYearScope | null
   onSelectYear: (code: string) => void
   hydrated: boolean
+  role: string
 }) {
   const { t } = useT()
   const [open, setOpen] = useState(false)
@@ -557,13 +591,8 @@ function EntitySwitcher({
       : active.isDemo
         ? t('shell.demoEntity', { name: active.entityName })
         : active.entityName
-  const yearRange =
-    activeYear === null
-      ? ''
-      : t('shell.yearSummary', {
-          year: activeYear.code,
-          range: `${formatDate(activeYear.startsOn)} – ${formatDate(activeYear.endsOn)}`,
-        })
+  const yearLabel = activeYear === null ? '' : t('shell.yearSummary', { year: activeYear.code })
+  const showPeople = role === 'owner'
 
   return (
     <div className="mx-2 mb-2" data-entity-switcher="">
@@ -571,7 +600,7 @@ function EntitySwitcher({
         <PopoverTrigger
           disabled={!hydrated}
           className={cn(
-            'border-line bg-surface flex min-h-11 w-full items-center gap-2 rounded-md border px-3 py-1.5 text-left md:min-h-0',
+            'border-line bg-surface flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-md)] border px-3 py-1.5 text-left md:min-h-0',
             'hover:bg-surface-hover data-[state=open]:bg-surface',
             'shadow-[var(--shadow-raised)]',
             FOCUS_RING,
@@ -580,8 +609,7 @@ function EntitySwitcher({
         >
           <span
             aria-hidden="true"
-            className="bg-accent text-accent-foreground flex size-7 shrink-0 items-center justify-center text-[13px] font-semibold"
-            style={{ borderRadius: 'var(--radius-md)' }}
+            className="bg-accent text-accent-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold"
           >
             {t('shell.brandMark')}
           </span>
@@ -589,8 +617,10 @@ function EntitySwitcher({
             {entityLabel !== '' && (
               <span className="block truncate text-sm font-medium">{entityLabel}</span>
             )}
-            {yearRange !== '' && (
-              <span className="text-ink-muted block truncate text-xs tabular">{yearRange}</span>
+            {yearLabel !== '' && (
+              <span className="text-ink-muted block truncate text-xs tabular-nums">
+                {yearLabel}
+              </span>
             )}
           </span>
           <RiArrowDownSLine aria-hidden="true" className="text-ink-muted size-4 shrink-0" />
@@ -599,7 +629,7 @@ function EntitySwitcher({
           side="bottom"
           align="start"
           sideOffset={4}
-          className="bg-surface w-80 space-y-1 rounded-[var(--radius-xl)] p-1.5 shadow-[var(--shadow-overlay)]"
+          className="bg-surface w-80 space-y-1 p-1.5"
         >
           {entities.length > 0 && (
             <div className="space-y-1 p-1.5">
@@ -621,15 +651,6 @@ function EntitySwitcher({
                   </SelectOption>
                 ))}
               </SelectField>
-              <Link
-                to="/setup"
-                className="text-ink hover:bg-surface-hover flex min-h-10 items-center rounded-md px-2.5 text-sm no-underline"
-                onClick={() => {
-                  setOpen(false)
-                }}
-              >
-                {t('shell.newAdministration')}
-              </Link>
             </div>
           )}
           {fiscalYears.length > 0 && activeYear !== null && (
@@ -654,17 +675,19 @@ function EntitySwitcher({
               </SelectField>
             </div>
           )}
-          <div className="border-line-soft border-t p-1.5">
-            <Link
-              to="/members"
-              className="text-ink hover:bg-surface-hover flex min-h-10 items-center rounded-md px-2.5 text-sm no-underline"
-              onClick={() => {
-                setOpen(false)
-              }}
-            >
-              {t('shell.peopleAccess')}
-            </Link>
-          </div>
+          {showPeople && (
+            <div className="border-line-soft border-t p-1.5">
+              <Link
+                to="/members"
+                className="text-ink hover:bg-surface-hover flex h-10 items-center rounded-[var(--radius-md)] px-2.5 text-sm no-underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                onClick={() => {
+                  setOpen(false)
+                }}
+              >
+                {t('shell.peopleAccess')}
+              </Link>
+            </div>
+          )}
         </PopoverContent>
       </Popover>
     </div>
@@ -701,7 +724,6 @@ function Profile({
   role: string
 }) {
   const { t } = useT()
-  const { advanced, setAdvanced, saving } = useAdvancedMode()
   // A trigger that opens nothing is the failure `select.tsx` describes: this
   // is a Radix popover, so it does nothing at all until React has attached.
   const hydrated = useHydrated()
@@ -712,12 +734,8 @@ function Profile({
   // recognise as themselves.
   const shown = userName.trim() === '' ? userEmail : userName
   const roleKey = roleMessageKey(role)
-  const roleLine =
-    roleKey === null
-      ? advanced
-        ? t('shell.advancedOn')
-        : t('shell.advancedOff')
-      : `${t(roleKey)} · ${advanced ? t('shell.advancedOn') : t('shell.advancedOff')}`
+  // v2 footer: role only. Boekhouddetails lives on Settings, not here.
+  const roleLine = roleKey === null ? '' : t(roleKey)
 
   return (
     <section aria-label={t('shell.profile')} className="border-sidebar-border border-t p-2">
@@ -732,7 +750,7 @@ function Profile({
         >
           <span
             aria-hidden="true"
-            className="bg-foreground text-background flex size-7 shrink-0 items-center justify-center text-xs font-semibold"
+            className="bg-foreground text-background flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
           >
             {initialOf(shown)}
           </span>
@@ -740,7 +758,9 @@ function Profile({
             <span className="block truncate text-sm font-medium" title={shown}>
               {shown}
             </span>
-            <span className="text-muted-foreground block truncate text-xs">{roleLine}</span>
+            {roleLine !== '' && (
+              <span className="text-muted-foreground block truncate text-xs">{roleLine}</span>
+            )}
           </span>
           <RiArrowRightSLine
             aria-hidden="true"
@@ -760,37 +780,12 @@ function Profile({
             <span className="block truncate text-sm font-medium" title={shown}>
               {shown}
             </span>
-            <span className="text-muted-foreground block text-xs">{roleLine}</span>
-          </div>
-
-          {/* Geavanceerd (#44): no shortcut — Shift+letter is table type-ahead.
-              In-flight saves are ignored in setAdvanced (savingRef) without
-              disabling the control — disabled would flash opacity and drop
-              keyboard focus out of the menu in Chromium (#66 design review).
-              Failure is announced once by the fixed toast. */}
-          <div
-            className={cn(
-              'hover:bg-muted flex min-h-14 w-full items-start gap-3 px-3 py-2.5 text-left',
+            {roleLine !== '' && (
+              <span className="text-muted-foreground block text-xs">{roleLine}</span>
             )}
-          >
-            <label htmlFor="shell-advanced-switch" className="min-w-0 flex-1 cursor-pointer">
-              <span className="block text-sm font-medium">{t('shell.advanced')}</span>
-              <span className="block text-xs opacity-70">{t('shell.advancedHint')}</span>
-            </label>
-            <Switch
-              id="shell-advanced-switch"
-              className="mt-0.5"
-              checked={advanced}
-              disabled={!hydrated}
-              aria-busy={saving || undefined}
-              aria-label={t('shell.advanced')}
-              onCheckedChange={(checked) => {
-                void setAdvanced(checked)
-              }}
-            />
           </div>
 
-          <div className="border-border space-y-3 border-t px-3 py-3">
+          <div className="border-border space-y-3 px-3 py-3">
             <LanguagePicker />
             <ThemePicker />
           </div>

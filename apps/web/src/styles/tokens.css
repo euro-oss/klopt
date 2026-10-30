@@ -1,6 +1,6 @@
 /**
- * Klopt design tokens — Phase 0 (#107), from design/redesign-2026-10-v2/
- * (Hidde v2 export, 30 Oct 2026; sha256 45a4d567…508a). PR #106 remains v1.
+ * Klopt design tokens — Phase 0 (#107), from design/redesign-2026-10/
+ * (Designer v2 on PR #106 @ 85dd802; sha256 45a4d567…508a).
  *
  * ONE central layer. Every open decision (radius, shadow, greys, fonts, accent,
  * link colour, status colours, sidebar width) is a custom property here. Change
@@ -22,9 +22,8 @@
   */
 
   /*
-    Fonts (current: Inter + JetBrains Mono; alt sans: Ubuntu Sans Variable).
+    Fonts: Inter Variable (UI) + JetBrains Mono Variable (keycaps / codes only).
     Prefixed --token-* so @theme can map --font-sans without a cycle.
-    To swap sans, set --token-font-sans to the Ubuntu Sans Variable stack.
   */
   --token-font-sans: 'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif;
   --token-font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
@@ -127,10 +126,10 @@
 
   /*
     Link colour a11y deviation: export yellow-as-text is ~1.43:1.
-    Use brand-ink (keeps the yellow feel) + underline. Measured ≥4.5:1:
-    light #8a6a00 on #ffffff ≈ 5.07:1; dark #f5c518 on #111113 ≈ 11.57:1.
+    Brand-ink fails 4.5:1 on sunken / status backgrounds — use ink + underline.
+    Light #18181b on #ffffff ≈ 17.7:1; dark #f4f4f5 on #111113 ≈ 17.2:1.
   */
-  --link: var(--brand-ink);
+  --link: var(--ink);
   --link-underline: underline;
 
   /*
@@ -245,10 +244,9 @@
   --status-attention-bg: var(--brand-tint);
   --status-geen-btw: var(--status-geen-btw-dark);
 
-  --link: var(--brand-ink);
+  --link: var(--ink);
 
-  /* Dark input border ≥3:1 on ground #111113 — #8a8980 is light-oriented;
-     use a lifted grey that keeps the warm feel. */
+  /* Same accessible input border as light (≥3:1 on dark ground). */
   --input-border: #8a8980;
 
   --chart-1: #f4f4f5;

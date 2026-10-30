@@ -150,7 +150,6 @@ export const SHELL_NAV: readonly NavItem[] = [
     key: 'nav.exactAdvanced',
     binding: 'go.exactLegacy',
     roles: ['owner', 'accountant', 'bookkeeper'],
-    advancedOnly: true,
     placement: 'palette',
   },
   {
@@ -263,9 +262,11 @@ const SECTION_LABEL: Readonly<Record<'money' | 'books', MessageKey>> = {
   books: 'nav.group.books',
 }
 
-function itemVisible(item: NavItem, role: string, advanced: boolean): boolean {
+function itemVisible(item: NavItem, role: string, _advanced?: boolean): boolean {
   if (item.roles !== undefined && !item.roles.includes(role)) return false
-  if (item.advancedOnly === true && !advanced) return false
+  // Geavanceerd / boekhouddetails never gates nav or ⌘K (#107 Designer review).
+  void item.advancedOnly
+  void _advanced
   return true
 }
 
@@ -396,22 +397,17 @@ export function pageTitleKey(
 
 export function paletteNavItems(
   role: string,
-  advanced: boolean,
+  _advanced?: boolean,
 ): readonly { item: NavItem; groupKey: MessageKey | undefined }[] {
+  void _advanced
   const primary: { item: NavItem; groupKey: MessageKey | undefined }[] = []
-  const deferred: { item: NavItem; groupKey: MessageKey | undefined }[] = []
   for (const item of SHELL_NAV) {
     if (item.binding === undefined) continue
     if (item.openShortcuts === true) continue
     if (item.roles !== undefined && !item.roles.includes(role)) continue
-    if (!advanced && item.advancedOnly === true && item.binding === 'go.exactLegacy') {
-      continue
-    }
-    const row = { item, groupKey: undefined as MessageKey | undefined }
-    if (!advanced && item.advancedOnly === true) deferred.push(row)
-    else primary.push(row)
+    primary.push({ item, groupKey: undefined })
   }
-  return advanced ? primary : [...primary, ...deferred]
+  return primary
 }
 
 /** Reports tab strip — v2 order; Proefbalans is tab 5; no Geavanceerd gate. */
@@ -487,7 +483,7 @@ export const PHONE_TAB_BAR: readonly PhoneTab[] = [
   { id: 'more', key: 'nav.phoneMore', to: '/', opensMore: true },
 ]
 
-/** Settings SubNav areas (v2) — existing routes; hub grows in Phase 10. */
+/** Settings SubNav areas (v2) — existing routes; hub grows in Phase 12. */
 export interface SettingsNavItem {
   readonly id: string
   readonly to: string
@@ -507,9 +503,10 @@ export const SETTINGS_SUBNAV: readonly SettingsNavItem[] = [
   { id: 'access', to: '/members', key: 'settings.hubAccess', match: ['/members'] },
   {
     id: 'data',
-    to: '/importeren',
+    to: '/audit-file',
     key: 'settings.hubData',
-    match: ['/importeren', '/audit-file', '/exact'],
+    // Import stays on its own footer pin; Data is audit / webhooks / retention / seals.
+    match: ['/audit-file', '/webhooks', '/retention', '/snapshots'],
   },
 ]
 

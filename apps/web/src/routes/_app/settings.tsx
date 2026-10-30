@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { SettingsSubNav } from '~/components/settings-subnav'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
+import { Switch } from '~/components/ui/switch'
 import { AccountPicker } from '~/components/finance/account-picker'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
+import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import { listAccounts } from '~/server/ledger'
 import { getEntity, updateEntity } from '~/server/entity'
@@ -45,6 +47,7 @@ function Settings() {
   const router = useRouter()
   const hydrated = useHydrated()
   const { t } = useT()
+  const { advanced, setAdvanced, saving: advancedSaving } = useAdvancedMode()
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -182,7 +185,7 @@ function Settings() {
         <div className="min-w-0 flex-1">
           {/*
         Settings hub seed (#107): Overstappen naar Klopt. Full hub grouping is
-        Phase 10; this row is the Placement decision for Importeren.
+        Phase 12; these rows are the Placement decision for Importeren.
       */}
           <section
             aria-label={t('settings.switchToKlopt')}
@@ -191,13 +194,66 @@ function Settings() {
           >
             <h2 className="text-base font-semibold">{t('settings.switchToKlopt')}</h2>
             <p className="text-muted-foreground mt-1 text-sm">{t('settings.switchToKloptBody')}</p>
-            <Link
-              to="/importeren"
-              className="text-link mt-3 inline-flex min-h-11 items-center text-sm font-medium md:min-h-9"
-            >
-              {t('settings.switchToKloptAction')}
-            </Link>
+            <ul className="mt-3 divide-y border-t">
+              <li>
+                <Link
+                  to="/importeren"
+                  search={{ bron: 'moneybird' }}
+                  className="text-ink hover:bg-surface-hover flex min-h-11 items-center justify-between gap-3 py-2.5 no-underline md:min-h-9"
+                >
+                  <span className="text-sm">
+                    <strong className="block font-medium">
+                      {t('settings.importFromMoneybird')}
+                    </strong>
+                    <span className="text-muted-foreground">
+                      {t('settings.importFromMoneybirdHint')}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/importeren"
+                  search={{ bron: 'exact' }}
+                  className="text-ink hover:bg-surface-hover flex min-h-11 items-center justify-between gap-3 py-2.5 no-underline md:min-h-9"
+                >
+                  <span className="text-sm">
+                    <strong className="block font-medium">{t('settings.importFromExact')}</strong>
+                    <span className="text-muted-foreground">
+                      {t('settings.importFromExactHint')}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/audit-file"
+                  className="text-ink hover:bg-surface-hover flex min-h-11 items-center justify-between gap-3 py-2.5 no-underline md:min-h-9"
+                >
+                  <span className="text-sm">
+                    <strong className="block font-medium">{t('settings.importFromXaf')}</strong>
+                    <span className="text-muted-foreground">{t('settings.importFromXafHint')}</span>
+                  </span>
+                </Link>
+              </li>
+            </ul>
           </section>
+
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <span className="text-sm">
+              <strong className="block">{t('settings.accountingDetails')}</strong>
+              <span className="text-muted-foreground">{t('settings.accountingDetailsHint')}</span>
+            </span>
+            <Switch
+              checked={advanced}
+              disabled={advancedSaving}
+              aria-busy={advancedSaving || undefined}
+              aria-label={t('settings.accountingDetails')}
+              onCheckedChange={(checked) => {
+                void setAdvanced(checked)
+              }}
+            />
+          </div>
 
           <h2 className="mb-3 text-base font-semibold">{t('settings.hubCompany')}</h2>
           <p className="text-muted-foreground mb-4 text-sm">{t('settings.hubCompanyBody')}</p>

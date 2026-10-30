@@ -22,8 +22,8 @@ the ADR is where the reasoning is.
 
 Design tokens from the **v2** 2026-10 export (`design/redesign-2026-10/`) live in
 `apps/web/src/styles/tokens.css` (swappable radius, shadows, greys, fonts, accent,
-link, status, sidebar width). Self-hosted Inter + JetBrains Mono (Ubuntu Sans as
-a swap); no Google Fonts CDN. shadcn/ui theme maps through those tokens.
+link, status, sidebar width). Self-hosted Inter + JetBrains Mono; no Google Fonts
+CDN. shadcn/ui theme maps through those tokens.
 `--status-attention` aliases the export WARN callout (`--brand-ink` /
 `--brand-tint`); red stays destructive. `#105` Geen btw orange stays on
 `--status-geen-btw`. All 20 export components are mapped (Switch, Tabs, Menu,

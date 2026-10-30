@@ -40,6 +40,14 @@ export const BINDINGS: readonly Binding[] = [
     modifiers: ['mod'],
   },
   { id: 'help', label: 'keys.help', group: 'keys.group.global', keys: '?' },
+  // Digits are handled locally on tab strips; this row exists so the `?` sheet
+  // lists them (docs/keyboard-map.md). Not a global binding.
+  {
+    id: 'tabs.switch',
+    label: 'keys.tabsSwitch',
+    group: 'keys.group.tabs',
+    keys: '1-5',
+  },
 
   { id: 'go.dashboard', label: 'nav.dashboard', group: 'keys.group.goTo', keys: 'g d', to: '/' },
   { id: 'go.journal', label: 'nav.journal', group: 'keys.group.goTo', keys: 'g j', to: '/entries' },
@@ -398,13 +406,6 @@ export const BINDINGS: readonly Binding[] = [
   },
 
   {
-    id: 'entry.saveDraft',
-    label: 'keys.entrySaveDraft',
-    group: 'keys.group.entry',
-    keys: 's',
-    modifiers: ['mod'],
-  },
-  {
     id: 'entry.post',
     label: 'keys.entryPost',
     group: 'keys.group.entry',
@@ -459,6 +460,8 @@ function keyLabel(key: string, afterModifier = false): string {
       return 'Tab'
     case 'a-z':
       return 'A–Z'
+    case '1-5':
+      return '1–5'
     default:
       // Bare chords stay lowercase (`g d`); after a modifier the letter is
       // capital (`Ctrl` `K`, `⌘` `K`) — #57 / #64 design review.
