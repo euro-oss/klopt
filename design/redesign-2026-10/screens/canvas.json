@@ -319,6 +319,88 @@
    "h": 1040,
    "title": "Dark · bank matching",
    "expand": "fill"
+  },
+  "ImportYears.dc.html": {
+   "x": 3040,
+   "y": 8600,
+   "w": 1440,
+   "h": 1100,
+   "title": "Import · step 3, years (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ImportPreview.dc.html": {
+   "x": 4560,
+   "y": 8600,
+   "w": 1440,
+   "h": 1162,
+   "title": "Import · step 4, preview (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ImportConfirm.dc.html": {
+   "x": 6080,
+   "y": 8600,
+   "w": 1440,
+   "h": 1100,
+   "title": "Import · step 6, confirm (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ImportRun.dc.html": {
+   "x": 7600,
+   "y": 8600,
+   "w": 1440,
+   "h": 1100,
+   "title": "Import · step 6, transferring (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ImportStopped.dc.html": {
+   "x": 9120,
+   "y": 8600,
+   "w": 1440,
+   "h": 1100,
+   "title": "Import · step 6, stopped, nothing booked (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ImportStoppedPartial.dc.html": {
+   "x": 10640,
+   "y": 8600,
+   "w": 1440,
+   "h": 1100,
+   "title": "Import · step 6, stopped, partly booked (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "YearCloseProposal.dc.html": {
+   "x": 6560,
+   "y": 10020,
+   "w": 1440,
+   "h": 2292,
+   "title": "Settings · close book year, proposal (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "YearCloseBlocked.dc.html": {
+   "x": 8080,
+   "y": 10020,
+   "w": 1440,
+   "h": 2411,
+   "title": "Settings · close book year, blocked (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
   }
  },
  "order": [
@@ -348,9 +430,17 @@
   "BankAccounts.dc.html",
   "Icp.dc.html",
   "ImportSource.dc.html",
+  "ImportYears.dc.html",
+  "ImportPreview.dc.html",
   "ImportFindings.dc.html",
+  "ImportConfirm.dc.html",
+  "ImportRun.dc.html",
+  "ImportStopped.dc.html",
+  "ImportStoppedPartial.dc.html",
   "SettingsCompany.dc.html",
   "SettingsBooks.dc.html",
+  "YearCloseProposal.dc.html",
+  "YearCloseBlocked.dc.html",
   "SettingsAccess.dc.html",
   "SettingsData.dc.html",
   "PhoneHome.dc.html",
@@ -409,14 +499,14 @@
    "y": 8300,
    "text": "Import",
    "kind": "title1",
-   "maxW": 9040
+   "maxW": 12080
   },
   "t8": {
    "x": 0,
    "y": 9720,
    "text": "Settings, every page",
    "kind": "title1",
-   "maxW": 9040
+   "maxW": 9520
   },
   "t9": {
    "x": 0,
