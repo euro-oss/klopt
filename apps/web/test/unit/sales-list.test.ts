@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { reminderEmailCopy } from '@klopt/core'
 import {
   countSalesSegments,
   filterSalesInvoices,
@@ -156,5 +157,21 @@ describe('invoiceHistoryEvents', () => {
 describe('sumInvoiceTotals', () => {
   it('sums minor units', () => {
     expect(sumInvoiceTotals([{ total: '100' }, { total: '250' }])).toBe(350n)
+  })
+})
+
+describe('reminderEmailCopy (Reminders read-only preview)', () => {
+  it('stage 3 asks for payment without WIK threats', () => {
+    const copy = reminderEmailCopy({
+      invoiceNumber: '2026-0037',
+      total: '985,93',
+      currency: 'EUR',
+      dueDate: '2025-02-10',
+      stage: 3,
+      daysOverdue: 324,
+    })
+    expect(copy.subject).toBe('Laatste aanmaning: factuur 2026-0037')
+    expect(copy.text).toContain('veertien dagen')
+    expect(copy.text).not.toMatch(/incassokosten|wettelijke\s+rente|incasso/i)
   })
 })
