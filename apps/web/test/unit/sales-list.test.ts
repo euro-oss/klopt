@@ -167,6 +167,8 @@ describe('invoiceHistoryEvents', () => {
           delivered: true,
           channel: 'email',
           transport: 'file',
+          recipient: 'inkoop@example.nl',
+          documentHash: 'abc',
           sentAt: '2026-01-10T12:00:00.000Z',
           stageLabel: null,
           tone: null,
