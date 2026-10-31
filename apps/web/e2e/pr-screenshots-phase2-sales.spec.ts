@@ -76,6 +76,8 @@ async function seedContact(page: Page, number: string, name: string, email: stri
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill(number)
   await page.getByLabel('Naam', { exact: true }).fill(name)
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('87654321')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
   await page.getByLabel('E-mail').fill(email)
   await page.getByLabel('Straat').fill('Voorbeeldstraat')
   await page.getByLabel('Huisnr.').fill('1')
@@ -99,6 +101,7 @@ async function draftAndIssue(
   if (issueDate !== undefined) {
     await page.getByLabel('Factuurdatum').fill(issueDate)
   }
+  await page.getByLabel('Referentie klant').fill(`PO-${customer.slice(0, 8)}`)
   await page.getByLabel('Omschrijving regel 1').fill(description)
   await page.getByLabel('Aantal regel 1').fill('1')
   await page.getByLabel('Eenheid regel 1').fill('EA')
@@ -108,8 +111,8 @@ async function draftAndIssue(
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
   await expect(page.getByRole('heading', { name: /Factuur \d{4}-/ })).toBeVisible()
   const id = page.url().split('/').pop() ?? ''
-  await page.getByRole('button', { name: 'Versturen', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Verzonden' })).toBeVisible()
+  await page.getByRole('button', { name: 'Factuur versturen', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Opnieuw versturen', exact: true })).toBeVisible()
   return id
 }
 
@@ -180,7 +183,7 @@ async function seedSalesData(page: Page, entityId: string): Promise<void> {
     .click()
   await expect(page.getByRole('heading', { name: /Creditnota Concept/ })).toBeVisible()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('heading', { name: /Creditnota \d{4}-/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Creditnota CN\d{4}-/ })).toBeVisible()
 
   // Cancel one issued invoice via SQL (no cancel UI yet)
   const cancelTarget = await draftAndIssue(page, 'Drukkerij Westland', 'Te annuleren', '60,00')
@@ -253,8 +256,9 @@ test('02 seeded Sales + Reminders + phone invoice', async ({ page }) => {
     await ready(page, 1440)
     await setTheme(page, theme)
     await shot(page, `02-reminders-${theme}-desktop-1440`)
-    // Email preview with Dutch template
-    await expect(page.getByLabel('E-mailvoorbeeld')).toBeVisible()
+    // Email preview with Dutch template (complementary is "Voorbeeld")
+    await expect(page.getByRole('complementary', { name: 'Voorbeeld' })).toBeVisible()
+    await expect(page.getByText('E-mailvoorbeeld')).toBeVisible()
     await shot(page, `02-reminders-preview-${theme}-desktop-1440`)
 
     await page.setViewportSize({ width: 390, height: 844 })
@@ -278,11 +282,11 @@ test('02 seeded Sales + Reminders + phone invoice', async ({ page }) => {
 
     await page.goto('/invoices?segment=overdue')
     await ready(page, 390)
-    const overdueLink = page
-      .getByRole('link', { name: /Workshops|Media|Noordkust|Linden|Westland|Meijer/ })
-      .first()
+    // Prefer the stage-3 row so PhoneInvoice shows Derde herinnering versturen.
+    const overdueLink = page.getByRole('link', { name: /Linden/ }).first()
     await overdueLink.click()
-    await expect(page.getByRole('heading', { name: /.+/ }).first()).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Linden/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Derde herinnering versturen' })).toBeVisible()
     await setTheme(page, theme)
     await shot(page, `02-invoice-detail-${theme}-mobile-390`)
     await shot(page, `02-invoice-detail-${theme}-mobile-390-full`, { fullPage: true })
