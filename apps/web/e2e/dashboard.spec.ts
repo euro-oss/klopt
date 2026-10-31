@@ -168,10 +168,11 @@ test('the queue lists what is waiting and opens the screen where it is done', as
 test('Home drops the Kloppen de boeken health strip', async ({ page }) => {
   await anAdministration(page, 'Eenvoudig Dashboard BV')
 
-  // Phase 1 Home: no jargon health block (Design #112).
+  // Phase 1 Home: no jargon health / unmapped block (Design #112).
   await expect(page.getByRole('heading', { name: 'Kloppen de boeken?' })).toHaveCount(0)
   await expect(page.locator('#main').getByText('RGS-dekking')).toHaveCount(0)
   await expect(page.locator('#main').getByText('Proefbalans')).toHaveCount(0)
+  await expect(page.getByText('Niet-gekoppelde rekeningen')).toHaveCount(0)
 })
 
 test('kerncijfers label overdue outstanding honestly, not as all receivables', async ({ page }) => {
