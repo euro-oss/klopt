@@ -256,6 +256,7 @@ describe('showSalesSend / salesSendLabelKey', () => {
     expect(salesSendLabelKey({ kind: 'invoice', status: 'issued' }, false)).toBe(
       'sales.preview.send',
     )
+    // Issued credit note (e.g. CN2025-0041): distinct never-sent label.
     expect(salesSendLabelKey({ kind: 'credit_note', status: 'issued' }, false)).toBe(
       'sales.preview.sendCredit',
     )
@@ -266,5 +267,22 @@ describe('showSalesSend / salesSendLabelKey', () => {
       'sales.preview.sendAgain',
     )
     expect(salesSendLabelKey({ kind: 'invoice', status: 'draft' }, false)).toBeNull()
+  })
+
+  it('list preview and full invoice page both wire showSalesSend / salesSendLabelKey', () => {
+    // Surfaces for issued CN2025-0041: Sales preview pane + /invoices/$id.
+    const preview = readFileSync(
+      join(import.meta.dirname, '../../src/routes/_app/invoices.index.tsx'),
+      'utf8',
+    )
+    const detail = readFileSync(
+      join(import.meta.dirname, '../../src/routes/_app/invoices.$invoiceId.tsx'),
+      'utf8',
+    )
+    for (const source of [preview, detail]) {
+      expect(source).toContain('showSalesSend')
+      expect(source).toContain('salesSendLabelKey')
+      expect(source).toContain('sendLabelMessageKey')
+    }
   })
 })

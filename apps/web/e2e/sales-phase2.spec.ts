@@ -1,6 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
-import { runMigrations } from '@klopt/db'
+import { closeDatabase, createDatabase, runMigrations } from '@klopt/db'
 import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
+
+type SqlTag = {
+  (strings: TemplateStringsArray, ...values: unknown[]): Promise<unknown>
+}
 
 /**
  * Redesign Phase 2 Sales (#107): tabs, /dunning as Reminders, segments +
@@ -229,4 +233,60 @@ test('phone detail back link returns to the segment the user came from', async (
     'aria-selected',
     'true',
   )
+})
+
+test('issued credit note CN2025-0041 shows Creditnota versturen on preview and detail', async ({
+  page,
+}) => {
+  await openSales(page)
+  await seedCustomerAndInvoices(page)
+
+  // Credit an issued invoice, then rename to the QA case number.
+  await page.setViewportSize({ width: 1440, height: 1040 })
+  await page.goto('/invoices?segment=open')
+  await hydrated(page)
+  await page.getByRole('heading', { name: 'Verkoop' }).click()
+  await page.keyboard.press('ArrowDown')
+  const preview = page.getByRole('complementary', { name: 'Factuurvoorbeeld' })
+  await expect(preview).toBeVisible()
+  await preview.getByRole('button', { name: 'Creditnota' }).click()
+  await expect(page.getByRole('heading', { name: /Creditnota Concept/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+  await expect(page.getByRole('heading', { name: /Creditnota CN\d{4}-/ })).toBeVisible()
+  const creditId = new URL(page.url()).pathname.split('/').pop() ?? ''
+  expect(creditId.length).toBeGreaterThan(10)
+
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  const sql = (database as unknown as { $client: SqlTag }).$client
+  try {
+    await sql`
+      update klopt.sales_invoices
+      set number = 'CN2025-0041'
+      where id = ${creditId}::uuid
+    `
+  } finally {
+    await closeDatabase(database)
+  }
+
+  // Full invoice page (desktop + phone share sendLabel).
+  await page.goto(`/invoices/${creditId}`)
+  await expect(page.getByRole('heading', { name: /CN2025-0041/ })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Creditnota versturen', exact: true }).first(),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Factuur versturen', exact: true })).toHaveCount(0)
+
+  // Sales list preview pane.
+  await page.goto('/invoices?segment=open')
+  await hydrated(page)
+  await page.getByRole('button', { name: /CN2025-0041/ }).click()
+  const listPreview = page.getByRole('complementary', { name: 'Factuurvoorbeeld' })
+  await expect(listPreview).toBeVisible()
+  await expect(listPreview.getByText('CN2025-0041')).toBeVisible()
+  await expect(
+    listPreview.getByRole('button', { name: 'Creditnota versturen', exact: true }),
+  ).toBeVisible()
+  await expect(
+    listPreview.getByRole('button', { name: 'Factuur versturen', exact: true }),
+  ).toHaveCount(0)
 })

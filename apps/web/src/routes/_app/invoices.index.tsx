@@ -717,6 +717,10 @@ function InvoicePreview({
   const [confirmRemindFor, setConfirmRemindFor] = useState<string | null>(null)
 
   useEffect(() => {
+    // Drop stale lines immediately so the header number never sits above
+    // another invoice's rows while the detail request is in flight.
+    setDetail(null)
+    setDeliveries([])
     let cancelled = false
     void (async () => {
       const [invoice, deliveryList] = await Promise.all([

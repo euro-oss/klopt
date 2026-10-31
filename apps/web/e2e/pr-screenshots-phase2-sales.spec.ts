@@ -94,6 +94,34 @@ async function ready(page: Page, width: number): Promise<void> {
   }
 }
 
+/** Invoice preview: wait until detail lines for the selected header have loaded. */
+async function waitPreviewLinesMatchHeader(page: Page): Promise<void> {
+  const preview = page.getByRole('complementary', { name: 'Factuurvoorbeeld' })
+  await expect(preview).toBeVisible()
+  const header = preview.locator('.text-ink-muted.tabular-nums.text-\\[13px\\]').first()
+  await expect(header).toBeVisible()
+  const headerText = ((await header.textContent()) ?? '').trim()
+  // Lines + total only render after getInvoice for this row.id (stale detail cleared).
+  await expect(preview.getByText('Totaal', { exact: true })).toBeVisible({ timeout: 15_000 })
+  // Header number (or Concept) must still be the one we selected.
+  expect(headerText.length).toBeGreaterThan(0)
+  await expect(header).toHaveText(headerText)
+}
+
+/** Reminders email preview: subject invoice number must appear in the body. */
+async function waitReminderPreviewConsistent(page: Page): Promise<void> {
+  const preview = page.getByRole('complementary', { name: 'Voorbeeld' })
+  await expect(preview).toBeVisible()
+  await expect(preview.getByText('E-mailvoorbeeld')).toBeVisible()
+  const subject = preview.getByText(/Derde herinnering: factuur \S+/)
+  await expect(subject).toBeVisible()
+  const subjectText = (await subject.textContent()) ?? ''
+  const number = /factuur\s+(\S+)/i.exec(subjectText)?.[1]
+  expect(number, `subject number in "${subjectText}"`).toBeTruthy()
+  await expect(preview.getByText(new RegExp(`Factuur\\s+${number}`))).toBeVisible()
+  await expect(preview.getByText(new RegExp(`${number}\\.pdf`))).toBeVisible()
+}
+
 async function setupEntity(page: Page): Promise<string> {
   await page.setViewportSize({ width: 1440, height: 1040 })
   await page.goto('/sign-in')
@@ -285,6 +313,7 @@ test('02 seeded Sales + Reminders + phone invoice', async ({ page }) => {
     await page.getByRole('heading', { name: 'Verkoop' }).click()
     await page.keyboard.press('ArrowDown')
     await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toBeVisible()
+    await waitPreviewLinesMatchHeader(page)
     await setTheme(page, theme)
     await shot(page, `02-sales-data-${theme}-desktop-1440`)
 
@@ -293,6 +322,7 @@ test('02 seeded Sales + Reminders + phone invoice', async ({ page }) => {
     await page.getByRole('heading', { name: 'Verkoop' }).click()
     await page.keyboard.press('ArrowDown')
     await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toBeVisible()
+    await waitPreviewLinesMatchHeader(page)
     await setTheme(page, theme)
     await shot(page, `02-sales-drafts-${theme}-desktop-1440`)
 
@@ -301,6 +331,7 @@ test('02 seeded Sales + Reminders + phone invoice', async ({ page }) => {
     await page.getByRole('heading', { name: 'Verkoop' }).click()
     await page.keyboard.press('ArrowDown')
     await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toBeVisible()
+    await waitPreviewLinesMatchHeader(page)
     await setTheme(page, theme)
     await shot(page, `02-sales-overdue-${theme}-desktop-1440`)
 
@@ -308,15 +339,12 @@ test('02 seeded Sales + Reminders + phone invoice', async ({ page }) => {
     await ready(page, 1440)
     await setTheme(page, theme)
     await shot(page, `02-reminders-${theme}-desktop-1440`)
-    // Select the stage-3 row so the email preview is open with distinct copy
-    // (must not be a byte-identical twin of the list shot).
+    // Select the stage-3 row; wait until subject number matches body lines.
     await page
       .getByRole('button', { name: /Linden|Derde herinnering/ })
       .first()
       .click()
-    await expect(page.getByRole('complementary', { name: 'Voorbeeld' })).toBeVisible()
-    await expect(page.getByText('E-mailvoorbeeld')).toBeVisible()
-    await expect(page.getByText(/Derde herinnering: factuur/)).toBeVisible()
+    await waitReminderPreviewConsistent(page)
     await shot(page, `02-reminders-preview-${theme}-desktop-1440`)
 
     await page.setViewportSize({ width: 390, height: 844 })
