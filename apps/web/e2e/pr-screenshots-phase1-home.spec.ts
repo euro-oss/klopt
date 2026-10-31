@@ -152,7 +152,7 @@ async function populatedAdministration(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Bakkerij De Korenaar')
-  await page.getByLabel('E-mail').fill('facturen@korenaar.nl')
+  await page.getByLabel('E-mail').fill('facturen@korenaar.example.nl')
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByRole('cell', { name: 'Bakkerij De Korenaar' })).toBeVisible()
 
