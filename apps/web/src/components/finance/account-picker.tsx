@@ -1,4 +1,4 @@
-import { RiCheckLine } from '@remixicon/react'
+import { Check } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useT } from '~/i18n/provider'
 import {
@@ -451,7 +451,7 @@ function Option({
       )}
     >
       <span className="min-w-0 truncate">{children}</span>
-      {selected && <RiCheckLine aria-hidden="true" className="size-4 shrink-0" />}
+      {selected && <Check aria-hidden="true" className="size-4 shrink-0" />}
     </li>
   )
 }
