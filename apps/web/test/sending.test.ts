@@ -341,7 +341,7 @@ describe('chasing an unpaid invoice', () => {
       'is volgens onze administratie nog niet als betaald bij ons binnengekomen',
     )
     expect(message?.text).toContain(
-      'Heeft u inmiddels betaald, dan kunt u dit bericht als niet verzonden beschouwen.',
+      'Heeft u de betaling inmiddels\ngedaan, dan kunt u dit bericht als niet verzonden beschouwen.',
     )
     expect(message?.text).not.toContain('incassokosten')
 

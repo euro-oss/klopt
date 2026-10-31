@@ -40,7 +40,6 @@ export function reminderEmailCopy(input: ReminderEmailInput): ReminderEmailCopy 
           '',
           'Mogelijk is deze aan uw aandacht ontsnapt. Heeft u de betaling inmiddels',
           'gedaan, dan kunt u dit bericht als niet verzonden beschouwen.',
-          'Heeft u inmiddels betaald, dan kunt u dit bericht als niet verzonden beschouwen.',
         ]
       : input.stage === 2
         ? [

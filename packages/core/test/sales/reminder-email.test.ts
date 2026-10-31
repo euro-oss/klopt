@@ -32,7 +32,7 @@ describe('reminderEmailCopy', () => {
       'op 2026-01-01 open en is volgens onze administratie nog niet als betaald bij ons binnengekomen.',
     )
     expect(stage1.text).toContain(
-      'Heeft u inmiddels betaald, dan kunt u dit bericht als niet verzonden beschouwen.',
+      'Mogelijk is deze aan uw aandacht ontsnapt. Heeft u de betaling inmiddels\ngedaan, dan kunt u dit bericht als niet verzonden beschouwen.',
     )
   })
 
