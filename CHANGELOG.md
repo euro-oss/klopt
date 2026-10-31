@@ -18,6 +18,30 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign Phase 1: Home (#107)
+
+Home matches Main / PhoneHome / HomeDark from the v2 export at `fa4093b`.
+To-do list is ordered by consequence; only the top item's action is primary,
+and the header "Nieuwe factuur" is secondary on Home. Empty state says
+"Niets te doen" / "Nothing waiting" — no "Haal je boekhouding over" row.
+Four linked stat tiles keep honest labels (overdue-only receivables until
+#68). P&L glance, debtor-ageing glance (same buckets and overdue list as
+`/reports/debtor-ageing`; asOf only, no due-date boekjaar filter; not-yet-due
+stay out; zero buckets omitted; Details/bucket/`sales.overdue` carry
+`fiscalYear`), and an audit-file card with Legal export copy and an
+underlined link in the card text colour to `/audit-file`. Tile rule: no data
+drops the value line; a failed read leaves the value empty and shows
+`dash.figure.*Unavailable` ("Niet beschikbaar" / "Not available") — never
+€ 0,00 or "Niets open" on a failed payables/profit/bank read. Phone hides
+header CTAs and keeps one secondary Bonnetje under Te doen (no shortcut
+chip on Bonnetje; keymap unchanged). No "Kloppen de boeken?" strip. Copy
+drops invented estimates, card-payment summaries and four-eyes wording.
+Design/PM #112 follow-up: ageing fills use named `--ageing-*` tokens;
+draft/inbox to-dos get their own icons; unmapped-accounts block removed;
+queue bodies drop missing number/days/deadline clauses (never `—` or `0`);
+EN ageing title “How late customers pay”; overdue one-body says “dagen te
+laat”.
+
 ### Redesign Phase 0: tokens, theme, components, shell (#107)
 
 Design tokens from the **v2** 2026-10 export (`design/redesign-2026-10/`) live in

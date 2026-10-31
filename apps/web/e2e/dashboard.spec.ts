@@ -24,13 +24,37 @@ test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
 
-async function anAdministration(page: Page, name: string): Promise<void> {
+const MONTHS_NL = [
+  'januari',
+  'februari',
+  'maart',
+  'april',
+  'mei',
+  'juni',
+  'juli',
+  'augustus',
+  'september',
+  'oktober',
+  'november',
+  'december',
+] as const
+
+async function anAdministration(
+  page: Page,
+  name: string,
+  options?: { readonly startInCurrentMonth?: boolean },
+): Promise<void> {
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill(name)
+  // Keyboard specs that assume a draft is the top to-do need no closed VAT
+  // period waiting — start the book year in the current month for those.
+  if (options?.startInCurrentMonth === true) {
+    await chooseOption(page, 'Begint in', MONTHS_NL[new Date().getMonth()]!)
+  }
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -73,27 +97,56 @@ test('an empty administration shows the redesigned dashboard and a way to start'
   // btw-aangifte may still appear (the period closed even with empty books).
   await expect(page.getByRole('link', { name: /concept(en)? om te versturen/i })).toHaveCount(0)
   await expect(page.getByRole('link', { name: /bankregels wachten/ })).toHaveCount(0)
+  // No invented "import your books" to-do (decision 2 / #107).
+  await expect(page.getByText(/Haal je boekhouding over/i)).toHaveCount(0)
+  // Empty queue → "Niets te doen" when nothing (incl. VAT) is waiting.
+  const todoHeading = page.getByRole('heading', { name: 'Te doen' })
+  const emptyHeading = page.getByRole('heading', { name: 'Niets te doen' })
+  const hasTodo = await todoHeading.isVisible().catch(() => false)
+  const hasEmpty = await emptyHeading.isVisible().catch(() => false)
+  expect(hasTodo || hasEmpty).toBeTruthy()
 
-  // Header CTA is the next step when the empty-state button is not shown.
-  await page
+  // Header "Nieuwe factuur" is secondary on Home (PM #107); only a top to-do
+  // owns primary. With an empty queue the empty-state action is also outline.
+  const newInvoice = page
+    .locator('#main')
     .getByRole('link', { name: /Nieuwe factuur/ })
     .first()
-    .click()
+  await expect(newInvoice).toHaveAttribute('data-variant', 'outline')
+  await newInvoice.click()
   await expect(page).toHaveURL(/\/invoices\/new$/)
 })
 
 test('the queue lists what is waiting and opens the screen where it is done', async ({ page }) => {
-  await anAdministration(page, 'Werklijst BV')
+  await anAdministration(page, 'Werklijst BV', { startInCurrentMonth: true })
   await aDraftInvoice(page)
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Te doen' })).toBeVisible()
   await hydrated(page)
   const row = page.getByRole('link', { name: /concept(en)? om te versturen/i })
   await expect(row).toBeVisible()
   // #5 AC: the count is in the title (PM #67). Singular form for count 1.
   await expect(row).toContainText('1 concept om te versturen')
   await expect(row).toContainText('Openen')
+
+  // Only the top to-do's action is primary (PM #107). Header invoice stays outline.
+  await expect(
+    page
+      .locator('#main')
+      .getByRole('link', { name: /Nieuwe factuur/ })
+      .first(),
+  ).toHaveAttribute('data-variant', 'outline')
+  const todoList = page
+    .locator('#main')
+    .getByRole('list')
+    .filter({
+      has: page.getByRole('link', { name: /concept(en)? om te versturen/i }),
+    })
+  await expect(todoList.locator('[data-todo-action="primary"]')).toHaveCount(1)
+  await expect(
+    todoList.getByRole('listitem').first().locator('[data-todo-action="primary"]'),
+  ).toHaveCount(1)
 
   // Do not steal focus on load — j/k start the cursor at row 0.
   // Arrow keys outside the list must not enter it (keep page scroll).
@@ -112,14 +165,14 @@ test('the queue lists what is waiting and opens the screen where it is done', as
   await expect(page.getByRole('row')).toHaveCount(2)
 })
 
-test('Geavanceerd off hides the whole health strip on the dashboard', async ({ page }) => {
+test('Home drops the Kloppen de boeken health strip', async ({ page }) => {
   await anAdministration(page, 'Eenvoudig Dashboard BV')
 
-  // Owner defaults to Geavanceerd off (#65 / designer #67): jargon health
-  // (Kloppen de boeken?, RGS, Proefbalans) stays out until advanced is on.
+  // Phase 1 Home: no jargon health / unmapped block (Design #112).
   await expect(page.getByRole('heading', { name: 'Kloppen de boeken?' })).toHaveCount(0)
   await expect(page.locator('#main').getByText('RGS-dekking')).toHaveCount(0)
   await expect(page.locator('#main').getByText('Proefbalans')).toHaveCount(0)
+  await expect(page.getByText('Niet-gekoppelde rekeningen')).toHaveCount(0)
 })
 
 test('kerncijfers label overdue outstanding honestly, not as all receivables', async ({ page }) => {
@@ -133,14 +186,52 @@ test('kerncijfers label overdue outstanding honestly, not as all receivables', a
   // Bank suggestions and Exact finding counts stay out — no invented 0.
   await expect(page.getByText(/suggestie/i)).toHaveCount(0)
   await expect(page.getByRole('link', { name: /Exact.*0|0.*Exact/i })).toHaveCount(0)
+
+  // No-data tiles drop the value line (no em dash, no € 0,00 on bank).
+  const bank = figures.getByRole('link', { name: /Op de bank/ })
+  await expect(bank).toContainText('Nog geen bankrekening')
+  await expect(bank).not.toContainText('—')
+  await expect(bank).not.toContainText('Niet beschikbaar')
+  // Successful payables zero still shows the amount + empty meta (not Unavailable).
+  const payables = figures.getByRole('link', { name: /Nog te betalen/ })
+  await expect(payables).toContainText('€')
+  await expect(payables).toContainText('Niets open')
+  await expect(payables).not.toContainText('Niet beschikbaar')
+  // Successful P&L zero is an amount, not Unavailable.
+  const profit = figures.getByRole('link', { name: /Winst|Verlies/ })
+  await expect(profit).toContainText('€')
+  await expect(profit).not.toContainText('Niet beschikbaar')
+})
+
+test('Bonnetje has no shortcut chip, and phone keeps one secondary under Te doen', async ({
+  page,
+}) => {
+  await anAdministration(page, 'Bonnetje Shortcut BV')
+  await hydrated(page)
+
+  const desktopReceipt = page
+    .locator('#main header')
+    .getByRole('link', { name: /Bonnetje toevoegen/ })
+  await expect(desktopReceipt).toBeVisible()
+  // No chord on the action button (PM + Design #112); keymap unchanged.
+  await expect(desktopReceipt.locator('kbd')).toHaveCount(0)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(
+    page.locator('#main header').getByRole('link', { name: /Bonnetje toevoegen/ }),
+  ).toHaveCount(0)
+  const phoneReceipt = page.locator('#main').getByRole('link', { name: /Bonnetje toevoegen/ })
+  await expect(phoneReceipt).toBeVisible()
+  await phoneReceipt.click()
+  await expect(page).toHaveURL(/\/inbox$/)
 })
 
 test('Escape gives the keyboard back to the rest of the application', async ({ page }) => {
-  await anAdministration(page, 'Ontsnapping BV')
+  await anAdministration(page, 'Ontsnapping BV', { startInCurrentMonth: true })
   await aDraftInvoice(page)
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Te doen' })).toBeVisible()
   await hydrated(page)
   const row = page.getByRole('link', { name: /concept(en)? om te versturen/i })
   // Wait for the queue row before j: hydrated only proves the shell, and the

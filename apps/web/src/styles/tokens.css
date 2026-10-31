@@ -108,6 +108,17 @@
   --chart-warning: var(--warning);
 
   /*
+    Debtor-ageing bar fills (export Main). Warm scale only — never --info /
+    --chart-2 / --line. Chart fills, not text: legend labels stay --ink
+    (AA on --surface). Ink on the 40%/70%/100% warning mixes is ≥4.5:1;
+    --danger as a fill is for the swatch, with --ink beside it.
+  */
+  --ageing-up-to-30: color-mix(in oklab, var(--warning) 40%, var(--surface));
+  --ageing-up-to-60: color-mix(in oklab, var(--warning) 70%, var(--surface));
+  --ageing-up-to-90: var(--warning);
+  --ageing-over-90: var(--danger);
+
+  /*
     status-attention = recoverable states (overdue, needs a look).
     Alias of the export’s WARN callout tokens (`.k-callout--warn`):
     text/icon `--brand-ink`, ground `--brand-tint`. Red (`--danger`) stays

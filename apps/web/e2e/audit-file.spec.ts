@@ -80,8 +80,10 @@ async function exported(page: Page, year: string): Promise<string> {
 test('import lives beside export, and the dashboard points at both', async ({ page }) => {
   await anAdministration(page, 'Heen En Terug BV')
 
-  await page.getByRole('link', { name: 'Auditfile importeren' }).click()
-  await expect(page).toHaveURL(/\/audit-file$/)
+  // Phase 1 Home audit card links to /audit-file (PM #107); import + export
+  // share that screen.
+  await page.getByRole('link', { name: 'Auditfile downloaden' }).click()
+  await expect(page).toHaveURL(/\/audit-file/)
   await expect(page.getByRole('heading', { name: 'Auditfile' })).toBeVisible()
 
   // The pair, on one screen: the same door, in both directions.

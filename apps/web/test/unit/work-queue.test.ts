@@ -70,8 +70,8 @@ describe('what the queue shows', () => {
     expect(rows.map((row) => row.kind)).toEqual(['inbox.waiting'])
   })
 
-  it('keeps the daily order rather than sorting by size', () => {
-    // Blocking import first, then invoice, bank, suppliers, btw. A queue that
+  it('keeps the consequence order rather than sorting by size', () => {
+    // Late money → blocking work → deadlines (Phase 1 / #107). A queue that
     // reorders itself as the numbers move is a queue nobody can learn.
     expect(buildWorkQueue(everything).map((row) => row.kind)).toEqual([...WORK_QUEUE_ORDER])
   })

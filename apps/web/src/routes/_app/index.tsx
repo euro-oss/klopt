@@ -2,17 +2,18 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   RiAddLine,
   RiAlertLine,
-  RiArrowRightLine,
+  RiArrowLeftRightLine,
+  RiArrowRightSLine,
   RiCalendarLine,
-  RiCheckboxBlankCircleLine,
-  RiInformationLine,
-  RiLockLine,
+  RiCheckLine,
+  RiFileTextLine,
+  RiInbox2Line,
+  RiPercentLine,
   RiUploadLine,
 } from '@remixicon/react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { PageHeader, Stat } from '~/components/app-shell'
+import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
-import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
   Empty,
@@ -27,53 +28,51 @@ import { useT } from '~/i18n/provider'
 import { formatMinorUnits } from '~/lib/format'
 import {
   ATTENTION_TONE,
-  barHeightPercent,
+  bankFigureValueKind,
   calendarParts,
   capitalizeWord,
+  glanceBarPercent,
   greetingName,
-  ibanTail,
-  maxMonthAmount,
+  homeQueueOverdueOneBody,
+  homeQueueVatBody,
+  homeQueueVatDeadlineIso,
+  payablesFigureValueKind,
+  profitFigureValueKind,
   type AttentionTone,
-  type MonthBar,
-  type PeriodRow,
+  type FigureValueKind,
 } from '~/lib/dashboard'
+import { DEBTOR_AGEING_BUCKETS, type DebtorAgeingBucket } from '~/lib/ageing'
 import { fiscalYearSearch } from '~/lib/fiscal-year'
-import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import { isTypingInto } from '~/lib/keyboard'
 import { localDayPart, localTodayIso } from '~/lib/local-clock'
 import { resolveListKey } from '~/lib/list-cursor'
 import { cn } from '~/lib/utils'
 import type { WorkQueueItem, WorkQueueKind } from '~/lib/work-queue'
-import { getDashboard, type DashboardFigures } from '~/server/dashboard'
+import { getDashboard, type DashboardAgeing, type DashboardFigures } from '~/server/dashboard'
 import { getEntity } from '~/server/entity'
 import { getSession } from '~/server/context'
-import { getRgsCoverage, getTrialBalance } from '~/server/ledger'
 
 /**
- * The dashboard: greeting, kerncijfers, werklijst, chart and periods.
+ * Home — Main / PhoneHome / HomeDark (redesign Phase 1 / #107).
  *
- * Ports the #57 prototype screen (#61 slice 3). The queue still answers
- * "what do I do today?"; the figures and periods sit around it the way the
- * approved HTML does. Health (proefbalans / RGS) stays below — only when
- * Geavanceerd is on (#65 / designer review).
- *
- * Import findings UI itself is owned by slice 4; this screen only links to
- * Moneybird when a stored dry-run already reported blocking problems.
+ * To-do list ordered by consequence; only the top action is primary. Four
+ * linked stat tiles (honest labels; no invented aggregates per #68). P&L
+ * glance, debtor-ageing glance (same buckets/query as the report), audit-file
+ * card. Phone shows two tiles + compact to-dos; side cards are desktop-only.
+ * No "Haal je boekhouding over" row (decision 2).
  */
 export const Route = createFileRoute('/_app/')({
   validateSearch: fiscalYearSearch,
   loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
   loader: async ({ deps }) => {
     const year = deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) }
-    const [dashboard, coverage, trial, entity, session] = await Promise.all([
+    const [dashboard, entity, session] = await Promise.all([
       getDashboard({ data: year }),
-      getRgsCoverage({ data: {} }),
-      getTrialBalance({ data: year }),
       getEntity(),
       getSession(),
     ])
-    return { dashboard, coverage, trial, entity, session }
+    return { dashboard, entity, session }
   },
   pendingComponent: DashboardPending,
   component: Dashboard,
@@ -92,8 +91,8 @@ const DESTINATIONS: Record<
     readonly action: MessageKey
   }
 > = {
-  // Blocking Moneybird/Exact findings (existing). v2 Main does not add an
-  // “no import yet” to-do — Import lives in the footer / Settings hub.
+  // Blocking Moneybird findings. v2 Main does not invent an empty-state
+  // “import your books” to-do — Import lives in the footer / Settings hub.
   'import.blocking': {
     to: '/importeren',
     search: { bron: 'moneybird' },
@@ -101,15 +100,6 @@ const DESTINATIONS: Record<
     titlePlural: true,
     body: 'queue.importBlockingBody',
     action: 'queue.importBlockingAction',
-  },
-
-  'sales.draft': {
-    to: '/invoices',
-    search: { status: 'draft' },
-    title: 'queue.salesDraft',
-    titlePlural: true,
-    body: 'queue.salesDraftBody',
-    action: 'queue.salesDraftAction',
   },
   'sales.overdue': {
     to: '/reports/debtor-ageing',
@@ -132,12 +122,13 @@ const DESTINATIONS: Record<
     body: 'queue.bankUnmatchedBody',
     action: 'queue.bankUnmatchedAction',
   },
-  'inbox.waiting': {
-    to: '/inbox',
-    title: 'queue.inboxWaiting',
+  'purchase.approve': {
+    to: '/purchases',
+    search: { status: 'booked' },
+    title: 'queue.purchaseApprove',
     titlePlural: true,
-    body: 'queue.inboxWaitingBody',
-    action: 'queue.inboxWaitingAction',
+    body: 'queue.purchaseApproveBody',
+    action: 'queue.purchaseApproveAction',
   },
   'purchase.book': {
     to: '/purchases',
@@ -147,14 +138,6 @@ const DESTINATIONS: Record<
     body: 'queue.purchaseBookBody',
     action: 'queue.purchaseBookAction',
   },
-  'purchase.approve': {
-    to: '/purchases',
-    search: { status: 'booked' },
-    title: 'queue.purchaseApprove',
-    titlePlural: true,
-    body: 'queue.purchaseApproveBody',
-    action: 'queue.purchaseApproveAction',
-  },
   'vat.filing': {
     to: '/vat',
     title: 'queue.vatFiling',
@@ -162,6 +145,36 @@ const DESTINATIONS: Record<
     body: 'queue.vatFilingBody',
     action: 'queue.vatFilingAction',
   },
+  'sales.draft': {
+    to: '/invoices',
+    search: { status: 'draft' },
+    title: 'queue.salesDraft',
+    titlePlural: true,
+    body: 'queue.salesDraftBody',
+    action: 'queue.salesDraftAction',
+  },
+  'inbox.waiting': {
+    to: '/inbox',
+    title: 'queue.inboxWaiting',
+    titlePlural: true,
+    body: 'queue.inboxWaitingBody',
+    action: 'queue.inboxWaitingAction',
+  },
+}
+
+const AGE_BUCKET_LABEL: Record<DebtorAgeingBucket, MessageKey> = {
+  upTo30: 'ageing.bucket.upTo30',
+  upTo60: 'ageing.bucket.upTo60',
+  upTo90: 'ageing.bucket.upTo90',
+  over90: 'ageing.bucket.over90',
+}
+
+/** Export ageing fills — named tokens in tokens.css (warm warning → danger). */
+const AGE_BUCKET_COLOR: Record<DebtorAgeingBucket, string> = {
+  upTo30: 'bg-ageing-up-to-30',
+  upTo60: 'bg-ageing-up-to-60',
+  upTo90: 'bg-ageing-up-to-90',
+  over90: 'bg-ageing-over-90',
 }
 
 function DashboardPending() {
@@ -169,21 +182,20 @@ function DashboardPending() {
   return (
     <div aria-busy="true" aria-live="polite" className="space-y-6">
       <p className="sr-only">{t('dash.loading')}</p>
-      <div className="bg-muted h-10 w-64 animate-pulse" />
-      <div className="bg-border grid grid-cols-2 gap-px lg:grid-cols-4">
+      <div className="bg-muted h-10 w-64 animate-pulse rounded-[var(--radius-md)]" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {Array.from({ length: 4 }, (_, index) => (
-          <div key={index} className="bg-background h-24 animate-pulse p-4" />
+          <div key={index} className="bg-muted h-24 animate-pulse rounded-[var(--radius-xl)]" />
         ))}
       </div>
-      <div className="bg-muted h-48 animate-pulse" />
+      <div className="bg-muted h-48 animate-pulse rounded-[var(--radius-xl)]" />
     </div>
   )
 }
 
 function Dashboard() {
-  const { dashboard, coverage, trial, entity, session } = Route.useLoaderData()
-  const { t } = useT()
-  const { advanced } = useAdvancedMode()
+  const { dashboard, entity, session } = Route.useLoaderData()
+  const { t, plural } = useT()
   const hydrated = useHydrated()
 
   if (session === null) return null
@@ -212,46 +224,44 @@ function Dashboard() {
   })
 
   const year = dashboard.ok ? dashboard.data.fiscalYear : null
+  const todoCount = dashboard.ok ? dashboard.data.items.length : 0
+  const greetingSub =
+    year === null
+      ? t('dash.introNoYear')
+      : todoCount > 0
+        ? plural('dash.greetingSubCount', todoCount, { weekday, date: dateLabel })
+        : t('dash.greetingSubBare', { weekday, date: dateLabel })
 
   return (
     <>
       <PageHeader
         title={name === null ? t(greetingKey) : t(greetingKey, { name })}
         description={
-          year === null
-            ? t('dash.introNoYear')
-            : t('dash.greetingSub', {
-                weekday,
-                date: dateLabel,
-                entity: isDemo ? `${entityName} · ${t('shell.demoBadge')}` : entityName,
-              })
+          isDemo && entityName !== ''
+            ? `${greetingSub} · ${entityName} · ${t('shell.demoBadge')}`
+            : greetingSub
         }
         actions={
-          <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:justify-end">
-            <Button asChild className="min-h-11 w-full flex-1 md:min-h-9 md:w-auto">
+          // Phone: CTAs leave the header; one secondary Bonnetje sits under Te doen.
+          // Bonnetje shows no shortcut chip (PM + Design #112): keymap stays as-is.
+          <div className="hidden w-full flex-col gap-2 md:flex md:w-auto md:flex-row md:justify-end">
+            <Button asChild variant="outline" className="min-h-9">
+              <Link to="/inbox">
+                <RiUploadLine data-icon="inline-start" aria-hidden="true" />
+                {t('dash.addReceipt')}
+              </Link>
+            </Button>
+            {/* Home only: New invoice is secondary; the top to-do owns primary (PM #107). */}
+            <Button asChild variant="outline" className="min-h-9">
               <Link to="/invoices/new">
                 <RiAddLine data-icon="inline-start" aria-hidden="true" />
                 {t('dash.newInvoice')}
                 {hydrated && (
-                  <span className="ml-1 hidden gap-0.5 normal-case md:inline-flex">
-                    <Keycap className="border-primary-foreground/30 bg-transparent normal-case text-primary-foreground/80">
-                      n
-                    </Keycap>
-                    <Keycap className="border-primary-foreground/30 bg-transparent normal-case text-primary-foreground/80">
-                      f
-                    </Keycap>
+                  <span className="ml-1 inline-flex gap-0.5 normal-case">
+                    <Keycap>n</Keycap>
+                    <Keycap>f</Keycap>
                   </span>
                 )}
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="min-h-11 w-full flex-1 md:min-h-9 md:w-auto"
-            >
-              <Link to="/inbox">
-                <RiUploadLine data-icon="inline-start" aria-hidden="true" />
-                {t('dash.addReceipt')}
               </Link>
             </Button>
           </div>
@@ -266,86 +276,34 @@ function Dashboard() {
         <>
           <KeyFigures figures={dashboard.data.figures} yearCode={dashboard.data.fiscalYear.code} />
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-            <WorkQueue items={dashboard.data.items} />
-            <aside className="space-y-6">
-              <IncomeChart months={dashboard.data.months} />
-              <PeriodsPanel
-                rows={dashboard.data.periods}
+          <div className="mt-6 flex flex-wrap items-start gap-6">
+            <div className="min-w-0 flex-[2_1_520px]">
+              <WorkQueue items={dashboard.data.items} fiscalYear={dashboard.data.fiscalYear.code} />
+              <div className="mt-3 md:hidden">
+                <Button asChild variant="outline" className="min-h-11 w-full">
+                  <Link to="/inbox">
+                    <RiUploadLine data-icon="inline-start" aria-hidden="true" />
+                    {t('dash.addReceipt')}
+                  </Link>
+                </Button>
+              </div>
+            </div>
+            <aside className="hidden min-w-0 flex-[1_1_300px] flex-col gap-6 md:flex">
+              <ProfitGlance
+                yearCode={dashboard.data.fiscalYear.code}
+                income={dashboard.data.figures.profit.income}
+                expenses={dashboard.data.figures.profit.expenses}
+                result={dashboard.data.figures.profit.result}
+              />
+              <AgeingGlance
+                ageing={dashboard.data.ageing}
                 yearCode={dashboard.data.fiscalYear.code}
               />
+              <AuditCard />
             </aside>
           </div>
         </>
       )}
-
-      {advanced && (
-        <section className="mt-8">
-          <h2 className="mb-3 font-medium">{t('dash.healthTitle')}</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Stat
-              label={t('dash.trialBalance')}
-              value={trial.ok ? <Money amount={trial.data.difference} /> : '—'}
-              hint={
-                trial.ok && trial.data.difference === '0'
-                  ? t('dash.trialBalanceEqual')
-                  : t('dash.trialBalanceDifference')
-              }
-              tone={trial.ok && trial.data.difference === '0' ? 'good' : 'warn'}
-            />
-            <Stat
-              label={t('dash.rgsCoverage')}
-              value={coverage.ok ? `${String(coverage.data.mappedPercentage)}%` : '—'}
-              hint={
-                coverage.ok
-                  ? t('dash.rgsCoverageHint', {
-                      mapped: String(coverage.data.mappedCount),
-                      total: String(coverage.data.accountCount),
-                      version: coverage.data.version,
-                    })
-                  : undefined
-              }
-              tone={coverage.ok && coverage.data.unmappedCount === 0 ? 'good' : 'warn'}
-            />
-          </div>
-        </section>
-      )}
-
-      {advanced && coverage.ok && coverage.data.unmappedCount > 0 && (
-        <section className="border-border mt-4 border p-4">
-          <h2 className="font-medium">{t('dash.unmapped')}</h2>
-          <p className="text-muted-foreground mt-1 text-sm">{t('dash.unmappedBody')}</p>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {coverage.data.unmappedAccounts.map((accountNumber) => (
-              <li key={accountNumber} className="bg-unreconciled/15 px-2 py-1 tabular text-xs">
-                {accountNumber}
-              </li>
-            ))}
-          </ul>
-          <Link to="/accounts" className="mt-3 inline-block text-sm underline">
-            {t('dash.unmappedFix')}
-          </Link>
-        </section>
-      )}
-
-      <section className="mt-4">
-        <h2 className="font-medium">{t('dash.exportTitle')}</h2>
-        <p className="text-muted-foreground mt-1 text-sm">{t('dash.exportBody')}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <a
-            href={`/api/v1/exports/audit-file?fiscalYear=${year?.code ?? ''}`}
-            className="border-input inline-flex min-h-11 items-center border px-3 py-2 text-sm font-medium md:min-h-9"
-          >
-            {t('dash.exportAction')}
-          </a>
-          <Link
-            to="/audit-file"
-            className="border-input inline-flex min-h-11 items-center border px-3 py-2 text-sm font-medium md:min-h-9"
-          >
-            {t('dash.importAction')}
-          </Link>
-        </div>
-      </section>
     </>
   )
 }
@@ -358,67 +316,145 @@ function KeyFigures({ figures, yearCode }: { figures: DashboardFigures; yearCode
   const profit = profitResult === null ? null : BigInt(profitResult)
   const prior = figures.profit.priorResult === null ? null : BigInt(figures.profit.priorResult)
   const delta = profit === null || prior === null ? null : profit - prior
+  const yearSearch = { fiscalYear: Number(yearCode) }
+
+  const bankValueKind = bankFigureValueKind(bank)
+  const bankMeta = ((): string => {
+    if (bank === null) return t('dash.figure.bankEmpty')
+    if (bank.status === 'unavailable') return t('dash.figure.bankUnavailable')
+    if (bank.balance === null) return t('dash.figure.bankNoStatement')
+    const date = bank.statementDate === null ? null : dayMonthLabel(bank.statementDate, t)
+    if (date !== null && bank.unmatchedCount > 0) {
+      return plural('dash.figure.bankHintMatch', bank.unmatchedCount, { date })
+    }
+    if (date !== null) return t('dash.figure.bankHint', { date })
+    if (bank.unmatchedCount > 0) {
+      return plural('dash.figure.bankHintMatchOnly', bank.unmatchedCount)
+    }
+    return t('dash.figure.bankHintNoDate', { name: bank.name, iban: bank.iban.slice(-4) })
+  })()
+
+  const payablesValueKind = payablesFigureValueKind(figures.payables.total)
+  const payablesMeta =
+    figures.payables.total === null
+      ? t('dash.figure.payablesUnavailable')
+      : figures.payables.count === 0
+        ? t('dash.figure.payablesEmpty')
+        : plural('dash.figure.payablesHint', figures.payables.count)
+
+  const profitValueKind = profitFigureValueKind(profitResult)
+  // Failed P&L: Unavailable only — never "Boekjaar {year}" on a failed read (PM #112).
+  const profitMeta =
+    profitResult === null
+      ? t('dash.figure.profitUnavailable')
+      : delta === null
+        ? t('dash.figure.profitNoPrior', { year: yearCode })
+        : delta === 0n
+          ? t('dash.figure.profitFlat')
+          : delta > 0n
+            ? t('dash.figure.profitUp', { amount: formatMinorUnits(delta) })
+            : t('dash.figure.profitDown', { amount: formatMinorUnits(-delta) })
 
   return (
     <section
       aria-label={t('dash.figures')}
-      className="bg-border grid grid-cols-2 gap-px border lg:grid-cols-4"
+      className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4"
     >
-      <FigureTile
+      <StatTile
+        to="/bank/match"
         label={t('dash.figure.bank')}
-        value={bank === null || bank.balance === null ? '—' : <EuroAmount amount={bank.balance} />}
-        hint={
-          bank === null
-            ? t('dash.figure.bankEmpty')
-            : bank.balance === null
-              ? t('dash.figure.bankNoStatement')
-              : bank.statementDate === null
-                ? t('dash.figure.bankHintNoDate', {
-                    name: bank.name,
-                    iban: ibanTail(bank.iban),
-                  })
-                : t('dash.figure.bankHint', {
-                    name: bank.name,
-                    iban: ibanTail(bank.iban),
-                    date: dayMonthLabel(bank.statementDate, t),
-                  })
+        valueKind={bankValueKind}
+        value={
+          bank !== null && bank.status === 'ok' && bank.balance !== null ? (
+            <EuroAmount amount={bank.balance} />
+          ) : null
         }
+        meta={bankMeta}
       />
-      <FigureTile
+      <StatTile
+        to="/reports/debtor-ageing"
+        search={yearSearch}
         label={t('dash.figure.receivables')}
+        valueKind="amount"
         value={<EuroAmount amount={figures.receivables.total} />}
-        hint={
+        meta={
           figures.receivables.count === 0
             ? t('dash.figure.receivablesEmpty')
             : plural('dash.figure.receivablesHint', figures.receivables.overdueCount)
         }
-        hintTone={receivablesLate ? 'attention' : 'muted'}
+        metaDanger={receivablesLate}
       />
-      <FigureTile
+      {/* PhoneHome shows only bank + receivables; suppliers/profit are desktop. */}
+      <StatTile
+        className="hidden md:flex"
+        to="/purchases"
         label={t('dash.figure.payables')}
-        value={<EuroAmount amount={figures.payables.total} />}
-        hint={
-          figures.payables.count === 0
-            ? t('dash.figure.payablesEmpty')
-            : plural('dash.figure.payablesHint', figures.payables.count)
+        valueKind={payablesValueKind}
+        value={
+          figures.payables.total === null ? null : <EuroAmount amount={figures.payables.total} />
         }
+        meta={payablesMeta}
       />
-      <FigureTile
-        label={profit !== null && profit < 0n ? t('dash.figure.loss') : t('dash.figure.profit')}
-        value={profitResult === null ? '—' : <EuroAmount amount={profitResult} />}
-        hint={
-          profit === null
-            ? t('dash.figure.profitNoPrior', { year: yearCode })
-            : delta === null
-              ? t('dash.figure.profitNoPrior', { year: yearCode })
-              : delta === 0n
-                ? t('dash.figure.profitFlat')
-                : delta > 0n
-                  ? t('dash.figure.profitUp', { amount: formatMinorUnits(delta) })
-                  : t('dash.figure.profitDown', { amount: formatMinorUnits(-delta) })
+      <StatTile
+        className="hidden md:flex"
+        to="/reports/profit-and-loss"
+        search={yearSearch}
+        label={
+          profit !== null && profit < 0n
+            ? t('dash.figure.loss', { year: yearCode })
+            : t('dash.figure.profit', { year: yearCode })
         }
+        valueKind={profitValueKind}
+        value={profitResult === null ? null : <EuroAmount amount={profitResult} />}
+        meta={profitMeta}
       />
     </section>
+  )
+}
+
+function StatTile({
+  to,
+  search,
+  label,
+  valueKind,
+  value,
+  meta,
+  metaDanger = false,
+  className,
+}: {
+  to: string
+  search?: Record<string, string | number>
+  label: string
+  valueKind: FigureValueKind
+  value: ReactNode
+  meta: string
+  metaDanger?: boolean
+  className?: string
+}) {
+  return (
+    <Link
+      to={to}
+      {...(search === undefined ? {} : { search })}
+      className={cn(
+        'bg-card text-card-foreground border-border flex flex-col gap-1.5 rounded-[var(--radius-xl)] border px-4 py-[18px] no-underline transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:px-5',
+        className,
+      )}
+    >
+      <span className="text-muted-foreground text-[13px]">{label}</span>
+      {valueKind !== 'omit' && (
+        <span className="text-[20px] leading-[26px] font-semibold tracking-tight tabular md:text-[26px] md:leading-8">
+          {valueKind === 'empty' ? null : value}
+        </span>
+      )}
+      <span
+        className={cn(
+          'text-[13px]',
+          metaDanger ? 'text-destructive font-medium' : 'text-muted-foreground',
+        )}
+      >
+        {meta}
+      </span>
+    </Link>
   )
 }
 
@@ -442,170 +478,210 @@ function EuroAmount({ amount }: { amount: string }) {
   )
 }
 
-function FigureTile({
-  label,
-  value,
-  hint,
-  hintTone = 'muted',
+function ProfitGlance({
+  yearCode,
+  income,
+  expenses,
+  result,
 }: {
-  label: string
-  value: ReactNode
-  hint: string
-  hintTone?: 'muted' | 'attention'
+  yearCode: string
+  income: string | null
+  expenses: string | null
+  result: string | null
 }) {
-  return (
-    <div className="bg-background p-4 md:p-5">
-      <p className="text-muted-foreground text-xs md:text-sm">{label}</p>
-      <p className="mt-1 text-xl font-semibold tracking-tight tabular md:text-[26px]">{value}</p>
-      <p
-        className={cn(
-          'mt-1 text-xs',
-          hintTone === 'attention' ? 'text-unreconciled' : 'text-muted-foreground',
-        )}
-      >
-        {hint}
-      </p>
-    </div>
-  )
-}
-
-function IncomeChart({ months }: { months: readonly MonthBar[] }) {
   const { t } = useT()
-  const max = maxMonthAmount(months)
-  const partial = months.find((month) => month.partial)
-  const emptyPlot = months.length === 0 || max === 0n
+  // No P&L data → omit the card rather than invent € 0,00 (PM #107).
+  if (income === null || expenses === null || result === null) return null
+
+  const max = BigInt(income) > BigInt(expenses) ? BigInt(income) : BigInt(expenses)
+  const yearSearch = { fiscalYear: Number(yearCode) }
 
   return (
-    <section aria-labelledby="dash-chart-h" className="border p-4">
-      <div className="flex items-baseline justify-between">
-        <h2 id="dash-chart-h" className="text-base">
-          {t('dash.chartTitle')}
+    <section
+      aria-labelledby="dash-pl-h"
+      className="bg-card border-border flex flex-col gap-3.5 rounded-[var(--radius-xl)] border p-5"
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="dash-pl-h" className="text-base font-semibold">
+          {t('dash.glance.plTitle', { year: yearCode })}
         </h2>
-        <span className="text-muted-foreground text-xs">{t('dash.chartScale')}</span>
+        <Link
+          to="/reports/profit-and-loss"
+          search={yearSearch}
+          className="text-link text-[13px] underline underline-offset-4"
+        >
+          {t('dash.glance.plLink')}
+        </Link>
       </div>
-      {emptyPlot ? (
-        <p className="text-muted-foreground mt-4 text-sm">{t('dash.chartEmpty')}</p>
-      ) : (
-        <>
-          <div
-            className="mt-4 flex h-32 items-end gap-3"
-            role="img"
-            aria-label={t('dash.chartLabel')}
-          >
-            {months.map((month) => {
-              const key = `dash.month.${String(month.month)}` as MessageKey
-              return (
-                <div key={month.sequence} className="flex h-full flex-1 flex-col justify-end gap-1">
-                  <div className="flex flex-1 items-end gap-0.5">
-                    <div
-                      className={cn('bg-chart-2 flex-1', month.partial && 'opacity-40')}
-                      style={{ height: `${String(barHeightPercent(month.income, max))}%` }}
-                    />
-                    <div
-                      className={cn('bg-chart-4 flex-1', month.partial && 'opacity-40')}
-                      style={{ height: `${String(barHeightPercent(month.expenses, max))}%` }}
-                    />
-                  </div>
-                  <span
-                    className={cn(
-                      'text-muted-foreground text-center text-[11px]',
-                      month.partial && 'border-accent text-foreground border-b-2 font-medium',
-                    )}
-                  >
-                    {t(key)}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-          <div className="text-muted-foreground mt-3 flex gap-4 text-xs">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="bg-chart-2 size-2.5" />
-              {t('dash.chartIncome')}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="bg-chart-4 size-2.5" />
-              {t('dash.chartExpenses')}
-            </span>
-            {partial !== undefined && (
-              <span className="ml-auto">
-                {t('dash.chartPartial', {
-                  month: t(`dash.month.${String(partial.month)}` as MessageKey),
-                })}
-              </span>
-            )}
-          </div>
-        </>
-      )}
+      <GlanceBar
+        label={t('dash.glance.income')}
+        amount={income}
+        width={glanceBarPercent(income, max)}
+        tone="income"
+      />
+      <GlanceBar
+        label={t('dash.glance.expenses')}
+        amount={expenses}
+        width={glanceBarPercent(expenses, max)}
+        tone="expense"
+      />
+      <div className="border-border flex justify-between border-t pt-3">
+        <span className="font-semibold">{t('dash.glance.result')}</span>
+        <span className="font-bold tabular">
+          <EuroAmount amount={result} />
+        </span>
+      </div>
     </section>
   )
 }
 
-function PeriodsPanel({ rows, yearCode }: { rows: readonly PeriodRow[]; yearCode: string }) {
-  const { t } = useT()
-  if (rows.length === 0) return null
+function GlanceBar({
+  label,
+  amount,
+  width,
+  tone,
+}: {
+  label: string
+  amount: string
+  width: number
+  tone: 'income' | 'expense'
+}) {
+  // Hide € 0,00 bars (Design #112) — keep the label/amount row only when non-zero.
+  if (BigInt(amount) === 0n) return null
 
   return (
-    <section aria-labelledby="dash-per-h" className="border p-4">
-      <h2 id="dash-per-h" className="text-base">
-        {t('dash.periodsTitle')}
-      </h2>
-      <ul role="list" className="mt-2 divide-y text-sm">
-        {rows.map((row) => {
-          const label =
-            row.kind === 'month'
-              ? t('dash.period.month', {
-                  month: capitalizeWord(t(`dash.monthFull.${row.labelRef}` as MessageKey)),
-                  year: yearCode,
-                })
-              : row.kind === 'quarter'
-                ? t('dash.period.quarter', { n: row.labelRef, year: yearCode })
-                : row.labelRef
+    <div className="flex flex-col gap-1.5">
+      <div className="flex justify-between text-[13px]">
+        <span>{label}</span>
+        <span className="font-semibold tabular">
+          <EuroAmount amount={amount} />
+        </span>
+      </div>
+      <div className="bg-[var(--line-soft)] h-2.5 overflow-hidden rounded-[5px]">
+        <div
+          className={cn('h-2.5 rounded-[5px]', tone === 'income' ? 'bg-chart-1' : 'bg-chart-2')}
+          style={{ width: `${String(width)}%` }}
+        />
+      </div>
+    </div>
+  )
+}
 
-          const closedCopy =
-            row.kind === 'quarter'
-              ? t('dash.period.closedQuarter')
-              : row.kind === 'year'
-                ? t('dash.period.closedYear')
-                : t('dash.period.closedMonth')
+function AgeingGlance({ ageing, yearCode }: { ageing: DashboardAgeing; yearCode: string }) {
+  const { t } = useT()
+  const present = DEBTOR_AGEING_BUCKETS.filter((bucket) => BigInt(ageing[bucket]) > 0n)
+  // Nothing overdue → omit the card (never show € 0,00 placeholders).
+  if (present.length === 0) return null
 
+  const total = present.reduce((sum, bucket) => sum + BigInt(ageing[bucket]), 0n)
+  const yearSearch = { fiscalYear: Number(yearCode) }
+
+  return (
+    <section
+      aria-labelledby="dash-age-h"
+      className="bg-card border-border flex flex-col gap-3.5 rounded-[var(--radius-xl)] border p-5"
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="dash-age-h" className="text-base font-semibold">
+          {t('dash.glance.ageTitle')}
+        </h2>
+        <Link
+          to="/reports/debtor-ageing"
+          search={yearSearch}
+          className="text-link text-[13px] underline underline-offset-4"
+        >
+          {t('dash.glance.ageLink')}
+        </Link>
+      </div>
+      <div className="flex h-3 gap-0.5 overflow-hidden rounded-md">
+        {present.map((bucket) => {
+          const amount = BigInt(ageing[bucket])
+          const pct = total <= 0n ? 0 : Number((amount * 1000n) / total) / 10
           return (
-            <li key={row.id} className="flex items-center justify-between gap-3 py-2">
-              <span>{label}</span>
-              {row.status === 'open' ? (
-                <Badge variant="outline" className="normal-case tracking-normal font-medium">
-                  {t('dash.period.open')}
-                </Badge>
-              ) : (
-                <span className="text-muted-foreground inline-flex items-center gap-1">
-                  <RiLockLine aria-hidden="true" className="size-3.5" />
-                  {closedCopy}
-                </span>
-              )}
-            </li>
+            <div
+              key={bucket}
+              className={cn('h-full min-w-1', AGE_BUCKET_COLOR[bucket])}
+              style={{ width: `${String(Math.max(2, pct))}%` }}
+            />
           )
         })}
+      </div>
+      <ul className="flex flex-col gap-2 text-[13px]">
+        {present.map((bucket) => (
+          <li key={bucket}>
+            <Link
+              to="/reports/debtor-ageing"
+              search={{ ...yearSearch, bucket }}
+              className="text-foreground hover:bg-muted -mx-1 flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-0.5 no-underline"
+            >
+              <span
+                className={cn('size-2.5 shrink-0 rounded-[2px]', AGE_BUCKET_COLOR[bucket])}
+                aria-hidden="true"
+              />
+              <span className="flex-1">{t(AGE_BUCKET_LABEL[bucket])}</span>
+              <span className="tabular">
+                <EuroAmount amount={ageing[bucket]} />
+              </span>
+            </Link>
+          </li>
+        ))}
       </ul>
     </section>
   )
 }
 
-function toneIcon(tone: AttentionTone): ReactNode {
+function AuditCard() {
+  const { t } = useT()
+  return (
+    <section
+      className="bg-primary text-primary-foreground border-primary flex flex-col gap-2 rounded-[var(--radius-xl)] border p-5"
+      aria-label={t('dash.exportTitle')}
+    >
+      <span className="text-[15px] font-semibold">{t('dash.exportTitle')}</span>
+      <span className="text-[13px] leading-normal opacity-80">{t('dash.exportBody')}</span>
+      {/* Underlined link in the card's text colour — never yellow on the ink card (PM #107). */}
+      <Link
+        to="/audit-file"
+        className="text-primary-foreground w-fit text-[13px] font-semibold underline underline-offset-4"
+      >
+        {t('dash.exportAction')}
+      </Link>
+    </section>
+  )
+}
+
+function kindIcon(kind: WorkQueueKind, tone: AttentionTone): ReactNode {
+  // Each kind keeps its own glyph — drafts and inbox no longer reuse VAT % (Design #112).
+  if (kind === 'sales.draft') {
+    return <RiFileTextLine aria-hidden="true" className="size-[18px]" />
+  }
+  if (kind === 'inbox.waiting') {
+    return <RiInbox2Line aria-hidden="true" className="size-[18px]" />
+  }
+  if (kind === 'vat.filing') {
+    return <RiPercentLine aria-hidden="true" className="size-[18px]" />
+  }
   if (tone === 'error') {
-    return <RiAlertLine aria-hidden="true" className="text-destructive size-[18px]" />
+    return <RiAlertLine aria-hidden="true" className="size-[18px]" />
   }
   if (tone === 'attention') {
-    return <RiCalendarLine aria-hidden="true" className="text-unreconciled size-[18px]" />
+    return <RiCalendarLine aria-hidden="true" className="size-[18px]" />
+  }
+  if (tone === 'brand') {
+    return <RiArrowLeftRightLine aria-hidden="true" className="size-[18px]" />
   }
   if (tone === 'info') {
-    return <RiInformationLine aria-hidden="true" className="text-info size-[18px]" />
+    return <RiCheckLine aria-hidden="true" className="size-[18px]" />
   }
-  return (
-    <RiCheckboxBlankCircleLine
-      aria-hidden="true"
-      className="text-muted-foreground mt-0.5 size-[18px] shrink-0"
-    />
-  )
+  return <RiFileTextLine aria-hidden="true" className="size-[18px]" />
+}
+
+function tileClass(tone: AttentionTone): string {
+  if (tone === 'error') return 'bg-[var(--danger-bg)] text-destructive'
+  if (tone === 'attention') return 'bg-unreconciled/15 text-unreconciled'
+  if (tone === 'brand') return 'bg-[var(--brand-tint)] text-[var(--brand-ink)]'
+  if (tone === 'info') return 'bg-[var(--info-bg)] text-info'
+  return 'bg-[var(--neutral-bg)] text-[var(--ink-2)]'
 }
 
 function rowCopy(
@@ -627,34 +703,17 @@ function rowCopy(
         name: detail.contactName,
         amount: formatMinorUnits(BigInt(item.amount)),
       }),
-      body: t('queue.salesOverdueOneBody', {
-        number: detail.invoiceNumber ?? '—',
-        days: String(detail.daysOverdue ?? 0),
-      }),
+      body: homeQueueOverdueOneBody(detail, t, plural),
       action: t(destination.action),
     }
   }
 
   if (item.kind === 'vat.filing' && detail?.vatPeriod !== undefined) {
-    const deadline = detail.vatDeadline === undefined ? '—' : dayMonthLabel(detail.vatDeadline, t)
-    let body = t('queue.vatFilingBody', { deadline })
-    if (detail.vatPayable !== undefined && detail.vatPayable !== null) {
-      const payable = BigInt(detail.vatPayable)
-      if (payable < 0n) {
-        body = t('queue.vatFilingBodyRefund', {
-          deadline,
-          amount: formatMinorUnits(-payable),
-        })
-      } else if (payable > 0n) {
-        body = t('queue.vatFilingBodyPayable', {
-          deadline,
-          amount: formatMinorUnits(payable),
-        })
-      }
-    }
+    const deadlineIso = homeQueueVatDeadlineIso(detail)
+    const deadlineLabel = deadlineIso === null ? null : dayMonthLabel(deadlineIso, t)
     return {
       title: t(destination.title as MessageKey, { period: detail.vatPeriod }),
-      body,
+      body: homeQueueVatBody(detail, deadlineLabel, t),
       action: t(destination.action),
     }
   }
@@ -675,12 +734,13 @@ function rowCopy(
 }
 
 /**
- * The queue itself, and the keyboard that works it.
+ * The to-do list, and the keyboard that works it.
  *
  * Focus stays on the page on load — `j`/`k` start the cursor at row 0.
- * `Enter` opens (native link), `Escape` leaves the list.
+ * Only the top item's action is primary. `Enter` opens (native link),
+ * `Escape` leaves the list. Empty → "Nothing waiting" / "Niets te doen".
  */
-function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
+function WorkQueue({ items, fiscalYear }: { items: readonly WorkQueueItem[]; fiscalYear: string }) {
   const { t, plural } = useT()
   const hydrated = useHydrated()
   const [cursor, setCursor] = useState(0)
@@ -691,8 +751,6 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
     cursorRef.current = cursor
   }, [cursor])
 
-  // j/k enter the list at row 0 without stealing focus on load. Global
-  // prefixes (g j) still win: useShortcuts marks those defaultPrevented.
   useEffect(() => {
     if (items.length === 0) return
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -720,7 +778,6 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
         }
         return
       }
-      // From outside the list, only j/k enter it — arrows keep page scroll.
       if (event.key === 'j' || event.key === 'k') {
         event.preventDefault()
         setCursor(0)
@@ -736,7 +793,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
 
   if (items.length === 0) {
     return (
-      <Empty className="border">
+      <Empty className="rounded-[var(--radius-xl)] border">
         <EmptyHeader>
           <EmptyTitle role="heading" aria-level={2}>
             {t('queue.empty')}
@@ -744,7 +801,7 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
           <EmptyDescription>{t('queue.emptyBody')}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button asChild>
+          <Button asChild variant="outline">
             <Link to="/invoices/new">{t('queue.emptyAction')}</Link>
           </Button>
         </EmptyContent>
@@ -753,36 +810,42 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
   }
 
   return (
-    <section aria-labelledby="queue-title">
-      <div className="mb-2 flex items-baseline justify-between gap-4">
-        <h2 id="queue-title" className="text-base">
+    <section
+      aria-labelledby="queue-title"
+      className="bg-card border-border overflow-hidden rounded-[var(--radius-xl)] border"
+    >
+      <div className="flex items-center justify-between gap-4 px-4 py-4 md:px-5">
+        <h2 id="queue-title" className="text-base font-semibold">
           {t('queue.title')}
         </h2>
-        <div className="text-muted-foreground flex items-center gap-3 text-sm">
-          <span className="tabular-nums">{plural('queue.count', items.length)}</span>
-          {hydrated && (
-            <span className="hidden items-center gap-1.5 text-[0.6875rem] md:inline-flex">
-              <Keycap>j</Keycap>
-              <Keycap>k</Keycap>
-              <span>{t('keys.queueChoose')}</span>
-              <span aria-hidden="true">·</span>
-              <Keycap>↵</Keycap>
-              <span>{t('keys.queueOpenShort')}</span>
-            </span>
-          )}
-        </div>
+        {hydrated && (
+          <span className="text-muted-foreground hidden items-center gap-1.5 text-[13px] md:inline-flex">
+            <Keycap>j</Keycap>
+            <Keycap>k</Keycap>
+            <span>{t('queue.keysMove')}</span>
+            <Keycap>↵</Keycap>
+            <span>{t('queue.keysDo')}</span>
+          </span>
+        )}
       </div>
 
-      <ul role="list" className="divide-y border">
+      <ul role="list">
         {items.map((item, index) => {
           const destination = DESTINATIONS[item.kind]
           const tone = ATTENTION_TONE[item.kind]
           const copy = rowCopy(item, t, plural)
+          const selected = index === cursor
+          const isTop = index === 0
+          const search = {
+            ...(destination.search ?? {}),
+            // Ageing / overdue open the same boekjaar the Home is showing (PM #112).
+            ...(item.kind === 'sales.overdue' ? { fiscalYear: Number(fiscalYear) } : {}),
+          }
           return (
             <li key={item.kind}>
               <Link
                 to={destination.to}
-                {...(destination.search === undefined ? {} : { search: destination.search })}
+                {...(Object.keys(search).length === 0 ? {} : { search })}
                 ref={(element: HTMLAnchorElement | null) => {
                   rows.current[index] = element
                 }}
@@ -791,28 +854,46 @@ function WorkQueue({ items }: { items: readonly WorkQueueItem[] }) {
                   setCursor(index)
                 }}
                 className={cn(
-                  'group focus-visible:outline-solid hover:bg-muted flex min-h-11 items-center gap-3 px-4 py-3 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring md:min-h-16',
-                  tone === 'error'
-                    ? 'border-l-destructive border-l-[3px]'
-                    : 'border-l-[3px] border-l-transparent',
+                  'group border-line-soft focus-visible:outline-solid hover:bg-[var(--surface-hover)] flex min-h-11 items-center gap-3 border-t px-4 py-3.5 no-underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring md:min-h-16 md:gap-3.5 md:px-5',
+                  selected && 'bg-[var(--selection)] shadow-[inset_3px_0_0_var(--selection-edge)]',
                 )}
               >
-                <span className="shrink-0">{toneIcon(tone)}</span>
+                <span
+                  className={cn(
+                    'inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-lg)] md:size-9',
+                    tileClass(tone),
+                  )}
+                >
+                  {kindIcon(item.kind, tone)}
+                </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium">{copy.title}</span>
-                  <span className="text-muted-foreground block text-sm">{copy.body}</span>
+                  <span className="block text-[15px] leading-5 font-semibold">{copy.title}</span>
+                  <span className="text-muted-foreground block text-[13px]">{copy.body}</span>
                 </span>
                 {item.amount !== null &&
                   (item.kind !== 'sales.overdue' || item.count > 1) &&
                   item.kind !== 'vat.filing' && (
-                    <span className="text-sm tabular-nums">
+                    <span className="hidden text-[15px] font-semibold tabular md:inline">
                       <EuroAmount amount={item.amount} />
                     </span>
                   )}
-                <span className="text-muted-foreground group-hover:text-foreground hidden text-sm sm:inline">
+                {/* Action chrome: whole row is the link; only the top button is primary. */}
+                <span
+                  aria-hidden="true"
+                  data-todo-action={isTop ? 'primary' : 'secondary'}
+                  className={cn(
+                    'pointer-events-none hidden shrink-0 items-center justify-center rounded-[var(--radius-md)] px-3 text-sm font-medium md:inline-flex',
+                    isTop
+                      ? 'bg-primary text-primary-foreground h-9 font-semibold'
+                      : 'border-input bg-background h-9 border',
+                  )}
+                >
                   {copy.action}
                 </span>
-                <RiArrowRightLine aria-hidden="true" className="text-muted-foreground size-4" />
+                <RiArrowRightSLine
+                  aria-hidden="true"
+                  className="text-muted-foreground size-5 shrink-0 md:hidden"
+                />
               </Link>
             </li>
           )
