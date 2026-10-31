@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import type { MessageKey } from '../../src/i18n/nl.js'
 import {
   ATTENTION_TONE,
   bankFigureValueKind,
@@ -9,10 +10,20 @@ import {
   dayPartAt,
   glanceBarPercent,
   greetingName,
+  homeQueueOverdueOneBody,
+  homeQueueVatBody,
+  homeQueueVatDeadlineIso,
   payablesFigureValueKind,
   profitFigureValueKind,
 } from '../../src/lib/dashboard.js'
 import { WORK_QUEUE_ORDER } from '../../src/lib/work-queue.js'
+
+const t = ((key: string, vars?: Record<string, string>): string => {
+  if (vars === undefined) return key
+  return `${key}:${Object.entries(vars)
+    .map(([name, value]) => `${name}=${value}`)
+    .join(',')}`
+}) as (key: MessageKey, vars?: Record<string, string>) => string
 
 describe('dashboard greeting helpers', () => {
   it('takes the first name for the greeting, and never the email', () => {
@@ -127,14 +138,81 @@ describe('honest kerncijfers copy', () => {
       'Pick a book year and download it as an XAF 3.2 audit file, with RGS codes where your accounts are mapped.',
     )
     expect(nl['dash.glance.ageTitle']).toBe('Hoe laat klanten betalen')
+    expect(en['dash.glance.ageTitle']).toBe('How late customers pay')
     expect(nl['ageing.bucket.over90']).toBe('Meer dan 90 dagen')
     expect(en['ageing.bucket.over90']).toBe('More than 90 days')
+    expect(nl['queue.salesOverdueOneBody']).toBe('Factuur {number} · {days} dagen te laat')
+    expect(en['queue.salesOverdueOneBody']).toBe('Invoice {number} · {days} days late')
   })
 
   it('scales P&L glance bars against the larger of income and expenses', () => {
     expect(glanceBarPercent('100000', 100000n)).toBe(100)
     expect(glanceBarPercent('39000', 100000n)).toBe(39)
     expect(glanceBarPercent('0', 100000n)).toBe(0)
+  })
+})
+
+describe('Home queue body missing fields (PM #112)', () => {
+  it('drops the invoice-number clause when the number is missing', () => {
+    expect(homeQueueOverdueOneBody({ contactName: 'Acme', daysOverdue: 12 }, t)).toBe(
+      'queue.salesOverdueOneBodyDays:days=12',
+    )
+  })
+
+  it('drops the days clause when days overdue is missing', () => {
+    expect(homeQueueOverdueOneBody({ contactName: 'Acme', invoiceNumber: '2026-001' }, t)).toBe(
+      'queue.salesOverdueOneBodyNumber:number=2026-001',
+    )
+  })
+
+  it('falls back to the generic overdue body when both clauses are missing', () => {
+    expect(homeQueueOverdueOneBody({ contactName: 'Acme' }, t)).toBe('queue.salesOverdueBody')
+  })
+
+  it('drops the days clause when days overdue is zero (never show a 0)', () => {
+    expect(
+      homeQueueOverdueOneBody(
+        { contactName: 'Acme', invoiceNumber: '2026-001', daysOverdue: 0 },
+        t,
+      ),
+    ).toBe('queue.salesOverdueOneBodyNumber:number=2026-001')
+    expect(homeQueueOverdueOneBody({ contactName: 'Acme', daysOverdue: 0 }, t)).toBe(
+      'queue.salesOverdueBody',
+    )
+  })
+
+  it('keeps both clauses when number and days are present', () => {
+    expect(
+      homeQueueOverdueOneBody(
+        { contactName: 'Acme', invoiceNumber: '2026-001', daysOverdue: 12 },
+        t,
+      ),
+    ).toBe('queue.salesOverdueOneBody:number=2026-001,days=12')
+  })
+
+  it('drops the VAT deadline clause when the deadline is missing', () => {
+    expect(homeQueueVatDeadlineIso({ vatPeriod: '2026-Q3' })).toBeNull()
+    expect(homeQueueVatBody({ vatPeriod: '2026-Q3' }, null, t)).toBe('')
+  })
+
+  it('never substitutes a dash or zero for a missing VAT deadline', () => {
+    const body = homeQueueVatBody({ vatPeriod: '2026-Q3', vatPayable: '10000' }, null, t)
+    expect(body).toBe('')
+    expect(body).not.toMatch(/—/)
+    expect(body).not.toMatch(/\b0\b/)
+  })
+
+  it('never puts a dash into overdue body when a field is missing', () => {
+    for (const detail of [
+      { contactName: 'Acme' },
+      { contactName: 'Acme', invoiceNumber: '2026-001' },
+      { contactName: 'Acme', daysOverdue: 12 },
+      { contactName: 'Acme', invoiceNumber: '', daysOverdue: 0 },
+    ] as const) {
+      const body = homeQueueOverdueOneBody(detail, t)
+      expect(body).not.toMatch(/—/)
+      expect(body).not.toMatch(/:days=0\b/)
+    }
   })
 })
 
@@ -159,10 +237,16 @@ describe('Home overdue parity with debtor-ageing (PM + Legal #112)', () => {
     expect(source).toContain('search={{ ...yearSearch, bucket }}')
     expect(source).toMatch(/AgeingGlance[\s\S]*yearCode/)
     expect(source).toContain("item.kind === 'sales.overdue' ? { fiscalYear: Number(fiscalYear) }")
-    // Bonnetje → /inbox shows the real inbox shortcut, not n r.
-    expect(source).toMatch(/to="\/inbox"[\s\S]*?<Keycap>g<\/Keycap>/)
-    expect(source).not.toMatch(/to="\/inbox"[\s\S]*?<Keycap>n<\/Keycap>\s*<Keycap>r<\/Keycap>/)
-    // No Kloppen de boeken block on Home.
+    // Bonnetje → /inbox with no shortcut chip; keymap unchanged.
+    const inboxLinks = source.match(/to="\/inbox"[\s\S]*?<\/Link>/g) ?? []
+    expect(inboxLinks.length).toBeGreaterThanOrEqual(1)
+    for (const link of inboxLinks) {
+      expect(link).not.toContain('Keycap')
+    }
     expect(source).not.toContain('dash.healthTitle')
+    expect(source).not.toContain('dash.unmapped')
+    expect(source).toContain('bg-ageing-up-to-30')
+    expect(source).toContain('RiFileTextLine')
+    expect(source).toContain('RiInbox2Line')
   })
 })

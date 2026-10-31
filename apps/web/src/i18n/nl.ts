@@ -293,7 +293,6 @@ export const nl = {
   'dash.weekday.5': 'vrijdag',
   'dash.weekday.6': 'zaterdag',
   'dash.loading': 'Dashboard laden…',
-  'dash.healthTitle': 'Kloppen de boeken?',
 
   // Home to-do list (Phase 1 / #107). Consequence order; empty = Nothing waiting.
   'queue.title': 'Te doen',
@@ -317,7 +316,9 @@ export const nl = {
   'queue.salesOverdue_other': '{count} facturen over de vervaldatum',
   'queue.salesOverdueBody': 'Over de betaaltermijn heen.',
   'queue.salesOverdueOne': '{name} moet nog €\u00a0{amount} betalen',
-  'queue.salesOverdueOneBody': 'Factuur {number} · {days} dagen over de vervaldatum',
+  'queue.salesOverdueOneBody': 'Factuur {number} · {days} dagen te laat',
+  'queue.salesOverdueOneBodyNumber': 'Factuur {number}',
+  'queue.salesOverdueOneBodyDays': '{days} dagen te laat',
   'queue.salesOverdueAction': 'Herinnering sturen',
   'queue.dunningWaiting_one': '{count} aanmaning om te versturen',
   'queue.dunningWaiting_other': '{count} aanmaningen om te versturen',
@@ -344,19 +345,6 @@ export const nl = {
   'queue.vatFilingBodyPayable': 'Uiterlijk {deadline} indienen · €\u00a0{amount} te betalen',
   'queue.vatFilingBodyRefund': 'Uiterlijk {deadline} indienen · €\u00a0{amount} terug te krijgen',
   'queue.vatFilingAction': 'Bekijken',
-
-  'dash.trialBalance': 'Proefbalans',
-  'dash.trialBalanceEqual': 'Debet en credit zijn gelijk.',
-  'dash.trialBalanceDifference': 'Verschil tussen debet en credit.',
-  'dash.chain': 'Hash-keten',
-  'dash.chainVerified': 'Geverifieerd',
-  'dash.chainBroken': 'Gebroken',
-  'dash.chainHint': '{count} posten. Kop: {head}…',
-  'dash.rgsCoverage': 'RGS-dekking',
-  'dash.rgsCoverageHint': '{mapped} van {total} rekeningen gekoppeld aan RGS {version}',
-  'dash.unmapped': 'Niet-gekoppelde rekeningen',
-  'dash.unmappedBody': 'Deze rekeningen komen niet voor in een RGS-rapportage of in de auditfile.',
-  'dash.unmappedFix': 'Koppelingen bijwerken',
 
   // Journal entries and the chart of accounts.
   'entries.title': 'Journaalposten',

@@ -6,6 +6,8 @@ import {
   RiArrowRightSLine,
   RiCalendarLine,
   RiCheckLine,
+  RiFileTextLine,
+  RiInbox2Line,
   RiPercentLine,
   RiUploadLine,
 } from '@remixicon/react'
@@ -31,6 +33,9 @@ import {
   capitalizeWord,
   glanceBarPercent,
   greetingName,
+  homeQueueOverdueOneBody,
+  homeQueueVatBody,
+  homeQueueVatDeadlineIso,
   payablesFigureValueKind,
   profitFigureValueKind,
   type AttentionTone,
@@ -38,7 +43,6 @@ import {
 } from '~/lib/dashboard'
 import { DEBTOR_AGEING_BUCKETS, type DebtorAgeingBucket } from '~/lib/ageing'
 import { fiscalYearSearch } from '~/lib/fiscal-year'
-import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import { isTypingInto } from '~/lib/keyboard'
 import { localDayPart, localTodayIso } from '~/lib/local-clock'
@@ -48,7 +52,6 @@ import type { WorkQueueItem, WorkQueueKind } from '~/lib/work-queue'
 import { getDashboard, type DashboardAgeing, type DashboardFigures } from '~/server/dashboard'
 import { getEntity } from '~/server/entity'
 import { getSession } from '~/server/context'
-import { getRgsCoverage } from '~/server/ledger'
 
 /**
  * Home — Main / PhoneHome / HomeDark (redesign Phase 1 / #107).
@@ -64,13 +67,12 @@ export const Route = createFileRoute('/_app/')({
   loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
   loader: async ({ deps }) => {
     const year = deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) }
-    const [dashboard, coverage, entity, session] = await Promise.all([
+    const [dashboard, entity, session] = await Promise.all([
       getDashboard({ data: year }),
-      getRgsCoverage({ data: {} }),
       getEntity(),
       getSession(),
     ])
-    return { dashboard, coverage, entity, session }
+    return { dashboard, entity, session }
   },
   pendingComponent: DashboardPending,
   component: Dashboard,
@@ -167,12 +169,12 @@ const AGE_BUCKET_LABEL: Record<DebtorAgeingBucket, MessageKey> = {
   over90: 'ageing.bucket.over90',
 }
 
-/** Export chart colours for the four debtor-ageing bands (status tokens only). */
+/** Export ageing fills — named tokens in tokens.css (warm warning → danger). */
 const AGE_BUCKET_COLOR: Record<DebtorAgeingBucket, string> = {
-  upTo30: 'bg-info',
-  upTo60: 'bg-[var(--chart-2)]',
-  upTo90: 'bg-[var(--warning)]',
-  over90: 'bg-destructive',
+  upTo30: 'bg-ageing-up-to-30',
+  upTo60: 'bg-ageing-up-to-60',
+  upTo90: 'bg-ageing-up-to-90',
+  over90: 'bg-ageing-over-90',
 }
 
 function DashboardPending() {
@@ -192,9 +194,8 @@ function DashboardPending() {
 }
 
 function Dashboard() {
-  const { dashboard, coverage, entity, session } = Route.useLoaderData()
+  const { dashboard, entity, session } = Route.useLoaderData()
   const { t, plural } = useT()
-  const { advanced } = useAdvancedMode()
   const hydrated = useHydrated()
 
   if (session === null) return null
@@ -242,17 +243,12 @@ function Dashboard() {
         }
         actions={
           // Phone: CTAs leave the header; one secondary Bonnetje sits under Te doen.
+          // Bonnetje shows no shortcut chip (PM + Design #112): keymap stays as-is.
           <div className="hidden w-full flex-col gap-2 md:flex md:w-auto md:flex-row md:justify-end">
             <Button asChild variant="outline" className="min-h-9">
               <Link to="/inbox">
                 <RiUploadLine data-icon="inline-start" aria-hidden="true" />
                 {t('dash.addReceipt')}
-                {hydrated && (
-                  <span className="ml-1 inline-flex gap-0.5 normal-case">
-                    <Keycap>g</Keycap>
-                    <Keycap>e</Keycap>
-                  </span>
-                )}
               </Link>
             </Button>
             {/* Home only: New invoice is secondary; the top to-do owns primary (PM #107). */}
@@ -307,23 +303,6 @@ function Dashboard() {
             </aside>
           </div>
         </>
-      )}
-
-      {advanced && coverage.ok && coverage.data.unmappedCount > 0 && (
-        <section className="border-border mt-4 rounded-[var(--radius-xl)] border p-4">
-          <h2 className="font-medium">{t('dash.unmapped')}</h2>
-          <p className="text-muted-foreground mt-1 text-sm">{t('dash.unmappedBody')}</p>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {coverage.data.unmappedAccounts.map((accountNumber) => (
-              <li key={accountNumber} className="bg-unreconciled/15 px-2 py-1 tabular text-xs">
-                {accountNumber}
-              </li>
-            ))}
-          </ul>
-          <Link to="/accounts" className="mt-3 inline-block text-sm underline">
-            {t('dash.unmappedFix')}
-          </Link>
-        </section>
       )}
     </>
   )
@@ -671,7 +650,17 @@ function AuditCard() {
   )
 }
 
-function toneIcon(tone: AttentionTone): ReactNode {
+function kindIcon(kind: WorkQueueKind, tone: AttentionTone): ReactNode {
+  // Each kind keeps its own glyph — drafts and inbox no longer reuse VAT % (Design #112).
+  if (kind === 'sales.draft') {
+    return <RiFileTextLine aria-hidden="true" className="size-[18px]" />
+  }
+  if (kind === 'inbox.waiting') {
+    return <RiInbox2Line aria-hidden="true" className="size-[18px]" />
+  }
+  if (kind === 'vat.filing') {
+    return <RiPercentLine aria-hidden="true" className="size-[18px]" />
+  }
   if (tone === 'error') {
     return <RiAlertLine aria-hidden="true" className="size-[18px]" />
   }
@@ -684,7 +673,7 @@ function toneIcon(tone: AttentionTone): ReactNode {
   if (tone === 'info') {
     return <RiCheckLine aria-hidden="true" className="size-[18px]" />
   }
-  return <RiPercentLine aria-hidden="true" className="size-[18px]" />
+  return <RiFileTextLine aria-hidden="true" className="size-[18px]" />
 }
 
 function tileClass(tone: AttentionTone): string {
@@ -714,34 +703,17 @@ function rowCopy(
         name: detail.contactName,
         amount: formatMinorUnits(BigInt(item.amount)),
       }),
-      body: t('queue.salesOverdueOneBody', {
-        number: detail.invoiceNumber ?? '—',
-        days: String(detail.daysOverdue ?? 0),
-      }),
+      body: homeQueueOverdueOneBody(detail, t),
       action: t(destination.action),
     }
   }
 
   if (item.kind === 'vat.filing' && detail?.vatPeriod !== undefined) {
-    const deadline = detail.vatDeadline === undefined ? '—' : dayMonthLabel(detail.vatDeadline, t)
-    let body = t('queue.vatFilingBody', { deadline })
-    if (detail.vatPayable !== undefined && detail.vatPayable !== null) {
-      const payable = BigInt(detail.vatPayable)
-      if (payable < 0n) {
-        body = t('queue.vatFilingBodyRefund', {
-          deadline,
-          amount: formatMinorUnits(-payable),
-        })
-      } else if (payable > 0n) {
-        body = t('queue.vatFilingBodyPayable', {
-          deadline,
-          amount: formatMinorUnits(payable),
-        })
-      }
-    }
+    const deadlineIso = homeQueueVatDeadlineIso(detail)
+    const deadlineLabel = deadlineIso === null ? null : dayMonthLabel(deadlineIso, t)
     return {
       title: t(destination.title as MessageKey, { period: detail.vatPeriod }),
-      body,
+      body: homeQueueVatBody(detail, deadlineLabel, t),
       action: t(destination.action),
     }
   }
@@ -892,7 +864,7 @@ function WorkQueue({ items, fiscalYear }: { items: readonly WorkQueueItem[]; fis
                     tileClass(tone),
                   )}
                 >
-                  {toneIcon(tone)}
+                  {kindIcon(item.kind, tone)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] leading-5 font-semibold">{copy.title}</span>

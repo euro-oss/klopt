@@ -202,7 +202,7 @@ test('kerncijfers label overdue outstanding honestly, not as all receivables', a
   await expect(profit).not.toContainText('Niet beschikbaar')
 })
 
-test('Bonnetje goes to inbox with g e, and phone keeps one secondary under Te doen', async ({
+test('Bonnetje has no shortcut chip, and phone keeps one secondary under Te doen', async ({
   page,
 }) => {
   await anAdministration(page, 'Bonnetje Shortcut BV')
@@ -212,9 +212,8 @@ test('Bonnetje goes to inbox with g e, and phone keeps one secondary under Te do
     .locator('#main header')
     .getByRole('link', { name: /Bonnetje toevoegen/ })
   await expect(desktopReceipt).toBeVisible()
-  // Real inbox shortcut is g e — not n r (that opens /purchases/new).
-  const keycaps = desktopReceipt.locator('kbd')
-  await expect(keycaps).toHaveText(['g', 'e'])
+  // No chord on the action button (PM + Design #112); keymap unchanged.
+  await expect(desktopReceipt.locator('kbd')).toHaveCount(0)
 
   await page.setViewportSize({ width: 390, height: 844 })
   await expect(

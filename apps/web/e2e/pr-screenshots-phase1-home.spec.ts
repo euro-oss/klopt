@@ -5,15 +5,22 @@ import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 import { uuidv7 } from '@klopt/core'
 import { closeDatabase, createDatabase, runMigrations } from '@klopt/db'
-import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
+import {
+  chooseOption,
+  DATABASE_URL,
+  enableAdvancedMode,
+  hydrated,
+  signIn,
+  uniqueEmail,
+} from './support'
 
 type SqlTag = (strings: TemplateStringsArray, ...values: readonly unknown[]) => Promise<unknown>
 
 /**
  * Public PNGs for #107 / #112 Phase 1 Home — Main / PhoneHome / HomeDark.
  *
- * 01 = tip empty smoke; 02 = seeded data (real name); 03 = empty queue.
- * 1440 / 390, light / dark.
+ * 01 = tip smoke; 02 = seeded data (named user + multi-bucket ageing); 03 = empty
+ * queue ("Niets te doen", no btw). 1440 / 390, light / dark; 390 full-page too.
  *
  * Run with:
  *   CAPTURE_PR_SCREENSHOTS=1 PR_SCREENSHOT_NUMBER=112 \
@@ -35,6 +42,21 @@ const FIXTURES = join(
   '__fixtures__',
 )
 
+const MONTHS_NL = [
+  'januari',
+  'februari',
+  'maart',
+  'april',
+  'mei',
+  'juni',
+  'juli',
+  'augustus',
+  'september',
+  'oktober',
+  'november',
+  'december',
+] as const
+
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
   if (CAPTURE) mkdirSync(OUT, { recursive: true })
@@ -42,52 +64,98 @@ test.beforeAll(async () => {
 
 test.skip(!CAPTURE, 'Set CAPTURE_PR_SCREENSHOTS=1 to write docs/pr-screenshots/')
 
-async function signInFresh(page: Page): Promise<void> {
+function isoDaysAgo(days: number): string {
+  const date = new Date()
+  date.setHours(12, 0, 0, 0)
+  date.setDate(date.getDate() - days)
+  const year = String(date.getFullYear())
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+async function signInFresh(page: Page): Promise<string> {
+  const email = uniqueEmail()
   await page.goto('/sign-in')
-  await signIn(page, uniqueEmail())
+  await signIn(page, email)
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+  return email
 }
 
-async function emptyAdministration(page: Page, name: string): Promise<void> {
-  await signInFresh(page)
+async function setDisplayName(email: string, name: string): Promise<void> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  const sql = (database as unknown as { $client: SqlTag }).$client
+  try {
+    await sql`update klopt.users set name = ${name} where email = ${email}`
+  } finally {
+    await closeDatabase(database)
+  }
+}
+
+async function emptyAdministration(
+  page: Page,
+  name: string,
+  opts?: { displayName?: string },
+): Promise<void> {
+  const email = await signInFresh(page)
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill(name)
+  // Start in the current month so no closed VAT period is waiting (Design #112).
+  await chooseOption(page, 'Begint in', MONTHS_NL[new Date().getMonth()]!)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
   ).toBeVisible()
+  // Named empty shot so 390 frames differ from the tip smoke (sidebar is hidden).
+  if (opts?.displayName !== undefined) {
+    await setDisplayName(email, opts.displayName)
+    await page.context().clearCookies()
+    await page.goto('/sign-in')
+    await signIn(page, email)
+    await expect(
+      page.getByRole('heading', { name: new RegExp(opts.displayName.split(' ')[0]!) }),
+    ).toBeVisible()
+  }
 }
 
-async function populatedAdministration(page: Page, name: string): Promise<void> {
-  await signInFresh(page)
+async function populatedAdministration(page: Page): Promise<void> {
+  const email = await signInFresh(page)
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill(name)
+  await page.getByLabel('Naam van de administratie').fill('Noordkust Advies B.V.')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
   ).toBeVisible()
+
+  // Session embeds the name at sign-in — update the row, then re-auth.
+  await setDisplayName(email, 'Hidde Jansen')
+  await page.context().clearCookies()
+  await page.goto('/sign-in')
+  await signIn(page, email)
+  await expect(page.getByRole('heading', { name: /Hidde/ })).toBeVisible()
 
   await page.goto('/settings')
   await page.getByLabel('Straat').fill('Keizersgracht')
-  await page.getByLabel('Huisnummer').fill('1')
-  await page.getByLabel('Postcode').fill('1015 CJ')
+  await page.getByLabel('Huisnummer').fill('12')
+  await page.getByLabel('Postcode').fill('1015 CN')
   await page.getByLabel('Plaats').fill('Amsterdam')
-  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
-  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('34123456')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL001234567B01')
   await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 
+  await enableAdvancedMode(page)
+
+  // Draft customer + draft invoice (neutral to-do).
   await page.goto('/contacts')
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
-  await page.getByLabel('Naam', { exact: true }).fill('Wachtende Klant N.V.')
-  await page.getByLabel('E-mail').fill('inkoop@wachtendeklant.nl')
+  await page.getByLabel('Naam', { exact: true }).fill('Bakkerij De Korenaar')
+  await page.getByLabel('E-mail').fill('facturen@korenaar.nl')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Wachtende Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Bakkerij De Korenaar' })).toBeVisible()
 
-  // Bookkeeper invoice form (Eigenaar default is guided until Geavanceerd).
-  await enableAdvancedMode(page)
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
   await page.getByLabel('Omschrijving regel 1').fill('Advieswerk')
@@ -96,27 +164,69 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
 
+  // Four overdue invoices across ageing buckets (30-day terms → invoice = due+30).
+  // days overdue ≈ 15 / 45 / 75 / 120.
+  const overdueSeeds = [
+    { number: 'DEB-15', name: 'Atelier Van Dijk', daysOverdue: 15, price: '480,00' },
+    { number: 'DEB-45', name: 'Installatiebedrijf Meijer', daysOverdue: 45, price: '1210,00' },
+    { number: 'DEB-75', name: 'Hoveniersbedrijf De Linden', daysOverdue: 75, price: '875,00' },
+    { number: 'DEB-120', name: 'Drukkerij Westland', daysOverdue: 120, price: '640,00' },
+  ] as const
+
+  for (const seed of overdueSeeds) {
+    await page.goto('/contacts')
+    await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+    await page.getByLabel('Nummer', { exact: true }).fill(seed.number)
+    await page.getByLabel('Naam', { exact: true }).fill(seed.name)
+    await page.getByLabel('E-mail').fill(`${seed.number.toLowerCase()}@voorbeeld.nl`)
+    await page.getByLabel('Straat').fill('Voorstraat')
+    await page.getByLabel('Huisnr.').fill('1')
+    await page.getByLabel('Postcode').fill('2311 AB')
+    await page.getByLabel('Plaats').fill('Leiden')
+    await page.getByRole('button', { name: 'Opslaan' }).click()
+    await expect(page.getByRole('cell', { name: seed.name })).toBeVisible()
+
+    const invoiceDate = isoDaysAgo(seed.daysOverdue + 30)
+    await page.goto('/invoices/new')
+    await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
+    await page.getByRole('combobox', { name: 'Klant' }).click()
+    await page.getByRole('option', { name: new RegExp(`^${seed.number}`) }).click()
+    await expect(page.getByRole('listbox')).toBeHidden()
+    await page.getByLabel('Factuurdatum').fill(invoiceDate)
+    await page.getByLabel('Omschrijving regel 1').fill(`Werk voor ${seed.name}`)
+    await page.getByLabel('Prijs regel 1').fill(seed.price)
+    await page.getByRole('button', { name: 'Concept opslaan' }).click()
+    await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+    await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
+  }
+
+  // Open supplier bill (payables tile).
   await page.goto('/contacts')
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
-  await page.getByLabel('Nummer', { exact: true }).fill('DEB-LATE')
-  await page.getByLabel('Naam', { exact: true }).fill('Trage Betaler B.V.')
-  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('99887766')
-  await page.getByLabel('E-mail').fill('crediteuren@tragebetaler.nl')
-  await page.getByLabel('Straat').fill('Coolsingel')
-  await page.getByLabel('Huisnr.').fill('42')
-  await page.getByLabel('Postcode').fill('3011 AD')
-  await page.getByLabel('Plaats').fill('Rotterdam')
+  await page.getByLabel('Nummer', { exact: true }).fill('CRE-0001')
+  await page.getByLabel('Naam', { exact: true }).fill('Kantoorhandel De Vos')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Trage Betaler B.V.' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Kantoorhandel De Vos' })).toBeVisible()
 
-  await page.goto('/invoices/new')
-  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
-  await page.getByLabel('Factuurdatum').fill('2026-01-05')
-  await page.getByLabel('Omschrijving regel 1').fill('Werk uit januari')
-  await page.getByLabel('Prijs regel 1').fill('1210,00')
+  await page.goto('/purchases/new')
+  await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
+  await page.getByLabel('Factuurnummer leverancier').fill('KV-2026-118')
+  await page.getByLabel('Factuurdatum').fill(isoDaysAgo(20))
+  await page.getByLabel('Vervaldatum').fill(isoDaysAgo(-10))
+  await page.getByLabel('Bedrag excl. btw', { exact: true }).fill('200,00')
+  await page.getByLabel('Btw', { exact: true }).fill('42,00')
+  await page.getByLabel('Totaal', { exact: true }).fill('242,00')
+  await page.getByLabel('Omschrijving regel 1').fill('Kantoorbenodigdheden')
+  await chooseOption(page, 'Grootboek regel 1', /^4400 /)
+  await chooseOption(page, 'Btw-code regel 1', /^VH21 /)
+  await page.getByLabel('Excl. btw regel 1').fill('200,00')
+  await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
-  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Inkoopfactuur KV-2026-118/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Boeken', exact: true }).click()
+  await expect(page.getByRole('link', { name: /^boeking \d/ })).toBeVisible()
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
@@ -139,21 +249,6 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   })
   await expect(page.getByText('bonnetje.pdf')).toBeVisible()
 
-  await page.goto('/entries/new')
-  await expect(page.getByRole('button', { name: 'Boeken', exact: true })).toBeEnabled()
-  await page.locator('input[type="date"]').first().fill('2026-05-15')
-  await page.getByLabel('Omschrijving', { exact: true }).fill('Kantoorbenodigdheden')
-  await page.getByRole('combobox', { name: 'Rekening regel 1' }).pressSequentially('4400')
-  await page.keyboard.press('Enter')
-  await page.getByLabel('Debet regel 1').fill('350,00')
-  await page.getByRole('combobox', { name: 'Rekening regel 2' }).pressSequentially('1100')
-  await page.keyboard.press('Enter')
-  await page.getByLabel('Credit regel 2').fill('350,00')
-  await page.getByRole('button', { name: 'Boeken', exact: true }).click()
-  await expect(page.getByRole('dialog', { name: 'Dit wordt geboekt' })).toBeVisible()
-  await page.getByRole('button', { name: 'Definitief boeken', exact: true }).click()
-  await expect(page.getByRole('dialog', { name: 'Dit wordt geboekt' })).toBeHidden()
-
   const entityRes = await page.request.get('/api/v1/entity')
   expect(entityRes.ok()).toBeTruthy()
   const entity = (await entityRes.json()) as { id: string }
@@ -167,20 +262,6 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
       where entity_id = ${entity.id}::uuid
         and sequence in (7, 8, 9)
         and ends_on <= ${`${year}-09-30`}::date
-    `
-
-    const prior = String(Number(year) - 1)
-    await sql`
-      insert into klopt.fiscal_years (id, entity_id, code, starts_on, ends_on, status)
-      values (
-        ${uuidv7()}::uuid,
-        ${entity.id}::uuid,
-        ${prior},
-        ${`${prior}-01-01`}::date,
-        ${`${prior}-12-31`}::date,
-        'closed'
-      )
-      on conflict do nothing
     `
 
     await sql`
@@ -212,6 +293,7 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   }
 
   await page.goto('/')
+  await expect(page.getByRole('heading', { name: /Hidde/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Te doen' })).toBeVisible()
   await expect(page.getByRole('link', { name: /Moneybird-import/ })).toBeVisible()
   await hydrated(page)
@@ -252,12 +334,13 @@ async function shoot(
   page: Page,
   name: string,
   size: { width: number; height: number },
+  fullPage = false,
 ): Promise<void> {
   await page.setViewportSize(size)
   await page.waitForTimeout(200)
   await page.screenshot({
     path: join(OUT, name),
-    fullPage: false,
+    fullPage,
   })
 }
 
@@ -275,30 +358,49 @@ test('01 Phase 1 Home tip — 1440 and 390, light and dark', async ({ page }) =>
   }
 })
 
-test('02 Phase 1 Home seeded data — real name, 1440 and 390', async ({ page }) => {
-  await populatedAdministration(page, 'Studio Noord BV')
-  await expect(
-    page.getByRole('heading', { name: /Studio Noord|Goedemorgen|Goedemiddag|Goedenavond/ }),
-  ).toBeVisible()
+test('02 Phase 1 Home seeded data — named user, multi-bucket ageing', async ({ page }) => {
+  test.setTimeout(180_000)
+  await populatedAdministration(page)
+  await expect(page.getByRole('heading', { name: /Hidde/ })).toBeVisible()
+  await expect(page.getByText('1–30 dagen')).toBeVisible()
+  await expect(page.getByText('31–60 dagen')).toBeVisible()
+  await expect(page.getByText('61–90 dagen')).toBeVisible()
+  await expect(page.getByText('Meer dan 90 dagen')).toBeVisible()
 
   for (const theme of ['light', 'dark'] as const) {
     await gotoThemed(page, '/', theme)
-    await expect(page.getByRole('heading', { name: 'Te doen' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Hidde/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Te doen', exact: true })).toBeVisible()
     await shoot(page, `02-home-data-${theme}-desktop-1440.png`, { width: 1440, height: 1040 })
     await shoot(page, `02-home-data-${theme}-mobile-390.png`, { width: 390, height: 844 })
+    await shoot(
+      page,
+      `02-home-data-${theme}-mobile-390-full.png`,
+      { width: 390, height: 844 },
+      true,
+    )
   }
 })
 
-test('03 Phase 1 Home empty — Niets te doen', async ({ page }) => {
-  await emptyAdministration(page, 'Lege Boeken BV')
-  // Prefer an empty queue when VAT is not waiting; otherwise still shoot Home.
-  const empty = page.getByRole('heading', { name: 'Niets te doen' })
-  const todo = page.getByRole('heading', { name: 'Te doen' })
-  await expect(empty.or(todo)).toBeVisible()
+test('03 Phase 1 Home empty — Niets te doen, no btw', async ({ page }) => {
+  test.setTimeout(120_000)
+  await emptyAdministration(page, 'Noordzee Holding B.V.', { displayName: 'Mieke de Boer' })
+  await expect(page.getByRole('heading', { name: /Mieke/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Niets te doen', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Btw-aangifte/ })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Te doen', exact: true })).toHaveCount(0)
 
   for (const theme of ['light', 'dark'] as const) {
     await gotoThemed(page, '/', theme)
+    await expect(page.getByRole('heading', { name: /Mieke/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Niets te doen', exact: true })).toBeVisible()
     await shoot(page, `03-home-empty-${theme}-desktop-1440.png`, { width: 1440, height: 1040 })
     await shoot(page, `03-home-empty-${theme}-mobile-390.png`, { width: 390, height: 844 })
+    await shoot(
+      page,
+      `03-home-empty-${theme}-mobile-390-full.png`,
+      { width: 390, height: 844 },
+      true,
+    )
   }
 })

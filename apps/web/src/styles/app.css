@@ -27,6 +27,10 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
+  --color-ageing-up-to-30: var(--ageing-up-to-30);
+  --color-ageing-up-to-60: var(--ageing-up-to-60);
+  --color-ageing-up-to-90: var(--ageing-up-to-90);
+  --color-ageing-over-90: var(--ageing-over-90);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

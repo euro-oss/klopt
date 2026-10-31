@@ -5,7 +5,11 @@
  * without rendering a page. Copy and routing stay in the route / i18n.
  */
 
-import type { WorkQueueKind } from './work-queue'
+import type { MessageKey } from '~/i18n/nl'
+import type { WorkQueueDetail, WorkQueueKind } from './work-queue'
+import { formatMinorUnits } from './format'
+
+type Translate = (key: MessageKey, vars?: Record<string, string>) => string
 
 /**
  * Severity colour on a Home to-do tile.
@@ -104,4 +108,58 @@ export function payablesFigureValueKind(total: string | null): FigureValueKind {
 
 export function profitFigureValueKind(result: string | null): FigureValueKind {
   return result === null ? 'empty' : 'amount'
+}
+
+/**
+ * Home to-do body copy (PM #112): never invent a dash or a 0 when the invoice
+ * number, days overdue, or VAT deadline is missing — drop that clause instead.
+ */
+export function homeQueueOverdueOneBody(detail: WorkQueueDetail, t: Translate): string {
+  const number =
+    detail.invoiceNumber !== undefined && detail.invoiceNumber.trim() !== ''
+      ? detail.invoiceNumber
+      : null
+  // Never surface a placeholder 0 — treat missing/non-positive as "no days clause".
+  const days =
+    detail.daysOverdue !== undefined &&
+    Number.isFinite(detail.daysOverdue) &&
+    detail.daysOverdue > 0
+      ? detail.daysOverdue
+      : null
+  if (number !== null && days !== null) {
+    return t('queue.salesOverdueOneBody', { number, days: String(days) })
+  }
+  if (number !== null) return t('queue.salesOverdueOneBodyNumber', { number })
+  if (days !== null) return t('queue.salesOverdueOneBodyDays', { days: String(days) })
+  return t('queue.salesOverdueBody')
+}
+
+/** `null` when the deadline is absent — caller drops the deadline clause. */
+export function homeQueueVatDeadlineIso(detail: WorkQueueDetail): string | null {
+  if (detail.vatDeadline === undefined || detail.vatDeadline.trim() === '') return null
+  return detail.vatDeadline
+}
+
+export function homeQueueVatBody(
+  detail: WorkQueueDetail,
+  deadlineLabel: string | null,
+  t: Translate,
+): string {
+  if (deadlineLabel === null) return ''
+  if (detail.vatPayable !== undefined && detail.vatPayable !== null) {
+    const payable = BigInt(detail.vatPayable)
+    if (payable < 0n) {
+      return t('queue.vatFilingBodyRefund', {
+        deadline: deadlineLabel,
+        amount: formatMinorUnits(-payable),
+      })
+    }
+    if (payable > 0n) {
+      return t('queue.vatFilingBodyPayable', {
+        deadline: deadlineLabel,
+        amount: formatMinorUnits(payable),
+      })
+    }
+  }
+  return t('queue.vatFilingBody', { deadline: deadlineLabel })
 }

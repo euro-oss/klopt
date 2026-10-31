@@ -33,9 +33,14 @@ underlined link in the card text colour to `/audit-file`. Tile rule: no data
 drops the value line; a failed read leaves the value empty and shows
 `dash.figure.*Unavailable` ("Niet beschikbaar" / "Not available") — never
 € 0,00 or "Niets open" on a failed payables/profit/bank read. Phone hides
-header CTAs and keeps one secondary Bonnetje under Te doen; the inbox
-shortcut chip is `g e`. No "Kloppen de boeken?" strip. Copy drops invented
-estimates, card-payment summaries and four-eyes wording.
+header CTAs and keeps one secondary Bonnetje under Te doen (no shortcut
+chip on Bonnetje; keymap unchanged). No "Kloppen de boeken?" strip. Copy
+drops invented estimates, card-payment summaries and four-eyes wording.
+Design/PM #112 follow-up: ageing fills use named `--ageing-*` tokens;
+draft/inbox to-dos get their own icons; unmapped-accounts block removed;
+queue bodies drop missing number/days/deadline clauses (never `—` or `0`);
+EN ageing title “How late customers pay”; overdue one-body says “dagen te
+laat”.
 
 ### Redesign Phase 0: tokens, theme, components, shell (#107)
 
