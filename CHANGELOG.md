@@ -18,6 +18,11 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Fixed
+
+- Debtor-ageing report and overdue counts no longer count invoices that are due
+  today (exclusive overdue boundary).
+
 ### Redesign Phase 1: Home (#107)
 
 Home matches Main / PhoneHome / HomeDark from the v2 export at `fa4093b`.

@@ -11,7 +11,7 @@ import {
   type UblInvoiceSource,
   type VatRounding,
 } from '@klopt/core'
-import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import {
   accounts,
@@ -931,20 +931,28 @@ export class SalesRepository {
       .as('allocated')
   }
 
-  /** Issued, uncredited, not yet paid off. What the debtors ledger holds. */
+  /**
+   * Issued, uncredited, not yet paid off, and past due.
+   *
+   * The due-date boundary is exclusive: an invoice due today is not overdue
+   * yet (`dueDate < asOf`). Dashboard counts, the debtor-ageing report and
+   * this list must agree on that ruling.
+   */
   async overdueInvoices(entityId: string, asOf: string) {
     return this.openInvoices(entityId, asOf)
   }
 
   /**
-   * The same query with the due date left open.
+   * Open sales invoices, optionally restricted to those already past due.
    *
    * `explain` has to account for a debtor ageing bucket, and the first of the
-   * five is the invoices that are *not* yet due. Filtering them out in SQL and
-   * then bucketing what is left would leave that bucket permanently empty and
-   * the total short by exactly it.
+   * five is the invoices that are *not* yet overdue (due today or later).
+   * Filtering them out in SQL and then bucketing what is left would leave that
+   * bucket permanently empty and the total short by exactly it — so pass
+   * `null` there. When a date is given it is the exclusive overdue cutoff
+   * (`dueDate < dueBefore`), matching the PM ruling that due today is not late.
    */
-  async openInvoices(entityId: string, dueOnOrBefore: string | null) {
+  async openInvoices(entityId: string, dueBefore: string | null) {
     const allocated = this.allocatedPerInvoice(entityId)
 
     const rows = await this.tx
@@ -966,7 +974,7 @@ export class SalesRepository {
           eq(salesInvoices.entityId, entityId),
           eq(salesInvoices.status, 'issued'),
           eq(salesInvoices.kind, 'invoice'),
-          dueOnOrBefore === null ? undefined : lte(salesInvoices.dueDate, dueOnOrBefore),
+          dueBefore === null ? undefined : lt(salesInvoices.dueDate, dueBefore),
           isNull(salesInvoices.creditsInvoiceId),
         ),
       )
