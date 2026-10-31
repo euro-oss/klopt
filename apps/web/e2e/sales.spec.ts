@@ -138,7 +138,10 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
     page.getByText('Naar de klant verstuurd').filter({ visible: true }).first(),
   ).toBeVisible()
   await expect(
-    page.getByText(/E-mail met PDF en UBL/).filter({ visible: true }).first(),
+    page
+      .getByText(/E-mail met PDF en UBL/)
+      .filter({ visible: true })
+      .first(),
   ).toBeVisible()
   // A second send is offered, not hidden: a customer who lost it asks again.
   await expect(
@@ -148,9 +151,7 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
 
   // And it really did reach the ledger.
   await page.getByRole('link', { name: 'boeking', exact: true }).click()
-  await expect(
-    page.getByText('Advieswerk maart').filter({ visible: true }).first(),
-  ).toBeVisible()
+  await expect(page.getByText('Advieswerk maart').filter({ visible: true }).first()).toBeVisible()
 })
 
 test('crediting an issued invoice drafts a credit note against it', async ({ page }) => {
