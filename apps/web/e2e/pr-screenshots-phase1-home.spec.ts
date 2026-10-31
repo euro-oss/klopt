@@ -178,7 +178,7 @@ async function populatedAdministration(page: Page): Promise<void> {
     await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
     await page.getByLabel('Nummer', { exact: true }).fill(seed.number)
     await page.getByLabel('Naam', { exact: true }).fill(seed.name)
-    await page.getByLabel('E-mail').fill(`${seed.number.toLowerCase()}@voorbeeld.nl`)
+    await page.getByLabel('E-mail').fill(`${seed.number.toLowerCase()}@voorbeeld.example.nl`)
     await page.getByLabel('Straat').fill('Voorstraat')
     await page.getByLabel('Huisnr.').fill('1')
     await page.getByLabel('Postcode').fill('2311 AB')

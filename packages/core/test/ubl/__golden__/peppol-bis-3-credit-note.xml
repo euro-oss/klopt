@@ -75,7 +75,7 @@
         <cbc:CompanyID schemeID="0106">87654321</cbc:CompanyID>
       </cac:PartyLegalEntity>
       <cac:Contact>
-        <cbc:ElectronicMail>inkoop@groteklant.nl</cbc:ElectronicMail>
+        <cbc:ElectronicMail>inkoop@groteklant.example.nl</cbc:ElectronicMail>
       </cac:Contact>
     </cac:Party>
   </cac:AccountingCustomerParty>

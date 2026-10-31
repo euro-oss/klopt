@@ -39,7 +39,7 @@ export const BUYER: UblPartySource = {
   electronicAddressScheme: '0106',
   contactName: null,
   phone: null,
-  email: 'inkoop@groteklant.nl',
+  email: 'inkoop@groteklant.example.nl',
 }
 
 export function referenceInvoice(): UblInvoiceSource {

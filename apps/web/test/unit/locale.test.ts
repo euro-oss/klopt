@@ -108,8 +108,8 @@ describe('the catalogues', () => {
 
 describe('rendering a message', () => {
   it('fills placeholders in', () => {
-    expect(translate('nl', 'signIn.codeSent', { email: 'a@b.nl' })).toContain('a@b.nl')
-    expect(translate('en', 'signIn.codeSent', { email: 'a@b.nl' })).toContain('a@b.nl')
+    expect(translate('nl', 'signIn.codeSent', { email: 'a@b.example.nl' })).toContain('a@b.example.nl')
+    expect(translate('en', 'signIn.codeSent', { email: 'a@b.example.nl' })).toContain('a@b.example.nl')
   })
 
   it('leaves a missing value visible rather than blanking it', () => {

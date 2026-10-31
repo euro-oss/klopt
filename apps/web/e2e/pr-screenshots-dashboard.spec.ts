@@ -103,7 +103,7 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Wachtende Klant N.V.')
-  await page.getByLabel('E-mail').fill('inkoop@wachtendeklant.nl')
+  await page.getByLabel('E-mail').fill('inkoop@wachtendeklant.example.nl')
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByRole('cell', { name: 'Wachtende Klant N.V.' })).toBeVisible()
 
@@ -120,7 +120,7 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-LATE')
   await page.getByLabel('Naam', { exact: true }).fill('Trage Betaler B.V.')
   await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('99887766')
-  await page.getByLabel('E-mail').fill('crediteuren@tragebetaler.nl')
+  await page.getByLabel('E-mail').fill('crediteuren@tragebetaler.example.nl')
   await page.getByLabel('Straat').fill('Coolsingel')
   await page.getByLabel('Huisnr.').fill('42')
   await page.getByLabel('Postcode').fill('3011 AD')
