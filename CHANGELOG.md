@@ -18,6 +18,11 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Fixed
+
+- Debtor-ageing report and overdue counts no longer count invoices that are due
+  today (exclusive overdue boundary).
+
 ### Replace icon dependency with lucide-react (#113)
 
 UI icons now come from `lucide-react` (ISC). The previous icon package is

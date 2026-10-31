@@ -706,6 +706,38 @@ describe('listing and ageing', () => {
     expect(overdue.body.invoices).toEqual([])
     expect(overdue.body.totalOutstanding).toBe('0')
   })
+
+  it('is not overdue on the due date, and ages from the day after', async () => {
+    // PM ruling: exclusive boundary. Due 19 February — not late on that day,
+    // one day late on the 20th, thirty-one days late on 22 March.
+    const { token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const onDueDate = await handleListOverdueInvoices(await context(token), {
+      asOf: '2026-02-19',
+    })
+    expect(onDueDate.body.invoices).toEqual([])
+    expect(onDueDate.body.totalOutstanding).toBe('0')
+
+    const oneDayLate = await handleListOverdueInvoices(await context(token), {
+      asOf: '2026-02-20',
+    })
+    expect(oneDayLate.body.invoices).toHaveLength(1)
+    expect(oneDayLate.body.invoices[0]?.daysOverdue).toBe(1)
+
+    const thirtyOneDaysLate = await handleListOverdueInvoices(await context(token), {
+      asOf: '2026-03-22',
+    })
+    expect(thirtyOneDaysLate.body.invoices).toHaveLength(1)
+    expect(thirtyOneDaysLate.body.invoices[0]?.daysOverdue).toBe(31)
+  })
 })
 
 describe('correcting a relatie', () => {
