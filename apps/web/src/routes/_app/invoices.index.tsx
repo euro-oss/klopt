@@ -713,19 +713,18 @@ function InvoicePreview({
     total: string
   } | null>(null)
   const [deliveries, setDeliveries] = useState<readonly DeliveryRecord[]>([])
+  /** Id whose detail/deliveries are currently loaded — ignore stale rows. */
+  const [loadedForId, setLoadedForId] = useState<string | null>(null)
   /** Invoice id for which the third-reminder confirm is open; null = closed. */
   const [confirmRemindFor, setConfirmRemindFor] = useState<string | null>(null)
 
   useEffect(() => {
-    // Drop stale lines immediately so the header number never sits above
-    // another invoice's rows while the detail request is in flight.
-    setDetail(null)
-    setDeliveries([])
     let cancelled = false
+    const requestId = row.id
     void (async () => {
       const [invoice, deliveryList] = await Promise.all([
-        getInvoice({ data: { invoiceId: row.id } }),
-        listDeliveries({ data: { invoiceId: row.id } }),
+        getInvoice({ data: { invoiceId: requestId } }),
+        listDeliveries({ data: { invoiceId: requestId } }),
       ])
       if (cancelled) return
       if (invoice.ok) {
@@ -739,29 +738,35 @@ function InvoicePreview({
         setDetail(null)
       }
       setDeliveries(deliveryList.ok ? (deliveryList.data.deliveries as DeliveryRecord[]) : [])
+      setLoadedForId(requestId)
     })()
     return () => {
       cancelled = true
     }
   }, [row.id])
 
+  // Header comes from `row`; lines/history only when loaded for this id — so a
+  // fast selection change never shows another invoice's rows under the number.
+  const activeDetail = loadedForId === row.id ? detail : null
+  const activeDeliveries = loadedForId === row.id ? deliveries : []
+
   const days = overdueDays.get(row.id) ?? null
   const pill = invoicePill(row, overdueIds, asOf, days)
   const isOverdue = overdueIds.has(row.id)
-  const sentAs = sentAsFromDeliveries(deliveries)
+  const sentAs = sentAsFromDeliveries(activeDeliveries)
   const history = invoiceHistoryEvents({
     issueDate: row.issueDate,
     dueDate: row.dueDate,
     status: row.status,
     overdue: isOverdue,
     daysOverdue: days,
-    deliveries,
+    deliveries: activeDeliveries,
     nextReminder: dunning === null ? null : { tone: dunning.tone, stageLabel: dunning.stageLabel },
   })
 
-  const vatGroups = groupVat(detail?.lines ?? [])
+  const vatGroups = groupVat(activeDetail?.lines ?? [])
   const showFinal = isOverdue && dunning !== null && dunning.tone === 'final'
-  const alreadySent = deliveries.some((item) => item.purpose === 'invoice' && item.delivered)
+  const alreadySent = activeDeliveries.some((item) => item.purpose === 'invoice' && item.delivered)
   const showSend = showSalesSend(row)
   const sendLabelMessageKey = salesSendLabelKey(row, alreadySent)
   const sendLabel = sendLabelMessageKey === null ? '' : t(sendLabelMessageKey)
@@ -915,9 +920,9 @@ function InvoicePreview({
         )}
       </dl>
 
-      {detail !== null && (
+      {activeDetail !== null && (
         <div className="flex flex-col gap-2 border-b border-[var(--line-soft)] px-6 py-4 text-sm">
-          {detail.lines.map((line, index) => (
+          {activeDetail.lines.map((line, index) => (
             <div key={index} className="flex justify-between gap-3">
               <span className="min-w-0 truncate">{line.description}</span>
               <EuroAmount amount={line.net} />
@@ -931,7 +936,7 @@ function InvoicePreview({
           ))}
           <div className="flex justify-between border-t border-[var(--line-soft)] pt-2 font-semibold">
             <span>{t('sales.preview.total')}</span>
-            <EuroAmount amount={detail.total} />
+            <EuroAmount amount={activeDetail.total} />
           </div>
         </div>
       )}
