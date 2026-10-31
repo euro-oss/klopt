@@ -2,7 +2,7 @@
  * Shared chrome for the import wizard: progress rail + Volgende/Terug footer.
  */
 
-import { RiCheckLine, RiListCheck } from '@remixicon/react'
+import { Check, ListChecks } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Button } from '~/components/ui/button'
 import { Keycap } from '~/components/ui/keycap'
@@ -106,7 +106,7 @@ export function WizardProgressRail({
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button type="button" variant="ghost" className="-mr-3 px-3" aria-haspopup="dialog">
-                <RiListCheck className="size-4" aria-hidden />
+                <ListChecks className="size-4" aria-hidden />
                 {t('wizard.steps')}
               </Button>
             </SheetTrigger>
@@ -161,7 +161,7 @@ function StepGlyph({
         state === 'todo' && 'border-border text-muted-foreground border',
       )}
     >
-      {state === 'done' ? <RiCheckLine className="size-4" aria-hidden /> : n}
+      {state === 'done' ? <Check className="size-4" aria-hidden /> : n}
     </span>
   )
 }

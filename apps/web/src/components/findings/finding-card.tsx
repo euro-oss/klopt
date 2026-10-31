@@ -16,7 +16,7 @@ import {
   type RefObject,
 } from 'react'
 import { Link } from '@tanstack/react-router'
-import { RiCheckboxBlankCircleLine, RiCheckLine, RiErrorWarningLine } from '@remixicon/react'
+import { Circle, Check, CircleAlert } from 'lucide-react'
 import { cn } from 'cn'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -205,7 +205,7 @@ export const FindingCard = forwardRef<HTMLDivElement, FindingCardProps>(function
             variant={severity === 'blocking' ? 'destructive' : 'outline'}
             className={severity === 'blocking' ? undefined : 'tracking-normal normal-case'}
           >
-            {severity === 'blocking' && <RiErrorWarningLine className="size-3" aria-hidden />}
+            {severity === 'blocking' && <CircleAlert className="size-3" aria-hidden />}
             {severity === 'blocking' ? t('findingCard.blocking') : t('findingCard.warning')}
           </Badge>
           <span className="text-muted-foreground text-xs">{fixTypeLabel(t, plural, fix)}</span>
@@ -525,9 +525,9 @@ export function FindingHonestyState({
     >
       <p className={cn('flex items-center gap-1.5 text-xs font-medium normal-case', classes.text)}>
         {honesty === 'reconciled' ? (
-          <RiCheckLine className="size-3.5 shrink-0" aria-hidden />
+          <Check className="size-3.5 shrink-0" aria-hidden />
         ) : honesty === 'empty' ? (
-          <RiCheckboxBlankCircleLine className="size-3.5 shrink-0" aria-hidden />
+          <Circle className="size-3.5 shrink-0" aria-hidden />
         ) : (
           <span
             className="inline-block size-3 shrink-0 border border-dashed border-current"

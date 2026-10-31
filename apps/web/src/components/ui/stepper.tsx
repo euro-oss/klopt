@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { RiCheckLine } from '@remixicon/react'
+import { Check } from 'lucide-react'
 import { cn } from 'cn'
 
 /**
@@ -42,7 +42,7 @@ function Stepper({ steps, current, className, onJump, 'aria-label': ariaLabel }:
                 state === 'current' && 'bg-primary text-primary-foreground',
               )}
             >
-              {state === 'done' ? <RiCheckLine className="size-3" aria-hidden /> : index + 1}
+              {state === 'done' ? <Check className="size-3" aria-hidden /> : index + 1}
             </span>
             <span>{step.label}</span>
           </>

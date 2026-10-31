@@ -7,11 +7,11 @@
  */
 
 import {
-  RiCheckboxBlankCircleLine,
-  RiCheckLine,
-  RiLoader4Line,
-  RiRefreshLine,
-} from '@remixicon/react'
+  Circle,
+  Check,
+  LoaderCircle,
+  RefreshCw,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -120,7 +120,7 @@ export function ImportFindingsScreen({
               onClick={onReread}
               className="min-h-11 gap-2 md:min-h-9"
             >
-              <RiRefreshLine className="size-4" aria-hidden />
+              <RefreshCw className="size-4" aria-hidden />
               {t('importFindings.reread')}
             </Button>
           )}
@@ -172,7 +172,7 @@ export function ImportFindingsScreen({
           data-slot="import-findings-loading"
           className="animate-in-fade mb-6 flex items-center gap-3 border px-4 py-6 text-sm"
         >
-          <RiLoader4Line className="size-5 animate-spin" aria-hidden />
+          <LoaderCircle className="size-5 animate-spin" aria-hidden />
           {t('importFindings.loading')}
         </div>
       )}
@@ -183,7 +183,7 @@ export function ImportFindingsScreen({
           data-slot="import-findings-importing"
           className="animate-in-fade mb-6 flex items-center gap-3 border px-4 py-3 text-sm"
         >
-          <RiLoader4Line className="size-5 animate-spin" aria-hidden />
+          <LoaderCircle className="size-5 animate-spin" aria-hidden />
           {t('importFindings.importing')}
         </div>
       )}
@@ -222,7 +222,7 @@ export function ImportFindingsScreen({
               className="animate-in-fade flex flex-col items-center border px-6 py-12 text-center"
             >
               <span className="border-success text-success flex size-12 items-center justify-center border">
-                <RiCheckLine className="check-draw size-7" aria-hidden />
+                <Check className="check-draw size-7" aria-hidden />
               </span>
               <h4 className="mt-4 text-lg font-medium">{t('importFindings.allClearTitle')}</h4>
               <p className="text-muted-foreground mt-1 max-w-md text-sm">
@@ -255,7 +255,7 @@ export function ImportFindingsScreen({
             {resolved.map((row) => (
               <li key={row.id} className="flex items-start gap-3 px-4 py-3 text-sm">
                 <span className="text-success mt-0.5">
-                  <RiCheckLine className="size-4" aria-hidden />
+                  <Check className="size-4" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block">{row.title}</span>
@@ -296,7 +296,7 @@ function ImportProgressStrip({ steps }: { readonly steps: readonly ImportProgres
               step.state === 'todo' && 'text-muted-foreground',
             )}
           >
-            {step.state === 'done' ? <RiCheckLine className="size-3.5" aria-hidden /> : index + 1}
+            {step.state === 'done' ? <Check className="size-3.5" aria-hidden /> : index + 1}
           </span>
           <span
             className={cn(
@@ -366,9 +366,9 @@ function HonestyCell({ source }: { readonly source: HonestySource }) {
           )}
         >
           {honesty === 'reconciled' ? (
-            <RiCheckLine className="size-3" aria-hidden />
+            <Check className="size-3" aria-hidden />
           ) : honesty === 'empty' ? (
-            <RiCheckboxBlankCircleLine className="size-3" aria-hidden />
+            <Circle className="size-3" aria-hidden />
           ) : (
             <span
               className="inline-block size-2.5 border border-dashed border-current"
@@ -385,7 +385,7 @@ function HonestyCell({ source }: { readonly source: HonestySource }) {
           onClick={source.onReread}
           className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium underline underline-offset-4 md:min-h-0"
         >
-          <RiRefreshLine className="size-3.5" aria-hidden />
+          <RefreshCw className="size-3.5" aria-hidden />
           {t('importFindings.reread')}
         </button>
       )}
