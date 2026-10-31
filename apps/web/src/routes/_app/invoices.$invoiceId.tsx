@@ -108,10 +108,9 @@ function Invoice() {
     }
   }
   const days = overdueDays.get(invoice.id) ?? null
-  const dunning =
-    queue.ok
-      ? (queue.data.actions.find((row) => row.invoiceId === invoice.id) ?? null)
-      : null
+  const dunning = queue.ok
+    ? (queue.data.actions.find((row) => row.invoiceId === invoice.id) ?? null)
+    : null
   const pill = invoicePill(
     {
       id: invoice.id,
@@ -131,10 +130,7 @@ function Invoice() {
     overdue: overdueIds.has(invoice.id),
     daysOverdue: days,
     deliveries: deliveryRows,
-    nextReminder:
-      dunning === null
-        ? null
-        : { tone: dunning.tone, stageLabel: dunning.stageLabel },
+    nextReminder: dunning === null ? null : { tone: dunning.tone, stageLabel: dunning.stageLabel },
   })
 
   function report(problem: {
@@ -334,8 +330,7 @@ function Invoice() {
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-ink-muted tabular-nums text-sm">
-            {invoice.kind === 'credit_note' ? t('invoice.creditNote') : t('invoice.title')}{' '}
-            {title}
+            {invoice.kind === 'credit_note' ? t('invoice.creditNote') : t('invoice.title')} {title}
           </span>
           <InvoiceStatusPill pill={pill} />
         </div>

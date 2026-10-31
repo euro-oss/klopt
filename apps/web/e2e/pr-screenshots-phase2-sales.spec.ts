@@ -72,12 +72,7 @@ async function setupEntity(page: Page): Promise<string> {
   return entity.id
 }
 
-async function seedContact(
-  page: Page,
-  number: string,
-  name: string,
-  email: string,
-): Promise<void> {
+async function seedContact(page: Page, number: string, name: string, email: string): Promise<void> {
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill(number)
   await page.getByLabel('Naam', { exact: true }).fill(name)
@@ -173,10 +168,16 @@ async function seedSalesData(page: Page, entityId: string): Promise<void> {
 
   // Credit note against one open invoice
   await page.goto('/invoices?segment=open')
-  await page.getByRole('button', { name: /Windvaan Workshops/ }).first().click()
-  await page.getByRole('complementary', { name: 'Factuurvoorbeeld' }).getByRole('button', {
-    name: 'Creditnota',
-  }).click()
+  await page
+    .getByRole('button', { name: /Windvaan Workshops/ })
+    .first()
+    .click()
+  await page
+    .getByRole('complementary', { name: 'Factuurvoorbeeld' })
+    .getByRole('button', {
+      name: 'Creditnota',
+    })
+    .click()
   await expect(page.getByRole('heading', { name: /Creditnota Concept/ })).toBeVisible()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
   await expect(page.getByRole('heading', { name: /Creditnota \d{4}-/ })).toBeVisible()
@@ -277,7 +278,9 @@ test('02 seeded Sales + Reminders + phone invoice', async ({ page }) => {
 
     await page.goto('/invoices?segment=overdue')
     await ready(page, 390)
-    const overdueLink = page.getByRole('link', { name: /Workshops|Media|Noordkust|Linden|Westland|Meijer/ }).first()
+    const overdueLink = page
+      .getByRole('link', { name: /Workshops|Media|Noordkust|Linden|Westland|Meijer/ })
+      .first()
     await overdueLink.click()
     await expect(page.getByRole('heading', { name: /.+/ }).first()).toBeVisible()
     await setTheme(page, theme)

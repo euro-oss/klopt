@@ -174,9 +174,7 @@ describe('reminderEmailCopy (Reminders read-only preview)', () => {
     expect(copy.text).toContain(
       'Wij verzoeken u het openstaande bedrag zo spoedig mogelijk te voldoen.',
     )
-    expect(copy.text).toContain(
-      'Heeft u vragen over deze factuur, neem dan contact met ons op.',
-    )
+    expect(copy.text).toContain('Heeft u vragen over deze factuur, neem dan contact met ons op.')
     expect(copy.text).not.toMatch(/incassokosten|wettelijke\s+rente|incasso|veertien|6:96/i)
   })
 })

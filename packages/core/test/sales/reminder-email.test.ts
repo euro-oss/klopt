@@ -45,8 +45,6 @@ describe('reminderEmailCopy', () => {
     expect(stage3.text).toContain(
       'Wij verzoeken u het openstaande bedrag zo spoedig mogelijk te voldoen.',
     )
-    expect(stage3.text).toContain(
-      'Heeft u vragen over deze factuur, neem dan contact met ons op.',
-    )
+    expect(stage3.text).toContain('Heeft u vragen over deze factuur, neem dan contact met ons op.')
   })
 })

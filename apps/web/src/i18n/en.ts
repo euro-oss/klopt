@@ -1827,8 +1827,7 @@ export const en: Record<MessageKey, string> = {
   'dunning.outstandingAmount': 'Amount outstanding',
   'dunning.outstandingHint': 'of the invoices in this list',
   'dunning.schedule': 'Schedule',
-  'dunning.empty':
-    'No reminders needed. No open invoice is due a reminder right now.',
+  'dunning.empty': 'No reminders needed. No open invoice is due a reminder right now.',
   'dunning.invoice': 'Invoice',
   'dunning.overdueSince': 'Overdue since',
   'dunning.days': 'Days',

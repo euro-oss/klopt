@@ -466,7 +466,12 @@ function Invoices() {
                       <span className="text-right">{t('report.total')}</span>
                     </div>
                     {shown.map((row) => {
-                      const pill = invoicePill(row, overdueIds, asOf, overdueDays.get(row.id) ?? null)
+                      const pill = invoicePill(
+                        row,
+                        overdueIds,
+                        asOf,
+                        overdueDays.get(row.id) ?? null,
+                      )
                       const isActive = row.id === activeId
                       return (
                         <button
