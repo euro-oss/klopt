@@ -5,7 +5,8 @@ grants copyright and patent rights and explicitly carves trademarks out. This is
 the only exclusivity the project retains.
 
 > **Status: unresolved.** Trademark clearance has not been run (open decision
-> 17.7). Needed before anything is printed or this repository goes public:
+> 17.7). Needed before anything is printed. The repository went public before
+> clearance; until clearance is recorded below, treat the name as uncleared.
 > TMview and BOIP in classes 9, 35, 36 and 42; the KvK handelsregister, because
 > Dutch trade-name rights arise from use rather than registration; and the GitHub
 > organisation, npm scope and domains. Until a foundation is assigned (open
@@ -54,5 +55,11 @@ Under a permissive licence anyone may ship a modified copy. Users need one
 reliable signal about what is the official build and who stands behind it, and
 the name is that signal. Enforcement is about preventing confusion, never about
 restricting the code.
+
+## Third-party names
+
+Moneybird, Exact Online, Peppol and Belastingdienst are names or trademarks of
+their respective owners. Klopt is not affiliated with or endorsed by them; the
+names are used only to describe compatibility.
 
 Questions and permission requests: the address in `MAINTAINERS.md`.
