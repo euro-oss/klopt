@@ -42,6 +42,22 @@ export function Money({
   )
 }
 
+/** Euro amount as on Home — `€` + non-breaking space + tabular figures. */
+export function EuroAmount({
+  amount,
+  className,
+}: {
+  amount: string | bigint
+  className?: string | undefined
+}) {
+  return (
+    <span className={cn('tabular-nums', className)}>
+      <span>{'€\u00a0'}</span>
+      <Money amount={amount} />
+    </span>
+  )
+}
+
 /** A debit/credit pair, the way a ledger column reads: one side or the other. */
 export function DebitCredit({ debit, credit }: { debit: string; credit: string }) {
   return (

@@ -157,12 +157,16 @@ test('the queue lists what is waiting and opens the screen where it is done', as
   await expect(row).toBeFocused()
 
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/\/invoices\?status=draft$/)
+  await expect(page).toHaveURL(/\/invoices\?segment=draft/)
 
   // And the count was the truth: one draft on the dashboard, one draft here.
   // A queue whose numbers disagree with the screens behind them is a queue
-  // people stop believing.
-  await expect(page.getByRole('row')).toHaveCount(2)
+  // people stop believing. Phase 2 list uses segment Drafts (Concepten).
+  await expect(page.getByRole('tab', { name: /Concepten/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(page.getByRole('tab', { name: /Concepten/ })).toContainText('1')
 })
 
 test('Home drops the Kloppen de boeken health strip', async ({ page }) => {

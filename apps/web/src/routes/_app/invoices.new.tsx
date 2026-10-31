@@ -344,7 +344,10 @@ function AdvancedInvoiceForm() {
           // two presses, and says so in between: Escape abandons the thing you
           // are in, and it should not be able to throw away typing by surprise.
           if (!typed || leaving) {
-            void navigate({ to: '/invoices', search: { status: undefined } })
+            void navigate({
+              to: '/invoices',
+              search: { segment: 'open', q: '', id: undefined, status: undefined },
+            })
             return
           }
           setLeaving(true)
@@ -629,7 +632,10 @@ function AdvancedInvoiceForm() {
           type="button"
           disabled={busy}
           onClick={() => {
-            void navigate({ to: '/invoices', search: { status: undefined } })
+            void navigate({
+              to: '/invoices',
+              search: { segment: 'open', q: '', id: undefined, status: undefined },
+            })
           }}
           className="touch-cta touch-cta-secondary"
         >

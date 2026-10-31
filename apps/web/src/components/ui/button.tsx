@@ -12,8 +12,10 @@ const buttonVariants = cva(
         // Primary is ink (`--primary`), never yellow. Yellow stays accent/highlight.
         default:
           'bg-primary font-semibold text-primary-foreground hover:bg-[color-mix(in_oklab,var(--primary)_82%,var(--background))]',
+        // Outline sits on the surface with --input borders so dark mode stays
+        // ≥4.5:1 text / ≥3:1 boundary (Design #118) — never a muted fill.
         outline:
-          'border-input bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground',
+          'border-input bg-surface text-foreground hover:bg-surface-hover aria-expanded:bg-surface-hover aria-expanded:text-foreground',
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground',
         ghost:

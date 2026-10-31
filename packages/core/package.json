@@ -14,6 +14,10 @@
       "types": "./dist/format/index.d.ts",
       "default": "./dist/format/index.js"
     },
+    "./reminder-email": {
+      "types": "./dist/sales/reminder-email.d.ts",
+      "default": "./dist/sales/reminder-email.js"
+    },
     "./violations": {
       "types": "./dist/violation-messages.d.ts",
       "default": "./dist/violation-messages.js"

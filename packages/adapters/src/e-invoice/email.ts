@@ -1,9 +1,10 @@
-import type {
-  EInvoiceDocument,
-  EInvoiceReceipt,
-  EInvoiceRecipient,
-  EInvoiceTransport,
-  EmailTransport,
+import {
+  reminderEmailCopy,
+  type EInvoiceDocument,
+  type EInvoiceReceipt,
+  type EInvoiceRecipient,
+  type EInvoiceTransport,
+  type EmailTransport,
 } from '@klopt/core'
 
 /**
@@ -52,45 +53,16 @@ function reminderMessage(
   document: EInvoiceDocument,
   reminder: { stage: number; daysOverdue: number },
 ): { subject: string; text: string } {
-  const label =
-    reminder.stage === 1
-      ? 'Betalingsherinnering'
-      : reminder.stage === 2
-        ? 'Tweede herinnering'
-        : 'Laatste aanmaning'
-
-  // Three tones, and the first is a courtesy on purpose: most late invoices are
-  // late because somebody forgot, and opening with a threat costs goodwill for
-  // nothing.
-  const body =
-    reminder.stage === 1
-      ? [
-          `Onze factuur ${document.invoiceNumber} van ${document.total} ${document.currency} stond`,
-          `op ${document.dueDate} open en is nog niet als betaald bij ons binnengekomen.`,
-          '',
-          'Mogelijk is deze aan uw aandacht ontsnapt. Heeft u de betaling inmiddels',
-          'gedaan, dan kunt u dit bericht als niet verzonden beschouwen.',
-        ]
-      : reminder.stage === 2
-        ? [
-            `Factuur ${document.invoiceNumber} van ${document.total} ${document.currency} is nu`,
-            `${String(reminder.daysOverdue)} dagen te laat. Wij hebben u hierover eerder bericht.`,
-            '',
-            'Wij verzoeken u het bedrag binnen veertien dagen te voldoen.',
-          ]
-        : [
-            `Factuur ${document.invoiceNumber} van ${document.total} ${document.currency} is`,
-            `${String(reminder.daysOverdue)} dagen te laat, ondanks eerdere herinneringen.`,
-            '',
-            'Wij verzoeken u het bedrag binnen veertien dagen te voldoen. Blijft betaling',
-            'uit, dan zijn wij genoodzaakt vervolgstappen te nemen en kunnen wettelijke',
-            'rente en incassokosten in rekening worden gebracht.',
-          ]
-
-  return {
-    subject: `${label}: factuur ${document.invoiceNumber}`,
-    text: [...body, '', 'De factuur is bijgevoegd.'].join('\n'),
-  }
+  // Shared with the Reminders preview (#107). Legal: no incassokosten / rente
+  // claim until WIK is implemented — see reminderEmailCopy.
+  return reminderEmailCopy({
+    invoiceNumber: document.invoiceNumber,
+    total: document.total,
+    currency: document.currency,
+    dueDate: document.dueDate,
+    stage: reminder.stage,
+    daysOverdue: reminder.daysOverdue,
+  })
 }
 
 export function createEmailEInvoiceTransport(config: EmailEInvoiceConfig): EInvoiceTransport {

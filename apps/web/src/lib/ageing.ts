@@ -3,7 +3,7 @@
  *
  * Crediteuren have had an ageing since M4, computed in the purchase repository
  * and reconciled against the control account. Debiteuren had nothing: what is
- * owed to this company lived only in Aanmaningen, which is a list of who to
+ * owed to this company lived only in Herinneringen, which is a list of who to
  * write to rather than a report an accountant can read.
  *
  * Rather than model receivables a second time, this buckets what
