@@ -130,7 +130,9 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   // Send it. With no SMTP in the test environment the message lands in the
   // outbox directory, and the delivery row says which transport handled it.
   await page.goto(`/invoices/${invoiceId}`)
-  await page.getByRole('button', { name: 'Versturen', exact: true }).click()
+  // Never-sent primary is "Factuur versturen" (Legal); after a delivery it becomes
+  // "Opnieuw versturen". Exact "Versturen" would miss both.
+  await page.getByRole('button', { name: 'Factuur versturen', exact: true }).click()
 
   await expect(page.getByRole('heading', { name: 'Verzonden' })).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Factuur', exact: true })).toBeVisible()
