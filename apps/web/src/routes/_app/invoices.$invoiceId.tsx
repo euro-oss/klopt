@@ -241,6 +241,17 @@ function Invoice() {
         />
       )}
 
+      {/* PhoneInvoice: back to Sales list before the header actions. */}
+      <div className="mb-3 md:hidden">
+        <Link
+          to="/invoices"
+          search={{ segment: 'open', q: '', id: undefined, status: undefined }}
+          className="text-ink inline-flex min-h-11 items-center px-2 text-sm font-medium"
+        >
+          ‹ {t('sales.title')}
+        </Link>
+      </div>
+
       <PageHeader
         title={`${invoice.kind === 'credit_note' ? t('invoice.creditNote') : t('invoice.title')} ${title}`}
         description={`${invoice.contact.number} · ${invoice.contact.name} · ${formatDate(invoice.issueDate)}`}
