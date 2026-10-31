@@ -1,12 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import {
-  Plus,
-  ChevronLeft,
-  Check,
-  Info,
-  Search,
-  Send,
-} from 'lucide-react'
+import { Plus, ChevronLeft, Check, Info, Search, Send } from 'lucide-react'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Button } from '~/components/ui/button'

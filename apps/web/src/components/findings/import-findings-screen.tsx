@@ -6,12 +6,7 @@
  * empty / loading / error states. FindingCard props stay on the #41 contract.
  */
 
-import {
-  Circle,
-  Check,
-  LoaderCircle,
-  RefreshCw,
-} from 'lucide-react'
+import { Circle, Check, LoaderCircle, RefreshCw } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'

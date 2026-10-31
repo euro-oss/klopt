@@ -1,11 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import {
-  Landmark,
-  ClipboardList,
-  House,
-  Inbox,
-  Menu,
-} from 'lucide-react'
+import { Landmark, ClipboardList, House, Inbox, Menu } from 'lucide-react'
 import { useT } from '~/i18n/provider'
 import { cn } from '~/lib/utils'
 import { isNavActive, PHONE_TAB_BAR, type NavSearch, type PhoneTabId } from '~/lib/shell-nav'
