@@ -7,7 +7,7 @@ import { DATABASE_URL, signIn, uniqueEmail } from './support'
 /**
  * Public PNGs for #113 — icon library swap to lucide-react.
  *
- * Captures Home, nav/sidebar (desktop) / phone tab bar (390), and ⌘K palette
+ * Captures Home, desktop sidebar (clipped), phone Meer sheet, and ⌘K palette
  * at 1440 / 390, light / dark. Prefix with before- (main tip before the swap)
  * or after- (this tip) via PR_SCREENSHOT_PHASE.
  *
@@ -18,7 +18,9 @@ import { DATABASE_URL, signIn, uniqueEmail } from './support'
 
 const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '113'
 const PHASE = process.env['PR_SCREENSHOT_PHASE'] ?? 'after'
-const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', PR)
+const OUT =
+  process.env['PR_SCREENSHOT_OUT'] ??
+  join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', PR)
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
 
 test.beforeAll(async () => {
@@ -78,12 +80,21 @@ async function shoot(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: join(OUT, `${PHASE}-${name}`), fullPage: false })
 }
 
+async function shootLocator(
+  page: Page,
+  locator: ReturnType<Page['locator']>,
+  name: string,
+): Promise<void> {
+  await page.waitForTimeout(100)
+  await locator.screenshot({ path: join(OUT, `${PHASE}-${name}`) })
+}
+
 const VIEWPORTS = [
   { name: 'desktop-1440', width: 1440, height: 900 },
   { name: 'mobile-390', width: 390, height: 844 },
 ] as const
 
-test('icon swap screenshots: home, nav, command palette', async ({ page }) => {
+test('icon swap screenshots: home, nav, meer, command palette', async ({ page }) => {
   test.setTimeout(180_000)
   await ready(page, 'Icon Swap BV')
 
@@ -97,13 +108,28 @@ test('icon swap screenshots: home, nav, command palette', async ({ page }) => {
       await shoot(page, `home-${theme}-${vp.name}.png`)
 
       if (vp.width === 1440) {
-        // Sidebar is visible on desktop Home — crop-friendly full viewport already
-        // shows it; capture again after focusing the nav landmark for clarity.
-        await expect(page.locator('.k-nav, nav').first()).toBeVisible()
-        await shoot(page, `nav-sidebar-${theme}-${vp.name}.png`)
+        // Clip the desktop rail so the shot is not byte-identical to Home.
+        const rail = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
+        await expect(rail).toBeVisible()
+        await shootLocator(page, rail, `nav-sidebar-${theme}-${vp.name}.png`)
       } else {
+        // Phone tab bar alone, then open Meer (Sheet) for the full nav icons.
         await expect(page.locator('[data-phone-tab-bar]')).toBeVisible()
-        await shoot(page, `nav-sidebar-${theme}-${vp.name}.png`)
+        await shootLocator(
+          page,
+          page.locator('[data-phone-tab-bar]'),
+          `nav-sidebar-${theme}-${vp.name}.png`,
+        )
+
+        await page.getByRole('button', { name: 'Meer' }).click()
+        const sheetNav = page.getByRole('navigation', { name: 'Hoofdnavigatie' })
+        await expect(sheetNav.getByRole('link', { name: /^Importeren/ })).toBeVisible()
+        const sheet = page.locator('[data-slot="sheet-content"], [role="dialog"]').filter({
+          has: sheetNav,
+        })
+        await shootLocator(page, sheet.first(), `meer-sheet-${theme}-${vp.name}.png`)
+        await page.keyboard.press('Escape')
+        await expect(sheetNav).toBeHidden()
       }
 
       await page.keyboard.press('ControlOrMeta+k')

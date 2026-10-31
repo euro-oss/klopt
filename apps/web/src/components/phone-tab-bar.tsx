@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Landmark, ClipboardList, House, Inbox, Menu } from 'lucide-react'
+import { FileText, House, Inbox, Landmark, Menu } from 'lucide-react'
 import { useT } from '~/i18n/provider'
 import { cn } from '~/lib/utils'
 import { isNavActive, PHONE_TAB_BAR, type NavSearch, type PhoneTabId } from '~/lib/shell-nav'
@@ -13,7 +13,7 @@ import { isNavActive, PHONE_TAB_BAR, type NavSearch, type PhoneTabId } from '~/l
 
 const ICONS = {
   home: House,
-  sales: ClipboardList,
+  sales: FileText,
   inbox: Inbox,
   bank: Landmark,
   more: Menu,
