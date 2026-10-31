@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { reminderEmailCopy } from '@klopt/core'
+import { reminderEmailCopy } from '@klopt/core/reminder-email'
 import {
   countSalesSegments,
   filterSalesInvoices,

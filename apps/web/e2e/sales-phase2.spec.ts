@@ -137,12 +137,12 @@ test('segment counts and preview pane', async ({ page }) => {
 })
 
 test('phone Sales list at 390', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
+  // Set up on desktop so hydration / Geavanceerd use the sidebar kbd signal,
+  // then shrink to PhoneSales width.
   await openSales(page)
   await seedCustomerAndInvoices(page)
+  await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('link', { name: /^Verkoop/ }).click()
-  await hydrated(page)
-
   await expect(page.getByRole('heading', { name: 'Verkoop' })).toBeVisible()
   await expect(page.getByRole('tablist', { name: 'Status' })).toBeVisible()
   // Preview is desktop-only.

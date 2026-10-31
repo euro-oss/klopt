@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { reminderEmailCopy } from '@klopt/core'
+import { reminderEmailCopy } from '@klopt/core/reminder-email'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { SalesTabs } from '~/components/sales-tabs'
