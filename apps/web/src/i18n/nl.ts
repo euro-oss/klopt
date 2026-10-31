@@ -320,6 +320,8 @@ export const nl = {
   'queue.salesOverdueOneBodyNumber': 'Factuur {number}',
   'queue.salesOverdueOneBodyDays_one': '{days} dag te laat',
   'queue.salesOverdueOneBodyDays_other': '{days} dagen te laat',
+  'queue.salesOverdueOldestBody_one': 'Oudste: {days} dag te laat',
+  'queue.salesOverdueOldestBody_other': 'Oudste: {days} dagen te laat',
   'queue.salesOverdueAction': 'Herinnering sturen',
   'queue.dunningWaiting_one': '{count} aanmaning om te versturen',
   'queue.dunningWaiting_other': '{count} aanmaningen om te versturen',

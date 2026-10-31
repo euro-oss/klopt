@@ -39,6 +39,7 @@ import {
   homeQueueVatDeadlineIso,
   payablesFigureValueKind,
   profitFigureValueKind,
+  showHomeHeaderNewInvoice,
   type AttentionTone,
   type FigureValueKind,
 } from '~/lib/dashboard'
@@ -226,6 +227,9 @@ function Dashboard() {
 
   const year = dashboard.ok ? dashboard.data.fiscalYear : null
   const todoCount = dashboard.ok ? dashboard.data.items.length : 0
+  // Hide header "Nieuwe factuur" only on a successful empty queue (PM #117) —
+  // the empty card owns that CTA. Failed reads keep the header button.
+  const headerNewInvoice = showHomeHeaderNewInvoice(dashboard.ok, todoCount)
   const greetingSub =
     year === null
       ? t('dash.introNoYear')
@@ -254,7 +258,7 @@ function Dashboard() {
               </Link>
             </Button>
             {/* Home only: New invoice is secondary; the top to-do owns primary (PM #107). */}
-            {todoCount > 0 && (
+            {headerNewInvoice && (
               <Button asChild variant="outline" className="min-h-9">
                 <Link to="/invoices/new">
                   <RiAddLine data-icon="inline-start" aria-hidden="true" />

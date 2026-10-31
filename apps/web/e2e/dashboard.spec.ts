@@ -85,7 +85,8 @@ async function aDraftInvoice(page: Page): Promise<void> {
 test('an empty administration shows the redesigned dashboard and a way to start', async ({
   page,
 }) => {
-  await anAdministration(page, 'Leeg Bureau BV')
+  // Current month → no closed VAT period, so the queue is truly empty (PM #117).
+  await anAdministration(page, 'Leeg Bureau BV', { startInCurrentMonth: true })
 
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -93,24 +94,18 @@ test('an empty administration shows the redesigned dashboard and a way to start'
   // No email local-part in the greeting (designer #67).
   await expect(page.getByRole('heading', { name: /@|e2e-/ })).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Kerncijfers' })).toBeVisible()
-  // No operational work yet — drafts / bank / inbox stay off the list. A due
-  // btw-aangifte may still appear (the period closed even with empty books).
   await expect(page.getByRole('link', { name: /concept(en)? om te versturen/i })).toHaveCount(0)
   await expect(page.getByRole('link', { name: /bankregels wachten/ })).toHaveCount(0)
   // No invented "import your books" to-do (decision 2 / #107).
   await expect(page.getByText(/Haal je boekhouding over/i)).toHaveCount(0)
-  // Empty queue → "Niets te doen" when nothing (incl. VAT) is waiting.
-  const todoHeading = page.getByRole('heading', { name: 'Te doen' })
-  const emptyHeading = page.getByRole('heading', { name: 'Niets te doen' })
-  const hasTodo = await todoHeading.isVisible().catch(() => false)
-  const hasEmpty = await emptyHeading.isVisible().catch(() => false)
-  expect(hasTodo || hasEmpty).toBeTruthy()
 
-  // Empty queue: one "Nieuwe factuur" in the queue card only (Design #112).
-  // Header omits the duplicate; the empty-state action stays outline.
+  // Loaded + empty: exactly one "Nieuwe factuur", inside the empty card (PM #117).
+  await expect(page.getByRole('heading', { name: 'Niets te doen', exact: true })).toBeVisible()
   const newInvoices = page.locator('#main').getByRole('link', { name: /Nieuwe factuur/ })
   await expect(newInvoices).toHaveCount(1)
   await expect(newInvoices).toHaveAttribute('data-variant', 'outline')
+  const emptyCard = page.locator('[data-slot="empty"]')
+  await expect(emptyCard.getByRole('link', { name: /Nieuwe factuur/ })).toHaveCount(1)
   await newInvoices.click()
   await expect(page).toHaveURL(/\/invoices\/new$/)
 })

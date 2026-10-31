@@ -41,9 +41,10 @@ draft/inbox to-dos get their own icons; unmapped-accounts block removed;
 queue bodies drop missing number/days/deadline clauses (never `—` or `0`);
 ageing title “Te late facturen per aantal dagen” / “Overdue invoices by days
 late”; overdue day copy uses singular/plural (“1 dag te laat” / “1 day late”).
-Design nits after merge: multi-overdue to-do reads “N facturen te laat”
-without a repeating body; empty queue keeps one “Nieuwe factuur” (in the
-queue card) on a normal `bg-card` surface.
+Design/PM #117 follow-up: multi-overdue to-do reads “N facturen te laat” /
+“N invoices overdue” with oldest qualifier (“Oudste: … dagen te laat” /
+“Oldest: … days late”); empty queue keeps one “Nieuwe factuur” in the queue
+card on a normal `bg-card` surface (header CTA stays on a failed read).
 
 ### Redesign Phase 0: tokens, theme, components, shell (#107)
 
