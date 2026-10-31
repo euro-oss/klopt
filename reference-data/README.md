@@ -5,11 +5,14 @@ Compliance artefacts, as **versioned data loaded at runtime, never code**
 [`docs/compliance-calendar.md`](../docs/compliance-calendar.md) — and updating
 one must be a data release, not a deploy.
 
-| Directory | Artefact                        | Source                                                                   | Regenerate with                                                  |
-| --------- | ------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| `rgs/`    | RGS reference chart of accounts | [referentiegrootboekschema.nl](https://www.referentiegrootboekschema.nl) | `pnpm rgs:generate <workbook.xlsx> <version> [variant]`          |
-| `xaf/`    | XML Auditfile Financieel schema | Belastingdienst ODB / auditfiles.nl                                      | Downloaded verbatim; never edited                                |
-| `peppol/` | Peppol BIS Billing 3 Schematron | [OpenPeppol](https://docs.peppol.eu/poacc/billing/3.0/) — **not in git** | `pnpm peppol:fetch` (see [`peppol/README.md`](peppol/README.md)) |
+| Directory | Artefact                         | Source                                                                   | Regenerate with                                                  |
+| --------- | -------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `rgs/`    | RGS reference chart of accounts  | [referentiegrootboekschema.nl](https://www.referentiegrootboekschema.nl) | `pnpm rgs:generate <workbook.xlsx> <version> [variant]`          |
+| `xaf/`    | XML Auditfile Financieel schema  | Belastingdienst ODB / auditfiles.nl                                      | Downloaded verbatim; never edited                                |
+| `ubl/`    | OASIS UBL 2.1 schemas            | [OASIS UBL 2.1](https://docs.oasis-open.org/ubl/os-UBL-2.1/)             | Downloaded verbatim under `ubl/2.1/`; never edited               |
+| `charts/` | Default NL MKB chart of accounts | Klopt (`nl-mkb.json`), RGS-mapped                                        | Hand-maintained; keep RGS codes aligned with `rgs/`              |
+| `nt/`     | NT omzetbelasting rubriek map    | SBR / Nederlandse Taxonomie (hand-authored until verified)               | Update from the published NT entrypoint; see `nt/*.json` notes   |
+| `peppol/` | Peppol BIS Billing 3 Schematron  | [OpenPeppol](https://docs.peppol.eu/poacc/billing/3.0/) — **not in git** | `pnpm peppol:fetch` (see [`peppol/README.md`](peppol/README.md)) |
 
 The runtime reads this directory. `KLOPT_REFERENCE_DATA_DIR` overrides the
 location; the container image ships it at `/app/reference-data` and sets that

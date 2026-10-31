@@ -7,11 +7,11 @@ the only exclusivity the project retains.
 > **Status: unresolved.** Trademark clearance has not been run (open decision
 > 17.7). Needed before anything is printed. The repository went public before
 > clearance; until clearance is recorded below, treat the name as uncleared.
-> TMview and BOIP in classes 9, 35, 36 and 42; the KvK handelsregister, because
-> Dutch trade-name rights arise from use rather than registration; and the GitHub
-> organisation, npm scope and domains. Until a foundation is assigned (open
-> decision 17.1), the mark is enforced on an interim personal basis by Hidde
-> Stokvis.
+> Clearance covers TMview and BOIP in classes 9, 35, 36 and 42; the KvK
+> handelsregister, because Dutch trade-name rights arise from use rather than
+> registration; and the GitHub organisation, npm scope and domains. Until a
+> foundation is assigned (open decision 17.1), the mark is enforced on an interim
+> personal basis by Hidde Stokvis.
 
 ## Clearance checklist
 
