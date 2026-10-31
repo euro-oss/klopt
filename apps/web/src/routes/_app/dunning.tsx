@@ -53,39 +53,35 @@ function Dunning() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  /** null = follow the first row; set when the user moves J/K or clicks. */
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+  /** null = all rows selected (default); a Set once the user toggles. */
+  const [selectedOverride, setSelectedOverride] = useState<ReadonlySet<string> | null>(null)
   const keys = useRef<Map<string, string>>(new Map())
+  const busyRef = useRef(false)
 
-  const actions: readonly ActionRow[] = queue.ok ? queue.data.actions : []
+  const actions = useMemo((): readonly ActionRow[] => (queue.ok ? queue.data.actions : []), [queue])
   const schedule = queue.ok ? queue.data.schedule : []
   const asOf = queue.ok ? queue.data.asOf : ''
 
-  useEffect(() => {
-    if (actions.length === 0) {
-      setActiveId(null)
-      setSelected(new Set())
-      return
-    }
-    setActiveId((current) =>
-      current !== null && actions.some((row) => row.invoiceId === current)
-        ? current
-        : (actions[0]?.invoiceId ?? null),
-    )
-    setSelected((current) => {
-      if (current.size > 0) {
-        const next = new Set(
-          [...current].filter((id) => actions.some((row) => row.invoiceId === id)),
-        )
-        if (next.size > 0) return next
-      }
+  const resolvedActiveId =
+    activeId !== null && actions.some((row) => row.invoiceId === activeId)
+      ? activeId
+      : (actions[0]?.invoiceId ?? null)
+
+  const selected = useMemo((): ReadonlySet<string> => {
+    if (selectedOverride === null) {
       return new Set(actions.map((row) => row.invoiceId))
-    })
-  }, [actions])
+    }
+    const next = new Set(
+      [...selectedOverride].filter((id) => actions.some((row) => row.invoiceId === id)),
+    )
+    return next.size > 0 ? next : new Set(actions.map((row) => row.invoiceId))
+  }, [actions, selectedOverride])
 
   const active = useMemo(
-    () => actions.find((row) => row.invoiceId === activeId) ?? null,
-    [actions, activeId],
+    () => actions.find((row) => row.invoiceId === resolvedActiveId) ?? null,
+    [actions, resolvedActiveId],
   )
 
   async function chase(action: ActionRow): Promise<boolean> {
@@ -118,10 +114,10 @@ function Dunning() {
     return true
   }
 
-  async function sendSelected() {
-    if (busy) return
-    const targets = actions.filter((row) => selected.has(row.invoiceId) && row.sendable)
+  async function sendSelected(targets: readonly ActionRow[]) {
+    if (busyRef.current) return
     if (targets.length === 0) return
+    busyRef.current = true
     setBusy(true)
     setError(null)
     setNotice(null)
@@ -129,12 +125,10 @@ function Dunning() {
       const ok = await chase(action)
       if (!ok) break
     }
+    busyRef.current = false
     setBusy(false)
     await router.invalidate()
   }
-
-  const sendSelectedRef = useRef(sendSelected)
-  sendSelectedRef.current = sendSelected
 
   useEffect(() => {
     if (!hydrated || !queue.ok) return
@@ -144,12 +138,13 @@ function Dunning() {
 
       if (mod && event.key === 'Enter') {
         event.preventDefault()
-        void sendSelectedRef.current()
+        const targets = actions.filter((row) => selected.has(row.invoiceId) && row.sendable)
+        void sendSelected(targets)
         return
       }
       if (event.metaKey || event.ctrlKey || event.altKey) return
-      if (activeId === null) return
-      const index = actions.findIndex((row) => row.invoiceId === activeId)
+      if (resolvedActiveId === null) return
+      const index = actions.findIndex((row) => row.invoiceId === resolvedActiveId)
       if (event.key === 'j' || event.key === 'J') {
         const next = actions[Math.min(index + 1, actions.length - 1)]
         if (next !== undefined) {
@@ -168,10 +163,11 @@ function Dunning() {
       }
       if (event.key === 'x' || event.key === 'X') {
         event.preventDefault()
-        setSelected((prev) => {
-          const next = new Set(prev)
-          if (next.has(activeId)) next.delete(activeId)
-          else next.add(activeId)
+        setSelectedOverride((prev) => {
+          const base = prev ?? new Set(actions.map((row) => row.invoiceId))
+          const next = new Set(base)
+          if (next.has(resolvedActiveId)) next.delete(resolvedActiveId)
+          else next.add(resolvedActiveId)
           return next
         })
       }
@@ -180,7 +176,9 @@ function Dunning() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [actions, activeId, hydrated, queue.ok])
+    // sendSelected is recreated each render; deps below cover its closed values.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyboard handler
+  }, [actions, asOf, hydrated, queue.ok, resolvedActiveId, selected, t])
 
   if (!queue.ok) {
     return (
@@ -221,7 +219,9 @@ function Dunning() {
               type="button"
               disabled={busy || !hydrated || selectedCount === 0}
               onClick={() => {
-                void sendSelected()
+                void sendSelected(
+                  actions.filter((row) => selected.has(row.invoiceId) && row.sendable),
+                )
               }}
               className="min-h-11 md:min-h-9"
             >
@@ -295,7 +295,7 @@ function Dunning() {
                       checked={selectedCount === actions.length && actions.length > 0}
                       aria-label={t('dunning.selected_other', { count: String(actions.length) })}
                       onChange={(event) => {
-                        setSelected(
+                        setSelectedOverride(
                           event.target.checked
                             ? new Set(actions.map((row) => row.invoiceId))
                             : new Set(),
@@ -309,7 +309,7 @@ function Dunning() {
                     <span>{t('dunning.nextStep')}</span>
                   </div>
                   {actions.map((action) => {
-                    const isActive = action.invoiceId === activeId
+                    const isActive = action.invoiceId === resolvedActiveId
                     const isChecked = selected.has(action.invoiceId)
                     return (
                       <button
@@ -331,8 +331,9 @@ function Dunning() {
                           tabIndex={0}
                           onClick={(event) => {
                             event.stopPropagation()
-                            setSelected((prev) => {
-                              const next = new Set(prev)
+                            setSelectedOverride((prev) => {
+                              const base = prev ?? new Set(actions.map((row) => row.invoiceId))
+                              const next = new Set(base)
                               if (next.has(action.invoiceId)) next.delete(action.invoiceId)
                               else next.add(action.invoiceId)
                               return next
@@ -342,8 +343,9 @@ function Dunning() {
                             if (event.key !== ' ' && event.key !== 'Enter') return
                             event.preventDefault()
                             event.stopPropagation()
-                            setSelected((prev) => {
-                              const next = new Set(prev)
+                            setSelectedOverride((prev) => {
+                              const base = prev ?? new Set(actions.map((row) => row.invoiceId))
+                              const next = new Set(base)
                               if (next.has(action.invoiceId)) next.delete(action.invoiceId)
                               else next.add(action.invoiceId)
                               return next

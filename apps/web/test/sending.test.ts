@@ -374,7 +374,9 @@ describe('chasing an unpaid invoice', () => {
       sendReminderBody.parse({ asOf: '2026-05-12' }),
     )
     expect(final.body).toMatchObject({ stage: 3 })
-    expect(mailbox.sent.at(-1)?.text).toContain('incassokosten')
+    // Legal (#107): no collection-cost / interest claim until WIK is implemented.
+    expect(mailbox.sent.at(-1)?.text).toContain('veertien dagen')
+    expect(mailbox.sent.at(-1)?.text).not.toMatch(/incasso|rente/i)
 
     // Three reminders and the invoice, all on the record with their stages.
     const deliveries = await handleListDeliveries(await contextFor(), invoiceId)
