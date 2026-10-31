@@ -147,7 +147,5 @@ test('phone Sales list at 390', async ({ page }) => {
   await expect(page.getByRole('tablist', { name: 'Status' })).toBeVisible()
   // Preview is desktop-only; list rows are links on phone (desktop table is CSS-hidden).
   await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toHaveCount(0)
-  await expect(
-    page.getByRole('link', { name: /Windvaan Workshops \(demo\)/ }),
-  ).toBeVisible()
+  await expect(page.getByRole('link', { name: /Windvaan Workshops \(demo\)/ })).toBeVisible()
 })

@@ -398,5 +398,8 @@ test('an agent drafts an invoice and cannot issue it', async ({ page }) => {
   // Drafts live under Concepten (Phase 2 segments); the list is no longer a table.
   await page.goto('/invoices?segment=draft')
   await expect(page.getByRole('button', { name: /Agent Klant BV/ })).toBeVisible()
-  await expect(page.getByRole('tab', { name: /Concepten/ })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('tab', { name: /Concepten/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
 })
