@@ -1,10 +1,17 @@
 /**
  * Sales list segmentation and preview helpers (#107 Phase 2).
  *
- * Segments ship as Drafts / Open / Overdue only — Paid needs `outstanding` and
- * `paidOn` on the invoice list ([API] gap). Overdue uses the existing overdue
- * report set (outstanding after bank allocations), not a client-side guess.
+ * Segments ship as Drafts / Issued (`open` key) / Overdue only — restoring an
+ * honest Open label (outstanding > 0) and a Paid segment needs `outstanding`
+ * and `paidOn` on the invoice list ([API] gap). Overdue uses the existing
+ * overdue report set (outstanding after bank allocations), not a client-side
+ * guess. The Issued pill/tab must not claim unpaid, outstanding or sent.
  */
+
+/** Fetch one past the display cap so the UI can show `200+` when truncated. */
+export const SALES_LIST_FETCH_LIMIT = 201
+/** Exact counts are honest only below this; at the fetch limit show `200+`. */
+export const SALES_LIST_COUNT_CAP = 200
 
 export type SalesSegment = 'draft' | 'open' | 'overdue'
 
@@ -103,6 +110,18 @@ export function countSalesSegments(
   return { draft, open, overdue }
 }
 
+/**
+ * Segment tab count label.
+ *
+ * `listInvoices` is requested with {@link SALES_LIST_FETCH_LIMIT}. When that
+ * many rows come back the page is truncated, so every segment shows `200+`
+ * instead of a false exact total. Below the cap, show the exact count.
+ */
+export function formatSalesSegmentCount(count: number, fetchedRowCount: number): string {
+  if (fetchedRowCount >= SALES_LIST_FETCH_LIMIT) return `${String(SALES_LIST_COUNT_CAP)}+`
+  return String(count)
+}
+
 export function filterSalesInvoices(
   invoices: readonly SalesInvoiceRow[],
   overdueIds: ReadonlySet<string>,
@@ -127,8 +146,9 @@ export function filterSalesInvoices(
  * credit_note. Prefer the overdue report's `daysOverdue` when given; otherwise
  * fall back to dueDate vs asOf. Paid pills are an [API] gap.
  *
- * Open membership still cannot exclude fully paid invoices — `listInvoices`
- * has no `outstanding` / `paidOn` ([API] gap; PM #118).
+ * Issued (`open`) membership still includes fully paid invoices —
+ * `listInvoices` has no `outstanding` / `paidOn` ([API] gap; PM #118). The
+ * label is Issued / Gefactureerd so the pill does not claim unpaid.
  */
 export function invoicePill(
   invoice: Pick<SalesInvoiceRow, 'id' | 'kind' | 'status' | 'dueDate'>,

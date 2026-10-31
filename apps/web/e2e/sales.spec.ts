@@ -195,7 +195,7 @@ test('a posted journal entry goes through, which it could not before', async ({ 
 })
 
 test('an overdue invoice turns up in the dunning list and can be chased', async ({ page }) => {
-  await anAdministration(page, 'Aanmaning BV')
+  await anAdministration(page, 'Herinnering BV')
   await enableAdvancedMode(page)
 
   await page.goto('/settings')
@@ -249,7 +249,9 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
   // Months late, so the schedule says final demand rather than a courtesy.
   await expect(row).toContainText('Derde herinnering')
 
-  await page.getByRole('button', { name: /Alle .* herinnering/ }).click()
+  await page
+    .getByRole('button', { name: /Herinnering versturen|Alle \d+ herinneringen versturen/ })
+    .click()
   await expect(page.getByText(/verstuurd naar Trage Betaler B.V./)).toBeVisible()
 
   // Gone from the list: the stage is closed, and it does not come round again.

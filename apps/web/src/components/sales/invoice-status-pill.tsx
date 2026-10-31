@@ -7,7 +7,8 @@ import type { InvoicePill } from '~/lib/sales-list'
  * Status pills for Sales list / preview (#107 Phase 2).
  *
  * Overdue uses the danger/late pill with “… dagen te laat” (`_one`/`_other`).
- * Open → info. Draft / cancelled / credit note → neutral. No Paid pill ([API]).
+ * Issued (`open`) → info (same colour as the former Open pill). Draft /
+ * cancelled / credit note → neutral. No Paid pill ([API]).
  */
 
 const VARIANT: Record<

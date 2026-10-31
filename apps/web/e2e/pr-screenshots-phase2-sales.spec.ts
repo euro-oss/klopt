@@ -38,9 +38,25 @@ async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
 }
 
 async function shot(page: Page, name: string, options?: { fullPage?: boolean }): Promise<void> {
+  // Blur so Playwright's caret-hide does not leave inline styles that trigger
+  // a hydration console.error on the next client render.
+  await page.evaluate(() => {
+    const active = document.activeElement
+    if (active instanceof HTMLElement) active.blur()
+  })
   await page.screenshot({
     path: join(OUT, `${name}.png`),
     fullPage: options?.fullPage ?? false,
+    caret: 'hide',
+  })
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll<HTMLElement>('[style]')) {
+      const value = el.getAttribute('style')
+      if (value === null) continue
+      if (value === '' || /caret-color:\s*transparent/i.test(value)) {
+        el.removeAttribute('style')
+      }
+    }
   })
 }
 
@@ -110,7 +126,7 @@ async function draftAndIssue(
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
   await expect(page.getByRole('heading', { name: /Factuur \d{4}-/ })).toBeVisible()
-  const id = page.url().split('/').pop() ?? ''
+  const id = new URL(page.url()).pathname.split('/').pop() ?? ''
   await page.getByRole('button', { name: 'Factuur versturen', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Opnieuw versturen', exact: true })).toBeVisible()
   return id
@@ -169,18 +185,19 @@ async function seedSalesData(page: Page, entityId: string): Promise<void> {
   await draftAndIssue(page, 'Installatie Meijer', 'Achterstallig vroeg', '480,00', daysAgo(50))
   await draftAndIssue(page, 'Hoveniers De Linden', 'Achterstallig laat', '985,00', daysAgo(120))
 
-  // Credit note against one open invoice
+  // Credit note against one open invoice (preview only after an explicit select).
   await page.goto('/invoices?segment=open')
-  await page
+  await hydrated(page)
+  const windvaan = page
+    .locator('.md\\:block')
     .getByRole('button', { name: /Windvaan Workshops/ })
     .first()
-    .click()
-  await page
-    .getByRole('complementary', { name: 'Factuurvoorbeeld' })
-    .getByRole('button', {
-      name: 'Creditnota',
-    })
-    .click()
+  await expect(windvaan).toBeVisible()
+  await windvaan.click()
+  await expect.poll(() => new URL(page.url()).searchParams.get('id')).toBeTruthy()
+  const preview = page.getByRole('complementary', { name: 'Factuurvoorbeeld' })
+  await expect(preview).toBeVisible()
+  await preview.getByRole('button', { name: 'Creditnota' }).click()
   await expect(page.getByRole('heading', { name: /Creditnota Concept/ })).toBeVisible()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
   await expect(page.getByRole('heading', { name: /Creditnota CN\d{4}-/ })).toBeVisible()
@@ -239,16 +256,26 @@ test('02 seeded Sales + Reminders + phone invoice', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1040 })
     await page.goto('/invoices?segment=open')
     await ready(page, 1440)
+    // Preview opens only with an explicit selection (Escape closes it).
+    await page.getByRole('heading', { name: 'Verkoop' }).click()
+    await page.keyboard.press('ArrowDown')
+    await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toBeVisible()
     await setTheme(page, theme)
     await shot(page, `02-sales-data-${theme}-desktop-1440`)
 
     await page.goto('/invoices?segment=draft')
     await ready(page, 1440)
+    await page.getByRole('heading', { name: 'Verkoop' }).click()
+    await page.keyboard.press('ArrowDown')
+    await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toBeVisible()
     await setTheme(page, theme)
     await shot(page, `02-sales-drafts-${theme}-desktop-1440`)
 
     await page.goto('/invoices?segment=overdue')
     await ready(page, 1440)
+    await page.getByRole('heading', { name: 'Verkoop' }).click()
+    await page.keyboard.press('ArrowDown')
+    await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toBeVisible()
     await setTheme(page, theme)
     await shot(page, `02-sales-overdue-${theme}-desktop-1440`)
 

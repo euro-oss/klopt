@@ -382,7 +382,12 @@ describe('chasing an unpaid invoice', () => {
     expect(mailbox.sent.at(-1)?.text).toContain(
       'Heeft u vragen over deze factuur, neem dan contact met ons op.',
     )
-    expect(mailbox.sent.at(-1)?.text).not.toMatch(/incasso|rente|veertien|buitengerechtelijk|6:96/i)
+    expect(mailbox.sent.at(-1)?.subject).not.toMatch(
+      /incasso|rente|veertien|buitengerechtelijk|6:96|aanmaning/i,
+    )
+    expect(mailbox.sent.at(-1)?.text).not.toMatch(
+      /incasso|rente|veertien|buitengerechtelijk|6:96|aanmaning/i,
+    )
 
     // Three reminders and the invoice, all on the record with their stages.
     const deliveries = await handleListDeliveries(await contextFor(), invoiceId)

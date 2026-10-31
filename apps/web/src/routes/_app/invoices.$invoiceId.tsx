@@ -38,7 +38,18 @@ import {
  * Creditnota secondaries, details card, history card, Sent as, 44px controls.
  */
 
+const DETAIL_SEGMENTS = ['draft', 'open', 'overdue'] as const
+type DetailSegment = (typeof DETAIL_SEGMENTS)[number]
+
+function parseDetailSegment(value: unknown): DetailSegment {
+  return DETAIL_SEGMENTS.includes(value as DetailSegment) ? (value as DetailSegment) : 'open'
+}
+
 export const Route = createFileRoute('/_app/invoices/$invoiceId')({
+  validateSearch: (search: Record<string, unknown>): { segment?: DetailSegment } => {
+    if (search['segment'] === undefined || search['segment'] === '') return {}
+    return { segment: parseDetailSegment(search['segment']) }
+  },
   loader: async ({ params }) => {
     const asOf = localTodayIso()
     const [invoice, deliveries, overdue, queue] = await Promise.all([
@@ -68,6 +79,8 @@ interface Line {
 function Invoice() {
   const { invoice: result, deliveries, overdue, queue, asOf } = Route.useLoaderData()
   const { invoiceId } = Route.useParams()
+  const search = Route.useSearch()
+  const segment: DetailSegment = search.segment ?? 'open'
   const router = useRouter()
   const navigate = useNavigate()
   const hydrated = useHydrated()
@@ -322,7 +335,7 @@ function Invoice() {
       <div className="flex flex-col gap-4 md:hidden">
         <Link
           to="/invoices"
-          search={{ segment: 'open', q: '', id: undefined, status: undefined }}
+          search={{ segment, q: '', id: undefined, status: undefined }}
           className="text-ink inline-flex min-h-11 items-center self-start text-sm font-medium"
         >
           ‹ {t('sales.title')}

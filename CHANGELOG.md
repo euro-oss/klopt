@@ -21,7 +21,7 @@ the ADR is where the reasoning is.
 ### Redesign Phase 2: Sales (#107)
 
 Sales area with underline tabs Facturen / Herinneringen / Klanten. `/dunning`
-remains the Reminders route. Segmented status Drafts / Open / Overdue with real
+remains the Reminders route. Segmented status Drafts / Issued / Overdue with real
 counts from the invoice list and overdue report (no Paid segment — needs
 `outstanding` / `paidOn` [API]). Desktop preview pane with honest "Sent as"
 from deliveries only (no Peppol claim). Reminders schedule and email text are

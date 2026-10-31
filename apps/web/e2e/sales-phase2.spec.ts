@@ -59,16 +59,21 @@ async function seedCustomerAndInvoices(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
 
-  // One issued (open)
-  await page.getByRole('link', { name: /^Verkoop/ }).click()
-  await page.getByRole('link', { name: 'Nieuwe factuur' }).click()
-  await page.getByLabel('Omschrijving regel 1').fill('Demo levering open')
-  await page.getByLabel('Aantal regel 1').fill('1')
-  await page.getByLabel('Eenheid regel 1').fill('EA')
-  await page.getByLabel('Prijs regel 1').fill('100,00')
-  await page.getByRole('button', { name: 'Concept opslaan' }).click()
-  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('heading', { name: /Factuur \d{4}-0001/ })).toBeVisible()
+  // Two issued (Gefactureerd) so ArrowDown can move between rows.
+  for (const [description, price] of [
+    ['Demo levering open', '100,00'],
+    ['Demo levering tweede', '75,00'],
+  ] as const) {
+    await page.getByRole('link', { name: /^Verkoop/ }).click()
+    await page.getByRole('link', { name: 'Nieuwe factuur' }).click()
+    await page.getByLabel('Omschrijving regel 1').fill(description)
+    await page.getByLabel('Aantal regel 1').fill('1')
+    await page.getByLabel('Eenheid regel 1').fill('EA')
+    await page.getByLabel('Prijs regel 1').fill(price)
+    await page.getByRole('button', { name: 'Concept opslaan' }).click()
+    await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+    await expect(page.getByRole('heading', { name: /Factuur \d{4}-/ })).toBeVisible()
+  }
 }
 
 test('Sales tabs: Facturen / Herinneringen / Klanten; /dunning opens Reminders', async ({
@@ -121,13 +126,18 @@ test('segment counts and preview pane', async ({ page }) => {
 
   const segments = page.getByRole('tablist', { name: 'Status' })
   await expect(segments.getByRole('tab', { name: /Concepten/ })).toContainText('1')
-  await expect(segments.getByRole('tab', { name: /Open/ })).toContainText(/[1-9]/)
+  await expect(segments.getByRole('tab', { name: /Gefactureerd/ })).toContainText(/[1-9]/)
 
   await segments.getByRole('tab', { name: /Concepten/ }).click()
   await expect(page).toHaveURL(/segment=draft/)
   await expect(page.getByText('Windvaan Workshops (demo)').first()).toBeVisible()
 
-  await segments.getByRole('tab', { name: /Open/ }).click()
+  await segments.getByRole('tab', { name: /Gefactureerd/ }).click()
+  // Select a row so the preview opens (Escape clears it; no implicit first-row pane).
+  await page
+    .getByRole('button', { name: /Windvaan Workshops \(demo\)/ })
+    .first()
+    .click()
   await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toBeVisible()
   await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toContainText(
     'Windvaan Workshops (demo)',
@@ -147,5 +157,76 @@ test('phone Sales list at 390', async ({ page }) => {
   await expect(page.getByRole('tablist', { name: 'Status' })).toBeVisible()
   // Preview is desktop-only; list rows are links on phone (desktop table is CSS-hidden).
   await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toHaveCount(0)
-  await expect(page.getByRole('link', { name: /Windvaan Workshops \(demo\)/ })).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: /Windvaan Workshops \(demo\)/ }).first(),
+  ).toBeVisible()
+})
+
+test('Escape closes preview; ArrowDown/ArrowUp move like j/k; no console errors', async ({
+  page,
+}) => {
+  const errors: string[] = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(msg.text())
+  })
+
+  await openSales(page)
+  await seedCustomerAndInvoices(page)
+  await page.setViewportSize({ width: 1440, height: 1040 })
+  await page.getByRole('link', { name: /^Verkoop/ }).click()
+  await hydrated(page)
+
+  const segments = page.getByRole('tablist', { name: 'Status' })
+  await segments.getByRole('tab', { name: /Gefactureerd/ }).click()
+  // Leave the tablist so ArrowDown is not stolen by the segmented control.
+  await page.getByRole('heading', { name: 'Verkoop' }).click()
+  // ArrowDown selects the first row and opens the preview (same as j).
+  await page.keyboard.press('ArrowDown')
+  await expect(page).toHaveURL(/[?&]id=/)
+  await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toBeVisible()
+
+  const firstId = new URL(page.url()).searchParams.get('id')
+  await page.keyboard.press('ArrowDown')
+  await expect.poll(() => new URL(page.url()).searchParams.get('id')).not.toBe(firstId)
+  await page.keyboard.press('ArrowUp')
+  await expect.poll(() => new URL(page.url()).searchParams.get('id')).toBe(firstId)
+
+  // Escape closes the preview (drops id).
+  await page.keyboard.press('Escape')
+  await expect(page).not.toHaveURL(/[?&]id=/)
+  await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toHaveCount(0)
+
+  // Filter focus: Escape blurs and still closes any re-opened preview.
+  await page.getByRole('heading', { name: 'Verkoop' }).click()
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toBeVisible()
+  await page.getByLabel('Facturen filteren').focus()
+  await page.keyboard.press('Escape')
+  await expect(page).not.toHaveURL(/[?&]id=/)
+  await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toHaveCount(0)
+
+  expect(errors, `console errors:\n${errors.join('\n')}`).toEqual([])
+})
+
+test('phone detail back link returns to the segment the user came from', async ({ page }) => {
+  await openSales(page)
+  await seedCustomerAndInvoices(page)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/invoices?segment=draft')
+  await expect(page.getByRole('tab', { name: /Concepten/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await page.getByRole('link', { name: /Windvaan Workshops \(demo\)/ }).click()
+  await expect(page.getByRole('heading', { name: /.+/ }).first()).toBeVisible()
+  await expect(page).toHaveURL(/segment=draft/)
+  await page
+    .getByRole('link', { name: /Verkoop/ })
+    .first()
+    .click()
+  await expect(page).toHaveURL(/segment=draft/)
+  await expect(page.getByRole('tab', { name: /Concepten/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
 })

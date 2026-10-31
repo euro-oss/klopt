@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { reminderEmailCopy } from '../../src/sales/reminder-email.js'
 
 describe('reminderEmailCopy', () => {
-  it('does not mention collection costs, interest, or a 14-day deadline', () => {
+  it('does not mention collection costs, interest, a 14-day deadline, or aanmaning', () => {
+    const forbidden = /incasso|rente|veertien|buitengerechtelijk|6:96|aanmaning/i
     for (const stage of [1, 2, 3]) {
       const copy = reminderEmailCopy({
         invoiceNumber: '2026-0001',
@@ -12,7 +13,8 @@ describe('reminderEmailCopy', () => {
         stage,
         daysOverdue: 50,
       })
-      expect(copy.text).not.toMatch(/incasso|rente|veertien|buitengerechtelijk|6:96/i)
+      expect(copy.subject).not.toMatch(forbidden)
+      expect(copy.text).not.toMatch(forbidden)
     }
   })
 

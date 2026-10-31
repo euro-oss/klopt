@@ -29,6 +29,7 @@ import {
   handleDraftInvoice,
   handleGetDunningQueue,
   handleIssueInvoice,
+  handleListOverdueInvoices,
 } from '../src/api/handlers/sales.js'
 import { handleGetJournalEntry } from '../src/api/handlers/ledger.js'
 import { handleUpdateEntity } from '../src/api/handlers/setup.js'
@@ -309,6 +310,8 @@ describe('confirming a match', () => {
   })
 
   it('stops the invoice being chased, which is what M1 could not do', async () => {
+    // Reminders / Send all use only the server dunning queue (and the overdue
+    // report), which both subtract matched allocations — never a client guess.
     const invoice = await anInvoice()
     const transactionId = await aTransaction({
       amount: '1210,00',
@@ -318,6 +321,9 @@ describe('confirming a match', () => {
 
     const before = await handleGetDunningQueue(await contextFor(), { asOf: '2026-06-01' })
     expect(before.body.actions.map((item) => item.number)).toContain(invoice.number)
+    expect(
+      before.body.actions.filter((item) => item.sendable).map((item) => item.number),
+    ).toContain(invoice.number)
 
     await handleConfirmMatch(
       await contextFor(uuidv7()),
@@ -329,6 +335,13 @@ describe('confirming a match', () => {
 
     const after = await handleGetDunningQueue(await contextFor(), { asOf: '2026-06-01' })
     expect(after.body.actions.map((item) => item.number)).not.toContain(invoice.number)
+    // Send all counts only sendable queue rows — a matched payment is gone.
+    expect(
+      after.body.actions.filter((item) => item.sendable).map((item) => item.number),
+    ).not.toContain(invoice.number)
+
+    const overdue = await handleListOverdueInvoices(await contextFor(), { asOf: '2026-06-01' })
+    expect(overdue.body.invoices.map((item) => item.number)).not.toContain(invoice.number)
   })
 
   it('leaves a partly paid invoice open for the rest', async () => {

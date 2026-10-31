@@ -26,9 +26,11 @@ import { localTodayIso } from '~/lib/local-clock'
 import {
   countSalesSegments,
   filterSalesInvoices,
+  formatSalesSegmentCount,
   invoiceHistoryEvents,
   invoicePill,
   sentAsFromDeliveries,
+  SALES_LIST_FETCH_LIMIT,
   sumInvoiceTotals,
   type DeliveryRecord,
   type HistoryEvent,
@@ -50,9 +52,9 @@ import {
 /**
  * Sales → Invoices (#107 Phase 2).
  *
- * Boards: Invoices / InvoicesDark / PhoneSales. Segments Drafts / Open /
- * Overdue with counts from the list + overdue report (Open cannot yet exclude
- * paid invoices — no `outstanding`/`paidOn` on the list [API]). Preview pane
+ * Boards: Invoices / InvoicesDark / PhoneSales. Segments Drafts / Issued /
+ * Overdue with counts from the list + overdue report (Issued cannot yet
+ * exclude paid invoices — no `outstanding`/`paidOn` on the list [API]). Preview pane
  * on desktop; phone is the list. "Nieuwe factuur" is secondary (PM).
  */
 
@@ -94,7 +96,7 @@ export const Route = createFileRoute('/_app/invoices/')({
   loader: async () => {
     const asOf = localTodayIso()
     const [invoices, overdue, queue] = await Promise.all([
-      listInvoices({ data: { status: null, limit: 200 } }),
+      listInvoices({ data: { status: null, limit: SALES_LIST_FETCH_LIMIT } }),
       listOverdueInvoices({ data: { asOf } }),
       dunningQueue({ data: { asOf } }),
     ])
@@ -166,17 +168,47 @@ function Invoices() {
   const shown = filterSalesInvoices(rows, overdueIds, segment, q)
   const reminderCount = queue.ok ? queue.data.actions.length : 0
 
+  // Preview only when `id` is in the URL — Escape clears it and hides the pane.
   const activeId =
-    selectedId !== undefined && shown.some((row) => row.id === selectedId)
-      ? selectedId
-      : (shown[0]?.id ?? undefined)
+    selectedId !== undefined && shown.some((row) => row.id === selectedId) ? selectedId : undefined
 
   useEffect(() => {
     if (!hydrated || !result.ok) return
+
+    const moveSelection = (delta: 1 | -1): void => {
+      if (shown.length === 0) return
+      const index = activeId === undefined ? -1 : shown.findIndex((row) => row.id === activeId)
+      const nextIndex =
+        activeId === undefined
+          ? delta > 0
+            ? 0
+            : shown.length - 1
+          : Math.min(Math.max(index + delta, 0), shown.length - 1)
+      const next = shown[nextIndex]
+      if (next === undefined) return
+      void navigate({
+        to: '/invoices',
+        search: { segment, q, id: next.id, status: undefined },
+      })
+    }
+
+    const closePreview = (): void => {
+      if (selectedId === undefined) return
+      void navigate({
+        to: '/invoices',
+        search: { segment, q, id: undefined, status: undefined },
+      })
+    }
+
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.defaultPrevented || event.repeat) return
       if (isTypingInto(event.target)) {
-        if (event.key === 'Escape') (event.target as HTMLElement).blur()
+        if (event.key === 'Escape') {
+          ;(event.target as HTMLElement).blur()
+          // After blurring the filter, drop the preview selection too.
+          event.preventDefault()
+          closePreview()
+        }
         return
       }
       if (event.metaKey || event.ctrlKey || event.altKey) return
@@ -184,6 +216,12 @@ function Invoices() {
       if (event.key === '/') {
         event.preventDefault()
         filterRef.current?.focus()
+        return
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closePreview()
         return
       }
 
@@ -199,32 +237,26 @@ function Invoices() {
         return
       }
 
-      if (activeId === undefined) return
-      const index = shown.findIndex((row) => row.id === activeId)
+      if (event.key === 'j' || event.key === 'J' || event.key === 'ArrowDown') {
+        event.preventDefault()
+        moveSelection(1)
+        return
+      }
+      if (event.key === 'k' || event.key === 'K' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        moveSelection(-1)
+        return
+      }
 
-      if (event.key === 'j' || event.key === 'J') {
-        const next = shown[Math.min(index + 1, shown.length - 1)]
-        if (next === undefined) return
-        event.preventDefault()
-        void navigate({
-          to: '/invoices',
-          search: { segment, q, id: next.id, status: undefined },
-        })
-        return
-      }
-      if (event.key === 'k' || event.key === 'K') {
-        const next = shown[Math.max(index - 1, 0)]
-        if (next === undefined) return
-        event.preventDefault()
-        void navigate({
-          to: '/invoices',
-          search: { segment, q, id: next.id, status: undefined },
-        })
-        return
-      }
+      if (activeId === undefined) return
+
       if (event.key === 'Enter') {
         event.preventDefault()
-        void navigate({ to: '/invoices/$invoiceId', params: { invoiceId: activeId } })
+        void navigate({
+          to: '/invoices/$invoiceId',
+          params: { invoiceId: activeId },
+          search: { segment },
+        })
         return
       }
       if (event.key === 'x' || event.key === 'X') {
@@ -351,7 +383,7 @@ function Invoices() {
     q.trim() === ''
       ? plural('sales.showing', shown.length, {
           shown: String(shown.length),
-          total: String(segmentTotal),
+          total: formatSalesSegmentCount(segmentTotal, rows.length),
         })
       : plural('sales.showingFiltered', shown.length, { shown: String(shown.length) })
 
@@ -393,6 +425,9 @@ function Invoices() {
             placeholder={t('sales.filterPlaceholder')}
             aria-label={t('sales.filterAria')}
             className="border-0 bg-transparent px-0 shadow-none focus-visible:outline-none"
+            // Playwright's screenshot caret-hide can leave an empty/inline style on
+            // the node; suppress so hydration does not console.error on mismatch.
+            suppressHydrationWarning
           />
           {hydrated && (
             <span className="text-ink-muted absolute top-1/2 right-3 hidden -translate-y-1/2 md:inline">
@@ -432,7 +467,9 @@ function Invoices() {
               {SEGMENTS.map((key) => (
                 <TabsTrigger key={key} value={key} className="flex-1 gap-1.5 md:flex-none">
                   {t(`sales.segment.${key}` as MessageKey)}
-                  <span className="text-ink-muted tabular-nums">{String(counts[key])}</span>
+                  <span className="text-ink-muted tabular-nums">
+                    {formatSalesSegmentCount(counts[key], rows.length)}
+                  </span>
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -535,6 +572,7 @@ function Invoices() {
                       key={row.id}
                       to="/invoices/$invoiceId"
                       params={{ invoiceId: row.id }}
+                      search={{ segment }}
                       className="flex min-h-14 items-center gap-3 border-t border-[var(--line-soft)] px-4 py-3.5 first:border-t-0"
                     >
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -574,6 +612,7 @@ function Invoices() {
         {activeRow !== null && (
           <InvoicePreview
             row={activeRow}
+            segment={segment}
             asOf={asOf}
             overdueIds={overdueIds}
             overdueDays={overdueDays}
@@ -632,6 +671,7 @@ function shortDate(iso: string, t: (key: MessageKey) => string): string {
 
 function InvoicePreview({
   row,
+  segment,
   asOf,
   overdueIds,
   overdueDays,
@@ -642,6 +682,7 @@ function InvoicePreview({
   onRemind,
 }: {
   readonly row: SalesInvoiceRow
+  readonly segment: SalesSegment
   readonly asOf: string
   readonly overdueIds: ReadonlySet<string>
   readonly overdueDays: ReadonlyMap<string, number>
@@ -731,7 +772,7 @@ function InvoicePreview({
           <InvoiceStatusPill pill={pill} />
           <span className="flex-1" />
           <Button asChild variant="ghost" size="icon" aria-label={t('sales.preview.openFull')}>
-            <Link to="/invoices/$invoiceId" params={{ invoiceId: row.id }}>
+            <Link to="/invoices/$invoiceId" params={{ invoiceId: row.id }} search={{ segment }}>
               <RiExternalLinkLine aria-hidden="true" />
             </Link>
           </Button>

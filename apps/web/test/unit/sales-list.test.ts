@@ -1,12 +1,16 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { reminderEmailCopy } from '@klopt/core/reminder-email'
 import {
   countSalesSegments,
   filterSalesInvoices,
+  formatSalesSegmentCount,
   invoiceHistoryEvents,
   invoicePill,
   salesSegmentOf,
   sentAsFromDeliveries,
+  SALES_LIST_FETCH_LIMIT,
   sumInvoiceTotals,
   type DeliveryRecord,
   type SalesInvoiceRow,
@@ -43,12 +47,29 @@ describe('salesSegmentOf / countSalesSegments', () => {
   })
 
   it('does not invent a paid segment from client-side guesses', () => {
-    // Issued and not in the overdue set → open, even if due date is past.
-    // Paid needs outstanding/paidOn from the API.
+    // Issued and not in the overdue set → Issued segment (`open` key), even if
+    // due date is past. Paid needs outstanding/paidOn from the API.
     const overdue = new Set<string>()
     expect(salesSegmentOf(row({ id: 'x', status: 'issued', dueDate: '2020-01-01' }), overdue)).toBe(
       'open',
     )
+  })
+})
+
+describe('formatSalesSegmentCount', () => {
+  it('shows the exact count for 199 and 200 fetched rows', () => {
+    expect(formatSalesSegmentCount(12, 199)).toBe('12')
+    expect(formatSalesSegmentCount(0, 199)).toBe('0')
+    expect(formatSalesSegmentCount(200, 200)).toBe('200')
+    expect(formatSalesSegmentCount(47, 200)).toBe('47')
+  })
+
+  it('shows 200+ for every segment when 201 rows come back (list capped)', () => {
+    expect(SALES_LIST_FETCH_LIMIT).toBe(201)
+    expect(formatSalesSegmentCount(0, 201)).toBe('200+')
+    expect(formatSalesSegmentCount(1, 201)).toBe('200+')
+    expect(formatSalesSegmentCount(200, 201)).toBe('200+')
+    expect(formatSalesSegmentCount(201, 201)).toBe('200+')
   })
 })
 
@@ -175,6 +196,26 @@ describe('reminderEmailCopy (Reminders read-only preview)', () => {
       'Wij verzoeken u het openstaande bedrag zo spoedig mogelijk te voldoen.',
     )
     expect(copy.text).toContain('Heeft u vragen over deze factuur, neem dan contact met ons op.')
-    expect(copy.text).not.toMatch(/incassokosten|wettelijke\s+rente|incasso|veertien|6:96/i)
+    expect(copy.subject).not.toMatch(
+      /incassokosten|wettelijke\s+rente|incasso|veertien|buitengerechtelijk|6:96|aanmaning/i,
+    )
+    expect(copy.text).not.toMatch(
+      /incassokosten|wettelijke\s+rente|incasso|veertien|buitengerechtelijk|6:96|aanmaning/i,
+    )
+  })
+})
+
+describe('Reminders and Send all use only the server dunning queue', () => {
+  it('dunning route loads actions from dunningQueue, not a client invoice list', () => {
+    const source = readFileSync(
+      join(import.meta.dirname, '../../src/routes/_app/dunning.tsx'),
+      'utf8',
+    )
+    expect(source).toContain("from '~/server/sales'")
+    expect(source).toContain('dunningQueue')
+    expect(source).toContain('queue.data.actions')
+    expect(source).toContain('row.sendable')
+    expect(source).not.toContain('listInvoices')
+    expect(source).not.toContain('listOverdueInvoices')
   })
 })
