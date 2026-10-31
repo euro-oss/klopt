@@ -1,0 +1,83 @@
+Klopt
+Copyright 2026 Hidde Stokvis
+
+This product includes software developed for the Klopt project.
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+Copyright is held by Hidde Stokvis on an interim basis. The intended
+long-term holder is a foundation that is not yet formed; assignment of
+this copyright (and related trademark rights in the name “Klopt”) to
+that foundation is planned when it exists. Until then, Hidde Stokvis is
+the copyright holder named in this NOTICE. Contributor inbound licences
+remain Apache-2.0 via DCO (see CONTRIBUTING.md).
+
+This product includes the Inter font family (SIL Open Font License 1.1) and
+JetBrains Mono (SIL Open Font License 1.1), self-hosted as woff2 under
+apps/web/src/assets/fonts/ with the licence texts Inter-OFL.txt and
+JetBrainsMono-OFL.txt. The fonts remain under their own licences and are not
+licensed under the Apache License.
+
+This product includes UI components derived from shadcn/ui
+(https://ui.shadcn.com/), under the MIT License. The attribution below covers
+the components in apps/web/src/components/ui/: alert-dialog.tsx, alert.tsx,
+badge.tsx, button.tsx, checkbox.tsx, dropdown-menu.tsx, empty.tsx, input.tsx,
+item.tsx, popover.tsx, radio-group.tsx, select.tsx, separator.tsx, sheet.tsx,
+switch.tsx, and tabs.tsx.
+
+Copyright (c) 2023 shadcn
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Peppol BIS Billing 3 Schematron artefacts (runtime data, not Klopt source)
+
+At build / develop time this project may download ISO Schematron rule files
+from OpenPEPPOL/peppol-bis-invoice-3 (pinned release; see
+tools/fetch-peppol-bis3.sh and reference-data/peppol/README.md). Those files
+are not committed to this Apache-2.0 repository and are not relicensed by
+Klopt.
+
+- CEN-EN16931-UBL.sch carries an EUPL-1.2 header from its publisher (CEN /
+  Connecting Europe material redistributed by OpenPeppol). EUPL is the
+  publisher's licence for that artefact, not a licence claim for Klopt.
+- PEPPOL-EN16931-UBL.sch is published by OpenPeppol AISBL. OpenPeppol holds
+  copyright in Peppol BIS and restricts modification / redistribution of the
+  BIS without prior consent; obtain the artefacts from the official provenance
+  named in reference-data/peppol/README.md.
+
+Container images built from this Dockerfile fetch the pinned checksum-verified
+bytes into /app/reference-data for runtime validation only. Images built from
+this Dockerfile contain these files. Publishing such an image redistributes
+them and needs OpenPeppol's consent; this project does not publish images.
+
+---
+Third-party reference data in reference-data/ (not licensed under the Apache
+License; each keeps its publisher's terms):
+- reference-data/ubl/2.1/: OASIS UBL 2.1 schemas, Copyright (c) OASIS Open
+  2013, unmodified, under the OASIS IPR Policy notice in each file. Includes
+  the ETSI XAdES and W3C XML-Signature schemas as shipped in UBL 2.1, with
+  their own notices.
+- reference-data/xaf/XmlAuditfileFinancieel3.2.xsd: XML Auditfile Financieel
+  3.2 schema as published by the Belastingdienst, unmodified. For validation
+  only; no endorsement by the Belastingdienst is implied.
+- reference-data/rgs/rgs-3.7-mkb.json: generated from "Definitief RGS 3.7.xlsx"
+  published by Stichting RGS / Referentie GrootboekSchema
+  (https://www.referentiegrootboekschema.nl). Reference codes are unchanged.

@@ -253,7 +253,7 @@ function Members() {
               name="email"
               type="email"
               required
-              placeholder="accountant@kantoor.nl"
+              placeholder="accountant@kantoor.example.nl"
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             />
           </label>

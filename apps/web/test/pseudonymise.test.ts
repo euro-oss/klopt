@@ -69,7 +69,7 @@ async function aCustomer(): Promise<{ number: string; id: string }> {
       kvkNumber: '87654321',
       vatNumber: 'NL987654321B01',
       countryCode: 'NL',
-      email: 'jan@devries.nl',
+      email: 'jan@devries.example.nl',
       phone: '0612345678',
       iban: 'NL91ABNA0417164300',
       notes: 'Belt altijd op vrijdagmiddag.',
@@ -177,7 +177,7 @@ beforeAll(async () => {
     vatNumber: 'NL123456789B01',
     iban: 'NL02ABNA0123456789',
     bic: 'ABNANL2A',
-    email: 'facturen@test.nl',
+    email: 'facturen@test.example.nl',
   })
 
   const account = await handleCreateBankAccount(
@@ -272,7 +272,7 @@ describe('erasing a contact', () => {
     )
 
     expect(entry).toBeDefined()
-    expect((entry?.before as { email?: string } | null)?.email).toBe('jan@devries.nl')
+    expect((entry?.before as { email?: string } | null)?.email).toBe('jan@devries.example.nl')
     expect((entry?.after as { reason?: string } | null)?.reason).toBe('Verzoek per e-mail')
   })
 

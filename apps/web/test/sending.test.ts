@@ -65,7 +65,7 @@ async function aCustomer(options: { email?: string | null } = {}): Promise<strin
       isCustomer: true,
       kvkNumber: '87654321',
       vatNumber: 'NL987654321B01',
-      email: options.email === undefined ? 'inkoop@groteklant.nl' : options.email,
+      email: options.email === undefined ? 'inkoop@groteklant.example.nl' : options.email,
       address: {
         street: 'Coolsingel',
         houseNumber: '42',
@@ -159,7 +159,7 @@ describe('sending an invoice', () => {
     expect(result.body).toMatchObject({ delivered: true, channel: 'email' })
 
     const message = mailbox.sent.at(-1)
-    expect(message?.to).toBe('inkoop@groteklant.nl')
+    expect(message?.to).toBe('inkoop@groteklant.example.nl')
     expect(message?.subject).toContain('Factuur')
     // The XML is what a machine reads and the PDF what a person does. Both.
     const attachments = message?.attachments ?? []
@@ -178,7 +178,7 @@ describe('sending an invoice', () => {
       channel: 'email',
       purpose: 'invoice',
       delivered: true,
-      recipient: 'inkoop@groteklant.nl',
+      recipient: 'inkoop@groteklant.example.nl',
     })
     expect(deliveries.body.deliveries[0]?.documentHash).toMatch(/^[0-9a-f]{64}$/)
   })
@@ -208,11 +208,11 @@ describe('sending an invoice', () => {
     const result = await handleSendInvoice(
       await contextFor(uuidv7()),
       invoiceId,
-      sendInvoiceBody.parse({ to: 'iemand@elders.nl' }),
+      sendInvoiceBody.parse({ to: 'iemand@elders.example.nl' }),
     )
 
     expect(result.status).toBe(200)
-    expect(mailbox.sent.at(-1)?.to).toBe('iemand@elders.nl')
+    expect(mailbox.sent.at(-1)?.to).toBe('iemand@elders.example.nl')
   })
 
   it('will not send an invoice the schematron rejects', async () => {
@@ -223,7 +223,7 @@ describe('sending an invoice', () => {
         number,
         name: 'Klant Zonder Adres B.V.',
         isCustomer: true,
-        email: 'zonder@adres.nl',
+        email: 'zonder@adres.example.nl',
         countryCode: 'NL',
       }),
     )
@@ -278,7 +278,7 @@ describe('sending an invoice', () => {
           transport: 'broken',
           delivered: false,
           messageId: null,
-          recipient: 'inkoop@groteklant.nl',
+          recipient: 'inkoop@groteklant.example.nl',
           failure: 'Connection refused',
         }),
     })

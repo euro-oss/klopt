@@ -148,12 +148,17 @@ describe('guided invoice helpers', () => {
 
   it('filters customers by name, number, email or city', () => {
     const rows = [
-      { name: 'Hotel Zeezicht B.V.', number: 'DEB-1', email: 'a@hotel.nl', city: 'Vlissingen' },
+      {
+        name: 'Hotel Zeezicht B.V.',
+        number: 'DEB-1',
+        email: 'a@hotel.example.nl',
+        city: 'Vlissingen',
+      },
       { name: 'Lunchroom Het Hoekje', number: 'DEB-2', email: null, city: 'Middelburg' },
     ]
     expect(filterCustomers(rows, 'zee')).toHaveLength(1)
     expect(filterCustomers(rows, 'DEB-2')).toHaveLength(1)
-    expect(filterCustomers(rows, 'hotel.nl')).toHaveLength(1)
+    expect(filterCustomers(rows, 'hotel.example.nl')).toHaveLength(1)
     expect(filterCustomers(rows, 'middel')).toHaveLength(1)
   })
 

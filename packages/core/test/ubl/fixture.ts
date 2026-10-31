@@ -22,7 +22,7 @@ export const SELLER: UblPartySource = {
   electronicAddressScheme: '0106',
   contactName: 'Jan de Boer',
   phone: '+31 20 555 1234',
-  email: 'facturen@detol.nl',
+  email: 'facturen@detol.example.nl',
 }
 
 export const BUYER: UblPartySource = {
@@ -39,7 +39,7 @@ export const BUYER: UblPartySource = {
   electronicAddressScheme: '0106',
   contactName: null,
   phone: null,
-  email: 'inkoop@groteklant.nl',
+  email: 'inkoop@groteklant.example.nl',
 }
 
 export function referenceInvoice(): UblInvoiceSource {

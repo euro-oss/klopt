@@ -132,7 +132,7 @@ export function fakeExact(): FakeExact {
 
     if (url.includes('current/Me')) {
       return Promise.resolve(
-        collection([{ UserID: guid(9), FullName: 'H. Stokvis', CurrentDivision: 1000 }]),
+        collection([{ UserID: guid(9), FullName: 'A. Bakker', CurrentDivision: 1000 }]),
       )
     }
     if (url.includes('system/Divisions')) {

@@ -15,6 +15,45 @@ env:
   DATABASE_URL: postgres://klopt:klopt@localhost:5432/klopt
 
 jobs:
+  # DCO (see CONTRIBUTING.md): every non-merge commit on a pull request must
+  # carry a Signed-off-by trailer. Merge commits are skipped. Push-to-main is
+  # not checked here — branch protection already requires the PR path.
+  dco:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Every commit must be Signed-off-by
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          missing=0
+          while IFS= read -r sha; do
+            [ -n "$sha" ] || continue
+            parents=$(git rev-list --parents -n 1 "$sha")
+            # merge commits have two or more parents; DCO does not apply to them
+            set -- $parents
+            if [ "$#" -gt 2 ]; then
+              continue
+            fi
+            body=$(git log -1 --format=%B "$sha")
+            if ! printf '%s\n' "$body" | grep -qE '^Signed-off-by: .+ <.+>$'; then
+              echo "::error title=Missing DCO::Commit $sha lacks a Signed-off-by trailer"
+              git log -1 --format='  %h %s' "$sha"
+              missing=1
+            fi
+          done < <(git rev-list --reverse "${BASE}..${HEAD}")
+          if [ "$missing" -ne 0 ]; then
+            echo "Add a DCO sign-off with: git commit -s (see CONTRIBUTING.md)"
+            exit 1
+          fi
+          echo "DCO sign-off present on every commit in ${BASE}..${HEAD}"
+
   verify:
     runs-on: ubuntu-latest
     strategy:
@@ -120,6 +159,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: public/licenses NOTICE matches root NOTICE
+        run: cmp NOTICE apps/web/public/licenses/NOTICE
 
       - name: Install libxml2-utils
         run: sudo apt-get update && sudo apt-get install -y libxml2-utils

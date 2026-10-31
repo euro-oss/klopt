@@ -55,7 +55,7 @@ What is in 0.1.0, plus the unreleased screens already on `main`.
   includes booked history. Document storage is a local
   directory unless you point it at an S3 bucket; object lock is what that
   bucket is for.
-- **One API, 127 operations** under `/api/v1` — the same operations the UI
+- **One API, 137 operations** under `/api/v1` — the same operations the UI
   calls. OpenAPI is `GET /api/v1/openapi.json` on a running instance, and
   [`docs/openapi.json`](docs/openapi.json) in this tree. Scoped bearer tokens,
   an idempotency key on every write, and `application/problem+json` errors.

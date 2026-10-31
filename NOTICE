@@ -20,9 +20,10 @@ licensed under the Apache License.
 
 This product includes UI components derived from shadcn/ui
 (https://ui.shadcn.com/), under the MIT License. The attribution below covers
-the components in apps/web/src/components/ui/, including badge.tsx, button.tsx,
-dropdown-menu.tsx, empty.tsx, item.tsx, keycap.tsx, popover.tsx,
-select-field.tsx, select.tsx, separator.tsx, switch.tsx, and tabs.tsx.
+the components in apps/web/src/components/ui/: alert-dialog.tsx, alert.tsx,
+badge.tsx, button.tsx, checkbox.tsx, dropdown-menu.tsx, empty.tsx, input.tsx,
+item.tsx, popover.tsx, radio-group.tsx, select.tsx, separator.tsx, sheet.tsx,
+switch.tsx, and tabs.tsx.
 
 Copyright (c) 2023 shadcn
 
@@ -63,5 +64,20 @@ Klopt.
   named in reference-data/peppol/README.md.
 
 Container images built from this Dockerfile fetch the pinned checksum-verified
-bytes into /app/reference-data for runtime validation only. That is separate
-from redistribution of the artefacts as part of the published source tree.
+bytes into /app/reference-data for runtime validation only. Images built from
+this Dockerfile contain these files. Publishing such an image redistributes
+them and needs OpenPeppol's consent; this project does not publish images.
+
+---
+Third-party reference data in reference-data/ (not licensed under the Apache
+License; each keeps its publisher's terms):
+- reference-data/ubl/2.1/: OASIS UBL 2.1 schemas, Copyright (c) OASIS Open
+  2013, unmodified, under the OASIS IPR Policy notice in each file. Includes
+  the ETSI XAdES and W3C XML-Signature schemas as shipped in UBL 2.1, with
+  their own notices.
+- reference-data/xaf/XmlAuditfileFinancieel3.2.xsd: XML Auditfile Financieel
+  3.2 schema as published by the Belastingdienst, unmodified. For validation
+  only; no endorsement by the Belastingdienst is implied.
+- reference-data/rgs/rgs-3.7-mkb.json: generated from "Definitief RGS 3.7.xlsx"
+  published by Stichting RGS / Referentie GrootboekSchema
+  (https://www.referentiegrootboekschema.nl). Reference codes are unchanged.
