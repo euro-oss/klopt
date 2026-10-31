@@ -11,11 +11,14 @@ import {
   dayPartAt,
   glanceBarPercent,
   greetingName,
+  homeQueueOverdueManyBody,
   homeQueueOverdueOneBody,
   homeQueueVatBody,
   homeQueueVatDeadlineIso,
   payablesFigureValueKind,
+  pickOldestOverdue,
   profitFigureValueKind,
+  showHomeHeaderNewInvoice,
 } from '../../src/lib/dashboard.js'
 import { WORK_QUEUE_ORDER } from '../../src/lib/work-queue.js'
 
@@ -37,7 +40,7 @@ const plural = ((key: string, count: number, values?: Record<string, string | nu
 
 describe('dashboard greeting helpers', () => {
   it('takes the first name for the greeting, and never the email', () => {
-    expect(greetingName('Hidde de Vries')).toBe('Hidde')
+    expect(greetingName('Sanne Voorbeeld')).toBe('Sanne')
     expect(greetingName('  Ana  ')).toBe('Ana')
     expect(greetingName('')).toBeNull()
     expect(greetingName('   ')).toBeNull()
@@ -159,6 +162,15 @@ describe('honest kerncijfers copy', () => {
     expect(nl['queue.salesOverdueOneBodyDays_other']).toBe('{days} dagen te laat')
     expect(en['queue.salesOverdueOneBodyDays_one']).toBe('{days} day late')
     expect(en['queue.salesOverdueOneBodyDays_other']).toBe('{days} days late')
+    // Multi-overdue title + oldest qualifier (Legal #117).
+    expect(nl['queue.salesOverdue_one']).toBe('{count} factuur te laat')
+    expect(nl['queue.salesOverdue_other']).toBe('{count} facturen te laat')
+    expect(en['queue.salesOverdue_one']).toBe('{count} invoice overdue')
+    expect(en['queue.salesOverdue_other']).toBe('{count} invoices overdue')
+    expect(nl['queue.salesOverdueOldestBody_one']).toBe('Oudste: {days} dag te laat')
+    expect(nl['queue.salesOverdueOldestBody_other']).toBe('Oudste: {days} dagen te laat')
+    expect(en['queue.salesOverdueOldestBody_one']).toBe('Oldest: {days} day late')
+    expect(en['queue.salesOverdueOldestBody_other']).toBe('Oldest: {days} days late')
   })
 
   it('scales P&L glance bars against the larger of income and expenses', () => {
@@ -253,6 +265,84 @@ describe('Home queue body missing fields (PM #112)', () => {
       expect(body).not.toMatch(/:days=0\b/)
     }
   })
+
+  it('keeps the single-invoice overdue body (number · days) for count 1', () => {
+    const nlT = (key: MessageKey, values?: Record<string, string>) => translate('nl', key, values)
+    const nlPlural = (key: string, count: number, values?: Record<string, string | number>) =>
+      translatePlural('nl', key, count, values)
+    const enT = (key: MessageKey, values?: Record<string, string>) => translate('en', key, values)
+    const enPlural = (key: string, count: number, values?: Record<string, string | number>) =>
+      translatePlural('en', key, count, values)
+    const detail = { contactName: 'Acme', invoiceNumber: '2026-001', daysOverdue: 12 }
+    expect(homeQueueOverdueOneBody(detail, nlT, nlPlural)).toBe(
+      'Factuur 2026-001 · 12 dagen te laat',
+    )
+    expect(homeQueueOverdueOneBody(detail, enT, enPlural)).toBe('Invoice 2026-001 · 12 days late')
+  })
+
+  it('multi-overdue body qualifies the oldest days-late (Legal #117)', () => {
+    const nlPlural = (key: string, count: number, values?: Record<string, string | number>) =>
+      translatePlural('nl', key, count, values)
+    const enPlural = (key: string, count: number, values?: Record<string, string | number>) =>
+      translatePlural('en', key, count, values)
+
+    expect(homeQueueOverdueManyBody({ contactName: 'Acme', daysOverdue: 1 }, nlPlural)).toBe(
+      'Oudste: 1 dag te laat',
+    )
+    expect(homeQueueOverdueManyBody({ contactName: 'Acme', daysOverdue: 1 }, enPlural)).toBe(
+      'Oldest: 1 day late',
+    )
+    expect(homeQueueOverdueManyBody({ contactName: 'Acme', daysOverdue: 120 }, nlPlural)).toBe(
+      'Oudste: 120 dagen te laat',
+    )
+    expect(homeQueueOverdueManyBody({ contactName: 'Acme', daysOverdue: 120 }, enPlural)).toBe(
+      'Oldest: 120 days late',
+    )
+    expect(homeQueueOverdueManyBody({ contactName: 'Acme', daysOverdue: 0 }, plural)).toBe('')
+    expect(homeQueueOverdueManyBody(undefined, plural)).toBe('')
+    expect(homeQueueOverdueManyBody({ contactName: 'Acme' }, plural)).toBe('')
+  })
+})
+
+describe('Home header Nieuwe factuur visibility (PM #117)', () => {
+  it('hides the header CTA only when the dashboard loaded and the queue is empty', () => {
+    expect(showHomeHeaderNewInvoice(true, 0)).toBe(false)
+  })
+
+  it('shows the header CTA when the queue has work', () => {
+    expect(showHomeHeaderNewInvoice(true, 1)).toBe(true)
+    expect(showHomeHeaderNewInvoice(true, 4)).toBe(true)
+  })
+
+  it('shows the header CTA when the dashboard read failed (count looks like 0)', () => {
+    expect(showHomeHeaderNewInvoice(false, 0)).toBe(true)
+  })
+})
+
+describe('pickOldestOverdue (loader sort → salesOverdueTop / Oudste body)', () => {
+  const inv = (id: string, daysOverdue: number) => ({ id, daysOverdue })
+
+  it('returns undefined when nothing is overdue', () => {
+    expect(pickOldestOverdue([])).toBeUndefined()
+  })
+
+  it('picks the highest daysOverdue regardless of input order', () => {
+    const oldest = inv('old', 120)
+    const mid = inv('mid', 45)
+    const fresh = inv('fresh', 1)
+    expect(pickOldestOverdue([fresh, mid, oldest])?.id).toBe('old')
+    expect(pickOldestOverdue([oldest, fresh, mid])?.id).toBe('old')
+    expect(pickOldestOverdue([mid, oldest, fresh])?.id).toBe('old')
+    expect(pickOldestOverdue([fresh, oldest, mid])?.daysOverdue).toBe(120)
+  })
+
+  it('is used by the Home dashboard loader for salesOverdueTop', () => {
+    const source = readFileSync(join(import.meta.dirname, '../../src/server/dashboard.ts'), 'utf8')
+    expect(source).toContain('pickOldestOverdue(overdueInvoices)')
+    expect(source).not.toMatch(
+      /const ranked = \[\.\.\.overdueInvoices\]\.sort\(\(a, b\) => b\.daysOverdue - a\.daysOverdue\)/,
+    )
+  })
 })
 
 describe('Home overdue parity with debtor-ageing (PM + Legal #112)', () => {
@@ -287,5 +377,10 @@ describe('Home overdue parity with debtor-ageing (PM + Legal #112)', () => {
     expect(source).toContain('bg-ageing-up-to-30')
     expect(source).toContain('RiFileTextLine')
     expect(source).toContain('RiInbox2Line')
+    // Empty queue: card surface + header CTA gated via showHomeHeaderNewInvoice.
+    expect(source).toContain('bg-card rounded-[var(--radius-xl)] border')
+    expect(source).toContain('showHomeHeaderNewInvoice(dashboard.ok, todoCount)')
+    expect(source).toContain('headerNewInvoice &&')
+    expect(source).toContain('homeQueueOverdueManyBody')
   })
 })

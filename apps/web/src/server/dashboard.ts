@@ -13,6 +13,7 @@ import { handleListVatPeriods } from '~/api/handlers/vat'
 import { hasPermission, type RequestContext } from '~/api/context'
 import { listPurchaseInvoicesQuery, listVatPeriodsQuery } from '~/api/schemas'
 import { debtorAgeing, type DebtorAgeingBucket } from '~/lib/ageing'
+import { pickOldestOverdue } from '~/lib/dashboard'
 import { buildWorkQueue, type WorkQueueItem } from '~/lib/work-queue'
 import { isFiscalYearCode, withinFiscalYear, type FiscalYearScope } from '~/lib/fiscal-year'
 import { contextFromRequest, reportYear, run } from './internal'
@@ -153,8 +154,7 @@ async function loadDashboard(
     withinFiscalYear(scope, transaction.bookingDate),
   ).length
 
-  const ranked = [...overdueInvoices].sort((a, b) => b.daysOverdue - a.daysOverdue)
-  const topOverdue = ranked[0]
+  const topOverdue = pickOldestOverdue(overdueInvoices)
 
   const moneybirdBody = moneybird?.body
   const importProblems =

@@ -128,11 +128,11 @@ async function populatedAdministration(page: Page): Promise<void> {
   ).toBeVisible()
 
   // Session embeds the name at sign-in — update the row, then re-auth.
-  await setDisplayName(email, 'Hidde Jansen')
+  await setDisplayName(email, 'Sanne Voorbeeld')
   await page.context().clearCookies()
   await page.goto('/sign-in')
   await signIn(page, email)
-  await expect(page.getByRole('heading', { name: /Hidde/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Sanne/ })).toBeVisible()
 
   await page.goto('/settings')
   await page.getByLabel('Straat').fill('Keizersgracht')
@@ -293,7 +293,7 @@ async function populatedAdministration(page: Page): Promise<void> {
   }
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: /Hidde/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Sanne/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Te doen' })).toBeVisible()
   await expect(page.getByRole('link', { name: /Moneybird-import/ })).toBeVisible()
   await hydrated(page)
@@ -361,7 +361,7 @@ test('01 Phase 1 Home tip — 1440 and 390, light and dark', async ({ page }) =>
 test('02 Phase 1 Home seeded data — named user, multi-bucket ageing', async ({ page }) => {
   test.setTimeout(180_000)
   await populatedAdministration(page)
-  await expect(page.getByRole('heading', { name: /Hidde/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Sanne/ })).toBeVisible()
   await expect(page.getByText('1–30 dagen')).toBeVisible()
   await expect(page.getByText('31–60 dagen')).toBeVisible()
   await expect(page.getByText('61–90 dagen')).toBeVisible()
@@ -369,7 +369,7 @@ test('02 Phase 1 Home seeded data — named user, multi-bucket ageing', async ({
 
   for (const theme of ['light', 'dark'] as const) {
     await gotoThemed(page, '/', theme)
-    await expect(page.getByRole('heading', { name: /Hidde/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Sanne/ })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Te doen', exact: true })).toBeVisible()
     await shoot(page, `02-home-data-${theme}-desktop-1440.png`, { width: 1440, height: 1040 })
     await shoot(page, `02-home-data-${theme}-mobile-390.png`, { width: 390, height: 844 })
