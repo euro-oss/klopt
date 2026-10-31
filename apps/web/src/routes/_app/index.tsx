@@ -703,7 +703,7 @@ function rowCopy(
         name: detail.contactName,
         amount: formatMinorUnits(BigInt(item.amount)),
       }),
-      body: homeQueueOverdueOneBody(detail, t),
+      body: homeQueueOverdueOneBody(detail, t, plural),
       action: t(destination.action),
     }
   }

@@ -10,6 +10,7 @@ import type { WorkQueueDetail, WorkQueueKind } from './work-queue'
 import { formatMinorUnits } from './format'
 
 type Translate = (key: MessageKey, vars?: Record<string, string>) => string
+type Plural = (key: string, count: number, values?: Record<string, string | number>) => string
 
 /**
  * Severity colour on a Home to-do tile.
@@ -113,8 +114,13 @@ export function profitFigureValueKind(result: string | null): FigureValueKind {
 /**
  * Home to-do body copy (PM #112): never invent a dash or a 0 when the invoice
  * number, days overdue, or VAT deadline is missing — drop that clause instead.
+ * Days use `_one`/`_other` via `plural` (Legal #112).
  */
-export function homeQueueOverdueOneBody(detail: WorkQueueDetail, t: Translate): string {
+export function homeQueueOverdueOneBody(
+  detail: WorkQueueDetail,
+  t: Translate,
+  plural: Plural,
+): string {
   const number =
     detail.invoiceNumber !== undefined && detail.invoiceNumber.trim() !== ''
       ? detail.invoiceNumber
@@ -127,10 +133,12 @@ export function homeQueueOverdueOneBody(detail: WorkQueueDetail, t: Translate): 
       ? detail.daysOverdue
       : null
   if (number !== null && days !== null) {
-    return t('queue.salesOverdueOneBody', { number, days: String(days) })
+    return plural('queue.salesOverdueOneBody', days, { number, days: String(days) })
   }
   if (number !== null) return t('queue.salesOverdueOneBodyNumber', { number })
-  if (days !== null) return t('queue.salesOverdueOneBodyDays', { days: String(days) })
+  if (days !== null) {
+    return plural('queue.salesOverdueOneBodyDays', days, { days: String(days) })
+  }
   return t('queue.salesOverdueBody')
 }
 

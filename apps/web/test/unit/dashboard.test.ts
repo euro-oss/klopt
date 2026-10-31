@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { translate, translatePlural } from '../../src/i18n/locale.js'
 import type { MessageKey } from '../../src/i18n/nl.js'
 import {
   ATTENTION_TONE,
@@ -24,6 +25,15 @@ const t = ((key: string, vars?: Record<string, string>): string => {
     .map(([name, value]) => `${name}=${value}`)
     .join(',')}`
 }) as (key: MessageKey, vars?: Record<string, string>) => string
+
+const plural = ((key: string, count: number, values?: Record<string, string | number>): string => {
+  const suffix = count === 1 ? '_one' : '_other'
+  const resolved = `${key}${suffix}`
+  if (values === undefined) return resolved
+  return `${resolved}:${Object.entries(values)
+    .map(([name, value]) => `${name}=${value}`)
+    .join(',')}`
+}) as (key: string, count: number, values?: Record<string, string | number>) => string
 
 describe('dashboard greeting helpers', () => {
   it('takes the first name for the greeting, and never the email', () => {
@@ -137,12 +147,18 @@ describe('honest kerncijfers copy', () => {
     expect(en['dash.exportBody']).toBe(
       'Pick a book year and download it as an XAF 3.2 audit file, with RGS codes where your accounts are mapped.',
     )
-    expect(nl['dash.glance.ageTitle']).toBe('Hoe laat klanten betalen')
-    expect(en['dash.glance.ageTitle']).toBe('How late customers pay')
+    expect(nl['dash.glance.ageTitle']).toBe('Te late facturen per aantal dagen')
+    expect(en['dash.glance.ageTitle']).toBe('Overdue invoices by days late')
     expect(nl['ageing.bucket.over90']).toBe('Meer dan 90 dagen')
     expect(en['ageing.bucket.over90']).toBe('More than 90 days')
-    expect(nl['queue.salesOverdueOneBody']).toBe('Factuur {number} · {days} dagen te laat')
-    expect(en['queue.salesOverdueOneBody']).toBe('Invoice {number} · {days} days late')
+    expect(nl['queue.salesOverdueOneBody_one']).toBe('Factuur {number} · {days} dag te laat')
+    expect(nl['queue.salesOverdueOneBody_other']).toBe('Factuur {number} · {days} dagen te laat')
+    expect(en['queue.salesOverdueOneBody_one']).toBe('Invoice {number} · {days} day late')
+    expect(en['queue.salesOverdueOneBody_other']).toBe('Invoice {number} · {days} days late')
+    expect(nl['queue.salesOverdueOneBodyDays_one']).toBe('{days} dag te laat')
+    expect(nl['queue.salesOverdueOneBodyDays_other']).toBe('{days} dagen te laat')
+    expect(en['queue.salesOverdueOneBodyDays_one']).toBe('{days} day late')
+    expect(en['queue.salesOverdueOneBodyDays_other']).toBe('{days} days late')
   })
 
   it('scales P&L glance bars against the larger of income and expenses', () => {
@@ -154,19 +170,21 @@ describe('honest kerncijfers copy', () => {
 
 describe('Home queue body missing fields (PM #112)', () => {
   it('drops the invoice-number clause when the number is missing', () => {
-    expect(homeQueueOverdueOneBody({ contactName: 'Acme', daysOverdue: 12 }, t)).toBe(
-      'queue.salesOverdueOneBodyDays:days=12',
+    expect(homeQueueOverdueOneBody({ contactName: 'Acme', daysOverdue: 12 }, t, plural)).toBe(
+      'queue.salesOverdueOneBodyDays_other:days=12',
     )
   })
 
   it('drops the days clause when days overdue is missing', () => {
-    expect(homeQueueOverdueOneBody({ contactName: 'Acme', invoiceNumber: '2026-001' }, t)).toBe(
-      'queue.salesOverdueOneBodyNumber:number=2026-001',
-    )
+    expect(
+      homeQueueOverdueOneBody({ contactName: 'Acme', invoiceNumber: '2026-001' }, t, plural),
+    ).toBe('queue.salesOverdueOneBodyNumber:number=2026-001')
   })
 
   it('falls back to the generic overdue body when both clauses are missing', () => {
-    expect(homeQueueOverdueOneBody({ contactName: 'Acme' }, t)).toBe('queue.salesOverdueBody')
+    expect(homeQueueOverdueOneBody({ contactName: 'Acme' }, t, plural)).toBe(
+      'queue.salesOverdueBody',
+    )
   })
 
   it('drops the days clause when days overdue is zero (never show a 0)', () => {
@@ -174,9 +192,10 @@ describe('Home queue body missing fields (PM #112)', () => {
       homeQueueOverdueOneBody(
         { contactName: 'Acme', invoiceNumber: '2026-001', daysOverdue: 0 },
         t,
+        plural,
       ),
     ).toBe('queue.salesOverdueOneBodyNumber:number=2026-001')
-    expect(homeQueueOverdueOneBody({ contactName: 'Acme', daysOverdue: 0 }, t)).toBe(
+    expect(homeQueueOverdueOneBody({ contactName: 'Acme', daysOverdue: 0 }, t, plural)).toBe(
       'queue.salesOverdueBody',
     )
   })
@@ -186,8 +205,28 @@ describe('Home queue body missing fields (PM #112)', () => {
       homeQueueOverdueOneBody(
         { contactName: 'Acme', invoiceNumber: '2026-001', daysOverdue: 12 },
         t,
+        plural,
       ),
-    ).toBe('queue.salesOverdueOneBody:number=2026-001,days=12')
+    ).toBe('queue.salesOverdueOneBody_other:number=2026-001,days=12')
+  })
+
+  it('uses the singular day form for one day overdue in NL and EN (Legal #112)', () => {
+    const detail = { contactName: 'Acme', invoiceNumber: '2026-001', daysOverdue: 1 }
+    const nlT = (key: MessageKey, values?: Record<string, string>) => translate('nl', key, values)
+    const nlPlural = (key: string, count: number, values?: Record<string, string | number>) =>
+      translatePlural('nl', key, count, values)
+    const enT = (key: MessageKey, values?: Record<string, string>) => translate('en', key, values)
+    const enPlural = (key: string, count: number, values?: Record<string, string | number>) =>
+      translatePlural('en', key, count, values)
+
+    expect(homeQueueOverdueOneBody(detail, nlT, nlPlural)).toBe('Factuur 2026-001 · 1 dag te laat')
+    expect(homeQueueOverdueOneBody(detail, enT, enPlural)).toBe('Invoice 2026-001 · 1 day late')
+    expect(homeQueueOverdueOneBody({ contactName: 'Acme', daysOverdue: 1 }, nlT, nlPlural)).toBe(
+      '1 dag te laat',
+    )
+    expect(homeQueueOverdueOneBody({ contactName: 'Acme', daysOverdue: 1 }, enT, enPlural)).toBe(
+      '1 day late',
+    )
   })
 
   it('drops the VAT deadline clause when the deadline is missing', () => {
@@ -209,7 +248,7 @@ describe('Home queue body missing fields (PM #112)', () => {
       { contactName: 'Acme', daysOverdue: 12 },
       { contactName: 'Acme', invoiceNumber: '', daysOverdue: 0 },
     ] as const) {
-      const body = homeQueueOverdueOneBody(detail, t)
+      const body = homeQueueOverdueOneBody(detail, t, plural)
       expect(body).not.toMatch(/—/)
       expect(body).not.toMatch(/:days=0\b/)
     }
