@@ -36,14 +36,14 @@ export interface DunningStage {
  * reminder a week after the due date reads as a courtesy, which is what it
  * usually is — most late invoices are late because somebody forgot.
  *
- * Fourteen days after the final notice a creditor may charge statutory
- * interest and collection costs (WIK), which is a decision for a human, so the
- * schedule stops at three and says so.
+ * The schedule stops at three. Charging statutory interest or collection costs
+ * (WIK) needs separate Dutch logic (including the 14-day consumer letter) that
+ * is not implemented here — do not imply those steps in product copy.
  */
 export const DEFAULT_DUNNING_SCHEDULE: readonly DunningStage[] = [
   { stage: 1, afterDays: 7, label: 'Betalingsherinnering', tone: 'reminder' },
   { stage: 2, afterDays: 21, label: 'Tweede herinnering', tone: 'demand' },
-  { stage: 3, afterDays: 42, label: 'Laatste aanmaning', tone: 'final' },
+  { stage: 3, afterDays: 42, label: 'Derde herinnering', tone: 'final' },
 ]
 
 export interface DunnableInvoice {

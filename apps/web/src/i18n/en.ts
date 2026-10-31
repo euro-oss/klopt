@@ -918,7 +918,8 @@ export const en: Record<MessageKey, string> = {
   'sales.preview.draft': 'Draft',
   'sales.preview.openFull': 'Open full invoice',
   'sales.preview.more': 'More actions',
-  'sales.preview.sendFinal': 'Send final notice',
+  'sales.preview.sendFinal': 'Send third reminder',
+  'sales.preview.send': 'Send invoice',
   'sales.preview.sendAgain': 'Send again',
   'sales.preview.credit': 'Credit note',
   'sales.preview.pdf': 'PDF',
@@ -936,7 +937,7 @@ export const en: Record<MessageKey, string> = {
   'sales.history.sent': 'Sent to customer',
   'sales.history.sendFailed': 'Sending failed',
   'sales.history.reminder': '{stage}',
-  'sales.history.dueUnpaid': 'Payment due, not received',
+  'sales.history.dueUnpaid': 'Past due, no payment matched',
   'sales.history.nextReminder': 'Next: {stage} (schedule 7, 21, 42 days)',
   'sales.history.nextReminderReady': 'Ready to send',
   'sales.phone.sendReminders_one': 'Send all {count} reminder',
@@ -946,6 +947,9 @@ export const en: Record<MessageKey, string> = {
   'sales.hints.open': 'open full invoice',
   'sales.hints.segments': 'switch status',
   'sales.hints.filter': 'filter',
+  'sales.footer.segments': 'status',
+  'sales.skipNoEmail_one': '{count} without an email address skipped',
+  'sales.skipNoEmail_other': '{count} without an email address skipped',
 
   // One sales invoice.
   'invoice.title': 'Invoice',
@@ -1824,7 +1828,7 @@ export const en: Record<MessageKey, string> = {
   'dunning.outstandingHint': 'of the invoices in this list',
   'dunning.schedule': 'Schedule',
   'dunning.empty':
-    'Nothing to chase. Every outstanding invoice is still in time, or has been reminded already.',
+    'No reminders needed. No open invoice is due a reminder right now.',
   'dunning.invoice': 'Invoice',
   'dunning.overdueSince': 'Overdue since',
   'dunning.days': 'Days',
@@ -1845,9 +1849,9 @@ export const en: Record<MessageKey, string> = {
   'dunning.selected_one': '{count} selected',
   'dunning.selected_other': '{count} selected',
   'dunning.outstandingSum': '{amount} outstanding',
-  'dunning.matchCalloutTitle': 'Only invoices the bank has not paid',
+  'dunning.matchCalloutTitle': 'Only invoices without a matched payment',
   'dunning.matchCalloutBody':
-    'An invoice leaves this list the moment its payment is matched in Bank, so nobody gets a reminder for something they paid. Match the open bank lines first if you are unsure.',
+    'An invoice leaves this list once a payment in Bank is matched to it. Klopt cannot see payments that are not matched yet, so match the open bank lines first to avoid reminding someone who has already paid.',
   'dunning.openMatch': 'Open Match',
   'dunning.emailTo': 'To',
   'dunning.emailSubject': 'Subject',
@@ -1858,6 +1862,8 @@ export const en: Record<MessageKey, string> = {
   'dunning.confirmSend': 'Send this reminder now?',
   'dunning.expectedStage':
     'This invoice now needs a different step. Refresh the page and try again.',
+  'dunning.skipNoEmail_one': '{count} without an email address skipped',
+  'dunning.skipNoEmail_other': '{count} without an email address skipped',
 
   // Sealed snapshots.
   'snapshots.title': 'Sealed snapshots',
@@ -2270,7 +2276,7 @@ export const en: Record<MessageKey, string> = {
 
   'label.dunningTone.reminder': 'Payment reminder',
   'label.dunningTone.demand': 'Second reminder',
-  'label.dunningTone.final': 'Final notice',
+  'label.dunningTone.final': 'Third reminder',
 
   'label.statementSection.assets': 'Assets',
   'label.statementSection.liabilities': 'Liabilities',

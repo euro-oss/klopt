@@ -700,7 +700,7 @@ export const nl = {
   'sales.emptySegment': 'Geen facturen in dit filter.',
   'sales.pill.draft': 'Concept',
   'sales.pill.open': 'Open',
-  'sales.pill.cancelled': 'Vervallen',
+  'sales.pill.cancelled': 'Geannuleerd',
   'sales.pill.credit_note': 'Creditnota',
   'sales.pill.daysLate_one': '{days} dag te laat',
   'sales.pill.daysLate_other': '{days} dagen te laat',
@@ -708,7 +708,8 @@ export const nl = {
   'sales.preview.draft': 'Concept',
   'sales.preview.openFull': 'Volledige factuur openen',
   'sales.preview.more': 'Meer acties',
-  'sales.preview.sendFinal': 'Laatste aanmaning versturen',
+  'sales.preview.sendFinal': 'Derde herinnering versturen',
+  'sales.preview.send': 'Factuur versturen',
   'sales.preview.sendAgain': 'Opnieuw versturen',
   'sales.preview.credit': 'Creditnota',
   'sales.preview.pdf': 'PDF',
@@ -726,7 +727,7 @@ export const nl = {
   'sales.history.sent': 'Naar de klant verstuurd',
   'sales.history.sendFailed': 'Versturen mislukt',
   'sales.history.reminder': '{stage}',
-  'sales.history.dueUnpaid': 'Vervallen, niet ontvangen',
+  'sales.history.dueUnpaid': 'Vervaldatum verstreken, geen betaling gematcht',
   'sales.history.nextReminder': 'Volgende: {stage} (schema 7, 21, 42 dagen)',
   'sales.history.nextReminderReady': 'Klaar om te versturen',
   'sales.phone.sendReminders_one': 'Alle {count} herinnering versturen',
@@ -736,6 +737,9 @@ export const nl = {
   'sales.hints.open': 'volledige factuur openen',
   'sales.hints.segments': 'status wisselen',
   'sales.hints.filter': 'filteren',
+  'sales.footer.segments': 'status',
+  'sales.skipNoEmail_one': '{count} zonder e-mailadres overgeslagen',
+  'sales.skipNoEmail_other': '{count} zonder e-mailadres overgeslagen',
 
   // One sales invoice.
   'invoice.title': 'Factuur',
@@ -1889,7 +1893,8 @@ export const nl = {
   'dunning.outstandingAmount': 'Openstaand bedrag',
   'dunning.outstandingHint': 'van de facturen in deze lijst',
   'dunning.schedule': 'Schema',
-  'dunning.empty': 'Niets te chasen. Elke openstaande factuur is nog op tijd, of is al aangemaand.',
+  'dunning.empty':
+    'Geen herinneringen nodig. Er is nu geen openstaande factuur aan een herinnering toe.',
   'dunning.invoice': 'Factuur',
   'dunning.overdueSince': 'Vervallen',
   'dunning.days': 'Dagen',
@@ -1911,9 +1916,9 @@ export const nl = {
   'dunning.selected_one': '{count} geselecteerd',
   'dunning.selected_other': '{count} geselecteerd',
   'dunning.outstandingSum': '{amount} openstaand',
-  'dunning.matchCalloutTitle': 'Alleen facturen die de bank nog niet heeft betaald',
+  'dunning.matchCalloutTitle': 'Alleen facturen zonder gematchte betaling',
   'dunning.matchCalloutBody':
-    'Een factuur verdwijnt van deze lijst zodra de betaling in Bank is gematcht, zodat niemand een herinnering krijgt voor iets dat al betaald is. Match eerst de openstaande bankregels als je twijfelt.',
+    'Een factuur verdwijnt van deze lijst zodra er een betaling in Bank aan is gematcht. Betalingen die nog niet zijn gematcht, ziet Klopt niet. Match daarom eerst de openstaande bankregels, zodat je geen herinnering stuurt voor een factuur die al betaald is.',
   'dunning.openMatch': 'Match openen',
   'dunning.emailTo': 'Aan',
   'dunning.emailSubject': 'Onderwerp',
@@ -1924,6 +1929,8 @@ export const nl = {
   'dunning.confirmSend': 'Deze herinnering nu versturen?',
   'dunning.expectedStage':
     'Deze factuur heeft inmiddels een andere stap. Vernieuw de pagina en probeer opnieuw.',
+  'dunning.skipNoEmail_one': '{count} zonder e-mailadres overgeslagen',
+  'dunning.skipNoEmail_other': '{count} zonder e-mailadres overgeslagen',
 
   // Sealed snapshots.
   'snapshots.title': 'Verzegelde momentopnames',
@@ -2337,7 +2344,7 @@ export const nl = {
 
   'label.dunningTone.reminder': 'Betalingsherinnering',
   'label.dunningTone.demand': 'Tweede herinnering',
-  'label.dunningTone.final': 'Laatste aanmaning',
+  'label.dunningTone.final': 'Derde herinnering',
 
   'label.statementSection.assets': 'Activa',
   'label.statementSection.liabilities': 'Schulden',

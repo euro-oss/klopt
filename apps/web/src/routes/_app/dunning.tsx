@@ -3,14 +3,14 @@ import { reminderEmailCopy } from '@klopt/core/reminder-email'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { SalesTabs } from '~/components/sales-tabs'
-import { Money } from '~/components/finance/money'
+import { EuroAmount } from '~/components/finance/money'
 import { Button } from '~/components/ui/button'
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '~/components/ui/empty'
-import { Keycap, ShortcutFooter } from '~/components/ui/keycap'
+import { Empty, EmptyHeader, EmptyTitle } from '~/components/ui/empty'
+import { Keycap } from '~/components/ui/keycap'
 import { Badge } from '~/components/ui/badge'
 import { dunningStageLabel } from '~/i18n/labels'
 import { useT } from '~/i18n/provider'
-import { formatDate, formatMinorUnits } from '~/lib/format'
+import { formatMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple, isTypingInto } from '~/lib/keyboard'
 import { cn } from '~/lib/utils'
@@ -204,10 +204,11 @@ function Dunning() {
           daysOverdue: active.daysOverdue,
         })
 
-  const selectedCount = selected.size
-  const selectedSum = actions
-    .filter((row) => selected.has(row.invoiceId))
-    .reduce((sum, row) => sum + BigInt(row.total), 0n)
+  const selectedRows = actions.filter((row) => selected.has(row.invoiceId))
+  const sendableSelected = selectedRows.filter((row) => row.sendable)
+  const skippedNoEmail = selectedRows.length - sendableSelected.length
+  const sendableCount = sendableSelected.length
+  const selectedSum = sendableSelected.reduce((sum, row) => sum + BigInt(row.total), 0n)
 
   return (
     <>
@@ -217,17 +218,15 @@ function Dunning() {
           actions.length > 0 ? (
             <Button
               type="button"
-              disabled={busy || !hydrated || selectedCount === 0}
+              disabled={busy || !hydrated || sendableCount === 0}
               onClick={() => {
-                void sendSelected(
-                  actions.filter((row) => selected.has(row.invoiceId) && row.sendable),
-                )
+                void sendSelected(sendableSelected)
               }}
               className="min-h-11 md:min-h-9"
             >
               {busy
                 ? t('common.busy')
-                : plural('dunning.sendAll', selectedCount, { count: String(selectedCount) })}
+                : plural('dunning.sendAll', sendableCount, { count: String(sendableCount) })}
               {hydrated && (
                 <span className="ml-1 inline-flex gap-0.5 normal-case">
                   <Keycap>{isApple() ? '⌘' : 'Ctrl'}</Keycap>
@@ -244,6 +243,11 @@ function Dunning() {
       {notice !== null && (
         <p className="border-border text-muted-foreground mb-4 rounded-[var(--radius-md)] border p-3 text-sm">
           {notice}
+        </p>
+      )}
+      {skippedNoEmail > 0 && actions.length > 0 && (
+        <p className="text-ink-muted mb-4 text-sm">
+          {plural('dunning.skipNoEmail', skippedNoEmail, { count: String(skippedNoEmail) })}
         </p>
       )}
       {error !== null && (
@@ -280,9 +284,6 @@ function Dunning() {
             <Empty>
               <EmptyHeader>
                 <EmptyTitle>{t('dunning.empty')}</EmptyTitle>
-                <EmptyDescription>
-                  {t('dunning.intro', { date: formatDate(asOf) })}
-                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
@@ -292,7 +293,7 @@ function Dunning() {
                   <div className="text-ink-muted grid grid-cols-[20px_minmax(160px,1fr)_92px_110px_120px] gap-3 border-b border-[var(--line-soft)] px-5 py-2.5 text-xs font-medium">
                     <input
                       type="checkbox"
-                      checked={selectedCount === actions.length && actions.length > 0}
+                      checked={selectedRows.length === actions.length && actions.length > 0}
                       aria-label={t('dunning.selected_other', { count: String(actions.length) })}
                       onChange={(event) => {
                         setSelectedOverride(
@@ -372,8 +373,8 @@ function Dunning() {
                           )}
                         </span>
                         <span className="text-ink-2 tabular-nums">{action.number}</span>
-                        <span className="text-right font-medium tabular-nums">
-                          <Money amount={action.total} />
+                        <span className="text-right font-medium">
+                          <EuroAmount amount={action.total} />
                         </span>
                         <span>
                           <Badge variant={action.tone === 'final' ? 'destructive' : 'default'}>
@@ -387,11 +388,11 @@ function Dunning() {
               </div>
               <div className="text-ink-muted flex justify-between border-t border-[var(--line-soft)] px-5 py-3 text-[13px]">
                 <span>
-                  {plural('dunning.selected', selectedCount, { count: String(selectedCount) })}
+                  {plural('dunning.selected', sendableCount, { count: String(sendableCount) })}
                 </span>
                 <span className="tabular-nums">
                   {t('dunning.outstandingSum', {
-                    amount: `€ ${formatMinorUnits(selectedSum)}`,
+                    amount: `€\u00a0${formatMinorUnits(selectedSum)}`,
                   })}
                 </span>
               </div>
@@ -444,10 +445,19 @@ function Dunning() {
         )}
       </div>
 
-      <ShortcutFooter
-        ids={['list.next', 'list.previous', 'list.selectX']}
-        className="mt-6 hidden md:flex"
-      />
+      {hydrated && actions.length > 0 && (
+        <p className="text-muted-foreground mt-6 hidden flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] md:flex">
+          <span className="inline-flex items-center gap-1">
+            <Keycap>j</Keycap>
+            <Keycap>k</Keycap>
+            <span>{t('sales.hints.nextPrev')}</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Keycap>x</Keycap>
+            <span>{t('sales.hints.select')}</span>
+          </span>
+        </p>
+      )}
     </>
   )
 }

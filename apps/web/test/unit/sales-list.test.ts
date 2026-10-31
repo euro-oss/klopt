@@ -147,7 +147,7 @@ describe('invoiceHistoryEvents', () => {
           failure: null,
         },
       ],
-      nextReminder: { tone: 'final', stageLabel: 'Laatste aanmaning' },
+      nextReminder: { tone: 'final', stageLabel: 'Derde herinnering' },
     })
     expect(events.map((e) => e.kind)).toEqual(['issued', 'sent', 'due_unpaid', 'next_reminder'])
     expect(events.map((e) => e.kind).includes('paid' as never)).toBe(false)
@@ -161,7 +161,7 @@ describe('sumInvoiceTotals', () => {
 })
 
 describe('reminderEmailCopy (Reminders read-only preview)', () => {
-  it('stage 3 asks for payment without WIK threats', () => {
+  it('stage 3 asks for payment without WIK threats or a 14-day deadline', () => {
     const copy = reminderEmailCopy({
       invoiceNumber: '2026-0037',
       total: '985,93',
@@ -170,8 +170,13 @@ describe('reminderEmailCopy (Reminders read-only preview)', () => {
       stage: 3,
       daysOverdue: 324,
     })
-    expect(copy.subject).toBe('Laatste aanmaning: factuur 2026-0037')
-    expect(copy.text).toContain('veertien dagen')
-    expect(copy.text).not.toMatch(/incassokosten|wettelijke\s+rente|incasso/i)
+    expect(copy.subject).toBe('Derde herinnering: factuur 2026-0037')
+    expect(copy.text).toContain(
+      'Wij verzoeken u het openstaande bedrag zo spoedig mogelijk te voldoen.',
+    )
+    expect(copy.text).toContain(
+      'Heeft u vragen over deze factuur, neem dan contact met ons op.',
+    )
+    expect(copy.text).not.toMatch(/incassokosten|wettelijke\s+rente|incasso|veertien|6:96/i)
   })
 })

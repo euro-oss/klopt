@@ -4,9 +4,10 @@
  *
  * One source of truth: the preview must show what will actually be sent.
  *
- * Legal (#107): do not claim collection costs (incassokosten) or statutory
- * interest unless the Dutch WIK / 14-day consumer letter is implemented.
- * Until then the final notice only asks for payment within fourteen days.
+ * Legal (#107 / #118): do not claim collection costs (incassokosten), statutory
+ * interest, or a fixed payment deadline (WIK / veertiendagenbrief) unless that
+ * Dutch logic is implemented. Stages 2 and 3 ask for payment as soon as
+ * possible; they do not set a tracked deadline.
  */
 
 export interface ReminderEmailInput {
@@ -29,7 +30,7 @@ export function reminderEmailCopy(input: ReminderEmailInput): ReminderEmailCopy 
       ? 'Betalingsherinnering'
       : input.stage === 2
         ? 'Tweede herinnering'
-        : 'Laatste aanmaning'
+        : 'Derde herinnering'
 
   const body =
     input.stage === 1
@@ -45,13 +46,15 @@ export function reminderEmailCopy(input: ReminderEmailInput): ReminderEmailCopy 
             `Factuur ${input.invoiceNumber} van ${input.total} ${input.currency} is nu`,
             `${String(input.daysOverdue)} dagen te laat. Wij hebben u hierover eerder bericht.`,
             '',
-            'Wij verzoeken u het bedrag binnen veertien dagen te voldoen.',
+            'Wij verzoeken u het openstaande bedrag zo spoedig mogelijk te voldoen.',
+            'Heeft u inmiddels betaald, dan kunt u dit bericht als niet verzonden beschouwen.',
           ]
         : [
             `Factuur ${input.invoiceNumber} van ${input.total} ${input.currency} is`,
             `${String(input.daysOverdue)} dagen te laat, ondanks eerdere herinneringen.`,
             '',
-            'Wij verzoeken u het bedrag binnen veertien dagen te voldoen.',
+            'Wij verzoeken u het openstaande bedrag zo spoedig mogelijk te voldoen.',
+            'Heeft u vragen over deze factuur, neem dan contact met ons op.',
           ]
 
   return {

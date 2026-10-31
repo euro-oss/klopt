@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { SalesTabs } from '~/components/sales-tabs'
 import { InvoiceStatusPill } from '~/components/sales/invoice-status-pill'
-import { Money } from '~/components/finance/money'
+import { EuroAmount } from '~/components/finance/money'
 import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
@@ -14,7 +14,7 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '~/components/ui/empty'
 import { Input } from '~/components/ui/input'
-import { Keycap, ShortcutFooter } from '~/components/ui/keycap'
+import { Keycap } from '~/components/ui/keycap'
 import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { dunningStageLabel } from '~/i18n/labels'
 import type { MessageKey } from '~/i18n/nl'
@@ -51,8 +51,9 @@ import {
  * Sales → Invoices (#107 Phase 2).
  *
  * Boards: Invoices / InvoicesDark / PhoneSales. Segments Drafts / Open /
- * Overdue with real counts from the list + overdue report. Preview pane on
- * desktop; phone is the list. "Nieuwe factuur" is secondary (PM).
+ * Overdue with counts from the list + overdue report (Open cannot yet exclude
+ * paid invoices — no `outstanding`/`paidOn` on the list [API]). Preview pane
+ * on desktop; phone is the list. "Nieuwe factuur" is secondary (PM).
  */
 
 const SEGMENTS: readonly SalesSegment[] = ['draft', 'open', 'overdue']
@@ -428,15 +429,10 @@ function Invoices() {
               aria-label={t('sales.segment')}
               className="w-full md:w-auto [&_[data-slot=tabs-trigger]]:min-h-11 md:[&_[data-slot=tabs-trigger]]:min-h-9"
             >
-              {SEGMENTS.map((key, index) => (
+              {SEGMENTS.map((key) => (
                 <TabsTrigger key={key} value={key} className="flex-1 gap-1.5 md:flex-none">
                   {t(`sales.segment.${key}` as MessageKey)}
                   <span className="text-ink-muted tabular-nums">{String(counts[key])}</span>
-                  {hydrated && (
-                    <span className="text-ink-muted ml-1 hidden font-mono text-[11px] md:inline">
-                      {String(index + 1)}
-                    </span>
-                  )}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -456,12 +452,13 @@ function Invoices() {
               {/* Desktop table */}
               <div className="border-border bg-surface hidden overflow-hidden rounded-[var(--radius-xl)] border md:block">
                 <div className="overflow-x-auto">
-                  <div className="min-w-[640px]">
+                  <div className="min-w-[680px]">
                     <div
-                      className="text-ink-muted grid grid-cols-[20px_92px_minmax(140px,1fr)_80px_120px_110px] gap-3 border-b border-[var(--line-soft)] px-5 py-2.5 text-xs font-medium"
+                      className="text-ink-muted grid grid-cols-[20px_92px_minmax(140px,1fr)_88px_140px_120px] gap-3 border-b border-[var(--line-soft)] px-5 py-2.5 text-xs font-medium"
                       role="row"
                     >
-                      <span className="sr-only">{t('sales.hints.select')}</span>
+                      {/* Keep the leading cell in flow — sr-only would collapse the column. */}
+                      <span aria-hidden="true" />
                       <span>{t('invoices.number')}</span>
                       <span>{t('invoices.contact')}</span>
                       <span>{t('invoices.date')}</span>
@@ -469,7 +466,7 @@ function Invoices() {
                       <span className="text-right">{t('report.total')}</span>
                     </div>
                     {shown.map((row) => {
-                      const pill = invoicePill(row, overdueIds, asOf)
+                      const pill = invoicePill(row, overdueIds, asOf, overdueDays.get(row.id) ?? null)
                       const isActive = row.id === activeId
                       return (
                         <button
@@ -483,9 +480,10 @@ function Invoices() {
                             })
                           }}
                           className={cn(
-                            'hover:bg-surface-hover grid w-full grid-cols-[20px_92px_minmax(140px,1fr)_80px_120px_110px] gap-3 border-b border-[var(--line-soft)] px-5 py-3 text-left text-sm last:border-b-0',
+                            'hover:bg-surface-hover grid w-full grid-cols-[20px_92px_minmax(140px,1fr)_88px_140px_120px] gap-3 border-b border-[var(--line-soft)] px-5 py-3 text-left text-sm last:border-b-0',
                             'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
-                            isActive && 'bg-surface-sunken',
+                            isActive &&
+                              'bg-[var(--selection)] shadow-[inset_3px_0_0_0_var(--selection-edge)]',
                           )}
                         >
                           <span
@@ -495,18 +493,18 @@ function Invoices() {
                               selected.has(row.id) && 'bg-primary border-primary',
                             )}
                           />
-                          <span className="tabular-nums font-medium">
+                          <span className="font-medium tabular-nums">
                             {row.number ?? t('sales.pill.draft')}
                           </span>
                           <span className="truncate">{row.contactName}</span>
-                          <span className="text-ink-2 tabular-nums">
-                            {formatDate(row.issueDate)}
+                          <span className="text-ink-2 whitespace-nowrap tabular-nums">
+                            {shortDate(row.issueDate, t)}
                           </span>
                           <span>
                             <InvoiceStatusPill pill={pill} />
                           </span>
-                          <span className="text-right font-medium tabular-nums">
-                            <Money amount={row.total} />
+                          <span className="text-right font-medium">
+                            <EuroAmount amount={row.total} />
                           </span>
                         </button>
                       )
@@ -517,7 +515,7 @@ function Invoices() {
                   <span>{showingLabel}</span>
                   <span className="tabular-nums">
                     {t('sales.listTotal', {
-                      amount: `€ ${formatMinorUnits(sum)}`,
+                      amount: `€\u00a0${formatMinorUnits(sum)}`,
                     })}
                   </span>
                 </div>
@@ -526,7 +524,7 @@ function Invoices() {
               {/* Phone list (PhoneSales) */}
               <div className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border md:hidden">
                 {shown.map((row) => {
-                  const pill = invoicePill(row, overdueIds, asOf)
+                  const pill = invoicePill(row, overdueIds, asOf, overdueDays.get(row.id) ?? null)
                   return (
                     <Link
                       key={row.id}
@@ -538,15 +536,15 @@ function Invoices() {
                         <strong className="truncate text-[15px] font-semibold">
                           {row.contactName}
                         </strong>
-                        <span className="text-ink-muted tabular-nums text-[13px]">
+                        <span className="text-ink-muted whitespace-nowrap tabular-nums text-[13px]">
                           {row.number ?? t('sales.pill.draft')}
                           {' · '}
                           {shortDate(row.issueDate, t)}
                         </span>
                       </span>
                       <span className="flex flex-col items-end gap-1">
-                        <span className="font-semibold tabular-nums">
-                          <Money amount={row.total} />
+                        <span className="font-semibold">
+                          <EuroAmount amount={row.total} />
                         </span>
                         <InvoiceStatusPill pill={pill} />
                       </span>
@@ -589,17 +587,33 @@ function Invoices() {
         )}
       </div>
 
-      <ShortcutFooter
-        ids={[
-          'list.next',
-          'list.previous',
-          'list.open',
-          'list.selectX',
-          'list.filter',
-          'new.invoice',
-        ]}
-        className="mt-6 hidden md:flex"
-      />
+      {hydrated && (
+        <p className="text-muted-foreground mt-6 hidden flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] md:flex">
+          <span className="inline-flex items-center gap-1">
+            <Keycap>j</Keycap>
+            <Keycap>k</Keycap>
+            <span>{t('sales.hints.nextPrev')}</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Keycap>↵</Keycap>
+            <span>{t('sales.hints.open')}</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Keycap>x</Keycap>
+            <span>{t('sales.hints.select')}</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Keycap>/</Keycap>
+            <span>{t('sales.hints.filter')}</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Keycap>1</Keycap>
+            <Keycap>2</Keycap>
+            <Keycap>3</Keycap>
+            <span>{t('sales.footer.segments')}</span>
+          </span>
+        </p>
+      )}
     </>
   )
 }
@@ -649,6 +663,8 @@ function InvoicePreview({
     total: string
   } | null>(null)
   const [deliveries, setDeliveries] = useState<readonly DeliveryRecord[]>([])
+  /** Invoice id for which the third-reminder confirm is open; null = closed. */
+  const [confirmRemindFor, setConfirmRemindFor] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -675,9 +691,9 @@ function InvoicePreview({
     }
   }, [row.id])
 
-  const pill = invoicePill(row, overdueIds, asOf)
-  const isOverdue = overdueIds.has(row.id)
   const days = overdueDays.get(row.id) ?? null
+  const pill = invoicePill(row, overdueIds, asOf, days)
+  const isOverdue = overdueIds.has(row.id)
   const sentAs = sentAsFromDeliveries(deliveries)
   const history = invoiceHistoryEvents({
     issueDate: row.issueDate,
@@ -692,6 +708,9 @@ function InvoicePreview({
   const vatGroups = groupVat(detail?.lines ?? [])
   const showFinal = isOverdue && dunning !== null && dunning.tone === 'final'
   const showSend = row.status === 'issued'
+  const alreadySent = deliveries.some((item) => item.purpose === 'invoice' && item.delivered)
+  const sendLabel = alreadySent ? t('sales.preview.sendAgain') : t('sales.preview.send')
+  const confirmRemind = confirmRemindFor === row.id
   return (
     <aside
       aria-label={t('sales.preview')}
@@ -714,84 +733,114 @@ function InvoicePreview({
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="text-xl leading-[26px] font-semibold">{row.contactName}</span>
-          <span className="text-[32px] leading-[38px] font-semibold tracking-[-0.02em] tabular-nums">
-            <Money amount={row.total} />
+          <span className="text-[32px] leading-[38px] font-semibold tracking-[-0.02em]">
+            <EuroAmount amount={row.total} />
           </span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {showFinal && (
-            <Button
-              type="button"
-              size="sm"
-              disabled={busy}
-              onClick={() => {
-                onRemind(dunning.stage)
-              }}
-            >
-              {t('sales.preview.sendFinal')}
-              <Keycap className="ml-1">R</Keycap>
-            </Button>
-          )}
-          {showSend && !showFinal && (
-            <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onSend}>
-              {t('sales.preview.sendAgain')}
-              <Keycap className="ml-1">E</Keycap>
-            </Button>
-          )}
-          {row.status === 'issued' && row.kind === 'invoice' && (
-            <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onCredit}>
-              {t('sales.preview.credit')}
-              <Keycap className="ml-1">C</Keycap>
-            </Button>
-          )}
-          {row.status !== 'draft' && (
-            <Button asChild variant="outline" size="sm">
-              <a href={`/api/v1/sales-invoices/${row.id}/pdf?embedUbl=true`}>
-                {t('sales.preview.pdf')}
-                <Keycap className="ml-1">P</Keycap>
-              </a>
-            </Button>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+        {confirmRemind && showFinal && dunning !== null ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('dunning.confirmSend')}
+            className="border-border flex flex-col gap-3 rounded-[var(--radius-md)] border p-3"
+          >
+            <p className="text-sm font-medium">{t('dunning.confirmSend')}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={busy}
+                onClick={() => {
+                  setConfirmRemindFor(null)
+                  onRemind(dunning.stage)
+                }}
+              >
+                {t('sales.preview.sendFinal')}
+              </Button>
               <Button
                 type="button"
                 variant="outline"
-                size="icon-sm"
-                aria-label={t('sales.preview.more')}
+                size="sm"
+                onClick={() => {
+                  setConfirmRemindFor(null)
+                }}
               >
-                <RiMoreLine aria-hidden="true" />
+                {t('sales.preview.cancel')}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {showSend && (
-                <DropdownMenuItem
-                  disabled={busy}
-                  onSelect={() => {
-                    onSend()
-                  }}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {showFinal && (
+              <Button
+                type="button"
+                size="sm"
+                disabled={busy}
+                onClick={() => {
+                  setConfirmRemindFor(row.id)
+                }}
+              >
+                {t('sales.preview.sendFinal')}
+              </Button>
+            )}
+            {showSend && !showFinal && (
+              <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onSend}>
+                {sendLabel}
+              </Button>
+            )}
+            {row.status === 'issued' && row.kind === 'invoice' && (
+              <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onCredit}>
+                {t('sales.preview.credit')}
+              </Button>
+            )}
+            {row.status !== 'draft' && (
+              <Button asChild variant="outline" size="sm">
+                <a href={`/api/v1/sales-invoices/${row.id}/pdf?embedUbl=true`}>
+                  {t('sales.preview.pdf')}
+                </a>
+              </Button>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label={t('sales.preview.more')}
                 >
-                  {t('sales.preview.sendAgain')}
-                </DropdownMenuItem>
-              )}
-              {row.status !== 'draft' && (
-                <DropdownMenuItem asChild>
-                  <a href={`/api/v1/sales-invoices/${row.id}/ubl`}>{t('sales.preview.ubl')}</a>
-                </DropdownMenuItem>
-              )}
-              {row.status === 'issued' && row.kind === 'invoice' && (
-                <DropdownMenuItem
-                  disabled={busy}
-                  onSelect={() => {
-                    onCredit()
-                  }}
-                >
-                  {t('sales.preview.credit')}
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                  <RiMoreLine aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {showSend && (
+                  <DropdownMenuItem
+                    disabled={busy}
+                    onSelect={() => {
+                      onSend()
+                    }}
+                  >
+                    {sendLabel}
+                  </DropdownMenuItem>
+                )}
+                {row.status !== 'draft' && (
+                  <DropdownMenuItem asChild>
+                    <a href={`/api/v1/sales-invoices/${row.id}/ubl`}>{t('sales.preview.ubl')}</a>
+                  </DropdownMenuItem>
+                )}
+                {row.status === 'issued' && row.kind === 'invoice' && (
+                  <DropdownMenuItem
+                    disabled={busy}
+                    onSelect={() => {
+                      onCredit()
+                    }}
+                  >
+                    {t('sales.preview.credit')}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
 
       <dl className="grid grid-cols-[110px_1fr] gap-y-2.5 border-b border-[var(--line-soft)] px-6 py-4 text-sm">
@@ -816,24 +865,18 @@ function InvoicePreview({
           {detail.lines.map((line, index) => (
             <div key={index} className="flex justify-between gap-3">
               <span className="min-w-0 truncate">{line.description}</span>
-              <span className="tabular-nums">
-                <Money amount={line.net} />
-              </span>
+              <EuroAmount amount={line.net} />
             </div>
           ))}
           {vatGroups.map((group) => (
             <div key={group.rate} className="text-ink-muted flex justify-between">
               <span>{t('sales.preview.vatRate', { rate: group.rate })}</span>
-              <span className="tabular-nums">
-                <Money amount={group.tax} />
-              </span>
+              <EuroAmount amount={group.tax} />
             </div>
           ))}
           <div className="flex justify-between border-t border-[var(--line-soft)] pt-2 font-semibold">
             <span>{t('sales.preview.total')}</span>
-            <span className="tabular-nums">
-              <Money amount={detail.total} />
-            </span>
+            <EuroAmount amount={detail.total} />
           </div>
         </div>
       )}

@@ -247,7 +247,7 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
   const row = page.getByRole('button', { name: /Trage Betaler B\.V\./ })
   await expect(row).toBeVisible()
   // Months late, so the schedule says final demand rather than a courtesy.
-  await expect(row).toContainText('Laatste aanmaning')
+  await expect(row).toContainText('Derde herinnering')
 
   await page.getByRole('button', { name: /Alle .* herinnering/ }).click()
   await expect(page.getByText(/verstuurd naar Trage Betaler B.V./)).toBeVisible()

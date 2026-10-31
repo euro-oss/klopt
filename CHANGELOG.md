@@ -26,9 +26,9 @@ counts from the invoice list and overdue report (no Paid segment — needs
 `outstanding` / `paidOn` [API]). Desktop preview pane with honest "Sent as"
 from deliveries only (no Peppol claim). Reminders schedule and email text are
 read-only; email preview uses `reminderEmailCopy` (shared with the transport).
-Legal: final-notice copy no longer mentions incassokosten or wettelijke rente.
-PhoneSales / PhoneInvoice / InvoicesDark via tokens. Customers tab links to
-Contacts (no customers URL filter yet). "Nieuwe factuur" is secondary.
+Reminder emails no longer mention incassokosten, wettelijke rente or a payment
+deadline. PhoneSales / PhoneInvoice / InvoicesDark via tokens. Customers tab
+links to Contacts (no customers URL filter yet). "Nieuwe factuur" is secondary.
 
 ### Redesign Phase 1: Home (#107)
 

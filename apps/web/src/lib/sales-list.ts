@@ -124,19 +124,23 @@ export function filterSalesInvoices(
  * Status pill for a list or preview row.
  *
  * Only statuses the API returns: draft / issued / cancelled, plus kind
- * credit_note. Overdue days come from the overdue set (or dueDate vs asOf when
- * the invoice is known overdue). Paid pills are an [API] gap.
+ * credit_note. Prefer the overdue report's `daysOverdue` when given; otherwise
+ * fall back to dueDate vs asOf. Paid pills are an [API] gap.
+ *
+ * Open membership still cannot exclude fully paid invoices — `listInvoices`
+ * has no `outstanding` / `paidOn` ([API] gap; PM #118).
  */
 export function invoicePill(
   invoice: Pick<SalesInvoiceRow, 'id' | 'kind' | 'status' | 'dueDate'>,
   overdueIds: ReadonlySet<string>,
   asOf: string,
+  daysFromReport: number | null = null,
 ): InvoicePill {
   if (invoice.status === 'draft') return { kind: 'draft', daysOverdue: null }
   if (invoice.status === 'cancelled') return { kind: 'cancelled', daysOverdue: null }
   if (invoice.kind === 'credit_note') return { kind: 'credit_note', daysOverdue: null }
   if (overdueIds.has(invoice.id)) {
-    const days = daysBetweenIso(invoice.dueDate, asOf)
+    const days = daysFromReport ?? daysBetweenIso(invoice.dueDate, asOf)
     return { kind: 'overdue', daysOverdue: days > 0 ? days : null }
   }
   if (invoice.status === 'issued') return { kind: 'open', daysOverdue: null }
