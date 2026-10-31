@@ -22,8 +22,8 @@ This product includes UI components derived from shadcn/ui
 (https://ui.shadcn.com/), under the MIT License. The attribution below covers
 the components in apps/web/src/components/ui/: alert-dialog.tsx, alert.tsx,
 badge.tsx, button.tsx, checkbox.tsx, dropdown-menu.tsx, empty.tsx, input.tsx,
-item.tsx, popover.tsx, radio-group.tsx, select-field.tsx, select.tsx,
-separator.tsx, sheet.tsx, switch.tsx, and tabs.tsx.
+item.tsx, popover.tsx, radio-group.tsx, select.tsx, separator.tsx, sheet.tsx,
+switch.tsx, and tabs.tsx.
 
 Copyright (c) 2023 shadcn
 
