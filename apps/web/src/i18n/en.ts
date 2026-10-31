@@ -981,8 +981,8 @@ export const en: Record<MessageKey, string> = {
   'invoice.sentVia': 'Via',
   'invoice.sentResult': 'Result',
   'invoice.sentDocument': 'Document',
-  'invoice.delivered': 'delivered',
-  'invoice.notDelivered': 'not delivered',
+  'invoice.delivered': 'sent',
+  'invoice.notDelivered': 'not sent',
   'invoice.postedAs': 'Posted as',
   'invoice.postedAsLink': 'entry',
 
