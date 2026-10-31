@@ -152,6 +152,18 @@ export function showHomeHeaderNewInvoice(dashboardOk: boolean, itemCount: number
 }
 
 /**
+ * The overdue invoice with the most days late — drives `salesOverdueTop` and
+ * the multi-overdue "Oudste:" body (loader sort at server/dashboard.ts).
+ * Order of the input list must not matter.
+ */
+export function pickOldestOverdue<T extends { readonly daysOverdue: number }>(
+  invoices: readonly T[],
+): T | undefined {
+  if (invoices.length === 0) return undefined
+  return [...invoices].sort((a, b) => b.daysOverdue - a.daysOverdue)[0]
+}
+
+/**
  * Multi-invoice overdue row body (Design / Legal #117): qualify the oldest
  * days-late under "N facturen te laat" — never the bare single-invoice line.
  */

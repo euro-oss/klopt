@@ -16,6 +16,7 @@ import {
   homeQueueVatBody,
   homeQueueVatDeadlineIso,
   payablesFigureValueKind,
+  pickOldestOverdue,
   profitFigureValueKind,
   showHomeHeaderNewInvoice,
 } from '../../src/lib/dashboard.js'
@@ -315,6 +316,32 @@ describe('Home header Nieuwe factuur visibility (PM #117)', () => {
 
   it('shows the header CTA when the dashboard read failed (count looks like 0)', () => {
     expect(showHomeHeaderNewInvoice(false, 0)).toBe(true)
+  })
+})
+
+describe('pickOldestOverdue (loader sort → salesOverdueTop / Oudste body)', () => {
+  const inv = (id: string, daysOverdue: number) => ({ id, daysOverdue })
+
+  it('returns undefined when nothing is overdue', () => {
+    expect(pickOldestOverdue([])).toBeUndefined()
+  })
+
+  it('picks the highest daysOverdue regardless of input order', () => {
+    const oldest = inv('old', 120)
+    const mid = inv('mid', 45)
+    const fresh = inv('fresh', 1)
+    expect(pickOldestOverdue([fresh, mid, oldest])?.id).toBe('old')
+    expect(pickOldestOverdue([oldest, fresh, mid])?.id).toBe('old')
+    expect(pickOldestOverdue([mid, oldest, fresh])?.id).toBe('old')
+    expect(pickOldestOverdue([fresh, oldest, mid])?.daysOverdue).toBe(120)
+  })
+
+  it('is used by the Home dashboard loader for salesOverdueTop', () => {
+    const source = readFileSync(join(import.meta.dirname, '../../src/server/dashboard.ts'), 'utf8')
+    expect(source).toContain('pickOldestOverdue(overdueInvoices)')
+    expect(source).not.toMatch(
+      /const ranked = \[\.\.\.overdueInvoices\]\.sort\(\(a, b\) => b\.daysOverdue - a\.daysOverdue\)/,
+    )
   })
 })
 
