@@ -1,11 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import {
-  RiBankLine,
-  RiFileList3Line,
-  RiHome5Line,
-  RiInbox2Line,
-  RiMenuLine,
-} from '@remixicon/react'
+import { FileText, House, Inbox, Landmark, Menu } from 'lucide-react'
 import { useT } from '~/i18n/provider'
 import { cn } from '~/lib/utils'
 import { isNavActive, PHONE_TAB_BAR, type NavSearch, type PhoneTabId } from '~/lib/shell-nav'
@@ -18,11 +12,11 @@ import { isNavActive, PHONE_TAB_BAR, type NavSearch, type PhoneTabId } from '~/l
  */
 
 const ICONS = {
-  home: RiHome5Line,
-  sales: RiFileList3Line,
-  inbox: RiInbox2Line,
-  bank: RiBankLine,
-  more: RiMenuLine,
+  home: House,
+  sales: FileText,
+  inbox: Inbox,
+  bank: Landmark,
+  more: Menu,
 } as const
 
 export function PhoneTabBar({

@@ -7,7 +7,7 @@
  * the VAT code (PM #69 — do not claim both when only one is persisted).
  */
 
-import { RiAddLine, RiArrowDownSLine, RiCheckLine, RiSearchLine } from '@remixicon/react'
+import { Plus, ChevronDown, Check, Search } from 'lucide-react'
 import { useId, useMemo, useState, type KeyboardEvent } from 'react'
 import {
   rankAccountSuggestions,
@@ -363,7 +363,7 @@ function AccountVatSheetBody({
             </div>
 
             <div className="relative">
-              <RiSearchLine
+              <Search
                 className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
                 aria-hidden
               />
@@ -443,7 +443,7 @@ function AccountVatSheetBody({
                       )}
                     >
                       <span className="flex size-4 items-center justify-center">
-                        {selected ? <RiCheckLine className="size-4" aria-hidden /> : null}
+                        {selected ? <Check className="size-4" aria-hidden /> : null}
                       </span>
                       {advanced && (
                         <span className="w-10 text-xs tabular-nums">{row.account.number}</span>
@@ -496,7 +496,7 @@ function AccountVatSheetBody({
                 newAccount ? 'border-foreground bg-muted' : 'hover:bg-muted',
               )}
             >
-              <RiAddLine className="size-4" aria-hidden />
+              <Plus className="size-4" aria-hidden />
               {sourceNumber.trim() !== ''
                 ? t('importFindings.accountVat.useNewNumber', { number: sourceNumber })
                 : t('importFindings.accountVat.newCategory')}
@@ -673,7 +673,7 @@ function AccountVatSheetBody({
                     className="mt-2 h-auto min-h-11 justify-start gap-1 px-0 font-normal tracking-normal normal-case md:min-h-9"
                     onClick={() => setShowOther((open) => !open)}
                   >
-                    <RiArrowDownSLine
+                    <ChevronDown
                       aria-hidden
                       className={cn(
                         'size-4 shrink-0 transition-transform motion-reduce:transition-none',

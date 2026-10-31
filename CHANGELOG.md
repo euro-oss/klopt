@@ -18,6 +18,11 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Replace icon dependency with lucide-react (#113)
+
+UI icons now come from `lucide-react` (ISC). The previous icon package is
+removed from `package.json` and the lockfile; `NOTICE` attributes lucide-react.
+
 ### Redesign Phase 1: Home (#107)
 
 Home matches Main / PhoneHome / HomeDark from the v2 export at `fa4093b`.

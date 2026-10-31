@@ -12,7 +12,7 @@
  */
 
 import { useId } from 'react'
-import { RiBankLine, RiLoader4Line, RiPencilLine, RiRefreshLine } from '@remixicon/react'
+import { Landmark, LoaderCircle, Pencil, RefreshCw } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
 import { Keycap } from '~/components/ui/keycap'
@@ -171,12 +171,12 @@ export function FxRateSheet({
                 <Badge variant={isEcb ? 'outline' : 'attention'} data-fx="badge">
                   {isEcb ? (
                     <>
-                      <RiBankLine className="size-3" aria-hidden />
+                      <Landmark className="size-3" aria-hidden />
                       {t('importFindings.fx.badgeEcb', { date: dateLabel })}
                     </>
                   ) : (
                     <>
-                      <RiPencilLine className="size-3" aria-hidden />
+                      <Pencil className="size-3" aria-hidden />
                       {t('importFindings.fx.badgeOverride', { date: dateLabel })}
                     </>
                   )}
@@ -201,7 +201,7 @@ export function FxRateSheet({
                   aria-describedby="fx-rate-note"
                   className="border-input bg-background min-h-11 w-full border py-2 pr-9 pl-3 text-lg font-medium tabular-nums md:min-h-9 md:text-lg"
                 />
-                <RiPencilLine
+                <Pencil
                   className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
                   aria-hidden
                 />
@@ -246,7 +246,7 @@ export function FxRateSheet({
                 >
                   {loading ? (
                     <>
-                      <RiLoader4Line
+                      <LoaderCircle
                         className="size-3.5 animate-spin motion-reduce:animate-none"
                         aria-hidden
                       />
@@ -254,7 +254,7 @@ export function FxRateSheet({
                     </>
                   ) : (
                     <>
-                      <RiRefreshLine className="size-3.5" aria-hidden />
+                      <RefreshCw className="size-3.5" aria-hidden />
                       {t('importFindings.fx.refreshEcb')}
                     </>
                   )}
@@ -294,7 +294,7 @@ export function FxRateSheet({
               onClick={onResetEcb}
               className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium underline underline-offset-4 md:min-h-8"
             >
-              <RiRefreshLine className="size-3.5" aria-hidden />
+              <RefreshCw className="size-3.5" aria-hidden />
               {t('importFindings.fx.resetEcb', { rate: ecbRate })}
             </button>
           )}
