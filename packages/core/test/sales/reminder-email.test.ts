@@ -18,6 +18,24 @@ describe('reminderEmailCopy', () => {
     }
   })
 
+  it('uses Legal stage 1 wording (administratie + already-paid line)', () => {
+    const stage1 = reminderEmailCopy({
+      invoiceNumber: '2026-0001',
+      total: '10,00',
+      currency: 'EUR',
+      dueDate: '2026-01-01',
+      stage: 1,
+      daysOverdue: 7,
+    })
+    expect(stage1.subject).toBe('Betalingsherinnering: factuur 2026-0001')
+    expect(stage1.text).toContain(
+      'op 2026-01-01 open en is volgens onze administratie nog niet als betaald bij ons binnengekomen.',
+    )
+    expect(stage1.text).toContain(
+      'Heeft u inmiddels betaald, dan kunt u dit bericht als niet verzonden beschouwen.',
+    )
+  })
+
   it('uses Legal stage 2 and 3 wording and Derde herinnering for stage 3', () => {
     const stage2 = reminderEmailCopy({
       invoiceNumber: '2026-0001',

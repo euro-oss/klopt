@@ -7,6 +7,7 @@ import { EuroAmount } from '~/components/finance/money'
 import { Button } from '~/components/ui/button'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { dunningStageLabel } from '~/i18n/labels'
+import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
@@ -15,7 +16,9 @@ import { localTodayIso } from '~/lib/local-clock'
 import {
   invoiceHistoryEvents,
   invoicePill,
+  salesSendLabelKey,
   sentAsFromDeliveries,
+  showSalesSend,
   type DeliveryRecord,
   type HistoryEvent,
 } from '~/lib/sales-list'
@@ -311,7 +314,9 @@ function Invoice() {
   const alreadySent = deliveryRows.some((item) => item.purpose === 'invoice' && item.delivered)
   const showThird =
     !isDraft && dunning !== null && dunning.tone === 'final' && overdueIds.has(invoice.id)
-  const sendLabel = alreadySent ? t('sales.preview.sendAgain') : t('sales.preview.send')
+  const showSend = showSalesSend(invoice)
+  const sendLabelMessageKey = salesSendLabelKey(invoice, alreadySent)
+  const sendLabel = sendLabelMessageKey === null ? '' : t(sendLabelMessageKey)
 
   return (
     <>
@@ -421,7 +426,7 @@ function Invoice() {
                 {t('sales.preview.sendFinal')}
               </Button>
             )}
-            {!isDraft && !showThird && (
+            {!isDraft && !showThird && showSend && (
               <Button
                 type="button"
                 className="min-h-11 w-full"
@@ -527,7 +532,7 @@ function Invoice() {
                   {busy ? t('common.busy') : t('invoice.issueAndPost')}
                 </Button>
               )}
-              {!isDraft && (
+              {!isDraft && showSend && (
                 <Button
                   type="button"
                   disabled={busy || !hydrated}
@@ -668,6 +673,52 @@ function Invoice() {
           </section>
         )}
 
+        {deliveryRows.length > 0 && (
+          <section className="mt-8">
+            <h2 className="mb-2 text-base font-medium">{t('invoice.sent')}</h2>
+            {/* Evidence chain: recipient / transport / result / document hash —
+                history alone does not carry these audit facts (PM #118). */}
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-border text-muted-foreground border-b text-left text-xs">
+                  <th className="py-2 font-medium">{t('invoice.sentWhen')}</th>
+                  <th className="py-2 font-medium">{t('invoice.sentWhat')}</th>
+                  <th className="py-2 font-medium">{t('invoice.sentTo')}</th>
+                  <th className="py-2 font-medium">{t('invoice.sentVia')}</th>
+                  <th className="py-2 font-medium">{t('invoice.sentResult')}</th>
+                  <th className="py-2 font-medium">{t('invoice.sentDocument')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deliveryRows.map((item) => (
+                  <tr key={item.id} className="border-border border-b">
+                    <td className="tabular-nums whitespace-nowrap py-2">
+                      {shortDeliveryDate(item.sentAt, t)}
+                    </td>
+                    <td className="py-2">{item.stageLabel ?? t('invoice.title')}</td>
+                    <td className="py-2">{item.recipient}</td>
+                    <td className="text-muted-foreground py-2">{item.transport}</td>
+                    <td className="py-2">
+                      {item.delivered ? (
+                        t('invoice.delivered')
+                      ) : (
+                        <span className="text-unreconciled">
+                          {item.failure ?? t('invoice.notDelivered')}
+                        </span>
+                      )}
+                    </td>
+                    <td className="text-muted-foreground tabular-nums py-2 text-xs">
+                      {item.documentHash === null || item.documentHash === ''
+                        ? ''
+                        : `${item.documentHash.slice(0, 12)}…`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+
         {invoice.journalEntryId !== null && (
           <p className="text-muted-foreground mt-6 text-sm">
             {t('invoice.postedAs')}{' '}
@@ -684,6 +735,13 @@ function Invoice() {
       </div>
     </>
   )
+}
+
+function shortDeliveryDate(iso: string, t: (key: MessageKey) => string): string {
+  const day = String(Number(iso.slice(8, 10)))
+  const month = Number(iso.slice(5, 7))
+  const monthKey = `dash.month.${String(month)}` as MessageKey
+  return `${day} ${t(monthKey)}`
 }
 
 function formatQty(quantity: string): string {

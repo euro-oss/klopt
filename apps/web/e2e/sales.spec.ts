@@ -128,29 +128,20 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   }
 
   // Send it. With no SMTP in the test environment the message lands in the
-  // outbox directory. PhoneInvoice / desktop detail show history + Sent as
-  // (no separate Verzonden deliveries table).
+  // outbox directory, and the delivery row says which transport handled it.
   await page.goto(`/invoices/${invoiceId}`)
   await page.getByRole('button', { name: 'Factuur versturen', exact: true }).click()
 
-  // Phone + desktop both render history / Sent as; assert a visible copy.
-  await expect(
-    page.getByText('Naar de klant verstuurd').filter({ visible: true }).first(),
-  ).toBeVisible()
-  await expect(
-    page
-      .getByText(/E-mail met PDF en UBL/)
-      .filter({ visible: true })
-      .first(),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Verzonden' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Factuur', exact: true })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'verzonden', exact: true })).toBeVisible()
   // A second send is offered, not hidden: a customer who lost it asks again.
-  await expect(
-    page.getByRole('button', { name: 'Opnieuw versturen' }).filter({ visible: true }).first(),
-  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Opnieuw versturen' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Versturen en boeken' })).toHaveCount(0)
 
   // And it really did reach the ledger.
   await page.getByRole('link', { name: 'boeking', exact: true }).click()
+  // Entry detail also has a phone layout; assert a visible description cell.
   await expect(page.getByText('Advieswerk maart').filter({ visible: true }).first()).toBeVisible()
 })
 

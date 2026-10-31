@@ -48,6 +48,8 @@ export interface DeliveryRecord {
   readonly delivered: boolean
   readonly channel: string
   readonly transport: string
+  readonly recipient: string
+  readonly documentHash: string | null
   readonly sentAt: string
   readonly stageLabel: string | null
   readonly tone: 'reminder' | 'demand' | 'final' | null
@@ -120,6 +122,38 @@ export function countSalesSegments(
 export function formatSalesSegmentCount(count: number, fetchedRowCount: number): string {
   if (fetchedRowCount >= SALES_LIST_FETCH_LIMIT) return `${String(SALES_LIST_COUNT_CAP)}+`
   return String(count)
+}
+
+/**
+ * Reminders / Send all / PhoneSales "send reminders" share this filter: only
+ * rows the server marked sendable (has email) are counted or sent.
+ */
+export function sendableDunningActions<T extends { readonly sendable: boolean }>(
+  actions: readonly T[],
+): readonly T[] {
+  return actions.filter((row) => row.sendable)
+}
+
+/**
+ * Issued invoices and credit notes can be emailed. Drafts / cancelled cannot.
+ * The send path (`handleSendInvoice` → `packageFor` → email transport) handles
+ * both kinds end to end, so the preview keeps the button for credit notes.
+ */
+export function showSalesSend(invoice: Pick<SalesInvoiceRow, 'status'>): boolean {
+  return invoice.status === 'issued'
+}
+
+export type SalesSendLabelKey =
+  'sales.preview.send' | 'sales.preview.sendCredit' | 'sales.preview.sendAgain'
+
+/** Never-sent credit notes get a distinct label; resend stays "Opnieuw versturen". */
+export function salesSendLabelKey(
+  invoice: Pick<SalesInvoiceRow, 'kind' | 'status'>,
+  alreadySent: boolean,
+): SalesSendLabelKey | null {
+  if (!showSalesSend(invoice)) return null
+  if (alreadySent) return 'sales.preview.sendAgain'
+  return invoice.kind === 'credit_note' ? 'sales.preview.sendCredit' : 'sales.preview.send'
 }
 
 export function filterSalesInvoices(

@@ -337,6 +337,12 @@ describe('chasing an unpaid invoice', () => {
     expect(message?.subject).toContain('Betalingsherinnering')
     // A first reminder is a courtesy, not a threat.
     expect(message?.text).toContain('aan uw aandacht ontsnapt')
+    expect(message?.text).toContain(
+      'is volgens onze administratie nog niet als betaald bij ons binnengekomen',
+    )
+    expect(message?.text).toContain(
+      'Heeft u inmiddels betaald, dan kunt u dit bericht als niet verzonden beschouwen.',
+    )
     expect(message?.text).not.toContain('incassokosten')
 
     // Gone from the queue on the same day, because the stage is closed.

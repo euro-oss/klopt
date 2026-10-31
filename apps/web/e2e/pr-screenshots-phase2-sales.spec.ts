@@ -31,10 +31,14 @@ type SqlTag = {
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
+  // Designer #118: dark shots were captured mid 120ms theme fade. Prefer
+  // reduced motion so color transitions do not run, then wait a beat.
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.evaluate((value) => {
     document.documentElement.classList.toggle('dark', value === 'dark')
     document.documentElement.dataset['theme'] = value
   }, theme)
+  await page.waitForTimeout(250)
 }
 
 async function shot(page: Page, name: string, options?: { fullPage?: boolean }): Promise<void> {
@@ -44,9 +48,12 @@ async function shot(page: Page, name: string, options?: { fullPage?: boolean }):
     const active = document.activeElement
     if (active instanceof HTMLElement) active.blur()
   })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.waitForTimeout(50)
   await page.screenshot({
     path: join(OUT, `${name}.png`),
     fullPage: options?.fullPage ?? false,
+    animations: 'disabled',
     caret: 'hide',
   })
   await page.evaluate(() => {
@@ -283,9 +290,15 @@ test('02 seeded Sales + Reminders + phone invoice', async ({ page }) => {
     await ready(page, 1440)
     await setTheme(page, theme)
     await shot(page, `02-reminders-${theme}-desktop-1440`)
-    // Email preview with Dutch template (complementary is "Voorbeeld")
+    // Select the stage-3 row so the email preview is open with distinct copy
+    // (must not be a byte-identical twin of the list shot).
+    await page
+      .getByRole('button', { name: /Linden|Derde herinnering/ })
+      .first()
+      .click()
     await expect(page.getByRole('complementary', { name: 'Voorbeeld' })).toBeVisible()
     await expect(page.getByText('E-mailvoorbeeld')).toBeVisible()
+    await expect(page.getByText(/Derde herinnering: factuur/)).toBeVisible()
     await shot(page, `02-reminders-preview-${theme}-desktop-1440`)
 
     await page.setViewportSize({ width: 390, height: 844 })

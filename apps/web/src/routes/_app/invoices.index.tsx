@@ -29,7 +29,10 @@ import {
   formatSalesSegmentCount,
   invoiceHistoryEvents,
   invoicePill,
+  salesSendLabelKey,
+  sendableDunningActions,
   sentAsFromDeliveries,
+  showSalesSend,
   SALES_LIST_FETCH_LIMIT,
   sumInvoiceTotals,
   type DeliveryRecord,
@@ -166,7 +169,8 @@ function Invoices() {
   const rows = result.ok ? (result.data.invoices as SalesInvoiceRow[]) : []
   const counts = countSalesSegments(rows, overdueIds)
   const shown = filterSalesInvoices(rows, overdueIds, segment, q)
-  const reminderCount = queue.ok ? queue.data.actions.length : 0
+  // Same sendable predicate as Reminders / Send all — skip rows without email.
+  const reminderCount = queue.ok ? sendableDunningActions(queue.data.actions).length : 0
 
   // Preview only when `id` is in the URL — Escape clears it and hides the pane.
   const activeId =
@@ -491,7 +495,7 @@ function Invoices() {
                 <div className="overflow-x-auto">
                   <div className="min-w-[680px]">
                     <div
-                      className="text-ink-muted grid grid-cols-[20px_92px_minmax(140px,1fr)_88px_140px_120px] gap-3 border-b border-[var(--line-soft)] px-5 py-2.5 text-xs font-medium"
+                      className="text-ink-muted grid grid-cols-[20px_118px_minmax(140px,1fr)_88px_140px_120px] gap-3 border-b border-[var(--line-soft)] px-5 py-2.5 text-xs font-medium"
                       role="row"
                     >
                       {/* Keep the leading cell in flow — sr-only would collapse the column. */}
@@ -522,7 +526,7 @@ function Invoices() {
                             })
                           }}
                           className={cn(
-                            'hover:bg-surface-hover grid w-full grid-cols-[20px_92px_minmax(140px,1fr)_88px_140px_120px] gap-3 border-b border-[var(--line-soft)] px-5 py-3 text-left text-sm last:border-b-0',
+                            'hover:bg-surface-hover grid w-full grid-cols-[20px_118px_minmax(140px,1fr)_88px_140px_120px] gap-3 border-b border-[var(--line-soft)] px-5 py-3 text-left text-sm last:border-b-0',
                             'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
                             isActive &&
                               'bg-[var(--selection)] shadow-[inset_3px_0_0_0_var(--selection-edge)]',
@@ -535,7 +539,7 @@ function Invoices() {
                               selected.has(row.id) && 'bg-primary border-primary',
                             )}
                           />
-                          <span className="font-medium tabular-nums">
+                          <span className="whitespace-nowrap font-medium tabular-nums">
                             {row.number ?? t('sales.pill.draft')}
                           </span>
                           <span className="truncate">{row.contactName}</span>
@@ -753,9 +757,10 @@ function InvoicePreview({
 
   const vatGroups = groupVat(detail?.lines ?? [])
   const showFinal = isOverdue && dunning !== null && dunning.tone === 'final'
-  const showSend = row.status === 'issued'
   const alreadySent = deliveries.some((item) => item.purpose === 'invoice' && item.delivered)
-  const sendLabel = alreadySent ? t('sales.preview.sendAgain') : t('sales.preview.send')
+  const showSend = showSalesSend(row)
+  const sendLabelMessageKey = salesSendLabelKey(row, alreadySent)
+  const sendLabel = sendLabelMessageKey === null ? '' : t(sendLabelMessageKey)
   const confirmRemind = confirmRemindFor === row.id
   return (
     <aside

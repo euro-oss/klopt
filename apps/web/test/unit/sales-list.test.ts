@@ -9,7 +9,10 @@ import {
   invoiceHistoryEvents,
   invoicePill,
   salesSegmentOf,
+  salesSendLabelKey,
+  sendableDunningActions,
   sentAsFromDeliveries,
+  showSalesSend,
   SALES_LIST_FETCH_LIMIT,
   sumInvoiceTotals,
   type DeliveryRecord,
@@ -125,6 +128,8 @@ describe('sentAsFromDeliveries', () => {
     delivered: true,
     channel: 'email',
     transport: 'file',
+    recipient: 'inkoop@example.nl',
+    documentHash: 'abc',
     sentAt: '2026-01-10T12:00:00.000Z',
     stageLabel: null,
     tone: null,
@@ -214,8 +219,50 @@ describe('Reminders and Send all use only the server dunning queue', () => {
     expect(source).toContain("from '~/server/sales'")
     expect(source).toContain('dunningQueue')
     expect(source).toContain('queue.data.actions')
-    expect(source).toContain('row.sendable')
+    expect(source).toContain('sendableDunningActions')
+    expect(source).toContain('action.sendable')
     expect(source).not.toContain('listInvoices')
     expect(source).not.toContain('listOverdueInvoices')
+  })
+
+  it('PhoneSales send-reminders link counts only sendable rows', () => {
+    const source = readFileSync(
+      join(import.meta.dirname, '../../src/routes/_app/invoices.index.tsx'),
+      'utf8',
+    )
+    expect(source).toContain('sendableDunningActions')
+    expect(source).toContain('sendableDunningActions(queue.data.actions)')
+  })
+
+  it('sendableDunningActions drops rows without email', () => {
+    expect(
+      sendableDunningActions([
+        { invoiceId: 'a', sendable: true },
+        { invoiceId: 'b', sendable: false },
+        { invoiceId: 'c', sendable: true },
+      ]).map((row) => row.invoiceId),
+    ).toEqual(['a', 'c'])
+  })
+})
+
+describe('showSalesSend / salesSendLabelKey', () => {
+  it('shows send for issued invoices and credit notes with the right label', () => {
+    expect(showSalesSend({ status: 'issued' })).toBe(true)
+    expect(showSalesSend({ status: 'draft' })).toBe(false)
+    expect(showSalesSend({ status: 'cancelled' })).toBe(false)
+
+    expect(salesSendLabelKey({ kind: 'invoice', status: 'issued' }, false)).toBe(
+      'sales.preview.send',
+    )
+    expect(salesSendLabelKey({ kind: 'credit_note', status: 'issued' }, false)).toBe(
+      'sales.preview.sendCredit',
+    )
+    expect(salesSendLabelKey({ kind: 'invoice', status: 'issued' }, true)).toBe(
+      'sales.preview.sendAgain',
+    )
+    expect(salesSendLabelKey({ kind: 'credit_note', status: 'issued' }, true)).toBe(
+      'sales.preview.sendAgain',
+    )
+    expect(salesSendLabelKey({ kind: 'invoice', status: 'draft' }, false)).toBeNull()
   })
 })

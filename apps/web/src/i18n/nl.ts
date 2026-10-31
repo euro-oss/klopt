@@ -710,6 +710,7 @@ export const nl = {
   'sales.preview.more': 'Meer acties',
   'sales.preview.sendFinal': 'Derde herinnering versturen',
   'sales.preview.send': 'Factuur versturen',
+  'sales.preview.sendCredit': 'Creditnota versturen',
   'sales.preview.sendAgain': 'Opnieuw versturen',
   'sales.preview.credit': 'Creditnota',
   'sales.preview.pdf': 'PDF',

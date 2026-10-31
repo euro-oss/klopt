@@ -13,6 +13,7 @@ import { useT } from '~/i18n/provider'
 import { formatMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple, isTypingInto } from '~/lib/keyboard'
+import { sendableDunningActions } from '~/lib/sales-list'
 import { cn } from '~/lib/utils'
 import { dunningQueue, sendReminder } from '~/server/sales'
 
@@ -138,7 +139,7 @@ function Dunning() {
 
       if (mod && event.key === 'Enter') {
         event.preventDefault()
-        const targets = actions.filter((row) => selected.has(row.invoiceId) && row.sendable)
+        const targets = sendableDunningActions(actions.filter((row) => selected.has(row.invoiceId)))
         void sendSelected(targets)
         return
       }
@@ -205,7 +206,7 @@ function Dunning() {
         })
 
   const selectedRows = actions.filter((row) => selected.has(row.invoiceId))
-  const sendableSelected = selectedRows.filter((row) => row.sendable)
+  const sendableSelected = sendableDunningActions(selectedRows)
   const skippedNoEmail = selectedRows.length - sendableSelected.length
   const sendableCount = sendableSelected.length
   const selectedSum = sendableSelected.reduce((sum, row) => sum + BigInt(row.total), 0n)

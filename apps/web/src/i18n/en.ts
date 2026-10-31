@@ -920,6 +920,7 @@ export const en: Record<MessageKey, string> = {
   'sales.preview.more': 'More actions',
   'sales.preview.sendFinal': 'Send third reminder',
   'sales.preview.send': 'Send invoice',
+  'sales.preview.sendCredit': 'Send credit note',
   'sales.preview.sendAgain': 'Send again',
   'sales.preview.credit': 'Credit note',
   'sales.preview.pdf': 'PDF',

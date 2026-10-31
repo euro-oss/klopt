@@ -36,10 +36,11 @@ export function reminderEmailCopy(input: ReminderEmailInput): ReminderEmailCopy 
     input.stage === 1
       ? [
           `Onze factuur ${input.invoiceNumber} van ${input.total} ${input.currency} stond`,
-          `op ${input.dueDate} open en is nog niet als betaald bij ons binnengekomen.`,
+          `op ${input.dueDate} open en is volgens onze administratie nog niet als betaald bij ons binnengekomen.`,
           '',
           'Mogelijk is deze aan uw aandacht ontsnapt. Heeft u de betaling inmiddels',
           'gedaan, dan kunt u dit bericht als niet verzonden beschouwen.',
+          'Heeft u inmiddels betaald, dan kunt u dit bericht als niet verzonden beschouwen.',
         ]
       : input.stage === 2
         ? [
