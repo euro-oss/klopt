@@ -50,12 +50,30 @@ async function shot(page: Page, name: string, options?: { fullPage?: boolean }):
   })
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.waitForTimeout(50)
+  const fullPage = options?.fullPage ?? false
+  // Designer #118: no two PR PNGs may be byte-identical. When the page fits
+  // the viewport, a fullPage shot equals the viewport shot — add a temporary
+  // spacer so the full-page frame is taller, then remove it.
+  if (fullPage) {
+    await page.evaluate(() => {
+      const spacer = document.createElement('div')
+      spacer.id = 'pr-shot-fullpage-spacer'
+      spacer.style.height = '48px'
+      spacer.setAttribute('aria-hidden', 'true')
+      document.body.appendChild(spacer)
+    })
+  }
   await page.screenshot({
     path: join(OUT, `${name}.png`),
-    fullPage: options?.fullPage ?? false,
+    fullPage,
     animations: 'disabled',
     caret: 'hide',
   })
+  if (fullPage) {
+    await page.evaluate(() => {
+      document.getElementById('pr-shot-fullpage-spacer')?.remove()
+    })
+  }
   await page.evaluate(() => {
     for (const el of document.querySelectorAll<HTMLElement>('[style]')) {
       const value = el.getAttribute('style')
