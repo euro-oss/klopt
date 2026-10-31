@@ -38,7 +38,17 @@ async function shot(page: Page, name: string, options?: { fullPage?: boolean }):
   })
 }
 
+/** Sidebar kbd signals are desktop-only; on phone wait for the page chrome. */
+async function ready(page: Page, width: number): Promise<void> {
+  if (width >= 768) {
+    await hydrated(page)
+  } else {
+    await expect(page.getByRole('heading', { name: 'Verkoop' })).toBeVisible()
+  }
+}
+
 async function setupEntity(page: Page): Promise<void> {
+  await page.setViewportSize({ width: 1440, height: 1040 })
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
@@ -49,6 +59,17 @@ async function setupEntity(page: Page): Promise<void> {
   ).toBeVisible()
   await enableAdvancedMode(page)
   await hydrated(page)
+}
+
+async function draftInvoice(page: Page, description: string, price: string): Promise<void> {
+  await page.goto('/invoices/new')
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
+  await page.getByLabel('Omschrijving regel 1').fill(description)
+  await page.getByLabel('Aantal regel 1').fill('1')
+  await page.getByLabel('Eenheid regel 1').fill('EA')
+  await page.getByLabel('Prijs regel 1').fill(price)
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
 }
 
 async function seedSalesData(page: Page): Promise<void> {
@@ -80,22 +101,9 @@ async function seedSalesData(page: Page): Promise<void> {
     await expect(page.getByRole('cell', { name })).toBeVisible()
   }
 
-  // Draft
-  await page.goto('/invoices/new')
-  await page.getByLabel('Omschrijving regel 1').fill('Demo concept')
-  await page.getByLabel('Aantal regel 1').fill('1')
-  await page.getByLabel('Eenheid regel 1').fill('EA')
-  await page.getByLabel('Prijs regel 1').fill('40,00')
-  await page.getByRole('button', { name: 'Concept opslaan' }).click()
-  await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
+  await draftInvoice(page, 'Demo concept', '40,00')
 
-  // Issued open
-  await page.goto('/invoices/new')
-  await page.getByLabel('Omschrijving regel 1').fill('Demo open')
-  await page.getByLabel('Aantal regel 1').fill('1')
-  await page.getByLabel('Eenheid regel 1').fill('EA')
-  await page.getByLabel('Prijs regel 1').fill('100,00')
-  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await draftInvoice(page, 'Demo open', '100,00')
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
   await expect(page.getByRole('heading', { name: /Factuur \d{4}-/ })).toBeVisible()
 }
@@ -105,20 +113,20 @@ test('01 empty Sales light/dark 1440 and 390', async ({ page }) => {
   for (const theme of ['light', 'dark'] as const) {
     await page.setViewportSize({ width: 1440, height: 1040 })
     await page.goto('/invoices')
-    await hydrated(page)
+    await ready(page, 1440)
     await setTheme(page, theme)
     await shot(page, `01-sales-empty-${theme}-desktop-1440`)
 
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/invoices')
-    await hydrated(page)
+    await ready(page, 390)
     await setTheme(page, theme)
     await shot(page, `01-sales-empty-${theme}-mobile-390`)
     await shot(page, `01-sales-empty-${theme}-mobile-390-full`, { fullPage: true })
 
     await page.setViewportSize({ width: 1440, height: 1040 })
     await page.goto('/dunning')
-    await hydrated(page)
+    await ready(page, 1440)
     await setTheme(page, theme)
     await shot(page, `01-reminders-empty-${theme}-desktop-1440`)
   }
@@ -131,29 +139,29 @@ test('02 seeded Sales + Reminders + phone invoice', async ({ page }) => {
   for (const theme of ['light', 'dark'] as const) {
     await page.setViewportSize({ width: 1440, height: 1040 })
     await page.goto('/invoices?segment=open')
-    await hydrated(page)
+    await ready(page, 1440)
     await setTheme(page, theme)
     await shot(page, `02-sales-data-${theme}-desktop-1440`)
 
     await page.goto('/invoices?segment=draft')
-    await hydrated(page)
+    await ready(page, 1440)
     await setTheme(page, theme)
     await shot(page, `02-sales-drafts-${theme}-desktop-1440`)
 
     await page.goto('/dunning')
-    await hydrated(page)
+    await ready(page, 1440)
     await setTheme(page, theme)
     await shot(page, `02-reminders-${theme}-desktop-1440`)
 
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/invoices?segment=open')
-    await hydrated(page)
+    await ready(page, 390)
     await setTheme(page, theme)
     await shot(page, `02-sales-data-${theme}-mobile-390`)
     await shot(page, `02-sales-data-${theme}-mobile-390-full`, { fullPage: true })
 
-    await page.getByText('Windvaan Workshops (demo)').first().click()
-    await hydrated(page)
+    await page.getByRole('link', { name: /Windvaan Workshops \(demo\)/ }).click()
+    await expect(page.getByRole('heading', { name: /Factuur/ })).toBeVisible()
     await setTheme(page, theme)
     await shot(page, `02-invoice-detail-${theme}-mobile-390`)
     await shot(page, `02-invoice-detail-${theme}-mobile-390-full`, { fullPage: true })
