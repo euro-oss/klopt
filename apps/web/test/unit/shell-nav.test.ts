@@ -114,6 +114,11 @@ describe('shell-nav Phase 0 (v2 IA)', () => {
     ).toBe(true)
   })
 
+  it('keeps Sales lit on /dunning (Reminders tab, Phase 2)', () => {
+    expect(isNavActive('/dunning', '/invoices', undefined, undefined, ['/dunning'])).toBe(true)
+    expect(isNavActive('/dunning', '/invoices')).toBe(false)
+  })
+
   it('switches phone/desktop chrome with CSS, not usePhoneViewport', () => {
     expect(shell).toContain('hidden md:flex')
     expect(shell).toContain('md:hidden')

@@ -479,7 +479,7 @@ export function GuidedInvoiceFlow({
       setStep(prev)
       return
     }
-    void navigate({ to: '/invoices', search: { status: undefined } })
+    void navigate({ to: '/invoices', search: { segment: 'open', q: '', id: undefined, status: undefined } })
   }
 
   async function saveDraftOnly() {
@@ -730,7 +730,7 @@ export function GuidedInvoiceFlow({
         if (event.key === 'Escape') {
           event.preventDefault()
           if (leaving) {
-            void navigate({ to: '/invoices', search: { status: undefined } })
+            void navigate({ to: '/invoices', search: { segment: 'open', q: '', id: undefined, status: undefined } })
             return
           }
           if (step > 1) {
@@ -937,7 +937,7 @@ export function GuidedInvoiceFlow({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => void navigate({ to: '/invoices', search: { status: undefined } })}
+            onClick={() => void navigate({ to: '/invoices', search: { segment: 'open', q: '', id: undefined, status: undefined } })}
           >
             {t('common.cancel')}
             <span className="ml-1 hidden normal-case md:inline-flex">

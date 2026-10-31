@@ -147,7 +147,7 @@ const DESTINATIONS: Record<
   },
   'sales.draft': {
     to: '/invoices',
-    search: { status: 'draft' },
+    search: { segment: 'draft' },
     title: 'queue.salesDraft',
     titlePlural: true,
     body: 'queue.salesDraftBody',
