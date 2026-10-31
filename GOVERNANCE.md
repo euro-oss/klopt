@@ -7,8 +7,8 @@ competing hosted service, or sell support, with no obligation to give anything
 back. That includes an incumbent taking it closed.
 
 This was decided deliberately. The licence was never the moat: the moat is the
-compliance treadmill, the accountant relationships, and the credentials the
-hosted gateway holds. AGPL would not have protected any of those.
+compliance treadmill, the accountant relationships, and the credentials a
+future hosted gateway would hold. AGPL would not have protected any of those.
 
 Relicensing to something stricter later would need the agreement of every
 contributor, which makes this close to a one-way door. It is written down here
@@ -19,10 +19,12 @@ so that it does not get relitigated by every newcomer.
 No feature gating, no open-core split. The self-hosted build is complete and
 legal on its own.
 
-The hosted offering sells the three things nobody wants to run themselves: the
+There is no hosted offering yet (see the hosted-eu milestone). When there is
+one, it will sell the three things nobody wants to run themselves: the
 PKIoverheid certificate, the bank aggregator contract, and the Peppol access
-point. It sells operations and credentials. It never sells features. The moment
-it withholds one, principle 4 is dead and the community notices the same week.
+point. It will sell operations and credentials. It will never sell features.
+The moment it withholds one, principle 4 is dead and the community notices the
+same week.
 
 ## Contribution model
 
@@ -49,10 +51,9 @@ of this shape, and an unowned calendar is how it kills them.
 
 ## Releases
 
-Releases are **signed and reproducible**. A permissive licence means anyone may
-distribute a modified copy under a similar name, so users need a way to verify
-they are running the official build. Every release ships checksums and a
-signature, and the release workflow is in the repository.
+Releases will be signed and reproducible. That is not in place yet: v0.1.0 is a
+git tag without published checksums or a signature, and there is no release
+workflow in this repository. Until there is, verify a build by its commit SHA.
 
 ## Trademark
 
