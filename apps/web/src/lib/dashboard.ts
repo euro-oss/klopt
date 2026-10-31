@@ -142,6 +142,24 @@ export function homeQueueOverdueOneBody(
   return t('queue.salesOverdueBody')
 }
 
+/**
+ * Multi-invoice overdue row body (Design #112 follow-up): do not repeat the
+ * title ("N facturen te laat"). Prefer the oldest days-late; otherwise no body.
+ */
+export function homeQueueOverdueManyBody(
+  detail: WorkQueueDetail | undefined,
+  plural: Plural,
+): string {
+  const days =
+    detail?.daysOverdue !== undefined &&
+    Number.isFinite(detail.daysOverdue) &&
+    detail.daysOverdue > 0
+      ? detail.daysOverdue
+      : null
+  if (days === null) return ''
+  return plural('queue.salesOverdueOneBodyDays', days, { days: String(days) })
+}
+
 /** `null` when the deadline is absent — caller drops the deadline clause. */
 export function homeQueueVatDeadlineIso(detail: WorkQueueDetail): string | null {
   if (detail.vatDeadline === undefined || detail.vatDeadline.trim() === '') return null

@@ -33,6 +33,7 @@ import {
   capitalizeWord,
   glanceBarPercent,
   greetingName,
+  homeQueueOverdueManyBody,
   homeQueueOverdueOneBody,
   homeQueueVatBody,
   homeQueueVatDeadlineIso,
@@ -244,6 +245,7 @@ function Dashboard() {
         actions={
           // Phone: CTAs leave the header; one secondary Bonnetje sits under Te doen.
           // Bonnetje shows no shortcut chip (PM + Design #112): keymap stays as-is.
+          // Empty queue: keep "Nieuwe factuur" only in the empty card (Design #112).
           <div className="hidden w-full flex-col gap-2 md:flex md:w-auto md:flex-row md:justify-end">
             <Button asChild variant="outline" className="min-h-9">
               <Link to="/inbox">
@@ -252,18 +254,20 @@ function Dashboard() {
               </Link>
             </Button>
             {/* Home only: New invoice is secondary; the top to-do owns primary (PM #107). */}
-            <Button asChild variant="outline" className="min-h-9">
-              <Link to="/invoices/new">
-                <RiAddLine data-icon="inline-start" aria-hidden="true" />
-                {t('dash.newInvoice')}
-                {hydrated && (
-                  <span className="ml-1 inline-flex gap-0.5 normal-case">
-                    <Keycap>n</Keycap>
-                    <Keycap>f</Keycap>
-                  </span>
-                )}
-              </Link>
-            </Button>
+            {todoCount > 0 && (
+              <Button asChild variant="outline" className="min-h-9">
+                <Link to="/invoices/new">
+                  <RiAddLine data-icon="inline-start" aria-hidden="true" />
+                  {t('dash.newInvoice')}
+                  {hydrated && (
+                    <span className="ml-1 inline-flex gap-0.5 normal-case">
+                      <Keycap>n</Keycap>
+                      <Keycap>f</Keycap>
+                    </span>
+                  )}
+                </Link>
+              </Button>
+            )}
           </div>
         }
       />
@@ -708,6 +712,16 @@ function rowCopy(
     }
   }
 
+  // Multi overdue: title matches the tile ("N facturen te laat"); body is the
+  // oldest days-late — never the generic line that repeats the title.
+  if (item.kind === 'sales.overdue' && item.count > 1) {
+    return {
+      title: plural(destination.title, item.count),
+      body: homeQueueOverdueManyBody(detail, plural),
+      action: t(destination.action),
+    }
+  }
+
   if (item.kind === 'vat.filing' && detail?.vatPeriod !== undefined) {
     const deadlineIso = homeQueueVatDeadlineIso(detail)
     const deadlineLabel = deadlineIso === null ? null : dayMonthLabel(deadlineIso, t)
@@ -793,7 +807,7 @@ function WorkQueue({ items, fiscalYear }: { items: readonly WorkQueueItem[]; fis
 
   if (items.length === 0) {
     return (
-      <Empty className="rounded-[var(--radius-xl)] border">
+      <Empty className="bg-card rounded-[var(--radius-xl)] border">
         <EmptyHeader>
           <EmptyTitle role="heading" aria-level={2}>
             {t('queue.empty')}
@@ -868,7 +882,9 @@ function WorkQueue({ items, fiscalYear }: { items: readonly WorkQueueItem[]; fis
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] leading-5 font-semibold">{copy.title}</span>
-                  <span className="text-muted-foreground block text-[13px]">{copy.body}</span>
+                  {copy.body !== '' && (
+                    <span className="text-muted-foreground block text-[13px]">{copy.body}</span>
+                  )}
                 </span>
                 {item.amount !== null &&
                   (item.kind !== 'sales.overdue' || item.count > 1) &&

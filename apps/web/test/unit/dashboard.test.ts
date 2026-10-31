@@ -11,6 +11,7 @@ import {
   dayPartAt,
   glanceBarPercent,
   greetingName,
+  homeQueueOverdueManyBody,
   homeQueueOverdueOneBody,
   homeQueueVatBody,
   homeQueueVatDeadlineIso,
@@ -159,6 +160,11 @@ describe('honest kerncijfers copy', () => {
     expect(nl['queue.salesOverdueOneBodyDays_other']).toBe('{days} dagen te laat')
     expect(en['queue.salesOverdueOneBodyDays_one']).toBe('{days} day late')
     expect(en['queue.salesOverdueOneBodyDays_other']).toBe('{days} days late')
+    // Multi-overdue title matches the receivables tile (Design #112 follow-up).
+    expect(nl['queue.salesOverdue_one']).toBe('{count} factuur te laat')
+    expect(nl['queue.salesOverdue_other']).toBe('{count} facturen te laat')
+    expect(en['queue.salesOverdue_one']).toBe('{count} invoice late')
+    expect(en['queue.salesOverdue_other']).toBe('{count} invoices late')
   })
 
   it('scales P&L glance bars against the larger of income and expenses', () => {
@@ -253,6 +259,18 @@ describe('Home queue body missing fields (PM #112)', () => {
       expect(body).not.toMatch(/:days=0\b/)
     }
   })
+
+  it('multi-overdue body uses oldest days-late, never the repeating generic line', () => {
+    expect(homeQueueOverdueManyBody({ contactName: 'Acme', daysOverdue: 120 }, plural)).toBe(
+      'queue.salesOverdueOneBodyDays_other:days=120',
+    )
+    expect(homeQueueOverdueManyBody({ contactName: 'Acme', daysOverdue: 1 }, plural)).toBe(
+      'queue.salesOverdueOneBodyDays_one:days=1',
+    )
+    expect(homeQueueOverdueManyBody({ contactName: 'Acme', daysOverdue: 0 }, plural)).toBe('')
+    expect(homeQueueOverdueManyBody(undefined, plural)).toBe('')
+    expect(homeQueueOverdueManyBody({ contactName: 'Acme' }, plural)).toBe('')
+  })
 })
 
 describe('Home overdue parity with debtor-ageing (PM + Legal #112)', () => {
@@ -287,5 +305,9 @@ describe('Home overdue parity with debtor-ageing (PM + Legal #112)', () => {
     expect(source).toContain('bg-ageing-up-to-30')
     expect(source).toContain('RiFileTextLine')
     expect(source).toContain('RiInbox2Line')
+    // Empty queue: card surface + single Nieuwe factuur in the queue area.
+    expect(source).toContain('bg-card rounded-[var(--radius-xl)] border')
+    expect(source).toContain('todoCount > 0 &&')
+    expect(source).toContain('homeQueueOverdueManyBody')
   })
 })

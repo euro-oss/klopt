@@ -106,14 +106,12 @@ test('an empty administration shows the redesigned dashboard and a way to start'
   const hasEmpty = await emptyHeading.isVisible().catch(() => false)
   expect(hasTodo || hasEmpty).toBeTruthy()
 
-  // Header "Nieuwe factuur" is secondary on Home (PM #107); only a top to-do
-  // owns primary. With an empty queue the empty-state action is also outline.
-  const newInvoice = page
-    .locator('#main')
-    .getByRole('link', { name: /Nieuwe factuur/ })
-    .first()
-  await expect(newInvoice).toHaveAttribute('data-variant', 'outline')
-  await newInvoice.click()
+  // Empty queue: one "Nieuwe factuur" in the queue card only (Design #112).
+  // Header omits the duplicate; the empty-state action stays outline.
+  const newInvoices = page.locator('#main').getByRole('link', { name: /Nieuwe factuur/ })
+  await expect(newInvoices).toHaveCount(1)
+  await expect(newInvoices).toHaveAttribute('data-variant', 'outline')
+  await newInvoices.click()
   await expect(page).toHaveURL(/\/invoices\/new$/)
 })
 
