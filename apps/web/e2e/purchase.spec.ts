@@ -94,13 +94,13 @@ test('a bookkeeper enters a supplier invoice, books it and gets it approved', as
   await anAdministration(page, 'Inkoop BV')
   await aSupplier(page)
 
-  // v2 rail label is Kosten; page heading stays Inkoopfacturen.
+  // v2 rail + Costs screen heading are both Kosten (#128).
   await page
     .getByRole('link', { name: /^Kosten/ })
     .first()
     .click()
-  await expect(page.getByRole('heading', { name: 'Inkoopfacturen' })).toBeVisible()
-  await page.getByRole('link', { name: 'Factuur invoeren' }).click()
+  await expect(page.getByRole('heading', { name: 'Kosten' })).toBeVisible()
+  await page.getByRole('link', { name: 'Factuur toevoegen' }).click()
 
   await anInteractiveForm(page)
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeDisabled()

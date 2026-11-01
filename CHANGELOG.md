@@ -18,6 +18,15 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign Phase 4: Costs (#107 / #128)
+
+Costs (`/purchases`) matches the Costs.dc.html desktop-light board from the v2
+export at `fa4093b`: Bills / To approve / Payment batches / Suppliers tabs,
+All · To pay · Paid segments from `outstanding`, overdue callout, desktop
+preview with approve / dispute / add-to-batch on existing transitions, and
+honest approval copy (no four-eyes claim on bills). Dark and phone use tokens
+until Batch 2 / 3 boards.
+
 ### Fixed
 
 - Debtor-ageing report and overdue counts no longer count invoices that are due
