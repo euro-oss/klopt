@@ -1,17 +1,24 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { Lock, Search } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import { violationMessage } from '~/i18n/labels'
 import { useEffect, useId, useRef, useState } from 'react'
+import { BankTabs } from '~/components/bank-tabs'
 import { AccountPicker } from '~/components/finance/account-picker'
-import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
-import { Keycap, ShortcutFooter } from '~/components/ui/keycap'
+import { MatchChoiceOption } from '~/components/ui/choice-option'
+import { Keycap } from '~/components/ui/keycap'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import {
+  buildMatchChoices,
+  matchProgressPercent,
+  type MatchChoice,
+  type MatchChoiceId,
+} from '~/lib/bank-match-choices'
+import {
   MATCH_QUEUE_CAP,
-  confidenceTone,
+  absoluteMinor,
   formatBankDay,
   formatBankDayWithYear,
   formatEuro,
@@ -22,8 +29,6 @@ import {
   periodLockForDate,
   periodLockFromViolation,
   remainingLabel,
-  suggestionBookedAmount,
-  suggestionLabel,
   type FiscalYearWithPeriods,
   type PeriodLock,
 } from '~/lib/bank-match'
@@ -42,16 +47,14 @@ import { listAccounts } from '~/server/ledger'
 import { listFiscalYears } from '~/server/setup'
 
 /**
- * Koppelen — bank statement lines matched to invoices and bookings (#61 slice 6).
+ * Bank · To match — v2 Match board (#107 Phase 7 / #129).
  *
- * TODO(#107): when ChoiceOption 1–4 lands (Phase 5), option 4 deep-links to
- * Journaalposten (`/entries`). Digits are not booking shortcuts here.
- *
- * Ports the #57 prototype: Af/Bij table, suggestion panel (520px desktop /
- * full-width phone sheet), confirm / ignore, locked closed-period rows, and
- * the matched-today list. Suggestions stay per-selected-line (#68: no invented
- * aggregate counts). Keyboard: j/k, Enter opens then books, u clears, Esc back.
+ * One line at a time, ChoiceOption 1–4 (at most one Suggested), S skip, U
+ * attach receipt (inbox), Z undo notice (no unmatch API), option 4 opens the
+ * existing account form. Closed-period lines keep their treatment. Split (#76)
+ * and the Uitgave sheet (#77) stay separate.
  */
+
 export const Route = createFileRoute('/_app/bank/match')({
   loader: async ({ context }) => {
     const role =
@@ -60,8 +63,6 @@ export const Route = createFileRoute('/_app/bank/match')({
       context.session.memberships[0]?.role ??
       ''
     const [transactions, accounts, bankAccounts, years] = await Promise.all([
-      // Fetch one past the display cap so exactly MATCH_QUEUE_CAP lines do not
-      // look like "500+" — remainingLabel only caps when fetchedCount > cap.
       listBankTransactions({ data: { status: 'unmatched', limit: MATCH_QUEUE_CAP + 1 } }),
       listAccounts(),
       listBankAccounts(),
@@ -93,20 +94,19 @@ interface Suggestion {
   allocations: { invoiceId: string; number: string; amount: string }[]
 }
 
-interface MatchedRow {
-  readonly id: string
-  readonly counterparty: string
-  readonly amount: string
-  readonly outgoing: boolean
-  readonly result: string
-}
-
 const STRATEGY_KEY: Record<string, MessageKey> = {
   reference: 'match.strategy.reference',
   iban_amount: 'match.strategy.iban_amount',
   learned_rule: 'match.strategy.learned_rule',
   fuzzy_name: 'match.strategy.fuzzy_name',
   oldest_first: 'match.strategy.oldest_first',
+}
+
+const CHOICE_TITLE: Record<MatchChoiceId, MessageKey> = {
+  cost: 'match.choice.cost',
+  invoice: 'match.choice.invoice',
+  transfer: 'match.choice.transfer',
+  other: 'match.choice.other',
 }
 
 function periodName(
@@ -127,7 +127,6 @@ function periodName(
   )
 }
 
-/** Prefer counterparty; fall back to description so the panel H2 matches the table. */
 function lineTitle(
   line: Pick<Line, 'counterpartyName' | 'description'>,
   t: (key: MessageKey, values?: Record<string, string>) => string,
@@ -137,6 +136,56 @@ function lineTitle(
   }
   if (line.description !== '') return line.description
   return t('match.noCounterpartyTitle')
+}
+
+function choiceMeta(
+  choice: MatchChoice,
+  outgoing: boolean,
+  vatHint: string | null,
+  accountNameByNumber: ReadonlyMap<string, string>,
+  advanced: boolean,
+  strategyOf: (strategy: string) => string,
+  t: (key: MessageKey, values?: Record<string, string>) => string,
+): string {
+  const advancedSuffix = (suggestion: {
+    readonly strategy: string
+    readonly confidence: number
+    readonly reason: string
+  }): string => {
+    if (!advanced) return suggestion.reason
+    return `${suggestion.reason} · ${strategyOf(suggestion.strategy)} · ${String(suggestion.confidence)}%`
+  }
+
+  if (choice.id === 'cost') {
+    if (choice.action.type === 'book_suggestion') {
+      const suggestion = choice.action.suggestion
+      if (advanced) return advancedSuffix(suggestion)
+      const name = accountNameByNumber.get(suggestion.accountNumber ?? '')
+      return name !== undefined && name !== ''
+        ? t('match.choice.costMetaAccount', { account: name })
+        : t('match.choice.costMetaAccount', {
+            account: suggestion.accountNumber ?? suggestion.reason,
+          })
+    }
+    return vatHint !== null
+      ? t('match.choice.costMetaVat', { vat: vatHint })
+      : t('match.choice.costMeta')
+  }
+  if (choice.id === 'invoice') {
+    if (choice.action.type === 'book_suggestion') {
+      const suggestion = choice.action.suggestion
+      if (advanced) return advancedSuffix(suggestion)
+      if (choice.invoiceNumbers.length > 0) {
+        return t('match.choice.invoiceMetaKnown', {
+          numbers: choice.invoiceNumbers.join(', '),
+        })
+      }
+      return suggestion.reason
+    }
+    return outgoing ? t('match.choice.invoiceMetaOut') : t('match.choice.invoiceMetaIn')
+  }
+  if (choice.id === 'transfer') return t('match.choice.transferMeta')
+  return t('match.choice.otherMeta')
 }
 
 function MatchQueue() {
@@ -164,6 +213,19 @@ function MatchQueue() {
     ? (years.data.fiscalYears as FiscalYearWithPeriods[])
     : []
   const primaryAccount = bankAccounts.ok ? (bankAccounts.data.accounts[0] ?? null) : null
+  const toMatchCount = bankAccounts.ok
+    ? bankAccounts.data.accounts.reduce(
+        (total, account) => total + account.reconciliation.unmatchedCount,
+        0,
+      )
+    : fetched.length
+
+  // Snapshot the queue length on first mount so the progress bar counts down
+  // as lines are booked, without reading a ref during render.
+  const [sessionBaseline] = useState(() => fetched.length)
+  const totalForBar = sessionBaseline
+  const doneCount = Math.max(0, totalForBar - fetched.length)
+  const progress = matchProgressPercent(doneCount, totalForBar)
 
   const [selected, setSelected] = useState(0)
   const [answered, setAnswered] = useState<{ id: string; items: Suggestion[] } | null>(null)
@@ -172,19 +234,20 @@ function MatchQueue() {
   const [periodError, setPeriodError] = useState<PeriodLock | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [manualAccount, setManualAccount] = useState('')
-  const [candidate, setCandidate] = useState(0)
+  const [formOpen, setFormOpen] = useState(false)
+  const [formFor, setFormFor] = useState<MatchChoiceId | null>(null)
   const [phoneOpen, setPhoneOpen] = useState(false)
-  const [flashId, setFlashId] = useState<string | null>(null)
-  const [matchedToday, setMatchedToday] = useState<MatchedRow[]>([])
   const keys = useRef<Map<string, string>>(new Map())
-  const rows = useRef<(HTMLTableRowElement | null)[]>([])
+  const rows = useRef<(HTMLButtonElement | null)[]>([])
   const panel = useRef<HTMLElement | null>(null)
-  const candidates = useRef<(HTMLLIElement | null)[]>([])
   const accountPickerHost = useRef<HTMLDivElement | null>(null)
 
-  const moveCandidate = (to: number): void => {
-    setCandidate(to)
-    candidates.current[to]?.focus()
+  const selectLine = (index: number): void => {
+    setSelected(index)
+    setFormOpen(false)
+    setFormFor(null)
+    setManualAccount('')
+    setPeriodError(null)
   }
 
   const line = queue[Math.min(selected, Math.max(0, queue.length - 1))]
@@ -193,6 +256,10 @@ function MatchQueue() {
   const loadingSuggestions = lineId !== undefined && suggestions === null
   const lock = line === undefined ? null : periodLockForDate(fiscalYears, line.bookingDate)
   const accountNameByNumber = new Map(postable.map((account) => [account.number, account.name]))
+  // Show the four options while suggestions load (none suggested yet); the
+  // fetch only decides which one gets the Suggested tag / book-now action.
+  const choices = buildMatchChoices(loadingSuggestions ? [] : suggestions)
+  const outgoing = line !== undefined && isOutgoing(line.amount)
 
   const keyFor = (transactionId: string): string => {
     const existing = keys.current.get(transactionId)
@@ -229,8 +296,14 @@ function MatchQueue() {
 
   const closePhone = (): void => {
     setPhoneOpen(false)
-    setCandidate(0)
-    setManualAccount('')
+  }
+
+  const focusPicker = (): void => {
+    queueMicrotask(() => {
+      accountPickerHost.current
+        ?.querySelector<HTMLElement>('input[role="combobox"]:not([disabled])')
+        ?.focus()
+    })
   }
 
   const book = async (
@@ -267,7 +340,6 @@ function MatchQueue() {
     if (!result.ok) {
       const locked = result.problem.violations.find((item) => isPeriodLockViolation(item.code))
       if (locked !== undefined) {
-        // Shared #73/#74 helper: never-blank label (incl. "deze periode").
         setPeriodError(periodLockFromViolation(fiscalYears, locked.code, locked.detail))
         return
       }
@@ -280,40 +352,7 @@ function MatchQueue() {
     }
 
     const counterparty = lineTitle(line, t)
-    const bookedAccount = accountNumber ?? suggestion?.accountNumber ?? null
-    const resultLabel =
-      suggestion === null
-        ? advanced
-          ? (bookedAccount ?? '')
-          : (accountNameByNumber.get(bookedAccount ?? '') ?? bookedAccount ?? '')
-        : suggestionLabel(suggestion, {
-            preferAccountName: !advanced,
-            accountName:
-              suggestion.accountNumber === null
-                ? null
-                : (accountNameByNumber.get(suggestion.accountNumber) ?? null),
-          })
-
     keys.current.delete(line.id)
-    setFlashId(line.id)
-    const reduceMotion =
-      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const wait = (ms: number) =>
-      new Promise<void>((resolve) => {
-        setTimeout(resolve, reduceMotion ? 0 : ms)
-      })
-    await wait(420)
-    setMatchedToday((current) => [
-      {
-        id: line.id,
-        counterparty,
-        amount: line.amount,
-        outgoing: isOutgoing(line.amount),
-        result: resultLabel,
-      },
-      ...current,
-    ])
-    setFlashId(null)
     closePhone()
     setNotice(
       t('match.posted', { name: counterparty }) +
@@ -322,7 +361,8 @@ function MatchQueue() {
         t('match.postedEntry', { number: String(result.data.entryNumber) }),
     )
     setManualAccount('')
-    setCandidate(0)
+    setFormOpen(false)
+    setFormFor(null)
     await router.invalidate()
   }
 
@@ -346,22 +386,42 @@ function MatchQueue() {
     keys.current.delete(line.id)
     setNotice(t('match.skipped'))
     closePhone()
+    setFormOpen(false)
+    setFormFor(null)
     await router.invalidate()
   }
 
-  const openPanel = (): void => {
-    const offered = suggestions ?? []
+  const openForm = (choiceId: MatchChoiceId): void => {
+    setFormOpen(true)
+    setFormFor(choiceId)
     if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
       setPhoneOpen(true)
     }
-    if (offered.length > 0) {
-      moveCandidate(Math.min(candidate, offered.length - 1))
-    } else {
-      // Prefer the Categorie combobox, not the "search other" button above it.
-      accountPickerHost.current
-        ?.querySelector<HTMLElement>('input[role="combobox"]:not([disabled])')
-        ?.focus()
+    focusPicker()
+  }
+
+  const applyChoice = (choice: MatchChoice): void => {
+    if (line === undefined || busy) return
+    if (isBookingBlocked(lock, canPostClosed)) {
+      if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+        setPhoneOpen(true)
+      }
+      return
     }
+    // Book-suggestion needs the fetch; opening the form does not.
+    if (choice.action.type === 'book_suggestion') {
+      if (loadingSuggestions) return
+      const suggestion = choice.action.suggestion
+      void book(
+        {
+          ...suggestion,
+          allocations: suggestion.allocations.map((row) => ({ ...row })),
+        },
+        null,
+      )
+      return
+    }
+    openForm(choice.id)
   }
 
   useEffect(() => {
@@ -371,8 +431,6 @@ function MatchQueue() {
       if (event.defaultPrevented) return
 
       const target = event.target as HTMLElement | null
-      // Esc still leaves the panel from the Categorie field; other chords stay
-      // out of the way while somebody is typing an account number.
       if (
         target !== null &&
         /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName) &&
@@ -385,52 +443,64 @@ function MatchQueue() {
       const onControl = target !== null && /^(BUTTON|A)$/.test(target.tagName)
       if (onControl && (event.key === 'Enter' || event.key === ' ')) return
 
-      const offered = suggestions ?? []
       const inPanel = phoneOpen || (target !== null && (panel.current?.contains(target) ?? false))
-      const here = Math.min(candidate, Math.max(offered.length - 1, 0))
 
       if (event.key === 'ArrowDown' || event.key === 'j') {
         event.preventDefault()
-        if (inPanel) moveCandidate(Math.min(here + 1, Math.max(offered.length - 1, 0)))
-        else setSelected((current) => Math.min(current + 1, queue.length - 1))
+        selectLine(Math.min(selected + 1, Math.max(queue.length - 1, 0)))
         return
       }
       if (event.key === 'ArrowUp' || event.key === 'k') {
         event.preventDefault()
-        if (inPanel) moveCandidate(Math.max(here - 1, 0))
-        else setSelected((current) => Math.max(current - 1, 0))
+        selectLine(Math.max(selected - 1, 0))
+        return
+      }
+      if (event.key === '1' || event.key === '2' || event.key === '3' || event.key === '4') {
+        event.preventDefault()
+        const choice = choices.find((item) => item.key === event.key)
+        if (choice !== undefined) applyChoice(choice)
+        return
+      }
+      if (event.key === 's' || event.key === 'S') {
+        event.preventDefault()
+        void skip()
+        return
+      }
+      if (event.key === 'u' || event.key === 'U') {
+        event.preventDefault()
+        // Attach receipt: inbox is where uploads land; no match-attach API yet.
+        void router.navigate({ to: '/inbox' })
+        return
+      }
+      if (event.key === 'z' || event.key === 'Z') {
+        event.preventDefault()
+        setNotice(t('match.undoUnavailable'))
         return
       }
       if (event.key === 'Enter') {
         event.preventDefault()
-        if (!inPanel) {
-          // Open even when locked so the named period notice is readable on phone.
-          openPanel()
+        if (!inPanel && formOpen === false) {
+          if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+            setPhoneOpen(true)
+          }
+          const suggested = choices.find((item) => item.suggested)
+          if (suggested !== undefined) applyChoice(suggested)
+          else openForm('other')
           return
         }
         if (isBookingBlocked(lock, canPostClosed)) return
-        const chosen = offered[here]
-        if (chosen !== undefined) void book(chosen, null)
-        else if (manualAccount !== '') void book(null, manualAccount)
-        return
-      }
-      if (event.key === 'u') {
-        event.preventDefault()
-        setManualAccount('')
-        setCandidate(0)
-        setNotice(null)
+        if (manualAccount !== '') void book(null, manualAccount)
         return
       }
       if (event.key === 'Escape') {
         event.preventDefault()
-        setCandidate(0)
         setManualAccount('')
+        setFormOpen(false)
+        setFormFor(null)
         setNotice(null)
         setError(null)
         setPeriodError(null)
         if (phoneOpen) closePhone()
-        // Focus after React applies the cleared choice — otherwise the
-        // combobox re-render steals focus and the queue row stays inactive.
         const rowIndex = selected
         queueMicrotask(() => {
           rows.current[rowIndex]?.focus()
@@ -444,23 +514,25 @@ function MatchQueue() {
     }
   })
 
-  const subtitle =
+  const accountSummary =
     primaryAccount === null
       ? t('match.subtitleBare')
-      : t('match.subtitle', {
-          name: primaryAccount.name,
-          iban: ibanTail(primaryAccount.iban),
-          when: t('match.updatedUnknown'),
-        })
+      : primaryAccount.reconciliation.statementBalance === null
+        ? t('match.accountSummaryBare', {
+            name: primaryAccount.name,
+            iban: ibanTail(primaryAccount.iban),
+          })
+        : t('match.accountSummary', {
+            name: primaryAccount.name,
+            iban: ibanTail(primaryAccount.iban),
+            balance: formatEuro(primaryAccount.reconciliation.statementBalance),
+          })
 
   if (!transactions.ok) {
     return (
       <>
         <header className="mb-4">
-          <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            {t('match.eyebrow')}
-          </p>
-          <h1 className="text-xl font-semibold tracking-tight">{t('match.title')}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('bank.title')}</h1>
         </header>
         <p role="alert" className="text-destructive text-sm">
           {transactions.problem.detail || t('match.loadError')}
@@ -469,294 +541,169 @@ function MatchQueue() {
     )
   }
 
-  const panelBody = (
-    <MatchPanel
-      panelRef={panel}
-      titleId={panelTitleId}
-      line={line}
-      lock={lock}
-      years={fiscalYears}
-      suggestions={suggestions}
-      loading={loadingSuggestions}
-      candidate={candidate}
-      candidatesRef={candidates}
-      busy={busy}
-      hydrated={hydrated}
-      advanced={advanced}
-      postable={postable}
-      accountNameByNumber={accountNameByNumber}
-      manualAccount={manualAccount}
-      onManualAccount={setManualAccount}
-      accountPickerHost={accountPickerHost}
-      canPostClosed={canPostClosed}
-      periodError={periodError}
-      locale={tag}
-      strategyOf={strategyOf}
-      onSelectCandidate={setCandidate}
-      onBook={(suggestion) => {
-        void book(suggestion, null)
-      }}
-      onBookManual={() => {
-        void book(null, manualAccount)
-      }}
-      onSkip={() => {
-        void skip()
-      }}
-      onClear={() => {
-        setManualAccount('')
-        setCandidate(0)
-      }}
-      onClosePhone={phoneOpen ? closePhone : undefined}
-      t={t}
-    />
-  )
+  const vatHint =
+    line === undefined ? null : formatEuro(((absoluteMinor(line.amount) * 21n) / 121n).toString())
+
+  const panelBody =
+    line === undefined ? null : (
+      <MatchPanel
+        panelRef={panel}
+        titleId={panelTitleId}
+        line={line}
+        lock={lock}
+        years={fiscalYears}
+        choices={choices}
+        loading={loadingSuggestions}
+        busy={busy}
+        hydrated={hydrated}
+        advanced={advanced}
+        postable={postable}
+        accountNameByNumber={accountNameByNumber}
+        manualAccount={manualAccount}
+        onManualAccount={setManualAccount}
+        accountPickerHost={accountPickerHost}
+        formOpen={formOpen}
+        formFor={formFor}
+        canPostClosed={canPostClosed}
+        periodError={periodError}
+        locale={tag}
+        outgoing={outgoing}
+        vatHint={vatHint}
+        strategyOf={strategyOf}
+        onChoose={applyChoice}
+        onBookManual={() => {
+          void book(null, manualAccount)
+        }}
+        onSkip={() => {
+          void skip()
+        }}
+        onClosePhone={phoneOpen ? closePhone : undefined}
+        t={t}
+      />
+    )
 
   return (
     <>
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            {t('match.eyebrow')}
-          </p>
-          <h1 className="text-xl font-semibold tracking-tight">{t('match.title')}</h1>
-          <p className="text-muted-foreground mt-1 text-sm tabular">{subtitle}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="text-muted-foreground text-sm tabular">
-            <span className="text-foreground text-lg font-semibold">{remainingText}</span>
-          </p>
-          <Link
-            to="/bank"
-            className="border-input inline-flex min-h-11 items-center border px-4 text-sm md:min-h-9"
-          >
-            {t('match.backToBank')}
-          </Link>
-        </div>
+      <header className="flex flex-wrap items-center gap-3 px-0 pt-1 pb-0">
+        <h1 className="min-w-0 flex-1 text-2xl leading-[30px] font-semibold tracking-[-0.01em]">
+          {t('bank.title')}
+        </h1>
+        <span className="text-ink-2 font-mono text-sm tabular-nums">{accountSummary}</span>
+        <span className="text-ink-2 text-sm tabular-nums">{remainingText}</span>
+        <Button asChild variant="outline" className="min-h-11 md:min-h-9">
+          <Link to="/bank">{t('bank.importStatement')}</Link>
+        </Button>
+        <BankTabs active="match" toMatchCount={toMatchCount > 0 ? toMatchCount : undefined} />
       </header>
 
-      {notice !== null && queue.length > 0 && (
-        <p role="status" className="border-border text-muted-foreground mb-4 border p-3 text-sm">
+      {notice !== null && (
+        <p role="status" className="border-border text-ink-2 mt-4 border p-3 text-sm">
           {notice}
         </p>
       )}
       {error !== null && (
-        <p role="alert" className="text-destructive mb-4 text-sm">
+        <p role="alert" className="text-destructive mt-4 text-sm">
           {error}
         </p>
       )}
 
       {queue.length === 0 ? (
-        <div className="border-border border p-6">
-          <p className="font-medium">{t('match.nothingToDo')}</p>
-          <p className="text-muted-foreground mt-1 text-sm">{t('match.nothingToDoBody')}</p>
+        <div className="bg-card border-border mt-5 flex flex-col items-center gap-2.5 rounded-[var(--radius-xl)] border px-8 py-12 text-center shadow-[var(--shadow-raised)]">
+          <p className="text-xl leading-[26px] font-semibold">{t('match.nothingToDo')}</p>
+          <p className="text-ink-2 text-sm">{t('match.nothingToDoBody')}</p>
+          <p className="text-ink-muted mt-2 text-sm">{remainingText}</p>
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_520px]">
-          <div className="min-w-0">
-            <div
-              className="border-border overflow-x-auto border"
-              tabIndex={-1}
-              data-slot="scroll-table"
-            >
-              <table className="w-full min-w-[560px] text-sm" aria-label={t('match.queue')}>
-                <thead className="bg-muted text-muted-foreground text-left text-xs">
-                  <tr>
-                    <th className="bg-muted sticky left-0 z-10 px-3 py-2 font-medium">
-                      {t('match.col.counterparty')}
-                    </th>
-                    <th className="px-3 py-2 font-medium">{t('match.col.date')}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t('match.col.out')}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t('match.col.in')}</th>
-                    <th className="px-3 py-2 font-medium">{t('match.col.suggestion')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-border divide-y">
-                  {queue.map((item, index) => {
-                    const sel = index === selected
-                    const itemLock = periodLockForDate(fiscalYears, item.bookingDate)
-                    const itemBlocked = isBookingBlocked(itemLock, canPostClosed)
-                    const flashing = flashId === item.id
-                    const out = isOutgoing(item.amount)
-                    return (
-                      <tr
-                        key={item.id}
-                        ref={(element) => {
-                          rows.current[index] = element
-                        }}
-                        tabIndex={sel ? 0 : -1}
-                        aria-selected={sel}
-                        data-row={item.id}
-                        onClick={() => {
-                          setSelected(index)
-                          setCandidate(0)
-                          setPeriodError(null)
-                          // Phone: tap opens the sheet (including locked rows — lock copy lives there).
-                          if (
-                            typeof window !== 'undefined' &&
-                            window.matchMedia('(max-width: 1023px)').matches
-                          ) {
-                            setPhoneOpen(true)
-                          }
-                        }}
-                        onFocus={() => {
-                          setSelected(index)
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey) {
-                            event.preventDefault()
-                            setSelected(index)
-                            openPanel()
-                          }
-                        }}
-                        className={cn(
-                          // Ring is painted on each `td` (not the `tr` outline) so the
-                          // sticky first column cannot cover it over Datum.
-                          'group cursor-pointer transition-opacity duration-200 focus-visible:outline-none',
-                          sel && 'bg-muted',
-                          !sel && 'hover:bg-muted/60',
-                          flashing && 'bg-success/15',
-                        )}
-                      >
-                        <td
-                          className={cn(
-                            'sticky left-0 z-10 border-l-[3px] px-3 py-3 font-medium md:whitespace-nowrap',
-                            sel ? 'border-l-accent bg-muted' : 'border-l-transparent bg-background',
-                            sel && 'bg-muted',
-                            // Left + top + bottom of the continuous row ring.
-                            'group-focus-visible:shadow-[inset_2px_0_0_0_var(--ring),inset_0_2px_0_0_var(--ring),inset_0_-2px_0_0_var(--ring)]',
-                          )}
-                        >
-                          {lineTitle(item, t)}
-                          {item.counterpartyName !== null &&
-                            item.counterpartyName !== '' &&
-                            item.description !== '' && (
-                              <span className="text-muted-foreground block max-w-48 truncate text-xs font-normal">
-                                {item.description}
-                              </span>
-                            )}
-                        </td>
-                        <td
-                          className={cn(
-                            'text-muted-foreground px-3 py-3 whitespace-nowrap tabular',
-                            'group-focus-visible:shadow-[inset_0_2px_0_0_var(--ring),inset_0_-2px_0_0_var(--ring)]',
-                          )}
-                        >
-                          {formatBankDay(item.bookingDate, tag)}
-                        </td>
-                        <td
-                          className={cn(
-                            'px-3 py-3 text-right whitespace-nowrap tabular',
-                            'group-focus-visible:shadow-[inset_0_2px_0_0_var(--ring),inset_0_-2px_0_0_var(--ring)]',
-                          )}
-                        >
-                          {out ? formatEuro(item.amount) : ''}
-                        </td>
-                        <td
-                          className={cn(
-                            'px-3 py-3 text-right whitespace-nowrap tabular',
-                            'group-focus-visible:shadow-[inset_0_2px_0_0_var(--ring),inset_0_-2px_0_0_var(--ring)]',
-                          )}
-                        >
-                          {!out ? formatEuro(item.amount) : ''}
-                        </td>
-                        <td
-                          className={cn(
-                            'px-3 py-3 whitespace-nowrap',
-                            // Right + top + bottom close the continuous row ring.
-                            'group-focus-visible:shadow-[inset_-2px_0_0_0_var(--ring),inset_0_2px_0_0_var(--ring),inset_0_-2px_0_0_var(--ring)]',
-                          )}
-                          data-cell="sug"
-                        >
-                          {flashing ? (
-                            <span className="text-success inline-flex items-center gap-1.5 font-medium">
-                              <svg
-                                viewBox="0 0 24 24"
-                                className="size-4"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.25"
-                                aria-hidden
-                              >
-                                <path d="M5 12.5l4.5 4.5L19 7.5" />
-                              </svg>
-                              {t('match.matchedLabel')}
-                            </span>
-                          ) : itemBlocked && itemLock !== null ? (
-                            <span className="text-muted-foreground flex max-w-48 items-center gap-1">
-                              <Lock className="size-3.5 shrink-0" aria-hidden />
-                              <span className="truncate">
-                                {periodName(itemLock, fiscalYears, tag)}
-                              </span>
-                            </span>
-                          ) : sel && loadingSuggestions ? (
-                            <span className="text-muted-foreground">{t('match.searching')}</span>
-                          ) : sel && suggestions !== null && suggestions.length > 0 ? (
-                            <span className="block max-w-48 truncate">
-                              <span
-                                className={cn(
-                                  'mr-1.5 inline-block size-1.5 align-middle',
-                                  confidenceTone(suggestions[0]!.confidence) === 'certain'
-                                    ? 'bg-success'
-                                    : 'bg-muted-foreground',
-                                )}
-                              />
-                              {suggestionLabel(suggestions[0]!, {
-                                preferAccountName: !advanced,
-                                accountName:
-                                  suggestions[0]!.accountNumber === null
-                                    ? null
-                                    : (accountNameByNumber.get(suggestions[0]!.accountNumber) ??
-                                      null),
-                              })}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">{t('match.dash')}</span>
-                          )}
-                        </td>
-                      </tr>
-                    )
+        <div className="mt-5 flex flex-wrap items-start gap-5">
+          <section
+            aria-label={t('match.queue')}
+            className="bg-card border-border max-w-[360px] min-w-0 flex-1 overflow-hidden rounded-[var(--radius-xl)] border shadow-[var(--shadow-raised)]"
+          >
+            <div className="flex flex-col gap-2 px-4 py-3.5">
+              <div className="flex justify-between text-[13px]">
+                <span className="font-semibold">
+                  {t('match.progress', {
+                    done: String(doneCount),
+                    total: String(totalForBar),
                   })}
-                </tbody>
-              </table>
+                </span>
+                <span className="text-ink-muted">{t('match.newestFirst')}</span>
+              </div>
+              <div className="bg-line-soft h-1.5 overflow-hidden rounded-full">
+                <div
+                  className="bg-primary h-1.5 rounded-full transition-[width] duration-300 motion-reduce:transition-none"
+                  style={{ width: `${String(progress)}%` }}
+                />
+              </div>
             </div>
-
-            <p className="text-muted-foreground mt-2 text-xs md:hidden">{t('match.swipeHint')}</p>
-
-            <ShortcutFooter
-              ids={['match.next', 'match.previous', 'match.confirm', 'match.clear', 'match.leave']}
-              className="border-accent mt-3 hidden md:flex"
-            />
-
-            {matchedToday.length > 0 && (
-              <section className="mt-6" aria-labelledby="matched-today">
-                <h2 id="matched-today" className="text-base font-medium">
-                  {t('match.matchedToday')}
-                </h2>
-                <ul className="border-border mt-2 divide-y border text-sm">
-                  {matchedToday.map((row) => (
-                    <li key={row.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                      <span className="min-w-0 truncate">
-                        <span className="font-medium">{row.counterparty}</span>
-                        <span className="text-muted-foreground block truncate text-xs">
-                          {row.result}
-                        </span>
+            <div className="max-h-[640px] overflow-y-auto" data-slot="match-queue">
+              {queue.map((item, index) => {
+                const sel = index === selected
+                const itemLock = periodLockForDate(fiscalYears, item.bookingDate)
+                const itemBlocked = isBookingBlocked(itemLock, canPostClosed)
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    ref={(element) => {
+                      rows.current[index] = element
+                    }}
+                    tabIndex={sel ? 0 : -1}
+                    aria-selected={sel}
+                    data-row={item.id}
+                    onClick={() => {
+                      selectLine(index)
+                      if (
+                        typeof window !== 'undefined' &&
+                        window.matchMedia('(max-width: 1023px)').matches
+                      ) {
+                        setPhoneOpen(true)
+                      }
+                    }}
+                    onFocus={() => {
+                      selectLine(index)
+                    }}
+                    className={cn(
+                      'flex min-h-11 w-full items-center gap-3 border-b px-4 py-2.5 text-left last:border-b-0',
+                      'border-border focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
+                      sel
+                        ? 'bg-selection shadow-[inset_3px_0_0_var(--selection-edge)]'
+                        : 'hover:bg-surface-hover',
+                    )}
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col gap-px">
+                      <span className="truncate font-medium">{lineTitle(item, t)}</span>
+                      <span className="text-ink-muted text-xs">
+                        {itemBlocked && itemLock !== null ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Lock className="size-3 shrink-0" aria-hidden />
+                            {periodName(itemLock, fiscalYears, tag)}
+                          </span>
+                        ) : (
+                          formatBankDay(item.bookingDate, tag)
+                        )}
                       </span>
-                      <span className="tabular shrink-0">
-                        {row.outgoing ? '− ' : '+ '}
-                        {formatEuro(row.amount)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-          </div>
+                    </span>
+                    <span className="font-mono text-sm font-medium tabular-nums">
+                      {isOutgoing(item.amount) ? '−' : '+'}
+                      {formatEuro(item.amount)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
 
-          <div className="hidden lg:sticky lg:top-20 lg:block">{panelBody}</div>
+          <section
+            aria-label={t('match.panelLabel')}
+            className="hidden min-w-0 flex-[999_1_460px] flex-col gap-4 lg:flex"
+          >
+            {panelBody}
+          </section>
         </div>
       )}
 
-      {phoneOpen && line !== undefined && (
+      {phoneOpen && line !== undefined && panelBody !== null && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div
             className="absolute inset-0 bg-black/40"
@@ -767,7 +714,7 @@ function MatchQueue() {
             role="dialog"
             aria-modal="true"
             aria-labelledby={panelTitleId}
-            className="bg-background absolute inset-y-0 right-0 flex w-full flex-col border-l"
+            className="bg-background absolute inset-y-0 right-0 flex w-full flex-col overflow-y-auto border-l p-4"
           >
             {panelBody}
           </div>
@@ -805,7 +752,6 @@ function lockCopy(
     }
   }
 
-  // soft_closed
   if (canPostClosed) {
     return {
       title: Period,
@@ -827,10 +773,8 @@ function MatchPanel({
   line,
   lock,
   years,
-  suggestions,
+  choices,
   loading,
-  candidate,
-  candidatesRef,
   busy,
   hydrated,
   advanced,
@@ -839,27 +783,27 @@ function MatchPanel({
   manualAccount,
   onManualAccount,
   accountPickerHost,
+  formOpen,
+  formFor,
   canPostClosed,
   periodError,
   locale,
+  outgoing,
+  vatHint,
   strategyOf,
-  onSelectCandidate,
-  onBook,
+  onChoose,
   onBookManual,
   onSkip,
-  onClear,
   onClosePhone,
   t,
 }: {
   panelRef: React.RefObject<HTMLElement | null>
   titleId: string
-  line: Line | undefined
+  line: Line
   lock: PeriodLock | null
   years: readonly FiscalYearWithPeriods[]
-  suggestions: Suggestion[] | null
+  choices: readonly MatchChoice[]
   loading: boolean
-  candidate: number
-  candidatesRef: React.MutableRefObject<(HTMLLIElement | null)[]>
   busy: boolean
   hydrated: boolean
   advanced: boolean
@@ -868,30 +812,23 @@ function MatchPanel({
   manualAccount: string
   onManualAccount: (value: string) => void
   accountPickerHost: React.RefObject<HTMLDivElement | null>
+  formOpen: boolean
+  formFor: MatchChoiceId | null
   canPostClosed: boolean
   periodError: PeriodLock | null
   locale: string
+  outgoing: boolean
+  vatHint: string | null
   strategyOf: (strategy: string) => string
-  onSelectCandidate: (index: number) => void
-  onBook: (suggestion: Suggestion) => void
+  onChoose: (choice: MatchChoice) => void
   onBookManual: () => void
   onSkip: () => void
-  onClear: () => void
   onClosePhone: (() => void) | undefined
   t: (key: MessageKey, values?: Record<string, string>) => string
 }) {
-  if (line === undefined) {
-    return (
-      <div className="border-border text-muted-foreground border p-6 text-sm">
-        {t('match.nothingToDo')}
-      </div>
-    )
-  }
-
-  const outgoing = isOutgoing(line.amount)
+  void strategyOf
   const blocked = isBookingBlocked(lock, canPostClosed)
   const softNotice = lock !== null && lock.status === 'soft_closed' && canPostClosed && !blocked
-  const offered = suggestions ?? []
   const shownLock = periodError ?? (blocked || softNotice ? lock : null)
   const copy =
     shownLock === null
@@ -899,45 +836,45 @@ function MatchPanel({
       : lockCopy(shownLock, years, line.bookingDate, locale, canPostClosed, t)
 
   return (
-    <section
+    <div
       ref={(element) => {
         panelRef.current = element
       }}
-      aria-label={t('match.panelLabel')}
-      className="border-border bg-background flex h-full flex-col border"
+      className="flex flex-col gap-4"
     >
-      <div className="border-border border-b p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-muted-foreground text-xs tabular">
-              {formatBankDay(line.bookingDate, locale)}
-              {line.counterpartyIban === null ? '' : ` · ${line.counterpartyIban}`}
-            </p>
-            <h2 id={titleId} className="mt-0.5 text-base font-semibold">
-              {lineTitle(line, t)}
-            </h2>
-            {line.counterpartyName !== null &&
-              line.counterpartyName !== '' &&
-              line.description !== '' && (
-                <p className="text-muted-foreground text-sm">{line.description}</p>
-              )}
-          </div>
-          <div className="text-right">
-            <Badge variant="outline">
-              {outgoing ? t('match.direction.out') : t('match.direction.in')}
-            </Badge>
-            <p className="mt-1 text-xl font-semibold tabular">
-              {outgoing ? '− ' : '+ '}
-              {formatEuro(line.amount)}
-            </p>
-          </div>
+      <div className="bg-card border-border flex flex-wrap items-start gap-5 rounded-[var(--radius-xl)] border p-6 shadow-[var(--shadow-raised)]">
+        <div className="flex min-w-[260px] flex-1 flex-col gap-1">
+          <span className="text-ink-muted font-mono text-[13px] tabular-nums">
+            {formatBankDayWithYear(line.bookingDate, locale)}
+            {' · '}
+            {outgoing ? t('match.direction.debit') : t('match.direction.credit')}
+          </span>
+          <h2 id={titleId} className="text-[22px] leading-7 font-semibold">
+            {lineTitle(line, t)}
+          </h2>
+          {line.description !== '' && (
+            <span className="text-ink-2">
+              {'\u201C'}
+              {line.description}
+              {'\u201D'}
+            </span>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <span className="font-mono text-[30px] leading-9 font-semibold tracking-[-0.02em] tabular-nums">
+            {outgoing ? '− ' : '+ '}
+            {formatEuro(line.amount)}
+          </span>
+          <span className="text-ink-muted text-[13px]">
+            {outgoing ? t('match.moneyOut') : t('match.moneyIn')}
+          </span>
         </div>
         {onClosePhone !== undefined && (
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="mt-2 min-h-11 md:min-h-8"
+            className="min-h-11 w-full md:min-h-8"
             onClick={onClosePhone}
           >
             {t('match.panelClose')} <Keycap className="ml-1.5 hidden md:inline-flex">Esc</Keycap>
@@ -945,130 +882,65 @@ function MatchPanel({
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {copy !== null && (
-          <div className="p-4">
-            <div className="border-border flex gap-3 border border-dashed p-4 text-sm">
-              <Lock className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden />
-              <div>
-                <p className="font-medium">{copy.title}</p>
-                <p className="text-muted-foreground mt-1">{copy.body}</p>
-                {copy.showFiscalYearsLink && (
-                  <Link
-                    to="/fiscal-years"
-                    className="text-muted-foreground mt-2 inline-flex min-h-11 items-center text-sm underline underline-offset-4 md:min-h-8"
-                  >
-                    {t('match.period.toFiscalYears')}
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!blocked && (
-          <div className="p-4">
-            {loading && <p className="text-muted-foreground text-sm">{t('match.searching')}</p>}
-
-            {!loading && offered.length === 0 && (
-              <p className="text-muted-foreground mb-4 text-sm">{t('match.noSuggestion')}</p>
-            )}
-
-            {!loading && offered.length > 0 && (
-              <>
-                <p className="mb-2 text-sm font-medium">
-                  {offered.length > 1 ? t('match.whichBelongs') : t('match.belongsHere')}
-                </p>
-                <ul role="listbox" aria-label={t('match.col.suggestion')} className="space-y-2">
-                  {offered.map((suggestion, index) => {
-                    const active = index === candidate
-                    const tone = confidenceTone(suggestion.confidence)
-                    return (
-                      <li
-                        key={`${suggestion.strategy}-${String(index)}`}
-                        ref={(element) => {
-                          candidatesRef.current[index] = element
-                        }}
-                        role="option"
-                        aria-selected={active}
-                        tabIndex={active ? 0 : -1}
-                        onFocus={() => {
-                          onSelectCandidate(index)
-                        }}
-                        onClick={() => {
-                          onSelectCandidate(index)
-                        }}
-                        className={cn(
-                          'flex min-h-11 cursor-pointer items-start gap-3 border p-3',
-                          active
-                            ? 'border-foreground border-l-accent border-l-[3px] focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring'
-                            : 'border-border hover:bg-muted focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'mt-0.5 flex size-4 items-center justify-center border',
-                            active ? 'border-foreground' : 'border-border',
-                          )}
-                          aria-hidden
-                        >
-                          {active && <span className="bg-foreground size-2" />}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-medium">
-                              {suggestionLabel(suggestion, {
-                                preferAccountName: !advanced,
-                                accountName:
-                                  suggestion.accountNumber === null
-                                    ? null
-                                    : (accountNameByNumber.get(suggestion.accountNumber) ?? null),
-                              })}
-                            </span>
-                            <span className="text-sm tabular">
-                              {suggestionBookedAmount(suggestion, line.amount)}
-                            </span>
-                          </span>
-                          <span className="text-muted-foreground mt-0.5 flex items-center justify-between gap-2 text-xs">
-                            <span>
-                              {suggestion.reason}
-                              {advanced && (
-                                <>
-                                  {' · '}
-                                  {strategyOf(suggestion.strategy)}
-                                  {' · '}
-                                  {String(suggestion.confidence)}%
-                                </>
-                              )}
-                            </span>
-                            <Badge
-                              variant={tone === 'certain' ? 'success' : 'outline'}
-                              className="shrink-0"
-                            >
-                              {t(`match.confidence.${tone}`)}
-                            </Badge>
-                          </span>
-                        </span>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </>
-            )}
-
-            <div ref={accountPickerHost} className="mt-4">
-              <button
-                type="button"
-                className="text-muted-foreground inline-flex min-h-11 items-center gap-1.5 text-sm md:min-h-8"
-                onClick={() => {
-                  accountPickerHost.current
-                    ?.querySelector<HTMLElement>('input:not([disabled])')
-                    ?.focus()
-                }}
+      {copy !== null && (
+        <div className="border-border flex gap-3 rounded-[var(--radius-xl)] border border-dashed p-4 text-sm">
+          <Lock className="text-ink-muted mt-0.5 size-4 shrink-0" aria-hidden />
+          <div>
+            <p className="font-medium">{copy.title}</p>
+            <p className="text-ink-2 mt-1">{copy.body}</p>
+            {copy.showFiscalYearsLink && (
+              <Link
+                to="/fiscal-years"
+                className="text-link mt-2 inline-flex min-h-11 items-center text-sm underline underline-offset-4 md:min-h-8"
               >
-                <Search className="size-3.5" aria-hidden />
-                {t('match.searchOther')}
-              </button>
+                {t('match.period.toFiscalYears')}
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!blocked && (
+        <div className="flex flex-col gap-2.5">
+          <h3 className="text-ink-2 m-0 text-sm font-semibold">{t('match.whatWasThis')}</h3>
+          {loading && <p className="text-ink-muted text-sm">{t('match.searching')}</p>}
+          {choices.map((choice) => (
+            <MatchChoiceOption
+              key={choice.id}
+              choiceKey={choice.key}
+              title={t(CHOICE_TITLE[choice.id])}
+              meta={choiceMeta(
+                choice,
+                outgoing,
+                vatHint,
+                accountNameByNumber,
+                advanced,
+                strategyOf,
+                t,
+              )}
+              suggested={choice.suggested}
+              suggestedLabel={t('match.suggested')}
+              disabled={busy || !hydrated}
+              onClick={() => {
+                onChoose(choice)
+              }}
+            />
+          ))}
+
+          {formOpen && (
+            <div
+              ref={accountPickerHost}
+              className="bg-card border-border mt-2 rounded-[var(--radius-xl)] border p-4 shadow-[var(--shadow-raised)]"
+            >
+              <p className="mb-2 text-sm font-medium">
+                {formFor === 'transfer'
+                  ? t('match.form.transfer')
+                  : formFor === 'invoice'
+                    ? t('match.form.invoice')
+                    : formFor === 'cost'
+                      ? t('match.form.cost')
+                      : t('match.form.other')}
+              </p>
               <AccountPicker
                 label={advanced ? t('match.chooseAdvanced') : t('match.chooseYourself')}
                 accounts={postable}
@@ -1079,72 +951,54 @@ function MatchPanel({
                 }
                 disabled={!hydrated || busy}
                 showAccountNumbers={advanced}
-                className="mt-2"
               />
               {(line.counterpartyName !== null || advanced) && (
-                <p className="text-muted-foreground mt-2 text-xs">
+                <p className="text-ink-muted mt-2 text-xs">
                   {line.counterpartyName !== null
                     ? t('match.learnNote', { name: line.counterpartyName })
                     : t('match.learnNoteGeneric')}
                 </p>
               )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  disabled={busy || !hydrated || manualAccount === ''}
+                  className="min-h-11 md:min-h-9"
+                  onClick={onBookManual}
+                >
+                  {t('match.book')}
+                  <Keycap className="ml-1.5 hidden md:inline-flex">↵</Keycap>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy || !hydrated}
+                  className="min-h-11 md:min-h-9"
+                  onClick={onSkip}
+                >
+                  {t('match.skip')}
+                  <Keycap className="ml-1.5 hidden md:inline-flex">S</Keycap>
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      <div className="border-border mt-auto flex flex-wrap items-center justify-end gap-2 border-t p-3">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={busy || !hydrated}
-          className="min-h-11 md:min-h-9"
-          onClick={onSkip}
-        >
-          {t('match.skip')}
-        </Button>
-        {!blocked && offered.length > 0 && (
-          <Button
-            type="button"
-            disabled={busy || !hydrated}
-            className="min-h-11 md:min-h-9"
-            onClick={() => {
-              const chosen = offered[candidate]
-              if (chosen !== undefined) onBook(chosen)
-            }}
-          >
-            {t('match.confirm')}
-            <Keycap className="ml-1.5 hidden md:inline-flex">↵</Keycap>
-          </Button>
-        )}
-        {!blocked && offered.length === 0 && (
-          <Button
-            type="button"
-            disabled={busy || !hydrated || manualAccount === ''}
-            className="min-h-11 md:min-h-9"
-            onClick={onBookManual}
-          >
-            {t('match.book')}
-            <Keycap className="ml-1.5 hidden md:inline-flex">↵</Keycap>
-          </Button>
-        )}
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={busy || !hydrated}
-          className="min-h-11 md:min-h-9"
-          onClick={onClear}
-        >
-          {t('match.clearChoice')} <Keycap className="ml-1.5 hidden md:inline-flex">u</Keycap>
-        </Button>
+      <div className="text-ink-muted hidden flex-wrap gap-4 pt-1 text-[13px] md:flex">
+        <span>
+          <Keycap>1</Keycap>–<Keycap>4</Keycap> {t('match.hint.choose')}
+        </span>
+        <span>
+          <Keycap>S</Keycap> {t('match.hint.skip')}
+        </span>
+        <span>
+          <Keycap>U</Keycap> {t('match.hint.receipt')}
+        </span>
+        <span>
+          <Keycap>Z</Keycap> {t('match.hint.undo')}
+        </span>
       </div>
-
-      <div className="hidden px-3 pb-3 lg:block">
-        <ShortcutFooter
-          ids={['match.next', 'match.confirm', 'match.clear', 'match.leave']}
-          className="border-accent mt-0 hidden md:flex"
-        />
-      </div>
-    </section>
+    </div>
   )
 }

@@ -474,8 +474,8 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
-  await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
-  await expect(page.getByText('4 transacties ingelezen.')).toBeVisible()
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
+  await expect(page.getByText('4 transacties geïmporteerd.')).toBeVisible()
 
   await page.goto('/inbox')
   await expect(page.locator('input[type="file"]')).toBeEnabled()
@@ -528,22 +528,21 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   // body: the next Tab starts here rather than at the top of the window.
   await focusIsSomewhere(page)
 
-  // Invoice needed Geavanceerd; Koppelen below asserts simple-mode Categorie
+  // Invoice needed Geavanceerd; Match below asserts simple-mode Categorie
   // (name in the field). Turn it off before `g o`.
   await setAdvancedMode(page, false)
 
-  // Koppelen: `g` then `o`, the cursor down a line, an account typed in, booked.
-  // Redesign (#61 slice 6): Af/Bij table + Categorie picker, not the old button list.
+  // Bank match: `g` then `o`, next line, option 4 opens the form, book by hand.
   await page.keyboard.press('g')
   await page.keyboard.press('o')
-  await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
 
-  const queue = page.getByRole('table', { name: 'Wachtrij' }).locator('tbody tr')
+  const queue = page.locator('[data-slot="match-queue"] [data-row]')
   await expect(queue).toHaveCount(4)
   await page.keyboard.press('j')
 
-  // Fixture chart has 4900 (Algemene kosten), not 4400. Simple mode shows the
-  // name in the field; the stored value is still the account number.
+  // Option 4 opens the booking form. Fixture chart has 4900 (Algemene kosten).
+  await page.keyboard.press('4')
   const manual = page.getByRole('combobox', { name: 'Categorie' })
   await manual.pressSequentially('4900')
   await page.keyboard.press('ArrowDown')
@@ -555,7 +554,7 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await tabTo(page, /^BUTTON Boeken/)
   await page.keyboard.press('Enter')
   // Posted notice names the bank line (j moved off the fee line).
-  await expect(page.getByText('Gekoppeld: Overboeking spaarrekening')).toBeVisible()
+  await expect(page.getByText('Geboekt: Overboeking spaarrekening')).toBeVisible()
   await expect(queue).toHaveCount(3)
 
   // Postvak draft uses Grootboek line fields — turn Geavanceerd back on.

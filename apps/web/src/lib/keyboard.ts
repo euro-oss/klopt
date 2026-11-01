@@ -341,14 +341,15 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'queue.previous', label: 'keys.queuePrevious', group: 'keys.group.queue', keys: 'k' },
   { id: 'queue.leave', label: 'keys.queueLeave', group: 'keys.group.queue', keys: 'escape' },
 
-  // Four keys, by the Alpha 4 oracle: `Enter` opens the panel and then confirms
-  // the candidate the cursor is on. `1`–`9` and `x` were here and are gone — a
-  // digit booked a suggestion nobody had looked at, and `x` made skipping as
-  // cheap as booking. Skipping is a button (docs/keyboard-map.md).
+  // Match board (#107 Phase 7): ChoiceOption 1–4, S skip, U receipt, Z undo.
+  // j/k remain aliases for queue movement. Escape clears the form / closes phone.
   { id: 'match.confirm', label: 'keys.matchConfirm', group: 'keys.group.match', keys: 'enter' },
   { id: 'match.next', label: 'keys.matchNext', group: 'keys.group.match', keys: 'j' },
   { id: 'match.previous', label: 'keys.matchPrevious', group: 'keys.group.match', keys: 'k' },
-  { id: 'match.clear', label: 'keys.matchClear', group: 'keys.group.match', keys: 'u' },
+  { id: 'match.choose', label: 'keys.matchChoose', group: 'keys.group.match', keys: '1-4' },
+  { id: 'match.skip', label: 'keys.matchSkip', group: 'keys.group.match', keys: 's' },
+  { id: 'match.receipt', label: 'keys.matchReceipt', group: 'keys.group.match', keys: 'u' },
+  { id: 'match.undo', label: 'keys.matchUndo', group: 'keys.group.match', keys: 'z' },
   { id: 'match.leave', label: 'keys.matchLeave', group: 'keys.group.match', keys: 'escape' },
 
   // Het postvak, worked with the same four keys as the koppelscherm and the

@@ -71,8 +71,8 @@ async function importStatement(page: Page): Promise<void> {
   await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
-  await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
-  await expect(page.getByText('4 transacties ingelezen.')).toBeVisible()
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
+  await expect(page.getByText('4 transacties geïmporteerd.')).toBeVisible()
 }
 
 async function issueMatchingInvoice(page: Page, withIban = false): Promise<void> {
@@ -98,7 +98,7 @@ async function issueMatchingInvoice(page: Page, withIban = false): Promise<void>
 
 async function openMatch(page: Page): Promise<void> {
   await page.goto('/bank/match')
-  await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
   await expect(page.locator('[data-slot="scroll-table"] tbody tr').first()).toBeVisible({
     timeout: 15_000,
   })
@@ -320,7 +320,7 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
       await page.keyboard.press('Enter')
       await page.keyboard.press('Enter')
       await expect(
-        page.getByText('Gekoppeld: Grote Klant N.V.').locator('visible=true'),
+        page.getByText('Geboekt: Grote Klant N.V.').locator('visible=true'),
       ).toBeVisible()
       await shoot(page, `matched-${theme}-${label}.png`)
 

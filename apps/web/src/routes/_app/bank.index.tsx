@@ -1,6 +1,7 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
+import { BankTabs } from '~/components/bank-tabs'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
@@ -348,6 +349,7 @@ function Bank() {
           </>
         }
       />
+      <BankTabs active="accounts" toMatchCount={unmatched > 0 ? unmatched : undefined} />
 
       {showAccountForm && (
         <form
