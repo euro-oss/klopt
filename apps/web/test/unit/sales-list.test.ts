@@ -119,6 +119,28 @@ describe('invoicePill', () => {
         .kind,
     ).toBe('credit_note')
   })
+
+  it('keeps due-today out of overdue and ages due-yesterday as one day late', () => {
+    // Exclusive boundary (#119): the overdue report omits dueDate === asOf, so
+    // Sales segments must treat that id as Issued. Due yesterday is overdue.
+    const asOf = '2026-02-19'
+    const dueToday = row({ id: 'today', status: 'issued', dueDate: '2026-02-19' })
+    const dueYesterday = row({ id: 'yesterday', status: 'issued', dueDate: '2026-02-18' })
+    const overdueIds = new Set(['yesterday'])
+
+    expect(salesSegmentOf(dueToday, overdueIds)).toBe('open')
+    expect(invoicePill(dueToday, overdueIds, asOf)).toEqual({ kind: 'open', daysOverdue: null })
+
+    expect(salesSegmentOf(dueYesterday, overdueIds)).toBe('overdue')
+    expect(invoicePill(dueYesterday, overdueIds, asOf, 1)).toEqual({
+      kind: 'overdue',
+      daysOverdue: 1,
+    })
+    expect(invoicePill(dueYesterday, overdueIds, asOf)).toEqual({
+      kind: 'overdue',
+      daysOverdue: 1,
+    })
+  })
 })
 
 describe('sentAsFromDeliveries', () => {

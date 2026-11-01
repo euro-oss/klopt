@@ -708,8 +708,9 @@ describe('listing and ageing', () => {
   })
 
   it('is not overdue on the due date, and ages from the day after', async () => {
-    // PM ruling: exclusive boundary. Due 19 February — not late on that day,
-    // one day late on the 20th, thirty-one days late on 22 March.
+    // PM ruling: exclusive boundary (`dueDate < asOf`). Due 19 February — not
+    // late on that day (due today). On the 20th the same invoice is due
+    // yesterday and one day late; thirty-one days late on 22 March.
     const { token } = await newEntity()
     await withCustomer(token)
 
@@ -726,11 +727,13 @@ describe('listing and ageing', () => {
     expect(onDueDate.body.invoices).toEqual([])
     expect(onDueDate.body.totalOutstanding).toBe('0')
 
-    const oneDayLate = await handleListOverdueInvoices(await context(token), {
+    const dueYesterday = await handleListOverdueInvoices(await context(token), {
       asOf: '2026-02-20',
     })
-    expect(oneDayLate.body.invoices).toHaveLength(1)
-    expect(oneDayLate.body.invoices[0]?.daysOverdue).toBe(1)
+    expect(dueYesterday.body.invoices).toHaveLength(1)
+    expect(dueYesterday.body.invoices[0]?.dueDate).toBe('2026-02-19')
+    expect(dueYesterday.body.invoices[0]?.daysOverdue).toBe(1)
+    expect(dueYesterday.body.totalOutstanding).toBe('121000')
 
     const thirtyOneDaysLate = await handleListOverdueInvoices(await context(token), {
       asOf: '2026-03-22',
