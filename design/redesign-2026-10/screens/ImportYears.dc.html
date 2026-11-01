@@ -9,7 +9,7 @@
 </head>
 <body>
 <!--
-  Derived board (batch 1), not drawn by Hidde. Import step 3 of 6, between ImportSource (1, 2)
+  Derived board (batch 1), not drawn by the designer. Import step 3 of 6, between ImportSource (1, 2)
   and ImportFindings (5). Content and copy from apps/web /importeren, step "administratie"
   (wizard.administratie.*, wizard.year.*). NL strings: ../DERIVED.md. Example data.
   A11y deviations (new boards only): --line-control on --ink-muted, option and checkbox borders on
@@ -24,6 +24,7 @@
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}a:hover{color:var(--ink)}
 .k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root[data-theme="dark"] .k-btn--primary:not(:disabled) .k-kbd--on-primary{border-color:var(--on-primary)}
 .k-option{border-color:var(--line-control)}
 .k-btn--primary:disabled{opacity:1;background:var(--neutral-bg);border-color:var(--line-control);color:var(--ink-muted)}
 .k-btn--primary:disabled .k-kbd--on-primary{opacity:1;background:transparent;border-color:var(--line-control)}

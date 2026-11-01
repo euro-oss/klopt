@@ -9,7 +9,7 @@
 </head>
 <body>
 <!--
-  Derived board (batch 1), not drawn by Hidde. Import step 6 of 6. Content and copy from
+  Derived board (batch 1), not drawn by the designer. Import step 6 of 6. Content and copy from
   apps/web /importeren, steps "overzicht" (confirm) and "importeren" (wizard.overzicht.*,
   wizard.importeren.*). NL strings: ../DERIVED.md. Example data, same import as ImportPreview.
   Variants via the `variant` prop: running (default), confirm (ImportConfirm.dc.html),
@@ -18,7 +18,8 @@
   44px targets under 600px, self-hosted fonts.
   Batch 2: `layout` phone is the 390 layout
   with the bottom tab bar and a sticky primary action. Disabled primary buttons sit on neutral-bg
-  in ink-muted instead of fading, so their text stays at 4.5:1.
+  in ink-muted instead of fading, so their text stays at 4.5:1. In dark, ⌘↵ hints in
+  enabled primary buttons are outlined in --on-primary.
 -->
 <x-dc>
 <helmet>
@@ -27,6 +28,7 @@
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}a:hover{color:var(--ink)}
 .k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root[data-theme="dark"] .k-btn--primary:not(:disabled) .k-kbd--on-primary{border-color:var(--on-primary)}
 .k-btn--primary:disabled{opacity:1;background:var(--neutral-bg);border-color:var(--line-control);color:var(--ink-muted)}
 .k-btn--primary:disabled .k-kbd--on-primary{opacity:1;background:transparent;border-color:var(--line-control)}
 .ph{overflow:clip}

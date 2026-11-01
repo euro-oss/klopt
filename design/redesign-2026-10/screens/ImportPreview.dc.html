@@ -9,7 +9,7 @@
 </head>
 <body>
 <!--
-  Derived board (batch 1), not drawn by Hidde. Import step 4 of 6. Content and copy from
+  Derived board (batch 1), not drawn by the designer. Import step 4 of 6. Content and copy from
   apps/web /importeren, steps "voorbeeld" and "overzicht" (wizard.voorbeeld.*,
   wizard.overzicht.notTransferred*, wizard.overzicht.alreadyInKlopt*). NL strings: ../DERIVED.md.
   Example data, same administration and years as ImportYears.
@@ -25,6 +25,7 @@
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}a:hover{color:var(--ink)}
 .k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root[data-theme="dark"] .k-btn--primary:not(:disabled) .k-kbd--on-primary{border-color:var(--on-primary)}
 .ph{overflow:clip}
 .ph-head{display:flex;flex-direction:column;gap:4px}
 .ph-step{font-size:13px;color:var(--ink-2)}
