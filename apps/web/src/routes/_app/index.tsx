@@ -1,16 +1,16 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
-  RiAddLine,
-  RiAlertLine,
-  RiArrowLeftRightLine,
-  RiArrowRightSLine,
-  RiCalendarLine,
-  RiCheckLine,
-  RiFileTextLine,
-  RiInbox2Line,
-  RiPercentLine,
-  RiUploadLine,
-} from '@remixicon/react'
+  Plus,
+  TriangleAlert,
+  ArrowLeftRight,
+  ChevronRight,
+  Calendar,
+  Check,
+  FileText,
+  Inbox,
+  Percent,
+  Upload,
+} from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
@@ -247,14 +247,14 @@ function Dashboard() {
           <div className="hidden w-full flex-col gap-2 md:flex md:w-auto md:flex-row md:justify-end">
             <Button asChild variant="outline" className="min-h-9">
               <Link to="/inbox">
-                <RiUploadLine data-icon="inline-start" aria-hidden="true" />
+                <Upload data-icon="inline-start" aria-hidden="true" />
                 {t('dash.addReceipt')}
               </Link>
             </Button>
             {/* Home only: New invoice is secondary; the top to-do owns primary (PM #107). */}
             <Button asChild variant="outline" className="min-h-9">
               <Link to="/invoices/new">
-                <RiAddLine data-icon="inline-start" aria-hidden="true" />
+                <Plus data-icon="inline-start" aria-hidden="true" />
                 {t('dash.newInvoice')}
                 {hydrated && (
                   <span className="ml-1 inline-flex gap-0.5 normal-case">
@@ -282,7 +282,7 @@ function Dashboard() {
               <div className="mt-3 md:hidden">
                 <Button asChild variant="outline" className="min-h-11 w-full">
                   <Link to="/inbox">
-                    <RiUploadLine data-icon="inline-start" aria-hidden="true" />
+                    <Upload data-icon="inline-start" aria-hidden="true" />
                     {t('dash.addReceipt')}
                   </Link>
                 </Button>
@@ -653,27 +653,27 @@ function AuditCard() {
 function kindIcon(kind: WorkQueueKind, tone: AttentionTone): ReactNode {
   // Each kind keeps its own glyph — drafts and inbox no longer reuse VAT % (Design #112).
   if (kind === 'sales.draft') {
-    return <RiFileTextLine aria-hidden="true" className="size-[18px]" />
+    return <FileText aria-hidden="true" className="size-[18px]" />
   }
   if (kind === 'inbox.waiting') {
-    return <RiInbox2Line aria-hidden="true" className="size-[18px]" />
+    return <Inbox aria-hidden="true" className="size-[18px]" />
   }
   if (kind === 'vat.filing') {
-    return <RiPercentLine aria-hidden="true" className="size-[18px]" />
+    return <Percent aria-hidden="true" className="size-[18px]" />
   }
   if (tone === 'error') {
-    return <RiAlertLine aria-hidden="true" className="size-[18px]" />
+    return <TriangleAlert aria-hidden="true" className="size-[18px]" />
   }
   if (tone === 'attention') {
-    return <RiCalendarLine aria-hidden="true" className="size-[18px]" />
+    return <Calendar aria-hidden="true" className="size-[18px]" />
   }
   if (tone === 'brand') {
-    return <RiArrowLeftRightLine aria-hidden="true" className="size-[18px]" />
+    return <ArrowLeftRight aria-hidden="true" className="size-[18px]" />
   }
   if (tone === 'info') {
-    return <RiCheckLine aria-hidden="true" className="size-[18px]" />
+    return <Check aria-hidden="true" className="size-[18px]" />
   }
-  return <RiFileTextLine aria-hidden="true" className="size-[18px]" />
+  return <FileText aria-hidden="true" className="size-[18px]" />
 }
 
 function tileClass(tone: AttentionTone): string {
@@ -890,7 +890,7 @@ function WorkQueue({ items, fiscalYear }: { items: readonly WorkQueueItem[]; fis
                 >
                   {copy.action}
                 </span>
-                <RiArrowRightSLine
+                <ChevronRight
                   aria-hidden="true"
                   className="text-muted-foreground size-5 shrink-0 md:hidden"
                 />

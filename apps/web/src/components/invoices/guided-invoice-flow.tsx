@@ -1,12 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import {
-  RiAddLine,
-  RiArrowLeftSLine,
-  RiCheckLine,
-  RiInformationLine,
-  RiSearchLine,
-  RiSendPlaneLine,
-} from '@remixicon/react'
+import { Plus, ChevronLeft, Check, Info, Search, Send } from 'lucide-react'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Button } from '~/components/ui/button'
@@ -646,7 +639,7 @@ export function GuidedInvoiceFlow({
       <div className="mx-auto max-w-2xl px-4 py-10 md:px-8 md:py-16">
         <div className="border-border animate-in fade-in-0 zoom-in-98 border p-8 text-center duration-[160ms] motion-reduce:animate-none">
           <span className="border-success text-success mx-auto flex size-14 items-center justify-center border">
-            <RiCheckLine className="size-8" aria-hidden="true" />
+            <Check className="size-8" aria-hidden="true" />
           </span>
           <h1 className="mt-5 text-2xl">
             {done.sent
@@ -801,7 +794,7 @@ export function GuidedInvoiceFlow({
                   state === 'done' ? 'bg-foreground text-background' : 'border-border border',
                 )}
               >
-                {state === 'done' ? <RiCheckLine className="size-3" aria-hidden="true" /> : n}
+                {state === 'done' ? <Check className="size-3" aria-hidden="true" /> : n}
               </span>
               <span className="hidden truncate sm:inline">{t(key)}</span>
             </li>
@@ -933,7 +926,7 @@ export function GuidedInvoiceFlow({
       >
         {step > 1 ? (
           <Button type="button" variant="outline" onClick={goBack}>
-            <RiArrowLeftSLine className="size-4" aria-hidden="true" />
+            <ChevronLeft className="size-4" aria-hidden="true" />
             {t('invoiceGuided.back')}
             <span className="ml-1 hidden normal-case md:inline-flex">
               <Keycap>Esc</Keycap>
@@ -975,7 +968,7 @@ export function GuidedInvoiceFlow({
         >
           {step === 4 ? (
             <>
-              <RiSendPlaneLine className="size-4" aria-hidden="true" />
+              <Send className="size-4" aria-hidden="true" />
               {t('invoiceGuided.send')}
             </>
           ) : (
@@ -1053,7 +1046,7 @@ export function GuidedInvoiceFlow({
                 data-guided-primary
                 onClick={() => void confirmSend()}
               >
-                <RiSendPlaneLine className="size-4" aria-hidden="true" />
+                <Send className="size-4" aria-hidden="true" />
                 {t('invoiceGuided.send')}
                 <span className="ml-1 hidden normal-case md:inline-flex">
                   <Keycap>↵</Keycap>
@@ -1114,7 +1107,7 @@ function CustomerStep({
         {t('invoiceGuided.who')}
       </label>
       <div className="relative mt-2">
-        <RiSearchLine
+        <Search
           className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
           aria-hidden="true"
         />
@@ -1184,7 +1177,7 @@ function CustomerStep({
                 )}
               >
                 <span className="flex size-4 items-center">
-                  {isSelected ? <RiCheckLine className="size-4" aria-hidden="true" /> : null}
+                  {isSelected ? <Check className="size-4" aria-hidden="true" /> : null}
                 </span>
                 <span className="flex-1 font-medium">{customer.name}</span>
                 <span
@@ -1204,7 +1197,7 @@ function CustomerStep({
             to="/contacts"
             className="text-muted-foreground hover:bg-muted flex min-h-11 items-center gap-3 px-3 py-2 text-sm"
           >
-            <RiAddLine className="size-4" aria-hidden="true" />
+            <Plus className="size-4" aria-hidden="true" />
             {t('invoiceGuided.newCustomer')}
           </Link>
         </li>
@@ -1396,7 +1389,7 @@ function LinesStep({
         onClick={onAdd}
         className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium md:min-h-8"
       >
-        <RiAddLine className="size-4" aria-hidden="true" />
+        <Plus className="size-4" aria-hidden="true" />
         {t('invoiceGuided.addLine')}
       </button>
 
@@ -1675,7 +1668,7 @@ function SendStep({
         })}
       </div>
       <p className="text-muted-foreground mt-4 flex items-start gap-2 text-sm">
-        <RiInformationLine className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         {t('invoiceGuided.sendNote')}
       </p>
     </>

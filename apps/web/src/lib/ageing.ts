@@ -9,10 +9,10 @@
  * Rather than model receivables a second time, this buckets what
  * `GET /api/v1/reports/overdue-invoices` already publishes — the same open
  * items, already netted against what the bank has allocated to them. Which
- * means the report can only speak about invoices that are *due*: an invoice
- * on thirty-day terms sent last week is not in it, and the screen says so
- * rather than showing an empty "niet vervallen" column and implying nobody
- * owes anything yet.
+ * means the report can only speak about invoices that are *overdue*: due today
+ * is not late yet (exclusive boundary), an invoice on thirty-day terms sent
+ * last week is not in it, and the screen says so rather than showing an empty
+ * "niet vervallen" column and implying nobody owes anything yet.
  *
  * Bucketed by how late an invoice is, not by how old it is, which is the same
  * rule the creditor side uses.
@@ -43,7 +43,15 @@ export interface DebtorAgeing {
   readonly totals: Record<DebtorAgeingBucket | 'total', string>
 }
 
-export function bucketFor(daysOverdue: number): DebtorAgeingBucket {
+/**
+ * Which overdue bucket an invoice falls in.
+ *
+ * Returns `null` when the invoice is not overdue yet (`daysOverdue <= 0`):
+ * due today is not late. That keeps the dashboard and debtor-ageing report
+ * from treating a same-day due date as 1–30 days late.
+ */
+export function bucketFor(daysOverdue: number): DebtorAgeingBucket | null {
+  if (daysOverdue <= 0) return null
   if (daysOverdue <= 30) return 'upTo30'
   if (daysOverdue <= 60) return 'upTo60'
   if (daysOverdue <= 90) return 'upTo90'
@@ -60,6 +68,10 @@ export function debtorAgeing(invoices: readonly OverdueInvoice[]): DebtorAgeing 
   const seats = new Map<string, Seat>()
 
   for (const invoice of invoices) {
+    const bucket = bucketFor(invoice.daysOverdue)
+    // Exclusive overdue boundary: due today (daysOverdue === 0) is absent.
+    if (bucket === null) continue
+
     const seat: Seat = seats.get(invoice.contactName) ?? {
       contactName: invoice.contactName,
       upTo30: 0n,
@@ -71,7 +83,7 @@ export function debtorAgeing(invoices: readonly OverdueInvoice[]): DebtorAgeing 
     }
 
     const amount = BigInt(invoice.total)
-    seat[bucketFor(invoice.daysOverdue)] += amount
+    seat[bucket] += amount
     seat.total += amount
     seat.oldestDays = Math.max(seat.oldestDays, invoice.daysOverdue)
     seats.set(invoice.contactName, seat)

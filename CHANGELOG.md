@@ -30,6 +30,16 @@ Reminder emails no longer mention incassokosten, wettelijke rente or a payment
 deadline. PhoneSales / PhoneInvoice / InvoicesDark via tokens. Customers tab
 links to Contacts (no customers URL filter yet). "Nieuwe factuur" is secondary.
 
+### Fixed
+
+- Debtor-ageing report and overdue counts no longer count invoices that are due
+  today (exclusive overdue boundary).
+
+### Replace icon dependency with lucide-react (#113)
+
+UI icons now come from `lucide-react` (ISC). The previous icon package is
+removed from `package.json` and the lockfile; `NOTICE` attributes lucide-react.
+
 ### Redesign Phase 1: Home (#107)
 
 Home matches Main / PhoneHome / HomeDark from the v2 export at `fa4093b`.

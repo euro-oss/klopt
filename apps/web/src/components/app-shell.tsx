@@ -1,23 +1,24 @@
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import {
-  RiArrowDownSLine,
-  RiArrowRightSLine,
-  RiBankLine,
-  RiBookOpenLine,
-  RiContactsLine,
-  RiFileList3Line,
-  RiHome5Line,
-  RiInbox2Line,
-  RiKeyboardLine,
-  RiMenuLine,
-  RiMoonLine,
-  RiPercentLine,
-  RiSearchLine,
-  RiSettings3Line,
-  RiShoppingBagLine,
-  RiSunLine,
-  RiUpload2Line,
-} from '@remixicon/react'
+  Book,
+  ChartColumn,
+  ChevronDown,
+  ChevronRight,
+  Download,
+  FileText,
+  House,
+  Inbox,
+  Keyboard,
+  Landmark,
+  Menu,
+  Moon,
+  Percent,
+  ReceiptText,
+  Search,
+  Settings,
+  Sun,
+  Users,
+} from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Keycap } from '~/components/ui/keycap'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
@@ -58,19 +59,19 @@ const FOCUS_RING =
   'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 /** Export `.k-nav` icons — 16px ink-muted, one per primary/footer destination. */
-const NAV_ICONS: Readonly<Partial<Record<MessageKey, typeof RiHome5Line>>> = {
-  'nav.home': RiHome5Line,
-  'nav.inbox': RiInbox2Line,
-  'nav.sales': RiFileList3Line,
-  'nav.costs': RiShoppingBagLine,
-  'nav.bank': RiBankLine,
-  'nav.contacts': RiContactsLine,
-  'nav.journal': RiBookOpenLine,
-  'nav.vat': RiPercentLine,
-  'nav.reports': RiFileList3Line,
-  'nav.import': RiUpload2Line,
-  'nav.settings': RiSettings3Line,
-  'nav.shortcuts': RiKeyboardLine,
+const NAV_ICONS: Readonly<Partial<Record<MessageKey, typeof House>>> = {
+  'nav.home': House,
+  'nav.inbox': Inbox,
+  'nav.sales': FileText,
+  'nav.costs': ReceiptText,
+  'nav.bank': Landmark,
+  'nav.contacts': Users,
+  'nav.journal': Book,
+  'nav.vat': Percent,
+  'nav.reports': ChartColumn,
+  'nav.import': Download,
+  'nav.settings': Settings,
+  'nav.shortcuts': Keyboard,
 }
 
 /**
@@ -281,7 +282,7 @@ export function AppShell({
                   aria-label={t('shell.openMenu')}
                   aria-expanded={navOpen}
                 >
-                  <RiMenuLine />
+                  <Menu />
                 </Button>
               </SheetTrigger>
               <SheetContent
@@ -317,7 +318,7 @@ export function AppShell({
                 window.dispatchEvent(new Event('klopt:open-palette'))
               }}
             >
-              <RiSearchLine className="size-[18px]" />
+              <Search className="size-[18px]" />
             </Button>
             <ThemeToggleButton hydrated={hydrated} />
           </header>
@@ -342,7 +343,7 @@ export function AppShell({
                 FOCUS_RING,
               )}
             >
-              <RiSearchLine className="size-4 shrink-0" aria-hidden="true" />
+              <Search className="size-4 shrink-0" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate text-left">{t('shell.searchTrigger')}</span>
               <span className="hidden items-center gap-0.5 sm:inline-flex">
                 <Keycap>{isApple() ? '⌘' : 'Ctrl'}</Keycap>
@@ -623,7 +624,7 @@ function EntitySwitcher({
               </span>
             )}
           </span>
-          <RiArrowDownSLine aria-hidden="true" className="text-ink-muted size-4 shrink-0" />
+          <ChevronDown aria-hidden="true" className="text-ink-muted size-4 shrink-0" />
         </PopoverTrigger>
         <PopoverContent
           side="bottom"
@@ -762,7 +763,7 @@ function Profile({
               <span className="text-muted-foreground block truncate text-xs">{roleLine}</span>
             )}
           </span>
-          <RiArrowRightSLine
+          <ChevronRight
             aria-hidden="true"
             className="text-muted-foreground size-4 shrink-0 -rotate-90"
           />
@@ -1004,7 +1005,7 @@ function ThemeToggleButton({ hydrated }: { hydrated: boolean }) {
           })
       }}
     >
-      {darkNow ? <RiSunLine className="size-[18px]" /> : <RiMoonLine className="size-[18px]" />}
+      {darkNow ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
     </Button>
   )
 }
