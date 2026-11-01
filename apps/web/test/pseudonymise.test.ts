@@ -247,7 +247,7 @@ describe('erasing a contact', () => {
     // copy, not because the contact row was left alone.
     const ublAfter = await handleGetInvoiceUbl(await contextFor(), invoiceId)
     expect(ublAfter.xml).toContain('Jan de Vries Advies')
-    expect(ublAfter.xml).toContain('Coolsingel')
+    expect(ublAfter.xml).toContain('Proefstraat')
 
     // And the journal has not moved a cent.
     const entryAfter = await handleGetJournalEntry(await contextFor(), entryId)

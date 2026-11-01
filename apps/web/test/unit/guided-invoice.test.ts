@@ -158,7 +158,7 @@ describe('guided invoice helpers', () => {
     ]
     expect(filterCustomers(rows, 'zee')).toHaveLength(1)
     expect(filterCustomers(rows, 'DEB-2')).toHaveLength(1)
-    expect(filterCustomers(rows, 'hotel.nl')).toHaveLength(1)
+    expect(filterCustomers(rows, 'hotel.example.nl')).toHaveLength(1)
     expect(filterCustomers(rows, 'middel')).toHaveLength(1)
   })
 
