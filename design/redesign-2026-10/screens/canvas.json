@@ -319,6 +319,51 @@
    "h": 1040,
    "title": "Dark · bank matching",
    "expand": "fill"
+  },
+  "PhoneContacts.dc.html": {
+   "x": 0,
+   "y": 13000,
+   "w": 390,
+   "h": 1686,
+   "title": "Phone · contacts (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneContactCard.dc.html": {
+   "x": 470,
+   "y": 13000,
+   "w": 390,
+   "h": 1271,
+   "title": "Phone · contact card (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneVatPeriods.dc.html": {
+   "x": 940,
+   "y": 13000,
+   "w": 390,
+   "h": 1055,
+   "title": "Phone · VAT periods (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneVat.dc.html": {
+   "x": 1410,
+   "y": 13000,
+   "w": 390,
+   "h": 1654,
+   "title": "Phone · VAT return Q4 2025 (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneIcp.dc.html": {
+   "x": 1880,
+   "y": 13000,
+   "w": 390,
+   "h": 1267,
+   "title": "Phone · ICP return (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
   }
  },
  "order": [
@@ -359,7 +404,12 @@
   "PhoneMatch.dc.html",
   "HomeDark.dc.html",
   "InvoicesDark.dc.html",
-  "MatchDark.dc.html"
+  "MatchDark.dc.html",
+  "PhoneContacts.dc.html",
+  "PhoneContactCard.dc.html",
+  "PhoneVatPeriods.dc.html",
+  "PhoneVat.dc.html",
+  "PhoneIcp.dc.html"
  ],
  "notes": {
   "t1": {
@@ -424,6 +474,13 @@
    "text": "Phone (390) and dark mode",
    "kind": "title1",
    "maxW": 6440
+  },
+  "t10": {
+   "x": 0,
+   "y": 12700,
+   "text": "Phone (390): contacts, VAT, ICP (derived)",
+   "kind": "title1",
+   "maxW": 2270
   }
  },
  "designSystems": [
