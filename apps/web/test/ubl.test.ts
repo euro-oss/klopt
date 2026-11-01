@@ -67,7 +67,7 @@ const SELLER_DETAILS = {
   vatNumber: 'NL123456789B01',
   iban: 'NL02ABNA0123456789',
   bic: 'ABNANL2A',
-  email: 'facturen@test.nl',
+  email: 'facturen@test.example.nl',
 }
 
 async function aCustomer(): Promise<string> {
@@ -81,7 +81,7 @@ async function aCustomer(): Promise<string> {
       vatNumber: 'NL987654321B01',
       kvkNumber: '87654321',
       countryCode: 'NL',
-      email: 'inkoop@groteklant.nl',
+      email: 'inkoop@groteklant.example.nl',
       address: {
         street: 'Coolsingel',
         houseNumber: '42',
