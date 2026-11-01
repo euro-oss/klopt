@@ -18,6 +18,17 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign Phase 8: VAT / ICP (#132, #107)
+
+VAT (`/vat`, `/vat/$period`) and ICP (`/vat/icp/$period`) match the v2 Vat and
+Icp boards from #106 (`fa4093b`). Period rail with StatusPill tones, box-by-box
+return with empty-box collapse and line drill-down, reconciliation / trust
+block, `[`/`]` period and `D` download. ICP shows per-customer VIES status and
+`V` recheck; board example data does not ship. Copy leads with manual filing
+("klaar om in te dienen" / "gemarkeerd als ingediend"); electronic submit only
+when Digipoort/SBR is available. Desktop light is the designed state; dark and
+phone inherit tokens until Batch 2 / Batch 3 boards.
+
 ### Fixed
 
 - Debtor-ageing report and overdue counts no longer count invoices that are due
