@@ -470,9 +470,14 @@ function Costs() {
               {/* Desktop table */}
               <div className="border-border bg-surface hidden overflow-hidden rounded-[var(--radius-xl)] border shadow-[var(--shadow-raised)] md:block">
                 <div className="overflow-x-auto">
-                  <div className="min-w-[640px]">
+                  {/*
+                    Status needs ≥148px so “234 dagen te laat” is never clipped at
+                    1440 with the preview pane open (export used 120px; CoS: no
+                    cut-off cells). Supplier stays the flexible column.
+                  */}
+                  <div className="min-w-[720px]">
                     <div
-                      className="text-ink-muted grid grid-cols-[20px_minmax(150px,1fr)_150px_72px_120px_96px] gap-3 border-b border-[var(--line-soft)] px-5 py-2.5 text-xs font-medium"
+                      className="text-ink-muted grid grid-cols-[20px_minmax(140px,1fr)_minmax(140px,auto)_72px_minmax(148px,auto)_96px] gap-3 border-b border-[var(--line-soft)] px-5 py-2.5 text-xs font-medium"
                       role="row"
                     >
                       <span aria-hidden="true" />
@@ -498,7 +503,7 @@ function Costs() {
                             })
                           }}
                           className={cn(
-                            'hover:bg-surface-hover grid w-full grid-cols-[20px_minmax(150px,1fr)_150px_72px_120px_96px] gap-3 border-b border-[var(--line-soft)] px-5 py-3 text-left text-sm last:border-b-0',
+                            'hover:bg-surface-hover grid w-full grid-cols-[20px_minmax(140px,1fr)_minmax(140px,auto)_72px_minmax(148px,auto)_96px] gap-3 border-b border-[var(--line-soft)] px-5 py-3 text-left text-sm last:border-b-0',
                             'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
                             isActive &&
                               'bg-[var(--selection)] shadow-[inset_3px_0_0_0_var(--selection-edge)]',
@@ -518,10 +523,10 @@ function Costs() {
                           <span className="text-ink-2 whitespace-nowrap tabular-nums">
                             {shortDate(row.invoiceDate, t)}
                           </span>
-                          <span>
+                          <span className="min-w-0 whitespace-nowrap">
                             <PurchaseStatusPill pill={pill} />
                           </span>
-                          <span className="text-right font-medium">
+                          <span className="text-right font-medium whitespace-nowrap tabular-nums">
                             <EuroAmount amount={row.total} />
                           </span>
                         </button>

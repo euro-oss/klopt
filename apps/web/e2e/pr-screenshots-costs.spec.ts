@@ -12,7 +12,7 @@ import {
 } from './support'
 
 /**
- * Public PNGs for Costs (#128) — Costs.dc.html desktop light 1440.
+ * Public PNGs for Costs (#128) — light/dark × 1440/390, empty + seeded.
  *
  * Fixture data only: example.nl, Telecom Fictief, fake IBAN. No real addresses.
  *
@@ -31,6 +31,18 @@ test.beforeAll(async () => {
 })
 
 test.skip(!CAPTURE, 'Set CAPTURE_PR_SCREENSHOTS=1 to write docs/pr-screenshots/')
+
+async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.evaluate((t) => {
+    document.documentElement.classList.toggle('dark', t === 'dark')
+  }, theme)
+  await page.waitForFunction(
+    (wantDark) => document.documentElement.classList.contains('dark') === wantDark,
+    theme === 'dark',
+  )
+  await page.waitForTimeout(250)
+}
 
 async function shoot(page: Page, name: string): Promise<void> {
   await page.evaluate(() => {
@@ -104,23 +116,49 @@ async function seedBills(page: Page): Promise<void> {
   }
 }
 
-test('Costs desktop-light 1440 screenshots', async ({ page }) => {
-  test.setTimeout(120_000)
+async function captureMatrix(
+  page: Page,
+  prefix: '01-costs-empty' | '02-costs-data',
+  opts: { selectPreview: boolean },
+): Promise<void> {
+  for (const theme of ['light', 'dark'] as const) {
+    await setTheme(page, theme)
+
+    await page.setViewportSize({ width: 1440, height: 1040 })
+    // hydrated() asserts the desktop rail kbd — only valid at ≥md.
+    await hydrated(page)
+    await expect(page.getByRole('heading', { name: 'Kosten' })).toBeVisible()
+    if (opts.selectPreview) {
+      await page.getByRole('heading', { name: 'Kosten' }).click()
+      await page.keyboard.press('ArrowDown')
+      await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toBeVisible()
+    }
+    await shoot(page, `${prefix}-${theme}-desktop-1440.png`)
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(page.getByRole('heading', { name: 'Kosten' })).toBeVisible()
+    await expect(page.locator('[data-phone-tab-bar]')).toBeVisible()
+    await expect(page.locator('[data-phone-tab-bar]').getByText('Bon')).toBeVisible()
+    await shoot(page, `${prefix}-${theme}-mobile-390.png`)
+  }
+}
+
+test('Costs screenshots — light/dark × 1440/390, empty + seeded', async ({ page }) => {
+  test.setTimeout(240_000)
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.setViewportSize({ width: 1440, height: 1040 })
 
   await openFirm(page)
   await page.goto('/purchases')
   await hydrated(page)
   await expect(page.getByRole('heading', { name: 'Kosten' })).toBeVisible()
-  await shoot(page, '01-costs-empty-light-desktop-1440.png')
+  await captureMatrix(page, '01-costs-empty', { selectPreview: false })
 
+  // Forms and book/approve controls are desktop-oriented; leave phone before seeding.
+  await page.setViewportSize({ width: 1440, height: 1040 })
+  await setTheme(page, 'light')
   await seedBills(page)
   await page.goto('/purchases?segment=open')
   await hydrated(page)
   await expect(page.getByText('Telecom Fictief').first()).toBeVisible()
-  await page.getByRole('heading', { name: 'Kosten' }).click()
-  await page.keyboard.press('ArrowDown')
-  await expect(page.getByRole('complementary', { name: 'Factuurvoorbeeld' })).toBeVisible()
-  await shoot(page, '02-costs-data-light-desktop-1440.png')
+  await captureMatrix(page, '02-costs-data', { selectPreview: true })
 })
