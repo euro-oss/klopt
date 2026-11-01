@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Costs</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board (batch 3), not drawn by Hidde. Phone 390 of Costs.dc.html, in the pattern of
+  PhoneSales: same bills and status filter, stacked rows with supplier and amount on one line.
+  No preview pane (a bill opens as its own page) and no checkboxes. Costs lives under More.
+  Takes `theme`; PhoneCostsDark.dc.html wraps it in dark.
+  A11y deviations: search border ink-muted (3:1 or more), 44px targets, no ink-faint,
+  self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}
+.k-root .k-search{border-color:var(--ink-muted)}
+.nw{white-space:nowrap}
+.ic{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-top:1px solid var(--line-soft);text-decoration:none;color:var(--ink);min-height:56px;box-sizing:border-box}
+.ic-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ic-main strong{font-size:15px;line-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ic-side{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.ptabs{gap:20px}
+.ptabs .k-tab{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box;white-space:nowrap}
+.k-search input{align-self:stretch}
+.k-phone .k-seg-item{height:44px}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top" style="flex-direction: column; align-items: stretch; gap: 4px; padding-bottom: 0;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <h1 style="margin: 0; flex: 1; font-size: 24px; line-height: 30px; font-weight: 600;">Costs</h1>
+      <a href="PhoneBillNew.dc.html" class="k-btn k-btn--primary" style="height: 44px;">+ Bill</a>
+    </div>
+    <nav class="k-tabs ptabs" aria-label="Costs sections">
+      <a href="#" class="k-tab is-active" aria-current="page">Bills</a>
+      <a href="#" class="k-tab">To approve <span class="k-badge k-badge--neutral">40</span></a>
+      <a href="PhonePaymentBatch.dc.html" class="k-tab">Batches</a>
+      <a href="#" class="k-tab">Suppliers</a>
+    </nav>
+  </div>
+  <div class="k-phone-body" style="padding-top: 16px;">
+    <label class="k-search" style="height: 44px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" aria-label="Filter bills" placeholder="Supplier, number, amount"></label>
+
+    <section class="k-callout k-callout--danger" aria-label="Unpaid bills" style="flex-direction: column; gap: 12px; padding: 16px;">
+      <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex: none; margin-top: 1px; color: var(--danger);"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <div class="k-callout-body">
+          <span class="k-callout-title">5 bills are past due · <span class="k-num nw">€ 1.191,78</span></span>
+          <span class="k-callout-text">Put them in one payment batch. A second person approves it, then you upload it to your bank.</span>
+        </div>
+      </div>
+      <a href="PhonePaymentBatch.dc.html" class="k-btn" style="height: 44px; justify-content: center; align-self: stretch; background: var(--surface);">Prepare batch</a>
+    </section>
+
+    <div class="k-seg" role="tablist" aria-label="Status">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+        <button type="button" role="tab" class="k-seg-item" aria-selected="{{t.on}}" onClick="{{t.pick}}">{{t.label}} <span class="k-count">{{t.count}}</span></button>
+      </sc-for>
+    </div>
+
+    <section class="k-card k-card--flush" aria-label="Bills">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+        <a href="#" class="ic" style="{{r.first}}">
+          <span class="ic-main"><strong>{{r.sup}}</strong><span class="k-muted k-num" style="font-size: 13px;">{{r.no}} · <span class="nw">{{r.dateShort}}</span></span></span>
+          <span class="ic-side"><span class="k-num nw" style="font-weight: 600;">€ {{r.totalF}}</span><span class="{{r.pillCls}}">{{r.pill}}</span></span>
+        </a>
+      </sc-for>
+      <div style="display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line-soft); font-size: 13px; color: var(--ink-muted);">
+        <span>{{shown}}</span><span class="k-num nw">Total € {{sumF}}</span>
+      </div>
+    </section>
+  </div>
+  <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item is-active" href="#" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { filter: 'all' };
+  }
+  renderVals() {
+    const data = [
+      ['INK-DEMO-2025-0002','Telecom Fictief','24-11-2025',407.31,0],
+      ['INK-DEMO-2025-0005','Brandstof Teststation','08-11-2025',159.21,0],
+      ['INK-DEMO-2025-0007','Software Licentie Demo','30-10-2025',168.83,0],
+      ['INK-DEMO-2025-0033','Huur Demo Vastgoed','12-10-2025',52.54,0],
+      ['INK-DEMO-2025-0018','Schoonmaak Voorbeeld','03-10-2025',238.58,0],
+      ['INK-DEMO-2025-0040','Internet Voorbeeld','02-10-2025',252.83,60],
+      ['INK-DEMO-2025-0028','Schoonmaak Voorbeeld','01-10-2025',277.57,0],
+      ['INK-DEMO-2025-0006','Reclame Sample','01-10-2025',496.83,0],
+      ['INK-DEMO-2025-0016','Reclame Sample','26-09-2025',31.08,0],
+      ['INK-DEMO-2025-0032','Telecom Fictief','14-09-2025',153.60,0],
+      ['INK-DEMO-2025-0029','Verzekering Fictief','08-09-2025',368.24,0],
+      ['INK-DEMO-2025-0037','Software Licentie Demo','13-07-2025',467.00,141],
+      ['INK-DEMO-2025-0038','Schoonmaak Voorbeeld','04-06-2025',155.39,180],
+      ['INK-DEMO-2025-0036','Reclame Sample','18-01-2025',74.16,317],
+      ['INK-DEMO-2025-0039','Verzekering Fictief','11-01-2025',242.40,324]
+    ];
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const short = (d) => parseInt(d.slice(0,2),10) + ' ' + months[parseInt(d.slice(3,5),10)-1];
+    const all = data.map((d) => {
+      const open = d[4] > 0;
+      return {
+        no: d[0], sup: d[1], total: d[3], open, dateShort: short(d[2]), totalF: f(d[3]),
+        pill: open ? d[4] + ' days late' : 'Paid',
+        pillCls: open ? 'k-pill k-pill--late' : 'k-pill k-pill--paid'
+      };
+    });
+    const flt = this.state.filter;
+    const shownRows = all.filter((r) => flt === 'all' || (flt === 'open' && r.open) || (flt === 'paid' && !r.open));
+    const rows = shownRows.map((r, i) => ({ ...r, first: i === 0 ? 'border-top: 0;' : '' }));
+    const tabs = [['all','All','40'],['open','To pay','5'],['paid','Paid','35']].map(([k, label, count]) => ({ label, count, on: k === flt ? 'true' : 'false', pick: () => this.setState({ filter: k }) }));
+    const sum = shownRows.reduce((a, r) => a + r.total, 0);
+    return { theme: this.props.theme ?? 'light', rows, tabs, sumF: f(Math.round(sum * 100) / 100), shown: 'Showing ' + shownRows.length + (flt === 'all' ? ' of 40, newest first' : '') };
+  }
+}
+</script>
+</body>
+</html>
