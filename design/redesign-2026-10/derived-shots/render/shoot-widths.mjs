@@ -3,7 +3,8 @@
 // Usage: node shoot-widths.mjs <outDir> <Board.dc.html[?prop=value]>@<width>=<name> ...
 // Run from design/redesign-2026-10/ with `playwright` installed (CHROME=/path/to/chrome to use a
 // local browser). It serves the folder with dc-shim.js standing in for support.js, blocks Google
-// Fonts, sizes the viewport to the board's own $preview height, and adds:
+// Fonts, sizes the viewport to the board's own $preview height (grown to the page's scrollHeight,
+// failing if anything renders under a .k-tabbar), and adds:
 // prefers-reduced-motion: reduce, a wait until every CSS transition and animation has finished,
 // the mouse parked on a point with nothing interactive under it, and a duplicate-md5 check.
 import { chromium } from 'playwright'
@@ -76,6 +77,15 @@ for (const job of jobs) {
     timeout: 15000,
   })
   await page.addStyleTag({ content: '*{caret-color:transparent!important}' })
+  await page.evaluate(() => document.fonts.ready)
+  // fullPage capture keeps the viewport, so a sticky bottom bar would be painted over content
+  // at the viewport edge; a viewport as tall as the page puts it at the end, as on PhoneHome.
+  for (let i = 0; i < 5; i++) {
+    const full = await page.evaluate(() => document.documentElement.scrollHeight)
+    if (full === page.viewportSize().height) break
+    await page.setViewportSize({ width: w, height: Math.max(full, h) })
+    if (full <= h) break
+  }
   const spot = await page.evaluate(() => {
     const hot = 'a,button,input,select,textarea,label,summary,[role],[tabindex],.k-nav,.k-tabbar'
     for (let y = window.innerHeight - 2; y > 0; y -= 8)
@@ -89,7 +99,6 @@ for (const job of jobs) {
     console.error(name, 'no point without a control under it')
     failed = true
   } else await page.mouse.move(spot.x, spot.y)
-  await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)))
   await page.evaluate(
     () =>
@@ -100,6 +109,23 @@ for (const job of jobs) {
   const hovered = await page.evaluate(() => [...document.querySelectorAll(':hover')].at(-1)?.closest('a,button,input,select,label')?.outerHTML.slice(0, 80) ?? null)
   if (hovered) {
     console.error(name, 'mouse is over', hovered)
+    failed = true
+  }
+  const covered = await page.evaluate(() => {
+    const out = []
+    for (const bar of document.querySelectorAll('.k-tabbar')) {
+      const b = bar.getBoundingClientRect()
+      for (const el of document.querySelectorAll('body *')) {
+        if (bar.contains(el) || el.contains(bar) || el.children.length) continue
+        const r = el.getBoundingClientRect()
+        if (r.width && r.height && r.bottom > b.top + 0.5 && r.top < b.bottom && r.right > b.left && r.left < b.right)
+          out.push(el.outerHTML.slice(0, 80))
+      }
+    }
+    return out
+  })
+  if (covered.length) {
+    console.error(name, 'under the tab bar:', covered.slice(0, 3))
     failed = true
   }
   const fonts = await page.evaluate(() =>
