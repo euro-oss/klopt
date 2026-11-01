@@ -215,7 +215,9 @@ test('a hand-typed movement on a BTW account has to be accepted, with a reason',
   await expect(file).toBeDisabled()
 
   await page.getByRole('checkbox').check()
-  await page.getByRole('textbox', { name: 'Waarom' }).fill('Dit is de betaling van Q4, niet een BTW-boeking.')
+  await page
+    .getByRole('textbox', { name: 'Waarom' })
+    .fill('Dit is de betaling van Q4, niet een BTW-boeking.')
   await expect(file).toBeEnabled()
   await file.click()
 

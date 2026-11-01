@@ -196,7 +196,9 @@ function VatReturnScreen() {
     URL.revokeObjectURL(url)
   }
 
-  downloadRef.current = downloadSummary
+  useEffect(() => {
+    downloadRef.current = downloadSummary
+  })
 
   useEffect(() => {
     if (!hydrated) return

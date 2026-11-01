@@ -125,6 +125,9 @@ test('02 seeded VAT + ICP desktop light (+ bonus variants)', async ({ page }) =>
   await shot(page, '02-vat-data', { width: 390, height: 844 }, 'light')
   await shot(page, '02-vat-data', { width: 390, height: 844 }, 'dark')
 
+  // Back to desktop before ICP — phone hides the sidebar kbd that hydrated() waits on.
+  await page.setViewportSize({ width: 1440, height: 1100 })
+  await setTheme(page, 'light')
   await page.goto('/vat/icp/2026-Q1')
   await hydrated(page)
   await expect(page.getByRole('heading', { name: 'ICP-opgaaf' })).toBeVisible()

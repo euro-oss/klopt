@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { findingMessage, vatPeriodLabel, violationMessage } from '~/i18n/labels'
 import { Money } from '~/components/finance/money'
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
@@ -79,8 +79,12 @@ function IcpScreen() {
   const checkRef = useRef<(numbers: readonly string[]) => void>(() => {})
 
   const data = icp.ok ? icp.data : null
-  const unchecked =
-    data?.entries.filter((entry) => entry.proof === null || entry.proof.outcome !== 'valid') ?? []
+  const unchecked = useMemo(
+    () =>
+      data?.entries.filter((entry) => entry.proof === null || entry.proof.outcome !== 'valid') ??
+      [],
+    [data],
+  )
 
   async function check(vatNumbers: readonly string[]): Promise<void> {
     if (vatNumbers.length === 0) return
@@ -112,9 +116,11 @@ function IcpScreen() {
     await router.invalidate()
   }
 
-  checkRef.current = (numbers) => {
-    void check(numbers)
-  }
+  useEffect(() => {
+    checkRef.current = (numbers) => {
+      void check(numbers)
+    }
+  })
 
   useEffect(() => {
     if (!hydrated || data === null) return
