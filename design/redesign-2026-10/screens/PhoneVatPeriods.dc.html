@@ -15,7 +15,8 @@
 <style>
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}
-.k-root.k-phone{--line-control:var(--ink-muted)}
+.k-root.k-phone{--line-control:var(--ink-muted);overflow:clip}
+.k-tabbar{position:sticky;bottom:0;z-index:1}
 .lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:600}
 .per{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line-soft);text-decoration:none;color:var(--ink);min-height:60px;box-sizing:border-box}
 .per:first-of-type{border-top:0}
@@ -36,6 +37,7 @@ a{color:var(--ink)}
             <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
               <span style="font-size: 15px; font-weight: 600;">{{p.q}}</span>
               <span class="k-muted nw" style="font-size: 13px;">{{p.dates}}</span>
+              <sc-if value="{{p.note}}" hint-placeholder-val="{{false}}"><span class="nw" style="font-size: 13px; color: var(--ink-2);">{{p.note}}</span></sc-if>
             </span>
             <span class="{{p.cls}}">{{p.status}}</span>
             <span class="k-muted" aria-hidden="true">›</span>
@@ -62,16 +64,17 @@ a{color:var(--ink)}
 class Component extends DCLogic {
   renderVals() {
     const pill = { open: 'k-pill k-pill--open', late: 'k-pill k-pill--late', draft: 'k-pill k-pill--draft', done: 'k-pill k-pill--paid', none: 'k-muted' };
-    const row = (q, dates, status, kind, href) => ({ q, dates, status, cls: pill[kind] + ' nw', href: href || '#' });
+    // Today is Friday 30 October 2026, as on PhoneHome. A quarter's return is due at the end of the next month.
+    const row = (q, dates, status, kind, href, note) => ({ q, dates, status, note: note || '', cls: pill[kind] + ' nw', href: href || '#' });
     const years = [
       { label: '2026', rows: [
-        row('Q4', '1 Oct to 31 Dec 2026', 'Opens 1 Jan', 'none'),
-        row('Q3', '1 Jul to 30 Sep 2026', 'Due tomorrow', 'open'),
-        row('Q2', '1 Apr to 30 Jun 2026', 'Late', 'late'),
-        row('Q1', '1 Jan to 31 Mar 2026', 'Late', 'late')
+        row('Q4', '1 Oct to 31 Dec 2026', 'Opens 1 Jan', 'none', '', 'Running, due 31 Jan 2027'),
+        row('Q3', '1 Jul to 30 Sep 2026', 'Due tomorrow', 'open', '', 'Due 31 Oct'),
+        row('Q2', '1 Apr to 30 Jun 2026', 'Late', 'late', '', 'Was due 31 Jul'),
+        row('Q1', '1 Jan to 31 Mar 2026', 'Late', 'late', '', 'Was due 30 Apr')
       ] },
       { label: '2025', rows: [
-        row('Q4', '1 Oct to 31 Dec 2025', 'Ready to file', 'draft', 'PhoneVat.dc.html'),
+        row('Q4', '1 Oct to 31 Dec 2025', 'Late', 'late', 'PhoneVat.dc.html', 'Ready to file, was due 31 Jan 2026'),
         row('Q3', '1 Jul to 30 Sep 2025', 'Marked as filed', 'done'),
         row('Q2', '1 Apr to 30 Jun 2025', 'Marked as filed', 'done'),
         row('Q1', '1 Jan to 31 Mar 2025', 'Marked as filed', 'done')
