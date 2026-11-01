@@ -1,8 +1,9 @@
 /**
- * Pure helpers for the Moneybird/Exact import wizard (#100 Phase 1).
+ * Pure helpers for the Moneybird/Exact import wizard (#100).
  *
- * Step ids match the design prototype and `importWizardStepSchema`. Exact is a
- * dead-end on Bron in Phase 1; Moneybird walks all ten steps.
+ * Step ids match the design prototype and `importWizardStepSchema`. Moneybird
+ * walks all ten steps. Exact Phase 2 starts with a read-only btw preview
+ * (bron → … → btw); later steps stay blocked until accounts / openings land.
  */
 
 import { flowShouldAdvanceOnEnter } from './guided-invoice.js'
@@ -67,7 +68,38 @@ export function isTerminalStep(step: ImportWizardStep): boolean {
 }
 
 export function canAdvanceFromBron(source: ImportWizardSource | null): boolean {
-  return source === 'moneybird'
+  return source === 'moneybird' || source === 'exact'
+}
+
+/** Exact Phase 2 slice: stop after the read-only btw preview. */
+export function exactWizardStopsAfterBtw(source: ImportWizardSource | null): boolean {
+  return source === 'exact'
+}
+
+export function canConnectExact(args: {
+  readonly canStoreSecrets: boolean
+  readonly clientId: string
+  readonly clientSecret: string
+  readonly redirectIsSecure: boolean
+}): boolean {
+  return (
+    args.canStoreSecrets &&
+    args.clientId.trim() !== '' &&
+    args.clientSecret.trim() !== '' &&
+    args.redirectIsSecure
+  )
+}
+
+export function canAdvanceFromExactAdministratie(args: {
+  readonly divisionCode: number | null
+  readonly year: string
+}): boolean {
+  return (
+    args.divisionCode !== null &&
+    Number.isFinite(args.divisionCode) &&
+    args.divisionCode > 0 &&
+    /^\d{4}$/.test(args.year.trim())
+  )
 }
 
 export function canAdvanceFromVerbinden(connected: boolean): boolean {

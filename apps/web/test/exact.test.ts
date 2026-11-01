@@ -126,16 +126,24 @@ afterAll(async () => {
 })
 
 describe('connecting', () => {
-  it('refuses a plain-http redirect, because Exact will not register one', () => {
-    // Refused here rather than at Exact's App Center, where the error is
-    // somebody else's and does not name the fix.
+  it('refuses a plain-http redirect that is not loopback', () => {
+    // Exact App Center refuses plain http; we refuse it here too. Loopback is
+    // carved out so an HTTP stand-in can walk OAuth in e2e (#100 Exact wizard).
     const refused = connectExactBody.safeParse({
       ...APP,
-      redirectUri: 'http://localhost:3000/exact/callback',
+      redirectUri: 'http://example.invalid/exact/callback',
     })
 
     expect(refused.success).toBe(false)
     expect(JSON.stringify(refused.error?.issues)).toContain('pnpm dev:https')
+  })
+
+  it('allows a localhost redirect for an Exact stand-in', () => {
+    const accepted = connectExactBody.safeParse({
+      ...APP,
+      redirectUri: 'http://localhost:3399/exact/callback',
+    })
+    expect(accepted.success).toBe(true)
   })
 
   it('refuses a client secret it cannot encrypt, rather than storing it as typed', async () => {

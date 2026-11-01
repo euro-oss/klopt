@@ -1110,18 +1110,21 @@ export const connectExactBody = z.object({
     ),
   clientId: z.string().trim().min(1).max(200),
   clientSecret: z.string().trim().min(1).max(400),
-  // https, with no loopback exception — unlike `baseUrl` above.
+  // https, with loopback carved out the same way as `baseUrl`.
   //
-  // Exact refuses to register a plain-http redirect URI, and the refusal
-  // happens in their App Center rather than here, where it is somebody else's
-  // error message. Refusing it at this end costs nothing and can name the fix.
+  // Exact refuses to register a plain-http redirect URI in App Center. Loopback
+  // is allowed so an HTTP stand-in can walk the OAuth round-trip in e2e — the
+  // same carve-out `baseUrl` already has.
   redirectUri: z
     .string()
     .trim()
     .url()
     .refine(
-      (value) => value.startsWith('https://'),
-      'Exact only accepts an https redirect. Serve the app over https — `pnpm dev:https` does it locally — and use that origin.',
+      (value) =>
+        value.startsWith('https://') ||
+        value.startsWith('http://localhost') ||
+        value.startsWith('http://127.0.0.1'),
+      'Exact only accepts an https redirect (or localhost for a stand-in). Serve the app over https — `pnpm dev:https` does it locally — and use that origin.',
     ),
 })
 

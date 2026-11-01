@@ -4,9 +4,12 @@ import {
   canAdvanceFromAdministratie,
   canAdvanceFromBron,
   canAdvanceFromBtw,
+  canAdvanceFromExactAdministratie,
   canAdvanceFromProblemen,
   canAdvanceFromVerbinden,
   canAdvanceFromVoorbeeld,
+  canConnectExact,
+  exactWizardStopsAfterBtw,
   excludedYearsFromSelection,
   isImportWizardStep,
   isTerminalStep,
@@ -48,16 +51,36 @@ describe('import wizard steps (#100)', () => {
 
   it('gates advance with pure helpers', () => {
     expect(canAdvanceFromBron(null)).toBe(false)
-    expect(canAdvanceFromBron('exact')).toBe(false)
+    expect(canAdvanceFromBron('exact')).toBe(true)
     expect(canAdvanceFromBron('moneybird')).toBe(true)
+    expect(exactWizardStopsAfterBtw('exact')).toBe(true)
+    expect(exactWizardStopsAfterBtw('moneybird')).toBe(false)
     expect(canAdvanceFromVerbinden(false)).toBe(false)
     expect(canAdvanceFromVerbinden(true)).toBe(true)
+    expect(
+      canConnectExact({
+        canStoreSecrets: true,
+        clientId: 'id',
+        clientSecret: 'secret',
+        redirectIsSecure: true,
+      }),
+    ).toBe(true)
+    expect(
+      canConnectExact({
+        canStoreSecrets: true,
+        clientId: 'id',
+        clientSecret: 'secret',
+        redirectIsSecure: false,
+      }),
+    ).toBe(false)
     expect(canAdvanceFromAdministratie({ administrationId: null, selectedYears: ['2026'] })).toBe(
       false,
     )
     expect(canAdvanceFromAdministratie({ administrationId: '1', selectedYears: ['2026'] })).toBe(
       true,
     )
+    expect(canAdvanceFromExactAdministratie({ divisionCode: null, year: '2026' })).toBe(false)
+    expect(canAdvanceFromExactAdministratie({ divisionCode: 1000, year: '2026' })).toBe(true)
     expect(canAdvanceFromVoorbeeld(false)).toBe(false)
     expect(canAdvanceFromVoorbeeld(true)).toBe(true)
     expect(
