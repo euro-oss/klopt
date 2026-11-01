@@ -49,7 +49,11 @@ for (const job of jobs) {
   const name = job.slice(cut + 1)
   const file = board.split('?')[0]
   const h = canvas.boards[file]?.h ?? 1000
-  const page = await browser.newPage({ viewport: { width: 1440, height: h }, deviceScaleFactor: 1 })
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: h },
+    deviceScaleFactor: 1,
+    reducedMotion: 'reduce',
+  })
   await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => {
     blocked.push(route.request().url())
     return route.abort()
