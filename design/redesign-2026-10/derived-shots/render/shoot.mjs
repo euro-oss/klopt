@@ -5,10 +5,11 @@
 // with `playwright` installed. Google Fonts requests are blocked so a shot only renders correctly
 // when the board's fonts are self-hosted. Each shot also prints QA warnings: a number, date or
 // period code broken over two lines, a dash placeholder, text in ink-faint, text under 4.5:1,
-// and under 600px, a control under 44px.
+// and under 600px, a control under 44px. Each PNG gets a tEXt "Source" chunk with its path.
 import { chromium } from 'playwright'
 import { createServer } from 'node:http'
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
+import { crc32 } from 'node:zlib'
 import { extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -104,7 +105,8 @@ for (const arg of args) {
   const fonts = await page.evaluate(() =>
     [...document.fonts].filter((f) => f.status === 'loaded').map((f) => `${f.family} ${f.weight}`),
   )
-  await page.screenshot({ path: join(outDir, `${name}.png`), fullPage: true })
+  const png = await page.screenshot({ fullPage: true })
+  await writeFile(join(outDir, `${name}.png`), withSource(png, `${outDir}/${name}.png`))
   console.log(
     name,
     '->',
@@ -118,6 +120,19 @@ for (const arg of args) {
 if (blocked.length) console.log('blocked Google Fonts requests:', blocked.length)
 await browser.close()
 server.close()
+
+// Records where a shot belongs in a tEXt chunk, so two shots with the same pixels in different
+// folders still differ byte for byte.
+function withSource(png, source) {
+  const data = Buffer.concat([Buffer.from('Source\0', 'latin1'), Buffer.from(source, 'latin1')])
+  const type = Buffer.from('tEXt', 'latin1')
+  const len = Buffer.alloc(4)
+  len.writeUInt32BE(data.length)
+  const crc = Buffer.alloc(4)
+  crc.writeUInt32BE(crc32(Buffer.concat([type, data])))
+  const iend = png.length - 12
+  return Buffer.concat([png.subarray(0, iend), len, type, data, crc, png.subarray(iend)])
+}
 
 function qaCheck(width) {
   const out = []
