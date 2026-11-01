@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   JOURNAL_TABS,
+  PHONE_TAB_BAR,
   REPORTS_TABS,
   SHELL_NAV,
   isNavActive,
@@ -119,6 +120,15 @@ describe('shell-nav Phase 0 (v2 IA)', () => {
     expect(shell).toContain('md:hidden')
     expect(shell).toContain('PhoneTabBar')
     expect(shell).not.toContain('usePhoneViewport')
+  })
+
+  it('PhoneTabBar middle tab is Receipt (#140 CoS / #139)', () => {
+    expect(PHONE_TAB_BAR.map((tab) => tab.id)).toEqual(['home', 'sales', 'receipt', 'bank', 'more'])
+    expect(PHONE_TAB_BAR[2]).toMatchObject({
+      id: 'receipt',
+      key: 'nav.phoneReceipt',
+      to: '/inbox',
+    })
   })
 
   it('help Ga naar shares paletteNavItems; Shortcuts opens help', () => {

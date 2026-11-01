@@ -1,20 +1,21 @@
 import { Link } from '@tanstack/react-router'
-import { FileText, House, Inbox, Landmark, Menu } from 'lucide-react'
+import { Camera, FileText, House, Landmark, Menu } from 'lucide-react'
 import { useT } from '~/i18n/provider'
 import { cn } from '~/lib/utils'
 import { isNavActive, PHONE_TAB_BAR, type NavSearch, type PhoneTabId } from '~/lib/shell-nav'
 
 /**
- * v2 PhoneTabBar (#107 Phase 0).
+ * v2 PhoneTabBar (#107 Phase 0 / #140 CoS).
  *
- * Home · Sales · Inbox · Bank · More. More opens the existing #38 Sheet until
- * Batch 3 signs off phone boards. No copy that promises reading a photo.
+ * Home · Sales · Receipt · Bank · More. More opens the existing #38 Sheet until
+ * Batch 3 signs off phone boards. Receipt opens `/inbox` upload (no photo-OCR
+ * promise). Camera icon matches PhoneHome.dc.html.
  */
 
 const ICONS = {
   home: House,
   sales: FileText,
-  inbox: Inbox,
+  receipt: Camera,
   bank: Landmark,
   more: Menu,
 } as const

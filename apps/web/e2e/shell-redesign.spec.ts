@@ -122,6 +122,7 @@ test('PhoneTabBar More opens the existing Sheet at 390', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   const bar = page.locator('[data-phone-tab-bar]')
   await expect(bar).toBeVisible()
+  await expect(bar.getByRole('link', { name: 'Bon' })).toBeVisible()
   await bar.getByRole('button', { name: 'Meer' }).click()
   await expect(page.getByRole('navigation', { name: 'Hoofdnavigatie' })).toBeVisible()
   await expect(page.getByRole('link', { name: /^Journaal/ })).toBeVisible()
