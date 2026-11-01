@@ -177,7 +177,7 @@ beforeAll(async () => {
     vatNumber: 'NL123456789B01',
     iban: 'NL02ABNA0123456789',
     bic: 'ABNANL2A',
-    email: 'facturen@test.nl',
+    email: 'facturen@test.example.nl',
   })
 
   const account = await handleCreateBankAccount(

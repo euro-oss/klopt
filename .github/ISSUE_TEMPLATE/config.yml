@@ -4,8 +4,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/euro-oss/klopt/security/advisories/new
-    about: Report a vulnerability privately. Do not open a public issue. See SECURITY.md.
-  - name: Question or discussion
-    url: https://github.com/euro-oss/klopt/discussions
-    about: For usage questions and open-ended discussion rather than a specific defect or task.
+    url: https://github.com/euro-oss/klopt/blob/main/SECURITY.md
+    about: Email security@euro.computer. Do not open a public issue. See SECURITY.md.
