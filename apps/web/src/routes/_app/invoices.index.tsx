@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
-import { RiAddLine, RiExternalLinkLine, RiMoreLine } from '@remixicon/react'
+import { Plus, ExternalLink, Ellipsis } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { SalesTabs } from '~/components/sales-tabs'
@@ -398,7 +398,7 @@ function Invoices() {
         actions={
           <Button asChild variant="outline" className="min-h-11 md:min-h-9">
             <Link to="/invoices/new">
-              <RiAddLine data-icon="inline-start" aria-hidden="true" />
+              <Plus data-icon="inline-start" aria-hidden="true" />
               <span className="md:inline">{t('invoices.new')}</span>
               {hydrated && (
                 <span className="ml-1 hidden gap-0.5 normal-case md:inline-flex">
@@ -787,7 +787,7 @@ function InvoicePreview({
           <span className="flex-1" />
           <Button asChild variant="ghost" size="icon" aria-label={t('sales.preview.openFull')}>
             <Link to="/invoices/$invoiceId" params={{ invoiceId: row.id }} search={{ segment }}>
-              <RiExternalLinkLine aria-hidden="true" />
+              <ExternalLink aria-hidden="true" />
             </Link>
           </Button>
         </div>
@@ -868,7 +868,7 @@ function InvoicePreview({
                   size="icon-sm"
                   aria-label={t('sales.preview.more')}
                 >
-                  <RiMoreLine aria-hidden="true" />
+                  <Ellipsis aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
