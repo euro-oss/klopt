@@ -13,6 +13,7 @@
   PhoneHome, PhoneSales and PhoneMatch. Single column; the transactions table is stacked rows with
   counterparty and amount on one line. The drop zone becomes a file button; bank data is imported
   from a file. Takes `theme`; PhoneBankAccountsDark.dc.html wraps it in dark.
+  The tab bar is sticky, so it stays at the bottom of the viewport as the page scrolls.
   A11y deviations: ink underlined text links, 44px targets, no ink-faint, self-hosted fonts.
 -->
 <x-dc>
@@ -20,6 +21,8 @@
 <link rel="stylesheet" href="../design-system/fonts/fonts.css">
 <style>
 body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+.k-root .k-tabbar{position:sticky;bottom:0;z-index:1}
 a{color:var(--ink)}
 .lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500;display:inline-flex;align-items:center;min-height:44px}
 .nw{white-space:nowrap}

@@ -13,6 +13,7 @@
   PhoneSales: same bills and status filter, stacked rows with supplier and amount on one line.
   No preview pane (a bill opens as its own page) and no checkboxes. Costs lives under More.
   Takes `theme`; PhoneCostsDark.dc.html wraps it in dark.
+  The tab bar is sticky, so it stays at the bottom of the viewport as the page scrolls.
   A11y deviations: search border ink-muted (3:1 or more), 44px targets, no ink-faint,
   self-hosted fonts.
 -->
@@ -21,6 +22,8 @@
 <link rel="stylesheet" href="../design-system/fonts/fonts.css">
 <style>
 body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+.k-root .k-tabbar{position:sticky;bottom:0;z-index:1}
 a{color:var(--ink)}
 .k-root .k-search{border-color:var(--ink-muted)}
 .nw{white-space:nowrap}
