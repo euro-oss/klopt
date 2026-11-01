@@ -21,7 +21,7 @@ import {
  *     pnpm --filter @klopt/web exec playwright test e2e/pr-screenshots-phase8-vat.spec.ts
  */
 
-const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '132'
+const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '162'
 const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', PR)
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
 
