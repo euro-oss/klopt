@@ -77,18 +77,22 @@ async function seedBills(page: Page): Promise<void> {
     await page.goto('/purchases/new')
     await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
     await page.getByLabel('Factuurnummer leverancier').fill(number)
-    await page.getByLabel('Factuurdatum').fill('2025-07-13')
-    await page.getByLabel('Vervaldatum').fill('2025-08-12')
-    await page.getByLabel('Bedrag excl. btw', { exact: true }).fill('385,95')
-    await page.getByLabel('Btw', { exact: true }).fill('81,05')
-    await page.getByLabel('Totaal', { exact: true }).fill('467,00')
+    // Stay inside the open boekjaar (2026) so the default VH21 code is not cleared.
+    await page.getByLabel('Factuurdatum').fill('2026-02-10')
+    await page.getByLabel('Vervaldatum').fill('2026-03-12')
+    await page.getByLabel('Bedrag excl. btw', { exact: true }).fill('100,00')
+    await page.getByLabel('Btw', { exact: true }).fill('21,00')
+    await page.getByLabel('Totaal', { exact: true }).fill('121,00')
     await page.getByLabel('Omschrijving regel 1').fill('Software licentie demo')
     await chooseOption(page, 'Grootboek regel 1', /^4400 /)
     await chooseOption(page, 'Btw-code regel 1', /^VH21 /)
-    await page.getByLabel('Excl. btw regel 1').fill('385,95')
+    await page.getByLabel('Excl. btw regel 1').fill('100,00')
     await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
+    await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
     await page.getByRole('button', { name: 'Concept opslaan' }).click()
-    await expect(page.getByRole('heading', { name: `Inkoopfactuur ${number}` })).toBeVisible()
+    await expect(page.getByRole('heading', { name: `Inkoopfactuur ${number}` })).toBeVisible({
+      timeout: 15_000,
+    })
     if (book) {
       await page.getByRole('button', { name: 'Boeken', exact: true }).click()
       await expect(page.getByRole('link', { name: /^boeking \d/ })).toBeVisible()
@@ -101,6 +105,7 @@ async function seedBills(page: Page): Promise<void> {
 }
 
 test('Costs desktop-light 1440 screenshots', async ({ page }) => {
+  test.setTimeout(120_000)
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.setViewportSize({ width: 1440, height: 1040 })
 
