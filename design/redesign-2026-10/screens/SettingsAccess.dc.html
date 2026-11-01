@@ -38,7 +38,7 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
         <sc-if value="{{v.people}}" hint-placeholder-val="{{true}}">
           <section class="k-card k-card--flush">
             <div class="k-row k-row--head pgrid"><span></span><span>Person</span><span>Role</span><span>Since</span><span></span></div>
-            <div class="k-row pgrid" style="cursor: default;"><span class="k-tile" style="width: 32px; height: 32px; border-radius: 16px;">H</span><span>hidde@neverhide.nl <span class="k-muted">· you</span></span><span><select class="k-input" style="height: 32px;" aria-label="Role of hidde@neverhide.nl"><option>Owner</option></select></span><span class="k-num k-muted">17-10-2026</span><span></span></div>
+            <div class="k-row pgrid" style="cursor: default;"><span class="k-tile" style="width: 32px; height: 32px; border-radius: 16px;">H</span><span>sanne@voorbeeld.example.nl <span class="k-muted">· you</span></span><span><select class="k-input" style="height: 32px;" aria-label="Role of sanne@voorbeeld.example.nl"><option>Owner</option></select></span><span class="k-num k-muted">17-10-2026</span><span></span></div>
             <div class="k-row pgrid" style="cursor: default;"><span class="k-tile" style="width: 32px; height: 32px; border-radius: 16px;">O</span><span>owner@demo.invalid <span class="k-muted">· Demo Seed Owner</span></span><span><select class="k-input" style="height: 32px;" aria-label="Role of owner@demo.invalid"><option>Owner</option><option>Bookkeeper</option><option>Accountant</option><option>Auditor</option></select></span><span class="k-num k-muted">17-10-2026</span><span style="text-align: right;"><button type="button" class="k-btn k-btn--sm k-btn--ghost">Remove</button></span></div>
           </section>
           <section class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 14px;">
@@ -103,10 +103,10 @@ class Component extends DCLogic {
     const tabs = [['people','People','2'],['tokens','Tokens and assistants','0'],['log','Who did what','200']]
       .map(([k, label, count]) => ({ label, count, on: k === t ? 'true' : 'false', pick: () => this.setState({ tab: k }) }));
     const log = [
-      ['30-10-2026 08:38','Signed in','hidde@neverhide.nl'],['30-10-2026 08:38','Asked for a sign-in code','hidde@neverhide.nl'],
-      ['29-10-2026 07:46','Signed in','hidde@neverhide.nl'],['29-10-2026 07:46','Asked for a sign-in code','hidde@neverhide.nl'],
-      ['19-10-2026 04:15','Signed in','hidde@neverhide.nl'],['18-10-2026','Sealed book year 2025','worker'],
-      ['17-10-2026','Joined as owner','hidde@neverhide.nl']
+      ['30-10-2026 08:38','Signed in','sanne@voorbeeld.example.nl'],['30-10-2026 08:38','Asked for a sign-in code','sanne@voorbeeld.example.nl'],
+      ['29-10-2026 07:46','Signed in','sanne@voorbeeld.example.nl'],['29-10-2026 07:46','Asked for a sign-in code','sanne@voorbeeld.example.nl'],
+      ['19-10-2026 04:15','Signed in','sanne@voorbeeld.example.nl'],['18-10-2026','Sealed book year 2025','worker'],
+      ['17-10-2026','Joined as owner','sanne@voorbeeld.example.nl']
     ].map(([when, what, who]) => ({ when, what, who }));
     return { theme: this.props.theme ?? 'light', tabs, log, v: { people: t === 'people', tokens: t === 'tokens', log: t === 'log' } };
   }

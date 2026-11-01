@@ -155,7 +155,7 @@ class Component extends DCLogic {
     if (variant === 'confirm') return { ...base, title: 'Ready to transfer?', intro: 'Check the summary. Then the import starts.', p: {}, f: {}, stop: {},
       hints: [{ keys: ['⌘', '↵'], label: 'confirm transfer' }, { keys: ['Esc'], label: 'back to problems' }] };
     if (variant === 'running') return { ...base, title: 'Transferring', intro: 'You can close this screen; we continue. When you return, you see how far we are.', stop: {},
-      p: { state: 'Booking…', pct, line: pct + '% · ' + n(docs) + ' of 800', meta: 'Started 30-10-2026 at 10:44 by hidde@neverhide.nl', foot: dedup },
+      p: { state: 'Booking…', pct, line: pct + '% · ' + n(docs) + ' of 800', meta: 'Started 30-10-2026 at 10:44 by sanne@voorbeeld.example.nl', foot: dedup },
       f: { text: 'Importing…', style: 'color: var(--ink-muted);', disabled: true, cta: 'Next' },
       hints: [{ keys: ['G', 'D'], label: 'go home, the import carries on' }, { keys: ['⌘', '↵'], label: 'next, once it is done' }] };
     const partial = variant === 'stopped-partial';
