@@ -264,7 +264,7 @@ class Component extends DCLogic {
     const nb = (t) => t.replace(/(\d)-(?=[\dQ])/g, '$1-\u2060');
     const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const vat = this.props.vat ?? 'quarterly';
-    const filed = { quarterly: 'quarterly', monthly: 'monthly', annual: 'annually' }[vat];
+    const returns = { quarterly: 'quarterly', monthly: 'monthly', annual: 'annual' }[vat] + ' VAT returns';
     const freq = {
       quarterly: { codes: [1, 2, 3, 4].map((q) => '2025-Q' + q), open: ['2025-Q4'], cols: 4, colsPhone: 2, all: 'All four VAT periods of 2025 are closed' },
       monthly: { codes: Array.from({ length: 12 }, (_, i) => '2025-' + String(i + 1).padStart(2, '0')), open: ['2025-11', '2025-12'], cols: 12, colsPhone: 4, all: 'All twelve VAT periods of 2025 are closed' },
@@ -312,12 +312,12 @@ class Component extends DCLogic {
     const ack = this.state.ack && !blocked;
     return {
       theme: this.props.theme ?? 'light', phone: this.props.layout === 'phone', desk: this.props.layout !== 'phone', blocked, periods, checks, entries,
-      cols: freq.cols, colsPhone: freq.colsPhone, perLabel: 'VAT periods overlapping book year 2025, filed ' + filed,
+      cols: freq.cols, colsPhone: freq.colsPhone, perLabel: 'VAT periods overlapping book year 2025, ' + returns,
       pill: blocked ? 'k-pill k-pill--late' : 'k-pill k-pill--draft', pillText: blocked ? 'Blocked' : 'Proposal',
-      perNote: 'VAT periods overlapping 2025, filed ' + filed + ' (set per administration). Grey: closed. ' + (blocked
+      perNote: 'VAT periods overlapping 2025, ' + returns + ' (set per administration). Grey: closed. ' + (blocked
         ? 'Red and underlined: still open, so 2025 can\'t close. Select one to open it.'
         : (freq.codes.length === 1 ? 'It is closed' : 'All are closed') + ', so nothing changes under the proposal.'),
-      perNotePhone: nb('Filed ' + filed + '. Grey: closed. ' + (blocked
+      perNotePhone: nb(returns[0].toUpperCase() + returns.slice(1) + '. Grey: closed. ' + (blocked
         ? 'Red: still open, so 2025 can\'t close. Tap one to open it.'
         : (freq.codes.length === 1 ? 'It is closed.' : 'All are closed.'))),
       entriesMetaPhone: blocked ? 'As it stands now; changes once the 4 lines are matched' : '2 entries, both balance',
