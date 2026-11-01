@@ -538,7 +538,7 @@ function Contacts() {
       <div className="mt-4 flex flex-wrap items-start gap-5">
         <section
           aria-label={t('contacts.list')}
-          className="flex min-w-0 flex-[1_1_440px] max-w-[620px] flex-col gap-3"
+          className="flex min-w-[min(100%,26rem)] flex-[1_1_440px] max-w-[620px] flex-col gap-3"
         >
           <Tabs
             value={role}
@@ -585,7 +585,7 @@ function Contacts() {
           ) : (
             <div className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border">
               <div
-                className="text-ink-muted grid grid-cols-[36px_minmax(160px,1fr)_90px_120px] gap-3 border-b border-[var(--line-soft)] px-5 py-2.5 text-xs font-medium"
+                className="text-ink-muted grid grid-cols-[36px_minmax(0,1fr)_5.5rem_7.5rem] gap-3 border-b border-[var(--line-soft)] px-5 py-2.5 text-xs font-medium"
                 role="row"
               >
                 <span aria-hidden="true" />
@@ -619,7 +619,7 @@ function Contacts() {
                         })
                       }}
                       className={cn(
-                        'grid w-full grid-cols-[36px_minmax(160px,1fr)_90px_120px] gap-3 border-b border-[var(--line-soft)] px-5 py-3 text-left last:border-b-0',
+                        'grid w-full grid-cols-[36px_minmax(0,1fr)_5.5rem_7.5rem] gap-3 border-b border-[var(--line-soft)] px-5 py-3 text-left last:border-b-0',
                         'min-h-11 hover:bg-[var(--surface-hover)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
                         isActive && 'bg-[var(--surface-hover)]',
                         row.isBlocked && 'opacity-70',
