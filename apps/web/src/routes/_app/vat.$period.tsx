@@ -18,6 +18,7 @@ import { localTodayIso } from '~/lib/local-clock'
 import {
   canSubmitElectronically,
   collapseEmptyRubrieken,
+  formatVatHeaderDate,
   groupPeriodsByYear,
   manualFilingSummaryText,
   type VatPeriodRow,
@@ -118,7 +119,7 @@ function VatReturnScreen() {
   const router = useRouter()
   const navigate = useNavigate()
   const hydrated = useHydrated()
-  const { t, plural, tag } = useT()
+  const { t, plural, tag, locale } = useT()
 
   const transportOf = (kind: string, fallback = kind) => {
     const key = TRANSPORT_KEY[kind]
@@ -340,11 +341,11 @@ function VatReturnScreen() {
             <h2 className="text-foreground m-0 text-xl leading-[26px] font-semibold">
               {t('vatReturn.titleFor', { period: periodLabel })}
             </h2>
-            <p className="text-muted-foreground m-0 text-sm">
+            <p className="text-muted-foreground m-0 text-sm whitespace-nowrap">
               {t('vatReturn.intro', {
-                from: formatDate(data.period.from),
-                to: formatDate(data.period.to),
-                deadline: formatDate(data.period.deadline),
+                from: formatVatHeaderDate(data.period.from, locale),
+                to: formatVatHeaderDate(data.period.to, locale),
+                deadline: formatVatHeaderDate(data.period.deadline, locale),
               })}
             </p>
           </div>

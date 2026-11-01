@@ -3,6 +3,8 @@ import {
   canSubmitElectronically,
   collapseEmptyRubrieken,
   daysBetweenIso,
+  formatVatHeaderDate,
+  formatVatOpensDate,
   groupPeriodsByYear,
   manualFilingSummaryText,
   pickDefaultVatPeriod,
@@ -45,6 +47,19 @@ describe('vatPeriodStatus', () => {
     )
     expect(status.kind).toBe('opens')
     if (status.kind === 'opens') expect(status.opensOn).toBe('2026-04-01')
+  })
+
+  it('formats opens dates as short day+month like the Vat board sample', () => {
+    expect(formatVatOpensDate('2026-01-01', 'en')).toBe('1 Jan')
+    expect(formatVatOpensDate('2026-10-01', 'en')).toBe('1 Oct')
+    expect(formatVatOpensDate('2026-01-01', 'nl')).toBe('1 jan')
+    expect(formatVatOpensDate('2026-10-01', 'nl')).toBe('1 okt')
+  })
+
+  it('formats header dates as long day+month+year (31 January 2026)', () => {
+    expect(formatVatHeaderDate('2026-01-31', 'en')).toBe('31 January 2026')
+    expect(formatVatHeaderDate('2025-12-31', 'en')).toBe('31 December 2025')
+    expect(formatVatHeaderDate('2026-01-31', 'nl')).toBe('31 januari 2026')
   })
 
   it('is late after the deadline', () => {

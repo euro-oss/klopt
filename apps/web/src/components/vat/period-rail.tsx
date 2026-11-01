@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { Badge } from '~/components/ui/badge'
 import { useT } from '~/i18n/provider'
-import { formatDate } from '~/lib/format'
 import {
+  formatVatOpensDate,
   groupPeriodsByYear,
   vatPeriodShortLabel,
   vatPeriodStatus,
@@ -26,7 +26,8 @@ const TONE_VARIANT: Record<
 function statusLabel(
   period: VatPeriodRow,
   today: string,
-  t: (key: Parameters<ReturnType<typeof useT>['t']>[0], vars?: Record<string, string>) => string,
+  t: ReturnType<typeof useT>['t'],
+  locale: 'nl' | 'en',
 ): { readonly text: string; readonly tone: VatPeriodTone } | null {
   const status = vatPeriodStatus(period, today)
   switch (status.kind) {
@@ -42,7 +43,7 @@ function statusLabel(
       return { text: t(status.labelKey), tone: status.tone }
     case 'opens':
       return {
-        text: t(status.labelKey, { date: formatDate(status.opensOn) }),
+        text: t(status.labelKey, { date: formatVatOpensDate(status.opensOn, locale) }),
         tone: status.tone,
       }
   }
@@ -62,7 +63,7 @@ export function VatPeriodRail({
   readonly icpEmpty: boolean
   readonly icpPeriod: string | null
 }) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const today = localTodayIso()
   const groups = groupPeriodsByYear(periods)
 
@@ -82,7 +83,7 @@ export function VatPeriodRail({
           </span>
           {group.periods.map((period) => {
             const active = period.code === activeCode
-            const status = statusLabel(period, today, t)
+            const status = statusLabel(period, today, t, locale)
             return (
               <Link
                 key={period.code}

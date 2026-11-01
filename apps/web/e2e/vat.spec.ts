@@ -129,7 +129,7 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
   await expect(
     page.getByText(/omzetbelastingnummer, en dat staat nog niet in deze administratie/),
   ).toBeVisible()
-  await expect(page.getByRole('button', { name: /^Markeren als klaargezet$/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Markeren als ingediend$/ })).toHaveCount(0)
 
   await withVatNumber(page)
   await page.goto('/vat/2026-Q1')
@@ -146,7 +146,7 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
 
   // Marking. A clean return needs no acceptance, and it locks the quarter.
   await page.getByRole('textbox', { name: 'Kenmerk van de indiening' }).fill('MBZ-2026-04-02-7781')
-  await page.getByRole('button', { name: /^Markeren als klaargezet$/ }).click()
+  await page.getByRole('button', { name: /^Markeren als ingediend$/ }).click()
   await expect(page.getByText(/Gemarkeerd als ingediend/)).toBeVisible()
   await expect(page.getByText(/Deze periode is gemarkeerd als ingediend/)).toBeVisible()
 
@@ -211,7 +211,7 @@ test('a hand-typed movement on a BTW account has to be accepted, with a reason',
   await expect(page.getByText('Mutatie op een BTW-rekening zonder code')).toBeVisible()
   // A warning, not a refusal: the button exists but is not usable until the
   // operator says they have looked.
-  const file = page.getByRole('button', { name: /Markeren als klaargezet|Aangifte markeren/ })
+  const file = page.getByRole('button', { name: /Markeren als ingediend|Aangifte markeren/ })
   await expect(file).toBeDisabled()
 
   await page.getByRole('checkbox').check()

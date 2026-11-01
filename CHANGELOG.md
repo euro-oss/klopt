@@ -25,9 +25,13 @@ Icp boards from #106 (`fa4093b`). Period rail with StatusPill tones, box-by-box
 return with empty-box collapse and line drill-down, reconciliation / trust
 block, `[`/`]` period and `D` download. ICP shows per-customer VIES status and
 `V` recheck; board example data does not ship. Copy leads with manual filing
-("klaar om in te dienen" / "gemarkeerd als ingediend"); electronic submit only
-when Digipoort/SBR is available. Desktop light is the designed state; dark and
-phone inherit tokens until Batch 2 / Batch 3 boards.
+("klaar om in te dienen" / "ready to file", "Mark as filed" / "Markeren als
+ingediend"); electronic submit only when Digipoort/SBR is available. Desktop
+light is the designed state; dark and phone inherit tokens until Batch 2 /
+Batch 3 boards (#142). Hidde (1 Nov): input borders use `--ink-muted` (never
+`#86857e` / hard-coded hex); phone middle tab Receipt; VAT header long dates
+(`31 January 2026`) stay one line at 1440; short "Opens 1 Jan" rail dates.
+App-wide Sign out / Uitloggen copy is a separate PR.
 
 ### Fixed
 

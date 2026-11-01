@@ -51,6 +51,97 @@ export function daysBetweenIso(from: string, to: string): number {
   return Math.round((end - start) / 86_400_000)
 }
 
+const OPENS_MONTHS_EN = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const
+
+const OPENS_MONTHS_NL = [
+  'jan',
+  'feb',
+  'mrt',
+  'apr',
+  'mei',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'okt',
+  'nov',
+  'dec',
+] as const
+
+/**
+ * Short day+month for the period-rail "Opens …" sample, matching the Vat board
+ * (`Opens 1 Jan`) — not a full `DD-MM-YYYY`, which made the rail look wrong.
+ */
+export function formatVatOpensDate(iso: string, locale: 'nl' | 'en'): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (match === null) return iso
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const months = locale === 'en' ? OPENS_MONTHS_EN : OPENS_MONTHS_NL
+  const name = months[month - 1]
+  if (name === undefined || day < 1 || day > 31) return iso
+  return `${String(day)} ${name}`
+}
+
+const HEADER_MONTHS_EN = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const
+
+const HEADER_MONTHS_NL = [
+  'januari',
+  'februari',
+  'maart',
+  'april',
+  'mei',
+  'juni',
+  'juli',
+  'augustus',
+  'september',
+  'oktober',
+  'november',
+  'december',
+] as const
+
+/**
+ * Long day+month+year for the VAT header intro, matching the Vat board
+ * (`file and pay by 31 January 2026`). Kept on one line at 1440 via nowrap.
+ */
+export function formatVatHeaderDate(iso: string, locale: 'nl' | 'en'): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (match === null) return iso
+  const year = match[1]!
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const months = locale === 'en' ? HEADER_MONTHS_EN : HEADER_MONTHS_NL
+  const name = months[month - 1]
+  if (name === undefined || day < 1 || day > 31) return iso
+  return `${String(day)} ${name} ${year}`
+}
+
 /**
  * Status for one period on the rail and in pills.
  *

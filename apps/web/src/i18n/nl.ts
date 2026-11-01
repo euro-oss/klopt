@@ -1210,7 +1210,7 @@ export const nl = {
   'vatReturn.markReturn': 'Aangifte markeren',
   'vatReturn.markIntro':
     'Klopt dient niet in bij de Belastingdienst. Markeren bewaart de cijfers hier en maakt de download klaar om zelf in te vullen in Mijn Belastingdienst Zakelijk.',
-  'vatReturn.markAndClose': 'Markeren als klaargezet',
+  'vatReturn.markAndClose': 'Markeren als ingediend',
   'vatReturn.markNote':
     'Na markeren zijn de perioden in deze aangifte voorlopig afgesloten. Alleen de eigenaar of de accountant kan er daarna nog in boeken, en zo’n correctie vraagt een suppletie.',
   'vatReturn.blocked':
@@ -1233,7 +1233,7 @@ export const nl = {
   'vatReturn.why': 'Waarom',
   'vatReturn.whyHint':
     'Deze toelichting wordt bij de aangifte bewaard en hoort bij het dossier van deze periode.',
-  'vatReturn.fileAndClose': 'Markeren als klaargezet',
+  'vatReturn.fileAndClose': 'Markeren als ingediend',
   'vatReturn.fileNote':
     'Na markeren zijn de perioden in deze aangifte voorlopig afgesloten. Alleen de eigenaar of de accountant kan er daarna nog in boeken, en zo’n correctie vraagt een suppletie.',
   'vatReturn.transport.manual': 'Zelf indienen via Mijn Belastingdienst Zakelijk',

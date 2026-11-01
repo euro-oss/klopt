@@ -456,11 +456,12 @@ export function visibleJournalTabs(): readonly JournalTab[] {
 /**
  * v2 PhoneTabBar — five destinations at 390px (#107 Phase 0).
  *
- * Home · Sales · Inbox · Bank · More. Receipt/More *contents* wait on Batch 3;
- * until then More opens the existing #38 Sheet, and Inbox is the upload entry
- * (no copy that promises reading a photo).
+ * Home · Sales · Receipt · Bank · More (#140 / #139). Receipt/More *contents*
+ * wait on Batch 3; until then More opens the existing #38 Sheet, and Receipt
+ * still routes to Inbox as the upload entry (no copy that promises reading a
+ * photo).
  */
-export type PhoneTabId = 'home' | 'sales' | 'inbox' | 'bank' | 'more'
+export type PhoneTabId = 'home' | 'sales' | 'receipt' | 'bank' | 'more'
 
 export interface PhoneTab {
   readonly id: PhoneTabId
@@ -473,7 +474,7 @@ export interface PhoneTab {
 export const PHONE_TAB_BAR: readonly PhoneTab[] = [
   { id: 'home', key: 'nav.home', to: '/' },
   { id: 'sales', key: 'nav.sales', to: '/invoices' },
-  { id: 'inbox', key: 'nav.inbox', to: '/inbox' },
+  { id: 'receipt', key: 'nav.phoneReceipt', to: '/inbox' },
   {
     id: 'bank',
     key: 'nav.bank',

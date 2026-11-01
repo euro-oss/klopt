@@ -1416,7 +1416,7 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.markReturn': 'Mark the return',
   'vatReturn.markIntro':
     'Klopt does not submit to the tax office. Marking keeps the figures here and prepares the download so you can enter them yourself in Mijn Belastingdienst Zakelijk.',
-  'vatReturn.markAndClose': 'Mark as ready to file',
+  'vatReturn.markAndClose': 'Mark as filed',
   'vatReturn.markNote':
     'After marking, the periods in this return are provisionally closed. Only the owner or the accountant can still post in them, and a correction requires a supplementary return.',
   'vatReturn.blocked':
@@ -1439,7 +1439,7 @@ export const en: Record<MessageKey, string> = {
   'vatReturn.why': 'Why',
   'vatReturn.whyHint':
     "This explanation is kept with the return and belongs to this period's file.",
-  'vatReturn.fileAndClose': 'Mark as ready to file',
+  'vatReturn.fileAndClose': 'Mark as filed',
   'vatReturn.fileNote':
     'After marking, the periods in this return are provisionally closed. Only the owner or the accountant can still post in them, and a correction requires a supplementary return.',
   'vatReturn.transport.manual': 'File it yourself via Mijn Belastingdienst Zakelijk',
