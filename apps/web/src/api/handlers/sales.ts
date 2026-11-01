@@ -927,19 +927,26 @@ export async function handleListOverdueInvoices(
   const asOf = new Date(`${query.asOf}T00:00:00Z`).getTime()
   const dayMs = 86_400_000
 
+  // Exclusive boundary: due today means daysOverdue === 0, which is not late.
+  // The repository already filters `dueDate < asOf`; keep the same rule here so
+  // dashboard counts and debtor-ageing can never disagree with this list.
+  const invoices = rows
+    .map((invoice) => ({
+      ...invoice,
+      total: invoice.total.toString(),
+      // Ageing, which is what dunning and the debtors report both want.
+      daysOverdue: Math.floor((asOf - new Date(`${invoice.dueDate}T00:00:00Z`).getTime()) / dayMs),
+    }))
+    .filter((invoice) => invoice.daysOverdue > 0)
+
   return {
     status: 200,
     body: {
       asOf: query.asOf,
-      invoices: rows.map((invoice) => ({
-        ...invoice,
-        total: invoice.total.toString(),
-        // Ageing, which is what dunning and the debtors report both want.
-        daysOverdue: Math.floor(
-          (asOf - new Date(`${invoice.dueDate}T00:00:00Z`).getTime()) / dayMs,
-        ),
-      })),
-      totalOutstanding: rows.reduce((sum, invoice) => sum + invoice.total, 0n).toString(),
+      invoices,
+      totalOutstanding: invoices
+        .reduce((sum, invoice) => sum + BigInt(invoice.total), 0n)
+        .toString(),
     },
   }
 }

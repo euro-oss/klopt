@@ -7,6 +7,8 @@ import { bucketFor, debtorAgeing, type OverdueInvoice } from '../../src/lib/agei
  * The same rule the creditor side uses, on the open items the dunning queue
  * already reads — amounts net of what the bank has been allocated to them, so
  * a partly paid invoice ages by what is left rather than by what was sent.
+ *
+ * Overdue is exclusive of the due date: daysOverdue 0 (due today) is not late.
  */
 
 const invoice = (
@@ -24,8 +26,9 @@ const invoice = (
 })
 
 describe('which bucket an overdue invoice falls in', () => {
-  it('counts days past the due date', () => {
-    expect(bucketFor(0)).toBe('upTo30')
+  it('counts days past the due date, and treats due today as not overdue', () => {
+    expect(bucketFor(0)).toBeNull()
+    expect(bucketFor(1)).toBe('upTo30')
     expect(bucketFor(30)).toBe('upTo30')
     expect(bucketFor(31)).toBe('upTo60')
     expect(bucketFor(60)).toBe('upTo60')
@@ -40,6 +43,29 @@ describe('the debtor ageing', () => {
     expect(debtorAgeing([])).toEqual({
       rows: [],
       totals: { upTo30: '0', upTo60: '0', upTo90: '0', over90: '0', total: '0' },
+    })
+  })
+
+  it('leaves due-today invoices out of every bucket', () => {
+    expect(debtorAgeing([invoice('Nog Niet Laat', 0, '100000')])).toEqual({
+      rows: [],
+      totals: { upTo30: '0', upTo60: '0', upTo90: '0', over90: '0', total: '0' },
+    })
+  })
+
+  it('puts one day late in 1–30 and thirty-one days late in 31–60', () => {
+    const ageing = debtorAgeing([
+      invoice('Gisteren', 1, '100000', 'F-1'),
+      invoice('Een Maand', 31, '50000', 'F-2'),
+    ])
+
+    expect(ageing.rows).toHaveLength(2)
+    expect(ageing.totals).toEqual({
+      upTo30: '100000',
+      upTo60: '50000',
+      upTo90: '0',
+      over90: '0',
+      total: '150000',
     })
   })
 

@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { RiLockLine, RiSearchLine } from '@remixicon/react'
+import { Lock, Search } from 'lucide-react'
 import { violationMessage } from '~/i18n/labels'
 import { useEffect, useId, useRef, useState } from 'react'
 import { AccountPicker } from '~/components/finance/account-picker'
@@ -683,7 +683,7 @@ function MatchQueue() {
                             </span>
                           ) : itemBlocked && itemLock !== null ? (
                             <span className="text-muted-foreground flex max-w-48 items-center gap-1">
-                              <RiLockLine className="size-3.5 shrink-0" aria-hidden />
+                              <Lock className="size-3.5 shrink-0" aria-hidden />
                               <span className="truncate">
                                 {periodName(itemLock, fiscalYears, tag)}
                               </span>
@@ -949,7 +949,7 @@ function MatchPanel({
         {copy !== null && (
           <div className="p-4">
             <div className="border-border flex gap-3 border border-dashed p-4 text-sm">
-              <RiLockLine className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden />
+              <Lock className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden />
               <div>
                 <p className="font-medium">{copy.title}</p>
                 <p className="text-muted-foreground mt-1">{copy.body}</p>
@@ -1066,7 +1066,7 @@ function MatchPanel({
                     ?.focus()
                 }}
               >
-                <RiSearchLine className="size-3.5" aria-hidden />
+                <Search className="size-3.5" aria-hidden />
                 {t('match.searchOther')}
               </button>
               <AccountPicker

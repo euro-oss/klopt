@@ -358,6 +358,16 @@ describe('Home overdue parity with debtor-ageing (PM + Legal #112)', () => {
     expect(source).not.toContain("payables?.body.total ?? '0'")
   })
 
+  it('counts overdue from the shared exclusive list, never due-today as late', () => {
+    // Dashboard figures.receivables / ageing / sales.overdue all consume the
+    // same handleListOverdueInvoices rows that already exclude dueDate === asOf.
+    const source = readFileSync(join(import.meta.dirname, '../../src/server/dashboard.ts'), 'utf8')
+    expect(source).toContain('handleListOverdueInvoices(context, { asOf: scope.asOf })')
+    expect(source).toContain('overdueCount: overdueInvoices.length')
+    expect(source).toContain('debtorAgeing(overdueInvoices).totals')
+    expect(source).not.toMatch(/dueDate\s*<=/)
+  })
+
   it('Home passes fiscalYear on ageing Details and bucket links', () => {
     const source = readFileSync(
       join(import.meta.dirname, '../../src/routes/_app/index.tsx'),
@@ -375,8 +385,8 @@ describe('Home overdue parity with debtor-ageing (PM + Legal #112)', () => {
     expect(source).not.toContain('dash.healthTitle')
     expect(source).not.toContain('dash.unmapped')
     expect(source).toContain('bg-ageing-up-to-30')
-    expect(source).toContain('RiFileTextLine')
-    expect(source).toContain('RiInbox2Line')
+    expect(source).toContain('FileText')
+    expect(source).toContain('Inbox')
     // Empty queue: card surface + header CTA gated via showHomeHeaderNewInvoice.
     expect(source).toContain('bg-card rounded-[var(--radius-xl)] border')
     expect(source).toContain('showHomeHeaderNewInvoice(dashboard.ok, todoCount)')
