@@ -107,7 +107,7 @@ async function anInvoice(options: { amount?: string; number?: string } = {}): Pr
       number: contactNumber,
       name: 'Grote Klant N.V.',
       isCustomer: true,
-      email: 'inkoop@groteklant.nl',
+      email: 'inkoop@groteklant.example.nl',
     }),
   )
 

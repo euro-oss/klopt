@@ -117,6 +117,12 @@ COPY --from=build /app/apps/cli/dist ./apps/cli/dist
 COPY --from=build /app/reference-data ./reference-data
 ENV KLOPT_REFERENCE_DATA_DIR=/app/reference-data
 
+# Licence texts ship with the image so redistribution stays attributable
+# without depending on a git checkout (Apache-2.0 NOTICE; SIL OFL for fonts).
+COPY LICENSE NOTICE ./
+COPY --from=build /app/apps/web/src/assets/fonts/Inter-OFL.txt ./licenses/Inter-OFL.txt
+COPY --from=build /app/apps/web/src/assets/fonts/JetBrainsMono-OFL.txt ./licenses/JetBrainsMono-OFL.txt
+
 # `klopt` on the path, because an operator exec-ing into a container to run a
 # backup at 23:00 should not have to know where the binary lives (spec 10.4).
 RUN chmod +x /app/apps/cli/dist/main.js && ln -s /app/apps/cli/dist/main.js /usr/local/bin/klopt

@@ -41,7 +41,7 @@
       <cac:Contact>
         <cbc:Name>Jan de Boer</cbc:Name>
         <cbc:Telephone>+31 20 555 1234</cbc:Telephone>
-        <cbc:ElectronicMail>facturen@detol.nl</cbc:ElectronicMail>
+        <cbc:ElectronicMail>facturen@detol.example.nl</cbc:ElectronicMail>
       </cac:Contact>
     </cac:Party>
   </cac:AccountingSupplierParty>
@@ -66,7 +66,7 @@
         <cbc:RegistrationName>Grote Klant BVBA</cbc:RegistrationName>
       </cac:PartyLegalEntity>
       <cac:Contact>
-        <cbc:ElectronicMail>inkoop@groteklant.nl</cbc:ElectronicMail>
+        <cbc:ElectronicMail>inkoop@groteklant.example.nl</cbc:ElectronicMail>
       </cac:Contact>
     </cac:Party>
   </cac:AccountingCustomerParty>

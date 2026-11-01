@@ -8,9 +8,9 @@ import {
 
 describe('parseInstanceAdmins', () => {
   it('trims, lower-cases and drops empties', () => {
-    expect([...parseInstanceAdmins('  Ada@Example.NL , , bob@voorbeeld.nl ')]).toEqual([
+    expect([...parseInstanceAdmins('  Ada@Example.NL , , bob@voorbeeld.example.nl ')]).toEqual([
       'ada@example.nl',
-      'bob@voorbeeld.nl',
+      'bob@voorbeeld.example.nl',
     ])
   })
 
@@ -35,12 +35,12 @@ describe('mayCreateEntity', () => {
   it('allows only listed instance admins when closed', () => {
     const env = {
       KLOPT_SIGNUP: 'closed',
-      KLOPT_INSTANCE_ADMINS: 'Beheerder@Voorbeeld.NL',
+      KLOPT_INSTANCE_ADMINS: 'Beheerder@Voorbeeld.example.NL',
     }
     expect(isSignupClosed(env)).toBe(true)
-    expect(isInstanceAdmin('beheerder@voorbeeld.nl', env)).toBe(true)
-    expect(mayCreateEntity('beheerder@voorbeeld.nl', env)).toBe(true)
-    expect(mayCreateEntity('eigenaar@andere.nl', env)).toBe(false)
+    expect(isInstanceAdmin('beheerder@voorbeeld.example.nl', env)).toBe(true)
+    expect(mayCreateEntity('beheerder@voorbeeld.example.nl', env)).toBe(true)
+    expect(mayCreateEntity('eigenaar@andere.example.nl', env)).toBe(false)
   })
 
   it('refuses everyone when closed and the admin list is empty', () => {
