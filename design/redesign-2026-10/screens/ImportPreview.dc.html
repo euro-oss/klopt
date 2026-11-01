@@ -13,8 +13,8 @@
   apps/web /importeren, steps "voorbeeld" and "overzicht" (wizard.voorbeeld.*,
   wizard.overzicht.notTransferred*, wizard.overzicht.alreadyInKlopt*). NL strings: ../DERIVED.md.
   Example data, same administration and years as ImportYears.
-  A11y deviations (new boards only): --line-control #86857e, underlined ink text links,
-  44px targets under 600px, self-hosted fonts.
+  A11y deviations (new boards only): underlined ink text links, 44px targets under
+  600px, self-hosted fonts.
 -->
 <x-dc>
 <helmet>
@@ -22,7 +22,6 @@
 <style>
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}a:hover{color:var(--ink)}
-.k-root[data-theme="light"]{--line-control:#86857e}
 .lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}
 .pgrid{display:grid;grid-template-columns:minmax(180px,1fr) 130px 150px 130px;gap:12px}
 .ngrid{display:grid;grid-template-columns:minmax(160px,1fr) 90px;gap:12px;padding:12px 20px;border-top:1px solid var(--line-soft);align-items:start}

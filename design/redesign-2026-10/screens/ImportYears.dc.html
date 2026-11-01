@@ -12,8 +12,8 @@
   Derived board (batch 1), not drawn by Hidde. Import step 3 of 6, between ImportSource (1, 2)
   and ImportFindings (5). Content and copy from apps/web /importeren, step "administratie"
   (wizard.administratie.*, wizard.year.*). NL strings: ../DERIVED.md. Example data.
-  A11y deviations (new boards only): --line-control #86857e, option and checkbox borders on
-  --line-control, underlined ink text links, 44px targets under 600px, self-hosted fonts.
+  A11y deviations (new boards only): checkbox borders on --ink-muted, underlined ink text links,
+  44px targets under 600px, self-hosted fonts.
 -->
 <x-dc>
 <helmet>
@@ -21,11 +21,9 @@
 <style>
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}a:hover{color:var(--ink)}
-.k-root[data-theme="light"]{--line-control:#86857e}
-.k-option{border-color:var(--line-control)}
 .lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}
 .ygrid{display:grid;grid-template-columns:28px minmax(220px,1fr) 100px 90px;gap:12px}
-.box{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:var(--radius-xs);border:1px solid var(--line-control);background:var(--surface);color:var(--on-primary);box-sizing:border-box}
+.box{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:var(--radius-xs);border:1px solid var(--ink-muted);background:var(--surface);color:var(--on-primary);box-sizing:border-box}
 .box.on{background:var(--primary);border-color:var(--primary)}
 @media (max-width:600px){.k-btn,.k-option,.k-row{min-height:44px}}
 </style>
