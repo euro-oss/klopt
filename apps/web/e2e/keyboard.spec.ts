@@ -466,10 +466,10 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
 
   await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))

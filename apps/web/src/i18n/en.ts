@@ -317,6 +317,7 @@ export const en: Record<MessageKey, string> = {
     "Demo environment: use fictional data only. Don't enter real bookkeeping records or personal data.",
   'shell.demoBadge': 'Demo',
   'shell.signOut': 'Sign out',
+  // Account menu keeps "Log out" here; app-wide Sign out/Uitloggen is a separate PR.
   'shell.account.signOut': 'Log out',
   'shell.help': 'Keyboard shortcuts',
   'shell.skipToContent': 'Skip to content',
@@ -1219,6 +1220,11 @@ export const en: Record<MessageKey, string> = {
   'bank.asAt': 'as at {date} · {consent}',
   'bank.unmatchedLines': '{count} lines still to book',
   'bank.importStatement': 'Import a statement',
+  // CoS: import card only — no PSD2 / connection card. Title is the action.
+  'bank.dropTitle': 'Import a bank statement',
+  // Legal: never "any Dutch bank" / "every bank" — formats from your bank.
+  'bank.dropDescription':
+    'CAMT.053 or MT940 from your bank. Lines you already have are skipped, so overlapping files are fine.',
   'bank.imported': '{count} transactions imported',
   'bank.importedDuplicates': ', {count} were already there.',
   'bank.consent.not_required': 'file import',
@@ -1237,7 +1243,7 @@ export const en: Record<MessageKey, string> = {
   'bank.tab.batches': 'Payment batches',
   'bank.columns': 'Columns in this file',
   'bank.columnsIntro':
-    'This is a CSV, and every bank invents its own columns. This is a guess — check it. It is remembered, so this is a one-off.',
+    'This is a CSV: banks invent their own columns. This is a guess — check it. It is remembered, so this is a one-off.',
   'bank.optionalSuffix': ' (optional)',
   'bank.map.bookingDate': 'Date',
   'bank.map.amount': 'Amount',

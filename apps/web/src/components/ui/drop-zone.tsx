@@ -47,7 +47,8 @@ function DropZone({
       data-slot="drop-zone"
       data-over={over ? '' : undefined}
       className={cn(
-        'border-line-control bg-surface text-ink-2 flex flex-col items-center gap-2.5 rounded-[var(--radius-xl)] border-2 border-dashed px-8 py-8 text-center',
+        // CoS: control borders use --input-border (→ --ink-muted), not the faint line-control.
+        'border-input bg-surface text-ink-2 flex flex-col items-center gap-2.5 rounded-[var(--radius-xl)] border-2 border-dashed px-8 py-8 text-center',
         over && 'border-selection-edge bg-brand-tint',
         disabled && 'pointer-events-none opacity-50',
         className,

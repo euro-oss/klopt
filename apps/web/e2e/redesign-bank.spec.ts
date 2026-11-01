@@ -43,10 +43,10 @@ async function openAdmin(page: Page, name: string): Promise<void> {
 async function importDemoStatement(page: Page): Promise<void> {
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Demo bankrekening')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
   await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
@@ -78,6 +78,15 @@ test('Bank Match: sidebar and command bar, empty and seeded, keyboard, no consol
   await expect(page.getByText(/gekoppeld/i)).toHaveCount(0)
   await expect(page.getByText(/PSD2/i)).toHaveCount(0)
   await expect(page.getByText(/live connection/i)).toHaveCount(0)
+  await expect(page.getByText(/any Dutch bank/i)).toHaveCount(0)
+  await expect(page.getByText(/every bank/i)).toHaveCount(0)
+
+  // CoS (#140 / #139): middle phone tab is Receipt (NL label: Bon).
+  await page.setViewportSize({ width: 390, height: 844 })
+  const phoneNav = page.getByRole('navigation', { name: 'Telefoonnavigatie' })
+  await expect(phoneNav).toBeVisible()
+  await expect(phoneNav.getByRole('link', { name: 'Bon' })).toBeVisible()
+  await page.setViewportSize({ width: 1440, height: 900 })
 
   // --- Command bar route ---
   await page.goto('/')

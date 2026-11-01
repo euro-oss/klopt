@@ -88,7 +88,7 @@ export const nl = {
   'shell.signOut': 'Afmelden',
   // The account menu says Uitloggen; the no-administration and setup screens
   // keep Afmelden. Same act, different chrome — Design wants the short verb
-  // where the eye already is.
+  // where the eye already is. App-wide Sign out/Uitloggen is a separate PR.
   'shell.account.signOut': 'Uitloggen',
   'shell.help': 'Sneltoetsen',
   'shell.skipToContent': 'Naar de inhoud',
@@ -1012,6 +1012,11 @@ export const nl = {
   'bank.asAt': 'per {date} · {consent}',
   'bank.unmatchedLines': '{count} regels nog te boeken',
   'bank.importStatement': 'Afschrift importeren',
+  // CoS: import card only — no PSD2 / connection card. Title is the action.
+  'bank.dropTitle': 'Bankafschrift importeren',
+  // Legal: never "elke/iedere bank" or "any Dutch bank" — formats from your bank.
+  'bank.dropDescription':
+    'CAMT.053 of MT940 van je bank. Regels die je al hebt worden overgeslagen, dus overlappende bestanden zijn geen probleem.',
   'bank.imported': '{count} transacties geïmporteerd',
   'bank.importedDuplicates': ', {count} stonden er al.',
   'bank.consent.not_required': 'bestandsimport',
@@ -1030,7 +1035,7 @@ export const nl = {
   'bank.tab.batches': 'Betaalbatches',
   'bank.columns': 'Kolommen van dit bestand',
   'bank.columnsIntro':
-    'Dit is een CSV, en elke bank verzint zijn eigen kolommen. Dit is een gok — controleer hem. Hij wordt onthouden, dus dit hoeft één keer.',
+    'Dit is een CSV: banken verzinnen hun eigen kolommen. Dit is een gok — controleer hem. Hij wordt onthouden, dus dit hoeft één keer.',
   'bank.optionalSuffix': ' (optioneel)',
   'bank.map.bookingDate': 'Datum',
   'bank.map.amount': 'Bedrag',

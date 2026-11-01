@@ -6,7 +6,7 @@ import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
 
 /**
- * Desktop-light 1440 PNGs for the Bank Match redesign PR (#129).
+ * Light/dark × 1440/390 PNGs for the Bank Match redesign PR (#129).
  *
  *   CAPTURE_PR_SCREENSHOTS=1 PR_NUMBER=<n> pnpm --filter @klopt/web exec playwright test e2e/pr-screenshots-redesign-bank.spec.ts
  */
@@ -48,7 +48,7 @@ async function ready(page: Page, name: string): Promise<void> {
 async function importStatement(page: Page): Promise<void> {
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Demo bankrekening')
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.locator('input[type="file"]')).toBeEnabled()
@@ -58,9 +58,26 @@ async function importStatement(page: Page): Promise<void> {
   await expect(page.getByText('4 transacties geïmporteerd.')).toBeVisible()
 }
 
-async function shot(page: Page, name: string): Promise<void> {
-  await page.setViewportSize({ width: 1440, height: 900 })
+async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
   await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.evaluate((t) => {
+    document.documentElement.classList.toggle('dark', t === 'dark')
+  }, theme)
+  await page.waitForFunction(
+    (wantDark) => document.documentElement.classList.contains('dark') === wantDark,
+    theme === 'dark',
+  )
+  await page.waitForTimeout(250)
+}
+
+async function shot(
+  page: Page,
+  name: string,
+  size: { width: number; height: number },
+  theme: 'light' | 'dark',
+): Promise<void> {
+  await page.setViewportSize(size)
+  await setTheme(page, theme)
   await page.screenshot({
     path: join(OUT, name),
     fullPage: true,
@@ -68,20 +85,51 @@ async function shot(page: Page, name: string): Promise<void> {
   })
 }
 
-test('01 empty light desktop 1440', async ({ page }) => {
+const VARIANTS = [
+  { label: 'desktop-1440', size: { width: 1440, height: 900 } },
+  { label: 'mobile-390', size: { width: 390, height: 844 } },
+] as const
+
+test('Bank Match screenshots: empty + seeded × light/dark × 1440/390', async ({ page }) => {
+  test.setTimeout(420_000)
+
   await ready(page, 'Bank Shot Empty BV')
   await page.goto('/bank/match')
   await hydrated(page)
   await expect(page.getByText('Alle regels zijn geboekt')).toBeVisible()
-  await shot(page, '01-bank-match-empty-light-desktop-1440.png')
-})
 
-test('02 seeded light desktop 1440', async ({ page }) => {
-  await ready(page, 'Bank Shot Seed BV')
+  let n = 1
+  for (const theme of ['light', 'dark'] as const) {
+    for (const { label, size } of VARIANTS) {
+      await shot(
+        page,
+        `${String(n).padStart(2, '0')}-bank-match-empty-${theme}-${label}.png`,
+        size,
+        theme,
+      )
+      n += 1
+    }
+  }
+
+  // Same session: a second sign-in after a 390 viewport leaves /sign-in
+  // redirected to Home with no E-mail field.
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await setTheme(page, 'light')
   await importStatement(page)
   await page.goto('/bank/match')
   await hydrated(page)
   await expect(page.locator('[data-slot="match-queue"] [data-row]')).toHaveCount(4)
   await expect(page.getByRole('heading', { name: 'Wat was dit?' })).toBeVisible()
-  await shot(page, '02-bank-match-seeded-light-desktop-1440.png')
+
+  for (const theme of ['light', 'dark'] as const) {
+    for (const { label, size } of VARIANTS) {
+      await shot(
+        page,
+        `${String(n).padStart(2, '0')}-bank-match-seeded-${theme}-${label}.png`,
+        size,
+        theme,
+      )
+      n += 1
+    }
+  }
 })

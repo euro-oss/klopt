@@ -64,10 +64,10 @@ async function ready(page: Page, name: string): Promise<void> {
 async function importStatement(page: Page): Promise<void> {
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('ING Zakelijk')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
   await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
@@ -81,7 +81,7 @@ async function issueMatchingInvoice(page: Page, withIban = false): Promise<void>
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Grote Klant N.V.')
   if (withIban) {
-    await page.getByLabel('IBAN').fill('NL91RABO0315273637')
+    await page.getByLabel('IBAN').fill('NL86INGB0002445588')
   }
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
@@ -175,7 +175,7 @@ async function drainQueue(page: Page): Promise<void> {
   for (;;) {
     if (
       await page
-        .getByText('Alles is gekoppeld.')
+        .getByText('Alle regels zijn geboekt')
         .isVisible()
         .catch(() => false)
     ) {
@@ -325,7 +325,7 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
       await shoot(page, `matched-${theme}-${label}.png`)
 
       await drainQueue(page)
-      await expect(page.getByText('Alles is gekoppeld.')).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByText('Alle regels zijn geboekt')).toBeVisible({ timeout: 15_000 })
       await shoot(page, `empty-${theme}-${label}.png`)
       await context.close()
     }
