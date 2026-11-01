@@ -14,8 +14,9 @@
   VAT filing frequency via the `vat` prop: quarterly (default), monthly (YearCloseBlockedMonthly.dc.html),
   annual (YearCloseBlockedAnnual.dc.html). Any open VAT period overlapping the book year blocks the close.
   Copy follows apps/web fiscal-years (en/nl fiscalYears.*). NL strings: ../DERIVED.md.
-  A11y deviations (new boards only): select and checkbox borders on --ink-muted, underlined ink
-  text links, 44px targets under 600px, self-hosted fonts from ../design-system/fonts/.
+  A11y deviations (new boards only): --line-control on --ink-muted (5.1:1 or more light, 5.5:1 or more dark),
+  option and checkbox borders on --line-control, underlined ink text links, 44px targets under 600px,
+  self-hosted fonts from ../design-system/fonts/.
 -->
 <x-dc>
 <helmet>
@@ -23,7 +24,8 @@
 <style>
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}a:hover{color:var(--ink)}
-.k-input{border-color:var(--ink-muted)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-option{border-color:var(--line-control)}
 .lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}
 .per{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:4px}
 .per li>*{display:block;height:28px;border-radius:var(--radius-xs);font:500 11px/28px var(--font-mono);text-align:center;white-space:nowrap}
@@ -37,7 +39,7 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
 .chk-ico.no{background:var(--danger-bg);color:var(--danger)}
 .lgrid{display:grid;grid-template-columns:minmax(150px,1fr) 110px 110px;gap:12px;padding:10px 20px;border-top:1px solid var(--line-soft);align-items:center}
 .lhead{background:var(--surface-hover);font:600 12px/16px var(--font-sans);letter-spacing:.04em;text-transform:uppercase;color:var(--ink-muted)}
-.box{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:var(--radius-xs);border:1px solid var(--ink-muted);background:var(--surface);color:var(--on-primary);flex:none;box-sizing:border-box;margin-top:1px}
+.box{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:var(--radius-xs);border:1px solid var(--line-control);background:var(--surface);color:var(--on-primary);flex:none;box-sizing:border-box;margin-top:1px}
 .box.on{background:var(--primary);border-color:var(--primary)}
 .ack{display:flex;gap:10px;align-items:flex-start;cursor:pointer;background:transparent;border:0;padding:0;font:500 14px/20px var(--font-sans);color:var(--ink);text-align:left}
 .ack:disabled{cursor:not-allowed;color:var(--ink-muted)}

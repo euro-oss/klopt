@@ -14,8 +14,8 @@
   wizard.importeren.*). NL strings: ../DERIVED.md. Example data, same import as ImportPreview.
   Variants via the `variant` prop: running (default), confirm (ImportConfirm.dc.html),
   stopped-nothing (ImportStopped.dc.html), stopped-partial (ImportStoppedPartial.dc.html).
-  A11y deviations (new boards only): underlined ink text links, 44px targets under
-  600px, self-hosted fonts.
+  A11y deviations (new boards only): --line-control on --ink-muted, underlined ink text links,
+  44px targets under 600px, self-hosted fonts.
 -->
 <x-dc>
 <helmet>
@@ -23,6 +23,7 @@
 <style>
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}a:hover{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
 .lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}
 .bar{height:8px;border-radius:var(--radius-pill);background:var(--surface-sunken);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
 .bar span{display:block;height:100%;border-radius:var(--radius-pill);background:var(--primary)}
