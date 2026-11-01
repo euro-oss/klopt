@@ -13,9 +13,9 @@
   apps/web /importeren, steps "voorbeeld" and "overzicht" (wizard.voorbeeld.*,
   wizard.overzicht.notTransferred*, wizard.overzicht.alreadyInKlopt*). NL strings: ../DERIVED.md.
   Example data, same administration and years as ImportYears.
-  A11y deviations (new boards only): --line-control #86857e, underlined ink text links,
+  A11y deviations (new boards only): --line-control on --ink-muted, underlined ink text links,
   44px targets under 600px, self-hosted fonts.
-  Batch 2: `theme` dark uses --line-control #71717a (dark chart-2); `layout` phone is the 390 layout
+  Batch 2: `layout` phone is the 390 layout
   with the bottom tab bar and a sticky Next. Zero counts read 0, not a dash.
 -->
 <x-dc>
@@ -24,8 +24,7 @@
 <style>
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}a:hover{color:var(--ink)}
-.k-root[data-theme="light"]{--line-control:#86857e}
-.k-root[data-theme="dark"]{--line-control:#71717a}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
 .ph{overflow:clip}
 .ph-head{display:flex;flex-direction:column;gap:4px}
 .ph-step{font-size:13px;color:var(--ink-2)}
