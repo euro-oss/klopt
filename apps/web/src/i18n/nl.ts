@@ -85,10 +85,8 @@ export const nl = {
   'shell.demoBanner':
     'Demo-omgeving: gebruik alleen fictieve gegevens. Voer geen echte boekhouding of persoonsgegevens in.',
   'shell.demoBadge': 'Demo',
-  'shell.signOut': 'Afmelden',
-  // The account menu says Uitloggen; the no-administration and setup screens
-  // keep Afmelden. Same act, different chrome — Design wants the short verb
-  // where the eye already is.
+  'shell.signOut': 'Uitloggen',
+  // Account menu, no-administration and setup all say Uitloggen.
   'shell.account.signOut': 'Uitloggen',
   'shell.help': 'Sneltoetsen',
   'shell.skipToContent': 'Naar de inhoud',

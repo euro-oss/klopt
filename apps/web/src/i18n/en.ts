@@ -317,7 +317,7 @@ export const en: Record<MessageKey, string> = {
     "Demo environment: use fictional data only. Don't enter real bookkeeping records or personal data.",
   'shell.demoBadge': 'Demo',
   'shell.signOut': 'Sign out',
-  'shell.account.signOut': 'Log out',
+  'shell.account.signOut': 'Sign out',
   'shell.help': 'Keyboard shortcuts',
   'shell.skipToContent': 'Skip to content',
   'shell.navigation': 'Main navigation',

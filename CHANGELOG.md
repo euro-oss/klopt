@@ -18,6 +18,12 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Sign-out copy is Sign out / Uitloggen (#140)
+
+The account menu, the no-administration screen and setup use the same words:
+"Sign out" in English and "Uitloggen" in Dutch. The account menu no longer
+says "Log out", and the screens outside it no longer say "Afmelden".
+
 ### Fixed
 
 - Debtor-ageing report and overdue counts no longer count invoices that are due
