@@ -41,7 +41,7 @@ Shots are made with `derived-shots/render/shoot-phone.mjs` (needs `playwright`):
 - **Account group at the bottom.** The administration switcher row (Bakkerij Voorbeeld B.V., book year 2026, opening `Switcher.dc.html`) and Sign out, with the signed-in address under it. On desktop the switcher is at the top of the sidebar; here both sit at the bottom.
 - **Badges in More.** Inbox 3 and Costs 40 as neutral badges, like Costs in the Sidebar, so the only yellow on screen stays Hidde's Bank badge in the tab bar.
 - **Sign out keeps ink**, not `danger`: signing out loses nothing.
-- **Fixtures.** Bakkerij Voorbeeld B.V., `sanne@voorbeeld.example.nl`, `IMG_2041.jpg`, `IMG_2047.jpg`, `bon-groothandel-meel.pdf`, `bonnen-oktober.pdf` and `IMG_2051.HEIC` are made up. The tab bar badges (Sales 5, Bank 15) are Hidde's demo figures, kept so the bar matches his boards.
+- **Fixtures.** Bakkerij Voorbeeld B.V., `eva@bakkerij.example`, `IMG_2041.jpg`, `IMG_2047.jpg`, `bon-groothandel-meel.pdf`, `bonnen-oktober.pdf` and `IMG_2051.HEIC` are made up. The tab bar badges (Sales 5, Bank 15) are Hidde's demo figures, kept so the bar matches his boards.
 - **Canvas placement.** A new row titled "Phone tab bar: Receipt and More (derived)" at y 13000 under Hidde's phone and dark row: the four light boards at x 0 to 1410, the dark ones at x 1960 to 3370.
 - **Hidde's tab bar links are untouched.** Receipt and More still point to `#` on his four phone boards; pointing them at `PhoneReceipt.dc.html` and `PhoneMore.dc.html` is a one-line change per board, left to him.
 
