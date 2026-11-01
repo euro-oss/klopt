@@ -14,6 +14,7 @@
   then the fields, the totals and the line as a stacked row with description and amount on one
   line. Save draft and Book sit at the end of the form. Takes `theme`; PhoneBillNewDark.dc.html
   wraps it in dark.
+  The tab bar is sticky, so it stays at the bottom of the viewport as the page scrolls.
   A11y deviations: inputs and selects 44px with ink-muted borders (3:1 or more), 44px targets,
   no ink-faint, self-hosted fonts.
 -->
@@ -22,6 +23,8 @@
 <link rel="stylesheet" href="../design-system/fonts/fonts.css">
 <style>
 body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+.k-root .k-tabbar{position:sticky;bottom:0;z-index:1}
 a{color:var(--ink)}
 .k-root .k-input{border-color:var(--ink-muted);height:44px;font-size:15px}
 .nw{white-space:nowrap}

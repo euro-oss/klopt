@@ -12,8 +12,9 @@
   Derived board (batch 3), not drawn by Hidde. Phone 390 of PaymentBatch.dc.html, same four steps
   and logic. Single column: amount, steps in one row, the payments as stacked rows with supplier
   and amount on one line, four eyes, then the next step with one full-width primary button.
-  Made-up people (sanne@ and ruben@voorbeeld.example.nl) and example IBANs (NL.. .... 0001 2345 67).
+  Signed-in user eva@bakkerij.example, ruben@voorbeeld.example.nl approving, example IBANs (NL.. .... 0001 2345 67).
   Takes `theme`; PhonePaymentBatchDark.dc.html wraps it in dark.
+  The tab bar is sticky, so it stays at the bottom of the viewport as the page scrolls.
   A11y deviations: ink underlined text link, 44px targets, IBANs never wrap, no ink-faint,
   self-hosted fonts.
 -->
@@ -22,6 +23,8 @@
 <link rel="stylesheet" href="../design-system/fonts/fonts.css">
 <style>
 body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+.k-root .k-tabbar{position:sticky;bottom:0;z-index:1}
 a{color:var(--ink)}
 .lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500;display:inline-flex;align-items:center;min-height:44px}
 .nw{white-space:nowrap}
@@ -73,7 +76,7 @@ a{color:var(--ink)}
 
     <section class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
       <h2 class="k-card-title">Four eyes</h2>
-      <div class="who"><span class="k-tile" style="width: 32px; height: 32px; border-radius: 16px;">S</span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column;"><span class="k-muted" style="font-size: 13px;">Prepared by</span><span>sanne@voorbeeld.example.nl</span><span class="k-muted k-num" style="font-size: 13px;"><span class="nw">30 Oct</span>, 10:42</span></span><span class="k-pill k-pill--paid">Done</span></div>
+      <div class="who"><span class="k-tile" style="width: 32px; height: 32px; border-radius: 16px;">E</span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column;"><span class="k-muted" style="font-size: 13px;">Prepared by</span><span>eva@bakkerij.example</span><span class="k-muted k-num" style="font-size: 13px;"><span class="nw">30 Oct</span>, 10:42</span></span><span class="k-pill k-pill--paid">Done</span></div>
       <div class="who"><span class="k-tile" style="width: 32px; height: 32px; border-radius: 16px;">R</span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column;"><span class="k-muted" style="font-size: 13px;">Approved by</span><span>ruben@voorbeeld.example.nl</span><span class="k-muted" style="font-size: 13px;">The person who prepares can't approve</span></span><span class="{{approvalCls}}">{{approvalLabel}}</span></div>
     </section>
 
