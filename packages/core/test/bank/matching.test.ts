@@ -31,7 +31,7 @@ const entry = (overrides: Partial<BankEntry> = {}): BankEntry => ({
   bankReference: 'REF1',
   endToEndId: null,
   counterpartyName: 'Grote Klant N.V.',
-  counterpartyIban: 'NL91RABO0315273637',
+  counterpartyIban: 'NL91ABNA0417164300',
   description: '',
   remittanceReference: null,
   transactionCode: 'NTRF',
@@ -45,7 +45,7 @@ const invoice = (overrides: Partial<MatchCandidate> = {}): MatchCandidate => ({
   kind: 'invoice',
   contactId: 'c1',
   contactName: 'Grote Klant N.V.',
-  contactIban: 'NL91RABO0315273637',
+  contactIban: 'NL91ABNA0417164300',
   issueDate: '2026-03-01',
   dueDate: '2026-03-31',
   outstanding: 121_000n,
@@ -426,7 +426,7 @@ describe('ordering', () => {
     const suggestions = suggestMatches(
       entry({ description: 'factuur 2026-0001' }),
       [invoice()],
-      [rule({ counterpartyIban: 'NL91RABO0315273637', accountNumber: '8000', timesApplied: 3 })],
+      [rule({ counterpartyIban: 'NL91ABNA0417164300', accountNumber: '8000', timesApplied: 3 })],
     )
 
     expect(suggestions.map((item) => item.strategy)).toEqual([

@@ -41,7 +41,7 @@ export function glanceBarPercent(value: string, max: bigint): number {
 }
 
 /**
- * First name for "Goedemorgen, Hidde" — the part before the first space.
+ * First name for "Goedemorgen, Sanne" — the part before the first space.
  * Magic-link sign-in often leaves `name` empty; never fall back to the email
  * local-part (that wraps into four lines on phone). Caller shows a bare
  * greeting without a comma when this returns null.

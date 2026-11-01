@@ -37,7 +37,7 @@ const plural = ((key: string, count: number, values?: Record<string, string | nu
 
 describe('dashboard greeting helpers', () => {
   it('takes the first name for the greeting, and never the email', () => {
-    expect(greetingName('Hidde de Vries')).toBe('Hidde')
+    expect(greetingName('Sanne Voorbeeld')).toBe('Sanne')
     expect(greetingName('  Ana  ')).toBe('Ana')
     expect(greetingName('')).toBeNull()
     expect(greetingName('   ')).toBeNull()

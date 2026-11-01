@@ -42,7 +42,7 @@
             <Refs><EndToEndId>2026-0001</EndToEndId></Refs>
             <RltdPties>
               <Dbtr><Nm>Grote Klant N.V.</Nm></Dbtr>
-              <DbtrAcct><Id><IBAN>NL91RABO0315273637</IBAN></Id></DbtrAcct>
+              <DbtrAcct><Id><IBAN>NL91ABNA0417164300</IBAN></Id></DbtrAcct>
             </RltdPties>
             <RmtInf><Ustrd>Factuur 2026-0001</Ustrd></RmtInf>
           </TxDtls>

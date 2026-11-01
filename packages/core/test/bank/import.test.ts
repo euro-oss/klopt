@@ -80,7 +80,7 @@ describe('MT940', () => {
   it('pulls the counterparty out of the free-text :86: block', () => {
     const [entry] = mt940[0]?.entries ?? []
     expect(entry?.counterpartyName).toBe('Grote Klant N.V.')
-    expect(entry?.counterpartyIban).toBe('NL91RABO0315273637')
+    expect(entry?.counterpartyIban).toBe('NL91ABNA0417164300')
     expect(entry?.endToEndId).toBe('2026-0001')
     expect(entry?.description).toBe('Factuur 2026-0001')
   })
@@ -291,7 +291,7 @@ describe('planning an import', () => {
   })
 
   it('refuses a file for the wrong account', () => {
-    const plan = planImport(mt940, { ...context, accountIban: 'NL91RABO0315273637' })
+    const plan = planImport(mt940, { ...context, accountIban: 'NL91ABNA0417164300' })
     expect(plan.problems.map((problem) => problem.code)).toContain('account_mismatch')
   })
 

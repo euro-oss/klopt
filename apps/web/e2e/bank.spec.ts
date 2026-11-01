@@ -96,10 +96,10 @@ test('a file for the wrong account is refused, in words', async ({ page }) => {
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL91RABO0315273637')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Spaarrekening')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL91RABO0315273637')).toBeVisible()
+  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
 
   // Enabled first: the input is `disabled` until React has taken over, and
   // setting files on a disabled input silently does nothing.
