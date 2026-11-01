@@ -9,35 +9,37 @@ import { Keycap } from '~/components/ui/keycap'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '~/components/ui/sheet'
 import { useT } from '~/i18n/provider'
 import {
-  IMPORT_WIZARD_STEP_COUNT,
-  IMPORT_WIZARD_STEP_KEYS,
-  IMPORT_WIZARD_STEPS,
-  stepIndex,
+  wizardStepKeysForSource,
+  wizardStepsForSource,
+  type ImportWizardSource,
   type ImportWizardStep,
 } from '~/lib/import-wizard'
 import { cn } from '~/lib/utils'
 
 export function WizardProgressRail({
   step,
+  source = null,
   onJump,
   sublines,
 }: {
   readonly step: ImportWizardStep
+  /** Exact Phase 2 omits later steps from the rail (#100 PM). */
+  readonly source?: ImportWizardSource | null
   readonly onJump?: (step: ImportWizardStep) => void
   readonly sublines?: readonly (string | null | undefined)[]
 }) {
   const { t } = useT()
-  const current = stepIndex(step)
+  const steps = wizardStepsForSource(source)
+  const keys = wizardStepKeysForSource(source)
+  const found = steps.indexOf(step)
+  // Past the Exact Phase 2 slice → show as the last visible step, not bron.
+  const current = found >= 0 ? found : Math.max(0, steps.length - 1)
   const [open, setOpen] = useState(false)
 
-  function renderItem(
-    key: (typeof IMPORT_WIZARD_STEP_KEYS)[number],
-    index: number,
-    mobile: boolean,
-  ) {
+  function renderItem(key: (typeof keys)[number], index: number, mobile: boolean) {
     const state = index < current ? 'done' : index === current ? 'current' : 'todo'
     const clickable = onJump !== undefined && index < current
-    const id = IMPORT_WIZARD_STEPS[index]!
+    const id = steps[index]!
     const sub = sublines?.[index]
     const inner = (
       <>
@@ -99,8 +101,8 @@ export function WizardProgressRail({
           <span className="tabular-nums">
             {t('wizard.stepOf', {
               step: String(current + 1),
-              total: String(IMPORT_WIZARD_STEP_COUNT),
-              label: t(IMPORT_WIZARD_STEP_KEYS[current]!),
+              total: String(steps.length),
+              label: t(keys[current]!),
             })}
           </span>
           <Sheet open={open} onOpenChange={setOpen}>
@@ -116,14 +118,18 @@ export function WizardProgressRail({
               </SheetHeader>
               <nav aria-label={t('wizard.steps')} className="mt-4">
                 <ol className="space-y-0.5">
-                  {IMPORT_WIZARD_STEP_KEYS.map((key, index) => renderItem(key, index, true))}
+                  {keys.map((key, index) => renderItem(key, index, true))}
                 </ol>
               </nav>
             </SheetContent>
           </Sheet>
         </div>
-        <div className="mt-1 grid grid-cols-10 gap-1" aria-hidden="true">
-          {IMPORT_WIZARD_STEP_KEYS.map((key, index) => (
+        <div
+          className="mt-1 grid gap-1"
+          style={{ gridTemplateColumns: `repeat(${String(steps.length)}, minmax(0, 1fr))` }}
+          aria-hidden="true"
+        >
+          {keys.map((key, index) => (
             <span
               key={key}
               className={cn(
@@ -136,9 +142,7 @@ export function WizardProgressRail({
       </div>
 
       <nav aria-label={t('wizard.steps')} className="mb-6 hidden md:block lg:mb-0">
-        <ol className="space-y-0.5">
-          {IMPORT_WIZARD_STEP_KEYS.map((key, index) => renderItem(key, index, false))}
-        </ol>
+        <ol className="space-y-0.5">{keys.map((key, index) => renderItem(key, index, false))}</ol>
       </nav>
     </>
   )
@@ -171,21 +175,26 @@ export function WizardStepHeader({
   title,
   intro,
   step,
+  source = null,
 }: {
   readonly titleId: string
   readonly title: string
   readonly intro?: string
   readonly step: ImportWizardStep
+  readonly source?: ImportWizardSource | null
 }) {
   const { t } = useT()
-  const index = stepIndex(step)
+  const steps = wizardStepsForSource(source)
+  const keys = wizardStepKeysForSource(source)
+  const found = steps.indexOf(step)
+  const index = found >= 0 ? found : Math.max(0, steps.length - 1)
   return (
     <header className="mb-6">
       <p className="text-muted-foreground hidden text-sm md:block">
         {t('wizard.stepOf', {
           step: String(index + 1),
-          total: String(IMPORT_WIZARD_STEP_COUNT),
-          label: t(IMPORT_WIZARD_STEP_KEYS[index]!),
+          total: String(steps.length),
+          label: t(keys[index]!),
         })}
       </p>
       <h1 id={titleId} className="mt-1 text-2xl tracking-tight md:text-[28px]">

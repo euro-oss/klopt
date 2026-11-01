@@ -2738,7 +2738,7 @@ export const nl = {
   'wizard.voorbeeld.exact.taxCodes': 'Btw-codes',
   'wizard.exact.btw.title': 'Btw-codes uit Exact',
   'wizard.exact.btw.intro':
-    'Exact geeft per rekening een standaard btw-code mee. Klopt herkent ze op naam. Je hoeft hier niets te kiezen.',
+    'Klopt herkent een code alleen als code, tarief en soort kloppen; anders blijft hij onherkend',
   'wizard.exact.btw.notImportedYet':
     'Nog niets overgezet. Dit is alleen een voorvertoning; er wordt niets geboekt.',
   'wizard.exact.btw.recognisedHeading': 'Wat Klopt herkent',

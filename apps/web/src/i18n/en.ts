@@ -2360,7 +2360,7 @@ export const en: Record<MessageKey, string> = {
   'wizard.voorbeeld.exact.taxCodes': 'VAT codes',
   'wizard.exact.btw.title': 'VAT codes from Exact',
   'wizard.exact.btw.intro':
-    'Exact attaches a default VAT code to each account. Klopt recognises them by name. You do not choose anything here.',
+    'Klopt only recognises a code when its code, rate and side all match; otherwise it stays unrecognised.',
   'wizard.exact.btw.notImportedYet':
     'Nothing transferred yet. This is a preview only; nothing is booked.',
   'wizard.exact.btw.recognisedHeading': 'What Klopt recognises',

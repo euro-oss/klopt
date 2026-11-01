@@ -1,21 +1,17 @@
 /**
  * Read-only Exact → Klopt VAT recognition for the import wizard (#100).
  *
- * Exact administrations name codes freely (`1`, `H`, `BTW21`). Klopt recognises
- * a code when its string already exists here, or when exactly one plain
- * domestic primary chart code fits the Exact rate and side — the same ranking
- * Moneybird uses. Reverse-charge / EU / export names stay unrecognised so the
- * wizard can show an honest "Klopt herkent deze niet" without inventing a map.
+ * A code is recognised only when its Exact code string, rate and side all
+ * agree with a Klopt chart row (PM: when in doubt, leave it unrecognised).
+ * There is no rate+side-only fallback and no code-only match. Sales, export,
+ * EU and non-EU / reverse-charge descriptions stay unrecognised so they never
+ * land on a domestic purchase code.
  *
  * This is display-only. Import still keeps an account's Exact default VAT only
  * when the Exact code string already exists on the chart (`planExactImport`).
  */
 
-import {
-  isSpecialAcquisitionPurchaseRate,
-  rankVatCodes,
-  type VatMatchRule,
-} from '../moneybird/account-ranker.js'
+import { isSpecialAcquisitionPurchaseRate, type VatMatchRule } from '../moneybird/account-ranker.js'
 import type { ExactVatCode } from './resources.js'
 
 /** Klopt chart row shape needed to recognise an Exact VAT code. */
@@ -46,7 +42,7 @@ export interface ExactVatMappingRow {
    * it — they come over without a default btw-code on import today.
    */
   readonly accountsLosingDefault: readonly ExactVatAccountRef[]
-  /** True when Exact code string equals an existing Klopt code. */
+  /** True when Exact code string equals an existing Klopt code and matched. */
   readonly codeMatch: boolean
 }
 
@@ -77,89 +73,72 @@ function appliesTo(code: ExactVatCode): ExactVatMappingRow['appliesTo'] {
   }
 }
 
-function sideHint(description: string): 'sales' | 'purchase' | null {
+/** Exact percentage fraction → Klopt rateBasisPoints. */
+function rateBasisPoints(fraction: number): number {
+  return Math.round(fraction * 10000)
+}
+
+function sideAgrees(code: ExactVatCode, rule: ExactVatKloptRule): boolean {
+  const side = appliesTo(code)
+  if (side === 'sales') return rule.direction === 'output'
+  if (side === 'purchase') return rule.direction === 'input'
+  // Exact "both" / unknown never agrees with a single-direction Klopt row.
+  return false
+}
+
+/**
+ * Descriptions that must never auto-map to a domestic chart code — export,
+ * EU / non-EU acquisition, reverse charge. Broader than Moneybird's purchase
+ * helper so "buiten de EU", "export" and "uitvoer" also refuse (#161 QA).
+ */
+export function isUnrecognisedExactVatDescription(description: string): boolean {
   const text = description.toLowerCase()
-  if (/inkoop|purchase|ink\.|ink /.test(text)) return 'purchase'
-  if (/verkoop|sales|verk\.|verk /.test(text)) return 'sales'
-  return null
+  if (isSpecialAcquisitionPurchaseRate({ name: description })) return true
+  return (
+    /\bexport\b/.test(text) ||
+    /\buitvoer\b/.test(text) ||
+    /\bbuiten\s+de\s+eu\b/.test(text) ||
+    /\bzero\s*rated\b/.test(text) ||
+    /\beu-landen\b/.test(text) ||
+    /\buit\s+eu\b/.test(text) ||
+    /\bfrom\s+eu\b/.test(text) ||
+    /\beu\s+service/.test(text) ||
+    /\bservice\s+purchase/.test(text)
+  )
 }
 
 function isSpecialExactVat(code: ExactVatCode): boolean {
   if (code.charged) return true
-  return isSpecialAcquisitionPurchaseRate({ name: code.description })
-}
-
-/**
- * Bare "geen btw" at 0% without EU/export wording — design maps this to VGEEN.
- */
-function isPlainGeenBtw(code: ExactVatCode): boolean {
-  if (code.percentage !== 0) return false
-  if (isSpecialExactVat(code)) return false
-  const text = code.description.toLowerCase()
-  return /geen\s*btw|geen\s*btw\.|niet van toepassing|no\s*vat|zero\s*rated/.test(text)
-}
-
-function recogniseByRate(
-  code: ExactVatCode,
-  rules: readonly ExactVatKloptRule[],
-  taxRateType: 'sales_invoice' | 'purchase_invoice',
-): ExactVatKloptRule | null {
-  const ranked = rankVatCodes(rules, {
-    percentage: code.percentage * 100,
-    taxRateType,
-  })
-  if (ranked.suggestedCode === null) return null
-  return rules.find((rule) => rule.code === ranked.suggestedCode) ?? null
+  return isUnrecognisedExactVatDescription(code.description)
 }
 
 /**
  * Pick the Klopt code Exact would map to for the read-only preview.
  *
- * Order: string match on the chart → refuse specials → rate+side primary →
- * plain "geen btw" → VGEEN when that code exists.
+ * Recognised only when code string, rate and side all agree with one Klopt
+ * row. Specials (charged / export / EU / …) always stay unrecognised.
  */
 export function recogniseExactVatCode(
   code: ExactVatCode,
   rules: readonly ExactVatKloptRule[],
 ): { readonly rule: ExactVatKloptRule; readonly codeMatch: boolean } | null {
-  const byCode = rules.find((rule) => rule.code === code.code)
-  if (byCode !== undefined) return { rule: byCode, codeMatch: true }
-
   if (code.isBlocked) return null
   if (isSpecialExactVat(code)) return null
 
-  const side = appliesTo(code)
-  const hint = sideHint(code.description)
+  const byCode = rules.find((rule) => rule.code === code.code)
+  if (byCode === undefined) return null
+  if (byCode.rateBasisPoints !== rateBasisPoints(code.percentage)) return null
+  if (!sideAgrees(code, byCode)) return null
 
-  if (side === 'sales' || (side === 'both' && hint === 'sales')) {
-    const hit = recogniseByRate(code, rules, 'sales_invoice')
-    if (hit !== null) return { rule: hit, codeMatch: false }
-  }
-  if (side === 'purchase' || (side === 'both' && hint === 'purchase')) {
-    const hit = recogniseByRate(code, rules, 'purchase_invoice')
-    if (hit !== null) return { rule: hit, codeMatch: false }
-  }
-  if (side === 'both' && hint === null) {
-    const sales = recogniseByRate(code, rules, 'sales_invoice')
-    const purchase = recogniseByRate(code, rules, 'purchase_invoice')
-    if (sales !== null && purchase === null) return { rule: sales, codeMatch: false }
-    if (purchase !== null && sales === null) return { rule: purchase, codeMatch: false }
-  }
-
-  if (isPlainGeenBtw(code)) {
-    const vgeen = rules.find((rule) => rule.code === 'VGEEN')
-    if (vgeen !== undefined) return { rule: vgeen, codeMatch: false }
-  }
-
-  return null
+  return { rule: byCode, codeMatch: true }
 }
 
 /**
  * Build the read-only Exact VAT preview rows (#100 step 5 Exact).
  *
  * Blocked Exact codes are omitted (same as `planExactImport`). Accounts that
- * reference an Exact code which is not a string match on the Klopt chart are
- * listed under `accountsLosingDefault` — import drops their default today.
+ * reference an Exact code which is not recognised are listed under
+ * `accountsLosingDefault` — import drops their default today.
  */
 export function mapExactVatCodes(args: {
   readonly vatCodes: readonly ExactVatCode[]
@@ -174,7 +153,6 @@ export function mapExactVatCodes(args: {
   const rows: ExactVatMappingRow[] = active.map((code) => {
     const recognised = recogniseExactVatCode(code, args.kloptRules)
     const kloptCode = recognised?.rule.code ?? null
-    // Only unrecognised codes surface lose-default accounts (design #100 / #101).
     const accountsLosingDefault =
       kloptCode === null ? args.accounts.filter((account) => account.vatCode === code.code) : []
 
@@ -187,7 +165,9 @@ export function mapExactVatCodes(args: {
       kloptCode,
       kloptLabel: recognised?.rule.description ?? recognised?.rule.code ?? null,
       accountsLosingDefault,
-      codeMatch: recognised?.codeMatch === true || existing.has(code.code),
+      // codeMatch only when the triple match succeeded — a bare string on the
+      // chart that failed rate/side is not a match for the preview.
+      codeMatch: recognised?.codeMatch === true && existing.has(code.code),
     }
   })
 

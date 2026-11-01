@@ -2,8 +2,8 @@
  * Pure helpers for the Moneybird/Exact import wizard (#100).
  *
  * Step ids match the design prototype and `importWizardStepSchema`. Moneybird
- * walks all ten steps. Exact Phase 2 starts with a read-only btw preview
- * (bron → … → btw); later steps stay blocked until accounts / openings land.
+ * walks all ten steps. Exact Phase 2 is bron → … → btw only — later steps are
+ * omitted from the rail until accounts / openings land (no disabled stubs).
  */
 
 import { flowShouldAdvanceOnEnter } from './guided-invoice.js'
@@ -41,6 +41,17 @@ export const IMPORT_WIZARD_STEP_KEYS = [
   'wizard.step.klaar',
 ] as const
 
+/** Exact Phase 2 rail: through read-only btw only (#100 PM). */
+export const EXACT_WIZARD_STEPS = [
+  'bron',
+  'verbinden',
+  'administratie',
+  'voorbeeld',
+  'btw',
+] as const satisfies readonly ImportWizardStep[]
+
+export type ExactWizardStep = (typeof EXACT_WIZARD_STEPS)[number]
+
 export function isImportWizardStep(value: string): value is ImportWizardStep {
   return (IMPORT_WIZARD_STEPS as readonly string[]).includes(value)
 }
@@ -74,6 +85,26 @@ export function canAdvanceFromBron(source: ImportWizardSource | null): boolean {
 /** Exact Phase 2 slice: stop after the read-only btw preview. */
 export function exactWizardStopsAfterBtw(source: ImportWizardSource | null): boolean {
   return source === 'exact'
+}
+
+/**
+ * Rail + "Stap N van M" for the active source. Exact omits later steps so the
+ * rail never shows disabled stubs for work that is not in this version yet.
+ */
+export function wizardStepsForSource(
+  source: ImportWizardSource | null,
+): readonly ImportWizardStep[] {
+  if (source === 'exact') return EXACT_WIZARD_STEPS
+  return IMPORT_WIZARD_STEPS
+}
+
+export function wizardStepKeysForSource(
+  source: ImportWizardSource | null,
+): readonly (typeof IMPORT_WIZARD_STEP_KEYS)[number][] {
+  if (source === 'exact') {
+    return IMPORT_WIZARD_STEP_KEYS.slice(0, EXACT_WIZARD_STEPS.length)
+  }
+  return IMPORT_WIZARD_STEP_KEYS
 }
 
 export function canConnectExact(args: {

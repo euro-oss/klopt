@@ -1009,6 +1009,7 @@ function ImportWizardPage() {
       <aside className="lg:sticky lg:top-4 lg:w-56 lg:shrink-0">
         <WizardProgressRail
           step={step}
+          source={source}
           onJump={(target) => {
             if (stepIndex(target) <= stepIndex(step)) void goTo(target)
           }}
@@ -1049,6 +1050,7 @@ function ImportWizardPage() {
                     })
                   : t('wizard.bron.intro')
               }
+              source={source}
             />
             {showResume && saved !== null && (
               <section className="border-border border-accent mb-6 border border-l-[3px] p-5">
@@ -1224,6 +1226,7 @@ function ImportWizardPage() {
               step={step}
               title={t('wizard.verbinden.title')}
               intro={t('wizard.verbinden.intro')}
+              source={source}
             />
             {!canStoreSecrets && (
               <div className="mb-6">
@@ -1332,6 +1335,7 @@ function ImportWizardPage() {
               step={step}
               title={t('wizard.administratie.title')}
               intro={t('wizard.administratie.intro')}
+              source={source}
             />
             <section className="mb-6">
               <h2 className="mb-2 text-sm font-medium">{t('wizard.administratie.admins')}</h2>
@@ -1577,6 +1581,7 @@ function ImportWizardPage() {
               step={step}
               title={t('wizard.voorbeeld.title')}
               intro={t('wizard.voorbeeld.intro')}
+              source={source}
             />
             <div className="mb-4 flex flex-wrap gap-2">
               <Button
@@ -1633,6 +1638,7 @@ function ImportWizardPage() {
               step={step}
               title={t('wizard.btw.title')}
               intro={t('wizard.btw.intro')}
+              source={source}
             />
             <ul role="list" aria-label={t('wizard.step.btw')} className="space-y-3">
               {usedRates.map((rate) => {
@@ -1898,6 +1904,7 @@ function ImportWizardPage() {
               step={step}
               title={t('wizard.rekeningen.title')}
               intro={t('wizard.rekeningen.intro')}
+              source={source}
             />
             {preview !== null ? (
               <ul role="list" className="mb-6 divide-y overflow-x-hidden border">
@@ -1992,6 +1999,7 @@ function ImportWizardPage() {
               step={step}
               title={t('wizard.problemen.title')}
               intro={t('wizard.problemen.intro')}
+              source={source}
             />
             {groupNotInForce(problems).map((group) => {
               const validFrom = taxCodeValidFromLabel.get(group.code)
@@ -2135,6 +2143,7 @@ function ImportWizardPage() {
               step={step}
               title={t('wizard.overzicht.title')}
               intro={t('wizard.overzicht.intro')}
+              source={source}
             />
             <dl className="border-border space-y-2 border-y py-4 text-sm">
               <div className="flex justify-between">
@@ -2258,6 +2267,7 @@ function ImportWizardPage() {
               {...(importFailed || failureKind !== 'none'
                 ? {}
                 : { intro: t('wizard.importeren.intro') })}
+              source={source}
             />
             {importFailed || failureKind !== 'none' ? (
               <AttentionBlock
@@ -2337,6 +2347,7 @@ function ImportWizardPage() {
                       count: String(klaarCount),
                     })
               }
+              source={source}
             />
             <p className="text-muted-foreground mb-4 text-sm">{t('wizard.klaar.booksInKlopt')}</p>
             <div className="mb-6">

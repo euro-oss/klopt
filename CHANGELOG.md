@@ -22,13 +22,15 @@ the ADR is where the reasoning is.
 
 Importeren now walks Exact from source choice through connect, division and
 year, dry-run preview, and a **read-only** btw-codes step. Klopt recognises
-Exact VAT codes by name/rate/side (or exact code match) and shows which codes
-are unrecognised — accounts that would lose their default btw-code are listed.
-Nothing is written to the ledger in this slice. Accounts, relations, openings
-and invoices follow in later Exact wizard PRs (#100 Phase 2). Exact OAuth
-callback returns to `/importeren?bron=exact&van=exact-oauth` and lands on
-Administratie without Welkom terug. Loopback redirect URIs are allowed for
-HTTP stand-ins (same carve-out as the Exact base URL).
+an Exact VAT code only when **code+rate+side** all agree with a chart row;
+otherwise it stays unrecognised (export / EU / reverse-charge included) and
+accounts that would lose their default btw-code are listed. Nothing is written
+to the ledger in this slice. Accounts, relations, openings and invoices follow
+in later Exact wizard PRs (#100 Phase 2). Exact OAuth callback returns to
+`/importeren?bron=exact&van=exact-oauth` and lands on Administratie without
+Welkom terug. The Exact rail stops after btw (no disabled later steps).
+Loopback redirect URIs are allowed for HTTP stand-ins (same carve-out as the
+Exact base URL).
 
 ### Redesign Phase 2: Sales (#107)
 

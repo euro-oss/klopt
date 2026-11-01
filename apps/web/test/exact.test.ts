@@ -146,6 +146,15 @@ describe('connecting', () => {
     expect(accepted.success).toBe(true)
   })
 
+  it('refuses http://localhost.evil… as a loopback carve-out (#161 QA)', () => {
+    const refused = connectExactBody.safeParse({
+      ...APP,
+      redirectUri: 'http://localhost.evil.invalid/exact/callback',
+      baseUrl: 'http://localhost.evil.invalid',
+    })
+    expect(refused.success).toBe(false)
+  })
+
   it('refuses a client secret it cannot encrypt, rather than storing it as typed', async () => {
     // A client secret in a database dump is discovered by somebody else, later.
     // Spec 14: never in the database in plaintext.

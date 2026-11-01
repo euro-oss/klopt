@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  EXACT_WIZARD_STEPS,
   IMPORT_WIZARD_STEPS,
   canAdvanceFromAdministratie,
   canAdvanceFromBron,
@@ -16,6 +17,8 @@ import {
   nextStep,
   prevStep,
   stepIndex,
+  wizardStepKeysForSource,
+  wizardStepsForSource,
 } from '../../src/lib/import-wizard.js'
 
 describe('import wizard steps (#100)', () => {
@@ -104,5 +107,19 @@ describe('import wizard steps (#100)', () => {
 
   it('computes excluded years from selection', () => {
     expect(excludedYearsFromSelection(['2024', '2025', '2026'], ['2026'])).toEqual(['2024', '2025'])
+  })
+
+  it('Exact Phase 2 rail stops after btw — no disabled later steps (#100 PM)', () => {
+    expect(wizardStepsForSource('exact')).toEqual([...EXACT_WIZARD_STEPS])
+    expect(wizardStepsForSource('exact')).toEqual([
+      'bron',
+      'verbinden',
+      'administratie',
+      'voorbeeld',
+      'btw',
+    ])
+    expect(wizardStepKeysForSource('exact')).toHaveLength(5)
+    expect(wizardStepsForSource('moneybird')).toEqual([...IMPORT_WIZARD_STEPS])
+    expect(wizardStepsForSource(null)).toEqual([...IMPORT_WIZARD_STEPS])
   })
 })

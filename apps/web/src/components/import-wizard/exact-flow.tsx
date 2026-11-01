@@ -323,6 +323,7 @@ export function ExactWizardFlow({
             step={step}
             title={t('wizard.verbinden.exact.title')}
             intro={t('wizard.verbinden.exact.intro')}
+            source="exact"
           />
           {!canStoreSecrets && (
             <div className="mb-6">
@@ -446,6 +447,7 @@ export function ExactWizardFlow({
             step={step}
             title={t('wizard.administratie.exact.title')}
             intro={t('wizard.administratie.exact.intro')}
+            source="exact"
           />
           {connection?.divisionCode !== null && connection?.divisionName != null && (
             <p className="mb-4 text-sm">
@@ -532,6 +534,7 @@ export function ExactWizardFlow({
             step={step}
             title={t('wizard.voorbeeld.title')}
             intro={t('wizard.voorbeeld.exact.intro')}
+            source="exact"
           />
           <div className="mb-4 flex flex-wrap gap-2">
             <Button
@@ -582,6 +585,7 @@ export function ExactWizardFlow({
             step={step}
             title={t('wizard.exact.btw.title')}
             intro={t('wizard.exact.btw.intro')}
+            source="exact"
           />
           {vatMapping !== null ? (
             <ExactVatPreview summary={vatMapping} notImportedYet />
@@ -616,6 +620,7 @@ export function ExactWizardFlow({
             step={step}
             title={t('wizard.exact.later.title')}
             intro={t('wizard.exact.later.body')}
+            source="exact"
           />
           <WizardFooter
             showBack

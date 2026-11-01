@@ -5,7 +5,7 @@ import { mapExactVatCodes, recogniseExactVatCode } from '../../src/exact/vat-map
 const RULES = [
   {
     code: 'H21',
-    description: '21% btw',
+    description: 'BTW hoog 21%',
     rateBasisPoints: 2100,
     direction: 'output' as const,
     scope: 'domestic',
@@ -13,7 +13,7 @@ const RULES = [
   },
   {
     code: 'L9',
-    description: '9% btw',
+    description: 'BTW laag 9%',
     rateBasisPoints: 900,
     direction: 'output' as const,
     scope: 'domestic',
@@ -21,7 +21,7 @@ const RULES = [
   },
   {
     code: 'VH21',
-    description: '21% btw',
+    description: 'Voorbelasting hoog 21%',
     rateBasisPoints: 2100,
     direction: 'input' as const,
     scope: 'domestic',
@@ -29,7 +29,7 @@ const RULES = [
   },
   {
     code: 'VL9',
-    description: '9% btw',
+    description: 'Voorbelasting laag 9%',
     rateBasisPoints: 900,
     direction: 'input' as const,
     scope: 'domestic',
@@ -66,7 +66,39 @@ function vat(row: Record<string, unknown>) {
 }
 
 describe('recogniseExactVatCode (#100 Exact read-only)', () => {
-  it('matches when the Exact code string already exists in Klopt', () => {
+  it('recognises only when code, rate and side all agree', () => {
+    expect(
+      recogniseExactVatCode(
+        vat({
+          Code: 'H21',
+          Description: 'BTW hoog verkoop 21%',
+          Percentage: 0.21,
+          Type: 'E',
+          VATTransactionType: 'S',
+          IsBlocked: false,
+          Charged: false,
+        }),
+        RULES,
+      ),
+    ).toMatchObject({ rule: { code: 'H21' }, codeMatch: true })
+
+    expect(
+      recogniseExactVatCode(
+        vat({
+          Code: 'VH21',
+          Description: 'BTW hoog inkoop 21%',
+          Percentage: 0.21,
+          Type: 'E',
+          VATTransactionType: 'P',
+          IsBlocked: false,
+          Charged: false,
+        }),
+        RULES,
+      ),
+    ).toMatchObject({ rule: { code: 'VH21' }, codeMatch: true })
+  })
+
+  it('leaves H21 at 9% unrecognised — code match does not override rate (#161 QA/PM)', () => {
     const code = vat({
       Code: 'H21',
       Description: 'Iets anders',
@@ -76,12 +108,10 @@ describe('recogniseExactVatCode (#100 Exact read-only)', () => {
       IsBlocked: false,
       Charged: false,
     })
-    const hit = recogniseExactVatCode(code, RULES)
-    expect(hit?.rule.code).toBe('H21')
-    expect(hit?.codeMatch).toBe(true)
+    expect(recogniseExactVatCode(code, RULES)).toBeNull()
   })
 
-  it('recognises domestic sales and purchase rates by percentage and side', () => {
+  it('does not recognise by rate+side alone when the Exact code string differs', () => {
     expect(
       recogniseExactVatCode(
         vat({
@@ -94,41 +124,29 @@ describe('recogniseExactVatCode (#100 Exact read-only)', () => {
           Charged: false,
         }),
         RULES,
-      )?.rule.code,
-    ).toBe('H21')
-
-    expect(
-      recogniseExactVatCode(
-        vat({
-          Code: '4',
-          Description: 'BTW hoog inkoop 21%',
-          Percentage: 0.21,
-          Type: 'E',
-          VATTransactionType: 'P',
-          IsBlocked: false,
-          Charged: false,
-        }),
-        RULES,
-      )?.rule.code,
-    ).toBe('VH21')
-
-    expect(
-      recogniseExactVatCode(
-        vat({
-          Code: '2',
-          Description: 'BTW laag verkoop 9%',
-          Percentage: 0.09,
-          Type: 'E',
-          VATTransactionType: 'S',
-          IsBlocked: false,
-          Charged: false,
-        }),
-        RULES,
-      )?.rule.code,
-    ).toBe('L9')
+      ),
+    ).toBeNull()
   })
 
-  it('maps plain Geen BTW to VGEEN and refuses EU / reverse-charge names', () => {
+  it('leaves sales-side Geen BTW unrecognised — never purchase-only VGEEN (NL + EN)', () => {
+    for (const description of ['Geen BTW', 'No VAT', 'Zero rated'] as const) {
+      expect(
+        recogniseExactVatCode(
+          vat({
+            Code: '0',
+            Description: description,
+            Percentage: 0,
+            Type: 'N',
+            VATTransactionType: 'S',
+            IsBlocked: false,
+            Charged: false,
+          }),
+          RULES,
+        ),
+        description,
+      ).toBeNull()
+    }
+    // Exact "both" also never agrees with a single-direction Klopt row.
     expect(
       recogniseExactVatCode(
         vat({
@@ -141,34 +159,124 @@ describe('recogniseExactVatCode (#100 Exact read-only)', () => {
           Charged: false,
         }),
         RULES,
-      )?.rule.code,
-    ).toBe('VGEEN')
+      ),
+    ).toBeNull()
+  })
 
+  it('maps purchase-side VGEEN only when code+rate+side agree', () => {
     expect(
       recogniseExactVatCode(
         vat({
-          Code: '7',
-          Description: 'Verlegd inkoop EU',
+          Code: 'VGEEN',
+          Description: 'Inkoop zonder btw',
+          Percentage: 0,
+          Type: 'N',
+          VATTransactionType: 'P',
+          IsBlocked: false,
+          Charged: false,
+        }),
+        RULES,
+      ),
+    ).toMatchObject({ rule: { code: 'VGEEN' }, codeMatch: true })
+  })
+
+  it('leaves export descriptions unrecognised, never VGEEN (NL + EN)', () => {
+    for (const description of [
+      'Zero rated export',
+      'Geen btw - export buiten de EU',
+      'Verkoop 0% buiten EU',
+      'Uitvoer 0%',
+      'Export outside the EU',
+    ] as const) {
+      expect(
+        recogniseExactVatCode(
+          vat({
+            Code: 'VGEEN',
+            Description: description,
+            Percentage: 0,
+            Type: 'E',
+            VATTransactionType: 'S',
+            IsBlocked: false,
+            Charged: false,
+          }),
+          RULES,
+        ),
+        description,
+      ).toBeNull()
+    }
+  })
+
+  it('leaves EU and non-EU service purchases unrecognised, never VH21 (NL + EN)', () => {
+    for (const description of [
+      'Diensten buiten de EU',
+      'Inkoop diensten uit EU-landen',
+      'Verlegd inkoop EU',
+      'Services outside the EU',
+      'EU service purchases',
+    ] as const) {
+      expect(
+        recogniseExactVatCode(
+          vat({
+            Code: 'VH21',
+            Description: description,
+            Percentage: 0.21,
+            Type: 'E',
+            VATTransactionType: 'P',
+            IsBlocked: false,
+            Charged: false,
+          }),
+          RULES,
+        ),
+        description,
+      ).toBeNull()
+    }
+  })
+
+  it('leaves a missing side (Exact both) unrecognised even when code and rate match', () => {
+    expect(
+      recogniseExactVatCode(
+        vat({
+          Code: 'H21',
+          Description: 'BTW hoog',
+          Percentage: 0.21,
+          Type: 'E',
+          VATTransactionType: 'B',
+          IsBlocked: false,
+          Charged: false,
+        }),
+        RULES,
+      ),
+    ).toBeNull()
+  })
+
+  it('leaves a code/side mismatch unrecognised (sales code on purchase side)', () => {
+    expect(
+      recogniseExactVatCode(
+        vat({
+          Code: 'H21',
+          Description: 'BTW hoog inkoop',
+          Percentage: 0.21,
+          Type: 'E',
+          VATTransactionType: 'P',
+          IsBlocked: false,
+          Charged: false,
+        }),
+        RULES,
+      ),
+    ).toBeNull()
+  })
+
+  it('refuses Exact Charged / reverse-charge flag even when code+rate+side would match', () => {
+    expect(
+      recogniseExactVatCode(
+        vat({
+          Code: 'VH21',
+          Description: 'BTW hoog inkoop 21%',
           Percentage: 0.21,
           Type: 'E',
           VATTransactionType: 'P',
           IsBlocked: false,
           Charged: true,
-        }),
-        RULES,
-      ),
-    ).toBeNull()
-
-    expect(
-      recogniseExactVatCode(
-        vat({
-          Code: '12',
-          Description: 'Verkoop 0% buiten EU',
-          Percentage: 0,
-          Type: 'E',
-          VATTransactionType: 'S',
-          IsBlocked: false,
-          Charged: false,
         }),
         RULES,
       ),
@@ -181,7 +289,7 @@ describe('mapExactVatCodes (#100 Exact read-only)', () => {
     const summary = mapExactVatCodes({
       vatCodes: [
         vat({
-          Code: '1',
+          Code: 'H21',
           Description: 'BTW hoog verkoop 21%',
           Percentage: 0.21,
           Type: 'E',
@@ -211,7 +319,7 @@ describe('mapExactVatCodes (#100 Exact read-only)', () => {
       accounts: [
         { number: '4400', name: 'Inkoop EU', vatCode: '7' },
         { number: '4410', name: 'Vrachtkosten EU', vatCode: '7' },
-        { number: '8000', name: 'Omzet', vatCode: '1' },
+        { number: '8000', name: 'Omzet', vatCode: 'H21' },
       ],
       kloptRules: RULES,
       existingTaxCodes: RULES.map((rule) => rule.code),
@@ -220,9 +328,10 @@ describe('mapExactVatCodes (#100 Exact read-only)', () => {
     expect(summary.codeCount).toBe(2)
     expect(summary.recognised).toBe(1)
     expect(summary.rows[0]).toMatchObject({
-      exactCode: '1',
+      exactCode: 'H21',
       kloptCode: 'H21',
-      kloptLabel: '21% btw',
+      kloptLabel: 'BTW hoog 21%',
+      codeMatch: true,
       accountsLosingDefault: [],
     })
     expect(summary.rows[1]).toMatchObject({
@@ -232,13 +341,13 @@ describe('mapExactVatCodes (#100 Exact read-only)', () => {
     expect(summary.rows[1]?.accountsLosingDefault.map((a) => a.number)).toEqual(['4400', '4410'])
   })
 
-  it('does not list lose-default when the Exact code string already exists', () => {
+  it('lists lose-default when code string exists but rate disagrees', () => {
     const summary = mapExactVatCodes({
       vatCodes: [
         vat({
           Code: 'H21',
-          Description: 'BTW hoog',
-          Percentage: 0.21,
+          Description: 'BTW laag per ongeluk',
+          Percentage: 0.09,
           Type: 'E',
           VATTransactionType: 'S',
           IsBlocked: false,
@@ -249,7 +358,8 @@ describe('mapExactVatCodes (#100 Exact read-only)', () => {
       kloptRules: RULES,
       existingTaxCodes: ['H21'],
     })
-    expect(summary.rows[0]?.accountsLosingDefault).toEqual([])
-    expect(summary.rows[0]?.codeMatch).toBe(true)
+    expect(summary.rows[0]?.kloptCode).toBeNull()
+    expect(summary.rows[0]?.codeMatch).toBe(false)
+    expect(summary.rows[0]?.accountsLosingDefault.map((a) => a.number)).toEqual(['8000'])
   })
 })

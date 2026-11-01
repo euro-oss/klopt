@@ -116,7 +116,7 @@ export async function startExactStandIn(): Promise<ExactStandIn> {
             Type: 20,
             TypeDescription: 'Accounts receivable',
             IsBlocked: false,
-            VATCode: '1',
+            VATCode: 'H21',
           },
           {
             ID: guid(2),
@@ -127,7 +127,7 @@ export async function startExactStandIn(): Promise<ExactStandIn> {
             Type: 22,
             TypeDescription: 'Accounts payable',
             IsBlocked: false,
-            VATCode: '4',
+            VATCode: 'VH21',
           },
           {
             ID: guid(3),
@@ -138,7 +138,7 @@ export async function startExactStandIn(): Promise<ExactStandIn> {
             Type: 110,
             TypeDescription: 'Revenue',
             IsBlocked: false,
-            VATCode: '1',
+            VATCode: 'H21',
           },
           {
             ID: guid(4),
@@ -171,7 +171,7 @@ export async function startExactStandIn(): Promise<ExactStandIn> {
             Type: 110,
             TypeDescription: 'Revenue',
             IsBlocked: false,
-            VATCode: '12',
+            VATCode: 'EXP',
           },
         ]),
       )
@@ -183,7 +183,7 @@ export async function startExactStandIn(): Promise<ExactStandIn> {
         200,
         collection([
           {
-            Code: '1',
+            Code: 'H21',
             Description: 'BTW hoog verkoop 21%',
             Percentage: 0.21,
             Type: 'E',
@@ -192,7 +192,7 @@ export async function startExactStandIn(): Promise<ExactStandIn> {
             Charged: false,
           },
           {
-            Code: '2',
+            Code: 'L9',
             Description: 'BTW laag verkoop 9%',
             Percentage: 0.09,
             Type: 'E',
@@ -201,7 +201,7 @@ export async function startExactStandIn(): Promise<ExactStandIn> {
             Charged: false,
           },
           {
-            Code: '4',
+            Code: 'VH21',
             Description: 'BTW hoog inkoop 21%',
             Percentage: 0.21,
             Type: 'E',
@@ -210,7 +210,7 @@ export async function startExactStandIn(): Promise<ExactStandIn> {
             Charged: false,
           },
           {
-            Code: '5',
+            Code: 'VL9',
             Description: 'BTW laag inkoop 9%',
             Percentage: 0.09,
             Type: 'E',
@@ -218,12 +218,13 @@ export async function startExactStandIn(): Promise<ExactStandIn> {
             IsBlocked: false,
             Charged: false,
           },
+          // Sales-side Geen BTW — must stay unrecognised (never purchase VGEEN).
           {
             Code: '0',
             Description: 'Geen BTW',
             Percentage: 0,
             Type: 'N',
-            VATTransactionType: 'B',
+            VATTransactionType: 'S',
             IsBlocked: false,
             Charged: false,
           },
@@ -237,8 +238,8 @@ export async function startExactStandIn(): Promise<ExactStandIn> {
             Charged: true,
           },
           {
-            Code: '12',
-            Description: 'Verkoop 0% buiten EU',
+            Code: 'EXP',
+            Description: 'Geen btw - export buiten de EU',
             Percentage: 0,
             Type: 'E',
             VATTransactionType: 'S',
