@@ -105,7 +105,7 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   await page.getByLabel('Naam', { exact: true }).fill('Wachtende Klant N.V.')
   await page.getByLabel('E-mail').fill('inkoop@wachtendeklant.nl')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Wachtende Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Wachtende Klant N\.V\./ })).toBeVisible()
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
@@ -126,7 +126,7 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   await page.getByLabel('Postcode').fill('3011 AD')
   await page.getByLabel('Plaats').fill('Rotterdam')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Trage Betaler B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Trage Betaler B\.V\./ })).toBeVisible()
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()

@@ -18,6 +18,19 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign Phase 6: Contacts (#130)
+
+Contacts matches the `Contacts` board from the v2 export at `fa4093b`
+(`design/redesign-2026-10/screens/Contacts.dc.html`). Desktop light is the
+designed state: list + contact card, All / Customers / Suppliers segments
+(`1`–`3`), `/` filter, `j`/`k` and Space/X select, `E` edit, create form from
+Nieuwe relatie (`N C` still navigates here). Card shows volume, documents,
+still open, invoice rows (issued / overdue pills only — no Paid claim),
+payment terms, add-details for e-invoicing, and privacy erase behind
+`retention:manage`. Dark and phone use existing tokens/patterns until Batch 2
+and Batch 3 boards (#140). Copy stays short and plain (NL+EN); no live-
+connection claims. Screenshots under `docs/pr-screenshots/<PR>/`.
+
 ### Fixed
 
 - Debtor-ageing report and overdue counts no longer count invoices that are due
