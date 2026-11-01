@@ -395,6 +395,7 @@ test('an agent drafts an invoice and cannot issue it', async ({ page }) => {
   expect(await issued.text()).toContain('ledger:post')
 
   // A human finds it waiting on the screen the answer named, still a draft.
+  // Invoices still use LedgerTable cells; Contacts list rows are buttons.
   await page.goto('/invoices')
-  await expect(page.getByRole('button', { name: /Agent Klant BV/ })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Agent Klant BV' })).toBeVisible()
 })
