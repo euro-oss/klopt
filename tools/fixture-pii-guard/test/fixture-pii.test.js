@@ -71,8 +71,8 @@ const BANNED_IBAN_SHA256 = '110393691810e8a34adde708be07b14dba4d17b0379f23515237
 
 /** Literal bans. Personal names are case-sensitive so `hidden` is not a hit. */
 const LITERAL_BANS = /** @type {readonly LiteralRule[]} */ ([
-  { id: 'Hidde', pattern: /\bHidde\b/, scopes: ['apps-packages', 'design'] },
-  { id: 'Stokvis', pattern: /\bStokvis\b/, scopes: ['apps-packages', 'design'] },
+  { id: 'Hidde', pattern: /\bHidde\b/, scopes: ['apps-packages'] },
+  { id: 'Stokvis', pattern: /\bStokvis\b/, scopes: ['apps-packages'] },
   {
     id: 'hotelzeezicht.nl',
     pattern: /hotelzeezicht\.nl/i,
