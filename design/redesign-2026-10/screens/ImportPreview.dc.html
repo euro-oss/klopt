@@ -104,7 +104,7 @@ class Component extends DCLogic {
   renderVals() {
     const n = (x) => x.toLocaleString('nl-NL');
     const types = [['Sales invoices', 238, 24], ['Purchase invoices', 171, 9], ['Receipts', 131, 0], ['Bank mutations', 273, 5], ['Journal entries', 25, 0]]
-      .map(([name, found, have]) => ({ name, found: n(found), have: have ? n(have) : '–', over: n(found - have) }));
+      .map(([name, found, have]) => ({ name, found: n(found), have: n(have), over: n(found - have) }));
     const skipped = [
       { what: 'Everything from 2023', why: 'You left 2023 unchecked. It stays in Moneybird.', n: n(296), fix: 'Change the years', href: 'ImportYears.dc.html' },
       { what: 'Draft invoices', why: 'Drafts are not transferred. Finish or copy them in Moneybird before you stop using it.', n: n(7), fix: '', href: '' },
