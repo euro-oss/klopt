@@ -296,6 +296,131 @@
    "h": 844,
    "title": "Phone · match"
   },
+  "BankAccountsDark.dc.html": {
+   "x": 0,
+   "y": 13180,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · bank accounts and statements (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "CostsDark.dc.html": {
+   "x": 1520,
+   "y": 13180,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · costs (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "BillNewDark.dc.html": {
+   "x": 3040,
+   "y": 13180,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · enter a bill (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PaymentBatchDark.dc.html": {
+   "x": 4560,
+   "y": 13180,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · payment batch (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneMatchDark.dc.html": {
+   "x": 0,
+   "y": 14440,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · match (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneBankAccounts.dc.html": {
+   "x": 470,
+   "y": 14440,
+   "w": 390,
+   "h": 1342,
+   "title": "Phone · bank accounts (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneBankAccountsDark.dc.html": {
+   "x": 940,
+   "y": 14440,
+   "w": 390,
+   "h": 1342,
+   "title": "Phone dark · bank accounts (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneCosts.dc.html": {
+   "x": 1410,
+   "y": 14440,
+   "w": 390,
+   "h": 1642,
+   "title": "Phone · costs (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneCostsDark.dc.html": {
+   "x": 1880,
+   "y": 14440,
+   "w": 390,
+   "h": 1642,
+   "title": "Phone dark · costs (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneBillNew.dc.html": {
+   "x": 2350,
+   "y": 14440,
+   "w": 390,
+   "h": 1860,
+   "title": "Phone · enter a bill (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneBillNewDark.dc.html": {
+   "x": 2820,
+   "y": 14440,
+   "w": 390,
+   "h": 1860,
+   "title": "Phone dark · enter a bill (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhonePaymentBatch.dc.html": {
+   "x": 3290,
+   "y": 14440,
+   "w": 390,
+   "h": 1411,
+   "title": "Phone · payment batch (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhonePaymentBatchDark.dc.html": {
+   "x": 3760,
+   "y": 14440,
+   "w": 390,
+   "h": 1411,
+   "title": "Phone dark · payment batch (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
   "HomeDark.dc.html": {
    "x": 1960,
    "y": 11540,
@@ -357,6 +482,19 @@
   "PhoneSales.dc.html",
   "PhoneInvoice.dc.html",
   "PhoneMatch.dc.html",
+  "BankAccountsDark.dc.html",
+  "CostsDark.dc.html",
+  "BillNewDark.dc.html",
+  "PaymentBatchDark.dc.html",
+  "PhoneMatchDark.dc.html",
+  "PhoneBankAccounts.dc.html",
+  "PhoneBankAccountsDark.dc.html",
+  "PhoneCosts.dc.html",
+  "PhoneCostsDark.dc.html",
+  "PhoneBillNew.dc.html",
+  "PhoneBillNewDark.dc.html",
+  "PhonePaymentBatch.dc.html",
+  "PhonePaymentBatchDark.dc.html",
   "HomeDark.dc.html",
   "InvoicesDark.dc.html",
   "MatchDark.dc.html"
@@ -424,6 +562,13 @@
    "text": "Phone (390) and dark mode",
    "kind": "title1",
    "maxW": 6440
+  },
+  "t10": {
+   "x": 0,
+   "y": 12880,
+   "text": "Bank and costs, dark and phone (derived)",
+   "kind": "title1",
+   "maxW": 6000
   }
  },
  "designSystems": [
