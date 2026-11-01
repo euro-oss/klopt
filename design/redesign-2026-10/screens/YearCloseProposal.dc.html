@@ -17,6 +17,9 @@
   A11y deviations (new boards only): --line-control #86857e (3.2:1 or more on every light surface),
   option and checkbox borders on --line-control, underlined ink text links, 44px targets under 600px,
   self-hosted fonts from ../design-system/fonts/.
+  Batch 2: `theme` dark uses --line-control #71717a (dark chart-2); `layout` phone is the 390 layout
+  with the bottom tab bar and a sticky close button. Disabled primary buttons sit on neutral-bg in
+  ink-muted instead of fading, so their text stays at 4.5:1.
 -->
 <x-dc>
 <helmet>
@@ -25,7 +28,19 @@
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}a:hover{color:var(--ink)}
 .k-root[data-theme="light"]{--line-control:#86857e}
+.k-root[data-theme="dark"]{--line-control:#71717a}
 .k-option{border-color:var(--line-control)}
+.k-btn--primary:disabled{opacity:1;background:var(--neutral-bg);border-color:var(--line-control);color:var(--ink-muted)}
+.k-btn--primary:disabled .k-kbd--on-primary{opacity:1;background:transparent;border-color:var(--line-control)}
+.ph{overflow:clip}
+.ph-head{display:flex;flex-direction:column;gap:4px}
+.ph-step{font-size:13px;color:var(--ink-2)}
+.ph-h1{margin:0;font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.01em}
+.dock{position:sticky;bottom:0;z-index:2}
+.dock-bar{display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--line)}
+.dock-bar .k-btn{height:48px;justify-content:center;font-size:15px;width:100%}
+.nw{white-space:nowrap}
+.pl{display:grid;grid-template-columns:minmax(0,1fr) 82px 82px;gap:8px;padding:10px 16px;border-top:1px solid var(--line-soft);align-items:center;font-size:13px}
 .lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}
 .per{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:4px}
 .per li>*{display:block;height:28px;border-radius:var(--radius-xs);font:500 11px/28px var(--font-mono);text-align:center;white-space:nowrap}
@@ -46,6 +61,7 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
 @media (max-width:600px){.k-btn,.k-input,.k-subnav-item,.ack,.lnk{min-height:44px}.lnk{display:inline-flex;align-items:center}.per{grid-template-columns:repeat(var(--cols-phone),minmax(0,1fr))}.per li>*{height:44px;line-height:44px}}
 </style>
 </helmet>
+<sc-if value="{{desk}}" hint-placeholder-val="{{true}}">
 <div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1100px;">
   <dc-import name="Sidebar" active="settings" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
 
@@ -141,8 +157,103 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
     </div>
   </main>
 </div>
+</sc-if>
+
+<sc-if value="{{phone}}" hint-placeholder-val="{{false}}">
+<div class="k-root k-phone ph" data-theme="{{theme}}">
+  <div class="k-phone-top">
+    <a href="SettingsBooks.dc.html" class="k-btn k-btn--ghost" style="height: 44px; padding: 0 8px;">‹ Book years</a>
+    <span style="flex: 1;"></span>
+    <span class="{{pill}}">{{pillText}}</span>
+  </div>
+  <div class="k-phone-body">
+    <div class="ph-head">
+      <span class="ph-step">Settings · Books</span>
+      <h1 class="ph-h1">Close book year 2025</h1>
+      <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Klopt sets the profit and loss to zero on <span class="nw">31-12-2025</span>, moves the result to equity and opens 2026.</p>
+    </div>
+
+    <section class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;" aria-labelledby="vp-p">
+      <h2 id="vp-p" class="k-card-title" style="font-size: 15px;">VAT periods in 2025</h2>
+      <ul class="per" aria-label="{{perLabel}}" style="--cols: {{cols}}; --cols-phone: {{colsPhone}};">
+        <sc-for list="{{periods}}" as="p" hint-placeholder-count="4"><li><sc-if value="{{p.open}}" hint-placeholder-val="{{false}}"><a href="{{p.href}}" class="late" aria-label="{{p.label}}">{{p.n}}</a></sc-if><sc-if value="{{p.shut}}" hint-placeholder-val="{{true}}"><span class="shut" aria-label="{{p.label}}">{{p.n}}</span></sc-if></li></sc-for>
+      </ul>
+      <span class="k-muted" style="font-size: 13px; line-height: 1.5;">{{perNotePhone}}</span>
+    </section>
+
+    <sc-if value="{{blocked}}" hint-placeholder-val="{{false}}">
+      <div class="k-callout k-callout--danger" role="alert" style="padding: 16px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--danger); flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
+        <div class="k-callout-body">
+          <span class="k-callout-title" style="color: var(--danger);">Book year 2025 can't close yet</span>
+          <span class="k-callout-text">2 things below block it. Nothing has been booked.</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <section class="k-card k-card--flush" aria-labelledby="before-p">
+      <div class="k-card-head" style="padding: 14px 16px;"><h2 id="before-p" class="k-card-title">Before you close</h2><span class="k-muted nw" style="font-size: 13px;">{{checksMeta}}</span></div>
+      <sc-for list="{{checks}}" as="c" hint-placeholder-count="3">
+        <div class="chk-row" style="padding: 14px 16px;">
+          <span class="{{c.ico}}" aria-hidden="true">{{c.mark}}</span>
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="{{c.titleStyle}}">{{c.titlePhone}}</span><span class="k-muted" style="font-size: 13px; line-height: 1.5;">{{c.metaPhone}}</span><sc-if value="{{c.href}}" hint-placeholder-val="{{false}}"><a href="{{c.href}}" class="lnk" style="font-size: 14px; align-self: flex-start;">{{c.fix}}</a></sc-if></span>
+        </div>
+      </sc-for>
+    </section>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="k-stat" style="padding: 14px 16px;"><span class="k-stat-label">Profit for 2025</span><span class="k-stat-value nw">€ 14.162,11</span><span class="k-stat-meta">Revenue <span class="k-num nw">€ 23.164,83</span> minus costs <span class="k-num nw">€ 9.002,72</span></span></div>
+      <div class="k-stat" style="padding: 14px 16px;"><span class="k-stat-label">Moves to equity</span><span class="k-stat-value nw">€ 14.162,11</span><span class="k-stat-meta">Into Overige reserves <span class="k-code">0600</span></span></div>
+      <div class="k-stat" style="padding: 14px 16px;"><span class="k-stat-label">2026 opens with</span><span class="k-stat-value nw">€ 69.085,93</span><span class="k-stat-meta">7 balance-sheet accounts</span></div>
+    </div>
+
+    <div class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+      <div class="k-field"><label class="k-label" for="ra-p">Result account</label><select id="ra-p" class="k-input" disabled="{{blocked}}" style="height: 44px;"><option>0600 · Overige reserves</option><option>0700 · Onverdeelde winst</option></select><span class="k-help">An equity account; anything else is refused.</span></div>
+      <div class="k-field"><label class="k-label" for="jr-p">Journal</label><select id="jr-p" class="k-input" disabled="{{blocked}}" style="height: 44px;"><option>MEM · Memorial</option></select><span class="k-help">Both entries go here, as entry 217 and 218.</span></div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px;"><h2 class="k-card-title">What closing 2025 books</h2><span class="k-muted" style="font-size: 13px;">{{entriesMetaPhone}}</span></div>
+    <sc-for list="{{entries}}" as="e" hint-placeholder-count="2">
+      <section class="k-card k-card--flush" aria-label="{{e.title}}">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 14px 16px 6px;">
+          <span class="k-muted k-num nw" style="font-size: 13px;">Entry {{e.n}}</span>
+          <span class="k-pill k-pill--draft">Not booked</span>
+          <span style="flex: 1;"></span>
+          <span class="k-muted k-num nw" style="font-size: 13px;">{{e.date}}</span>
+        </div>
+        <div style="padding: 0 16px 12px; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600;">{{e.title}}</span><span class="k-muted" style="font-size: 13px; line-height: 1.5;">{{e.whyPhone}}</span></div>
+        <div class="pl lhead" style="font-size: 12px;"><span>Account</span><span style="text-align: right;">Debit</span><span style="text-align: right;">Credit</span></div>
+        <sc-for list="{{e.lines}}" as="l" hint-placeholder-count="8">
+          <div class="pl k-num"><span style="display: flex; gap: 6px; align-items: baseline; min-width: 0;"><span class="k-code">{{l.no}}</span><span style="min-width: 0; line-height: 18px;">{{l.name}}</span></span><span class="nw" style="text-align: right;">{{l.d}}</span><span class="nw" style="text-align: right;">{{l.c}}</span></div>
+        </sc-for>
+        <div class="pl k-num" style="font-weight: 600; background: var(--surface-hover);"><span>Balances</span><span class="nw" style="text-align: right;">{{e.total}}</span><span class="nw" style="text-align: right;">{{e.total}}</span></div>
+      </section>
+    </sc-for>
+
+    <div class="k-card" style="padding: 16px;">
+      <button type="button" class="ack" role="checkbox" aria-checked="{{ackOn}}" disabled="{{blocked}}" onClick="{{toggleAck}}" style="width: 100%; align-items: center;">
+        <span class="{{boxCls}}" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span>Posts two real entries; no undo button here.</span>
+      </button>
+    </div>
+  </div>
+  <div class="dock">
+    <div class="dock-bar">
+      <span style="font-size: 13px; {{footStylePhone}}">{{footerPhone}}</span>
+      <button type="button" class="k-btn k-btn--primary" disabled="{{cantClose}}">Close book year 2025</button>
+    </div>
+    <nav class="k-tabbar" aria-label="Main">
+      <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+      <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+      <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+      <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+      <a class="k-tabbar-item is-active" href="#" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+    </nav>
+  </div>
+</div>
+</sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"variant":{"editor":"enum","options":["ready","blocked"],"default":"ready"},"vat":{"editor":"enum","options":["quarterly","monthly","annual"],"default":"quarterly"},"$preview":{"width":1440,"height":1960}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"layout":{"editor":"enum","options":["desktop","phone"],"default":"desktop"},"variant":{"editor":"enum","options":["ready","blocked"],"default":"ready"},"vat":{"editor":"enum","options":["quarterly","monthly","annual"],"default":"quarterly"},"$preview":{"width":1440,"height":1960}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -150,6 +261,7 @@ class Component extends DCLogic {
   }
   renderVals() {
     const blocked = (this.props.variant ?? 'ready') === 'blocked';
+    const nb = (t) => t.replace(/(\d)-(?=[\dQ])/g, '$1-\u2060');
     const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const vat = this.props.vat ?? 'quarterly';
     const filed = { quarterly: 'quarterly', monthly: 'monthly', annual: 'annually' }[vat];
@@ -167,16 +279,16 @@ class Component extends DCLogic {
     const openTitle = openCodes.length === 1
       ? 'VAT period ' + openCodes[0] + ' is still open'
       : 'VAT periods ' + openCodes.slice(0, -1).join(', ') + ' and ' + openCodes[openCodes.length - 1] + ' are still open';
-    const ok = (title, meta) => ({ ico: 'chk-ico ok', mark: '✓', title, meta, titleStyle: 'font-weight: 600;', href: '', fix: '' });
-    const no = (title, meta, fix, href) => ({ ico: 'chk-ico no', mark: '!', title, meta, titleStyle: 'font-weight: 600; color: var(--danger);', href, fix });
+    const ok = (title, meta, metaPhone) => ({ ico: 'chk-ico ok', mark: '✓', title, titlePhone: nb(title), meta, metaPhone: nb(metaPhone), titleStyle: 'font-weight: 600;', href: '', fix: '' });
+    const no = (title, meta, metaPhone, fix, href) => ({ ico: 'chk-ico no', mark: '!', title, titlePhone: nb(title), meta, metaPhone: nb(metaPhone), titleStyle: 'font-weight: 600; color: var(--danger);', href, fix });
     const checks = [
-      ok('Book year 2026 is open', '1 January to 31 December 2026. 2025 carries its balances into it.'),
+      ok('Book year 2026 is open', '1 January to 31 December 2026. 2025 carries its balances into it.', '2025 carries its balances into it.'),
       blocked
-        ? no(openTitle, 'Every VAT period that overlaps book year 2025 has to be closed first, or VAT could still land in 2025 after it closes.', 'Open VAT period ' + openCodes[0], 'Vat.dc.html?period=' + openCodes[0])
-        : ok(freq.all, (freq.codes.length === 1 ? span + ' is' : span + ' are') + ' closed, so no VAT can land in 2025 any more and the figures below stay put.'),
+        ? no(openTitle, 'Every VAT period that overlaps book year 2025 has to be closed first, or VAT could still land in 2025 after it closes.', (openCodes.length === 1 ? 'Close it first' : 'Close them first') + ', or VAT could still land in 2025.', 'Open VAT period ' + openCodes[0], 'Vat.dc.html?period=' + openCodes[0])
+        : ok(freq.all, (freq.codes.length === 1 ? span + ' is' : span + ' are') + ' closed, so no VAT can land in 2025 any more and the figures below stay put.', 'No VAT can land in 2025 any more.'),
       blocked
-        ? no('4 bank lines from 2025 are not matched', 'Together € 1.271,00 that isn\'t in the books yet, so the result would be wrong. 4 of the 15 lines waiting in Bank are from December 2025.', 'Match 4 lines', 'Match.dc.html?year=2025')
-        : ok('Every 2025 bank line is matched', 'The 15 lines waiting in Bank are from 2026; they don\'t block 2025.')
+        ? no('4 bank lines from 2025 are not matched', 'Together € 1.271,00 that isn\'t in the books yet, so the result would be wrong. 4 of the 15 lines waiting in Bank are from December 2025.', 'Together €\u00a01.271,00 from December 2025, not in the books yet.', 'Match 4 lines', 'Match.dc.html?year=2025')
+        : ok('Every 2025 bank line is matched', 'The 15 lines waiting in Bank are from 2026; they don\'t block 2025.', 'The 15 lines waiting in Bank are from 2026.')
     ];
     const pl = [['4200','Huur bedrijfsruimte',1551.16],['4300','Brandstofkosten',971.21],['4400','Kantoorkosten',846.15],['4410','Telefoon- en internetkosten',1527.19],['4420','Boekhouding en administratie',1244.89],['4500','Reclame- en advertentiekosten',1013.96],['4900','Algemene kosten',1848.16]];
     const appropriation = [
@@ -194,17 +306,23 @@ class Component extends DCLogic {
       { no: '1600', name: 'Crediteuren', d: '', c: f(1191.78) }
     ];
     const entries = [
-      { n: 217, date: '31-12-2025', title: 'Appropriation 2025', why: 'Sets the 8 profit and loss accounts to zero. The difference, the profit, goes to the result account.', lines: appropriation, total: f(23164.83) },
-      { n: 218, date: '01-01-2026', title: 'Opening balance 2026', why: 'Carries the 7 balance-sheet accounts into 2026 as at 01-01-2026, including the profit now in equity.', lines: opening, total: f(69085.93) }
+      { n: 217, date: '31-12-2025', title: 'Appropriation 2025', why: 'Sets the 8 profit and loss accounts to zero. The difference, the profit, goes to the result account.', whyPhone: 'Sets the 8 profit and loss accounts to zero; the profit goes to the result account.', lines: appropriation, total: f(23164.83) },
+      { n: 218, date: '01-01-2026', title: 'Opening balance 2026', why: 'Carries the 7 balance-sheet accounts into 2026 as at 01-01-2026, including the profit now in equity.', whyPhone: 'Carries the 7 balance-sheet accounts into 2026, including the profit now in equity.', lines: opening, total: f(69085.93) }
     ];
     const ack = this.state.ack && !blocked;
     return {
-      theme: this.props.theme ?? 'light', blocked, periods, checks, entries,
+      theme: this.props.theme ?? 'light', phone: this.props.layout === 'phone', desk: this.props.layout !== 'phone', blocked, periods, checks, entries,
       cols: freq.cols, colsPhone: freq.colsPhone, perLabel: 'VAT periods overlapping book year 2025, filed ' + filed,
       pill: blocked ? 'k-pill k-pill--late' : 'k-pill k-pill--draft', pillText: blocked ? 'Blocked' : 'Proposal',
       perNote: 'VAT periods overlapping 2025, filed ' + filed + ' (set per administration). Grey: closed. ' + (blocked
         ? 'Red and underlined: still open, so 2025 can\'t close. Select one to open it.'
         : (freq.codes.length === 1 ? 'It is closed' : 'All are closed') + ', so nothing changes under the proposal.'),
+      perNotePhone: nb('Filed ' + filed + '. Grey: closed. ' + (blocked
+        ? 'Red: still open, so 2025 can\'t close. Tap one to open it.'
+        : (freq.codes.length === 1 ? 'It is closed.' : 'All are closed.'))),
+      entriesMetaPhone: blocked ? 'As it stands now; changes once the 4 lines are matched' : '2 entries, both balance',
+      footerPhone: blocked ? 'Fix the 2 things above first.' : (ack ? 'Books entry 217 and 218 and locks 2025.' : 'Tick the box to close.'),
+      footStylePhone: blocked ? 'color: var(--danger); font-weight: 500;' : 'color: var(--ink-2);',
       checksMeta: blocked ? '1 of 3 done' : '3 of 3 done',
       entriesMeta: blocked ? 'As it stands now; changes once the 4 lines are matched' : '2 entries, both balance',
       ackOn: ack ? 'true' : 'false', boxCls: ack ? 'box on' : 'box',

@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="ds/klopt/components/bundle.css">
 </head>
 <body>
-<!-- Derived board (batch 1): YearCloseProposal with variant="blocked" vat="annual". -->
+<!-- Derived board (batch 1, `theme` and `layout` props batch 2): YearCloseProposal with variant="blocked" vat="annual". -->
 <x-dc>
 <helmet>
 <link rel="stylesheet" href="../design-system/fonts/fonts.css">
@@ -16,13 +16,21 @@
 body{margin:0;background:var(--ground)}
 </style>
 </helmet>
-<div style="min-height: 1960px; background: var(--ground);">
-  <dc-import name="YearCloseProposal" variant="blocked" vat="annual" theme="light" hint-size="100%,1960px"></dc-import>
+<sc-if value="{{desk}}" hint-placeholder-val="{{true}}">
+<div data-theme="{{theme}}" style="min-height: 1960px; background: var(--ground);">
+  <dc-import name="YearCloseProposal" variant="blocked" vat="annual" theme="{{theme}}" layout="desktop" hint-size="100%,1960px"></dc-import>
 </div>
+</sc-if>
+<sc-if value="{{phone}}" hint-placeholder-val="{{false}}">
+  <dc-import name="YearCloseProposal" variant="blocked" vat="annual" theme="{{theme}}" layout="phone" hint-size="390px,844px"></dc-import>
+</sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1960}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"layout":{"editor":"enum","options":["desktop","phone"],"default":"desktop"},"$preview":{"width":1440,"height":1960}}'>
 class Component extends DCLogic {
-  renderVals() { return {}; }
+  renderVals() {
+    const phone = this.props.layout === 'phone';
+    return { theme: this.props.theme ?? 'light', phone, desk: !phone };
+  }
 }
 </script>
 </body>
