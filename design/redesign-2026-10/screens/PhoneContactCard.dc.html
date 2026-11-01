@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Contact card</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!-- Derived board: phone layout of the Contacts card, Zandbank Advies (the Contacts board's default selection). -->
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}
+.k-root.k-phone{--line-control:var(--ink-muted)}
+.k-btn:disabled{opacity:1;color:var(--ink-muted);background:var(--surface-sunken)}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:600}
+.kv{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-top:1px solid var(--line-soft);min-height:48px;box-sizing:border-box;font-size:14px}
+.kv:first-child{border-top:0}
+.kv dt,.kv .k{color:var(--ink-muted)}
+.kv dd,.kv .v{margin:0;white-space:nowrap;text-align:right}
+.doc{display:flex;flex-direction:column;gap:6px;padding:12px 16px;border-top:1px solid var(--line-soft);text-decoration:none;color:var(--ink);min-height:64px;box-sizing:border-box}
+.doc .l1{display:flex;justify-content:space-between;gap:12px;font-size:15px;font-weight:600;white-space:nowrap}
+.cap{margin:0;padding:14px 16px 10px;font:600 12px/16px var(--font-sans);letter-spacing:.04em;text-transform:uppercase;color:var(--ink-muted)}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top">
+    <a href="PhoneContacts.dc.html" class="k-btn k-btn--ghost" style="height: 44px; padding: 0 8px;">‹ Contacts</a>
+    <span style="flex: 1;"></span>
+    <button type="button" class="k-btn" style="height: 44px;">Edit</button>
+  </div>
+  <div class="k-phone-body">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <span aria-hidden="true" style="width: 56px; height: 56px; border-radius: 28px; flex: none; background: var(--primary); color: var(--on-primary); font: 600 18px var(--font-sans); display: flex; align-items: center; justify-content: center;">ZA</span>
+      <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+        <span style="font-size: 20px; line-height: 26px; font-weight: 600;">Zandbank Advies</span>
+        <span class="k-muted">Customer · Amsterdam</span>
+      </span>
+    </div>
+    <a href="Editor.dc.html" class="k-btn k-btn--primary" style="height: 48px; justify-content: center; font-size: 15px;">New invoice</a>
+
+    <section class="k-card k-card--flush" aria-label="Figures">
+      <div class="kv"><span class="k">Invoiced in 2025</span><span class="v k-num" style="font-size: 17px; font-weight: 600;">€ 3.386,82</span></div>
+      <div class="kv"><span class="k">Documents</span><span class="v k-num" style="font-size: 17px; font-weight: 600;">4 invoices</span></div>
+      <div class="kv"><span class="k">Still open</span><span class="v k-num" style="font-size: 17px; font-weight: 600; color: var(--danger);">€ 958,34</span></div>
+    </section>
+
+    <section class="k-card k-card--flush" aria-labelledby="inv-h">
+      <h2 id="inv-h" class="cap">Invoices</h2>
+      <sc-for list="{{docs}}" as="d" hint-placeholder-count="4">
+        <a href="PhoneInvoice.dc.html" class="doc">
+          <span class="l1 k-num"><span>{{d.no}}</span><span>€ {{d.amt}}</span></span>
+          <span><span class="{{d.cls}}">{{d.pill}}</span></span>
+        </a>
+      </sc-for>
+    </section>
+
+    <section class="k-card k-card--flush" aria-label="Details">
+      <dl style="margin: 0;">
+        <div class="kv"><dt>Contact number</dt><dd class="k-num">C006</dd></div>
+        <div class="kv"><dt>VAT number</dt><dd class="k-num">NL000001005B99</dd></div>
+        <div class="kv"><dt>Payment terms</dt><dd>30 days</dd></div>
+      </dl>
+      <div style="padding: 12px 16px 14px; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 2px;">
+        <span class="k-muted" style="font-size: 14px;">Address, email, IBAN</span>
+        <a href="#" class="lnk" style="display: flex; align-items: center; min-height: 44px;">Add details</a>
+        <span class="k-muted" style="font-size: 13px;">Needed for e-invoicing.</span>
+      </div>
+    </section>
+
+    <section class="k-card" aria-labelledby="priv-h" style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+      <span style="display: flex; gap: 10px; align-items: center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <strong id="priv-h" style="font-size: 15px;">Privacy request</strong>
+      </span>
+      <span style="color: var(--ink-2); font-size: 14px; line-height: 1.5;">Not possible yet: one document is still open. Settle or write it off first, an erased contact cannot be chased.</span>
+      <button type="button" class="k-btn" disabled style="height: 44px; justify-content: center;">Erase personal data</button>
+    </section>
+  </div>
+  <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item is-active" href="#" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const docs = [['2025-0016','478,42'],['2025-0036','958,34',128],['2025-0026','967,00'],['2025-0006','983,06']]
+      .map(([no, amt, late]) => ({ no, amt, pill: late ? late + ' days late' : 'Paid', cls: late ? 'k-pill k-pill--late' : 'k-pill k-pill--paid' }));
+    return { theme: this.props.theme ?? 'light', docs };
+  }
+}
+</script>
+</body>
+</html>
