@@ -215,11 +215,7 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-LATE')
   await page.getByLabel('Naam', { exact: true }).fill('Trage Betaler B.V.')
   await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('99887766')
-<<<<<<< HEAD
-  await page.getByLabel('E-mail').fill('crediteuren@example.nl')
-=======
   await page.getByLabel('E-mail').fill('crediteuren@tragebetaler.example.nl')
->>>>>>> origin/main
   await page.getByLabel('Straat').fill('Coolsingel')
   await page.getByLabel('Huisnr.').fill('42')
   await page.getByLabel('Postcode').fill('3011 AD')
