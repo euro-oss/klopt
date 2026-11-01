@@ -149,12 +149,96 @@ App strings are quoted from `apps/web/src/i18n/{en,nl}.ts`. Strings marked _new_
 | Stopped here / Not booked                                                                                                                                                                       | Hier gestopt / Niet geboekt                                                                                                                                                                                        | new                                                                                   |
 | Try again / Transfer the rest                                                                                                                                                                   | Opnieuw proberen / De rest overzetten                                                                                                                                                                              | new                                                                                   |
 
+## Batch 2: dark and phone for the batch-1 boards
+
+Every batch-1 board now takes `theme` (`light`, `dark`) and `layout` (`desktop`, `phone`). The four main boards (`YearCloseProposal`, `ImportYears`, `ImportPreview`, `ImportRun`) draw the phone layout themselves; the variant wrappers forward both props. No new board files: in Claude Design, flip the props. Screenshots are in `derived-shots/batch-2/`, named `<Board>-<light|dark>-<1440|390>.png`, 40 in all. The light 1440 shots were all re-shot, because the fixture email shows in the Sidebar on every board.
+
+Phone follows the v2 phone rules: `.k-phone` at 390, Hidde's five-tab `.k-tabbar` with More active (import and year close live under More, Settings), one column, no keyboard hints or chips, no hover. A step with a primary action keeps it in a sticky bar above the tab bar. The phone shots are full page, so that bar and the tab bar end the image.
+
+| Rule                               | What batch 2 does                                                                                                                                        | Value                                                                     |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Control borders at least 3:1, dark | `--line-control` set locally on `.k-root[data-theme="dark"]` to the dark `chart-2` value (v2's `#4a4a51` is about 2:1)                                   | `#71717a`: 3.59:1 on `surface`, 3.90:1 on `ground`, 3.35:1 on `danger-bg` |
+| Disabled primary text 4.5:1        | Disabled primary buttons no longer fade to 45%; they use `neutral-bg`, `ink-muted` text and a `line-control` border, in both themes and at both widths   | light 5.2:1, dark 5.6:1                                                   |
+| No dash placeholders               | ImportPreview's per-type table shows `0` where it showed `–`                                                                                             | n/a                                                                       |
+| No mid-number breaks               | Amounts, dates and period codes are `nowrap` on phone; phone strings put a word joiner (U+2060) after the hyphen in dates and codes such as `30-10-2026` | n/a                                                                       |
+| Targets at least 44px              | Back links, buttons, selects, year rows, check rows and tab bar items are 44px or more                                                                   | 44px, the sticky action 48px                                              |
+
+`shoot.mjs` checks the last four on every shot and printed no warnings for the 40 shots. It also checks for `ink-faint` text and text under 4.5:1. Batch 2 uses no `ink-faint`, and status colours stay those of batch 1: green (`success`), the blocking red (`danger`) and the yellow warn callout.
+
+### Invented in batch 2, for Hidde to check
+
+- **Phone header.** A ghost back link top left (`‹ Connect`, `‹ Years`, `‹ Problems`, `‹ Home` while transferring, `‹ Book years`), the status pill top right, then a small "Import from Moneybird · step 3 of 6" line above the step title instead of the six-step stepper, which doesn't fit 390.
+- **No sticky bar while transferring.** ImportRun (running) has no action until it's done, so its phone layout ends with the tab bar only.
+- **Shorter phone copy.** Listed below; Legal's partly-booked body and the undo text stay verbatim.
+- **Phone tables.** Import per type shows "Comes over" on the right and "238 in Moneybird · 24 in Klopt" under the name. The year-close entries keep Account, Debit and Credit; account names wrap by word instead of being cut.
+- **Dark `--line-control` and the disabled-button style** in the table above.
+
+### Copy, phone only
+
+| English (board)                                                                                            | Nederlands                                                                                                                       | Source                                |
+| ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Import from Moneybird · step 3 of 6 (4, 6)                                                                 | Importeren uit Moneybird · stap 3 van 6 (4, 6)                                                                                   | new                                   |
+| Which years?                                                                                               | Welke jaren?                                                                                                                     | new                                   |
+| Year starts in January · 1.096 documents / Year starts in July                                             | Boekjaar begint in januari · 1.096 documenten / Boekjaar begint in juli                                                          | new                                   |
+| Years in Demo BV                                                                                           | Jaren in Demo BV                                                                                                                 | new                                   |
+| 412 documents                                                                                              | 412 documenten                                                                                                                   | new                                   |
+| You fix them under Problems, or uncheck 2024 to leave it in Moneybird.                                     | Je lost ze op bij Problemen, of vink 2024 uit om het in Moneybird te laten.                                                      | new                                   |
+| Unchecked, so 2023 stays in Moneybird.                                                                     | Uitgevinkt, dus 2023 blijft in Moneybird.                                                                                        | new                                   |
+| Read from Demo BV at 10:42                                                                                 | Gelezen uit Demo BV om 10:42                                                                                                     | new                                   |
+| Per type                                                                                                   | Per soort                                                                                                                        | new                                   |
+| 238 in Moneybird · 24 in Klopt                                                                             | 238 in Moneybird · 24 in Klopt                                                                                                   | new                                   |
+| Also: 75 contacts (12 already in Klopt) and 31 ledger accounts.                                            | Ook: 75 contacten (12 al in Klopt) en 31 grootboekrekeningen.                                                                    | new                                   |
+| Drafts are not transferred. Finish them in Moneybird first.                                                | Concepten komen niet mee. Rond ze eerst af in Moneybird.                                                                         | new                                   |
+| Klopt has no quotes yet.                                                                                   | Klopt heeft nog geen offertes.                                                                                                   | new                                   |
+| What you booked yourself in Klopt we do not recognise: check for duplicate bookings.                       | Wat je zelf in Klopt hebt geboekt, herkennen we niet: controleer op dubbele boekingen.                                           | new, from wizard.overzicht.dedupLegal |
+| Next: Problems. 2024 still blocks the import.                                                              | Volgende: Problemen. 2024 blokkeert de import nog.                                                                               | new                                   |
+| Starts as soon as you confirm.                                                                             | Begint zodra je bevestigt.                                                                                                       | new                                   |
+| You can close this screen; we continue.                                                                    | Je kunt dit scherm sluiten; we gaan door.                                                                                        | from wizard.importeren.intro          |
+| Moneybird didn't answer after 10:46 on 30-10-2026. Try again; if it fails again, check the problems first. | Moneybird reageerde na 10:46 op 30-10-2026 niet meer. Probeer het opnieuw; lukt het weer niet, kijk dan eerst naar de problemen. | new                                   |
+| Settings · Books                                                                                           | Instellingen · Boeken                                                                                                            | new                                   |
+| Klopt sets the profit and loss to zero on 31-12-2025, moves the result to equity and opens 2026.           | Klopt zet de winst-en-verliesrekening op 31-12-2025 op nul, boekt het resultaat naar het eigen vermogen en opent 2026.           | new                                   |
+| VAT periods in 2025                                                                                        | Btw-periodes in 2025                                                                                                             | new                                   |
+| Filed quarterly (monthly, annually). Grey: closed. All are closed. / It is closed.                         | Aangifte per kwartaal (per maand, per jaar). Grijs: afgesloten. Alle zijn afgesloten. / Hij is afgesloten.                       | new                                   |
+| Red: still open, so 2025 can't close. Tap one to open it.                                                  | Rood: staat nog open, dus 2025 kan niet worden afgesloten. Tik erop om hem te openen.                                            | new                                   |
+| 2 things below block it. Nothing has been booked.                                                          | 2 punten hieronder houden het tegen. Er is niets geboekt.                                                                        | new                                   |
+| 2025 carries its balances into it.                                                                         | 2025 neemt zijn saldi daarin mee.                                                                                                | new                                   |
+| No VAT can land in 2025 any more.                                                                          | Er kan geen btw meer in 2025 terechtkomen.                                                                                       | new                                   |
+| Close it first / Close them first, or VAT could still land in 2025.                                        | Sluit hem eerst af / Sluit ze eerst af, anders kan er nog btw in 2025 terechtkomen.                                              | new                                   |
+| Together € 1.271,00 from December 2025, not in the books yet.                                              | Samen € 1.271,00 uit december 2025, nog niet in de boeken.                                                                       | new                                   |
+| The 15 lines waiting in Bank are from 2026.                                                                | De 15 regels die in Bank wachten zijn uit 2026.                                                                                  | new                                   |
+| 7 balance-sheet accounts                                                                                   | 7 balansrekeningen                                                                                                               | new                                   |
+| Sets the 8 profit and loss accounts to zero; the profit goes to the result account.                        | Zet de 8 winst-en-verliesrekeningen op nul; de winst gaat naar de resultaatrekening.                                             | new                                   |
+| Carries the 7 balance-sheet accounts into 2026, including the profit now in equity.                        | Neemt de 7 balansrekeningen mee naar 2026, met de winst die nu in het eigen vermogen staat.                                      | new                                   |
+| Books entry 217 and 218 and locks 2025.                                                                    | Boekt post 217 en 218 en sluit 2025 af.                                                                                          | new                                   |
+
+### Dark and phone in Hidde's export
+
+An inventory only; nothing here was drawn. Every screen takes a `theme` prop, so dark "exists" as markup everywhere, but only these have their own dark or phone board:
+
+| Export screen | Dark board                         | Phone board                          |
+| ------------- | ---------------------------------- | ------------------------------------ |
+| Main (Home)   | `HomeDark`                         | `PhoneHome`                          |
+| Invoices      | `InvoicesDark`                     | `PhoneSales`, `PhoneInvoice`         |
+| Match         | `MatchDark`                        | `PhoneMatch`                         |
+| Editor        | none                               | none                                 |
+| Command       | none                               | none                                 |
+| Settings      | none                               | none                                 |
+| Inbox         | none                               | none                                 |
+| Costs         | none                               | none                                 |
+| Vat           | none                               | none                                 |
+| Reports       | none                               | none                                 |
+| Contacts      | none                               | none                                 |
+| Sidebar       | none (only inside the dark boards) | none; phone uses `.k-tabbar` instead |
+
+The 11 screens are the first two canvas rows ("Daily flows" and "Inbox, costs, VAT, reports, contacts"). The other 20 desktop screens (sign-in to settings) have no dark or phone board either.
+
 ## Rendering the screenshots
 
 Claude Design's `support.js` runtime isn't in this export, so `derived-shots/render/dc-shim.js` stands in for it. It covers only what the boards use (`{{}}`, `sc-for`, `sc-if`, `dc-import`, `DCLogic`), and Claude Design remains the reference. From `design/redesign-2026-10/`, with `playwright` installed:
 
 ```sh
 node derived-shots/render/shoot.mjs derived-shots/batch-1 YearCloseProposal.dc.html=YearCloseProposal ImportRun.dc.html?variant=stopped-partial=ImportStoppedPartial
+node derived-shots/render/shoot.mjs derived-shots/batch-2 'ImportRun.dc.html?theme=dark=ImportRun-dark-1440' --width=390 'ImportRun.dc.html?layout=phone&theme=dark=ImportRun-dark-390'
 ```
 
-The script serves the folder locally, blocks Google Fonts, waits for the fonts, turns off transitions and animations, parks the mouse off the sidebar, then takes a full-page shot at 1440 wide.
+The script serves the folder locally, blocks Google Fonts, waits for the fonts, turns off transitions and animations, parks the mouse off the sidebar, then takes a full-page shot at 1440 wide. Since batch 2 it also renders at 390 (`--width=390`, for the jobs after it), sets the board's theme on `<html>`, emulates `prefers-reduced-motion: reduce`, waits for animations to finish, grows phone viewports to the page height, and prints QA warnings.
