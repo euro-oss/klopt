@@ -1076,6 +1076,22 @@ export type SealSnapshotBody = z.infer<typeof sealSnapshotBody>
 export type VerifySnapshotQuery = z.infer<typeof verifySnapshotQuery>
 
 /**
+ * https, or http only when the hostname is loopback. Parsing the URL avoids
+ * accepting `http://localhost.evil.invalid/...` via a startsWith carve-out
+ * (#161 QA). Not exported — `schemas` is treated as a Zod catalogue elsewhere.
+ */
+function isHttpsOrLoopbackUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    if (url.protocol === 'https:') return true
+    if (url.protocol !== 'http:') return false
+    return url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+  } catch {
+    return false
+  }
+}
+
+/**
  * Connecting to Exact Online (spec 13).
  *
  * The OAuth app belongs to whoever runs this instance — spec 8's
@@ -1101,27 +1117,21 @@ export const connectExactBody = z.object({
     // secret over plain http is a credential on the wire — but refusing
     // loopback outright means the flow cannot be walked against a stand-in,
     // which is how the parts of it that only show up over real HTTP get found.
-    .refine(
-      (value) =>
-        value.startsWith('https://') ||
-        value.startsWith('http://localhost') ||
-        value.startsWith('http://127.0.0.1'),
-      'The Exact host must be https, or localhost for a stand-in.',
-    ),
+    .refine(isHttpsOrLoopbackUrl, 'The Exact host must be https, or localhost for a stand-in.'),
   clientId: z.string().trim().min(1).max(200),
   clientSecret: z.string().trim().min(1).max(400),
-  // https, with no loopback exception — unlike `baseUrl` above.
+  // https, with loopback carved out the same way as `baseUrl`.
   //
-  // Exact refuses to register a plain-http redirect URI, and the refusal
-  // happens in their App Center rather than here, where it is somebody else's
-  // error message. Refusing it at this end costs nothing and can name the fix.
+  // Exact refuses to register a plain-http redirect URI in App Center. Loopback
+  // is allowed so an HTTP stand-in can walk the OAuth round-trip in e2e — the
+  // same carve-out `baseUrl` already has.
   redirectUri: z
     .string()
     .trim()
     .url()
     .refine(
-      (value) => value.startsWith('https://'),
-      'Exact only accepts an https redirect. Serve the app over https — `pnpm dev:https` does it locally — and use that origin.',
+      isHttpsOrLoopbackUrl,
+      'Exact only accepts an https redirect (or localhost for a stand-in). Open Klopt over https.',
     ),
 })
 
@@ -1206,13 +1216,7 @@ export const connectMoneybirdBody = z.object({
     .string()
     .trim()
     .url()
-    .refine(
-      (value) =>
-        value.startsWith('https://') ||
-        value.startsWith('http://localhost') ||
-        value.startsWith('http://127.0.0.1'),
-      'The Moneybird host must be https, or localhost for a stand-in.',
-    )
+    .refine(isHttpsOrLoopbackUrl, 'The Moneybird host must be https, or localhost for a stand-in.')
     .default('https://moneybird.com/api/v2'),
 })
 

@@ -1,7 +1,8 @@
 /**
  * Import wizard — v2 reskin (#134) on the #105 ten-step machine.
  *
- * The stepper shows six steps (Source → Import). Exact stays a dead-end.
+ * Moneybird shows six steps (Source → Import). Exact Phase 2 (#161) walks
+ * bron → verbinden → administratie → voorbeeld → btw and stops there.
  * XAF records `source: xaf` and opens the existing audit-file dry run.
  */
 
@@ -21,6 +22,7 @@ import {
 import { Button } from '~/components/ui/button'
 import { AccountVatSheet } from '~/components/findings/account-vat-sheet'
 import { FindingCard } from '~/components/findings/finding-card'
+import { ExactWizardFlow } from '~/components/import-wizard/exact-flow'
 import {
   AttentionBlock,
   WizardFooter,
@@ -68,6 +70,7 @@ import {
   prevStep,
   railIndex,
   stepIndex,
+  wizardStepsForSource,
   type ImportWizardSource,
   type ImportWizardStep,
 } from '~/lib/import-wizard'
@@ -93,6 +96,7 @@ import {
   chooseMoneybirdAdministration,
   connectMoneybird,
   disconnectMoneybird,
+  getExactConnection,
   getMoneybirdConnection,
   listAccounts,
   listMoneybirdAdministrations,
@@ -101,15 +105,24 @@ import {
   runMoneybirdImport,
   saveMoneybirdMappings,
 } from '~/server/ledger'
+import { getReportYear } from '~/server/fiscal-year'
 import { listTaxCodes } from '~/server/sales'
 
 export const Route = createFileRoute('/_app/importeren')({
-  validateSearch: (search: Record<string, unknown>): { bron?: 'moneybird' | 'exact' | 'xaf' } => {
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { bron?: 'moneybird' | 'exact' | 'xaf'; van?: 'exact-oauth' } => {
     const bron = search['bron']
-    return bron === 'exact' || bron === 'moneybird' || bron === 'xaf' ? { bron } : {}
+    const van = search['van']
+    return {
+      ...(bron === 'exact' || bron === 'moneybird' || bron === 'xaf' ? { bron } : {}),
+      ...(van === 'exact-oauth' ? { van: 'exact-oauth' as const } : {}),
+    }
   },
   loader: async () => ({
     connection: await getMoneybirdConnection(),
+    exactConnection: await getExactConnection(),
+    reportYear: await getReportYear(),
     wizard: await getImportWizardState(),
     run: await moneybirdImportStatus(),
     accounts: await listAccounts(),
@@ -156,12 +169,14 @@ interface YearDoc {
 function ImportWizardPage() {
   const {
     connection,
+    exactConnection,
+    reportYear,
     wizard,
     run: runStatus,
     accounts: accountsResult,
     taxCodes: taxCodesResult,
   } = Route.useLoaderData()
-  const { bron: bronParam } = Route.useSearch()
+  const { bron: bronParam, van: vanParam } = Route.useSearch()
   const navigate = Route.useNavigate()
   const { t, plural, tag } = useT()
   const router = useRouter()
@@ -175,13 +190,17 @@ function ImportWizardPage() {
 
   // Resume card lives on the Bron step. Keep step at bron until Doorgaan /
   // Opnieuw beginnen — otherwise a mid-flow remount jumps straight to btw and
-  // skips Welkom terug (#105 Designer).
+  // skips Welkom terug (#105 Designer). Exact OAuth callback is still the same
+  // flow (`van=exact-oauth`): land on Administratie without Welkom terug.
+  const fromExactOAuth = vanParam === 'exact-oauth'
   const resuming =
+    !fromExactOAuth &&
     saved !== null &&
     isImportWizardStep(saved.step) &&
     saved.step !== 'bron' &&
     saved.step !== 'klaar'
   const [step, setStep] = useState<ImportWizardStep>(() => {
+    if (fromExactOAuth && saved !== null && isImportWizardStep(saved.step)) return saved.step
     if (resuming) return 'bron'
     if (saved !== null && isImportWizardStep(saved.step)) return saved.step
     return 'bron'
@@ -245,6 +264,12 @@ function ImportWizardPage() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const importProgress = importProgressPercent(liveRun, enqueueAcked || importing)
   const failureKind = importFailureKind(liveRun)
+
+  // Drop the one-shot OAuth flag so a later reload can show Welkom terug.
+  useEffect(() => {
+    if (vanParam !== 'exact-oauth') return
+    void navigate({ search: { bron: 'exact' }, replace: true })
+  }, [vanParam, navigate])
 
   const kloptAccounts: readonly RankableAccount[] = useMemo(() => {
     if (!accountsResult.ok) return []
@@ -724,7 +749,6 @@ function ImportWizardPage() {
 
   const nextReason = (() => {
     if (canNext) return null
-    if (step === 'bron' && source === 'exact') return t('wizard.status.exactBlocked')
     if (step === 'bron' && source === 'xaf') return null
     if (step === 'bron') return t('wizard.status.pickSource')
     if (step === 'verbinden') return t('wizard.status.pasteToken')
@@ -745,7 +769,7 @@ function ImportWizardPage() {
 
   async function handleNext() {
     if (!canNext || busy) return
-    if (step === 'bron' && source === 'moneybird') {
+    if (step === 'bron' && (source === 'moneybird' || source === 'exact')) {
       await goTo('verbinden')
       return
     }
@@ -1075,6 +1099,7 @@ function ImportWizardPage() {
         <div className="mt-4 hidden md:block">
           <WizardProgressRail
             step={step}
+            source={source}
             onJump={(target) => {
               if (stepIndex(target) < stepIndex(step)) void goTo(target)
             }}
@@ -1083,8 +1108,14 @@ function ImportWizardPage() {
         <p className="text-ink-2 mt-1 text-[13px] md:hidden">
           {t('wizard.rail.phone', {
             title: pageTitle,
-            step: String(railIndex(step) + 1),
-            total: String(IMPORT_RAIL_STEP_COUNT),
+            step: String(
+              (source === 'exact'
+                ? Math.max(0, wizardStepsForSource('exact').indexOf(step))
+                : railIndex(step)) + 1,
+            ),
+            total: String(
+              source === 'exact' ? wizardStepsForSource('exact').length : IMPORT_RAIL_STEP_COUNT,
+            ),
           })}
         </p>
       </div>
@@ -1128,6 +1159,7 @@ function ImportWizardPage() {
                     })
                   : t('wizard.bron.intro')
               }
+              source={source}
             />
             {showResume && saved !== null && (
               <section className="border-border border-accent mb-6 border border-l-[3px] p-5">
@@ -1144,6 +1176,10 @@ function ImportWizardPage() {
                     onClick={() => {
                       setShowResume(false)
                       void (async () => {
+                        if (saved.source === 'exact') {
+                          if (isImportWizardStep(saved.step)) await goTo(saved.step)
+                          return
+                        }
                         const adminId = saved.administrationId ?? administrationId
                         if (adminId !== null && adminId !== undefined && adminId !== '') {
                           const mapped = await getImportAdministrationMappings({
@@ -1283,15 +1319,6 @@ function ImportWizardPage() {
                 {t('wizard.bron.honesty')}
               </p>
             )}
-            {source === 'exact' && !showResume && (
-              <div className="mt-6 max-w-md">
-                <AttentionBlock tone="info" title={t('wizard.bron.exact.deadEnd')}>
-                  <Button asChild variant="outline" className="mt-2 min-h-11">
-                    <Link to="/exact">{t('wizard.bron.exact.openLegacy')}</Link>
-                  </Button>
-                </AttentionBlock>
-              </div>
-            )}
             {source === 'xaf' && !showResume && (
               <section className={cn(wizardCardClass, 'mt-6 max-w-lg p-6')}>
                 <h2 className="text-lg font-semibold">{t('wizard.bron.xaf.title')}</h2>
@@ -1334,13 +1361,33 @@ function ImportWizardPage() {
           </>
         )}
 
-        {step === 'verbinden' && (
+        {source === 'exact' && step !== 'bron' && (
+          <ExactWizardFlow
+            step={step}
+            setStep={(next) => {
+              setStep(next)
+              setShowResume(false)
+              setError(null)
+            }}
+            connection={exactConnection.ok ? (exactConnection.data.connection ?? null) : null}
+            canStoreSecrets={
+              exactConnection.ok ? Boolean(exactConnection.data.canStoreSecrets) : false
+            }
+            defaultYear={
+              reportYear.ok ? String(reportYear.data.scope.code) : String(new Date().getFullYear())
+            }
+            titleId={titleId}
+          />
+        )}
+
+        {source !== 'exact' && step === 'verbinden' && (
           <>
             <WizardStepHeader
               titleId={titleId}
               step={step}
               title={t('wizard.verbinden.title')}
               intro={t('wizard.verbinden.intro')}
+              source={source}
             />
             {!canStoreSecrets && (
               <div className="mb-6">
@@ -1447,13 +1494,14 @@ function ImportWizardPage() {
           </>
         )}
 
-        {step === 'administratie' && (
+        {source !== 'exact' && step === 'administratie' && (
           <>
             <WizardStepHeader
               titleId={titleId}
               step={step}
               title={t('wizard.administratie.title')}
               intro={t('wizard.administratie.intro')}
+              source={source}
             />
             <div className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-start">
               <section className="min-w-0 lg:max-w-sm lg:flex-1">
@@ -1707,13 +1755,14 @@ function ImportWizardPage() {
           </>
         )}
 
-        {step === 'voorbeeld' && (
+        {source !== 'exact' && step === 'voorbeeld' && (
           <>
             <WizardStepHeader
               titleId={titleId}
               step={step}
               title={t('wizard.voorbeeld.title')}
               intro={t('wizard.voorbeeld.intro')}
+              source={source}
             />
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <Button
@@ -1782,13 +1831,14 @@ function ImportWizardPage() {
           </>
         )}
 
-        {step === 'btw' && (
+        {source !== 'exact' && step === 'btw' && (
           <>
             <WizardStepHeader
               titleId={titleId}
               step={step}
               title={t('wizard.btw.title')}
               intro={t('wizard.btw.intro')}
+              source={source}
             />
             <ul role="list" aria-label={t('wizard.step.btw')} className="space-y-3">
               {usedRates.map((rate) => {
@@ -2064,13 +2114,14 @@ function ImportWizardPage() {
           </>
         )}
 
-        {step === 'rekeningen' && (
+        {source !== 'exact' && step === 'rekeningen' && (
           <>
             <WizardStepHeader
               titleId={titleId}
               step={step}
               title={t('wizard.rekeningen.title')}
               intro={t('wizard.rekeningen.intro')}
+              source={source}
             />
             {preview !== null ? (
               <ul role="list" className="mb-6 divide-y overflow-x-hidden border">
@@ -2158,13 +2209,14 @@ function ImportWizardPage() {
           </>
         )}
 
-        {step === 'problemen' && (
+        {source !== 'exact' && step === 'problemen' && (
           <>
             <WizardStepHeader
               titleId={titleId}
               step={step}
               title={t('wizard.problemen.title')}
               intro={t('wizard.problemen.intro')}
+              source={source}
             />
             <div className="mb-4 grid grid-cols-1 gap-3 min-[480px]:grid-cols-3">
               <WizardStat
@@ -2326,13 +2378,14 @@ function ImportWizardPage() {
           </>
         )}
 
-        {step === 'overzicht' && (
+        {source !== 'exact' && step === 'overzicht' && (
           <>
             <WizardStepHeader
               titleId={titleId}
               step={step}
               title={t('wizard.overzicht.title')}
               intro={t('wizard.overzicht.intro')}
+              source={source}
             />
             <dl className={cn(wizardCardClass, 'space-y-2 p-5 text-sm')}>
               <div className="flex justify-between">
@@ -2441,7 +2494,7 @@ function ImportWizardPage() {
           </>
         )}
 
-        {step === 'importeren' && (
+        {source !== 'exact' && step === 'importeren' && (
           <>
             <WizardStepHeader
               titleId={titleId}
@@ -2456,6 +2509,7 @@ function ImportWizardPage() {
               {...(importFailed || failureKind !== 'none'
                 ? {}
                 : { intro: t('wizard.importeren.intro') })}
+              source={source}
             />
             {importFailed || failureKind !== 'none' ? (
               <AttentionBlock
@@ -2566,7 +2620,7 @@ function ImportWizardPage() {
           </>
         )}
 
-        {step === 'klaar' && imported && isImportRunDone(liveRun) && (
+        {source !== 'exact' && step === 'klaar' && imported && isImportRunDone(liveRun) && (
           <>
             <WizardStepHeader
               titleId={titleId}
@@ -2579,6 +2633,7 @@ function ImportWizardPage() {
                       count: String(klaarCount),
                     })
               }
+              source={source}
             />
             <p className="text-muted-foreground mb-4 text-sm">{t('wizard.klaar.booksInKlopt')}</p>
             <div className="mb-6">

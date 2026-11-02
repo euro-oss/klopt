@@ -1,8 +1,9 @@
 /**
- * Pure helpers for the Moneybird/Exact import wizard (#100 Phase 1).
+ * Pure helpers for the Moneybird/Exact import wizard (#100).
  *
- * Step ids match the design prototype and `importWizardStepSchema`. Exact is a
- * dead-end on Bron in Phase 1; Moneybird walks all ten steps.
+ * Step ids match the design prototype and `importWizardStepSchema`. Moneybird
+ * walks all ten steps. Exact Phase 2 is bron → … → btw only — later steps are
+ * omitted from the rail until accounts / openings land (no disabled stubs).
  */
 
 import { flowShouldAdvanceOnEnter } from './guided-invoice.js'
@@ -78,6 +79,17 @@ export const IMPORT_WIZARD_STEP_KEYS = [
   'wizard.step.klaar',
 ] as const
 
+/** Exact Phase 2 rail: through read-only btw only (#100 PM). */
+export const EXACT_WIZARD_STEPS = [
+  'bron',
+  'verbinden',
+  'administratie',
+  'voorbeeld',
+  'btw',
+] as const satisfies readonly ImportWizardStep[]
+
+export type ExactWizardStep = (typeof EXACT_WIZARD_STEPS)[number]
+
 export function isImportWizardStep(value: string): value is ImportWizardStep {
   return (IMPORT_WIZARD_STEPS as readonly string[]).includes(value)
 }
@@ -105,9 +117,66 @@ export function isTerminalStep(step: ImportWizardStep): boolean {
 }
 
 export function canAdvanceFromBron(source: ImportWizardSource | null): boolean {
-  // Exact is still a dead-end (#100). XAF leaves this wizard for the audit-file
-  // dry run, so Volgende stays off.
-  return source === 'moneybird'
+  // XAF leaves this wizard for the audit-file dry run, so Volgende stays off.
+  return source === 'moneybird' || source === 'exact'
+}
+
+/** Exact Phase 2 slice: stop after the read-only btw preview. */
+export function exactWizardStopsAfterBtw(source: ImportWizardSource | null): boolean {
+  return source === 'exact'
+}
+
+/**
+ * Rail + "Stap N van M" for the active source. Exact omits later steps so the
+ * rail never shows disabled stubs for work that is not in this version yet.
+ */
+export function wizardStepsForSource(
+  source: ImportWizardSource | null,
+): readonly ImportWizardStep[] {
+  if (source === 'exact') return EXACT_WIZARD_STEPS
+  return IMPORT_WIZARD_STEPS
+}
+
+/** Exact rail labels — administratie uses the Exact-specific boekjaar wording (#161 Design). */
+export const EXACT_WIZARD_STEP_KEYS = [
+  'wizard.step.bron',
+  'wizard.step.verbinden',
+  'wizard.step.administratieExact',
+  'wizard.step.voorbeeld',
+  'wizard.step.btw',
+] as const
+
+export function wizardStepKeysForSource(
+  source: ImportWizardSource | null,
+): typeof IMPORT_WIZARD_STEP_KEYS | typeof EXACT_WIZARD_STEP_KEYS {
+  if (source === 'exact') return EXACT_WIZARD_STEP_KEYS
+  return IMPORT_WIZARD_STEP_KEYS
+}
+
+export function canConnectExact(args: {
+  readonly canStoreSecrets: boolean
+  readonly clientId: string
+  readonly clientSecret: string
+  readonly redirectIsSecure: boolean
+}): boolean {
+  return (
+    args.canStoreSecrets &&
+    args.clientId.trim() !== '' &&
+    args.clientSecret.trim() !== '' &&
+    args.redirectIsSecure
+  )
+}
+
+export function canAdvanceFromExactAdministratie(args: {
+  readonly divisionCode: number | null
+  readonly year: string
+}): boolean {
+  return (
+    args.divisionCode !== null &&
+    Number.isFinite(args.divisionCode) &&
+    args.divisionCode > 0 &&
+    /^\d{4}$/.test(args.year.trim())
+  )
 }
 
 export function canAdvanceFromVerbinden(connected: boolean): boolean {

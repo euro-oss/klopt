@@ -1,8 +1,9 @@
 /**
  * Shared chrome for the import wizard: six-step rail + Volgende/Terug footer.
  *
- * The rail maps the v2 export (Source → Import). Internal steps stay the
- * #105 machine; see `IMPORT_RAIL_IDS`.
+ * Moneybird and XAF use the v2 six-step stepper (#134). Exact Phase 2 uses the
+ * same stepper with its five steps only (#161), so later work is not shown as
+ * a disabled stub.
  */
 
 import type { ReactNode } from 'react'
@@ -15,7 +16,10 @@ import {
   IMPORT_RAIL_IDS,
   railEntryStep,
   railIndex,
+  wizardStepKeysForSource,
+  wizardStepsForSource,
   type ImportRailId,
+  type ImportWizardSource,
   type ImportWizardStep,
 } from '~/lib/import-wizard'
 import { cn } from '~/lib/utils'
@@ -59,12 +63,37 @@ export function WizardStat({
 
 export function WizardProgressRail({
   step,
+  source = null,
   onJump,
 }: {
   readonly step: ImportWizardStep
+  /** Exact Phase 2 omits later steps from the rail (#161). */
+  readonly source?: ImportWizardSource | null
   readonly onJump?: (step: ImportWizardStep) => void
 }) {
   const { t } = useT()
+  if (source === 'exact') {
+    const steps = wizardStepsForSource('exact')
+    const keys = wizardStepKeysForSource('exact')
+    const found = steps.indexOf(step)
+    const current = found >= 0 ? found : Math.max(0, steps.length - 1)
+    return (
+      <Stepper
+        aria-label={t('wizard.steps')}
+        current={current}
+        className="max-w-full"
+        steps={steps.map((id, index) => ({ id, label: t(keys[index]!) }))}
+        {...(onJump === undefined
+          ? {}
+          : {
+              onJump: (index: number) => {
+                const target = steps[index]
+                if (target !== undefined) onJump(target)
+              },
+            })}
+      />
+    )
+  }
   const current = railIndex(step)
   return (
     <Stepper
@@ -89,14 +118,16 @@ export function WizardStepHeader({
   title,
   intro,
   step,
+  source = null,
 }: {
   readonly titleId: string
   readonly title: string
   readonly intro?: string
   readonly step: ImportWizardStep
+  readonly source?: ImportWizardSource | null
 }) {
   return (
-    <header className="mb-6 min-w-0" data-wizard-step={step}>
+    <header className="mb-6 min-w-0" data-wizard-step={step} data-wizard-source={source ?? ''}>
       <h2
         id={`${titleId}-step`}
         className="text-ink text-lg font-semibold tracking-tight md:text-xl"
@@ -104,7 +135,7 @@ export function WizardStepHeader({
         {title}
       </h2>
       {intro !== undefined && intro !== '' && (
-        <p className="text-ink-2 mt-2 max-w-2xl text-sm leading-relaxed">{intro}</p>
+        <p className="text-ink-2 mt-2 max-w-2xl text-sm leading-relaxed break-words">{intro}</p>
       )}
     </header>
   )
@@ -124,7 +155,8 @@ export function WizardFooter({
   readonly onBack?: () => void
   readonly onNext?: () => void
   readonly onNextBlocked?: () => void
-  readonly nextLabel: string
+  /** Required when `onNext` is set; omit with `onNext` for a Back-only footer. */
+  readonly nextLabel?: string
   readonly nextDisabled?: boolean
   readonly nextReason?: string | null
   readonly showBack: boolean
@@ -134,6 +166,7 @@ export function WizardFooter({
 }) {
   const { t } = useT()
   const blocked = nextDisabled === true
+  const showNext = onNext !== undefined && nextLabel !== undefined && nextLabel !== ''
   return (
     <footer className="border-line bg-surface mt-8 flex flex-col gap-3 border-t pt-4 max-md:sticky max-md:bottom-16 max-md:z-20 max-md:-mx-4 max-md:px-4 max-md:pb-3 md:flex-row md:flex-wrap md:items-center">
       {showBack && onBack !== undefined && (
@@ -150,13 +183,13 @@ export function WizardFooter({
       {note !== undefined && note !== null && note !== '' && (
         <p className="text-ink-2 min-w-0 flex-1 text-sm">{note}</p>
       )}
-      <div className="flex min-w-0 flex-col gap-1 md:ml-auto md:items-end">
-        {blocked && nextReason !== null && nextReason !== undefined && nextReason !== '' && (
-          <p id="wizard-next-why" className="text-ink-muted max-w-sm text-sm md:text-right">
-            {nextReason}
-          </p>
-        )}
-        {onNext !== undefined && (
+      {showNext && (
+        <div className="flex min-w-0 flex-col gap-1 md:ml-auto md:items-end">
+          {blocked && nextReason !== null && nextReason !== undefined && nextReason !== '' && (
+            <p id="wizard-next-why" className="text-ink-muted max-w-sm text-sm md:text-right">
+              {nextReason}
+            </p>
+          )}
           <Button
             type="button"
             className={cn(
@@ -172,7 +205,7 @@ export function WizardFooter({
                 onNextBlocked?.()
                 return
               }
-              onNext()
+              onNext?.()
             }}
             data-focus="next"
           >
@@ -184,8 +217,8 @@ export function WizardFooter({
               </span>
             )}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </footer>
   )
 }
