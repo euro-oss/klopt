@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Import</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board (#152), not drawn by Hidde. Phone 390 of ImportSource.dc.html (steps 1 and 2): the
+  same two states, Exact Online selected (default) and Moneybird on tap, with Hidde's copy. One
+  column: the source options stack above the connect card, the Exact fields stack, and the primary
+  action sits in a sticky bar above the tab bar, as on the batch-2 import phone boards. More is the
+  active tab (import lives under More). Takes `theme`; PhoneImportSourceDark.dc.html sets dark.
+  The redirect URI is a placeholder host.
+  A11y deviations (#107 decision 4): control and option borders on --ink-muted, 44px targets,
+  no key hints or option keys on phone, no ink-faint, self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-option,.k-input{border-color:var(--line-control)}
+.k-btn--primary:disabled{opacity:1;background:var(--neutral-bg);border-color:var(--line-control);color:var(--ink-muted)}
+.k-phone .k-kbd,.k-phone .k-chord,.k-phone .k-option-key,.k-phone .k-hints{display:none}
+.ph{overflow:clip}
+.ph-head{display:flex;flex-direction:column;gap:4px}
+.ph-step{font-size:13px;color:var(--ink-2)}
+.ph-h1{margin:0;font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.01em}
+.dock{position:sticky;bottom:0;z-index:2}
+.dock-bar{display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--line)}
+.dock-bar .k-btn{height:48px;justify-content:center;font-size:15px;width:100%}
+.nw{white-space:nowrap}
+.k-phone .k-btn,.k-phone .k-option,.k-phone .k-input{min-height:44px;box-sizing:border-box}
+</style>
+</helmet>
+<div class="k-root k-phone ph" data-theme="{{theme}}">
+  <div class="k-phone-top">
+    <a href="PhoneMore.dc.html" class="k-btn k-btn--ghost" style="height: 44px; padding: 0 8px;">‹ More</a>
+  </div>
+  <div class="k-phone-body">
+    <div class="ph-head">
+      <span class="ph-step">Import · step 2 of 6</span>
+      <h1 class="ph-h1">Import</h1>
+    </div>
+    <section aria-labelledby="src" style="display: flex; flex-direction: column; gap: 10px;">
+      <h2 id="src" class="k-card-title" style="font-size: 15px;">Where do your books come from?</h2>
+      <button type="button" class="{{optMb}}" onClick="{{pickMb}}" aria-pressed="{{onMb}}">
+        <span class="k-option-body"><span class="k-option-title">Moneybird</span><span class="k-option-meta">All invoices, receipts, bank lines and journal entries. Drafts and quotes stay behind.</span></span>
+      </button>
+      <button type="button" class="{{optEx}}" onClick="{{pickEx}}" aria-pressed="{{onEx}}">
+        <span class="k-option-body"><span class="k-option-title">Exact Online</span><span class="k-option-meta">Chart, contacts and open items for one year, as an opening balance.</span></span>
+      </button>
+      <a href="SettingsData.dc.html" class="k-option" style="text-decoration: none;">
+        <span class="k-option-body"><span class="k-option-title">Any other package</span><span class="k-option-meta">An XAF audit file, which most Dutch packages can export</span></span>
+      </a>
+      <p class="k-muted" style="margin: 2px 0 0; font-size: 13px; line-height: 1.5;">Nothing is booked until the last step. You can stop at any point.</p>
+    </section>
+
+    <section class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+      <sc-if value="{{isMb}}" hint-placeholder-val="{{false}}">
+        <h2 class="k-card-title" style="font-size: 17px;">Connect Moneybird</h2>
+        <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Klopt reads your administration with a personal API token. Nothing in Moneybird changes.</p>
+        <ol style="margin: 0; padding-left: 20px; color: var(--ink-2); line-height: 1.7;">
+          <li>In Moneybird, open <strong>Settings</strong>, then <strong>Developers</strong></li>
+          <li>Create a personal API token with read access</li>
+          <li>Paste it here</li>
+        </ol>
+        <div class="k-field">
+          <label class="k-label" for="tok">Personal API token</label>
+          <input id="tok" class="k-input" type="password" placeholder="Paste the token">
+          <span class="k-help">Stored encrypted, deleted when the import is done.</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{isEx}}" hint-placeholder-val="{{true}}">
+        <h2 class="k-card-title" style="font-size: 17px;">Connect Exact Online</h2>
+        <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Exact needs an app registration from whoever runs this Klopt installation. Self-hosted, register once in the Exact App Center.</p>
+        <div class="k-field"><label class="k-label" for="env">Exact environment</label><select id="env" class="k-input"><option>Netherlands (start.exactonline.nl)</option><option>Belgium</option></select></div>
+        <div class="k-field"><label class="k-label" for="cid">Client ID</label><input id="cid" class="k-input k-num" placeholder="From the App Center"></div>
+        <div class="k-field"><label class="k-label" for="sec">Client secret</label><input id="sec" class="k-input" type="password" placeholder="From the App Center"></div>
+        <div class="k-field">
+          <label class="k-label" for="ru">Redirect URI</label>
+          <input id="ru" class="k-input k-num" readonly value="https://boeken.example.nl/exact/callback">
+          <button type="button" class="k-btn" style="height: 44px; justify-content: center;">Copy</button>
+          <span class="k-help">Paste this exactly into the App Center. Exact compares it letter for letter.</span>
+        </div>
+      </sc-if>
+    </section>
+  </div>
+  <div class="dock">
+    <div class="dock-bar">
+      <button type="button" class="k-btn k-btn--primary">{{cta}}</button>
+    </div>
+    <nav class="k-tabbar" aria-label="Main">
+      <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+      <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+      <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+      <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+      <a class="k-tabbar-item is-active" href="#" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+    </nav>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { src: 'ex' };
+  }
+  renderVals() {
+    const ex = this.state.src === 'ex';
+    return {
+      theme: this.props.theme ?? 'light', isEx: ex, isMb: !ex,
+      optMb: ex ? 'k-option' : 'k-option is-suggested', optEx: ex ? 'k-option is-suggested' : 'k-option',
+      onMb: ex ? 'false' : 'true', onEx: ex ? 'true' : 'false',
+      cta: ex ? 'Sign in to Exact' : 'Check the token',
+      pickMb: () => this.setState({ src: 'mb' }), pickEx: () => this.setState({ src: 'ex' })
+    };
+  }
+}
+</script>
+</body>
+</html>

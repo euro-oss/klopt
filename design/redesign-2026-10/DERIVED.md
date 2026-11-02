@@ -2,6 +2,36 @@
 
 Boards Hidde did not draw, derived by Design from his v2 system on his request. They use only `tokens.css`, `components/bundle.css` and the existing `.k-*` components, in the same `.dc.html` format, and are registered in `screens/canvas.json` with `"derived": true`. Batch 1 leaves Hidde's own boards unchanged, apart from the keymap fix, the XAF copy and the Sidebar fixture below.
 
+## Import source and problems: dark and phone (#152)
+
+| Board | What it is | Screenshots in `derived-shots/import-152/` |
+| --- | --- | --- |
+| `ImportSourceDark.dc.html`, `theme` prop (default dark) | Hidde's `ImportSource` at 1440, own file: self-hosted fonts, placeholder redirect URI | `ImportSource-dark-1440` |
+| `ImportFindingsDark.dc.html`, `theme` prop (default dark) | Hidde's `ImportFindings` at 1440, own file: self-hosted fonts, one reworded title | `ImportFindings-dark-1440` |
+| `PhoneImportSource.dc.html`, `theme` prop | Source and connect (steps 1 and 2) at 390; Exact Online selected, Moneybird on tap | `ImportSource-light-390` |
+| `PhoneImportSourceDark.dc.html` | `PhoneImportSource` with `theme="dark"` | `ImportSource-dark-390` |
+| `PhoneImportFindings.dc.html`, `theme` prop | Problems (step 5) at 390, the same five example findings | `ImportFindings-light-390` |
+| `PhoneImportFindingsDark.dc.html` | `PhoneImportFindings` with `theme="dark"` | `ImportFindings-dark-390` |
+
+The two dark desktop boards are copies, not thin wrappers, because Hidde's light boards load Google Fonts and `ImportSource` shows a real installation URL as the Exact redirect URI. The copies use `https://boeken.example.nl/exact/callback`. On `ImportFindingsDark` and `PhoneImportFindings` the bank finding reads "12 bank lines each pay two invoices" (Hidde: "are linked to"), and the `1`–`3` key hint shows the three keys. Hidde's light boards are unchanged.
+
+- Phone follows batch 2: `.k-phone` at 390, a ghost back link top left (`‹ More`, `‹ Preview`), a "step N of 6" line instead of the stepper, one column, the primary action in a sticky bar above the tab bar, More active.
+- On phone the source options and the connect card stack; the Exact fields stack and Copy sits under the redirect URI. The problems board shows the three counts in a row, then the selected finding with its fixes, then all findings. Tapping a finding opens it above; choosing a fix moves to the next open one.
+- No key hints or option keys on phone. Targets are 44px or more, the sticky action 48px. Control and option borders use `--ink-muted`; the disabled primary uses the batch-2 style.
+- `shoot.mjs` printed no QA warnings for the six boards. Shot with `shoot-widths.mjs` as on #153: `node --import ./derived-shots/render/hide-scrollbars.mjs derived-shots/render/shoot-widths.mjs derived-shots/import-152 'PhoneImportFindings.dc.html@390=ImportFindings-light-390' ...`.
+
+### Copy, English and Dutch
+
+| English (board) | Nederlands |
+| --- | --- |
+| Import · step 2 of 6 | Importeren · stap 2 van 6 |
+| Import from Moneybird · step 5 of 6 | Importeren uit Moneybird · stap 5 van 6 |
+| Problems | Problemen |
+| Finding 1 of 5 | Bevinding 1 van 5 |
+| All findings | Alle bevindingen |
+| 12 bank lines each pay two invoices | 12 bankregels betalen elk twee facturen |
+| Nothing is booked until the last step. You can stop at any point. | Er wordt pas bij de laatste stap geboekt. Je kunt altijd stoppen. |
+
 ## Contacts, VAT and ICP: dark and phone (#155)
 
 | Board | What it is | Screenshots in `derived-shots/contacts-vat/` |

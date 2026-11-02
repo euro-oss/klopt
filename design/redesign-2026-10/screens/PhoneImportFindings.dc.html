@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Import problems</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board (#152), not drawn by Hidde. Phone 390 of ImportFindings.dc.html (step 5): the same
+  five example findings, counts and states. One column: the three counts in a row, the selected
+  finding with its fixes, then the list of all findings (tap one to open it above). Choosing a fix
+  moves to the next open finding, as on desktop. The primary action sits in a sticky bar above the
+  tab bar and stays disabled while a must-fix is open. Takes `theme`;
+  PhoneImportFindingsDark.dc.html sets dark.
+  A11y deviations (#107 decision 4): control and option borders on --ink-muted, disabled primary on
+  neutral-bg in ink-muted, 44px targets, no key hints or option keys, self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-option,.k-input{border-color:var(--line-control)}
+.k-btn--primary:disabled{opacity:1;background:var(--neutral-bg);border-color:var(--line-control);color:var(--ink-muted)}
+.k-phone .k-kbd,.k-phone .k-chord,.k-phone .k-option-key,.k-phone .k-hints{display:none}
+.ph{overflow:clip}
+.ph-head{display:flex;flex-direction:column;gap:4px}
+.ph-step{font-size:13px;color:var(--ink-2)}
+.ph-h1{margin:0;font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.01em}
+.dock{position:sticky;bottom:0;z-index:2}
+.dock-bar{display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--line)}
+.dock-bar .k-btn{height:48px;justify-content:center;font-size:15px;width:100%}
+.nw{white-space:nowrap}
+.k-phone .k-btn,.k-phone .k-option,.k-phone .k-input{min-height:44px;box-sizing:border-box}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stats .k-stat{padding:12px;gap:2px}
+.stats .k-stat-label{font-size:12px;line-height:16px}
+.stats .k-stat-value{font-size:24px;line-height:30px}
+.frow{display:flex;gap:12px;align-items:flex-start;width:100%;padding:12px 16px;border:0;border-top:1px solid var(--line-soft);background:transparent;color:var(--ink);font:inherit;text-align:left;cursor:pointer;min-height:56px;box-sizing:border-box}
+.frow.is-cur{background:var(--surface-hover)}
+.ftile{width:28px;height:28px;border-radius:8px;font-size:13px;font-weight:700;flex:none}
+</style>
+</helmet>
+<div class="k-root k-phone ph" data-theme="{{theme}}">
+  <div class="k-phone-top">
+    <a href="ImportPreview.dc.html" class="k-btn k-btn--ghost" style="height: 44px; padding: 0 8px;">‹ Preview</a>
+    <span style="flex: 1;"></span>
+    <span class="k-pill k-pill--draft">Example findings</span>
+  </div>
+  <div class="k-phone-body">
+    <div class="ph-head">
+      <span class="ph-step">Import from Moneybird · step 5 of 6</span>
+      <h1 class="ph-h1">Problems</h1>
+    </div>
+    <div class="stats">
+      <div class="k-stat"><span class="k-stat-label">Must fix</span><span class="k-stat-value k-num" style="color: var(--danger);">{{counts.must}}</span></div>
+      <div class="k-stat"><span class="k-stat-label">Worth a look</span><span class="k-stat-value k-num">{{counts.check}}</span></div>
+      <div class="k-stat"><span class="k-stat-label">Resolved</span><span class="k-stat-value k-num" style="color: var(--success);">{{counts.done}}</span></div>
+    </div>
+
+    <section aria-label="Finding" class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;"><span class="{{s.pill}}">{{s.level}}</span><span class="k-muted" style="font-size: 13px; flex: 1;">{{s.where}}</span><span class="k-muted nw" style="font-size: 13px;">{{pos}}</span></div>
+      <h2 style="margin: 0; font-size: 18px; line-height: 24px; font-weight: 600;">{{s.title}}</h2>
+      <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">{{s.why}}</p>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <sc-for list="{{s.opts}}" as="o" hint-placeholder-count="3">
+          <button type="button" class="{{o.cls}}" onClick="{{o.pick}}">
+            <span class="k-option-body"><span class="k-option-title">{{o.title}}</span><span class="k-option-meta">{{o.meta}}</span></span>
+            <span class="k-option-tag">{{o.tag}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-labelledby="all" class="k-card k-card--flush">
+      <div style="padding: 14px 16px 10px;"><h2 id="all" class="k-card-title">All findings</h2></div>
+      <sc-for list="{{list}}" as="x" hint-placeholder-count="5">
+        <button type="button" class="{{x.rowCls}}" aria-current="{{x.sel}}" onClick="{{x.pick}}">
+          <span class="{{x.tile}} ftile">{{x.icon}}</span>
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-weight: 600; line-height: 20px;">{{x.title}}</span><span class="k-muted" style="font-size: 13px;">{{x.status}}</span></span>
+        </button>
+      </sc-for>
+    </section>
+  </div>
+  <div class="dock">
+    <div class="dock-bar">
+      <span style="font-size: 13px; color: var(--ink-2);">{{footer}}</span>
+      <button type="button" class="k-btn k-btn--primary" disabled="{{blocked}}">Continue to import</button>
+    </div>
+    <nav class="k-tabbar" aria-label="Main">
+      <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+      <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+      <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+      <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+      <a class="k-tabbar-item is-active" href="#" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+    </nav>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 0, fixed: {} };
+  }
+  renderVals() {
+    const F = [
+      { level: 'Must fix', where: 'VAT codes', title: 'VAT rate "BTW hoog oud" has no Dutch code', why: 'Moneybird has a custom VAT rate of 19% used on 3 invoices from 2012. Klopt only knows the standard Dutch codes, so it needs to know which one this is.', opts: [['Map to 19% (H19), the old high rate', 'Correct for invoices before 2012. The VAT return boxes stay right.', 'Suggested'], ['Map to 21% (H21)', 'Only if these were mislabelled in Moneybird.', ''], ['Leave these 3 invoices out', 'They stay in Moneybird; the opening balance absorbs them.', '']] },
+      { level: 'Must fix', where: 'Accounts', title: 'Account "Privé opnames" has no RGS code', why: 'Every category needs an RGS code for the audit file. This one is new to the Dutch SME chart.', opts: [['Map to BEivOvr, other equity movements', 'What most accountants use for owner withdrawals.', 'Suggested'], ['Pick another RGS code', 'Search the RGS 3.7 list.', ''], ['Merge into Overige reserves (0600)', 'Keeps history under one category.', '']] },
+      { level: 'Worth a look', where: 'Contacts', title: '2 contacts look like the same company', why: '"Kade & Co" and "Kade en Co B.V." have the same VAT number. Merging keeps one contact with both invoice histories.', opts: [['Merge them', 'Invoices keep their own name as printed.', 'Suggested'], ['Keep both', 'Fine if they are really different branches.', '']] },
+      { level: 'Worth a look', where: 'Bank', title: '12 bank lines each pay two invoices', why: 'In Moneybird one payment was split over two invoices. Klopt will import the split as two matches; check the amounts once.', opts: [['Import the split as it is', 'Amounts add up to each payment.', 'Suggested'], ['Import unmatched', 'You match them again in Klopt.', '']] },
+      { level: 'Info', where: 'Documents', title: 'Drafts and quotes are not brought across', why: '7 draft invoices and 4 quotes stay in Moneybird. Finish or copy them there before you stop using it.', opts: [['Understood', 'Nothing to decide.', '']] }
+    ];
+    const fixed = this.state.fixed;
+    const tileFor = (lv, done) => done ? 'k-tile k-tile--info' : (lv === 'Must fix' ? 'k-tile k-tile--danger' : (lv === 'Info' ? 'k-tile' : 'k-tile k-tile--brand'));
+    const list = F.map((x, i) => ({
+      title: x.title, cur: i === this.state.sel, sel: i === this.state.sel ? 'true' : 'false', pick: () => this.setState({ sel: i }),
+      status: fixed[i] !== undefined ? '✓ ' + x.opts[fixed[i]][0] : x.level + ' · ' + x.where,
+      rowCls: i === this.state.sel ? 'frow is-cur' : 'frow', tile: tileFor(x.level, fixed[i] !== undefined), icon: fixed[i] !== undefined ? '✓' : (x.level === 'Must fix' ? '!' : (x.level === 'Info' ? 'i' : '?'))
+    }));
+    const x = F[this.state.sel];
+    const choose = (k) => () => {
+      const nf = { ...this.state.fixed, [this.state.sel]: k };
+      let nx = this.state.sel;
+      for (let j = 1; j <= F.length; j++) { const c = (this.state.sel + j) % F.length; if (nf[c] === undefined) { nx = c; break; } }
+      this.setState({ fixed: nf, sel: nx });
+    };
+    const s = {
+      ...x, pill: x.level === 'Must fix' ? 'k-pill k-pill--late' : (x.level === 'Info' ? 'k-pill k-pill--draft' : 'k-pill k-pill--open'),
+      opts: x.opts.map(([title, meta, tag], k) => ({ key: k + 1, title, meta, tag, cls: fixed[this.state.sel] === k || (fixed[this.state.sel] === undefined && tag) ? 'k-option is-suggested' : 'k-option', pick: choose(k) }))
+    };
+    const mustOpen = [0, 1].filter((i) => fixed[i] === undefined).length;
+    const done = Object.keys(fixed).length;
+    return {
+      theme: this.props.theme ?? 'light', list, s, blocked: mustOpen > 0,
+      counts: { must: mustOpen, check: [2, 3].filter((i) => fixed[i] === undefined).length, done },
+      footer: mustOpen > 0 ? mustOpen + ' must-fix left before you can import' : 'Nothing blocks the import any more',
+      pos: 'Finding ' + (this.state.sel + 1) + ' of ' + F.length
+    };
+  }
+}
+</script>
+</body>
+</html>
