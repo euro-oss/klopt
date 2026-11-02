@@ -2,6 +2,94 @@
 
 Boards Hidde did not draw, derived by Design from his v2 system on his request. They use only `tokens.css`, `components/bundle.css` and the existing `.k-*` components, in the same `.dc.html` format, and are registered in `screens/canvas.json` with `"derived": true`. Batch 1 leaves Hidde's own boards unchanged, apart from the keymap fix, the XAF copy and the Sidebar fixture below.
 
+## Command bar and shortcut sheet: dark and phone (#149)
+
+Hidde's desktop-light `Command` board (the command bar with the query "zand", next to the keyboard shortcut sheet) gets a dark 1440 board and a phone 390 search sheet in light and dark. His file is not edited. Screenshots are in `derived-shots/command-149/`.
+
+| Board | What it is | Screenshots in `derived-shots/command-149/` |
+| --- | --- | --- |
+| `CommandDark.dc.html`, `theme` prop (default dark) | Own file: Hidde's `Command` at 1440, Inter on the invoice tiles, 1 2 3 4 keycaps, self-hosted fonts | `Command-dark-1440` |
+| `PhoneCommand.dc.html`, `theme` and `view` props | The command bar at 390 as a full-screen search sheet. `view` = `results` (default: the query "zand") or `start` (empty: Create and Recent) | `Command-{results,start}-light-390` |
+| `PhoneCommandDark.dc.html`, `view` prop | `PhoneCommand` with `theme="dark"`, passes `view` on | `Command-{results,start}-dark-390` |
+
+All three are registered in `canvas.json` (note `t149` at y 41700, boards at y 42000): `CommandDark` at x 0 (1440 × 960, Hidde's size), the phone boards at x 1520 and 1990. Each entry has `"derived": true` and a `derivedNote`. Tapping the clear button on `PhoneCommand` switches from `results` to `start`.
+
+### Why the dark board is a copy
+
+A thin wrapper would keep two things the derived boards don't allow:
+
+- Hidde's three invoice tiles set the "#" glyph in JetBrains Mono (`font: 600 10px var(--font-mono)`). On derived boards mono is only for `.k-code` and the keycaps (`.k-kbd`, which the bundle sets in JetBrains Mono and which stay as drawn). The copy uses Inter 600 11px and hides the glyph from screen readers.
+- The "Switch tab" hint is `1 – 4`, with the dash as a keycap of its own. `shoot.mjs` flags a lone dash, and a dash isn't a key. The copy shows `1 2 3 4`, the same fix as the `1`–`3` hint on `ImportFindingsDark` (#152).
+
+Also in the copy: amounts get `nowrap`, and the fonts are self-hosted (a wrapper can't remove Hidde's Google Fonts link). The layout, rows, keys and copy are Hidde's. The backdrop stays `--ink-faint`, which is #5a5a62 in dark. In dark the yellow selected row (`selection` with the `selection-edge` bar) keeps `ink` and muted text at 13.38 and 5.74:1.
+
+### Phone: what the command bar becomes
+
+A phone has no keyboard shortcuts, so on phone the command bar is a **search sheet**:
+
+- **Full screen, over the tab bar.** A 48px search field (`--ink-muted` border, 17px text) with a 44px clear button, and Cancel (44px) to the right. The field holds the focus, so the phone keyboard is open; the board doesn't draw it. Cancel closes the sheet and goes back to where it was opened.
+- **No key hints.** No `Esc`, `↵` or `⌘ ↵` chips, no ↑ ↓ / ↵ / Tab footer and no "Type > for commands only". Commands appear in the results as rows, as they do on desktop.
+- **Nothing pre-selected.** On desktop the yellow row is the keyboard cursor. A phone has no cursor, so every row looks the same and tapping one opens it.
+- **Rows are links, 56px or more,** with a 32px tile and a chevron, in Hidde's groups: Contact, "Do something with it", Invoices. A row's trailing detail moves to a second line ("Customer · 4 invoices · € 958,34 overdue", "128 days late", "28 Nov · paid"). The amount stays on the right in Inter tabular, and "€ 958,34 overdue" doesn't wrap.
+- **`view=start`** is the empty sheet: placeholder "Search or jump to" (the sidebar's label), then **Create** (New invoice, Receipt or bill, New contact) and **Recent** (a contact, an invoice, a page). This shows how actions work on phone without a query.
+
+### Phone: no shortcut sheet
+
+The shortcut sheet has no phone board, on purpose. It only lists keys, and phones show no key hints (#149). `PhoneMore` (#150) already leaves Shortcuts out of More for the same reason, and `?` has nothing to open on phone. On phone the Create and "Do something with it" rows in the search sheet take its place. A tablet with a hardware keyboard gets the desktop layout, so it isn't covered here.
+
+### Rules for these boards
+
+- Control borders: `.k-root[data-theme]{--line-control:var(--ink-muted)}`, the same rule as #145 to #148. On phone it is used for the search field.
+- Targets are 44px or more on phone (field 48px, clear and Cancel 44px, rows 56px or more). There are no text links, so nothing is yellow. No `ink-faint` for text. No new status colours: "overdue" stays `danger`, as on Hidde's board.
+- Amounts, dates and invoice numbers are Inter with tabular figures (`.k-num`, `nw` on amounts). JetBrains Mono is only on the desktop keycaps.
+- `shoot.mjs` printed no QA warnings for the five shots.
+
+### Invented, for Hidde to check
+
+- **Where the sheet opens from.** It isn't drawn. The proposal is a 44px search button in the top bar of Home and More, the phone equivalent of the sidebar's "Search or jump to". `PhoneMore` (#150) and `PhoneHome` aren't changed in this PR.
+- **`view=start`.** The Create rows (New invoice, Receipt or bill with "Take a photo or choose a file", New contact) and the Recent rows (Zandbank Advies "Contact", 2025-0036 "Invoice · Zandbank Advies" € 958,34, Bank "Page") are invented. Hidde's board only shows results.
+- **Cancel and the clear button**, and "Customer" with a capital C on the second line.
+- **Where the rows go.** The contact goes to `PhoneContactCard`, invoices and the final notice to `PhoneInvoice`, Receipt or bill to `PhoneReceipt`, Bank to `PhoneMatch` and New contact to `PhoneContacts`. New invoice goes to the desktop `Editor`, because there is no phone invoice editor yet.
+
+### Contrast (WCAG 2.x)
+
+| Pair | Light | Dark |
+| --- | --- | --- |
+| Search field border (`ink-muted`) on `ground` | 5.45:1 | 7.36:1 |
+| Muted second line (`ink-muted`) on `surface` | 5.95:1 | 6.77:1 |
+| "overdue" (`danger`) on `surface` | 6.57:1 | 6.28:1 |
+| Amounts (`ink-2`) on `surface` | 10.44:1 | 11.75:1 |
+| Desktop selected row: `ink` / muted text on `selection` | 16.62 / 5.59:1 | 13.38 / 5.74:1 |
+
+### Shooting
+
+From `design/redesign-2026-10/`:
+
+```sh
+O=derived-shots/command-149
+node derived-shots/render/shoot.mjs $O --width=1440 'CommandDark.dc.html?theme=dark=Command-dark-1440'
+node derived-shots/render/shoot.mjs $O --width=390 \
+  $(for v in results start; do echo "PhoneCommand.dc.html?view=$v=Command-$v-light-390" "PhoneCommandDark.dc.html?theme=dark&view=$v=Command-$v-dark-390"; done)
+```
+
+### Copy, English and Dutch
+
+Strings Hidde already has on `Command` are not repeated here.
+
+| English (board) | Nederlands |
+| --- | --- |
+| Search or jump to | Zoek of ga naar |
+| Clear search | Zoekopdracht wissen |
+| Cancel | Annuleren |
+| Customer · 4 invoices · € 958,34 overdue | Klant · 4 facturen · € 958,34 te laat |
+| 128 days late | 128 dagen te laat |
+| 28 Nov · paid / 26 Jul · overdue | 28 nov · betaald / 26 jul · te laat |
+| Create | Nieuw |
+| New invoice / Receipt or bill / New contact | Nieuwe factuur / Bon of factuur / Nieuw contact |
+| Take a photo or choose a file | Maak een foto of kies een bestand |
+| Recent | Recent |
+| Contact / Invoice · Zandbank Advies / Page | Contact / Factuur · Zandbank Advies / Pagina |
+
 ## Import source and problems: dark and phone (#152)
 
 | Board | What it is | Screenshots in `derived-shots/import-152/` |
