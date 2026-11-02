@@ -1,9 +1,8 @@
 /**
- * Import wizard — Moneybird Phase 1 (#100).
+ * Import wizard — v2 reskin (#134) on the #105 ten-step machine.
  *
- * Ten steps (bron → klaar). Exact is an honest dead-end on Bron. Reuses
- * Moneybird server functions and findings chrome rather than the old
- * `/moneybird` page layout.
+ * The stepper shows six steps (Source → Import). Exact stays a dead-end.
+ * XAF records `source: xaf` and opens the existing audit-file dry run.
  */
 
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
@@ -25,9 +24,12 @@ import { FindingCard } from '~/components/findings/finding-card'
 import {
   AttentionBlock,
   WizardFooter,
+  WizardHints,
   WizardProgressRail,
+  WizardStat,
   WizardStatusToast,
   WizardStepHeader,
+  wizardCardClass,
 } from '~/components/import-wizard/wizard-shell'
 import {
   countNotInForceDocuments,
@@ -36,8 +38,10 @@ import {
   importProgressPercent,
   isImportRunDone,
   klaarFilingBlocked,
+  bookedCountFromReport,
   klaarTransferCount,
   rebuildExcludedRates,
+  stoppedImportAction,
   type ImportRunStatusView,
 } from '~/lib/import-wizard-run'
 import { refusedRateMessage } from '~/lib/refused-rate-message'
@@ -46,8 +50,10 @@ import { Checkbox } from '~/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
+import { isTypingInto } from '~/lib/keyboard'
 import { importVatRulesFromListTaxCodes, type ImportVatRule } from '~/lib/import-findings'
 import {
+  IMPORT_RAIL_STEP_COUNT,
   IMPORT_WIZARD_STEP_KEYS,
   canAdvanceFromAdministratie,
   canAdvanceFromBron,
@@ -60,6 +66,7 @@ import {
   isImportWizardStep,
   isTerminalStep,
   prevStep,
+  railIndex,
   stepIndex,
   type ImportWizardSource,
   type ImportWizardStep,
@@ -97,9 +104,9 @@ import {
 import { listTaxCodes } from '~/server/sales'
 
 export const Route = createFileRoute('/_app/importeren')({
-  validateSearch: (search: Record<string, unknown>): { bron?: 'moneybird' | 'exact' } => {
+  validateSearch: (search: Record<string, unknown>): { bron?: 'moneybird' | 'exact' | 'xaf' } => {
     const bron = search['bron']
-    return bron === 'exact' || bron === 'moneybird' ? { bron } : {}
+    return bron === 'exact' || bron === 'moneybird' || bron === 'xaf' ? { bron } : {}
   },
   loader: async () => ({
     connection: await getMoneybirdConnection(),
@@ -182,7 +189,9 @@ function ImportWizardPage() {
   const [source, setSource] = useState<ImportWizardSource | null>(
     () =>
       (saved?.source as ImportWizardSource | null) ??
-      (bronParam === 'moneybird' || bronParam === 'exact' ? bronParam : null),
+      (bronParam === 'moneybird' || bronParam === 'exact' || bronParam === 'xaf'
+        ? bronParam
+        : null),
   )
   const [showResume, setShowResume] = useState(resuming)
   const [busy, setBusy] = useState(false)
@@ -412,6 +421,11 @@ function ImportWizardPage() {
   )
   const excludedRateIds = rebuiltExcluded.rateIds
   const excludedByRate = rebuiltExcluded.byRate
+  const firstOpenRateId =
+    usedRates.find(
+      (rate) => !taxMappings[rate.moneybirdId] && !excludedRateIds.has(rate.moneybirdId),
+    )?.moneybirdId ?? null
+  const lastExcludedRateId = [...excludedRateIds].at(-1) ?? null
 
   const blockingProblems = problems.filter((problem) => {
     if (problem.code === 'tax_code_not_in_force') {
@@ -711,6 +725,7 @@ function ImportWizardPage() {
   const nextReason = (() => {
     if (canNext) return null
     if (step === 'bron' && source === 'exact') return t('wizard.status.exactBlocked')
+    if (step === 'bron' && source === 'xaf') return null
     if (step === 'bron') return t('wizard.status.pickSource')
     if (step === 'verbinden') return t('wizard.status.pasteToken')
     if (step === 'administratie') return t('wizard.status.needAdmin')
@@ -859,6 +874,12 @@ function ImportWizardPage() {
       if (disconnectOpen || restartOpen || importConfirmOpen || sheetRateId !== null) {
         if (event.key === 'Escape') return
       }
+      if (event.key === 'Escape' && step === 'importeren' && failureKind === 'failed') {
+        if (isTypingInto(event.target)) return
+        event.preventDefault()
+        void goTo('problemen')
+        return
+      }
       if (event.key === 'Escape' && !isTerminalStep(step)) {
         const target = event.target
         if (
@@ -878,8 +899,55 @@ function ImportWizardPage() {
       }
       if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault()
+        if (step === 'importeren' && stoppedImportAction(failureKind) !== null) {
+          void startImport()
+          return
+        }
         void handleNext()
         return
+      }
+      if (!isTypingInto(event.target) && step === 'bron' && !showResume) {
+        const picked =
+          event.key === '1'
+            ? 'moneybird'
+            : event.key === '2'
+              ? 'exact'
+              : event.key === '3'
+                ? 'xaf'
+                : null
+        if (picked !== null) {
+          event.preventDefault()
+          setSource(picked)
+          void persistWizard({ source: picked, step: 'bron' })
+          void navigate({ search: { bron: picked }, replace: true })
+          return
+        }
+      }
+      if (
+        !isTypingInto(event.target) &&
+        (step === 'btw' || step === 'rekeningen') &&
+        (event.key === '1' || event.key === '2' || event.key === '3')
+      ) {
+        const button = document.querySelector<HTMLButtonElement>(
+          `[data-rate-actions] [data-choice="${event.key}"]`,
+        )
+        if (button !== null) {
+          event.preventDefault()
+          button.click()
+          return
+        }
+      }
+      if (
+        !isTypingInto(event.target) &&
+        (event.key === 'z' || event.key === 'Z') &&
+        step === 'btw'
+      ) {
+        const undo = document.querySelector<HTMLButtonElement>('[data-choice="undo"]')
+        if (undo !== null) {
+          event.preventDefault()
+          undo.click()
+          return
+        }
       }
       if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey) {
         if (!flowShouldAdvanceOnEnter(event)) return
@@ -890,7 +958,17 @@ function ImportWizardPage() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers close over latest state
-  }, [step, canNext, busy, disconnectOpen, restartOpen, importConfirmOpen, sheetRateId])
+  }, [
+    step,
+    canNext,
+    busy,
+    disconnectOpen,
+    restartOpen,
+    importConfirmOpen,
+    sheetRateId,
+    failureKind,
+    showResume,
+  ])
 
   if (!connection.ok) {
     return (
@@ -978,20 +1056,38 @@ function ImportWizardPage() {
     await runPreview()
   }
 
+  const pageTitle =
+    source === 'moneybird' && step !== 'bron'
+      ? t('wizard.page.fromMoneybird')
+      : t('wizard.page.title')
+  const bookedOnStop = bookedCountFromReport(liveRun?.report)
+
   return (
     <div
-      className="mx-auto flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:items-start"
+      className="mx-auto flex w-full min-w-0 max-w-[1100px] flex-col gap-6 overflow-x-clip"
       data-slot="import-wizard"
       aria-labelledby={titleId}
     >
-      <aside className="lg:sticky lg:top-4 lg:w-56 lg:shrink-0">
-        <WizardProgressRail
-          step={step}
-          onJump={(target) => {
-            if (stepIndex(target) <= stepIndex(step)) void goTo(target)
-          }}
-        />
-      </aside>
+      <div className="min-w-0">
+        <h1 id={titleId} className="text-ink text-2xl font-semibold tracking-tight">
+          {pageTitle}
+        </h1>
+        <div className="mt-4 hidden md:block">
+          <WizardProgressRail
+            step={step}
+            onJump={(target) => {
+              if (stepIndex(target) < stepIndex(step)) void goTo(target)
+            }}
+          />
+        </div>
+        <p className="text-ink-2 mt-1 text-[13px] md:hidden">
+          {t('wizard.rail.phone', {
+            title: pageTitle,
+            step: String(railIndex(step) + 1),
+            total: String(IMPORT_RAIL_STEP_COUNT),
+          })}
+        </p>
+      </div>
       <div className="min-w-0 flex-1">
         {/*
           Same Geavanceerd preference as the shell (#44). shadcn Checkbox in a
@@ -1023,7 +1119,12 @@ function ImportWizardPage() {
               intro={
                 showResume
                   ? t('wizard.resume.body', {
-                      source: saved?.source === 'exact' ? 'Exact Online' : 'Moneybird',
+                      source:
+                        saved?.source === 'exact'
+                          ? 'Exact Online'
+                          : saved?.source === 'xaf'
+                            ? 'XAF'
+                            : 'Moneybird',
                     })
                   : t('wizard.bron.intro')
               }
@@ -1098,11 +1199,11 @@ function ImportWizardPage() {
               <div
                 role="radiogroup"
                 aria-label={t('wizard.bron.title')}
-                className="grid gap-3 sm:grid-cols-2"
+                className="flex max-w-md flex-col gap-2.5"
                 onKeyDown={(event) => {
                   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
                   event.preventDefault()
-                  const order = ['moneybird', 'exact'] as const
+                  const order = ['moneybird', 'exact', 'xaf'] as const
                   const current = source === null ? -1 : order.indexOf(source)
                   const delta = event.key === 'ArrowDown' ? 1 : -1
                   const next = order[(current + delta + order.length) % order.length] ?? 'moneybird'
@@ -1117,15 +1218,24 @@ function ImportWizardPage() {
                   [
                     {
                       id: 'moneybird' as const,
+                      key: '1',
                       label: 'Moneybird',
                       scope: t('wizard.bron.moneybird.scope'),
                       notIncluded: t('wizard.bron.moneybird.notIncluded'),
                     },
                     {
                       id: 'exact' as const,
+                      key: '2',
                       label: 'Exact Online',
                       scope: t('wizard.bron.exact.scope'),
                       notIncluded: t('wizard.bron.exact.notIncluded'),
+                    },
+                    {
+                      id: 'xaf' as const,
+                      key: '3',
+                      label: t('wizard.bron.xaf.title'),
+                      scope: t('wizard.bron.xaf.meta'),
+                      notIncluded: '',
                     },
                   ] as const
                 ).map((item) => {
@@ -1140,8 +1250,8 @@ function ImportWizardPage() {
                       disabled={!hydrated}
                       tabIndex={selected || (source === null && item.id === 'moneybird') ? 0 : -1}
                       className={cn(
-                        'border-border flex min-h-11 w-full flex-col items-start border p-4 text-left',
-                        selected && 'bg-muted border-2 border-foreground p-[15px]',
+                        'border-input bg-surface flex min-h-11 w-full items-start gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left',
+                        selected && 'border-ink shadow-[var(--shadow-raised)]',
                       )}
                       onClick={() => {
                         setSource(item.id)
@@ -1149,34 +1259,77 @@ function ImportWizardPage() {
                         void navigate({ search: { bron: item.id }, replace: true })
                       }}
                     >
-                      <span className="font-medium">{item.label}</span>
-                      <span className="text-muted-foreground mt-1 text-sm">{item.scope}</span>
-                      <span className="text-muted-foreground mt-1 text-xs">{item.notIncluded}</span>
+                      <span className="bg-surface-sunken text-ink-2 inline-flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] font-mono text-xs font-semibold">
+                        {item.key}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block font-medium">{item.label}</span>
+                        <span className="text-ink-2 mt-1 block text-sm leading-snug">
+                          {item.scope}
+                        </span>
+                        {item.notIncluded !== '' && (
+                          <span className="text-ink-muted mt-1 block text-xs leading-snug">
+                            {item.notIncluded}
+                          </span>
+                        )}
+                      </span>
                     </button>
                   )
                 })}
               </div>
             )}
+            {!showResume && (
+              <p className="text-ink-muted mt-3 max-w-md text-[13px] leading-relaxed">
+                {t('wizard.bron.honesty')}
+              </p>
+            )}
             {source === 'exact' && !showResume && (
-              <div className="mt-6">
+              <div className="mt-6 max-w-md">
                 <AttentionBlock tone="info" title={t('wizard.bron.exact.deadEnd')}>
-                  <Button asChild variant="outline" className="mt-2 min-h-11 md:min-h-9">
+                  <Button asChild variant="outline" className="mt-2 min-h-11">
                     <Link to="/exact">{t('wizard.bron.exact.openLegacy')}</Link>
                   </Button>
                 </AttentionBlock>
               </div>
             )}
+            {source === 'xaf' && !showResume && (
+              <section className={cn(wizardCardClass, 'mt-6 max-w-lg p-6')}>
+                <h2 className="text-lg font-semibold">{t('wizard.bron.xaf.title')}</h2>
+                <p className="text-ink-2 mt-2 text-sm leading-relaxed">
+                  {t('wizard.bron.xaf.body')}
+                </p>
+                <Button
+                  type="button"
+                  className="mt-4 min-h-11"
+                  onClick={() => {
+                    void persistWizard({ source: 'xaf', step: 'bron' }).then(() => {
+                      void router.navigate({ to: '/audit-file' })
+                    })
+                  }}
+                >
+                  {t('wizard.bron.xaf.open')}
+                </Button>
+              </section>
+            )}
             {!showResume && (
-              <WizardFooter
-                showBack={false}
-                nextLabel={t('wizard.next')}
-                nextDisabled={!hydrated || !canNext}
-                nextReason={nextReason}
-                onNextBlocked={() => {
-                  if (nextReason !== null && nextReason !== '') showToast(nextReason)
-                }}
-                onNext={() => void handleNext()}
-              />
+              <>
+                <WizardFooter
+                  showBack={false}
+                  nextLabel={t('wizard.next')}
+                  nextDisabled={!hydrated || !canNext}
+                  nextReason={nextReason}
+                  onNextBlocked={() => {
+                    if (nextReason !== null && nextReason !== '') showToast(nextReason)
+                  }}
+                  onNext={() => void handleNext()}
+                />
+                <WizardHints
+                  items={[
+                    { keys: ['1', '2', '3'], label: t('wizard.hints.chooseSource') },
+                    { keys: ['⌘', '↵'], label: t('wizard.hints.next') },
+                  ]}
+                />
+              </>
             )}
           </>
         )}
@@ -1199,7 +1352,7 @@ function ImportWizardPage() {
               </div>
             )}
             {connected ? (
-              <div className="border-border border p-4">
+              <div className={cn(wizardCardClass, 'p-5')}>
                 <p className="font-medium">{t('wizard.verbinden.connected')}</p>
                 <p className="text-muted-foreground mt-1 text-sm">
                   {conn?.administrationName ?? 'Moneybird'} — {t('wizard.verbinden.connectedHint')}
@@ -1215,12 +1368,17 @@ function ImportWizardPage() {
               </div>
             ) : (
               <form
-                className="max-w-lg space-y-5"
+                className={cn(wizardCardClass, 'max-w-lg space-y-5 p-6')}
                 onSubmit={(event) => {
                   event.preventDefault()
                   void handleNext()
                 }}
               >
+                <ol className="text-ink-2 list-decimal space-y-1 pl-5 text-sm leading-relaxed">
+                  <li>{t('wizard.verbinden.step1')}</li>
+                  <li>{t('wizard.verbinden.step2')}</li>
+                  <li>{t('wizard.verbinden.step3')}</li>
+                </ol>
                 <label className="block text-sm font-medium">
                   {t('moneybird.apiToken')}
                   <input
@@ -1277,7 +1435,7 @@ function ImportWizardPage() {
             <WizardFooter
               showBack
               onBack={() => void handleBack()}
-              nextLabel={connected ? t('wizard.next') : t('wizard.connect')}
+              nextLabel={connected ? t('wizard.next') : t('wizard.verbinden.checkToken')}
               nextDisabled={
                 connected ? false : !canStoreSecrets || apiToken === '' || busy || tokenRefused
               }
@@ -1297,229 +1455,244 @@ function ImportWizardPage() {
               title={t('wizard.administratie.title')}
               intro={t('wizard.administratie.intro')}
             />
-            <section className="mb-6">
-              <h2 className="mb-2 text-sm font-medium">{t('wizard.administratie.admins')}</h2>
-              <Button
-                type="button"
-                variant="outline"
-                className="mb-3 min-h-11 md:min-h-9"
-                disabled={busy}
-                onClick={() => {
-                  setBusy(true)
-                  void listMoneybirdAdministrations().then((result) => {
-                    setBusy(false)
-                    if (!result.ok) {
-                      setError(result.problem?.detail ?? t('common.unknownError'))
-                      return
-                    }
-                    setAdministrations(
-                      (result.data as { administrations: readonly AdministrationOption[] })
-                        .administrations,
-                    )
-                  })
-                }}
-              >
-                {t('wizard.administratie.fetch')}
-              </Button>
-              {administrations !== null && (
-                <RadioGroup
-                  value={administrationId}
-                  onValueChange={(id) => {
-                    void selectAdministration(id)
+            <div className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-start">
+              <section className="min-w-0 lg:max-w-sm lg:flex-1">
+                <h2 className="mb-2 text-sm font-medium">{t('wizard.administratie.admins')}</h2>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mb-3 min-h-11 md:min-h-9"
+                  disabled={busy}
+                  onClick={() => {
+                    setBusy(true)
+                    void listMoneybirdAdministrations().then((result) => {
+                      setBusy(false)
+                      if (!result.ok) {
+                        setError(result.problem?.detail ?? t('common.unknownError'))
+                        return
+                      }
+                      setAdministrations(
+                        (result.data as { administrations: readonly AdministrationOption[] })
+                          .administrations,
+                      )
+                    })
                   }}
-                  className="border-border divide-y border"
-                  aria-label={t('wizard.administratie.admins')}
                 >
-                  {administrations.map((admin) => {
-                    const monthKey =
-                      admin.fiscalYearStartMonth !== undefined &&
-                      admin.fiscalYearStartMonth !== null &&
-                      admin.fiscalYearStartMonth >= 1 &&
-                      admin.fiscalYearStartMonth <= 12
-                        ? (`wizard.administratie.month.${String(admin.fiscalYearStartMonth)}` as MessageKey)
-                        : null
-                    const docsForAdmin =
-                      administrationId === admin.id && preview !== null ? yearDocuments.length : 0
-                    const monthLabel = monthKey !== null ? t(monthKey) : null
-                    return (
-                      <label
-                        key={admin.id}
-                        className={cn(
-                          'flex min-h-11 cursor-pointer items-start gap-3 px-4 py-3',
-                          administrationId === admin.id ? 'bg-muted' : 'hover:bg-muted',
-                        )}
-                        onClick={() => {
-                          // RadioGroup skips onValueChange when the value is
-                          // already selected — same-admin re-pick must still
-                          // reload Vorige keuze from 0037 / the connection.
-                          if (administrationId === admin.id) void selectAdministration(admin.id)
-                        }}
-                      >
-                        <RadioGroupItem value={admin.id} className="mt-1" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium">{admin.name}</span>
-                          <span className="text-muted-foreground block text-xs tabular-nums">
-                            {monthLabel === null
-                              ? t('wizard.administratie.docsLineUnknown', {
-                                  currency: admin.currency ?? 'EUR',
-                                })
-                              : administrationId === admin.id && preview !== null
-                                ? plural('wizard.administratie.docsLine', docsForAdmin, {
+                  {t('wizard.administratie.fetch')}
+                </Button>
+                {administrations !== null && (
+                  <RadioGroup
+                    value={administrationId}
+                    onValueChange={(id) => {
+                      void selectAdministration(id)
+                    }}
+                    className="divide-line bg-surface divide-y overflow-hidden rounded-[var(--radius-xl)] border border-[var(--line)] shadow-[var(--shadow-paper)]"
+                    aria-label={t('wizard.administratie.admins')}
+                  >
+                    {administrations.map((admin) => {
+                      const monthKey =
+                        admin.fiscalYearStartMonth !== undefined &&
+                        admin.fiscalYearStartMonth !== null &&
+                        admin.fiscalYearStartMonth >= 1 &&
+                        admin.fiscalYearStartMonth <= 12
+                          ? (`wizard.administratie.month.${String(admin.fiscalYearStartMonth)}` as MessageKey)
+                          : null
+                      const docsForAdmin =
+                        administrationId === admin.id && preview !== null ? yearDocuments.length : 0
+                      const monthLabel = monthKey !== null ? t(monthKey) : null
+                      return (
+                        <label
+                          key={admin.id}
+                          className={cn(
+                            'flex min-h-11 cursor-pointer items-start gap-3 px-4 py-3',
+                            administrationId === admin.id ? 'bg-muted' : 'hover:bg-muted',
+                          )}
+                          onClick={() => {
+                            // RadioGroup skips onValueChange when the value is
+                            // already selected — same-admin re-pick must still
+                            // reload Vorige keuze from 0037 / the connection.
+                            if (administrationId === admin.id) void selectAdministration(admin.id)
+                          }}
+                        >
+                          <RadioGroupItem value={admin.id} className="mt-1" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-medium">{admin.name}</span>
+                            <span className="text-muted-foreground block text-xs tabular-nums">
+                              {monthLabel === null
+                                ? t('wizard.administratie.docsLineUnknown', {
                                     currency: admin.currency ?? 'EUR',
-                                    month: monthLabel,
-                                    count: String(docsForAdmin),
                                   })
-                                : t('wizard.administratie.docsLine_zero', {
-                                    currency: admin.currency ?? 'EUR',
-                                    month: monthLabel,
-                                    count: '0',
-                                  })}
-                            {advanced ? ` · ${admin.id}` : ''}
+                                : administrationId === admin.id && preview !== null
+                                  ? plural('wizard.administratie.docsLine', docsForAdmin, {
+                                      currency: admin.currency ?? 'EUR',
+                                      month: monthLabel,
+                                      count: String(docsForAdmin),
+                                    })
+                                  : t('wizard.administratie.docsLine_zero', {
+                                      currency: admin.currency ?? 'EUR',
+                                      month: monthLabel,
+                                      count: '0',
+                                    })}
+                              {advanced ? ` · ${admin.id}` : ''}
+                            </span>
                           </span>
-                        </span>
-                      </label>
-                    )
-                  })}
-                </RadioGroup>
-              )}
-            </section>
-            {(previewYears.length > 0 || selectedYears.length > 0) && (
-              <section className="mb-6">
-                <h2 className="mb-2 text-sm font-medium">{t('wizard.administratie.years')}</h2>
-                <div className="border-border overflow-x-auto border">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-muted text-muted-foreground text-xs">
-                      <tr>
-                        <th className="w-10 py-2 pl-4">
-                          <span className="sr-only">{t('wizard.overzicht.transfer')}</span>
-                        </th>
-                        <th className="py-2 pr-3 font-medium">{t('wizard.administratie.years')}</th>
-                        <th className="py-2 pr-3 text-right font-medium">
-                          {t('wizard.administratie.docs')}
-                        </th>
-                        <th className="py-2 pr-4 font-medium">
-                          {t('wizard.administratie.inKlopt')}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(previewYears.length > 0 ? previewYears : selectedYears).map((year) => {
-                        const docs = yearDocuments.filter((doc) => String(doc.year) === year).length
-                        const nif = notInForceByYear.get(year)
-                        const closed = lockedYears.has(year)
-                        const checked = !closed && selectedYears.includes(year)
-                        const warnId = `year-warn-${year}`
-                        const helpId = `year-help-${year}`
-                        const emptyRates = usedRates.filter(
-                          (rate) => (rate.candidates ?? []).length === 0,
-                        )
-                        const noFitCount =
-                          emptyRates.length === 0
-                            ? 0
-                            : yearDocuments.filter(
-                                (doc) =>
-                                  String(doc.year) === year &&
-                                  emptyRates.some((rate) =>
-                                    docsForRate(rate.moneybirdId).includes(doc.externalId),
-                                  ),
-                              ).length
-                        const nifCodes = nif !== undefined ? [...nif.codes] : []
-                        const earliestCode =
-                          nifCodes
-                            .map((code) => ({
-                              code,
-                              iso: taxCodeValidFromIso.get(code),
-                            }))
-                            .filter(
-                              (row): row is { code: string; iso: string } => row.iso !== undefined,
-                            )
-                            .sort((a, b) => a.iso.localeCompare(b.iso))[0] ?? null
-                        const validFrom =
-                          earliestCode !== null
-                            ? (taxCodeValidFromLabel.get(earliestCode.code) ??
-                              (() => {
-                                const [y, m, d] = earliestCode.iso.split('-')
-                                return y && m && d ? `${d}-${m}-${y}` : earliestCode.iso
-                              })())
-                            : `01-01-${year}`
-                        return (
-                          <tr key={year} className="border-border border-t align-top">
-                            <td className="px-4 py-3">
-                              <Checkbox
-                                checked={checked}
-                                disabled={closed}
-                                aria-label={year}
-                                aria-describedby={
-                                  nif !== undefined && nif.count > 0
-                                    ? `${warnId} ${helpId}`
-                                    : undefined
-                                }
-                                onCheckedChange={(value) => {
-                                  if (closed) return
-                                  const on = value === true
-                                  setSelectedYears((current) =>
-                                    on
-                                      ? [...new Set([...current, year])]
-                                      : current.filter((item) => item !== year),
-                                  )
-                                }}
-                              />
-                            </td>
-                            <td className="py-3 pr-3 align-top">
-                              <span
-                                className={cn(
-                                  'font-medium tabular-nums',
-                                  nif !== undefined && nif.count > 0 && 'text-destructive',
+                        </label>
+                      )
+                    })}
+                  </RadioGroup>
+                )}
+              </section>
+              {(previewYears.length > 0 || selectedYears.length > 0) && (
+                <section className={cn(wizardCardClass, 'min-w-0 flex-1 overflow-hidden')}>
+                  <h2 className="px-4 pt-4 pb-2 text-sm font-medium">
+                    {t('wizard.administratie.years')}
+                  </h2>
+                  <div className="max-w-full overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-muted text-muted-foreground text-xs">
+                        <tr>
+                          <th className="w-10 py-2 pl-4">
+                            <span className="sr-only">{t('wizard.overzicht.transfer')}</span>
+                          </th>
+                          <th className="py-2 pr-3 font-medium">
+                            {t('wizard.administratie.years')}
+                          </th>
+                          <th className="py-2 pr-3 text-right font-medium">
+                            {t('wizard.administratie.docs')}
+                          </th>
+                          <th className="py-2 pr-4 font-medium">
+                            {t('wizard.administratie.inKlopt')}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(previewYears.length > 0 ? previewYears : selectedYears).map((year) => {
+                          const docs = yearDocuments.filter(
+                            (doc) => String(doc.year) === year,
+                          ).length
+                          const nif = notInForceByYear.get(year)
+                          const closed = lockedYears.has(year)
+                          const checked = !closed && selectedYears.includes(year)
+                          const warnId = `year-warn-${year}`
+                          const helpId = `year-help-${year}`
+                          const emptyRates = usedRates.filter(
+                            (rate) => (rate.candidates ?? []).length === 0,
+                          )
+                          const noFitCount =
+                            emptyRates.length === 0
+                              ? 0
+                              : yearDocuments.filter(
+                                  (doc) =>
+                                    String(doc.year) === year &&
+                                    emptyRates.some((rate) =>
+                                      docsForRate(rate.moneybirdId).includes(doc.externalId),
+                                    ),
+                                ).length
+                          const nifCodes = nif !== undefined ? [...nif.codes] : []
+                          const earliestCode =
+                            nifCodes
+                              .map((code) => ({
+                                code,
+                                iso: taxCodeValidFromIso.get(code),
+                              }))
+                              .filter(
+                                (row): row is { code: string; iso: string } =>
+                                  row.iso !== undefined,
+                              )
+                              .sort((a, b) => a.iso.localeCompare(b.iso))[0] ?? null
+                          const validFrom =
+                            earliestCode !== null
+                              ? (taxCodeValidFromLabel.get(earliestCode.code) ??
+                                (() => {
+                                  const [y, m, d] = earliestCode.iso.split('-')
+                                  return y && m && d ? `${d}-${m}-${y}` : earliestCode.iso
+                                })())
+                              : `01-01-${year}`
+                          return (
+                            <tr key={year} className="border-border border-t align-top">
+                              <td className="px-4 py-3">
+                                <Checkbox
+                                  checked={checked}
+                                  disabled={closed}
+                                  aria-label={year}
+                                  aria-describedby={
+                                    nif !== undefined && nif.count > 0
+                                      ? `${warnId} ${helpId}`
+                                      : undefined
+                                  }
+                                  onCheckedChange={(value) => {
+                                    if (closed) return
+                                    const on = value === true
+                                    setSelectedYears((current) =>
+                                      on
+                                        ? [...new Set([...current, year])]
+                                        : current.filter((item) => item !== year),
+                                    )
+                                  }}
+                                />
+                              </td>
+                              <td className="py-3 pr-3 align-top">
+                                <span
+                                  className={cn(
+                                    'font-medium tabular-nums',
+                                    nif !== undefined && nif.count > 0 && 'text-destructive',
+                                  )}
+                                >
+                                  {year}
+                                </span>
+                                {nif !== undefined && nif.count > 0 && (
+                                  <div className="mt-2">
+                                    {checked && (
+                                      <Badge variant="destructive">
+                                        {t('wizard.year.blocksImport')}
+                                      </Badge>
+                                    )}
+                                    <p
+                                      id={warnId}
+                                      className="text-destructive mt-1 text-xs font-medium"
+                                    >
+                                      {plural('wizard.year.notInForce', nif.count, {
+                                        year,
+                                        count: String(nif.count),
+                                      })}
+                                    </p>
+                                    <p id={helpId} className="text-muted-foreground mt-0.5 text-xs">
+                                      {t('wizard.year.notInForceHelp', { validFrom, year })}
+                                    </p>
+                                  </div>
                                 )}
-                              >
-                                {year}
-                              </span>
-                              {nif !== undefined && nif.count > 0 && (
-                                <div className="mt-2">
-                                  <Badge variant="destructive">{t('findingCard.blocking')}</Badge>
-                                  <p
-                                    id={warnId}
-                                    className="text-destructive mt-1 text-xs font-medium"
-                                  >
-                                    {plural('wizard.year.notInForce', nif.count, {
-                                      year,
-                                      count: String(nif.count),
+                                {noFitCount > 0 && (
+                                  <p className="text-unreconciled mt-2 text-xs">
+                                    {plural('wizard.year.noFittingCode', noFitCount, {
+                                      count: String(noFitCount),
                                     })}
                                   </p>
-                                  <p id={helpId} className="text-muted-foreground mt-0.5 text-xs">
-                                    {t('wizard.year.notInForceHelp', { validFrom, year })}
+                                )}
+                              </td>
+                              <td className="py-3 pr-3 text-right align-top tabular-nums">
+                                {docs}
+                              </td>
+                              <td className="py-3 pr-4 align-top">
+                                <span className="block">
+                                  {closed
+                                    ? t('wizard.administratie.closed')
+                                    : t('wizard.administratie.open')}
+                                </span>
+                                {closed && (
+                                  <p className="text-muted-foreground mt-1 text-xs">
+                                    {t('wizard.administratie.closedHint')}
                                   </p>
-                                </div>
-                              )}
-                              {noFitCount > 0 && (
-                                <p className="text-unreconciled mt-2 text-xs">
-                                  {plural('wizard.year.noFittingCode', noFitCount, {
-                                    count: String(noFitCount),
-                                  })}
-                                </p>
-                              )}
-                            </td>
-                            <td className="py-3 pr-3 text-right align-top tabular-nums">{docs}</td>
-                            <td className="py-3 pr-4 align-top">
-                              <span className="block">
-                                {closed
-                                  ? t('wizard.administratie.closed')
-                                  : t('wizard.administratie.open')}
-                              </span>
-                              {closed && (
-                                <p className="text-muted-foreground mt-1 text-xs">
-                                  {t('wizard.administratie.closedHint')}
-                                </p>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+            </div>
             <WizardFooter
               showBack
               onBack={() => void handleBack()}
@@ -1542,11 +1715,11 @@ function ImportWizardPage() {
               title={t('wizard.voorbeeld.title')}
               intro={t('wizard.voorbeeld.intro')}
             />
-            <div className="mb-4 flex flex-wrap gap-2">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
               <Button
                 type="button"
                 variant="outline"
-                className="min-h-11 md:min-h-9"
+                className="min-h-11"
                 disabled={busy}
                 onClick={() => void runPreview()}
               >
@@ -1554,7 +1727,26 @@ function ImportWizardPage() {
               </Button>
             </div>
             {preview !== null && (
-              <dl className="border-border grid gap-2 border p-4 text-sm sm:grid-cols-2">
+              <div className="mb-4 grid grid-cols-1 gap-3 min-[480px]:grid-cols-3">
+                <WizardStat
+                  label={t('wizard.preview.comesOver')}
+                  value={String(transferCount)}
+                  meta={t('wizard.preview.comesMeta')}
+                />
+                <WizardStat
+                  label={t('wizard.overzicht.alreadyInKlopt')}
+                  value={String(alreadyInKlopt.count)}
+                  meta={t('wizard.preview.alreadyMeta')}
+                />
+                <WizardStat
+                  label={t('wizard.overzicht.notTransferred')}
+                  value={String(excluded.length)}
+                  meta={t('wizard.preview.skipMeta')}
+                />
+              </div>
+            )}
+            {preview !== null && (
+              <dl className={cn(wizardCardClass, 'grid gap-2 p-4 text-sm sm:grid-cols-2')}>
                 {(
                   [
                     ['salesInvoices', 'moneybird.salesInvoices'],
@@ -1620,8 +1812,9 @@ function ImportWizardPage() {
                 return (
                   <li key={rate.moneybirdId}>
                     <article
+                      {...(rate.moneybirdId === firstOpenRateId ? { 'data-rate-actions': '' } : {})}
                       className={cn(
-                        'border-border border border-l-4 bg-card p-4 md:p-5',
+                        'border-line bg-surface rounded-[var(--radius-xl)] border border-l-4 p-4 shadow-[var(--shadow-paper)] md:p-5',
                         excluded
                           ? 'border-l-[var(--border)]'
                           : empty || confirmed === undefined
@@ -1666,7 +1859,10 @@ function ImportWizardPage() {
                           <Button
                             type="button"
                             variant="outline"
-                            className="mt-3 min-h-11 md:min-h-9"
+                            className="mt-3 min-h-11"
+                            {...(rate.moneybirdId === lastExcludedRateId
+                              ? { 'data-choice': 'undo' }
+                              : {})}
                             onClick={() => void undoExcludeRate(rate.moneybirdId)}
                           >
                             {t('wizard.btw.excludeUndo')}
@@ -1721,7 +1917,8 @@ function ImportWizardPage() {
                               <Button
                                 type="button"
                                 variant="outline"
-                                className="min-h-11 md:min-h-9"
+                                className="min-h-11"
+                                data-choice="3"
                                 onClick={() => void excludeRate(rate.moneybirdId)}
                               >
                                 {plural(
@@ -1755,7 +1952,8 @@ function ImportWizardPage() {
                             <Button
                               type="button"
                               variant="outline"
-                              className="min-h-11 md:min-h-9"
+                              className="min-h-11"
+                              data-choice="1"
                               onClick={() =>
                                 void confirmTaxMappingPatch({ [rate.moneybirdId]: previous })
                               }
@@ -1765,7 +1963,8 @@ function ImportWizardPage() {
                             <Button
                               type="button"
                               variant="ghost"
-                              className="min-h-11 md:min-h-9"
+                              className="min-h-11"
+                              data-choice="2"
                               onClick={() => setSheetRateId(rate.moneybirdId)}
                             >
                               {t('wizard.btw.chooseOther')}
@@ -1787,7 +1986,8 @@ function ImportWizardPage() {
                             <Button
                               type="button"
                               variant="outline"
-                              className="min-h-11 md:min-h-9"
+                              className="min-h-11"
+                              data-choice="1"
                               onClick={() =>
                                 void confirmTaxMappingPatch({
                                   [rate.moneybirdId]: rate.proposedCode!,
@@ -1799,7 +1999,8 @@ function ImportWizardPage() {
                             <Button
                               type="button"
                               variant="ghost"
-                              className="min-h-11 md:min-h-9"
+                              className="min-h-11"
+                              data-choice="2"
                               onClick={() => setSheetRateId(rate.moneybirdId)}
                             >
                               {t('wizard.btw.chooseOther')}
@@ -1811,7 +2012,8 @@ function ImportWizardPage() {
                           <Button
                             type="button"
                             variant="outline"
-                            className="min-h-11 md:min-h-9"
+                            className="min-h-11"
+                            data-choice="1"
                             onClick={() => setSheetRateId(rate.moneybirdId)}
                           >
                             {t('wizard.btw.chooseCode')}
@@ -1851,6 +2053,13 @@ function ImportWizardPage() {
                 if (nextReason !== null && nextReason !== '') showToast(nextReason)
               }}
               onNext={() => void handleNext()}
+            />
+            <WizardHints
+              items={[
+                { keys: ['1', '2', '3'], label: t('wizard.hints.chooseFix') },
+                { keys: ['Z'], label: t('wizard.hints.undo') },
+                { keys: ['⌘', '↵'], label: t('wizard.hints.next') },
+              ]}
             />
           </>
         )}
@@ -1957,6 +2166,31 @@ function ImportWizardPage() {
               title={t('wizard.problemen.title')}
               intro={t('wizard.problemen.intro')}
             />
+            <div className="mb-4 grid grid-cols-1 gap-3 min-[480px]:grid-cols-3">
+              <WizardStat
+                label={t('wizard.problemen.mustFix')}
+                value={String(groupNotInForce(problems).length + otherBlockingCards.length)}
+                meta={t('wizard.problemen.mustMeta')}
+                valueClassName="text-destructive"
+              />
+              <WizardStat
+                label={t('wizard.problemen.worth')}
+                value={String(infoCards.length)}
+                meta={t('wizard.problemen.worthMeta')}
+              />
+              <WizardStat
+                label={t('wizard.problemen.resolved')}
+                value={String(
+                  usedRates.filter(
+                    (rate) =>
+                      Boolean(taxMappings[rate.moneybirdId]) ||
+                      excludedRateIds.has(rate.moneybirdId),
+                  ).length,
+                )}
+                meta={t('wizard.problemen.resolvedMeta')}
+                valueClassName="text-success"
+              />
+            </div>
             {groupNotInForce(problems).map((group) => {
               const validFrom = taxCodeValidFromLabel.get(group.code)
               return (
@@ -2100,7 +2334,7 @@ function ImportWizardPage() {
               title={t('wizard.overzicht.title')}
               intro={t('wizard.overzicht.intro')}
             />
-            <dl className="border-border space-y-2 border-y py-4 text-sm">
+            <dl className={cn(wizardCardClass, 'space-y-2 p-5 text-sm')}>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">{t('wizard.overzicht.transfer')}</dt>
                 <dd className="tabular-nums">{String(transferCount)}</dd>
@@ -2228,25 +2462,34 @@ function ImportWizardPage() {
                 tone="error"
                 title={
                   failureKind === 'failedPartial'
-                    ? t('wizard.importeren.failedPartial')
+                    ? plural('wizard.importeren.bookedCount', bookedOnStop, {
+                        count: String(bookedOnStop),
+                      })
                     : t('wizard.importeren.failed')
                 }
               >
                 {failureKind === 'failedPartial' ? (
                   <p>{t('wizard.importeren.failedPartialBody')}</p>
                 ) : null}
-                <Button
-                  type="button"
-                  className="mt-3 min-h-11 md:min-h-9"
-                  onClick={() => void goTo('problemen')}
-                >
-                  {t('wizard.problemen.title')}
-                </Button>
+                {failureKind === 'failedPartial' ? (
+                  <Button asChild variant="outline" className="mt-3 min-h-11">
+                    <Link to="/entries">{t('wizard.klaar.nextEntries')}</Link>
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3 min-h-11"
+                    onClick={() => void goTo('problemen')}
+                  >
+                    {t('wizard.problemen.title')}
+                  </Button>
+                )}
               </AttentionBlock>
             ) : (
               <>
-                <div className="border p-5">
-                  <div className="flex items-baseline justify-between text-sm">
+                <div className={cn(wizardCardClass, 'p-5')}>
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
                     <span className="font-medium">
                       {imported
                         ? t('wizard.status.done')
@@ -2260,9 +2503,16 @@ function ImportWizardPage() {
                     </span>
                     <span className="tabular-nums">{importProgress}%</span>
                   </div>
-                  <div className="bg-border mt-2 h-2">
+                  <div
+                    className="bg-surface-sunken mt-3 h-2 overflow-hidden rounded-[var(--radius-pill)] shadow-[inset_0_0_0_1px_var(--line)]"
+                    role="progressbar"
+                    aria-label={t('wizard.importeren.title')}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={importProgress}
+                  >
                     <div
-                      className="bg-foreground h-2 transition-[width] motion-reduce:transition-none"
+                      className="bg-primary h-2 rounded-[var(--radius-pill)] transition-[width] motion-reduce:transition-none"
                       style={{ width: `${String(importProgress)}%` }}
                     />
                   </div>
@@ -2277,13 +2527,41 @@ function ImportWizardPage() {
             )}
             <WizardFooter
               showBack={false}
-              nextLabel={t('wizard.next')}
-              nextDisabled={!canNext}
-              nextReason={nextReason}
+              note={failureKind === 'failed' ? t('wizard.importeren.nothingToClean') : null}
+              nextLabel={
+                failureKind === 'failedPartial'
+                  ? t('wizard.importeren.transferRest')
+                  : failureKind === 'failed'
+                    ? t('wizard.importeren.tryAgain')
+                    : t('wizard.next')
+              }
+              nextDisabled={failureKind === 'none' ? !canNext : busy}
+              nextReason={failureKind === 'none' ? nextReason : null}
               onNextBlocked={() => {
                 if (nextReason !== null && nextReason !== '') showToast(nextReason)
               }}
-              onNext={() => void handleNext()}
+              onNext={() => {
+                if (failureKind !== 'none') {
+                  void startImport()
+                  return
+                }
+                void handleNext()
+              }}
+            />
+            <WizardHints
+              items={
+                failureKind === 'failedPartial'
+                  ? [
+                      { keys: ['⌘', '↵'], label: t('wizard.hints.transferRest') },
+                      { keys: ['G', 'J'], label: t('wizard.hints.journal') },
+                    ]
+                  : failureKind === 'failed'
+                    ? [
+                        { keys: ['⌘', '↵'], label: t('wizard.hints.tryAgain') },
+                        { keys: ['Esc'], label: t('wizard.hints.back') },
+                      ]
+                    : [{ keys: ['⌘', '↵'], label: t('wizard.hints.next') }]
+              }
             />
           </>
         )}

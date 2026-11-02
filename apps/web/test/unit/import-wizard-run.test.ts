@@ -8,6 +8,7 @@ import {
   klaarFilingBlocked,
   klaarTransferCount,
   rebuildExcludedRates,
+  stoppedImportAction,
 } from '../../src/lib/import-wizard-run.js'
 
 describe('import wizard run helpers (#105 Legal/PM)', () => {
@@ -45,6 +46,12 @@ describe('import wizard run helpers (#105 Legal/PM)', () => {
     expect(klaarTransferCount({ entriesPosted: 1, opening: { year: 2026 } })).toBe(0)
     // Opening alone is still booked for failedPartial detection.
     expect(bookedCountFromReport({ entriesPosted: 0, openingEntriesPosted: 1 })).toBeGreaterThan(0)
+  })
+
+  it('picks Try again or Transfer the rest for the two stopped screens (#134)', () => {
+    expect(stoppedImportAction('failed')).toBe('try-again')
+    expect(stoppedImportAction('failedPartial')).toBe('transfer-rest')
+    expect(stoppedImportAction('none')).toBeNull()
   })
 
   it('marks importeren chrome stopped for failed and failedPartial', () => {

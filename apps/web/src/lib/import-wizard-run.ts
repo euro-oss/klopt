@@ -148,6 +148,18 @@ export function importerenStoppedChrome(failureKind: ImportFailureKind): {
   }
 }
 
+/**
+ * Step 6 stopped actions (#134, ImportStopped / ImportStoppedPartial).
+ * Nothing booked: one Try again. Partly booked: Transfer the rest.
+ */
+export function stoppedImportAction(
+  failureKind: ImportFailureKind,
+): 'try-again' | 'transfer-rest' | null {
+  if (failureKind === 'failed') return 'try-again'
+  if (failureKind === 'failedPartial') return 'transfer-rest'
+  return null
+}
+
 export function isImportRunDone(status: ImportRunStatusView | null | undefined): boolean {
   return status?.state === 'done'
 }

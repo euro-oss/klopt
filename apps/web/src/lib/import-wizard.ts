@@ -22,7 +22,45 @@ export const IMPORT_WIZARD_STEPS = [
 
 export type ImportWizardStep = (typeof IMPORT_WIZARD_STEPS)[number]
 
-export type ImportWizardSource = 'moneybird' | 'exact'
+export type ImportWizardSource = 'moneybird' | 'exact' | 'xaf'
+
+/**
+ * Six-step rail from the v2 export (#134). Internal step ids stay the #105
+ * ten-step machine; the rail only groups them for the stepper.
+ */
+export const IMPORT_RAIL_IDS = [
+  'source',
+  'connect',
+  'years',
+  'preview',
+  'problems',
+  'import',
+] as const
+
+export type ImportRailId = (typeof IMPORT_RAIL_IDS)[number]
+
+const RAIL_STEPS: Record<ImportRailId, readonly ImportWizardStep[]> = {
+  source: ['bron'],
+  connect: ['verbinden'],
+  years: ['administratie'],
+  preview: ['voorbeeld'],
+  problems: ['btw', 'rekeningen', 'problemen'],
+  import: ['overzicht', 'importeren', 'klaar'],
+}
+
+export const IMPORT_RAIL_STEP_COUNT = IMPORT_RAIL_IDS.length
+
+export function railIndex(step: ImportWizardStep): number {
+  const index = IMPORT_RAIL_IDS.findIndex((id) => RAIL_STEPS[id].includes(step))
+  return index === -1 ? 0 : index
+}
+
+/** First internal step of a rail entry — used when jumping back. */
+export function railEntryStep(index: number): ImportWizardStep | null {
+  const id = IMPORT_RAIL_IDS[index]
+  if (id === undefined) return null
+  return RAIL_STEPS[id][0] ?? null
+}
 
 export const IMPORT_WIZARD_STEP_COUNT = IMPORT_WIZARD_STEPS.length
 
@@ -67,6 +105,8 @@ export function isTerminalStep(step: ImportWizardStep): boolean {
 }
 
 export function canAdvanceFromBron(source: ImportWizardSource | null): boolean {
+  // Exact is still a dead-end (#100). XAF leaves this wizard for the audit-file
+  // dry run, so Volgende stays off.
   return source === 'moneybird'
 }
 

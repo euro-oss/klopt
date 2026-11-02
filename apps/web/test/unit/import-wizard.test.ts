@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  IMPORT_RAIL_STEP_COUNT,
   IMPORT_WIZARD_STEPS,
   canAdvanceFromAdministratie,
   canAdvanceFromBron,
@@ -12,6 +13,8 @@ import {
   isTerminalStep,
   nextStep,
   prevStep,
+  railEntryStep,
+  railIndex,
   stepIndex,
 } from '../../src/lib/import-wizard.js'
 
@@ -49,6 +52,7 @@ describe('import wizard steps (#100)', () => {
   it('gates advance with pure helpers', () => {
     expect(canAdvanceFromBron(null)).toBe(false)
     expect(canAdvanceFromBron('exact')).toBe(false)
+    expect(canAdvanceFromBron('xaf')).toBe(false)
     expect(canAdvanceFromBron('moneybird')).toBe(true)
     expect(canAdvanceFromVerbinden(false)).toBe(false)
     expect(canAdvanceFromVerbinden(true)).toBe(true)
@@ -77,6 +81,24 @@ describe('import wizard steps (#100)', () => {
     ).toBe(false)
     expect(canAdvanceFromProblemen(2)).toBe(false)
     expect(canAdvanceFromProblemen(0)).toBe(true)
+  })
+
+  it('groups the ten steps onto the six-step rail (#134)', () => {
+    expect(IMPORT_RAIL_STEP_COUNT).toBe(6)
+    expect(railIndex('bron')).toBe(0)
+    expect(railIndex('verbinden')).toBe(1)
+    expect(railIndex('administratie')).toBe(2)
+    expect(railIndex('voorbeeld')).toBe(3)
+    expect(railIndex('btw')).toBe(4)
+    expect(railIndex('rekeningen')).toBe(4)
+    expect(railIndex('problemen')).toBe(4)
+    expect(railIndex('overzicht')).toBe(5)
+    expect(railIndex('importeren')).toBe(5)
+    expect(railIndex('klaar')).toBe(5)
+    expect(railEntryStep(2)).toBe('administratie')
+    expect(railEntryStep(4)).toBe('btw')
+    expect(railEntryStep(5)).toBe('overzicht')
+    expect(railEntryStep(6)).toBeNull()
   })
 
   it('computes excluded years from selection', () => {
