@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Inbox (dark)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#148). Dark 1440: Hidde's Inbox with theme="dark", the same way
+  HomeDark wraps Main. His markup holds up in dark once the control border token is fixed (the
+  VatDark override), so it is a thin wrapper, not a copy. Key hints in the dark primary button are
+  outlined in --on-primary. Self-hosted fonts. Copy is Hidde's; its links go to his light boards.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:#111113}
+.k-root[data-theme="dark"]{--line-control:var(--ink-muted)}
+.k-root[data-theme="dark"] .k-btn--primary .k-kbd--on-primary{border-color:var(--on-primary)}
+</style>
+</helmet>
+<div style="min-height: 960px; background: #111113;">
+  <dc-import name="Inbox" theme="dark" hint-size="100%,960px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
