@@ -157,64 +157,119 @@ function stackMessageBlock(name: unknown, message: unknown): string {
 }
 
 /**
- * A V8 call site, anchored at both ends.
- *
- * The line is `    at` plus an optional `async`, an optional function, and
- * a location: `(path:line:col)`, a bare `path:line:col`, `<anonymous>`, or
- * `native`. A line that only begins with four spaces and `at ` is not a
- * frame. An overwritten stack, a cause chain, or a message replaced after
- * the stack was read can put an IBAN, a name, or a connection string there.
+ * Read one own property. A getter may throw; the 500 handler must not.
  */
-const V8_FRAME = /^ {4}at (?:async )?(?:.* \()?(?:[^\s()]+:\d+:\d+|<anonymous>|native)\)?$/
+function readOwn(value: object, key: 'name' | 'message' | 'stack' | 'cause'): unknown {
+  try {
+    if (key === 'name') return (value as { name?: unknown }).name
+    if (key === 'message') return (value as { message?: unknown }).message
+    if (key === 'stack') return (value as { stack?: unknown }).stack
+    return (value as { cause?: unknown }).cause
+  } catch {
+    return undefined
+  }
+}
 
 /**
- * Stack frames only.
+ * The location half of a V8 frame, or null when the line is not one.
  *
- * Strip the `name: message` block before keeping frames, so a message line
- * that itself starts with four spaces and `at ` is never logged. A driver
- * message can quote a row there: an IBAN, a name, a connection string.
- * What remains is kept only when it is a real V8 location. Lines that are
- * the message itself are dropped too, in case the block did not match.
+ * The function name is dropped. What remains must be `path:line:col`
+ * (a `node:` path is that shape), `native`, or `<anonymous>`. `@` and
+ * `scheme://user:pass@host` userinfo are not locations.
+ */
+function frameLocation(line: string): string | null {
+  if (!line.startsWith('    at ')) return null
+  let rest = line.slice('    at '.length)
+  if (rest.startsWith('async ')) rest = rest.slice('async '.length)
+  const wrappedAt = rest.lastIndexOf(' (')
+  const location = wrappedAt !== -1 && rest.endsWith(')') ? rest.slice(wrappedAt + 2, -1) : rest
+  if (location === 'native' || location === '<anonymous>') return location
+  if (location.includes('@')) return null
+  if (/[a-z][a-z0-9+.-]*:\/\/[^/\s:@]+:[^/\s@]+@/i.test(location)) return null
+  if (!/^[^\s()@]+:\d+:\d+$/.test(location)) return null
+  return location
+}
+
+/**
+ * Locations from one stack string.
+ *
+ * The leading `name: message` block is removed first, including when the
+ * message is several lines. Lines that are the message itself are dropped
+ * too, for a stack that was overwritten or whose message was replaced after
+ * the stack was read.
+ */
+function locationsFromStack(stack: string, name: unknown, message: unknown): string[] {
+  const block = stackMessageBlock(name, message)
+  let trace = block.length > 0 && stack.startsWith(block) ? stack.slice(block.length) : stack
+  if (typeof message === 'string' && message.length > 0) {
+    const hidden = new Set(message.split('\n'))
+    trace = trace
+      .split('\n')
+      .filter((line) => !hidden.has(line))
+      .join('\n')
+  }
+  const locations: string[] = []
+  for (const line of trace.split('\n')) {
+    const location = frameLocation(line)
+    if (location !== null) locations.push(`    at ${location}`)
+  }
+  return locations
+}
+
+/**
+ * Locations from a cause chain. The cause message is not logged. A throwing
+ * getter, or a cycle, stops the walk.
+ */
+function causeLocations(cause: unknown, seen: Set<object>): string[] {
+  if (typeof cause !== 'object' || cause === null || seen.has(cause)) return []
+  if (seen.size > 8) return []
+  seen.add(cause)
+  const stack = readOwn(cause, 'stack')
+  const name = readOwn(cause, 'name')
+  const message = readOwn(cause, 'message')
+  const next = readOwn(cause, 'cause')
+  const own = typeof stack === 'string' ? locationsFromStack(stack, name, message) : []
+  return [...own, ...causeLocations(next, seen)]
+}
+
+/**
+ * Stack locations only.
  *
  * `stack` is not always a string. It may be missing, or an object. Then
- * there are no frames, and reading it must not throw. A thrown value that
- * is not an Error never reaches this function.
+ * there are no frames. A thrown value that is not an Error never reaches
+ * this function.
  */
 function stackFrames(error: Error): string {
-  try {
-    const stack = error.stack
-    if (typeof stack !== 'string') return '(no stack)'
-
-    const name: unknown = error.name
-    const message: unknown = error.message
-    const block = stackMessageBlock(name, message)
-    let trace = block.length > 0 && stack.startsWith(block) ? stack.slice(block.length) : stack
-    if (typeof message === 'string' && message.length > 0) {
-      const hidden = new Set(message.split('\n'))
-      trace = trace
-        .split('\n')
-        .filter((line) => !hidden.has(line))
-        .join('\n')
-    }
-
-    const frames = trace.split('\n').filter((line) => V8_FRAME.test(line))
-    return frames.length === 0 ? '(no stack)' : frames.join('\n')
-  } catch {
-    return '(no stack)'
-  }
+  const stack = readOwn(error, 'stack')
+  const name = readOwn(error, 'name')
+  const message = readOwn(error, 'message')
+  const cause = readOwn(error, 'cause')
+  if (typeof stack !== 'string') return '(no stack)'
+  const lines = [
+    ...locationsFromStack(stack, name, message),
+    ...causeLocations(cause, new Set<object>([error])),
+  ]
+  return lines.length === 0 ? '(no stack)' : lines.join('\n')
 }
 
 /**
  * What may be written next to the request id.
  *
- * `name` is caller-controlled on a thrown value. An identifier is a class
- * of error. Anything else — an IBAN, a person, a connection string — is
- * logged as `Error`.
+ * Only a class-shaped name ending in `Error` or `Exception`. Anything else
+ * is logged as `Error`.
  */
-const ERROR_NAME = /^[A-Za-z_$][\w$]{0,63}$/
+const ERROR_NAME = /^[A-Z][A-Za-z0-9]*(Error|Exception)$/
 
 function loggedErrorName(name: unknown): string {
   return typeof name === 'string' && ERROR_NAME.test(name) ? name : 'Error'
+}
+
+/**
+ * IBAN-shaped token, spaces optional. Applied to every string we log.
+ * Country code, two check digits, then 11–30 alphanumerics.
+ */
+function redactIbans(text: string): string {
+  return text.replace(/\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]){11,30}\b/g, '[iban]')
 }
 
 /**
@@ -225,12 +280,21 @@ function loggedErrorName(name: unknown): string {
  * value that is not an Error — that value may be a request body.
  */
 function logUnknownInternalError(error: unknown, requestId: string | null): void {
-  const request = requestId ?? '(no request id)'
-  if (error instanceof Error) {
-    console.error('[api] internal_error', request, loggedErrorName(error.name), stackFrames(error))
+  const request = redactIbans(requestId ?? '(no request id)')
+  if (!(error instanceof Error)) {
+    console.error('[api] internal_error', request, `(no stack, thrown ${typeof error})`)
     return
   }
-  console.error('[api] internal_error', request, `(no stack, thrown ${typeof error})`)
+  let name: string
+  let frames: string
+  try {
+    name = redactIbans(loggedErrorName(readOwn(error, 'name')))
+    frames = redactIbans(stackFrames(error))
+  } catch {
+    name = 'Error'
+    frames = '(no stack)'
+  }
+  console.error('[api] internal_error', request, name, frames)
 }
 
 export function problemResponse(error: unknown, requestId: string | null): Response {

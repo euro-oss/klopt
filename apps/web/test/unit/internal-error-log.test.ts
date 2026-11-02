@@ -244,6 +244,8 @@ describe('unknown internal errors', () => {
   it('logs Error when error.name is not an identifier', () => {
     const badNames = [
       'Sanne Bakker',
+      'Jan Jansen',
+      'NL02INGB0999999999',
       'postgres://u:s3cr3t@h/db',
       'TypeError NL02INGB0999999999',
       '123Boom',
@@ -264,6 +266,8 @@ describe('unknown internal errors', () => {
         .map((part) => String(part))
         .join('\n')
       assertPlantedAbsent(logged)
+      expect(logged).not.toContain('Jan Jansen')
+      expect(logged).not.toContain('NL02INGB0999999999')
       expect(logged).toContain('[api] internal_error')
       expect(logged).toContain('req-name')
       spy.mockRestore()
@@ -274,5 +278,157 @@ describe('unknown internal errors', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     problemResponse(error, 'req-name-ok')
     expect(spy.mock.calls[0]?.[2]).toBe('PostgresError')
+  })
+
+  const userinfoFrame = '    at foo (postgres://u:pw@h:5432/x:1:2)'
+  const ibanFrame = '    at NL91ABNA0417164300:1:2'
+  const personFrame = '    at Jan Jansen NL91ABNA0417164300 (/app/x.js:1:2)'
+
+  function assertShapeSecretsAbsent(logged: string): void {
+    expect(logged).not.toContain('postgres://u:pw@h:5432/x')
+    expect(logged).not.toContain('u:pw')
+    expect(logged).not.toContain('NL91ABNA0417164300')
+    expect(logged).not.toContain('NL91 ABNA 0417 1643 00')
+    expect(logged).not.toContain('Jan Jansen')
+    expect(logged).not.toContain('foo (postgres')
+  }
+
+  it('drops a userinfo location instead of logging the function name', () => {
+    const error = new Error('plain failure')
+    error.stack = `${error.stack ?? ''}\n${userinfoFrame}`
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = problemResponse(error, 'req-userinfo')
+
+    expect(response.status).toBe(500)
+    const logged = spy.mock.calls
+      .flat()
+      .map((part) => String(part))
+      .join('\n')
+    assertShapeSecretsAbsent(logged)
+    expect(logged).toContain('    at ')
+    expect(logged).not.toContain('ModuleJob.run')
+  })
+
+  it('redacts an account-number token used as a path:line:col location', () => {
+    const error = new Error('plain failure')
+    error.stack = `${error.stack ?? ''}\n${ibanFrame}\n    at /files/NL20INGB0001234567/app.js:4:5`
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    problemResponse(error, 'NL20 INGB 0001 2345 67')
+
+    const logged = spy.mock.calls
+      .flat()
+      .map((part) => String(part))
+      .join('\n')
+    assertShapeSecretsAbsent(logged)
+    expect(logged).not.toContain('NL20INGB0001234567')
+    expect(logged).not.toContain('NL20 INGB')
+    expect(logged).toContain('[iban]')
+    expect(logged).toContain('/files/')
+    expect(logged).toContain('app.js:4:5')
+  })
+
+  it('logs the file location and drops the person and account number in the name', () => {
+    const error = new Error('plain failure')
+    error.stack = `${error.stack ?? ''}\n${personFrame}`
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    problemResponse(error, 'req-person')
+
+    const logged = spy.mock.calls
+      .flat()
+      .map((part) => String(part))
+      .join('\n')
+    assertShapeSecretsAbsent(logged)
+    expect(logged).toContain('    at /app/x.js:1:2')
+    expect(logged).not.toContain('ModuleJob.run')
+  })
+
+  it('drops those shapes when a cause chain is glued onto the stack', () => {
+    const cause = new Error('downstream')
+    cause.stack = `${cause.stack ?? ''}\n${userinfoFrame}\n${ibanFrame}\n${personFrame}`
+    const error = new Error('outer failure', { cause })
+    error.stack = `${error.stack ?? ''}\nCaused by: ${cause.stack ?? ''}`
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = problemResponse(error, 'req-glued')
+
+    expect(response.status).toBe(500)
+    const logged = spy.mock.calls
+      .flat()
+      .map((part) => String(part))
+      .join('\n')
+    assertShapeSecretsAbsent(logged)
+    expect(logged).not.toContain('downstream')
+    expect(logged).toContain('    at /app/x.js:1:2')
+    expect(logged).toContain('    at ')
+  })
+
+  it('drops those shapes when the message is replaced after the stack is read', () => {
+    const error = new Error(`note\n${userinfoFrame}\n${ibanFrame}\n${personFrame}`)
+    const frozen = error.stack
+    if (typeof frozen !== 'string') throw new Error('expected a stack')
+    error.stack = frozen
+    error.message = 'other words'
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = problemResponse(error, 'req-swap-shape')
+
+    expect(response.status).toBe(500)
+    const logged = spy.mock.calls
+      .flat()
+      .map((part) => String(part))
+      .join('\n')
+    assertShapeSecretsAbsent(logged)
+    expect(logged).not.toContain('other words')
+    expect(logged).not.toContain('note')
+    expect(logged).toContain('    at /app/x.js:1:2')
+  })
+
+  it('returns a 500 when name, message, stack, or cause getters throw', () => {
+    const error = new Error('plain failure')
+    Object.defineProperty(error, 'cause', {
+      configurable: true,
+      get() {
+        throw new Error('NL20INGB0001234567')
+      },
+    })
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const withCause = problemResponse(error, 'req-cause-getter')
+    expect(withCause.status).toBe(500)
+    const causeLogged = spy.mock.calls
+      .flat()
+      .map((part) => String(part))
+      .join('\n')
+    expect(causeLogged).not.toContain('NL20INGB0001234567')
+    expect(causeLogged).toContain('    at ')
+    spy.mockRestore()
+
+    const thrown = new Error('plain failure')
+    for (const key of ['name', 'message', 'stack', 'cause'] as const) {
+      Object.defineProperty(thrown, key, {
+        configurable: true,
+        get() {
+          throw new Error('NL91ABNA0417164300 Jan Jansen postgres://u:pw@h:5432/x')
+        },
+      })
+    }
+    const again = vi.spyOn(console, 'error').mockImplementation(() => {})
+    let response: Response | undefined
+    expect(() => {
+      response = problemResponse(thrown, 'req-getter')
+    }).not.toThrow()
+    expect(response?.status).toBe(500)
+    expect(again).toHaveBeenCalled()
+    expect(again.mock.calls[0]?.[2]).toBe('Error')
+    const logged = again.mock.calls
+      .flat()
+      .map((part) => String(part))
+      .join('\n')
+    expect(logged).toContain('(no stack)')
+    expect(logged).not.toContain('NL91ABNA0417164300')
+    expect(logged).not.toContain('Jan Jansen')
+    expect(logged).not.toContain('postgres://u:pw@h:5432/x')
   })
 })

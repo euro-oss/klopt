@@ -112,9 +112,13 @@ says "Log out", and the screens outside it no longer say "Afmelden".
 
 ### Fixed
 
-- Internal-error logs strip the leading `name: message` block before keeping
-  stack frames, so a message line that starts with four spaces and `at` is
-  never logged, and a non-string `error.stack` logs no frames.
+- Internal-error logs keep the location of a stack frame (`path:line:col`,
+  including `node:` paths, plus `native` and `<anonymous>`), not the function
+  name. A location that contains `@` or `scheme://user:pass` userinfo is left
+  out. IBAN-shaped tokens, with or without spaces, are redacted in every
+  string that is logged. The name is logged only when it ends in `Error` or
+  `Exception`; any other name is written as `Error`. A non-string stack logs
+  no frames. A throwing getter on the error does not stop the 500 response.
 
 - Production invoice PDFs no longer 500. pdfkit 0.20.2 loads its standard fonts
   at runtime (`#standard-fonts/*`); bundling it into `.output/server/_ssr` made
@@ -123,10 +127,8 @@ says "Log out", and the screens outside it no longer say "Afmelden".
   server output. `pnpm --filter @klopt/web run test:e2e` (the CI `e2e` job)
   now also downloads a PDF and sends one invoice against that built server,
   using the file outbox, before Playwright's `vite dev` suite. Unknown 500s
-  are logged with the request id, the error name, and the stack frames
-  only (a frame begins with four spaces and `at`). The message is not
-  logged: it is the start of `error.stack`, and a driver error can quote
-  row values.
+  are logged with the request id, the error name when it ends in `Error` or
+  `Exception`, and the stack-frame location only. The message is not logged.
 
 - Debtor-ageing report and overdue counts no longer count invoices that are due
   today (exclusive overdue boundary).
