@@ -5,16 +5,16 @@ import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
 
 /**
- * Public PNGs for #173 — bulk reminder confirm dialog.
+ * Public PNGs for #177 — bulk reminder confirm dialog (#173).
  *
  * Run with:
- *   CAPTURE_PR_SCREENSHOTS=1 PR_SCREENSHOT_NUMBER=173 \
- *     pnpm --filter @klopt/web exec playwright test e2e/pr-screenshots-173.spec.ts
+ *   CAPTURE_PR_SCREENSHOTS=1 PR_SCREENSHOT_NUMBER=177 \
+ *     pnpm --filter @klopt/web exec playwright test e2e/pr-screenshots-177.spec.ts
  *
  * Fixture names: Eva Jansen, Ruben de Vries. Registry test IBAN only.
  */
 
-const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '173'
+const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '177'
 const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', PR)
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
 

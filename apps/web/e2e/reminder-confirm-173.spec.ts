@@ -324,6 +324,11 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   expect([...sentIds].sort()).toEqual([...listedIds].sort())
   await expect(page.getByRole('button', { name: /Eva Jansen/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Ruben de Vries/ })).toHaveCount(0)
+  // After confirm, focus returns to the header send button (not <body>).
+  // Label may drop to "Alle 0…" once the queue is empty.
+  await expect(
+    page.getByRole('button', { name: /Alle \d+ herinneringen versturen|Send all \d+ reminders/ }),
+  ).toBeFocused()
 
   // Still no due-today row after the send, and it was never chased.
   await expect(page.getByText('Vandaag vervallen')).toHaveCount(0)
@@ -465,6 +470,9 @@ test('plain Enter on an open bulk confirm does not send; Cmd/Ctrl+Enter does', a
   expect(reminderPosts.length).toBeGreaterThanOrEqual(2)
   await expect(page.getByRole('button', { name: /Eva Jansen/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Ruben de Vries/ })).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: /Alle \d+ herinneringen versturen|Send all \d+ reminders/ }),
+  ).toBeFocused()
 })
 
 test('a single reminder send skips the confirm dialog', async ({ page }) => {
