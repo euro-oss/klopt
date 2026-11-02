@@ -141,7 +141,28 @@ export function toProblem(error: unknown, requestId: string | null): ProblemDocu
   }
 }
 
+/**
+ * An unknown failure is a 500 the caller cannot act on.
+ *
+ * The response stays generic — the message can hold a connection string, a
+ * query, or another entity's data — but until this line the process log said
+ * nothing, so a production PDF that threw `Cannot find module` looked like a
+ * network blip. The request id and the stack, and nothing else: not the
+ * request, not its body, not a dumped object somebody threw.
+ */
+function logUnknownInternalError(error: unknown, requestId: string | null): void {
+  const request = requestId ?? '(no request id)'
+  if (error instanceof Error) {
+    console.error('[api] internal_error', request, error.stack ?? '(no stack)')
+    return
+  }
+  console.error('[api] internal_error', request, `(no stack, thrown ${typeof error})`)
+}
+
 export function problemResponse(error: unknown, requestId: string | null): Response {
+  if (!(error instanceof ApiError) && !(error instanceof LedgerError)) {
+    logUnknownInternalError(error, requestId)
+  }
   const problem = toProblem(error, requestId)
   return new Response(JSON.stringify(problem), {
     status: problem.status,
