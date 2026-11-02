@@ -43,7 +43,8 @@ async function aSupplier(page: Page): Promise<void> {
   await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Telecom Fictief' })).toBeVisible()
+  // Contacts #163: list rows are buttons, not table cells.
+  await expect(page.getByRole('button', { name: /Telecom Fictief/ })).toBeVisible()
 }
 
 async function enterBill(
