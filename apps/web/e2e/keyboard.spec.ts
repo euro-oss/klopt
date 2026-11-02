@@ -224,7 +224,7 @@ test('the help sheet is the keyboard map, generated from the registry', async ({
 
   // Including the screen-local keys, which the palette cannot offer because it
   // cannot run them from here.
-  await expect(help).toContainText('Paneel openen / voorstel boeken')
+  await expect(help).toContainText('Voorstel boeken / formulier openen')
   await expect(help).toContainText('Commandopalet')
 
   await page.keyboard.press('Escape')
@@ -559,7 +559,7 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await tabTo(page, /^BUTTON Boeken/)
   await page.keyboard.press('Enter')
   // Posted notice names the bank line (j moved off the fee line).
-  await expect(page.getByText('Gekoppeld: Overboeking spaarrekening')).toBeVisible()
+  await expect(page.getByText('Geboekt: Overboeking spaarrekening')).toBeVisible()
   await expect(queue).toHaveCount(3)
 
   // Postvak draft uses Grootboek line fields — turn Geavanceerd back on.

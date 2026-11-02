@@ -181,7 +181,7 @@ async function drainQueue(page: Page): Promise<void> {
   for (;;) {
     if (
       await page
-        .getByText('Alles is gekoppeld.')
+        .getByText('Alle regels zijn afgeletterd')
         .isVisible()
         .catch(() => false)
     ) {
@@ -326,12 +326,14 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
       await page.keyboard.press('Enter')
       await page.keyboard.press('Enter')
       await expect(
-        page.getByText('Gekoppeld: Grote Klant N.V.').locator('visible=true'),
+        page.getByText('Geboekt: Grote Klant N.V.').locator('visible=true'),
       ).toBeVisible()
       await shoot(page, `matched-${theme}-${label}.png`)
 
       await drainQueue(page)
-      await expect(page.getByText('Alles is gekoppeld.')).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByText('Alle regels zijn afgeletterd')).toBeVisible({
+        timeout: 15_000,
+      })
       await shoot(page, `empty-${theme}-${label}.png`)
       await context.close()
     }

@@ -83,6 +83,26 @@ async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
   )
 }
 
+function boxesOverlap(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+): boolean {
+  return (
+    a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+  )
+}
+
+async function assertNoHorizontalOverflow(page: Page, label: string): Promise<void> {
+  const overflow = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }))
+  expect(
+    overflow.scrollWidth,
+    `${label}: scrollWidth ${overflow.scrollWidth} > clientWidth ${overflow.clientWidth}`,
+  ).toBeLessThanOrEqual(overflow.clientWidth)
+}
+
 /** Design #171: IBAN is one line; badge must not overlap its box. */
 async function assertIbanSingleLine(page: Page): Promise<void> {
   const iban = page.locator('[data-slot="bank-account-iban"]').first()
@@ -101,12 +121,54 @@ async function assertIbanSingleLine(page: Page): Promise<void> {
   const badgeBox = await badge.boundingBox()
   expect(ibanBox).not.toBeNull()
   expect(badgeBox).not.toBeNull()
-  const overlap =
-    ibanBox!.x < badgeBox!.x + badgeBox!.width &&
-    ibanBox!.x + ibanBox!.width > badgeBox!.x &&
-    ibanBox!.y < badgeBox!.y + badgeBox!.height &&
-    ibanBox!.y + ibanBox!.height > badgeBox!.y
-  expect(overlap).toBe(false)
+  expect(boxesOverlap(ibanBox!, badgeBox!), 'IBAN overlaps badge').toBe(false)
+}
+
+/** QA #171: key BankAccounts elements must not overlap at phone width. */
+async function assertKeyElementsNoOverlap(page: Page, label: string): Promise<void> {
+  const card = page.locator('[data-slot="bank-account-card"]').first()
+  const iban = card.locator('[data-slot="bank-account-iban"]')
+  const badge = card.locator('[data-slot="bank-account-badge"]')
+  const drop = card.locator('[data-slot="drop-zone"]')
+  const importHeading = page.getByRole('heading', { name: 'Bankafschrift importeren' }).first()
+  const txHeading = page.getByRole('heading', { name: 'Transacties' })
+
+  for (const [name, loc] of [
+    ['account card', card],
+    ['iban', iban],
+    ['badge', badge],
+    ['drop zone', drop],
+    ['import heading', importHeading],
+    ['transactions heading', txHeading],
+  ] as const) {
+    await expect(loc, `${label}: ${name}`).toBeVisible()
+  }
+
+  const [ibanBox, badgeBox, dropBox, importBox, txBox, cardBox] = await Promise.all([
+    iban.boundingBox(),
+    badge.boundingBox(),
+    drop.boundingBox(),
+    importHeading.boundingBox(),
+    txHeading.boundingBox(),
+    card.boundingBox(),
+  ])
+  expect(ibanBox, `${label}: iban box`).not.toBeNull()
+  expect(badgeBox, `${label}: badge box`).not.toBeNull()
+  expect(dropBox, `${label}: drop box`).not.toBeNull()
+  expect(importBox, `${label}: import box`).not.toBeNull()
+  expect(txBox, `${label}: tx box`).not.toBeNull()
+  expect(cardBox, `${label}: card box`).not.toBeNull()
+
+  expect(boxesOverlap(ibanBox!, badgeBox!), `${label}: IBAN overlaps badge`).toBe(false)
+  expect(boxesOverlap(ibanBox!, dropBox!), `${label}: IBAN overlaps drop zone`).toBe(false)
+  expect(boxesOverlap(badgeBox!, dropBox!), `${label}: badge overlaps drop zone`).toBe(false)
+  expect(boxesOverlap(cardBox!, importBox!), `${label}: account card overlaps import heading`).toBe(
+    false,
+  )
+  expect(boxesOverlap(importBox!, txBox!), `${label}: import heading overlaps Transacties`).toBe(
+    false,
+  )
+  expect(boxesOverlap(cardBox!, txBox!), `${label}: account card overlaps Transacties`).toBe(false)
 }
 
 async function seedAccountAndStatement(page: Page): Promise<void> {
@@ -225,6 +287,24 @@ test('IBAN stays a single line at 1440 and 390, light and dark', async ({ page }
       await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
       await assertIbanSingleLine(page)
     }
+  }
+})
+
+test('phone 390 light and dark: no horizontal overflow; key elements do not overlap', async ({
+  page,
+}) => {
+  test.setTimeout(120_000)
+  await openBankAdmin(page)
+  await seedAccountAndStatement(page)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  for (const theme of ['light', 'dark'] as const) {
+    await page.goto('/bank')
+    await setTheme(page, theme)
+    await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
+    await assertNoHorizontalOverflow(page, `bank 390 ${theme}`)
+    await assertKeyElementsNoOverlap(page, `bank 390 ${theme}`)
+    await assertIbanSingleLine(page)
   }
 })
 
