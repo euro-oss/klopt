@@ -25,6 +25,8 @@ export const DEMO_KVK = '00000001'
 export const DEMO_VAT = 'NL000000001B99'
 
 /** Reserved-pattern test IBAN (bank code TEST). */
+// Demo seed stays on the reserved NL..TEST pattern (fictional-data guard).
+// Bank Match fixtures/specs use the CoS example IBAN NL91ABNA0417164300.
 export const DEMO_IBAN = 'NL69TEST0000000001'
 
 /** Seed for the PRNG that builds amounts and day offsets. */

@@ -67,7 +67,7 @@ describe('sniffing the delimiter', () => {
 describe('an ING export', () => {
   const guess = guessCsvMapping(read('ing.csv'))
   const [statement] = parseBankCsv(read('ing.csv'), {
-    accountIban: 'NL02ABNA0123456789',
+    accountIban: 'NL91ABNA0417164300',
     mapping: guess.mapping,
   })
 
@@ -89,7 +89,7 @@ describe('an ING export', () => {
 
   it('reads the counterparty and the description', () => {
     expect(statement?.entries[0]?.counterpartyName).toBe('Grote Klant N.V.')
-    expect(statement?.entries[0]?.counterpartyIban).toBe('NL91ABNA0417164300')
+    expect(statement?.entries[0]?.counterpartyIban).toBe('NL02INGB0999999999')
     expect(statement?.entries[0]?.description).toBe('Factuur 2026-0001')
   })
 
@@ -109,7 +109,7 @@ describe('an ING export', () => {
 describe('a Rabobank export', () => {
   const guess = guessCsvMapping(read('rabobank.csv'))
   const [statement] = parseBankCsv(read('rabobank.csv'), {
-    accountIban: 'NL02ABNA0123456789',
+    accountIban: 'NL91ABNA0417164300',
     mapping: guess.mapping,
   })
 
@@ -130,7 +130,7 @@ describe('a Rabobank export', () => {
 
 describe('the awkward things a description contains', () => {
   const [statement] = parseBankCsv(read('awkward.csv'), {
-    accountIban: 'NL02ABNA0123456789',
+    accountIban: 'NL91ABNA0417164300',
     mapping: {
       ...DEFAULT_CSV_MAPPING,
       delimiter: ';',
@@ -177,7 +177,7 @@ describe('the debit and credit column style', () => {
   it('signs from whichever column is filled', () => {
     const [statement] = parseBankCsv(
       'Datum;Af;Bij;Omschrijving\n02-03-2026;;1210,00;in\n03-03-2026;45,50;;uit\n',
-      { accountIban: 'NL02ABNA0123456789', mapping },
+      { accountIban: 'NL91ABNA0417164300', mapping },
     )
     expect(statement?.entries.map((entry) => entry.amount)).toEqual([121_000n, -4_550n])
   })
@@ -185,7 +185,7 @@ describe('the debit and credit column style', () => {
   it('refuses a row with both filled, which means the mapping is wrong', () => {
     expect(() =>
       parseBankCsv('Datum;Af;Bij;Omschrijving\n02-03-2026;1,00;2,00;beide\n', {
-        accountIban: 'NL02ABNA0123456789',
+        accountIban: 'NL91ABNA0417164300',
         mapping,
       }),
     ).toThrow(/Both the debit and the credit/)
@@ -194,7 +194,7 @@ describe('the debit and credit column style', () => {
   it('refuses a row with neither filled', () => {
     expect(() =>
       parseBankCsv('Datum;Af;Bij;Omschrijving\n02-03-2026;;;geen\n', {
-        accountIban: 'NL02ABNA0123456789',
+        accountIban: 'NL91ABNA0417164300',
         mapping,
       }),
     ).toThrow(/Neither the debit nor the credit/)
@@ -204,7 +204,7 @@ describe('the debit and credit column style', () => {
 describe('columns by index, for a file with no header', () => {
   it('reads them positionally', () => {
     const [statement] = parseBankCsv('02-03-2026;1210,00;Grote Klant;Factuur\n', {
-      accountIban: 'NL02ABNA0123456789',
+      accountIban: 'NL91ABNA0417164300',
       mapping: {
         ...DEFAULT_CSV_MAPPING,
         delimiter: ';',
@@ -243,7 +243,7 @@ describe('what a CSV cannot tell you', () => {
     // A fabricated zero would appear on the bank screen as this account's
     // balance, which is worse than admitting there is none.
     const [statement] = parseBankCsv(withoutBalance, {
-      accountIban: 'NL02ABNA0123456789',
+      accountIban: 'NL91ABNA0417164300',
       mapping,
     })
     expect(statement?.openingBalance).toBeNull()
@@ -252,11 +252,11 @@ describe('what a CSV cannot tell you', () => {
 
   it('is imported anyway, with a warning that the strongest check cannot run', () => {
     const statements = parseBankCsv(withoutBalance, {
-      accountIban: 'NL02ABNA0123456789',
+      accountIban: 'NL91ABNA0417164300',
       mapping,
     })
     const plan = planImport(statements, {
-      accountIban: 'NL02ABNA0123456789',
+      accountIban: 'NL91ABNA0417164300',
       currency: 'EUR',
       lastSequenceNumber: null,
     })
@@ -268,11 +268,11 @@ describe('what a CSV cannot tell you', () => {
 
   it('deduplicates on content, because there is no bank reference to trust', () => {
     const statements = parseBankCsv(read('ing.csv'), {
-      accountIban: 'NL02ABNA0123456789',
+      accountIban: 'NL91ABNA0417164300',
       mapping: guessCsvMapping(read('ing.csv')).mapping,
     })
     const plan = planImport(statements, {
-      accountIban: 'NL02ABNA0123456789',
+      accountIban: 'NL91ABNA0417164300',
       currency: 'EUR',
       lastSequenceNumber: null,
     })
@@ -297,7 +297,7 @@ describe('what is refused', () => {
   it('a date that is not in the configured format', () => {
     expect(() =>
       parseBankCsv('Datum;Bedrag\n2026-03-02;10,00\n', {
-        accountIban: 'NL02ABNA0123456789',
+        accountIban: 'NL91ABNA0417164300',
         mapping,
       }),
     ).toThrow(/is not a date in dd-MM-yyyy/)
@@ -306,21 +306,21 @@ describe('what is refused', () => {
   it('a line of zero, which is not a mutation', () => {
     expect(() =>
       parseBankCsv('Datum;Bedrag\n02-03-2026;0,00\n', {
-        accountIban: 'NL02ABNA0123456789',
+        accountIban: 'NL91ABNA0417164300',
         mapping,
       }),
     ).toThrow(/not a mutation/)
   })
 
   it('an empty file', () => {
-    expect(() => parseBankCsv('', { accountIban: 'NL02ABNA0123456789', mapping })).toThrow(
+    expect(() => parseBankCsv('', { accountIban: 'NL91ABNA0417164300', mapping })).toThrow(
       BankStatementError,
     )
   })
 
   it('a file with a header and nothing else', () => {
     expect(() =>
-      parseBankCsv('Datum;Bedrag\n', { accountIban: 'NL02ABNA0123456789', mapping }),
+      parseBankCsv('Datum;Bedrag\n', { accountIban: 'NL91ABNA0417164300', mapping }),
     ).toThrow(/header and no rows/)
   })
 })

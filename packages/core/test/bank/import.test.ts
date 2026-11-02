@@ -59,7 +59,7 @@ describe('MT940', () => {
 
   it('reads the account, the balances and the period', () => {
     const [first] = mt940
-    expect(first?.accountIban).toBe('NL02ABNA0123456789')
+    expect(first?.accountIban).toBe('NL91ABNA0417164300')
     expect(first?.currency).toBe('EUR')
     expect(first?.openingBalance).toBe(125_000n)
     expect(first?.closingBalance).toBe(291_450n)
@@ -80,7 +80,7 @@ describe('MT940', () => {
   it('pulls the counterparty out of the free-text :86: block', () => {
     const [entry] = mt940[0]?.entries ?? []
     expect(entry?.counterpartyName).toBe('Grote Klant N.V.')
-    expect(entry?.counterpartyIban).toBe('NL91ABNA0417164300')
+    expect(entry?.counterpartyIban).toBe('NL02INGB0999999999')
     expect(entry?.endToEndId).toBe('2026-0001')
     expect(entry?.description).toBe('Factuur 2026-0001')
   })
@@ -107,7 +107,7 @@ describe('MT940', () => {
     const overdrawn = parseMt940(
       [
         ':20:X',
-        ':25:NL02ABNA0123456789',
+        ':25:NL91ABNA0417164300',
         ':28C:1/1',
         ':60F:D260301EUR100,00',
         ':62F:D260301EUR100,00',
@@ -117,14 +117,14 @@ describe('MT940', () => {
   })
 
   it('refuses a file with no balances rather than guessing', () => {
-    expect(() => parseMt940(':20:X\n:25:NL02ABNA0123456789\n')).toThrow(BankStatementError)
+    expect(() => parseMt940(':20:X\n:25:NL91ABNA0417164300\n')).toThrow(BankStatementError)
   })
 })
 
 describe('CAMT.053', () => {
   it('reads the account, the balances and the period', () => {
     const [first] = camt
-    expect(first?.accountIban).toBe('NL02ABNA0123456789')
+    expect(first?.accountIban).toBe('NL91ABNA0417164300')
     expect(first?.openingBalance).toBe(125_000n)
     expect(first?.closingBalance).toBe(291_450n)
     expect(first?.openingDate).toBe('2026-03-01')
@@ -224,7 +224,7 @@ describe('sniffing the format', () => {
 })
 
 describe('deduplication', () => {
-  const statement = { accountIban: 'NL02ABNA0123456789', statementId: 'S1', sequenceNumber: 41 }
+  const statement = { accountIban: 'NL91ABNA0417164300', statementId: 'S1', sequenceNumber: 41 }
   const entry = mt940[0]!.entries[0]!
 
   it('uses the bank reference when there is one', () => {
@@ -256,7 +256,7 @@ describe('deduplication', () => {
 
 describe('planning an import', () => {
   const context = {
-    accountIban: 'NL02ABNA0123456789',
+    accountIban: 'NL91ABNA0417164300',
     currency: 'EUR',
     lastSequenceNumber: 40,
   }
@@ -291,14 +291,14 @@ describe('planning an import', () => {
   })
 
   it('refuses a file for the wrong account', () => {
-    const plan = planImport(mt940, { ...context, accountIban: 'NL91ABNA0417164300' })
+    const plan = planImport(mt940, { ...context, accountIban: 'NL02INGB0999999999' })
     expect(plan.problems.map((problem) => problem.code)).toContain('account_mismatch')
   })
 
   it('compares IBANs without spaces or case, because banks print them both ways', () => {
-    const plan = planImport(mt940, { ...context, accountIban: 'nl02 abna 0123 4567 89' })
+    const plan = planImport(mt940, { ...context, accountIban: 'nl91 abna 0417 1643 00' })
     expect(plan.problems).toEqual([])
-    expect(normaliseIban('nl02 abna 0123 4567 89')).toBe('NL02ABNA0123456789')
+    expect(normaliseIban('nl91 abna 0417 1643 00')).toBe('NL91ABNA0417164300')
   })
 
   it('refuses a file in the wrong currency', () => {

@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { completeExactConnection } from '~/server/ledger'
+import { saveImportWizardState } from '~/server/import-wizard'
 import { useT } from '~/i18n/provider'
 
 /**
@@ -48,9 +49,17 @@ function ExactCallback() {
         setFailure(result.problem.detail)
         return
       }
-      // Straight on to choosing the administration, which is the step that
-      // matters and the one somebody came here to reach.
-      void navigate({ to: '/exact' })
+      // Import wizard (#100): land on Administratie after Exact consent.
+      // `van=exact-oauth` skips Welkom terug — this is still the same flow,
+      // not a later return to a mid-import session.
+      await saveImportWizardState({
+        data: {
+          source: 'exact',
+          step: 'administratie',
+          idempotencyKey: crypto.randomUUID(),
+        },
+      })
+      void navigate({ to: '/importeren', search: { bron: 'exact', van: 'exact-oauth' } })
     })()
   }, [code, state, error, navigate])
 
@@ -68,7 +77,7 @@ function ExactCallback() {
           </p>
           <p className="text-muted-foreground mt-2 text-sm">
             {t('exactCallback.startOver')}{' '}
-            <a href="/exact" className="underline">
+            <a href="/importeren?bron=exact" className="underline">
               {t('exactCallback.exactPage')}
             </a>
             .

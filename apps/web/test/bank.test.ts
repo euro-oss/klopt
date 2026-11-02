@@ -60,7 +60,7 @@ const request = (idempotencyKey?: string): Request => {
 const contextFor = async (idempotencyKey?: string) =>
   resolveRequestContext({ database, request: request(idempotencyKey) })
 
-async function anAccount(iban = 'NL02ABNA0123456789'): Promise<string> {
+async function anAccount(iban = 'NL91ABNA0417164300'): Promise<string> {
   const created = await handleCreateBankAccount(
     await contextFor(uuidv7()),
     createBankAccountBody.parse({ iban, name: 'Rekening-courant', ledgerAccountNumber: '1100' }),
@@ -123,7 +123,7 @@ describe('recording a bank account', () => {
 
 describe('importing a statement', () => {
   it('says what it would do before doing it', async () => {
-    const bankAccountId = await anAccount('NL02ABNA0123456789')
+    const bankAccountId = await anAccount('NL91ABNA0417164300')
 
     const dry = await handleImportStatement(
       await contextFor(),
@@ -150,7 +150,7 @@ describe('importing a statement', () => {
 
   it('imports the entries, signed so positive is money in', async () => {
     const bankAccountId = await anAccount('NL02ABNA0000000002')
-    const content = read('statement.mt940').replace(/NL02ABNA0123456789/g, 'NL02ABNA0000000002')
+    const content = read('statement.mt940').replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000002')
 
     const result = await handleImportStatement(
       await contextFor(uuidv7()),
@@ -176,7 +176,7 @@ describe('importing a statement', () => {
 
   it('adds nothing the second time, which is the whole point', async () => {
     const bankAccountId = await anAccount('NL02ABNA0000000003')
-    const content = read('statement.mt940').replace(/NL02ABNA0123456789/g, 'NL02ABNA0000000003')
+    const content = read('statement.mt940').replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000003')
 
     await handleImportStatement(
       await contextFor(uuidv7()),
@@ -206,14 +206,14 @@ describe('importing a statement', () => {
         bankAccountId: fromMt940,
         content: read('statement.mt940')
           .split(/^\s*-\s*$/m)[0]!
-          .replace(/NL02ABNA0123456789/g, 'NL02ABNA0000000004'),
+          .replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000004'),
       }),
     )
     await handleImportStatement(
       await contextFor(uuidv7()),
       importStatementBody.parse({
         bankAccountId: fromCamt,
-        content: read('statement.camt.xml').replace(/NL02ABNA0123456789/g, 'NL02ABNA0000000005'),
+        content: read('statement.camt.xml').replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000005'),
       }),
     )
 
@@ -248,13 +248,13 @@ describe('importing a statement', () => {
     const violations = (failed as ApiError).violations
     // One per statement in the file, each naming the account it is really for.
     expect(violations.map((item) => item.code)).toEqual(['account_mismatch', 'account_mismatch'])
-    expect(violations[0]?.message).toContain('is for NL02ABNA0123456789')
+    expect(violations[0]?.message).toContain('is for NL91ABNA0417164300')
   })
 
   it('refuses a truncated file rather than importing a wrong balance', async () => {
     const bankAccountId = await anAccount('NL02ABNA0000000007')
     const content = read('statement.mt940')
-      .replace(/NL02ABNA0123456789/g, 'NL02ABNA0000000007')
+      .replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000007')
       // Drop a line, leaving the closing balance unreachable.
       .replace(/:61:2603030303D45,50[^\n]*\n:86:[^\n]*\n/, '')
 
@@ -268,7 +268,7 @@ describe('importing a statement', () => {
 
   it('warns about a gap without refusing the file', async () => {
     const bankAccountId = await anAccount('NL02ABNA0000000008')
-    const content = read('statement.mt940').replace(/NL02ABNA0123456789/g, 'NL02ABNA0000000008')
+    const content = read('statement.mt940').replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000008')
 
     // Import statement 42 first, which sets the account's high-water mark, then
     // a file that starts at 41 — no gap. Instead, jump ahead.
@@ -315,7 +315,7 @@ describe('importing a statement', () => {
 
   it('needs an idempotency key to write, but not to look', async () => {
     const bankAccountId = await anAccount('NL02ABNA0000000010')
-    const content = read('statement.mt940').replace(/NL02ABNA0123456789/g, 'NL02ABNA0000000010')
+    const content = read('statement.mt940').replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000010')
 
     await expect(
       handleImportStatement(
@@ -336,17 +336,20 @@ describe('importing a statement', () => {
 describe('a CSV, for the banks that export neither format', () => {
   const ing = [
     '"Datum";"Naam / Omschrijving";"Rekening";"Tegenrekening";"Code";"Af Bij";"Bedrag (EUR)";"Mutatiesoort";"Mededelingen";"Saldo na mutatie"',
-    '"20260302";"Grote Klant N.V.";"NL02ABNA0000000020";"NL91ABNA0417164300";"GT";"Bij";"1210,00";"Online bankieren";"Factuur 2026-0001";"1210,00"',
-    '"20260303";"Telecom B.V.";"NL02ABNA0000000020";"NL20INGB0001234567";"IC";"Af";"45,50";"Incasso";"Abonnement maart";"1164,50"',
+    '"20260302";"Grote Klant N.V.";"NL91ABNA0417164300";"NL02INGB0999999999";"GT";"Bij";"1210,00";"Online bankieren";"Factuur 2026-0001";"1210,00"',
+    '"20260303";"Telecom B.V.";"NL91ABNA0417164300";"NL20INGB0001234567";"IC";"Af";"45,50";"Incasso";"Abonnement maart";"1164,50"',
     '',
   ].join('\n')
 
   it('asks for a mapping first, and hands one over to check', async () => {
+    // Unique IBAN: the default CoS example is already used by an earlier test
+    // on this shared entity.
     const bankAccountId = await anAccount('NL02ABNA0000000020')
+    const content = ing.replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000020')
 
     const dry = await handleImportStatement(
       await contextFor(),
-      importStatementBody.parse({ bankAccountId, content: ing, dryRun: true }),
+      importStatementBody.parse({ bankAccountId, content, dryRun: true }),
     )
 
     expect(dry.body).toMatchObject({ needsMapping: true, format: 'csv' })
@@ -371,7 +374,7 @@ describe('a CSV, for the banks that export neither format', () => {
         await contextFor(uuidv7()),
         importStatementBody.parse({
           bankAccountId,
-          content: ing.replace(/NL02ABNA0000000020/g, 'NL02ABNA0000000021'),
+          content: ing.replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000021'),
         }),
       ),
     ).rejects.toThrow(/no mapping yet/)
@@ -379,7 +382,7 @@ describe('a CSV, for the banks that export neither format', () => {
 
   it('imports with the mapping, and remembers it for next time', async () => {
     const bankAccountId = await anAccount('NL02ABNA0000000022')
-    const content = ing.replace(/NL02ABNA0000000020/g, 'NL02ABNA0000000022')
+    const content = ing.replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000022')
 
     const dry = await handleImportStatement(
       await contextFor(),
@@ -415,7 +418,7 @@ describe('a CSV, for the banks that export neither format', () => {
 
   it('recovers the balances from the running column', async () => {
     const bankAccountId = await anAccount('NL02ABNA0000000023')
-    const content = ing.replace(/NL02ABNA0000000020/g, 'NL02ABNA0000000023')
+    const content = ing.replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000023')
     const dry = await handleImportStatement(
       await contextFor(),
       importStatementBody.parse({ bankAccountId, content, dryRun: true }),
@@ -460,7 +463,7 @@ describe('a CSV, for the banks that export neither format', () => {
 describe('the reconciliation position', () => {
   it('reports the statement balance and what is still unmatched', async () => {
     const bankAccountId = await anAccount('NL02ABNA0000000011')
-    const content = read('statement.mt940').replace(/NL02ABNA0123456789/g, 'NL02ABNA0000000011')
+    const content = read('statement.mt940').replace(/NL91ABNA0417164300/g, 'NL02ABNA0000000011')
     await handleImportStatement(
       await contextFor(uuidv7()),
       importStatementBody.parse({ bankAccountId, content }),

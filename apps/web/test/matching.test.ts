@@ -496,7 +496,7 @@ describe('learning from a confirmation', () => {
     const transactionId = await aTransaction({
       amount: '1210,00',
       counterparty: 'Grote Klant N.V.',
-      counterpartyIban: 'NL91ABNA0417164300',
+      counterpartyIban: 'NL02INGB0999999999',
       description: `factuur ${invoice.number}`,
       sequence: 122,
     })
