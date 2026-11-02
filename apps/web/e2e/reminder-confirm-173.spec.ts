@@ -39,7 +39,7 @@ async function openAdmin(page: Page): Promise<string> {
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill('Herinnering Bevestigen BV')
+  await page.getByLabel('Naam', { exact: true }).fill('Herinnering Bevestigen BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
