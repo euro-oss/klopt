@@ -22,9 +22,9 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<'input'>>(
       data-slot="input"
       className={cn(
         'field-control transition-[color,border-color,background-color] duration-[120ms]',
-        'placeholder:text-muted-foreground',
+        'placeholder:text-muted-foreground placeholder:opacity-100',
         'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring',
-        'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50',
+        'disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-muted disabled:opacity-100',
         'aria-invalid:border-destructive aria-invalid:outline-solid aria-invalid:outline-2 aria-invalid:outline-offset-0 aria-invalid:outline-destructive',
         'file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground',
         'motion-reduce:transition-none',

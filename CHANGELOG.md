@@ -18,6 +18,27 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign Phase 4: Costs (#107 / #128)
+
+Costs (`/purchases`) matches the Costs.dc.html desktop-light board from the v2
+export at `fa4093b`: Bills / To approve / Payment batches / Suppliers tabs,
+All · To pay · Paid segments from `outstanding`, overdue callout, desktop
+preview with approve / dispute / add-to-batch on existing transitions, and
+honest approval copy (no four-eyes claim on bills). Dark and phone use tokens
+until Batch 2 / 3 boards.
+
+App-wide CoS from #140 (1 Nov) in this PR: input borders use `--ink-muted`
+via `--input-border` (DERIVED.md; no hard-coded hex, never `#86857e`);
+PhoneTabBar middle tab is Receipt (`Bon` / `Receipt`, camera icon) opening
+`/inbox` upload until #139 contents land. Sign-out copy (Sign out /
+Uitloggen) is handled in a separate PR.
+
+Costs CoS follow-up (Hidde via CoS): BillNew / Costs inputs share that border
+token with legible light placeholders; disabled selects use sunken ground so
+they read as disabled; Costs table status/amount columns stay fully visible
+at 1440 with the preview open; fixture IBANs are the standard example
+`NL91ABNA0417164300` only (never a real account number).
+
 ### Redesign Phase 8: VAT / ICP (#132, #107)
 
 VAT (`/vat`, `/vat/$period`) and ICP (`/vat/icp/$period`) match the v2 Vat and
@@ -102,6 +123,18 @@ The account menu, the no-administration screen and setup use the same words:
 says "Log out", and the screens outside it no longer say "Afmelden".
 
 ### Fixed
+
+- Production invoice PDFs no longer 500. pdfkit 0.20.2 loads its standard fonts
+  at runtime (`#standard-fonts/*`); bundling it into `.output/server/_ssr` made
+  that lookup fail, so every invoice PDF and every send that attaches one
+  failed. The web build keeps pdfkit external and traces the package into the
+  server output. `pnpm --filter @klopt/web run test:e2e` (the CI `e2e` job)
+  now also downloads a PDF and sends one invoice against that built server,
+  using the file outbox, before Playwright's `vite dev` suite. Unknown 500s
+  are logged with the request id, the error name, and the stack frames
+  only (a frame begins with four spaces and `at`). The message is not
+  logged: it is the start of `error.stack`, and a driver error can quote
+  row values.
 
 - Debtor-ageing report and overdue counts no longer count invoices that are due
   today (exclusive overdue boundary).

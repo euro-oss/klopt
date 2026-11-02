@@ -1,11 +1,13 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { violationMessage } from '~/i18n/labels'
 import { useRef, useState } from 'react'
+import { BankTabs } from '~/components/bank-tabs'
 import { PageHeader, Stat } from '~/components/app-shell'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import type { CsvMapping } from '@klopt/core'
 import { formatDate } from '~/lib/format'
+import { DropZone } from '~/components/ui/drop-zone'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
@@ -348,6 +350,7 @@ function Bank() {
           </>
         }
       />
+      <BankTabs active="accounts" toMatchCount={unmatched > 0 ? unmatched : undefined} />
 
       {showAccountForm && (
         <form
@@ -361,7 +364,7 @@ function Bank() {
             <input
               name="iban"
               required
-              placeholder="NL02ABNA0123456789"
+              placeholder="NL91ABNA0417164300"
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             />
           </label>
@@ -429,22 +432,17 @@ function Bank() {
                 </p>
               )}
 
-              <label className="mt-4 block">
-                <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                  {t('bank.importStatement')}
-                </span>
-                <input
-                  type="file"
-                  accept=".xml,.940,.sta,.txt,.mt940"
-                  disabled={busy || !hydrated}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    if (file !== undefined) void chooseFile(account.id, file)
-                    event.target.value = ''
-                  }}
-                  className="w-full text-xs"
-                />
-              </label>
+              <DropZone
+                className="mt-4 px-4 py-6"
+                title={t('bank.dropTitle')}
+                description={t('bank.dropDescription')}
+                accept=".xml,.940,.sta,.txt,.mt940,.csv"
+                disabled={busy || !hydrated}
+                onFiles={(files) => {
+                  const file = files[0]
+                  if (file !== undefined) void chooseFile(account.id, file)
+                }}
+              />
             </div>
           ))}
         </div>

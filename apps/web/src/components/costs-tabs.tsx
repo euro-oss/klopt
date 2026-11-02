@@ -28,50 +28,52 @@ export function CostsTabs({
     <nav
       aria-label={t('costs.tabs')}
       data-costs-tabs=""
-      className="border-border mb-4 flex flex-wrap gap-1 border-b"
+      className="border-border mb-4 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      <Link
-        to="/purchases"
-        aria-current={active === 'bills' ? 'page' : undefined}
-        className={tabClass(active === 'bills')}
-      >
-        {t('costs.tab.bills')}
-      </Link>
-      <Link
-        to="/purchases"
-        // Booked = awaiting approval on today's list; #159 swaps this for a tab.
-        search={{ status: 'booked' }}
-        aria-current={active === 'approve' ? 'page' : undefined}
-        className={tabClass(active === 'approve')}
-      >
-        {t('costs.tab.approve')}
-        {badge !== null && (
-          <Badge variant="secondary" className="ml-2">
-            {String(badge)}
-          </Badge>
-        )}
-      </Link>
-      <Link
-        to="/payments"
-        aria-current={active === 'batches' ? 'page' : undefined}
-        className={tabClass(active === 'batches')}
-      >
-        {t('costs.tab.batches')}
-      </Link>
-      <Link
-        to="/contacts"
-        aria-current={active === 'suppliers' ? 'page' : undefined}
-        className={tabClass(active === 'suppliers')}
-      >
-        {t('costs.tab.suppliers')}
-      </Link>
+      <div className="flex w-max min-w-full flex-nowrap gap-1 border-b border-inherit">
+        <Link
+          to="/purchases"
+          search={{ tab: 'bills' }}
+          aria-current={active === 'bills' ? 'page' : undefined}
+          className={tabClass(active === 'bills')}
+        >
+          {t('costs.tab.bills')}
+        </Link>
+        <Link
+          to="/purchases"
+          search={{ tab: 'approve' }}
+          aria-current={active === 'approve' ? 'page' : undefined}
+          className={tabClass(active === 'approve')}
+        >
+          {t('costs.tab.approve')}
+          {badge !== null && (
+            <Badge variant="secondary" className="ml-2">
+              {String(badge)}
+            </Badge>
+          )}
+        </Link>
+        <Link
+          to="/payments"
+          aria-current={active === 'batches' ? 'page' : undefined}
+          className={tabClass(active === 'batches')}
+        >
+          {t('costs.tab.batches')}
+        </Link>
+        <Link
+          to="/contacts"
+          aria-current={active === 'suppliers' ? 'page' : undefined}
+          className={tabClass(active === 'suppliers')}
+        >
+          {t('costs.tab.suppliers')}
+        </Link>
+      </div>
     </nav>
   )
 }
 
 function tabClass(current: boolean): string {
   return cn(
-    'inline-flex min-h-11 items-center px-3 text-sm md:min-h-9',
+    'inline-flex shrink-0 whitespace-nowrap min-h-11 items-center px-3 text-sm md:min-h-9',
     current
       ? 'text-ink border-ink border-b-2 font-semibold'
       : 'text-ink-muted hover:text-ink border-b-2 border-transparent',
