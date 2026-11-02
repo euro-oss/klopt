@@ -452,7 +452,10 @@ function PaymentBatch() {
         )}
 
         {step === 0 && invalidIban && !missingIban && (
-          <Alert variant="attention" className="items-start">
+          <Alert
+            variant="attention"
+            className="items-start max-sm:has-data-[slot=alert-action]:pr-4"
+          >
             <AlertTitle>{t('batch.invalidIbanTitle')}</AlertTitle>
             <AlertDescription>{t('batch.invalidIbanBody')}</AlertDescription>
           </Alert>
