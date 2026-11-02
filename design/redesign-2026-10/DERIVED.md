@@ -542,7 +542,7 @@ Strings Hidde already has on his boards are not repeated here.
 | English (board) | Nederlands |
 | --- | --- |
 | Klopt is invite-only for now. Ask the person who invited you, or use the email they invited. | Klopt werkt voorlopig alleen op uitnodiging. Vraag het aan wie je heeft uitgenodigd, of gebruik het e-mailadres waarop je bent uitgenodigd. |
-| Use it hosted, or run it on your own server | Gebruik het gehost, of draai het op je eigen server |
+| Run it on your own server | Draai het op je eigen server |
 | Open source, Apache-2.0. Your books leave whenever you want, as an audit file. | Open source, Apache-2.0. Je boekhouding gaat mee wanneer je wilt, als auditfile. |
 | Change email | E-mailadres wijzigen |
 | Paste the code or let your phone fill it in. It signs you in by itself. | Plak de code of laat je telefoon hem invullen. Je wordt vanzelf ingelogd. |
