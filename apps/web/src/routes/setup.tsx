@@ -1,11 +1,19 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { violationMessage } from '~/i18n/labels'
-import { useRef, useState } from 'react'
+import { BookOpen, Download, FileText } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { LegalAgreementCheckbox, PrivacyNoticeLink } from '~/components/legal-links'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { Keycap } from '~/components/ui/keycap'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
+import { Stepper } from '~/components/ui/stepper'
+import { violationMessage } from '~/i18n/labels'
 import { intlTag } from '~/i18n/locale'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
+import { cn } from '~/lib/utils'
 import { getSession } from '~/server/context'
+import { getLegalConfig } from '~/server/legal'
 import { beginSetup, createAdministration } from '~/server/setup'
 
 /**
@@ -19,10 +27,10 @@ import { beginSetup, createAdministration } from '~/server/setup'
  * Outside the `_app` layout on purpose: that layout is about being inside an
  * administration, and this is how one comes to exist.
  *
- * One screen, one submit, and every field but the name has a defensible
- * default — a Dutch MKB chart, euros, a calendar book year starting this year.
- * The alternative is a wizard, and a wizard for eight fields is a way of
- * making a five-minute job feel like a migration.
+ * Desktop-light reskin of the #106 Setup board (#138 / #140): stepper chrome
+ * for the three planned steps, form on step 1 (company). History and bank
+ * steps are visual only until those flows ship — submit still provisions via
+ * `PUT /entities/{id}` as today. Dark and phone follow later boards.
  */
 export const Route = createFileRoute('/setup')({
   beforeLoad: async ({ location }) => {
@@ -32,7 +40,11 @@ export const Route = createFileRoute('/setup')({
     }
     return { session }
   },
-  loader: async ({ context }) => ({ session: context.session, setup: await beginSetup() }),
+  loader: async ({ context }) => ({
+    session: context.session,
+    setup: await beginSetup(),
+    legal: await getLegalConfig(),
+  }),
   component: Setup,
 })
 
@@ -60,18 +72,53 @@ function monthNames(tag: string): readonly string[] {
   return Array.from({ length: 12 }, (_, index) => format.format(new Date(Date.UTC(2026, index, 1))))
 }
 
+function BrandMark() {
+  return (
+    <span
+      aria-hidden="true"
+      className="bg-brand text-[var(--on-brand)] inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-sm font-bold"
+    >
+      K
+    </span>
+  )
+}
+
+function ImportHint({
+  icon,
+  title,
+  meta,
+}: {
+  readonly icon: ReactNode
+  readonly title: string
+  readonly meta: string
+}) {
+  return (
+    <div className="border-line bg-surface flex items-start gap-3 rounded-[var(--radius-md)] border px-3 py-3">
+      <span className="bg-surface-sunken text-ink inline-flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="text-ink block text-sm font-medium">{title}</span>
+        <span className="text-ink-2 block text-[13px]">{meta}</span>
+      </span>
+    </div>
+  )
+}
+
 function Setup() {
-  const { session, setup } = Route.useLoaderData()
+  const { session, setup, legal } = Route.useLoaderData()
   const navigate = useNavigate()
   const hydrated = useHydrated()
   const { t, locale } = useT()
   const months = monthNames(intlTag(locale))
 
   const available: readonly ChartSummary[] = setup.ok ? setup.data.charts : []
+  const primaryChart = available[0]
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [acceptedLegal, setAcceptedLegal] = useState(false)
 
   /**
    * One id per visit, held across re-renders so that submitting twice submits
@@ -79,11 +126,24 @@ function Setup() {
    * on `beginSetup`.
    */
   const entityId = useRef<string>(setup.ok ? setup.data.entityId : '')
+  const nameRef = useRef<HTMLInputElement>(null)
+
+  // Focus after hydration — `autoFocus` on SSR marks a style mismatch in React 19.
+  useEffect(() => {
+    if (hydrated) nameRef.current?.focus()
+  }, [hydrated])
 
   const thisYear = String(new Date().getUTCFullYear())
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (legal.agreementRequired && !acceptedLegal) {
+      setFieldErrors({ acceptedLegal: t('legal.required') })
+      setError(null)
+      return
+    }
+
     const form = new FormData(event.currentTarget)
     // FormData values are `string | File`; only the string branch is ours.
     const text = (key: string): string => {
@@ -106,6 +166,7 @@ function Setup() {
         functionalCurrency: text('functionalCurrency'),
         fiscalYearStartMonth: text('fiscalYearStartMonth'),
         firstFiscalYear: text('firstFiscalYear'),
+        acceptedLegal,
       },
     })
 
@@ -145,193 +206,257 @@ function Setup() {
 
   if (createRefused) {
     return (
-      <main className="bg-background text-foreground mx-auto min-h-screen max-w-xl p-8">
+      <main className="bg-ground text-ink mx-auto min-h-screen max-w-xl p-8">
         <h1 className="text-2xl font-semibold tracking-tight">{t('setup.closedTitle')}</h1>
-        <p className="text-muted-foreground mt-2 text-sm">{t('setup.closedBody')}</p>
+        <p className="text-ink-2 mt-2 text-sm">{t('setup.closedBody')}</p>
         <form method="post" action="/sign-out" className="mt-8">
           <button
             type="submit"
-            className="text-muted-foreground hover:text-foreground text-sm underline"
+            className="text-ink-muted hover:text-ink min-h-11 text-sm underline underline-offset-4"
           >
-            {t('shell.signOut')}
+            {t('setup.signOut')}
           </button>
         </form>
       </main>
     )
   }
 
+  const steps = [
+    { id: 'company', label: t('setup.stepCompany') },
+    { id: 'history', label: t('setup.stepHistory') },
+    { id: 'bank', label: t('setup.stepBank') },
+  ]
+
   return (
-    <main className="bg-background text-foreground mx-auto min-h-screen max-w-xl p-8">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('setup.title')}</h1>
-      <p className="text-muted-foreground mt-1 text-sm">
-        {t('setup.intro', { email: session.user.email })}
-      </p>
+    <div className="bg-ground text-ink flex min-h-screen flex-col">
+      <header className="border-line flex items-center gap-3 border-b px-6 py-5 md:px-10">
+        <BrandMark />
+        <strong className="text-base font-semibold">Klopt</strong>
+        <span className="flex-1" />
+        <span className="text-ink-muted hidden text-[13px] sm:inline">
+          {t('setup.signedInAs', { email: session.user.email })}
+        </span>
+        <form method="post" action="/sign-out">
+          <Button type="submit" variant="ghost" size="sm" className="min-h-11">
+            {t('setup.signOut')}
+          </Button>
+        </form>
+      </header>
 
-      {!setup.ok && (
-        <p role="alert" className="text-destructive mt-6 text-sm">
-          {t('setup.chartsFailed', { detail: setup.problem.detail })}
-        </p>
-      )}
+      <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-wrap items-start gap-10 p-6 md:p-10">
+        <div className="flex min-w-0 flex-[999_1_520px] flex-col gap-6">
+          <Stepper steps={steps} current={0} aria-label={t('setup.stepperLabel')} />
 
-      <form
-        onSubmit={(event) => {
-          void submit(event)
-        }}
-        className="mt-8 space-y-5"
-      >
-        <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            {t('setup.name')}
-          </span>
-          <input
-            name="name"
-            required
-            autoFocus
-            placeholder={t('setup.namePlaceholder')}
-            className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-          />
-          {problem('name')}
-        </label>
-
-        <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-medium">
-            {t('setup.legalName')} <span className="opacity-70">{t('setup.optional')}</span>
-          </span>
-          <input
-            name="legalName"
-            placeholder={t('setup.legalNamePlaceholder')}
-            className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-          />
-          {problem('legalName')}
-        </label>
-
-        <div className="grid grid-cols-2 gap-4">
-          <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              {t('setup.kvk')} <span className="opacity-70">{t('setup.optional')}</span>
-            </span>
-            <input
-              name="kvkNumber"
-              inputMode="numeric"
-              placeholder="12345678"
-              className="border-input bg-background tabular w-full rounded-md border px-3 py-2 text-sm"
-            />
-            {problem('kvkNumber')}
-          </label>
-
-          <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              {t('setup.vat')} <span className="opacity-70">{t('setup.optional')}</span>
-            </span>
-            <input
-              name="vatNumber"
-              placeholder="NL123456789B01"
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-            />
-            {problem('vatNumber')}
-          </label>
-        </div>
-
-        <div>
-          <SelectField
-            label={t('setup.chart')}
-            name="chartCode"
-            defaultValue={available[0]?.code ?? 'nl-mkb'}
-            disabled={!hydrated}
-          >
-            {available.map((chart) => (
-              <SelectOption key={chart.code} value={chart.code}>
-                {chart.name}
-              </SelectOption>
-            ))}
-          </SelectField>
-          {available[0] !== undefined && (
-            <span className="text-muted-foreground mt-1 block text-xs">
-              {t('setup.chartSummary', {
-                accounts: String(available[0].accountCount),
-                journals: String(available[0].journalCount),
-                taxCodes: String(available[0].taxCodeCount),
-                rgs: available[0].rgsVersion,
-              })}
-            </span>
-          )}
-          {problem('chartCode')}
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              {t('setup.currency')}
-            </span>
-            <input
-              name="functionalCurrency"
-              defaultValue="EUR"
-              maxLength={3}
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm uppercase"
-            />
-            {problem('functionalCurrency')}
-          </label>
-
-          <label className="block">
-            <span className="text-muted-foreground mb-1 block text-xs font-medium">
-              {t('setup.fiscalYear')}
-            </span>
-            <input
-              name="firstFiscalYear"
-              defaultValue={thisYear}
-              inputMode="numeric"
-              maxLength={4}
-              className="border-input bg-background tabular w-full rounded-md border px-3 py-2 text-sm"
-            />
-            {problem('firstFiscalYear')}
-          </label>
-
-          <div>
-            <SelectField
-              label={t('setup.startsIn')}
-              name="fiscalYearStartMonth"
-              defaultValue="1"
-              disabled={!hydrated}
-            >
-              {months.map((month, index) => (
-                <SelectOption key={month} value={String(index + 1)}>
-                  {month}
-                </SelectOption>
-              ))}
-            </SelectField>
-            {problem('fiscalYearStartMonth')}
+          <div className="flex flex-col gap-1.5">
+            <h1 className="m-0 text-[28px] leading-[34px] font-semibold tracking-[-0.02em]">
+              {t('setup.title')}
+            </h1>
+            <p className="text-ink-2 m-0 text-sm">{t('setup.intro')}</p>
           </div>
-        </div>
 
-        <p className="text-muted-foreground text-xs">{t('setup.fiscalYearNote')}</p>
+          {!setup.ok && (
+            <p role="alert" className="text-destructive text-sm">
+              {t('setup.chartsFailed', { detail: setup.problem.detail })}
+            </p>
+          )}
 
-        {error !== null && (
-          <p role="alert" className="text-destructive text-sm">
-            {error}
-          </p>
-        )}
-
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={busy || !hydrated}
-            className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+          <form
+            onSubmit={(event) => {
+              void submit(event)
+            }}
+            className="border-line bg-surface flex flex-col gap-[18px] rounded-[var(--radius-lg)] border p-6 shadow-[var(--shadow-raised)]"
           >
-            {busy ? t('common.busy') : t('setup.create')}
-          </button>
-        </div>
-      </form>
+            <div className="block">
+              <label className="block">
+                <span className="text-ink-2 mb-1.5 block text-xs font-medium">
+                  {t('setup.name')}
+                </span>
+                <Input
+                  ref={nameRef}
+                  name="name"
+                  required
+                  placeholder={t('setup.namePlaceholder')}
+                  className="border-ink-muted min-h-11"
+                />
+              </label>
+              <span className="text-ink-muted mt-1.5 block text-[13px]">{t('setup.nameHelp')}</span>
+              {problem('name')}
+            </div>
 
-      {/* Outside the form above: a form inside a form is not valid HTML, and
-          the browser drops the inner one silently. */}
-      <form method="post" action="/sign-out" className="mt-8">
-        <button
-          type="submit"
-          className="text-muted-foreground hover:text-foreground text-sm underline"
-        >
-          {t('shell.signOut')}
-        </button>
-      </form>
-    </main>
+            <label className="block">
+              <span className="text-ink-2 mb-1.5 block text-xs font-medium">
+                {t('setup.legalName')}{' '}
+                <small className="text-ink-muted font-normal">{t('setup.optional')}</small>
+              </span>
+              <Input
+                name="legalName"
+                placeholder={t('setup.legalNamePlaceholder')}
+                className="border-ink-muted min-h-11"
+              />
+              {problem('legalName')}
+            </label>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="block">
+                <label className="block">
+                  <span className="text-ink-2 mb-1.5 block text-xs font-medium">
+                    {t('setup.kvk')}{' '}
+                    <small className="text-ink-muted font-normal">{t('setup.optional')}</small>
+                  </span>
+                  <Input
+                    name="kvkNumber"
+                    inputMode="numeric"
+                    placeholder={t('setup.kvkPlaceholder')}
+                    className="border-ink-muted min-h-11 tabular-nums"
+                  />
+                </label>
+                <span className="text-ink-muted mt-1.5 block text-[13px]">
+                  {t('setup.kvkHelp')}
+                </span>
+                {problem('kvkNumber')}
+              </div>
+
+              <label className="block">
+                <span className="text-ink-2 mb-1.5 block text-xs font-medium">
+                  {t('setup.vat')}{' '}
+                  <small className="text-ink-muted font-normal">{t('setup.optional')}</small>
+                </span>
+                <Input
+                  name="vatNumber"
+                  placeholder={t('setup.vatPlaceholder')}
+                  className="border-ink-muted min-h-11"
+                />
+                {problem('vatNumber')}
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <SelectField
+                  label={t('setup.startsIn')}
+                  name="fiscalYearStartMonth"
+                  defaultValue="1"
+                  disabled={!hydrated}
+                  triggerClassName="border-ink-muted min-h-11"
+                >
+                  {months.map((month, index) => (
+                    <SelectOption key={month} value={String(index + 1)}>
+                      {month}
+                    </SelectOption>
+                  ))}
+                </SelectField>
+                <span className="text-ink-muted mt-1.5 block text-[13px]">
+                  {t('setup.fiscalYearNote')}
+                </span>
+                {problem('fiscalYearStartMonth')}
+              </div>
+
+              <label className="block">
+                <span className="text-ink-2 mb-1.5 block text-xs font-medium">
+                  {t('setup.currency')}
+                </span>
+                <Input
+                  name="functionalCurrency"
+                  defaultValue="EUR"
+                  maxLength={3}
+                  className="border-ink-muted min-h-11 uppercase"
+                  aria-label={t('setup.currency')}
+                />
+                {problem('functionalCurrency')}
+              </label>
+            </div>
+
+            <input type="hidden" name="firstFiscalYear" value={thisYear} />
+            <input type="hidden" name="chartCode" value={primaryChart?.code ?? 'nl-mkb'} />
+
+            {primaryChart !== undefined && (
+              <div className="bg-surface-sunken flex items-start gap-3.5 rounded-[var(--radius-md)] px-4 py-3.5">
+                <span className="bg-surface text-ink inline-flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]">
+                  <BookOpen className="size-[18px]" aria-hidden="true" />
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <strong className="text-sm font-semibold">{t('setup.chartTitle')}</strong>
+                  <span className="text-ink-2 text-[13px]">
+                    {t('setup.chartSummary', {
+                      accounts: String(primaryChart.accountCount),
+                      journals: String(primaryChart.journalCount),
+                      taxCodes: String(primaryChart.taxCodeCount),
+                      rgs: primaryChart.rgsVersion,
+                    })}
+                  </span>
+                </span>
+                {available.length > 1 && (
+                  <span className="text-ink-muted whitespace-nowrap text-[13px]">
+                    {t('setup.chartOther')}
+                  </span>
+                )}
+              </div>
+            )}
+            {problem('chartCode')}
+
+            <LegalAgreementCheckbox
+              legal={legal}
+              checked={acceptedLegal}
+              onCheckedChange={setAcceptedLegal}
+              disabled={busy || !hydrated}
+            />
+            {problem('acceptedLegal')}
+
+            <PrivacyNoticeLink privacyUrl={legal.privacyUrl} />
+
+            {error !== null && (
+              <p role="alert" className="text-destructive text-sm">
+                {error}
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <Button
+                type="submit"
+                disabled={busy || !hydrated || (legal.agreementRequired && !acceptedLegal)}
+                className="min-h-11 gap-2"
+              >
+                {busy ? t('common.busy') : t('setup.create')}
+                {!busy && (
+                  <span className="hidden items-center gap-0.5 sm:inline-flex">
+                    <Keycap className="border-primary-foreground/30 bg-primary text-primary-foreground">
+                      ⌘
+                    </Keycap>
+                    <Keycap className="border-primary-foreground/30 bg-primary text-primary-foreground">
+                      ↵
+                    </Keycap>
+                  </span>
+                )}
+              </Button>
+              <span className="text-ink-muted text-[13px]">{t('setup.createNext')}</span>
+            </div>
+          </form>
+        </div>
+
+        <aside className="flex max-w-[380px] flex-[1_1_320px] flex-col gap-4">
+          <h2 className="text-ink m-0 text-sm font-semibold tracking-wide uppercase">
+            {t('setup.importAsideTitle')}
+          </h2>
+          <ImportHint
+            icon={<Download className="size-[18px]" aria-hidden="true" />}
+            title={t('setup.importMoneybird')}
+            meta={t('setup.importMoneybirdMeta')}
+          />
+          <ImportHint
+            icon={<Download className="size-[18px]" aria-hidden="true" />}
+            title={t('setup.importExact')}
+            meta={t('setup.importExactMeta')}
+          />
+          <ImportHint
+            icon={<FileText className="size-[18px]" aria-hidden="true" />}
+            title={t('setup.importAny')}
+            meta={t('setup.importAnyMeta')}
+          />
+          <p className={cn('text-ink-muted m-0 text-[13px] leading-relaxed')}>
+            {t('setup.importLater')}
+          </p>
+        </aside>
+      </main>
+    </div>
   )
 }

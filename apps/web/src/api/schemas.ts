@@ -383,6 +383,11 @@ export const createEntityBody = z.object({
     'the current year',
   ),
   vatRounding: z.enum(['per_invoice', 'per_line']).default('per_invoice'),
+  /**
+   * Hosted Setup checkbox (issue #138). Ignored when legal URLs are unset;
+   * required when terms + DPA + versions are configured.
+   */
+  acceptedLegal: z.boolean().optional().default(false),
 })
 
 export const createFiscalYearBody = z.object({

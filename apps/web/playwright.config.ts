@@ -92,6 +92,9 @@ export default defineConfig({
             // refuses to take one without a key. An instance that has Exact
             // configured has a key, so the browser test runs with one.
             KLOPT_ENCRYPTION_KEY: 'e2e-encryption-key-not-for-production-01234',
+            // Legal URLs stay unset (self-hosted). Specs that need the hosted
+            // checkbox set cookie `klopt-e2e-legal=on` (see legal-links.ts).
+            KLOPT_E2E_LEGAL_TOGGLE: '1',
           },
         },
       }

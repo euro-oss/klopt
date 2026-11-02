@@ -49,7 +49,7 @@ async function anAdministration(
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill(name)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
   // Keyboard specs that assume a draft is the top to-do need no closed VAT
   // period waiting — start the book year in the current month for those.
   if (options?.startInCurrentMonth === true) {
@@ -325,7 +325,7 @@ test('a boekjaar that is not the calendar year is the one the screens use', asyn
   await signIn(page, uniqueEmail())
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
 
-  await page.getByLabel('Naam van de administratie').fill('Gebroken Boekjaar BV')
+  await page.getByLabel('Naam', { exact: true }).fill('Gebroken Boekjaar BV')
   const opened = String(new Date().getUTCFullYear() - 1)
   await page.getByLabel('Boekjaar').fill(opened)
   await chooseOption(page, 'Begint in', 'juli')

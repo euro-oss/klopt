@@ -6,7 +6,9 @@ import {
   handleListCharts,
   handleListFiscalYears,
 } from '~/api/handlers/setup'
+import { agreementRequired, readLegalLinksForRequest } from '~/api/legal-links'
 import { createEntityBody, createFiscalYearBody } from '~/api/schemas'
+import { ApiError } from '~/api/errors'
 import { contextFromRequest, run, runWith, setupContextFromRequest } from './internal'
 
 /**
@@ -47,11 +49,41 @@ export const createAdministration = createServerFn({ method: 'POST' })
   .handler(async ({ data }) =>
     runWith(createEntityBody, data.body, async (body) => {
       const context = await setupContextFromRequest()
+      const { getRequest } = await import('@tanstack/react-start/server')
+      const legal = readLegalLinksForRequest(getRequest())
+      const needsAgreement = agreementRequired(legal)
+
+      if (needsAgreement && body.acceptedLegal !== true) {
+        throw new ApiError(
+          'validation_failed',
+          'Agree to the terms and the data processing agreement to continue.',
+          [
+            {
+              code: 'legal_acceptance_required',
+              path: 'acceptedLegal',
+              message: 'Agree to the terms and the data processing agreement to continue.',
+            },
+          ],
+        )
+      }
+
       const result = await handleCreateEntity(context, data.entityId, body)
+
+      // Hosted only: record who accepted which versions. Self-hosted (env unset)
+      // never writes — even if a client somehow sent acceptedLegal.
+      if (needsAgreement && body.acceptedLegal === true) {
+        const { LegalAcceptancesRepository } = await import('@klopt/db')
+        const repository = new LegalAcceptancesRepository(context.database)
+        await repository.recordTermsDpa({
+          id: uuidv7(),
+          userId: context.user.id,
+          termsVersion: legal.termsVersion!,
+          dpaVersion: legal.dpaVersion!,
+        })
+      }
 
       // Land the session on the books it just created rather than on whichever
       // administration sorts first.
-      const { getRequest } = await import('@tanstack/react-start/server')
       const { resolveMemberships } = await import('~/api/auth')
       const { setActiveEntity } = await import('@klopt/db')
       const session = await resolveMemberships(context.database, getRequest())

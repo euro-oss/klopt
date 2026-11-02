@@ -65,7 +65,7 @@ async function signInFresh(page: Page): Promise<void> {
 async function emptyAdministration(page: Page, name: string): Promise<void> {
   await signInFresh(page)
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill(name)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
   await chooseOption(page, 'Begint in', MONTHS_NL[new Date().getMonth()]!)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
@@ -80,7 +80,7 @@ async function emptyAdministration(page: Page, name: string): Promise<void> {
 async function populatedAdministration(page: Page, name: string): Promise<void> {
   await signInFresh(page)
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill(name)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),

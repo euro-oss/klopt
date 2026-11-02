@@ -18,7 +18,7 @@ async function anAdministration(page: Page): Promise<void> {
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill('Koppelingen BV')
+  await page.getByLabel('Naam', { exact: true }).fill('Koppelingen BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),

@@ -18,6 +18,18 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign: SignIn and Setup desktop light (#138)
+
+Sign-in and first-administration Setup match the #106 desktop-light boards
+(yellow brand panel, card chrome, Setup stepper). Hosted legal: configurable
+`KLOPT_PRIVACY_URL` / `KLOPT_TERMS_URL` / `KLOPT_DPA_URL` plus version env
+vars; when set, Setup shows one unticked terms+DPA checkbox and records
+acceptance; when unset (self-hosted), links and checkbox stay hidden.
+Invitees (who skip Setup) see the privacy notice once on first sign-in when
+`KLOPT_PRIVACY_URL` + `KLOPT_PRIVACY_VERSION` are set; that show is recorded
+in the same `legal_acceptances` table (`privacy_notice` kind: user, timestamp,
+version). Dark and phone follow Batch 2 / Batch 3 boards (#140).
+
 ### Fixed
 
 - Debtor-ageing report and overdue counts no longer count invoices that are due

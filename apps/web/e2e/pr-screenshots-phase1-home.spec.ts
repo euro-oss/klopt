@@ -99,7 +99,7 @@ async function emptyAdministration(
 ): Promise<void> {
   const email = await signInFresh(page)
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill(name)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
   // Start in the current month so no closed VAT period is waiting (Design #112).
   await chooseOption(page, 'Begint in', MONTHS_NL[new Date().getMonth()]!)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
@@ -121,7 +121,7 @@ async function emptyAdministration(
 async function populatedAdministration(page: Page): Promise<void> {
   const email = await signInFresh(page)
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill('Noordkust Advies B.V.')
+  await page.getByLabel('Naam', { exact: true }).fill('Noordkust Advies B.V.')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
