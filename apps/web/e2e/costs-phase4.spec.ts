@@ -162,15 +162,19 @@ test('seeded bills: segments, preview, keyboard; no console errors', async ({ pa
   await expect(preview.getByText('Geen voorbeeld van het document')).toBeVisible()
   await expect(preview.getByText('vergroot')).toHaveCount(0)
   await expect(page.getByText('naar betaalbatches', { exact: true })).toBeVisible()
-  // Approved payable bill shows the honest /payments shortcut label.
-  await page.getByText('INK-DEMO-2025-0002', { exact: true }).click()
-  await expect(preview.getByRole('button', { name: 'Naar betaalbatches' })).toBeVisible()
 
   const firstId = new URL(page.url()).searchParams.get('id')
   await page.keyboard.press('ArrowDown')
   await expect.poll(() => new URL(page.url()).searchParams.get('id')).not.toBe(firstId)
   await page.keyboard.press('ArrowUp')
   await expect.poll(() => new URL(page.url()).searchParams.get('id')).toBe(firstId)
+
+  // Approved payable bill shows the honest /payments shortcut label.
+  await page
+    .getByRole('region', { name: 'Facturenlijst' })
+    .getByRole('button', { name: /INK-DEMO-2025-0002/ })
+    .click()
+  await expect(preview.getByRole('button', { name: 'Naar betaalbatches' })).toBeVisible()
 
   await page.keyboard.press('Escape')
   await expect(page).not.toHaveURL(/[?&]id=/)
@@ -249,8 +253,10 @@ test('phone 390 light and dark: overdue button clear of title; tabs one line; no
 
     await assertNoHorizontalOverflow(page, `${theme} costs list`)
 
-    // Bill detail at 390 — same no-overflow rule.
-    await page.getByText('INK-PHONE-0001', { exact: true }).click()
+    // Bill detail at 390 — phone list links to /purchases/$id (desktop table is hidden).
+    await page
+      .locator('.md\\:hidden a[href*="/purchases/"]', { hasText: 'INK-PHONE-0001' })
+      .click()
     await expect(page).toHaveURL(/\/purchases\/[0-9a-f-]+/)
     await expect(page.getByRole('heading', { name: /Inkoopfactuur INK-PHONE-0001/ })).toBeVisible()
     await assertNoHorizontalOverflow(page, `${theme} bill detail`)
