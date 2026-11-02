@@ -114,9 +114,9 @@ async function seedExtraUnmatched(entityName: string, count: number): Promise<vo
 test('a bookkeeper works through the queue with the keyboard', async ({ page }) => {
   await withStatement(page, 'Koppelen BV')
 
-  // BankAccounts CTA copy (CoS): afletteren, not "koppelen".
-  await page.getByRole('link', { name: '4 regels afletteren' }).click()
-  await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
+  // Bank Match (#164) CTA / title: te boeken → page titled Bank.
+  await page.getByRole('link', { name: '4 te boeken' }).click()
+  await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
 
   const rows = queueRows(page)
   await expect(rows).toHaveCount(4)
@@ -180,7 +180,7 @@ test('a payment is booked by confirming the candidate, not by trusting the top o
   await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   await page.goto('/bank/match')
-  await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
 
   // The keys are listened for in an effect; before React has taken over a
   // keystroke is simply lost.
@@ -217,7 +217,7 @@ test('a payment is booked by confirming the candidate, not by trusting the top o
 test('the keys the match screen prints are the keys it answers to', async ({ page }) => {
   await withStatement(page, 'Toetsen BV')
   await page.goto('/bank/match')
-  await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
   await hydrated(page)
 
   await page.setViewportSize({ width: 1440, height: 900 })

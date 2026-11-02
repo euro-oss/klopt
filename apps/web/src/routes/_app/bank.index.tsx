@@ -108,9 +108,8 @@ function Bank() {
   const { accounts, transactions, rules } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
-  const { t } = useT()
+  const { t, tag } = useT()
   const dropInputRef = useRef<HTMLInputElement | null>(null)
-  const dropZoneRef = useRef<HTMLDivElement | null>(null)
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -413,11 +412,18 @@ function Bank() {
                       <strong className="text-ink truncate text-sm font-semibold">
                         {account.name}
                       </strong>
-                      <Badge variant="secondary" className="shrink-0 font-medium">
+                      <Badge
+                        data-slot="bank-account-badge"
+                        variant="secondary"
+                        className="shrink-0 font-medium"
+                      >
                         {t('bank.fileImport')}
                       </Badge>
                     </div>
-                    <span className="text-ink-muted tabular whitespace-nowrap text-[13px]">
+                    <span
+                      data-slot="bank-account-iban"
+                      className="text-ink-muted tabular whitespace-nowrap text-[13px]"
+                    >
                       {formatIbanDisplay(account.iban)}
                     </span>
                   </div>
@@ -482,26 +488,30 @@ function Bank() {
                     </Button>
                   </div>
                 ) : null}
+
+                {/*
+                  Import is per account card so a statement for the second
+                  account does not hit the first and surface an English core
+                  account_mismatch error (PM #171).
+                */}
+                <DropZone
+                  data-account-id={account.id}
+                  {...(account.id === primaryAccount?.id
+                    ? { inputRef: dropInputRef, shortcut: 'U' }
+                    : {})}
+                  className="min-h-0 justify-center px-4 py-5"
+                  title={t('bank.dropTitle')}
+                  description={bankAccounts.length === 1 ? t('bank.dropDescription') : account.name}
+                  accept=".xml,.940,.sta,.txt,.mt940,.csv"
+                  disabled={busy || !hydrated}
+                  onFiles={(files) => {
+                    const file = files[0]
+                    if (file !== undefined) void chooseFile(account.id, file)
+                  }}
+                />
               </section>
             )
           })}
-
-          {primaryAccount !== null ? (
-            <DropZone
-              ref={dropZoneRef}
-              inputRef={dropInputRef}
-              className="min-w-[min(100%,320px)] flex-1 justify-center"
-              title={t('bank.dropTitle')}
-              description={t('bank.dropDescription')}
-              shortcut="U"
-              accept=".xml,.940,.sta,.txt,.mt940,.csv"
-              disabled={busy || !hydrated}
-              onFiles={(files) => {
-                const file = files[0]
-                if (file !== undefined) void chooseFile(primaryAccount.id, file)
-              }}
-            />
-          ) : null}
 
           <section
             data-slot="bank-import-card"
@@ -521,16 +531,6 @@ function Bank() {
                   })
                 : t('bank.importCardBody')}
             </p>
-            <button
-              type="button"
-              className="text-ink inline-flex min-h-11 items-center self-start text-sm font-medium underline underline-offset-2 md:min-h-9"
-              onClick={() => {
-                dropZoneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                dropInputRef.current?.click()
-              }}
-            >
-              {t('bank.importCardHint')}
-            </button>
           </section>
         </div>
       )}
@@ -693,17 +693,31 @@ function Bank() {
             </ul>
           )}
 
+          {preview.report.newEntries === 0 ? (
+            <p className="text-muted-foreground mt-4 text-sm">
+              {t('bank.nothingNew', {
+                count: String(
+                  preview.report.duplicates > 0
+                    ? preview.report.duplicates
+                    : preview.report.entries,
+                ),
+              })}
+            </p>
+          ) : null}
+
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button
-              type="button"
-              disabled={busy || preview.report.newEntries === 0}
-              className="min-h-11 md:min-h-10"
-              onClick={() => {
-                void confirm()
-              }}
-            >
-              {busy ? t('common.busy') : t('bank.import')}
-            </Button>
+            {preview.report.newEntries > 0 ? (
+              <Button
+                type="button"
+                disabled={busy}
+                className="min-h-11 md:min-h-10"
+                onClick={() => {
+                  void confirm()
+                }}
+              >
+                {busy ? t('common.busy') : t('bank.import')}
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="outline"
@@ -777,9 +791,14 @@ function Bank() {
           aria-labelledby="bank-tx-heading"
         >
           <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
-            <h2 id="bank-tx-heading" className="text-base font-semibold">
-              {t('bank.allTransactions')}
-            </h2>
+            <div className="flex flex-wrap items-baseline gap-2">
+              <h2 id="bank-tx-heading" className="text-base font-semibold">
+                {t('bank.allTransactions')}
+              </h2>
+              {rows.length >= 200 ? (
+                <span className="text-muted-foreground text-xs">{t('bank.lastTwoHundred')}</span>
+              ) : null}
+            </div>
             <Tabs
               value={statusFilter}
               onValueChange={(value) => {
@@ -820,7 +839,7 @@ function Bank() {
                 visibleRows.map((row) => {
                   const content = (
                     <>
-                      <span className="tabular">{formatBankDayMonth(row.bookingDate)}</span>
+                      <span className="tabular">{formatBankDayMonth(row.bookingDate, tag)}</span>
                       <span className="truncate">
                         {row.counterpartyName ?? (
                           <span className="text-muted-foreground">

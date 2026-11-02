@@ -540,9 +540,9 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   // Redesign (#61 slice 6): Af/Bij table + Categorie picker, not the old button list.
   await page.keyboard.press('g')
   await page.keyboard.press('o')
-  await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
 
-  const queue = page.getByRole('table', { name: 'Wachtrij' }).locator('tbody tr')
+  const queue = page.locator('[data-slot="match-queue"] [data-row]')
   await expect(queue).toHaveCount(4)
   await page.keyboard.press('j')
 

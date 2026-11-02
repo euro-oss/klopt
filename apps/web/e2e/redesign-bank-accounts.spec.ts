@@ -8,7 +8,8 @@ import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from 
  * Redesign BankAccounts (#129 / #140): sidebar + ⌘K route, empty + seeded,
  * keyboard, no console errors, and Legal copy (no PSD2 / gekoppeld / any Dutch bank).
  *
- * Sample user Eva; example IBAN NL91ABNA0417164300 only.
+ * Sample user Eva; example IBAN NL91ABNA0417164300 only for the primary account.
+ * PM #171: per-account import, IBAN single-line height at 1440 and 390.
  */
 
 const FIXTURES = join(
@@ -24,6 +25,7 @@ const FIXTURES = join(
 )
 
 const EXAMPLE_IBAN = 'NL91ABNA0417164300'
+const SECOND_IBAN = 'NL02ABNA0123456789'
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
@@ -67,6 +69,46 @@ async function assertNoForbiddenCopy(page: Page): Promise<void> {
   await expect(page.getByText(/elke Nederlandse bank/i)).toHaveCount(0)
 }
 
+async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
+  await page
+    .context()
+    .addCookies([{ name: 'klopt_theme', value: theme, domain: 'localhost', path: '/' }])
+  await page.evaluate((t) => {
+    document.cookie = `klopt_theme=${t}; path=/; max-age=31536000; samesite=lax`
+    document.documentElement.classList.toggle('dark', t === 'dark')
+  }, theme)
+  await page.waitForFunction(
+    (wantDark) => document.documentElement.classList.contains('dark') === wantDark,
+    theme === 'dark',
+  )
+}
+
+/** Design #171: IBAN is one line; badge must not overlap its box. */
+async function assertIbanSingleLine(page: Page): Promise<void> {
+  const iban = page.locator('[data-slot="bank-account-iban"]').first()
+  const badge = page.locator('[data-slot="bank-account-badge"]').first()
+  await expect(iban).toBeVisible()
+  await expect(badge).toBeVisible()
+  const metrics = await iban.evaluate((el) => {
+    const style = getComputedStyle(el)
+    const rect = el.getBoundingClientRect()
+    return { height: rect.height, lineHeight: Number.parseFloat(style.lineHeight) }
+  })
+  expect(metrics.lineHeight).toBeGreaterThan(0)
+  expect(metrics.height).toBeLessThanOrEqual(metrics.lineHeight * 1.2)
+
+  const ibanBox = await iban.boundingBox()
+  const badgeBox = await badge.boundingBox()
+  expect(ibanBox).not.toBeNull()
+  expect(badgeBox).not.toBeNull()
+  const overlap =
+    ibanBox!.x < badgeBox!.x + badgeBox!.width &&
+    ibanBox!.x + ibanBox!.width > badgeBox!.x &&
+    ibanBox!.y < badgeBox!.y + badgeBox!.height &&
+    ibanBox!.y + ibanBox!.height > badgeBox!.y
+  expect(overlap).toBe(false)
+}
+
 async function seedAccountAndStatement(page: Page): Promise<void> {
   await page.goto('/bank')
   await hydrated(page)
@@ -84,7 +126,7 @@ async function seedAccountAndStatement(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   await page.getByRole('button', { name: 'Importeren', exact: true }).click()
   await expect(page.getByText(/transacties geïmporteerd/)).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Alle transacties' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Transacties' })).toBeVisible()
 }
 
 test('Bank accounts opens from the sidebar and from the command bar', async ({ page }) => {
@@ -96,13 +138,18 @@ test('Bank accounts opens from the sidebar and from the command bar', async ({ p
     .getByRole('link', { name: /^Bank\b/ })
     .click()
   // Sidebar Bank opens /bank/match (#107). Accounts live at /bank — Reach them
-  // via the Match → accounts link (BankTabs on Match land in #164).
+  // via BankTabs (Rekeningen) after #164.
   await expect(page).toHaveURL(/\/bank\/match/)
-  await page.getByRole('link', { name: /Terug naar bank|Rekeningen en afschriften/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Bankonderdelen' })
+    .getByRole('link', { name: 'Rekeningen' })
+    .click()
   await expect(page).toHaveURL(/\/bank\/?$/)
   await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
   await expect(page.getByText(/Nog geen bankrekening/)).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Bankonderdelen' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Rekeningen' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Batches' })).toBeVisible()
   await assertNoForbiddenCopy(page)
 
   await page.goto('/')
@@ -133,30 +180,84 @@ test('empty state, seeded account + transactions, keyboard, and Legal copy', asy
   await seedAccountAndStatement(page)
   await expect(page.getByText('Demo bankrekening')).toBeVisible()
   await expect(page.getByText('Bestandsimport')).toBeVisible()
-  await expect(page.getByText('Bankafschrift importeren')).toBeVisible()
+  await expect(page.getByText('Bankafschrift importeren').first()).toBeVisible()
   await expect(page.getByText(/CAMT\.053 of MT940 van je bank/)).toBeVisible()
+  await expect(page.getByText(/Regels die je al hebt slaat Klopt over/)).toBeVisible()
+  await expect(page.getByText('Waar je bank het bestand bewaart')).toHaveCount(0)
   await expect(page.getByText('Grote Klant N.V.')).toBeVisible()
-  await expect(page.getByText('Af te letteren').first()).toBeVisible()
+  await expect(page.getByText('te boeken').first()).toBeVisible()
   await assertNoForbiddenCopy(page)
 
   // Segmented filter + U opens the file picker path (DropZone stays enabled).
-  await page.getByRole('tab', { name: /Af te letteren/ }).click()
-  await expect(page.getByRole('tab', { name: /Af te letteren/ })).toHaveAttribute(
-    'data-state',
-    'active',
-  )
+  await page.getByRole('tab', { name: /Te boeken/ }).click()
+  await expect(page.getByRole('tab', { name: /Te boeken/ })).toHaveAttribute('data-state', 'active')
   await page.getByRole('tab', { name: /Alles/ }).click()
 
   await page.keyboard.press('u')
-  await expect(page.locator('[data-slot="drop-zone"] input[type="file"]')).toBeEnabled()
+  await expect(page.locator('[data-slot="drop-zone"] input[type="file"]').first()).toBeEnabled()
 
-  // Disabled selects in the CSV mapper look disabled (opacity) when shown.
-  // Re-open mapping path is covered in bank.spec; here we assert the trigger
-  // state class on a disabled control pattern via the Add form cancel path.
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
   const save = page.getByRole('button', { name: 'Opslaan' })
   await expect(save).toBeVisible()
   await page.getByRole('button', { name: 'Annuleren' }).click()
+
+  expect(errors, errors.join('\n')).toEqual([])
+})
+
+test('IBAN stays a single line at 1440 and 390, light and dark', async ({ page }) => {
+  await openBankAdmin(page)
+  await seedAccountAndStatement(page)
+
+  for (const theme of ['light', 'dark'] as const) {
+    for (const size of [
+      { width: 1440, height: 900 },
+      { width: 390, height: 844 },
+    ] as const) {
+      await page.goto('/bank')
+      await setTheme(page, theme)
+      await page.setViewportSize(size)
+      await hydrated(page)
+      await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
+      await assertIbanSingleLine(page)
+    }
+  }
+})
+
+test('statement for the second account imports into that account', async ({ page }) => {
+  const { errors } = attachConsoleGuard(page)
+  await openBankAdmin(page)
+
+  await page.goto('/bank')
+  await hydrated(page)
+
+  await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
+  await page.getByLabel('IBAN').fill(EXAMPLE_IBAN)
+  await page.getByLabel('Naam', { exact: true }).fill('Eerste rekening')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
+  await page.getByLabel('IBAN').fill(SECOND_IBAN)
+  await page.getByLabel('Naam', { exact: true }).fill('Tweede rekening')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('NL02 ABNA 0123 4567 89')).toBeVisible()
+
+  const secondCard = page.locator('[data-slot="bank-account-card"]', {
+    has: page.getByText('Tweede rekening'),
+  })
+  await expect(secondCard).toBeVisible()
+  const secondDrop = secondCard.locator('[data-slot="drop-zone"] input[type="file"]')
+  await expect(secondDrop).toBeEnabled()
+  await secondDrop.setInputFiles(join(FIXTURES, 'statement-second.mt940'))
+
+  await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
+  // No English core account_mismatch string.
+  await expect(page.getByText(/Statement .+ is for .+, not .+\./)).toHaveCount(0)
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
+  await expect(page.getByText(/transacties geïmporteerd/)).toBeVisible()
+  await expect(page.getByText('Tweede Klant B.V.')).toBeVisible()
+  await expect(page.getByText(/Statement .+ is for .+, not .+\./)).toHaveCount(0)
 
   expect(errors, errors.join('\n')).toEqual([])
 })
@@ -171,6 +272,6 @@ test('Legal: page never claims PSD2, gekoppeld, or any Dutch bank', async ({ pag
   await page.getByLabel('IBAN').fill(EXAMPLE_IBAN)
   await page.getByLabel('Naam', { exact: true }).fill('Demo bankrekening')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('Bankafschrift importeren')).toBeVisible()
+  await expect(page.getByText('Bankafschrift importeren').first()).toBeVisible()
   await assertNoForbiddenCopy(page)
 })

@@ -9,26 +9,17 @@ export function formatIbanDisplay(iban: string): string {
   return compact.replace(/(.{4})/g, '$1 ').trim()
 }
 
-/** Short day+month for transaction rows (`12 Dec`), locale-neutral English abbr. */
-export function formatBankDayMonth(iso: string): string {
-  const [, month, day] = iso.split('-')
-  if (month === undefined || day === undefined) return iso
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ] as const
-  const index = Number(month) - 1
-  const label = months[index]
-  if (label === undefined) return iso
-  return `${Number(day)} ${label}`
+/**
+ * Short day+month for transaction rows (`12 okt` / `12 Oct`), locale-aware via
+ * `Intl`. Falls back to the ISO date when parsing fails.
+ */
+export function formatBankDayMonth(iso: string, locale: string = 'en-GB'): string {
+  const [year, month, day] = iso.split('-').map(Number)
+  if (year === undefined || month === undefined || day === undefined) return iso
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return iso
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, day)))
 }

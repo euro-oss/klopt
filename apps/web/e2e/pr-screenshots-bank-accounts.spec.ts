@@ -9,7 +9,7 @@ import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from 
  * PR screenshots for BankAccounts redesign (#129 / #140 board).
  *
  * Must-have: desktop-light 1440 empty + seeded. Dark/phone are follow-ups (#143).
- * Fixture data: example IBAN NL91ABNA0417164300; no neverhide / hotelzeezicht.
+ * Fixture data: example IBAN NL91ABNA0417164300 only (CoS / Legal).
  *
  *   CAPTURE_PR_SCREENSHOTS=1 PR_SCREENSHOT_NUMBER=<pr> \
  *     pnpm --filter @klopt/web exec playwright test e2e/pr-screenshots-bank-accounts.spec.ts
@@ -69,7 +69,7 @@ async function seedBank(page: Page): Promise<void> {
   )
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   await page.getByRole('button', { name: 'Importeren', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Alle transacties' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Transacties' })).toBeVisible()
 }
 
 async function persistThemeCookie(page: Page, theme: 'light' | 'dark'): Promise<void> {

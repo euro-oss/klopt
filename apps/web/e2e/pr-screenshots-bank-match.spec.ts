@@ -102,7 +102,7 @@ async function issueMatchingInvoice(page: Page, withIban = false): Promise<void>
 
 async function openMatch(page: Page): Promise<void> {
   await page.goto('/bank/match')
-  await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
   await expect(page.locator('[data-slot="scroll-table"] tbody tr').first()).toBeVisible({
     timeout: 15_000,
   })
