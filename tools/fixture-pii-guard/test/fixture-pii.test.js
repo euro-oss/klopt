@@ -10,11 +10,13 @@ import { describe, expect, it } from 'vitest'
  * Legal's purge: seeds, e2e fixtures and tests must not carry names close to
  * real people, a banned IBAN (matched by SHA-256 of the normalised form, so
  * the literal never appears in-tree), or third-party domains that showed up in
- * content greps (`hotelzeezicht.nl`, `neverhide.nl`).
+ * content greps (`hotelzeezicht.nl`, `neverhide.nl`). The Neverhide name is
+ * banned in any case; the domain form is included.
  *
  * Scans `apps/` and `packages/` with the full ban set. An optional `design/`
- * tree is scanned for domains and the IBAN hash only — authorship notes like
- * "not drawn by Hidde" / `"by": "Hidde"` must stay allowed there.
+ * tree is scanned for third-party domains, the Neverhide name, and the IBAN
+ * hash only — authorship notes like "not drawn by Hidde" / `"by": "Hidde"`
+ * must stay allowed there.
  *
  * Docs, NOTICE and MAINTAINERS naming the copyright holder are out of scope.
  */
@@ -76,6 +78,11 @@ const LITERAL_BANS = /** @type {readonly LiteralRule[]} */ ([
   {
     id: 'hotelzeezicht.nl',
     pattern: /hotelzeezicht\.nl/i,
+    scopes: ['apps-packages', 'design'],
+  },
+  {
+    id: 'neverhide',
+    pattern: /neverhide/i,
     scopes: ['apps-packages', 'design'],
   },
   {
@@ -253,7 +260,28 @@ describe('fixture PII guard (#120)', () => {
     expect(findings, findings.join('\n')).toEqual([])
   })
 
-  it('rejects only domains and the banned-IBAN hash under design/ (names stay allowed)', () => {
+  it('bans the Neverhide name in any case under apps/, packages/ and design/', () => {
+    const samples = ['Neverhide', 'NEVERHIDE', 'neverhide', 'NeverHide']
+    for (const scope of ['apps-packages', 'design']) {
+      for (const sample of samples) {
+        const hit = LITERAL_BANS.some((rule) => {
+          if (!rule.scopes.includes(scope)) return false
+          return new RegExp(rule.pattern.source, rule.pattern.flags).test(sample)
+        })
+        expect(hit, `${scope}: ${sample}`).toBe(true)
+      }
+    }
+
+    const nameRule = LITERAL_BANS.find((rule) => rule.id === 'neverhide')
+    expect(nameRule?.pattern.source).toBe('neverhide')
+    expect(nameRule?.pattern.flags).toContain('i')
+    // The older domain ban stays, and the name ban covers that form too.
+    expect(
+      new RegExp(nameRule?.pattern.source ?? '', nameRule?.pattern.flags).test('neverhide.nl'),
+    ).toBe(true)
+  })
+
+  it('rejects only domains, the Neverhide name and the banned-IBAN hash under design/ (personal names stay allowed)', () => {
     const findings = scanScope('design')
     expect(findings, findings.join('\n')).toEqual([])
   })
