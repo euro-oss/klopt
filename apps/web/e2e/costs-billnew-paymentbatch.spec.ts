@@ -170,8 +170,8 @@ test('BillNew from sidebar and command bar; empty and seeded; keyboard; no conso
   ).toBeVisible()
   await expect(page.getByText(/Postvak|Inbox/i).first()).toBeVisible()
   await expect(page.getByText(/vult Klopt in wat het las/i)).toHaveCount(0)
-  await expect(page.getByText('Btw-code')).toBeVisible()
-  await expect(page.getByText('Btw-bedrag')).toBeVisible()
+  await expect(page.getByText('Btw-code', { exact: true })).toBeVisible()
+  await expect(page.getByText('Btw-bedrag', { exact: true })).toBeVisible()
   await expect(page.getByText(/Facturen in \d{4}/)).toHaveCount(0)
   await expect(page.getByText(/Meestal geboekt op/)).toHaveCount(0)
 
