@@ -146,8 +146,8 @@
   /*
     Input / control border a11y deviation: export --line-control fails 3:1
     (~1.68:1 on white). Use existing --ink-muted (CoS / DERIVED.md / #140) —
-    never a hard-coded border hex. Light ≈ 5.95:1 on white / ≈ 5.45:1 on
-    --ground; dark ≈ 7.36:1 on dark ground.
+    no hard-coded border hex. Light ≈ 5.95:1 on #ffffff / ≈ 5.45:1 on --ground;
+    dark ≈ 7.36:1 on #111113.
   */
   --input-border: var(--ink-muted);
 
@@ -258,7 +258,7 @@
 
   --link: var(--ink);
 
-  /* Same as light: --ink-muted (≥3:1 on dark ground; ≈7.36:1; #140 / DERIVED.md). */
+  /* Same as light: --ink-muted (≥3:1 on dark ground; ≈7.36:1 on #111113; #140 / DERIVED.md). */
   --input-border: var(--ink-muted);
 
   --chart-1: #f4f4f5;

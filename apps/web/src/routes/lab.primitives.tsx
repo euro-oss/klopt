@@ -198,8 +198,8 @@ function PrimitivesLab() {
           <CodeChip>1100</CodeChip>
         </div>
         <DropZone
-          title="Sleep een bankafschrift hierheen"
-          description="CAMT.053 of MT940 — geen PDF- of fotolezen"
+          title="Bankafschrift importeren"
+          description="CAMT.053 of MT940 van je bank — geen PDF- of fotolezen"
           chooseLabel="Kies een bestand"
           accept=".xml,.sta,.txt"
         />

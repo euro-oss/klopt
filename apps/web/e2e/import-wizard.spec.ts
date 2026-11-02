@@ -149,8 +149,12 @@ test('picking Exact on Bron updates ?bron= and the page title', async ({ page })
 
   await page.getByRole('radio', { name: /Exact Online/ }).click()
   await expect(page).toHaveURL(/bron=exact/)
-  await expect(page.getByText(/kan nog niet in deze wizard/i)).toBeVisible()
   await expect(page.getByRole('banner').getByText('Exact Online', { exact: true })).toBeVisible()
+  // Exact advances from Bron into Verbinden (VAT read-only slice, #100).
+  await expect(page.locator('button[data-focus="next"]')).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  )
   // Source-specific links are palette-only; the footer Import item stays current.
   await expect(
     page.getByRole('navigation').getByRole('link', { name: /^Importeren/ }),

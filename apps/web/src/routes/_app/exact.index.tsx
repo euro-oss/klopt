@@ -357,7 +357,7 @@ function Exact() {
 
           {hydrated && !redirectIsSecure && (
             <p role="alert" className="text-destructive mb-4 text-sm">
-              {t('exact.needsHttps')} <code>pnpm dev:https</code> {t('exact.needsHttpsAfter')}
+              {t('exact.needsHttps')}
             </p>
           )}
 
