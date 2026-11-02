@@ -32,7 +32,8 @@ booked import shows the booked count, Legal’s duplicate-check sentence, and
 “De rest overzetten” plus a link to journal entries. Problems uses the same
 finding cards, with `1`–`3` and `Z` on the VAT step. Dark follows the tokens.
 Phone 390 hides the stepper (a “step n of 6” line instead) so the page does
-not scroll sideways. Screenshots under `docs/pr-screenshots/134/`.
+not scroll sideways. With no `?bron=`, the shell title is Importeren / Import,
+not Moneybird. Screenshots under `docs/pr-screenshots/134/`.
 
 ### Redesign Phase 8: VAT / ICP (#132, #107)
 

@@ -173,4 +173,11 @@ describe('isNavActive with ?bron=', () => {
     expect(pageTitleKey('/importeren', false, { bron: 'moneybird' })).toBe('nav.importMoneybird')
     expect(pageTitleKey('/importeren', false, { bron: 'exact' })).toBe('nav.importExact')
   })
+
+  it('pageTitleKey is the generic import title when no source is selected', () => {
+    expect(pageTitleKey('/importeren', false)).toBe('nav.import')
+    expect(pageTitleKey('/importeren', false, {})).toBe('nav.import')
+    expect(pageTitleKey('/importeren', false, { bron: '' })).toBe('nav.import')
+    expect(pageTitleKey('/importeren', false, new URLSearchParams())).toBe('nav.import')
+  })
 })
