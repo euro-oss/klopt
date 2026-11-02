@@ -18,3 +18,6 @@ apps/web/src/routeTree.gen.ts
 # nobody hand-edits either of them.
 docs/openapi.json
 apps/web/src/api/response-schemas.generated.json
+
+# Owner's design export, kept verbatim.
+design/redesign-2026-10/

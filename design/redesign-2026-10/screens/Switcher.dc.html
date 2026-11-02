@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Switch administration</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: flex;">
+  <dc-import name="Sidebar" active="home" theme="{{theme}}" hint-size="248px,900px"></dc-import>
+  <div style="flex: 1; padding: 32px 40px; opacity: .35;" aria-hidden="true">
+    <div style="height: 30px; width: 280px; border-radius: 6px; background: var(--line);"></div>
+    <div style="margin-top: 32px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+      <div class="k-card" style="height: 96px;"></div><div class="k-card" style="height: 96px;"></div><div class="k-card" style="height: 96px;"></div><div class="k-card" style="height: 96px;"></div>
+    </div>
+    <div class="k-card" style="margin-top: 24px; height: 360px;"></div>
+  </div>
+
+  <div class="k-menu" role="menu" aria-label="Administration and book year" style="position: absolute; left: 12px; top: 64px; width: 320px;">
+    <div class="k-menu-label">Administrations</div>
+    <button type="button" class="k-menu-item" role="menuitemradio" aria-checked="true" aria-selected="true">
+      <span class="k-mark" style="width: 28px; height: 28px; font-size: 13px;" aria-hidden="true">K</span>
+      <span style="flex: 1; display: flex; flex-direction: column;"><strong style="font-weight: 600;">Demo BV</strong><span class="k-muted" style="font-size: 12px;">Owner · 2 people</span></span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+    </button>
+    <a href="Setup.dc.html" class="k-menu-item" role="menuitem">
+      <span class="k-tile" style="width: 28px; height: 28px; border-radius: 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+      <span style="flex: 1;">New administration</span>
+    </a>
+    <div class="k-menu-sep"></div>
+    <div class="k-menu-label">Book year</div>
+    <button type="button" class="k-menu-item" role="menuitemradio" aria-checked="true">
+      <span style="flex: 1; display: flex; flex-direction: column;"><span style="font-weight: 600;">2025</span><span class="k-muted" style="font-size: 12px;">1 Jan – 31 Dec · 3 periods closed, 9 open</span></span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+    </button>
+    <a href="SettingsBooks.dc.html" class="k-menu-item" role="menuitem">
+      <span style="flex: 1; display: flex; flex-direction: column;"><span>Open book year 2026</span><span class="k-muted" style="font-size: 12px;">2025 has nowhere to carry its balance yet</span></span>
+    </a>
+    <div class="k-menu-sep"></div>
+    <a href="SettingsAccess.dc.html" class="k-menu-item" role="menuitem"><span style="flex: 1;">People and access</span></a>
+    <a href="SignIn.dc.html" class="k-menu-item" role="menuitem"><span style="flex: 1;">Sign out</span></a>
+    <div class="k-hints" style="padding: 8px 10px 4px; font-size: 12px;">
+      <span><span class="k-kbd">↑</span> <span class="k-kbd">↓</span> move</span><span><span class="k-kbd">↵</span> switch</span><span><span class="k-kbd">Esc</span> close</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>

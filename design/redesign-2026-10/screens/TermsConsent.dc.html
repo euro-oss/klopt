@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Terms consent</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived component, not drawn by Hidde (#153). Hosted only: the one terms checkbox for Setup.
+  Its label lives here and nowhere else, in COPY below (en and nl). Never pre-ticked, nothing else
+  to consent to. The privacy notice is a link to read, outside the checkbox label.
+  Placeholder hrefs: KLOPT_TERMS_URL, KLOPT_DPA_URL, KLOPT_PRIVACY_URL.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.tc{display:flex;flex-direction:column;gap:6px;background:transparent}
+.tc a{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.tc-row{display:flex;gap:10px;align-items:flex-start;cursor:pointer;color:var(--ink);font-size:14px;line-height:20px}
+.tc-box{appearance:none;-webkit-appearance:none;flex:none;width:18px;height:18px;margin:1px 0 0;border:1px solid var(--line-control);border-radius:var(--radius-xs);background:var(--surface);cursor:pointer}
+.tc-box:checked{background:var(--primary);border-color:var(--primary)}
+.tc-read{margin:0 0 0 28px;font-size:13px;line-height:18px;color:var(--ink-2)}
+.tc--phone .tc-row{min-height:44px;align-items:center;font-size:15px;line-height:22px}
+.tc--phone .tc-box{width:24px;height:24px;margin:0}
+.tc--phone .tc-read{margin-left:34px;font-size:14px;line-height:20px}
+</style>
+</helmet>
+<div class="k-root tc {{size === 'phone' ? 'tc--phone' : ''}}" data-theme="{{theme}}">
+  <label class="tc-row">
+    <input class="tc-box" type="checkbox" name="accept_terms" value="1" required>
+    <span>{{t.agree}}<a href="{{termsUrl}}">{{t.terms}}</a>{{t.and}}<a href="{{dpaUrl}}">{{t.dpa}}</a>{{t.end}}</span>
+  </label>
+  <p class="tc-read">{{t.read}}<a href="{{privacyUrl}}">{{t.privacy}}</a>{{t.readEnd}}</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lang":{"editor":"enum","options":["en","nl"],"default":"en"},"size":{"editor":"enum","options":["desktop","phone"],"default":"desktop"},"termsUrl":{"editor":"text","default":"KLOPT_TERMS_URL"},"dpaUrl":{"editor":"text","default":"KLOPT_DPA_URL"},"privacyUrl":{"editor":"text","default":"KLOPT_PRIVACY_URL"},"$preview":{"width":440,"height":72}}'>
+const COPY = {
+  en: { agree: 'I agree to the ', terms: 'terms', and: ' and the ', dpa: 'data processing agreement', end: '', read: 'Read our ', privacy: 'privacy notice', readEnd: '.' },
+  nl: { agree: 'Ik ga akkoord met de ', terms: 'voorwaarden', and: ' en de ', dpa: 'verwerkersovereenkomst', end: '', read: 'Lees onze ', privacy: 'privacyverklaring', readEnd: '.' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    return {
+      theme: p.theme ?? 'light',
+      size: p.size ?? 'desktop',
+      t: COPY[p.lang] ?? COPY.en,
+      termsUrl: p.termsUrl ?? 'KLOPT_TERMS_URL',
+      dpaUrl: p.dpaUrl ?? 'KLOPT_DPA_URL',
+      privacyUrl: p.privacyUrl ?? 'KLOPT_PRIVACY_URL'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Import, Ready to transfer</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!-- Derived board (batch 1, `theme` and `layout` props batch 2): ImportRun with variant="confirm". -->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+</style>
+</helmet>
+<sc-if value="{{desk}}" hint-placeholder-val="{{true}}">
+<div data-theme="{{theme}}" style="min-height: 1000px; background: var(--ground);">
+  <dc-import name="ImportRun" variant="confirm" theme="{{theme}}" layout="desktop" hint-size="100%,1000px"></dc-import>
+</div>
+</sc-if>
+<sc-if value="{{phone}}" hint-placeholder-val="{{false}}">
+  <dc-import name="ImportRun" variant="confirm" theme="{{theme}}" layout="phone" hint-size="390px,844px"></dc-import>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"layout":{"editor":"enum","options":["desktop","phone"],"default":"desktop"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const phone = this.props.layout === 'phone';
+    return { theme: this.props.theme ?? 'light', phone, desk: !phone };
+  }
+}
+</script>
+</body>
+</html>
