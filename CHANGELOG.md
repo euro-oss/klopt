@@ -18,6 +18,18 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign Phase 4: BillNew and PaymentBatch (#107 / #128)
+
+BillNew (`/purchases/new`) and PaymentBatch (`/payments/$id`) match the
+desktop-light boards at `fa4093b`. BillNew is a copy-from-document form with
+DropZone on the existing inbox capture path (honest UBL/Peppol copy only),
+category split, ⌘S draft and ⌘↵ book. PaymentBatch shows prepare → approve →
+download → waiting stepper, missing-IBAN callout, four-eyes on existing
+transitions, and pain.001 download — never claiming Klopt pays or sends the
+file. Costs tabs wrap `/payments`. Input borders use `--ink-muted`. Dark and
+phone inherit tokens (Batch 2 / 3 follow-ups). Costs list/preview remains in
+#159.
+
 ### Redesign Phase 2: Sales (#107)
 
 Sales area with underline tabs Facturen / Herinneringen / Klanten. `/dunning`

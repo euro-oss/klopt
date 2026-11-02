@@ -179,7 +179,9 @@ describe('Phase 0 redesign tokens (#107)', () => {
     expect(contrastRatio(lightInput, lightGround)).toBeGreaterThanOrEqual(3)
     expect(contrastRatio(darkInput, darkGround)).toBeGreaterThanOrEqual(3)
     expect(tokenIn(css, ':root', '--line-control')).toBe('#c9c8c1')
-    expect(tokenIn(css, ':root', '--input-border')).toBe('#8a8980')
+    // CoS / DERIVED.md: muted grey is --ink-muted — no hard-coded hex.
+    expect(tokenIn(css, ':root', '--input-border')).toBe('var(--ink-muted)')
+    expect(tokenIn(css, '.dark', '--input-border')).toBe('var(--ink-muted)')
   })
 
   it('C: focus ring ≥3:1 against background', () => {

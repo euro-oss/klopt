@@ -2,6 +2,7 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { purchaseStatusLabel } from '~/i18n/labels'
 import type { PurchaseInvoiceStatus } from '@klopt/core'
 import { PageHeader, Stat } from '~/components/app-shell'
+import { CostsTabs } from '~/components/costs-tabs'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
 import { formatDate } from '~/lib/format'
@@ -182,7 +183,7 @@ function PurchaseInvoices() {
   return (
     <>
       <PageHeader
-        title={t('purchases.title')}
+        title={t('costs.title')}
         description={t('purchases.intro')}
         actions={
           <Link
@@ -193,6 +194,8 @@ function PurchaseInvoices() {
           </Link>
         }
       />
+
+      <CostsTabs active="bills" approveCount={invoices.data.awaitingApproval} />
 
       <div className="mb-4 flex flex-wrap gap-4">
         <Stat label={t('purchases.drafts')} value={String(invoices.data.drafts)} />

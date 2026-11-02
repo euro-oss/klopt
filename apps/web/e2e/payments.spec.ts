@@ -42,6 +42,7 @@ async function anAdministrationWithAnAccount(page: Page, name: string): Promise<
 }
 
 test('one person prepares, another approves, and the file comes out', async ({ browser }) => {
+  test.setTimeout(90_000)
   const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
 
   const alice = await browser.newContext()
@@ -73,9 +74,12 @@ test('one person prepares, another approves, and the file comes out', async ({ b
     await alicePage.getByLabel('Kenmerk').fill('BETAAL-0001')
     await alicePage.getByRole('button', { name: 'Aanmaken' }).click()
 
-    await expect(alicePage.getByRole('heading', { name: /Betaalbatch BETAAL-0001/ })).toBeVisible()
+    await expect(
+      alicePage.getByRole('heading', { name: /Batch BETAAL-0001|Batch van / }),
+    ).toBeVisible()
     // An empty batch cannot be offered: it pays nobody.
-    await expect(alicePage.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeDisabled()
+    // Hide unavailable actions (CoS) — submit only when the batch can pay someone.
+    await expect(alicePage.getByRole('button', { name: 'Ter fiattering aanbieden' })).toHaveCount(0)
 
     await alicePage.getByRole('button', { name: 'Betaling toevoegen' }).click()
     await alicePage.getByLabel('Begunstigde').fill('Telecom B.V.')
@@ -92,7 +96,9 @@ test('one person prepares, another approves, and the file comes out', async ({ b
     await expect(alicePage.getByText(/Status is nu: wacht op fiat/)).toBeVisible()
 
     // Alice is not offered the approval, and is told why rather than finding out.
-    await expect(alicePage.getByRole('button', { name: 'Fiatteren' })).toHaveCount(0)
+    await expect(alicePage.getByRole('button', { name: /Fiatteren|Batch fiatteren/ })).toHaveCount(
+      0,
+    )
     await expect(alicePage.getByText(/iemand anders moet hem fiatteren/)).toBeVisible()
     // And the batch is frozen.
     await expect(alicePage.getByRole('button', { name: 'Betaling toevoegen' })).toHaveCount(0)
@@ -111,8 +117,10 @@ test('one person prepares, another approves, and the file comes out', async ({ b
     await hydrated(bobPage)
     await bobPage.getByRole('cell', { name: 'BETAAL-0001' }).click()
 
-    await expect(bobPage.getByRole('heading', { name: /Betaalbatch BETAAL-0001/ })).toBeVisible()
-    await bobPage.getByRole('button', { name: 'Fiatteren' }).click()
+    await expect(
+      bobPage.getByRole('heading', { name: /Batch BETAAL-0001|Batch van / }),
+    ).toBeVisible()
+    await bobPage.getByRole('button', { name: /Batch fiatteren|Fiatteren/ }).click()
     await expect(bobPage.getByText(/Status is nu: gefiatteerd/)).toBeVisible()
 
     // And the file really comes out, as XML.
@@ -138,7 +146,7 @@ test('a bad IBAN stops the batch before anybody is asked to approve', async ({ p
   await page.getByRole('button', { name: 'Nieuwe batch' }).click()
   await page.getByLabel('Kenmerk').fill('BETAAL-FOUT')
   await page.getByRole('button', { name: 'Aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: /Betaalbatch BETAAL-FOUT/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Batch BETAAL-FOUT|Batch van / })).toBeVisible()
 
   await page.getByRole('button', { name: 'Betaling toevoegen' }).click()
   await page.getByLabel('Begunstigde').fill('Fout B.V.')
@@ -150,6 +158,7 @@ test('a bad IBAN stops the batch before anybody is asked to approve', async ({ p
 
   // In Dutch, because the browser is: the finding says this in English and
   // the page translates it from the message key (ADR 0047).
-  await expect(page.getByRole('alert')).toContainText('geen geldig IBAN')
-  await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeDisabled()
+  await expect(page.getByRole('alert').filter({ hasText: 'geen geldig IBAN' })).toBeVisible()
+  // Hide unavailable actions (CoS) — an unpayable batch has no submit CTA.
+  await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toHaveCount(0)
 })

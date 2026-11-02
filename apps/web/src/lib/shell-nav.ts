@@ -72,6 +72,8 @@ export const SHELL_NAV: readonly NavItem[] = [
     binding: 'go.purchases',
     placement: 'primary',
     section: 'money',
+    // Payment batches tab keeps `/payments` but stays under Costs (#107 Phase 4).
+    alsoActiveFor: ['/payments'],
   },
   {
     to: '/bank/match',

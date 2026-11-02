@@ -119,6 +119,13 @@ describe('shell-nav Phase 0 (v2 IA)', () => {
     expect(isNavActive('/dunning', '/invoices')).toBe(false)
   })
 
+  it('keeps Costs lit on /payments (Payment batches tab, Phase 4)', () => {
+    const costs = SHELL_NAV.find((item) => item.to === '/purchases')
+    expect(costs?.alsoActiveFor).toEqual(['/payments'])
+    expect(isNavActive('/payments', '/purchases', undefined, undefined, ['/payments'])).toBe(true)
+    expect(isNavActive('/payments', '/purchases')).toBe(false)
+  })
+
   it('switches phone/desktop chrome with CSS, not usePhoneViewport', () => {
     expect(shell).toContain('hidden md:flex')
     expect(shell).toContain('md:hidden')
