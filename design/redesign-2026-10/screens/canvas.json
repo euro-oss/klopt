@@ -997,7 +997,7 @@
    "x": 6440,
    "y": 27000,
    "w": 390,
-   "h": 2753,
+   "h": 2757,
    "title": "Phone · general ledger per account (derived)",
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."
@@ -1006,7 +1006,7 @@
    "x": 6910,
    "y": 27000,
    "w": 390,
-   "h": 2753,
+   "h": 2757,
    "title": "Phone dark · general ledger per account (derived)",
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."

@@ -18,7 +18,8 @@
   Takes `theme`; PhoneLedgerDark.dc.html sets dark.
   The tab bar is sticky, so it stays at the bottom of the viewport as the page scrolls.
   A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), 44px targets,
-  no key hints on phone, no ink-faint, amounts in JetBrains Mono and never wrapped,
+  no key hints on phone, no ink-faint, amounts in Inter tabular figures (k-num, as on
+  PhoneCosts) and never wrapped; JetBrains Mono only for codes and hashes,
   self-hosted fonts.
 -->
 <x-dc>
@@ -34,17 +35,17 @@ a{color:var(--ink)}
 .k-phone .k-input{height:44px;font-size:15px}
 .k-phone .k-kbd,.k-phone .k-chord,.k-phone .k-hints{display:none}
 .nw{white-space:nowrap}
-.amt{font:500 15px/20px var(--font-mono);white-space:nowrap;text-align:right}
-.amt-sm{font:500 13px/18px var(--font-mono);white-space:nowrap;color:var(--ink-2)}
+.amt{font-size:15px;line-height:20px;font-weight:600;text-align:right}
+.amt-sm{font-size:13px;line-height:18px;font-weight:500;color:var(--ink-2)}
 .lbl{font-size:13px;line-height:18px;color:var(--ink-muted);white-space:nowrap}
 .ptabs{gap:20px}
 .ptabs .k-tab{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box;white-space:nowrap}
 .nav-btn{width:44px;height:44px;padding:0;justify-content:center;flex:none;font-size:18px}
 .st{padding:12px 14px;gap:4px;border-radius:var(--radius-lg)}
-.st .k-stat-value{font:500 17px/22px var(--font-mono);white-space:nowrap}
+.st .k-stat-value{font-size:18px;line-height:24px;white-space:nowrap}
 .mv{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-top:1px solid var(--line-soft);background:var(--surface);text-decoration:none;color:var(--ink);min-height:60px;box-sizing:border-box}
 .mv-date{width:34px;flex:none;display:flex;flex-direction:column;align-items:flex-start}
-.mv-date b{font:500 15px/20px var(--font-mono)}
+.mv-date b{font-size:15px;line-height:20px;font-weight:600;font-variant-numeric:tabular-nums}
 .mv-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 .mv-main strong{font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mv-sub{display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--ink-muted);min-width:0}
@@ -103,19 +104,19 @@ a{color:var(--ink)}
       <div class="mv" style="color: var(--ink-2);">
         <span class="mv-date"><b>1</b><span class="lbl">Oct</span></span>
         <span class="mv-main"><strong style="font-weight: 500;">Brought forward</strong></span>
-        <span class="mv-side"><span class="amt-sm">{{openF}}</span></span>
+        <span class="mv-side"><span class="k-num nw amt-sm">{{openF}}</span></span>
       </div>
       <sc-for list="{{lines}}" as="l" hint-placeholder-count="19">
         <a href="PhoneJournal.dc.html" class="mv">
           <span class="mv-date"><b>{{l.day}}</b><span class="lbl">{{l.mon}}</span></span>
           <span class="mv-main"><strong>{{l.what}}</strong><span class="mv-sub"><span>{{l.who}}</span></span></span>
-          <span class="mv-side"><span class="pair"><span class="lbl">{{l.side}}</span><span class="amt">{{l.amtF}}</span></span><span class="amt-sm">{{l.balF}}</span></span>
+          <span class="mv-side"><span class="pair"><span class="lbl">{{l.side}}</span><span class="k-num nw amt">{{l.amtF}}</span></span><span class="k-num nw amt-sm">{{l.balF}}</span></span>
         </a>
       </sc-for>
       <div style="padding: 12px 16px 14px; border-top: 1px solid var(--line-soft); background: var(--surface-hover); display: flex; flex-direction: column; gap: 6px;">
-        <div style="display: flex; justify-content: space-between; gap: 12px;"><strong style="font-size: 15px;">At period end · <span class="nw">31 Dec</span></strong><span class="amt" style="font-weight: 500;">€ {{closeF}}</span></div>
-        <div style="display: flex; justify-content: space-between; gap: 12px;"><span class="lbl">Debit</span><span class="amt-sm">{{debF}}</span></div>
-        <div style="display: flex; justify-content: space-between; gap: 12px;"><span class="lbl">Credit</span><span class="amt-sm">{{credF}}</span></div>
+        <div style="display: flex; justify-content: space-between; gap: 12px;"><strong style="font-size: 15px;">At period end · <span class="nw">31 Dec</span></strong><span class="k-num nw amt" style="font-weight: 500;">€ {{closeF}}</span></div>
+        <div style="display: flex; justify-content: space-between; gap: 12px;"><span class="lbl">Debit</span><span class="k-num nw amt-sm">{{debF}}</span></div>
+        <div style="display: flex; justify-content: space-between; gap: 12px;"><span class="lbl">Credit</span><span class="k-num nw amt-sm">{{credF}}</span></div>
       </div>
     </section>
 
@@ -123,11 +124,11 @@ a{color:var(--ink)}
       <h2 id="lh" class="k-card-title" style="font-size: 15px; padding: 14px 16px 4px; margin: 0;">All accounts</h2>
       <div class="grp" style="border-top: 0;">Balance sheet</div>
       <sc-for list="{{bs}}" as="a" hint-placeholder-count="6">
-        <a href="#" class="{{a.cls}}" aria-current="{{a.cur}}"><span class="k-code">{{a.no}}</span><span class="acc-name">{{a.name}}</span><span class="amt">{{a.bal}}</span></a>
+        <a href="#" class="{{a.cls}}" aria-current="{{a.cur}}"><span class="k-code">{{a.no}}</span><span class="acc-name">{{a.name}}</span><span class="k-num nw amt">{{a.bal}}</span></a>
       </sc-for>
       <div class="grp">Profit and loss</div>
       <sc-for list="{{pl}}" as="a" hint-placeholder-count="4">
-        <a href="#" class="acc"><span class="k-code">{{a.no}}</span><span class="acc-name">{{a.name}}</span><span class="amt">{{a.bal}}</span></a>
+        <a href="#" class="acc"><span class="k-code">{{a.no}}</span><span class="acc-name">{{a.name}}</span><span class="k-num nw amt">{{a.bal}}</span></a>
       </sc-for>
       <a href="#" class="acc" style="font-size: 14px;"><span class="acc-name" style="text-decoration: underline; text-underline-offset: 2px;">Show 21 accounts without movement</span></a>
     </nav>

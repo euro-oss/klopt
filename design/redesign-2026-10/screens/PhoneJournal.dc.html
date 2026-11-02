@@ -17,7 +17,8 @@
   the active tab. Takes `theme`; PhoneJournalDark.dc.html sets dark.
   The tab bar is sticky, so it stays at the bottom of the viewport as the page scrolls.
   A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), 44px targets,
-  no key hints on phone, no ink-faint, amounts in JetBrains Mono and never wrapped,
+  no key hints on phone, no ink-faint, amounts in Inter tabular figures (k-num, as on
+  PhoneCosts) and never wrapped; JetBrains Mono only for codes and hashes,
   self-hosted fonts.
 -->
 <x-dc>
@@ -36,7 +37,7 @@ a{color:var(--ink)}
 .k-phone .k-kbd,.k-phone .k-chord,.k-phone .k-hints{display:none}
 .k-phone .k-input{height:44px;font-size:15px}
 .nw{white-space:nowrap}
-.amt{font:500 15px/20px var(--font-mono);white-space:nowrap;text-align:right}
+.amt{font-size:15px;line-height:20px;font-weight:600;text-align:right}
 .lbl{font-size:13px;line-height:18px;color:var(--ink-muted);white-space:nowrap}
 .ptabs{gap:20px}
 .ptabs .k-tab{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box;white-space:nowrap}
@@ -84,14 +85,14 @@ a{color:var(--ink)}
       <sc-for list="{{s.lines}}" as="l" hint-placeholder-count="3">
         <a href="PhoneLedger.dc.html" class="ln">
           <span class="ln-acc"><span class="k-code">{{l.no}}</span><span>{{l.name}}</span></span>
-          <span class="ln-side"><span class="lbl">{{l.side}}</span><span class="amt">{{l.amt}}</span></span>
+          <span class="ln-side"><span class="lbl">{{l.side}}</span><span class="k-num nw amt">{{l.amt}}</span></span>
         </a>
       </sc-for>
       <div class="ln" style="background: var(--surface-hover); align-items: flex-start;">
         <span class="ln-acc" style="font-weight: 600; padding-top: 2px;">Balances</span>
         <span class="ln-side" style="gap: 2px;">
-          <span style="display: flex; gap: 8px; align-items: baseline;"><span class="lbl">Debit</span><span class="amt">{{s.amtF}}</span></span>
-          <span style="display: flex; gap: 8px; align-items: baseline;"><span class="lbl">Credit</span><span class="amt">{{s.amtF}}</span></span>
+          <span style="display: flex; gap: 8px; align-items: baseline;"><span class="lbl">Debit</span><span class="k-num nw amt">{{s.amtF}}</span></span>
+          <span style="display: flex; gap: 8px; align-items: baseline;"><span class="lbl">Credit</span><span class="k-num nw amt">{{s.amtF}}</span></span>
         </span>
       </div>
       <dl class="k-dl" style="padding: 16px; border-top: 1px solid var(--line-soft); font-size: 13px; grid-template-columns: max-content 1fr;">
@@ -115,7 +116,7 @@ a{color:var(--ink)}
       <sc-for list="{{rows}}" as="r" hint-placeholder-count="17">
         <button type="button" class="ic" aria-selected="{{r.sel}}" onClick="{{r.pick}}">
           <span class="ic-main"><strong>{{r.who}}</strong><span class="ic-sub"><span class="k-code">{{r.j}}</span><span>{{r.what}}</span></span></span>
-          <span class="ic-side"><span class="amt">€ {{r.amtF}}</span><span class="lbl">#{{r.n}} · {{r.dateShort}}</span></span>
+          <span class="ic-side"><span class="k-num nw amt">€ {{r.amtF}}</span><span class="lbl">#{{r.n}} · {{r.dateShort}}</span></span>
         </button>
       </sc-for>
       <div style="display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line-soft); font-size: 13px; color: var(--ink-muted);">
