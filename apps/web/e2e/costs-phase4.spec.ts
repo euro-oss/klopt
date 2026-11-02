@@ -246,17 +246,13 @@ test('phone 390 light and dark: overdue button clear of title; tabs one line; no
 
     const tabs = page.locator('[data-costs-tabs] a')
     await expect(tabs).toHaveCount(4)
-    const tops = await tabs.evaluateAll((els) =>
-      els.map((el) => (el as HTMLElement).offsetTop),
-    )
+    const tops = await tabs.evaluateAll((els) => els.map((el) => (el as HTMLElement).offsetTop))
     expect(new Set(tops).size, `${theme} list: tabs share one offsetTop`).toBe(1)
 
     await assertNoHorizontalOverflow(page, `${theme} costs list`)
 
     // Bill detail at 390 — phone list links to /purchases/$id (desktop table is hidden).
-    await page
-      .locator('.md\\:hidden a[href*="/purchases/"]', { hasText: 'INK-PHONE-0001' })
-      .click()
+    await page.locator('.md\\:hidden a[href*="/purchases/"]', { hasText: 'INK-PHONE-0001' }).click()
     await expect(page).toHaveURL(/\/purchases\/[0-9a-f-]+/)
     await expect(page.getByRole('heading', { name: /Inkoopfactuur INK-PHONE-0001/ })).toBeVisible()
     await assertNoHorizontalOverflow(page, `${theme} bill detail`)
