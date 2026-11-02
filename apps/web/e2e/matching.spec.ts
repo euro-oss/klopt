@@ -387,9 +387,13 @@ test('the remaining label caps only above 500 lines', async ({ page }) => {
   await withStatement(page, name)
   await seedExtraUnmatched(name, 497)
 
+  await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/bank/match')
   await hydrated(page)
-  // Desktop + phone header both render the remaining label (#164).
-  await expect(page.getByText('500+ regels nog te boeken').first()).toBeVisible()
+  // Desktop + phone header both render the remaining label (#164); at 1440
+  // only the desktop header copy is visible.
+  const remaining = page.getByText('500+ regels nog te boeken').filter({ visible: true })
+  await expect(remaining).toHaveCount(1)
+  await expect(remaining).toBeVisible()
   await expect(queueRows(page)).toHaveCount(500)
 })
