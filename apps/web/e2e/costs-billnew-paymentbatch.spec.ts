@@ -59,7 +59,9 @@ async function aBankAccount(page: Page): Promise<void> {
   await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Demo bankrekening')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
+  // Bank redesign (#171 on main) groups the IBAN; CI merges main so accept both forms.
+  await expect(page.getByText(/Demo bankrekening/)).toBeVisible()
+  await expect(page.getByText(/NL91\s*ABNA\s*0417\s*1643\s*00/)).toBeVisible()
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
