@@ -864,7 +864,7 @@ function ContactCard({
   return (
     <aside
       aria-label={t('contacts.card')}
-      className="border-border bg-surface flex min-w-0 flex-[999_1_420px] flex-col overflow-hidden rounded-[var(--radius-xl)] border"
+      className="border-border bg-surface hidden min-w-0 flex-[999_1_420px] flex-col overflow-hidden rounded-[var(--radius-xl)] border md:flex"
     >
       <div className="flex flex-col gap-4 border-b border-[var(--line-soft)] px-6 py-6">
         <div className="flex min-w-0 items-start gap-4">

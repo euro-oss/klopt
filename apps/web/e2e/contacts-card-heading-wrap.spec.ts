@@ -3,10 +3,10 @@ import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
 
 /**
- * Contacts card heading wrap (#176 / QA): unbroken long supplier name must
- * wrap inside the Relatiekaart at 390 and 1440, light and dark — no page or
- * heading overflow, no ellipsis. At 1440 the empty supplier line stays
- * "Niets openstaand".
+ * Contacts card heading wrap (#176): unbroken long supplier name must wrap
+ * inside the Relatiekaart at 1440, light and dark — no page or heading
+ * overflow, no ellipsis. Empty supplier line stays "Niets openstaand".
+ * Below md the Relatiekaart stays hidden (phone card is #130).
  */
 
 test.beforeAll(async () => {
@@ -30,7 +30,7 @@ async function openAdmin(page: Page): Promise<void> {
   await hydrated(page)
 }
 
-async function seedLongNameSupplier(page: Page): Promise<void> {
+async function seedLongNameSupplier(page: Page): Promise<string> {
   await page.goto('/contacts')
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('CRE-1761')
@@ -46,6 +46,9 @@ async function seedLongNameSupplier(page: Page): Promise<void> {
       name: new RegExp(LONG_NAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     }),
   ).toBeVisible()
+  const id = new URL(page.url()).searchParams.get('id')
+  expect(id, 'selected contact id').toBeTruthy()
+  return id!
 }
 
 async function persistThemeCookie(page: Page, theme: 'light' | 'dark'): Promise<void> {
@@ -72,13 +75,14 @@ async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
   )
 }
 
-async function assertHeadingWrapsInCard(page: Page, assertEmptyOpen: boolean): Promise<void> {
+async function assertHeadingWrapsInCard(page: Page): Promise<void> {
   const card = page.getByRole('complementary', { name: 'Relatiekaart' })
   await expect(card).toBeVisible()
   const heading = card.locator('[data-contact-name]')
   await expect(heading).toBeVisible()
   await expect(heading).toHaveText(LONG_NAME)
   await expect(heading).not.toHaveCSS('text-overflow', 'ellipsis')
+  await expect(card).toContainText('Niets openstaand')
 
   const pageOverflow = await page.evaluate(() => {
     const root = document.documentElement
@@ -106,60 +110,33 @@ async function assertHeadingWrapsInCard(page: Page, assertEmptyOpen: boolean): P
   expect(metrics.headingRight, 'heading spills past card').toBeLessThanOrEqual(
     metrics.cardRight + 1,
   )
-
-  if (assertEmptyOpen) {
-    await expect(card).toContainText('Niets openstaand')
-  }
 }
-
-const VIEWPORTS = [
-  { width: 390, height: 844, assertEmptyOpen: false },
-  { width: 1440, height: 1040, assertEmptyOpen: true },
-] as const
 
 const THEMES = ['light', 'dark'] as const
 
-test('card heading wraps a long unbroken name at 390 and 1440, light and dark', async ({
+test('card heading wraps a long unbroken name at 1440 light and dark; hidden at 390', async ({
   page,
 }) => {
   await openAdmin(page)
-  await seedLongNameSupplier(page)
+  const id = await seedLongNameSupplier(page)
 
-  // Card opens after create; keep selection via the list URL.
   const card = page.getByRole('complementary', { name: 'Relatiekaart' })
   await expect(card).toBeVisible()
   await expect(card).toContainText(LONG_NAME)
 
   for (const theme of THEMES) {
     await persistThemeCookie(page, theme)
-    await page.goto('/contacts')
+    await page.setViewportSize({ width: 1440, height: 1040 })
+    await page.goto(`/contacts?id=${id}`)
     await hydrated(page)
-    await page
-      .getByRole('button', {
-        name: new RegExp(LONG_NAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
-      })
-      .click()
     await setTheme(page, theme)
+    await assertHeadingWrapsInCard(page)
 
-    for (const viewport of VIEWPORTS) {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height })
-      // Phone list click navigates to the detail route; re-open the list card
-      // via the contacts URL with the selected id from the current location.
-      if (viewport.width < 768) {
-        const id = new URL(page.url()).searchParams.get('id')
-        if (id === null) {
-          // After a phone tap we are on /contacts/$id — go back to the list card.
-          const match = /\/contacts\/([0-9a-f-]+)/.exec(page.url())
-          expect(match?.[1], 'contact id for phone card').toBeTruthy()
-          await page.goto(`/contacts?id=${match![1]}`)
-        } else {
-          await page.goto(`/contacts?id=${id}`)
-        }
-        await expect(page.locator('[data-phone-tab-bar]')).toBeVisible()
-      } else {
-        await hydrated(page)
-      }
-      await assertHeadingWrapsInCard(page, viewport.assertEmptyOpen)
-    }
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(page.locator('[data-phone-tab-bar]')).toBeVisible()
+    // Relatiekaart is desktop-only; phone card belongs to #130.
+    await expect(card).toBeHidden()
+    await expect(page.getByText('Niets openstaand')).toBeHidden()
+    await expect(card.locator('kbd', { hasText: 'e' })).toBeHidden()
   }
 })
