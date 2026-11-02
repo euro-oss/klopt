@@ -512,6 +512,34 @@ test('PaymentBatch ⌘↵ downloads pain.001 when approved', async ({ browser })
   }
 })
 
+test('BillNew phone amount fields show Excl. btw / Btw-bedrag labels at 390', async ({ page }) => {
+  test.setTimeout(90_000)
+  await openAdmin(page, 'BillNew Phone Labels BV')
+  await aSupplier(page)
+
+  await page.goto('/purchases/new')
+  await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
+  await page.setViewportSize({ width: 390, height: 844 })
+
+  const lineCard = page.locator('[data-testid="billnew-line-1"]')
+  await expect(lineCard).toBeVisible()
+  const netLabel = lineCard.locator('label[for="billnew-net-0"]')
+  const vatLabel = lineCard.locator('label[for="billnew-tax-0"]')
+  await expect(netLabel).toBeVisible()
+  await expect(netLabel).toHaveText('Excl. btw')
+  await expect(vatLabel).toBeVisible()
+  await expect(vatLabel).toHaveText('Btw-bedrag')
+  // htmlFor association — clicking the label focuses the matching input.
+  await netLabel.click()
+  await expect(lineCard.locator('#billnew-net-0')).toBeFocused()
+  await vatLabel.click()
+  await expect(lineCard.locator('#billnew-tax-0')).toBeFocused()
+  // Accessible name stays the line-specific aria-label; phone shows short CTA text.
+  await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toContainText(
+    'Btw berekenen',
+  )
+})
+
 test('BillNew drop attaches the document and never claims Postvak', async ({ page }) => {
   test.setTimeout(120_000)
   await openAdmin(page, 'BillNew Document Attach BV')
@@ -627,9 +655,9 @@ test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control ov
     await expect(vatLabel).toHaveText('Btw-bedrag')
     await expect(lineCard.locator('#billnew-net-0')).toBeVisible()
     await expect(lineCard.locator('#billnew-tax-0')).toBeVisible()
-    await expect(
-      page.getByRole('button', { name: 'Btw berekenen voor regel 1' }),
-    ).toContainText('Btw berekenen')
+    await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toContainText(
+      'Btw berekenen',
+    )
     const net = lineCard.getByLabel('Excl. btw regel 1')
     await expect(net).toHaveValue('100,00')
     const netBox = await net.boundingBox()
