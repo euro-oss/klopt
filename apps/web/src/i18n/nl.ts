@@ -1084,8 +1084,10 @@ export const nl = {
   'bank.noStatement': 'nog geen afschrift',
   'bank.asAt': 'per {date} · {consent}',
   'bank.unmatchedLines': '{count} regels nog te koppelen',
-  'bank.importStatement': 'Afschrift inlezen',
-  'bank.imported': '{count} transacties ingelezen',
+  // CoS batch-2 (#129/#128): import card, never PSD2 / connection copy.
+  'bank.importStatement': 'Bankafschrift inlezen',
+  'bank.importHint': 'CAMT.053 of MT940 van je bank',
+  'bank.imported': '{count} transacties geïmporteerd',
   'bank.importedDuplicates': ', {count} stonden er al.',
   'bank.consent.not_required': 'bestandsimport',
   'bank.consent.active': 'toegang actief',

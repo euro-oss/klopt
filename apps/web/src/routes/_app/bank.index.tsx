@@ -361,7 +361,7 @@ function Bank() {
             <input
               name="iban"
               required
-              placeholder="NL02ABNA0123456789"
+              placeholder="NL91ABNA0417164300"
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             />
           </label>
@@ -429,22 +429,26 @@ function Bank() {
                 </p>
               )}
 
-              <label className="mt-4 block">
-                <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                  {t('bank.importStatement')}
-                </span>
-                <input
-                  type="file"
-                  accept=".xml,.940,.sta,.txt,.mt940"
-                  disabled={busy || !hydrated}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    if (file !== undefined) void chooseFile(account.id, file)
-                    event.target.value = ''
-                  }}
-                  className="w-full text-xs"
-                />
-              </label>
+              {/* CoS batch-2: import card only — never a PSD2 / “connect the bank” card. */}
+              <div className="border-input bg-surface-sunken mt-4 rounded-[var(--radius-md)] border p-3">
+                <label className="block">
+                  <span className="text-ink mb-1 block text-sm font-medium">
+                    {t('bank.importStatement')}
+                  </span>
+                  <span className="text-ink-muted mb-2 block text-xs">{t('bank.importHint')}</span>
+                  <input
+                    type="file"
+                    accept=".xml,.940,.sta,.txt,.mt940"
+                    disabled={busy || !hydrated}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0]
+                      if (file !== undefined) void chooseFile(account.id, file)
+                      event.target.value = ''
+                    }}
+                    className="w-full text-xs disabled:cursor-not-allowed disabled:opacity-100"
+                  />
+                </label>
+              </div>
             </div>
           ))}
         </div>

@@ -1291,7 +1291,9 @@ export const en: Record<MessageKey, string> = {
   'bank.noStatement': 'no statement yet',
   'bank.asAt': 'as at {date} · {consent}',
   'bank.unmatchedLines': '{count} lines still to match',
-  'bank.importStatement': 'Import a statement',
+  // CoS batch-2 (#129/#128): import card, never PSD2 / connection copy.
+  'bank.importStatement': 'Import a bank statement',
+  'bank.importHint': 'CAMT.053 or MT940 from your bank',
   'bank.imported': '{count} transactions imported',
   'bank.importedDuplicates': ', {count} were already there.',
   'bank.consent.not_required': 'file import',
