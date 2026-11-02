@@ -20474,7 +20474,7 @@
     "/api/v1/payment-batches/{batchId}/pain001": {
       "get": {
         "operationId": "payments.getBatchPain001",
-        "summary": "The approved batch as SEPA pain.001. A read: exporting is a separate transition.",
+        "summary": "The batch as SEPA pain.001. The first GET on an approved batch transitions it to exported; re-downloads of an already-exported batch return the same file.",
         "tags": [
           "payments"
         ],
@@ -20970,7 +20970,7 @@
     "/api/v1/payment-batches/{batchId}/transitions": {
       "post": {
         "operationId": "payments.transitionBatch",
-        "summary": "Submit, approve, reject, reopen or export a batch. Two people, or nobody.",
+        "summary": "Submit, approve, reject or reopen a batch. Two people, or nobody. `export` is not a transition — downloading pain.001 marks an approved batch exported.",
         "tags": [
           "payments"
         ],
