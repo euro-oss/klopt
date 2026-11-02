@@ -2,6 +2,97 @@
 
 Boards Hidde did not draw, derived by Design from his v2 system on his request. They use only `tokens.css`, `components/bundle.css` and the existing `.k-*` components, in the same `.dc.html` format, and are registered in `screens/canvas.json` with `"derived": true`. Batch 1 leaves Hidde's own boards unchanged, apart from the keymap fix, the XAF copy and the Sidebar fixture below.
 
+## Reports: profit and loss, balance sheet, ageing and trial balance, dark and phone (#146)
+
+Hidde's desktop-light `Reports` board gets a dark 1440 board and phone 390 boards in light and dark, covering all five tabs. His file is not edited. Screenshots are in `derived-shots/reports-146/`.
+
+| Board | What it is | Screenshots in `derived-shots/reports-146/` |
+| --- | --- | --- |
+| `ReportsDark.dc.html`, `theme` and `view` props (default dark, `pl`) | Hidde's `Reports` at 1440, own file: underlined "Match now", self-hosted fonts, a `view` prop to pick the tab | `Reports-{pl,bs,deb,cred,tb}-dark-1440` |
+| `PhoneReports.dc.html`, `theme` and `view` props | All five reports at 390: period, report chips, stacked rows | `PhoneReports-{pl,bs,deb,cred,tb}-light-390` |
+| `PhoneReportsDark.dc.html`, `view` prop | `PhoneReports` with `theme="dark"`, passes `view` on | `PhoneReports-{pl,bs,deb,cred,tb}-dark-390` |
+
+`view` is `pl` (profit and loss), `bs` (balance sheet), `deb` (customers owe you), `cred` (you owe) or `tb` (trial balance). Tapping a tab or chip still switches on the board.
+
+All three boards are registered in `canvas.json` (note `t146` at y 30700, boards at y 31000, under the #145 rows): `ReportsDark` at x 0, the two phone boards at x 1520 and 1990. Each entry has `"derived": true` and a `derivedNote`.
+
+### Why the dark board is its own file
+
+A thin wrapper (like `HomeDark`) would only ever show the first tab: Hidde's board keeps the tab in state, and a wrapper can't pick one, while #146 asks for all five tabs. Hidde's board also breaks one rule: the "Match now" link in the balance sheet callout is bold but not underlined. `ReportsDark` therefore is a copy with:
+
+- a `view` prop that sets the first tab (`this.state = { view: props.view ?? 'pl' }`);
+- "Match now" as an underlined ink link, pointing at `MatchDark`;
+- control borders on `--ink-muted` (the #152/#153/#155 rule) and self-hosted fonts instead of Google Fonts;
+- links to the dark boards (`InvoicesDark`, `CostsDark`, `ContactsDark`, `MatchDark`, `LedgerDark`).
+
+Hidde's light board still has the "Match now" link and the Google Fonts link, and should get the same fixes in whichever PR owns it.
+
+### Rules for these boards
+
+- Control borders: `.k-root[data-theme]{--line-control:var(--ink-muted)}`. The period select, report chips and secondary buttons use it.
+- Links are ink and underlined. No `ink-faint` for text. No new status colours: days late and "All of it past due" are `danger`, "Debit equals credit" and "Yes" are `success`, as on Hidde's board.
+- Phone: `.k-phone` at 390, Hidde's five-tab bar with More active (Reports lives under More), sticky at the bottom. No key hints. Targets are 44px or more: PDF, CSV, the chips, "Match now", and the two full-width actions.
+- Amounts are Inter with tabular figures (`.k-num nw`, never wrapped), right-aligned, the same class as `PhoneCosts` and `PhoneBillNew`. JetBrains Mono is only for ledger numbers and RGS codes (`.k-code`).
+- The P&L bars are decoration (`aria-hidden`), since every bar has its amount beside it. On phone each bar spans the full row width, so lengths compare.
+- `shoot.mjs` printed no QA warnings for the fifteen shots.
+
+### Invented, for Hidde to check
+
+- **Report chips on phone.** Five tabs don't fit one row at 390, so they are wrapping 44px chips (3 + 2) under the period select; the selected chip is `primary` with `on-primary` text. The 1–5 key hints are dropped.
+- **PDF and CSV labels on phone.** Desktop says "Download PDF"; phone says "PDF" next to "CSV" in the header to fit.
+- **P&L order on phone.** Profit before tax first, full width, then Income and Costs side by side; the desktop has three stats in one row.
+- **"Tap a line" copy.** Desktop "↵ on a line shows its bookings" / "opens that account's ledger" become "Tap a line to see its bookings" / "Tap a line to open that account's ledger". Cost lines point to `#`; Hidde's board has no target for them either.
+- **Ageing on phone.** Each customer or supplier row shows the name (and for customers the days late in `danger`), the total on the right with its age bucket under it ("90+ days"). The ageing columns become a "By age" card under the list; empty buckets show € 0,00 in `ink-muted`. "Oldest first" and "Largest first" captions describe Hidde's order.
+- **Debtor and creditor row targets.** Customers open `PhoneContactCard`, suppliers `PhoneCosts`. "Send reminders to all 5" goes to `PhoneSales`, "Prepare a payment batch" to `PhonePaymentBatch`.
+- **Balance sheet callout on phone.** "Match now" is an underlined 44px link under the text, to `PhoneMatch`.
+- **Trial balance on phone.** Each account is a row: ledger number and name (wrapping), RGS code under it; the closing balance bold on the right with labelled Debit and Credit under it. The Opening column is left out: it is 0,00 on every line, and the intro says so ("Opening is 0,00 for each, as 2025 is the first year"; Hidde's "For your accountant: debit and credit must agree, and they do" is dropped to keep it short). Empty Debit or Credit cells show 0,00. Totals are a three-line footer.
+- **Links that need #188.** `ReportsDark` trial balance rows link to `LedgerDark` and phone rows to `PhoneLedger`; both boards are added in #188 and don't exist on main yet.
+
+### Contrast (WCAG 2.x)
+
+| Pair | Light | Dark |
+| --- | --- | --- |
+| Control and chip border (`ink-muted`) on `surface` | 5.95:1 | 6.77:1 |
+| Selected chip (`on-primary` on `primary`) | 17.72:1 | 16.12:1 |
+| Amounts (`ink`) on `surface` / totals on `surface-hover` | 17.72 / 16.94:1 | 15.80 / 14.42:1 |
+| Labels and muted text (`ink-muted`) on `surface` / `surface-hover` | 5.95 / 5.69:1 | 6.77 / 6.18:1 |
+| Callout title (`ink`) / text (`ink-2`) on `brand-tint` | 16.33 / 9.63:1 | 13.07 / 9.72:1 |
+| Days late (`danger`) on `surface` | 6.57:1 | 6.28:1 |
+| "Debit equals credit" (`success`) on `ground` | 5.64:1 | 10.82:1 |
+| Cost bar (`chart-2`) on its track (`line-soft`), decoration only | 2.21:1 | 3.12:1 |
+
+### Shooting
+
+From `design/redesign-2026-10/`:
+
+```sh
+O=derived-shots/reports-146
+node derived-shots/render/shoot.mjs $O --width=1440 $(for v in pl bs deb cred tb; do echo "ReportsDark.dc.html?theme=dark&view=$v=Reports-$v-dark-1440"; done)
+node derived-shots/render/shoot.mjs $O --width=390 $(for v in pl bs deb cred tb; do echo "PhoneReports.dc.html?view=$v=PhoneReports-$v-light-390" "PhoneReportsDark.dc.html?theme=dark&view=$v=PhoneReports-$v-dark-390"; done)
+```
+
+The dark phone shots go through the `PhoneReportsDark` wrapper, so they also check that `view` is passed on.
+
+### Copy, English and Dutch
+
+Strings Hidde already has on `Reports` are not repeated here.
+
+| English (board) | Nederlands |
+| --- | --- |
+| PDF / CSV | PDF / CSV |
+| Report (chips, screen reader) | Rapport |
+| Total income | Totaal opbrengsten |
+| Largest first. Tap a line to see its bookings. | Grootste eerst. Tik op een regel voor de boekingen. |
+| Customers / Suppliers | Klanten / Leveranciers |
+| Oldest first / Largest first | Oudste eerst / Grootste eerst |
+| By age | Naar ouderdom |
+| 1–30 days / 31–60 days / 61–90 days / 90+ days | 1–30 dagen / 31–60 dagen / 61–90 dagen / 90+ dagen |
+| Accounts | Rekeningen |
+| Closing balance on the right, debit and credit under it. | Eindsaldo rechts, debet en credit eronder. |
+| Opening is 0,00 for each, as 2025 is the first year. | Het beginsaldo is overal 0,00, want 2025 is het eerste jaar. |
+| Total debit / Total credit / Closing | Totaal debet / Totaal credit / Eindsaldo |
+| Tap a line to open that account's ledger. | Tik op een regel voor het grootboek van die rekening. |
+
 ## Import source and problems: dark and phone (#152)
 
 | Board | What it is | Screenshots in `derived-shots/import-152/` |
