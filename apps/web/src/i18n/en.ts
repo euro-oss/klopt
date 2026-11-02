@@ -317,8 +317,12 @@ export const en: Record<MessageKey, string> = {
     "Demo environment: use fictional data only. Don't enter real bookkeeping records or personal data.",
   'shell.demoBadge': 'Demo',
   'shell.signOut': 'Sign out',
+<<<<<<< HEAD
   // Account menu keeps "Log out" here; app-wide Sign out/Uitloggen is a separate PR.
   'shell.account.signOut': 'Log out',
+=======
+  'shell.account.signOut': 'Sign out',
+>>>>>>> origin/main
   'shell.help': 'Keyboard shortcuts',
   'shell.skipToContent': 'Skip to content',
   'shell.navigation': 'Main navigation',

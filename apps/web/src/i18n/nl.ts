@@ -85,10 +85,15 @@ export const nl = {
   'shell.demoBanner':
     'Demo-omgeving: gebruik alleen fictieve gegevens. Voer geen echte boekhouding of persoonsgegevens in.',
   'shell.demoBadge': 'Demo',
+<<<<<<< HEAD
   'shell.signOut': 'Afmelden',
   // The account menu says Uitloggen; the no-administration and setup screens
   // keep Afmelden. Same act, different chrome — Design wants the short verb
   // where the eye already is. App-wide Sign out/Uitloggen is a separate PR.
+=======
+  'shell.signOut': 'Uitloggen',
+  // Account menu, no-administration and setup all say Uitloggen.
+>>>>>>> origin/main
   'shell.account.signOut': 'Uitloggen',
   'shell.help': 'Sneltoetsen',
   'shell.skipToContent': 'Naar de inhoud',
