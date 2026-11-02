@@ -184,6 +184,7 @@ describe('Phase 0 redesign tokens (#107)', () => {
     expect(tokenIn(css, '.dark', '--input-border')).toBe('var(--ink-muted)')
     expect(tokenIn(css, ':root', '--input-border')).not.toMatch(/^#/)
     expect(tokenIn(css, '.dark', '--input-border')).not.toMatch(/^#/)
+    expect(tokenIn(css, ':root', '--input')).toBe('var(--input-border)')
   })
 
   it('C: focus ring ≥3:1 against background', () => {
