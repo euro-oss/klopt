@@ -189,6 +189,17 @@ test('seeded bills: segments, preview, keyboard; no console errors', async ({ pa
   expect(errors, `console errors:\n${errors.join('\n')}`).toEqual([])
 })
 
+async function assertNoHorizontalOverflow(page: Page, label: string): Promise<void> {
+  const overflow = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }))
+  expect(
+    overflow.scrollWidth,
+    `${label}: scrollWidth ${overflow.scrollWidth} > clientWidth ${overflow.clientWidth}`,
+  ).toBeLessThanOrEqual(overflow.clientWidth)
+}
+
 test('phone 390 light and dark: overdue button clear of title; tabs one line; no horizontal overflow', async ({
   page,
 }) => {
@@ -226,21 +237,25 @@ test('phone 390 light and dark: overdue button clear of title; tabs one line; no
         titleBox.x + titleBox.width > prepareBox.x &&
         titleBox.y < prepareBox.y + prepareBox.height &&
         titleBox.y + titleBox.height > prepareBox.y
-      expect(intersects, `${theme}: prepare overlaps overdue title`).toBe(false)
+      expect(intersects, `${theme} list: prepare overlaps overdue title`).toBe(false)
     }
 
     const tabs = page.locator('[data-costs-tabs] a')
     await expect(tabs).toHaveCount(4)
-    const tops = await tabs.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top))
-    expect(new Set(tops.map((top) => Math.round(top))).size, `${theme}: tabs share one row`).toBe(1)
+    const tops = await tabs.evaluateAll((els) =>
+      els.map((el) => (el as HTMLElement).offsetTop),
+    )
+    expect(new Set(tops).size, `${theme} list: tabs share one offsetTop`).toBe(1)
 
-    const overflow = await page.evaluate(() => ({
-      scrollWidth: document.documentElement.scrollWidth,
-      clientWidth: document.documentElement.clientWidth,
-    }))
-    expect(
-      overflow.scrollWidth,
-      `${theme}: page scrollWidth ${overflow.scrollWidth} > clientWidth ${overflow.clientWidth}`,
-    ).toBeLessThanOrEqual(overflow.clientWidth)
+    await assertNoHorizontalOverflow(page, `${theme} costs list`)
+
+    // Bill detail at 390 — same no-overflow rule.
+    await page.getByText('INK-PHONE-0001', { exact: true }).click()
+    await expect(page).toHaveURL(/\/purchases\/[0-9a-f-]+/)
+    await expect(page.getByRole('heading', { name: /Inkoopfactuur INK-PHONE-0001/ })).toBeVisible()
+    await assertNoHorizontalOverflow(page, `${theme} bill detail`)
+
+    await page.goto('/purchases?segment=open')
+    await expect(page.getByRole('heading', { name: 'Kosten' })).toBeVisible()
   }
 })

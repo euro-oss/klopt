@@ -5,7 +5,7 @@ import { PageHeader } from '~/components/app-shell'
 import { CostsTabs } from '~/components/costs-tabs'
 import { PurchaseStatusPill } from '~/components/costs/purchase-status-pill'
 import { EuroAmount } from '~/components/finance/money'
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '~/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '~/components/ui/empty'
 import { Input } from '~/components/ui/input'
@@ -408,7 +408,15 @@ function Costs() {
               })}
             </AlertTitle>
             <AlertDescription>{t('costs.callout.overdueBody')}</AlertDescription>
-            <AlertAction className="max-md:static max-md:col-span-full max-md:col-start-1 max-md:mt-2 max-md:w-full max-md:justify-self-stretch">
+            {/*
+              Desktop keeps the absolute corner action (AlertAction pattern).
+              Below md, put the button in normal flow under the title/body so it
+              cannot cover the banner title (alert.tsx Absolute + pr-18 only).
+            */}
+            <div
+              data-slot="alert-action"
+              className="max-md:col-span-full max-md:col-start-1 max-md:mt-2 max-md:w-full md:absolute md:top-2.5 md:right-3"
+            >
               <Button
                 asChild
                 size="sm"
@@ -421,7 +429,7 @@ function Costs() {
                   {hydrated && <Keycap className="ml-1.5">b</Keycap>}
                 </Link>
               </Button>
-            </AlertAction>
+            </div>
           </Alert>
         </div>
       )}
