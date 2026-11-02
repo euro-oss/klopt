@@ -22,6 +22,17 @@ the ADR is where the reasoning is.
 
 - **Breaking (v1 API):** Downloading pain.001 from an approved batch now marks it exported; the `export` transition was removed from the v1 batch transitions API.
 
+### Reminders: confirm before a bulk send (#173)
+
+Herinneringen (`/dunning`) opens a shadcn AlertDialog whenever more than one
+reminder would go out — including the nothing-selected "send all due" case. The
+dialog lists up to five debtors (customer, invoice number, amount, days overdue),
+"+ {n} meer", and the total from the same `reminderSendTargets` array the send
+posts. Annuleren keeps focus; only ⌘/Ctrl+Enter (or the primary) sends; plain
+Enter never does. A single reminder still goes straight through. The dunning
+queue query now uses the exclusive overdue boundary (`dueDate < asOf`), so due
+today is never listed, counted, or sent.
+
 ### Redesign Phase 4: Costs (#107 / #128)
 
 Costs (`/purchases`) matches the Costs.dc.html desktop-light board from the v2

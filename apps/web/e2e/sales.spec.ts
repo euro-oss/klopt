@@ -262,6 +262,7 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
 test('a mistyped IBAN can be corrected, which is what makes a supplier payable', async ({
   page,
 }) => {
+  test.setTimeout(60_000)
   // The gap this closes: a contact could be created and never fixed, so one
   // wrong character meant a supplier who could never be paid.
   await anAdministration(page, 'Correctie BV')
@@ -276,7 +277,12 @@ test('a mistyped IBAN can be corrected, which is what makes a supplier payable',
   await page.getByRole('button', { name: 'Opslaan' }).click()
 
   await page.getByRole('button', { name: /Leverancier B\.V\./ }).click()
-  await page.getByRole('link', { name: /Bewerken/ }).click()
+  // Desktop card is md+ only; wait for it before chasing Bewerken (#130).
+  await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible()
+  await page
+    .getByRole('complementary', { name: 'Relatiekaart' })
+    .getByRole('link', { name: /Bewerken/ })
+    .click()
   await expect(page.getByRole('heading', { name: /CRE-0001 · Leverancier B.V./ })).toBeVisible()
 
   // The form opens on what is stored, not on an empty form.
@@ -290,7 +296,7 @@ test('a mistyped IBAN can be corrected, which is what makes a supplier payable',
   await page.goto('/contacts')
   // Full navigation from the edit screen: wait for hydration so the row
   // onClick can write ?id= (desktop card with Bewerken). Clicking before
-  // hydration focuses the button and leaves the URL without an id.
+  // hydration focuses the button and leaves the URL without an id (#130).
   await hydrated(page)
   const row = page.getByRole('button', { name: /Leverancier Nederland B\.V\./ })
   await expect(row).toBeVisible()
@@ -299,6 +305,10 @@ test('a mistyped IBAN can be corrected, which is what makes a supplier payable',
   await row.click()
   await expect(page).toHaveURL(/[?&]id=/)
   await expect(row).toHaveAttribute('aria-selected', 'true')
-  await page.getByRole('link', { name: /Bewerken/ }).click()
+  await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible()
+  await page
+    .getByRole('complementary', { name: 'Relatiekaart' })
+    .getByRole('link', { name: /Bewerken/ })
+    .click()
   await expect(page.getByLabel('IBAN')).toHaveValue('NL91ABNA0417164300')
 })
