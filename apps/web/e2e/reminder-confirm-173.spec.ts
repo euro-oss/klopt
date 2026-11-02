@@ -118,6 +118,60 @@ async function reminderDeliveryCount(entityId: string): Promise<number> {
   }
 }
 
+async function reminderDeliveryInvoiceIds(entityId: string): Promise<readonly string[]> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  const sql = (database as unknown as { $client: SqlTag }).$client
+  try {
+    const rows = (await sql`
+      select invoice_id::text as id
+      from klopt.invoice_deliveries
+      where entity_id = ${entityId}::uuid
+        and purpose = 'reminder'
+      order by invoice_id
+    `) as readonly { id: string }[]
+    return rows.map((row) => row.id)
+  } finally {
+    await closeDatabase(database)
+  }
+}
+
+async function assertDialogFitsViewport(page: Page): Promise<void> {
+  const dialog = page.getByRole('alertdialog')
+  await expect(dialog).toBeVisible()
+  const overflow = await dialog.evaluate((node) => ({
+    scrollWidth: node.scrollWidth,
+    clientWidth: node.clientWidth,
+  }))
+  expect(
+    overflow.scrollWidth,
+    `dialog overflows horizontally (${String(overflow.scrollWidth)} > ${String(overflow.clientWidth)})`,
+  ).toBeLessThanOrEqual(overflow.clientWidth)
+
+  const viewport = page.viewportSize()
+  expect(viewport).not.toBeNull()
+  const width = viewport!.width
+  const height = viewport!.height
+  for (const name of [/Annuleren|Cancel/, /Verstuur \d+|Send \d+/] as const) {
+    const box = await dialog.getByRole('button', { name }).boundingBox()
+    expect(box, `missing button ${String(name)}`).not.toBeNull()
+    expect(box!.x).toBeGreaterThanOrEqual(0)
+    expect(box!.y).toBeGreaterThanOrEqual(0)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width + 0.5)
+    expect(box!.y + box!.height).toBeLessThanOrEqual(height + 0.5)
+  }
+}
+
+async function listedDialogInvoiceIds(page: Page): Promise<string[]> {
+  return page
+    .getByRole('alertdialog')
+    .locator('[data-invoice-id]')
+    .evaluateAll((nodes) =>
+      nodes
+        .map((node) => node.getAttribute('data-invoice-id'))
+        .filter((id): id is string => id !== null),
+    )
+}
+
 async function setDueDate(invoiceId: string, entityId: string, dueDate: string): Promise<void> {
   const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
   const sql = (database as unknown as { $client: SqlTag }).$client
@@ -208,6 +262,9 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   // Primary is "Verstuur N" with a mod+Enter chip — not a plain "Versturen".
   await expect(dialog.getByRole('button', { name: /Verstuur 2/ })).toBeVisible()
 
+  const listedIds = await listedDialogInvoiceIds(page)
+  expect(listedIds.sort()).toEqual([evaId, rubenId].sort())
+
   // Plain Enter must not send — even if focus is moved to the primary.
   await dialog.getByRole('button', { name: /Verstuur 2/ }).focus()
   await page.keyboard.press('Enter')
@@ -228,12 +285,16 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   await expect(
     page.getByRole('alertdialog').getByRole('button', { name: 'Annuleren' }),
   ).toBeFocused()
+  const listedBeforeSend = await listedDialogInvoiceIds(page)
+  expect(listedBeforeSend.sort()).toEqual(listedIds.sort())
   await page.keyboard.press('Control+Enter')
   await expect(page.getByRole('alertdialog')).toHaveCount(0)
   await expect(page.getByText(/verstuurd naar/)).toBeVisible()
   // Both POSTs finish before the delivery rows are visible — poll, don't race.
   await expect.poll(async () => reminderDeliveryCount(entityId)).toBe(2)
   expect(reminderPosts.length).toBeGreaterThanOrEqual(2)
+  const sentIds = await reminderDeliveryInvoiceIds(entityId)
+  expect([...sentIds].sort()).toEqual([...listedIds].sort())
   await expect(page.getByRole('button', { name: /Eva Jansen/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Ruben de Vries/ })).toHaveCount(0)
 
@@ -248,11 +309,72 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   }
   expect(dueTodayBody.deliveries.filter((row) => row.purpose === 'reminder')).toHaveLength(0)
 
-  // eva/ruben ids kept for clarity in failure messages.
-  expect(evaId.length).toBeGreaterThan(0)
-  expect(rubenId.length).toBeGreaterThan(0)
-
   expect(errors, `console errors: ${errors.join('\n')}`).toEqual([])
+})
+
+test('bulk confirm dialog fits the 390 viewport in light and dark', async ({ page }) => {
+  test.setTimeout(120_000)
+  await openAdmin(page)
+
+  await page.goto('/settings')
+  await page.getByLabel('Straat').fill('Demoweg')
+  await page.getByLabel('Huisnummer').fill('10')
+  await page.getByLabel('Postcode').fill('1000 BB')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.goto('/contacts')
+  // Long names stress truncation; days-overdue must stay visible and not widen the sheet.
+  await seedContact(
+    page,
+    'DEB-LONG-A',
+    'Eva Jansen van den Zeer Lange Achternaam B.V.',
+    'eva-long@example.nl',
+  )
+  await seedContact(
+    page,
+    'DEB-LONG-B',
+    'Ruben de Vries Internationale Handelscompagnie',
+    'ruben-long@example.nl',
+  )
+  await draftAndIssue(
+    page,
+    'Eva Jansen van den Zeer Lange Achternaam B.V.',
+    'Lang A',
+    '500,00',
+    daysAgo(80),
+  )
+  await draftAndIssue(
+    page,
+    'Ruben de Vries Internationale Handelscompagnie',
+    'Lang B',
+    '525,21',
+    daysAgo(80),
+  )
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  for (const theme of ['light', 'dark'] as const) {
+    await page.goto('/dunning')
+    await expect(page.getByRole('heading', { name: /Verkoop/ })).toBeVisible()
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.evaluate((value) => {
+      document.documentElement.classList.toggle('dark', value === 'dark')
+      document.documentElement.dataset['theme'] = value
+    }, theme)
+    await page.getByRole('button', { name: /Alle 2 herinneringen versturen/ }).click()
+    await assertDialogFitsViewport(page)
+    await expect(
+      page
+        .getByRole('alertdialog')
+        .getByText(/dagen te laat/)
+        .first(),
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
+  }
 })
 
 test('plain Enter on an open bulk confirm does not send; Cmd/Ctrl+Enter does', async ({

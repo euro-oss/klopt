@@ -172,7 +172,13 @@ test('173 reminder confirm dialog light/dark 1440 and 390', async ({ page }) => 
     await ready(page, 390)
     await setTheme(page, theme)
     await page.getByRole('button', { name: /Alle 6 herinneringen versturen/ }).click()
-    await expect(page.getByRole('alertdialog')).toBeVisible()
+    const dialog = page.getByRole('alertdialog')
+    await expect(dialog).toBeVisible()
+    const overflow = await dialog.evaluate((node) => ({
+      scrollWidth: node.scrollWidth,
+      clientWidth: node.clientWidth,
+    }))
+    expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth)
     await shot(page, `01-reminder-confirm-${theme}-mobile-390`)
     await page.keyboard.press('Escape')
   }
