@@ -27,7 +27,7 @@ export function ExactVatPreview({
   const unrecognised = summary.rows.filter((row) => row.kloptCode === null)
 
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-muted-foreground mb-3 text-sm tabular-nums" role="status">
         {t('wizard.exact.btw.recognisedCount', {
           recognised: String(summary.recognised),
@@ -35,16 +35,26 @@ export function ExactVatPreview({
         })}
       </p>
       {notImportedYet === true && (
-        <p role="status" className="text-muted-foreground mb-4 text-sm">
+        <p role="status" className="text-muted-foreground mb-4 text-sm break-words">
           {t('wizard.exact.btw.notImportedYet')}
         </p>
       )}
-      <ScrollTable>
-        <table className={cn('w-full min-w-[28rem] text-left text-sm', stickyFirstCol)}>
+      <ScrollTable className="min-w-0 max-w-full">
+        {/* min-w-[28rem] only from sm — at 390 the table must shrink (#161 Design/QA). */}
+        <table
+          className={cn(
+            'w-full min-w-0 table-fixed text-left text-sm sm:min-w-[28rem]',
+            stickyFirstCol,
+          )}
+        >
           <thead className="bg-muted text-muted-foreground text-xs">
             <tr>
-              <th className="py-2 pr-3 pl-4 font-medium">{t('wizard.exact.btw.colExact')}</th>
-              <th className="py-2 pr-4 font-medium">{t('wizard.exact.btw.colKlopt')}</th>
+              <th className="w-1/2 py-2 pr-3 pl-4 font-medium break-words">
+                {t('wizard.exact.btw.colExact')}
+              </th>
+              <th className="w-1/2 min-w-0 py-2 pr-4 font-medium break-words">
+                {t('wizard.exact.btw.colKlopt')}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -57,7 +67,9 @@ export function ExactVatPreview({
           </tbody>
         </table>
       </ScrollTable>
-      <p className="text-muted-foreground mt-2 text-sm">{t('wizard.exact.btw.footnote')}</p>
+      <p className="text-muted-foreground mt-2 text-sm break-words">
+        {t('wizard.exact.btw.footnote')}
+      </p>
     </div>
   )
 }
@@ -79,34 +91,36 @@ function ExactVatRow({
 
   return (
     <tr className="border-border border-t align-top">
-      <td className="py-2.5 pr-3 pl-4">
-        <span className="block font-medium">{row.exactName}</span>
+      <td className="min-w-0 py-2.5 pr-3 pl-4 break-words">
+        <span className="block font-medium break-words">{row.exactName}</span>
         {exactSub !== null && (
-          <span className="text-muted-foreground mt-0.5 block text-xs tabular-nums">
+          <span className="text-muted-foreground mt-0.5 block text-xs break-words tabular-nums">
             {exactSub}
           </span>
         )}
       </td>
-      <td className="py-2.5 pr-4">
+      <td className="min-w-0 py-2.5 pr-4 break-words">
         {row.kloptCode !== null ? (
-          <div>
-            <span className="block font-medium">{row.kloptLabel ?? row.kloptCode}</span>
+          <div className="min-w-0 break-words">
+            <span className="block font-medium break-words">{row.kloptLabel ?? row.kloptCode}</span>
             {advanced && (
-              <span className="text-muted-foreground mt-0.5 block text-xs tabular-nums">
+              <span className="text-muted-foreground mt-0.5 block text-xs break-words tabular-nums">
                 {row.kloptCode}
               </span>
             )}
             {row.codeMatch && (
-              <Badge variant="outline" className="mt-1">
+              <Badge variant="outline" className="mt-1 max-w-full whitespace-normal">
                 {t('wizard.exact.btw.codeMatch')}
               </Badge>
             )}
           </div>
         ) : (
-          <div>
-            <Badge variant="attention">{t('wizard.exact.btw.unrecognised')}</Badge>
+          <div className="min-w-0 break-words">
+            <Badge variant="attention" className="max-w-full whitespace-normal">
+              {t('wizard.exact.btw.unrecognised')}
+            </Badge>
             {row.accountsLosingDefault.length > 0 && (
-              <span className="text-muted-foreground mt-1.5 block text-xs">
+              <span className="text-muted-foreground mt-1.5 block text-xs break-words">
                 {row.accountsLosingDefault.length === 1
                   ? t('wizard.exact.btw.loseDefaultOne')
                   : t('wizard.exact.btw.loseDefaultMany', {

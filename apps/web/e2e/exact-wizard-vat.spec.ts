@@ -190,6 +190,30 @@ test('Exact VAT read-only preview: seeded mapping, rail stop, resume, keyboard (
     await expect(page.locator('button[data-focus="next"]')).toHaveCount(0)
     await expect(page.getByRole('button', { name: /Terug/ })).toBeVisible()
 
+    // Phone: Btw step must not overflow the viewport (#161 Design).
+    await page.setViewportSize({ width: 390, height: 844 })
+    for (const theme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await page.evaluate((t) => {
+        document.documentElement.classList.toggle('dark', t === 'dark')
+      }, theme)
+      await page.waitForFunction(
+        (wantDark) => document.documentElement.classList.contains('dark') === wantDark,
+        theme === 'dark',
+      )
+      await expect
+        .poll(async () =>
+          page.evaluate(
+            () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+          ),
+        )
+        .toBe(true)
+    }
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.evaluate(() => {
+      document.documentElement.classList.remove('dark')
+    })
+
     // Returning to an unfinished import shows Welkom terug (#100 PM).
     await page.goto('/importeren')
     await expect(page.getByRole('heading', { name: /Welkom terug/ })).toBeVisible({

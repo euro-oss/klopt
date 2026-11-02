@@ -96,9 +96,9 @@ export function WizardProgressRail({
 
   return (
     <>
-      <div className="mb-5 md:hidden">
-        <div className="flex items-center justify-between gap-2 text-sm">
-          <span className="tabular-nums">
+      <div className="mb-5 min-w-0 md:hidden">
+        <div className="flex min-w-0 items-center justify-between gap-2 text-sm">
+          <span className="min-w-0 flex-1 break-words tabular-nums">
             {t('wizard.stepOf', {
               step: String(current + 1),
               total: String(steps.length),
@@ -107,7 +107,12 @@ export function WizardProgressRail({
           </span>
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button type="button" variant="ghost" className="-mr-3 px-3" aria-haspopup="dialog">
+              <Button
+                type="button"
+                variant="ghost"
+                className="shrink-0 px-3"
+                aria-haspopup="dialog"
+              >
                 <ListChecks className="size-4" aria-hidden />
                 {t('wizard.steps')}
               </Button>
@@ -189,19 +194,19 @@ export function WizardStepHeader({
   const found = steps.indexOf(step)
   const index = found >= 0 ? found : Math.max(0, steps.length - 1)
   return (
-    <header className="mb-6">
-      <p className="text-muted-foreground hidden text-sm md:block">
+    <header className="mb-6 min-w-0">
+      <p className="text-muted-foreground hidden text-sm break-words md:block">
         {t('wizard.stepOf', {
           step: String(index + 1),
           total: String(steps.length),
           label: t(keys[index]!),
         })}
       </p>
-      <h1 id={titleId} className="mt-1 text-2xl tracking-tight md:text-[28px]">
+      <h1 id={titleId} className="mt-1 text-2xl tracking-tight break-words md:text-[28px]">
         {title}
       </h1>
       {intro !== undefined && intro !== '' && (
-        <p className="text-muted-foreground mt-2 max-w-2xl text-sm">{intro}</p>
+        <p className="text-muted-foreground mt-2 max-w-2xl text-sm break-words">{intro}</p>
       )}
     </header>
   )

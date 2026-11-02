@@ -1002,11 +1002,11 @@ function ImportWizardPage() {
 
   return (
     <div
-      className="mx-auto flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:items-start"
+      className="mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-6 lg:flex-row lg:items-start"
       data-slot="import-wizard"
       aria-labelledby={titleId}
     >
-      <aside className="lg:sticky lg:top-4 lg:w-56 lg:shrink-0">
+      <aside className="min-w-0 lg:sticky lg:top-4 lg:w-56 lg:shrink-0">
         <WizardProgressRail
           step={step}
           source={source}
