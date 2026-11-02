@@ -6,7 +6,9 @@ import { ApiError, problemResponse } from '../../src/api/errors.js'
  * Unknown 500s used to leave the process log empty. The response must stay
  * generic. The log names the request, the error's name, and the frames.
  * `error.stack` begins with the message, and a driver message can quote a
- * row, so that text must not be logged.
+ * row, so that text must not be logged. A message line that itself begins
+ * with `    at ` is still the message. A stack that is not a string, and a
+ * throw that is not an Error, log no frames and must not throw.
  */
 
 afterEach(() => {
@@ -73,5 +75,81 @@ describe('unknown internal errors', () => {
     expect(logged).toContain('thrown object')
     expect(logged).not.toContain('NL02ABNA')
     expect(logged).not.toContain('customer-iban')
+  })
+
+  it('does not log a message line that begins with a stack frame marker', async () => {
+    const error = new Error('duplicate key\n    at NL91ABNA0417164300 Eva\nstill the message')
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = problemResponse(error, 'req-frame-msg')
+
+    expect(response.status).toBe(500)
+    const body = (await response.json()) as { detail: string; requestId: string }
+    expect(body.detail).toBe('The request could not be completed.')
+    expect(body.requestId).toBe('req-frame-msg')
+
+    expect(spy).toHaveBeenCalledTimes(1)
+    const args = spy.mock.calls.flat().map((part) => String(part))
+    const logged = args.join('\n')
+    expect(logged).not.toContain('    at NL91ABNA0417164300 Eva')
+    expect(logged).not.toContain('NL91ABNA0417164300')
+    expect(logged).not.toContain('Eva')
+    expect(logged).not.toContain('duplicate key')
+    expect(logged).not.toContain('still the message')
+    expect(logged).toContain('[api] internal_error')
+    expect(logged).toContain('req-frame-msg')
+    expect(logged).toContain(error.name)
+    expect(args.some((arg) => arg.includes('    at '))).toBe(true)
+  })
+
+  it('logs no frames when error.stack is not a string', async () => {
+    const stacks = [undefined, { row: '    at NL91ABNA0417164300 Eva' }, 12]
+    for (const stack of stacks) {
+      const error = new Error('driver quoted NL91ABNA0417164300 Eva')
+      Object.defineProperty(error, 'stack', { configurable: true, value: stack })
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      const response = problemResponse(error, 'req-nostack')
+
+      expect(response.status).toBe(500)
+      const body = (await response.json()) as { detail: string }
+      expect(body.detail).toBe('The request could not be completed.')
+      expect(spy).toHaveBeenCalledTimes(1)
+      const logged = spy.mock.calls
+        .flat()
+        .map((part) => String(part))
+        .join('\n')
+      expect(logged).toContain('[api] internal_error')
+      expect(logged).toContain('req-nostack')
+      expect(logged).toContain(error.name)
+      expect(logged).toContain('(no stack)')
+      expect(logged).not.toContain('    at ')
+      expect(logged).not.toContain('NL91ABNA0417164300')
+      expect(logged).not.toContain('Eva')
+      expect(logged).not.toContain('driver quoted')
+      spy.mockRestore()
+    }
+  })
+
+  it('logs a non-Error throw safely', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const thrown = Object.create(null) as { stack: unknown; message: string }
+    thrown.stack = { at: '    at NL91ABNA0417164300 Eva' }
+    thrown.message = '    at NL91ABNA0417164300 Eva'
+
+    const response = problemResponse(thrown, 'req-throw')
+
+    expect(response.status).toBe(500)
+    const text = await response.text()
+    expect(text).not.toContain('NL91ABNA0417164300')
+    const logged = spy.mock.calls
+      .flat()
+      .map((part) => String(part))
+      .join('\n')
+    expect(logged).toContain('req-throw')
+    expect(logged).toContain('thrown object')
+    expect(logged).not.toContain('    at ')
+    expect(logged).not.toContain('NL91ABNA0417164300')
+    expect(logged).not.toContain('Eva')
   })
 })

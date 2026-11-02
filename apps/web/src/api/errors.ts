@@ -142,15 +142,55 @@ export function toProblem(error: unknown, requestId: string | null): ProblemDocu
 }
 
 /**
+ * The leading `name: message` block of a V8 stack.
+ *
+ * Same steps as `Error.prototype.toString`. Node writes that string in
+ * front of the frames. The message may be several lines, and a line of it
+ * may begin with `    at `. An empty name is omitted; an empty message is
+ * omitted. Anything that is not a string has no block we can remove.
+ */
+function stackMessageBlock(name: unknown, message: unknown): string {
+  if (typeof name !== 'string' || typeof message !== 'string') return ''
+  if (name === '') return message
+  if (message === '') return name
+  return `${name}: ${message}`
+}
+
+/**
  * Stack frames only.
  *
- * `error.stack` starts with `error.message`, and a driver message can quote
- * a row: an IBAN, a name, a connection string. Those lines are not frames.
- * A frame is a line that starts with four spaces and `at `.
+ * Strip the `name: message` block before keeping frames, so a message line
+ * that itself starts with four spaces and `at ` is never logged. A driver
+ * message can quote a row there: an IBAN, a name, a connection string.
+ * A frame is what remains that starts with `    at `. Lines that are the
+ * message itself are dropped too, in case the block did not match.
+ *
+ * `stack` is not always a string. It may be missing, or an object. Then
+ * there are no frames, and reading it must not throw. A thrown value that
+ * is not an Error never reaches this function.
  */
 function stackFrames(error: Error): string {
-  const frames = (error.stack ?? '').split('\n').filter((line) => line.startsWith('    at '))
-  return frames.length === 0 ? '(no stack)' : frames.join('\n')
+  try {
+    const stack = error.stack
+    if (typeof stack !== 'string') return '(no stack)'
+
+    const name: unknown = error.name
+    const message: unknown = error.message
+    const block = stackMessageBlock(name, message)
+    let trace = block.length > 0 && stack.startsWith(block) ? stack.slice(block.length) : stack
+    if (typeof message === 'string' && message.length > 0) {
+      const hidden = new Set(message.split('\n'))
+      trace = trace
+        .split('\n')
+        .filter((line) => !hidden.has(line))
+        .join('\n')
+    }
+
+    const frames = trace.split('\n').filter((line) => line.startsWith('    at '))
+    return frames.length === 0 ? '(no stack)' : frames.join('\n')
+  } catch {
+    return '(no stack)'
+  }
 }
 
 /**
