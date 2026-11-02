@@ -298,7 +298,7 @@
   },
   "BankAccountsDark.dc.html": {
    "x": 0,
-   "y": 13180,
+   "y": 15300,
    "w": 1440,
    "h": 1040,
    "title": "Dark · bank accounts and statements (derived)",
@@ -308,7 +308,7 @@
   },
   "CostsDark.dc.html": {
    "x": 1520,
-   "y": 13180,
+   "y": 15300,
    "w": 1440,
    "h": 1040,
    "title": "Dark · costs (derived)",
@@ -319,7 +319,7 @@
   },
   "BillNewDark.dc.html": {
    "x": 3040,
-   "y": 13180,
+   "y": 15300,
    "w": 1440,
    "h": 1040,
    "title": "Dark · enter a bill (derived)",
@@ -329,7 +329,7 @@
   },
   "PaymentBatchDark.dc.html": {
    "x": 4560,
-   "y": 13180,
+   "y": 15300,
    "w": 1440,
    "h": 1040,
    "title": "Dark · payment batch (derived)",
@@ -340,7 +340,7 @@
   },
   "PhoneMatchDark.dc.html": {
    "x": 0,
-   "y": 14440,
+   "y": 16560,
    "w": 390,
    "h": 844,
    "title": "Phone dark · match (derived)",
@@ -349,7 +349,7 @@
   },
   "PhoneBankAccounts.dc.html": {
    "x": 470,
-   "y": 14440,
+   "y": 16560,
    "w": 390,
    "h": 1342,
    "title": "Phone · bank accounts (derived)",
@@ -358,7 +358,7 @@
   },
   "PhoneBankAccountsDark.dc.html": {
    "x": 940,
-   "y": 14440,
+   "y": 16560,
    "w": 390,
    "h": 1342,
    "title": "Phone dark · bank accounts (derived)",
@@ -367,7 +367,7 @@
   },
   "PhoneCosts.dc.html": {
    "x": 1410,
-   "y": 14440,
+   "y": 16560,
    "w": 390,
    "h": 1642,
    "title": "Phone · costs (derived)",
@@ -377,7 +377,7 @@
   },
   "PhoneCostsDark.dc.html": {
    "x": 1880,
-   "y": 14440,
+   "y": 16560,
    "w": 390,
    "h": 1642,
    "title": "Phone dark · costs (derived)",
@@ -386,7 +386,7 @@
   },
   "PhoneBillNew.dc.html": {
    "x": 2350,
-   "y": 14440,
+   "y": 16560,
    "w": 390,
    "h": 1860,
    "title": "Phone · enter a bill (derived)",
@@ -395,7 +395,7 @@
   },
   "PhoneBillNewDark.dc.html": {
    "x": 2820,
-   "y": 14440,
+   "y": 16560,
    "w": 390,
    "h": 1860,
    "title": "Phone dark · enter a bill (derived)",
@@ -404,7 +404,7 @@
   },
   "PhonePaymentBatch.dc.html": {
    "x": 3290,
-   "y": 14440,
+   "y": 16560,
    "w": 390,
    "h": 1411,
    "title": "Phone · payment batch (derived)",
@@ -414,7 +414,7 @@
   },
   "PhonePaymentBatchDark.dc.html": {
    "x": 3760,
-   "y": 14440,
+   "y": 16560,
    "w": 390,
    "h": 1411,
    "title": "Phone dark · payment batch (derived)",
@@ -444,6 +444,51 @@
    "h": 1040,
    "title": "Dark · bank matching",
    "expand": "fill"
+  },
+  "PhoneContacts.dc.html": {
+   "x": 0,
+   "y": 13000,
+   "w": 390,
+   "h": 1686,
+   "title": "Phone · contacts (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneContactCard.dc.html": {
+   "x": 470,
+   "y": 13000,
+   "w": 390,
+   "h": 1271,
+   "title": "Phone · contact card (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneVatPeriods.dc.html": {
+   "x": 940,
+   "y": 13000,
+   "w": 390,
+   "h": 1055,
+   "title": "Phone · VAT periods (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneVat.dc.html": {
+   "x": 1410,
+   "y": 13000,
+   "w": 390,
+   "h": 1654,
+   "title": "Phone · VAT return Q4 2025 (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneIcp.dc.html": {
+   "x": 1880,
+   "y": 13000,
+   "w": 390,
+   "h": 1267,
+   "title": "Phone · ICP return (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
   }
  },
  "order": [
@@ -497,7 +542,12 @@
   "PhonePaymentBatchDark.dc.html",
   "HomeDark.dc.html",
   "InvoicesDark.dc.html",
-  "MatchDark.dc.html"
+  "MatchDark.dc.html",
+  "PhoneContacts.dc.html",
+  "PhoneContactCard.dc.html",
+  "PhoneVatPeriods.dc.html",
+  "PhoneVat.dc.html",
+  "PhoneIcp.dc.html"
  ],
  "notes": {
   "t1": {
@@ -565,7 +615,14 @@
   },
   "t10": {
    "x": 0,
-   "y": 12880,
+   "y": 12700,
+   "text": "Phone (390): contacts, VAT, ICP (derived)",
+   "kind": "title1",
+   "maxW": 2270
+  },
+  "t11": {
+   "x": 0,
+   "y": 15000,
    "text": "Bank and costs, dark and phone (derived)",
    "kind": "title1",
    "maxW": 6000
