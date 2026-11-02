@@ -364,6 +364,8 @@ test('PaymentBatch from sidebar and command bar; empty and seeded; keyboard; no 
   await page.getByRole('button', { name: 'Toevoegen' }).click()
   await expect(page.getByText('Ruben Demo')).toBeVisible()
   await expect(page.getByText(/NL91 ABNA 0417 1643 00/)).toBeVisible()
+  await expect(page.getByRole('heading', { name: /· 1 factuur\b/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /1 facturen/ })).toHaveCount(0)
 
   await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeVisible()
   await expect(
@@ -376,7 +378,9 @@ test('PaymentBatch from sidebar and command bar; empty and seeded; keyboard; no 
   await page.keyboard.press('ControlOrMeta+Enter')
   await expect(page.getByText(/Status is nu: wacht op fiat|wacht op fiat/i)).toBeVisible()
   await expect(page.getByRole('button', { name: /Batch fiatteren|Fiatteren/ })).toHaveCount(0)
+  // Submitter sees own email; never a literal ellipsis.
   await expect(page.getByText(/Ingediend door/)).toBeVisible()
+  await expect(page.getByText(/Ingediend door …|Ingediend door \.\.\./)).toHaveCount(0)
   await expect(page.getByText('Nog niet goedgekeurd')).toBeVisible()
   await expect(page.getByText(/iemand anders moet/i).first()).toBeVisible()
   await expect(page.getByText(/Upload het in je bankieren-app|pain\.001/i)).toHaveCount(0)
@@ -432,9 +436,20 @@ test('PaymentBatch ⌘↵ downloads pain.001 when approved', async ({ browser })
     await expect(bobPage.getByRole('cell', { name: 'BETAAL-CMD-1' })).toBeVisible()
     await hydrated(bobPage)
     await bobPage.getByRole('cell', { name: 'BETAAL-CMD-1' }).click()
+    // Approver has no display name for the submitter — nameless "Ingediend".
+    const fourEyes = bobPage.locator('section', {
+      has: bobPage.getByRole('heading', { name: 'Vier ogen' }),
+    })
+    await expect(fourEyes.getByText('Ingediend', { exact: true })).toBeVisible()
+    await expect(fourEyes.getByText(/Ingediend door|…|\.\.\./)).toHaveCount(0)
+    await expect(bobPage.getByRole('heading', { name: /· 1 factuur\b/ })).toBeVisible()
+
     await bobPage.getByRole('button', { name: /Batch fiatteren|Fiatteren/ }).click()
     await expect(bobPage.getByText(/Status is nu: gefiatteerd/)).toBeVisible()
     await expect(bobPage.getByRole('button', { name: 'Download pain.001' })).toBeVisible()
+    // Approved with no display name — "Goedgekeurd", never "door …".
+    await expect(fourEyes.getByText('Goedgekeurd', { exact: true })).toBeVisible()
+    await expect(fourEyes.getByText(/Goedgekeurd door|…|\.\.\./)).toHaveCount(0)
 
     const downloadPromise = bobPage.waitForEvent('download')
     await bobPage.keyboard.press('ControlOrMeta+Enter')

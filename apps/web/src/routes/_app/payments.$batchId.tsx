@@ -13,6 +13,7 @@ import { Stepper } from '~/components/ui/stepper'
 import { useT } from '~/i18n/provider'
 import { formatDate, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
+import { batchFourEyesLine } from '~/lib/batch-four-eyes'
 import { formatIbanGroups, ibanTail } from '~/lib/iban-display'
 import { isApple, isTypingInto } from '~/lib/keyboard'
 import { getSession } from '~/server/context'
@@ -183,7 +184,7 @@ function PaymentBatch() {
 
   const heading =
     billCount > 0
-      ? t('batch.heading', {
+      ? plural('batch.heading', billCount, {
           date: formatDate(batch.requestedExecutionDate),
           count: String(billCount),
         })
@@ -536,11 +537,15 @@ function PaymentBatch() {
               ) : null}
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="text-sm">
-                  {batch.submittedBy === null
-                    ? t('batch.notSubmitted')
-                    : t('batch.submittedBy', {
-                        who: iSubmitted && myEmail !== null ? myEmail : '…',
-                      })}
+                  {batchFourEyesLine({
+                    done: batch.submittedBy !== null,
+                    who: iSubmitted ? myEmail : null,
+                    notYet: t('batch.notSubmitted'),
+                    withWho: t('batch.submittedBy', {
+                      who: iSubmitted && myEmail !== null ? myEmail : '',
+                    }),
+                    withoutWho: t('batch.submitted'),
+                  })}
                 </span>
               </span>
               {batch.submittedBy !== null ? (
@@ -557,9 +562,14 @@ function PaymentBatch() {
               ) : null}
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="text-sm">
-                  {batch.approvedBy === null
-                    ? t('batch.notApproved')
-                    : t('batch.approvedBy', { who: '…' })}
+                  {batchFourEyesLine({
+                    done: batch.approvedBy !== null,
+                    // API returns user IDs only — no display name in this PR.
+                    who: null,
+                    notYet: t('batch.notApproved'),
+                    withWho: t('batch.approvedBy', { who: '' }),
+                    withoutWho: t('batch.approved'),
+                  })}
                 </span>
               </span>
               {batch.approvedBy !== null ? (

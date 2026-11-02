@@ -70,7 +70,7 @@ function NewPurchaseInvoice() {
   const { contacts, taxCodes, accounts } = Route.useLoaderData()
   const navigate = useNavigate()
   const hydrated = useHydrated()
-  const { t } = useT()
+  const { t, plural } = useT()
   const modLabel = hydrated && isApple() ? '⌘' : 'Ctrl'
 
   const suppliers = contacts.ok
@@ -632,7 +632,7 @@ function NewPurchaseInvoice() {
                 <div className="flex justify-between gap-2">
                   <span className="text-ink-muted">{t('purchaseNew.supplierPaysIn')}</span>
                   <span>
-                    {t('purchaseNew.supplierPaysDays', {
+                    {plural('purchaseNew.supplierPaysDays', selectedSupplier.paymentTermsDays, {
                       days: String(selectedSupplier.paymentTermsDays),
                     })}
                   </span>
