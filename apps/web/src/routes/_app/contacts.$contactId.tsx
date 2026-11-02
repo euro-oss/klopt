@@ -1,12 +1,14 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { getContact, pseudonymiseContact, updateContact } from '~/server/sales'
 
 /**
- * Correcting a relatie.
+ * Correcting a relatie (#130 — edit surface for the Contacts card).
  *
  * Master data is corrected in place. There is no journal here to keep honest,
  * and everything already booked points at this row by id — so fixing a mistyped
@@ -18,6 +20,8 @@ import { getContact, pseudonymiseContact, updateContact } from '~/server/sales'
  * because a contact is edited by one person at a time — but the API takes a
  * patch, because a machine correcting one field should not have to know the
  * other fifteen.
+ *
+ * Erasure stays behind `retention:manage`, separate from edit (design + #107).
  */
 export const Route = createFileRoute('/_app/contacts/$contactId')({
   loader: async ({ params }) => ({
@@ -120,11 +124,10 @@ function EditContact() {
       <label htmlFor={name} className="text-muted-foreground mb-1 block text-xs font-medium">
         {label}
       </label>
-      <input
+      <Input
         id={name}
         name={name}
         aria-describedby={fieldErrors[name] === undefined ? undefined : `${name}-error`}
-        className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
         {...props}
       />
       {fieldErrors[name] !== undefined && (
@@ -141,9 +144,9 @@ function EditContact() {
         title={`${row.number} · ${row.name}`}
         description={t('contact.intro')}
         actions={
-          <Link to="/contacts" className="border-border rounded-md border px-4 py-2 text-sm">
-            {t('contact.back')}
-          </Link>
+          <Button asChild variant="outline">
+            <Link to="/contacts">{t('contact.back')}</Link>
+          </Button>
         }
       />
 
@@ -164,9 +167,9 @@ function EditContact() {
         onSubmit={(event) => {
           void submit(event)
         }}
-        className="border-border max-w-4xl space-y-4 rounded-md border p-4"
+        className="border-border bg-surface max-w-4xl space-y-4 rounded-[var(--radius-xl)] border p-4"
       >
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {field('number', t('contacts.numberLabel'), {
             required: true,
             defaultValue: row.number,
@@ -175,14 +178,14 @@ function EditContact() {
           {field('legalName', t('contacts.legalName'), { defaultValue: row.legalName ?? '' })}
         </div>
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           {field('vatNumber', t('contacts.vatNumber'), { defaultValue: row.vatNumber ?? '' })}
           {field('kvkNumber', t('contacts.kvkNumber'), { defaultValue: row.kvkNumber ?? '' })}
           {field('email', t('contacts.email'), { type: 'email', defaultValue: row.email ?? '' })}
           {field('phone', t('contacts.phone'), { defaultValue: row.phone ?? '' })}
         </div>
 
-        <div className="grid grid-cols-[1fr_7rem_7rem_1fr_5rem] gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_7rem_7rem_1fr_5rem]">
           {field('street', t('contacts.street'), { defaultValue: row.address?.street ?? '' })}
           {field('houseNumber', t('contacts.houseNumber'), {
             defaultValue: row.address?.houseNumber ?? '',
@@ -197,7 +200,7 @@ function EditContact() {
           })}
         </div>
 
-        <div className="grid grid-cols-[1fr_10rem] gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_10rem]">
           {field('iban', 'IBAN', {
             defaultValue: row.iban ?? '',
             placeholder: 'NL02ABNA0123456789',
@@ -208,16 +211,16 @@ function EditContact() {
           })}
         </div>
 
-        <div className="flex items-end gap-6">
-          <label className="flex items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-end gap-6">
+          <label className="flex min-h-11 items-center gap-2 text-sm md:min-h-10">
             <input type="checkbox" name="isCustomer" defaultChecked={row.isCustomer} />
             {t('contacts.customerLabel')}
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-11 items-center gap-2 text-sm md:min-h-10">
             <input type="checkbox" name="isSupplier" defaultChecked={row.isSupplier} />
             {t('contacts.supplierLabel')}
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-11 items-center gap-2 text-sm md:min-h-10">
             <input type="checkbox" name="isBlocked" defaultChecked={row.isBlocked} />
             {t('contact.blocked')}
           </label>
@@ -230,13 +233,9 @@ function EditContact() {
         )}
         {saved && <p className="text-sm">{t('contact.saved')}</p>}
 
-        <button
-          type="submit"
-          disabled={busy || !hydrated}
-          className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-        >
+        <Button type="submit" disabled={busy || !hydrated}>
           {busy ? t('common.busy') : t('common.save')}
-        </button>
+        </Button>
       </form>
 
       {contact.data.canErase && (
@@ -305,7 +304,7 @@ function Erase({
   }
 
   return (
-    <section className="border-destructive/40 mt-10 max-w-2xl rounded-md border p-4">
+    <section className="border-border bg-surface-sunken mt-10 max-w-2xl rounded-[var(--radius-xl)] border p-4">
       <h2 className="text-sm font-semibold">{t('erase.title')}</h2>
       <p className="text-muted-foreground mt-1 text-sm">{t('erase.intro')}</p>
 
@@ -322,12 +321,7 @@ function Erase({
             <span className="text-muted-foreground mb-1 block text-xs font-medium">
               {t('erase.reason')}
             </span>
-            <input
-              name="reason"
-              required
-              placeholder={t('erase.reasonPlaceholder')}
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-            />
+            <Input name="reason" required placeholder={t('erase.reasonPlaceholder')} />
           </label>
 
           <p className="text-destructive text-xs">{t('erase.irreversible')}</p>
@@ -339,13 +333,9 @@ function Erase({
           )}
           {done && <p className="text-sm">{t('erase.done')}</p>}
 
-          <button
-            type="submit"
-            disabled={busy || !hydrated}
-            className="bg-destructive text-destructive-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-          >
+          <Button type="submit" variant="destructive" disabled={busy || !hydrated}>
             {busy ? t('common.busy') : t('erase.action')}
-          </button>
+          </Button>
         </form>
       )}
     </section>
