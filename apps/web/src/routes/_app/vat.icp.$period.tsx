@@ -173,12 +173,7 @@ function IcpScreen() {
             {t('icp.subtitle', { deadline: formatDate(data.period.deadline) })}
           </p>
         </div>
-        <Button type="button" variant="outline" disabled>
-          {t('icp.download')}
-        </Button>
-        <Button type="button" disabled title={t('vatReturn.fileElectronicUnavailable')}>
-          {t('vatReturn.fileElectronic')}
-        </Button>
+        {/* Download and electronic filing stay hidden until they work / Digipoort-SBR is available. */}
       </header>
 
       {empty && (

@@ -136,8 +136,12 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
 
   // The taxonomy is chosen by the period, and a fresh install says out loud
   // that its mapping has not been checked against the published NT.
-  await expect(page.getByText(/Taxonomie NT20/)).toBeVisible()
-  await expect(page.getByText(/nog niet gecontroleerd tegen de gepubliceerde/)).toBeVisible()
+  await expect(
+    page.getByText(
+      /Taxonomie NT20\. De koppeling met de officiële namen is nog niet gecontroleerd/,
+    ),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: /Indienen bij de Belastingdienst/ })).toHaveCount(0)
 
   // Digipoort is offered as unavailable with the reason, not hidden. Spec 8:
   // a self-hoster should not have to buy a certificate to be compliant.

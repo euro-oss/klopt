@@ -68,7 +68,7 @@ async function shot(
   })
 }
 
-async function seedInvoice(page: Page): Promise<void> {
+async function seedDomesticInvoice(page: Page): Promise<void> {
   await enableAdvancedMode(page)
   await page.goto('/contacts')
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
@@ -99,6 +99,34 @@ async function seedInvoice(page: Page): Promise<void> {
   await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 }
 
+async function seedEuInvoice(page: Page): Promise<void> {
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('DEB-EU-1')
+  await page.getByLabel('Naam', { exact: true }).fill('Windvaan EU (demo)')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('DE123456789')
+  await page.getByLabel('E-mail').fill('einkauf@example.nl')
+  await page.getByLabel('Straat').fill('Beispielstrasse')
+  await page.getByLabel('Huisnr.').fill('2')
+  await page.getByLabel('Postcode').fill('10115')
+  await page.getByLabel('Plaats').fill('Berlin')
+  await page.getByLabel('Land').fill('DE')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('cell', { name: 'Windvaan EU (demo)' })).toBeVisible()
+
+  await page.goto('/invoices/new')
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
+  await chooseOption(page, /^Klant$/, /^DEB-EU-1 /)
+  await page.getByLabel('Factuurdatum').fill('2026-02-20')
+  await page.getByLabel('Omschrijving regel 1').fill('Demo EU levering')
+  await page.getByLabel('Aantal regel 1').fill('1')
+  await page.getByLabel('Prijs regel 1').fill('500,00')
+  await chooseOption(page, 'Btw regel 1', /^ICP /)
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
+}
+
 test('01 empty VAT desktop light (+ bonus variants)', async ({ page }) => {
   await signInFresh(page)
   await page.goto('/vat/2026-Q1')
@@ -113,7 +141,8 @@ test('01 empty VAT desktop light (+ bonus variants)', async ({ page }) => {
 
 test('02 seeded VAT + ICP desktop light (+ bonus variants)', async ({ page }) => {
   await signInFresh(page)
-  await seedInvoice(page)
+  await seedDomesticInvoice(page)
+  await seedEuInvoice(page)
   await page.goto('/vat/2026-Q1')
   await hydrated(page)
   await expect(page.getByRole('table', { name: 'Rubrieken van de BTW-aangifte' })).toContainText(
@@ -131,6 +160,18 @@ test('02 seeded VAT + ICP desktop light (+ bonus variants)', async ({ page }) =>
   await page.goto('/vat/icp/2026-Q1')
   await hydrated(page)
   await expect(page.getByRole('heading', { name: 'ICP-opgaaf' })).toBeVisible()
-  await shot(page, '02-icp-empty', { width: 1440, height: 1040 }, 'light')
-  await shot(page, '02-icp-empty', { width: 1440, height: 1040 }, 'dark')
+  await expect(page.getByRole('row').filter({ hasText: 'DE123456789' })).toBeVisible()
+  await shot(page, '02-icp-data', { width: 1440, height: 1040 }, 'light')
+  await shot(page, '02-icp-data', { width: 1440, height: 1040 }, 'dark')
+  await shot(page, '02-icp-data', { width: 390, height: 844 }, 'light')
+  await shot(page, '02-icp-data', { width: 390, height: 844 }, 'dark')
+})
+
+test('03 empty ICP desktop light (+ bonus dark)', async ({ page }) => {
+  await signInFresh(page)
+  await page.goto('/vat/icp/2026-Q1')
+  await hydrated(page)
+  await expect(page.getByRole('heading', { name: 'ICP-opgaaf' })).toBeVisible()
+  await shot(page, '03-icp-empty', { width: 1440, height: 1040 }, 'light')
+  await shot(page, '03-icp-empty', { width: 1440, height: 1040 }, 'dark')
 })

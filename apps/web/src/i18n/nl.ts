@@ -1103,6 +1103,8 @@ export const nl = {
   'vat.periodsCaption': 'BTW-periodes {year}',
   'vat.noPeriods': 'Geen periodes.',
   'vat.periodsNav': 'BTW-periodes',
+  'vat.changePeriod': 'Periode wijzigen',
+  'vat.hidePeriods': 'Periodes verbergen',
   'vat.status.marked': 'gemarkeerd',
   'vat.status.late': 'Te laat',
   'vat.status.ready': 'Klaar om in te dienen',
@@ -1217,10 +1219,9 @@ export const nl = {
     'Deze aangifte kan niet via Klopt worden gemarkeerd. Los de blokkerende bevindingen hierboven op, of dien zelf of met een belastingadviseur in op basis van gecorrigeerde cijfers.',
   'vatReturn.noIdentity':
     'Een aangifte wordt geïdentificeerd door het omzetbelastingnummer, en dat staat nog niet in deze administratie. Vul het in onder',
-  'vatReturn.taxonomy':
-    'Taxonomie {version}, gekozen op basis van de periode — niet op basis van welke versie de nieuwste is.',
+  'vatReturn.taxonomy': 'Taxonomie {version}.',
   'vatReturn.taxonomyUnverified':
-    ' Deze mapping is nog niet gecontroleerd tegen de gepubliceerde Nederlandse Taxonomie, dus de bedragen zijn goed maar de XBRL-elementnamen misschien niet. Zelf indienen kan; elektronisch versturen wordt geweigerd.',
+    'Taxonomie {version}. De koppeling met de officiële namen is nog niet gecontroleerd.',
   'vatReturn.nothingToCorrect':
     'Deze periode is gemarkeerd als ingediend en er is daarna niets meer gewijzigd. Er is dus niets te corrigeren.',
   'vatReturn.how': 'Hoe',

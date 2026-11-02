@@ -1310,6 +1310,8 @@ export const en: Record<MessageKey, string> = {
   'vat.periodsCaption': 'VAT periods {year}',
   'vat.noPeriods': 'No periods.',
   'vat.periodsNav': 'VAT periods',
+  'vat.changePeriod': 'Change period',
+  'vat.hidePeriods': 'Hide periods',
   'vat.status.marked': 'marked',
   'vat.status.late': 'Late',
   'vat.status.ready': 'Ready to file',
@@ -1423,10 +1425,9 @@ export const en: Record<MessageKey, string> = {
     'This return cannot be marked through Klopt. Resolve the blocking findings above, or file it yourself or with a tax adviser using corrected figures.',
   'vatReturn.noIdentity':
     'A return is identified by the turnover-tax number, and this administration does not have one yet. Fill it in under',
-  'vatReturn.taxonomy':
-    'Taxonomy {version}, chosen from the period — not from which version is newest.',
+  'vatReturn.taxonomy': 'Taxonomy {version}.',
   'vatReturn.taxonomyUnverified':
-    ' This mapping has not been checked against the published Dutch Taxonomy, so the amounts are right but the XBRL element names may not be. Filing it yourself works; sending it electronically is refused.',
+    'Taxonomy {version}. The mapping to the official names has not been checked yet.',
   'vatReturn.nothingToCorrect':
     'This period was marked as filed and nothing has changed since. There is nothing to correct.',
   'vatReturn.how': 'How',

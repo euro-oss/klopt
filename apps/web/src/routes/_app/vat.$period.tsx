@@ -252,7 +252,7 @@ function VatReturnScreen() {
 
   if (!aangifte.ok || data === null || collapsed === null) {
     return (
-      <div className="flex flex-wrap gap-6">
+      <div className="flex flex-col gap-5 md:flex-row md:gap-6">
         <VatPeriodRail periods={periods} activeCode={periodCode} icpEmpty icpPeriod={periodCode} />
         <p role="alert" className="text-destructive text-sm">
           {aangifte.ok ? t('common.busy') : aangifte.problem.detail}
@@ -327,7 +327,7 @@ function VatReturnScreen() {
     data.reconciliation.every((account) => account.difference === '0')
 
   return (
-    <div className="flex flex-wrap items-start gap-6 lg:gap-8">
+    <div className="flex flex-col items-stretch gap-5 md:flex-row md:items-start md:gap-6 lg:gap-8">
       <VatPeriodRail
         periods={periods}
         activeCode={periodCode}
@@ -335,47 +335,46 @@ function VatReturnScreen() {
         icpPeriod={periodCode}
       />
 
-      <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
-        <header className="flex flex-wrap items-end gap-3">
-          <div className="flex min-w-[240px] flex-1 flex-col gap-0.5">
-            <h2 className="text-foreground m-0 text-xl leading-[26px] font-semibold">
+      <div className="flex min-w-0 flex-1 flex-col gap-5">
+        <header className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-start gap-3">
+            <h2 className="text-foreground m-0 min-w-0 flex-1 text-xl leading-[26px] font-semibold">
               {t('vatReturn.titleFor', { period: periodLabel })}
             </h2>
-            <p className="text-muted-foreground m-0 text-sm whitespace-nowrap">
-              {t('vatReturn.intro', {
-                from: formatVatHeaderDate(data.period.from, locale),
-                to: formatVatHeaderDate(data.period.to, locale),
-                deadline: formatVatHeaderDate(data.period.deadline, locale),
-              })}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!hydrated}
+                onClick={() => downloadSummary()}
+              >
+                {t('vatReturn.downloadManual')}
+                <span className="sr-only">.</span>
+                <Keycap className="ml-2 hidden md:inline-flex">D</Keycap>
+              </Button>
+              {/* Hidde: never show a disabled electronic CTA — only when Digipoort/SBR can submit. */}
+              {electronic && (
+                <Button type="submit" form="vat-mark-form" disabled={!hydrated || !canMark || busy}>
+                  {t('vatReturn.fileElectronic')}
+                  <span className="ml-2 hidden items-center gap-0.5 md:inline-flex">
+                    <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
+                      ⌘
+                    </Keycap>
+                    <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
+                      ↵
+                    </Keycap>
+                  </span>
+                </Button>
+              )}
+            </div>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!hydrated}
-            onClick={() => downloadSummary()}
-          >
-            {t('vatReturn.downloadManual')}
-            <span className="sr-only">.</span>
-            <Keycap className="ml-2 hidden md:inline-flex">D</Keycap>
-          </Button>
-          {electronic ? (
-            <Button type="submit" form="vat-mark-form" disabled={!hydrated || !canMark || busy}>
-              {t('vatReturn.fileElectronic')}
-              <span className="ml-2 hidden items-center gap-0.5 md:inline-flex">
-                <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
-                  ⌘
-                </Keycap>
-                <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
-                  ↵
-                </Keycap>
-              </span>
-            </Button>
-          ) : (
-            <Button type="button" disabled title={t('vatReturn.fileElectronicUnavailable')}>
-              {t('vatReturn.fileElectronic')}
-            </Button>
-          )}
+          <p className="text-muted-foreground m-0 max-w-prose text-sm">
+            {t('vatReturn.intro', {
+              from: formatVatHeaderDate(data.period.from, locale),
+              to: formatVatHeaderDate(data.period.to, locale),
+              deadline: formatVatHeaderDate(data.period.deadline, locale),
+            })}
+          </p>
         </header>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -906,10 +905,9 @@ function VatReturnScreen() {
 
         {data.taxonomy.version !== null && (
           <p className="text-muted-foreground max-w-2xl text-sm">
-            {t('vatReturn.taxonomy', { version: data.taxonomy.version })}
-            {!data.taxonomy.verified && (
-              <span className="text-unreconciled">{t('vatReturn.taxonomyUnverified')}</span>
-            )}
+            {data.taxonomy.verified
+              ? t('vatReturn.taxonomy', { version: data.taxonomy.version })
+              : t('vatReturn.taxonomyUnverified', { version: data.taxonomy.version })}
           </p>
         )}
 
@@ -934,7 +932,12 @@ function VatReturnScreen() {
             <SelectField
               label={t('vatReturn.how')}
               name="transport"
-              defaultValue="manual"
+              defaultValue={
+                usable.find(
+                  (transport) =>
+                    transport.kind === 'digipoort' || transport.kind === 'sbr_provider',
+                )?.kind ?? 'manual'
+              }
               disabled={!hydrated}
             >
               {usable.map((transport) => (
