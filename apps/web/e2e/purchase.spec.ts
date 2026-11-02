@@ -45,7 +45,7 @@ async function aSupplier(page: Page): Promise<void> {
   // to offer.
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Leverancier B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Leverancier B\.V\./ })).toBeVisible()
 }
 
 /** A UBL invoice from the supplier the tests create. */

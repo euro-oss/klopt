@@ -170,7 +170,7 @@ describe('Phase 0 redesign tokens (#107)', () => {
     expect(tokenIn(css, ':root', '--link')).toBe('var(--ink)')
   })
 
-  it('B: input border ≥3:1 against ground (a11y deviation from line-control)', () => {
+  it('B: input border ≥3:1 against ground via --ink-muted (no hard-coded hex)', () => {
     const css = tokens()
     const lightInput = resolveColorToken(css, ':root', '--input')
     const lightGround = resolveColorToken(css, ':root', '--ground')
@@ -179,9 +179,11 @@ describe('Phase 0 redesign tokens (#107)', () => {
     expect(contrastRatio(lightInput, lightGround)).toBeGreaterThanOrEqual(3)
     expect(contrastRatio(darkInput, darkGround)).toBeGreaterThanOrEqual(3)
     expect(tokenIn(css, ':root', '--line-control')).toBe('#c9c8c1')
-    // CoS / DERIVED.md: muted grey is --ink-muted — no hard-coded hex.
+    // #140 / DERIVED.md: muted grey token — never a hard-coded border hex.
     expect(tokenIn(css, ':root', '--input-border')).toBe('var(--ink-muted)')
     expect(tokenIn(css, '.dark', '--input-border')).toBe('var(--ink-muted)')
+    expect(tokenIn(css, ':root', '--input-border')).not.toMatch(/^#/)
+    expect(tokenIn(css, '.dark', '--input-border')).not.toMatch(/^#/)
   })
 
   it('C: focus ring ≥3:1 against background', () => {
