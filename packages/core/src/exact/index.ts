@@ -75,3 +75,11 @@ export {
   type TrialBalanceReconciliation,
   type TrialBalanceSource,
 } from './plan.js'
+export {
+  mapExactVatCodes,
+  recogniseExactVatCode,
+  type ExactVatAccountRef,
+  type ExactVatKloptRule,
+  type ExactVatMappingRow,
+  type ExactVatMappingSummary,
+} from './vat-map.js'

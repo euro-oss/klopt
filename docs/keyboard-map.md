@@ -254,42 +254,27 @@ session. Accepting only one is a papercut a hundred times a day.
   WCAG 2.2 AA target in section 12 depends on them.
 - `Cmd` on macOS, `Ctrl` elsewhere, resolved in one place.
 
-## Koppelen
+## Bank · Te boeken (Match)
 
-The bank matching queue is keyboard-first, because the work is repetitive and the
-whole value is rhythm. Four keys, and the rhythm is two presses per line rather
-than one: open the panel, then confirm the candidate it is pointing at.
+The bank matching queue is keyboard-first (#107 Phase 7 / Match.dc.html). One
+line at a time; ChoiceOption `1`–`4` books or opens the form; `S` skips; `U`
+opens the inbox to attach a receipt; `Z` explains that undoing a booked line is
+a journal reversal (no unmatch API yet).
 
-| Key      | Does                                                                         |
-| -------- | ---------------------------------------------------------------------------- |
-| `↑` `k`  | Previous — line in the queue, candidate in the panel                         |
-| `↓` `j`  | Next — line in the queue, candidate in the panel                             |
-| `↵`      | From the queue: open the panel. In the panel: book the highlighted candidate |
-| `u`      | Drop the choice the panel is holding                                         |
-| `Escape` | Close the panel, back to the list                                            |
+| Key      | Does                                                              |
+| -------- | ----------------------------------------------------------------- |
+| `↑` `k`  | Previous line in the queue                                        |
+| `↓` `j`  | Next line in the queue                                            |
+| `1`–`4`  | Choose that option (book immediately, or open the booking form)   |
+| `S`      | Skip the current line                                             |
+| `U`      | Attach a receipt (goes to Inbox)                                  |
+| `Z`      | Undo — honest notice until an unmatch API exists                  |
+| `↵`      | Book the suggested option, or open option 4; in the form: confirm |
+| `Escape` | Clear the form / close the phone sheet, back to the list          |
 
-Two panes and two cursors, scoped by where the focus is, so `j`/`k` mean "next
-thing in the pane I am in" on both sides of the screen.
-
-**`↵` no longer books the top suggestion from the queue, and that is deliberate**
-(Alpha 4 oracle, product decision). It used to: one keystroke, and the line being
-agreed to was off to the side of the key being pressed. Section 7.4 asks for "a
-one-keystroke confirm" and this is one keystroke to confirm — the press before it
-is what aims it, and it posts nothing.
-
-**`1`–`9` and `x` are gone.** A digit booked a suggestion the eye had not settled
-on, and `x` skipped a line as cheaply as `Enter` booked one. Skipping is a button
-now, reachable with `Tab` like any other, which is what a deliberate "not this
-one" should cost. Neither key is bound, printed or listed, because a key that is
-half-there is the thing this document exists to prevent.
-
-**`u` drops a pending choice, and does not unmatch a booked one.** The board asks
-for "unmatch"; on a queue of lines that have not been booked yet, the only thing
-there is to undo is the choice in the panel, and that is what `u` does. Undoing a
-_booked_ match is a reversal — the entry is posted and the journal is append-only
-— and principle 4 keeps a reversal as a button that asks. There is also no
-unmatch operation in `/api/v1` to call. This is the one place the map and the
-board disagree, and the reason is in the ledger rather than in the keyboard.
+**`Z` does not reverse a posted entry.** The journal is append-only; undoing a
+booked match is a reversing entry (principle 4). There is no unmatch operation
+in `/api/v1` yet — that gap is listed for PM on the Bank redesign PR.
 
 The handler is bound on the window rather than on a focused element — the hands
 never leave the keys, so there is nothing to focus first — and it stands down

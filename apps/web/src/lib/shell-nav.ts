@@ -456,9 +456,9 @@ export function visibleJournalTabs(): readonly JournalTab[] {
 }
 
 /**
- * v2 PhoneTabBar — five destinations at 390px (#107 Phase 0 / #140).
+ * v2 PhoneTabBar — five destinations at 390px (#107 Phase 0 / CoS #140).
  *
- * Home · Sales · Receipt · Bank · More. Middle tab is Receipt (per product decision (#140));
+ * Home · Sales · Receipt · Bank · More. Middle tab is Receipt (per product decision #140);
  * Receipt/More *contents* wait on Batch 3 (#139). Until then More opens the
  * existing #38 Sheet, and Receipt opens the existing upload at `/inbox` (no
  * copy that promises reading a photo).
@@ -476,6 +476,7 @@ export interface PhoneTab {
 export const PHONE_TAB_BAR: readonly PhoneTab[] = [
   { id: 'home', key: 'nav.home', to: '/' },
   { id: 'sales', key: 'nav.sales', to: '/invoices', alsoActiveFor: ['/dunning'] },
+  // CoS #140 / #139: middle phone tab is Receipt (not Inbox).
   { id: 'receipt', key: 'nav.phoneReceipt', to: '/inbox' },
   {
     id: 'bank',
