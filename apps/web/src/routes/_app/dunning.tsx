@@ -82,10 +82,22 @@ function Dunning() {
   const confirmingRef = useRef(false)
   const pendingRef = useRef<readonly ActionRow[] | null>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
+  /** Button that opened the dialog — restored on close (no AlertDialogTrigger). */
+  const openerRef = useRef<HTMLElement | null>(null)
+  const headerSendRef = useRef<HTMLButtonElement>(null)
+  /**
+   * Last non-null send set for dialog body while the close animation runs.
+   * Clearing `pendingTargets` alone would flash "0 herinneringen versturen?".
+   */
+  const lastPendingRef = useRef<readonly ActionRow[] | null>(null)
 
   useEffect(() => {
     pendingRef.current = pendingTargets
   }, [pendingTargets])
+
+  if (pendingTargets !== null) {
+    lastPendingRef.current = pendingTargets
+  }
 
   const actions = useMemo((): readonly ActionRow[] => (queue.ok ? queue.data.actions : []), [queue])
   const schedule = queue.ok ? queue.data.schedule : []
@@ -172,6 +184,8 @@ function Dunning() {
       void sendSelected(targets)
       return
     }
+    const active = document.activeElement
+    openerRef.current = active instanceof HTMLElement ? active : (headerSendRef.current ?? null)
     setPendingTargets(targets)
   }
 
@@ -272,8 +286,10 @@ function Dunning() {
   const skippedNoEmail = selectedRows.filter((row) => !row.sendable).length
   const sendableCount = sendableSelected.length
   const selectedSum = sendableSelected.reduce((sum, row) => sum + BigInt(row.total), 0n)
-  const confirmPreview = pendingTargets === null ? null : reminderConfirmPreview(pendingTargets)
-  const confirmCount = pendingTargets?.length ?? 0
+  // Keep last rows/count visible while the dialog closes (exit animation).
+  const displayTargets = pendingTargets ?? lastPendingRef.current
+  const confirmPreview = displayTargets === null ? null : reminderConfirmPreview(displayTargets)
+  const confirmCount = displayTargets?.length ?? 0
 
   return (
     <>
@@ -282,6 +298,7 @@ function Dunning() {
         actions={
           actions.length > 0 ? (
             <Button
+              ref={headerSendRef}
               type="button"
               disabled={busy || !hydrated || sendableCount === 0}
               onClick={() => {
@@ -535,6 +552,10 @@ function Dunning() {
           onOpenAutoFocus={(event) => {
             event.preventDefault()
             cancelRef.current?.focus()
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            openerRef.current?.focus()
           }}
           onKeyDownCapture={(event) => {
             // Capture so a focused primary button cannot activate on plain Enter

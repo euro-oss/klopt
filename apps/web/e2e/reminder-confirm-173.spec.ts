@@ -97,14 +97,22 @@ async function draftAndIssue(
   return new URL(page.url()).pathname.split('/').pop() ?? ''
 }
 
+/** Local calendar date (YYYY-MM-DD), matching the app's asOf — not UTC. */
+function localIsoDate(d: Date): string {
+  const year = String(d.getFullYear())
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function daysAgo(days: number): string {
   const d = new Date()
-  d.setUTCDate(d.getUTCDate() - days)
-  return d.toISOString().slice(0, 10)
+  d.setDate(d.getDate() - days)
+  return localIsoDate(d)
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
+  return localIsoDate(new Date())
 }
 
 async function reminderDeliveryCount(entityId: string): Promise<number> {
@@ -258,7 +266,7 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   await expect(dialog.getByText('Eva Jansen')).toBeVisible()
   await expect(dialog.getByText('Ruben de Vries')).toBeVisible()
   // Rows carry invoice number, amount (tabular mono) and days overdue.
-  await expect(dialog.getByText(/2026-\d{4}/).first()).toBeVisible()
+  await expect(dialog.getByText(/\d{4}-\d{4}/).first()).toBeVisible()
   await expect(dialog.getByText(/dagen te laat/).first()).toBeVisible()
   await expect(dialog.getByText(/Totaal €\s*1\.240,50/)).toBeVisible()
   await expect(dialog.getByText(/Ze gaan direct per e-mail/)).toBeVisible()
@@ -270,9 +278,10 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   const listedIds = await listedDialogInvoiceIds(page)
   expect(listedIds.sort()).toEqual([evaId, rubenId].sort())
 
-  // Plain Enter on focused Annuleren cancels (native button activate).
+  // Plain Enter on focused Annuleren cancels; focus returns to the opener.
   await page.keyboard.press('Enter')
   await expect(dialog).toHaveCount(0)
+  await expect(sendButton).toBeFocused()
   expect(reminderPosts).toEqual([])
   expect(await reminderDeliveryCount(entityId)).toBe(0)
   await expect(page.getByText(/verstuurd naar/)).toHaveCount(0)
@@ -289,9 +298,10 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   expect(reminderPosts).toEqual([])
   expect(await reminderDeliveryCount(entityId)).toBe(0)
 
-  // Esc cancels — nothing sent, no delivery rows.
+  // Esc cancels — nothing sent; focus returns to the opener.
   await page.keyboard.press('Escape')
   await expect(page.getByRole('alertdialog')).toHaveCount(0)
+  await expect(sendButton).toBeFocused()
   expect(reminderPosts).toEqual([])
   expect(await reminderDeliveryCount(entityId)).toBe(0)
   await expect(page.getByText(/verstuurd naar/)).toHaveCount(0)
@@ -436,14 +446,17 @@ test('plain Enter on an open bulk confirm does not send; Cmd/Ctrl+Enter does', a
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Annuleren' })).toBeFocused()
 
-  // Enter on focused Cancel closes without sending.
+  const sendButton = page.getByRole('button', { name: /Alle 2 herinneringen versturen/ })
+
+  // Enter on focused Cancel closes without sending; focus returns to opener.
   await page.keyboard.press('Enter')
   await expect(dialog).toHaveCount(0)
+  await expect(sendButton).toBeFocused()
   expect(reminderPosts).toEqual([])
   expect(await reminderDeliveryCount(entityId)).toBe(0)
 
   // Re-open; Non-Apple CI: Ctrl+Enter confirms. Wait for both sends to finish.
-  await page.getByRole('button', { name: /Alle 2 herinneringen versturen/ }).click()
+  await sendButton.click()
   await expect(page.getByRole('alertdialog')).toBeVisible()
   await page.keyboard.press('Control+Enter')
   await expect(page.getByRole('alertdialog')).toHaveCount(0)
