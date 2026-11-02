@@ -7,9 +7,9 @@ import { isNavActive, PHONE_TAB_BAR, type NavSearch, type PhoneTabId } from '~/l
 /**
  * v2 PhoneTabBar (#107 Phase 0 / #140).
  *
- * Home · Sales · Receipt · Bank · More. More opens the existing #38 Sheet until
- * Batch 3 signs off phone boards. Receipt still lands on Inbox until #139.
- * No copy that promises reading a photo.
+ * Home · Sales · Receipt · Bank · More. Middle tab is Receipt; More opens the
+ * existing #38 Sheet until Batch 3 (#139). Receipt opens `/inbox` upload — no
+ * copy that promises reading a photo.
  */
 
 const ICONS = {

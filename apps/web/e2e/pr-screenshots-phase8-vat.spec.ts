@@ -80,7 +80,7 @@ async function seedDomesticInvoice(page: Page): Promise<void> {
   await page.getByLabel('Postcode').fill('1000 AA')
   await page.getByLabel('Plaats').fill('Amsterdam')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Windvaan Workshops (demo)' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Windvaan Workshops \(demo\)/ })).toBeVisible()
 
   await page.goto('/settings')
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
@@ -112,7 +112,7 @@ async function seedEuInvoice(page: Page): Promise<void> {
   await page.getByLabel('Plaats').fill('Berlin')
   await page.getByLabel('Land').fill('DE')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Windvaan EU (demo)' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Windvaan EU \(demo\)/ })).toBeVisible()
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()

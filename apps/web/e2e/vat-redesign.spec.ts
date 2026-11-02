@@ -103,7 +103,8 @@ test('VAT redesign: sidebar, command bar, empty + seeded, keyboard, no console e
   await page.getByLabel('Postcode').fill('1000 AA')
   await page.getByLabel('Plaats').fill('Amsterdam')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Windvaan Workshops (demo)' })).toBeVisible()
+  // Contacts redesign (#163): list rows are buttons, not table cells.
+  await expect(page.getByRole('button', { name: /Windvaan Workshops \(demo\)/ })).toBeVisible()
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
@@ -140,7 +141,7 @@ test('VAT redesign: sidebar, command bar, empty + seeded, keyboard, no console e
   await page.getByLabel('Plaats').fill('Berlin')
   await page.getByLabel('Land').fill('DE')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Windvaan EU (demo)' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Windvaan EU \(demo\)/ })).toBeVisible()
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
@@ -154,6 +155,19 @@ test('VAT redesign: sidebar, command bar, empty + seeded, keyboard, no console e
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
   await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
+  // ICP services line (ICPD) so phone totals can match both desktop cells.
+  await page.goto('/invoices/new')
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
+  await chooseOption(page, /^Klant$/, /^DEB-EU-1 /)
+  await page.getByLabel('Factuurdatum').fill('2026-02-21')
+  await page.getByLabel('Omschrijving regel 1').fill('Demo EU dienst')
+  await page.getByLabel('Aantal regel 1').fill('1')
+  await page.getByLabel('Prijs regel 1').fill('250,00')
+  await chooseOption(page, 'Btw regel 1', /^ICPD /)
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
+
   await page.goto('/vat/icp/2026-Q1')
   await hydrated(page)
   await expect(page.getByRole('heading', { name: 'ICP-opgaaf' })).toBeVisible()
@@ -162,6 +176,19 @@ test('VAT redesign: sidebar, command bar, empty + seeded, keyboard, no console e
   )
   await expect(page.getByRole('button', { name: /Indienen bij de Belastingdienst/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Download/i })).toHaveCount(0)
+
+  const desktopTotalRow = page.getByRole('row').filter({ hasText: /^Totaal/ })
+  const desktopGoods = await desktopTotalRow
+    .locator('[data-minor-units]')
+    .nth(0)
+    .getAttribute('data-minor-units')
+  const desktopServices = await desktopTotalRow
+    .locator('[data-minor-units]')
+    .nth(1)
+    .getAttribute('data-minor-units')
+  expect(desktopGoods).toBeTruthy()
+  expect(desktopServices).toBeTruthy()
+  expect(BigInt(desktopServices!)).toBeGreaterThan(0n)
 
   await page.keyboard.press('v')
   await expect(
@@ -202,6 +229,18 @@ test('VAT redesign: sidebar, command bar, empty + seeded, keyboard, no console e
   const vatBox = await vatNumber.boundingBox()
   expect(vatBox).not.toBeNull()
   expect(vatBox!.x + vatBox!.width).toBeLessThanOrEqual(390)
+
+  const phoneTotals = stacked.locator('li').filter({ hasText: /^Totaal/ })
+  const phoneGoods = phoneTotals
+    .getByText('Goederen', { exact: true })
+    .locator('..')
+    .locator('[data-minor-units]')
+  const phoneServices = phoneTotals
+    .getByText('Diensten', { exact: true })
+    .locator('..')
+    .locator('[data-minor-units]')
+  await expect(phoneGoods).toHaveAttribute('data-minor-units', desktopGoods!)
+  await expect(phoneServices).toHaveAttribute('data-minor-units', desktopServices!)
 
   expect(errors, `console errors: ${errors.join('\n')}`).toEqual([])
 })

@@ -70,7 +70,7 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
   await page.getByLabel('Postcode').fill('3011 AD')
   await page.getByLabel('Plaats').fill('Rotterdam')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Klant N\.V\./ })).toBeVisible()
 
   // Bookkeeper invoice form needs Geavanceerd; Eigenaar default is guided (#45).
   await enableAdvancedMode(page)
@@ -243,7 +243,7 @@ test('the ICP opgaaf cross-checks 3b and refuses an unproven VAT number', async 
   await page.getByLabel('Plaats').fill('Berlin')
   await page.getByLabel('Land').fill('DE')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Kunde GmbH' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Kunde GmbH/ })).toBeVisible()
 
   // Bookkeeper invoice form needs Geavanceerd; Eigenaar default is guided (#45).
   await enableAdvancedMode(page)

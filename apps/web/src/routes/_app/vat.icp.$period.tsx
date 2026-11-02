@@ -282,11 +282,20 @@ function IcpScreen() {
                   </li>
                 )
               })}
-              <li className="bg-surface-hover flex items-center justify-between gap-3 px-4 py-3 font-semibold">
+              <li className="bg-surface-hover flex flex-col gap-1.5 px-4 py-3 font-semibold">
                 <span>{t('report.total')}</span>
-                <span className="tabular">
-                  <Money amount={data.goods} />
-                </span>
+                <div className="flex items-center justify-between gap-3 font-normal">
+                  <span>{t('icp.goods')}</span>
+                  <span className="tabular shrink-0 text-right text-sm font-medium">
+                    <Money amount={data.goods} />
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 font-normal">
+                  <span>{t('icp.services')}</span>
+                  <span className="tabular shrink-0 text-right text-sm font-medium">
+                    <Money amount={data.services} />
+                  </span>
+                </div>
               </li>
             </ul>
 

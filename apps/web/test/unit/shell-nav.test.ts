@@ -127,9 +127,13 @@ describe('shell-nav Phase 0 (v2 IA)', () => {
     expect(shell).not.toContain('usePhoneViewport')
   })
 
-  it('labels the middle phone tab Receipt (#140 / #139)', () => {
+  it('phone middle tab is Receipt (#140), still opens /inbox upload until #139', () => {
     expect(PHONE_TAB_BAR.map((tab) => tab.id)).toEqual(['home', 'sales', 'receipt', 'bank', 'more'])
-    expect(PHONE_TAB_BAR[2]).toMatchObject({ key: 'nav.phoneReceipt', to: '/inbox' })
+    expect(PHONE_TAB_BAR[2]).toMatchObject({
+      id: 'receipt',
+      key: 'nav.phoneReceipt',
+      to: '/inbox',
+    })
   })
 
   it('help Ga naar shares paletteNavItems; Shortcuts opens help', () => {

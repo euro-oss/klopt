@@ -84,7 +84,9 @@ async function addCustomer(
   await page.getByLabel('Postcode').fill('4381 KA')
   await page.getByLabel('Plaats').fill('Vlissingen')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: name })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }),
+  ).toBeVisible()
 }
 
 async function fillBreadLine(page: Page): Promise<void> {

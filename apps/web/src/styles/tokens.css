@@ -145,8 +145,9 @@
 
   /*
     Input / control border a11y deviation: export --line-control fails 3:1
-    (~1.68:1 on white). Hidde (1 Nov / #140): use existing --ink-muted token,
-    never a hard-coded hex. --ink-muted is ≈5.95:1 on white / ≈5.4:1 on ground.
+    (~1.68:1 on white). Use the existing --ink-muted token (DERIVED.md /
+    #140) — no hard-coded border hex. Light ink-muted ≈ 5.95:1 on white;
+    ≈ 5.45:1 on --ground.
   */
   --input-border: var(--ink-muted);
 
@@ -257,7 +258,7 @@
 
   --link: var(--ink);
 
-  /* Same rule as light: input borders follow --ink-muted (token, not a hex). */
+  /* Same as light: --ink-muted (≥3:1 on dark ground; #140 / DERIVED.md). */
   --input-border: var(--ink-muted);
 
   --chart-1: #f4f4f5;

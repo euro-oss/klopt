@@ -161,7 +161,7 @@ test('a payment is booked by confirming the candidate, not by trusting the top o
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Grote Klant N.V.')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Grote Klant N\.V\./ })).toBeVisible()
 
   // Bookkeeper invoice form needs Geavanceerd; Eigenaar default is guided (#45).
   await enableAdvancedMode(page)
@@ -379,7 +379,7 @@ test('Geavanceerd shows the confidence percent on a suggestion', async ({ page }
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0099')
   await page.getByLabel('Naam', { exact: true }).fill('Grote Klant N.V.')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Grote Klant N\.V\./ })).toBeVisible()
 
   // Bookkeeper invoice form needs Geavanceerd; Eigenaar default is guided (#45).
   // Stay on for the match panel so the confidence percent is shown.
