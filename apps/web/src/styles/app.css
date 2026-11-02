@@ -167,12 +167,28 @@
     width: 100%;
     min-height: var(--control-h-touch);
     border-radius: var(--radius);
+    /* CoS / DERIVED: borders are --ink-muted via --input, never a fainter line. */
     border: 1px solid var(--color-input);
     background-color: var(--color-surface);
     padding: 0.5rem 0.75rem;
     /* 16px floor: a smaller size is a zoom trap on iPhone. */
     font-size: 1rem;
     line-height: 1.25;
+  }
+
+  /* BillNew and peers: placeholders must stay legible in light (Firefox
+     otherwise paints ::placeholder at ~0.54 opacity on top of the colour). */
+  .field-control::placeholder {
+    color: var(--ink-muted);
+    opacity: 1;
+  }
+
+  .field-control:disabled,
+  .field-control[disabled] {
+    cursor: not-allowed;
+    background-color: var(--surface-sunken);
+    color: var(--ink-muted);
+    opacity: 1;
   }
 
   @media (min-width: 768px) {

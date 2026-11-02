@@ -40,7 +40,7 @@ async function aSupplier(page: Page): Promise<void> {
   await page.getByLabel('Naam', { exact: true }).fill('Leverancier B.V.')
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
   await page.getByLabel('E-mail').fill('facturen@leverancier.test')
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   // The contact has to be marked a supplier, or the purchase form has nobody
   // to offer.
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
@@ -94,13 +94,13 @@ test('a bookkeeper enters a supplier invoice, books it and gets it approved', as
   await anAdministration(page, 'Inkoop BV')
   await aSupplier(page)
 
-  // v2 rail label is Kosten; page heading stays Inkoopfacturen.
+  // v2 rail + Costs screen heading are both Kosten (#128).
   await page
     .getByRole('link', { name: /^Kosten/ })
     .first()
     .click()
-  await expect(page.getByRole('heading', { name: 'Inkoopfacturen' })).toBeVisible()
-  await page.getByRole('link', { name: 'Factuur invoeren' }).click()
+  await expect(page.getByRole('heading', { name: 'Kosten' })).toBeVisible()
+  await page.getByRole('link', { name: 'Factuur toevoegen' }).click()
 
   await anInteractiveForm(page)
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeDisabled()
@@ -319,10 +319,10 @@ test('an approved invoice becomes a payment instruction', async ({ page }) => {
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL20INGB0001234567')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL20 INGB 0001 2345 67')).toBeVisible()
+  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
 
   await page.goto('/purchases/new')
   await anInteractiveForm(page)
@@ -359,7 +359,7 @@ test('an approved invoice becomes a payment instruction', async ({ page }) => {
   await page.getByRole('button', { name: 'Deze betalingen overnemen' }).click()
 
   // And what the preview said is what the batch holds.
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeEnabled()
 
   // Scheduling is not paying: the invoice is still owed and still reconciles.

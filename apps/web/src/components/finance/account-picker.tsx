@@ -280,7 +280,7 @@ export function AccountPicker({
         <div
           className={cn(
             'border-input bg-background focus-within:border-ring flex items-center gap-2 border px-2 py-1.5',
-            disabled && 'opacity-50',
+            disabled && 'cursor-not-allowed bg-surface-sunken text-ink-muted opacity-100',
             inputClassName,
           )}
         >
