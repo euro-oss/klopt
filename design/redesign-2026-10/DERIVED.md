@@ -118,7 +118,7 @@ Strings Hidde already has on his Settings boards are not repeated here.
 | Seal (label) | Zegel |
 | None (empty book year) | Geen |
 | Storage: S3 with object lock in compliance mode, so nobody can delete early. | Opslag: S3 met object lock in compliance-modus, dus niemand kan eerder verwijderen. |
-| Peppol isn't connected yet. Invoices go out by email as UBL and PDF. Your network address will be your KvK number unless you choose another. | Peppol is nog niet gekoppeld. Facturen gaan per e-mail als UBL en PDF. Je netwerkadres wordt je KvK-nummer, tenzij je een ander kiest. |
+| Peppol isn't connected yet. Invoices go out by email as UBL and PDF. Your network address will be your KvK number unless you choose another. | Peppol is nog niet aangesloten. Facturen gaan per e-mail als UBL en PDF. Je netwerkadres wordt je KvK-nummer, tenzij je een ander kiest. |
 
 ## Import source and problems: dark and phone (#152)
 
