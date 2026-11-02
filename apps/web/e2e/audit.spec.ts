@@ -57,7 +57,8 @@ test('a correction leaves a trail with both sides on it', async ({ page }) => {
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
 
-  await page.getByRole('link', { name: 'Leverancier B.V.' }).click()
+  await page.getByRole('button', { name: /Leverancier B\.V\./ }).click()
+  await page.getByRole('link', { name: /Bewerken/ }).click()
 
   // Every field on the edit form is React-controlled, so filling one before
   // hydration is discarded — and the save would then record no change at all,

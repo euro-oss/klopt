@@ -53,7 +53,7 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   await page.getByLabel('Plaats').fill('Rotterdam')
   await page.getByRole('button', { name: 'Opslaan' }).click()
 
-  await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Grote Klant N\.V\./ })).toBeVisible()
 
   // Drafting. No number is allocated and nothing is posted yet.
   // v2 rail label is Verkoop; page heading stays Verkoopfacturen.
@@ -154,7 +154,7 @@ test('crediting an issued invoice drafts a credit note against it', async ({ pag
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0002')
   await page.getByLabel('Naam', { exact: true }).fill('Spijtige Klant B.V.')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Spijtige Klant B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Spijtige Klant B\.V\./ })).toBeVisible()
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
@@ -221,7 +221,7 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
   await page.getByLabel('Postcode').fill('3011 AD')
   await page.getByLabel('Plaats').fill('Rotterdam')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Trage Betaler B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Trage Betaler B\.V\./ })).toBeVisible()
 
   // Dated well in the past, so it is already long overdue.
   await page.goto('/invoices/new')
@@ -275,7 +275,8 @@ test('a mistyped IBAN can be corrected, which is what makes a supplier payable',
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
 
-  await page.getByRole('link', { name: 'Leverancier B.V.' }).click()
+  await page.getByRole('button', { name: /Leverancier B\.V\./ }).click()
+  await page.getByRole('link', { name: /Bewerken/ }).click()
   await expect(page.getByRole('heading', { name: /CRE-0001 · Leverancier B.V./ })).toBeVisible()
 
   // The form opens on what is stored, not on an empty form.
@@ -287,8 +288,10 @@ test('a mistyped IBAN can be corrected, which is what makes a supplier payable',
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 
   await page.goto('/contacts')
-  await expect(page.getByRole('link', { name: 'Leverancier Nederland B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Leverancier Nederland B\.V\./ })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Leverancier Nederland B.V.' }).click()
+  // Contacts list rows are buttons; edit opens via the card (#130).
+  await page.getByRole('button', { name: /Leverancier Nederland B\.V\./ }).click()
+  await page.getByRole('link', { name: /Bewerken/ }).click()
   await expect(page.getByLabel('IBAN')).toHaveValue('NL91ABNA0417164300')
 })

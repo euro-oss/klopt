@@ -30,6 +30,26 @@ Invitees (who skip Setup) see the privacy notice once on first sign-in when
 in the same `legal_acceptances` table (`privacy_notice` kind: user, timestamp,
 version). Dark and phone follow Batch 2 / Batch 3 boards (#140).
 
+### Redesign Phase 6: Contacts (#130)
+
+Contacts matches the `Contacts` board from the v2 export at `fa4093b`
+(`design/redesign-2026-10/screens/Contacts.dc.html`). Desktop light is the
+designed state: list + contact card, All / Customers / Suppliers segments
+(`1`–`3`), `/` filter, `j`/`k` and Space/X select, `E` edit, create form from
+Nieuwe relatie (`N C` still navigates here). Card shows volume, documents,
+still open, invoice rows (pills only for API `invoice_status` draft /
+cancelled; issued shows open amount as text — no Paid / late pills),
+payment terms, add-details for e-invoicing, and privacy erase behind
+`retention:manage`. List names wrap in full (phone: name-first two-line row;
+desktop: flexible Naam column). Supplier card line is honest purchase-side
+open count/amount (`N open · € …`); overdue only when `dueDate < today`;
+never claims betaald/paid. Dark and phone use existing tokens/patterns until
+Batch 2 and Batch 3 boards (#140). App-wide from #140 in this PR: input
+borders via `--ink-muted` (no hard-coded `#86857e`); phone middle tab
+Receipt. Sign out / Uitloggen copy is a separate PR. Copy stays short and
+plain (NL+EN); no live-connection claims. Screenshots under
+`docs/pr-screenshots/<PR>/`.
+
 ### Redesign Phase 2: Sales (#107)
 
 Sales area with underline tabs Facturen / Herinneringen / Klanten. `/dunning`

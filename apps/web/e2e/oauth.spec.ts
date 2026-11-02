@@ -336,7 +336,7 @@ test('an agent drafts an invoice and cannot issue it', async ({ page }) => {
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-9001')
   await page.getByLabel('Naam', { exact: true }).fill('Agent Klant BV')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Agent Klant BV' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Agent Klant BV/ })).toBeVisible()
 
   await page.goto('/members')
   await expect(page.getByLabel('Naam')).toBeEnabled()

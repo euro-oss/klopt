@@ -40,7 +40,7 @@ async function seedCustomerAndInvoices(page: Page): Promise<void> {
   await page.getByLabel('Postcode').fill('1000 AA')
   await page.getByLabel('Plaats').fill('Amsterdam')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Windvaan Workshops (demo)' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Windvaan Workshops \(demo\)/ })).toBeVisible()
 
   await page.goto('/settings')
   await page.getByLabel('Straat').fill('Demoweg')

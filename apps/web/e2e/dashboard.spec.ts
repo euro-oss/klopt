@@ -69,7 +69,7 @@ async function aDraftInvoice(page: Page): Promise<void> {
   await page.getByLabel('Naam', { exact: true }).fill('Wachtende Klant N.V.')
   await page.getByLabel('E-mail').fill('inkoop@wachtendeklant.example.nl')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Wachtende Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Wachtende Klant N\.V\./ })).toBeVisible()
 
   // Draft setup uses the bookkeeper form (Geavanceerd); Eigenaar default is guided (#45).
   await enableAdvancedMode(page)
