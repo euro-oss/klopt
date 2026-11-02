@@ -168,6 +168,52 @@ async function assertKeyElementsNoOverlap(page: Page, label: string): Promise<vo
   expect(boxesOverlap(cardBox!, txBox!), `${label}: account card overlaps Transacties`).toBe(false)
 }
 
+/**
+ * QA #171: after scrolling to the bottom, every visible control in `main`
+ * must end at or above the fixed phone tab bar (no intersection).
+ */
+async function assertControlsClearOfPhoneTabBar(page: Page, label: string): Promise<void> {
+  const tabBar = page.locator('[data-phone-tab-bar]')
+  await expect(tabBar, `${label}: phone tab bar`).toBeVisible()
+  await page.evaluate(() => {
+    window.scrollTo(0, document.documentElement.scrollHeight)
+  })
+  // Let layout settle after the scroll.
+  await tabBar.waitFor({ state: 'visible' })
+
+  const barBox = await tabBar.boundingBox()
+  expect(barBox, `${label}: tab bar box`).not.toBeNull()
+  const barTop = barBox!.y
+
+  const overlaps = await page.evaluate((top) => {
+    const main = document.querySelector('main')
+    if (main === null) return [{ kind: 'missing-main', bottom: 0 }]
+    const nodes = main.querySelectorAll('button, a, input, select, textarea')
+    const hits: { kind: string; bottom: number }[] = []
+    for (const node of nodes) {
+      const el = node as HTMLElement
+      const style = getComputedStyle(el)
+      if (style.visibility === 'hidden' || style.display === 'none') continue
+      const rect = el.getBoundingClientRect()
+      if (rect.width <= 0 || rect.height <= 0) continue
+      // File inputs are visually hidden inside DropZone; skip zero-opacity.
+      if (Number.parseFloat(style.opacity) === 0) continue
+      if (rect.bottom > top + 0.5) {
+        hits.push({
+          kind: `${el.tagName.toLowerCase()}${el.getAttribute('aria-label') ?? el.textContent?.slice(0, 40) ?? ''}`,
+          bottom: rect.bottom,
+        })
+      }
+    }
+    return hits
+  }, barTop)
+
+  expect(
+    overlaps,
+    `${label}: controls intersect phone tab bar (top=${barTop}): ${JSON.stringify(overlaps)}`,
+  ).toEqual([])
+}
+
 async function seedAccountAndStatement(page: Page): Promise<void> {
   await page.goto('/bank')
   await hydrated(page)
@@ -287,11 +333,21 @@ test('IBAN stays a single line at 1440 and 390, light and dark', async ({ page }
   }
 })
 
-test('phone 390 light and dark: no horizontal overflow; key elements do not overlap', async ({
-  page,
-}) => {
-  test.setTimeout(120_000)
+test('phone 390 light and dark: empty + seeded; overflow; clear of tab bar', async ({ page }) => {
+  test.setTimeout(180_000)
   await openBankAdmin(page)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  for (const theme of ['light', 'dark'] as const) {
+    await page.goto('/bank')
+    await setTheme(page, theme)
+    await expect(page.getByRole('button', { name: 'Rekening toevoegen' })).toBeVisible()
+    await assertNoHorizontalOverflow(page, `bank 390 empty ${theme}`)
+    await assertControlsClearOfPhoneTabBar(page, `bank 390 empty ${theme}`)
+  }
+
+  // Seed once, then re-check light and dark on the seeded screen.
+  await page.setViewportSize({ width: 1440, height: 900 })
   await seedAccountAndStatement(page)
 
   await page.setViewportSize({ width: 390, height: 844 })
@@ -299,9 +355,10 @@ test('phone 390 light and dark: no horizontal overflow; key elements do not over
     await page.goto('/bank')
     await setTheme(page, theme)
     await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
-    await assertNoHorizontalOverflow(page, `bank 390 ${theme}`)
-    await assertKeyElementsNoOverlap(page, `bank 390 ${theme}`)
+    await assertNoHorizontalOverflow(page, `bank 390 seeded ${theme}`)
+    await assertKeyElementsNoOverlap(page, `bank 390 seeded ${theme}`)
     await assertIbanSingleLine(page)
+    await assertControlsClearOfPhoneTabBar(page, `bank 390 seeded ${theme}`)
   }
 })
 

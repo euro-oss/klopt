@@ -85,7 +85,8 @@ async function issueMatchingInvoice(page: Page, withIban = false): Promise<void>
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Grote Klant N.V.')
   if (withIban) {
-    await page.getByLabel('IBAN').fill('NL20INGB0001234567')
+    // Grote Klant's bank-line IBAN (statement.mt940), not Telecom's.
+    await page.getByLabel('IBAN').fill('NL02INGB0999999999')
   }
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByRole('button', { name: /Grote Klant N\.V\./ })).toBeVisible()

@@ -28,11 +28,11 @@ import {
 } from '~/server/bank'
 
 /**
- * Bank — Accounts and statements (BankAccounts.dc.html, #129 / #140).
+ * Bank — accounts you add by hand, then import statements (#129 / #140).
  *
- * Desktop-light board: account card, DropZone, import-a-statement card (no
- * PSD2), all-transactions list. Rename is [API] — omitted. Dark and phone
- * wait on Batch 2/3 boards (#143).
+ * Desktop-light board: account card, DropZone, import-a-statement card,
+ * all-transactions list. Rename is [API] — omitted. Dark and phone wait on
+ * Batch 2/3 boards (#143).
  *
  * The import is **two steps on purpose**: pick a file and see what it would do,
  * then confirm.
