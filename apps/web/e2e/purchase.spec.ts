@@ -322,7 +322,7 @@ test('an approved invoice becomes a payment instruction', async ({ page }) => {
   await page.getByLabel('IBAN').fill('NL20INGB0001234567')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL20INGB0001234567')).toBeVisible()
+  await expect(page.getByText('NL20 INGB 0001 2345 67')).toBeVisible()
 
   await page.goto('/purchases/new')
   await anInteractiveForm(page)

@@ -36,7 +36,7 @@ async function anAdministrationWithAnAccount(page: Page, name: string): Promise<
   await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+  await expect(page.getByText('NL02 ABNA 0123 4567 89')).toBeVisible()
 
   return email
 }

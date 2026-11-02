@@ -65,7 +65,7 @@ async function withStatement(page: Page, name: string): Promise<void> {
   await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+  await expect(page.getByText('NL02 ABNA 0123 4567 89')).toBeVisible()
 
   // Enabled first: the input is `disabled` until React has taken over, and
   // setting files on a disabled input silently does nothing.
