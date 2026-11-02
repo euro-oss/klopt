@@ -214,7 +214,7 @@ function Setup() {
             type="submit"
             className="text-ink-muted hover:text-ink min-h-11 text-sm underline underline-offset-4"
           >
-            {t('setup.signOut')}
+            {t('shell.signOut')}
           </button>
         </form>
       </main>
@@ -238,7 +238,7 @@ function Setup() {
         </span>
         <form method="post" action="/sign-out">
           <Button type="submit" variant="ghost" size="sm" className="min-h-11">
-            {t('setup.signOut')}
+            {t('shell.signOut')}
           </Button>
         </form>
       </header>

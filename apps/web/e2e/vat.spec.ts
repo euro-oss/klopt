@@ -86,12 +86,11 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
   await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
   // The aangifte. Nothing was tallied along the way; this is computed now.
+  // Sidebar → /vat redirects into the period rail + return layout (#132).
   await page.getByRole('link', { name: /BTW/ }).first().click()
   await expect(page.getByRole('heading', { name: 'BTW' })).toBeVisible()
-  await expect(page.getByText('per kwartaal')).toBeVisible()
-
-  await page.getByRole('link', { name: '1e kwartaal 2026' }).click()
-  await expect(page.getByRole('heading', { name: 'BTW-aangifte 1e kwartaal 2026' })).toBeVisible()
+  await page.goto('/vat/2026-Q1')
+  await expect(page.getByRole('heading', { name: /Aangifte 1e kwartaal 2026/ })).toBeVisible()
 
   // 1a carries both the omzet and the btw, and 5c is what has to be paid.
   // Scoped to the aangifte table by its caption: the reconciliation underneath
@@ -100,7 +99,11 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
   const rubriek1a = aangifte.getByRole('row').filter({ hasText: 'hoog tarief' })
   await expect(rubriek1a).toContainText('1.000,00')
   await expect(rubriek1a).toContainText('210,00')
-  await expect(page.getByText('5c Te betalen')).toBeVisible()
+  await expect(
+    page.getByRole('table', { name: 'Rubrieken van de BTW-aangifte' }).getByRole('row').filter({
+      hasText: '5c',
+    }),
+  ).toContainText(/Te betalen|terug/i)
 
   // The reconciliation: the control account agrees with the box. Located by
   // account number rather than name, because the provisioned chart calls 1500
@@ -126,26 +129,30 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
   await expect(
     page.getByText(/omzetbelastingnummer, en dat staat nog niet in deze administratie/),
   ).toBeVisible()
-  await expect(page.getByRole('button', { name: /^Aangifte indienen$/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Markeren als ingediend$/ })).toHaveCount(0)
 
   await withVatNumber(page)
   await page.goto('/vat/2026-Q1')
 
   // The taxonomy is chosen by the period, and a fresh install says out loud
   // that its mapping has not been checked against the published NT.
-  await expect(page.getByText(/Taxonomie NT20/)).toBeVisible()
-  await expect(page.getByText(/nog niet gecontroleerd tegen de gepubliceerde/)).toBeVisible()
+  await expect(
+    page.getByText(
+      /Taxonomie NT20\. De koppeling met de officiële namen is nog niet gecontroleerd/,
+    ),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: /Indienen bij de Belastingdienst/ })).toHaveCount(0)
 
   // Digipoort is offered as unavailable with the reason, not hidden. Spec 8:
   // a self-hoster should not have to buy a certificate to be compliant.
   await expect(page.getByText(/Digipoort .* is niet beschikbaar/)).toBeVisible()
   await expect(page.getByText(/WS-Security/)).toBeVisible()
 
-  // Filing. A clean return needs no acceptance, and it locks the quarter.
+  // Marking. A clean return needs no acceptance, and it locks the quarter.
   await page.getByRole('textbox', { name: 'Kenmerk van de indiening' }).fill('MBZ-2026-04-02-7781')
-  await page.getByRole('button', { name: /^Aangifte indienen$/ }).click()
-  await expect(page.getByText(/Ingediend op/)).toBeVisible()
-  await expect(page.getByText(/Deze periode is ingediend/)).toBeVisible()
+  await page.getByRole('button', { name: /^Markeren als ingediend$/ }).click()
+  await expect(page.getByText(/Gemarkeerd als ingediend/)).toBeVisible()
+  await expect(page.getByText(/Deze periode is gemarkeerd als ingediend/)).toBeVisible()
 
   // The instance and the summary come back from what was stored.
   await expect(page.getByText(/klaargezet om zelf in te dienen/).first()).toBeVisible()
@@ -178,9 +185,7 @@ test('an aangifte is derived from the journal, and every rubriek opens to its li
 
   // The period list now says so.
   await page.goto('/vat')
-  await expect(page.getByRole('row').filter({ hasText: '1e kwartaal 2026' })).toContainText(
-    'ingediend',
-  )
+  await expect(page.getByRole('navigation', { name: 'BTW-periodes' })).toContainText(/gemarkeerd/i)
 })
 
 test('a hand-typed movement on a BTW account has to be accepted, with a reason', async ({
@@ -205,20 +210,22 @@ test('a hand-typed movement on a BTW account has to be accepted, with a reason',
 
   await withVatNumber(page)
   await page.goto('/vat/2026-Q1')
-  await expect(page.getByRole('heading', { name: 'BTW-aangifte 1e kwartaal 2026' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Aangifte 1e kwartaal 2026/ })).toBeVisible()
 
   await expect(page.getByText('Mutatie op een BTW-rekening zonder code')).toBeVisible()
   // A warning, not a refusal: the button exists but is not usable until the
   // operator says they have looked.
-  const file = page.getByRole('button', { name: /Aangifte indienen/ })
+  const file = page.getByRole('button', { name: /Markeren als ingediend|Aangifte markeren/ })
   await expect(file).toBeDisabled()
 
   await page.getByRole('checkbox').check()
-  await page.getByLabel('Waarom').fill('Dit is de betaling van Q4, niet een BTW-boeking.')
+  await page
+    .getByRole('textbox', { name: 'Waarom' })
+    .fill('Dit is de betaling van Q4, niet een BTW-boeking.')
   await expect(file).toBeEnabled()
   await file.click()
 
-  await expect(page.getByText(/Ingediend op/)).toBeVisible()
+  await expect(page.getByText(/Gemarkeerd als ingediend/)).toBeVisible()
 })
 
 test('the ICP opgaaf cross-checks 3b and refuses an unproven VAT number', async ({ page }) => {
@@ -260,8 +267,11 @@ test('the ICP opgaaf cross-checks 3b and refuses an unproven VAT number', async 
     '1.000,00',
   )
 
-  await page.getByRole('link', { name: 'ICP-opgaaf' }).click()
-  await expect(page.getByRole('heading', { name: 'ICP-opgaaf 1e kwartaal 2026' })).toBeVisible()
+  await page
+    .getByRole('link', { name: /ICP-opgaaf/ })
+    .first()
+    .click()
+  await expect(page.getByRole('heading', { name: 'ICP-opgaaf' })).toBeVisible()
 
   // The opgaaf and 3b agree — same lines, two angles.
   await expect(page.getByText('sluit aan')).toBeVisible()

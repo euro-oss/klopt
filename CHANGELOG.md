@@ -30,6 +30,22 @@ Invitees (who skip Setup) see the privacy notice once on first sign-in when
 in the same `legal_acceptances` table (`privacy_notice` kind: user, timestamp,
 version). Dark and phone follow Batch 2 / Batch 3 boards (#140).
 
+### Redesign Phase 8: VAT / ICP (#132, #107)
+
+VAT (`/vat`, `/vat/$period`) and ICP (`/vat/icp/$period`) match the v2 Vat and
+Icp boards from #106 (`fa4093b`). Period rail with StatusPill tones, box-by-box
+return with empty-box collapse and line drill-down, reconciliation / trust
+block, `[`/`]` period and `D` download. ICP shows per-customer VIES status and
+`V` recheck; board example data does not ship. Copy leads with manual filing
+("klaar om in te dienen" / "ready to file", "Mark as filed" / "Markeren als
+ingediend"); electronic submit only when Digipoort/SBR is available. Desktop
+light is the designed state; dark and phone inherit tokens until Batch 2 /
+Batch 3 boards (#142). Hidde (1 Nov / #162 review): input borders use
+`--ink-muted`; phone middle tab Receipt; phone period rail collapses so the
+return stays above the fold; no disabled electronic filing CTA (VAT + ICP);
+short muted taxonomy note; header subline wraps under the title. App-wide
+Sign out / Uitloggen copy is a separate PR.
+
 ### Redesign Phase 6: Contacts (#130)
 
 Contacts matches the `Contacts` board from the v2 export at `fa4093b`
@@ -50,6 +66,23 @@ Receipt. Sign out / Uitloggen copy is a separate PR. Copy stays short and
 plain (NL+EN); no live-connection claims. Screenshots under
 `docs/pr-screenshots/<PR>/`.
 
+### Exact import wizard: read-only VAT preview (#100)
+
+Importeren now walks Exact from source choice through connect, division and
+year, dry-run preview, and a **read-only** btw-codes step. Klopt recognises
+an Exact VAT code only when **code+rate+side** all agree with a chart row;
+otherwise it stays unrecognised (export / EU / reverse-charge included) and
+accounts that would lose their default btw-code are listed (attention badge;
+recognised count first; unrecognised rows grouped). Nothing is written to the
+ledger in this slice — the Btw step ends with Back only and the “Nog niet in
+deze versie” stop. Accounts, relations, openings and invoices follow in later
+Exact wizard PRs (#100 Phase 2). Exact OAuth callback returns to
+`/importeren?bron=exact&van=exact-oauth` and lands on Administratie without
+Welkom terug. The Exact rail is five steps (“Stap N van 5”; Administratie en
+boekjaar). Loopback redirect URIs are allowed for HTTP stand-ins (same
+carve-out as the Exact base URL). HTTPS error copy no longer mentions
+`pnpm dev:https` (that stays in the docs).
+
 ### Redesign Phase 2: Sales (#107)
 
 Sales area with underline tabs Facturen / Herinneringen / Klanten. `/dunning`
@@ -61,6 +94,12 @@ read-only; email preview uses `reminderEmailCopy` (shared with the transport).
 Reminder emails no longer mention incassokosten, wettelijke rente or a payment
 deadline. PhoneSales / PhoneInvoice / InvoicesDark via tokens. Customers tab
 links to Contacts (no customers URL filter yet). "Nieuwe factuur" is secondary.
+
+### Sign-out copy is Sign out / Uitloggen (#140)
+
+The account menu, the no-administration screen and setup use the same words:
+"Sign out" in English and "Uitloggen" in Dutch. The account menu no longer
+says "Log out", and the screens outside it no longer say "Afmelden".
 
 ### Fixed
 

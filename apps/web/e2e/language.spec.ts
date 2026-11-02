@@ -140,10 +140,17 @@ test('a server-computed label follows the reader, not the server', async ({ brow
   await expect(page.getByText('Activa')).toHaveCount(0)
 
   await page.goto('/vat')
-  // "1e kwartaal 2026" in Dutch, "Q1 2026" in English — a different phrasing
-  // rather than a translated word, which is why it is a template and not a
-  // formatted number.
-  await expect(page.getByRole('link', { name: /^Q[1-4] \d{4}$/ }).first()).toBeVisible()
+  // Rail links are short and language-neutral (`Q1` + status); the detail
+  // heading still uses vatPeriodLabel — "Return for Q1 2026" in English,
+  // "Aangifte 1e kwartaal 2026" in Dutch (#132 redesign).
+  await expect(page.getByRole('navigation', { name: 'VAT periods' })).toBeVisible()
+  await expect(
+    page
+      .getByRole('navigation', { name: 'VAT periods' })
+      .getByRole('link', { name: /^Q[1-4]\b/ })
+      .first(),
+  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Return for Q[1-4] \d{4}$/ })).toBeVisible()
   await expect(page.getByText(/kwartaal/)).toHaveCount(0)
 
   await context.close()
@@ -161,7 +168,8 @@ test('and the same screens stay Dutch for a Dutch reader', async ({ browser }) =
   await expect(page.getByRole('heading', { name: 'Activa' })).toBeVisible()
 
   await page.goto('/vat')
-  await expect(page.getByRole('link', { name: /kwartaal/ }).first()).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'BTW-periodes' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Aangifte .*kwartaal \d{4}/ })).toBeVisible()
 
   await context.close()
 })

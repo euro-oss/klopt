@@ -92,8 +92,8 @@ test('a plain-http origin says so, rather than failing at Exact', async ({ page 
   await anAdministration(page)
   await page.goto('/exact')
 
-  await expect(page.getByRole('alert')).toContainText('alleen een https-redirect')
-  await expect(page.getByRole('alert')).toContainText('pnpm dev:https')
+  await expect(page.getByRole('alert')).toContainText('alleen een https-adres als redirect')
+  await expect(page.getByRole('alert')).not.toContainText('pnpm')
 
   await expect(page.getByLabel('Client ID')).toBeEnabled()
   await page.getByLabel('Client ID').fill('some-client-id')
