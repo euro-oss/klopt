@@ -11,7 +11,8 @@
 <!--
   Derived board, not drawn by Hidde (#147). Dark 1440 of SettingsData.dc.html: same tabs, figures and copy.
   Its own file, not a theme="dark" wrapper, because a wrapper only ever shows the first tab and #147 asks for every board; Hidde's Settings breadcrumb is also not underlined.
-  The empty Book year cells say "None" instead of a dash.
+  The empty Book year cells say "None" instead of a dash. Legal: the retention storage line names
+  the store (S3 with object lock); it must follow the configured store (see DERIVED.md).
   Takes `theme` (default dark) and `view` (xaf, hooks, ret, seal; default xaf) to pick the tab; clicking a tab still switches.
   A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), the Settings
   breadcrumb in ink and underlined, outlined key hints in dark primary buttons, no ink-faint,
@@ -84,7 +85,7 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
             <div class="k-stat"><span class="k-stat-label">Without book year</span><span class="k-stat-value" style="color: var(--brand-ink);">2</span></div>
           </div>
           <div class="k-card" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;">
-            <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Seven years, ten for property, counted from the end of the book year a document belongs to. Nothing is ever deleted automatically. Storage is locked in compliance mode, so not even Klopt can delete early.</p>
+            <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Seven years, ten for property, counted from the end of the book year a document belongs to. Nothing is ever deleted automatically. Storage: S3 with object lock in compliance mode, so nobody can delete early.</p>
             <div style="display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: var(--radius-md); background: var(--surface-sunken);">
               <span style="flex: 1; display: flex; flex-direction: column;"><strong>Legal hold on the whole administration</strong><span class="k-muted" style="font-size: 13px;">Stops all deletion, whatever the term. For a dispute or a tax audit.</span></span>
               <button type="button" class="k-switch" role="switch" aria-checked="false" aria-label="Legal hold"></button>

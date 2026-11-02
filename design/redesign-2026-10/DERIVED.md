@@ -43,7 +43,10 @@ All four also load Google Fonts; the copies load `../design-system/fonts/fonts.c
 - Links are ink and underlined. No `ink-faint` for text. No new status colours: "Incomplete" and "2 details missing" stay `brand-ink`, "mapped to RGS" and "no drift" stay `success`, the pills are Hidde's.
 - Phone: `.k-phone` at 390, Hidde's five-tab bar with More active (Settings lives under More), sticky at the bottom. No key hints. Targets are 44px or more: the back link, chips, every input and select, Remove and Hide, and full-width buttons. Each switch is a 56px row that is the switch (`role="switch"`), so the whole row is the target. Company's Save is 48px in a sticky bar above the tab bar.
 - Numbers are Inter with tabular figures (`.k-num`, `nw` where they must not wrap). JetBrains Mono is only for codes: ledger numbers, RGS codes, VAT codes and the seal (`.k-code`).
-- No hosting claims. Hidde drew no `edition="hosted"` states on these boards, and the derived copy adds none. The retention text ("Storage is locked in compliance mode, so not even Klopt can delete early") is Hidde's and is kept as written.
+- No hosting claims. Hidde drew no `edition="hosted"` states on these boards, and the derived copy adds none.
+- **Legal edits (decided via CoS, 2 Nov 2026), derived boards only:**
+  - Retention (`ret` tab, dark and phone): Hidde's "Storage is locked in compliance mode, so not even Klopt can delete early" reads "Storage: S3 with object lock in compliance mode, so nobody can delete early." **This line must follow the configured store; it is never fixed text.** A fresh install stores files in a folder with no object lock, as the /retention screen shows, so there the line must say that instead of naming S3 and object lock.
+  - Peppol (`peppol` tab, dark and phone): Hidde's "With Peppol, invoices go straight into your customer's books…" reads "Peppol isn't connected yet. Invoices go out by email as UBL and PDF. Your network address will be your KvK number unless you choose another."
 - Sample people: Eva (`eva@bakkerij.example`) and Jan Visser (`jan@bakkerij.example`). Companies and accounts are Hidde's demo fixtures.
 - `shoot.mjs` printed no QA warnings for the 45 shots.
 
@@ -114,6 +117,8 @@ Strings Hidde already has on his Settings boards are not repeated here.
 | Documents (retention list) | Documenten |
 | Seal (label) | Zegel |
 | None (empty book year) | Geen |
+| Storage: S3 with object lock in compliance mode, so nobody can delete early. | Opslag: S3 met object lock in compliance-modus, dus niemand kan eerder verwijderen. |
+| Peppol isn't connected yet. Invoices go out by email as UBL and PDF. Your network address will be your KvK number unless you choose another. | Peppol is nog niet gekoppeld. Facturen gaan per e-mail als UBL en PDF. Je netwerkadres wordt je KvK-nummer, tenzij je een ander kiest. |
 
 ## Import source and problems: dark and phone (#152)
 

@@ -13,6 +13,7 @@
   out, webhooks, retention and sealed snapshots, with Hidde's copy. The side menu becomes wrapping
   44px chips. Forms stack, buttons are 44px and full width, the four retention counts are a 2 by 2
   grid, the documents table becomes rows (the empty Book year column is left out; the pill says it).
+  Legal: the retention storage line names the store and must follow the configured store (DERIVED.md).
   The 64-character seal is split over two code lines of 32, so it never breaks mid-line by accident.
   Takes `theme` and `view` (xaf, hooks, ret, seal; default xaf).
   PhoneSettingsDataDark.dc.html sets dark and passes `view` on.
@@ -115,7 +116,7 @@ a{color:var(--ink)}
         <div class="k-stat st"><span class="k-stat-label">Without book year</span><span class="k-stat-value" style="color: var(--brand-ink);">2</span></div>
       </div>
       <div class="k-card cardp">
-        <p class="txt">Seven years, ten for property, counted from the end of the book year a document belongs to. Nothing is ever deleted automatically. Storage is locked in compliance mode, so not even Klopt can delete early.</p>
+        <p class="txt">Seven years, ten for property, counted from the end of the book year a document belongs to. Nothing is ever deleted automatically. Storage: S3 with object lock in compliance mode, so nobody can delete early.</p>
         <button type="button" class="swrow" role="switch" aria-checked="false">
           <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><strong style="font-weight: 600;">Legal hold on the whole administration</strong><span class="sub">Stops all deletion, whatever the term. For a dispute or a tax audit.</span></span>
           <span class="k-switch" aria-hidden="true"></span>

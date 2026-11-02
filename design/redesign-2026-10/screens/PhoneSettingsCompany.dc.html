@@ -13,6 +13,7 @@
   sections, fields, help and copy. The side menu becomes wrapping 44px chips; the fields stack in one
   column (street and number, postcode and town share a row). Save is a 48px button in a sticky bar
   above the tab bar. Missing fields keep the --ink-muted border with a yellow inner ring on brand-tint.
+  Legal: the Peppol intro says Peppol isn't connected yet; invoices go out by email as UBL and PDF.
   Takes `theme` and `view` (details, bank, peppol, defaults; default details).
   PhoneSettingsCompanyDark.dc.html sets dark and passes `view` on.
   Phone pattern: .k-phone at 390, Hidde's five-tab bar with More active (Settings lives under More),
@@ -108,7 +109,7 @@ a{color:var(--ink)}
     <sc-if value="{{v.peppol}}" hint-placeholder-val="{{false}}">
       <div class="k-card cardp">
         <div style="display: flex; align-items: flex-start; gap: 12px;"><h2 style="flex: 1;">E-invoicing over Peppol</h2><span class="k-pill k-pill--draft" style="margin-top: 1px;">Not reachable yet</span></div>
-        <p class="txt">With Peppol, invoices go straight into your customer's books and suppliers' invoices land in your Inbox already read. Your address on the network is your KvK number unless you choose another.</p>
+        <p class="txt">Peppol isn't connected yet. Invoices go out by email as UBL and PDF. Your network address will be your KvK number unless you choose another.</p>
         <div class="k-field"><label class="k-label" for="sch">Identify me by</label><select id="sch" class="k-input"><option>KvK number (automatic)</option><option>0106 · KvK number</option><option>0190 · OIN (government)</option><option>9944 · VAT number</option></select></div>
         <div class="k-field"><label class="k-label" for="ea">Electronic address</label><input id="ea" class="k-input k-num" placeholder="Empty: uses the KvK number"></div>
         <button type="button" class="swrow" role="switch" aria-checked="false" disabled>

@@ -12,6 +12,7 @@
   Derived board, not drawn by Hidde (#147). Dark 1440 of SettingsCompany.dc.html: same tabs, figures and copy.
   Its own file, not a theme="dark" wrapper, because a wrapper only ever shows the first tab and #147 asks for every board; Hidde's Settings breadcrumb is also not underlined,
   and his "2 missing" badge is cut off inside the 36px subnav item (it may grow and the badge stays on one line).
+  Legal: the Peppol intro says Peppol isn't connected yet and invoices go out by email as UBL and PDF.
   The missing-field outline (selection-edge on brand-tint, 1.75:1 in light) keeps the ink-muted border and adds the yellow as an inner ring.
   Takes `theme` (default dark) and `view` (details, bank, peppol, defaults; default details) to pick the tab; clicking a tab still switches.
   A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), the Settings
@@ -87,7 +88,7 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
         <sc-if value="{{v.peppol}}" hint-placeholder-val="{{false}}">
           <div class="k-card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
             <div style="display: flex; align-items: center; gap: 12px;"><h2 class="k-card-title" style="flex: 1;">E-invoicing over Peppol</h2><span class="k-pill k-pill--draft">Not reachable yet</span></div>
-            <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">With Peppol, invoices go straight into your customer's books and suppliers' invoices land in your Inbox already read. Your address on the network is your KvK number unless you choose another.</p>
+            <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Peppol isn't connected yet. Invoices go out by email as UBL and PDF. Your network address will be your KvK number unless you choose another.</p>
             <div class="g2">
               <div class="k-field"><label class="k-label" for="sch">Identify me by</label><select id="sch" class="k-input"><option>KvK number (automatic)</option><option>0106 · KvK number</option><option>0190 · OIN (government)</option><option>9944 · VAT number</option></select></div>
               <div class="k-field"><label class="k-label" for="ea">Electronic address</label><input id="ea" class="k-input k-num" placeholder="Leave empty to use the KvK number"></div>
