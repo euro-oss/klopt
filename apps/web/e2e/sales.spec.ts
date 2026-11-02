@@ -1,7 +1,7 @@
 import { rmSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, enableAdvancedMode, OUTBOX, signIn, uniqueEmail } from './support'
+import { DATABASE_URL, enableAdvancedMode, hydrated, OUTBOX, signIn, uniqueEmail } from './support'
 
 /**
  * Invoicing, in a browser, from an empty administration to a posted invoice.
@@ -294,10 +294,14 @@ test('a mistyped IBAN can be corrected, which is what makes a supplier payable',
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 
   await page.goto('/contacts')
+  // Remount after edit: wait for hydration or the row click is swallowed and
+  // the Relatiekaart never opens (#130).
+  await hydrated(page)
   await expect(page.getByRole('button', { name: /Leverancier Nederland B\.V\./ })).toBeVisible()
 
   // Contacts list rows are buttons; edit opens via the card (#130).
   await page.getByRole('button', { name: /Leverancier Nederland B\.V\./ }).click()
+  await expect(page).toHaveURL(/id=/)
   await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible()
   await page
     .getByRole('complementary', { name: 'Relatiekaart' })
