@@ -34,6 +34,22 @@ finding cards, with `1`–`3` and `Z` on the VAT step. Dark follows the tokens.
 Phone 390 hides the stepper (a “step n of 6” line instead) so the page does
 not scroll sideways. Screenshots under `docs/pr-screenshots/134/`.
 
+### Redesign Phase 8: VAT / ICP (#132, #107)
+
+VAT (`/vat`, `/vat/$period`) and ICP (`/vat/icp/$period`) match the v2 Vat and
+Icp boards from #106 (`fa4093b`). Period rail with StatusPill tones, box-by-box
+return with empty-box collapse and line drill-down, reconciliation / trust
+block, `[`/`]` period and `D` download. ICP shows per-customer VIES status and
+`V` recheck; board example data does not ship. Copy leads with manual filing
+("klaar om in te dienen" / "ready to file", "Mark as filed" / "Markeren als
+ingediend"); electronic submit only when Digipoort/SBR is available. Desktop
+light is the designed state; dark and phone inherit tokens until Batch 2 /
+Batch 3 boards (#142). Hidde (1 Nov / #162 review): input borders use
+`--ink-muted`; phone middle tab Receipt; phone period rail collapses so the
+return stays above the fold; no disabled electronic filing CTA (VAT + ICP);
+short muted taxonomy note; header subline wraps under the title. App-wide
+Sign out / Uitloggen copy is a separate PR.
+
 ### Redesign Phase 6: Contacts (#130)
 
 Contacts matches the `Contacts` board from the v2 export at `fa4093b`
