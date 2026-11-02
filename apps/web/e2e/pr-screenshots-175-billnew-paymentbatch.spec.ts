@@ -263,7 +263,7 @@ test('BillNew + PaymentBatch #175 screenshots — desktop/phone, light/dark, bat
     await page.getByLabel('Omschrijving').fill('Flow demo')
     await page.getByRole('button', { name: 'Toevoegen' }).click()
     await page.getByRole('button', { name: 'Ter fiattering aanbieden' }).click()
-    await expect(page.getByText(/Status is nu: wacht op fiat/)).toBeVisible()
+    await expect(page.getByText(/Status is nu:/)).toHaveCount(0)
     await expect(page.getByText(/Ingediend door/)).toBeVisible()
     await expect(page.getByText('Nog niet goedgekeurd')).toBeVisible()
     await expect(page.getByRole('heading', { name: /· 1 factuur\b/ })).toBeVisible()
@@ -281,17 +281,19 @@ test('BillNew + PaymentBatch #175 screenshots — desktop/phone, light/dark, bat
     await expect(bobPage.getByRole('heading', { name: /· 1 factuur\b/ })).toBeVisible()
     await shotsBothSizes(bobPage, '07-paymentbatch-submitted-approver')
 
-    // 08 Approved — nameless "Goedgekeurd"
+    // 08 Approved — nameless "Goedgekeurd"; primary CTA is Betaalbestand downloaden.
     await bobPage.getByRole('button', { name: /Batch fiatteren|Fiatteren/ }).click()
-    await expect(bobPage.getByText(/Status is nu: gefiatteerd/)).toBeVisible()
-    await expect(bobPage.getByRole('button', { name: 'Download pain.001' })).toBeVisible()
+    await expect(bobPage.getByText(/Status is nu:/)).toHaveCount(0)
+    await expect(bobPage.getByRole('button', { name: 'Betaalbestand downloaden' })).toBeVisible()
     await expect(bobPage.getByText('Goedgekeurd', { exact: true })).toBeVisible()
     await shotsBothSizes(bobPage, '08-paymentbatch-approved')
 
-    // 09 Exported — last stepper step done. Download (GET) does not mutate;
-    // "Markeren als ingediend bij de bank" is the separate export transition.
-    await bobPage.getByRole('button', { name: 'Markeren als ingediend bij de bank' }).click()
-    await expect(bobPage.getByText(/Status is nu: gedownload/)).toBeVisible()
+    // 09 Exported — download itself sets gedownload; hash line + upload hint.
+    const downloadPromise = bobPage.waitForEvent('download')
+    await bobPage.getByRole('button', { name: 'Betaalbestand downloaden' }).click()
+    await downloadPromise
+    await expect(bobPage.getByText('Upload het bestand in je bankomgeving.')).toBeVisible()
+    await expect(bobPage.getByText(/Gedownload bestand:/)).toBeVisible()
     await expect(
       bobPage.getByRole('list', { name: 'Voortgang van de batch' }).getByText('Bestand gedownload'),
     ).toBeVisible()

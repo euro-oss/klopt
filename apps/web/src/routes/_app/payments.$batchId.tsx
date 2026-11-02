@@ -25,8 +25,6 @@ import {
   removePaymentInstruction,
   transitionPaymentBatch,
 } from '~/server/payments'
-import { STATE_KEY } from './payments.index'
-
 /**
  * PaymentBatch — prepare, four-eyes, download pain.001 (#107 Phase 4 / #128).
  *
@@ -108,7 +106,7 @@ function PaymentBatch() {
   const painHref = `/api/v1/payment-batches/${batchId}/pain001`
 
   async function act(
-    action: 'submit' | 'approve' | 'reject' | 'reopen' | 'export',
+    action: 'submit' | 'approve' | 'reject' | 'reopen',
     reason: string | null = null,
   ) {
     setBusy(true)
@@ -129,17 +127,38 @@ function PaymentBatch() {
       return
     }
 
-    setNotice(t('batch.stateNow', { state: t(STATE_KEY[result.data.state]) }))
+    // No "Status is nu: …" banner (#175 PM) — the stepper already shows progress.
     await router.invalidate()
   }
 
-  function downloadPain(): void {
-    const anchor = document.createElement('a')
-    anchor.href = painHref
-    anchor.download = ''
-    document.body.append(anchor)
-    anchor.click()
-    anchor.remove()
+  /** Fetch pain.001 (first GET exports) and trigger a browser download. */
+  async function downloadPain(): Promise<void> {
+    setBusy(true)
+    setError(null)
+    try {
+      const response = await fetch(painHref, { credentials: 'same-origin' })
+      if (!response.ok) {
+        setError(t('batch.downloadFailed'))
+        return
+      }
+      const blob = await response.blob()
+      const disposition = response.headers.get('content-disposition') ?? ''
+      const matched = /filename="([^"]+)"/i.exec(disposition)
+      const filename = matched?.[1] ?? `${batch?.reference ?? 'batch'}.pain001.xml`
+      const objectUrl = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = objectUrl
+      anchor.download = filename
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(objectUrl)
+      await router.invalidate()
+    } catch {
+      setError(t('batch.downloadFailed'))
+    } finally {
+      setBusy(false)
+    }
   }
 
   useEffect(() => {
@@ -151,7 +170,7 @@ function PaymentBatch() {
       event.preventDefault()
       if (canSubmit) void act('submit')
       else if (canApprove) void act('approve')
-      else if (canDownloadPain && batch.state === 'approved') downloadPain()
+      else if (canDownloadPain && batch.state === 'approved') void downloadPain()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
@@ -172,10 +191,12 @@ function PaymentBatch() {
     )
   }
 
+  // Missing ≠ invalid (#175): empty / no_iban → missing callout; invalid_iban →
+  // its own callout. Never show "nog geen IBAN" for a mistyped IBAN.
   const missingIban =
     batch.instructions.some((row) => row.creditorIban.trim() === '') ||
-    problems.some((problem) => problem.code === 'invalid_iban') ||
     (run.ok && run.data.findings.some((finding) => finding.code === 'no_iban'))
+  const invalidIban = problems.some((problem) => problem.code === 'invalid_iban')
 
   const accountLabel =
     batch.debtorName !== ''
@@ -276,8 +297,8 @@ function PaymentBatch() {
 
   const canReject = batch.state === 'submitted' && hydrated && !busy
   const canReopen = batch.state === 'rejected' && hydrated && !busy
-  const canDownload = batch.state === 'approved' || batch.state === 'exported'
-  const canMarkSent = batch.state === 'approved' && hydrated && !busy
+  const canDownload =
+    (batch.state === 'approved' || batch.state === 'exported') && hydrated && !busy
 
   const nextCard = (() => {
     if (batch.state === 'rejected') {
@@ -351,8 +372,9 @@ function PaymentBatch() {
         cta: canDownload ? (
           <Button
             type="button"
+            disabled={busy}
             onClick={() => {
-              downloadPain()
+              void downloadPain()
             }}
           >
             {t('batch.next.downloadCta')}
@@ -406,6 +428,10 @@ function PaymentBatch() {
           />
         </div>
 
+        {batch.state === 'exported' && (
+          <p className="text-ink-muted m-0 text-sm">{t('batch.uploadInBank')}</p>
+        )}
+
         {step === 0 && missingIban && (
           <Alert
             variant="attention"
@@ -422,6 +448,13 @@ function PaymentBatch() {
                 {t('batch.openSuppliers')}
               </Link>
             </AlertAction>
+          </Alert>
+        )}
+
+        {step === 0 && invalidIban && !missingIban && (
+          <Alert variant="attention" className="items-start">
+            <AlertTitle>{t('batch.invalidIbanTitle')}</AlertTitle>
+            <AlertDescription>{t('batch.invalidIbanBody')}</AlertDescription>
           </Alert>
         )}
 
@@ -664,26 +697,16 @@ function PaymentBatch() {
                   {t('batch.reject')}
                 </Button>
               )}
-              {canMarkSent && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    void act('export')
-                  }}
-                >
-                  {t('batch.markSent')}
-                </Button>
-              )}
               {canDownload && batch.state === 'exported' && (
                 <Button
                   type="button"
                   variant="outline"
+                  disabled={busy}
                   onClick={() => {
-                    downloadPain()
+                    void downloadPain()
                   }}
                 >
-                  {t('batch.download')}
+                  {t('batch.next.downloadCta')}
                 </Button>
               )}
             </div>

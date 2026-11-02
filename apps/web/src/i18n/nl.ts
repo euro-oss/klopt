@@ -2330,16 +2330,13 @@ export const nl = {
   'payments.state.rejected': 'afgekeurd',
   'batch.title': 'Betaalbatch {reference}',
   'batch.intro': '{iban} · uitvoerdatum {date} · {state}',
-  'batch.stateNow': 'Status is nu: {state}.',
   'batch.submit': 'Ter fiattering aanbieden',
   'batch.approve': 'Fiatteren',
   'batch.reject': 'Afkeuren',
   'batch.rejectedReason': 'afgekeurd',
   'batch.reopen': 'Weer openen',
-  'batch.download': 'Bestand downloaden',
-  // Separate from the pain.001 download (GET does not mutate). User records they
-  // submitted the file in their banking app — Klopt never contacts the bank.
-  'batch.markSent': 'Markeren als ingediend bij de bank',
+  'batch.downloadFailed': 'Het betaalbestand kon niet worden gedownload.',
+  'batch.uploadInBank': 'Upload het bestand in je bankomgeving.',
   'batch.back': 'Terug',
   'batch.iSubmitted':
     'Je hebt deze batch zelf klaargezet, dus iemand anders moet hem fiatteren. Dat is niet een instelling — het is de hele bedoeling van twee paar ogen.',
@@ -2378,6 +2375,8 @@ export const nl = {
   'batch.missingIbanTitle': 'Deze leveranciers hebben nog geen IBAN',
   'batch.missingIbanBody':
     'Het betaalbestand heeft er één nodig voor elke betaling. Zet de IBAN op de leverancier; daarna kun je de factuur aan deze batch toevoegen.',
+  'batch.invalidIbanTitle': 'IBAN klopt niet',
+  'batch.invalidIbanBody': 'Controleer het IBAN van deze leverancier.',
   'batch.openSuppliers': 'Open leveranciers',
   'batch.paymentsAdded_one': '{count} betaling toegevoegd.',
   'batch.paymentsAdded_other': '{count} betalingen toegevoegd.',
@@ -2408,7 +2407,7 @@ export const nl = {
   'batch.next.downloadTitle': 'Volgende: downloaden voor je bank',
   'batch.next.downloadBody':
     'Een SEPA-betaalbestand (pain.001) voor {account}. Upload het in je bankieren-app; er is niets betaald tot jij daar tekent.',
-  'batch.next.downloadCta': 'Download pain.001',
+  'batch.next.downloadCta': 'Betaalbestand downloaden',
   'batch.next.waitingTitle': 'Wachten op de bank',
   'batch.next.waitingBody': 'Als de betalingen op een afschrift staan, letter je ze af in Match.',
   'batch.next.waitingCta': 'Open Match',

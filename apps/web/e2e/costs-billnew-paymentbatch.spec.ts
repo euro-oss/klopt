@@ -409,7 +409,8 @@ test('PaymentBatch from sidebar and command bar; empty and seeded; keyboard; no 
   await expect(page.getByText(/tweede eigenaar|second owner|krijgt een bericht/i)).toHaveCount(0)
 
   await page.keyboard.press('ControlOrMeta+Enter')
-  await expect(page.getByText(/Status is nu: wacht op fiat|wacht op fiat/i)).toBeVisible()
+  await expect(page.getByText(/Status is nu:/)).toHaveCount(0)
+  await expect(page.getByText(/iemand anders moet hem fiatteren/i)).toBeVisible()
   await expect(page.getByRole('button', { name: /Batch fiatteren|Fiatteren/ })).toHaveCount(0)
   // Submitter sees own email; never a literal ellipsis.
   await expect(page.getByText(/Ingediend door/)).toBeVisible()
@@ -462,7 +463,8 @@ test('PaymentBatch ⌘↵ downloads pain.001 when approved', async ({ browser })
     await alicePage.getByLabel('Omschrijving').fill('Shortcut demo')
     await alicePage.getByRole('button', { name: 'Toevoegen' }).click()
     await alicePage.getByRole('button', { name: 'Ter fiattering aanbieden' }).click()
-    await expect(alicePage.getByText(/Status is nu: wacht op fiat/)).toBeVisible()
+    await expect(alicePage.getByText(/Status is nu:/)).toHaveCount(0)
+    await expect(alicePage.getByText(/iemand anders moet hem fiatteren/)).toBeVisible()
 
     expect(await findUserIdByEmail(database, bobEmail)).not.toBeNull()
     await bobPage.goto('/payments')
@@ -478,21 +480,23 @@ test('PaymentBatch ⌘↵ downloads pain.001 when approved', async ({ browser })
     await expect(bobPage.getByRole('heading', { name: /· 1 factuur\b/ })).toBeVisible()
 
     await bobPage.getByRole('button', { name: /Batch fiatteren|Fiatteren/ }).click()
-    await expect(bobPage.getByText(/Status is nu: gefiatteerd/)).toBeVisible()
-    await expect(bobPage.getByRole('button', { name: 'Download pain.001' })).toBeVisible()
+    await expect(bobPage.getByText(/Status is nu:/)).toHaveCount(0)
+    await expect(bobPage.getByRole('button', { name: 'Betaalbestand downloaden' })).toBeVisible()
     // Approved with no display name — "Goedgekeurd", never "door …".
     await expect(fourEyes.getByText('Goedgekeurd', { exact: true })).toBeVisible()
     await expect(fourEyes.getByText(/Goedgekeurd door|…|\.\.\./)).toHaveCount(0)
 
+    // Download *is* the export (#175): sets gedownload; no markSent button.
+    await expect(
+      bobPage.getByRole('button', { name: 'Markeren als ingediend bij de bank' }),
+    ).toHaveCount(0)
     const downloadPromise = bobPage.waitForEvent('download')
     await bobPage.keyboard.press('ControlOrMeta+Enter')
     const download = await downloadPromise
     expect(download.suggestedFilename()).toMatch(/\.pain001\.xml$/i)
 
-    // Separate export transition (GET download does not mutate). Stepper on
-    // exported: all four done, none current, no Betaald / Bij de bank (#175 QA).
-    await bobPage.getByRole('button', { name: 'Markeren als ingediend bij de bank' }).click()
-    await expect(bobPage.getByText(/Status is nu: gedownload/)).toBeVisible()
+    await expect(bobPage.getByText('Upload het bestand in je bankomgeving.')).toBeVisible()
+    await expect(bobPage.getByText(/Gedownload bestand:/)).toBeVisible()
     const steps = bobPage.getByRole('list', { name: 'Voortgang van de batch' })
     await expect(steps.getByText('Voorbereiden')).toBeVisible()
     await expect(steps.getByText('Fiatteren')).toBeVisible()
@@ -509,7 +513,7 @@ test('PaymentBatch ⌘↵ downloads pain.001 when approved', async ({ browser })
 })
 
 test('BillNew drop attaches the document and never claims Postvak', async ({ page }) => {
-  test.setTimeout(90_000)
+  test.setTimeout(120_000)
   await openAdmin(page, 'BillNew Document Attach BV')
   await aSupplier(page)
 
@@ -535,6 +539,41 @@ test('BillNew drop attaches the document and never claims Postvak', async ({ pag
   await expect(page.locator('[data-testid="billnew-document"] input[type="file"]')).toHaveCount(0)
   await expect(page.getByText(/Bestand staat in Postvak/)).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Naar Postvak' })).toHaveCount(0)
+
+  // Preferred path (#175): save links documentId to the bill; Postvak has no row.
+  await chooseOption(page, 'Leverancier', /Telecom Fictief/)
+  await page.getByLabel('Hun nummer').fill('INK-ATTACH-2026-1')
+  await page.getByLabel('Factuurdatum').fill('2026-02-10')
+  await page.getByLabel('Vervaldatum').fill('2026-03-12')
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('100,00')
+  await page.getByLabel('Btw', { exact: true }).fill('21,00')
+  await page.getByLabel('Totaal', { exact: true }).fill('121,00')
+  await page.getByLabel('Omschrijving regel 1').fill('Attached bill')
+  await chooseOption(page, 'Grootboek regel 1', /^4400 /)
+  await expect(page.getByLabel('Btw-code regel 1')).toHaveText(/^VH21/)
+  await page.getByLabel('Excl. btw regel 1').fill('100,00')
+  await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await expect(page).toHaveURL(/\/purchases\/[0-9a-f-]+/)
+  const invoiceId = page.url().split('/').pop() ?? ''
+  expect(invoiceId.length).toBeGreaterThan(8)
+
+  const invoice = await page.request.get(`/api/v1/purchase-invoices/${invoiceId}`)
+  expect(invoice.status()).toBe(200)
+  const invoiceBody = (await invoice.json()) as { documentIds?: string[] }
+  expect(invoiceBody.documentIds?.length).toBe(1)
+
+  const inbox = await page.request.get('/api/v1/inbox?state=new')
+  expect(inbox.status()).toBe(200)
+  const inboxBody = (await inbox.json()) as {
+    items?: { filename?: string | null }[]
+  }
+  const listed = (inboxBody.items ?? []).some((item) => item.filename === 'leverancier-factuur.pdf')
+  expect(listed, 'linked document must not appear in Postvak').toBe(false)
+
+  await page.goto('/inbox')
+  await expect(page.getByRole('heading', { name: 'Postvak' })).toBeVisible()
+  await expect(page.getByText('leverancier-factuur.pdf')).toHaveCount(0)
 })
 
 test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control overlap, 44px taps', async ({
@@ -737,6 +776,8 @@ test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control ov
   await page.getByLabel('Kenmerk').fill('BETAAL-NOIBAN-E2E')
   await page.getByRole('button', { name: 'Aanmaken' }).click()
   await expect(page.getByText(/Deze leveranciers hebben nog geen IBAN/i)).toBeVisible()
+  // Missing ≠ invalid: no "IBAN klopt niet" callout for a truly empty IBAN.
+  await expect(page.getByText('IBAN klopt niet', { exact: true })).toHaveCount(0)
   await expect(page.getByText(/^instructions:/i)).toHaveCount(0)
 
   await page.setViewportSize({ width: 390, height: 844 })

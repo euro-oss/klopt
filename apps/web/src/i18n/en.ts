@@ -2264,16 +2264,13 @@ export const en: Record<MessageKey, string> = {
   'payments.state.rejected': 'rejected',
   'batch.title': 'Payment batch {reference}',
   'batch.intro': '{iban} · execution date {date} · {state}',
-  'batch.stateNow': 'The status is now: {state}.',
   'batch.submit': 'Submit for approval',
   'batch.approve': 'Approve',
   'batch.reject': 'Reject',
   'batch.rejectedReason': 'rejected',
   'batch.reopen': 'Reopen',
-  'batch.download': 'Download the file',
-  // Separate from the pain.001 download (GET does not mutate). User records they
-  // submitted the file in their banking app — Klopt never contacts the bank.
-  'batch.markSent': 'Mark as submitted to the bank',
+  'batch.downloadFailed': 'The payment file could not be downloaded.',
+  'batch.uploadInBank': 'Upload the file in your banking environment.',
   'batch.back': 'Back',
   'batch.iSubmitted':
     'You prepared this batch yourself, so somebody else has to approve it. That is not a setting — it is the whole point of four eyes.',
@@ -2312,6 +2309,8 @@ export const en: Record<MessageKey, string> = {
   'batch.missingIbanTitle': 'These suppliers have no IBAN yet',
   'batch.missingIbanBody':
     'The payment file needs one for every payment. Add the IBAN on the supplier; then you can add the bill to this batch.',
+  'batch.invalidIbanTitle': 'IBAN is invalid',
+  'batch.invalidIbanBody': "Check this supplier's IBAN.",
   'batch.openSuppliers': 'Open suppliers',
   'batch.paymentsAdded_one': '{count} payment added.',
   'batch.paymentsAdded_other': '{count} payments added.',
@@ -2341,7 +2340,7 @@ export const en: Record<MessageKey, string> = {
   'batch.next.downloadTitle': 'Next: download for your bank',
   'batch.next.downloadBody':
     'A SEPA payment file (pain.001) for {account}. Upload it in your banking app; nothing is paid until you sign there.',
-  'batch.next.downloadCta': 'Download pain.001',
+  'batch.next.downloadCta': 'Download payment file',
   'batch.next.waitingTitle': 'Waiting for the bank',
   'batch.next.waitingBody': 'Once the payments are on a statement, you match them in Match.',
   'batch.next.waitingCta': 'Open Match',

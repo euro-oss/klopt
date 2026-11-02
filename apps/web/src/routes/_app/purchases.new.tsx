@@ -191,6 +191,8 @@ function NewPurchaseInvoice() {
           total: total.toString(),
           paymentReference: paymentReference === '' ? null : paymentReference,
           notes: null,
+          // Link the dropped document to this bill and take it out of Postvak.
+          documentId: attachedDocument?.id ?? null,
           lines: filled.map((line) => ({
             description: line.description,
             accountNumber: line.accountNumber,
@@ -826,7 +828,10 @@ function NewPurchaseInvoice() {
             No keyboard chips here — .form-actions is md:hidden. */}
         <div
           data-testid="billnew-form-actions"
-          className={cn('form-actions md:hidden', !canSaveDraft && !canBook && 'hidden')}
+          className={cn(
+            'form-actions form-actions-billnew md:hidden',
+            !canSaveDraft && !canBook && 'hidden',
+          )}
         >
           {canSaveDraft && (
             <Button
