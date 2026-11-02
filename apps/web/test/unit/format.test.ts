@@ -3,6 +3,7 @@ import {
   formatDate,
   formatMinorUnits,
   multiplyByDecimal,
+  normalizeMinorUnits,
   parseMinorUnits,
   percentOf,
 } from '../../src/lib/format.js'
@@ -13,6 +14,17 @@ describe('formatting money', () => {
     expect(formatMinorUnits(5n)).toBe('0,05')
     expect(formatMinorUnits(123_456n)).toBe('1.234,56')
     expect(formatMinorUnits(123_456_789_00n)).toBe('123.456.789,00')
+  })
+
+  it('never signs zero, including a negated or string-form zero', () => {
+    expect(normalizeMinorUnits(0n)).toBe(0n)
+    expect(normalizeMinorUnits(-0n)).toBe(0n)
+    expect(normalizeMinorUnits('0')).toBe(0n)
+    expect(normalizeMinorUnits('-0')).toBe(0n)
+    expect(formatMinorUnits(0n)).toBe('0,00')
+    expect(formatMinorUnits(-0n)).toBe('0,00')
+    expect(formatMinorUnits(-normalizeMinorUnits(0n))).toBe('0,00')
+    expect(formatMinorUnits(normalizeMinorUnits('-0'))).toBe('0,00')
   })
 
   it('renders negatives per the entity setting', () => {
