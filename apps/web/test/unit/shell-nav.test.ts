@@ -127,7 +127,7 @@ describe('shell-nav Phase 0 (v2 IA)', () => {
     expect(shell).not.toContain('usePhoneViewport')
   })
 
-  it('PhoneTabBar middle tab is Receipt (#140 CoS / #139)', () => {
+  it('phone middle tab is Receipt (#140), still opens /inbox upload until #139', () => {
     expect(PHONE_TAB_BAR.map((tab) => tab.id)).toEqual(['home', 'sales', 'receipt', 'bank', 'more'])
     expect(PHONE_TAB_BAR[2]).toMatchObject({
       id: 'receipt',

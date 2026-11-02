@@ -460,9 +460,10 @@ export function visibleJournalTabs(): readonly JournalTab[] {
 /**
  * v2 PhoneTabBar — five destinations at 390px (#107 Phase 0 / #140 CoS).
  *
- * Home · Sales · Receipt · Bank · More. Receipt/More *contents* wait on Batch 3
- * (#139); until then More opens the existing #38 Sheet, and Receipt opens the
- * existing upload at `/inbox` (no copy that promises reading a photo).
+ * Home · Sales · Receipt · Bank · More. Middle tab is Receipt (Hidde via #140);
+ * Receipt/More *contents* wait on Batch 3 (#139). Until then More opens the
+ * existing #38 Sheet, and Receipt opens the existing upload at `/inbox` (no
+ * copy that promises reading a photo).
  */
 export type PhoneTabId = 'home' | 'sales' | 'receipt' | 'bank' | 'more'
 
