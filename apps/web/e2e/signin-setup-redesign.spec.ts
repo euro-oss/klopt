@@ -263,6 +263,41 @@ test('SignIn and Setup redesign: empty/filled, legal env, keyboard, no console e
   expect(consoleProbe.errors, `console errors: ${consoleProbe.errors.join('\n')}`).toEqual([])
 })
 
+test('Setup recovers when server flips to hosted mid-tab', async ({ page }) => {
+  // Stale tab: Setup loaded self-hosted (no checkbox), then create hits a
+  // hosted server. The 422 must surface the checkbox + legal.required, not
+  // the API English detail.
+  await withoutHostedLegal(page)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/sign-in')
+  await expect(page.getByRole('button', { name: 'Stuur me een code' })).toBeEnabled()
+
+  const email = uniqueEmail()
+  await signIn(page, email)
+  await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+  await page.getByRole('link', { name: 'Administratie opzetten' }).click()
+  await expect(page.getByRole('heading', { name: 'Zet je administratie op' })).toBeVisible()
+  await expect(page.getByRole('checkbox')).toHaveCount(0)
+
+  await page.getByLabel('Naam', { exact: true }).fill('Stale Tab BV')
+  await withHostedLegal(page)
+
+  await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
+  const checkbox = page.getByRole('checkbox')
+  await expect(checkbox).toBeVisible()
+  await expect(page.getByText('Vink dit aan om door te gaan.')).toBeVisible()
+  await expect(checkbox).toBeFocused()
+  await expect(page.getByText(/Agree to the terms/i)).toHaveCount(0)
+
+  await checkbox.focus()
+  await page.keyboard.press('Space')
+  await expect(checkbox).toBeChecked()
+  await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
+})
+
 test('SignIn → Setup at 390: wrapping and 44px targets', async ({ page }) => {
   await withoutHostedLegal(page)
   await page.setViewportSize({ width: 390, height: 844 })

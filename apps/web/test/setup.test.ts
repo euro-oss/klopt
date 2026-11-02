@@ -286,7 +286,13 @@ describe('hosted create requires terms/DPA acceptance', () => {
       // Same call shape as routes/api/v1/entities.$entityId.ts — no options.
       await expect(handleCreateEntity(context, entityId, body())).rejects.toMatchObject({
         code: 'validation_failed',
-        violations: [{ code: 'legal_acceptance_required', path: 'acceptedLegal' }],
+        violations: [
+          {
+            code: 'legal_acceptance_required',
+            messageKey: 'legal_acceptance_required',
+            path: 'acceptedLegal',
+          },
+        ],
       })
 
       expect(await membershipsFor(database, userId)).toEqual([])

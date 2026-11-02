@@ -116,6 +116,9 @@ export async function handleCreateEntity(
       [
         {
           code: 'legal_acceptance_required',
+          // Stable key so the Setup UI can map to t('legal.required') and
+          // re-fetch legal config when a stale tab meets a newly hosted server.
+          messageKey: 'legal_acceptance_required',
           path: 'acceptedLegal',
           message: 'Agree to the terms and the data processing agreement to continue.',
         },

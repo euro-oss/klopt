@@ -105,8 +105,17 @@ function ImportHint({
   )
 }
 
+function isLegalAcceptanceRequired(item: {
+  readonly code?: string
+  readonly messageKey?: string | null
+}): boolean {
+  return (
+    item.code === 'legal_acceptance_required' || item.messageKey === 'legal_acceptance_required'
+  )
+}
+
 function Setup() {
-  const { session, setup, legal } = Route.useLoaderData()
+  const { session, setup, legal: loadedLegal } = Route.useLoaderData()
   const navigate = useNavigate()
   const hydrated = useHydrated()
   const { t, locale } = useT()
@@ -119,6 +128,10 @@ function Setup() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [acceptedLegal, setAcceptedLegal] = useState(false)
+  // After a hosted 422 on a stale (self-hosted) tab, hold the re-fetched
+  // config so the checkbox appears without a full reload.
+  const [legalOverride, setLegalOverride] = useState<typeof loadedLegal | null>(null)
+  const legal = legalOverride ?? loadedLegal
   const modKey = isApple() ? '⌘' : 'Ctrl'
 
   /**
@@ -129,11 +142,20 @@ function Setup() {
   const entityId = useRef<string>(setup.ok ? setup.data.entityId : '')
   const nameRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
+  const focusLegalCheckbox = useRef(false)
 
   // Focus after hydration — `autoFocus` on SSR marks a style mismatch in React 19.
   useEffect(() => {
     if (hydrated) nameRef.current?.focus()
   }, [hydrated])
+
+  useEffect(() => {
+    if (!focusLegalCheckbox.current || !legal.agreementRequired) return
+    focusLegalCheckbox.current = false
+    requestAnimationFrame(() => {
+      document.getElementById('legal-agreement')?.focus()
+    })
+  }, [legal.agreementRequired, fieldErrors])
 
   useEffect(() => {
     if (!hydrated) return
@@ -194,6 +216,19 @@ function Setup() {
 
     if (!result.ok) {
       setBusy(false)
+      const needsLegal = result.problem.violations.some(isLegalAcceptanceRequired)
+      if (needsLegal) {
+        // Stale tab / mixed deploy: page loaded self-hosted, server is now
+        // hosted. Never show the API English — re-fetch so the checkbox
+        // appears, then the same copy as the unticked client guard.
+        const fresh = await getLegalConfig()
+        focusLegalCheckbox.current = true
+        setLegalOverride(fresh)
+        setFieldErrors({ acceptedLegal: t('legal.required') })
+        setError(null)
+        return
+      }
+
       const byField: Record<string, string> = {}
       for (const item of result.problem.violations) {
         if (item.path !== null) byField[item.path] = violationMessage(t, item)
