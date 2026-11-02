@@ -6,7 +6,6 @@
  * lose-default note. No ledger writes.
  */
 
-import { TriangleAlert } from 'lucide-react'
 import type { ExactVatMappingRow, ExactVatMappingSummary } from '@klopt/core'
 import { Badge } from '~/components/ui/badge'
 import { ScrollTable, stickyFirstCol } from '~/components/ui/scroll-table'
@@ -24,23 +23,22 @@ export function ExactVatPreview({
 }) {
   const { t } = useT()
   const { advanced } = useAdvancedMode()
+  const recognised = summary.rows.filter((row) => row.kloptCode !== null)
+  const unrecognised = summary.rows.filter((row) => row.kloptCode === null)
 
   return (
     <div>
+      <p className="text-muted-foreground mb-3 text-sm tabular-nums" role="status">
+        {t('wizard.exact.btw.recognisedCount', {
+          recognised: String(summary.recognised),
+          total: String(summary.codeCount),
+        })}
+      </p>
       {notImportedYet === true && (
         <p role="status" className="text-muted-foreground mb-4 text-sm">
           {t('wizard.exact.btw.notImportedYet')}
         </p>
       )}
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-sm font-medium">{t('wizard.exact.btw.recognisedHeading')}</h3>
-        <p className="text-muted-foreground text-sm tabular-nums">
-          {t('wizard.exact.btw.recognisedCount', {
-            recognised: String(summary.recognised),
-            total: String(summary.codeCount),
-          })}
-        </p>
-      </div>
       <ScrollTable>
         <table className={cn('w-full min-w-[28rem] text-left text-sm', stickyFirstCol)}>
           <thead className="bg-muted text-muted-foreground text-xs">
@@ -50,7 +48,10 @@ export function ExactVatPreview({
             </tr>
           </thead>
           <tbody>
-            {summary.rows.map((row) => (
+            {recognised.map((row) => (
+              <ExactVatRow key={row.exactCode} row={row} advanced={advanced} />
+            ))}
+            {unrecognised.map((row) => (
               <ExactVatRow key={row.exactCode} row={row} advanced={advanced} />
             ))}
           </tbody>
@@ -69,15 +70,22 @@ function ExactVatRow({
   readonly advanced: boolean
 }) {
   const { t } = useT()
+  const nameHasRate = new RegExp(`${row.percentage.replace('.', '\\.')}\\s*%`).test(row.exactName)
   const exactSub = advanced
     ? t('wizard.exact.btw.exactCode', { code: row.exactCode })
-    : `${row.percentage}%`
+    : nameHasRate
+      ? null
+      : `${row.percentage}%`
 
   return (
     <tr className="border-border border-t align-top">
       <td className="py-2.5 pr-3 pl-4">
         <span className="block font-medium">{row.exactName}</span>
-        <span className="text-muted-foreground mt-0.5 block text-xs tabular-nums">{exactSub}</span>
+        {exactSub !== null && (
+          <span className="text-muted-foreground mt-0.5 block text-xs tabular-nums">
+            {exactSub}
+          </span>
+        )}
       </td>
       <td className="py-2.5 pr-4">
         {row.kloptCode !== null ? (
@@ -96,12 +104,9 @@ function ExactVatRow({
           </div>
         ) : (
           <div>
-            <span className="text-warning flex items-center gap-1.5">
-              <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
-              {t('wizard.exact.btw.unrecognised')}
-            </span>
+            <Badge variant="attention">{t('wizard.exact.btw.unrecognised')}</Badge>
             {row.accountsLosingDefault.length > 0 && (
-              <span className="text-muted-foreground mt-0.5 block text-xs tabular-nums">
+              <span className="text-muted-foreground mt-1.5 block text-xs">
                 {row.accountsLosingDefault.length === 1
                   ? t('wizard.exact.btw.loseDefaultOne')
                   : t('wizard.exact.btw.loseDefaultMany', {

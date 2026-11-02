@@ -77,10 +77,7 @@ export async function startExactStandIn(): Promise<ExactStandIn> {
     }
 
     if (path.includes('/current/Me')) {
-      send(
-        200,
-        collection([{ UserID: guid(9), FullName: 'Test Gebruiker', CurrentDivision: 1000 }]),
-      )
+      send(200, collection([{ UserID: guid(9), FullName: 'Ruben', CurrentDivision: 1000 }]))
       return
     }
 

@@ -1131,7 +1131,7 @@ export const connectExactBody = z.object({
     .url()
     .refine(
       isHttpsOrLoopbackUrl,
-      'Exact only accepts an https redirect (or localhost for a stand-in). Serve the app over https — `pnpm dev:https` does it locally — and use that origin.',
+      'Exact only accepts an https redirect (or localhost for a stand-in). Open Klopt over https.',
     ),
 })
 

@@ -135,7 +135,7 @@ describe('connecting', () => {
     })
 
     expect(refused.success).toBe(false)
-    expect(JSON.stringify(refused.error?.issues)).toContain('pnpm dev:https')
+    expect(JSON.stringify(refused.error?.issues)).toContain('https redirect')
   })
 
   it('allows a localhost redirect for an Exact stand-in', () => {

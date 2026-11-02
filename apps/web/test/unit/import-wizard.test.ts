@@ -119,6 +119,7 @@ describe('import wizard steps (#100)', () => {
       'btw',
     ])
     expect(wizardStepKeysForSource('exact')).toHaveLength(5)
+    expect(wizardStepKeysForSource('exact')[2]).toBe('wizard.step.administratieExact')
     expect(wizardStepsForSource('moneybird')).toEqual([...IMPORT_WIZARD_STEPS])
     expect(wizardStepsForSource(null)).toEqual([...IMPORT_WIZARD_STEPS])
   })

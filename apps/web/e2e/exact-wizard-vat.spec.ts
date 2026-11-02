@@ -180,12 +180,15 @@ test('Exact VAT read-only preview: seeded mapping, rail stop, resume, keyboard (
     await expect(page.getByText(/Verlegd inkoop EU/)).toBeVisible()
     await expect(page.getByText('Geen btw - export buiten de EU', { exact: true })).toBeVisible()
     await expect(page.getByText(/Nog niet in deze versie/)).toBeVisible()
-    // No disabled later steps on the rail (#100 PM / #161 QA).
+    // No disabled later steps on the rail; Btw has Back only (#100 PM / #161 Design).
     const rail = page.getByRole('navigation', { name: 'Stappen' })
+    await expect(rail.getByText('Administratie en boekjaar')).toBeVisible()
+    await expect(rail.getByText('Administratie en jaren')).toHaveCount(0)
     await expect(rail.getByText('Rekeningen en relaties')).toHaveCount(0)
     await expect(rail.getByText('Problemen')).toHaveCount(0)
     await expect(rail.getByText(/^Importeren$/)).toHaveCount(0)
-    await expect(page.locator('button[data-focus="next"]')).toHaveAttribute('aria-disabled', 'true')
+    await expect(page.locator('button[data-focus="next"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /Terug/ })).toBeVisible()
 
     // Returning to an unfinished import shows Welkom terug (#100 PM).
     await page.goto('/importeren')

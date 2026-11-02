@@ -98,12 +98,22 @@ export function wizardStepsForSource(
   return IMPORT_WIZARD_STEPS
 }
 
+/** Exact rail labels — administratie uses the Exact-specific boekjaar wording (#161 Design). */
+export const EXACT_WIZARD_STEP_KEYS = [
+  'wizard.step.bron',
+  'wizard.step.verbinden',
+  'wizard.step.administratieExact',
+  'wizard.step.voorbeeld',
+  'wizard.step.btw',
+] as const
+
 export function wizardStepKeysForSource(
   source: ImportWizardSource | null,
-): readonly (typeof IMPORT_WIZARD_STEP_KEYS)[number][] {
-  if (source === 'exact') {
-    return IMPORT_WIZARD_STEP_KEYS.slice(0, EXACT_WIZARD_STEPS.length)
-  }
+):
+  | typeof IMPORT_WIZARD_STEP_KEYS
+  | typeof EXACT_WIZARD_STEP_KEYS
+  | readonly (typeof IMPORT_WIZARD_STEP_KEYS)[number][] {
+  if (source === 'exact') return EXACT_WIZARD_STEP_KEYS
   return IMPORT_WIZARD_STEP_KEYS
 }
 

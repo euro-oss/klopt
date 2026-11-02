@@ -341,7 +341,9 @@ export function ExactWizardFlow({
             <div className="border-border border p-4">
               <p className="font-medium">{t('wizard.verbinden.exact.connected')}</p>
               <p className="text-muted-foreground mt-1 text-sm">
-                {connection?.userName ?? t('exact.unknownUser')} —{' '}
+                {connection?.userName ?? t('exact.unknownUser')}
+              </p>
+              <p className="text-muted-foreground mt-0.5 text-sm">
                 {t('wizard.verbinden.exact.connectedHint')}
               </p>
               <Button
@@ -398,7 +400,7 @@ export function ExactWizardFlow({
                     disabled={!hydrated || redirectUri === ''}
                     onClick={() => {
                       void navigator.clipboard.writeText(redirectUri)
-                      setToast(t('wizard.verbinden.exact.copyRedirect'))
+                      setToast(t('wizard.verbinden.exact.copied'))
                     }}
                   >
                     {t('wizard.verbinden.exact.copyRedirect')}
@@ -597,15 +599,8 @@ export function ExactWizardFlow({
               <p>{t('wizard.exact.later.body')}</p>
             </AttentionBlock>
           </div>
-          <WizardFooter
-            showBack
-            onBack={() => void handleBack()}
-            nextLabel={t('wizard.next')}
-            nextDisabled
-            nextReason={t('wizard.status.exactLater')}
-            onNextBlocked={() => setToast(t('wizard.status.exactLater'))}
-            onNext={() => undefined}
-          />
+          {/* Exact Phase 2 ends here — Back only; the info card is the stop (#161 Design/PM). */}
+          <WizardFooter showBack onBack={() => void handleBack()} />
         </>
       )}
 

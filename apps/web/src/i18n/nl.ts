@@ -1454,8 +1454,7 @@ export const nl = {
     'De OAuth-app is van degene die deze installatie beheert. Registreer hem in het Exact App Center met precies deze redirect-URI — Exact vergelijkt hem letterlijk.',
   'exact.noEncryptionKey':
     'Er is geen KLOPT_ENCRYPTION_KEY ingesteld, dus een client secret kan niet versleuteld worden opgeslagen. Zet die eerst; onversleuteld bewaren doet dit systeem niet.',
-  'exact.needsHttps': 'Exact accepteert alleen een https-redirect. Start de app met',
-  'exact.needsHttpsAfter': 'en open die URL, of zet er een https-proxy voor.',
+  'exact.needsHttps': 'Exact accepteert alleen een https-adres als redirect. Open Klopt via https.',
   'exact.environment': 'Exact-omgeving',
   'exact.clientId': 'Client ID',
   'exact.clientSecret': 'Client secret',
@@ -2678,6 +2677,7 @@ export const nl = {
   'wizard.step.bron': 'Bron',
   'wizard.step.verbinden': 'Verbinden',
   'wizard.step.administratie': 'Administratie en jaren',
+  'wizard.step.administratieExact': 'Administratie en boekjaar',
   'wizard.step.voorbeeld': 'Voorbeeld',
   'wizard.step.btw': 'Btw-codes',
   'wizard.step.rekeningen': 'Rekeningen en relaties',
@@ -2719,8 +2719,9 @@ export const nl = {
   'wizard.verbinden.exact.signIn': 'Aanmelden bij Exact',
   'wizard.verbinden.exact.redirectHelp': 'Kopieer dit adres naar de redirect-URI van je Exact-app.',
   'wizard.verbinden.exact.copyRedirect': 'Kopiëren',
+  'wizard.verbinden.exact.copied': 'Adres gekopieerd',
   'wizard.verbinden.exact.needsHttps':
-    'Exact accepteert alleen een https-redirect. Gebruik `pnpm dev:https`, of een localhost-stand-in.',
+    'Exact accepteert alleen een https-adres als redirect. Open Klopt via https.',
   'wizard.administratie.exact.title': 'Welke administratie en welk boekjaar?',
   'wizard.administratie.exact.intro':
     'Exact zet één boekjaar over als beginbalans. Kies de administratie en het jaar.',
@@ -2755,7 +2756,7 @@ export const nl = {
   'wizard.exact.btw.status': '{recognised} van {total} herkend · niets te kiezen',
   'wizard.exact.later.title': 'Nog niet in deze versie',
   'wizard.exact.later.body':
-    'Rekeningen, relaties, beginbalans en facturen volgen in latere stappen. Btw-codes kun je hier al bekijken.',
+    'Rekeningen, relaties, beginbalans en facturen volgen in een latere versie. Btw-codes kun je hier al bekijken.',
   'wizard.status.exactNeedConnect': 'Meld je aan bij Exact om verder te gaan',
   'wizard.status.exactNeedDivision': 'Kies een administratie en een boekjaar',
   'wizard.status.exactLater': 'Volgende Exact-stappen komen in een latere versie',

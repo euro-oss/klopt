@@ -220,7 +220,8 @@ export function WizardFooter({
   readonly onBack?: () => void
   readonly onNext?: () => void
   readonly onNextBlocked?: () => void
-  readonly nextLabel: string
+  /** Required when `onNext` is set; omit with `onNext` for a Back-only footer. */
+  readonly nextLabel?: string
   readonly nextDisabled?: boolean
   readonly nextReason?: string | null
   readonly showBack: boolean
@@ -228,6 +229,7 @@ export function WizardFooter({
 }) {
   const { t } = useT()
   const blocked = nextDisabled === true
+  const showNext = onNext !== undefined && nextLabel !== undefined && nextLabel !== ''
   return (
     <footer className="border-border mt-8 flex flex-wrap items-center gap-3 border-t pt-4">
       {showBack && onBack !== undefined && (
@@ -236,13 +238,13 @@ export function WizardFooter({
           <Keycap className="ml-1 hidden md:inline-flex">Esc</Keycap>
         </Button>
       )}
-      <div className="ml-auto flex flex-col items-end gap-1">
-        {blocked && nextReason !== null && nextReason !== undefined && nextReason !== '' && (
-          <p id="wizard-next-why" className="text-muted-foreground max-w-sm text-right text-xs">
-            {nextReason}
-          </p>
-        )}
-        {onNext !== undefined && (
+      {showNext && (
+        <div className="ml-auto flex flex-col items-end gap-1">
+          {blocked && nextReason !== null && nextReason !== undefined && nextReason !== '' && (
+            <p id="wizard-next-why" className="text-muted-foreground max-w-sm text-right text-xs">
+              {nextReason}
+            </p>
+          )}
           <Button
             type="button"
             className={cn('min-h-11 md:min-h-9', blocked && 'opacity-50')}
@@ -263,8 +265,8 @@ export function WizardFooter({
               <Keycap className="ml-1 hidden md:inline-flex">↵</Keycap>
             )}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </footer>
   )
 }

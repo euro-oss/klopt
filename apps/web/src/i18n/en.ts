@@ -1657,8 +1657,7 @@ export const en: Record<MessageKey, string> = {
     'The OAuth app belongs to whoever runs this installation. Register it in the Exact App Center with exactly this redirect URI — Exact compares it literally.',
   'exact.noEncryptionKey':
     'No KLOPT_ENCRYPTION_KEY is set, so a client secret cannot be stored encrypted. Set one first; this system does not store it in the clear.',
-  'exact.needsHttps': 'Exact only accepts an https redirect. Start the app with',
-  'exact.needsHttpsAfter': 'and open that URL, or put an https proxy in front of it.',
+  'exact.needsHttps': 'Exact only accepts an https redirect. Open Klopt over https.',
   'exact.environment': 'Exact environment',
   'exact.clientId': 'Client ID',
   'exact.clientSecret': 'Client secret',
@@ -2300,6 +2299,7 @@ export const en: Record<MessageKey, string> = {
   'wizard.step.bron': 'Source',
   'wizard.step.verbinden': 'Connect',
   'wizard.step.administratie': 'Administration and years',
+  'wizard.step.administratieExact': 'Administration and fiscal year',
   'wizard.step.voorbeeld': 'Preview',
   'wizard.step.btw': 'VAT codes',
   'wizard.step.rekeningen': 'Accounts and contacts',
@@ -2341,8 +2341,9 @@ export const en: Record<MessageKey, string> = {
   'wizard.verbinden.exact.signIn': 'Sign in to Exact',
   'wizard.verbinden.exact.redirectHelp': 'Copy this address into your Exact app redirect URI.',
   'wizard.verbinden.exact.copyRedirect': 'Copy',
+  'wizard.verbinden.exact.copied': 'Address copied',
   'wizard.verbinden.exact.needsHttps':
-    'Exact only accepts an https redirect. Use `pnpm dev:https`, or a localhost stand-in.',
+    'Exact only accepts an https redirect. Open Klopt over https.',
   'wizard.administratie.exact.title': 'Which administration and which fiscal year?',
   'wizard.administratie.exact.intro':
     'Exact transfers one fiscal year as an opening balance. Pick the administration and the year.',
@@ -2378,7 +2379,7 @@ export const en: Record<MessageKey, string> = {
   'wizard.exact.btw.status': '{recognised} of {total} recognised · nothing to choose',
   'wizard.exact.later.title': 'Not in this version yet',
   'wizard.exact.later.body':
-    'Accounts, contacts, opening balance and invoices follow in later steps. You can already review VAT codes here.',
+    'Accounts, contacts, opening balance and invoices follow in a later release. You can already review VAT codes here.',
   'wizard.status.exactNeedConnect': 'Sign in to Exact to continue',
   'wizard.status.exactNeedDivision': 'Pick an administration and a fiscal year',
   'wizard.status.exactLater': 'Later Exact steps come in a later release',
