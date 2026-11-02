@@ -8,32 +8,34 @@ Hidde's two desktop-light Inbox boards (`Inbox`, `InboxReview`) get a dark 1440 
 
 | Board | What it is | Screenshots in `derived-shots/inbox-148/` |
 | --- | --- | --- |
-| `InboxDark.dc.html` | Thin wrapper: Hidde's `Inbox` with `theme="dark"`, `--line-control` on `--ink-muted` and outlined key hints in the primary button | `Inbox-dark-1440` |
-| `InboxReviewDark.dc.html` | Thin wrapper: Hidde's `InboxReview`, same overrides | `InboxReview-dark-1440` |
+| `InboxDark.dc.html`, `theme` prop (default dark) | Own file: Hidde's `Inbox` with honest copy, `--line-control` on `--ink-muted`, outlined key hints in the primary button, self-hosted fonts | `Inbox-dark-1440` |
+| `InboxReviewDark.dc.html`, `theme` (default dark) and `view` props | Own file: Hidde's `InboxReview` in the honest PDF state (`view=pdf`, default) or with the e-invoice open (`view=ubl`), same overrides | `InboxReview-{pdf,ubl}-dark-1440` |
 | `PhoneInbox.dc.html`, `theme` prop | First run at 390: status chips, the empty card with Take a photo and Choose files, three sources, three steps | `Inbox-light-390` |
 | `PhoneInboxDark.dc.html` | `PhoneInbox` with `theme="dark"` | `Inbox-dark-390` |
 | `PhoneInboxReview.dc.html`, `theme` and `view` props | Check and book at 390: documents, the open document, the form, sticky Book and next | `InboxReview-{pdf,ubl}-light-390` |
 | `PhoneInboxReviewDark.dc.html`, `view` prop | `PhoneInboxReview` with `theme="dark"`, passes `view` on | `InboxReview-{pdf,ubl}-dark-390` |
 
-`view` on `PhoneInboxReview` is `pdf` (Hidde's Telecom Fictief PDF is open; the default) or `ubl` (the Internet Voorbeeld e-invoice is open). Tapping either document switches.
+`view` on `InboxReviewDark` and `PhoneInboxReview` is `pdf` (Hidde's Telecom Fictief PDF is open; the default) or `ubl` (the Internet Voorbeeld e-invoice is open). Tapping either document switches.
 
 All six boards are registered in `canvas.json` (note `t148` at y 37700, boards at y 38000, under the #147 rows): the two dark desktop boards at x 0 and 1520, the four phone boards at x 3040 to 4450. Each entry has `"derived": true` and a `derivedNote`.
 
-### Why both dark boards are wrappers
+### Why both dark boards are copies
 
-Neither board has a tab in state, and in dark both hold up once the control border token is fixed: the drop zone's dashed border and the buttons use `--line-control`, and the category select's `selection-edge` border is 10.65:1 on the dark surface (in light it is 1.90:1, which is why the phone board draws it differently). The wrappers also outline the key hints in the dark primary button in `--on-primary`, from the same document's stylesheet. So no copy is needed.
+A first version of this PR made them thin wrappers, which kept Hidde's copy: "Klopt reads them", "Klopt reads it", and highlights with ✓ checks on a PDF. `POST /inbox` reads only UBL and Peppol, and #107 Phase 5 says derived boards drop claims like that while Hidde's boards stay as drawn. A wrapper can't change copy, so both are now own files copied from Hidde's boards, with the copy of the phone boards (below). Hidde's `Inbox` and `InboxReview` are unchanged and still need the same fix in whichever PR owns them.
 
-The dark desktop boards keep Hidde's copy, which still promises reading: "Klopt reads them", "Drop PDFs, photos… paste a screenshot", "Klopt reads it", and the highlights and ✓ checks on a PDF. #148 allows only the a11y departures on these boards, and the honest-copy rule in #148 is for the phone boards. #107 Phase 5 applies it to the port as well, so Hidde's light board and these wrappers need the same copy fix in whichever PR owns them. The phone boards below are written to it already.
+- `InboxDark`: same layout, sources and steps. The drop, paste (⌘V) and screenshot intake stay, but the text no longer says they get read: "Drop PDFs, photos or e-invoices anywhere on this page, paste a screenshot with ⌘V, or connect a source below so they arrive by themselves. E-invoices (UBL) are read for you; for a PDF, photo or screenshot you fill in what it says." The header, the three source cards and step 1 use the phone copy. The text block is 520px wide (Hidde: 460px) for the longer line.
+- `InboxReviewDark`: same three columns. With `view=pdf` (default) the PDF has no highlights, its footer is "factuur-november.pdf · 1 page", and the form starts empty under "Klopt doesn't read PDFs or photos. Fill in what the document says." With `view=ubl` the Internet Voorbeeld e-invoice is open, highlighted, with Hidde's ✓ labels and "check this" category. The documents list matches the phone board; clicking the PDF or the e-invoice switches.
+- Kept from the wrappers: control borders on `--ink-muted`, outlined key hints in the dark primary button. The suggested category keeps Hidde's 2px yellow `selection-edge` border in dark (10.65:1); in light it is drawn as the inner ring over the `--ink-muted` border, as on phone. Fonts are self-hosted (`fonts.css`) instead of Google Fonts. Cross-links go to `InboxReviewDark` and `BillNewDark`.
 
 ### Honest copy (#107 Phase 5, #148)
 
-`POST /inbox` reads UBL and Peppol only. On the phone boards:
+`POST /inbox` reads UBL and Peppol only. On all six boards:
 
 - Nothing promises reading PDFs, photos or screenshots. "Klopt reads them" becomes "You check them and book"; step 1 is "It lands here: an e-invoice is read… For a PDF or photo, you fill these in"; the empty card says "E-invoices (UBL) are read for you. For a PDF or photo, you fill in supplier, amount and VAT next to it."
 - Highlights, "Highlighted: what Klopt read" and the ✓ checks appear only for the e-invoice (`view=ubl`). With the PDF open (`view=pdf`), the document has no highlights and the form starts empty under "Klopt doesn't read PDFs or photos. Fill in what the document says."
 - For the same reason the documents list shows file names (`factuur-november.pdf`, `IMG_2041.jpg`) with a "To fill in" pill, not a read supplier and amount; the e-invoice shows its supplier and "Ready", as on Hidde's board.
 - The Peppol card says "Not set up" and "Once Peppol receiving is set up…", matching "Not reachable yet" on SettingsCompany. The mailbox card drops "every five minutes" (no timing promise). The folder card says "the usual choice when you run Klopt on your own server".
-- No paste-a-screenshot and no key hints on phone.
+- On the dark desktop boards the drop, paste and screenshot intake stay, without a promise that they get read. No paste-a-screenshot and no key hints on phone.
 
 ### Rules for these boards
 
@@ -42,7 +44,7 @@ The dark desktop boards keep Hidde's copy, which still promises reading: "Klopt 
 - Links are ink and underlined, 44px tall on phone ("See it with example documents", the three source links, "‹ Inbox"). No `ink-faint` for text. No new status colours: "To fill in" is the draft pill, "Ready" the paid pill, "check this" stays `brand-ink`, the ✓ stays `success`.
 - Phone: `.k-phone` at 390, Hidde's five-tab bar with More active (Inbox lives under More), sticky at the bottom. Targets are 44px or more; document rows are 60px. Book and next is 48px; Set aside and Not a bill are 44px, all in a sticky bar above the tab bar.
 - Amounts and dates are Inter with tabular figures (`.k-num`, `nw` on amounts). The step numbers are Inter (Hidde's `.k-option-key` is JetBrains Mono). `.k-paper` stays white in both themes.
-- `shoot.mjs` printed no QA warnings for the eight shots.
+- `shoot.mjs` printed no QA warnings for the nine shots.
 
 ### Invented, for Hidde to check
 
@@ -70,7 +72,7 @@ From `design/redesign-2026-10/`:
 
 ```sh
 O=derived-shots/inbox-148
-node derived-shots/render/shoot.mjs $O --width=1440 'InboxDark.dc.html?theme=dark=Inbox-dark-1440' 'InboxReviewDark.dc.html?theme=dark=InboxReview-dark-1440'
+node derived-shots/render/shoot.mjs $O --width=1440 'InboxDark.dc.html?theme=dark=Inbox-dark-1440' 'InboxReviewDark.dc.html?theme=dark&view=pdf=InboxReview-pdf-dark-1440' 'InboxReviewDark.dc.html?theme=dark&view=ubl=InboxReview-ubl-dark-1440'
 node derived-shots/render/shoot.mjs $O --width=390 'PhoneInbox.dc.html=Inbox-light-390' 'PhoneInboxDark.dc.html?theme=dark=Inbox-dark-390' \
   $(for v in pdf ubl; do echo "PhoneInboxReview.dc.html?view=$v=InboxReview-$v-light-390" "PhoneInboxReviewDark.dc.html?theme=dark&view=$v=InboxReview-$v-dark-390"; done)
 ```
@@ -83,6 +85,7 @@ Strings Hidde already has on his Inbox boards are not repeated here.
 
 | English (board) | Nederlands |
 | --- | --- |
+| Drop PDFs, photos or e-invoices anywhere on this page, paste a screenshot with ⌘V, or connect a source below so they arrive by themselves. E-invoices (UBL) are read for you; for a PDF, photo or screenshot you fill in what it says. | Sleep pdf's, foto's of e-facturen ergens op deze pagina, plak een screenshot met ⌘V, of stel hieronder een bron in zodat ze vanzelf binnenkomen. E-facturen (UBL) worden voor je gelezen; bij een pdf, foto of screenshot vul je zelf in wat erop staat. |
 | Receipts and bills land here. You check them and book. | Bonnen en facturen komen hier binnen. Jij controleert en boekt ze. |
 | See it with example documents | Bekijk het met voorbeelddocumenten |
 | Take a photo, add a PDF or UBL file, or connect a source below so they arrive by themselves. | Maak een foto, voeg een pdf of UBL-bestand toe, of stel hieronder een bron in zodat ze vanzelf binnenkomen. |
@@ -96,7 +99,7 @@ Strings Hidde already has on his Inbox boards are not repeated here.
 | Next to the document. Book it, or set it aside. | Naast het document. Boek het, of leg het apart. |
 | ‹ Inbox | ‹ Inbox |
 | To fill in | Nog invullen |
-| PDF · from email / Photo · from your phone / E-invoice · Peppol | Pdf · uit e-mail / Foto · van je telefoon / E-factuur · Peppol |
+| PDF · from email / Photo · from your phone / E-invoice · Peppol (desktop: PDF · email / photo · phone / e-invoice · Peppol) | Pdf · uit e-mail / Foto · van je telefoon / E-factuur · Peppol (desktop: pdf · e-mail / foto · telefoon / e-factuur · Peppol) |
 | factuur-november.pdf · 1 page | factuur-november.pdf · 1 pagina |
 | Klopt doesn't read PDFs or photos. Fill in what the document says. | Klopt leest geen pdf's of foto's. Vul in wat er op het document staat. |
 | Start typing a name / dd-mm-yyyy / Choose a category | Begin een naam te typen / dd-mm-jjjj / Kies een categorie |

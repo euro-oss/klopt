@@ -9,27 +9,150 @@
 </head>
 <body>
 <!--
-  Derived board, not drawn by Hidde (#148). Dark 1440: Hidde's InboxReview with theme="dark", the same way
-  HomeDark wraps Main. His markup holds up in dark once the control border token is fixed (the
-  VatDark override), so it is a thin wrapper, not a copy. Key hints in the dark primary button are
-  outlined in --on-primary. Self-hosted fonts. Copy is Hidde's; its links go to his light boards.
+  Derived board, not drawn by Hidde (#148). Dark 1440 of InboxReview.dc.html: same three columns.
+  Its own file, not a theme="dark" wrapper, because Hidde's board shows a PDF with "what Klopt read"
+  highlighted and ✓ checks, and POST /inbox reads only UBL and Peppol (#107 Phase 5, honest copy).
+  Derived boards drop that claim; Hidde's board is untouched. As on PhoneInboxReview:
+  `view` = pdf (default): the PDF has no highlights and the form starts empty, saying Klopt doesn't
+  read PDFs or photos; `view` = ubl: the Internet Voorbeeld e-invoice, highlighted and ✓ checked.
+  The list shows file names with "To fill in" for the PDF and the photo. Clicking either document
+  switches. Takes `theme` (default dark) and `view`.
+  A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), outlined key hints
+  in the dark primary button, the suggested category's yellow edge kept in dark (10.65:1) and drawn
+  as an inner ring over the --ink-muted border in light, self-hosted fonts.
 -->
 <x-dc>
 <helmet>
 <link rel="stylesheet" href="../design-system/fonts/fonts.css">
 <style>
-body{margin:0;background:#111113}
-.k-root[data-theme="dark"]{--line-control:var(--ink-muted)}
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root .k-input{border-color:var(--line-control)}
 .k-root[data-theme="dark"] .k-btn--primary .k-kbd--on-primary{border-color:var(--on-primary)}
+.k-root .k-input.sugg{box-shadow:inset 0 0 0 1px var(--selection-edge)}
+.k-root[data-theme="dark"] .k-input.sugg{border:2px solid var(--selection-edge);box-shadow:none}
+.note{margin:0;padding:12px 14px;border-radius:var(--radius-md);background:var(--surface-sunken);color:var(--ink-2);font-size:13px;line-height:1.5}
+.hl{background:rgba(255,212,59,.45);border-radius:2px;padding:0 2px}
+.read{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--success);font-weight:500}
+.check{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--brand-ink);font-weight:600}
 </style>
 </helmet>
-<div style="min-height: 1040px; background: #111113;">
-  <dc-import name="InboxReview" theme="dark" hint-size="100%,1040px"></dc-import>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="inbox" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; padding: 20px 32px 24px; gap: 16px; box-sizing: border-box;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; flex: 1;">Inbox</h1>
+      <span class="k-pill k-pill--draft">Example documents</span>
+      <a href="BillNewDark.dc.html" class="k-btn">Add files <span class="k-chord"><span class="k-kbd">N</span><span class="k-kbd">R</span></span></a>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+      <section aria-label="Documents" class="k-card k-card--flush" style="flex: 1 1 260px; max-width: 300px;">
+        <div class="k-seg" style="padding: 10px;" role="tablist" aria-label="Status">
+          <button type="button" role="tab" class="k-seg-item" aria-selected="true">To handle <span class="k-count">3</span></button>
+          <button type="button" role="tab" class="k-seg-item" aria-selected="false">Booked</button>
+        </div>
+        <button type="button" class="k-row" aria-selected="{{sel.pdf}}" onClick="{{pickPdf}}" style="padding: 12px 16px;">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;"><strong style="font-weight: 600;">factuur-november.pdf</strong><span class="k-muted" style="font-size: 12px;">PDF · email</span></span>
+          <span class="k-pill k-pill--draft">To fill in</span>
+        </button>
+        <button type="button" class="k-row" style="padding: 12px 16px;">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;"><strong style="font-weight: 600;">IMG_2041.jpg</strong><span class="k-muted" style="font-size: 12px;">photo · phone</span></span>
+          <span class="k-pill k-pill--draft">To fill in</span>
+        </button>
+        <button type="button" class="k-row" aria-selected="{{sel.ubl}}" onClick="{{pickUbl}}" style="padding: 12px 16px;">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;"><strong style="font-weight: 600;">Internet Voorbeeld</strong><span class="k-muted" style="font-size: 12px;">e-invoice · Peppol</span></span>
+          <span class="k-pill k-pill--paid">Ready</span>
+        </button>
+      </section>
+
+      <section aria-label="Document" style="flex: 1 1 360px; min-width: 0;">
+        <sc-if value="{{v.pdf}}" hint-placeholder-val="{{true}}">
+        <article class="k-paper" style="padding: 36px; font-size: 12px; line-height: 1.5; display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; justify-content: space-between;"><strong style="font-size: 16px;">Telecom Fictief (demo)</strong><span style="color: #63636b;">FACTUUR</span></div>
+          <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px 14px;">
+            <span style="color: #63636b;">Factuurnummer</span><span>INK-DEMO-2025-0002</span>
+            <span style="color: #63636b;">Factuurdatum</span><span>24-11-2025</span>
+            <span style="color: #63636b;">Vervaldatum</span><span>24-12-2025</span>
+          </div>
+          <div style="border-top: 1.5px solid #18181b; padding-top: 8px; display: flex; justify-content: space-between;"><span>Zakelijk abonnement, november</span><span class="k-num">336,62</span></div>
+          <div style="margin-left: auto; display: grid; grid-template-columns: auto 80px; gap: 4px 16px; text-align: right;" class="k-num">
+            <span style="color: #63636b;">Subtotaal</span><span>336,62</span>
+            <span style="color: #63636b;">BTW 21%</span><span>70,69</span>
+            <strong>Totaal</strong><strong>407,31</strong>
+          </div>
+          <div style="flex: 1;"></div>
+          <span style="color: #63636b;">factuur-november.pdf · 1 page</span>
+        </article>
+        </sc-if>
+        <sc-if value="{{v.ubl}}" hint-placeholder-val="{{false}}">
+        <article class="k-paper" style="padding: 36px; font-size: 12px; line-height: 1.5; display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; justify-content: space-between;"><strong style="font-size: 16px;"><span class="hl">Internet Voorbeeld (demo)</span></strong><span style="color: #63636b;">FACTUUR</span></div>
+          <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px 14px;">
+            <span style="color: #63636b;">Factuurnummer</span><span><span class="hl">INK-DEMO-2025-0003</span></span>
+            <span style="color: #63636b;">Factuurdatum</span><span><span class="hl">15-11-2025</span></span>
+            <span style="color: #63636b;">Vervaldatum</span><span><span class="hl">15-12-2025</span></span>
+          </div>
+          <div style="border-top: 1.5px solid #18181b; padding-top: 8px; display: flex; justify-content: space-between;"><span>Zakelijk internet, november</span><span class="k-num">208,95</span></div>
+          <div style="margin-left: auto; display: grid; grid-template-columns: auto 80px; gap: 4px 16px; text-align: right;" class="k-num">
+            <span style="color: #63636b;">Subtotaal</span><span><span class="hl">208,95</span></span>
+            <span style="color: #63636b;">BTW 21%</span><span><span class="hl">43,88</span></span>
+            <strong>Totaal</strong><strong><span class="hl">252,83</span></strong>
+          </div>
+          <div style="flex: 1;"></div>
+          <span style="color: #63636b;">Highlighted: what Klopt read from the e-invoice</span>
+        </article>
+        </sc-if>
+      </section>
+
+      <section aria-label="Check and book" class="k-card" style="flex: 1 1 300px; max-width: 360px; display: flex; flex-direction: column; gap: 14px;">
+        <h2 class="k-card-title">Check and book</h2>
+        <sc-if value="{{v.pdf}}" hint-placeholder-val="{{true}}">
+        <p class="note">Klopt doesn't read PDFs or photos. Fill in what the document says.</p>
+        <div class="k-field"><label class="k-label" for="a">Supplier</label><input id="a" class="k-input" placeholder="Start typing a name"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="k-field"><label class="k-label" for="b">Bill date</label><input id="b" class="k-input k-num" placeholder="dd-mm-yyyy"></div>
+          <div class="k-field"><label class="k-label" for="c">Due</label><input id="c" class="k-input k-num" placeholder="dd-mm-yyyy"></div>
+        </div>
+        <div class="k-field"><label class="k-label" for="d">Total</label><input id="d" class="k-input k-num" placeholder="0,00"><span class="k-help">Including VAT</span></div>
+        <div class="k-field"><label class="k-label" for="e">Category</label><select id="e" class="k-input"><option>Choose a category</option><option>Phone and internet · 21%</option></select></div>
+        </sc-if>
+        <sc-if value="{{v.ubl}}" hint-placeholder-val="{{false}}">
+        <div class="k-field"><label class="k-label" for="a2">Supplier <span class="read">✓ known</span></label><input id="a2" class="k-input" value="Internet Voorbeeld (demo)"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="k-field"><label class="k-label" for="b2">Bill date <span class="read">✓</span></label><input id="b2" class="k-input k-num" value="15-11-2025"></div>
+          <div class="k-field"><label class="k-label" for="c2">Due <span class="read">✓</span></label><input id="c2" class="k-input k-num" value="15-12-2025"></div>
+        </div>
+        <div class="k-field"><label class="k-label" for="d2">Total <span class="read">✓ sums check out</span></label><input id="d2" class="k-input k-num" value="252,83"></div>
+        <div class="k-field"><label class="k-label" for="e2">Category <span class="check">check this</span></label>
+          <select id="e2" class="k-input sugg"><option>Phone and internet · 21%</option></select>
+          <span class="k-help">Suggested from this supplier's earlier bills</span></div>
+        </sc-if>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+          <button type="button" class="k-btn k-btn--primary" style="justify-content: center;">Book and next <span class="k-kbd k-kbd--on-primary">↵</span></button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="k-btn k-btn--sm" style="flex: 1; justify-content: center;">Set aside <span class="k-kbd">S</span></button>
+            <button type="button" class="k-btn k-btn--sm" style="flex: 1; justify-content: center;">Not a bill <span class="k-kbd">D</span></button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="k-hints"><span><span class="k-kbd">J</span> <span class="k-kbd">K</span> next, previous document</span><span><span class="k-kbd">Tab</span> next field</span><span><span class="k-kbd">Space</span> enlarge document</span></div>
+  </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"dark"},"view":{"editor":"enum","options":["pdf","ubl"],"default":"pdf"},"$preview":{"width":1440,"height":1040}}'>
 class Component extends DCLogic {
-  renderVals() { return {}; }
+  constructor(props) {
+    super(props);
+    this.state = { view: props.view ?? 'pdf' };
+  }
+  renderVals() {
+    const v = this.state.view;
+    return { theme: this.props.theme ?? 'dark', v: { pdf: v === 'pdf', ubl: v === 'ubl' }, sel: { pdf: v === 'pdf' ? 'true' : 'false', ubl: v === 'ubl' ? 'true' : 'false' }, pickPdf: () => this.setState({ view: 'pdf' }), pickUbl: () => this.setState({ view: 'ubl' }) };
+  }
 }
 </script>
 </body>

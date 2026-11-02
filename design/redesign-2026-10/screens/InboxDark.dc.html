@@ -9,27 +9,97 @@
 </head>
 <body>
 <!--
-  Derived board, not drawn by Hidde (#148). Dark 1440: Hidde's Inbox with theme="dark", the same way
-  HomeDark wraps Main. His markup holds up in dark once the control border token is fixed (the
-  VatDark override), so it is a thin wrapper, not a copy. Key hints in the dark primary button are
-  outlined in --on-primary. Self-hosted fonts. Copy is Hidde's; its links go to his light boards.
+  Derived board, not drawn by Hidde (#148). Dark 1440 of Inbox.dc.html: same layout, sources and steps.
+  Its own file, not a theme="dark" wrapper, because Hidde's copy promises that Klopt reads every
+  document ("Klopt reads them", "Klopt reads it"), and POST /inbox reads only UBL and Peppol (#107
+  Phase 5, honest copy). Derived boards drop that claim; Hidde's board is untouched. The copy
+  matches PhoneInbox: drop, paste and screenshot intake stay, but only e-invoices are said to be
+  read. The Peppol card says receiving isn't set up yet, and the mailbox card has no timing promise.
+  A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), outlined key hints
+  in the dark primary button, self-hosted fonts instead of Google Fonts.
 -->
 <x-dc>
 <helmet>
 <link rel="stylesheet" href="../design-system/fonts/fonts.css">
 <style>
-body{margin:0;background:#111113}
-.k-root[data-theme="dark"]{--line-control:var(--ink-muted)}
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.nw{white-space:nowrap}
+.k-root .k-input{border-color:var(--line-control)}
 .k-root[data-theme="dark"] .k-btn--primary .k-kbd--on-primary{border-color:var(--on-primary)}
 </style>
 </helmet>
-<div style="min-height: 960px; background: #111113;">
-  <dc-import name="Inbox" theme="dark" hint-size="100%,960px"></dc-import>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 960px;">
+  <dc-import name="Sidebar" active="inbox" theme="{{theme}}" hint-size="248px,960px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+      <div style="flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 2px;">
+        <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em;">Inbox</h1>
+        <p style="margin: 0; font-size: 14px; color: var(--ink-muted);">Receipts and bills land here. You check them and book.</p>
+      </div>
+      <button type="button" class="k-btn">Add a source</button>
+      <button type="button" class="k-btn k-btn--primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Add files <span class="k-chord"><span class="k-kbd k-kbd--on-primary">N</span><span class="k-kbd k-kbd--on-primary">R</span></span>
+      </button>
+    </header>
+
+    <div class="k-seg" role="tablist" aria-label="Inbox status">
+      <button type="button" role="tab" class="k-seg-item" aria-selected="true">To handle <span class="k-count">0</span></button>
+      <a href="InboxReviewDark.dc.html" class="k-seg-item" style="text-decoration: none;">See it with documents</a>
+      <button type="button" role="tab" class="k-seg-item" aria-selected="false">Booked <span class="k-count">0</span></button>
+      <button type="button" role="tab" class="k-seg-item" aria-selected="false">Set aside <span class="k-count">0</span></button>
+    </div>
+
+    <section aria-label="Drop files" style="border: 2px dashed var(--line-control); border-radius: var(--radius-xl); background: var(--surface); padding: 56px 32px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;">
+      <span class="k-tile k-tile--brand" style="width: 56px; height: 56px; border-radius: 16px;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>
+      </span>
+      <h2 style="margin: 0; font-size: 20px; line-height: 26px; font-weight: 600;">Nothing to handle</h2>
+      <p style="margin: 0; max-width: 520px; color: var(--ink-2); line-height: 1.5;">Drop PDFs, photos or e-invoices anywhere on this page, paste a screenshot with <span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">V</span></span>, or connect a source below so they arrive by themselves. <span class="nw">E-invoices</span> (UBL) are read for you; for a PDF, photo or screenshot you fill in what it says.</p>
+      <button type="button" class="k-btn" style="margin-top: 8px;">Choose files</button>
+    </section>
+
+    <section aria-labelledby="src-h" style="display: flex; flex-direction: column; gap: 12px;">
+      <h2 id="src-h" class="k-card-title">Where documents can come from</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+        <div class="k-card" style="display: flex; flex-direction: column; gap: 10px;">
+          <span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+          <strong style="font-size: 15px;">A mailbox</strong>
+          <span style="color: var(--ink-2); line-height: 1.5;">Forward bills to a mailbox Klopt checks for you. Attachments become documents, the mail itself is kept as proof.</span>
+          <a href="#" style="font-weight: 600; margin-top: auto;">Connect a mailbox</a>
+        </div>
+        <div class="k-card" style="display: flex; flex-direction: column; gap: 10px;">
+          <span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+          <strong style="font-size: 15px;">A folder</strong>
+          <span style="color: var(--ink-2); line-height: 1.5;">Point Klopt at a folder, a scanner's output for example. No password needed, the usual choice when you run Klopt on your own server.</span>
+          <a href="#" style="font-weight: 600; margin-top: auto;">Choose a folder</a>
+        </div>
+        <div class="k-card" style="display: flex; flex-direction: column; gap: 10px;">
+          <span class="k-tile k-tile--info"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          <span style="display: flex; align-items: center; gap: 8px;"><strong style="font-size: 15px; flex: 1;">Peppol e-invoices</strong><span class="k-pill k-pill--draft">Not set up</span></span>
+          <span style="color: var(--ink-2); line-height: 1.5;">Once Peppol receiving is set up, suppliers who send e-invoices reach you directly, already read. It needs your KvK number first.</span>
+          <a href="Settings.dc.html" style="font-weight: 600; margin-top: auto;">Finish company details</a>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="how-h" class="k-card" style="display: flex; flex-direction: column; gap: 16px;">
+      <h2 id="how-h" class="k-card-title">What happens to a document</h2>
+      <ol style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+        <li style="display: flex; gap: 12px;"><span class="k-option-key">1</span><span style="display: flex; flex-direction: column; gap: 2px;"><strong>It lands here</strong><span style="color: var(--ink-muted); font-size: 13px;">An e-invoice is read: supplier, date, amounts and VAT. For a PDF or photo, you fill these in.</span></span></li>
+        <li style="display: flex; gap: 12px;"><span class="k-option-key">2</span><span style="display: flex; flex-direction: column; gap: 2px;"><strong>You check and book</strong><span style="color: var(--ink-muted); font-size: 13px;">Side by side with the document. <span class="k-kbd">↵</span> books it, <span class="k-kbd">S</span> sets it aside.</span></span></li>
+        <li style="display: flex; gap: 12px;"><span class="k-option-key">3</span><span style="display: flex; flex-direction: column; gap: 2px;"><strong>It waits for the bank</strong><span style="color: var(--ink-muted); font-size: 13px;">When the payment shows up, Match offers this bill first.</span></span></li>
+      </ol>
+    </section>
+  </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"dark"},"$preview":{"width":1440,"height":960}}'>
 class Component extends DCLogic {
-  renderVals() { return {}; }
+  renderVals() { return { theme: this.props.theme ?? 'dark', }; }
 }
 </script>
 </body>
