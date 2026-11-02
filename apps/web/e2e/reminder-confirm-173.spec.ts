@@ -329,6 +329,9 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
     page.getByRole('button', { name: /Alle \d+ herinneringen versturen|Send all \d+ reminders/ }),
   ).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Alle 0 herinneringen versturen/ })).toHaveCount(0)
+  // Full send: focus falls back to the page h1 (tabIndex=-1), never document.body.
+  await expect(page.getByRole('heading', { name: 'Verkoop', level: 1 })).toBeFocused()
+  expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe('BODY')
 
   // Still no due-today row after the send, and it was never chased.
   await expect(page.getByText('Vandaag vervallen')).toHaveCount(0)
@@ -495,6 +498,48 @@ test('plain Enter on an open bulk confirm does not send; Cmd/Ctrl+Enter does', a
     page.getByRole('button', { name: /Alle \d+ herinneringen versturen|Send all \d+ reminders/ }),
   ).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Alle 0 herinneringen versturen/ })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Verkoop', level: 1 })).toBeFocused()
+  expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe('BODY')
+})
+
+test('after a full bulk confirm, focus is the page h1 — not document.body', async ({ page }) => {
+  test.setTimeout(120_000)
+  await openAdmin(page)
+
+  await page.goto('/settings')
+  await page.getByLabel('Straat').fill('Demoweg')
+  await page.getByLabel('Huisnummer').fill('10')
+  await page.getByLabel('Postcode').fill('1000 BB')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.goto('/contacts')
+  await seedContact(page, 'DEB-FULL-A', 'Eva Jansen', 'eva-full@example.nl')
+  await seedContact(page, 'DEB-FULL-B', 'Ruben de Vries', 'ruben-full@example.nl')
+  await draftAndIssue(page, 'Eva Jansen', 'Full Eva', '100,00', daysAgo(80))
+  await draftAndIssue(page, 'Ruben de Vries', 'Full Ruben', '200,00', daysAgo(80))
+
+  await page.goto('/dunning')
+  await hydrated(page)
+  const sendButton = page.getByRole('button', { name: /Alle 2 herinneringen versturen/ })
+  await sendButton.click()
+  await expect(page.getByRole('alertdialog')).toBeVisible()
+  await page.keyboard.press('Control+Enter')
+  await expect(page.getByRole('alertdialog')).toHaveCount(0)
+  await expect(page.getByText(/verstuurd naar/)).toBeVisible()
+  await expect(page.getByText(/Geen herinneringen nodig/)).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /Alle \d+ herinneringen versturen|Send all \d+ reminders/ }),
+  ).toHaveCount(0)
+  // Must fail if the h1 fallback is reverted (focus would land on BODY).
+  const heading = page.getByRole('heading', { name: 'Verkoop', level: 1 })
+  await expect(heading).toBeFocused()
+  expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe('BODY')
+  expect(await page.evaluate(() => document.activeElement?.tagName)).toBe('H1')
 })
 
 test('header send is dimmed when nothing to send or busy', async ({ page }) => {

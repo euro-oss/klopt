@@ -91,6 +91,8 @@ function Dunning() {
   /** Button that opened the dialog — restored on close (no AlertDialogTrigger). */
   const openerRef = useRef<HTMLElement | null>(null)
   const headerSendRef = useRef<HTMLButtonElement>(null)
+  /** Fallback when the header send unmounts after a full send (empty queue). */
+  const pageTitleRef = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
     pendingRef.current = pendingTargets
@@ -153,6 +155,8 @@ function Dunning() {
   async function sendSelected(targets: readonly ActionRow[]): Promise<void> {
     if (busyRef.current) return
     if (targets.length === 0) return
+    // Capture before the send: after a full send the header button unmounts.
+    const sentAllVisible = targets.length >= actions.length
     busyRef.current = true
     setBusy(true)
     setError(null)
@@ -163,17 +167,29 @@ function Dunning() {
         if (!ok) break
       }
     } finally {
+      await router.invalidate()
       busyRef.current = false
       setBusy(false)
-      await router.invalidate()
-      // When rows remain, focus the header send control (aria-disabled while
-      // busy / nothing selected — still focusable). Hidden when actions.length === 0.
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => resolve())
-        })
-      })
-      headerSendRef.current?.focus()
+      if (sentAllVisible) {
+        // onCloseAutoFocus already handed focus to the page h1. Wait until the
+        // send control is gone so we do not refocus it and lose focus to body
+        // when it unmounts; then ensure the h1 is focused.
+        const deadline = performance.now() + 3000
+        while (
+          performance.now() < deadline &&
+          document.querySelector('[data-slot="dunning-header-send"]') !== null
+        ) {
+          await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => resolve())
+          })
+        }
+        document.querySelector<HTMLElement>('[data-slot="page-title"]')?.focus()
+        return
+      }
+      // Partial send: header send stays mounted — restore focus there.
+      const send = document.querySelector<HTMLElement>('[data-slot="dunning-header-send"]')
+      const title = document.querySelector<HTMLElement>('[data-slot="page-title"]')
+      ;(send ?? title)?.focus()
     }
   }
 
@@ -303,11 +319,13 @@ function Dunning() {
     <>
       <PageHeader
         title={t('sales.title')}
+        titleRef={pageTitleRef}
         actions={
           actions.length > 0 ? (
             <Button
               ref={headerSendRef}
               type="button"
+              data-slot="dunning-header-send"
               // Native disabled cannot take focus — busy / nothing-to-send use
               // aria-disabled so onCloseAutoFocus and post-send focus can land here.
               // Dim with aria-disabled: variants (not the disabled attribute).
@@ -568,9 +586,18 @@ function Dunning() {
           }}
           onCloseAutoFocus={(event) => {
             event.preventDefault()
-            openerRef.current?.focus()
             // Drop retained rows after the close animation / focus restore.
             setDisplayTargets(null)
+            // Confirm: hand focus out while FocusScope is releasing. Prefer the
+            // page h1 (tabIndex=-1, outline-none); sendSelected finally moves
+            // focus to the header send when that control is still mounted.
+            if (confirmingRef.current || busyRef.current) {
+              document.querySelector<HTMLElement>('[data-slot="page-title"]')?.focus()
+              return
+            }
+            if (openerRef.current?.isConnected) {
+              openerRef.current.focus()
+            }
           }}
           onKeyDownCapture={(event) => {
             // Capture so a focused primary button cannot activate on plain Enter
