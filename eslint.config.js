@@ -32,6 +32,8 @@ export default tseslint.config(
       'apps/web/src/routeTree.gen.ts',
       // Design prototype: review drop-in (tokens.css); not shipped app code.
       'prototypes/**',
+      // Owner's design export (and derived-board tooling under it); not shipped app code.
+      'design/**',
     ],
   },
 
