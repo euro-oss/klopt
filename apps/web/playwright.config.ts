@@ -1,5 +1,5 @@
-import { join } from 'node:path'
 import { defineConfig, devices } from '@playwright/test'
+import { e2eWebServerEnv, OUTBOX } from './e2e/server-env'
 
 /**
  * Browser tests (spec 11.4).
@@ -16,7 +16,7 @@ import { defineConfig, devices } from '@playwright/test'
  * keyboard flow. Business rules are tested against the domain, not a browser.
  */
 /** Shared with e2e/auth.spec.ts, which reads the delivered codes from here. */
-export const OUTBOX = join(import.meta.dirname, 'e2e', '.outbox')
+export { OUTBOX }
 
 /**
  * Documents go in a directory for the browser suite, whatever the developer's
@@ -31,8 +31,21 @@ export const OUTBOX = join(import.meta.dirname, 'e2e', '.outbox')
  *
  * So no browser spec needs object storage, which is why none of them had to be
  * skipped or given a fake of their own when CI stopped depending on MinIO.
+ *
+ * SMTP is the same shape of leak (issue #120): `resolveEmailTransport` prefers
+ * a configured relay, so an exported `KLOPT_SMTP_HOST` would mail fixture
+ * addresses for real. `e2eWebServerEnv` blanks every SMTP key the resolver
+ * reads; the unit gate in `test/e2e-smtp-env.test.ts` fails if that ever stops
+ * forcing the file outbox.
+ *
+ * `reuseExistingServer` and `KLOPT_E2E_BASE_URL` bypass that blanking — they
+ * talk to a server the suite did not start. Mail-sending specs must therefore
+ * assert the file outbox received the message (see `codeFor` /
+ * `waitForOutboxTo`); an SMTP-configured reused server leaves the outbox empty
+ * and the assertion fails rather than silently sending.
  */
-const DOCUMENTS = join(import.meta.dirname, 'e2e', '.documents')
+
+const pointingAtExternalServer = process.env['KLOPT_E2E_BASE_URL'] !== undefined
 
 export default defineConfig({
   testDir: './e2e',
@@ -56,11 +69,15 @@ export default defineConfig({
 
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 
-  // Reuses a server if one is already listening, so a developer with `pnpm dev`
-  // running does not get a second one on the same port. Point
-  // KLOPT_E2E_BASE_URL at an instance to skip starting one at all.
-  ...(process.env['KLOPT_E2E_BASE_URL'] === undefined
-    ? {
+  // Reuses a server if one is already listening, so a developer with `pnpm
+  // dev` (or a prior e2e) on 3399 does not get a second one. That reused
+  // process keeps *its* environment — including any SMTP the developer
+  // exported — so mail-sending specs must check the file outbox (above).
+  // Point KLOPT_E2E_BASE_URL at an instance to skip starting one at all; same
+  // outbox-guard rule applies.
+  ...(pointingAtExternalServer
+    ? {}
+    : {
         webServer: {
           command: 'vite dev --port 3399',
           stdout: 'pipe',
@@ -68,35 +85,7 @@ export default defineConfig({
           port: 3399,
           reuseExistingServer: true,
           timeout: 120_000,
-          env: {
-            DATABASE_URL:
-              process.env['TEST_DATABASE_URL'] ??
-              process.env['DATABASE_URL'] ??
-              'postgres://klopt:klopt@localhost:5432/klopt',
-            KLOPT_AUTH_SECRET: 'e2e-secret-not-for-production-0123456789',
-            // Forty sign-ins in three minutes from one address is what this
-            // suite is; the limiter has its own test.
-            KLOPT_RATE_LIMIT: 'off',
-            KLOPT_BASE_URL: 'http://localhost:3399',
-            // No SMTP. Messages are written to a directory the tests read,
-            // because the codes are hashed in the database on purpose.
-            // Absolute: a relative path here silently depends on the server's
-            // working directory, which is not the one the test resolves from.
-            KLOPT_EMAIL_OUTBOX_DIR: OUTBOX,
-            KLOPT_DOCUMENT_DIR: DOCUMENTS,
-            // Explicitly empty rather than absent: `env` here *replaces* the
-            // inherited environment for the keys it names, and leaving this out
-            // would let a developer's own S3 settings through.
-            KLOPT_S3_ENDPOINT: '',
-            // An Exact Online client secret is encrypted at rest, so the screen
-            // refuses to take one without a key. An instance that has Exact
-            // configured has a key, so the browser test runs with one.
-            KLOPT_ENCRYPTION_KEY: 'e2e-encryption-key-not-for-production-01234',
-            // Legal URLs stay unset (self-hosted). Specs that need the hosted
-            // checkbox set cookie `klopt-e2e-legal=on` (see legal-links.ts).
-            KLOPT_E2E_LEGAL_TOGGLE: '1',
-          },
+          env: e2eWebServerEnv(),
         },
-      }
-    : {}),
+      }),
 })

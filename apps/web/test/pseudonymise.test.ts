@@ -74,10 +74,10 @@ async function aCustomer(): Promise<{ number: string; id: string }> {
       iban: 'NL91ABNA0417164300',
       notes: 'Belt altijd op vrijdagmiddag.',
       address: {
-        street: 'Coolsingel',
+        street: 'Proefstraat',
         houseNumber: '42',
-        postalCode: '3011 AD',
-        city: 'Rotterdam',
+        postalCode: '9999 AA',
+        city: 'Testdorp',
         countryCode: 'NL',
       },
     }),
@@ -247,7 +247,7 @@ describe('erasing a contact', () => {
     // copy, not because the contact row was left alone.
     const ublAfter = await handleGetInvoiceUbl(await contextFor(), invoiceId)
     expect(ublAfter.xml).toContain('Jan de Vries Advies')
-    expect(ublAfter.xml).toContain('Coolsingel')
+    expect(ublAfter.xml).toContain('Proefstraat')
 
     // And the journal has not moved a cent.
     const entryAfter = await handleGetJournalEntry(await contextFor(), entryId)

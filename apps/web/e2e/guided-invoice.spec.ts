@@ -47,10 +47,10 @@ async function administrationReady(page: Page, name: string): Promise<string> {
   await hydrated(page)
 
   await page.goto('/settings')
-  await page.getByLabel('Straat').fill('Lange Delft')
-  await page.getByLabel('Huisnummer').fill('41')
-  await page.getByLabel('Postcode').fill('4331 JC')
-  await page.getByLabel('Plaats').fill('Middelburg')
+  await page.getByLabel('Straat').fill('Proefstraat')
+  await page.getByLabel('Huisnummer').fill('1')
+  await page.getByLabel('Postcode').fill('9999 AA')
+  await page.getByLabel('Plaats').fill('Testdorp')
   await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('61234567')
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL861234567B01')
   await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
@@ -77,12 +77,12 @@ async function addCustomer(
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
   await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('87654321')
   if (opts.email !== null) {
-    await page.getByLabel('E-mail').fill(opts.email ?? 'administratie@hotelzeezicht.example.nl')
+    await page.getByLabel('E-mail').fill(opts.email ?? 'administratie@zeezicht.example.nl')
   }
-  await page.getByLabel('Straat').fill('Boulevard de Ruyter')
-  await page.getByLabel('Huisnr.').fill('2')
-  await page.getByLabel('Postcode').fill('4381 KA')
-  await page.getByLabel('Plaats').fill('Vlissingen')
+  await page.getByLabel('Straat').fill('Duinpad')
+  await page.getByLabel('Huisnr.').fill('7')
+  await page.getByLabel('Postcode').fill('9999 XX')
+  await page.getByLabel('Plaats').fill('Zeezicht')
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(
     page.getByRole('button', { name: new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }),
@@ -127,12 +127,15 @@ test('Eigenaar finishes the guided invoice with the keyboard and never sees a le
   await expect(page.locator('#cust-q')).not.toBeFocused()
   await expect(page.getByText('Stap 1 van 4')).toBeVisible()
   await expectNoCodes(page)
+  // Verder stays disabled until hydration; the defaults line only appears once
+  // the search has a loaded match (same settle as the hard-closed / PDF paths).
+  await hydrated(page)
 
   // Step 1 — keyboard search selects the match; Verder advances.
   await page.locator('#cust-q').pressSequentially('Hotel', { delay: 30 })
   await expect(page.getByRole('option', { name: /Hotel Zeezicht/ })).toBeVisible()
   await expect(page.getByText(/We vullen alvast in:/)).toBeVisible({ timeout: 10_000 })
-  await expect(page.getByText('Vlissingen').first()).toBeVisible()
+  await expect(page.getByText('Zeezicht').first()).toBeVisible()
   await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 2 van 4')).toBeVisible()
 
@@ -180,8 +183,8 @@ test('Eigenaar finishes the guided invoice with the keyboard and never sees a le
   await expect(page.getByText(/Factuur \d{4}-\d+/)).toBeVisible()
   await expect(page.getByText(EXPECTED_TOTAL)).toBeVisible()
   await expectNoCodes(page)
-  const delivered = await waitForOutboxTo('administratie@hotelzeezicht.example.nl')
-  expect(delivered).toContain('To: administratie@hotelzeezicht.example.nl')
+  const delivered = await waitForOutboxTo('administratie@zeezicht.example.nl')
+  expect(delivered).toContain('To: administratie@zeezicht.example.nl')
   expect(delivered).toMatch(/Factuur/i)
 })
 
@@ -236,8 +239,12 @@ test('PDF send path reaches Klaar voor without claiming e-mail', async ({ page }
   await addCustomer(page)
 
   await page.goto('/invoices/new')
+  // Same hydrate/defaults wait as the happy path — Enter on a still-disabled
+  // Verder (or a search that raced contacts loading) leaves step 1.
+  await hydrated(page)
   await page.locator('#cust-q').pressSequentially('Hotel', { delay: 30 })
   await expect(page.getByRole('option', { name: /Hotel Zeezicht/ })).toBeVisible()
+  await expect(page.getByText(/We vullen alvast in:/)).toBeVisible({ timeout: 10_000 })
   await page.getByRole('button', { name: /Verder/ }).press('Enter')
   await expect(page.getByText('Stap 2 van 4')).toBeVisible()
   await fillBreadLine(page)

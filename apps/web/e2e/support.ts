@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, type Locator, type Page } from '@playwright/test'
+import { OUTBOX } from './server-env'
 
 /**
  * Shared plumbing for the browser tests: a fresh address, the code that was
@@ -12,8 +13,13 @@ export const DATABASE_URL =
   process.env['DATABASE_URL'] ??
   'postgres://klopt:klopt@localhost:5432/klopt'
 
-/** Where the file email transport drops messages. See playwright.config.ts. */
-export const OUTBOX = join(import.meta.dirname, '.outbox')
+/**
+ * Where the file email transport drops messages. See playwright.config.ts /
+ * server-env.ts. Mail-sending specs must assert a file appears here: that is
+ * the guard when `reuseExistingServer` or `KLOPT_E2E_BASE_URL` points at a
+ * server the suite did not start (and which may have SMTP configured).
+ */
+export { OUTBOX }
 
 export function uniqueEmail(): string {
   return `e2e-${Date.now().toString()}-${Math.random().toString(36).slice(2, 8)}@example.test`
@@ -139,7 +145,7 @@ export async function signIn(page: Page, email: string): Promise<void> {
  *
  * Language, appearance and sign-out used to be printed against the bottom of
  * the rail and could be clicked where they stood. They now live one click in,
- * behind the `[H] Hidde ›` row, so every spec that touches one opens this
+ * behind the `[S] Sanne ›` row, so every spec that touches one opens this
  * first. Idempotent, because a spec that changes two settings in a row finds
  * the menu already open — Radix keeps it open through the re-render.
  *
