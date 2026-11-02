@@ -329,8 +329,9 @@ test('a boekjaar that is not the calendar year is the one the screens use', asyn
 
   await page.getByLabel('Naam', { exact: true }).fill('Gebroken Boekjaar BV')
   const opened = String(new Date().getUTCFullYear() - 1)
-  await page.getByLabel('Boekjaar').fill(opened)
-  await chooseOption(page, 'Begint in', 'juli')
+  // Exact: Setup also has "Boekjaar begint in" (month select).
+  await page.getByLabel('Boekjaar', { exact: true }).fill(opened)
+  await chooseOption(page, /Boekjaar begint in|Begint in/, 'juli')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
 
   await expect(

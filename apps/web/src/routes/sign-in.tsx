@@ -224,9 +224,9 @@ function SignIn() {
         </ul>
       </aside>
 
-      <div className="flex flex-1 items-center justify-center p-6 sm:p-12">
+      <div className="flex flex-1 items-center justify-center p-4 sm:p-12">
         <section
-          className="border-line bg-surface flex w-full max-w-[380px] flex-col gap-5 rounded-[var(--radius-lg)] border p-8 shadow-[var(--shadow-raised)]"
+          className="border-line bg-surface flex w-full max-w-[380px] flex-col gap-5 rounded-[var(--radius-lg)] border p-5 sm:p-8 shadow-[var(--shadow-raised)]"
           aria-labelledby="sign-in-heading"
         >
           <span className="bg-surface-sunken text-ink-2 inline-flex h-[1.375rem] w-fit items-center rounded-[var(--radius-pill)] px-1.5 text-xs font-medium">

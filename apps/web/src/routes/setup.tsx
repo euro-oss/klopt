@@ -331,6 +331,23 @@ function Setup() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-ink-2 mb-1.5 block text-xs font-medium">
+                  {t('setup.fiscalYear')}
+                </span>
+                <Input
+                  name="firstFiscalYear"
+                  type="number"
+                  inputMode="numeric"
+                  required
+                  defaultValue={thisYear}
+                  min={1900}
+                  max={2100}
+                  className="border-ink-muted min-h-11 tabular-nums"
+                />
+                {problem('firstFiscalYear')}
+              </label>
+
               <div>
                 <SelectField
                   label={t('setup.startsIn')}
@@ -350,23 +367,22 @@ function Setup() {
                 </span>
                 {problem('fiscalYearStartMonth')}
               </div>
-
-              <label className="block">
-                <span className="text-ink-2 mb-1.5 block text-xs font-medium">
-                  {t('setup.currency')}
-                </span>
-                <Input
-                  name="functionalCurrency"
-                  defaultValue="EUR"
-                  maxLength={3}
-                  className="border-ink-muted min-h-11 uppercase"
-                  aria-label={t('setup.currency')}
-                />
-                {problem('functionalCurrency')}
-              </label>
             </div>
 
-            <input type="hidden" name="firstFiscalYear" value={thisYear} />
+            <label className="block">
+              <span className="text-ink-2 mb-1.5 block text-xs font-medium">
+                {t('setup.currency')}
+              </span>
+              <Input
+                name="functionalCurrency"
+                defaultValue="EUR"
+                maxLength={3}
+                className="border-ink-muted min-h-11 uppercase"
+                aria-label={t('setup.currency')}
+              />
+              {problem('functionalCurrency')}
+            </label>
+
             <input type="hidden" name="chartCode" value={primaryChart?.code ?? 'nl-mkb'} />
 
             {primaryChart !== undefined && (
