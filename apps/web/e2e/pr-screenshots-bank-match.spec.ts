@@ -84,7 +84,7 @@ async function issueMatchingInvoice(page: Page, withIban = false): Promise<void>
     await page.getByLabel('IBAN').fill('NL86INGB0002445588')
   }
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Grote Klant N\.V\./ })).toBeVisible()
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()

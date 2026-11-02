@@ -594,7 +594,7 @@ test('the postvak is worked with the same keys as everything else', async ({ pag
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Leverancier B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Leverancier B\.V\./ })).toBeVisible()
 
   await page.goto('/inbox')
   await expect(page.locator('input[type="file"]')).toBeEnabled()
