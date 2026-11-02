@@ -81,7 +81,10 @@ says "Log out", and the screens outside it no longer say "Afmelden".
   server output. `pnpm --filter @klopt/web run test:e2e` (the CI `e2e` job)
   now also downloads a PDF and sends one invoice against that built server,
   using the file outbox, before Playwright's `vite dev` suite. Unknown 500s
-  are logged with the request id and the stack, and not the request body.
+  are logged with the request id, the error name, and the stack frames
+  only (a frame begins with four spaces and `at`). The message is not
+  logged: it is the start of `error.stack`, and a driver error can quote
+  row values.
 
 - Debtor-ageing report and overdue counts no longer count invoices that are due
   today (exclusive overdue boundary).

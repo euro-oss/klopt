@@ -142,18 +142,28 @@ export function toProblem(error: unknown, requestId: string | null): ProblemDocu
 }
 
 /**
+ * Stack frames only.
+ *
+ * `error.stack` starts with `error.message`, and a driver message can quote
+ * a row: an IBAN, a name, a connection string. Those lines are not frames.
+ * A frame is a line that starts with four spaces and `at `.
+ */
+function stackFrames(error: Error): string {
+  const frames = (error.stack ?? '').split('\n').filter((line) => line.startsWith('    at '))
+  return frames.length === 0 ? '(no stack)' : frames.join('\n')
+}
+
+/**
  * An unknown failure is a 500 the caller cannot act on.
  *
- * The response stays generic — the message can hold a connection string, a
- * query, or another entity's data — but until this line the process log said
- * nothing, so a production PDF that threw `Cannot find module` looked like a
- * network blip. The request id and the stack, and nothing else: not the
- * request, not its body, not a dumped object somebody threw.
+ * The response stays generic. The process log gets the request id, the
+ * error's name, and the stack frames. Never the message, and never a thrown
+ * value that is not an Error — that value may be a request body.
  */
 function logUnknownInternalError(error: unknown, requestId: string | null): void {
   const request = requestId ?? '(no request id)'
   if (error instanceof Error) {
-    console.error('[api] internal_error', request, error.stack ?? '(no stack)')
+    console.error('[api] internal_error', request, error.name, stackFrames(error))
     return
   }
   console.error('[api] internal_error', request, `(no stack, thrown ${typeof error})`)
