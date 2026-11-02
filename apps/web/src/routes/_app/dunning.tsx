@@ -166,8 +166,8 @@ function Dunning() {
       busyRef.current = false
       setBusy(false)
       await router.invalidate()
-      // Button stays mounted and uses aria-disabled while empty/busy so it can
-      // receive focus (native disabled cannot).
+      // When rows remain, focus the header send control (aria-disabled while
+      // busy / nothing selected — still focusable). Hidden when actions.length === 0.
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => resolve())
@@ -304,29 +304,32 @@ function Dunning() {
       <PageHeader
         title={t('sales.title')}
         actions={
-          <Button
-            ref={headerSendRef}
-            type="button"
-            // Native disabled cannot take focus — busy/empty use aria-disabled
-            // so onCloseAutoFocus and post-send focus can land on this control.
-            disabled={!hydrated}
-            aria-disabled={busy || !hydrated || sendableCount === 0}
-            onClick={() => {
-              if (busy || !hydrated || sendableCount === 0) return
-              requestSend(sendableSelected)
-            }}
-            className="min-h-11 md:min-h-9"
-          >
-            {busy
-              ? t('common.busy')
-              : plural('dunning.sendAll', sendableCount, { count: String(sendableCount) })}
-            {hydrated && (
-              <span className="ml-1 hidden gap-0.5 normal-case md:inline-flex">
-                <Keycap>{isApple() ? '⌘' : 'Ctrl'}</Keycap>
-                <Keycap>↵</Keycap>
-              </span>
-            )}
-          </Button>
+          actions.length > 0 ? (
+            <Button
+              ref={headerSendRef}
+              type="button"
+              // Native disabled cannot take focus — busy / nothing-to-send use
+              // aria-disabled so onCloseAutoFocus and post-send focus can land here.
+              // Dim with aria-disabled: variants (not the disabled attribute).
+              disabled={!hydrated}
+              aria-disabled={busy || !hydrated || sendableCount === 0}
+              onClick={() => {
+                if (busy || !hydrated || sendableCount === 0) return
+                requestSend(sendableSelected)
+              }}
+              className="min-h-11 aria-disabled:opacity-50 aria-disabled:cursor-not-allowed md:min-h-9"
+            >
+              {busy
+                ? t('common.busy')
+                : plural('dunning.sendAll', sendableCount, { count: String(sendableCount) })}
+              {hydrated && (
+                <span className="ml-1 hidden gap-0.5 normal-case md:inline-flex">
+                  <Keycap>{isApple() ? '⌘' : 'Ctrl'}</Keycap>
+                  <Keycap>↵</Keycap>
+                </span>
+              )}
+            </Button>
+          ) : undefined
         }
       />
 

@@ -324,11 +324,11 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   expect([...sentIds].sort()).toEqual([...listedIds].sort())
   await expect(page.getByRole('button', { name: /Eva Jansen/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Ruben de Vries/ })).toHaveCount(0)
-  // After confirm, focus returns to the header send button (not <body>).
-  // Label may drop to "Alle 0…" once the queue is empty.
+  // Empty queue: header send is unmounted — never "Alle 0 herinneringen versturen".
   await expect(
     page.getByRole('button', { name: /Alle \d+ herinneringen versturen|Send all \d+ reminders/ }),
-  ).toBeFocused()
+  ).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Alle 0 herinneringen versturen/ })).toHaveCount(0)
 
   // Still no due-today row after the send, and it was never chased.
   await expect(page.getByText('Vandaag vervallen')).toHaveCount(0)
@@ -493,7 +493,140 @@ test('plain Enter on an open bulk confirm does not send; Cmd/Ctrl+Enter does', a
   await expect(page.getByRole('button', { name: /Ruben de Vries/ })).toHaveCount(0)
   await expect(
     page.getByRole('button', { name: /Alle \d+ herinneringen versturen|Send all \d+ reminders/ }),
-  ).toBeFocused()
+  ).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Alle 0 herinneringen versturen/ })).toHaveCount(0)
+})
+
+test('header send is dimmed when nothing to send or busy', async ({ page }) => {
+  test.setTimeout(120_000)
+  const entityId = await openAdmin(page)
+
+  await page.goto('/settings')
+  await page.getByLabel('Straat').fill('Demoweg')
+  await page.getByLabel('Huisnummer').fill('10')
+  await page.getByLabel('Postcode').fill('1000 BB')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.goto('/contacts')
+  // No email → listed but not sendable (sendableCount 0 while actions remain).
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('DEB-NOMAIL')
+  await page.getByLabel('Naam', { exact: true }).fill('Zonder Mail')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('87654321')
+  await page.getByLabel('Straat').fill('Voorbeeldstraat')
+  await page.getByLabel('Huisnr.').fill('1')
+  await page.getByLabel('Postcode').fill('1000 AA')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('button', { name: /Zonder Mail/ })).toBeVisible()
+  await seedContact(page, 'DEB-DIM-B', 'Ruben de Vries', 'ruben-dim@example.nl')
+  await draftAndIssue(page, 'Zonder Mail', 'Dim geen mail', '100,00', daysAgo(80))
+
+  await page.goto('/dunning')
+  await hydrated(page)
+  const dimmed = page.getByRole('button', { name: /Alle 0 herinneringen versturen/ })
+  await expect(dimmed).toBeVisible()
+  await expect(dimmed).toHaveAttribute('aria-disabled', 'true')
+  await expect(dimmed).not.toHaveAttribute('disabled')
+  await expect(dimmed).toHaveClass(/aria-disabled:opacity-50/)
+  await expect(dimmed).toHaveClass(/aria-disabled:cursor-not-allowed/)
+  await expect(dimmed).toHaveCSS('opacity', '0.5')
+  await expect(dimmed).toHaveCSS('cursor', 'not-allowed')
+  await dimmed.focus()
+  await expect(dimmed).toBeFocused()
+
+  // Add a sendable overdue row and assert the busy dim while the send is held.
+  await draftAndIssue(page, 'Ruben de Vries', 'Dim Ruben', '200,00', daysAgo(80))
+  await page.goto('/dunning')
+  await hydrated(page)
+  const readySend = page.getByRole('button', { name: /Herinnering versturen/ })
+  await expect(readySend).not.toHaveAttribute('aria-disabled', 'true')
+  await expect(readySend).toHaveCSS('opacity', '1')
+
+  let releaseReminders: (() => void) | undefined
+  const holdReminders = new Promise<void>((resolve) => {
+    releaseReminders = resolve
+  })
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    if (isReminderSendRequest(request)) {
+      await holdReminders
+    }
+    await route.continue()
+  })
+
+  // N=1 skips confirm — click sends immediately into busy.
+  await readySend.click()
+  const busySend = page.getByRole('button', { name: /Bezig/ })
+  await expect(busySend).toBeVisible()
+  await expect(busySend).toHaveAttribute('aria-disabled', 'true')
+  await expect(busySend).not.toHaveAttribute('disabled')
+  await expect(busySend).toHaveCSS('opacity', '0.5')
+  await expect(busySend).toHaveCSS('cursor', 'not-allowed')
+  releaseReminders?.()
+  await expect(page.getByText(/verstuurd naar/)).toBeVisible()
+  await expect.poll(async () => reminderDeliveryCount(entityId)).toBe(1)
+})
+
+test('empty reminders page never shows Alle 0 herinneringen versturen', async ({ page }) => {
+  await openAdmin(page)
+  await page.goto('/dunning')
+  await hydrated(page)
+  await expect(page.getByText(/Geen herinneringen nodig/)).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /Alle \d+ herinneringen versturen|Send all \d+ reminders/ }),
+  ).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Alle 0 herinneringen versturen/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Herinnering versturen/ })).toHaveCount(0)
+})
+
+test('after confirming a partial bulk send, focus returns to the header send', async ({ page }) => {
+  test.setTimeout(120_000)
+  await openAdmin(page)
+
+  await page.goto('/settings')
+  await page.getByLabel('Straat').fill('Demoweg')
+  await page.getByLabel('Huisnummer').fill('10')
+  await page.getByLabel('Postcode').fill('1000 BB')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.goto('/contacts')
+  await seedContact(page, 'DEB-FOC-A', 'Eva Jansen', 'eva-foc@example.nl')
+  await seedContact(page, 'DEB-FOC-B', 'Ruben de Vries', 'ruben-foc@example.nl')
+  await seedContact(page, 'DEB-FOC-C', 'Atelier Noordkust', 'atelier-foc@example.nl')
+  await draftAndIssue(page, 'Eva Jansen', 'Focus Eva', '100,00', daysAgo(80))
+  await draftAndIssue(page, 'Ruben de Vries', 'Focus Ruben', '200,00', daysAgo(80))
+  await draftAndIssue(page, 'Atelier Noordkust', 'Focus Atelier', '150,00', daysAgo(80))
+
+  await page.goto('/dunning')
+  await hydrated(page)
+  // Deselect one so confirm sends N=2; one row remains so the header stays mounted.
+  await page
+    .getByRole('button', { name: /Atelier Noordkust/ })
+    .locator('[role="checkbox"]')
+    .click()
+  const sendButton = page.getByRole('button', { name: /Alle 2 herinneringen versturen/ })
+  await expect(sendButton).toBeVisible()
+  await sendButton.click()
+  await expect(page.getByRole('alertdialog')).toBeVisible()
+  await page.keyboard.press('Control+Enter')
+  await expect(page.getByRole('alertdialog')).toHaveCount(0)
+  await expect(page.getByText(/verstuurd naar/)).toBeVisible()
+  // sendAll_one = "Herinnering versturen" (+ optional ⌘/Ctrl chip text).
+  const after = page.getByRole('button', { name: /Herinnering versturen/ })
+  await expect(after).toBeVisible()
+  await expect(after).toBeFocused()
+  await expect(after).not.toHaveAttribute('aria-disabled', 'true')
 })
 
 test('a single reminder send skips the confirm dialog', async ({ page }) => {

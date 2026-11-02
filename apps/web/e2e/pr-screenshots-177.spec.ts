@@ -187,4 +187,22 @@ test('173 reminder confirm dialog light/dark 1440 and 390', async ({ page }) => 
     await shot(page, `01-reminder-confirm-${theme}-mobile-390`)
     await page.keyboard.press('Escape')
   }
+
+  // Empty queue: header send unmounted — never "Alle 0 herinneringen versturen".
+  await page.setViewportSize({ width: 1440, height: 1040 })
+  await page.goto('/dunning')
+  await ready(page, 1440)
+  await setTheme(page, 'light')
+  await page.getByRole('button', { name: /Alle 6 herinneringen versturen/ }).click()
+  await expect(page.getByRole('alertdialog')).toBeVisible()
+  await page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: /Verstuur 6/ })
+    .click()
+  await expect(page.getByRole('alertdialog')).toHaveCount(0)
+  await expect(page.getByText(/Geen herinneringen nodig/)).toBeVisible()
+  await expect(page.getByRole('button', { name: /Alle \d+ herinneringen versturen/ })).toHaveCount(
+    0,
+  )
+  await shot(page, '02-reminder-empty-desktop-1440')
 })
