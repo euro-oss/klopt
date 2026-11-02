@@ -246,24 +246,26 @@ test('BillNew + PaymentBatch #175 screenshots — desktop/phone, light/dark, bat
     await expect(page.getByText(/Status is nu: wacht op fiat/)).toBeVisible()
     await expect(page.getByText(/Ingediend door/)).toBeVisible()
     await expect(page.getByText('Nog niet goedgekeurd')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /· 1 factuur\b/ })).toBeVisible()
     await shotsBothSizes(page, '06-paymentbatch-submitted-submitter')
 
-    // 07 Submitted — approver view
+    // 07 Submitted — approver view (no display name → nameless "Ingediend")
     await bobPage.setViewportSize({ width: 1440, height: 1040 })
     await bobPage.goto('/payments')
     await expect(bobPage.getByRole('cell', { name: 'BETAAL-FLOW' })).toBeVisible()
     await hydrated(bobPage)
     await bobPage.getByRole('cell', { name: 'BETAAL-FLOW' }).click()
     await expect(bobPage.getByRole('button', { name: /Batch fiatteren|Fiatteren/ })).toBeVisible()
-    await expect(bobPage.getByText(/Ingediend door/)).toBeVisible()
+    await expect(bobPage.getByText('Ingediend', { exact: true })).toBeVisible()
     await expect(bobPage.getByText('Nog niet goedgekeurd')).toBeVisible()
+    await expect(bobPage.getByRole('heading', { name: /· 1 factuur\b/ })).toBeVisible()
     await shotsBothSizes(bobPage, '07-paymentbatch-submitted-approver')
 
-    // 08 Approved
+    // 08 Approved — nameless "Goedgekeurd"
     await bobPage.getByRole('button', { name: /Batch fiatteren|Fiatteren/ }).click()
     await expect(bobPage.getByText(/Status is nu: gefiatteerd/)).toBeVisible()
     await expect(bobPage.getByRole('button', { name: 'Download pain.001' })).toBeVisible()
-    await expect(bobPage.getByText(/Goedgekeurd door/)).toBeVisible()
+    await expect(bobPage.getByText('Goedgekeurd', { exact: true })).toBeVisible()
     await shotsBothSizes(bobPage, '08-paymentbatch-approved')
 
     // 09 Exported — last stepper step done
@@ -273,6 +275,7 @@ test('BillNew + PaymentBatch #175 screenshots — desktop/phone, light/dark, bat
       bobPage.getByRole('list', { name: 'Voortgang van de batch' }).getByText('Bestand gedownload'),
     ).toBeVisible()
     await expect(bobPage.getByText(/letter je ze af in Match/i)).toBeVisible()
+    await expect(bobPage.getByText('Goedgekeurd', { exact: true })).toBeVisible()
     await shotsBothSizes(bobPage, '09-paymentbatch-exported')
   } finally {
     await aliceCtx.close()
