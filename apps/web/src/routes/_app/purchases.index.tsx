@@ -341,7 +341,7 @@ function Costs() {
         title={t('costs.title')}
         actions={
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-            <label className="border-input bg-background focus-within:outline-ring relative flex min-h-11 flex-1 items-center gap-2 rounded-[var(--radius-md)] border px-3 sm:max-w-[260px] md:min-h-10">
+            <label className="border-input bg-background focus-within:outline-ring relative flex min-h-11 w-full flex-1 items-center gap-2 rounded-[var(--radius-md)] border px-3 pr-10 sm:max-w-[18rem] md:min-h-10">
               <span className="sr-only">{t('costs.filterAria')}</span>
               <Input
                 ref={filterRef}
@@ -398,18 +398,24 @@ function Costs() {
           <Alert
             variant="destructive"
             aria-label={t('purchases.overdue')}
-            className="rounded-[var(--radius-lg)]"
+            className="rounded-[var(--radius-lg)] max-md:has-data-[slot=alert-action]:pr-4"
           >
             <Clock aria-hidden="true" className="mt-0.5 size-5" />
-            <AlertTitle>
+            <AlertTitle data-costs-overdue-title="">
               {plural('costs.callout.overdue', overdue.length, {
                 count: String(overdue.length),
                 amount: `€\u00a0${formatMinorUnits(overdueSum)}`,
               })}
             </AlertTitle>
             <AlertDescription>{t('costs.callout.overdueBody')}</AlertDescription>
-            <AlertAction>
-              <Button asChild size="sm" variant="outline" className="bg-surface">
+            <AlertAction className="max-md:static max-md:col-span-full max-md:col-start-1 max-md:mt-2 max-md:w-full max-md:justify-self-stretch">
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="bg-surface max-md:min-h-11 max-md:w-full"
+                data-costs-overdue-prepare=""
+              >
                 <Link to="/payments">
                   {t('costs.callout.prepare')}
                   {hydrated && <Keycap className="ml-1.5">b</Keycap>}
@@ -672,8 +678,8 @@ function BillPreview({
       className="border-border bg-surface hidden max-w-[440px] min-w-0 flex-[1_1_360px] flex-col overflow-hidden rounded-[var(--radius-xl)] border shadow-[var(--shadow-raised)] md:flex"
     >
       <div className="flex flex-col gap-3 border-b border-[var(--line-soft)] px-6 py-5">
-        <div className="flex items-center gap-2.5">
-          <span className="text-ink-muted tabular-nums text-[13px]">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="text-ink-muted min-w-0 truncate whitespace-nowrap tabular-nums text-[13px]">
             {row.supplierInvoiceNumber}
           </span>
           <PurchaseStatusPill pill={pill} overdueTone="preview" />
@@ -765,13 +771,9 @@ function BillPreview({
       <div className="bg-surface-sunken text-ink-muted mx-6 mt-4 flex h-40 flex-col items-center justify-center gap-1.5 rounded-[var(--radius-md)] text-[13px]">
         <FileText aria-hidden="true" className="size-[22px]" />
         <span>{t('costs.preview.document')}</span>
-        <span className="inline-flex items-center gap-1.5">
-          <Keycap>Space</Keycap>
-          {t('costs.preview.enlarge')}
-        </span>
       </div>
 
-      <dl className="grid grid-cols-[110px_1fr] gap-y-2.5 px-6 pt-4 pb-4 text-sm border-b border-[var(--line-soft)]">
+      <dl className="grid grid-cols-[110px_1fr] gap-y-2.5 px-6 pt-4 pb-5 text-sm">
         <dt className="text-ink-muted">{t('costs.preview.billDate')}</dt>
         <dd className="m-0 tabular-nums">{formatDate(row.invoiceDate)}</dd>
         <dt className="text-ink-muted">{t('costs.preview.due')}</dt>
@@ -783,10 +785,6 @@ function BillPreview({
         <dt className="text-ink-muted">{t('costs.preview.approval')}</dt>
         <dd className="m-0">{approvalKey === null ? '—' : t(approvalKey)}</dd>
       </dl>
-
-      <p className="text-ink-muted px-6 py-5 text-[13px] leading-relaxed">
-        {t('costs.preview.footnote')}
-      </p>
     </aside>
   )
 }

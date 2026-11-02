@@ -184,7 +184,7 @@ export function costsApprovalKind(status: CostsInvoiceRow['status']): CostsAppro
   return 'none'
 }
 
-/** Payable and still owed — the only rows "Add to payment batch" may claim. */
+/** Payable and still owed — the only rows "Go to payment batches" may claim. */
 export function showCostsAddToBatch(
   invoice: Pick<CostsInvoiceRow, 'payable' | 'outstanding' | 'status'>,
 ): boolean {

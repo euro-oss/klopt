@@ -159,6 +159,12 @@ test('seeded bills: segments, preview, keyboard; no console errors', async ({ pa
   // Honest approval copy — not four-eyes on the bill itself.
   await expect(preview.getByText('Waiting for a second person')).toHaveCount(0)
   await expect(preview.getByText('Wachten op een tweede persoon')).toHaveCount(0)
+  await expect(preview.getByText('Geen voorbeeld van het document')).toBeVisible()
+  await expect(preview.getByText('vergroot')).toHaveCount(0)
+  await expect(page.getByText('naar betaalbatches', { exact: true })).toBeVisible()
+  // Approved payable bill shows the honest /payments shortcut label.
+  await page.getByText('INK-DEMO-2025-0002', { exact: true }).click()
+  await expect(preview.getByRole('button', { name: 'Naar betaalbatches' })).toBeVisible()
 
   const firstId = new URL(page.url()).searchParams.get('id')
   await page.keyboard.press('ArrowDown')
@@ -181,4 +187,60 @@ test('seeded bills: segments, preview, keyboard; no console errors', async ({ pa
   await expect(page).toHaveURL(/\/contacts/)
 
   expect(errors, `console errors:\n${errors.join('\n')}`).toEqual([])
+})
+
+test('phone 390 light and dark: overdue button clear of title; tabs one line; no horizontal overflow', async ({
+  page,
+}) => {
+  test.setTimeout(120_000)
+  await openCostsEmpty(page)
+  await aSupplier(page)
+  // Due in the past so the overdue banner shows at 390.
+  await enterBill(page, 'INK-PHONE-0001', { book: true, approve: true })
+
+  await page.goto('/purchases?segment=open')
+  await hydrated(page)
+
+  for (const theme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
+    await page.evaluate((t) => {
+      document.documentElement.classList.toggle('dark', t === 'dark')
+    }, theme)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(page.getByRole('heading', { name: 'Kosten' })).toBeVisible()
+
+    const banner = page.getByRole('alert', { name: /te laat|overdue/i }).first()
+    await expect(banner).toBeVisible()
+    await expect(banner.getByText(/Iemand anders dan de indiener/)).toBeVisible()
+    const title = banner.locator('[data-costs-overdue-title]')
+    const prepare = banner.locator('[data-costs-overdue-prepare]')
+    await expect(title).toBeVisible()
+    await expect(prepare).toBeVisible()
+    const titleBox = await title.boundingBox()
+    const prepareBox = await prepare.boundingBox()
+    expect(titleBox, 'overdue title box').not.toBeNull()
+    expect(prepareBox, 'prepare button box').not.toBeNull()
+    if (titleBox !== null && prepareBox !== null) {
+      const intersects =
+        titleBox.x < prepareBox.x + prepareBox.width &&
+        titleBox.x + titleBox.width > prepareBox.x &&
+        titleBox.y < prepareBox.y + prepareBox.height &&
+        titleBox.y + titleBox.height > prepareBox.y
+      expect(intersects, `${theme}: prepare overlaps overdue title`).toBe(false)
+    }
+
+    const tabs = page.locator('[data-costs-tabs] a')
+    await expect(tabs).toHaveCount(4)
+    const tops = await tabs.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top))
+    expect(new Set(tops.map((top) => Math.round(top))).size, `${theme}: tabs share one row`).toBe(1)
+
+    const overflow = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }))
+    expect(
+      overflow.scrollWidth,
+      `${theme}: page scrollWidth ${overflow.scrollWidth} > clientWidth ${overflow.clientWidth}`,
+    ).toBeLessThanOrEqual(overflow.clientWidth)
+  }
 })
