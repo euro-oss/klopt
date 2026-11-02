@@ -28,7 +28,7 @@ test.beforeAll(async () => {
  * The round-trip tests want two administrations and one browser, and `/sign-in`
  * bounces a signed-in visitor to the dashboard — so the way to the form is
  * through the sidebar's own sign-out (one click inside the account menu when
- * there is a shell, or the plain Afmelden button on the no-administration
+ * there is a shell, or the plain Uitloggen button on the no-administration
  * screen).
  */
 async function anAdministration(page: Page, name: string): Promise<void> {
@@ -36,8 +36,8 @@ async function anAdministration(page: Page, name: string): Promise<void> {
   if ((await page.getByRole('region', { name: 'Profiel' }).count()) > 0) {
     await signOut(page)
     await expect(page.getByLabel('E-mail')).toBeVisible()
-  } else if ((await page.getByRole('button', { name: 'Afmelden' }).count()) > 0) {
-    await page.getByRole('button', { name: 'Afmelden' }).click()
+  } else if ((await page.getByRole('button', { name: 'Uitloggen' }).count()) > 0) {
+    await page.getByRole('button', { name: 'Uitloggen' }).click()
     await expect(page.getByLabel('E-mail')).toBeVisible()
   }
 
