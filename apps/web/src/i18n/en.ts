@@ -1075,8 +1075,11 @@ export const en: Record<MessageKey, string> = {
   'contacts.card.bills_other': '{count} bills',
   'contacts.card.draft': 'Draft',
   'contacts.card.docOpen': 'Open €\u00a0{amount}',
-  'contacts.card.supplierOpen': 'One bill of € {amount} is past its due date.',
-  'contacts.card.supplierPaid': 'All bills are paid.',
+  // Purchase side only (#163 Legal): open count/amount; never claim paid.
+  'contacts.card.supplierOpenNone': 'Nothing open',
+  'contacts.card.supplierOpenSummary': '{count} open · €\u00a0{amount}',
+  'contacts.card.supplierOverdueSuffix_one': ' · {count} overdue',
+  'contacts.card.supplierOverdueSuffix_other': ' · {count} overdue',
   'contacts.card.openCosts': 'Open in Costs',
   'contacts.card.number': 'Contact number',
   'contacts.card.details': 'Address, email, IBAN',

@@ -256,5 +256,35 @@ export function salesDocStatus(
   return { pill: null, openMinor: null }
 }
 
+/**
+ * Purchase-side open summary for the contact card (#163 Legal).
+ *
+ * Count and amount come only from purchase `outstanding` — never from
+ * inventing a paid state. A bill is overdue only when `dueDate < asOf`
+ * (same exclusive boundary as #118: daysOverdue > 0).
+ */
+export interface SupplierOpenSummary {
+  readonly openCount: number
+  readonly openMinor: bigint
+  readonly overdueCount: number
+}
+
+export function supplierOpenSummary(
+  purchases: readonly ContactPurchaseDoc[],
+  asOf: string,
+): SupplierOpenSummary {
+  let openCount = 0
+  let openMinor = 0n
+  let overdueCount = 0
+  for (const bill of purchases) {
+    const outstanding = BigInt(bill.outstanding)
+    if (outstanding <= 0n) continue
+    openCount += 1
+    openMinor += outstanding
+    if (bill.dueDate < asOf) overdueCount += 1
+  }
+  return { openCount, openMinor, overdueCount }
+}
+
 /** Fetch one past the display hint so the UI can show a truncated hint later. */
 export const CONTACTS_DOCS_FETCH_LIMIT = 201

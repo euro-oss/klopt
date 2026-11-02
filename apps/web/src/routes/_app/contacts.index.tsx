@@ -22,7 +22,9 @@ import {
   missingEInvoicingDetails,
   parseContactsRoleFilter,
   salesDocStatus,
+  supplierOpenSummary,
   type ContactListRow,
+  type ContactPurchaseDoc,
   type ContactsRoleFilter,
   type ContactSalesDoc,
 } from '~/lib/contacts-list'
@@ -584,8 +586,9 @@ function Contacts() {
             </Empty>
           ) : (
             <div className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border">
+              {/* Desktop column headers only — phone rows are name-first, two lines. */}
               <div
-                className="text-ink-muted grid grid-cols-[36px_minmax(0,1fr)_5.5rem_7.5rem] gap-3 border-b border-[var(--line-soft)] px-5 py-2.5 text-xs font-medium"
+                className="text-ink-muted hidden grid-cols-[36px_minmax(0,1fr)_4.75rem_6.5rem] gap-3 border-b border-[var(--line-soft)] px-5 py-2.5 text-xs font-medium md:grid"
                 role="row"
               >
                 <span aria-hidden="true" />
@@ -599,6 +602,16 @@ function Contacts() {
                   const openMinor = stats?.openMinor ?? 0n
                   const isActive = row.id === activeId
                   const sub = row.email !== null && row.email !== '' ? row.email : row.number
+                  const role = contactRoleLabel(row, roleLabels)
+                  const openLabel =
+                    openMinor > 0n ? (
+                      <>
+                        €&nbsp;
+                        <Money amount={openMinor} />
+                      </>
+                    ) : (
+                      '–'
+                    )
                   return (
                     <button
                       key={row.id}
@@ -619,46 +632,58 @@ function Contacts() {
                         })
                       }}
                       className={cn(
-                        'grid w-full grid-cols-[36px_minmax(0,1fr)_5.5rem_7.5rem] gap-3 border-b border-[var(--line-soft)] px-5 py-3 text-left last:border-b-0',
+                        'flex w-full items-start gap-3 border-b border-[var(--line-soft)] px-4 py-3 text-left last:border-b-0',
+                        'md:grid md:grid-cols-[36px_minmax(0,1fr)_4.75rem_6.5rem] md:items-center md:gap-3 md:px-5',
                         'min-h-11 hover:bg-[var(--surface-hover)] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
                         isActive && 'bg-[var(--surface-hover)]',
                         row.isBlocked && 'opacity-70',
                       )}
                     >
                       <span
-                        className="bg-surface-sunken text-ink-muted flex size-8 items-center justify-center rounded-full text-xs font-semibold"
+                        className="bg-surface-sunken text-ink-muted flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
                         aria-hidden="true"
                       >
                         {contactInitials(row.name)}
                       </span>
-                      <span className="flex min-w-0 flex-col">
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span
+                          data-contact-name=""
+                          title={row.name}
                           className={cn(
-                            'truncate font-medium',
+                            'break-words font-medium',
                             row.isBlocked && 'text-muted-foreground line-through',
                           )}
                         >
                           {row.name}
                         </span>
-                        <span className="text-ink-muted truncate text-xs">{sub}</span>
+                        <span className="text-ink-muted truncate text-xs" title={sub}>
+                          {sub}
+                        </span>
+                        {/* Phone: role + open under the name so the name never yields width. */}
+                        <span className="text-ink-2 flex justify-between gap-3 text-sm md:hidden">
+                          <span className="min-w-0 truncate" title={role}>
+                            {role}
+                          </span>
+                          <span
+                            className={cn(
+                              'shrink-0 tabular-nums',
+                              openMinor > 0n ? 'text-destructive font-semibold' : 'text-ink-muted',
+                            )}
+                          >
+                            {openLabel}
+                          </span>
+                        </span>
                       </span>
-                      <span className="text-ink-2 self-center text-sm">
-                        {contactRoleLabel(row, roleLabels)}
+                      <span className="text-ink-2 hidden truncate text-sm md:block" title={role}>
+                        {role}
                       </span>
                       <span
                         className={cn(
-                          'self-center text-right tabular-nums',
+                          'hidden self-center text-right tabular-nums md:block',
                           openMinor > 0n ? 'text-destructive font-semibold' : 'text-ink-muted',
                         )}
                       >
-                        {openMinor > 0n ? (
-                          <>
-                            €&nbsp;
-                            <Money amount={openMinor} />
-                          </>
-                        ) : (
-                          '–'
-                        )}
+                        {openLabel}
                       </span>
                     </button>
                   )
@@ -729,6 +754,7 @@ function ContactCard({
     dueDate: string
     status: string
     supplierInvoiceNumber: string
+    contactNumber: string
   }[]
   openByInvoiceId: ReadonlyMap<string, bigint>
   asOf: string
@@ -812,10 +838,28 @@ function ContactCard({
     ? plural('contacts.card.invoices', docs, { count: String(docs) })
     : plural('contacts.card.bills', docs, { count: String(docs) })
 
+  // Purchase side only — open count/amount; overdue only when dueDate < asOf (#163 Legal).
+  const purchaseSide: readonly ContactPurchaseDoc[] = purchaseDocs.map((bill) => ({
+    id: bill.id,
+    contactNumber: bill.contactNumber,
+    total: bill.total,
+    outstanding: bill.outstanding,
+    dueDate: bill.dueDate,
+    status: bill.status,
+  }))
+  const supplierSummary = supplierOpenSummary(purchaseSide, asOf)
   const supplierOpenLine =
-    openMinor > 0n
-      ? t('contacts.card.supplierOpen', { amount: formatMinorUnits(openMinor) })
-      : t('contacts.card.supplierPaid')
+    supplierSummary.openCount === 0
+      ? t('contacts.card.supplierOpenNone')
+      : t('contacts.card.supplierOpenSummary', {
+          count: String(supplierSummary.openCount),
+          amount: formatMinorUnits(supplierSummary.openMinor),
+        }) +
+        (supplierSummary.overdueCount > 0
+          ? plural('contacts.card.supplierOverdueSuffix', supplierSummary.overdueCount, {
+              count: String(supplierSummary.overdueCount),
+            })
+          : '')
 
   return (
     <aside

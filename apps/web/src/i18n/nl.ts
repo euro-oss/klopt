@@ -868,8 +868,11 @@ export const nl = {
   'contacts.card.bills_other': '{count} inkoopfacturen',
   'contacts.card.draft': 'Concept',
   'contacts.card.docOpen': 'Open €\u00a0{amount}',
-  'contacts.card.supplierOpen': 'Eén factuur van € {amount} is te laat.',
-  'contacts.card.supplierPaid': 'Alle inkoopfacturen zijn betaald.',
+  // Purchase side only (#163 Legal): open count/amount; never claim betaald.
+  'contacts.card.supplierOpenNone': 'Geen openstaand',
+  'contacts.card.supplierOpenSummary': '{count} open · €\u00a0{amount}',
+  'contacts.card.supplierOverdueSuffix_one': ' · {count} te laat',
+  'contacts.card.supplierOverdueSuffix_other': ' · {count} te laat',
   'contacts.card.openCosts': 'Open in Kosten',
   'contacts.card.number': 'Relatienummer',
   'contacts.card.details': 'Adres, e-mail, IBAN',

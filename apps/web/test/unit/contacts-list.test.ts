@@ -8,6 +8,7 @@ import {
   missingEInvoicingDetails,
   parseContactsRoleFilter,
   salesDocStatus,
+  supplierOpenSummary,
   type ContactListRow,
 } from '../../src/lib/contacts-list.js'
 
@@ -194,6 +195,71 @@ describe('contactRoleLabel / missingEInvoicingDetails / salesDocStatus', () => {
     expect(salesDocStatus({ id: 'inv-2', status: 'issued' }, openById)).toEqual({
       pill: null,
       openMinor: null,
+    })
+  })
+})
+
+describe('supplierOpenSummary (#163 Legal)', () => {
+  const asOf = '2026-06-15'
+  const bills = [
+    {
+      id: 'b1',
+      contactNumber: 'S001',
+      total: '121000',
+      outstanding: '121000',
+      dueDate: '2026-03-01', // past → overdue
+      status: 'approved',
+    },
+    {
+      id: 'b2',
+      contactNumber: 'S001',
+      total: '50000',
+      outstanding: '50000',
+      dueDate: '2026-12-01', // future → open, not overdue
+      status: 'approved',
+    },
+    {
+      id: 'b3',
+      contactNumber: 'S001',
+      total: '10000',
+      outstanding: '0',
+      dueDate: '2026-01-01',
+      status: 'approved',
+    },
+    {
+      id: 'b4',
+      contactNumber: 'S001',
+      total: '20000',
+      outstanding: '20000',
+      dueDate: '2026-06-15', // due today → not overdue (#118 exclusive)
+      status: 'approved',
+    },
+  ] as const
+
+  it('counts open amount from purchase outstanding only', () => {
+    expect(supplierOpenSummary(bills, asOf)).toEqual({
+      openCount: 3,
+      openMinor: 191000n,
+      overdueCount: 1,
+    })
+  })
+
+  it('marks overdue only when dueDate < asOf (daysOverdue > 0)', () => {
+    expect(supplierOpenSummary([bills[0]], asOf).overdueCount).toBe(1)
+    expect(supplierOpenSummary([bills[1]], asOf).overdueCount).toBe(0)
+    expect(supplierOpenSummary([bills[3]], asOf).overdueCount).toBe(0)
+  })
+
+  it('reports zero open without inventing a paid claim', () => {
+    expect(supplierOpenSummary([bills[2]], asOf)).toEqual({
+      openCount: 0,
+      openMinor: 0n,
+      overdueCount: 0,
+    })
+    expect(supplierOpenSummary([], asOf)).toEqual({
+      openCount: 0,
+      openMinor: 0n,
+      overdueCount: 0,
     })
   })
 })

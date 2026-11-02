@@ -42,7 +42,9 @@ async function seedContact(page: Page): Promise<void> {
   await page.goto('/contacts')
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-1300')
-  await page.getByLabel('Naam', { exact: true }).fill('Zandbank Advies')
+  await page
+    .getByLabel('Naam', { exact: true })
+    .fill('Zandbank Advies en Accountancy Partners B.V.')
   await page.getByLabel('E-mail').fill('facturen@example.nl')
   await page.getByLabel('Straat').fill('Demoweg')
   await page.getByLabel('Huisnr.').fill('10')
@@ -50,7 +52,9 @@ async function seedContact(page: Page): Promise<void> {
   await page.getByLabel('Plaats').fill('Amsterdam')
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL000001006B99')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('button', { name: /Zandbank Advies/ })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /Zandbank Advies en Accountancy Partners B\.V\./ }),
+  ).toBeVisible()
 }
 
 async function persistThemeCookie(page: Page, theme: 'light' | 'dark'): Promise<void> {
@@ -111,7 +115,7 @@ test('02 seeded — desktop 1440 light/dark + phone bonus', async ({ page }) => 
   await persistThemeCookie(page, 'light')
   await page.goto('/contacts')
   await setTheme(page, 'light')
-  await page.getByRole('button', { name: /Zandbank Advies/ }).click()
+  await page.getByRole('button', { name: /Zandbank Advies en Accountancy Partners B\.V\./ }).click()
   await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible()
   await shoot(page, '02-contacts-data-light-desktop-1440.png', { width: 1440, height: 1040 })
 
