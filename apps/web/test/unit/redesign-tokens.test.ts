@@ -179,7 +179,7 @@ describe('Phase 0 redesign tokens (#107)', () => {
     expect(contrastRatio(lightInput, lightGround)).toBeGreaterThanOrEqual(3)
     expect(contrastRatio(darkInput, darkGround)).toBeGreaterThanOrEqual(3)
     expect(tokenIn(css, ':root', '--line-control')).toBe('#c9c8c1')
-    // CoS / #140 / DERIVED.md: muted grey is the existing --ink-muted token (no hex).
+    // CoS / #140 / DERIVED.md: muted grey is the existing --ink-muted token — no hard-coded hex.
     expect(tokenIn(css, ':root', '--input-border')).toBe('var(--ink-muted)')
     expect(tokenIn(css, '.dark', '--input-border')).toBe('var(--ink-muted)')
     expect(tokenIn(css, ':root', '--input-border')).not.toMatch(/^#/)
