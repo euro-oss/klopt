@@ -442,15 +442,23 @@ function PaymentBatch() {
           </p>
         )}
 
-        {/* Translated message only — never a raw path like "instructions:". Hide
-            while the missing-IBAN callout already explains the block. */}
-        {problems.length > 0 && !(step === 0 && missingIban) && (
-          <ul role="alert" className="text-destructive space-y-1 text-sm">
-            {problems.map((problem, index) => (
-              <li key={index}>{findingMessage(t, problem)}</li>
-            ))}
-          </ul>
-        )}
+        {/* Translated message only — never a raw path like "instructions:".
+            When the missing-IBAN callout is up, drop empty_batch only (shot 05);
+            keep invalid_iban and other findings visible. */}
+        {(() => {
+          const visibleProblems =
+            step === 0 && missingIban
+              ? problems.filter((problem) => problem.code !== 'empty_batch')
+              : problems
+          if (visibleProblems.length === 0) return null
+          return (
+            <ul role="alert" className="text-destructive space-y-1 text-sm">
+              {visibleProblems.map((problem, index) => (
+                <li key={index}>{findingMessage(t, problem)}</li>
+              ))}
+            </ul>
+          )
+        })()}
 
         <section className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border">
           {/* Phone: two-line rows so Bedrag / Weg are never clipped (#175). */}

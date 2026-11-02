@@ -360,7 +360,12 @@ test('an approved invoice becomes a payment instruction', async ({ page }) => {
   await page.getByRole('button', { name: 'Deze betalingen overnemen' }).click()
 
   // And what the preview said is what the batch holds.
-  await expect(page.getByText(/NL91\s*ABNA\s*0417\s*1643\s*00|NL91ABNA0417164300/)).toBeVisible()
+  // Phone + desktop line lists both render; scope to the desktop table.
+  await expect(
+    page
+      .locator('[data-testid="batch-lines-desktop"]')
+      .getByText(/NL91\s*ABNA\s*0417\s*1643\s*00|NL91ABNA0417164300/),
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeVisible()
 
   // Scheduling is not paying: the invoice is still owed and still reconciles.
