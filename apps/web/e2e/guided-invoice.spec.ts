@@ -77,7 +77,7 @@ async function addCustomer(
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
   await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('87654321')
   if (opts.email !== null) {
-    await page.getByLabel('E-mail').fill(opts.email ?? 'administratie@hotelzeezicht.nl')
+    await page.getByLabel('E-mail').fill(opts.email ?? 'administratie@hotelzeezicht.example.nl')
   }
   await page.getByLabel('Straat').fill('Boulevard de Ruyter')
   await page.getByLabel('Huisnr.').fill('2')
@@ -178,8 +178,8 @@ test('Eigenaar finishes the guided invoice with the keyboard and never sees a le
   await expect(page.getByText(/Factuur \d{4}-\d+/)).toBeVisible()
   await expect(page.getByText(EXPECTED_TOTAL)).toBeVisible()
   await expectNoCodes(page)
-  const delivered = await waitForOutboxTo('administratie@hotelzeezicht.nl')
-  expect(delivered).toContain('To: administratie@hotelzeezicht.nl')
+  const delivered = await waitForOutboxTo('administratie@hotelzeezicht.example.nl')
+  expect(delivered).toContain('To: administratie@hotelzeezicht.example.nl')
   expect(delivered).toMatch(/Factuur/i)
 })
 
@@ -222,9 +222,11 @@ test('validation errors, Concept opslaan and the PDF path', async ({ page }) => 
   await expect(page.getByText(/Concept\./)).toBeVisible()
   await expect(page.getByText(/Nog geen nummer/)).toBeVisible()
   await expect(page.getByText(/Factuur \d{4}-\d+/)).toHaveCount(0)
-  // Draft detail uses Money (no € prefix); 60 × €4,20 + 21% = 30492 minor.
-  // (Detail page may show bookkeeper codes — that is not the guided flow.)
-  await expect(page.locator('[data-minor-units="30492"]').first()).toBeVisible()
+  // Draft detail: 60 × €4,20 + 21% = 30492 minor. Phone + desktop both render
+  // the amount; assert a visible one (`.first()` can hit the md:hidden copy).
+  await expect(
+    page.locator('[data-minor-units="30492"]').filter({ visible: true }).first(),
+  ).toBeVisible()
 })
 
 test('PDF send path reaches Klaar voor without claiming e-mail', async ({ page }) => {

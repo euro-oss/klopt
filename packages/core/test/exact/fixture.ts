@@ -194,7 +194,7 @@ const ACCOUNTS = [
     Blocked: false,
     VATNumber: 'NL001122334B01',
     ChamberOfCommerce: '11111111',
-    Email: 'facturen@klanteen.nl',
+    Email: 'facturen@klanteen.example.nl',
     Phone: '0201234567',
     Website: null,
     AddressLine1: 'Keizersgracht 1',
