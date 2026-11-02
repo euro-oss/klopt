@@ -60,14 +60,17 @@ async function withStatement(page: Page, name: string): Promise<void> {
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
+  // CoS example IBAN — must match statement.mt940; BankAccounts displays spaced.
   await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
+  await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
 
-  await expect(page.locator('input[type="file"]')).toBeEnabled()
-
-  await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
+  await expect(page.locator('[data-slot="drop-zone"] input[type="file"]')).toBeEnabled()
+  await page.setInputFiles(
+    '[data-slot="drop-zone"] input[type="file"]',
+    join(FIXTURES, 'statement.mt940'),
+  )
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   await page.getByRole('button', { name: 'Importeren', exact: true }).click()
   await expect(page.getByText('4 transacties geïmporteerd.')).toBeVisible()

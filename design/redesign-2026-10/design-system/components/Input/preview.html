@@ -1,0 +1,28 @@
+<!-- @dsCard group="Forms" height=170 subtitle="Field with label and help, search" -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Input</title></head>
+<body style="margin:0">
+<div class="k-root" style="padding:20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start">
+  <div class="k-field">
+    <label class="k-label" for="a">Invoice date</label>
+    <input id="a" class="k-input k-num" value="30-10-2026">
+  </div>
+  <div class="k-field">
+    <label class="k-label" for="b">Due</label>
+    <input id="b" class="k-input k-num" value="29-11-2026">
+    <span class="k-help">30 days, as agreed with this customer</span>
+  </div>
+  <div class="k-field">
+    <label class="k-label" for="c">Their reference <small>optional</small></label>
+    <input id="c" class="k-input" placeholder="PO number">
+  </div>
+  <label class="k-search" style="grid-column:span 2">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="text" aria-label="Filter invoices" placeholder="Customer, number, amount">
+    <span class="k-kbd">/</span>
+  </label>
+</div>
+<script></script>
+</body>
+</html>

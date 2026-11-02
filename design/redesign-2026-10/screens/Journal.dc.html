@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Journal</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.jgrid{display:grid;grid-template-columns:44px 84px minmax(180px,1fr) 64px 110px;gap:12px}
+.lgrid{display:grid;grid-template-columns:minmax(150px,1fr) 100px 100px;gap:12px;padding:10px 24px;border-top:1px solid var(--line-soft)}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="journal" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 32px 0;">
+      <div style="flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 2px;">
+        <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em;">Journal</h1>
+        <p style="margin: 0; color: var(--ink-muted);">Every booking, in order. Nothing is ever changed: a correction is a new entry that reverses the old one.</p>
+      </div>
+      <label class="k-search" style="width: 240px; max-width: 100%;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" aria-label="Filter entries" placeholder="Description, number, amount">
+        <span class="k-kbd">/</span>
+      </label>
+      <a href="EntryNew.dc.html" class="k-btn k-btn--primary">New entry <span class="k-chord"><span class="k-kbd k-kbd--on-primary">N</span><span class="k-kbd k-kbd--on-primary">J</span></span></a>
+      <nav class="k-tabs" aria-label="Journal sections" style="flex-basis: 100%; margin-top: 4px;">
+        <a href="#" class="k-tab is-active" aria-current="page">Entries</a>
+        <a href="Ledger.dc.html" class="k-tab">Ledger per account</a>
+        <a href="Reports.dc.html" class="k-tab">Trial balance</a>
+      </nav>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; padding: 16px 32px 0; align-items: flex-start;">
+      <section aria-label="Entries" style="flex: 999 1 540px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+        <div class="k-seg" role="tablist" aria-label="Journal">
+          <button type="button" role="tab" class="k-seg-item" aria-selected="true">All <span class="k-count">216</span></button>
+          <button type="button" role="tab" class="k-seg-item" aria-selected="false">Sales</button>
+          <button type="button" role="tab" class="k-seg-item" aria-selected="false">Purchases</button>
+          <button type="button" role="tab" class="k-seg-item" aria-selected="false">Bank</button>
+          <button type="button" role="tab" class="k-seg-item" aria-selected="false">Memorial</button>
+        </div>
+        <div class="k-card k-card--flush">
+          <div style="overflow-x: auto;"><div style="min-width: 560px;">
+            <div class="k-row k-row--head jgrid"><span>#</span><span>Date</span><span>Description</span><span>Journal</span><span style="text-align: right;">Amount</span></div>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="14">
+              <button type="button" class="k-row jgrid k-num" aria-selected="{{r.sel}}" onClick="{{r.pick}}">
+                <span class="k-muted">{{r.n}}</span>
+                <span style="color: var(--ink-2);">{{r.date}}</span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{r.desc}}</span>
+                <span><span class="k-code">{{r.j}}</span></span>
+                <span style="text-align: right; font-weight: 500;">€ {{r.amtF}}</span>
+              </button>
+            </sc-for>
+          </div></div>
+          <div class="k-muted" style="display: flex; justify-content: space-between; padding: 12px 20px; border-top: 1px solid var(--line-soft); font-size: 13px;"><span>Showing 16 of 216, in entry order</span><span>Book year 2025</span></div>
+        </div>
+      </section>
+
+      <aside aria-label="Entry" class="k-card k-card--flush" style="flex: 1 1 380px; max-width: 460px; min-width: 0;">
+        <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--line-soft);">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="k-muted k-num" style="font-size: 13px;">Entry {{s.n}} · {{s.jName}}</span>
+            <span class="k-pill k-pill--paid">Posted</span>
+          </div>
+          <span style="font-size: 18px; line-height: 24px; font-weight: 600;">{{s.desc}}</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <sc-if value="{{s.hasDoc}}" hint-placeholder-val="{{true}}">
+              <a href="Invoices.dc.html" class="k-btn k-btn--sm">Open invoice {{s.doc}}</a>
+            </sc-if>
+            <a href="EntryNew.dc.html" class="k-btn k-btn--sm">Reverse <span class="k-kbd">R</span></a>
+            <button type="button" class="k-btn k-btn--sm">Copy as new <span class="k-kbd">C</span></button>
+          </div>
+        </div>
+        <div class="lgrid" style="border-top: 0; background: var(--surface-hover); font: 600 12px/16px var(--font-sans); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted);"><span>Account</span><span style="text-align: right;">Debit</span><span style="text-align: right;">Credit</span></div>
+        <sc-for list="{{s.lines}}" as="l" hint-placeholder-count="3">
+          <a href="Ledger.dc.html" class="lgrid k-num" style="text-decoration: none; color: var(--ink);"><span style="display: flex; gap: 8px; align-items: center; min-width: 0;"><span class="k-code">{{l.no}}</span><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{l.name}}</span></span><span style="text-align: right;">{{l.d}}</span><span style="text-align: right;">{{l.c}}</span></a>
+        </sc-for>
+        <div class="lgrid k-num" style="font-weight: 600; background: var(--surface-hover);"><span>Balances</span><span style="text-align: right;">{{s.amtF}}</span><span style="text-align: right;">{{s.amtF}}</span></div>
+        <dl class="k-dl" style="padding: 16px 24px; border-top: 1px solid var(--line-soft); font-size: 13px;">
+          <dt>Booking date</dt><dd class="k-num">{{s.date}}</dd>
+          <dt>Posted by</dt><dd>{{s.by}}</dd>
+          <dt>Fingerprint</dt><dd><span class="k-code">{{s.hash}}</span></dd>
+          <dt>Chained to</dt><dd><span class="k-code">{{s.prev}}</span> <span class="k-muted">entry {{s.prevN}}</span></dd>
+        </dl>
+        <p class="k-muted" style="margin: 0; padding: 0 24px 20px; font-size: 13px; line-height: 1.5;">Each entry's fingerprint includes the one before it. Change any old entry and every fingerprint after it breaks, so tampering shows.</p>
+      </aside>
+    </div>
+
+    <footer class="k-hints" style="margin: 16px 32px 24px;">
+      <span><span class="k-kbd">J</span> <span class="k-kbd">K</span> next, previous</span>
+      <span><span class="k-kbd">↵</span> open source document</span>
+      <span><span class="k-kbd">R</span> reverse</span>
+      <span><span class="k-chord"><span class="k-kbd">N</span><span class="k-kbd">J</span></span> new entry</span>
+    </footer>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 17 };
+  }
+  renderVals() {
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const raw = [
+      [1,'01-01-2025','Demo openingsbalans',null,50000,'a2f5d883a8ac'],
+      [2,'05-05-2025','Sales invoice 2025-0001 · Atlas Voorbeeld Handel','2025-0001',84.22,'66fc578908cf'],
+      [3,'14-03-2025','Sales invoice 2025-0002 · Noorderlicht Diensten','2025-0002',488.46,'4c4bd19f4a23'],
+      [4,'03-02-2025','Sales invoice 2025-0003 · Polder Soft B.V.','2025-0003',280.97,'41ecf786ac84'],
+      [5,'28-10-2025','Sales invoice 2025-0004 · Kade & Co','2025-0004',954.58,'5834260c506f'],
+      [6,'08-08-2025','Sales invoice 2025-0005 · Fictieve Fietsen','2025-0005',171.25,'058730cf8760'],
+      [7,'12-07-2025','Sales invoice 2025-0006 · Zandbank Advies','2025-0006',983.06,'7bb25e596fb2'],
+      [8,'02-11-2025','Sales invoice 2025-0007 · Molenaar Media','2025-0007',156.87,'62c228b39307'],
+      [9,'30-07-2025','Sales invoice 2025-0008 · Dijkzicht Design','2025-0008',889.42,'ec79948d5c91'],
+      [10,'01-11-2025','Sales invoice 2025-0009 · Havenmeester Horeca','2025-0009',1016.88,'0a006cbd6c03'],
+      [11,'18-07-2025','Sales invoice 2025-0010 · Windvaan Workshops','2025-0010',728.94,'680ab50945aa'],
+      [12,'08-07-2025','Sales invoice 2025-0011 · Atlas Voorbeeld Handel','2025-0011',612.56,'07360a2aeba2'],
+      [13,'14-10-2025','Sales invoice 2025-0012 · Noorderlicht Diensten','2025-0012',895.81,'204620e88be3'],
+      [14,'17-01-2025','Sales invoice 2025-0013 · Polder Soft B.V.','2025-0013',207.76,'c1a4340f2df4'],
+      [15,'08-08-2025','Sales invoice 2025-0014 · Kade & Co','2025-0014',513.74,'27a6132615eb'],
+      [16,'19-03-2025','Sales invoice 2025-0015 · Fictieve Fietsen','2025-0015',1079.73,'24beca689e65'],
+      [17,'28-11-2025','Sales invoice 2025-0016 · Zandbank Advies','2025-0016',478.42,'ec2b75f13009']
+    ];
+    const all = raw.map(([n, date, desc, doc, amt, hash]) => ({ n, date, desc, doc, amt, hash, amtF: f(amt), j: doc ? 'VRK' : 'MEM' }));
+    const rows = all.slice(1).concat([all[0]]).sort((a, b) => b.n - a.n).map((r) => ({ ...r, sel: r.n === this.state.sel ? 'true' : 'false', pick: () => this.setState({ sel: r.n }) }));
+    const s0 = all.find((r) => r.n === this.state.sel) || all[16];
+    const prev = all.find((r) => r.n === s0.n - 1);
+    let lines;
+    if (!s0.doc) {
+      lines = [{ no: '1100', name: 'Bank', d: f(50000), c: '' }, { no: '0500', name: 'Aandelenkapitaal', d: '', c: f(50000) }];
+    } else if (s0.doc !== '2025-0016') {
+      lines = [
+        { no: '1300', name: 'Debiteuren', d: f(s0.amt), c: '' },
+        { no: '8000', name: 'Omzet', d: '', c: '[net]' },
+        { no: '1500', name: 'Te betalen omzetbelasting', d: '', c: '[VAT]' }
+      ];
+    } else {
+      const net = Math.round(s0.amt / 1.21 * 100) / 100;
+      lines = [
+        { no: '1300', name: 'Debiteuren', d: f(s0.amt), c: '' },
+        { no: '8000', name: 'Omzet', d: '', c: f(net) },
+        { no: '1500', name: 'Te betalen omzetbelasting', d: '', c: f(Math.round((s0.amt - net) * 100) / 100) }
+      ];
+    }
+    const s = {
+      ...s0, lines, hasDoc: !!s0.doc, jName: s0.doc ? 'Sales journal' : 'Memorial',
+      by: s0.doc ? 'Klopt, when the invoice was sent' : 'owner@demo.invalid',
+      hash: s0.hash + '…', prev: prev ? prev.hash + '…' : 'genesis', prevN: prev ? prev.n : '–'
+    };
+    return { theme: this.props.theme ?? 'light', rows, s };
+  }
+}
+</script>
+</body>
+</html>

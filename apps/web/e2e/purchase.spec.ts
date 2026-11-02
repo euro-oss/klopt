@@ -322,7 +322,8 @@ test('an approved invoice becomes a payment instruction', async ({ page }) => {
   await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
+  // BankAccounts displays the CoS IBAN spaced (#171).
+  await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
 
   await page.goto('/purchases/new')
   await anInteractiveForm(page)

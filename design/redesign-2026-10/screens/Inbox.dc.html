@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Inbox</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 960px;">
+  <dc-import name="Sidebar" active="inbox" theme="{{theme}}" hint-size="248px,960px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+      <div style="flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 2px;">
+        <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em;">Inbox</h1>
+        <p style="margin: 0; font-size: 14px; color: var(--ink-muted);">Receipts and bills land here. Klopt reads them, you check and book.</p>
+      </div>
+      <button type="button" class="k-btn">Add a source</button>
+      <button type="button" class="k-btn k-btn--primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Add files <span class="k-chord"><span class="k-kbd k-kbd--on-primary">N</span><span class="k-kbd k-kbd--on-primary">R</span></span>
+      </button>
+    </header>
+
+    <div class="k-seg" role="tablist" aria-label="Inbox status">
+      <button type="button" role="tab" class="k-seg-item" aria-selected="true">To handle <span class="k-count">0</span></button>
+      <a href="InboxReview.dc.html" class="k-seg-item" style="text-decoration: none;">See it with documents</a>
+      <button type="button" role="tab" class="k-seg-item" aria-selected="false">Booked <span class="k-count">0</span></button>
+      <button type="button" role="tab" class="k-seg-item" aria-selected="false">Set aside <span class="k-count">0</span></button>
+    </div>
+
+    <section aria-label="Drop files" style="border: 2px dashed var(--line-control); border-radius: var(--radius-xl); background: var(--surface); padding: 56px 32px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;">
+      <span class="k-tile k-tile--brand" style="width: 56px; height: 56px; border-radius: 16px;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>
+      </span>
+      <h2 style="margin: 0; font-size: 20px; line-height: 26px; font-weight: 600;">Nothing to handle</h2>
+      <p style="margin: 0; max-width: 460px; color: var(--ink-2); line-height: 1.5;">Drop PDFs, photos or UBL files anywhere on this page, paste a screenshot with <span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">V</span></span>, or connect a source below so they arrive by themselves.</p>
+      <button type="button" class="k-btn" style="margin-top: 8px;">Choose files</button>
+    </section>
+
+    <section aria-labelledby="src-h" style="display: flex; flex-direction: column; gap: 12px;">
+      <h2 id="src-h" class="k-card-title">Where documents can come from</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+        <div class="k-card" style="display: flex; flex-direction: column; gap: 10px;">
+          <span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+          <strong style="font-size: 15px;">A mailbox</strong>
+          <span style="color: var(--ink-2); line-height: 1.5;">Forward bills to a mailbox Klopt checks every five minutes. Attachments become documents, the mail itself is kept as proof.</span>
+          <a href="#" style="font-weight: 600; margin-top: auto;">Connect a mailbox</a>
+        </div>
+        <div class="k-card" style="display: flex; flex-direction: column; gap: 10px;">
+          <span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+          <strong style="font-size: 15px;">A folder</strong>
+          <span style="color: var(--ink-2); line-height: 1.5;">Point Klopt at a folder, a scanner's output for example. No password needed, the usual choice for self-hosting.</span>
+          <a href="#" style="font-weight: 600; margin-top: auto;">Choose a folder</a>
+        </div>
+        <div class="k-card" style="display: flex; flex-direction: column; gap: 10px;">
+          <span class="k-tile k-tile--info"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          <strong style="font-size: 15px;">Peppol e-invoices</strong>
+          <span style="color: var(--ink-2); line-height: 1.5;">Suppliers who send e-invoices reach you directly, already read, nothing to fetch. Needs your KvK number in Settings.</span>
+          <a href="Settings.dc.html" style="font-weight: 600; margin-top: auto;">Finish company details</a>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="how-h" class="k-card" style="display: flex; flex-direction: column; gap: 16px;">
+      <h2 id="how-h" class="k-card-title">What happens to a document</h2>
+      <ol style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+        <li style="display: flex; gap: 12px;"><span class="k-option-key">1</span><span style="display: flex; flex-direction: column; gap: 2px;"><strong>Klopt reads it</strong><span style="color: var(--ink-muted); font-size: 13px;">Supplier, date, amounts and VAT are filled in where they can be read.</span></span></li>
+        <li style="display: flex; gap: 12px;"><span class="k-option-key">2</span><span style="display: flex; flex-direction: column; gap: 2px;"><strong>You check and book</strong><span style="color: var(--ink-muted); font-size: 13px;">Side by side with the document. <span class="k-kbd">↵</span> books it, <span class="k-kbd">S</span> sets it aside.</span></span></li>
+        <li style="display: flex; gap: 12px;"><span class="k-option-key">3</span><span style="display: flex; flex-direction: column; gap: 2px;"><strong>It waits for the bank</strong><span style="color: var(--ink-muted); font-size: 13px;">When the payment shows up, Match offers this bill first.</span></span></li>
+      </ol>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light', }; }
+}
+</script>
+</body>
+</html>
