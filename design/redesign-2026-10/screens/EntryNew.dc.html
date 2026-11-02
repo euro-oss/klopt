@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · New journal entry</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.cell{height:var(--control-h);padding:0 10px;border:0;border-right:1px solid var(--line-soft);background:transparent;font:400 14px var(--font-sans);color:var(--ink);box-sizing:border-box;width:100%;min-width:0}
+.cell.is-focus{outline:2px solid var(--selection-edge);outline-offset:-2px;background:var(--brand-tint)}
+.erow{display:grid;grid-template-columns:minmax(220px,1.3fr) minmax(160px,1fr) 120px 120px 36px;border-top:1px solid var(--line-soft);align-items:center}
+.ehead{background:var(--surface-hover);font:600 12px/16px var(--font-sans);color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;height:34px}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="journal" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--surface);">
+      <a href="Journal.dc.html" style="color: var(--ink-2); text-decoration: none;">Journal</a>
+      <span style="color: var(--ink-faint);" aria-hidden="true">/</span>
+      <h1 style="margin: 0; font-size: 16px; line-height: 22px; font-weight: 600;">New entry</h1>
+      <span style="flex: 1;"></span>
+      <a href="Journal.dc.html" class="k-btn">Cancel <span class="k-kbd">Esc</span></a>
+      <button type="button" class="k-btn">Post and next <span class="k-chord"><span class="k-kbd">⇧</span><span class="k-kbd">⌘</span><span class="k-kbd">↵</span></span></button>
+      <button type="button" class="k-btn k-btn--primary">Post <span class="k-chord"><span class="k-kbd k-kbd--on-primary">⌘</span><span class="k-kbd k-kbd--on-primary">↵</span></span></button>
+    </header>
+
+    <div style="padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px; max-width: 1080px; box-sizing: border-box; width: 100%;">
+      <section class="k-card" style="display: grid; grid-template-columns: 180px 160px 160px minmax(220px, 1fr); gap: 16px; padding: 20px 24px;">
+        <div class="k-field">
+          <label class="k-label" for="jr">Journal</label>
+          <select id="jr" class="k-input"><option>Memorial (MEM)</option><option>Sales (VRK)</option><option>Purchases (INK)</option><option>Bank (BNK)</option><option>Cash (KAS)</option></select>
+        </div>
+        <div class="k-field">
+          <label class="k-label" for="bd">Booking date</label>
+          <input id="bd" class="k-input k-num" value="20-10-2025">
+        </div>
+        <div class="k-field">
+          <label class="k-label" for="dd">Document date</label>
+          <input id="dd" class="k-input k-num" value="20-10-2025">
+        </div>
+        <div class="k-field">
+          <label class="k-label" for="ds">Description</label>
+          <input id="ds" class="k-input" value="Open post 15: card payment without receipt">
+        </div>
+      </section>
+
+      <section class="k-card k-card--flush" aria-labelledby="lh">
+        <div class="k-card-head" style="padding: 16px 24px;">
+          <h2 id="lh" class="k-card-title" style="font-size: 15px;">Lines</h2>
+          <span class="k-muted" style="font-size: 13px;">Type <span class="k-kbd">=</span> in an amount to fill in what balances the entry</span>
+        </div>
+        <div style="overflow-x: auto;"><div style="min-width: 680px;">
+          <div class="erow ehead"><span style="padding: 0 10px 0 24px;">Account</span><span style="padding: 0 10px;">Line description</span><span style="padding: 0 10px; text-align: right;">Debit</span><span style="padding: 0 10px; text-align: right;">Credit</span><span></span></div>
+          <div class="erow">
+            <span style="padding: 0 10px 0 24px; display: flex; gap: 8px; align-items: center;"><span class="k-code">4900</span>Algemene kosten</span>
+            <input class="cell" aria-label="Line description 1" value="Card payment, receipt to follow">
+            <input class="cell k-num" aria-label="Debit 1" value="30,58" style="text-align: right;">
+            <input class="cell k-num" aria-label="Credit 1" value="" style="text-align: right;">
+            <button type="button" class="k-btn k-btn--ghost k-btn--icon" aria-label="Remove line 1" style="color: var(--ink-muted);">×</button>
+          </div>
+          <div class="erow">
+            <span style="padding: 0 10px 0 24px; display: flex; gap: 8px; align-items: center;"><span class="k-code">1510</span>Terug te vorderen omzetbelasting</span>
+            <input class="cell" aria-label="Line description 2" value="21% VAT, code VH21">
+            <input class="cell k-num" aria-label="Debit 2" value="6,42" style="text-align: right;">
+            <input class="cell k-num" aria-label="Credit 2" value="" style="text-align: right;">
+            <button type="button" class="k-btn k-btn--ghost k-btn--icon" aria-label="Remove line 2" style="color: var(--ink-muted);">×</button>
+          </div>
+          <div class="erow">
+            <span style="padding: 0 10px 0 24px; display: flex; gap: 8px; align-items: center;"><span class="k-code">1100</span>Bank</span>
+            <input class="cell" aria-label="Line description 3" value="Demo bankrekening ··· 0001">
+            <input class="cell k-num" aria-label="Debit 3" value="" style="text-align: right;">
+            <input class="cell k-num is-focus" aria-label="Credit 3" value="=37,00" style="text-align: right;">
+            <button type="button" class="k-btn k-btn--ghost k-btn--icon" aria-label="Remove line 3" style="color: var(--ink-muted);">×</button>
+          </div>
+          <div class="erow" style="background: var(--surface-hover); font-weight: 600;">
+            <span style="padding: 12px 10px 12px 24px;">Total</span><span></span>
+            <span class="k-num" style="padding: 0 10px; text-align: right;">37,00</span>
+            <span class="k-num" style="padding: 0 10px; text-align: right;">37,00</span><span></span>
+          </div>
+        </div></div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 24px 20px; border-top: 1px solid var(--line-soft);">
+          <button type="button" class="k-btn k-btn--sm k-btn--dashed">+ Add a line <span class="k-kbd">↵</span> on the last cell</button>
+          <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Balances: debit and credit are equal</span>
+        </div>
+      </section>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+        <section class="k-drop" style="flex: 1 1 320px; padding: 24px;">
+          <strong style="color: var(--ink);">Attach the document behind this entry</strong>
+          <span>A receipt, a letter, a calculation. Kept for seven years with the entry.</span>
+          <button type="button" class="k-btn k-btn--sm">Choose a file <span class="k-kbd">U</span></button>
+        </section>
+        <section class="k-callout" style="flex: 1 1 320px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted); margin-top: 1px;"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          <div class="k-callout-body">
+            <span class="k-callout-title">Posting is final</span>
+            <span class="k-callout-text">Once posted, the entry gets its fingerprint and can't be edited or deleted. A mistake is fixed with a reversing entry, so the history stays readable.</span>
+          </div>
+        </section>
+      </div>
+
+      <div class="k-hints">
+        <span><span class="k-kbd">Tab</span> next cell</span>
+        <span>type an account number or name to pick it</span>
+        <span><span class="k-kbd">=</span> balancing amount</span>
+        <span><span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">⌫</span></span> remove line</span>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Sales</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}
+.ic{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--line-soft);text-decoration:none;color:var(--ink);min-height:56px;box-sizing:border-box}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}" style="height: 844px;">
+  <div class="k-phone-top">
+    <h1 style="margin: 0; flex: 1; font-size: 24px; line-height: 30px; font-weight: 600;">Sales</h1>
+    <a href="Editor.dc.html" class="k-btn k-btn--primary" style="height: 44px;">+ Invoice</a>
+  </div>
+  <div class="k-phone-body" style="overflow: hidden;">
+    <label class="k-search" style="height: 44px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input aria-label="Search invoices" placeholder="Customer or number"></label>
+    <div class="k-seg" role="tablist" aria-label="Status">
+      <button type="button" role="tab" class="k-seg-item" aria-selected="true" style="height: 40px;">Open <span class="k-count">5</span></button>
+      <button type="button" role="tab" class="k-seg-item" style="height: 40px;">Paid <span class="k-count">35</span></button>
+      <button type="button" role="tab" class="k-seg-item" style="height: 40px;">All <span class="k-count">40</span></button>
+    </div>
+    <section class="k-card k-card--flush">
+      <a href="PhoneInvoice.dc.html" class="ic"><span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><strong style="font-size: 15px;">Windvaan Workshops</strong><span class="k-muted k-num" style="font-size: 13px;">2025-0040 · 16 Sep</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"><span class="k-num" style="font-weight: 600;">€ 711,04</span><span class="k-pill k-pill--late">76 days late</span></span></a>
+      <a href="PhoneInvoice.dc.html" class="ic"><span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><strong style="font-size: 15px;">Zandbank Advies</strong><span class="k-muted k-num" style="font-size: 13px;">2025-0036 · 26 Jul</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"><span class="k-num" style="font-weight: 600;">€ 958,34</span><span class="k-pill k-pill--late">128 days late</span></span></a>
+      <a href="PhoneInvoice.dc.html" class="ic"><span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><strong style="font-size: 15px;">Dijkzicht Design</strong><span class="k-muted k-num" style="font-size: 13px;">2025-0038 · 9 Jun</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"><span class="k-num" style="font-weight: 600;">€ 1.152,34</span><span class="k-pill k-pill--late">175 days late</span></span></a>
+      <a href="PhoneInvoice.dc.html" class="ic"><span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><strong style="font-size: 15px;">Havenmeester Horeca</strong><span class="k-muted k-num" style="font-size: 13px;">2025-0039 · 23 Feb</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"><span class="k-num" style="font-weight: 600;">€ 902,79</span><span class="k-pill k-pill--late">281 days late</span></span></a>
+      <a href="PhoneInvoice.dc.html" class="ic"><span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><strong style="font-size: 15px;">Molenaar Media</strong><span class="k-muted k-num" style="font-size: 13px;">2025-0037 · 11 Jan</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"><span class="k-num" style="font-weight: 600;">€ 985,93</span><span class="k-pill k-pill--late">324 days late</span></span></a>
+    </section>
+    <a href="Reminders.dc.html" class="k-btn" style="height: 48px; justify-content: center;">Send all 5 reminders</a>
+  </div>
+  <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item is-active" href="#" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>
