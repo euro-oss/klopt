@@ -270,16 +270,28 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   const listedIds = await listedDialogInvoiceIds(page)
   expect(listedIds.sort()).toEqual([evaId, rubenId].sort())
 
-  // Plain Enter must not send — even if focus is moved to the primary.
-  await dialog.getByRole('button', { name: /Verstuur 2/ }).focus()
+  // Plain Enter on focused Annuleren cancels (native button activate).
   await page.keyboard.press('Enter')
-  await expect(dialog).toBeVisible()
+  await expect(dialog).toHaveCount(0)
+  expect(reminderPosts).toEqual([])
+  expect(await reminderDeliveryCount(entityId)).toBe(0)
+  await expect(page.getByText(/verstuurd naar/)).toHaveCount(0)
+
+  // Re-open: plain Enter on the primary must not send.
+  await sendButton.click()
+  await expect(page.getByRole('alertdialog')).toBeVisible()
+  await page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: /Verstuur 2/ })
+    .focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('alertdialog')).toBeVisible()
   expect(reminderPosts).toEqual([])
   expect(await reminderDeliveryCount(entityId)).toBe(0)
 
   // Esc cancels — nothing sent, no delivery rows.
   await page.keyboard.press('Escape')
-  await expect(dialog).toHaveCount(0)
+  await expect(page.getByRole('alertdialog')).toHaveCount(0)
   expect(reminderPosts).toEqual([])
   expect(await reminderDeliveryCount(entityId)).toBe(0)
   await expect(page.getByText(/verstuurd naar/)).toHaveCount(0)
@@ -333,7 +345,7 @@ test('bulk confirm dialog fits the 390 viewport in light and dark', async ({ pag
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 
   await page.goto('/contacts')
-  // Long names stress truncation; days-overdue must stay visible and not widen the sheet.
+  // Long names must wrap on phone (not truncate); days-overdue stays visible.
   await seedContact(
     page,
     'DEB-LONG-A',
@@ -372,12 +384,17 @@ test('bulk confirm dialog fits the 390 viewport in light and dark', async ({ pag
     }, theme)
     await page.getByRole('button', { name: /Alle 2 herinneringen versturen/ }).click()
     await assertDialogFitsViewport(page)
+    const dialog = page.getByRole('alertdialog')
+    await expect(dialog.getByText('Eva Jansen van den Zeer Lange Achternaam B.V.')).toBeVisible()
+    await expect(dialog.getByText('Ruben de Vries Internationale Handelscompagnie')).toBeVisible()
+    await expect(dialog.getByText(/dagen te laat/).first()).toBeVisible()
+    // Phone hides the ⌘/Ctrl chip (DERIVED: no keyboard hints on phone).
     await expect(
-      page
-        .getByRole('alertdialog')
-        .getByText(/dagen te laat/)
+      dialog
+        .getByRole('button', { name: /Verstuur 2/ })
+        .locator('kbd')
         .first(),
-    ).toBeVisible()
+    ).toBeHidden()
     await page.keyboard.press('Escape')
   }
 })
@@ -417,15 +434,19 @@ test('plain Enter on an open bulk confirm does not send; Cmd/Ctrl+Enter does', a
   await page.getByRole('button', { name: /Alle 2 herinneringen versturen/ }).click()
   const dialog = page.getByRole('alertdialog')
   await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Annuleren' })).toBeFocused()
 
+  // Enter on focused Cancel closes without sending.
   await page.keyboard.press('Enter')
-  await expect(dialog).toBeVisible()
+  await expect(dialog).toHaveCount(0)
   expect(reminderPosts).toEqual([])
   expect(await reminderDeliveryCount(entityId)).toBe(0)
 
-  // Non-Apple CI: Ctrl+Enter confirms. Wait for both sends to finish.
+  // Re-open; Non-Apple CI: Ctrl+Enter confirms. Wait for both sends to finish.
+  await page.getByRole('button', { name: /Alle 2 herinneringen versturen/ }).click()
+  await expect(page.getByRole('alertdialog')).toBeVisible()
   await page.keyboard.press('Control+Enter')
-  await expect(dialog).toHaveCount(0)
+  await expect(page.getByRole('alertdialog')).toHaveCount(0)
   await expect(page.getByText(/verstuurd naar/)).toBeVisible()
   await expect.poll(async () => reminderDeliveryCount(entityId)).toBe(2)
   expect(reminderPosts.length).toBeGreaterThanOrEqual(2)

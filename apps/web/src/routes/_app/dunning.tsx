@@ -293,7 +293,7 @@ function Dunning() {
                 ? t('common.busy')
                 : plural('dunning.sendAll', sendableCount, { count: String(sendableCount) })}
               {hydrated && (
-                <span className="ml-1 inline-flex gap-0.5 normal-case">
+                <span className="ml-1 hidden gap-0.5 normal-case md:inline-flex">
                   <Keycap>{isApple() ? '⌘' : 'Ctrl'}</Keycap>
                   <Keycap>↵</Keycap>
                 </span>
@@ -426,7 +426,7 @@ function Dunning() {
                         </span>
                         <span className="flex min-w-0 flex-col">
                           <span className="truncate font-medium">{action.contactName}</span>
-                          <span className="text-danger text-xs">
+                          <span className="text-destructive text-xs">
                             {plural('dunning.daysLate', action.daysOverdue, {
                               days: String(action.daysOverdue),
                             })}
@@ -539,7 +539,9 @@ function Dunning() {
           onKeyDownCapture={(event) => {
             // Capture so a focused primary button cannot activate on plain Enter
             // before bubble handlers run (#173: only ⌘/Ctrl+Enter sends).
+            // Plain Enter on Annuleren must still activate Cancel (a11y).
             if (event.key !== 'Enter') return
+            if (event.target === cancelRef.current) return
             const mod = isApple() ? event.metaKey : event.ctrlKey
             if (mod) {
               event.preventDefault()
@@ -567,18 +569,35 @@ function Dunning() {
                   <li
                     key={row.invoiceId}
                     data-invoice-id={row.invoiceId}
-                    className="flex min-w-0 items-baseline justify-between gap-3 text-sm"
+                    className="flex min-w-0 flex-col gap-0.5 text-sm sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"
                   >
-                    <span className="flex min-w-0 flex-1 items-baseline gap-2 overflow-hidden">
-                      <span className="min-w-0 truncate font-medium">{row.contactName}</span>
-                      <span className="text-ink-muted shrink-0"> · {row.number}</span>
-                      <span className="text-danger shrink-0 text-xs whitespace-nowrap">
+                    {/* PhoneSales-style two-line row below sm: name wraps; amount stays right. */}
+                    <span className="flex min-w-0 items-baseline justify-between gap-3 sm:hidden">
+                      <span className="min-w-0 break-words font-medium">{row.contactName}</span>
+                      <span className="shrink-0 font-mono tabular-nums whitespace-nowrap">
+                        <EuroAmount amount={row.total} />
+                      </span>
+                    </span>
+                    <span className="text-ink-muted flex min-w-0 items-baseline gap-1 text-xs sm:hidden">
+                      <span className="font-mono tabular-nums whitespace-nowrap">{row.number}</span>
+                      <span aria-hidden="true">·</span>
+                      <span className="text-destructive whitespace-nowrap">
                         {plural('dunning.daysLate', row.daysOverdue, {
                           days: String(row.daysOverdue),
                         })}
                       </span>
                     </span>
-                    <span className="shrink-0 font-mono tabular-nums">
+                    {/* One-line row from sm up. */}
+                    <span className="hidden min-w-0 flex-1 items-baseline gap-2 overflow-hidden sm:flex">
+                      <span className="min-w-0 truncate font-medium">{row.contactName}</span>
+                      <span className="text-ink-muted shrink-0"> · {row.number}</span>
+                      <span className="text-destructive shrink-0 text-xs whitespace-nowrap">
+                        {plural('dunning.daysLate', row.daysOverdue, {
+                          days: String(row.daysOverdue),
+                        })}
+                      </span>
+                    </span>
+                    <span className="hidden shrink-0 font-mono tabular-nums sm:inline">
                       <EuroAmount amount={row.total} />
                     </span>
                   </li>
@@ -619,7 +638,7 @@ function Dunning() {
                     count: String(confirmCount),
                   })}
               {hydrated && (
-                <span className="ml-1 inline-flex gap-0.5 normal-case">
+                <span className="ml-1 hidden gap-0.5 normal-case md:inline-flex">
                   <Keycap>{isApple() ? '⌘' : 'Ctrl'}</Keycap>
                   <Keycap>↵</Keycap>
                 </span>
