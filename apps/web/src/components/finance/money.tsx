@@ -42,7 +42,7 @@ export function Money({
   )
 }
 
-/** Euro figure with a non-breaking space after the sign (Costs / Sales boards). */
+/** Euro amount — `€` + non-breaking space + tabular figures (Home / Sales / Costs). */
 export function EuroAmount({
   amount,
   className,

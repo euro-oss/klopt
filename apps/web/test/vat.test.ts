@@ -734,7 +734,7 @@ describe('the ICP opgaaf', () => {
       createContactBody.parse({
         number,
         name: 'Kunde GmbH',
-        email: 'einkauf@kunde.de',
+        email: 'einkauf@kunde.example.de',
         vatNumber: options.vatNumber ?? 'DE123456789',
         countryCode: 'DE',
         paymentTermsDays: 30,

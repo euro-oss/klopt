@@ -43,7 +43,7 @@ const presentation = (): InvoicePresentation =>
       electronicAddressScheme: '0106',
       contactName: null,
       phone: null,
-      email: 'facturen@detol.nl',
+      email: 'facturen@detol.example.nl',
     },
     buyer: {
       legalName: 'Grote Klant N.V.',

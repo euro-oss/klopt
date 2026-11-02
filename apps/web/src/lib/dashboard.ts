@@ -41,7 +41,7 @@ export function glanceBarPercent(value: string, max: bigint): number {
 }
 
 /**
- * First name for "Goedemorgen, Hidde" — the part before the first space.
+ * First name for "Goedemorgen, Sanne" — the part before the first space.
  * Magic-link sign-in often leaves `name` empty; never fall back to the email
  * local-part (that wraps into four lines on phone). Caller shows a bare
  * greeting without a comma when this returns null.
@@ -140,6 +140,45 @@ export function homeQueueOverdueOneBody(
     return plural('queue.salesOverdueOneBodyDays', days, { days: String(days) })
   }
   return t('queue.salesOverdueBody')
+}
+
+/**
+ * Whether Home shows "Nieuwe factuur" in the desktop header (PM #117).
+ * Hide only when the dashboard loaded successfully and the queue is empty —
+ * the empty card owns that CTA then. On error (or unknown count) keep it.
+ */
+export function showHomeHeaderNewInvoice(dashboardOk: boolean, itemCount: number): boolean {
+  return !(dashboardOk && itemCount === 0)
+}
+
+/**
+ * The overdue invoice with the most days late — drives `salesOverdueTop` and
+ * the multi-overdue "Oudste:" body (loader sort at server/dashboard.ts).
+ * Order of the input list must not matter.
+ */
+export function pickOldestOverdue<T extends { readonly daysOverdue: number }>(
+  invoices: readonly T[],
+): T | undefined {
+  if (invoices.length === 0) return undefined
+  return [...invoices].sort((a, b) => b.daysOverdue - a.daysOverdue)[0]
+}
+
+/**
+ * Multi-invoice overdue row body (Design / Legal #117): qualify the oldest
+ * days-late under "N facturen te laat" — never the bare single-invoice line.
+ */
+export function homeQueueOverdueManyBody(
+  detail: WorkQueueDetail | undefined,
+  plural: Plural,
+): string {
+  const days =
+    detail?.daysOverdue !== undefined &&
+    Number.isFinite(detail.daysOverdue) &&
+    detail.daysOverdue > 0
+      ? detail.daysOverdue
+      : null
+  if (days === null) return ''
+  return plural('queue.salesOverdueOldestBody', days, { days: String(days) })
 }
 
 /** `null` when the deadline is absent — caller drops the deadline clause. */
