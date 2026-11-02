@@ -128,16 +128,17 @@ async function assertKeyElementsNoOverlap(page: Page, label: string): Promise<vo
   const iban = card.locator('[data-slot="bank-account-iban"]')
   const badge = card.locator('[data-slot="bank-account-badge"]')
   const drop = card.locator('[data-slot="drop-zone"]')
-  const importHeading = page.getByRole('heading', { name: 'Bankafschrift importeren' }).first()
-  const txHeading = page.getByRole('heading', { name: 'Transacties' })
+  // Import card title is a <strong>, not a heading — use the slot.
+  const importCard = page.locator('[data-slot="bank-import-card"]')
+  const txSection = page.locator('[data-slot="bank-transactions"]')
 
   for (const [name, loc] of [
     ['account card', card],
     ['iban', iban],
     ['badge', badge],
     ['drop zone', drop],
-    ['import heading', importHeading],
-    ['transactions heading', txHeading],
+    ['import card', importCard],
+    ['transactions', txSection],
   ] as const) {
     await expect(loc, `${label}: ${name}`).toBeVisible()
   }
@@ -146,8 +147,8 @@ async function assertKeyElementsNoOverlap(page: Page, label: string): Promise<vo
     iban.boundingBox(),
     badge.boundingBox(),
     drop.boundingBox(),
-    importHeading.boundingBox(),
-    txHeading.boundingBox(),
+    importCard.boundingBox(),
+    txSection.boundingBox(),
     card.boundingBox(),
   ])
   expect(ibanBox, `${label}: iban box`).not.toBeNull()
@@ -160,12 +161,10 @@ async function assertKeyElementsNoOverlap(page: Page, label: string): Promise<vo
   expect(boxesOverlap(ibanBox!, badgeBox!), `${label}: IBAN overlaps badge`).toBe(false)
   expect(boxesOverlap(ibanBox!, dropBox!), `${label}: IBAN overlaps drop zone`).toBe(false)
   expect(boxesOverlap(badgeBox!, dropBox!), `${label}: badge overlaps drop zone`).toBe(false)
-  expect(boxesOverlap(cardBox!, importBox!), `${label}: account card overlaps import heading`).toBe(
+  expect(boxesOverlap(cardBox!, importBox!), `${label}: account card overlaps import card`).toBe(
     false,
   )
-  expect(boxesOverlap(importBox!, txBox!), `${label}: import heading overlaps Transacties`).toBe(
-    false,
-  )
+  expect(boxesOverlap(importBox!, txBox!), `${label}: import card overlaps Transacties`).toBe(false)
   expect(boxesOverlap(cardBox!, txBox!), `${label}: account card overlaps Transacties`).toBe(false)
 }
 

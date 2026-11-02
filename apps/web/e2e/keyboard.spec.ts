@@ -532,12 +532,11 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   // body: the next Tab starts here rather than at the top of the window.
   await focusIsSomewhere(page)
 
-  // Invoice needed Geavanceerd; Koppelen below asserts simple-mode Categorie
+  // Invoice needed Geavanceerd; Match below asserts simple-mode Categorie
   // (name in the field). Turn it off before `g o`.
   await setAdvancedMode(page, false)
 
-  // Koppelen: `g` then `o`, the cursor down a line, an account typed in, booked.
-  // Redesign (#61 slice 6): Af/Bij table + Categorie picker, not the old button list.
+  // Bank match: `g` then `o`, next line, option 4 opens the form, book by hand.
   await page.keyboard.press('g')
   await page.keyboard.press('o')
   await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
@@ -546,8 +545,8 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await expect(queue).toHaveCount(4)
   await page.keyboard.press('j')
 
-  // Fixture chart has 4900 (Algemene kosten), not 4400. Simple mode shows the
-  // name in the field; the stored value is still the account number.
+  // Option 4 opens the booking form. Fixture chart has 4900 (Algemene kosten).
+  await page.keyboard.press('4')
   const manual = page.getByRole('combobox', { name: 'Categorie' })
   await manual.pressSequentially('4900')
   await page.keyboard.press('ArrowDown')
