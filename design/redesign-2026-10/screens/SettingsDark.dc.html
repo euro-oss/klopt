@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Settings (dark)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#147). Dark 1440: Hidde's Settings hub with theme="dark", the same
+  way HomeDark wraps Main. His markup holds up in dark once the control border token is fixed (the
+  VatDark override), so it is a thin wrapper, not a copy. The switch track uses --line-control too,
+  so it gets 3:1 from the same rule. Self-hosted fonts. Its links go to Hidde's light boards.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:#111113}
+.k-root[data-theme="dark"]{--line-control:var(--ink-muted)}
+</style>
+</helmet>
+<div style="min-height: 960px; background: #111113;">
+  <dc-import name="Settings" theme="dark" hint-size="100%,960px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

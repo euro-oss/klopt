@@ -923,6 +923,160 @@
    "title": "Phone dark · sign-in code, invitee first time (derived)",
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. Invitee's first sign-in (Legal art. 13). See ../DERIVED.md."
+  },
+  "SettingsDark.dc.html": {
+   "x": 0,
+   "y": 34000,
+   "w": 1440,
+   "h": 960,
+   "title": "Dark · settings hub (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SettingsCompanyDark.dc.html": {
+   "x": 1520,
+   "y": 34000,
+   "w": 1440,
+   "h": 1100,
+   "title": "Dark · settings, company, bank, Peppol (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SettingsBooksDark.dc.html": {
+   "x": 3040,
+   "y": 34000,
+   "w": 1440,
+   "h": 1100,
+   "title": "Dark · settings, book years, categories, VAT codes (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SettingsAccessDark.dc.html": {
+   "x": 4560,
+   "y": 34000,
+   "w": 1440,
+   "h": 1100,
+   "title": "Dark · settings, people, tokens, who did what (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SettingsDataDark.dc.html": {
+   "x": 6080,
+   "y": 34000,
+   "w": 1440,
+   "h": 1100,
+   "title": "Dark · settings, audit file, webhooks, retention, seals (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSettings.dc.html": {
+   "x": 7600,
+   "y": 34000,
+   "w": 390,
+   "h": 1912,
+   "title": "Phone · settings hub (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSettingsDark.dc.html": {
+   "x": 8070,
+   "y": 34000,
+   "w": 390,
+   "h": 1912,
+   "title": "Phone dark · settings hub (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSettingsCompany.dc.html": {
+   "x": 8540,
+   "y": 34000,
+   "w": 390,
+   "h": 1154,
+   "title": "Phone · settings, your company (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSettingsCompanyDark.dc.html": {
+   "x": 9010,
+   "y": 34000,
+   "w": 390,
+   "h": 1154,
+   "title": "Phone dark · settings, your company (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSettingsBooks.dc.html": {
+   "x": 9480,
+   "y": 34000,
+   "w": 390,
+   "h": 967,
+   "title": "Phone · settings, books (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSettingsBooksDark.dc.html": {
+   "x": 9950,
+   "y": 34000,
+   "w": 390,
+   "h": 967,
+   "title": "Phone dark · settings, books (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSettingsAccess.dc.html": {
+   "x": 10420,
+   "y": 34000,
+   "w": 390,
+   "h": 1067,
+   "title": "Phone · settings, people and access (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSettingsAccessDark.dc.html": {
+   "x": 10890,
+   "y": 34000,
+   "w": 390,
+   "h": 1067,
+   "title": "Phone dark · settings, people and access (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSettingsData.dc.html": {
+   "x": 11360,
+   "y": 34000,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · settings, your data (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSettingsDataDark.dc.html": {
+   "x": 11830,
+   "y": 34000,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · settings, your data (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#147), not drawn by Hidde. See ../DERIVED.md."
   }
  },
  "order": [
@@ -1027,7 +1181,22 @@
   "SignInInvitee.dc.html",
   "SignInInviteeDark.dc.html",
   "PhoneSignInInvitee.dc.html",
-  "PhoneSignInInviteeDark.dc.html"
+  "PhoneSignInInviteeDark.dc.html",
+  "SettingsDark.dc.html",
+  "SettingsCompanyDark.dc.html",
+  "SettingsBooksDark.dc.html",
+  "SettingsAccessDark.dc.html",
+  "SettingsDataDark.dc.html",
+  "PhoneSettings.dc.html",
+  "PhoneSettingsDark.dc.html",
+  "PhoneSettingsCompany.dc.html",
+  "PhoneSettingsCompanyDark.dc.html",
+  "PhoneSettingsBooks.dc.html",
+  "PhoneSettingsBooksDark.dc.html",
+  "PhoneSettingsAccess.dc.html",
+  "PhoneSettingsAccessDark.dc.html",
+  "PhoneSettingsData.dc.html",
+  "PhoneSettingsDataDark.dc.html"
  ],
  "notes": {
   "t1": {
@@ -1134,6 +1303,13 @@
    "text": "Invitee's first sign-in: privacy notice (derived, #153)",
    "kind": "title1",
    "maxW": 3900
+  },
+  "t147": {
+   "x": 0,
+   "y": 33700,
+   "text": "Settings: hub, company, books, access and data, dark and phone (derived, #147)",
+   "kind": "title1",
+   "maxW": 12300
   }
  },
  "designSystems": [

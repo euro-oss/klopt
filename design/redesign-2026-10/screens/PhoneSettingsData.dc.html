@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Settings, your data</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#147). Phone 390 of SettingsData.dc.html: audit file in and
+  out, webhooks, retention and sealed snapshots, with Hidde's copy. The side menu becomes wrapping
+  44px chips. Forms stack, buttons are 44px and full width, the four retention counts are a 2 by 2
+  grid, the documents table becomes rows (the empty Book year column is left out; the pill says it).
+  The 64-character seal is split over two code lines of 32, so it never breaks mid-line by accident.
+  Takes `theme` and `view` (xaf, hooks, ret, seal; default xaf).
+  PhoneSettingsDataDark.dc.html sets dark and passes `view` on.
+  Phone pattern: .k-phone at 390, Hidde's five-tab bar with More active (Settings lives under More),
+  sticky at the bottom.
+  A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), links in ink and
+  underlined, 44px targets, no key hints on phone, no ink-faint, self-hosted fonts.
+  JetBrains Mono only for codes (.k-code); numbers are Inter tabular.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+.k-root > .k-tabbar{position:sticky;bottom:0;z-index:1}
+a{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root .k-input{border-color:var(--line-control)}
+.k-phone .k-input{height:44px;font-size:15px}
+.k-phone .k-kbd,.k-phone .k-chord{display:none}
+.nw{white-space:nowrap}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.back{display:inline-flex;align-items:center;min-height:44px;font-size:15px;align-self:flex-start}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:var(--radius-pill);border:1px solid var(--line-control);background:var(--surface);color:var(--ink);font:500 14px var(--font-sans);cursor:pointer;box-sizing:border-box}
+.chip[aria-selected="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:600}
+.chip .cnt{font-variant-numeric:tabular-nums;font-weight:500;opacity:.85}
+.k-root .k-card{border-radius:var(--radius-lg)}
+.ch{padding:14px 16px 12px;display:flex;flex-direction:column;gap:2px}
+.ch h2,.cardp h2,.cardp h3{margin:0;font-size:16px;line-height:22px;font-weight:600}
+.cardp{padding:16px;display:flex;flex-direction:column;gap:14px}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:12px 16px;border:0;border-top:1px solid var(--line-soft);background:var(--surface);color:var(--ink);font:400 15px/20px var(--font-sans);text-align:left;text-decoration:none;box-sizing:border-box;cursor:pointer}
+.row-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.row-side{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}
+.sub{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.txt{margin:0;color:var(--ink-2);line-height:1.5}
+.note{margin:0;font-size:13px;line-height:1.5;color:var(--ink-muted)}
+.btn-wide{height:44px;justify-content:center;width:100%;box-sizing:border-box}
+.swrow{display:flex;align-items:center;gap:14px;width:100%;min-height:56px;padding:12px 16px;border:0;border-radius:var(--radius-md);background:var(--surface-sunken);color:var(--ink);font:400 15px/20px var(--font-sans);text-align:left;cursor:pointer;box-sizing:border-box}
+.swrow[disabled]{cursor:not-allowed}
+.swrow .k-switch{pointer-events:none}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.per{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.pc{height:32px;border-radius:var(--radius-xs);font:500 13px/32px var(--font-sans);font-variant-numeric:tabular-nums;text-align:center}
+.pc-closed{background:var(--neutral-bg);color:var(--ink-2)}
+.pc-open{background:var(--surface-sunken);color:var(--ink-muted);box-shadow:inset 0 0 0 1px var(--ink-muted)}
+.role{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:var(--radius-md);background:var(--surface-sunken)}
+.k-root .st{padding:14px 16px;gap:4px;border-radius:var(--radius-lg)}
+.k-root .st .k-stat-value{font-size:22px;line-height:28px}
+.k-root .k-input.miss{background:var(--brand-tint);box-shadow:inset 0 0 0 1px var(--selection-edge)}
+.dock{position:sticky;bottom:0;z-index:2}
+.dock-bar{display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--line)}
+.dock-bar .k-btn{height:48px;justify-content:center;font-size:15px;width:100%}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top" style="flex-direction: column; align-items: stretch; gap: 0; padding-bottom: 4px;">
+    <a href="PhoneSettings.dc.html" class="lnk back">‹ Settings</a>
+    <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600;">Your data</h1>
+  </div>
+  <div class="k-phone-body">
+    <div class="chips" role="tablist" aria-label="Data settings">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+        <button type="button" role="tab" class="chip" aria-selected="{{t.on}}" onClick="{{t.pick}}">{{t.label}}<span class="{{t.badgeCls}}">{{t.badge}}</span></button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{v.xaf}}" hint-placeholder-val="{{true}}">
+      <div class="k-card cardp">
+        <h2>Download your books</h2>
+        <p class="txt">One XAF 3.2 audit file with RGS codes, checked against the official schema. Your accountant, the tax office and most Dutch packages can read it, including Klopt itself.</p>
+        <div class="k-field"><label class="k-label" for="by">Book year</label><select id="by" class="k-input"><option>2025</option></select></div>
+        <button type="button" class="k-btn k-btn--primary btn-wide">Download 2025.xaf</button>
+        <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-weight: 500; font-size: 13px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Passes the XAF 3.2 schema</span>
+      </div>
+      <div class="k-drop" style="padding: 20px 16px;">
+        <strong style="color: var(--ink);">Import an audit file</strong>
+        <span style="line-height: 1.5;">An .xaf from any package. You see everything it contains, and every problem, before anything is booked.</span>
+        <a href="PhoneImportFindings.dc.html" class="k-btn btn-wide">Choose a file</a>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{v.hooks}}" hint-placeholder-val="{{false}}">
+      <div class="k-card cardp">
+        <h2>Webhooks</h2>
+        <p class="txt">Klopt calls your address when something happens, for example to post paid invoices to a team channel. None set up yet.</p>
+        <div class="k-field"><label class="k-label" for="wu">Address</label><input id="wu" class="k-input" type="url" placeholder="https://boeken.example.nl/hook"></div>
+        <div class="k-field"><label class="k-label" for="we">When</label><select id="we" class="k-input"><option>An invoice is paid</option><option>An invoice is sent</option><option>A bill is booked</option><option>Anything is posted</option></select></div>
+        <button type="button" class="k-btn k-btn--primary btn-wide">Add webhook</button>
+        <span class="k-help" style="line-height: 1.5;">Every call is signed, so your side can check it came from Klopt.</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{v.ret}}" hint-placeholder-val="{{false}}">
+      <div class="g2">
+        <div class="k-stat st"><span class="k-stat-label">Documents</span><span class="k-stat-value">2</span></div>
+        <div class="k-stat st"><span class="k-stat-label">Term expired</span><span class="k-stat-value">0</span></div>
+        <div class="k-stat st"><span class="k-stat-label">On legal hold</span><span class="k-stat-value">0</span></div>
+        <div class="k-stat st"><span class="k-stat-label">Without book year</span><span class="k-stat-value" style="color: var(--brand-ink);">2</span></div>
+      </div>
+      <div class="k-card cardp">
+        <p class="txt">Seven years, ten for property, counted from the end of the book year a document belongs to. Nothing is ever deleted automatically. Storage is locked in compliance mode, so not even Klopt can delete early.</p>
+        <button type="button" class="swrow" role="switch" aria-checked="false">
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><strong style="font-weight: 600;">Legal hold on the whole administration</strong><span class="sub">Stops all deletion, whatever the term. For a dispute or a tax audit.</span></span>
+          <span class="k-switch" aria-hidden="true"></span>
+        </button>
+      </div>
+      <section class="k-card k-card--flush" aria-labelledby="doc-h">
+        <div class="ch"><h2 id="doc-h">Documents</h2></div>
+        <div class="row" style="cursor: default;"><span class="row-main"><span>2025.xaf.xml</span><span><span class="k-pill k-pill--open">No year yet</span></span></span><span class="row-side"><span class="k-num nw">245 kB</span></span></div>
+        <div class="row" style="cursor: default;"><span class="row-main"><span>2025.manifest.txt</span><span><span class="k-pill k-pill--open">No year yet</span></span></span><span class="row-side"><span class="k-num nw">341 B</span></span></div>
+      </section>
+      <p class="note">Without a book year there's no end date, and not knowing how long to keep something is never a reason to throw it away.</p>
+    </sc-if>
+
+    <sc-if value="{{v.seal}}" hint-placeholder-val="{{false}}">
+      <div class="k-card cardp">
+        <div style="display: flex; align-items: center; gap: 12px;"><h2 style="flex: 1;">Book year 2025, sealed</h2><span class="k-pill k-pill--paid">No drift</span></div>
+        <p class="txt">A seal is one fingerprint over every entry, every document and the audit file. Write it down or give it to your accountant: if anything in seven years of books ever changes, the check fails.</p>
+        <dl class="k-dl" style="font-size: 14px; grid-template-columns: max-content 1fr;">
+          <dt>Sealed</dt><dd><span class="k-num">18-10-2026</span>, automatically</dd>
+          <dt>Entries</dt><dd class="k-num">216</dd>
+          <dt>Documents</dt><dd class="k-num">0</dd>
+        </dl>
+        <div style="display: flex; flex-direction: column; gap: 4px;"><span class="k-muted" style="font-size: 14px;">Seal</span><span style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;" aria-label="Seal 68cf575fc908e8404e4cb51aedafb316707f4dcb5acefca8c5e2a747c7069b7e"><span class="k-code" aria-hidden="true">68cf575fc908e8404e4cb51aedafb316</span><span class="k-code" aria-hidden="true">707f4dcb5acefca8c5e2a747c7069b7e</span></span></div>
+        <button type="button" class="k-btn k-btn--primary btn-wide">Check it now</button>
+        <button type="button" class="k-btn btn-wide">Check with the audit file</button>
+        <button type="button" class="k-btn k-btn--ghost btn-wide">Manifest</button>
+      </div>
+    </sc-if>
+  </div>
+  <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item" href="PhoneReceipt.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item is-active" href="PhoneMore.dc.html" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"view":{"editor":"enum","options":["xaf","hooks","ret","seal"],"default":"xaf"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: props.view ?? 'xaf' };
+  }
+  renderVals() {
+    const t = this.state.tab;
+    const tabs = [['xaf','Audit file in and out','',''],['hooks','Webhooks','',''],['ret','Retention','',''],['seal','Sealed snapshots','','']]
+      .map(([k, label, badge, badgeCls]) => ({ label, badge, badgeCls, on: k === t ? 'true' : 'false', pick: () => this.setState({ tab: k }) }));
+    return { theme: this.props.theme ?? 'light', tabs, v: { xaf: t === 'xaf', hooks: t === 'hooks', ret: t === 'ret', seal: t === 'seal' } };
+  }
+}
+</script>
+</body>
+</html>
