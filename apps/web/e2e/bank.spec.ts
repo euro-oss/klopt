@@ -66,13 +66,13 @@ test('a bookkeeper adds an account, previews a statement and reads it in', async
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
 
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
-  await expect(page.getByText('mt940')).toBeVisible()
+  await expect(page.getByText('mt940', { exact: true })).toBeVisible()
   await expect(page.getByText('01-03-2026 – 05-03-2026')).toBeVisible()
   await expect(page.getByRole('table', { name: 'Banktransacties' })).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
 
-  await expect(page.getByText('4 transacties ingelezen.')).toBeVisible()
+  await expect(page.getByText('4 transacties geïmporteerd.')).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Factuur 2026-0001' })).toBeVisible()
   // Signed the right way round: a receipt is positive, a direct debit is not.
@@ -145,7 +145,7 @@ test('a CSV is mapped once and remembered', async ({ page }) => {
   await expect(page.getByText('csv', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
 
-  await expect(page.getByText('3 transacties ingelezen.')).toBeVisible()
+  await expect(page.getByText('3 transacties geïmporteerd.')).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
   // The indicator column decided the signs, not a minus that was never there.
   await expect(page.getByText('1.210,00').first()).toBeVisible()
