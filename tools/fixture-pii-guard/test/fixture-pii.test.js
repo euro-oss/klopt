@@ -61,10 +61,15 @@ const SKIP_DIR = new Set([
 const IBAN_LIKE = /\b[A-Za-z]{2}\d{2}(?: ?[A-Za-z0-9]){0,30}\b/g
 
 /**
- * SHA-256 (hex) of the normalised banned IBAN. The plaintext must not appear
- * in this repository — compute locally, commit only the digest.
+ * SHA-256 (hex) of each normalised banned IBAN. The plaintext must not appear
+ * in this repository — compute locally, commit only the digest. The second
+ * digest is the retired #164 bank-fixture example (#171 swaps the fixtures
+ * to an NL02 stand-in). Spaced and mixed-case forms hash to the same digest.
  */
 const BANNED_IBAN_SHA256 = '110393691810e8a34adde708be07b14dba4d17b0379f23515237582a4ef99613'
+const RETIRED_FIXTURE_IBAN_SHA256 =
+  'fb2c144dc43eadc838313d743086408f0660db136031ab5f1aa1215465b12ea0'
+const BANNED_IBAN_SHA256S = [BANNED_IBAN_SHA256, RETIRED_FIXTURE_IBAN_SHA256]
 
 /**
  * @typedef {'apps-packages' | 'design'} Scope
@@ -244,10 +249,12 @@ function scanScope(scope) {
       findings.push(`${pathRel}:${String(line)} contains banned fixture literal ${rule.id}`)
     }
 
-    for (const hit of findBannedIbanHits(text, BANNED_IBAN_SHA256)) {
-      findings.push(
-        `${pathRel}:${String(hit.line)} contains banned IBAN (sha256 ${BANNED_IBAN_SHA256.slice(0, 12)}…)`,
-      )
+    for (const bannedHash of BANNED_IBAN_SHA256S) {
+      for (const hit of findBannedIbanHits(text, bannedHash)) {
+        findings.push(
+          `${pathRel}:${String(hit.line)} contains banned IBAN (sha256 ${bannedHash.slice(0, 12)}…)`,
+        )
+      }
     }
   }
 
@@ -286,6 +293,20 @@ describe('fixture PII guard (#120)', () => {
     expect(findings, findings.join('\n')).toEqual([])
   })
 
+  it('rejects the retired bank-fixture IBAN in compact, spaced and mixed-case forms', () => {
+    // Built from parts so the plaintext never sits in the tree as one token.
+    const compact = 'NL' + '86' + 'INGB' + '0002445588'
+    const spaced = 'NL' + '86 ' + 'INGB' + ' 0002 4455 88'
+    expect(sha256Hex(normaliseIban(compact))).toBe(RETIRED_FIXTURE_IBAN_SHA256)
+    expect(BANNED_IBAN_SHA256S).toContain(RETIRED_FIXTURE_IBAN_SHA256)
+
+    for (const sample of [compact, compact.toLowerCase(), spaced, spaced.toLowerCase()]) {
+      const hits = findBannedIbanHits(`${sample}\n`, RETIRED_FIXTURE_IBAN_SHA256)
+      expect(hits, sample).toHaveLength(1)
+      expect(normaliseIban(hits[0]?.raw ?? '')).toBe(compact)
+    }
+  })
+
   it('catches a spaced IBAN form via hash, without embedding the production ban', () => {
     // Synthetic pair generated in this test only — never the production IBAN.
     const synthetic = 'NL00TEST0123456789'
@@ -298,5 +319,6 @@ describe('fixture PII guard (#120)', () => {
     // Production digest must not equal this synthetic one (guards against
     // accidentally wiring the real ban into this example).
     expect(bannedHash).not.toBe(BANNED_IBAN_SHA256)
+    expect(BANNED_IBAN_SHA256S).not.toContain(bannedHash)
   })
 })
