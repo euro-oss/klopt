@@ -52,6 +52,9 @@ links to Contacts (no customers URL filter yet). "Nieuwe factuur" is secondary.
 
 ### Fixed
 
+- Contacts follow-up: NL supplier empty line is "Niets openstaand"; card
+  heading wraps long names (`break-words`); e2e uses example IBAN
+  `NL91ABNA0417164300`.
 - Debtor-ageing report and overdue counts no longer count invoices that are due
   today (exclusive overdue boundary).
 

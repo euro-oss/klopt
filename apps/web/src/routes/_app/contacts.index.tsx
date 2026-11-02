@@ -874,7 +874,7 @@ function ContactCard({
           {contactInitials(contact.name)}
         </span>
         <div className="flex min-w-[200px] flex-1 flex-col gap-0.5">
-          <span className="text-xl leading-[26px] font-semibold">{contact.name}</span>
+          <span className="break-words text-xl leading-[26px] font-semibold">{contact.name}</span>
           <span className="text-ink-muted">
             {role} · {sub}
           </span>
