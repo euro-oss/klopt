@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Journal</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#145). Phone 390 of Journal.dc.html (Entries): the same 17
+  entries and the same selection. The open entry sits on top as a card (entry 17 is also the newest,
+  so it reads as the first row opened), with its lines stacked: account on the left, Debit or
+  Credit with its label and amount on the right. Under it all entries as stacked rows, in the
+  pattern of PhoneCosts. Tapping a row opens it in the card. Journal lives under More, so More is
+  the active tab. Takes `theme`; PhoneJournalDark.dc.html sets dark.
+  The tab bar is sticky, so it stays at the bottom of the viewport as the page scrolls.
+  A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), 44px targets,
+  no key hints on phone, no ink-faint, amounts in JetBrains Mono and never wrapped,
+  self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+.k-root .k-tabbar{position:sticky;bottom:0;z-index:1}
+a{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root .k-search,.k-root .k-input{border-color:var(--line-control)}
+.k-search input::placeholder{color:var(--ink-muted)}
+.k-root .k-search{height:auto;min-height:46px}
+.k-search input{align-self:stretch;height:44px}
+.k-phone .k-kbd,.k-phone .k-chord,.k-phone .k-hints{display:none}
+.k-phone .k-input{height:44px;font-size:15px}
+.nw{white-space:nowrap}
+.amt{font:500 15px/20px var(--font-mono);white-space:nowrap;text-align:right}
+.lbl{font-size:13px;line-height:18px;color:var(--ink-muted);white-space:nowrap}
+.ptabs{gap:20px}
+.ptabs .k-tab{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box;white-space:nowrap}
+.ic{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border:0;border-top:1px solid var(--line-soft);background:var(--surface);font:inherit;text-align:left;color:var(--ink);min-height:60px;width:100%;box-sizing:border-box;cursor:pointer}
+.ic[aria-selected="true"]{background:var(--selection);box-shadow:inset 3px 0 0 var(--selection-edge)}
+.ic-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.ic-main strong{font-size:15px;line-height:20px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ic-sub{display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--ink-muted);min-width:0}
+.ic-sub span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ic-side{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.ln{display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--line-soft);min-height:56px;box-sizing:border-box;text-decoration:none;color:var(--ink)}
+.ln-acc{flex:1;min-width:0;display:flex;align-items:center;gap:8px;font-size:15px;line-height:20px}
+.ln-side{display:flex;flex-direction:column;align-items:flex-end;flex:none}
+.act{height:44px;justify-content:center}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top" style="flex-direction: column; align-items: stretch; gap: 4px; padding-bottom: 0;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <h1 style="margin: 0; flex: 1; font-size: 24px; line-height: 30px; font-weight: 600;">Journal</h1>
+      <a href="PhoneEntryNew.dc.html" class="k-btn k-btn--primary" style="height: 44px;">+ Entry</a>
+    </div>
+    <nav class="k-tabs ptabs" aria-label="Journal sections">
+      <a href="#" class="k-tab is-active" aria-current="page">Entries</a>
+      <a href="PhoneLedger.dc.html" class="k-tab">Ledger</a>
+      <a href="#" class="k-tab">Trial balance</a>
+    </nav>
+  </div>
+  <div class="k-phone-body" style="padding-top: 16px;">
+    <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Every booking, in order. A correction is a new entry that reverses the old one.</p>
+    <label class="k-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" aria-label="Filter entries" placeholder="Description, number, amount"></label>
+    <div class="k-field">
+      <label class="k-label" for="jf">Journal</label>
+      <select id="jf" class="k-input"><option>All journals · 216</option><option>Sales (VRK)</option><option>Purchases (INK)</option><option>Bank (BNK)</option><option>Memorial (MEM)</option></select>
+    </div>
+
+    <section class="k-card k-card--flush" aria-labelledby="eh">
+      <div style="padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="k-muted" style="font-size: 13px; flex: 1;">Entry {{s.n}} · {{s.jName}}</span>
+          <span class="k-pill k-pill--paid">Posted</span>
+        </div>
+        <h2 id="eh" style="margin: 0; font-size: 18px; line-height: 24px; font-weight: 600;">{{s.desc}}</h2>
+      </div>
+      <sc-for list="{{s.lines}}" as="l" hint-placeholder-count="3">
+        <a href="PhoneLedger.dc.html" class="ln">
+          <span class="ln-acc"><span class="k-code">{{l.no}}</span><span>{{l.name}}</span></span>
+          <span class="ln-side"><span class="lbl">{{l.side}}</span><span class="amt">{{l.amt}}</span></span>
+        </a>
+      </sc-for>
+      <div class="ln" style="background: var(--surface-hover); align-items: flex-start;">
+        <span class="ln-acc" style="font-weight: 600; padding-top: 2px;">Balances</span>
+        <span class="ln-side" style="gap: 2px;">
+          <span style="display: flex; gap: 8px; align-items: baseline;"><span class="lbl">Debit</span><span class="amt">{{s.amtF}}</span></span>
+          <span style="display: flex; gap: 8px; align-items: baseline;"><span class="lbl">Credit</span><span class="amt">{{s.amtF}}</span></span>
+        </span>
+      </div>
+      <dl class="k-dl" style="padding: 16px; border-top: 1px solid var(--line-soft); font-size: 13px; grid-template-columns: max-content 1fr;">
+        <dt>Booking date</dt><dd class="k-num nw">{{s.date}}</dd>
+        <dt>Posted by</dt><dd>{{s.by}}</dd>
+        <dt>Fingerprint</dt><dd><span class="k-code">{{s.hash}}</span></dd>
+        <dt>Chained to</dt><dd><span class="k-code">{{s.prev}}</span> <span class="k-muted">{{s.prevLabel}}</span></dd>
+      </dl>
+      <p class="k-muted" style="margin: 0; padding: 0 16px 16px; font-size: 13px; line-height: 1.5;">Each fingerprint includes the one before it, so a changed entry shows.</p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 16px;">
+        <sc-if value="{{s.hasDoc}}" hint-placeholder-val="{{true}}">
+          <a href="PhoneInvoice.dc.html" class="k-btn act" style="grid-column: 1 / -1;">Open invoice {{s.doc}}</a>
+        </sc-if>
+        <a href="PhoneEntryNew.dc.html" class="k-btn act">Reverse</a>
+        <button type="button" class="k-btn act">Copy as new</button>
+      </div>
+    </section>
+
+    <section class="k-card k-card--flush" aria-labelledby="ah">
+      <h2 id="ah" class="k-card-title" style="font-size: 15px; padding: 14px 16px 12px; margin: 0;">All entries</h2>
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="17">
+        <button type="button" class="ic" aria-selected="{{r.sel}}" onClick="{{r.pick}}">
+          <span class="ic-main"><strong>{{r.who}}</strong><span class="ic-sub"><span class="k-code">{{r.j}}</span><span>{{r.what}}</span></span></span>
+          <span class="ic-side"><span class="amt">€ {{r.amtF}}</span><span class="lbl">#{{r.n}} · {{r.dateShort}}</span></span>
+        </button>
+      </sc-for>
+      <div style="display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line-soft); font-size: 13px; color: var(--ink-muted);">
+        <span>Showing 17 of 216, in entry order</span><span class="nw">Book year 2025</span>
+      </div>
+    </section>
+  </div>
+    <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item" href="PhoneReceipt.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item is-active" href="PhoneMore.dc.html" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 17 };
+  }
+  renderVals() {
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const r2 = (n) => Math.round(n * 100) / 100;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const short = (d) => parseInt(d.slice(0, 2), 10) + '\u00a0' + months[parseInt(d.slice(3, 5), 10) - 1];
+    const raw = [
+      [1,'01-01-2025','Demo openingsbalans',null,50000,'a2f5d883a8ac'],
+      [2,'05-05-2025','Atlas Voorbeeld Handel','2025-0001',84.22,'66fc578908cf'],
+      [3,'14-03-2025','Noorderlicht Diensten','2025-0002',488.46,'4c4bd19f4a23'],
+      [4,'03-02-2025','Polder Soft B.V.','2025-0003',280.97,'41ecf786ac84'],
+      [5,'28-10-2025','Kade & Co','2025-0004',954.58,'5834260c506f'],
+      [6,'08-08-2025','Fictieve Fietsen','2025-0005',171.25,'058730cf8760'],
+      [7,'12-07-2025','Zandbank Advies','2025-0006',983.06,'7bb25e596fb2'],
+      [8,'02-11-2025','Molenaar Media','2025-0007',156.87,'62c228b39307'],
+      [9,'30-07-2025','Dijkzicht Design','2025-0008',889.42,'ec79948d5c91'],
+      [10,'01-11-2025','Havenmeester Horeca','2025-0009',1016.88,'0a006cbd6c03'],
+      [11,'18-07-2025','Windvaan Workshops','2025-0010',728.94,'680ab50945aa'],
+      [12,'08-07-2025','Atlas Voorbeeld Handel','2025-0011',612.56,'07360a2aeba2'],
+      [13,'14-10-2025','Noorderlicht Diensten','2025-0012',895.81,'204620e88be3'],
+      [14,'17-01-2025','Polder Soft B.V.','2025-0013',207.76,'c1a4340f2df4'],
+      [15,'08-08-2025','Kade & Co','2025-0014',513.74,'27a6132615eb'],
+      [16,'19-03-2025','Fictieve Fietsen','2025-0015',1079.73,'24beca689e65'],
+      [17,'28-11-2025','Zandbank Advies','2025-0016',478.42,'ec2b75f13009']
+    ];
+    const all = raw.map(([n, date, who, doc, amt, hash]) => ({
+      n, date, who, doc, amt, hash, amtF: f(amt), dateShort: short(date),
+      j: doc ? 'VRK' : 'MEM', what: doc ? 'Sales invoice ' + doc : 'Opening balance',
+      desc: doc ? 'Sales invoice ' + doc + ' · ' + who : who
+    }));
+    const rows = all.slice().sort((a, b) => b.n - a.n).map((r) => ({ ...r, sel: r.n === this.state.sel ? 'true' : 'false', pick: () => this.setState({ sel: r.n }) }));
+    const s0 = all.find((r) => r.n === this.state.sel) || all[16];
+    const prev = all.find((r) => r.n === s0.n - 1);
+    let lines;
+    if (!s0.doc) {
+      lines = [{ no: '1100', name: 'Bank', side: 'Debit', amt: f(50000) }, { no: '0500', name: 'Aandelenkapitaal', side: 'Credit', amt: f(50000) }];
+    } else {
+      const net = r2(s0.amt / 1.21);
+      lines = [
+        { no: '1300', name: 'Debiteuren', side: 'Debit', amt: f(s0.amt) },
+        { no: '8000', name: 'Omzet', side: 'Credit', amt: f(net) },
+        { no: '1500', name: 'Te betalen omzetbelasting', side: 'Credit', amt: f(r2(s0.amt - net)) }
+      ];
+    }
+    const s = {
+      ...s0, lines, hasDoc: !!s0.doc, jName: s0.doc ? 'Sales journal' : 'Memorial',
+      by: s0.doc ? 'Klopt, when the invoice was sent' : 'eva@bakkerij.example',
+      hash: s0.hash + '…', prev: prev ? prev.hash + '…' : 'genesis', prevLabel: prev ? 'entry ' + prev.n : 'first entry'
+    };
+    return { theme: this.props.theme ?? 'light', rows, s };
+  }
+}
+</script>
+</body>
+</html>
