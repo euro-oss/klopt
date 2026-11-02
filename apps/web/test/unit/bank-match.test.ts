@@ -90,9 +90,12 @@ describe('bank-match amounts', () => {
     expect(absoluteMinor('-145200')).toBe(145200n)
   })
 
-  it('formats euro with a non-breaking space after the symbol', () => {
-    expect(formatEuro('145200')).toBe('€\u00a01.452,00')
-    expect(formatEuro('-145200')).toBe('€\u00a01.452,00')
+  it('formats signed euro with a true minus and NBSP after € (one form)', () => {
+    // Design #164: −€ 2,15 — no space between sign and €; JetBrains Mono at call site.
+    expect(formatEuro('145200')).toBe('+\u20ac\u00a01.452,00')
+    expect(formatEuro('-215')).toBe('\u2212\u20ac\u00a02,15')
+    expect(formatEuro('0')).toBe('\u20ac\u00a00,00')
+    expect(formatEuro('-145200', { signed: false })).toBe('\u20ac\u00a01.452,00')
   })
 
   it('takes the IBAN tail for the subtitle', () => {
@@ -263,7 +266,8 @@ describe('bank-match suggestion labels', () => {
         },
         '100000',
       ),
-    ).toBe('€\u00a0750,00')
+    ).toBe('+\u20ac\u00a0750,00')
+    expect(suggestionBookedAmount({ allocations: [] }, '-215')).toBe('\u2212\u20ac\u00a02,15')
   })
 
   it('prefers the account name in simple mode', () => {
