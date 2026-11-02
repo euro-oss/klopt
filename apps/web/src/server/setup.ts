@@ -67,20 +67,29 @@ export const createAdministration = createServerFn({ method: 'POST' })
         )
       }
 
-      const result = await handleCreateEntity(context, data.entityId, body)
-
-      // Hosted only: record who accepted which versions. Self-hosted (env unset)
-      // never writes — even if a client somehow sent acceptedLegal.
-      if (needsAgreement && body.acceptedLegal === true) {
-        const { LegalAcceptancesRepository } = await import('@klopt/db')
-        const repository = new LegalAcceptancesRepository(context.database)
-        await repository.recordTermsDpa({
-          id: uuidv7(),
-          userId: context.user.id,
-          termsVersion: legal.termsVersion!,
-          dpaVersion: legal.dpaVersion!,
-        })
-      }
+      // Hosted only: record who accepted which versions inside the same
+      // provisioning transaction, so a failed acceptance write rolls the
+      // administration back. Self-hosted (env unset) never writes — even if a
+      // client somehow sent acceptedLegal.
+      const result = await handleCreateEntity(
+        context,
+        data.entityId,
+        body,
+        needsAgreement && body.acceptedLegal === true
+          ? {
+              afterProvision: async (tx) => {
+                const { LegalAcceptancesRepository } = await import('@klopt/db')
+                const repository = new LegalAcceptancesRepository(tx)
+                await repository.recordTermsDpa({
+                  id: uuidv7(),
+                  userId: context.user.id,
+                  termsVersion: legal.termsVersion!,
+                  dpaVersion: legal.dpaVersion!,
+                })
+              },
+            }
+          : undefined,
+      )
 
       // Land the session on the books it just created rather than on whichever
       // administration sorts first.

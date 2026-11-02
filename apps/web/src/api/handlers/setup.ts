@@ -1,5 +1,11 @@
 import { PERMISSIONS, isUuid, planEntitySetup, uuidv7 } from '@klopt/core'
-import { setActiveEntity, withBankRead, withSetup } from '@klopt/db'
+import {
+  setActiveEntity,
+  withBankRead,
+  withSetup,
+  type ProvisionedEntity,
+  type Transaction,
+} from '@klopt/db'
 import {
   hasPermission,
   hasSetupPermission,
@@ -66,10 +72,20 @@ export function handleListCharts(context: SetupContext) {
  * A client-chosen id under PUT is the standard answer, and it also means a
  * double-submitted setup form produces one administration rather than two.
  */
+export type CreateEntityOptions = {
+  /**
+   * Runs inside the same provisioning transaction. Setup uses this to record
+   * terms/DPA acceptance so a failed acceptance write rolls the administration
+   * back with it.
+   */
+  readonly afterProvision?: (tx: Transaction, provisioned: ProvisionedEntity) => Promise<void>
+}
+
 export async function handleCreateEntity(
   context: SetupContext,
   entityId: string,
   body: CreateEntityBody,
+  options?: CreateEntityOptions,
 ) {
   requireSetupPermission(context)
 
@@ -105,9 +121,17 @@ export async function handleCreateEntity(
     chart,
   )
 
-  const result = await withSetup(context.database, (repository) =>
-    repository.provision({ entityId, ownerUserId: context.user.id, plan }),
-  )
+  const result = await withSetup(context.database, async (repository, tx) => {
+    const provisioned = await repository.provision({
+      entityId,
+      ownerUserId: context.user.id,
+      plan,
+    })
+    if (options?.afterProvision !== undefined) {
+      await options.afterProvision(tx, provisioned)
+    }
+    return provisioned
+  })
 
   return {
     status: result.created ? 201 : 200,

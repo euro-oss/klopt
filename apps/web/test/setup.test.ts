@@ -6,8 +6,10 @@ import {
   createAuth,
   createDatabase,
   issueToken,
+  LegalAcceptancesRepository,
   membershipsFor,
   runMigrations,
+  withSetup,
   type Auth,
   type Database,
 } from '@klopt/db'
@@ -185,6 +187,30 @@ describe('a signed-in user with no administration', () => {
     // 200, not 201: nothing was created the second time.
     expect(second.status).toBe(200)
     expect(await membershipsFor(database, userId)).toHaveLength(1)
+  })
+
+  it('rolls back the administration when the terms/DPA acceptance insert fails', async () => {
+    const { userId, cookie } = await signUp()
+    const entityId = uuidv7()
+    const context = await resolveSetupContext({ database, request: request({ cookie }) })
+
+    // Force the acceptance insert to fail (FK: user_id must exist). Same
+    // transaction as provision — the administration must not remain.
+    await expect(
+      handleCreateEntity(context, entityId, body(), {
+        afterProvision: async (tx) => {
+          await new LegalAcceptancesRepository(tx).recordTermsDpa({
+            id: uuidv7(),
+            userId: 'user_missing_for_acceptance_rollback',
+            termsVersion: '2026-11-02',
+            dpaVersion: '2026-11-02-dpa',
+          })
+        },
+      }),
+    ).rejects.toThrow()
+
+    expect(await membershipsFor(database, userId)).toEqual([])
+    expect(await withSetup(database, (setup) => setup.findEntity(entityId))).toBeNull()
   })
 
   it('refuses an id that is not a UUID', async () => {

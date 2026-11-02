@@ -135,11 +135,11 @@ export const nl = {
   'signIn.title': 'Aanmelden',
   'signIn.checkEmail': 'Check je e-mail',
   'signIn.introEmail': 'Geen wachtwoord. We mailen je een code.',
-  'signIn.introCode': 'We hebben een code van 6 cijfers gestuurd naar {email}.',
+  'signIn.introCode': 'We hebben een code van 6 cijfers gestuurd naar',
   'signIn.email': 'E-mail',
   'signIn.sendCode': 'Stuur me een code',
   'signIn.sendFailed': 'De code kon niet worden verstuurd.',
-  'signIn.codeSent': 'We hebben een code van {digits} cijfers naar {email} gestuurd.',
+  'signIn.codeSent': 'Nieuwe code verstuurd.',
   'signIn.codeWrong': 'Die code klopt niet, of is verlopen. Vraag zo nodig een nieuwe aan.',
   'signIn.change': 'Wijzigen',
   'signIn.code': 'Code',
@@ -160,9 +160,11 @@ export const nl = {
   'legal.agreeMiddle': ' en de ',
   'legal.dpa': 'verwerkersovereenkomst',
   'legal.agreeSuffix': '.',
-  'legal.required': 'Ga akkoord met de voorwaarden en de verwerkersovereenkomst om door te gaan.',
+  'legal.required': 'Vink dit aan om door te gaan.',
   'legal.privacyContinue': 'Doorgaan',
   'legal.privacyStepTitle': 'Privacyverklaring',
+  'legal.privacyStepBefore': 'Lees onze ',
+  'legal.privacyStepAfter': ' voordat je verdergaat.',
   'legal.privacyStepIntro': 'Lees onze privacyverklaring voordat je verdergaat.',
 
   // Setting an administration up.
@@ -174,7 +176,7 @@ export const nl = {
   'setup.start': 'Administratie opzetten',
   'setup.title': 'Zet je administratie op',
   'setup.intro':
-    'Een naam is genoeg om te beginnen. De rest kun je later wijzigen, behalve de eerste maand van het boekjaar.',
+    'Een naam is genoeg om te beginnen. Valuta en boekjaar kun je later niet meer wijzigen.',
   'setup.signedInAs': 'Aangemeld als {email}',
   'setup.closedTitle': 'Geen nieuwe administratie',
   'setup.closedBody':
@@ -206,14 +208,14 @@ export const nl = {
   'setup.startsIn': 'Boekjaar begint in',
   'setup.fiscalYearNote': 'Een jaar dat in juli 2026 opent, heet 2026.',
   'setup.create': 'Administratie aanmaken',
-  'setup.createNext': 'Daarna kies je of je je historie wilt overzetten.',
+  'setup.createNext': 'Daarna kom je op Home.',
   'setup.importAsideTitle': 'Kom je uit een ander pakket?',
   'setup.importMoneybird': 'Vanuit Moneybird',
   'setup.importMoneybirdMeta': 'Facturen, bonnen, bank en journaalposten',
   'setup.importExact': 'Vanuit Exact Online',
   'setup.importExactMeta': 'Schema, relaties en openstaande posten als openingsbalans',
-  'setup.importAny': 'Vanuit elk pakket',
-  'setup.importAnyMeta': 'Een XAF-auditfile, die elk Nederlands pakket kan exporteren',
+  'setup.importAny': 'Vanuit een ander pakket',
+  'setup.importAnyMeta': 'Een XAF-auditfile, die de meeste Nederlandse pakketten kunnen exporteren',
   'setup.importLater':
     'Je kunt ook leeg beginnen en later importeren via Importeren. Er wordt niets geboekt tot je bevestigt.',
 
