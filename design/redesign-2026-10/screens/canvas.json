@@ -466,6 +466,78 @@
    "title": "Phone · ICP return (derived)",
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceipt.dc.html": {
+   "x": 0,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · receipt, choose",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptUploaded.dc.html": {
+   "x": 470,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · receipt, uploaded",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptFailed.dc.html": {
+   "x": 940,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · receipt, failed (too large)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneMore.dc.html": {
+   "x": 1410,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · more",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptDark.dc.html": {
+   "x": 1960,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · receipt, choose",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptUploadedDark.dc.html": {
+   "x": 2430,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · receipt, uploaded",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptFailedDark.dc.html": {
+   "x": 2900,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · receipt, failed (too large)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneMoreDark.dc.html": {
+   "x": 3370,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · more",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
   }
  },
  "order": [
@@ -521,7 +593,15 @@
   "PhoneContactCard.dc.html",
   "PhoneVatPeriods.dc.html",
   "PhoneVat.dc.html",
-  "PhoneIcp.dc.html"
+  "PhoneIcp.dc.html",
+  "PhoneReceipt.dc.html",
+  "PhoneReceiptUploaded.dc.html",
+  "PhoneReceiptFailed.dc.html",
+  "PhoneMore.dc.html",
+  "PhoneReceiptDark.dc.html",
+  "PhoneReceiptUploadedDark.dc.html",
+  "PhoneReceiptFailedDark.dc.html",
+  "PhoneMoreDark.dc.html"
  ],
  "notes": {
   "t1": {
@@ -593,6 +673,13 @@
    "text": "Phone (390): contacts, VAT, ICP (derived)",
    "kind": "title1",
    "maxW": 2270
+  },
+  "t11": {
+   "x": 0,
+   "y": 16400,
+   "text": "Phone tab bar: Receipt and More (derived)",
+   "kind": "title1",
+   "maxW": 3760
   }
  },
  "designSystems": [
