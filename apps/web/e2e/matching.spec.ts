@@ -82,7 +82,7 @@ async function withStatement(page: Page, name: string): Promise<void> {
 }
 
 function queueRows(page: Page) {
-  return page.locator('[data-slot="scroll-table"] tbody tr')
+  return page.locator('[data-slot="match-queue"] [data-row]')
 }
 
 async function setMarchStatus(
@@ -221,17 +221,16 @@ test('the keys the match screen prints are the keys it answers to', async ({ pag
   await hydrated(page)
 
   await page.setViewportSize({ width: 1440, height: 900 })
-  const strip = page.getByRole('group', { name: 'Sneltoetsen' }).first()
-  await expect(strip).toBeVisible()
-  await expect(strip).toContainText('Paneel openen / voorstel boeken')
-  await expect(strip).toContainText('Keuze in het paneel wissen')
-  await expect(strip).toContainText('Paneel sluiten')
-  await expect(strip.getByText('Esc', { exact: true })).toBeVisible()
-  await expect(strip.getByText('1–9')).toHaveCount(0)
-  await expect(strip.getByText('X', { exact: true })).toHaveCount(0)
+  // Bank Match (#164): footer hints, desktop only (hidden below md).
+  await expect(page.getByText('kiezen en door naar de volgende')).toBeVisible()
+  await expect(page.getByText('overslaan', { exact: true })).toBeVisible()
+  await expect(page.getByText('bon toevoegen')).toBeVisible()
+  await expect(page.getByText('laatste terug')).toBeVisible()
+  await expect(page.getByText('1–9')).toHaveCount(0)
+  await expect(page.getByText('X', { exact: true })).toHaveCount(0)
 
   await page.setViewportSize({ width: 390, height: 844 })
-  await expect(strip).toBeHidden()
+  await expect(page.getByText('kiezen en door naar de volgende')).toBeHidden()
 
   await page.setViewportSize({ width: 1440, height: 900 })
   const rows = queueRows(page)
@@ -428,6 +427,6 @@ test('the remaining label caps only above 500 lines', async ({ page }) => {
 
   await page.goto('/bank/match')
   await hydrated(page)
-  await expect(page.getByText('500+ regels nog te koppelen')).toBeVisible()
+  await expect(page.getByText('500+ regels nog te boeken')).toBeVisible()
   await expect(queueRows(page)).toHaveCount(500)
 })

@@ -146,7 +146,9 @@ test('Bank accounts opens from the sidebar and from the command bar', async ({ p
     .click()
   await expect(page).toHaveURL(/\/bank\/?$/)
   await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
-  await expect(page.getByText(/Nog geen bankrekening/)).toBeVisible()
+  await expect(
+    page.getByText('Nog geen bankrekening. Voeg er een toe om afschriften te kunnen importeren.'),
+  ).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Bankonderdelen' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Rekeningen' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Batches' })).toBeVisible()
@@ -173,7 +175,9 @@ test('empty state, seeded account + transactions, keyboard, and Legal copy', asy
 
   await page.goto('/bank')
   await hydrated(page)
-  await expect(page.getByText(/Nog geen bankrekening/)).toBeVisible()
+  await expect(
+    page.getByText('Nog geen bankrekening. Voeg er een toe om afschriften te kunnen importeren.'),
+  ).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Bankonderdelen' })).toBeVisible()
   await assertNoForbiddenCopy(page)
 
@@ -213,10 +217,11 @@ test('IBAN stays a single line at 1440 and 390, light and dark', async ({ page }
       { width: 1440, height: 900 },
       { width: 390, height: 844 },
     ] as const) {
+      await page.setViewportSize(size)
       await page.goto('/bank')
       await setTheme(page, theme)
-      await page.setViewportSize(size)
-      await hydrated(page)
+      // hydrated() waits for the desktop Home kbd; skip it on 390.
+      if (size.width >= 1440) await hydrated(page)
       await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
       await assertIbanSingleLine(page)
     }

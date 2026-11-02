@@ -103,7 +103,7 @@ async function issueMatchingInvoice(page: Page, withIban = false): Promise<void>
 async function openMatch(page: Page): Promise<void> {
   await page.goto('/bank/match')
   await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
-  await expect(page.locator('[data-slot="scroll-table"] tbody tr').first()).toBeVisible({
+  await expect(page.locator('[data-slot="match-queue"] [data-row]').first()).toBeVisible({
     timeout: 15_000,
   })
   await hydrated(page).catch(async () => {
@@ -160,7 +160,7 @@ async function ensurePanelVisible(page: Page): Promise<void> {
 }
 
 async function selectPaymentRow(page: Page, openPhonePanel = true): Promise<void> {
-  const payment = page.locator('[data-slot="scroll-table"] tbody tr').filter({
+  const payment = page.locator('[data-slot="match-queue"] [data-row]').filter({
     hasText: 'Grote Klant',
   })
   await payment.click()
@@ -185,7 +185,7 @@ async function drainQueue(page: Page): Promise<void> {
     ) {
       return
     }
-    const rows = page.locator('[data-slot="scroll-table"] tbody tr')
+    const rows = page.locator('[data-slot="match-queue"] [data-row]')
     if ((await rows.count()) === 0) return
 
     const skip = page.getByRole('button', { name: 'Overslaan' })
@@ -228,12 +228,12 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
         await page.keyboard.press('Escape').catch(() => undefined)
         await page.waitForTimeout(200)
         await expect(page.getByText(/Veeg de tabel opzij/)).toBeVisible()
-        const payment = page.locator('[data-slot="scroll-table"] tbody tr').filter({
+        const payment = page.locator('[data-slot="match-queue"] [data-row]').filter({
           hasText: 'Grote Klant',
         })
         await payment.focus()
       } else {
-        const fee = page.locator('[data-slot="scroll-table"] tbody tr').filter({
+        const fee = page.locator('[data-slot="match-queue"] [data-row]').filter({
           hasText: 'Kosten betalingsverkeer',
         })
         await fee.click()

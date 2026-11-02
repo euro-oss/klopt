@@ -55,7 +55,9 @@ test('a bookkeeper adds an account, previews a statement and reads it in', async
   // Rail "Bank" opens match (#107); statements / accounts live at /bank.
   await page.goto('/bank')
   await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
-  await expect(page.getByText(/Nog geen bankrekening/)).toBeVisible()
+  await expect(
+    page.getByText('Nog geen bankrekening. Voeg er een toe om afschriften te kunnen importeren.'),
+  ).toBeVisible()
 
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
   await page.getByLabel('IBAN').fill(EXAMPLE_IBAN)
@@ -66,7 +68,8 @@ test('a bookkeeper adds an account, previews a statement and reads it in', async
   await expect(page.getByText('nog geen afschrift')).toBeVisible()
 
   // CoS: import card only — CAMT/MT940 from your bank; no PSD2 / connection copy.
-  await expect(page.getByText('Bankafschrift importeren')).toBeVisible()
+  // DropZone title and import card share the same heading string — assert one.
+  await expect(page.getByText('Bankafschrift importeren').first()).toBeVisible()
   await expect(page.getByText(/CAMT\.053 of MT940 van je bank/)).toBeVisible()
   await expect(page.getByText(/gekoppeld/i)).toHaveCount(0)
   await expect(page.getByText(/PSD2/i)).toHaveCount(0)
@@ -106,8 +109,9 @@ test('a bookkeeper adds an account, previews a statement and reads it in', async
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   const report = page.locator('dl', { has: page.getByText('Al geïmporteerd') })
   await expect(report).toContainText('4')
-  // Nothing new, so there is nothing to confirm.
-  await expect(page.getByRole('button', { name: 'Importeren', exact: true })).toBeDisabled()
+  // Nothing new: hide Importeren and say so (PM #171).
+  await expect(page.getByRole('button', { name: 'Importeren', exact: true })).toHaveCount(0)
+  await expect(page.getByText('Niets nieuw: alle 4 regels stonden er al.')).toBeVisible()
 })
 
 test('a file for the wrong account is refused, in words', async ({ page }) => {
@@ -170,5 +174,6 @@ test('a CSV is mapped once and remembered', async ({ page }) => {
   await page.setInputFiles('[data-slot="drop-zone"] input[type="file"]', join(FIXTURES, 'ing.csv'))
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Kolommen van dit bestand' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Importeren', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Importeren', exact: true })).toHaveCount(0)
+  await expect(page.getByText(/Niets nieuw: alle \d+ regels stonden er al\./)).toBeVisible()
 })
