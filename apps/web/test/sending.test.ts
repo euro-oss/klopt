@@ -337,6 +337,12 @@ describe('chasing an unpaid invoice', () => {
     expect(message?.subject).toContain('Betalingsherinnering')
     // A first reminder is a courtesy, not a threat.
     expect(message?.text).toContain('aan uw aandacht ontsnapt')
+    expect(message?.text).toContain(
+      'is volgens onze administratie nog niet als betaald bij ons binnengekomen',
+    )
+    expect(message?.text).toContain(
+      'Heeft u de betaling inmiddels\ngedaan, dan kunt u dit bericht als niet verzonden beschouwen.',
+    )
     expect(message?.text).not.toContain('incassokosten')
 
     // Gone from the queue on the same day, because the stage is closed.
@@ -374,7 +380,20 @@ describe('chasing an unpaid invoice', () => {
       sendReminderBody.parse({ asOf: '2026-05-12' }),
     )
     expect(final.body).toMatchObject({ stage: 3 })
-    expect(mailbox.sent.at(-1)?.text).toContain('incassokosten')
+    // Legal (#118): no collection-cost / interest / 14-day deadline until WIK is built.
+    expect(mailbox.sent.at(-1)?.subject).toContain('Derde herinnering')
+    expect(mailbox.sent.at(-1)?.text).toContain(
+      'Wij verzoeken u het openstaande bedrag zo spoedig mogelijk te voldoen.',
+    )
+    expect(mailbox.sent.at(-1)?.text).toContain(
+      'Heeft u vragen over deze factuur, neem dan contact met ons op.',
+    )
+    expect(mailbox.sent.at(-1)?.subject).not.toMatch(
+      /incasso|rente|veertien|buitengerechtelijk|6:96|aanmaning/i,
+    )
+    expect(mailbox.sent.at(-1)?.text).not.toMatch(
+      /incasso|rente|veertien|buitengerechtelijk|6:96|aanmaning/i,
+    )
 
     // Three reminders and the invoice, all on the record with their stages.
     const deliveries = await handleListDeliveries(await contextFor(), invoiceId)
