@@ -336,7 +336,7 @@ describe('importing a statement', () => {
 describe('a CSV, for the banks that export neither format', () => {
   const ing = [
     '"Datum";"Naam / Omschrijving";"Rekening";"Tegenrekening";"Code";"Af Bij";"Bedrag (EUR)";"Mutatiesoort";"Mededelingen";"Saldo na mutatie"',
-    '"20260302";"Grote Klant N.V.";"NL91ABNA0417164300";"NL86INGB0002445588";"GT";"Bij";"1210,00";"Online bankieren";"Factuur 2026-0001";"1210,00"',
+    '"20260302";"Grote Klant N.V.";"NL91ABNA0417164300";"NL02INGB0999999999";"GT";"Bij";"1210,00";"Online bankieren";"Factuur 2026-0001";"1210,00"',
     '"20260303";"Telecom B.V.";"NL91ABNA0417164300";"NL20INGB0001234567";"IC";"Af";"45,50";"Incasso";"Abonnement maart";"1164,50"',
     '',
   ].join('\n')

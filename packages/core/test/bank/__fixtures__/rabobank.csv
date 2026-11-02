@@ -1,3 +1,3 @@
 "IBAN/BBAN","Munt","BIC","Volgnr","Datum","Rentedatum","Bedrag","Saldo na trn","Tegenrekening IBAN/BBAN","Naam tegenpartij","Omschrijving-1","Betalingskenmerk"
-"NL91ABNA0417164300","EUR","ABNANL2A","000000000001","2026-03-02","2026-03-02","+1210,00","2460,00","NL86INGB0002445588","Grote Klant N.V.","Factuur 2026-0001","2026-0001"
+"NL91ABNA0417164300","EUR","ABNANL2A","000000000001","2026-03-02","2026-03-02","+1210,00","2460,00","NL02INGB0999999999","Grote Klant N.V.","Factuur 2026-0001","2026-0001"
 "NL91ABNA0417164300","EUR","ABNANL2A","000000000002","2026-03-03","2026-03-03","-45,50","2414,50","NL20INGB0001234567","Telecom B.V.","Abonnement maart",""
