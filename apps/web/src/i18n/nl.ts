@@ -1109,10 +1109,14 @@ export const nl = {
   'purchaseNew.linesMismatch': 'Regels tellen niet op tot het document',
   'purchaseNew.dropTitle': 'Sleep de factuur hierheen',
   'purchaseNew.dropBody':
-    'PDF, foto of UBL. Het bestand gaat naar Postvak; bij UBL of Peppol vult Klopt daar de velden in.',
+    'PDF, foto of UBL. Bij UBL of Peppol vult Klopt de velden hier in. Het document blijft bij deze factuur.',
   'purchaseNew.dropChoose': 'Kies een bestand',
+  // Only when receive did not return a documentId (nothing attached to this bill).
   'purchaseNew.dropUploaded': 'Bestand staat in Postvak. Open Postvak om verder te gaan.',
   'purchaseNew.dropOpenInbox': 'Naar Postvak',
+  'purchaseNew.dropAttached': 'Document bij deze factuur: {filename}',
+  'purchaseNew.dropAttachedHint': 'Geen tweede upload — dat zou dubbel kunnen boeken.',
+  'purchaseNew.dropRemove': 'Document weghalen',
   'purchaseNew.supplierEarlier': '{name}, eerder',
   'purchaseNew.supplierBillsYear': 'Facturen in {year}',
   'purchaseNew.supplierUsually': 'Meestal geboekt op',
@@ -2322,7 +2326,7 @@ export const nl = {
   'payments.state.draft': 'concept',
   'payments.state.submitted': 'wacht op fiat',
   'payments.state.approved': 'gefiatteerd',
-  'payments.state.exported': 'verstuurd naar de bank',
+  'payments.state.exported': 'gedownload',
   'payments.state.rejected': 'afgekeurd',
   'batch.title': 'Betaalbatch {reference}',
   'batch.intro': '{iban} · uitvoerdatum {date} · {state}',
@@ -2333,7 +2337,9 @@ export const nl = {
   'batch.rejectedReason': 'afgekeurd',
   'batch.reopen': 'Weer openen',
   'batch.download': 'Bestand downloaden',
-  'batch.markSent': 'Markeren als verstuurd',
+  // Separate from the pain.001 download (GET does not mutate). User records they
+  // submitted the file in their banking app — Klopt never contacts the bank.
+  'batch.markSent': 'Markeren als ingediend bij de bank',
   'batch.back': 'Terug',
   'batch.iSubmitted':
     'Je hebt deze batch zelf klaargezet, dus iemand anders moet hem fiatteren. Dat is niet een instelling — het is de hele bedoeling van twee paar ogen.',
@@ -2357,9 +2363,9 @@ export const nl = {
   'batch.ownReference': 'Eigen kenmerk',
   'batch.paymentReference': 'Betalingskenmerk',
   'batch.add': 'Toevoegen',
-  'batch.exportedHashBefore': 'Verstuurd bestand:',
+  'batch.exportedHashBefore': 'Gedownload bestand:',
   'batch.exportedHashAfter':
-    '— de hash van precies die bytes, zodat later te controleren is wat de bank kreeg.',
+    '— de hash van precies die bytes, zodat later te controleren is welk bestand is gedownload.',
 
   'batch.steps': 'Voortgang van de batch',
   'batch.step.prepare': 'Voorbereiden',

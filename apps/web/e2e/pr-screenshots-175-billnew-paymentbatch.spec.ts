@@ -130,6 +130,7 @@ async function fillBill(page: Page, number: string): Promise<void> {
   await page.getByLabel('Excl. btw regel 1').fill('200,33')
   await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Boeken' })).toBeVisible()
 }
 
 test('BillNew + PaymentBatch #175 screenshots — desktop/phone, light/dark, batch states', async ({
@@ -187,7 +188,11 @@ test('BillNew + PaymentBatch #175 screenshots — desktop/phone, light/dark, bat
     await page.getByLabel('Eigen kenmerk').fill('INK-DEMO-2026-0039')
     await page.getByLabel('Omschrijving').fill('Business insurance')
     await page.getByRole('button', { name: 'Toevoegen' }).click()
-    await expect(page.getByText('Verzekering Fictief')).toBeVisible()
+    await expect(
+      page
+        .locator('[data-testid="batch-lines-desktop"]')
+        .getByRole('cell', { name: 'Verzekering Fictief' }),
+    ).toBeVisible()
     const steps = page.getByRole('list', { name: 'Voortgang van de batch' })
     await expect(steps.getByText('Bestand gedownload')).toBeVisible()
     await expect(steps.getByText('Betaald')).toHaveCount(0)
@@ -268,9 +273,10 @@ test('BillNew + PaymentBatch #175 screenshots — desktop/phone, light/dark, bat
     await expect(bobPage.getByText('Goedgekeurd', { exact: true })).toBeVisible()
     await shotsBothSizes(bobPage, '08-paymentbatch-approved')
 
-    // 09 Exported — last stepper step done
-    await bobPage.getByRole('button', { name: 'Markeren als verstuurd' }).click()
-    await expect(bobPage.getByText(/Status is nu: verstuurd naar de bank/)).toBeVisible()
+    // 09 Exported — last stepper step done. Download (GET) does not mutate;
+    // "Markeren als ingediend bij de bank" is the separate export transition.
+    await bobPage.getByRole('button', { name: 'Markeren als ingediend bij de bank' }).click()
+    await expect(bobPage.getByText(/Status is nu: gedownload/)).toBeVisible()
     await expect(
       bobPage.getByRole('list', { name: 'Voortgang van de batch' }).getByText('Bestand gedownload'),
     ).toBeVisible()

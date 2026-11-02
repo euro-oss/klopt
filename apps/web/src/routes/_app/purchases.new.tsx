@@ -29,8 +29,9 @@ import { listContacts, listTaxCodes } from '~/server/sales'
  * BillNew — enter a supplier bill (#107 Phase 4 / #128).
  *
  * Board: BillNew.dc.html at fa4093b. Copy the document’s figures; Klopt checks
- * sums and never recalculates. DropZone uses the existing inbox capture path
- * with honest copy (UBL/Peppol only). ⌘S saves a draft; ⌘↵ captures and books.
+ * sums and never recalculates. Drop uses the inbox receive path; when a
+ * documentId comes back it stays on this bill (preview, no Postvak copy, no
+ * second upload — Legal: the copy must be true). ⌘S saves a draft; ⌘↵ books.
  */
 
 export const Route = createFileRoute('/_app/purchases/new')({
@@ -103,6 +104,10 @@ function NewPurchaseInvoice() {
   const [dateNotice, setDateNotice] = useState<string | null>(null)
   const [dropNote, setDropNote] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [attachedDocument, setAttachedDocument] = useState<{
+    id: string
+    filename: string
+  } | null>(null)
   const key = useRef<string>(crypto.randomUUID())
   const dropKey = useRef<string>(crypto.randomUUID())
 
@@ -240,18 +245,27 @@ function NewPurchaseInvoice() {
     void captureAndMaybeBook(andBook)
   })
 
+  function clearAttachedDocument(): void {
+    if (previewUrl !== null) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(null)
+    setAttachedDocument(null)
+    setDropNote(null)
+  }
+
   async function onDropFiles(files: FileList): Promise<void> {
     const file = files.item(0)
     if (file === null) return
+    // A second upload while a document is already on this bill could double-book.
+    if (attachedDocument !== null) return
     setProblems([])
     setDropNote(null)
 
     if (previewUrl !== null) URL.revokeObjectURL(previewUrl)
-    if (file.type.startsWith('image/') || file.type === 'application/pdf') {
-      setPreviewUrl(URL.createObjectURL(file))
-    } else {
-      setPreviewUrl(null)
-    }
+    const localPreview =
+      file.type.startsWith('image/') || file.type === 'application/pdf'
+        ? URL.createObjectURL(file)
+        : null
+    setPreviewUrl(localPreview)
 
     setBusy(true)
     const base64 = btoa(
@@ -271,12 +285,24 @@ function NewPurchaseInvoice() {
     dropKey.current = crypto.randomUUID()
 
     if (!result.ok) {
+      clearAttachedDocument()
       setProblems(
         result.problem.violations.length > 0
           ? result.problem.violations.map((item) => violationMessage(t, item))
           : [result.problem.detail],
       )
       return
+    }
+
+    const documentId = result.data.documentId
+    if (typeof documentId === 'string' && documentId !== '') {
+      // Document belongs on this bill — never claim Postvak / offer a second drop.
+      setAttachedDocument({ id: documentId, filename: file.name })
+      setDropNote(null)
+    } else {
+      // No documentId: the only honest path left is Postvak.
+      clearAttachedDocument()
+      setDropNote(t('purchaseNew.dropUploaded'))
     }
 
     const parsed = result.data.parsed
@@ -311,8 +337,6 @@ function NewPurchaseInvoice() {
         )
       }
     }
-
-    setDropNote(t('purchaseNew.dropUploaded'))
   }
 
   useEffect(() => {
@@ -382,7 +406,7 @@ function NewPurchaseInvoice() {
         <Button type="button" variant="outline" asChild>
           <Link to="/purchases">
             {t('purchaseNew.close')}
-            {hydrated && <Keycap className="ml-1.5">Esc</Keycap>}
+            {hydrated && <Keycap className="ml-1.5 hidden md:inline-flex">Esc</Keycap>}
           </Link>
         </Button>
         {/* Desktop: actions stay in the header. Phone uses sticky .form-actions (#38). */}
@@ -398,7 +422,7 @@ function NewPurchaseInvoice() {
             >
               {busy ? t('common.busy') : t('purchaseNew.saveDraft')}
               {hydrated && !busy && (
-                <span className="ml-1.5 inline-flex gap-0.5 normal-case">
+                <span className="ml-1.5 hidden gap-0.5 normal-case md:inline-flex">
                   <Keycap>{modLabel}</Keycap>
                   <Keycap>S</Keycap>
                 </span>
@@ -415,7 +439,7 @@ function NewPurchaseInvoice() {
             >
               {busy ? t('common.busy') : t('purchaseNew.book')}
               {hydrated && !busy && (
-                <span className="ml-1.5 inline-flex gap-0.5 normal-case">
+                <span className="ml-1.5 hidden gap-0.5 normal-case md:inline-flex">
                   <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
                     {modLabel}
                   </Keycap>
@@ -595,19 +619,46 @@ function NewPurchaseInvoice() {
             </p>
           </div>
 
-          <aside aria-label={t('purchaseNew.dropTitle')} className="flex min-w-0 flex-col gap-3">
-            <DropZone
-              title={t('purchaseNew.dropTitle')}
-              description={t('purchaseNew.dropBody')}
-              chooseLabel={t('purchaseNew.dropChoose')}
-              accept=".pdf,.xml,image/*,application/pdf,application/xml,text/xml"
-              disabled={busy || !hydrated}
-              onFiles={(files) => {
-                void onDropFiles(files)
-              }}
-              className="gap-3 py-10"
-            />
-            {dropNote !== null && (
+          <aside
+            aria-label={t('purchaseNew.dropTitle')}
+            className="flex min-w-0 flex-col gap-3"
+            data-testid="billnew-document"
+          >
+            {attachedDocument === null ? (
+              <DropZone
+                title={t('purchaseNew.dropTitle')}
+                description={t('purchaseNew.dropBody')}
+                chooseLabel={t('purchaseNew.dropChoose')}
+                accept=".pdf,.xml,image/*,application/pdf,application/xml,text/xml"
+                disabled={busy || !hydrated}
+                onFiles={(files) => {
+                  void onDropFiles(files)
+                }}
+                className="gap-3 py-10"
+              />
+            ) : (
+              <div className="border-border bg-surface flex flex-col gap-2 rounded-[var(--radius-xl)] border p-4">
+                <p className="m-0 text-sm font-medium" data-testid="billnew-document-attached">
+                  {t('purchaseNew.dropAttached', { filename: attachedDocument.filename })}
+                </p>
+                <p className="text-ink-muted m-0 text-[13px]">
+                  {t('purchaseNew.dropAttachedHint')}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => {
+                    clearAttachedDocument()
+                  }}
+                >
+                  {t('purchaseNew.dropRemove')}
+                </Button>
+              </div>
+            )}
+            {/* Postvak note only when nothing is attached to this bill (Legal). */}
+            {attachedDocument === null && dropNote !== null && (
               <p className="text-ink-2 text-sm">
                 {dropNote}{' '}
                 <Link to="/inbox" className="font-semibold underline-offset-2 hover:underline">
@@ -618,7 +669,11 @@ function NewPurchaseInvoice() {
             {previewUrl !== null && (
               <div className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border">
                 <iframe
-                  title={t('purchaseNew.dropTitle')}
+                  title={
+                    attachedDocument !== null
+                      ? attachedDocument.filename
+                      : t('purchaseNew.dropTitle')
+                  }
                   src={previewUrl}
                   className="h-72 w-full"
                 />
@@ -652,8 +707,9 @@ function NewPurchaseInvoice() {
               </h2>
               <span className="text-ink-muted text-[13px]">{t('purchaseNew.whatForHint')}</span>
             </div>
-            <div className="w-full min-w-0">
-              <div className="bg-surface-hover text-ink-muted grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(4.5rem,0.7fr)_minmax(4.5rem,0.65fr)_minmax(4.5rem,0.65fr)_minmax(2.75rem,2.75rem)] items-center text-xs font-semibold tracking-wide uppercase">
+            {/* One DOM: stacked cards below md so amounts never clip; table from md (#175 QA). */}
+            <div className="w-full min-w-0" data-testid="billnew-lines-grid">
+              <div className="bg-surface-hover text-ink-muted hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(4.5rem,0.7fr)_minmax(4.5rem,0.65fr)_minmax(4.5rem,0.65fr)_minmax(2.75rem,2.75rem)] items-center text-xs font-semibold tracking-wide uppercase md:grid">
                 <span className="px-2.5 py-2 pl-5">{t('purchaseNew.col.description')}</span>
                 <span className="px-2.5 py-2">{t('purchaseNew.col.category')}</span>
                 <span className="px-2.5 py-2">{t('purchaseNew.col.vatCode')}</span>
@@ -664,7 +720,12 @@ function NewPurchaseInvoice() {
               {lines.map((line, index) => (
                 <div
                   key={index}
-                  className="border-line-soft grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(4.5rem,0.7fr)_minmax(4.5rem,0.65fr)_minmax(4.5rem,0.65fr)_minmax(2.75rem,2.75rem)] items-center border-t"
+                  data-testid={`billnew-line-${String(index + 1)}`}
+                  className={cn(
+                    'border-line-soft border-t',
+                    'mx-4 my-3 flex flex-col gap-3 rounded-[var(--radius-md)] border border-border p-3',
+                    'md:mx-0 md:my-0 md:grid md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(4.5rem,0.7fr)_minmax(4.5rem,0.65fr)_minmax(4.5rem,0.65fr)_minmax(2.75rem,2.75rem)] md:items-center md:rounded-none md:border-0 md:border-t md:border-line-soft md:p-0',
+                  )}
                 >
                   <Input
                     aria-label={t('entryNew.descriptionLine', { line: String(index + 1) })}
@@ -675,9 +736,9 @@ function NewPurchaseInvoice() {
                         setLines((current) => [...current, emptyLine(defaultAccount, defaultTax)])
                       }
                     }}
-                    className="h-11 rounded-none border-0 border-r border-line-soft bg-transparent pl-5 shadow-none md:h-10"
+                    className="h-11 rounded-[var(--radius-md)] border border-input bg-transparent shadow-none md:h-10 md:rounded-none md:border-0 md:border-r md:border-line-soft md:pl-5"
                   />
-                  <div className="border-line-soft min-w-0 border-r">
+                  <div className="min-w-0 md:border-r md:border-line-soft">
                     <AccountPicker
                       label={t('invoiceNew.accountLine', { line: String(index + 1) })}
                       labelHidden
@@ -689,7 +750,7 @@ function NewPurchaseInvoice() {
                       }}
                     />
                   </div>
-                  <div className="border-line-soft min-w-0 border-r">
+                  <div className="min-w-0 md:border-r md:border-line-soft">
                     <SelectField
                       label={t('purchaseNew.taxCodeLine', { line: String(index + 1) })}
                       labelHidden
@@ -698,7 +759,7 @@ function NewPurchaseInvoice() {
                       onValueChange={(next) => {
                         update(index, { taxCode: next })
                       }}
-                      triggerClassName="h-11 rounded-none border-0 bg-transparent shadow-none md:h-10"
+                      triggerClassName="h-11 rounded-[var(--radius-md)] border border-input bg-transparent shadow-none md:h-10 md:rounded-none md:border-0"
                     >
                       {line.taxCode === '' || inputCodes.length === 0 ? (
                         <SelectOption value="">{t('purchaseNew.chooseVat')}</SelectOption>
@@ -710,22 +771,24 @@ function NewPurchaseInvoice() {
                       ))}
                     </SelectField>
                   </div>
-                  <Input
-                    aria-label={t('purchaseNew.netLine', { line: String(index + 1) })}
-                    value={line.net}
-                    onChange={(event) => {
-                      update(index, { net: event.target.value })
-                    }}
-                    className="h-11 rounded-none border-0 border-r border-line-soft bg-transparent text-right font-mono shadow-none md:h-10"
-                  />
-                  <Input
-                    aria-label={t('invoiceNew.vatLine', { line: String(index + 1) })}
-                    value={line.tax}
-                    onChange={(event) => {
-                      update(index, { tax: event.target.value })
-                    }}
-                    className="h-11 rounded-none border-0 border-r border-line-soft bg-transparent text-right font-mono shadow-none md:h-10"
-                  />
+                  <div className="grid grid-cols-2 gap-3 md:contents">
+                    <Input
+                      aria-label={t('purchaseNew.netLine', { line: String(index + 1) })}
+                      value={line.net}
+                      onChange={(event) => {
+                        update(index, { net: event.target.value })
+                      }}
+                      className="h-11 rounded-[var(--radius-md)] border border-input bg-transparent font-mono shadow-none md:h-10 md:rounded-none md:border-0 md:border-r md:border-line-soft md:text-right"
+                    />
+                    <Input
+                      aria-label={t('invoiceNew.vatLine', { line: String(index + 1) })}
+                      value={line.tax}
+                      onChange={(event) => {
+                        update(index, { tax: event.target.value })
+                      }}
+                      className="h-11 rounded-[var(--radius-md)] border border-input bg-transparent font-mono shadow-none md:h-10 md:rounded-none md:border-0 md:border-r md:border-line-soft md:text-right"
+                    />
+                  </div>
                   <button
                     type="button"
                     aria-label={t('purchaseNew.computeTaxLine', { line: String(index + 1) })}
@@ -734,7 +797,7 @@ function NewPurchaseInvoice() {
                     onClick={() => {
                       suggestTax(index)
                     }}
-                    className="text-ink-muted inline-flex min-h-11 min-w-11 items-center justify-center px-1 text-xs underline disabled:opacity-50 md:min-h-0 md:min-w-0"
+                    className="text-ink-muted inline-flex min-h-11 min-w-11 items-center justify-center self-start px-1 text-xs underline disabled:opacity-50 md:min-h-0 md:min-w-0 md:self-auto"
                   >
                     ƒ
                   </button>
@@ -759,7 +822,8 @@ function NewPurchaseInvoice() {
           </section>
         </div>
 
-        {/* Sticky on phone so save/book stay above the OSK (#38 / QA #175). */}
+        {/* Sticky on phone so save/book stay above the OSK + tab bar (#38 / #175).
+            No keyboard chips here — .form-actions is md:hidden. */}
         <div
           data-testid="billnew-form-actions"
           className={cn('form-actions md:hidden', !canSaveDraft && !canBook && 'hidden')}
@@ -774,12 +838,6 @@ function NewPurchaseInvoice() {
               }}
             >
               {busy ? t('common.busy') : t('purchaseNew.saveDraft')}
-              {hydrated && !busy && (
-                <span className="ml-1.5 inline-flex gap-0.5 normal-case">
-                  <Keycap>{modLabel}</Keycap>
-                  <Keycap>S</Keycap>
-                </span>
-              )}
             </Button>
           )}
           {canBook && (
@@ -791,16 +849,6 @@ function NewPurchaseInvoice() {
               }}
             >
               {busy ? t('common.busy') : t('purchaseNew.book')}
-              {hydrated && !busy && (
-                <span className="ml-1.5 inline-flex gap-0.5 normal-case">
-                  <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
-                    {modLabel}
-                  </Keycap>
-                  <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
-                    ↵
-                  </Keycap>
-                </span>
-              )}
             </Button>
           )}
         </div>

@@ -102,23 +102,50 @@ async function assertCostsTabsOneRow(page: Page): Promise<void> {
 
 async function assertStickyFormActions(page: Page): Promise<void> {
   const bar = page.locator('[data-testid="billnew-form-actions"]')
+  const tabBar = page.locator('[data-phone-tab-bar]')
   await expect(bar).toBeVisible()
   await expect(bar).toHaveCSS('position', 'sticky')
-  await expect(bar.getByRole('button', { name: 'Concept opslaan' })).toBeVisible()
-  await expect(bar.getByRole('button', { name: 'Boeken' })).toBeVisible()
+  await expect(tabBar).toBeVisible()
+  // Phone sticky bar: no keyboard chips (#175 design).
+  await expect(bar.locator('kbd')).toHaveCount(0)
+  const save = bar.getByRole('button', { name: 'Concept opslaan' })
+  const book = bar.getByRole('button', { name: 'Boeken' })
+  await expect(save).toBeVisible()
+  await expect(book).toBeVisible()
 
-  const viewport = page.viewportSize()
-  expect(viewport).not.toBeNull()
-  const height = viewport!.height
+  const saveBox = await save.boundingBox()
+  const bookBox = await book.boundingBox()
+  const tabBox = await tabBar.boundingBox()
+  expect(saveBox, 'save box').not.toBeNull()
+  expect(bookBox, 'book box').not.toBeNull()
+  expect(tabBox, 'tab bar box').not.toBeNull()
+  expect(Math.abs(saveBox!.y - bookBox!.y), 'save/book must share one row').toBeLessThan(8)
+  // Must not sit under / intersect the z-40 phone tab bar (QA #175).
+  expect(boxesOverlap(saveBox!, tabBox!), 'save ∩ tab bar').toBe(false)
+  expect(boxesOverlap(bookBox!, tabBox!), 'book ∩ tab bar').toBe(false)
 
-  // Scroll the long form; sticky bar must stay in the visual viewport.
+  const bookCenter = {
+    x: bookBox!.x + bookBox!.width / 2,
+    y: bookBox!.y + bookBox!.height / 2,
+  }
+  const hitIsFormActions = await page.evaluate(({ x, y }) => {
+    const el = document.elementFromPoint(x, y)
+    return el !== null && el.closest('[data-testid="billnew-form-actions"]') !== null
+  }, bookCenter)
+  expect(
+    hitIsFormActions,
+    'elementFromPoint(Boeken) must hit the sticky bar, not the tab bar',
+  ).toBe(true)
+
+  // Scroll the long form; sticky bar must stay clear of the tab bar.
   await page.locator('[data-testid="billnew-lines"]').scrollIntoViewIfNeeded()
   await page.evaluate(() => window.scrollBy(0, 800))
   await expect
     .poll(async () => {
-      const box = await bar.boundingBox()
-      if (box === null) return false
-      return box.y >= 0 && box.y + box.height <= height + 1
+      const barBox = await bar.boundingBox()
+      const tab = await tabBar.boundingBox()
+      if (barBox === null || tab === null) return false
+      return !boxesOverlap(barBox, tab)
     })
     .toBe(true)
 }
@@ -208,8 +235,10 @@ test('BillNew from sidebar and command bar; empty and seeded; keyboard; no conso
   await expect(
     page.getByText(/controleert de totalen|never recalculates|herberekent nooit/i),
   ).toBeVisible()
-  await expect(page.getByText(/Postvak|Inbox/i).first()).toBeVisible()
-  await expect(page.getByText(/vult Klopt in wat het las/i)).toHaveCount(0)
+  await expect(
+    page.getByText(/Het document blijft bij deze factuur|document stays with this bill/i),
+  ).toBeVisible()
+  await expect(page.getByText(/vult Klopt in wat het las|Bestand staat in Postvak/i)).toHaveCount(0)
   await expect(page.getByText('Btw-code', { exact: true })).toBeVisible()
   await expect(page.getByText('Btw-bedrag', { exact: true })).toBeVisible()
   await expect(page.getByText(/Facturen in \d{4}/)).toHaveCount(0)
@@ -362,8 +391,12 @@ test('PaymentBatch from sidebar and command bar; empty and seeded; keyboard; no 
   await page.getByLabel('Eigen kenmerk').fill('INK-DEMO-2025-0039')
   await page.getByLabel('Omschrijving').fill('Demo post')
   await page.getByRole('button', { name: 'Toevoegen' }).click()
-  await expect(page.getByText('Ruben Demo')).toBeVisible()
-  await expect(page.getByText(/NL91 ABNA 0417 1643 00/)).toBeVisible()
+  await expect(
+    page.locator('[data-testid="batch-lines-desktop"]').getByRole('cell', { name: 'Ruben Demo' }),
+  ).toBeVisible()
+  await expect(
+    page.locator('[data-testid="batch-lines-desktop"]').getByText(/NL91 ABNA 0417 1643 00/),
+  ).toBeVisible()
   await expect(page.getByRole('heading', { name: /· 1 factuur\b/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: /1 facturen/ })).toHaveCount(0)
 
@@ -455,6 +488,19 @@ test('PaymentBatch ⌘↵ downloads pain.001 when approved', async ({ browser })
     await bobPage.keyboard.press('ControlOrMeta+Enter')
     const download = await downloadPromise
     expect(download.suggestedFilename()).toMatch(/\.pain001\.xml$/i)
+
+    // Separate export transition (GET download does not mutate). Stepper on
+    // exported: all four done, none current, no Betaald / Bij de bank (#175 QA).
+    await bobPage.getByRole('button', { name: 'Markeren als ingediend bij de bank' }).click()
+    await expect(bobPage.getByText(/Status is nu: gedownload/)).toBeVisible()
+    const steps = bobPage.getByRole('list', { name: 'Voortgang van de batch' })
+    await expect(steps.getByText('Voorbereiden')).toBeVisible()
+    await expect(steps.getByText('Fiatteren')).toBeVisible()
+    await expect(steps.getByText('Downloaden')).toBeVisible()
+    await expect(steps.getByText('Bestand gedownload')).toBeVisible()
+    await expect(steps.locator('[aria-current="step"]')).toHaveCount(0)
+    await expect(steps.getByText('Betaald')).toHaveCount(0)
+    await expect(steps.getByText('Bij de bank')).toHaveCount(0)
   } finally {
     await alice.close()
     await bob.close()
@@ -462,10 +508,39 @@ test('PaymentBatch ⌘↵ downloads pain.001 when approved', async ({ browser })
   }
 })
 
+test('BillNew drop attaches the document and never claims Postvak', async ({ page }) => {
+  test.setTimeout(90_000)
+  await openAdmin(page, 'BillNew Document Attach BV')
+  await aSupplier(page)
+
+  await page.goto('/purchases/new')
+  await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
+  // Empty form: Postvak copy is only the drop-zone description (no document yet).
+  await expect(page.getByText(/Het document blijft bij deze factuur/)).toBeVisible()
+  await expect(page.getByTestId('billnew-document-attached')).toHaveCount(0)
+  await expect(page.getByText(/Bestand staat in Postvak/)).toHaveCount(0)
+
+  const fileInput = page.locator('[data-testid="billnew-document"] input[type="file"]')
+  await expect(fileInput).toBeEnabled()
+  await fileInput.setInputFiles({
+    name: 'leverancier-factuur.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.7 billnew attach fixture', 'utf8'),
+  })
+
+  await expect(page.getByTestId('billnew-document-attached')).toBeVisible()
+  await expect(page.getByText('Document bij deze factuur: leverancier-factuur.pdf')).toBeVisible()
+  await expect(page.getByText(/Geen tweede upload/)).toBeVisible()
+  // Drop zone gone — no second upload that could double-book.
+  await expect(page.locator('[data-testid="billnew-document"] input[type="file"]')).toHaveCount(0)
+  await expect(page.getByText(/Bestand staat in Postvak/)).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Naar Postvak' })).toHaveCount(0)
+})
+
 test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control overlap, 44px taps', async ({
   page,
 }) => {
-  test.setTimeout(180_000)
+  test.setTimeout(240_000)
   await openAdmin(page, 'Phone Costs Demo BV')
   await aSupplier(page)
   await aBankAccount(page)
@@ -498,7 +573,24 @@ test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control ov
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme)
     await expect(page.getByRole('heading', { name: 'Nieuwe inkoopfactuur' })).toBeVisible()
+    // Header Esc chip is desktop-only (#175).
+    await expect(page.getByRole('link', { name: /Sluiten/ }).locator('kbd')).toBeHidden()
     await assertStickyFormActions(page)
+    // Phone line cards: amounts fully visible, no clipped "100,0" (#175 QA).
+    const lineCard = page.locator('[data-testid="billnew-line-1"]')
+    await expect(lineCard).toBeVisible()
+    const net = lineCard.getByLabel('Excl. btw regel 1')
+    await expect(net).toHaveValue('100,00')
+    const netBox = await net.boundingBox()
+    expect(netBox, 'net amount box').not.toBeNull()
+    expect(netBox!.width, 'net amount not clipped').toBeGreaterThan(40)
+    await expect
+      .poll(async () =>
+        page
+          .locator('[data-testid="billnew-lines"]')
+          .evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+      )
+      .toBe(true)
     await assertNoHorizontalOverflow(page)
     await assertMinTapTarget(
       page
@@ -558,9 +650,13 @@ test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control ov
   await page.getByLabel('Eigen kenmerk').fill('INK-PHONE-2026-1')
   await page.getByLabel('Omschrijving').fill('Phone demo')
   await page.getByRole('button', { name: 'Toevoegen' }).click()
-  await expect(page.getByText('Ruben Demo')).toBeVisible()
+  await expect(
+    page.locator('[data-testid="batch-lines-desktop"]').getByRole('cell', { name: 'Ruben Demo' }),
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Weg' })).toBeVisible()
+  await expect(
+    page.locator('[data-testid="batch-lines-desktop"]').getByRole('button', { name: 'Weg' }),
+  ).toBeVisible()
 
   await page.setViewportSize({ width: 390, height: 844 })
   for (const theme of ['light', 'dark'] as const) {
@@ -571,8 +667,20 @@ test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control ov
     await expect(steps.getByText('Bestand gedownload')).toBeVisible()
     await expect(steps.getByText('Betaald')).toHaveCount(0)
     await expect(steps.getByText('Bij de bank')).toHaveCount(0)
+    // Next-step CTA chips are desktop-only (#175) — present in DOM, hidden below md.
+    const submitKbd = page.getByRole('button', { name: 'Ter fiattering aanbieden' }).locator('kbd')
+    const submitKbdCount = await submitKbd.count()
+    expect(submitKbdCount).toBeGreaterThan(0)
+    for (let i = 0; i < submitKbdCount; i += 1) {
+      await expect(submitKbd.nth(i)).toBeHidden()
+    }
+    // Two-line phone rows: supplier + amount and Weg stay in the 390 viewport.
+    const phoneLines = page.locator('[data-testid="batch-lines-phone"]')
+    await expect(phoneLines.getByText('Ruben Demo')).toBeVisible()
+    await expect(phoneLines.getByRole('button', { name: 'Weg' })).toBeVisible()
+    await expect(page.getByText(/^instructions:/i)).toHaveCount(0)
     await assertNoHorizontalOverflow(page)
-    await assertMinTapTarget(page.getByRole('button', { name: 'Weg' }), 'weg')
+    await assertMinTapTarget(phoneLines.getByRole('button', { name: 'Weg' }), 'weg')
     await assertMinTapTarget(
       page.getByRole('button', { name: 'Ter fiattering aanbieden' }),
       'submit',
@@ -587,8 +695,62 @@ test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control ov
         locator: page.getByRole('button', { name: 'Ter fiattering aanbieden' }),
       },
       { label: 'add', locator: page.getByRole('button', { name: 'Betaling toevoegen' }) },
-      { label: 'weg', locator: page.getByRole('button', { name: 'Weg' }) },
+      { label: 'weg', locator: phoneLines.getByRole('button', { name: 'Weg' }) },
       { label: 'wait-pill', locator: page.getByText('Wacht', { exact: true }) },
     ])
+  }
+
+  // Missing-IBAN callout: "Open leveranciers" must not overlap the title at 390.
+  await page.setViewportSize({ width: 1440, height: 1040 })
+  await setTheme(page, 'light')
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('CRE-NOIBAN-E2E')
+  await page.getByLabel('Naam', { exact: true }).fill('Zonder Iban E2E')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL009988776B01')
+  await page.getByLabel('E-mail').fill('geeniban-e2e@example.nl')
+  await page.getByRole('checkbox', { name: /Leverancier/ }).check()
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('button', { name: /Zonder Iban E2E/ })).toBeVisible()
+
+  await page.goto('/purchases/new')
+  await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
+  await chooseOption(page, 'Leverancier', /Zonder Iban E2E/)
+  await page.getByLabel('Hun nummer').fill('INK-NOIBAN-E2E')
+  await page.getByLabel('Factuurdatum').fill('2026-02-10')
+  await page.getByLabel('Vervaldatum').fill('2026-03-12')
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('100,00')
+  await page.getByLabel('Btw', { exact: true }).fill('21,00')
+  await page.getByLabel('Totaal', { exact: true }).fill('121,00')
+  await page.getByLabel('Omschrijving regel 1').fill('No IBAN demo')
+  await chooseOption(page, 'Grootboek regel 1', /^4400 /)
+  await expect(page.getByLabel('Btw-code regel 1')).toHaveText(/^VH21/)
+  await page.getByLabel('Excl. btw regel 1').fill('100,00')
+  await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
+  await page.getByRole('button', { name: 'Boeken' }).click()
+  await expect(page.getByRole('heading', { name: /INK-NOIBAN-E2E/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Goedkeuren voor betaling' }).click()
+  await expect(page.getByText(/goedgekeurd voor betaling/i)).toBeVisible()
+
+  await page.goto('/payments')
+  await page.getByRole('button', { name: 'Nieuwe batch' }).click()
+  await page.getByLabel('Kenmerk').fill('BETAAL-NOIBAN-E2E')
+  await page.getByRole('button', { name: 'Aanmaken' }).click()
+  await expect(page.getByText(/Deze leveranciers hebben nog geen IBAN/i)).toBeVisible()
+  await expect(page.getByText(/^instructions:/i)).toHaveCount(0)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  for (const theme of ['light', 'dark'] as const) {
+    await setTheme(page, theme)
+    const title = page.getByText(/Deze leveranciers hebben nog geen IBAN/i)
+    const openLink = page.getByRole('link', { name: 'Open leveranciers' })
+    await expect(title).toBeVisible()
+    await expect(openLink).toBeVisible()
+    await assertKeyControlsDoNotOverlap([
+      { label: 'missing-iban-title', locator: title },
+      { label: 'open-suppliers', locator: openLink },
+    ])
+    await expect(page.getByText(/^instructions:/i)).toHaveCount(0)
+    await assertNoHorizontalOverflow(page)
   }
 })

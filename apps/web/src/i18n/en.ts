@@ -1318,10 +1318,14 @@ export const en: Record<MessageKey, string> = {
   'purchaseNew.linesMismatch': 'Lines do not add up to the document',
   'purchaseNew.dropTitle': 'Drop the bill here',
   'purchaseNew.dropBody':
-    'PDF, photo or UBL. The file goes to Inbox; for UBL or Peppol Klopt fills the fields there.',
+    'PDF, photo or UBL. For UBL or Peppol Klopt fills the fields here. The document stays with this bill.',
   'purchaseNew.dropChoose': 'Choose a file',
+  // Only when receive did not return a documentId (nothing attached to this bill).
   'purchaseNew.dropUploaded': 'The file is in Inbox. Open Inbox to continue.',
   'purchaseNew.dropOpenInbox': 'Open Inbox',
+  'purchaseNew.dropAttached': 'Document on this bill: {filename}',
+  'purchaseNew.dropAttachedHint': 'No second upload — that could book the bill twice.',
+  'purchaseNew.dropRemove': 'Remove document',
   'purchaseNew.supplierEarlier': '{name}, earlier',
   'purchaseNew.supplierBillsYear': 'Bills in {year}',
   'purchaseNew.supplierUsually': 'Usually booked to',
@@ -2256,7 +2260,7 @@ export const en: Record<MessageKey, string> = {
   'payments.state.draft': 'draft',
   'payments.state.submitted': 'awaiting approval',
   'payments.state.approved': 'approved',
-  'payments.state.exported': 'sent to the bank',
+  'payments.state.exported': 'downloaded',
   'payments.state.rejected': 'rejected',
   'batch.title': 'Payment batch {reference}',
   'batch.intro': '{iban} · execution date {date} · {state}',
@@ -2267,7 +2271,9 @@ export const en: Record<MessageKey, string> = {
   'batch.rejectedReason': 'rejected',
   'batch.reopen': 'Reopen',
   'batch.download': 'Download the file',
-  'batch.markSent': 'Mark it as sent',
+  // Separate from the pain.001 download (GET does not mutate). User records they
+  // submitted the file in their banking app — Klopt never contacts the bank.
+  'batch.markSent': 'Mark as submitted to the bank',
   'batch.back': 'Back',
   'batch.iSubmitted':
     'You prepared this batch yourself, so somebody else has to approve it. That is not a setting — it is the whole point of four eyes.',
@@ -2291,9 +2297,9 @@ export const en: Record<MessageKey, string> = {
   'batch.ownReference': 'Your own reference',
   'batch.paymentReference': 'Payment reference',
   'batch.add': 'Add',
-  'batch.exportedHashBefore': 'File sent:',
+  'batch.exportedHashBefore': 'Downloaded file:',
   'batch.exportedHashAfter':
-    '— the hash of exactly those bytes, so what the bank received can be checked later.',
+    '— the hash of exactly those bytes, so which file was downloaded can be checked later.',
 
   'batch.steps': 'Batch progress',
   'batch.step.prepare': 'Prepare',

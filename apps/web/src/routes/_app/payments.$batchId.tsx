@@ -308,7 +308,7 @@ function PaymentBatch() {
             }}
           >
             {t('batch.next.askCta')}
-            <span className="ml-1.5 inline-flex gap-0.5 normal-case">
+            <span className="ml-1.5 hidden gap-0.5 normal-case md:inline-flex">
               <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
                 {modLabel}
               </Keycap>
@@ -332,7 +332,7 @@ function PaymentBatch() {
             }}
           >
             {t('batch.next.approveCta')}
-            <span className="ml-1.5 inline-flex gap-0.5 normal-case">
+            <span className="ml-1.5 hidden gap-0.5 normal-case md:inline-flex">
               <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
                 {modLabel}
               </Keycap>
@@ -357,7 +357,7 @@ function PaymentBatch() {
           >
             {t('batch.next.downloadCta')}
             {batch.state === 'approved' ? (
-              <span className="ml-1.5 inline-flex gap-0.5 normal-case">
+              <span className="ml-1.5 hidden gap-0.5 normal-case md:inline-flex">
                 <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
                   {modLabel}
                 </Keycap>
@@ -407,10 +407,14 @@ function PaymentBatch() {
         </div>
 
         {step === 0 && missingIban && (
-          <Alert variant="attention" className="items-start">
+          <Alert
+            variant="attention"
+            className="items-start max-sm:has-data-[slot=alert-action]:pr-4"
+          >
             <AlertTitle>{t('batch.missingIbanTitle')}</AlertTitle>
             <AlertDescription>{t('batch.missingIbanBody')}</AlertDescription>
-            <AlertAction>
+            {/* Phone: flow under the body so the link never overlaps the title. */}
+            <AlertAction className="static top-auto right-auto mt-2 justify-self-start sm:absolute sm:top-2.5 sm:right-3 sm:mt-0">
               <Link
                 to="/contacts"
                 className="text-sm font-semibold underline-offset-2 hover:underline"
@@ -438,18 +442,73 @@ function PaymentBatch() {
           </p>
         )}
 
-        {problems.length > 0 && (
+        {/* Translated message only — never a raw path like "instructions:". Hide
+            while the missing-IBAN callout already explains the block. */}
+        {problems.length > 0 && !(step === 0 && missingIban) && (
           <ul role="alert" className="text-destructive space-y-1 text-sm">
             {problems.map((problem, index) => (
-              <li key={index}>
-                {problem.path}: {findingMessage(t, problem)}
-              </li>
+              <li key={index}>{findingMessage(t, problem)}</li>
             ))}
           </ul>
         )}
 
         <section className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border">
-          <div className="overflow-x-auto">
+          {/* Phone: two-line rows so Bedrag / Weg are never clipped (#175). */}
+          <div className="sm:hidden" data-testid="batch-lines-phone" aria-label={t('batch.lines')}>
+            {batch.instructions.length === 0 ? (
+              <p className="text-ink-muted px-4 py-6 text-sm">{t('batch.linesEmpty')}</p>
+            ) : (
+              batch.instructions.map((row: Instruction) => {
+                const noIban = row.creditorIban.trim() === ''
+                const billRef = row.remittanceReference ?? row.endToEndId
+                const payTo = noIban ? t('batch.noIbanYet') : formatIbanGroups(row.creditorIban)
+                return (
+                  <div
+                    key={row.id}
+                    className="border-line-soft flex flex-col gap-1 border-t px-4 py-3 first:border-t-0"
+                  >
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="min-w-0 truncate font-sans text-sm font-medium">
+                        {row.creditorName}
+                      </span>
+                      <span className="shrink-0 font-mono text-sm font-medium whitespace-nowrap">
+                        <EuroAmount amount={row.amount} />
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-ink-muted min-w-0 truncate font-mono text-[13px]">
+                        {billRef}
+                        {' · '}
+                        {payTo}
+                      </span>
+                      {batch.editable && (
+                        <button
+                          type="button"
+                          disabled={busy || !hydrated}
+                          onClick={() => {
+                            void remove(row.id)
+                          }}
+                          className="text-ink-muted hover:text-destructive inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center text-xs underline disabled:opacity-50"
+                        >
+                          {t('batch.remove')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+            <div className="bg-surface-hover flex items-baseline justify-between gap-3 border-t px-4 py-3 text-sm font-semibold">
+              <span className="min-w-0 truncate font-sans">
+                {t('batch.totalFrom', { account: accountLabel })}
+              </span>
+              <span className="shrink-0 font-mono whitespace-nowrap">
+                <EuroAmount amount={batch.total} />
+              </span>
+            </div>
+          </div>
+
+          <div className="hidden overflow-x-auto sm:block" data-testid="batch-lines-desktop">
             <table className="w-full min-w-0 text-sm" aria-label={t('batch.lines')}>
               <thead>
                 <tr className="text-ink-muted border-b text-left text-xs font-semibold tracking-wide uppercase">
