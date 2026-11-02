@@ -239,8 +239,10 @@ test('BillNew from sidebar and command bar; empty and seeded; keyboard; no conso
     page.getByText(/Het document blijft bij deze factuur|document stays with this bill/i),
   ).toBeVisible()
   await expect(page.getByText(/vult Klopt in wat het las|Bestand staat in Postvak/i)).toHaveCount(0)
-  await expect(page.getByText('Btw-code', { exact: true })).toBeVisible()
-  await expect(page.getByText('Btw-bedrag', { exact: true })).toBeVisible()
+  // Column headers (phone also has md:sr-only amount labels with the same words).
+  const colHeaders = page.locator('[data-testid="billnew-lines-grid"] > .bg-surface-hover')
+  await expect(colHeaders.getByText('Btw-code', { exact: true })).toBeVisible()
+  await expect(colHeaders.getByText('Btw-bedrag', { exact: true })).toBeVisible()
   await expect(page.getByText(/Facturen in \d{4}/)).toHaveCount(0)
   await expect(page.getByText(/Meestal geboekt op/)).toHaveCount(0)
 
