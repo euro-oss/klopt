@@ -149,6 +149,9 @@ says "Log out", and the screens outside it no longer say "Afmelden".
 
 ### Fixed
 
+- Contacts follow-up: NL supplier empty line is "Niets openstaand"; at
+  desktop the Relatiekaart heading wraps long names and card actions sit
+  on their own row; the card stays desktop-only.
 - Production invoice PDFs no longer 500. pdfkit 0.20.2 loads its standard fonts
   at runtime (`#standard-fonts/*`); bundling it into `.output/server/_ssr` made
   that lookup fail, so every invoice PDF and every send that attaches one
@@ -160,7 +163,6 @@ says "Log out", and the screens outside it no longer say "Afmelden".
   only (a frame begins with four spaces and `at`). The message is not
   logged: it is the start of `error.stack`, and a driver error can quote
   row values.
-
 - Debtor-ageing report and overdue counts no longer count invoices that are due
   today (exclusive overdue boundary).
 

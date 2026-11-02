@@ -167,7 +167,7 @@ test('supplier card shows open count/amount; overdue only after due date; never 
   await page.getByLabel('Naam', { exact: true }).fill('Kantoorpapier Proef B.V.')
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL000001630B99')
   await page.getByLabel('E-mail').fill('inkoop@example.nl')
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByRole('checkbox', { name: /Klant/ }).uncheck()
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
@@ -176,7 +176,7 @@ test('supplier card shows open count/amount; overdue only after due date; never 
   const card = page.getByRole('complementary', { name: 'Relatiekaart' })
   await expect(card).toBeVisible()
   // No bills yet: honest empty, never a paid claim.
-  await expect(card).toContainText('Geen openstaand')
+  await expect(card).toContainText('Niets openstaand')
   await expect(card).not.toContainText(/betaald/i)
 
   async function bookBill(opts: {

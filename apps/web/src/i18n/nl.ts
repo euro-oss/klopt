@@ -932,7 +932,7 @@ export const nl = {
   'contacts.card.draft': 'Concept',
   'contacts.card.docOpen': 'Open €\u00a0{amount}',
   // Purchase side only (#163 Legal): open count/amount; never claim betaald.
-  'contacts.card.supplierOpenNone': 'Geen openstaand',
+  'contacts.card.supplierOpenNone': 'Niets openstaand',
   'contacts.card.supplierOpenSummary': '{count} open · €\u00a0{amount}',
   'contacts.card.supplierOverdueSuffix_one': ' · {count} te laat',
   'contacts.card.supplierOverdueSuffix_other': ' · {count} te laat',
