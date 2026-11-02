@@ -72,3 +72,103 @@ Strings Hidde already has on his boards are not repeated here.
 | Needed for e-invoicing. | Nodig voor e-facturen. |
 | Goods / Services | Goederen / Diensten |
 | Sign out | Uitloggen |
+
+## Getting in: sign-in, setup, AI consent and switcher, dark and phone (#153)
+
+Hidde's four desktop-light boards (`SignIn`, `Setup`, `OAuth`, `Switcher`) get a dark 1440 board and phone 390 boards in light and dark. His files are not edited. Screenshots are in `derived-shots/batch-153/`.
+
+| Board | What it is | Edition | Screenshot |
+| --- | --- | --- | --- |
+| `SignInDark.dc.html`, `theme` prop (default dark) | Sign-in at 1440, own file: invite-only copy, no hosting-location claim | both | `SignIn-dark-1440` |
+| `SetupDark.dc.html`, `theme` and `edition` props | Setup step 1 at 1440, own file: Eva signed in, XAF copy, terms checkbox on hosted | hosted | `Setup-hosted-dark-1440` |
+| `SetupSelfHostedDark.dc.html` | `SetupDark` with `edition="self-hosted"`: no checkbox, button enabled | self-hosted | `Setup-selfhosted-dark-1440` |
+| `OAuthDark.dc.html` | Thin wrapper: Hidde's `OAuth` with `theme="dark"` | both | `OAuth-dark-1440` |
+| `SwitcherDark.dc.html` | Thin wrapper: Hidde's `Switcher` with `theme="dark"` | both | `Switcher-dark-1440` |
+| `PhoneSignIn.dc.html`, `theme` and `step` props | Sign-in, email step; `PhoneSignInDark` sets dark | both | `SignIn-light-390`, `SignIn-dark-390` |
+| `PhoneSignInCode.dc.html`, `PhoneSignInCodeDark.dc.html` | `PhoneSignIn` with `step="code"` | both | `SignInCode-light-390`, `SignInCode-dark-390` |
+| `PhoneSetup.dc.html`, `theme` and `edition` props | Setup step 1; `PhoneSetupDark` sets dark | hosted | `Setup-hosted-light-390`, `Setup-hosted-dark-390` |
+| `PhoneSetupSelfHosted.dc.html`, `PhoneSetupSelfHostedDark.dc.html` | `PhoneSetup` with `edition="self-hosted"` | self-hosted | `Setup-selfhosted-light-390`, `Setup-selfhosted-dark-390` |
+| `PhoneOAuth.dc.html`, `theme` prop | Assistant consent; `PhoneOAuthDark` sets dark | both | `OAuth-light-390`, `OAuth-dark-390` |
+| `PhoneSwitcher.dc.html`, `theme` prop | Administration and book year; `PhoneSwitcherDark` sets dark | both | `Switcher-light-390`, `Switcher-dark-390` |
+| `TermsConsent.dc.html`, `theme`, `lang`, `size` and URL props | Component: the terms checkbox, imported by both Setup boards | hosted | `TermsConsent-light-440` |
+
+All new boards are registered in `canvas.json` (notes `t153a` and `t153b`, rows at y 18700 and 20260, below every other open batch).
+
+### Why some dark boards are their own file
+
+`OAuthDark` and `SwitcherDark` are thin wrappers, like `HomeDark`, because Hidde's markup is right as it is. `SignInDark` and `SetupDark` are copies because his light boards carry copy these rules don't allow, and editing his files is out of scope here:
+
+- `SignIn`: "New here? The same button creates your account." (signup is closed, #47) and "Hosted in Europe, or on your own server" (no hosting-location claim). Both are replaced below. His two cards also overflow 1440 (the board renders 1680 wide), so in `SignInDark` the cards are 20px narrower and the gaps tighter.
+- `Setup`: the signed-in address is not the sample user, and the XAF line says "every Dutch package". `SetupDark` uses `eva@bakkerij.example` and "most Dutch packages", and names the new administration "Bakkerij Eva BV".
+
+Hidde's light `SignIn` and `Setup` still have those lines and should get the same copy in whichever PR owns them.
+
+### Terms checkbox (hosted only)
+
+- One checkbox, never pre-ticked, and it only accepts the terms and the data processing agreement. No marketing opt-in, no other consent.
+- Label, English: "I agree to the [terms] and the [data processing agreement]". Dutch: "Ik ga akkoord met de [voorwaarden] en de [verwerkersovereenkomst]".
+- The privacy notice is a separate line to read, outside the label: "Read our [privacy notice]." / "Lees onze [privacyverklaring]."
+- Placeholder hrefs are `KLOPT_TERMS_URL`, `KLOPT_DPA_URL` and `KLOPT_PRIVACY_URL`. Links are ink and underlined.
+- The wording lives once, in `COPY` in `TermsConsent.dc.html` (en and nl). Both Setup boards import it, so a wording change is one line there.
+- It sits on Setup step 1 because the data processing agreement belongs to the administration being created. Create administration stays disabled until the box is ticked.
+- Self-hosted has no checkbox (`edition="self-hosted"`).
+- Engineering note, not shown in the UI: when the box is ticked, the app records who ticked it, when, and which version of the terms and of the data processing agreement they accepted.
+
+### Rules for these boards
+
+- Control borders: `.k-root[data-theme]{--line-control:var(--ink-muted)}`, the same rule as #109 and #158. The checkbox and the code digits use it too.
+- Disabled controls look disabled: `--ink-muted` text on `--neutral-bg`, `cursor: not-allowed`. Key hints in a disabled button are outlined in `--ink-muted`.
+- In dark, key hints in a primary button are outlined in `--on-primary`.
+- `OAuthDark` and `PhoneOAuth` give the switch an `--on-primary` knob when on in dark. Hidde's white knob on the dark-mode primary is about 1.1:1.
+- Links are ink and underlined. No `ink-faint` for text (the decorative arrow on `SignInDark` moved to `ink-muted`). Phone targets are at least 44px. No new status colours.
+- Phone boards have no key hints. Desktop keeps Hidde's (↵, ⌘↵, ⌘V, Esc).
+- Sign-in, Setup and assistant consent are outside the app (signed out, no administration yet, or opened by the assistant), so their phone boards have no tab bar. `PhoneSwitcher` opens from the administration name on `PhoneHome`, so it has the tab bar with Home active. It is a page rather than a sheet, so nothing sits on the tab bar.
+- `PhoneSwitcher` and `PhoneOAuth` list a second administration, "Bakkerij Eva BV". Hidde's desktop `Switcher` lists only Demo BV.
+- Sample people: Eva (`eva@bakkerij.example`). No other address appears on these boards.
+- Fonts are self-hosted (`design-system/fonts/fonts.css`, the same files as #157 and #160). Hidde's `OAuth`, `Switcher` and `Sidebar`, imported by the thin wrappers, still carry his Google Fonts link; the shoot blocks it.
+
+### Contrast (WCAG 2.x)
+
+| Pair | Light | Dark |
+| --- | --- | --- |
+| Control border (`ink-muted`) on `surface` | 5.95:1 | 6.77:1 |
+| Control border (`ink-muted`) on `ground` | 5.45:1 | 7.36:1 |
+| v2 `line-control` on `surface` (replaced) | 1.68:1 | 1.98:1 |
+| Muted text on `surface` / `ground` / `surface-sunken` | 5.95 / 5.45 / 5.21:1 | 6.77 / 7.36 / 7.12:1 |
+| Muted text on `selection` (switcher rows) | 5.59:1 | 5.74:1 |
+| Disabled: `ink-muted` on `neutral-bg` | 5.12:1 | 5.57:1 |
+| Link (`ink`) on `surface` / `ground` / `surface-sunken` | 17.72 / 16.22 / 15.51:1 | 15.80 / 17.16 / 16.59:1 |
+| Key hint outline (`on-primary` on `primary`) | 17.72:1 | 16.12:1 |
+
+### Shooting
+
+`node --import ./derived-shots/render/hide-scrollbars.mjs derived-shots/render/shoot-widths.mjs derived-shots/batch-153 <Board>@<width>=<name> ...`, run from `design/redesign-2026-10/` with Playwright's bundled Chromium. `shoot-widths.mjs` and `dc-shim.js` are the same files as on #160. The small preload adds `--hide-scrollbars`, because tall phone boards otherwise measured with a scrollbar on some runs and came out 16px taller. Every md5 in `batch-153` is unique.
+
+### Copy, English and Dutch
+
+Strings Hidde already has on his boards are not repeated here.
+
+| English (board) | Nederlands |
+| --- | --- |
+| Klopt is invite-only for now. Ask the person who invited you, or use the email they invited. | Klopt werkt voorlopig alleen op uitnodiging. Vraag het aan wie je heeft uitgenodigd, of gebruik het e-mailadres waarop je bent uitgenodigd. |
+| Use it hosted, or run it on your own server | Gebruik het gehost, of draai het op je eigen server |
+| Open source, Apache-2.0. Your books leave whenever you want, as an audit file. | Open source, Apache-2.0. Je boekhouding gaat mee wanneer je wilt, als auditfile. |
+| Change email | E-mailadres wijzigen |
+| Paste the code or let your phone fill it in. It signs you in by itself. | Plak de code of laat je telefoon hem invullen. Je wordt vanzelf ingelogd. |
+| I agree to the terms and the data processing agreement | Ik ga akkoord met de voorwaarden en de verwerkersovereenkomst |
+| Read our privacy notice. | Lees onze privacyverklaring. |
+| Tick the box above to continue. | Vink het vakje hierboven aan om verder te gaan. |
+| Next: bring your history across, or not. | Hierna: je geschiedenis overzetten, of niet. |
+| Company / History / Bank (phone steps) | Bedrijf / Geschiedenis / Bank |
+| It shows in the switcher and on screens. | Zo heet hij in de wisselaar en op schermen. |
+| 31 categories, 5 journals and 27 VAT codes, mapped to RGS 3.7. Currency is euro. | 31 categorieën, 5 dagboeken en 27 btw-codes, ingedeeld volgens RGS 3.7. Valuta is euro. |
+| An XAF audit file, which most Dutch packages can export | Een XAF-auditfile, die de meeste Nederlandse pakketten kunnen exporteren |
+| Or start empty and import later. Nothing is booked until you confirm. | Of begin leeg en importeer later. Er wordt niets geboekt tot je bevestigt. |
+| An AI assistant, over MCP. It can look and prepare; you decide what gets booked. | Een AI-assistent, via MCP. Hij kan kijken en voorbereiden; jij beslist wat er geboekt wordt. |
+| Post to the ledger, send, pay or change settings | Boeken in het grootboek, versturen, betalen of instellingen wijzigen |
+| Take this back any time under Settings, People and access. Every change it makes shows in Who did what. | Trek dit altijd in via Instellingen, Mensen en toegang. Elke wijziging staat in Wie deed wat. |
+| ‹ Home | ‹ Home |
+| Administration and book year | Administratie en boekjaar |
+| Owner · just you | Eigenaar · alleen jij |
+| Signed in as | Ingelogd als |
+| Sign out | Uitloggen |
