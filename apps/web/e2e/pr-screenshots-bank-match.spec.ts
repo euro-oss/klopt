@@ -90,6 +90,8 @@ async function issueMatchingInvoice(page: Page, withIban = false): Promise<void>
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByRole('button', { name: /Grote Klant N\.V\./ })).toBeVisible()
 
+  // Bookkeeper invoice form needs Geavanceerd (#45 / #164 screenshots).
+  await enableAdvancedMode(page)
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
   await page.getByLabel('Referentie klant').fill('KP-1')
@@ -97,7 +99,7 @@ async function issueMatchingInvoice(page: Page, withIban = false): Promise<void>
   await page.getByLabel('Prijs regel 1').fill('1000,00')
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 }
 
 async function openMatch(page: Page): Promise<void> {

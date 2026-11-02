@@ -156,9 +156,15 @@ test('02 seeded — light/dark × 1440/390 (IBAN nowrap check)', async ({ page }
       await page.goto('/bank')
       await setTheme(page, theme)
       await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
-      const ibanBox = await page.getByText('NL91 ABNA 0417 1643 00').boundingBox()
-      expect(ibanBox).not.toBeNull()
-      expect(ibanBox!.height).toBeLessThan(28)
+      const iban = page.locator('[data-slot="bank-account-iban"]').first()
+      const metrics = await iban.evaluate((el) => {
+        const style = getComputedStyle(el)
+        return {
+          height: el.getBoundingClientRect().height,
+          lineHeight: Number.parseFloat(style.lineHeight),
+        }
+      })
+      expect(metrics.height).toBeLessThanOrEqual(metrics.lineHeight * 1.2)
       await shoot(page, `02-bank-accounts-seeded-${theme}-${size.tag}.png`, size)
     }
   }
