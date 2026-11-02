@@ -8,9 +8,8 @@ import { problemResponse } from '~/api/errors'
  * The payment file (spec 7.4). Returns XML rather than JSON so that uploading
  * it to a bank is a download and a drag, which is what a self-hoster does.
  *
- * A read: downloading twice is fine and sometimes necessary. Marking the batch
- * exported is a separate transition, so "did we already send this?" stays
- * answerable.
+ * The first download of an approved batch sets `exported` (gedownload). Later
+ * downloads of an already-exported batch are reads — same bytes, same hash.
  */
 export const Route = createFileRoute('/api/v1/payment-batches/$batchId/pain001')({
   server: {

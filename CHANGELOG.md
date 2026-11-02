@@ -30,6 +30,10 @@ Invitees (who skip Setup) see the privacy notice once on first sign-in when
 in the same `legal_acceptances` table (`privacy_notice` kind: user, timestamp,
 version). Dark and phone follow Batch 2 / Batch 3 boards (#140).
 
+### API changes
+
+- **Breaking (v1 API):** Downloading pain.001 from an approved batch now marks it exported; the `export` transition was removed from the v1 batch transitions API.
+
 ### Reminders: confirm before a bulk send (#173)
 
 Herinneringen (`/dunning`) opens a shadcn AlertDialog whenever more than one
@@ -88,6 +92,18 @@ return stays above the fold; no disabled electronic filing CTA (VAT + ICP);
 short muted taxonomy note; header subline wraps under the title. App-wide
 Sign out / Uitloggen copy is a separate PR.
 
+### Redesign Phase 4: BillNew and PaymentBatch (#107 / #128)
+
+BillNew (`/purchases/new`) and PaymentBatch (`/payments/$id`) match the
+desktop-light boards at `fa4093b`. BillNew is a copy-from-document form with
+DropZone on the existing inbox capture path (honest UBL/Peppol copy only),
+category split, ⌘S draft and ⌘↵ book. PaymentBatch shows prepare → approve →
+download → waiting stepper, missing-IBAN callout, four-eyes on existing
+transitions, and pain.001 download — never claiming Klopt pays or sends the
+file. Costs tabs wrap `/payments`. Input borders use `--ink-muted`. Dark and
+phone inherit tokens (Batch 2 / 3 follow-ups). Costs list/preview remains in
+#159.
+
 ### Redesign Phase 6: Contacts (#130)
 
 Contacts matches the `Contacts` board from the v2 export at `fa4093b`
@@ -145,6 +161,9 @@ says "Log out", and the screens outside it no longer say "Afmelden".
 
 ### Fixed
 
+- Contacts follow-up: NL supplier empty line is "Niets openstaand"; at
+  desktop the Relatiekaart heading wraps long names and card actions sit
+  on their own row; the card stays desktop-only.
 - Production invoice PDFs no longer 500. pdfkit 0.20.2 loads its standard fonts
   at runtime (`#standard-fonts/*`); bundling it into `.output/server/_ssr` made
   that lookup fail, so every invoice PDF and every send that attaches one
@@ -156,7 +175,6 @@ says "Log out", and the screens outside it no longer say "Afmelden".
   only (a frame begins with four spaces and `at`). The message is not
   logged: it is the start of `error.stack`, and a driver error can quote
   row values.
-
 - Debtor-ageing report and overdue counts no longer count invoices that are due
   today (exclusive overdue boundary).
 

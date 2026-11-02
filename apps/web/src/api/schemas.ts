@@ -686,7 +686,8 @@ export const addInstructionBody = z.object({
 })
 
 export const transitionBatchBody = z.object({
-  action: z.enum(['submit', 'approve', 'reject', 'reopen', 'export']),
+  // `export` is not a client action: the pain.001 download sets exported (#175).
+  action: z.enum(['submit', 'approve', 'reject', 'reopen']),
   reason: z.string().trim().max(500).nullable().default(null),
 })
 
@@ -798,6 +799,8 @@ export const capturePurchaseInvoiceBody = z.object({
   paymentReference: z.string().nullable().default(null),
   notes: z.string().nullable().default(null),
   lines: z.array(purchaseInvoiceLineInput).min(1, 'An invoice needs at least one line.'),
+  // BillNew drop: link this document to the saved bill and take it out of Postvak.
+  documentId: z.uuid().nullable().optional(),
 })
 
 /**

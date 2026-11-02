@@ -506,6 +506,68 @@
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
   },
+  "ImportSourceDark.dc.html": {
+   "x": 12160,
+   "y": 8600,
+   "w": 1440,
+   "h": 1000,
+   "title": "Dark · import, source and connect (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#152), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ImportFindingsDark.dc.html": {
+   "x": 13680,
+   "y": 8600,
+   "w": 1440,
+   "h": 1000,
+   "title": "Dark · import, problems to resolve (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#152), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneImportSource.dc.html": {
+   "x": 15200,
+   "y": 8600,
+   "w": 390,
+   "h": 1204,
+   "title": "Phone · import, source and connect (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#152), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneImportSourceDark.dc.html": {
+   "x": 15670,
+   "y": 8600,
+   "w": 390,
+   "h": 1204,
+   "title": "Phone dark · import, source and connect (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#152), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneImportFindings.dc.html": {
+   "x": 16140,
+   "y": 8600,
+   "w": 390,
+   "h": 1347,
+   "title": "Phone · import, problems to resolve (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#152), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneImportFindingsDark.dc.html": {
+   "x": 16610,
+   "y": 8600,
+   "w": 390,
+   "h": 1347,
+   "title": "Phone dark · import, problems to resolve (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#152), not drawn by Hidde. See ../DERIVED.md."
+  },
   "YearCloseProposal.dc.html": {
    "x": 6560,
    "y": 10020,
@@ -897,6 +959,12 @@
   "ImportRun.dc.html",
   "ImportStopped.dc.html",
   "ImportStoppedPartial.dc.html",
+  "ImportSourceDark.dc.html",
+  "ImportFindingsDark.dc.html",
+  "PhoneImportSource.dc.html",
+  "PhoneImportSourceDark.dc.html",
+  "PhoneImportFindings.dc.html",
+  "PhoneImportFindingsDark.dc.html",
   "SettingsCompany.dc.html",
   "SettingsBooks.dc.html",
   "YearCloseProposal.dc.html",
@@ -1009,7 +1077,7 @@
    "y": 8300,
    "text": "Import",
    "kind": "title1",
-   "maxW": 12080
+   "maxW": 17000
   },
   "t8": {
    "x": 0,
