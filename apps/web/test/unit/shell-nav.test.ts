@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   JOURNAL_TABS,
+  PHONE_TAB_BAR,
   REPORTS_TABS,
   SHELL_NAV,
   isNavActive,
@@ -114,11 +115,25 @@ describe('shell-nav Phase 0 (v2 IA)', () => {
     ).toBe(true)
   })
 
+  it('keeps Sales lit on /dunning (Reminders tab, Phase 2)', () => {
+    expect(isNavActive('/dunning', '/invoices', undefined, undefined, ['/dunning'])).toBe(true)
+    expect(isNavActive('/dunning', '/invoices')).toBe(false)
+  })
+
   it('switches phone/desktop chrome with CSS, not usePhoneViewport', () => {
     expect(shell).toContain('hidden md:flex')
     expect(shell).toContain('md:hidden')
     expect(shell).toContain('PhoneTabBar')
     expect(shell).not.toContain('usePhoneViewport')
+  })
+
+  it('phone middle tab is Receipt (#140), still opens /inbox upload until #139', () => {
+    expect(PHONE_TAB_BAR.map((tab) => tab.id)).toEqual(['home', 'sales', 'receipt', 'bank', 'more'])
+    expect(PHONE_TAB_BAR[2]).toMatchObject({
+      id: 'receipt',
+      key: 'nav.phoneReceipt',
+      to: '/inbox',
+    })
   })
 
   it('help Ga naar shares paletteNavItems; Shortcuts opens help', () => {

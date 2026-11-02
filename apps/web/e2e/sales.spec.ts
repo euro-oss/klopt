@@ -53,7 +53,7 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   await page.getByLabel('Plaats').fill('Rotterdam')
   await page.getByRole('button', { name: 'Opslaan' }).click()
 
-  await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Grote Klant N\.V\./ })).toBeVisible()
 
   // Drafting. No number is allocated and nothing is posted yet.
   // v2 rail label is Verkoop; page heading stays Verkoopfacturen.
@@ -114,7 +114,7 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   // By role: the e-invoicing scheme select mentions "KvK-nummer" in its options.
   await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 
@@ -130,7 +130,7 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
   // Send it. With no SMTP in the test environment the message lands in the
   // outbox directory, and the delivery row says which transport handled it.
   await page.goto(`/invoices/${invoiceId}`)
-  await page.getByRole('button', { name: 'Versturen', exact: true }).click()
+  await page.getByRole('button', { name: 'Factuur versturen', exact: true }).click()
 
   await expect(page.getByRole('heading', { name: 'Verzonden' })).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Factuur', exact: true })).toBeVisible()
@@ -141,7 +141,8 @@ test('a bookkeeper records a customer, drafts an invoice and issues it', async (
 
   // And it really did reach the ledger.
   await page.getByRole('link', { name: 'boeking', exact: true }).click()
-  await expect(page.getByText('Advieswerk maart').first()).toBeVisible()
+  // Entry detail also has a phone layout; assert a visible description cell.
+  await expect(page.getByText('Advieswerk maart').filter({ visible: true }).first()).toBeVisible()
 })
 
 test('crediting an issued invoice drafts a credit note against it', async ({ page }) => {
@@ -153,7 +154,7 @@ test('crediting an issued invoice drafts a credit note against it', async ({ pag
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0002')
   await page.getByLabel('Naam', { exact: true }).fill('Spijtige Klant B.V.')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Spijtige Klant B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Spijtige Klant B\.V\./ })).toBeVisible()
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
@@ -195,7 +196,7 @@ test('a posted journal entry goes through, which it could not before', async ({ 
 })
 
 test('an overdue invoice turns up in the dunning list and can be chased', async ({ page }) => {
-  await anAdministration(page, 'Aanmaning BV')
+  await anAdministration(page, 'Herinnering BV')
   await enableAdvancedMode(page)
 
   await page.goto('/settings')
@@ -205,7 +206,7 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
   await page.getByLabel('Plaats').fill('Amsterdam')
   await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 
@@ -220,7 +221,7 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
   await page.getByLabel('Postcode').fill('3011 AD')
   await page.getByLabel('Plaats').fill('Rotterdam')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Trage Betaler B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Trage Betaler B\.V\./ })).toBeVisible()
 
   // Dated well in the past, so it is already long overdue.
   await page.goto('/invoices/new')
@@ -235,22 +236,27 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
   await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 
-  // Dunning is palette-only (#107).
+  // Reminders tab keeps `/dunning` (#107 Phase 2).
   await page.goto('/dunning')
-  await expect(page.getByRole('heading', { name: 'Aanmaningen' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Verkoop' })).toBeVisible()
+  await expect(
+    page.getByRole('navigation', { name: 'Verkoopsecties' }).getByRole('link', {
+      name: 'Herinneringen',
+    }),
+  ).toHaveAttribute('aria-current', 'page')
 
-  const row = page.locator('tbody tr', { has: page.getByText('Trage Betaler B.V.') })
+  const row = page.getByRole('button', { name: /Trage Betaler B\.V\./ })
   await expect(row).toBeVisible()
   // Months late, so the schedule says final demand rather than a courtesy.
-  await expect(row).toContainText('Laatste aanmaning')
+  await expect(row).toContainText('Derde herinnering')
 
-  await row.getByRole('button', { name: 'Versturen' }).click()
+  await page
+    .getByRole('button', { name: /Herinnering versturen|Alle \d+ herinneringen versturen/ })
+    .click()
   await expect(page.getByText(/verstuurd naar Trage Betaler B.V./)).toBeVisible()
 
   // Gone from the list: the stage is closed, and it does not come round again.
-  await expect(page.locator('tbody tr', { has: page.getByText('Trage Betaler B.V.') })).toHaveCount(
-    0,
-  )
+  await expect(page.getByRole('button', { name: /Trage Betaler B\.V\./ })).toHaveCount(0)
 })
 
 test('a mistyped IBAN can be corrected, which is what makes a supplier payable', async ({
@@ -264,24 +270,28 @@ test('a mistyped IBAN can be corrected, which is what makes a supplier payable',
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('CRE-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Leverancier B.V.')
-  await page.getByLabel('IBAN').fill('NL02ABNA012345678')
+  // Intentionally truncated so the form stores a bad value that can be fixed.
+  await page.getByLabel('IBAN').fill('NL91ABNA041716430')
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
 
-  await page.getByRole('link', { name: 'Leverancier B.V.' }).click()
+  await page.getByRole('button', { name: /Leverancier B\.V\./ }).click()
+  await page.getByRole('link', { name: /Bewerken/ }).click()
   await expect(page.getByRole('heading', { name: /CRE-0001 · Leverancier B.V./ })).toBeVisible()
 
   // The form opens on what is stored, not on an empty form.
-  await expect(page.getByLabel('IBAN')).toHaveValue('NL02ABNA012345678')
+  await expect(page.getByLabel('IBAN')).toHaveValue('NL91ABNA041716430')
 
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Leverancier Nederland B.V.')
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 
   await page.goto('/contacts')
-  await expect(page.getByRole('link', { name: 'Leverancier Nederland B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Leverancier Nederland B\.V\./ })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Leverancier Nederland B.V.' }).click()
-  await expect(page.getByLabel('IBAN')).toHaveValue('NL02ABNA0123456789')
+  // Contacts list rows are buttons; edit opens via the card (#130).
+  await page.getByRole('button', { name: /Leverancier Nederland B\.V\./ }).click()
+  await page.getByRole('link', { name: /Bewerken/ }).click()
+  await expect(page.getByLabel('IBAN')).toHaveValue('NL91ABNA0417164300')
 })

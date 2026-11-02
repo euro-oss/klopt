@@ -19,7 +19,7 @@ import { listOverdueInvoices } from '~/server/sales'
 /**
  * Aged debtors — who owes us, and for how long.
  *
- * Crediteuren have had this screen since M4. Debiteuren had Aanmaningen,
+ * Crediteuren have had this screen since M4. Debiteuren had Herinneringen,
  * which answers a different question: who to write to next, not what the
  * receivables position looks like. An accountant asks for both sides and this
  * was the missing one.

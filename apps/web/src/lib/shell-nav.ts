@@ -63,6 +63,8 @@ export const SHELL_NAV: readonly NavItem[] = [
     binding: 'go.invoices',
     placement: 'primary',
     section: 'money',
+    // Reminders tab keeps `/dunning` but stays under Sales (#107 Phase 2).
+    alsoActiveFor: ['/dunning'],
   },
   {
     to: '/purchases',
@@ -454,13 +456,14 @@ export function visibleJournalTabs(): readonly JournalTab[] {
 }
 
 /**
- * v2 PhoneTabBar — five destinations at 390px (#107 Phase 0).
+ * v2 PhoneTabBar — five destinations at 390px (#107 Phase 0 / #140).
  *
- * Home · Sales · Inbox · Bank · More. Receipt/More *contents* wait on Batch 3;
- * until then More opens the existing #38 Sheet, and Inbox is the upload entry
- * (no copy that promises reading a photo).
+ * Home · Sales · Receipt · Bank · More. Middle tab is Receipt (Hidde via #140);
+ * Receipt/More *contents* wait on Batch 3 (#139). Until then More opens the
+ * existing #38 Sheet, and Receipt opens the existing upload at `/inbox` (no
+ * copy that promises reading a photo).
  */
-export type PhoneTabId = 'home' | 'sales' | 'inbox' | 'bank' | 'more'
+export type PhoneTabId = 'home' | 'sales' | 'receipt' | 'bank' | 'more'
 
 export interface PhoneTab {
   readonly id: PhoneTabId
@@ -472,8 +475,8 @@ export interface PhoneTab {
 
 export const PHONE_TAB_BAR: readonly PhoneTab[] = [
   { id: 'home', key: 'nav.home', to: '/' },
-  { id: 'sales', key: 'nav.sales', to: '/invoices' },
-  { id: 'inbox', key: 'nav.inbox', to: '/inbox' },
+  { id: 'sales', key: 'nav.sales', to: '/invoices', alsoActiveFor: ['/dunning'] },
+  { id: 'receipt', key: 'nav.phoneReceipt', to: '/inbox' },
   {
     id: 'bank',
     key: 'nav.bank',

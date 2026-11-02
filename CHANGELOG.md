@@ -18,6 +18,60 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign Phase 8: VAT / ICP (#132, #107)
+
+VAT (`/vat`, `/vat/$period`) and ICP (`/vat/icp/$period`) match the v2 Vat and
+Icp boards from #106 (`fa4093b`). Period rail with StatusPill tones, box-by-box
+return with empty-box collapse and line drill-down, reconciliation / trust
+block, `[`/`]` period and `D` download. ICP shows per-customer VIES status and
+`V` recheck; board example data does not ship. Copy leads with manual filing
+("klaar om in te dienen" / "ready to file", "Mark as filed" / "Markeren als
+ingediend"); electronic submit only when Digipoort/SBR is available. Desktop
+light is the designed state; dark and phone inherit tokens until Batch 2 /
+Batch 3 boards (#142). Hidde (1 Nov / #162 review): input borders use
+`--ink-muted`; phone middle tab Receipt; phone period rail collapses so the
+return stays above the fold; no disabled electronic filing CTA (VAT + ICP);
+short muted taxonomy note; header subline wraps under the title. App-wide
+Sign out / Uitloggen copy is a separate PR.
+
+### Redesign Phase 6: Contacts (#130)
+
+Contacts matches the `Contacts` board from the v2 export at `fa4093b`
+(`design/redesign-2026-10/screens/Contacts.dc.html`). Desktop light is the
+designed state: list + contact card, All / Customers / Suppliers segments
+(`1`–`3`), `/` filter, `j`/`k` and Space/X select, `E` edit, create form from
+Nieuwe relatie (`N C` still navigates here). Card shows volume, documents,
+still open, invoice rows (pills only for API `invoice_status` draft /
+cancelled; issued shows open amount as text — no Paid / late pills),
+payment terms, add-details for e-invoicing, and privacy erase behind
+`retention:manage`. List names wrap in full (phone: name-first two-line row;
+desktop: flexible Naam column). Supplier card line is honest purchase-side
+open count/amount (`N open · € …`); overdue only when `dueDate < today`;
+never claims betaald/paid. Dark and phone use existing tokens/patterns until
+Batch 2 and Batch 3 boards (#140). App-wide from #140 in this PR: input
+borders via `--ink-muted` (no hard-coded `#86857e`); phone middle tab
+Receipt. Sign out / Uitloggen copy is a separate PR. Copy stays short and
+plain (NL+EN); no live-connection claims. Screenshots under
+`docs/pr-screenshots/<PR>/`.
+
+### Redesign Phase 2: Sales (#107)
+
+Sales area with underline tabs Facturen / Herinneringen / Klanten. `/dunning`
+remains the Reminders route. Segmented status Drafts / Issued / Overdue with real
+counts from the invoice list and overdue report (no Paid segment — needs
+`outstanding` / `paidOn` [API]). Desktop preview pane with honest "Sent as"
+from deliveries only (no Peppol claim). Reminders schedule and email text are
+read-only; email preview uses `reminderEmailCopy` (shared with the transport).
+Reminder emails no longer mention incassokosten, wettelijke rente or a payment
+deadline. PhoneSales / PhoneInvoice / InvoicesDark via tokens. Customers tab
+links to Contacts (no customers URL filter yet). "Nieuwe factuur" is secondary.
+
+### Sign-out copy is Sign out / Uitloggen (#140)
+
+The account menu, the no-administration screen and setup use the same words:
+"Sign out" in English and "Uitloggen" in Dutch. The account menu no longer
+says "Log out", and the screens outside it no longer say "Afmelden".
+
 ### Fixed
 
 - Debtor-ageing report and overdue counts no longer count invoices that are due
@@ -49,8 +103,12 @@ drops invented estimates, card-payment summaries and four-eyes wording.
 Design/PM #112 follow-up: ageing fills use named `--ageing-*` tokens;
 draft/inbox to-dos get their own icons; unmapped-accounts block removed;
 queue bodies drop missing number/days/deadline clauses (never `—` or `0`);
-EN ageing title “How late customers pay”; overdue one-body says “dagen te
-laat”.
+ageing title “Te late facturen per aantal dagen” / “Overdue invoices by days
+late”; overdue day copy uses singular/plural (“1 dag te laat” / “1 day late”).
+Design/PM #117 follow-up: multi-overdue to-do reads “N facturen te laat” /
+“N invoices overdue” with oldest qualifier (“Oudste: … dagen te laat” /
+“Oldest: … days late”); empty queue keeps one “Nieuwe factuur” in the queue
+card on a normal `bg-card` surface (header CTA stays on a failed read).
 
 ### Redesign Phase 0: tokens, theme, components, shell (#107)
 
