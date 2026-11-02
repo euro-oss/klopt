@@ -101,6 +101,17 @@ function AuditFile() {
     moneybirdGapForYear.gap
 
   useEffect(() => {
+    if (!mayImport) return
+    const xml = sessionStorage.getItem('klopt.auditFile.pending')
+    if (xml === null || xml === '') return
+    sessionStorage.removeItem('klopt.auditFile.pending')
+    const chosen = new File([xml], 'import.xaf.xml', { type: 'application/xml' })
+    void chooseFile(chosen)
+    // The pending file is written by the import wizard's ⌘↵ picker.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- consume once
+  }, [mayImport])
+
+  useEffect(() => {
     if (!mayExport || exportYear === '') return
     const year = exportYear
     let cancelled = false

@@ -53,6 +53,7 @@ import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import { isTypingInto } from '~/lib/keyboard'
+import { may, MAY_IMPORT_AUDIT_FILE } from '~/lib/roles'
 import { importVatRulesFromListTaxCodes, type ImportVatRule } from '~/lib/import-findings'
 import {
   IMPORT_RAIL_STEP_COUNT,
@@ -119,7 +120,7 @@ export const Route = createFileRoute('/_app/importeren')({
       ...(van === 'exact-oauth' ? { van: 'exact-oauth' as const } : {}),
     }
   },
-  loader: async () => ({
+  loader: async ({ context }) => ({
     connection: await getMoneybirdConnection(),
     exactConnection: await getExactConnection(),
     reportYear: await getReportYear(),
@@ -127,6 +128,7 @@ export const Route = createFileRoute('/_app/importeren')({
     run: await moneybirdImportStatus(),
     accounts: await listAccounts(),
     taxCodes: await listTaxCodes(),
+    role: context.session.memberships[0]?.role ?? '',
   }),
   component: ImportWizardPage,
 })
@@ -175,6 +177,7 @@ function ImportWizardPage() {
     run: runStatus,
     accounts: accountsResult,
     taxCodes: taxCodesResult,
+    role,
   } = Route.useLoaderData()
   const { bron: bronParam, van: vanParam } = Route.useSearch()
   const navigate = Route.useNavigate()
@@ -183,6 +186,8 @@ function ImportWizardPage() {
   const hydrated = useHydrated()
   const { advanced, setAdvanced, saving: advancedSaving } = useAdvancedMode()
   const titleId = useId()
+  const mayImportAudit = may(MAY_IMPORT_AUDIT_FILE, role)
+  const auditFilePicker = useRef<HTMLInputElement>(null)
 
   const saved = wizard.ok ? (wizard.data.state as WizardStateRow | null) : null
   const conn = connection.ok ? connection.data.connection : null
@@ -898,12 +903,6 @@ function ImportWizardPage() {
       if (disconnectOpen || restartOpen || importConfirmOpen || sheetRateId !== null) {
         if (event.key === 'Escape') return
       }
-      if (event.key === 'Escape' && step === 'importeren' && failureKind === 'failed') {
-        if (isTypingInto(event.target)) return
-        event.preventDefault()
-        void goTo('problemen')
-        return
-      }
       if (event.key === 'Escape' && !isTerminalStep(step)) {
         const target = event.target
         if (
@@ -923,6 +922,10 @@ function ImportWizardPage() {
       }
       if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault()
+        if (step === 'bron' && source === 'xaf' && mayImportAudit) {
+          auditFilePicker.current?.click()
+          return
+        }
         if (step === 'importeren' && stoppedImportAction(failureKind) !== null) {
           void startImport()
           return
@@ -936,7 +939,7 @@ function ImportWizardPage() {
             ? 'moneybird'
             : event.key === '2'
               ? 'exact'
-              : event.key === '3'
+              : event.key === '3' && mayImportAudit
                 ? 'xaf'
                 : null
         if (picked !== null) {
@@ -992,6 +995,8 @@ function ImportWizardPage() {
     sheetRateId,
     failureKind,
     showResume,
+    source,
+    mayImportAudit,
   ])
 
   if (!connection.ok) {
@@ -1239,7 +1244,9 @@ function ImportWizardPage() {
                 onKeyDown={(event) => {
                   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
                   event.preventDefault()
-                  const order = ['moneybird', 'exact', 'xaf'] as const
+                  const order = (
+                    mayImportAudit ? ['moneybird', 'exact', 'xaf'] : ['moneybird', 'exact']
+                  ) as readonly ('moneybird' | 'exact' | 'xaf')[]
                   const current = source === null ? -1 : order.indexOf(source)
                   const delta = event.key === 'ArrowDown' ? 1 : -1
                   const next = order[(current + delta + order.length) % order.length] ?? 'moneybird'
@@ -1266,13 +1273,17 @@ function ImportWizardPage() {
                       scope: t('wizard.bron.exact.scope'),
                       notIncluded: t('wizard.bron.exact.notIncluded'),
                     },
-                    {
-                      id: 'xaf' as const,
-                      key: '3',
-                      label: t('wizard.bron.xaf.title'),
-                      scope: t('wizard.bron.xaf.meta'),
-                      notIncluded: '',
-                    },
+                    ...(mayImportAudit
+                      ? [
+                          {
+                            id: 'xaf' as const,
+                            key: '3',
+                            label: t('wizard.bron.xaf.title'),
+                            scope: t('wizard.bron.xaf.meta'),
+                            notIncluded: '',
+                          },
+                        ]
+                      : []),
                   ] as const
                 ).map((item) => {
                   const selected = source === item.id
@@ -1319,19 +1330,34 @@ function ImportWizardPage() {
                 {t('wizard.bron.honesty')}
               </p>
             )}
-            {source === 'xaf' && !showResume && (
+            {source === 'xaf' && mayImportAudit && !showResume && (
               <section className={cn(wizardCardClass, 'mt-6 max-w-lg p-6')}>
                 <h2 className="text-lg font-semibold">{t('wizard.bron.xaf.title')}</h2>
                 <p className="text-ink-2 mt-2 text-sm leading-relaxed">
                   {t('wizard.bron.xaf.body')}
                 </p>
+                <input
+                  ref={auditFilePicker}
+                  type="file"
+                  accept=".xml,.xaf,text/xml,application/xml"
+                  className="sr-only"
+                  data-audit-file-picker=""
+                  onChange={(event) => {
+                    const chosen = event.currentTarget.files?.[0]
+                    if (chosen === undefined) return
+                    void chosen.text().then((xml) => {
+                      sessionStorage.setItem('klopt.auditFile.pending', xml)
+                      void persistWizard({ source: 'xaf', step: 'bron' }).then(() => {
+                        void router.navigate({ to: '/audit-file' })
+                      })
+                    })
+                  }}
+                />
                 <Button
                   type="button"
                   className="mt-4 min-h-11"
                   onClick={() => {
-                    void persistWizard({ source: 'xaf', step: 'bron' }).then(() => {
-                      void router.navigate({ to: '/audit-file' })
-                    })
+                    auditFilePicker.current?.click()
                   }}
                 >
                   {t('wizard.bron.xaf.open')}
@@ -1342,19 +1368,38 @@ function ImportWizardPage() {
               <>
                 <WizardFooter
                   showBack={false}
-                  nextLabel={t('wizard.next')}
-                  nextDisabled={!hydrated || !canNext}
-                  nextReason={nextReason}
-                  onNextBlocked={() => {
-                    if (nextReason !== null && nextReason !== '') showToast(nextReason)
-                  }}
-                  onNext={() => void handleNext()}
+                  {...(source === 'xaf'
+                    ? {}
+                    : {
+                        nextLabel: t('wizard.next'),
+                        nextDisabled: !hydrated || !canNext,
+                        nextReason,
+                        onNextBlocked: () => {
+                          if (nextReason !== null && nextReason !== '') showToast(nextReason)
+                        },
+                        onNext: () => {
+                          void handleNext()
+                        },
+                      })}
                 />
                 <WizardHints
-                  items={[
-                    { keys: ['1', '2', '3'], label: t('wizard.hints.chooseSource') },
-                    { keys: ['⌘', '↵'], label: t('wizard.hints.next') },
-                  ]}
+                  items={
+                    source === 'xaf' && mayImportAudit
+                      ? [
+                          {
+                            keys: mayImportAudit ? ['1', '2', '3'] : ['1', '2'],
+                            label: t('wizard.hints.chooseSource'),
+                          },
+                          { keys: ['⌘', '↵'], label: t('wizard.hints.openAuditFile') },
+                        ]
+                      : [
+                          {
+                            keys: mayImportAudit ? ['1', '2', '3'] : ['1', '2'],
+                            label: t('wizard.hints.chooseSource'),
+                          },
+                          { keys: ['⌘', '↵'], label: t('wizard.hints.next') },
+                        ]
+                  }
                 />
               </>
             )}
@@ -1426,6 +1471,9 @@ function ImportWizardPage() {
                   <li>{t('wizard.verbinden.step2')}</li>
                   <li>{t('wizard.verbinden.step3')}</li>
                 </ol>
+                <p className="text-ink-2 text-sm leading-relaxed">
+                  {t('wizard.verbinden.tokenOwner')}
+                </p>
                 <label className="block text-sm font-medium">
                   {t('moneybird.apiToken')}
                   <input
@@ -2529,16 +2577,7 @@ function ImportWizardPage() {
                   <Button asChild variant="outline" className="mt-3 min-h-11">
                     <Link to="/entries">{t('wizard.klaar.nextEntries')}</Link>
                   </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="mt-3 min-h-11"
-                    onClick={() => void goTo('problemen')}
-                  >
-                    {t('wizard.problemen.title')}
-                  </Button>
-                )}
+                ) : null}
               </AttentionBlock>
             ) : (
               <>
@@ -2610,10 +2649,7 @@ function ImportWizardPage() {
                       { keys: ['G', 'J'], label: t('wizard.hints.journal') },
                     ]
                   : failureKind === 'failed'
-                    ? [
-                        { keys: ['⌘', '↵'], label: t('wizard.hints.tryAgain') },
-                        { keys: ['Esc'], label: t('wizard.hints.back') },
-                      ]
+                    ? [{ keys: ['⌘', '↵'], label: t('wizard.hints.tryAgain') }]
                     : [{ keys: ['⌘', '↵'], label: t('wizard.hints.next') }]
               }
             />

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
 
 /**
  * Import wizard v2 reskin (#134): six-step rail, XAF source, no horizontal
@@ -56,7 +56,7 @@ test('the source step shows six steps and does not overflow at 390', async ({ pa
   }
 })
 
-test('XAF records the wizard source and opens the audit-file dry run', async ({ page }) => {
+test('XAF hides Next and ⌘↵ opens the audit file picker', async ({ page }) => {
   await anAdministration(page)
   await page.goto('/importeren')
   const xaf = page.getByRole('radio', { name: /Een ander pakket/ })
@@ -64,10 +64,46 @@ test('XAF records the wizard source and opens the audit-file dry run', async ({ 
   await xaf.click()
   await expect(page).toHaveURL(/bron=xaf/)
   await expect(xaf).toBeChecked()
-  await page.getByRole('button', { name: 'Auditfile openen' }).click()
-  await expect(page).toHaveURL(/\/audit-file/)
-  await expect(page.getByRole('heading', { name: 'Auditfile' })).toBeVisible()
+  await expect(page.locator('button[data-focus="next"]')).toHaveCount(0)
+  await expect(page.getByText('auditfile openen', { exact: true })).toBeVisible()
+
+  const chooserPromise = page.waitForEvent('filechooser')
+  await page.keyboard.press('ControlOrMeta+Enter')
+  const chooser = await chooserPromise
+  expect(chooser.isMultiple()).toBe(false)
 
   await page.goto('/importeren')
   await expect(page.getByRole('radio', { name: /Een ander pakket/ })).toBeChecked()
+})
+
+test('a bookkeeper does not see the XAF source', async ({ browser }) => {
+  const owner = await browser.newContext()
+  const keeper = await browser.newContext()
+  try {
+    const ownerPage = await owner.newPage()
+    await anAdministration(ownerPage)
+    const keeperPage = await keeper.newPage()
+    const keeperEmail = uniqueEmail()
+    await keeperPage.goto('/sign-in')
+    await signIn(keeperPage, keeperEmail)
+    await expect(keeperPage.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+
+    await ownerPage.goto('/members')
+    const invite = ownerPage.locator('form', {
+      has: ownerPage.getByRole('button', { name: 'Uitnodigen' }),
+    })
+    await invite.getByLabel('E-mail').fill(keeperEmail)
+    await chooseOption(ownerPage, 'Rol', 'Boekhouder', invite)
+    await ownerPage.getByRole('button', { name: 'Uitnodigen' }).click()
+    await expect(ownerPage.getByText(new RegExp(`${keeperEmail} heeft nu toegang`))).toBeVisible()
+
+    await keeperPage.goto('/importeren')
+    await expect(keeperPage.getByRole('radio', { name: /Moneybird/ })).toBeEnabled({
+      timeout: 15_000,
+    })
+    await expect(keeperPage.getByRole('radio', { name: /Een ander pakket/ })).toHaveCount(0)
+  } finally {
+    await owner.close()
+    await keeper.close()
+  }
 })

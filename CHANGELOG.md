@@ -24,9 +24,11 @@ The import wizard matches the v2 export (`ImportSource`, `ImportFindings`, and
 the batch-1 boards `ImportYears`, `ImportPreview`, `ImportRun`, `ImportConfirm`,
 `ImportStopped`, `ImportStoppedPartial`). The screen shows six steps — Bron,
 Verbinden, Jaren, Voorbeeld, Problemen, Importeren — while the existing
-ten-step Moneybird flow underneath stays. Exact Online is still a dead-end.
+ten-step Moneybird flow underneath stays. Exact Online keeps the #161 flow: it stops after the VAT step and writes nothing.
 A third source, XAF, stores `source: xaf` on the wizard and opens the existing
-audit-file dry run. Copy says most Dutch packages can export an XAF file.
+audit-file dry run. `ImportSource` in the API now includes `xaf`
+(`importWizardSourceSchema` in `apps/web/src/api/schemas.ts`, OpenAPI
+`ImportSource`). Copy says most Dutch packages can export an XAF file.
 A stopped import with nothing booked offers “Opnieuw proberen”; a partly
 booked import shows the booked count, Legal’s duplicate-check sentence, and
 “De rest overzetten” plus a link to journal entries. Problems uses the same

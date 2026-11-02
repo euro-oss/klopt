@@ -2582,8 +2582,7 @@ export const en: Record<MessageKey, string> = {
   'wizard.bron.xaf.body':
     'Nothing is booked until you confirm the audit file. The check shows what the file would do first.',
   'wizard.bron.xaf.open': 'Open the audit file',
-  'wizard.bron.honesty':
-    'Nothing is booked until the last step, and you see every problem first. You can stop at any point.',
+  'wizard.bron.honesty': 'You see what comes over and what needs attention first.',
   'wizard.verbinden.exact.title': 'Connect to Exact Online',
   'wizard.verbinden.exact.intro':
     'With an Exact app (client id and secret) we can read one administration.',
@@ -2637,9 +2636,11 @@ export const en: Record<MessageKey, string> = {
   'wizard.status.exactLater': 'Later Exact steps come in a later release',
   'wizard.verbinden.title': 'Connect to Moneybird',
   'wizard.verbinden.checkToken': 'Check the token',
-  'wizard.verbinden.step1': 'In Moneybird, open Settings, then External applications.',
-  'wizard.verbinden.step2': 'Create a personal API token with read access.',
-  'wizard.verbinden.step3': 'Paste it here.',
+  'wizard.verbinden.step1': 'In Moneybird, go to Settings › Integrations › External applications.',
+  'wizard.verbinden.step2': 'Click New token and set Permissions to Read only.',
+  'wizard.verbinden.step3': 'Paste the token here.',
+  'wizard.verbinden.tokenOwner':
+    'Only an owner of the administration can create this token. Tick the parts Klopt reads: administrations, ledger_accounts, tax_rates, contacts, sales_invoices, documents/purchase_invoices, documents/receipts, documents/general_journal_documents, documents/general_documents, financial_accounts, financial_mutations.',
   'wizard.verbinden.intro': 'With a token from Moneybird we can read your administration.',
   'wizard.verbinden.tokenHelp': 'We store it encrypted and never show it again.',
   // Legal VERBATIM (#105) — auth rejection only (401/403).
@@ -2685,6 +2686,7 @@ export const en: Record<MessageKey, string> = {
   'wizard.problemen.worthMeta': 'Imports as suggested if you skip',
   'wizard.problemen.resolved': 'Resolved',
   'wizard.problemen.resolvedMeta': 'Of the findings on this screen',
+  'wizard.hints.openAuditFile': 'open the audit file',
   'wizard.hints.chooseSource': 'choose a source',
   'wizard.hints.chooseFix': 'choose a fix',
   'wizard.hints.undo': 'undo',

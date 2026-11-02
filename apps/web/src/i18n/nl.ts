@@ -2959,8 +2959,7 @@ export const nl = {
   'wizard.bron.xaf.body':
     'Niets wordt geboekt tot je de auditfile bevestigt. De controle laat eerst zien wat het bestand zou doen.',
   'wizard.bron.xaf.open': 'Auditfile openen',
-  'wizard.bron.honesty':
-    'Er wordt niets geboekt tot de laatste stap, en je ziet elk probleem eerst. Je kunt op elk moment stoppen.',
+  'wizard.bron.honesty': 'Je ziet eerst wat er overkomt en wat aandacht nodig heeft.',
   'wizard.verbinden.exact.title': 'Verbind met Exact Online',
   'wizard.verbinden.exact.intro':
     'Met een Exact-app (client-id en secret) kunnen we één administratie lezen.',
@@ -3013,9 +3012,12 @@ export const nl = {
   'wizard.status.exactLater': 'Volgende Exact-stappen komen in een latere versie',
   'wizard.verbinden.title': 'Verbind met Moneybird',
   'wizard.verbinden.checkToken': 'Token controleren',
-  'wizard.verbinden.step1': 'Ga in Moneybird naar Instellingen, daarna Externe koppelingen.',
-  'wizard.verbinden.step2': 'Maak een persoonlijk API-token met leesrechten.',
-  'wizard.verbinden.step3': 'Plak het hier.',
+  'wizard.verbinden.step1':
+    'Ga in Moneybird naar Instellingen › Koppelingen › Externe applicaties.',
+  'wizard.verbinden.step2': 'Klik op Nieuw token aanmaken en kies bij Rechten Alleen lezen.',
+  'wizard.verbinden.step3': 'Plak het token hier.',
+  'wizard.verbinden.tokenOwner':
+    'Alleen een eigenaar van de administratie kan dit token aanmaken. Vink de onderdelen aan die Klopt leest: administrations, ledger_accounts, tax_rates, contacts, sales_invoices, documents/purchase_invoices, documents/receipts, documents/general_journal_documents, documents/general_documents, financial_accounts, financial_mutations.',
   'wizard.verbinden.intro': 'Met een token uit Moneybird kunnen we je administratie lezen.',
   'wizard.verbinden.tokenHelp': 'We bewaren het versleuteld en laten het nooit meer zien.',
   // Legal VERBATIM (#105) — auth rejection only (401/403).
@@ -3063,6 +3065,7 @@ export const nl = {
   'wizard.problemen.worthMeta': 'Gaat mee zoals voorgesteld als je het overslaat',
   'wizard.problemen.resolved': 'Opgelost',
   'wizard.problemen.resolvedMeta': 'Van de bevindingen op dit scherm',
+  'wizard.hints.openAuditFile': 'auditfile openen',
   'wizard.hints.chooseSource': 'kies een bron',
   'wizard.hints.chooseFix': 'kies een oplossing',
   'wizard.hints.undo': 'ongedaan maken',
