@@ -145,10 +145,11 @@
 
   /*
     Input / control border a11y deviation: export --line-control fails 3:1
-    (~1.68:1 on white). Accessible border #8a8980 ≈ 3.52:1 on #ffffff,
-    ≈ 3.22:1 on --ground #f5f5f2.
+    (~1.68:1 on white). Use existing --ink-muted (CoS / #140) — never a
+    hard-coded border hex. Light ≈ 5.95:1 on white / ≈ 5.45:1 on --ground;
+    dark ≈ 7.36:1 on dark ground.
   */
-  --input-border: #8a8980;
+  --input-border: var(--ink-muted);
 
   --chart-1: #18181b;
   --chart-2: #a1a1aa;
@@ -257,8 +258,8 @@
 
   --link: var(--ink);
 
-  /* Same accessible input border as light (≥3:1 on dark ground). */
-  --input-border: #8a8980;
+  /* Same as light: --ink-muted (≥3:1 on dark ground; ≈7.36:1 on #111113). */
+  --input-border: var(--ink-muted);
 
   --chart-1: #f4f4f5;
   --chart-2: #71717a;

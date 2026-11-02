@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useState } from 'react'
 import { cn } from 'cn'
 import { Button } from '~/components/ui/button'
+import { Keycap } from '~/components/ui/keycap'
 import { useT } from '~/i18n/provider'
 
 /**
@@ -15,26 +16,36 @@ export interface DropZoneProps extends Omit<React.ComponentProps<'div'>, 'onDrop
   readonly title: string
   readonly description?: string
   readonly chooseLabel?: string
+  /** Optional printed shortcut next to the choose button (e.g. `U`). */
+  readonly shortcut?: string
   readonly accept?: string
   readonly multiple?: boolean
   readonly disabled?: boolean
   readonly onFiles?: (files: FileList) => void
+  /** Imperative open for keyboard shortcuts on the host screen. */
+  readonly inputRef?: React.RefObject<HTMLInputElement | null>
 }
 
-function DropZone({
-  className,
-  title,
-  description,
-  chooseLabel,
-  accept,
-  multiple = false,
-  disabled = false,
-  onFiles,
-  ...props
-}: DropZoneProps) {
+const DropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(function DropZone(
+  {
+    className,
+    title,
+    description,
+    chooseLabel,
+    shortcut,
+    accept,
+    multiple = false,
+    disabled = false,
+    onFiles,
+    inputRef: inputRefProp,
+    ...props
+  },
+  ref,
+) {
   const { t } = useT()
   const [over, setOver] = useState(false)
-  const inputRef = React.useRef<HTMLInputElement | null>(null)
+  const localRef = React.useRef<HTMLInputElement | null>(null)
+  const inputRef = inputRefProp ?? localRef
   const label = chooseLabel ?? t('dropZone.chooseFile')
 
   function take(files: FileList | null): void {
@@ -44,10 +55,12 @@ function DropZone({
 
   return (
     <div
+      ref={ref}
       data-slot="drop-zone"
       data-over={over ? '' : undefined}
       className={cn(
-        'border-line-control bg-surface text-ink-2 flex flex-col items-center gap-2.5 rounded-[var(--radius-xl)] border-2 border-dashed px-8 py-8 text-center',
+        // CoS: control borders use --input (→ --ink-muted), never faint line-control.
+        'border-input bg-surface text-ink-2 flex flex-col items-center gap-2.5 rounded-[var(--radius-xl)] border-2 border-dashed px-8 py-8 text-center',
         over && 'border-selection-edge bg-brand-tint',
         disabled && 'pointer-events-none opacity-50',
         className,
@@ -84,6 +97,9 @@ function DropZone({
         }}
       >
         {label}
+        {shortcut !== undefined && shortcut !== '' ? (
+          <Keycap className="ml-2">{shortcut}</Keycap>
+        ) : null}
       </Button>
       <input
         ref={inputRef}
@@ -99,6 +115,6 @@ function DropZone({
       />
     </div>
   )
-}
+})
 
 export { DropZone }
