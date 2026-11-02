@@ -6,9 +6,8 @@ import {
   handleListCharts,
   handleListFiscalYears,
 } from '~/api/handlers/setup'
-import { agreementRequired, readLegalLinksForRequest } from '~/api/legal-links'
+import { readLegalLinksForRequest } from '~/api/legal-links'
 import { createEntityBody, createFiscalYearBody } from '~/api/schemas'
-import { ApiError } from '~/api/errors'
 import { contextFromRequest, run, runWith, setupContextFromRequest } from './internal'
 
 /**
@@ -50,46 +49,12 @@ export const createAdministration = createServerFn({ method: 'POST' })
     runWith(createEntityBody, data.body, async (body) => {
       const context = await setupContextFromRequest()
       const { getRequest } = await import('@tanstack/react-start/server')
-      const legal = readLegalLinksForRequest(getRequest())
-      const needsAgreement = agreementRequired(legal)
-
-      if (needsAgreement && body.acceptedLegal !== true) {
-        throw new ApiError(
-          'validation_failed',
-          'Agree to the terms and the data processing agreement to continue.',
-          [
-            {
-              code: 'legal_acceptance_required',
-              path: 'acceptedLegal',
-              message: 'Agree to the terms and the data processing agreement to continue.',
-            },
-          ],
-        )
-      }
-
-      // Hosted only: record who accepted which versions inside the same
-      // provisioning transaction, so a failed acceptance write rolls the
-      // administration back. Self-hosted (env unset) never writes — even if a
-      // client somehow sent acceptedLegal.
-      const result = await handleCreateEntity(
-        context,
-        data.entityId,
-        body,
-        needsAgreement && body.acceptedLegal === true
-          ? {
-              afterProvision: async (tx) => {
-                const { LegalAcceptancesRepository } = await import('@klopt/db')
-                const repository = new LegalAcceptancesRepository(tx)
-                await repository.recordTermsDpa({
-                  id: uuidv7(),
-                  userId: context.user.id,
-                  termsVersion: legal.termsVersion!,
-                  dpaVersion: legal.dpaVersion!,
-                })
-              },
-            }
-          : undefined,
-      )
+      // Same handler as PUT /api/v1/entities/{id}: acceptance is enforced and
+      // recorded there. Pass request-aware legal so the Playwright cookie
+      // toggle still looks like hosted when the webServer leaves the env unset.
+      const result = await handleCreateEntity(context, data.entityId, body, {
+        legal: readLegalLinksForRequest(getRequest()),
+      })
 
       // Land the session on the books it just created rather than on whichever
       // administration sorts first.
