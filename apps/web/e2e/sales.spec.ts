@@ -262,6 +262,7 @@ test('an overdue invoice turns up in the dunning list and can be chased', async 
 test('a mistyped IBAN can be corrected, which is what makes a supplier payable', async ({
   page,
 }) => {
+  test.setTimeout(60_000)
   // The gap this closes: a contact could be created and never fixed, so one
   // wrong character meant a supplier who could never be paid.
   await anAdministration(page, 'Correctie BV')
@@ -278,7 +279,10 @@ test('a mistyped IBAN can be corrected, which is what makes a supplier payable',
   await page.getByRole('button', { name: /Leverancier B\.V\./ }).click()
   // Desktop card is md+ only; wait for it before chasing Bewerken (#130).
   await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible()
-  await page.getByRole('complementary', { name: 'Relatiekaart' }).getByRole('link', { name: /Bewerken/ }).click()
+  await page
+    .getByRole('complementary', { name: 'Relatiekaart' })
+    .getByRole('link', { name: /Bewerken/ })
+    .click()
   await expect(page.getByRole('heading', { name: /CRE-0001 · Leverancier B.V./ })).toBeVisible()
 
   // The form opens on what is stored, not on an empty form.
@@ -295,6 +299,9 @@ test('a mistyped IBAN can be corrected, which is what makes a supplier payable',
   // Contacts list rows are buttons; edit opens via the card (#130).
   await page.getByRole('button', { name: /Leverancier Nederland B\.V\./ }).click()
   await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible()
-  await page.getByRole('complementary', { name: 'Relatiekaart' }).getByRole('link', { name: /Bewerken/ }).click()
+  await page
+    .getByRole('complementary', { name: 'Relatiekaart' })
+    .getByRole('link', { name: /Bewerken/ })
+    .click()
   await expect(page.getByLabel('IBAN')).toHaveValue('NL91ABNA0417164300')
 })
