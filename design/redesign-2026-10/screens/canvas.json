@@ -298,7 +298,7 @@
   },
   "BankAccountsDark.dc.html": {
    "x": 0,
-   "y": 15300,
+   "y": 18200,
    "w": 1440,
    "h": 1040,
    "title": "Dark · bank accounts and statements (derived)",
@@ -308,7 +308,7 @@
   },
   "CostsDark.dc.html": {
    "x": 1520,
-   "y": 15300,
+   "y": 18200,
    "w": 1440,
    "h": 1040,
    "title": "Dark · costs (derived)",
@@ -319,7 +319,7 @@
   },
   "BillNewDark.dc.html": {
    "x": 3040,
-   "y": 15300,
+   "y": 18200,
    "w": 1440,
    "h": 1040,
    "title": "Dark · enter a bill (derived)",
@@ -329,7 +329,7 @@
   },
   "PaymentBatchDark.dc.html": {
    "x": 4560,
-   "y": 15300,
+   "y": 18200,
    "w": 1440,
    "h": 1040,
    "title": "Dark · payment batch (derived)",
@@ -340,7 +340,7 @@
   },
   "PhoneMatchDark.dc.html": {
    "x": 0,
-   "y": 16560,
+   "y": 19460,
    "w": 390,
    "h": 844,
    "title": "Phone dark · match (derived)",
@@ -349,7 +349,7 @@
   },
   "PhoneBankAccounts.dc.html": {
    "x": 470,
-   "y": 16560,
+   "y": 19460,
    "w": 390,
    "h": 1342,
    "title": "Phone · bank accounts (derived)",
@@ -358,7 +358,7 @@
   },
   "PhoneBankAccountsDark.dc.html": {
    "x": 940,
-   "y": 16560,
+   "y": 19460,
    "w": 390,
    "h": 1342,
    "title": "Phone dark · bank accounts (derived)",
@@ -367,7 +367,7 @@
   },
   "PhoneCosts.dc.html": {
    "x": 1410,
-   "y": 16560,
+   "y": 19460,
    "w": 390,
    "h": 1642,
    "title": "Phone · costs (derived)",
@@ -377,7 +377,7 @@
   },
   "PhoneCostsDark.dc.html": {
    "x": 1880,
-   "y": 16560,
+   "y": 19460,
    "w": 390,
    "h": 1642,
    "title": "Phone dark · costs (derived)",
@@ -386,7 +386,7 @@
   },
   "PhoneBillNew.dc.html": {
    "x": 2350,
-   "y": 16560,
+   "y": 19460,
    "w": 390,
    "h": 1860,
    "title": "Phone · enter a bill (derived)",
@@ -395,7 +395,7 @@
   },
   "PhoneBillNewDark.dc.html": {
    "x": 2820,
-   "y": 16560,
+   "y": 19460,
    "w": 390,
    "h": 1860,
    "title": "Phone dark · enter a bill (derived)",
@@ -404,7 +404,7 @@
   },
   "PhonePaymentBatch.dc.html": {
    "x": 3290,
-   "y": 16560,
+   "y": 19460,
    "w": 390,
    "h": 1411,
    "title": "Phone · payment batch (derived)",
@@ -414,7 +414,7 @@
   },
   "PhonePaymentBatchDark.dc.html": {
    "x": 3760,
-   "y": 16560,
+   "y": 19460,
    "w": 390,
    "h": 1411,
    "title": "Phone dark · payment batch (derived)",
@@ -489,6 +489,78 @@
    "title": "Phone · ICP return (derived)",
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceipt.dc.html": {
+   "x": 0,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · receipt, choose",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptUploaded.dc.html": {
+   "x": 470,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · receipt, uploaded",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptFailed.dc.html": {
+   "x": 940,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · receipt, failed (too large)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneMore.dc.html": {
+   "x": 1410,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · more",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptDark.dc.html": {
+   "x": 1960,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · receipt, choose",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptUploadedDark.dc.html": {
+   "x": 2430,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · receipt, uploaded",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptFailedDark.dc.html": {
+   "x": 2900,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · receipt, failed (too large)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneMoreDark.dc.html": {
+   "x": 3370,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · more",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
   }
  },
  "order": [
@@ -547,7 +619,15 @@
   "PhoneContactCard.dc.html",
   "PhoneVatPeriods.dc.html",
   "PhoneVat.dc.html",
-  "PhoneIcp.dc.html"
+  "PhoneIcp.dc.html",
+  "PhoneReceipt.dc.html",
+  "PhoneReceiptUploaded.dc.html",
+  "PhoneReceiptFailed.dc.html",
+  "PhoneMore.dc.html",
+  "PhoneReceiptDark.dc.html",
+  "PhoneReceiptUploadedDark.dc.html",
+  "PhoneReceiptFailedDark.dc.html",
+  "PhoneMoreDark.dc.html"
  ],
  "notes": {
   "t1": {
@@ -622,7 +702,14 @@
   },
   "t11": {
    "x": 0,
-   "y": 15000,
+   "y": 16400,
+   "text": "Phone tab bar: Receipt and More (derived)",
+   "kind": "title1",
+   "maxW": 3760
+  },
+  "t160": {
+   "x": 0,
+   "y": 17900,
    "text": "Bank and costs, dark and phone (derived)",
    "kind": "title1",
    "maxW": 6000
