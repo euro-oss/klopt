@@ -15,7 +15,7 @@ import { createServer } from '../src/server.js'
 
 const ENTITY = {
   id: '01a07c20-d6ab-7237-ae27-ae4def86811f',
-  name: 'Neverhide',
+  name: 'Voorbeeld BV',
   functionalCurrency: 'EUR',
 }
 
@@ -221,7 +221,7 @@ describe('what comes back with an answer', () => {
     }
 
     expect(payload.provenance).toMatchObject({
-      entity: { id: ENTITY.id, name: 'Neverhide' },
+      entity: { id: ENTITY.id, name: 'Voorbeeld BV' },
       currency: 'EUR',
       amounts: { unit: 'decimal' },
     })
