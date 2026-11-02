@@ -13,7 +13,7 @@ Boards Hidde did not draw, derived by Design from his v2 system on his request. 
 | `PhoneImportFindings.dc.html`, `theme` prop | Problems (step 5) at 390, the same five example findings | `ImportFindings-light-390` |
 | `PhoneImportFindingsDark.dc.html` | `PhoneImportFindings` with `theme="dark"` | `ImportFindings-dark-390` |
 
-The two dark desktop boards are copies, not thin wrappers, because Hidde's light boards load Google Fonts and `ImportSource` shows a real installation URL as the Exact redirect URI. The copies use `https://boeken.example.nl/exact/callback`. On `ImportFindingsDark` and `PhoneImportFindings` the bank finding reads "12 bank lines each pay two invoices" (Hidde: "are linked to"), and the `1`–`3` key hint shows the three keys. Hidde's light boards are unchanged.
+The two dark desktop boards are copies, not thin wrappers, because Hidde's light boards load Google Fonts and `ImportSource` shows a real installation URL as the Exact redirect URI. The copies use `https://boeken.example.nl/exact/callback`. The Exact intro on the new boards is "Exact needs an app registration. Register Klopt once in the Exact App Center.", without Hidde's hosting sentence. On `ImportFindingsDark` and `PhoneImportFindings` the bank finding reads "12 bank lines each pay two invoices" (Hidde: "are linked to"), and the `1`–`3` key hint shows the three keys. Hidde's light boards are unchanged.
 
 - Phone follows batch 2: `.k-phone` at 390, a ghost back link top left (`‹ More`, `‹ Preview`), a "step N of 6" line instead of the stepper, one column, the primary action in a sticky bar above the tab bar, More active.
 - On phone the source options and the connect card stack; the Exact fields stack and Copy sits under the redirect URI. The problems board shows the three counts in a row, then the selected finding with its fixes, then all findings. Tapping a finding opens it above; choosing a fix moves to the next open one.
@@ -30,6 +30,7 @@ The two dark desktop boards are copies, not thin wrappers, because Hidde's light
 | Finding 1 of 5 | Bevinding 1 van 5 |
 | All findings | Alle bevindingen |
 | 12 bank lines each pay two invoices | 12 bankregels betalen elk twee facturen |
+| Exact needs an app registration. Register Klopt once in the Exact App Center. | Exact vraagt om een app-registratie. Registreer Klopt één keer in het Exact App Center. |
 | Nothing is booked until the last step. You can stop at any point. | Er wordt pas bij de laatste stap geboekt. Je kunt altijd stoppen. |
 
 ## Contacts, VAT and ICP: dark and phone (#155)
