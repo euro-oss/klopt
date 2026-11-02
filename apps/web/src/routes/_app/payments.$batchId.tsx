@@ -67,7 +67,8 @@ function stepIndex(state: BatchState): number {
     case 'approved':
       return 2
     case 'exported':
-      return 3
+      // Past the last step so "Bestand gedownload" is marked done, not current.
+      return 4
   }
 }
 
@@ -98,6 +99,9 @@ function PaymentBatch() {
     batch !== null && batch.state === 'draft' && payable && billCount > 0 && hydrated && !busy
   const canApprove =
     batch !== null && batch.state === 'submitted' && !iSubmitted && hydrated && !busy
+  const canDownloadPain =
+    batch !== null && (batch.state === 'approved' || batch.state === 'exported') && hydrated && !busy
+  const painHref = `/api/v1/payment-batches/${batchId}/pain001`
 
   async function act(
     action: 'submit' | 'approve' | 'reject' | 'reopen' | 'export',
@@ -125,6 +129,15 @@ function PaymentBatch() {
     await router.invalidate()
   }
 
+  function downloadPain(): void {
+    const anchor = document.createElement('a')
+    anchor.href = painHref
+    anchor.download = ''
+    document.body.append(anchor)
+    anchor.click()
+    anchor.remove()
+  }
+
   useEffect(() => {
     if (!hydrated || batch === null) return
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -134,13 +147,14 @@ function PaymentBatch() {
       event.preventDefault()
       if (canSubmit) void act('submit')
       else if (canApprove) void act('approve')
+      else if (canDownloadPain && batch.state === 'approved') downloadPain()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- act closes over batchId
-  }, [hydrated, canSubmit, canApprove, batch])
+  }, [hydrated, canSubmit, canApprove, canDownloadPain, batch])
 
   if (!loaded.ok || batch === null) {
     return (
@@ -191,9 +205,7 @@ function PaymentBatch() {
       return
     }
 
-    setNotice(
-      `${String(result.data.added)} ${result.data.added === 1 ? 'betaling' : 'betalingen'} toegevoegd.`,
-    )
+    setNotice(plural('batch.paymentsAdded', result.data.added, { count: String(result.data.added) }))
     await router.invalidate()
   }
 
@@ -331,9 +343,14 @@ function PaymentBatch() {
         title: t('batch.next.downloadTitle'),
         text: t('batch.next.downloadBody', { account: accountLabel }),
         cta: canDownload ? (
-          <Button type="button" asChild>
-            <a href={`/api/v1/payment-batches/${batchId}/pain001`}>
-              {t('batch.next.downloadCta')}
+          <Button
+            type="button"
+            onClick={() => {
+              downloadPain()
+            }}
+          >
+            {t('batch.next.downloadCta')}
+            {batch.state === 'approved' ? (
               <span className="ml-1.5 inline-flex gap-0.5 normal-case">
                 <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
                   {modLabel}
@@ -342,7 +359,7 @@ function PaymentBatch() {
                   ↵
                 </Keycap>
               </span>
-            </a>
+            ) : null}
           </Button>
         ) : null,
       }
@@ -378,7 +395,7 @@ function PaymentBatch() {
               { id: 'prepare', label: t('batch.step.prepare') },
               { id: 'approve', label: t('batch.step.approve') },
               { id: 'download', label: t('batch.step.download') },
-              { id: 'paid', label: t('batch.step.paid') },
+              { id: 'downloaded', label: t('batch.step.downloaded') },
             ]}
           />
         </div>
@@ -427,7 +444,7 @@ function PaymentBatch() {
 
         <section className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border">
           <div className="overflow-x-auto">
-            <table className="min-w-[640px] w-full text-sm" aria-label={t('batch.lines')}>
+            <table className="w-full min-w-0 text-sm" aria-label={t('batch.lines')}>
               <thead>
                 <tr className="text-ink-muted border-b text-left text-xs font-semibold tracking-wide uppercase">
                   <th scope="col" className="px-4 py-2 font-semibold">
@@ -477,7 +494,7 @@ function PaymentBatch() {
                                 onClick={() => {
                                   void remove(row.id)
                                 }}
-                                className="text-ink-muted hover:text-destructive text-xs underline disabled:opacity-50"
+                                className="text-ink-muted hover:text-destructive inline-flex min-h-11 min-w-11 items-center justify-center text-xs underline disabled:opacity-50 md:min-h-0 md:min-w-0"
                               >
                                 {t('batch.remove')}
                               </button>
@@ -507,24 +524,18 @@ function PaymentBatch() {
           <section className="border-border bg-surface flex min-w-[280px] flex-1 flex-col gap-3 rounded-[var(--radius-xl)] border p-5">
             <h3 className="text-[15px] font-semibold">{t('batch.fourEyes')}</h3>
             <div className="flex items-center gap-3">
-              <span className="bg-surface-sunken text-ink-2 inline-flex size-8 items-center justify-center rounded-full text-xs font-semibold">
-                {(myEmail ?? '·').slice(0, 1).toUpperCase()}
-              </span>
-              <span className="flex flex-1 flex-col">
-                <span className="text-sm">
-                  {t('batch.preparedBy', {
-                    who:
-                      batch.submittedBy === null
-                        ? '—'
-                        : iSubmitted && myEmail !== null
-                          ? myEmail
-                          : '…',
-                  })}
+              {batch.submittedBy !== null ? (
+                <span className="bg-surface-sunken text-ink-2 inline-flex size-8 items-center justify-center rounded-full text-xs font-semibold">
+                  {(iSubmitted && myEmail !== null ? myEmail : '·').slice(0, 1).toUpperCase()}
                 </span>
-                <span className="text-ink-muted text-xs">
-                  {batch.state === 'draft'
-                    ? t(STATE_KEY.draft)
-                    : t('batch.preparedAt', { when: formatDate(batch.requestedExecutionDate) })}
+              ) : null}
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-sm">
+                  {batch.submittedBy === null
+                    ? t('batch.notSubmitted')
+                    : t('batch.submittedBy', {
+                        who: iSubmitted && myEmail !== null ? myEmail : '…',
+                      })}
                 </span>
               </span>
               {batch.submittedBy !== null ? (
@@ -534,23 +545,25 @@ function PaymentBatch() {
               )}
             </div>
             <div className="flex items-center gap-3">
-              <span className="bg-surface-sunken text-ink-2 inline-flex size-8 items-center justify-center rounded-full text-xs font-semibold">
-                2
-              </span>
-              <span className="flex flex-1 flex-col">
-                <span className="text-sm">
-                  {t('batch.approvedBy', {
-                    who: batch.approvedBy !== null ? '…' : t('batch.approveConstraint'),
-                  })}
+              {batch.approvedBy !== null ? (
+                <span className="bg-surface-sunken text-ink-2 inline-flex size-8 items-center justify-center rounded-full text-xs font-semibold">
+                  2
                 </span>
-                <span className="text-ink-muted text-xs">{t('batch.approveConstraint')}</span>
+              ) : null}
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-sm">
+                  {batch.approvedBy === null
+                    ? t('batch.notApproved')
+                    : t('batch.approvedBy', { who: '…' })}
+                </span>
               </span>
-              {batch.approvedBy !== null || step >= 2 ? (
+              {batch.approvedBy !== null ? (
                 <Badge variant="success">{t('batch.donePill')}</Badge>
               ) : (
                 <Badge variant="info">{t('batch.waitingPill')}</Badge>
               )}
             </div>
+            <p className="text-ink-muted m-0 text-xs">{t('batch.fourEyesRule')}</p>
           </section>
 
           <section className="border-border bg-surface flex min-w-[280px] flex-1 flex-col gap-3 rounded-[var(--radius-xl)] border p-5">
@@ -581,8 +594,14 @@ function PaymentBatch() {
                 </Button>
               )}
               {canDownload && batch.state === 'exported' && (
-                <Button type="button" variant="outline" asChild>
-                  <a href={`/api/v1/payment-batches/${batchId}/pain001`}>{t('batch.download')}</a>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    downloadPain()
+                  }}
+                >
+                  {t('batch.download')}
                 </Button>
               )}
             </div>

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
-import { runMigrations } from '@klopt/db'
+import { createDatabase, closeDatabase, runMigrations } from '@klopt/db'
+import { findUserIdByEmail } from '@klopt/db/testing'
 import {
   chooseOption,
   DATABASE_URL,
@@ -10,19 +11,21 @@ import {
 } from './support'
 
 /**
- * Redesign Phase 4 — BillNew + PaymentBatch (#107 / #128).
+ * Redesign Phase 4 — BillNew + PaymentBatch (#107 / #128 / #175).
  *
  * Covers route from sidebar and ⌘K, empty state, seeded state, keyboard use,
- * and no console errors. Fixtures: Eva/Ruben, example.nl, NL91ABNA0417164300.
+ * 390 light/dark overflow + tap targets, 1440 lines table fit, and no console
+ * errors. Fixtures: Eva/Ruben, example.nl, NL91ABNA0417164300.
  */
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
 
-async function openAdmin(page: Page, name: string): Promise<void> {
+async function openAdmin(page: Page, name: string): Promise<string> {
+  const email = uniqueEmail()
   await page.goto('/sign-in')
-  await signIn(page, uniqueEmail())
+  await signIn(page, email)
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill(name)
@@ -32,19 +35,21 @@ async function openAdmin(page: Page, name: string): Promise<void> {
   ).toBeVisible()
   await enableAdvancedMode(page)
   await hydrated(page)
+  return email
 }
 
-async function aSupplier(page: Page): Promise<void> {
+async function aSupplier(page: Page, opts?: { iban?: string | null }): Promise<void> {
   await page.goto('/contacts')
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('CRE-9100')
   await page.getByLabel('Naam', { exact: true }).fill('Telecom Fictief')
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL009988776B01')
   await page.getByLabel('E-mail').fill('facturen@example.nl')
-  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  if (opts?.iban !== null) {
+    await page.getByLabel('IBAN').fill(opts?.iban ?? 'NL91ABNA0417164300')
+  }
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  // Contacts redesign (#130): list rows are buttons, not table cells.
   await expect(page.getByRole('button', { name: /Telecom Fictief/ })).toBeVisible()
 }
 
@@ -55,6 +60,72 @@ async function aBankAccount(page: Page): Promise<void> {
   await page.getByLabel('Naam', { exact: true }).fill('Demo bankrekening')
   await page.getByRole('button', { name: 'Opslaan' }).click()
   await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
+}
+
+async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.evaluate((t) => {
+    document.documentElement.classList.toggle('dark', t === 'dark')
+  }, theme)
+  await page.waitForFunction(
+    (wantDark) => document.documentElement.classList.contains('dark') === wantDark,
+    theme === 'dark',
+  )
+}
+
+async function assertNoHorizontalOverflow(page: Page): Promise<void> {
+  await expect
+    .poll(async () =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    )
+    .toBe(true)
+}
+
+async function assertMinTapTarget(
+  locator: ReturnType<Page['getByRole']>,
+  label: string,
+  min = 44,
+): Promise<void> {
+  if (!(await locator.isVisible())) return
+  const box = await locator.boundingBox()
+  expect(box, `${label} missing box`).not.toBeNull()
+  expect(box!.height, `${label} tap height`).toBeGreaterThanOrEqual(min)
+  expect(box!.width, `${label} tap width`).toBeGreaterThanOrEqual(min)
+}
+
+type Box = { x: number; y: number; width: number; height: number }
+
+function boxesOverlap(a: Box, b: Box): boolean {
+  const ax2 = a.x + a.width
+  const ay2 = a.y + a.height
+  const bx2 = b.x + b.width
+  const by2 = b.y + b.height
+  return a.x < bx2 && ax2 > b.x && a.y < by2 && ay2 > b.y
+}
+
+async function assertKeyControlsDoNotOverlap(
+  controls: { label: string; locator: ReturnType<Page['getByRole']> | ReturnType<Page['getByText']> }[],
+): Promise<void> {
+  const boxes: { label: string; box: Box }[] = []
+  for (const control of controls) {
+    const count = await control.locator.count()
+    for (let i = 0; i < count; i += 1) {
+      const item = control.locator.nth(i)
+      if (!(await item.isVisible())) continue
+      const box = await item.boundingBox()
+      if (box === null || box.width < 1 || box.height < 1) continue
+      boxes.push({ label: `${control.label}#${i}`, box })
+    }
+  }
+  for (let i = 0; i < boxes.length; i += 1) {
+    for (let j = i + 1; j < boxes.length; j += 1) {
+      const a = boxes[i]!
+      const b = boxes[j]!
+      expect(boxesOverlap(a.box, b.box), `overlap: "${a.label}" × "${b.label}"`).toBe(false)
+    }
+  }
 }
 
 test('BillNew from sidebar and command bar; empty and seeded; keyboard; no console errors', async ({
@@ -68,7 +139,6 @@ test('BillNew from sidebar and command bar; empty and seeded; keyboard; no conso
 
   await openAdmin(page, 'BillNew Demo BV')
 
-  // Sidebar → Kosten → Factuur invoeren (list still pre-#159 on this branch)
   await page
     .getByRole('link', { name: /^Kosten/ })
     .first()
@@ -77,19 +147,16 @@ test('BillNew from sidebar and command bar; empty and seeded; keyboard; no conso
   await page.getByRole('link', { name: /Factuur invoeren|Factuur toevoegen/ }).click()
   await expect(page).toHaveURL(/\/purchases\/new/)
   await expect(page.getByRole('heading', { name: 'Nieuwe inkoopfactuur' })).toBeVisible()
-  // Empty: no suppliers yet
   await expect(page.getByText(/nog geen leverancier/i)).toBeVisible()
   await expect(page.getByText(/OCR|automatisch gelezen|AI|PSD2|secure|GDPR/i)).toHaveCount(0)
 
   await aSupplier(page)
 
-  // Command bar → new purchase
   await page.goto('/')
   await hydrated(page)
   await page.keyboard.press('ControlOrMeta+k')
   const palette = page.getByRole('dialog', { name: 'Commando’s' })
   await expect(palette).toBeVisible()
-  // `n i` (title) and `n r` ("… of bon") both open BillNew — pick the title.
   const newBill = palette.getByRole('option', { name: /Nieuwe inkoopfactuur(?! of)/ })
   await expect(newBill).toBeVisible()
   await newBill.click()
@@ -98,7 +165,12 @@ test('BillNew from sidebar and command bar; empty and seeded; keyboard; no conso
   await expect(
     page.getByText(/controleert de totalen|never recalculates|herberekent nooit/i),
   ).toBeVisible()
-  await expect(page.getByText(/Alleen UBL|Only UBL/i)).toBeVisible()
+  await expect(page.getByText(/Postvak|Inbox/i).first()).toBeVisible()
+  await expect(page.getByText(/vult Klopt in wat het las/i)).toHaveCount(0)
+  await expect(page.getByText('Btw-code')).toBeVisible()
+  await expect(page.getByText('Btw-bedrag')).toBeVisible()
+  await expect(page.getByText(/Facturen in \d{4}/)).toHaveCount(0)
+  await expect(page.getByText(/Meestal geboekt op/)).toHaveCount(0)
 
   await page.setViewportSize({ width: 1440, height: 1040 })
   await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
@@ -119,11 +191,15 @@ test('BillNew from sidebar and command bar; empty and seeded; keyboard; no conso
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Boeken' })).toBeVisible()
 
-  // Keyboard: Esc returns to Costs
+  await expect
+    .poll(async () =>
+      page.locator('[data-testid="billnew-lines"]').evaluate((el) => el.scrollWidth <= el.clientWidth),
+    )
+    .toBe(true)
+
   await page.keyboard.press('Escape')
   await expect(page).toHaveURL(/\/purchases/)
 
-  // Re-open and save draft with ⌘S
   await page.goto('/purchases/new')
   await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
   await page.getByLabel('Hun nummer').fill('INK-DEMO-2025-0040')
@@ -143,6 +219,33 @@ test('BillNew from sidebar and command bar; empty and seeded; keyboard; no conso
   expect(errors, `console errors:\n${errors.join('\n')}`).toEqual([])
 })
 
+test('BillNew ⌘S reads the latest field value through the capture ref', async ({ page }) => {
+  test.setTimeout(90_000)
+  await openAdmin(page, 'BillNew Stale Save BV')
+  await aSupplier(page)
+
+  await page.goto('/purchases/new')
+  await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
+  await page.getByLabel('Hun nummer').fill('INK-STALE-1')
+  await page.getByLabel('Factuurdatum').fill('2026-02-10')
+  await page.getByLabel('Vervaldatum').fill('2026-03-12')
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('100,00')
+  await page.getByLabel('Btw', { exact: true }).fill('21,00')
+  await page.getByLabel('Totaal', { exact: true }).fill('121,00')
+  await page.getByLabel('Omschrijving regel 1').fill('Stale check')
+  await chooseOption(page, 'Grootboek regel 1', /^4400 /)
+  await chooseOption(page, 'Btw-code regel 1', /^VH21/)
+  await page.getByLabel('Excl. btw regel 1').fill('100,00')
+  await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeVisible()
+
+  const numberField = page.getByLabel('Hun nummer')
+  await numberField.fill('INK-STALE-FRESH')
+  await page.keyboard.press('ControlOrMeta+s')
+  await expect(page.getByRole('heading', { name: /INK-STALE-FRESH/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /INK-STALE-1(?![\w-])/ })).toHaveCount(0)
+})
+
 test('PaymentBatch from sidebar and command bar; empty and seeded; keyboard; no console errors', async ({
   page,
 }) => {
@@ -155,7 +258,6 @@ test('PaymentBatch from sidebar and command bar; empty and seeded; keyboard; no 
   await openAdmin(page, 'PaymentBatch Demo BV')
   await aBankAccount(page)
 
-  // Sidebar Kosten → Betaalbatches tab (alsoActiveFor /payments)
   await page
     .getByRole('link', { name: /^Kosten/ })
     .first()
@@ -171,7 +273,6 @@ test('PaymentBatch from sidebar and command bar; empty and seeded; keyboard; no 
     page.getByText(/PSD2|betaalt Klopt|Klopt betaalt|live connection|gekoppeld/i),
   ).toHaveCount(0)
 
-  // Command bar
   await page.goto('/')
   await hydrated(page)
   await page.keyboard.press('ControlOrMeta+k')
@@ -186,9 +287,19 @@ test('PaymentBatch from sidebar and command bar; empty and seeded; keyboard; no 
   await page.getByLabel('Kenmerk').fill('BETAAL-EVA-1')
   await page.getByRole('button', { name: 'Aanmaken' }).click()
   await expect(page.getByRole('heading', { name: /Batch BETAAL-EVA-1|Batch van / })).toBeVisible()
-  await expect(page.getByRole('list', { name: 'Voortgang van de batch' })).toBeVisible()
-  // Empty batch: submit hidden
+  const steps = page.getByRole('list', { name: 'Voortgang van de batch' })
+  await expect(steps).toBeVisible()
+  await expect(steps.getByText('Voorbereiden')).toBeVisible()
+  await expect(steps.getByText('Fiatteren')).toBeVisible()
+  await expect(steps.getByText('Downloaden')).toBeVisible()
+  await expect(steps.getByText('Bestand gedownload')).toBeVisible()
+  await expect(steps.getByText('Betaald')).toHaveCount(0)
+  await expect(steps.getByText('Bij de bank')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toHaveCount(0)
+  await expect(page.getByText('Nog niet ingediend')).toBeVisible()
+  await expect(page.getByText('Nog niet goedgekeurd')).toBeVisible()
+  await expect(page.getByText('Iemand anders dan de indiener keurt goed')).toBeVisible()
+  await expect(page.getByText(/Gefiatteerd door|Goedgekeurd door/)).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Betaling toevoegen' }).click()
   await page.getByLabel('Begunstigde').fill('Ruben Demo')
@@ -201,14 +312,184 @@ test('PaymentBatch from sidebar and command bar; empty and seeded; keyboard; no 
   await expect(page.getByText(/NL91 ABNA 0417 1643 00/)).toBeVisible()
 
   await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeVisible()
-  // Keyboard ⌘↵ submits for approval
+  await expect(
+    page.getByText(
+      /Als de IBAN's erin staan, bied je de batch aan\. Iemand anders met fiatteerrecht fiatteert hier\./,
+    ),
+  ).toBeVisible()
+  await expect(page.getByText(/tweede eigenaar|second owner|krijgt een bericht/i)).toHaveCount(0)
+
   await page.keyboard.press('ControlOrMeta+Enter')
   await expect(page.getByText(/Status is nu: wacht op fiat|wacht op fiat/i)).toBeVisible()
   await expect(page.getByRole('button', { name: /Batch fiatteren|Fiatteren/ })).toHaveCount(0)
-  await expect(
-    page.getByText(/Wie klaarzet, mag niet fiatteren|iemand anders moet/i).first(),
-  ).toBeVisible()
+  await expect(page.getByText(/Ingediend door/)).toBeVisible()
+  await expect(page.getByText('Nog niet goedgekeurd')).toBeVisible()
+  await expect(page.getByText(/iemand anders moet/i).first()).toBeVisible()
   await expect(page.getByText(/Upload het in je bankieren-app|pain\.001/i)).toHaveCount(0)
+  await expect(
+    page.getByText(/lettert Match ze zelf|sluit de batch|matches them to these bills by itself/i),
+  ).toHaveCount(0)
 
   expect(errors, `console errors:\n${errors.join('\n')}`).toEqual([])
+})
+
+test('PaymentBatch ⌘↵ downloads pain.001 when approved', async ({ browser }) => {
+  test.setTimeout(120_000)
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  const alice = await browser.newContext()
+  const bob = await browser.newContext()
+
+  try {
+    const alicePage = await alice.newPage()
+    await openAdmin(alicePage, 'Download Shortcut BV')
+    await aBankAccount(alicePage)
+
+    const bobPage = await bob.newPage()
+    const bobEmail = uniqueEmail()
+    await bobPage.goto('/sign-in')
+    await signIn(bobPage, bobEmail)
+    await expect(bobPage.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+
+    await alicePage.goto('/members')
+    const invite = alicePage.locator('form', {
+      has: alicePage.getByRole('button', { name: 'Uitnodigen' }),
+    })
+    await invite.getByLabel('E-mail').fill(bobEmail)
+    await chooseOption(alicePage, 'Rol', 'Accountant', invite)
+    await alicePage.getByRole('button', { name: 'Uitnodigen' }).click()
+    await expect(alicePage.getByText(new RegExp(`${bobEmail} heeft nu toegang`))).toBeVisible()
+
+    await alicePage.goto('/payments')
+    await alicePage.getByRole('button', { name: 'Nieuwe batch' }).click()
+    await alicePage.getByLabel('Kenmerk').fill('BETAAL-CMD-1')
+    await alicePage.getByRole('button', { name: 'Aanmaken' }).click()
+    await alicePage.getByRole('button', { name: 'Betaling toevoegen' }).click()
+    await alicePage.getByLabel('Begunstigde').fill('Ruben Demo')
+    await alicePage.getByLabel('IBAN').fill('NL91ABNA0417164300')
+    await alicePage.getByLabel('Bedrag', { exact: true }).fill('42,00')
+    await alicePage.getByLabel('Eigen kenmerk').fill('INK-CMD-1')
+    await alicePage.getByLabel('Omschrijving').fill('Shortcut demo')
+    await alicePage.getByRole('button', { name: 'Toevoegen' }).click()
+    await alicePage.getByRole('button', { name: 'Ter fiattering aanbieden' }).click()
+    await expect(alicePage.getByText(/Status is nu: wacht op fiat/)).toBeVisible()
+
+    expect(await findUserIdByEmail(database, bobEmail)).not.toBeNull()
+    await bobPage.goto('/payments')
+    await expect(bobPage.getByRole('cell', { name: 'BETAAL-CMD-1' })).toBeVisible()
+    await hydrated(bobPage)
+    await bobPage.getByRole('cell', { name: 'BETAAL-CMD-1' }).click()
+    await bobPage.getByRole('button', { name: /Batch fiatteren|Fiatteren/ }).click()
+    await expect(bobPage.getByText(/Status is nu: gefiatteerd/)).toBeVisible()
+    await expect(bobPage.getByRole('button', { name: 'Download pain.001' })).toBeVisible()
+
+    const downloadPromise = bobPage.waitForEvent('download')
+    await bobPage.keyboard.press('ControlOrMeta+Enter')
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toMatch(/\.pain001\.xml$/i)
+  } finally {
+    await alice.close()
+    await bob.close()
+    await closeDatabase(database)
+  }
+})
+
+test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control overlap, 44px taps', async ({
+  page,
+}) => {
+  test.setTimeout(180_000)
+  await openAdmin(page, 'Phone Costs Demo BV')
+  await aSupplier(page)
+  await aBankAccount(page)
+
+  await page.setViewportSize({ width: 1440, height: 1040 })
+  await page.goto('/purchases/new')
+  await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
+  await page.getByLabel('Hun nummer').fill('INK-PHONE-2026-1')
+  await page.getByLabel('Factuurdatum').fill('2026-02-10')
+  await page.getByLabel('Vervaldatum').fill('2026-03-12')
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('100,00')
+  await page.getByLabel('Btw', { exact: true }).fill('21,00')
+  await page.getByLabel('Totaal', { exact: true }).fill('121,00')
+  await page.getByLabel('Omschrijving regel 1').fill('Phone demo')
+  await chooseOption(page, 'Grootboek regel 1', /^4400 /)
+  await expect(page.getByLabel('Btw-code regel 1')).toHaveText(/^VH21/)
+  await page.getByLabel('Excl. btw regel 1').fill('100,00')
+  await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeVisible()
+
+  await expect
+    .poll(async () =>
+      page.locator('[data-testid="billnew-lines"]').evaluate((el) => el.scrollWidth <= el.clientWidth),
+    )
+    .toBe(true)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  for (const theme of ['light', 'dark'] as const) {
+    await setTheme(page, theme)
+    await expect(page.getByRole('heading', { name: 'Nieuwe inkoopfactuur' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeVisible()
+    await assertNoHorizontalOverflow(page)
+    await assertMinTapTarget(page.getByRole('button', { name: 'Concept opslaan' }), 'save')
+    await assertMinTapTarget(page.getByRole('button', { name: 'Boeken' }), 'book')
+    await assertMinTapTarget(
+      page.getByRole('button', { name: 'Btw berekenen voor regel 1' }),
+      'compute',
+    )
+    await assertKeyControlsDoNotOverlap([
+      { label: 'close', locator: page.getByRole('link', { name: /Sluiten/ }) },
+      { label: 'save', locator: page.getByRole('button', { name: 'Concept opslaan' }) },
+      { label: 'book', locator: page.getByRole('button', { name: 'Boeken' }) },
+      { label: 'status', locator: page.getByText('Concept', { exact: true }) },
+      {
+        label: 'compute',
+        locator: page.getByRole('button', { name: 'Btw berekenen voor regel 1' }),
+      },
+    ])
+  }
+
+  await page.setViewportSize({ width: 1440, height: 1040 })
+  await setTheme(page, 'light')
+  await page.goto('/payments')
+  await page.getByRole('button', { name: 'Nieuwe batch' }).click()
+  await page.getByLabel('Kenmerk').fill('BETAAL-PHONE-1')
+  await page.getByRole('button', { name: 'Aanmaken' }).click()
+  await page.getByRole('button', { name: 'Betaling toevoegen' }).click()
+  await page.getByLabel('Begunstigde').fill('Ruben Demo')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByLabel('Bedrag', { exact: true }).fill('121,00')
+  await page.getByLabel('Eigen kenmerk').fill('INK-PHONE-2026-1')
+  await page.getByLabel('Omschrijving').fill('Phone demo')
+  await page.getByRole('button', { name: 'Toevoegen' }).click()
+  await expect(page.getByText('Ruben Demo')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Weg' })).toBeVisible()
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  for (const theme of ['light', 'dark'] as const) {
+    await setTheme(page, theme)
+    const steps = page.getByRole('list', { name: 'Voortgang van de batch' })
+    await expect(steps).toBeVisible()
+    await expect(steps.getByText('Bestand gedownload')).toBeVisible()
+    await expect(steps.getByText('Betaald')).toHaveCount(0)
+    await expect(steps.getByText('Bij de bank')).toHaveCount(0)
+    await assertNoHorizontalOverflow(page)
+    await assertMinTapTarget(page.getByRole('button', { name: 'Weg' }), 'weg')
+    await assertMinTapTarget(
+      page.getByRole('button', { name: 'Ter fiattering aanbieden' }),
+      'submit',
+    )
+    await assertKeyControlsDoNotOverlap([
+      { label: 'step-prepare', locator: steps.getByText('Voorbereiden') },
+      { label: 'step-approve', locator: steps.getByText('Fiatteren') },
+      { label: 'step-download', locator: steps.getByText('Downloaden') },
+      { label: 'step-downloaded', locator: steps.getByText('Bestand gedownload') },
+      {
+        label: 'submit',
+        locator: page.getByRole('button', { name: 'Ter fiattering aanbieden' }),
+      },
+      { label: 'add', locator: page.getByRole('button', { name: 'Betaling toevoegen' }) },
+      { label: 'weg', locator: page.getByRole('button', { name: 'Weg' }) },
+      { label: 'wait-pill', locator: page.getByText('Wacht', { exact: true }) },
+    ])
+  }
 })

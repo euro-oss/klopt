@@ -105,6 +105,7 @@ function NewPurchaseInvoice() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const key = useRef<string>(crypto.randomUUID())
   const dropKey = useRef<string>(crypto.randomUUID())
+  const captureRef = useRef<(andBook: boolean) => Promise<void>>(async () => {})
 
   const selectedSupplier = suppliers.find((row) => row.number === contactNumber) ?? null
 
@@ -234,6 +235,8 @@ function NewPurchaseInvoice() {
     await navigate({ to: '/purchases/$invoiceId', params: { invoiceId } })
   }
 
+  captureRef.current = captureAndMaybeBook
+
   async function onDropFiles(files: FileList): Promise<void> {
     const file = files.item(0)
     if (file === null) return
@@ -328,20 +331,19 @@ function NewPurchaseInvoice() {
       if (!mod) return
       if (event.key === 's' || event.key === 'S') {
         event.preventDefault()
-        void captureAndMaybeBook(false)
+        void captureRef.current(false)
         return
       }
       if (event.key === 'Enter') {
         event.preventDefault()
-        void captureAndMaybeBook(true)
+        void captureRef.current(true)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyboard closes over form fields
-  }, [hydrated, canSaveDraft, canBook, navigate])
+  }, [hydrated, navigate])
 
   if (suppliers.length === 0) {
     return (
@@ -421,15 +423,15 @@ function NewPurchaseInvoice() {
         )}
       </header>
 
-      <div className="flex flex-wrap items-start gap-7 py-6">
-        <form
-          className="flex min-w-0 flex-1 flex-col gap-5"
-          style={{ flexBasis: '560px' }}
-          onSubmit={(event) => {
-            event.preventDefault()
-            void captureAndMaybeBook(false)
-          }}
-        >
+      <form
+        className="py-6"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void captureAndMaybeBook(false)
+        }}
+      >
+        <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(260px,380px)]">
+          <div className="flex min-w-0 flex-col gap-5">
           <p className="text-ink-2 m-0 text-sm">{t('purchaseNew.intro')}</p>
 
           <section className="border-border bg-surface grid grid-cols-1 gap-4 rounded-[var(--radius-xl)] border p-5 sm:grid-cols-3">
@@ -554,124 +556,6 @@ function NewPurchaseInvoice() {
             </div>
           </section>
 
-          <section
-            className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border"
-            aria-labelledby="billnew-lines"
-          >
-            <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-4">
-              <h2 id="billnew-lines" className="text-[15px] font-semibold">
-                {t('purchaseNew.whatFor')}
-              </h2>
-              <span className="text-ink-muted text-[13px]">{t('purchaseNew.whatForHint')}</span>
-            </div>
-            <div className="overflow-x-auto">
-              <div className="min-w-[600px]">
-                <div className="bg-surface-hover text-ink-muted grid grid-cols-[minmax(150px,1fr)_170px_120px_100px_90px_40px] items-center text-xs font-semibold tracking-wide uppercase">
-                  <span className="px-2.5 py-2 pl-5">{t('purchaseNew.col.description')}</span>
-                  <span className="px-2.5 py-2">{t('purchaseNew.col.category')}</span>
-                  <span className="px-2.5 py-2">{t('purchaseNew.col.vat')}</span>
-                  <span className="px-2.5 py-2 text-right">{t('purchaseNew.col.excl')}</span>
-                  <span className="px-2.5 py-2 text-right">{t('purchaseNew.col.vat')}</span>
-                  <span />
-                </div>
-                {lines.map((line, index) => (
-                  <div
-                    key={index}
-                    className="border-line-soft grid grid-cols-[minmax(150px,1fr)_170px_120px_100px_90px_40px] items-center border-t"
-                  >
-                    <Input
-                      aria-label={t('entryNew.descriptionLine', { line: String(index + 1) })}
-                      value={line.description}
-                      onChange={(event) => {
-                        update(index, { description: event.target.value })
-                        if (index === lines.length - 1 && event.target.value !== '') {
-                          setLines((current) => [...current, emptyLine(defaultAccount, defaultTax)])
-                        }
-                      }}
-                      className="h-11 rounded-none border-0 border-r border-line-soft bg-transparent pl-5 shadow-none md:h-10"
-                    />
-                    <div className="border-line-soft border-r">
-                      <AccountPicker
-                        label={t('invoiceNew.accountLine', { line: String(index + 1) })}
-                        labelHidden
-                        accounts={costAccounts}
-                        value={line.accountNumber}
-                        disabled={!hydrated}
-                        onValueChange={(next) => {
-                          update(index, { accountNumber: next })
-                        }}
-                      />
-                    </div>
-                    <div className="border-line-soft border-r">
-                      <SelectField
-                        label={t('purchaseNew.taxCodeLine', { line: String(index + 1) })}
-                        labelHidden
-                        value={line.taxCode}
-                        disabled={!hydrated}
-                        onValueChange={(next) => {
-                          update(index, { taxCode: next })
-                        }}
-                        triggerClassName="h-11 rounded-none border-0 bg-transparent shadow-none md:h-10"
-                      >
-                        {line.taxCode === '' || inputCodes.length === 0 ? (
-                          <SelectOption value="">{t('purchaseNew.chooseVat')}</SelectOption>
-                        ) : null}
-                        {inputCodes.map((code) => (
-                          <SelectOption key={code.code} value={code.code}>
-                            {code.code} · {code.ratePercent}%
-                          </SelectOption>
-                        ))}
-                      </SelectField>
-                    </div>
-                    <Input
-                      aria-label={t('purchaseNew.netLine', { line: String(index + 1) })}
-                      value={line.net}
-                      onChange={(event) => {
-                        update(index, { net: event.target.value })
-                      }}
-                      className="h-11 rounded-none border-0 border-r border-line-soft bg-transparent text-right font-mono shadow-none md:h-10"
-                    />
-                    <Input
-                      aria-label={t('invoiceNew.vatLine', { line: String(index + 1) })}
-                      value={line.tax}
-                      onChange={(event) => {
-                        update(index, { tax: event.target.value })
-                      }}
-                      className="h-11 rounded-none border-0 border-r border-line-soft bg-transparent text-right font-mono shadow-none md:h-10"
-                    />
-                    <button
-                      type="button"
-                      aria-label={t('purchaseNew.computeTaxLine', { line: String(index + 1) })}
-                      title={t('purchaseNew.computeTaxTitle')}
-                      disabled={!hydrated}
-                      onClick={() => {
-                        suggestTax(index)
-                      }}
-                      className="text-ink-muted px-1 text-xs underline disabled:opacity-50"
-                    >
-                      ƒ
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="border-line-soft flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3.5">
-              <Button type="button" variant="outline" size="sm" onClick={addSplitLine}>
-                + {t('purchaseNew.splitCategory')}
-              </Button>
-              {sumsOk && filled.length > 0 ? (
-                <span className="text-success inline-flex items-center gap-1.5 text-sm font-medium">
-                  <Check className="size-4" aria-hidden />
-                  {t('purchaseNew.linesMatch', {
-                    amount: `€\u00a0${formatMinorUnits(total)}`,
-                  })}
-                </span>
-              ) : filled.length > 0 ? (
-                <span className="text-destructive text-sm">{t('purchaseNew.linesMismatch')}</span>
-              ) : null}
-            </div>
-          </section>
-
           <p
             role="status"
             aria-live="polite"
@@ -699,64 +583,168 @@ function NewPurchaseInvoice() {
           <p className="text-ink-muted m-0 text-[13px] leading-relaxed">
             {t('purchaseNew.saveNote')}
           </p>
-        </form>
+          </div>
 
-        <aside
-          aria-label={t('purchaseNew.dropTitle')}
-          className="flex min-w-0 flex-1 flex-col gap-3"
-          style={{ flexBasis: '380px', maxWidth: '480px' }}
-        >
-          <DropZone
-            title={t('purchaseNew.dropTitle')}
-            description={t('purchaseNew.dropBody')}
-            chooseLabel={t('purchaseNew.dropChoose')}
-            accept=".pdf,.xml,image/*,application/pdf,application/xml,text/xml"
-            disabled={busy || !hydrated}
-            onFiles={(files) => {
-              void onDropFiles(files)
-            }}
-            className="gap-3 py-10"
-          />
-          {dropNote !== null && (
-            <p className="text-ink-2 text-sm">
-              {dropNote}{' '}
-              <Link to="/inbox" className="font-semibold underline-offset-2 hover:underline">
-                {t('purchaseNew.dropOpenInbox')}
-              </Link>
-            </p>
-          )}
-          {previewUrl !== null && (
-            <div className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border">
-              <iframe title={t('purchaseNew.dropTitle')} src={previewUrl} className="h-72 w-full" />
+          <aside aria-label={t('purchaseNew.dropTitle')} className="flex min-w-0 flex-col gap-3">
+            <DropZone
+              title={t('purchaseNew.dropTitle')}
+              description={t('purchaseNew.dropBody')}
+              chooseLabel={t('purchaseNew.dropChoose')}
+              accept=".pdf,.xml,image/*,application/pdf,application/xml,text/xml"
+              disabled={busy || !hydrated}
+              onFiles={(files) => {
+                void onDropFiles(files)
+              }}
+              className="gap-3 py-10"
+            />
+            {dropNote !== null && (
+              <p className="text-ink-2 text-sm">
+                {dropNote}{' '}
+                <Link to="/inbox" className="font-semibold underline-offset-2 hover:underline">
+                  {t('purchaseNew.dropOpenInbox')}
+                </Link>
+              </p>
+            )}
+            {previewUrl !== null && (
+              <div className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border">
+                <iframe title={t('purchaseNew.dropTitle')} src={previewUrl} className="h-72 w-full" />
+              </div>
+            )}
+            {selectedSupplier !== null && (
+              <section className="border-border bg-surface flex flex-col gap-2 rounded-[var(--radius-xl)] border p-4 text-[13px]">
+                <strong className="text-sm">
+                  {t('purchaseNew.supplierEarlier', { name: selectedSupplier.name })}
+                </strong>
+                <div className="flex justify-between gap-2">
+                  <span className="text-ink-muted">{t('purchaseNew.supplierPaysIn')}</span>
+                  <span>
+                    {t('purchaseNew.supplierPaysDays', {
+                      days: String(selectedSupplier.paymentTermsDays),
+                    })}
+                  </span>
+                </div>
+              </section>
+            )}
+          </aside>
+
+          <section
+            data-testid="billnew-lines"
+            className="border-border bg-surface min-w-0 overflow-x-auto rounded-[var(--radius-xl)] border lg:col-span-2"
+            aria-labelledby="billnew-lines"
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-4">
+              <h2 id="billnew-lines" className="text-[15px] font-semibold">
+                {t('purchaseNew.whatFor')}
+              </h2>
+              <span className="text-ink-muted text-[13px]">{t('purchaseNew.whatForHint')}</span>
             </div>
-          )}
-          {selectedSupplier !== null && (
-            <section className="border-border bg-surface flex flex-col gap-2 rounded-[var(--radius-xl)] border p-4 text-[13px]">
-              <strong className="text-sm">
-                {t('purchaseNew.supplierEarlier', { name: selectedSupplier.name })}
-              </strong>
-              <div className="flex justify-between gap-2">
-                <span className="text-ink-muted">
-                  {t('purchaseNew.supplierBillsYear', { year: String(new Date().getFullYear()) })}
-                </span>
-                <span className="font-mono">—</span>
+            <div className="w-full min-w-0">
+              <div className="bg-surface-hover text-ink-muted grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(4.5rem,0.7fr)_minmax(4.5rem,0.65fr)_minmax(4.5rem,0.65fr)_minmax(2.75rem,2.75rem)] items-center text-xs font-semibold tracking-wide uppercase">
+                <span className="px-2.5 py-2 pl-5">{t('purchaseNew.col.description')}</span>
+                <span className="px-2.5 py-2">{t('purchaseNew.col.category')}</span>
+                <span className="px-2.5 py-2">{t('purchaseNew.col.vatCode')}</span>
+                <span className="px-2.5 py-2 text-right">{t('purchaseNew.col.excl')}</span>
+                <span className="px-2.5 py-2 text-right">{t('purchaseNew.col.vatAmount')}</span>
+                <span />
               </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-ink-muted">{t('purchaseNew.supplierUsually')}</span>
-                <span>{t('purchaseNew.supplierUnknownCategory')}</span>
-              </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-ink-muted">{t('purchaseNew.supplierPaysIn')}</span>
-                <span>
-                  {t('purchaseNew.supplierPaysDays', {
-                    days: String(selectedSupplier.paymentTermsDays),
+              {lines.map((line, index) => (
+                <div
+                  key={index}
+                  className="border-line-soft grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(4.5rem,0.7fr)_minmax(4.5rem,0.65fr)_minmax(4.5rem,0.65fr)_minmax(2.75rem,2.75rem)] items-center border-t"
+                >
+                  <Input
+                    aria-label={t('entryNew.descriptionLine', { line: String(index + 1) })}
+                    value={line.description}
+                    onChange={(event) => {
+                      update(index, { description: event.target.value })
+                      if (index === lines.length - 1 && event.target.value !== '') {
+                        setLines((current) => [...current, emptyLine(defaultAccount, defaultTax)])
+                      }
+                    }}
+                    className="h-11 rounded-none border-0 border-r border-line-soft bg-transparent pl-5 shadow-none md:h-10"
+                  />
+                  <div className="border-line-soft min-w-0 border-r">
+                    <AccountPicker
+                      label={t('invoiceNew.accountLine', { line: String(index + 1) })}
+                      labelHidden
+                      accounts={costAccounts}
+                      value={line.accountNumber}
+                      disabled={!hydrated}
+                      onValueChange={(next) => {
+                        update(index, { accountNumber: next })
+                      }}
+                    />
+                  </div>
+                  <div className="border-line-soft min-w-0 border-r">
+                    <SelectField
+                      label={t('purchaseNew.taxCodeLine', { line: String(index + 1) })}
+                      labelHidden
+                      value={line.taxCode}
+                      disabled={!hydrated}
+                      onValueChange={(next) => {
+                        update(index, { taxCode: next })
+                      }}
+                      triggerClassName="h-11 rounded-none border-0 bg-transparent shadow-none md:h-10"
+                    >
+                      {line.taxCode === '' || inputCodes.length === 0 ? (
+                        <SelectOption value="">{t('purchaseNew.chooseVat')}</SelectOption>
+                      ) : null}
+                      {inputCodes.map((code) => (
+                        <SelectOption key={code.code} value={code.code}>
+                          {code.code} · {code.ratePercent}%
+                        </SelectOption>
+                      ))}
+                    </SelectField>
+                  </div>
+                  <Input
+                    aria-label={t('purchaseNew.netLine', { line: String(index + 1) })}
+                    value={line.net}
+                    onChange={(event) => {
+                      update(index, { net: event.target.value })
+                    }}
+                    className="h-11 rounded-none border-0 border-r border-line-soft bg-transparent text-right font-mono shadow-none md:h-10"
+                  />
+                  <Input
+                    aria-label={t('invoiceNew.vatLine', { line: String(index + 1) })}
+                    value={line.tax}
+                    onChange={(event) => {
+                      update(index, { tax: event.target.value })
+                    }}
+                    className="h-11 rounded-none border-0 border-r border-line-soft bg-transparent text-right font-mono shadow-none md:h-10"
+                  />
+                  <button
+                    type="button"
+                    aria-label={t('purchaseNew.computeTaxLine', { line: String(index + 1) })}
+                    title={t('purchaseNew.computeTaxTitle')}
+                    disabled={!hydrated}
+                    onClick={() => {
+                      suggestTax(index)
+                    }}
+                    className="text-ink-muted inline-flex min-h-11 min-w-11 items-center justify-center px-1 text-xs underline disabled:opacity-50 md:min-h-0 md:min-w-0"
+                  >
+                    ƒ
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="border-line-soft flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3.5">
+              <Button type="button" variant="outline" size="sm" onClick={addSplitLine}>
+                + {t('purchaseNew.splitCategory')}
+              </Button>
+              {sumsOk && filled.length > 0 ? (
+                <span className="text-success inline-flex items-center gap-1.5 text-sm font-medium">
+                  <Check className="size-4" aria-hidden />
+                  {t('purchaseNew.linesMatch', {
+                    amount: `€\u00a0${formatMinorUnits(total)}`,
                   })}
                 </span>
-              </div>
-            </section>
-          )}
-        </aside>
-      </div>
+              ) : filled.length > 0 ? (
+                <span className="text-destructive text-sm">{t('purchaseNew.linesMismatch')}</span>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      </form>
     </div>
   )
 }
