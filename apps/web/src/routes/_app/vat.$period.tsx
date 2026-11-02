@@ -369,7 +369,7 @@ function VatReturnScreen() {
                 {t('vatReturn.fileElectronicUnavailable')}
               </p>
             )}
-            {/* Hidde: never show a disabled electronic CTA — only when Digipoort/SBR can submit. */}
+            {/* Design: never show a disabled electronic CTA — only when Digipoort/SBR can submit. */}
             {electronic && (
               <Button
                 type="submit"
