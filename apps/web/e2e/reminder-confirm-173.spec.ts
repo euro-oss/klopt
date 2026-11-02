@@ -225,7 +225,9 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   // Re-open and confirm with ⌘/Ctrl+Enter (issue AC), not a plain click.
   await sendButton.click()
   await expect(page.getByRole('alertdialog')).toBeVisible()
-  await expect(page.getByRole('alertdialog').getByRole('button', { name: 'Annuleren' })).toBeFocused()
+  await expect(
+    page.getByRole('alertdialog').getByRole('button', { name: 'Annuleren' }),
+  ).toBeFocused()
   await page.keyboard.press('Control+Enter')
   await expect(page.getByRole('alertdialog')).toHaveCount(0)
   await expect(page.getByText(/verstuurd naar/)).toBeVisible()
