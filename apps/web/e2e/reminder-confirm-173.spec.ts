@@ -446,16 +446,37 @@ test('plain Enter on an open bulk confirm does not send; Cmd/Ctrl+Enter does', a
 
   await page.goto('/dunning')
   await hydrated(page)
-  await page.getByRole('button', { name: /Alle 2 herinneringen versturen/ }).click()
+  const sendButton = page.getByRole('button', { name: /Alle 2 herinneringen versturen/ })
+  await expect(sendButton).toBeVisible()
+
+  // Ctrl+Enter with focus on <body> (not the send button) must still restore
+  // focus to the header send control after Esc — never leave focus on BODY.
+  await page.evaluate(() => {
+    const active = document.activeElement
+    if (active instanceof HTMLElement) active.blur()
+  })
+  await expect
+    .poll(async () => page.evaluate(() => document.activeElement?.tagName ?? 'NONE'))
+    .toBe('BODY')
+  await page.keyboard.press('Control+Enter')
   const dialog = page.getByRole('alertdialog')
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Annuleren' })).toBeFocused()
-
-  const sendButton = page.getByRole('button', { name: /Alle 2 herinneringen versturen/ })
-
-  // Enter on focused Cancel closes without sending; focus returns to opener.
-  await page.keyboard.press('Enter')
+  await page.keyboard.press('Escape')
   await expect(dialog).toHaveCount(0)
+  await expect(sendButton).toBeFocused()
+  expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe('BODY')
+  expect(reminderPosts).toEqual([])
+  expect(await reminderDeliveryCount(entityId)).toBe(0)
+
+  // Re-open via the button; Enter on Cancel cancels; focus returns to opener.
+  await sendButton.click()
+  await expect(page.getByRole('alertdialog')).toBeVisible()
+  await expect(
+    page.getByRole('alertdialog').getByRole('button', { name: 'Annuleren' }),
+  ).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('alertdialog')).toHaveCount(0)
   await expect(sendButton).toBeFocused()
   expect(reminderPosts).toEqual([])
   expect(await reminderDeliveryCount(entityId)).toBe(0)
