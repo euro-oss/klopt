@@ -569,36 +569,32 @@ function Dunning() {
                   <li
                     key={row.invoiceId}
                     data-invoice-id={row.invoiceId}
-                    className="flex min-w-0 flex-col gap-0.5 text-sm sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"
+                    className="flex min-w-0 flex-col text-sm sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"
                   >
-                    {/* PhoneSales-style two-line row below sm: name wraps; amount stays right. */}
-                    <span className="flex min-w-0 items-baseline justify-between gap-3 sm:hidden">
-                      <span className="min-w-0 break-words font-medium">{row.contactName}</span>
-                      <span className="shrink-0 font-mono tabular-nums whitespace-nowrap">
+                    {/*
+                      PhoneSales-style below sm: line 1 name (wraps) + amount;
+                      line 2 invoice number · days late. From sm: one line.
+                    */}
+                    <span className="flex min-w-0 items-baseline justify-between gap-3 sm:contents">
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2 sm:overflow-hidden">
+                        <span className="min-w-0 break-words font-medium sm:truncate">
+                          {row.contactName}
+                        </span>
+                        <span className="text-ink-muted flex min-w-0 items-baseline gap-1 text-xs sm:shrink-0">
+                          <span className="font-mono tabular-nums whitespace-nowrap">
+                            {row.number}
+                          </span>
+                          <span aria-hidden="true">·</span>
+                          <span className="text-destructive whitespace-nowrap">
+                            {plural('dunning.daysLate', row.daysOverdue, {
+                              days: String(row.daysOverdue),
+                            })}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="shrink-0 self-baseline font-mono tabular-nums whitespace-nowrap">
                         <EuroAmount amount={row.total} />
                       </span>
-                    </span>
-                    <span className="text-ink-muted flex min-w-0 items-baseline gap-1 text-xs sm:hidden">
-                      <span className="font-mono tabular-nums whitespace-nowrap">{row.number}</span>
-                      <span aria-hidden="true">·</span>
-                      <span className="text-destructive whitespace-nowrap">
-                        {plural('dunning.daysLate', row.daysOverdue, {
-                          days: String(row.daysOverdue),
-                        })}
-                      </span>
-                    </span>
-                    {/* One-line row from sm up. */}
-                    <span className="hidden min-w-0 flex-1 items-baseline gap-2 overflow-hidden sm:flex">
-                      <span className="min-w-0 truncate font-medium">{row.contactName}</span>
-                      <span className="text-ink-muted shrink-0"> · {row.number}</span>
-                      <span className="text-destructive shrink-0 text-xs whitespace-nowrap">
-                        {plural('dunning.daysLate', row.daysOverdue, {
-                          days: String(row.daysOverdue),
-                        })}
-                      </span>
-                    </span>
-                    <span className="hidden shrink-0 font-mono tabular-nums sm:inline">
-                      <EuroAmount amount={row.total} />
                     </span>
                   </li>
                 ))}
