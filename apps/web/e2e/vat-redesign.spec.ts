@@ -168,5 +168,40 @@ test('VAT redesign: sidebar, command bar, empty + seeded, keyboard, no console e
     page.getByText(/geen VIES-verbinding geconfigureerd|VIES|offline|consultatie/i).first(),
   ).toBeVisible()
 
+  // Phone 390: header actions under title; zero claim unsigned; ICP stacked; manual-filing hint.
+  // hydrated() waits on the desktop sidebar kbd — skip it below md.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/vat/2026-Q1')
+  const title = page.getByRole('heading', { name: /Aangifte 1e kwartaal 2026/ })
+  const download = page.getByRole('button', { name: /Downloaden om zelf in te dienen/ })
+  await expect(title).toBeVisible()
+  await expect(download).toBeVisible()
+  const titleBox = await title.boundingBox()
+  const downloadBox = await download.boundingBox()
+  expect(titleBox).not.toBeNull()
+  expect(downloadBox).not.toBeNull()
+  expect(downloadBox!.y).toBeGreaterThan(titleBox!.y + titleBox!.height - 2)
+  expect(downloadBox!.width).toBeGreaterThan(300)
+  expect(titleBox!.height).toBeLessThanOrEqual(60)
+  await expect(page.getByRole('button', { name: /Indienen bij de Belastingdienst/ })).toHaveCount(0)
+  await expect(
+    page.getByText(
+      /Deze installatie kan niet elektronisch indienen\. Download de cijfers en dien zelf in via Mijn Belastingdienst Zakelijk/,
+    ),
+  ).toBeVisible()
+  const claim = page.getByText('Btw die je kunt terugvragen').locator('..')
+  await expect(claim).toContainText('0,00')
+  await expect(claim).not.toContainText('−')
+  await expect(claim).not.toContainText('-0')
+
+  await page.goto('/vat/icp/2026-Q1')
+  await expect(page.getByRole('heading', { name: 'ICP-opgaaf' })).toBeVisible()
+  const stacked = page.locator('ul').filter({ hasText: 'Windvaan EU (demo)' })
+  const vatNumber = stacked.getByText('DE123456789')
+  await expect(vatNumber).toBeVisible()
+  const vatBox = await vatNumber.boundingBox()
+  expect(vatBox).not.toBeNull()
+  expect(vatBox!.x + vatBox!.width).toBeLessThanOrEqual(390)
+
   expect(errors, `console errors: ${errors.join('\n')}`).toEqual([])
 })

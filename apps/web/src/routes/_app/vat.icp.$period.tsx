@@ -228,92 +228,155 @@ function IcpScreen() {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-sm">
-              <caption className="sr-only">{t('icp.caption')}</caption>
-              <thead>
-                <tr className="text-muted-foreground border-border border-b text-left text-xs">
-                  <th scope="col" className="px-4 py-2.5 font-medium">
-                    {t('icp.customer')}
-                  </th>
-                  <th scope="col" className="py-2.5 pr-3 font-medium">
-                    {t('icp.country')}
-                  </th>
-                  <th scope="col" className="py-2.5 pr-3 font-medium">
-                    {t('icp.vatNumber')}
-                  </th>
-                  <th scope="col" className="py-2.5 pr-3 text-right font-medium">
-                    {t('icp.goods')}
-                  </th>
-                  <th scope="col" className="py-2.5 pr-4 text-right font-medium">
-                    {t('icp.services')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.entries.map((entry) => {
-                  const proof = entry.proof
-                  return (
-                    <tr
-                      key={`${entry.vatNumber ?? ''}-${entry.contactNumber}`}
-                      className="border-border/50 border-t"
-                    >
-                      <td className="px-4 py-2.5">
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {entry.contactName ?? entry.contactNumber ?? t('icp.customer')}
-                          </span>
-                          <span
-                            className={cn(
-                              'text-xs',
-                              proof?.outcome === 'valid'
-                                ? 'text-success'
-                                : proof?.outcome === 'invalid'
-                                  ? 'text-destructive'
-                                  : 'text-muted-foreground',
-                            )}
-                          >
-                            {proof === null
-                              ? t('icp.neverChecked')
-                              : proof.outcome === 'valid'
-                                ? t('icp.viesValid')
-                                : proof.outcome === 'unavailable'
-                                  ? t('icp.viesOffline', {
-                                      date: formatDate(proof.checkedAt.slice(0, 10)),
-                                    })
-                                  : outcomeOf(proof.outcome)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 pr-3">
-                        <CodeChip>{entry.countryCode || '—'}</CodeChip>
-                      </td>
-                      <td className="py-2.5 pr-3">
-                        <CodeChip>{entry.vatNumber ?? '—'}</CodeChip>
-                      </td>
-                      <td className="tabular py-2.5 pr-3 text-right">
+          <>
+            {/* <640: stacked rows so the VAT number is not clipped. */}
+            <ul className="divide-border m-0 list-none divide-y p-0 sm:hidden">
+              {data.entries.map((entry) => {
+                const proof = entry.proof
+                const name = entry.contactName ?? entry.contactNumber ?? t('icp.customer')
+                const proofLabel =
+                  proof === null
+                    ? t('icp.neverChecked')
+                    : proof.outcome === 'valid'
+                      ? t('icp.viesValid')
+                      : proof.outcome === 'unavailable'
+                        ? t('icp.viesOffline', {
+                            date: formatDate(proof.checkedAt.slice(0, 10)),
+                          })
+                        : outcomeOf(proof.outcome)
+                return (
+                  <li
+                    key={`${entry.vatNumber ?? ''}-${entry.contactNumber}`}
+                    className="flex flex-col gap-1.5 px-4 py-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 flex-col">
+                        <span className="text-foreground font-medium">{name}</span>
+                        <span
+                          className={cn(
+                            'text-xs',
+                            proof?.outcome === 'valid'
+                              ? 'text-success'
+                              : proof?.outcome === 'invalid'
+                                ? 'text-destructive'
+                                : 'text-muted-foreground',
+                          )}
+                        >
+                          {proofLabel}
+                        </span>
+                      </div>
+                      <span className="tabular shrink-0 text-right text-sm font-medium">
                         <Money amount={entry.goods} />
-                      </td>
-                      <td className="tabular py-2.5 pr-4 text-right">
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CodeChip>{entry.countryCode || '—'}</CodeChip>
+                      <CodeChip>{entry.vatNumber ?? '—'}</CodeChip>
+                    </div>
+                    {entry.services !== '0' && (
+                      <div className="text-muted-foreground flex justify-between gap-2 text-xs">
+                        <span>{t('icp.services')}</span>
                         <Money amount={entry.services} />
-                      </td>
-                    </tr>
-                  )
-                })}
-                <tr className="bg-surface-hover border-border/50 border-t font-semibold">
-                  <td className="px-4 py-2.5">{t('report.total')}</td>
-                  <td />
-                  <td />
-                  <td className="tabular py-2.5 pr-3 text-right">
-                    <Money amount={data.goods} />
-                  </td>
-                  <td className="tabular py-2.5 pr-4 text-right">
-                    <Money amount={data.services} />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+              <li className="bg-surface-hover flex items-center justify-between gap-3 px-4 py-3 font-semibold">
+                <span>{t('report.total')}</span>
+                <span className="tabular">
+                  <Money amount={data.goods} />
+                </span>
+              </li>
+            </ul>
+
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full min-w-[640px] border-collapse text-sm">
+                <caption className="sr-only">{t('icp.caption')}</caption>
+                <thead>
+                  <tr className="text-muted-foreground border-border border-b text-left text-xs">
+                    <th scope="col" className="px-4 py-2.5 font-medium">
+                      {t('icp.customer')}
+                    </th>
+                    <th scope="col" className="py-2.5 pr-3 font-medium">
+                      {t('icp.country')}
+                    </th>
+                    <th scope="col" className="py-2.5 pr-3 font-medium">
+                      {t('icp.vatNumber')}
+                    </th>
+                    <th scope="col" className="py-2.5 pr-3 text-right font-medium">
+                      {t('icp.goods')}
+                    </th>
+                    <th scope="col" className="py-2.5 pr-4 text-right font-medium">
+                      {t('icp.services')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.entries.map((entry) => {
+                    const proof = entry.proof
+                    return (
+                      <tr
+                        key={`${entry.vatNumber ?? ''}-${entry.contactNumber}`}
+                        className="border-border/50 border-t"
+                      >
+                        <td className="px-4 py-2.5">
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {entry.contactName ?? entry.contactNumber ?? t('icp.customer')}
+                            </span>
+                            <span
+                              className={cn(
+                                'text-xs',
+                                proof?.outcome === 'valid'
+                                  ? 'text-success'
+                                  : proof?.outcome === 'invalid'
+                                    ? 'text-destructive'
+                                    : 'text-muted-foreground',
+                              )}
+                            >
+                              {proof === null
+                                ? t('icp.neverChecked')
+                                : proof.outcome === 'valid'
+                                  ? t('icp.viesValid')
+                                  : proof.outcome === 'unavailable'
+                                    ? t('icp.viesOffline', {
+                                        date: formatDate(proof.checkedAt.slice(0, 10)),
+                                      })
+                                    : outcomeOf(proof.outcome)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-2.5 pr-3">
+                          <CodeChip>{entry.countryCode || '—'}</CodeChip>
+                        </td>
+                        <td className="py-2.5 pr-3">
+                          <CodeChip>{entry.vatNumber ?? '—'}</CodeChip>
+                        </td>
+                        <td className="tabular py-2.5 pr-3 text-right">
+                          <Money amount={entry.goods} />
+                        </td>
+                        <td className="tabular py-2.5 pr-4 text-right">
+                          <Money amount={entry.services} />
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  <tr className="bg-surface-hover border-border/50 border-t font-semibold">
+                    <td className="px-4 py-2.5">{t('report.total')}</td>
+                    <td />
+                    <td />
+                    <td className="tabular py-2.5 pr-3 text-right">
+                      <Money amount={data.goods} />
+                    </td>
+                    <td className="tabular py-2.5 pr-4 text-right">
+                      <Money amount={data.services} />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
 

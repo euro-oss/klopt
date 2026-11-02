@@ -11,7 +11,7 @@ import { Keycap } from '~/components/ui/keycap'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
-import { formatDate } from '~/lib/format'
+import { formatDate, normalizeMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isTypingInto } from '~/lib/keyboard'
 import { localTodayIso } from '~/lib/local-clock'
@@ -336,45 +336,59 @@ function VatReturnScreen() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col gap-5">
-        <header className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-start gap-3">
-            <h2 className="text-foreground m-0 min-w-0 flex-1 text-xl leading-[26px] font-semibold">
-              {t('vatReturn.titleFor', { period: periodLabel })}
-            </h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!hydrated}
-                onClick={() => downloadSummary()}
-              >
-                {t('vatReturn.downloadManual')}
-                <span className="sr-only">.</span>
-                <Keycap className="ml-2 hidden md:inline-flex">D</Keycap>
-              </Button>
-              {/* Hidde: never show a disabled electronic CTA — only when Digipoort/SBR can submit. */}
-              {electronic && (
-                <Button type="submit" form="vat-mark-form" disabled={!hydrated || !canMark || busy}>
-                  {t('vatReturn.fileElectronic')}
-                  <span className="ml-2 hidden items-center gap-0.5 md:inline-flex">
-                    <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
-                      ⌘
-                    </Keycap>
-                    <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
-                      ↵
-                    </Keycap>
-                  </span>
-                </Button>
-              )}
-            </div>
-          </div>
-          <p className="text-muted-foreground m-0 max-w-prose text-sm">
+        {/*
+          <640: title → subline → full-width actions (44px), so the period title
+          is not squeezed beside Download. ≥640: title + actions on one row.
+        */}
+        <header className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+          <h2 className="text-foreground col-start-1 row-start-1 m-0 text-xl leading-[26px] font-semibold">
+            {t('vatReturn.titleFor', { period: periodLabel })}
+          </h2>
+          <p className="text-muted-foreground col-start-1 row-start-2 m-0 max-w-prose text-sm sm:col-span-2">
             {t('vatReturn.intro', {
               from: formatVatHeaderDate(data.period.from, locale),
               to: formatVatHeaderDate(data.period.to, locale),
               deadline: formatVatHeaderDate(data.period.deadline, locale),
             })}
           </p>
+          <div className="col-start-1 row-start-3 flex w-full flex-col gap-2 sm:col-start-2 sm:row-start-1 sm:w-auto sm:flex-row sm:items-center">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full sm:h-10 sm:w-auto"
+              disabled={!hydrated}
+              onClick={() => downloadSummary()}
+            >
+              {t('vatReturn.downloadManual')}
+              <span className="sr-only">.</span>
+              <Keycap className="ml-2 hidden md:inline-flex">D</Keycap>
+            </Button>
+            {/* Phone only: hint under Download when electronic filing is hidden (desktop has the yellow notice). */}
+            {!electronic && (
+              <p className="text-muted-foreground m-0 text-sm sm:hidden">
+                {t('vatReturn.fileElectronicUnavailable')}
+              </p>
+            )}
+            {/* Hidde: never show a disabled electronic CTA — only when Digipoort/SBR can submit. */}
+            {electronic && (
+              <Button
+                type="submit"
+                form="vat-mark-form"
+                className="h-11 w-full sm:h-10 sm:w-auto"
+                disabled={!hydrated || !canMark || busy}
+              >
+                {t('vatReturn.fileElectronic')}
+                <span className="ml-2 hidden items-center gap-0.5 md:inline-flex">
+                  <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
+                    ⌘
+                  </Keycap>
+                  <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
+                    ↵
+                  </Keycap>
+                </span>
+              </Button>
+            )}
+          </div>
         </header>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -385,11 +399,7 @@ function VatReturnScreen() {
           />
           <StatCard
             label={t('vatReturn.statClaim')}
-            value={
-              <>
-                − <Money amount={data.deductible} />
-              </>
-            }
+            value={<Money amount={-normalizeMinorUnits(data.deductible)} />}
             meta={t('vatReturn.statClaimMeta')}
           />
           <StatCard
