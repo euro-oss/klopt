@@ -525,7 +525,9 @@ function MatchQueue() {
         : t('match.accountSummary', {
             name: primaryAccount.name,
             iban: ibanTail(primaryAccount.iban),
-            balance: formatEuro(primaryAccount.reconciliation.statementBalance),
+            balance: formatEuro(primaryAccount.reconciliation.statementBalance, {
+              signed: false,
+            }),
           })
 
   if (!transactions.ok) {
@@ -542,7 +544,9 @@ function MatchQueue() {
   }
 
   const vatHint =
-    line === undefined ? null : formatEuro(((absoluteMinor(line.amount) * 21n) / 121n).toString())
+    line === undefined
+      ? null
+      : formatEuro(((absoluteMinor(line.amount) * 21n) / 121n).toString(), { signed: false })
 
   const panelBody =
     line === undefined ? null : (
@@ -582,17 +586,28 @@ function MatchQueue() {
       />
     )
 
+  const hasAccounts = bankAccounts.ok && bankAccounts.data.accounts.length > 0
+
   return (
     <>
-      <header className="flex flex-wrap items-center gap-3 px-0 pt-1 pb-0">
-        <h1 className="min-w-0 flex-1 text-2xl leading-[30px] font-semibold tracking-[-0.01em]">
-          {t('bank.title')}
-        </h1>
-        <span className="text-ink-2 font-mono text-sm tabular-nums">{accountSummary}</span>
-        <span className="text-ink-2 text-sm tabular-nums">{remainingText}</span>
-        <Button asChild variant="outline" className="min-h-11 md:min-h-9">
-          <Link to="/bank">{t('bank.importStatement')}</Link>
-        </Button>
+      <header className="flex flex-col gap-2 px-0 pt-1 pb-0">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="min-w-0 flex-1 text-2xl leading-[30px] font-semibold tracking-[-0.01em]">
+            {t('bank.title')}
+          </h1>
+          <span className="text-ink-2 hidden font-mono text-sm tabular-nums md:inline">
+            {accountSummary}
+          </span>
+          <span className="text-ink-2 hidden text-sm tabular-nums md:inline">{remainingText}</span>
+          <Button asChild variant="outline" className="min-h-11 md:min-h-9">
+            <Link to="/bank">{t('bank.importStatement')}</Link>
+          </Button>
+        </div>
+        {/* Phone: summary under the title so it never overlaps (#164 design). */}
+        <div className="flex flex-col gap-1 md:hidden">
+          <span className="text-ink-2 font-mono text-sm tabular-nums">{accountSummary}</span>
+          <span className="text-ink-2 text-sm tabular-nums">{remainingText}</span>
+        </div>
         <BankTabs active="match" toMatchCount={toMatchCount > 0 ? toMatchCount : undefined} />
       </header>
 
@@ -609,9 +624,21 @@ function MatchQueue() {
 
       {queue.length === 0 ? (
         <div className="bg-card border-border mt-5 flex flex-col items-center gap-2.5 rounded-[var(--radius-xl)] border px-8 py-12 text-center shadow-[var(--shadow-raised)]">
-          <p className="text-xl leading-[26px] font-semibold">{t('match.nothingToDo')}</p>
-          <p className="text-ink-2 text-sm">{t('match.nothingToDoBody')}</p>
-          <p className="text-ink-muted mt-2 text-sm">{remainingText}</p>
+          {hasAccounts ? (
+            <>
+              <p className="text-xl leading-[26px] font-semibold">{t('match.nothingToDo')}</p>
+              <p className="text-ink-2 text-sm">{t('match.nothingToDoBody')}</p>
+              <p className="text-ink-muted mt-2 text-sm">{remainingText}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-xl leading-[26px] font-semibold">{t('match.noAccountsTitle')}</p>
+              <p className="text-ink-2 text-sm">{t('match.noAccountsBody')}</p>
+              <Button asChild variant="outline" className="mt-2 min-h-11 md:min-h-9">
+                <Link to="/bank">{t('bank.addAccount')}</Link>
+              </Button>
+            </>
+          )}
         </div>
       ) : (
         <div className="mt-5 flex flex-wrap items-start gap-5">
@@ -685,7 +712,6 @@ function MatchQueue() {
                       </span>
                     </span>
                     <span className="font-mono text-sm font-medium tabular-nums">
-                      {isOutgoing(item.amount) ? '−' : '+'}
                       {formatEuro(item.amount)}
                     </span>
                   </button>
@@ -862,7 +888,6 @@ function MatchPanel({
         </div>
         <div className="flex flex-col items-end gap-1">
           <span className="font-mono text-[30px] leading-9 font-semibold tracking-[-0.02em] tabular-nums">
-            {outgoing ? '− ' : '+ '}
             {formatEuro(line.amount)}
           </span>
           <span className="text-ink-muted text-[13px]">

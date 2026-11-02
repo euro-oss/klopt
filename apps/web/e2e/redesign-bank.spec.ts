@@ -7,8 +7,9 @@ import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
 /**
  * ONE Playwright spec for Bank · Match redesign (#129 / #140).
  *
- * Covers: sidebar route, command bar route, empty state, one seeded state,
- * keyboard navigation, no console errors.
+ * Covers: sidebar route, command bar route, empty states (no account vs
+ * account with nothing to match), seeded state, keyboard navigation, no
+ * console errors.
  */
 
 const FIXTURES = join(
@@ -40,20 +41,6 @@ async function openAdmin(page: Page, name: string): Promise<void> {
   await hydrated(page)
 }
 
-async function importDemoStatement(page: Page): Promise<void> {
-  await page.goto('/bank')
-  await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
-  await page.getByLabel('Naam', { exact: true }).fill('Demo bankrekening')
-  await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
-  await expect(page.locator('input[type="file"]')).toBeEnabled()
-  await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
-  await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
-  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
-  await expect(page.getByText('4 transacties geïmporteerd.')).toBeVisible()
-}
-
 test('Bank Match: sidebar and command bar, empty and seeded, keyboard, no console errors', async ({
   page,
 }) => {
@@ -67,13 +54,21 @@ test('Bank Match: sidebar and command bar, empty and seeded, keyboard, no consol
 
   await openAdmin(page, 'Bank Redesign Demo BV')
 
-  // --- Empty state via sidebar ---
+  // --- Empty with no bank account: not the "balance and books" state ---
   await page.getByRole('link', { name: /^Bank/ }).click()
   await expect(page).toHaveURL(/\/bank\/match/)
   await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Bankonderdelen' })).toBeVisible()
-  await expect(page.getByText('Alle regels zijn geboekt')).toBeVisible()
-  await expect(page.getByText('Het banksaldo en de boeken kloppen weer.')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Rekeningen' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Batches' })).toBeVisible()
+  await expect(
+    page.getByRole('paragraph').filter({ hasText: 'Nog geen bankrekening' }),
+  ).toBeVisible()
+  await expect(
+    page.getByText('Voeg een bankrekening toe om afschriften te kunnen importeren.'),
+  ).toBeVisible()
+  await expect(page.getByText('Het banksaldo en de boeken kloppen weer.')).toHaveCount(0)
+  await expect(page.getByText('Alle regels zijn afgeletterd')).toHaveCount(0)
   // Legal: no live-connection / PSD2 / gekoppeld claims on this screen.
   await expect(page.getByText(/gekoppeld/i)).toHaveCount(0)
   await expect(page.getByText(/PSD2/i)).toHaveCount(0)
@@ -88,6 +83,18 @@ test('Bank Match: sidebar and command bar, empty and seeded, keyboard, no consol
   await expect(phoneNav.getByRole('link', { name: 'Bon' })).toBeVisible()
   await page.setViewportSize({ width: 1440, height: 900 })
 
+  // --- Empty with an account and nothing to match: balance/books copy ---
+  await page.goto('/bank')
+  await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByLabel('Naam', { exact: true }).fill('Demo bankrekening')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
+  await page.goto('/bank/match')
+  await hydrated(page)
+  await expect(page.getByText('Alle regels zijn afgeletterd')).toBeVisible()
+  await expect(page.getByText('Het banksaldo en de boeken kloppen weer.')).toBeVisible()
+
   // --- Command bar route ---
   await page.goto('/')
   await hydrated(page)
@@ -99,14 +106,22 @@ test('Bank Match: sidebar and command bar, empty and seeded, keyboard, no consol
   await expect(page).toHaveURL(/\/bank\/match/)
   await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
 
-  // --- Seeded state ---
-  await importDemoStatement(page)
+  // --- Seeded state (second account+import admin path via import helper) ---
+  // Account already exists — import into it.
+  await page.goto('/bank')
+  await expect(page.locator('input[type="file"]')).toBeEnabled()
+  await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
+  await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
+  await expect(page.getByText('4 transacties geïmporteerd.')).toBeVisible()
   await page.getByRole('link', { name: /^Bank/ }).click()
   await hydrated(page)
   await expect(page.locator('[data-slot="match-queue"] [data-row]')).toHaveCount(4)
   await expect(page.getByRole('heading', { name: 'Wat was dit?' })).toBeVisible()
   await expect(page.locator('[data-slot="match-choice"]')).toHaveCount(4)
-  await expect(page.getByText(/Demo bankrekening/)).toBeVisible()
+  await expect(page.getByText(/Demo bankrekening/).first()).toBeVisible()
+  // Signed amount form: true minus, no space before €.
+  await expect(page.getByText('\u2212€\u00a02,15').first()).toBeVisible()
 
   // --- Keyboard navigation ---
   await page.keyboard.press('ArrowDown')

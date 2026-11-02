@@ -96,7 +96,11 @@ test('Bank Match screenshots: empty + seeded × light/dark × 1440/390', async (
   await ready(page, 'Bank Shot Empty BV')
   await page.goto('/bank/match')
   await hydrated(page)
-  await expect(page.getByText('Alle regels zijn geboekt')).toBeVisible()
+  // Empty with no account — not the "balance and books" state.
+  await expect(
+    page.getByRole('paragraph').filter({ hasText: 'Nog geen bankrekening' }),
+  ).toBeVisible()
+  await expect(page.getByText('Het banksaldo en de boeken kloppen weer.')).toHaveCount(0)
 
   let n = 1
   for (const theme of ['light', 'dark'] as const) {

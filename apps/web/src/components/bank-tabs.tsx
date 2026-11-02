@@ -4,9 +4,9 @@ import { useT } from '~/i18n/provider'
 import { cn } from '~/lib/utils'
 
 /**
- * Bank underline tabs — To match / Accounts / Payment batches (#107 Phase 7,
- * Match.dc.html). Accounts and batches stay on their existing routes until
- * those boards are ported.
+ * Bank underline tabs — To match / Accounts / Batches (#107 Phase 7,
+ * Match.dc.html). Short labels (batch-2); row scrolls horizontally on phone
+ * without wrapping, 44px targets.
  */
 
 export type BankTab = 'match' | 'accounts' | 'batches'
@@ -26,7 +26,7 @@ export function BankTabs({
     <nav
       aria-label={t('bank.tabs')}
       data-bank-tabs=""
-      className="border-border mt-1 flex w-full flex-wrap gap-1 border-b"
+      className="border-border mt-1 flex w-full flex-nowrap gap-1 overflow-x-auto border-b"
     >
       <TabLink to="/bank/match" current={active === 'match'}>
         {t('bank.tab.match')}
@@ -60,7 +60,7 @@ function TabLink({
       to={to}
       aria-current={current ? 'page' : undefined}
       className={cn(
-        'inline-flex min-h-11 items-center px-3 text-sm md:min-h-9',
+        'inline-flex min-h-11 shrink-0 items-center px-3 text-sm whitespace-nowrap md:min-h-9',
         current
           ? 'text-ink border-ink border-b-2 font-semibold'
           : 'text-ink-muted hover:text-ink border-b-2 border-transparent',
