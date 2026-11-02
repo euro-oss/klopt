@@ -20,7 +20,7 @@ the ADR is where the reasoning is.
 
 ### API changes
 
-- Downloading pain.001 from an approved batch now marks it exported; the `export` transition was removed from the v1 batch transitions API.
+- **Breaking (v1 API):** Downloading pain.001 from an approved batch now marks it exported; the `export` transition was removed from the v1 batch transitions API.
 
 ### Redesign Phase 4: Costs (#107 / #128)
 
