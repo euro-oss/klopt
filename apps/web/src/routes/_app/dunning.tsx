@@ -536,7 +536,9 @@ function Dunning() {
             event.preventDefault()
             cancelRef.current?.focus()
           }}
-          onKeyDown={(event) => {
+          onKeyDownCapture={(event) => {
+            // Capture so a focused primary button cannot activate on plain Enter
+            // before bubble handlers run (#173: only ⌘/Ctrl+Enter sends).
             if (event.key !== 'Enter') return
             const mod = isApple() ? event.metaKey : event.ctrlKey
             if (mod) {
@@ -545,8 +547,8 @@ function Dunning() {
               confirmPending()
               return
             }
-            // Plain Enter never sends (#173). Esc still cancels via Radix.
             event.preventDefault()
+            event.stopPropagation()
           }}
         >
           <AlertDialogHeader>

@@ -198,12 +198,18 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   await expect(dialog.getByRole('heading', { name: /2 herinneringen versturen\?/ })).toBeVisible()
   await expect(dialog.getByText('Eva Jansen')).toBeVisible()
   await expect(dialog.getByText('Ruben de Vries')).toBeVisible()
+  // Rows carry invoice number, amount (tabular mono) and days overdue.
+  await expect(dialog.getByText(/2026-\d{4}/).first()).toBeVisible()
+  await expect(dialog.getByText(/dagen te laat/).first()).toBeVisible()
   await expect(dialog.getByText(/Totaal €\s*1\.240,50/)).toBeVisible()
   await expect(dialog.getByText(/Ze gaan direct per e-mail/)).toBeVisible()
   // Focus starts on Annuleren.
   await expect(dialog.getByRole('button', { name: 'Annuleren' })).toBeFocused()
+  // Primary is "Verstuur N" with a mod+Enter chip — not a plain "Versturen".
+  await expect(dialog.getByRole('button', { name: /Verstuur 2/ })).toBeVisible()
 
-  // Plain Enter must not send.
+  // Plain Enter must not send — even if focus is moved to the primary.
+  await dialog.getByRole('button', { name: /Verstuur 2/ }).focus()
   await page.keyboard.press('Enter')
   await expect(dialog).toBeVisible()
   expect(reminderPosts).toEqual([])
@@ -216,10 +222,11 @@ test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing
   expect(await reminderDeliveryCount(entityId)).toBe(0)
   await expect(page.getByText(/verstuurd naar/)).toHaveCount(0)
 
-  // Re-open and confirm with the primary button.
+  // Re-open and confirm with ⌘/Ctrl+Enter (issue AC), not a plain click.
   await sendButton.click()
   await expect(page.getByRole('alertdialog')).toBeVisible()
-  await page.getByRole('button', { name: /Verstuur 2/ }).click()
+  await expect(page.getByRole('alertdialog').getByRole('button', { name: 'Annuleren' })).toBeFocused()
+  await page.keyboard.press('Control+Enter')
   await expect(page.getByRole('alertdialog')).toHaveCount(0)
   await expect(page.getByText(/verstuurd naar/)).toBeVisible()
   // Both POSTs finish before the delivery rows are visible — poll, don't race.

@@ -40,7 +40,9 @@ async function aContact(page: Page, number: string, name: string): Promise<void>
   await page.getByLabel('Nummer', { exact: true }).fill(number)
   await page.getByLabel('Naam', { exact: true }).fill(name)
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }),
+  ).toBeVisible()
 }
 
 test('the palette finds a relatie and opens it, with no pointer anywhere in the flow', async ({

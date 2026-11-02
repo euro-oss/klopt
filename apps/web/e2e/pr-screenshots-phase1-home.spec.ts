@@ -154,7 +154,7 @@ async function populatedAdministration(page: Page): Promise<void> {
   await page.getByLabel('Naam', { exact: true }).fill('Bakkerij De Korenaar')
   await page.getByLabel('E-mail').fill('facturen@korenaar.example.nl')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Bakkerij De Korenaar' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Bakkerij De Korenaar/ })).toBeVisible()
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
@@ -184,7 +184,11 @@ async function populatedAdministration(page: Page): Promise<void> {
     await page.getByLabel('Postcode').fill('2311 AB')
     await page.getByLabel('Plaats').fill('Leiden')
     await page.getByRole('button', { name: 'Opslaan' }).click()
-    await expect(page.getByRole('cell', { name: seed.name })).toBeVisible()
+    await expect(
+      page.getByRole('button', {
+        name: new RegExp(seed.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      }),
+    ).toBeVisible()
 
     const invoiceDate = isoDaysAgo(seed.daysOverdue + 30)
     await page.goto('/invoices/new')
@@ -208,7 +212,7 @@ async function populatedAdministration(page: Page): Promise<void> {
   await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Kantoorhandel De Vos' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Kantoorhandel De Vos/ })).toBeVisible()
 
   await page.goto('/purchases/new')
   await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()

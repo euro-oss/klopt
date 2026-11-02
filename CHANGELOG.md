@@ -23,11 +23,31 @@ the ADR is where the reasoning is.
 Herinneringen (`/dunning`) opens a shadcn AlertDialog whenever more than one
 reminder would go out — including the nothing-selected "send all due" case. The
 dialog lists up to five debtors (customer, invoice number, amount, days overdue),
-"+n meer", and the total from the same `reminderSendTargets` array the send
+"+ {n} meer", and the total from the same `reminderSendTargets` array the send
 posts. Annuleren keeps focus; only ⌘/Ctrl+Enter (or the primary) sends; plain
 Enter never does. A single reminder still goes straight through. The dunning
 queue query now uses the exclusive overdue boundary (`dueDate < asOf`), so due
 today is never listed, counted, or sent.
+
+### Redesign Phase 6: Contacts (#130)
+
+Contacts matches the `Contacts` board from the v2 export at `fa4093b`
+(`design/redesign-2026-10/screens/Contacts.dc.html`). Desktop light is the
+designed state: list + contact card, All / Customers / Suppliers segments
+(`1`–`3`), `/` filter, `j`/`k` and Space/X select, `E` edit, create form from
+Nieuwe relatie (`N C` still navigates here). Card shows volume, documents,
+still open, invoice rows (pills only for API `invoice_status` draft /
+cancelled; issued shows open amount as text — no Paid / late pills),
+payment terms, add-details for e-invoicing, and privacy erase behind
+`retention:manage`. List names wrap in full (phone: name-first two-line row;
+desktop: flexible Naam column). Supplier card line is honest purchase-side
+open count/amount (`N open · € …`); overdue only when `dueDate < today`;
+never claims betaald/paid. Dark and phone use existing tokens/patterns until
+Batch 2 and Batch 3 boards (#140). App-wide from #140 in this PR: input
+borders via `--ink-muted` (no hard-coded `#86857e`); phone middle tab
+Receipt. Sign out / Uitloggen copy is a separate PR. Copy stays short and
+plain (NL+EN); no live-connection claims. Screenshots under
+`docs/pr-screenshots/<PR>/`.
 
 ### Redesign Phase 2: Sales (#107)
 
@@ -40,6 +60,12 @@ read-only; email preview uses `reminderEmailCopy` (shared with the transport).
 Reminder emails no longer mention incassokosten, wettelijke rente or a payment
 deadline. PhoneSales / PhoneInvoice / InvoicesDark via tokens. Customers tab
 links to Contacts (no customers URL filter yet). "Nieuwe factuur" is secondary.
+
+### Sign-out copy is Sign out / Uitloggen (#140)
+
+The account menu, the no-administration screen and setup use the same words:
+"Sign out" in English and "Uitloggen" in Dutch. The account menu no longer
+says "Log out", and the screens outside it no longer say "Afmelden".
 
 ### Fixed
 

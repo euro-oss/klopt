@@ -137,7 +137,7 @@ async function readyAdmin(page: Page): Promise<void> {
   await page.getByLabel('Postcode').fill('4381 KA')
   await page.getByLabel('Plaats').fill('Vlissingen')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Hotel Zeezicht B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Hotel Zeezicht B\.V\./ })).toBeVisible()
 }
 
 test('capture guided invoice PNGs', async ({ page }) => {
