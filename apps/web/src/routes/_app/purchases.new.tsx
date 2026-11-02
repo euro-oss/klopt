@@ -235,7 +235,9 @@ function NewPurchaseInvoice() {
     await navigate({ to: '/purchases/$invoiceId', params: { invoiceId } })
   }
 
-  captureRef.current = captureAndMaybeBook
+  useEffect(() => {
+    captureRef.current = captureAndMaybeBook
+  })
 
   async function onDropFiles(files: FileList): Promise<void> {
     const file = files.item(0)

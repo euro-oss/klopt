@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { createDatabase, closeDatabase, runMigrations } from '@klopt/db'
 import { findUserIdByEmail } from '@klopt/db/testing'
 import {
@@ -108,7 +108,7 @@ function boxesOverlap(a: Box, b: Box): boolean {
 async function assertKeyControlsDoNotOverlap(
   controls: {
     label: string
-    locator: ReturnType<Page['getByRole']> | ReturnType<Page['getByText']>
+    locator: Locator
   }[],
 ): Promise<void> {
   const boxes: { label: string; box: Box }[] = []
