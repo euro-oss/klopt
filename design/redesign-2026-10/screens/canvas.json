@@ -364,6 +364,168 @@
    "title": "Phone · ICP return (derived)",
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "SignInDark.dc.html": {
+   "x": 0,
+   "y": 18700,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark · sign-in, invite-only (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SetupDark.dc.html": {
+   "x": 1520,
+   "y": 18700,
+   "w": 1440,
+   "h": 960,
+   "title": "Dark · setup, hosted with terms checkbox (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SetupSelfHostedDark.dc.html": {
+   "x": 3040,
+   "y": 18700,
+   "w": 1440,
+   "h": 960,
+   "title": "Dark · setup, self-hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "OAuthDark.dc.html": {
+   "x": 4560,
+   "y": 18700,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark · AI assistant consent (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SwitcherDark.dc.html": {
+   "x": 6080,
+   "y": 18700,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark · switcher (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "TermsConsent.dc.html": {
+   "x": 7600,
+   "y": 18700,
+   "w": 440,
+   "h": 72,
+   "title": "Component · terms checkbox, hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design (#153). The one place the checkbox label lives. See ../DERIVED.md."
+  },
+  "PhoneSignIn.dc.html": {
+   "x": 0,
+   "y": 20260,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · sign-in (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSignInDark.dc.html": {
+   "x": 470,
+   "y": 20260,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · sign-in (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSignInCode.dc.html": {
+   "x": 940,
+   "y": 20260,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · sign-in code (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSignInCodeDark.dc.html": {
+   "x": 1410,
+   "y": 20260,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · sign-in code (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSetup.dc.html": {
+   "x": 1880,
+   "y": 20260,
+   "w": 390,
+   "h": 1414,
+   "title": "Phone · setup, hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSetupDark.dc.html": {
+   "x": 2350,
+   "y": 20260,
+   "w": 390,
+   "h": 1414,
+   "title": "Phone dark · setup, hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSetupSelfHosted.dc.html": {
+   "x": 2820,
+   "y": 20260,
+   "w": 390,
+   "h": 1281,
+   "title": "Phone · setup, self-hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSetupSelfHostedDark.dc.html": {
+   "x": 3290,
+   "y": 20260,
+   "w": 390,
+   "h": 1281,
+   "title": "Phone dark · setup, self-hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneOAuth.dc.html": {
+   "x": 3760,
+   "y": 20260,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · AI assistant consent (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneOAuthDark.dc.html": {
+   "x": 4230,
+   "y": 20260,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · AI assistant consent (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSwitcher.dc.html": {
+   "x": 4700,
+   "y": 20260,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · switcher (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSwitcherDark.dc.html": {
+   "x": 5170,
+   "y": 20260,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · switcher (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
   }
  },
  "order": [
@@ -409,7 +571,25 @@
   "PhoneContactCard.dc.html",
   "PhoneVatPeriods.dc.html",
   "PhoneVat.dc.html",
-  "PhoneIcp.dc.html"
+  "PhoneIcp.dc.html",
+  "SignInDark.dc.html",
+  "SetupDark.dc.html",
+  "SetupSelfHostedDark.dc.html",
+  "OAuthDark.dc.html",
+  "SwitcherDark.dc.html",
+  "TermsConsent.dc.html",
+  "PhoneSignIn.dc.html",
+  "PhoneSignInDark.dc.html",
+  "PhoneSignInCode.dc.html",
+  "PhoneSignInCodeDark.dc.html",
+  "PhoneSetup.dc.html",
+  "PhoneSetupDark.dc.html",
+  "PhoneSetupSelfHosted.dc.html",
+  "PhoneSetupSelfHostedDark.dc.html",
+  "PhoneOAuth.dc.html",
+  "PhoneOAuthDark.dc.html",
+  "PhoneSwitcher.dc.html",
+  "PhoneSwitcherDark.dc.html"
  ],
  "notes": {
   "t1": {
@@ -481,6 +661,20 @@
    "text": "Phone (390): contacts, VAT, ICP (derived)",
    "kind": "title1",
    "maxW": 2270
+  },
+  "t153a": {
+   "x": 0,
+   "y": 18400,
+   "text": "Getting in, dark (derived, #153)",
+   "kind": "title1",
+   "maxW": 8040
+  },
+  "t153b": {
+   "x": 0,
+   "y": 19960,
+   "text": "Getting in, phone (390) light and dark (derived, #153)",
+   "kind": "title1",
+   "maxW": 5560
   }
  },
  "designSystems": [
