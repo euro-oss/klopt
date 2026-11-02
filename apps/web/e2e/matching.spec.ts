@@ -114,7 +114,8 @@ async function seedExtraUnmatched(entityName: string, count: number): Promise<vo
 test('a bookkeeper works through the queue with the keyboard', async ({ page }) => {
   await withStatement(page, 'Koppelen BV')
 
-  await page.getByRole('link', { name: '4 koppelen' }).click()
+  // BankAccounts CTA copy (CoS): afletteren, not "koppelen".
+  await page.getByRole('link', { name: '4 regels afletteren' }).click()
   await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
 
   const rows = queueRows(page)
