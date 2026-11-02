@@ -83,6 +83,46 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
     .toBe(true)
 }
 
+async function assertCostsTabsOneRow(page: Page): Promise<void> {
+  const tabs = page.locator('[data-costs-tabs] a')
+  await expect(tabs).toHaveCount(4)
+  const tops = await tabs.evaluateAll((els) => els.map((el) => (el as HTMLElement).offsetTop))
+  expect(new Set(tops).size, `Costs tabs wrap: offsetTops=${tops.join('/')}`).toBe(1)
+  const row = page.locator('[data-costs-tabs-row]')
+  await expect(row).toBeVisible()
+  await expect
+    .poll(async () =>
+      row.evaluate((el) => {
+        const style = getComputedStyle(el)
+        return style.flexWrap === 'nowrap' || style.flexWrap === ''
+      }),
+    )
+    .toBe(true)
+}
+
+async function assertStickyFormActions(page: Page): Promise<void> {
+  const bar = page.locator('[data-testid="billnew-form-actions"]')
+  await expect(bar).toBeVisible()
+  await expect(bar).toHaveCSS('position', 'sticky')
+  await expect(bar.getByRole('button', { name: 'Concept opslaan' })).toBeVisible()
+  await expect(bar.getByRole('button', { name: 'Boeken' })).toBeVisible()
+
+  const viewport = page.viewportSize()
+  expect(viewport).not.toBeNull()
+  const height = viewport!.height
+
+  // Scroll the long form; sticky bar must stay in the visual viewport.
+  await page.locator('[data-testid="billnew-lines"]').scrollIntoViewIfNeeded()
+  await page.evaluate(() => window.scrollBy(0, 800))
+  await expect
+    .poll(async () => {
+      const box = await bar.boundingBox()
+      if (box === null) return false
+      return box.y >= 0 && box.y + box.height <= height + 1
+    })
+    .toBe(true)
+}
+
 async function assertMinTapTarget(
   locator: ReturnType<Page['getByRole']>,
   label: string,
@@ -224,7 +264,7 @@ test('BillNew from sidebar and command bar; empty and seeded; keyboard; no conso
   expect(errors, `console errors:\n${errors.join('\n')}`).toEqual([])
 })
 
-test('BillNew ⌘S reads the latest field value through the capture ref', async ({ page }) => {
+test('BillNew ⌘S reads the latest field value through useEffectEvent', async ({ page }) => {
   test.setTimeout(90_000)
   await openAdmin(page, 'BillNew Stale Save BV')
   await aSupplier(page)
@@ -244,11 +284,20 @@ test('BillNew ⌘S reads the latest field value through the capture ref', async 
   await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeVisible()
 
+  // QA reproduced STALE-123 being saved as STALE-1 — edit then ⌘S immediately.
   const numberField = page.getByLabel('Hun nummer')
-  await numberField.fill('INK-STALE-FRESH')
+  await numberField.click()
+  await numberField.fill('INK-STALE-123')
+  await expect(numberField).toHaveValue('INK-STALE-123')
   await page.keyboard.press('ControlOrMeta+s')
-  await expect(page.getByRole('heading', { name: /INK-STALE-FRESH/ })).toBeVisible()
-  await expect(page.getByRole('heading', { name: /INK-STALE-1(?![\w-])/ })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: /INK-STALE-123/ })).toBeVisible()
+  await expect(page).toHaveURL(/\/purchases\/[^/]+$/)
+
+  const invoiceId = page.url().split('/').pop() ?? ''
+  const api = await page.request.get(`/api/v1/purchase-invoices/${invoiceId}`)
+  expect(api.status()).toBe(200)
+  const body = (await api.json()) as { supplierInvoiceNumber?: string }
+  expect(body.supplierInvoiceNumber).toBe('INK-STALE-123')
 })
 
 test('PaymentBatch from sidebar and command bar; empty and seeded; keyboard; no console errors', async ({
@@ -434,24 +483,51 @@ test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control ov
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme)
     await expect(page.getByRole('heading', { name: 'Nieuwe inkoopfactuur' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeVisible()
+    await assertStickyFormActions(page)
     await assertNoHorizontalOverflow(page)
-    await assertMinTapTarget(page.getByRole('button', { name: 'Concept opslaan' }), 'save')
-    await assertMinTapTarget(page.getByRole('button', { name: 'Boeken' }), 'book')
+    await assertMinTapTarget(
+      page
+        .locator('[data-testid="billnew-form-actions"]')
+        .getByRole('button', { name: 'Concept opslaan' }),
+      'save',
+    )
+    await assertMinTapTarget(
+      page.locator('[data-testid="billnew-form-actions"]').getByRole('button', { name: 'Boeken' }),
+      'book',
+    )
     await assertMinTapTarget(
       page.getByRole('button', { name: 'Btw berekenen voor regel 1' }),
       'compute',
     )
     await assertKeyControlsDoNotOverlap([
       { label: 'close', locator: page.getByRole('link', { name: /Sluiten/ }) },
-      { label: 'save', locator: page.getByRole('button', { name: 'Concept opslaan' }) },
-      { label: 'book', locator: page.getByRole('button', { name: 'Boeken' }) },
+      {
+        label: 'save',
+        locator: page
+          .locator('[data-testid="billnew-form-actions"]')
+          .getByRole('button', { name: 'Concept opslaan' }),
+      },
+      {
+        label: 'book',
+        locator: page
+          .locator('[data-testid="billnew-form-actions"]')
+          .getByRole('button', { name: 'Boeken' }),
+      },
       { label: 'status', locator: page.getByText('Concept', { exact: true }) },
       {
         label: 'compute',
         locator: page.getByRole('button', { name: 'Btw berekenen voor regel 1' }),
       },
     ])
+  }
+
+  // Costs list tabs at 390 — one row (scroll horizontally, never wrap).
+  await page.goto('/purchases')
+  await expect(page.getByRole('heading', { name: 'Kosten' })).toBeVisible()
+  for (const theme of ['light', 'dark'] as const) {
+    await setTheme(page, theme)
+    await assertCostsTabsOneRow(page)
+    await assertNoHorizontalOverflow(page)
   }
 
   await page.setViewportSize({ width: 1440, height: 1040 })
@@ -474,6 +550,7 @@ test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control ov
   await page.setViewportSize({ width: 390, height: 844 })
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme)
+    await assertCostsTabsOneRow(page)
     const steps = page.getByRole('list', { name: 'Voortgang van de batch' })
     await expect(steps).toBeVisible()
     await expect(steps.getByText('Bestand gedownload')).toBeVisible()

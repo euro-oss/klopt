@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Check } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { AccountPicker } from '~/components/finance/account-picker'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -105,7 +105,6 @@ function NewPurchaseInvoice() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const key = useRef<string>(crypto.randomUUID())
   const dropKey = useRef<string>(crypto.randomUUID())
-  const captureRef = useRef<(andBook: boolean) => Promise<void>>(async () => {})
 
   const selectedSupplier = suppliers.find((row) => row.number === contactNumber) ?? null
 
@@ -235,8 +234,10 @@ function NewPurchaseInvoice() {
     await navigate({ to: '/purchases/$invoiceId', params: { invoiceId } })
   }
 
-  useEffect(() => {
-    captureRef.current = captureAndMaybeBook
+  // Always reads the latest form state — keyboard shortcuts must not save a
+  // stale closure (QA: STALE-123 saved as STALE-1).
+  const onCaptureShortcut = useEffectEvent((andBook: boolean) => {
+    void captureAndMaybeBook(andBook)
   })
 
   async function onDropFiles(files: FileList): Promise<void> {
@@ -333,12 +334,12 @@ function NewPurchaseInvoice() {
       if (!mod) return
       if (event.key === 's' || event.key === 'S') {
         event.preventDefault()
-        void captureRef.current(false)
+        onCaptureShortcut(false)
         return
       }
       if (event.key === 'Enter') {
         event.preventDefault()
-        void captureRef.current(true)
+        onCaptureShortcut(true)
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -384,45 +385,48 @@ function NewPurchaseInvoice() {
             {hydrated && <Keycap className="ml-1.5">Esc</Keycap>}
           </Link>
         </Button>
-        {canSaveDraft && (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={busy}
-            onClick={() => {
-              void captureAndMaybeBook(false)
-            }}
-          >
-            {busy ? t('common.busy') : t('purchaseNew.saveDraft')}
-            {hydrated && !busy && (
-              <span className="ml-1.5 inline-flex gap-0.5 normal-case">
-                <Keycap>{modLabel}</Keycap>
-                <Keycap>S</Keycap>
-              </span>
-            )}
-          </Button>
-        )}
-        {canBook && (
-          <Button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              void captureAndMaybeBook(true)
-            }}
-          >
-            {busy ? t('common.busy') : t('purchaseNew.book')}
-            {hydrated && !busy && (
-              <span className="ml-1.5 inline-flex gap-0.5 normal-case">
-                <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
-                  {modLabel}
-                </Keycap>
-                <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
-                  ↵
-                </Keycap>
-              </span>
-            )}
-          </Button>
-        )}
+        {/* Desktop: actions stay in the header. Phone uses sticky .form-actions (#38). */}
+        <div className="hidden items-center gap-2 md:flex">
+          {canSaveDraft && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                void captureAndMaybeBook(false)
+              }}
+            >
+              {busy ? t('common.busy') : t('purchaseNew.saveDraft')}
+              {hydrated && !busy && (
+                <span className="ml-1.5 inline-flex gap-0.5 normal-case">
+                  <Keycap>{modLabel}</Keycap>
+                  <Keycap>S</Keycap>
+                </span>
+              )}
+            </Button>
+          )}
+          {canBook && (
+            <Button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                void captureAndMaybeBook(true)
+              }}
+            >
+              {busy ? t('common.busy') : t('purchaseNew.book')}
+              {hydrated && !busy && (
+                <span className="ml-1.5 inline-flex gap-0.5 normal-case">
+                  <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
+                    {modLabel}
+                  </Keycap>
+                  <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
+                    ↵
+                  </Keycap>
+                </span>
+              )}
+            </Button>
+          )}
+        </div>
       </header>
 
       <form
@@ -753,6 +757,52 @@ function NewPurchaseInvoice() {
               ) : null}
             </div>
           </section>
+        </div>
+
+        {/* Sticky on phone so save/book stay above the OSK (#38 / QA #175). */}
+        <div
+          data-testid="billnew-form-actions"
+          className={cn('form-actions md:hidden', !canSaveDraft && !canBook && 'hidden')}
+        >
+          {canSaveDraft && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                void captureAndMaybeBook(false)
+              }}
+            >
+              {busy ? t('common.busy') : t('purchaseNew.saveDraft')}
+              {hydrated && !busy && (
+                <span className="ml-1.5 inline-flex gap-0.5 normal-case">
+                  <Keycap>{modLabel}</Keycap>
+                  <Keycap>S</Keycap>
+                </span>
+              )}
+            </Button>
+          )}
+          {canBook && (
+            <Button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                void captureAndMaybeBook(true)
+              }}
+            >
+              {busy ? t('common.busy') : t('purchaseNew.book')}
+              {hydrated && !busy && (
+                <span className="ml-1.5 inline-flex gap-0.5 normal-case">
+                  <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
+                    {modLabel}
+                  </Keycap>
+                  <Keycap className="border-primary-foreground/40 bg-primary text-primary-foreground">
+                    ↵
+                  </Keycap>
+                </span>
+              )}
+            </Button>
+          )}
         </div>
       </form>
     </div>
