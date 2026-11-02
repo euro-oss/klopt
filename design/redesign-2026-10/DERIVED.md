@@ -8,7 +8,7 @@ Hidde's desktop-light `Command` board (the command bar with the query "zand", ne
 
 | Board | What it is | Screenshots in `derived-shots/command-149/` |
 | --- | --- | --- |
-| `CommandDark.dc.html`, `theme` prop (default dark) | Own file: Hidde's `Command` at 1440, Inter on the invoice tiles, 1 2 3 4 keycaps, self-hosted fonts | `Command-dark-1440` |
+| `CommandDark.dc.html`, `theme` prop (default dark) | Own file: Hidde's `Command` at 1440, Inter on the invoice tiles, the shortcut sheet matched to the real keymap, self-hosted fonts | `Command-dark-1440` |
 | `PhoneCommand.dc.html`, `theme` and `view` props | The command bar at 390 as a full-screen search sheet. `view` = `results` (default: the query "zand") or `start` (empty: Create and Recent) | `Command-{results,start}-light-390` |
 | `PhoneCommandDark.dc.html`, `view` prop | `PhoneCommand` with `theme="dark"`, passes `view` on | `Command-{results,start}-dark-390` |
 
@@ -19,9 +19,24 @@ All three are registered in `canvas.json` (note `t149` at y 41700, boards at y 4
 A thin wrapper would keep two things the derived boards don't allow:
 
 - Hidde's three invoice tiles set the "#" glyph in JetBrains Mono (`font: 600 10px var(--font-mono)`). On derived boards mono is only for `.k-code` and the keycaps (`.k-kbd`, which the bundle sets in JetBrains Mono and which stay as drawn). The copy uses Inter 600 11px and hides the glyph from screen readers.
-- The "Switch tab" hint is `1 – 4`, with the dash as a keycap of its own. `shoot.mjs` flags a lone dash, and a dash isn't a key. The copy shows `1 2 3 4`, the same fix as the `1`–`3` hint on `ImportFindingsDark` (#152).
+- The shortcut sheet doesn't match the app's keymap (`apps/web/src/lib/keyboard.ts`). See "Keymap departures" below. Hidde's "Switch tab" hint also had a dash as a keycap of its own (`1 – 4`), which `shoot.mjs` flags.
 
-Also in the copy: amounts get `nowrap`, and the fonts are self-hosted (a wrapper can't remove Hidde's Google Fonts link). The layout, rows, keys and copy are Hidde's. The backdrop stays `--ink-faint`, which is #5a5a62 in dark. In dark the yellow selected row (`selection` with the `selection-edge` bar) keeps `ink` and muted text at 13.38 and 5.74:1.
+Also in the copy: amounts get `nowrap`, and the fonts are self-hosted (a wrapper can't remove Hidde's Google Fonts link). Apart from the keymap departures, the layout, rows, keys and copy are Hidde's. The backdrop stays `--ink-faint`, which is #5a5a62 in dark. In dark the yellow selected row (`selection` with the `selection-edge` bar) keeps `ink` and muted text at 13.38 and 5.74:1.
+
+### Keymap departures from Hidde's `Command`
+
+Made on `CommandDark` to match the real keymap in `apps/web/src/lib/keyboard.ts` (and `docs/keyboard-map.md`, which says the sheet lists tabs as `1`–`5` and includes `G J`). Hidde's light board is unchanged and still shows his version.
+
+1. **Switch tab: `1 2 3 4 5`** (Hidde: `1 – 4`). `tabs.switch` has keys `1-5` (keyboard.ts:46): Reports has five tabs.
+2. **Journal `G J` in Go to**, after Bank and before VAT, where Journal sits in the sidebar (Books: Journal, VAT, Reports). `go.journal` (keyboard.ts:53). Hidde's sheet has no Journal row.
+3. **`N C` moves from Create to Go to, as "Contacts".** `new.contact` goes to `/contacts`, the list, not a new-contact form (keyboard.ts:280–285; the app's label is "Go to contacts"). It shares the Contacts row with `G R`: "`G R` or `N C`". Create keeps Invoice and Receipt or bill.
+4. **`⌘ ↵` is "Save (on each screen)"** (Hidde: "Save and continue"). There is no global ⌘↵. Each form binds its own: `invoiceForm.save`, `invoice.issue`, `entry.post` (keyboard.ts:388–414).
+
+### Not built yet
+
+| Command-bar hint on `CommandDark` (and Hidde's `Command`) | State in the app |
+| --- | --- |
+| `Tab` "actions for this item", `⌘ ↵` on "New invoice for Zandbank Advies", and "Type > for commands only" | Not built. `keyboard.ts` has no palette binding for Tab, ⌘↵ or a `>` prefix (the palette group has only `palette` ⌘K and `help` ?, keyboard.ts:35–42), and the palette handles only Escape, ↑, ↓ and Enter (`components/command-palette.tsx`). They stay visible on the board as design targets. |
 
 ### Phone: what the command bar becomes
 
@@ -31,6 +46,7 @@ A phone has no keyboard shortcuts, so on phone the command bar is a **search she
 - **No key hints.** No `Esc`, `↵` or `⌘ ↵` chips, no ↑ ↓ / ↵ / Tab footer and no "Type > for commands only". Commands appear in the results as rows, as they do on desktop.
 - **Nothing pre-selected.** On desktop the yellow row is the keyboard cursor. A phone has no cursor, so every row looks the same and tapping one opens it.
 - **Rows are links, 56px or more,** with a 32px tile and a chevron, in Hidde's groups: Contact, "Do something with it", Invoices. A row's trailing detail moves to a second line ("Customer · 4 invoices · € 958,34 overdue", "128 days late", "28 Nov · paid"). The amount stays on the right in Inter tabular, and "€ 958,34 overdue" doesn't wrap.
+- **"New contact" stays on `view=start`.** `N C` only opens the list, but the app does have a create-contact flow: the New contact button on `/contacts` opens the form (`contacts.new`, `routes/_app/contacts.index.tsx`). So the row stays and goes to `PhoneContacts`, where that button is.
 - **`view=start`** is the empty sheet: placeholder "Search or jump to" (the sidebar's label), then **Create** (New invoice, Receipt or bill, New contact) and **Recent** (a contact, an invoice, a page). This shows how actions work on phone without a query.
 
 ### Phone: no shortcut sheet
@@ -86,6 +102,9 @@ Strings Hidde already has on `Command` are not repeated here.
 | 28 Nov · paid / 26 Jul · overdue | 28 nov · betaald / 26 jul · te laat |
 | Create | Nieuw |
 | New invoice / Receipt or bill / New contact | Nieuwe factuur / Bon of factuur / Nieuw contact |
+| Journal (Go to) | Journaal |
+| Contacts: G R or N C | Relaties: G R of N C |
+| Save (on each screen) | Opslaan (op elk scherm) |
 | Take a photo or choose a file | Maak een foto of kies een bestand |
 | Recent | Recent |
 | Contact / Invoice · Zandbank Advies / Page | Contact / Factuur · Zandbank Advies / Pagina |

@@ -13,7 +13,7 @@
   query "zand" and the keyboard shortcut sheet, same content and layout.
   Its own file, not a theme="dark" wrapper, because Hidde's invoice tiles set the "#" glyph in
   JetBrains Mono (font: 600 10px var(--font-mono)); on derived boards mono is only for .k-code and
-  keycaps (.k-kbd), so the tiles use Inter 600 11px. The "Switch tab" hint shows the keys 1 2 3 4 instead of 1 – 4 (a lone dash in a keycap, as on ImportFindings in #152). A wrapper also can't drop the Google Fonts link.
+  keycaps (.k-kbd), so the tiles use Inter 600 11px. Keymap departures, to match apps/web/src/lib/keyboard.ts (see DERIVED.md): "Switch tab" shows 1 2 3 4 5 (tabs.switch, keys 1-5; Hidde: 1 – 4); Go gets Journal G J (go.journal) before VAT; N C (new.contact) only opens the contacts list, so it moves from Create to the Go row "Contacts" next to G R; ⌘↵ is "Save (on each screen)" (Hidde: "Save and continue"). The command-bar hints (Tab for actions, ⌘↵ on "New invoice for…", "Type > for commands only") stay as design targets; they are not built yet. A wrapper also can't drop the Google Fonts link.
   Amounts get nowrap. Everything else is Hidde's: keycaps stay .k-kbd (JetBrains Mono), the
   backdrop stays --ink-faint, which in dark is #5a5a62.
   Takes `theme` (default dark).
@@ -24,6 +24,8 @@
 <style>
 body{margin:0;background:#111113}
 .nw{white-space:nowrap}
+.alt{display:inline-flex;align-items:center;gap:6px}
+.or{font-size:12px;color:var(--ink-muted)}
 .ic{width:28px;height:28px;border-radius:7px}
 .sr{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-top:1px solid var(--line-soft)}
 .sr > span:first-child{color:var(--ink-2)}
@@ -95,9 +97,10 @@ body{margin:0;background:#111113}
         <div class="sr"><span>Sales</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">F</span></span></div>
         <div class="sr"><span>Costs</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">N</span></span></div>
         <div class="sr"><span>Bank</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">K</span></span></div>
+        <div class="sr"><span>Journal</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">J</span></span></div>
         <div class="sr"><span>VAT</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">G</span></span></div>
         <div class="sr"><span>Reports</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">W</span></span></div>
-        <div class="sr"><span>Contacts</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">R</span></span></div>
+        <div class="sr"><span>Contacts</span><span class="alt"><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">R</span></span><span class="or">or</span><span class="k-chord"><span class="k-kbd">N</span><span class="k-kbd">C</span></span></span></div>
         <div class="sr"><span>Settings</span><span class="k-chord"><span class="k-kbd">G</span><span class="k-kbd">I</span></span></div>
       </div>
       <div style="display: flex; flex-direction: column; gap: 20px;">
@@ -105,7 +108,6 @@ body{margin:0;background:#111113}
           <h3 class="sh">Create</h3>
           <div class="sr"><span>Invoice</span><span class="k-chord"><span class="k-kbd">N</span><span class="k-kbd">F</span></span></div>
           <div class="sr"><span>Receipt or bill</span><span class="k-chord"><span class="k-kbd">N</span><span class="k-kbd">R</span></span></div>
-          <div class="sr"><span>Contact</span><span class="k-chord"><span class="k-kbd">N</span><span class="k-kbd">C</span></span></div>
         </div>
         <div>
           <h3 class="sh">In any list</h3>
@@ -113,12 +115,12 @@ body{margin:0;background:#111113}
           <div class="sr"><span>Open</span><span class="k-kbd">↵</span></div>
           <div class="sr"><span>Select</span><span class="k-kbd">X</span></div>
           <div class="sr"><span>Filter</span><span class="k-kbd">/</span></div>
-          <div class="sr"><span>Switch tab</span><span class="k-chord"><span class="k-kbd">1</span><span class="k-kbd">2</span><span class="k-kbd">3</span><span class="k-kbd">4</span></span></div>
+          <div class="sr"><span>Switch tab</span><span class="k-chord"><span class="k-kbd">1</span><span class="k-kbd">2</span><span class="k-kbd">3</span><span class="k-kbd">4</span><span class="k-kbd">5</span></span></div>
         </div>
         <div>
           <h3 class="sh">Anywhere</h3>
           <div class="sr"><span>Search or command</span><span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">K</span></span></div>
-          <div class="sr"><span>Save and continue</span><span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">↵</span></span></div>
+          <div class="sr"><span>Save (on each screen)</span><span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">↵</span></span></div>
           <div class="sr"><span>Close, go back</span><span class="k-kbd">Esc</span></div>
         </div>
       </div>
