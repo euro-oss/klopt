@@ -9,6 +9,8 @@ import { cn } from '~/lib/utils'
  * Hidden entirely when the corresponding env URLs are unset (self-hosted).
  * The checkbox stays unticked by default; submit must refuse until it is ticked
  * when `agreementRequired` is true. No marketing or other consent is bundled.
+ * The whole row is the hit target; terms/DPA links stopPropagation so a tap
+ * opens the document without ticking the box.
  */
 
 export function PrivacyNoticeLink({
@@ -37,17 +39,46 @@ export function PrivacyNoticeLink({
   )
 }
 
+/** Invitee first-sign-in line: one mention of the privacy notice, with the link. */
+export function PrivacyStepLine({
+  privacyUrl,
+  className,
+}: {
+  readonly privacyUrl: string | null
+  readonly className?: string
+}) {
+  const { t } = useT()
+  if (privacyUrl === null) return null
+
+  return (
+    <p id="sign-in-heading" className={cn('text-ink m-0 text-base leading-6', className)}>
+      {t('legal.privacyStepBefore')}
+      <a
+        href={privacyUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-link underline underline-offset-4"
+      >
+        {t('legal.privacyReadLink')}
+      </a>
+      {t('legal.privacyStepAfter')}
+    </p>
+  )
+}
+
 export function LegalAgreementCheckbox({
   legal,
   checked,
   onCheckedChange,
   disabled,
+  invalid,
   id = 'legal-agreement',
 }: {
   readonly legal: PublicLegalConfig
   readonly checked: boolean
   readonly onCheckedChange: (checked: boolean) => void
   readonly disabled?: boolean
+  readonly invalid?: boolean
   readonly id?: string
 }) {
   const { t } = useT()
@@ -56,18 +87,19 @@ export function LegalAgreementCheckbox({
   }
 
   return (
-    <div className="flex min-h-11 items-start gap-3">
+    <label htmlFor={id} className="flex min-h-11 w-full cursor-pointer items-start gap-3 py-2">
       <Checkbox
         id={id}
         checked={checked}
         disabled={disabled}
+        aria-invalid={invalid === true ? true : undefined}
+        aria-required="true"
         onCheckedChange={(value) => {
           onCheckedChange(value === true)
         }}
-        className="border-ink-muted mt-1 size-5"
-        aria-required="true"
+        className="border-ink-muted mt-0.5 size-5"
       />
-      <label htmlFor={id} className="text-ink text-sm leading-snug">
+      <span className="text-ink text-sm leading-snug">
         {t('legal.agreePrefix')}
         <a
           href={legal.termsUrl}
@@ -93,7 +125,7 @@ export function LegalAgreementCheckbox({
           {t('legal.dpa')}
         </a>
         {t('legal.agreeSuffix')}
-      </label>
-    </div>
+      </span>
+    </label>
   )
 }

@@ -6,11 +6,11 @@ import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Keycap } from '~/components/ui/keycap'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
-import { Stepper } from '~/components/ui/stepper'
 import { violationMessage } from '~/i18n/labels'
 import { intlTag } from '~/i18n/locale'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
+import { isApple } from '~/lib/keyboard'
 import { cn } from '~/lib/utils'
 import { getSession } from '~/server/context'
 import { getLegalConfig } from '~/server/legal'
@@ -27,10 +27,10 @@ import { beginSetup, createAdministration } from '~/server/setup'
  * Outside the `_app` layout on purpose: that layout is about being inside an
  * administration, and this is how one comes to exist.
  *
- * Desktop-light reskin of the #106 Setup board (#138 / #140): stepper chrome
- * for the three planned steps, form on step 1 (company). History and bank
- * steps are visual only until those flows ship — submit still provisions via
- * `PUT /entities/{id}` as today. Dark and phone follow later boards.
+ * Desktop-light reskin of the #106 Setup board (#138 / #140). The board's
+ * History and Bank steps are not shipped yet, so the stepper stays hidden —
+ * submit provisions via `PUT /entities/{id}` and lands on Home. Dark and
+ * phone follow later boards.
  */
 export const Route = createFileRoute('/setup')({
   beforeLoad: async ({ location }) => {
@@ -119,6 +119,7 @@ function Setup() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [acceptedLegal, setAcceptedLegal] = useState(false)
+  const modKey = isApple() ? '⌘' : 'Ctrl'
 
   /**
    * One id per visit, held across re-renders so that submitting twice submits
@@ -127,11 +128,28 @@ function Setup() {
    */
   const entityId = useRef<string>(setup.ok ? setup.data.entityId : '')
   const nameRef = useRef<HTMLInputElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
 
   // Focus after hydration — `autoFocus` on SSR marks a style mismatch in React 19.
   useEffect(() => {
     if (hydrated) nameRef.current?.focus()
   }, [hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Enter') return
+      const wantsMod = isApple() ? event.metaKey : event.ctrlKey
+      if (!wantsMod || event.shiftKey || event.altKey) return
+      if (formRef.current === null || busy) return
+      event.preventDefault()
+      formRef.current.requestSubmit()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [hydrated, busy])
 
   const thisYear = String(new Date().getUTCFullYear())
 
@@ -141,6 +159,10 @@ function Setup() {
     if (legal.agreementRequired && !acceptedLegal) {
       setFieldErrors({ acceptedLegal: t('legal.required') })
       setError(null)
+      // Focus the checkbox so the aria-invalid message is not orphaned.
+      requestAnimationFrame(() => {
+        document.getElementById('legal-agreement')?.focus()
+      })
       return
     }
 
@@ -221,12 +243,6 @@ function Setup() {
     )
   }
 
-  const steps = [
-    { id: 'company', label: t('setup.stepCompany') },
-    { id: 'history', label: t('setup.stepHistory') },
-    { id: 'bank', label: t('setup.stepBank') },
-  ]
-
   return (
     <div className="bg-ground text-ink flex min-h-screen flex-col">
       <header className="border-line flex items-center gap-3 border-b px-6 py-5 md:px-10">
@@ -245,8 +261,6 @@ function Setup() {
 
       <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-wrap items-start gap-10 p-6 md:p-10">
         <div className="flex min-w-0 flex-[999_1_520px] flex-col gap-6">
-          <Stepper steps={steps} current={0} aria-label={t('setup.stepperLabel')} />
-
           <div className="flex flex-col gap-1.5">
             <h1 className="m-0 text-[28px] leading-[34px] font-semibold tracking-[-0.02em]">
               {t('setup.title')}
@@ -261,6 +275,7 @@ function Setup() {
           )}
 
           <form
+            ref={formRef}
             onSubmit={(event) => {
               void submit(event)
             }}
@@ -413,8 +428,18 @@ function Setup() {
             <LegalAgreementCheckbox
               legal={legal}
               checked={acceptedLegal}
-              onCheckedChange={setAcceptedLegal}
+              onCheckedChange={(value) => {
+                setAcceptedLegal(value)
+                if (value) {
+                  setFieldErrors((current) => {
+                    if (current['acceptedLegal'] === undefined) return current
+                    const { acceptedLegal: _removed, ...rest } = current
+                    return rest
+                  })
+                }
+              }}
               disabled={busy || !hydrated}
+              invalid={fieldErrors['acceptedLegal'] !== undefined}
             />
             {problem('acceptedLegal')}
 
@@ -427,16 +452,12 @@ function Setup() {
             )}
 
             <div className="flex flex-wrap items-center gap-3 pt-1">
-              <Button
-                type="submit"
-                disabled={busy || !hydrated || (legal.agreementRequired && !acceptedLegal)}
-                className="min-h-11 gap-2"
-              >
+              <Button type="submit" disabled={busy || !hydrated} className="min-h-11 gap-2">
                 {busy ? t('common.busy') : t('setup.create')}
-                {!busy && (
+                {!busy && hydrated && (
                   <span className="hidden items-center gap-0.5 sm:inline-flex">
                     <Keycap className="border-primary-foreground/30 bg-primary text-primary-foreground">
-                      ⌘
+                      {modKey}
                     </Keycap>
                     <Keycap className="border-primary-foreground/30 bg-primary text-primary-foreground">
                       ↵

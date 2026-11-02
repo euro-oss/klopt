@@ -6,15 +6,16 @@ import { findUserIdByEmail } from '@klopt/db/testing'
 import { chooseOption, codeFor, DATABASE_URL, signIn, signOut, uniqueEmail } from './support'
 
 /**
- * SignIn + Setup redesign (#138 / #140 board) — desktop light 1440.
+ * SignIn + Setup redesign (#138 / #140 board) — light and dark at 1440 and 390.
  *
  * Covers reaching both screens, empty and filled states, legal checkbox
  * hidden when env is unset and shown+required when set, keyboard-only flow,
- * no console errors, acceptance recording, and the invitee one-time privacy
- * notice (first sign-in only + `privacy_notice` row).
+ * auto-submit at the 6th digit, checkbox link stopPropagation, Mod+Enter on
+ * Setup, no console errors, acceptance recording, and the invitee one-time
+ * privacy notice (first sign-in only + `privacy_notice` row).
  */
 
-const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '138'
+const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '169'
 const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', PR)
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
 
@@ -56,10 +57,33 @@ function trackConsole(page: Page): { errors: string[]; detach: () => void } {
   }
 }
 
+async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
+  await page.evaluate((t) => {
+    document.documentElement.classList.toggle('dark', t === 'dark')
+  }, theme)
+  await page.waitForFunction(
+    (wantDark) => document.documentElement.classList.contains('dark') === wantDark,
+    theme === 'dark',
+  )
+}
+
 async function shot(page: Page, name: string): Promise<void> {
   if (!CAPTURE) return
+  for (const theme of ['light', 'dark'] as const) {
+    await setTheme(page, theme)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.screenshot({
+      path: join(OUT, `${name}-${theme}-desktop-1440.png`),
+      fullPage: true,
+    })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.screenshot({
+      path: join(OUT, `${name}-${theme}-mobile-390.png`),
+      fullPage: true,
+    })
+  }
+  await setTheme(page, 'light')
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.screenshot({ path: join(OUT, `${name}-light-desktop-1440.png`), fullPage: true })
 }
 
 test('SignIn and Setup redesign: empty/filled, legal env, keyboard, no console errors', async ({
@@ -80,6 +104,7 @@ test('SignIn and Setup redesign: empty/filled, legal env, keyboard, no console e
   ).toBeVisible()
   await expect(page.getByRole('link', { name: /privacyverklaring|privacy notice/i })).toHaveCount(0)
   await expect(page.getByRole('checkbox')).toHaveCount(0)
+  await expect(page.getByText('Nieuw hier?')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Stuur me een code' })).toBeEnabled()
   await shot(page, '01-sign-in-empty')
 
@@ -94,18 +119,26 @@ test('SignIn and Setup redesign: empty/filled, legal env, keyboard, no console e
   await page.keyboard.press('Enter')
   await expect(page.getByLabel('Code')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Check je e-mail' })).toBeVisible()
+  await expect(page.getByText('We hebben een code van 6 cijfers gestuurd naar')).toBeVisible()
+  await expect(page.getByText(selfHostedEmail)).toBeVisible()
+  // First send must not repeat the "code sent" sentence as a notice.
+  await expect(page.getByText('Nieuwe code verstuurd.')).toHaveCount(0)
 
   const code = await codeFor(selfHostedEmail)
-  await page.getByLabel('Code').fill(code)
+  // Fill five digits, shoot the filled code step, then the 6th digit auto-submits.
+  await page.getByLabel('Code').fill(code.slice(0, 5))
+  await expect(page.getByLabel('Code')).toHaveValue(code.slice(0, 5))
   await shot(page, '02-sign-in-code-filled')
-  await expect(page.getByRole('button', { name: 'Aanmelden' })).toBeEnabled()
-  await page.getByRole('button', { name: 'Aanmelden' }).click()
-
+  await page.getByLabel('Code').pressSequentially(code.slice(5))
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await expect(page).toHaveURL(/\/setup$/)
   await expect(page.getByRole('heading', { name: 'Zet je administratie op' })).toBeVisible()
-  await expect(page.getByRole('list', { name: 'Opzetten' })).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Opzetten' })).toHaveCount(0)
+  await expect(page.getByText('Daarna kom je op Home.')).toBeVisible()
+  await expect(page.getByText('Valuta en boekjaar kun je later niet meer wijzigen.')).toBeVisible()
+  await expect(page.getByLabel('Boekjaar', { exact: true })).toBeVisible()
   await expect(page.getByRole('checkbox')).toHaveCount(0)
   await expect(page.getByRole('link', { name: /privacyverklaring|privacy notice/i })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Uitloggen' })).toBeVisible()
@@ -116,7 +149,8 @@ test('SignIn and Setup redesign: empty/filled, legal env, keyboard, no console e
   await shot(page, '03-setup-filled')
 
   await expect(page.getByRole('button', { name: 'Administratie aanmaken' })).toBeEnabled()
-  await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
+  // Mod+Enter submits (⌘ on Apple, Ctrl elsewhere).
+  await page.keyboard.press('Control+Enter')
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
   ).toBeVisible()
@@ -160,11 +194,23 @@ test('SignIn and Setup redesign: empty/filled, legal env, keyboard, no console e
     'https://example.test/dpa',
   )
   await expect(page.getByRole('link', { name: 'privacyverklaring' })).toBeVisible()
+  await expect(page.getByLabel('Boekjaar', { exact: true })).toBeVisible()
+  const create = page.getByRole('button', { name: 'Administratie aanmaken' })
+  await expect(create).toBeEnabled()
   await shot(page, '04-setup-legal-unticked')
 
+  // Submit without the tick: button stays enabled, inline message appears.
   await page.getByLabel('Naam', { exact: true }).fill('Eva Hosted BV')
-  const create = page.getByRole('button', { name: 'Administratie aanmaken' })
-  await expect(create).toBeDisabled()
+  await create.click()
+  await expect(page.getByText('Vink dit aan om door te gaan.')).toBeVisible()
+  await expect(page.getByRole('checkbox')).toHaveAttribute('aria-invalid', 'true')
+
+  // Tapping a legal link must not tick the box (stopPropagation).
+  const popupPromise = page.waitForEvent('popup')
+  await page.getByRole('link', { name: 'voorwaarden' }).click()
+  const popup = await popupPromise
+  await popup.close()
+  await expect(page.getByRole('checkbox')).not.toBeChecked()
 
   // Keyboard: focus checkbox, Space to tick, then submit
   await page.getByRole('checkbox').focus()
@@ -196,6 +242,30 @@ test('SignIn and Setup redesign: empty/filled, legal env, keyboard, no console e
 
   consoleProbe.detach()
   expect(consoleProbe.errors, `console errors: ${consoleProbe.errors.join('\n')}`).toEqual([])
+})
+
+test('SignIn → Setup at 390: wrapping and 44px targets', async ({ page }) => {
+  await withoutHostedLegal(page)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/sign-in')
+  await expect(page.getByRole('heading', { name: 'Aanmelden' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Stuur me een code' })).toBeEnabled()
+
+  const email = uniqueEmail()
+  await page.getByLabel('E-mail').fill(email)
+  await page.getByRole('button', { name: 'Stuur me een code' }).click()
+  await expect(page.getByLabel('Code')).toBeVisible()
+  const code = await codeFor(email)
+  await page.getByLabel('Code').fill(code)
+  await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+  await page.getByRole('link', { name: 'Administratie opzetten' }).click()
+  await expect(page.getByRole('heading', { name: 'Zet je administratie op' })).toBeVisible()
+  await expect(page.getByLabel('Boekjaar', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Administratie aanmaken' })).toBeEnabled()
+
+  const createBox = await page.getByRole('button', { name: 'Administratie aanmaken' }).boundingBox()
+  expect(createBox).not.toBeNull()
+  expect(createBox!.height).toBeGreaterThanOrEqual(44)
 })
 
 test('invitee privacy notice: shown on first sign-in only, and recorded', async ({ browser }) => {
@@ -234,14 +304,15 @@ test('invitee privacy notice: shown on first sign-in only, and recorded', async 
     await expect(inviteePage.getByRole('button', { name: 'Stuur me een code' })).toBeEnabled()
     await signIn(inviteePage, inviteeEmail)
 
-    await expect(inviteePage.getByRole('heading', { name: 'Privacyverklaring' })).toBeVisible()
-    await expect(
-      inviteePage.getByText(/Lees onze privacyverklaring voordat je verdergaat/),
-    ).toBeVisible()
+    // One line with the link — no tag, no second privacy link line.
+    await expect(inviteePage.getByRole('heading', { name: 'Privacyverklaring' })).toHaveCount(0)
+    await expect(inviteePage.getByText(/Lees onze/)).toBeVisible()
     await expect(inviteePage.getByRole('link', { name: 'privacyverklaring' })).toHaveAttribute(
       'href',
       'https://example.test/privacy',
     )
+    await expect(inviteePage.getByRole('link', { name: 'privacyverklaring' })).toHaveCount(1)
+    await expect(inviteePage.getByText(/voordat je verdergaat/)).toBeVisible()
     await expect(inviteePage.getByRole('checkbox')).toHaveCount(0)
     await shot(inviteePage, '05-invitee-privacy-first')
 
@@ -270,7 +341,7 @@ test('invitee privacy notice: shown on first sign-in only, and recorded', async 
     await withHostedLegal(inviteePage)
     await expect(inviteePage.getByRole('button', { name: 'Stuur me een code' })).toBeEnabled()
     await signIn(inviteePage, inviteeEmail)
-    await expect(inviteePage.getByRole('heading', { name: 'Privacyverklaring' })).toHaveCount(0)
+    await expect(inviteePage.getByRole('link', { name: 'privacyverklaring' })).toHaveCount(0)
     await expect(
       inviteePage.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
     ).toBeVisible()

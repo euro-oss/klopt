@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Keycap } from '~/components/ui/keycap'
-import { PrivacyNoticeLink } from '~/components/legal-links'
+import { PrivacyNoticeLink, PrivacyStepLine } from '~/components/legal-links'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
@@ -99,6 +99,7 @@ function SignIn() {
    */
   const hydrated = useHydrated()
   const codeRef = useRef<HTMLInputElement>(null)
+  const verifyingRef = useRef(false)
 
   useEffect(() => {
     if (step === 'code') codeRef.current?.focus()
@@ -117,11 +118,11 @@ function SignIn() {
     }
   }
 
-  async function requestCode(address: string) {
+  async function requestCode(address: string, options?: { readonly resend?: boolean }) {
     if (address === '') return
     setBusy(true)
     setError(null)
-    setNotice(null)
+    if (options?.resend !== true) setNotice(null)
     setEmail(address)
 
     const response = await post('/api/auth/email-otp/send-verification-otp', {
@@ -138,7 +139,9 @@ function SignIn() {
     }
 
     setStep('code')
-    setNotice(t('signIn.codeSent', { digits: String(CODE_LENGTH), email: address }))
+    // First send: the intro already says we sent a code. Only a resend shows
+    // a notice, so the sentence does not appear twice.
+    setNotice(options?.resend === true ? t('signIn.codeSent') : null)
   }
 
   function onRequestSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -151,19 +154,22 @@ function SignIn() {
     await navigate({ to: target ?? '/', reloadDocument: true })
   }
 
-  async function submitCode(event: React.FormEvent) {
-    event.preventDefault()
+  async function verifyCode(otp: string) {
+    if (verifyingRef.current || otp.length !== CODE_LENGTH) return
+    verifyingRef.current = true
     setBusy(true)
     setError(null)
 
-    const response = await post('/api/auth/sign-in/email-otp', { email, otp: code })
+    const response = await post('/api/auth/sign-in/email-otp', { email, otp })
     if (response === null) {
       setBusy(false)
+      verifyingRef.current = false
       return
     }
 
     if (!response.ok) {
       setBusy(false)
+      verifyingRef.current = false
       setCode('')
       codeRef.current?.focus()
       setError(t('signIn.codeWrong'))
@@ -175,11 +181,17 @@ function SignIn() {
     const pending = await privacyNoticePending()
     if (pending.show) {
       setBusy(false)
+      verifyingRef.current = false
       setStep('privacy')
       return
     }
 
     await finishSignIn()
+  }
+
+  async function submitCode(event: React.FormEvent) {
+    event.preventDefault()
+    await verifyCode(code)
   }
 
   async function continueAfterPrivacy() {
@@ -194,12 +206,7 @@ function SignIn() {
     await finishSignIn()
   }
 
-  const stepLabel =
-    step === 'email'
-      ? t('signIn.step1')
-      : step === 'code'
-        ? t('signIn.step2')
-        : t('legal.privacyStepTitle')
+  const stepLabel = step === 'email' ? t('signIn.step1') : t('signIn.step2')
 
   return (
     <main className="bg-ground text-ink flex min-h-screen overflow-x-clip">
@@ -229,19 +236,15 @@ function SignIn() {
           className="border-line bg-surface flex w-full max-w-[380px] flex-col gap-5 rounded-[var(--radius-lg)] border p-5 sm:p-8 shadow-[var(--shadow-raised)]"
           aria-labelledby="sign-in-heading"
         >
-          <span className="bg-surface-sunken text-ink-2 inline-flex h-[1.375rem] w-fit items-center rounded-[var(--radius-pill)] px-1.5 text-xs font-medium">
-            {stepLabel}
-          </span>
+          {step !== 'privacy' && (
+            <span className="bg-surface-sunken text-ink-2 inline-flex h-[1.375rem] w-fit items-center rounded-[var(--radius-pill)] px-1.5 text-xs font-medium">
+              {stepLabel}
+            </span>
+          )}
 
           {step === 'privacy' ? (
             <>
-              <div className="flex flex-col gap-1">
-                <h2 id="sign-in-heading" className="text-[22px] leading-7 font-semibold">
-                  {t('legal.privacyStepTitle')}
-                </h2>
-                <p className="text-ink-2 m-0 text-sm">{t('legal.privacyStepIntro')}</p>
-              </div>
-              <PrivacyNoticeLink privacyUrl={legal.privacyUrl} />
+              <PrivacyStepLine privacyUrl={legal.privacyUrl} />
               {error !== null && (
                 <p role="alert" className="text-destructive text-sm">
                   {error}
@@ -264,9 +267,12 @@ function SignIn() {
                 <h2 id="sign-in-heading" className="text-[22px] leading-7 font-semibold">
                   {step === 'email' ? t('signIn.title') : t('signIn.checkEmail')}
                 </h2>
-                <p className="text-ink-2 m-0 text-sm">
-                  {step === 'email' ? t('signIn.introEmail') : t('signIn.introCode', { email })}{' '}
-                  {step === 'code' && (
+                {step === 'email' ? (
+                  <p className="text-ink-2 m-0 text-sm">{t('signIn.introEmail')}</p>
+                ) : (
+                  <div className="text-ink-2 text-sm">
+                    <p className="m-0">{t('signIn.introCode')}</p>
+                    <p className="text-ink m-0 break-all font-medium">{email}</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -275,12 +281,12 @@ function SignIn() {
                         setError(null)
                         setNotice(null)
                       }}
-                      className="text-link min-h-11 underline underline-offset-4"
+                      className="text-link mt-1 min-h-11 underline underline-offset-4"
                     >
                       {t('signIn.change')}
                     </button>
-                  )}
-                </p>
+                  </div>
+                )}
               </div>
 
               {step === 'email' ? (
@@ -318,9 +324,9 @@ function SignIn() {
                     )}
                   </Button>
 
-                  <p className="text-ink-muted m-0 text-[13px]">
-                    {legal.signupClosed ? t('signIn.inviteOnly') : t('signIn.openSignup')}
-                  </p>
+                  {legal.signupClosed && (
+                    <p className="text-ink-muted m-0 text-[13px]">{t('signIn.inviteOnly')}</p>
+                  )}
                 </form>
               ) : (
                 <form
@@ -344,7 +350,11 @@ function SignIn() {
                         required
                         value={code}
                         onChange={(event) => {
-                          setCode(event.target.value.replace(/\D/g, ''))
+                          const next = event.target.value.replace(/\D/g, '').slice(0, CODE_LENGTH)
+                          setCode(next)
+                          if (next.length === CODE_LENGTH) {
+                            void verifyCode(next)
+                          }
                         }}
                         className="border-ink-muted min-h-11 text-center font-mono text-lg tracking-[0.4em] tabular-nums"
                       />
@@ -371,13 +381,13 @@ function SignIn() {
                     {busy ? t('common.busy') : t('signIn.verify')}
                   </Button>
 
-                  <div className="text-ink-muted flex items-center justify-between gap-3 text-[13px]">
+                  <div className="text-ink-muted flex flex-col items-start gap-1 text-[13px]">
                     <span>{t('signIn.codeValid')}</span>
                     <button
                       type="button"
                       disabled={busy || !hydrated}
                       onClick={() => {
-                        void requestCode(email)
+                        void requestCode(email, { resend: true })
                       }}
                       className="text-link min-h-11 underline underline-offset-4"
                     >
