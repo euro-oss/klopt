@@ -1,6 +1,6 @@
 # #94 — Moneybird untagged VAT: detection SQL (future cases)
 
-Hosted check (Neverhide, 2026-10-23): **0** Moneybird-sourced journal entries and
+Hosted check (Voorbeeld BV, 2026-10-23): **0** Moneybird-sourced journal entries and
 **0** VAT filings, so no backfill is needed now. Keep this note for later
 administrations that imported before the tagging fix.
 

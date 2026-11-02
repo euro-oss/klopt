@@ -152,7 +152,7 @@ describe('guided invoice helpers', () => {
         name: 'Hotel Zeezicht B.V.',
         number: 'DEB-1',
         email: 'a@hotel.example.nl',
-        city: 'Vlissingen',
+        city: 'Zeezicht',
       },
       { name: 'Lunchroom Het Hoekje', number: 'DEB-2', email: null, city: 'Middelburg' },
     ]
@@ -189,12 +189,12 @@ describe('guided invoice helpers', () => {
   it('omits blank seller address lines and never invents identifiers', () => {
     expect(
       sellerAddressLines({
-        street: 'Lange Delft',
-        houseNumber: '41',
+        street: 'Proefstraat',
+        houseNumber: '1',
         postalCode: null,
-        city: 'Middelburg',
+        city: 'Testdorp',
       }),
-    ).toEqual(['Lange Delft 41', 'Middelburg'])
+    ).toEqual(['Proefstraat 1', 'Testdorp'])
     expect(sellerIdentifiers({ kvkNumber: null, vatNumber: null })).toBe('')
     expect(sellerIdentifiers({ kvkNumber: '61234567', vatNumber: 'NL861234567B01' })).toBe(
       'KvK 61234567 · NL861234567B01',

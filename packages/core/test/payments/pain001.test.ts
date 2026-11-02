@@ -59,7 +59,7 @@ const batch = (overrides: Partial<PaymentBatch> = {}): PaymentBatch => ({
       id: 'i2',
       endToEndId: 'INK-2026-0008',
       creditorName: 'Groothandel Van Dam',
-      creditorIban: 'NL91RABO0315273637',
+      creditorIban: 'NL91ABNA0417164300',
       creditorBic: null,
       amount: 121_000n,
       currency: 'EUR',
