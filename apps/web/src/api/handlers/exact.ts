@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import {
   ExactReadError,
   findDivision,
+  mapExactVatCodes,
   planExactImport,
   selectableDivisions,
   type ExactDivision,
@@ -587,12 +588,13 @@ export async function handlePreviewExactImport(context: RequestContext, query: E
   // What the plan needs to say "new" or "already here" about every row: the
   // entity's own currency, its chart, its tax codes and its contact numbers.
   const here = await withReporting(context.database, async (repository) => {
-    const [entity, resolutions, accounts] = await Promise.all([
+    const [entity, resolutions, accounts, taxRules] = await Promise.all([
       repository.entity(context.entityId),
       repository.importResolutions(context.entityId),
       repository.listAccounts(context.entityId),
+      repository.taxRules(context.entityId),
     ])
-    return { entity, resolutions, accounts }
+    return { entity, resolutions, accounts, taxRules }
   })
 
   if (here.entity === null) throw new ApiError('not_found', 'No such administration.')
@@ -630,6 +632,19 @@ export async function handlePreviewExactImport(context: RequestContext, query: E
       existingTaxCodes: here.resolutions.taxCodes,
     })
 
+    // Read-only Exact → Klopt VAT recognition for the wizard (#100). Display
+    // only — import still keeps defaults only on string code match.
+    const vatMapping = mapExactVatCodes({
+      vatCodes: snapshot.vatCodes,
+      accounts: snapshot.glAccounts.map((account: (typeof snapshot.glAccounts)[number]) => ({
+        number: account.code,
+        name: account.description,
+        vatCode: account.vatCode,
+      })),
+      kloptRules: here.taxRules,
+      existingTaxCodes: here.resolutions.taxCodes,
+    })
+
     // The read worked, whatever the last attempt did.
     await withExactConnection(context.database, (repository) =>
       repository.recordSuccess(context.entityId),
@@ -640,6 +655,7 @@ export async function handlePreviewExactImport(context: RequestContext, query: E
       body: {
         dryRun: true,
         ...serialisePlan(plan),
+        vatMapping,
         // Spec 8, rule 3: every adapter records every request. Shown rather
         // than logged, because "which of the eight reads was slow" is the
         // question somebody asks while watching this run.

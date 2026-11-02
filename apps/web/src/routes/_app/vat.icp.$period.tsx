@@ -1,29 +1,44 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { findingMessage, vatPeriodLabel, violationMessage } from '~/i18n/labels'
-import { useRef, useState } from 'react'
-import { PageHeader, Stat } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
-import { formatDate } from '~/lib/format'
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
+import { Button } from '~/components/ui/button'
+import { CodeChip } from '~/components/ui/code-chip'
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '~/components/ui/empty'
+import { Keycap } from '~/components/ui/keycap'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
+import { formatDate, formatMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
+import { isTypingInto } from '~/lib/keyboard'
+import { cn } from '~/lib/utils'
 import { checkVatNumbers, getIcp } from '~/server/vat'
 
 /**
- * The ICP opgaaf for a period.
+ * ICP return — Icp board (#132 / #107 Phase 8).
  *
- * Two things share the screen because they are the same question. The opgaaf
- * itself is a list of counterparties and amounts — trivial. What makes it
- * fileable is that every VAT number on it has been checked against VIES and the
- * answer is on record, and that the total equals rubriek 3b. So the proof
- * column sits next to the amount, and the cross-check is above both.
+ * Per-customer list, VIES status, match against box 3b. `V` rechecks VIES.
+ * Board example names/numbers must not ship — only real counterparties.
  */
 export const Route = createFileRoute('/_app/vat/icp/$period')({
   loader: async ({ params }) => ({
     icp: await getIcp({ data: { period: params.period } }),
   }),
+  pendingComponent: IcpPending,
   component: IcpScreen,
 })
+
+function IcpPending() {
+  const { t } = useT()
+  return (
+    <div aria-busy="true" aria-live="polite" className="space-y-4">
+      <p className="sr-only">{t('common.busy')}</p>
+      <div className="bg-muted h-10 w-64 animate-pulse rounded-[var(--radius-md)]" />
+      <div className="bg-muted h-48 animate-pulse rounded-[var(--radius-xl)]" />
+    </div>
+  )
+}
 
 const FINDING_KEY: Record<string, MessageKey> = {
   supply_without_counterparty: 'icp.finding.supply_without_counterparty',
@@ -48,7 +63,6 @@ function IcpScreen() {
   const hydrated = useHydrated()
   const { t, plural, tag } = useT()
 
-  /** Anything the tables do not know is shown raw rather than as a blank. */
   const findingOf = (code: string) => {
     const key = FINDING_KEY[code]
     return key === undefined ? code : t(key)
@@ -62,24 +76,17 @@ function IcpScreen() {
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const key = useRef<string>(crypto.randomUUID())
+  const checkRef = useRef<(numbers: readonly string[]) => void>(() => {})
 
-  if (!icp.ok) {
-    return (
-      <>
-        <PageHeader title={t('icp.title')} />
-        <p role="alert" className="text-destructive text-sm">
-          {icp.problem.detail}
-        </p>
-      </>
-    )
-  }
-
-  const data = icp.data
-  const unchecked = data.entries.filter(
-    (entry) => entry.proof === null || entry.proof.outcome !== 'valid',
+  const data = icp.ok ? icp.data : null
+  const unchecked = useMemo(
+    () =>
+      data?.entries.filter((entry) => entry.proof === null || entry.proof.outcome !== 'valid') ??
+      [],
+    [data],
   )
 
-  async function check(vatNumbers: readonly string[]) {
+  async function check(vatNumbers: readonly string[]): Promise<void> {
     if (vatNumbers.length === 0) return
     setBusy(true)
     setError(null)
@@ -109,205 +116,346 @@ function IcpScreen() {
     await router.invalidate()
   }
 
+  useEffect(() => {
+    checkRef.current = (numbers) => {
+      void check(numbers)
+    }
+  })
+
+  useEffect(() => {
+    if (!hydrated || data === null) return
+    const onKey = (event: KeyboardEvent): void => {
+      if (isTypingInto(event.target)) return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      if (event.key !== 'v' && event.key !== 'V') return
+      event.preventDefault()
+      const numbers = unchecked
+        .map((entry) => entry.vatNumber)
+        .filter((value): value is string => value !== null && value !== '')
+      checkRef.current(numbers)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [hydrated, data, unchecked])
+
+  if (!icp.ok || data === null) {
+    return (
+      <>
+        <h1 className="text-foreground mb-4 text-2xl font-semibold">{t('icp.title')}</h1>
+        <p role="alert" className="text-destructive text-sm">
+          {icp.ok ? t('common.busy') : icp.problem.detail}
+        </p>
+      </>
+    )
+  }
+
+  const periodLabel = vatPeriodLabel(t, tag, data.period.kind, data.period.code)
+  const matches = data.difference === '0'
+  const empty = data.entries.length === 0
+
   return (
-    <>
-      <PageHeader
-        title={t('icp.titleFor', {
-          period: vatPeriodLabel(t, tag, data.period.kind, data.period.code),
-        })}
-        description={t('vatReturn.intro', {
-          from: formatDate(data.period.from),
-          to: formatDate(data.period.to),
-          deadline: formatDate(data.period.deadline),
-        })}
-        actions={
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-5">
+      <header className="flex flex-wrap items-end gap-3">
+        <div className="flex min-w-[240px] flex-1 flex-col gap-0.5">
           <Link
             to="/vat/$period"
             params={{ period: data.period.code }}
-            className="text-sm underline"
+            className="text-ink-2 text-[13px] no-underline hover:underline"
           >
-            {t('icp.toVatReturn')}
+            {t('icp.backToVat', { period: periodLabel })}
           </Link>
-        }
-      />
+          <h1 className="text-foreground m-0 text-2xl leading-[30px] font-semibold tracking-[-0.01em]">
+            {t('icp.title')}
+          </h1>
+          <p className="text-muted-foreground m-0 text-sm">
+            {t('icp.subtitle', { deadline: formatDate(data.period.deadline) })}
+          </p>
+        </div>
+        {/* Download and electronic filing stay hidden until they work / Digipoort-SBR is available. */}
+      </header>
 
-      <div className="mb-8 flex flex-wrap gap-8">
-        <Stat label={t('icp.goods')} value={<Money amount={data.goods} />} />
-        <Stat label={t('icp.services')} value={<Money amount={data.services} />} />
-        <Stat label={t('icp.totalDeclared')} value={<Money amount={data.total} />} />
+      {empty && (
+        <Alert>
+          <AlertTitle>{t('icp.emptyTitle')}</AlertTitle>
+          <AlertDescription>{t('icp.emptyBody')}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Stat
-          label={t('icp.rubriek3b')}
-          value={<Money amount={data.rubriek3b} />}
-          hint={data.difference === '0' ? t('icp.reconciles') : t('icp.doesNotReconcile')}
-          tone={data.difference === '0' ? 'good' : 'warn'}
+          label={t('icp.goods')}
+          value={<Money amount={data.goods} />}
+          meta={t('icp.box3bMeta')}
+        />
+        <Stat
+          label={t('icp.services')}
+          value={<Money amount={data.services} />}
+          meta={t('icp.box3bMeta')}
+        />
+        <Stat
+          label={t('icp.matchesVat')}
+          value={
+            <span className={matches ? 'text-success' : 'text-destructive'}>
+              {matches ? t('icp.matchesYes') : t('icp.matchesNo')}
+            </span>
+          }
+          meta={
+            matches
+              ? t('icp.matchesMeta', { amount: formatMinorUnits(BigInt(data.total)) })
+              : t('icp.doesNotReconcile')
+          }
         />
       </div>
 
-      <p className="text-muted-foreground mb-6 max-w-2xl text-sm">{t('icp.intro')}</p>
+      <section
+        className="bg-card border-border overflow-hidden rounded-[var(--radius-xl)] border shadow-[var(--shadow-raised)]"
+        aria-labelledby="icp-customers-h"
+      >
+        <div className="border-border flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+          <h2 id="icp-customers-h" className="text-foreground m-0 text-base font-semibold">
+            {t('icp.perCustomer')}
+          </h2>
+          <span className="text-muted-foreground text-[13px]">{t('icp.viesHint')}</span>
+        </div>
 
-      <table className="border-border mb-8 w-full max-w-4xl border-collapse text-sm">
-        <caption className="sr-only">{t('icp.caption')}</caption>
-        <thead>
-          <tr className="border-border text-muted-foreground border-b text-left text-xs">
-            <th scope="col" className="py-2 pr-2 font-medium">
-              {t('icp.vatNumber')}
-            </th>
-            <th scope="col" className="py-2 pr-2 font-medium">
-              {t('icp.customer')}
-            </th>
-            <th scope="col" className="py-2 pr-2 text-right font-medium">
-              {t('icp.goods')}
-            </th>
-            <th scope="col" className="py-2 pr-2 text-right font-medium">
-              {t('icp.services')}
-            </th>
-            <th scope="col" className="py-2 font-medium">
-              VIES
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.entries.length === 0 && (
-            <tr>
-              <td colSpan={5} className="text-muted-foreground py-3">
-                {t('icp.empty')}
-              </td>
-            </tr>
-          )}
-          {data.entries.map((entry) => (
-            <tr key={entry.vatNumber} className="border-border/50 border-t">
-              <th scope="row" className="tabular py-1.5 pr-2 text-left font-normal">
-                {entry.vatNumber}
-              </th>
-              <td className="py-1.5 pr-2">
-                {entry.contactName ?? <span className="text-muted-foreground">—</span>}
-                {entry.contactNumber !== null && (
-                  <span className="text-muted-foreground tabular text-xs">
-                    {' '}
-                    {entry.contactNumber}
-                  </span>
-                )}
-              </td>
-              <td className="py-1.5 pr-2 text-right">
-                <Money amount={entry.goods} />
-              </td>
-              <td className="py-1.5 pr-2 text-right">
-                <Money amount={entry.services} />
-              </td>
-              <td className="py-1.5 text-xs">
-                {entry.proof === null ? (
-                  <span className="text-destructive">{t('icp.neverChecked')}</span>
-                ) : (
-                  <span
-                    className={entry.proof.outcome === 'valid' ? undefined : 'text-destructive'}
+        {empty ? (
+          <Empty className="rounded-none border-0">
+            <EmptyHeader>
+              <EmptyTitle>{t('icp.empty')}</EmptyTitle>
+              <EmptyDescription>{t('icp.emptyBody')}</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <>
+            {/* <640: stacked rows so the VAT number is not clipped. */}
+            <ul className="divide-border m-0 list-none divide-y p-0 sm:hidden">
+              {data.entries.map((entry) => {
+                const proof = entry.proof
+                const name = entry.contactName ?? entry.contactNumber ?? t('icp.customer')
+                const proofLabel =
+                  proof === null
+                    ? t('icp.neverChecked')
+                    : proof.outcome === 'valid'
+                      ? t('icp.viesValid')
+                      : proof.outcome === 'unavailable'
+                        ? t('icp.viesOffline', {
+                            date: formatDate(proof.checkedAt.slice(0, 10)),
+                          })
+                        : outcomeOf(proof.outcome)
+                return (
+                  <li
+                    key={`${entry.vatNumber ?? ''}-${entry.contactNumber}`}
+                    className="flex flex-col gap-1.5 px-4 py-3"
                   >
-                    {outcomeOf(entry.proof.outcome)}
-                    {t('icp.checkedOn')}
-                    <span className="tabular">
-                      {formatDate(entry.proof.checkedAt.slice(0, 10))}
-                    </span>
-                    {entry.proof.requestIdentifier === null ? (
-                      <span className="text-muted-foreground">{t('icp.noConsultationNumber')}</span>
-                    ) : (
-                      <span className="text-muted-foreground">
-                        {t('icp.consultationNumber', {
-                          number: entry.proof.requestIdentifier,
-                        })}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 flex-col">
+                        <span className="text-foreground font-medium">{name}</span>
+                        <span
+                          className={cn(
+                            'text-xs',
+                            proof?.outcome === 'valid'
+                              ? 'text-success'
+                              : proof?.outcome === 'invalid'
+                                ? 'text-destructive'
+                                : 'text-muted-foreground',
+                          )}
+                        >
+                          {proofLabel}
+                        </span>
+                      </div>
+                      <span className="tabular shrink-0 text-right text-sm font-medium">
+                        <Money amount={entry.goods} />
                       </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CodeChip>{entry.countryCode || '—'}</CodeChip>
+                      <CodeChip>{entry.vatNumber ?? '—'}</CodeChip>
+                    </div>
+                    {entry.services !== '0' && (
+                      <div className="text-muted-foreground flex justify-between gap-2 text-xs">
+                        <span>{t('icp.services')}</span>
+                        <Money amount={entry.services} />
+                      </div>
                     )}
+                  </li>
+                )
+              })}
+              <li className="bg-surface-hover flex flex-col gap-1.5 px-4 py-3 font-semibold">
+                <span>{t('report.total')}</span>
+                <div className="flex items-center justify-between gap-3 font-normal">
+                  <span>{t('icp.goods')}</span>
+                  <span className="tabular shrink-0 text-right text-sm font-medium">
+                    <Money amount={data.goods} />
                   </span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                </div>
+                <div className="flex items-center justify-between gap-3 font-normal">
+                  <span>{t('icp.services')}</span>
+                  <span className="tabular shrink-0 text-right text-sm font-medium">
+                    <Money amount={data.services} />
+                  </span>
+                </div>
+              </li>
+            </ul>
 
-      <div className="mb-8 flex flex-wrap items-center gap-3">
-        <button
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full min-w-[640px] border-collapse text-sm">
+                <caption className="sr-only">{t('icp.caption')}</caption>
+                <thead>
+                  <tr className="text-muted-foreground border-border border-b text-left text-xs">
+                    <th scope="col" className="px-4 py-2.5 font-medium">
+                      {t('icp.customer')}
+                    </th>
+                    <th scope="col" className="py-2.5 pr-3 font-medium">
+                      {t('icp.country')}
+                    </th>
+                    <th scope="col" className="py-2.5 pr-3 font-medium">
+                      {t('icp.vatNumber')}
+                    </th>
+                    <th scope="col" className="py-2.5 pr-3 text-right font-medium">
+                      {t('icp.goods')}
+                    </th>
+                    <th scope="col" className="py-2.5 pr-4 text-right font-medium">
+                      {t('icp.services')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.entries.map((entry) => {
+                    const proof = entry.proof
+                    return (
+                      <tr
+                        key={`${entry.vatNumber ?? ''}-${entry.contactNumber}`}
+                        className="border-border/50 border-t"
+                      >
+                        <td className="px-4 py-2.5">
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {entry.contactName ?? entry.contactNumber ?? t('icp.customer')}
+                            </span>
+                            <span
+                              className={cn(
+                                'text-xs',
+                                proof?.outcome === 'valid'
+                                  ? 'text-success'
+                                  : proof?.outcome === 'invalid'
+                                    ? 'text-destructive'
+                                    : 'text-muted-foreground',
+                              )}
+                            >
+                              {proof === null
+                                ? t('icp.neverChecked')
+                                : proof.outcome === 'valid'
+                                  ? t('icp.viesValid')
+                                  : proof.outcome === 'unavailable'
+                                    ? t('icp.viesOffline', {
+                                        date: formatDate(proof.checkedAt.slice(0, 10)),
+                                      })
+                                    : outcomeOf(proof.outcome)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-2.5 pr-3">
+                          <CodeChip>{entry.countryCode || '—'}</CodeChip>
+                        </td>
+                        <td className="py-2.5 pr-3">
+                          <CodeChip>{entry.vatNumber ?? '—'}</CodeChip>
+                        </td>
+                        <td className="tabular py-2.5 pr-3 text-right">
+                          <Money amount={entry.goods} />
+                        </td>
+                        <td className="tabular py-2.5 pr-4 text-right">
+                          <Money amount={entry.services} />
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  <tr className="bg-surface-hover border-border/50 border-t font-semibold">
+                    <td className="px-4 py-2.5">{t('report.total')}</td>
+                    <td />
+                    <td />
+                    <td className="tabular py-2.5 pr-3 text-right">
+                      <Money amount={data.goods} />
+                    </td>
+                    <td className="tabular py-2.5 pr-4 text-right">
+                      <Money amount={data.services} />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </section>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           disabled={!hydrated || busy || unchecked.length === 0}
           onClick={() => {
-            void check(unchecked.map((entry) => entry.vatNumber))
+            void check(
+              unchecked
+                .map((entry) => entry.vatNumber)
+                .filter((value): value is string => value !== null && value !== ''),
+            )
           }}
-          className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
-          {busy
-            ? t('common.busy')
-            : unchecked.length === 0
-              ? t('icp.allConfirmed')
-              : plural('icp.checkCount', unchecked.length)}
-        </button>
-        {data.entries.length > 0 && (
-          <button
-            type="button"
-            disabled={!hydrated || busy}
-            onClick={() => {
-              void check(data.entries.map((entry) => entry.vatNumber))
-            }}
-            className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
-          >
-            {t('icp.recheckAll')}
-          </button>
-        )}
+          {busy ? t('common.busy') : plural('icp.checkCount', Math.max(unchecked.length, 1))}
+          <Keycap className="ml-2 hidden md:inline-flex">V</Keycap>
+        </Button>
+        <span className="text-muted-foreground text-[13px]">{t('icp.invalidHint')}</span>
       </div>
 
+      {note !== null && <p className="text-muted-foreground text-sm">{note}</p>}
       {error !== null && (
-        <p role="alert" className="text-destructive mb-6 max-w-2xl text-sm">
+        <p role="alert" className="text-destructive text-sm">
           {error}
-        </p>
-      )}
-      {note !== null && (
-        <p className="border-border mb-6 max-w-2xl rounded-md border border-dashed p-3 text-sm">
-          {note}
         </p>
       )}
 
       {data.findings.length > 0 && (
-        <>
-          <h2 className="mb-3 text-sm font-semibold">{t('icp.findings')}</h2>
-          <ul className="mb-10 max-w-3xl space-y-3">
-            {data.findings.map((finding) => (
-              <li
-                key={finding.code}
-                className={
-                  finding.severity === 'blocking'
-                    ? 'border-destructive rounded-md border p-3 text-sm'
-                    : 'border-border rounded-md border p-3 text-sm'
-                }
-              >
-                <p className="font-medium">
-                  {finding.severity === 'blocking'
-                    ? t('vatReturn.blockingPrefix')
-                    : t('vatReturn.warningPrefix')}
-                  {findingOf(finding.code)}{' '}
-                  <span className="text-muted-foreground font-normal">
-                    (<Money amount={finding.amount} />)
-                  </span>
-                </p>
-                <p className="text-muted-foreground mt-1">{findingMessage(t, finding)}</p>
-                {finding.lines.length > 0 && (
-                  <ul className="mt-2 space-y-1 text-xs">
-                    {finding.lines.map((line) => (
-                      <li key={`${line.entryId}-${String(line.lineNumber)}`}>
-                        <Link
-                          to="/entries/$entryId"
-                          params={{ entryId: line.entryId }}
-                          className="underline"
-                        >
-                          {line.journalCode} {line.entryNumber}
-                        </Link>{' '}
-                        <span className="tabular">{formatDate(line.bookingDate)}</span> ·{' '}
-                        {line.description} · <Money amount={line.amount} />
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        </>
+        <ul className="max-w-3xl space-y-3">
+          {data.findings.map((finding) => (
+            <li
+              key={finding.code}
+              className={
+                finding.severity === 'blocking'
+                  ? 'border-destructive rounded-[var(--radius-md)] border p-3 text-sm'
+                  : 'border-border rounded-[var(--radius-md)] border p-3 text-sm'
+              }
+            >
+              <p className="font-medium">
+                {finding.severity === 'blocking'
+                  ? t('vatReturn.blockingPrefix')
+                  : t('vatReturn.warningPrefix')}
+                {findingOf(finding.code)}
+              </p>
+              <p className="text-muted-foreground mt-1">{findingMessage(t, finding)}</p>
+            </li>
+          ))}
+        </ul>
       )}
-    </>
+    </div>
+  )
+}
+
+function Stat({
+  label,
+  value,
+  meta,
+}: {
+  readonly label: string
+  readonly value: ReactNode
+  readonly meta: string
+}) {
+  return (
+    <div className="bg-card text-card-foreground border-border flex flex-col gap-1 rounded-[var(--radius-xl)] border px-4 py-[18px] shadow-[var(--shadow-raised)]">
+      <span className="text-muted-foreground text-xs font-medium">{label}</span>
+      <span className="tabular text-2xl font-semibold tracking-tight">{value}</span>
+      <span className="text-muted-foreground text-xs">{meta}</span>
+    </div>
   )
 }

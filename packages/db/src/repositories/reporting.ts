@@ -348,6 +348,7 @@ export class ReportingRepository {
   async taxRules(entityId: string): Promise<
     readonly {
       readonly code: string
+      readonly description: string
       readonly rateBasisPoints: number
       readonly direction: 'input' | 'output'
       readonly scope: string
@@ -361,6 +362,7 @@ export class ReportingRepository {
     const rows = await this.tx
       .select({
         code: taxCodes.code,
+        description: taxCodes.description,
         rateBasisPoints: taxCodes.rateBasisPoints,
         direction: taxCodes.direction,
         scope: taxCodes.scope,
@@ -374,6 +376,7 @@ export class ReportingRepository {
       .where(eq(taxCodes.entityId, entityId))
     return rows.map((row) => ({
       code: row.code,
+      description: row.description,
       rateBasisPoints: row.rateBasisPoints,
       direction: row.direction,
       scope: row.scope,
