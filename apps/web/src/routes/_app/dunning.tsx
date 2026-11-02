@@ -531,7 +531,7 @@ function Dunning() {
         }}
       >
         <AlertDialogContent
-          className="sm:max-w-lg"
+          className="min-w-0 grid-cols-[minmax(0,1fr)] sm:max-w-lg"
           onOpenAutoFocus={(event) => {
             event.preventDefault()
             cancelRef.current?.focus()
@@ -551,7 +551,7 @@ function Dunning() {
             event.stopPropagation()
           }}
         >
-          <AlertDialogHeader>
+          <AlertDialogHeader className="min-w-0">
             <AlertDialogTitle>
               {plural('dunning.bulkConfirmTitle', confirmCount, {
                 count: String(confirmCount),
@@ -561,23 +561,24 @@ function Dunning() {
           </AlertDialogHeader>
 
           {confirmPreview !== null && (
-            <div className="flex flex-col gap-2">
-              <ul className="m-0 flex list-none flex-col gap-2 p-0">
+            <div className="flex min-w-0 flex-col gap-2">
+              <ul className="m-0 flex min-w-0 list-none flex-col gap-2 p-0">
                 {confirmPreview.rows.map((row) => (
                   <li
                     key={row.invoiceId}
-                    className="flex items-baseline justify-between gap-3 text-sm"
+                    data-invoice-id={row.invoiceId}
+                    className="flex min-w-0 items-baseline justify-between gap-3 text-sm"
                   >
-                    <span className="min-w-0 flex-1 truncate">
-                      <span className="font-medium">{row.contactName}</span>
-                      <span className="text-ink-muted"> · {row.number}</span>
-                      <span className="text-danger ml-2 text-xs">
+                    <span className="flex min-w-0 flex-1 items-baseline gap-2 overflow-hidden">
+                      <span className="min-w-0 truncate font-medium">{row.contactName}</span>
+                      <span className="text-ink-muted shrink-0"> · {row.number}</span>
+                      <span className="text-danger shrink-0 text-xs whitespace-nowrap">
                         {plural('dunning.daysLate', row.daysOverdue, {
                           days: String(row.daysOverdue),
                         })}
                       </span>
                     </span>
-                    <span className="font-mono tabular-nums">
+                    <span className="shrink-0 font-mono tabular-nums">
                       <EuroAmount amount={row.total} />
                     </span>
                   </li>
@@ -588,7 +589,7 @@ function Dunning() {
                   {t('dunning.bulkConfirmMore', { count: String(confirmPreview.moreCount) })}
                 </p>
               )}
-              <p className="m-0 border-t border-[var(--line-soft)] pt-2 text-sm font-semibold">
+              <p className="m-0 min-w-0 border-t border-[var(--line-soft)] pt-2 text-sm font-semibold">
                 {t('dunning.bulkConfirmTotal', {
                   amount: formatMinorUnits(confirmPreview.totalMinor),
                 })}
@@ -596,18 +597,18 @@ function Dunning() {
             </div>
           )}
 
-          <AlertDialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <AlertDialogFooter className="min-w-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <AlertDialogCancel
               ref={cancelRef}
               disabled={busy}
-              className="min-h-11 w-full sm:w-auto"
+              className="min-h-11 w-full min-w-0 sm:w-auto"
             >
               {t('common.cancel')}
             </AlertDialogCancel>
             <Button
               type="button"
               disabled={busy || !hydrated || confirmCount === 0}
-              className="min-h-11 w-full sm:w-auto"
+              className="min-h-11 w-full min-w-0 sm:w-auto"
               onClick={() => {
                 confirmPending()
               }}
