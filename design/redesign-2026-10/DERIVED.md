@@ -99,7 +99,8 @@ Strings Hidde already has on his Inbox boards are not repeated here.
 | Next to the document. Book it, or set it aside. | Naast het document. Boek het, of leg het apart. |
 | ‹ Inbox | ‹ Inbox |
 | To fill in | Nog invullen |
-| PDF · from email / Photo · from your phone / E-invoice · Peppol (desktop: PDF · email / photo · phone / e-invoice · Peppol) | Pdf · uit e-mail / Foto · van je telefoon / E-factuur · Peppol (desktop: pdf · e-mail / foto · telefoon / e-factuur · Peppol) |
+| PDF · from email / Photo · from your phone / E-invoice · UBL (desktop: PDF · email / photo · phone / e-invoice · UBL) | Pdf · uit e-mail / Foto · van je telefoon / E-factuur · UBL (desktop: pdf · e-mail / foto · telefoon / e-factuur · UBL) |
+| e-invoice · UBL (the Internet Voorbeeld row; it names the format, not Peppol, which is not set up) | e-factuur · UBL |
 | factuur-november.pdf · 1 page | factuur-november.pdf · 1 pagina |
 | Klopt doesn't read PDFs or photos. Fill in what the document says. | Klopt leest geen pdf's of foto's. Vul in wat er op het document staat. |
 | Start typing a name / dd-mm-yyyy / Choose a category | Begin een naam te typen / dd-mm-jjjj / Kies een categorie |
