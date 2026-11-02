@@ -28,6 +28,18 @@ Bank tabs, and an All / To match transactions list. Matched lines say
 borders use `--ink-muted`. Dark and phone wait on #143. Bank Match stays a
 separate PR (#164).
 
+### Redesign Phase 2: Sales (#107)
+
+Sales area with underline tabs Facturen / Herinneringen / Klanten. `/dunning`
+remains the Reminders route. Segmented status Drafts / Issued / Overdue with real
+counts from the invoice list and overdue report (no Paid segment — needs
+`outstanding` / `paidOn` [API]). Desktop preview pane with honest "Sent as"
+from deliveries only (no Peppol claim). Reminders schedule and email text are
+read-only; email preview uses `reminderEmailCopy` (shared with the transport).
+Reminder emails no longer mention incassokosten, wettelijke rente or a payment
+deadline. PhoneSales / PhoneInvoice / InvoicesDark via tokens. Customers tab
+links to Contacts (no customers URL filter yet). "Nieuwe factuur" is secondary.
+
 ### Fixed
 
 - Debtor-ageing report and overdue counts no longer count invoices that are due
@@ -59,8 +71,12 @@ drops invented estimates, card-payment summaries and four-eyes wording.
 Design/PM #112 follow-up: ageing fills use named `--ageing-*` tokens;
 draft/inbox to-dos get their own icons; unmapped-accounts block removed;
 queue bodies drop missing number/days/deadline clauses (never `—` or `0`);
-EN ageing title “How late customers pay”; overdue one-body says “dagen te
-laat”.
+ageing title “Te late facturen per aantal dagen” / “Overdue invoices by days
+late”; overdue day copy uses singular/plural (“1 dag te laat” / “1 day late”).
+Design/PM #117 follow-up: multi-overdue to-do reads “N facturen te laat” /
+“N invoices overdue” with oldest qualifier (“Oudste: … dagen te laat” /
+“Oldest: … days late”); empty queue keeps one “Nieuwe factuur” in the queue
+card on a normal `bg-card` surface (header CTA stays on a failed read).
 
 ### Redesign Phase 0: tokens, theme, components, shell (#107)
 
