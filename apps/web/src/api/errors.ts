@@ -157,13 +157,24 @@ function stackMessageBlock(name: unknown, message: unknown): string {
 }
 
 /**
+ * A V8 call site, anchored at both ends.
+ *
+ * The line is `    at` plus an optional `async`, an optional function, and
+ * a location: `(path:line:col)`, a bare `path:line:col`, `<anonymous>`, or
+ * `native`. A line that only begins with four spaces and `at ` is not a
+ * frame. An overwritten stack, a cause chain, or a message replaced after
+ * the stack was read can put an IBAN, a name, or a connection string there.
+ */
+const V8_FRAME = /^ {4}at (?:async )?(?:.* \()?(?:[^\s()]+:\d+:\d+|<anonymous>|native)\)?$/
+
+/**
  * Stack frames only.
  *
  * Strip the `name: message` block before keeping frames, so a message line
  * that itself starts with four spaces and `at ` is never logged. A driver
  * message can quote a row there: an IBAN, a name, a connection string.
- * A frame is what remains that starts with `    at `. Lines that are the
- * message itself are dropped too, in case the block did not match.
+ * What remains is kept only when it is a real V8 location. Lines that are
+ * the message itself are dropped too, in case the block did not match.
  *
  * `stack` is not always a string. It may be missing, or an object. Then
  * there are no frames, and reading it must not throw. A thrown value that
@@ -186,11 +197,24 @@ function stackFrames(error: Error): string {
         .join('\n')
     }
 
-    const frames = trace.split('\n').filter((line) => line.startsWith('    at '))
+    const frames = trace.split('\n').filter((line) => V8_FRAME.test(line))
     return frames.length === 0 ? '(no stack)' : frames.join('\n')
   } catch {
     return '(no stack)'
   }
+}
+
+/**
+ * What may be written next to the request id.
+ *
+ * `name` is caller-controlled on a thrown value. An identifier is a class
+ * of error. Anything else — an IBAN, a person, a connection string — is
+ * logged as `Error`.
+ */
+const ERROR_NAME = /^[A-Za-z_$][\w$]{0,63}$/
+
+function loggedErrorName(name: unknown): string {
+  return typeof name === 'string' && ERROR_NAME.test(name) ? name : 'Error'
 }
 
 /**
@@ -203,7 +227,7 @@ function stackFrames(error: Error): string {
 function logUnknownInternalError(error: unknown, requestId: string | null): void {
   const request = requestId ?? '(no request id)'
   if (error instanceof Error) {
-    console.error('[api] internal_error', request, error.name, stackFrames(error))
+    console.error('[api] internal_error', request, loggedErrorName(error.name), stackFrames(error))
     return
   }
   console.error('[api] internal_error', request, `(no stack, thrown ${typeof error})`)

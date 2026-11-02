@@ -152,4 +152,127 @@ describe('unknown internal errors', () => {
     expect(logged).not.toContain('NL91ABNA0417164300')
     expect(logged).not.toContain('Eva')
   })
+
+  /**
+   * Frame-shaped, and not a V8 location. The values sit where a row would.
+   */
+  const planted = [
+    '    at NL02INGB0999999999 Sanne Bakker',
+    '    at postgres://u:s3cr3t@h/db',
+    '    at Sanne Bakker (postgres://u:s3cr3t@h/db)',
+    '    at readFile (NL02INGB0999999999)',
+  ].join('\n')
+
+  function assertPlantedAbsent(logged: string): void {
+    expect(logged).not.toContain('NL02INGB0999999999')
+    expect(logged).not.toContain('Sanne Bakker')
+    expect(logged).not.toContain('Sanne')
+    expect(logged).not.toContain('Bakker')
+    expect(logged).not.toContain('postgres://u:s3cr3t@h/db')
+    expect(logged).not.toContain('s3cr3t')
+  }
+
+  it('does not log secrets in an overwritten stack', async () => {
+    const error = new Error('plain failure')
+    error.stack = `${error.stack ?? ''}\n${planted}`
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = problemResponse(error, 'req-overwritten')
+
+    expect(response.status).toBe(500)
+    const body = (await response.json()) as { detail: string }
+    expect(body.detail).toBe('The request could not be completed.')
+    expect(spy).toHaveBeenCalledTimes(1)
+    const args = spy.mock.calls.flat().map((part) => String(part))
+    const logged = args.join('\n')
+    assertPlantedAbsent(logged)
+    expect(logged).toContain('[api] internal_error')
+    expect(logged).toContain('req-overwritten')
+    expect(logged).toContain(error.name)
+    expect(args.some((arg) => arg.includes('    at '))).toBe(true)
+  })
+
+  it('does not log secrets in a cause chain appended to the stack', () => {
+    const error = new Error('outer failure')
+    const cause = new Error('downstream NL02INGB0999999999 Sanne Bakker postgres://u:s3cr3t@h/db')
+    error.stack = `${error.stack ?? ''}\nCaused by: ${cause.stack ?? ''}\n${planted}`
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = problemResponse(error, 'req-cause')
+
+    expect(response.status).toBe(500)
+    expect(spy).toHaveBeenCalledTimes(1)
+    const logged = spy.mock.calls
+      .flat()
+      .map((part) => String(part))
+      .join('\n')
+    assertPlantedAbsent(logged)
+    expect(logged).not.toContain('downstream')
+    expect(logged).toContain('[api] internal_error')
+    expect(logged).toContain('req-cause')
+    expect(logged).toContain(error.name)
+    expect(logged).toContain('    at ')
+  })
+
+  it('does not log secrets when the message is replaced after the stack is read', async () => {
+    const error = new Error(
+      `driver quoted NL02INGB0999999999 Sanne Bakker\n${planted}\nstill postgres://u:s3cr3t@h/db`,
+    )
+    const frozen = error.stack
+    if (typeof frozen !== 'string') throw new Error('expected a stack')
+    error.stack = frozen
+    error.message = 'replaced'
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = problemResponse(error, 'req-swap')
+
+    expect(response.status).toBe(500)
+    const body = (await response.json()) as { detail: string }
+    expect(body.detail).toBe('The request could not be completed.')
+    expect(spy).toHaveBeenCalledTimes(1)
+    const args = spy.mock.calls.flat().map((part) => String(part))
+    const logged = args.join('\n')
+    assertPlantedAbsent(logged)
+    expect(logged).not.toContain('driver quoted')
+    expect(logged).not.toContain('replaced')
+    expect(logged).toContain('[api] internal_error')
+    expect(logged).toContain('req-swap')
+    expect(logged).toContain(error.name)
+    expect(args.some((arg) => arg.includes('    at '))).toBe(true)
+  })
+
+  it('logs Error when error.name is not an identifier', () => {
+    const badNames = [
+      'Sanne Bakker',
+      'postgres://u:s3cr3t@h/db',
+      'TypeError NL02INGB0999999999',
+      '123Boom',
+      '',
+    ]
+    for (const name of badNames) {
+      const error = new Error('plain failure')
+      error.name = name
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      const response = problemResponse(error, 'req-name')
+
+      expect(response.status).toBe(500)
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(spy.mock.calls[0]?.[2]).toBe('Error')
+      const logged = spy.mock.calls
+        .flat()
+        .map((part) => String(part))
+        .join('\n')
+      assertPlantedAbsent(logged)
+      expect(logged).toContain('[api] internal_error')
+      expect(logged).toContain('req-name')
+      spy.mockRestore()
+    }
+
+    const error = new Error('plain failure')
+    error.name = 'PostgresError'
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    problemResponse(error, 'req-name-ok')
+    expect(spy.mock.calls[0]?.[2]).toBe('PostgresError')
+  })
 })
