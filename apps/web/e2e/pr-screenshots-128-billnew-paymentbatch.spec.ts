@@ -87,6 +87,7 @@ test('BillNew + PaymentBatch desktop-light 1440 screenshots', async ({ page }) =
   await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('button', { name: /Verzekering Fictief/ })).toBeVisible()
 
   // --- BillNew seeded ---
   await page.goto('/purchases/new')
