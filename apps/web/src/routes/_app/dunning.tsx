@@ -4,6 +4,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { SalesTabs } from '~/components/sales-tabs'
 import { EuroAmount } from '~/components/finance/money'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
 import { Empty, EmptyHeader, EmptyTitle } from '~/components/ui/empty'
 import { Keycap } from '~/components/ui/keycap'
@@ -13,7 +22,7 @@ import { useT } from '~/i18n/provider'
 import { formatMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple, isTypingInto } from '~/lib/keyboard'
-import { sendableDunningActions } from '~/lib/sales-list'
+import { reminderConfirmPreview, reminderSendTargets } from '~/lib/sales-list'
 import { cn } from '~/lib/utils'
 import { dunningQueue, sendReminder } from '~/server/sales'
 
@@ -23,6 +32,10 @@ import { dunningQueue, sendReminder } from '~/server/sales'
  * Schedule and email text are read-only (no Change / Edit text / language pill)
  * until the [API] for customising them lands. Email preview uses the same
  * Dutch template as the transport (`reminderEmailCopy`).
+ *
+ * Bulk send (#173): more than one reminder opens a confirm dialog built from
+ * the same `reminderSendTargets` array the POST loop uses. A single send goes
+ * straight through.
  */
 
 export const Route = createFileRoute('/_app/dunning')({
@@ -58,8 +71,21 @@ function Dunning() {
   const [activeId, setActiveId] = useState<string | null>(null)
   /** null = all rows selected (default); a Set once the user toggles. */
   const [selectedOverride, setSelectedOverride] = useState<ReadonlySet<string> | null>(null)
+  /**
+   * Frozen send set while the bulk-confirm dialog is open. null = closed.
+   * Built with {@link reminderSendTargets} — the same helper the send uses.
+   */
+  const [pendingTargets, setPendingTargets] = useState<readonly ActionRow[] | null>(null)
   const keys = useRef<Map<string, string>>(new Map())
   const busyRef = useRef(false)
+  /** Guards against ⌘/Ctrl+Enter firing confirm twice (dialog + window). */
+  const confirmingRef = useRef(false)
+  const pendingRef = useRef<readonly ActionRow[] | null>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    pendingRef.current = pendingTargets
+  }, [pendingTargets])
 
   const actions = useMemo((): readonly ActionRow[] => (queue.ok ? queue.data.actions : []), [queue])
   const schedule = queue.ok ? queue.data.schedule : []
@@ -115,20 +141,48 @@ function Dunning() {
     return true
   }
 
-  async function sendSelected(targets: readonly ActionRow[]) {
+  async function sendSelected(targets: readonly ActionRow[]): Promise<void> {
     if (busyRef.current) return
     if (targets.length === 0) return
     busyRef.current = true
     setBusy(true)
     setError(null)
     setNotice(null)
-    for (const action of targets) {
-      const ok = await chase(action)
-      if (!ok) break
+    try {
+      for (const action of targets) {
+        const ok = await chase(action)
+        if (!ok) break
+      }
+    } finally {
+      busyRef.current = false
+      setBusy(false)
+      await router.invalidate()
     }
-    busyRef.current = false
-    setBusy(false)
-    await router.invalidate()
+  }
+
+  /**
+   * One entry point for the header button and ⌘/Ctrl+Enter.
+   *
+   * N > 1 opens the confirm dialog on the exact send set. N === 1 (including a
+   * single row the user picked) goes straight through with no dialog.
+   */
+  function requestSend(targets: readonly ActionRow[]) {
+    if (busyRef.current || targets.length === 0) return
+    if (targets.length === 1) {
+      void sendSelected(targets)
+      return
+    }
+    setPendingTargets(targets)
+  }
+
+  function confirmPending() {
+    if (pendingTargets === null || busyRef.current || confirmingRef.current) return
+    confirmingRef.current = true
+    const targets = pendingTargets
+    setPendingTargets(null)
+    void sendSelected(targets).finally(() => {
+      confirmingRef.current = false
+    })
   }
 
   useEffect(() => {
@@ -139,10 +193,18 @@ function Dunning() {
 
       if (mod && event.key === 'Enter') {
         event.preventDefault()
-        const targets = sendableDunningActions(actions.filter((row) => selected.has(row.invoiceId)))
-        void sendSelected(targets)
+        if (pendingRef.current !== null) {
+          confirmPending()
+          return
+        }
+        const targets = reminderSendTargets(
+          actions.filter((row) => selected.has(row.invoiceId)),
+          asOf,
+        )
+        requestSend(targets)
         return
       }
+      if (pendingRef.current !== null) return
       if (event.metaKey || event.ctrlKey || event.altKey) return
       if (resolvedActiveId === null) return
       const index = actions.findIndex((row) => row.invoiceId === resolvedActiveId)
@@ -177,9 +239,9 @@ function Dunning() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-    // sendSelected is recreated each render; deps below cover its closed values.
+    // requestSend / confirmPending close over current state; deps cover values.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyboard handler
-  }, [actions, asOf, hydrated, queue.ok, resolvedActiveId, selected, t])
+  }, [actions, asOf, hydrated, pendingTargets, queue.ok, resolvedActiveId, selected, t])
 
   if (!queue.ok) {
     return (
@@ -206,10 +268,12 @@ function Dunning() {
         })
 
   const selectedRows = actions.filter((row) => selected.has(row.invoiceId))
-  const sendableSelected = sendableDunningActions(selectedRows)
-  const skippedNoEmail = selectedRows.length - sendableSelected.length
+  const sendableSelected = reminderSendTargets(selectedRows, asOf)
+  const skippedNoEmail = selectedRows.filter((row) => !row.sendable).length
   const sendableCount = sendableSelected.length
   const selectedSum = sendableSelected.reduce((sum, row) => sum + BigInt(row.total), 0n)
+  const confirmPreview = pendingTargets === null ? null : reminderConfirmPreview(pendingTargets)
+  const confirmCount = pendingTargets?.length ?? 0
 
   return (
     <>
@@ -221,7 +285,7 @@ function Dunning() {
               type="button"
               disabled={busy || !hydrated || sendableCount === 0}
               onClick={() => {
-                void sendSelected(sendableSelected)
+                requestSend(sendableSelected)
               }}
               className="min-h-11 md:min-h-9"
             >
@@ -459,6 +523,108 @@ function Dunning() {
           </span>
         </p>
       )}
+
+      <AlertDialog
+        open={pendingTargets !== null}
+        onOpenChange={(next) => {
+          if (!next) setPendingTargets(null)
+        }}
+      >
+        <AlertDialogContent
+          className="sm:max-w-lg"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault()
+            cancelRef.current?.focus()
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return
+            const mod = isApple() ? event.metaKey : event.ctrlKey
+            if (mod) {
+              event.preventDefault()
+              event.stopPropagation()
+              confirmPending()
+              return
+            }
+            // Plain Enter never sends (#173). Esc still cancels via Radix.
+            event.preventDefault()
+          }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {plural('dunning.bulkConfirmTitle', confirmCount, {
+                count: String(confirmCount),
+              })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>{t('dunning.bulkConfirmHint')}</AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {confirmPreview !== null && (
+            <div className="flex flex-col gap-2">
+              <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                {confirmPreview.rows.map((row) => (
+                  <li
+                    key={row.invoiceId}
+                    className="flex items-baseline justify-between gap-3 text-sm"
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="font-medium">{row.contactName}</span>
+                      <span className="text-ink-muted"> · {row.number}</span>
+                      <span className="text-danger ml-2 text-xs">
+                        {plural('dunning.daysLate', row.daysOverdue, {
+                          days: String(row.daysOverdue),
+                        })}
+                      </span>
+                    </span>
+                    <span className="font-mono tabular-nums">
+                      <EuroAmount amount={row.total} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {confirmPreview.moreCount > 0 && (
+                <p className="text-ink-muted m-0 text-sm">
+                  {t('dunning.bulkConfirmMore', { count: String(confirmPreview.moreCount) })}
+                </p>
+              )}
+              <p className="m-0 border-t border-[var(--line-soft)] pt-2 text-sm font-semibold">
+                {t('dunning.bulkConfirmTotal', {
+                  amount: formatMinorUnits(confirmPreview.totalMinor),
+                })}
+              </p>
+            </div>
+          )}
+
+          <AlertDialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <AlertDialogCancel
+              ref={cancelRef}
+              disabled={busy}
+              className="min-h-11 w-full sm:w-auto"
+            >
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              disabled={busy || !hydrated || confirmCount === 0}
+              className="min-h-11 w-full sm:w-auto"
+              onClick={() => {
+                confirmPending()
+              }}
+            >
+              {busy
+                ? t('common.busy')
+                : plural('dunning.bulkConfirmAction', confirmCount, {
+                    count: String(confirmCount),
+                  })}
+              {hydrated && (
+                <span className="ml-1 inline-flex gap-0.5 normal-case">
+                  <Keycap>{isApple() ? '⌘' : 'Ctrl'}</Keycap>
+                  <Keycap>↵</Keycap>
+                </span>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
