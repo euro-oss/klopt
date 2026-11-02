@@ -7141,6 +7141,101 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "vatMapping": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "exactCode": {
+                                "type": "string"
+                              },
+                              "exactName": {
+                                "type": "string"
+                              },
+                              "percentage": {
+                                "type": "string"
+                              },
+                              "appliesTo": {
+                                "enum": [
+                                  "unknown",
+                                  "sales",
+                                  "purchase",
+                                  "both"
+                                ]
+                              },
+                              "reverseCharge": {
+                                "type": "boolean"
+                              },
+                              "kloptCode": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "kloptLabel": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "accountsLosingDefault": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "number": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "vatCode": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "number",
+                                    "name",
+                                    "vatCode"
+                                  ]
+                                }
+                              },
+                              "codeMatch": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "exactCode",
+                              "exactName",
+                              "percentage",
+                              "appliesTo",
+                              "reverseCharge",
+                              "kloptCode",
+                              "kloptLabel",
+                              "accountsLosingDefault",
+                              "codeMatch"
+                            ]
+                          }
+                        },
+                        "recognised": {
+                          "type": "number"
+                        },
+                        "codeCount": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "rows",
+                        "recognised",
+                        "codeCount"
+                      ]
+                    },
                     "requests": {
                       "type": "array",
                       "items": {
@@ -7605,6 +7700,7 @@
                     }
                   },
                   "required": [
+                    "vatMapping",
                     "requests",
                     "division",
                     "reconciliation",

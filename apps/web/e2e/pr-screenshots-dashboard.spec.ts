@@ -148,7 +148,7 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
-  await expect(page.getByText(/transacties ingelezen/)).toBeVisible()
+  await expect(page.getByText(/transacties geïmporteerd/)).toBeVisible()
 
   // Inbox receipt (neutral).
   await page.goto('/inbox')
