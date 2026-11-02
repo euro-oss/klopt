@@ -76,6 +76,12 @@ function Dunning() {
    * Built with {@link reminderSendTargets} — the same helper the send uses.
    */
   const [pendingTargets, setPendingTargets] = useState<readonly ActionRow[] | null>(null)
+  /**
+   * Rows shown in the dialog body. Kept after `pendingTargets` clears so the
+   * exit animation does not flash "0 herinneringen versturen?" / "Verstuur 0".
+   * Cleared in onCloseAutoFocus once focus is restored.
+   */
+  const [displayTargets, setDisplayTargets] = useState<readonly ActionRow[] | null>(null)
   const keys = useRef<Map<string, string>>(new Map())
   const busyRef = useRef(false)
   /** Guards against ⌘/Ctrl+Enter firing confirm twice (dialog + window). */
@@ -85,19 +91,10 @@ function Dunning() {
   /** Button that opened the dialog — restored on close (no AlertDialogTrigger). */
   const openerRef = useRef<HTMLElement | null>(null)
   const headerSendRef = useRef<HTMLButtonElement>(null)
-  /**
-   * Last non-null send set for dialog body while the close animation runs.
-   * Clearing `pendingTargets` alone would flash "0 herinneringen versturen?".
-   */
-  const lastPendingRef = useRef<readonly ActionRow[] | null>(null)
 
   useEffect(() => {
     pendingRef.current = pendingTargets
   }, [pendingTargets])
-
-  if (pendingTargets !== null) {
-    lastPendingRef.current = pendingTargets
-  }
 
   const actions = useMemo((): readonly ActionRow[] => (queue.ok ? queue.data.actions : []), [queue])
   const schedule = queue.ok ? queue.data.schedule : []
@@ -186,6 +183,7 @@ function Dunning() {
     }
     const active = document.activeElement
     openerRef.current = active instanceof HTMLElement ? active : (headerSendRef.current ?? null)
+    setDisplayTargets(targets)
     setPendingTargets(targets)
   }
 
@@ -286,8 +284,6 @@ function Dunning() {
   const skippedNoEmail = selectedRows.filter((row) => !row.sendable).length
   const sendableCount = sendableSelected.length
   const selectedSum = sendableSelected.reduce((sum, row) => sum + BigInt(row.total), 0n)
-  // Keep last rows/count visible while the dialog closes (exit animation).
-  const displayTargets = pendingTargets ?? lastPendingRef.current
   const confirmPreview = displayTargets === null ? null : reminderConfirmPreview(displayTargets)
   const confirmCount = displayTargets?.length ?? 0
 
@@ -556,6 +552,8 @@ function Dunning() {
           onCloseAutoFocus={(event) => {
             event.preventDefault()
             openerRef.current?.focus()
+            // Drop retained rows after the close animation / focus restore.
+            setDisplayTargets(null)
           }}
           onKeyDownCapture={(event) => {
             // Capture so a focused primary button cannot activate on plain Enter
