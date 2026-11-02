@@ -69,7 +69,7 @@ async function aDraftInvoice(page: Page): Promise<void> {
   await page.getByLabel('Naam', { exact: true }).fill('Wachtende Klant N.V.')
   await page.getByLabel('E-mail').fill('inkoop@wachtendeklant.example.nl')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Wachtende Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Wachtende Klant N\.V\./ })).toBeVisible()
 
   // Draft setup uses the bookkeeper form (Geavanceerd); Eigenaar default is guided (#45).
   await enableAdvancedMode(page)
@@ -85,7 +85,10 @@ async function aDraftInvoice(page: Page): Promise<void> {
 test('an empty administration shows the redesigned dashboard and a way to start', async ({
   page,
 }) => {
-  await anAdministration(page, 'Leeg Bureau BV')
+  // Book year starts this month so no closed VAT period is waiting — otherwise
+  // a January start leaves a btw to-do, the queue is non-empty, and the header
+  // "Nieuwe factuur" alone can satisfy a haveCount(1) (QA #117).
+  await anAdministration(page, 'Leeg Bureau BV', { startInCurrentMonth: true })
 
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -93,27 +96,22 @@ test('an empty administration shows the redesigned dashboard and a way to start'
   // No email local-part in the greeting (designer #67).
   await expect(page.getByRole('heading', { name: /@|e2e-/ })).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Kerncijfers' })).toBeVisible()
-  // No operational work yet — drafts / bank / inbox stay off the list. A due
-  // btw-aangifte may still appear (the period closed even with empty books).
+  // Queue must actually be empty — not a VAT row with a header-only CTA.
+  await expect(page.getByRole('heading', { name: 'Te doen', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /Btw-aangifte/ })).toHaveCount(0)
   await expect(page.getByRole('link', { name: /concept(en)? om te versturen/i })).toHaveCount(0)
   await expect(page.getByRole('link', { name: /bankregels wachten/ })).toHaveCount(0)
   // No invented "import your books" to-do (decision 2 / #107).
   await expect(page.getByText(/Haal je boekhouding over/i)).toHaveCount(0)
-  // Empty queue → "Niets te doen" when nothing (incl. VAT) is waiting.
-  const todoHeading = page.getByRole('heading', { name: 'Te doen' })
-  const emptyHeading = page.getByRole('heading', { name: 'Niets te doen' })
-  const hasTodo = await todoHeading.isVisible().catch(() => false)
-  const hasEmpty = await emptyHeading.isVisible().catch(() => false)
-  expect(hasTodo || hasEmpty).toBeTruthy()
 
-  // Header "Nieuwe factuur" is secondary on Home (PM #107); only a top to-do
-  // owns primary. With an empty queue the empty-state action is also outline.
-  const newInvoice = page
-    .locator('#main')
-    .getByRole('link', { name: /Nieuwe factuur/ })
-    .first()
-  await expect(newInvoice).toHaveAttribute('data-variant', 'outline')
-  await newInvoice.click()
+  // Loaded + empty: exactly one "Nieuwe factuur", inside the empty card (PM #117).
+  await expect(page.getByRole('heading', { name: 'Niets te doen', exact: true })).toBeVisible()
+  const emptyCard = page.locator('[data-slot="empty"]')
+  await expect(emptyCard.getByRole('link', { name: /Nieuwe factuur/ })).toHaveCount(1)
+  const newInvoices = page.locator('#main').getByRole('link', { name: /Nieuwe factuur/ })
+  await expect(newInvoices).toHaveCount(1)
+  await expect(newInvoices).toHaveAttribute('data-variant', 'outline')
+  await newInvoices.click()
   await expect(page).toHaveURL(/\/invoices\/new$/)
 })
 
@@ -157,12 +155,16 @@ test('the queue lists what is waiting and opens the screen where it is done', as
   await expect(row).toBeFocused()
 
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/\/invoices\?status=draft$/)
+  await expect(page).toHaveURL(/\/invoices\?segment=draft/)
 
   // And the count was the truth: one draft on the dashboard, one draft here.
   // A queue whose numbers disagree with the screens behind them is a queue
-  // people stop believing.
-  await expect(page.getByRole('row')).toHaveCount(2)
+  // people stop believing. Phase 2 list uses segment Drafts (Concepten).
+  await expect(page.getByRole('tab', { name: /Concepten/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(page.getByRole('tab', { name: /Concepten/ })).toContainText('1')
 })
 
 test('Home drops the Kloppen de boeken health strip', async ({ page }) => {

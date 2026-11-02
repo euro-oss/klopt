@@ -13,6 +13,7 @@ export {
   formatDate,
   formatMinorUnits,
   multiplyByDecimal,
+  normalizeMinorUnits,
   parseMinorUnits,
   percentOf,
 } from '@klopt/core/format'

@@ -27,15 +27,26 @@ export interface MoneyFormat {
 
 export const DEFAULT_MONEY_FORMAT: MoneyFormat = { negative: 'minus', showZero: true }
 
+/**
+ * Coerce signed zero (and string forms like `"-0"`) to plain `0n` so a zero
+ * amount never renders with a minus. BigInt has no distinct `-0`; this still
+ * makes the intent explicit at every call site that formats money.
+ */
+export function normalizeMinorUnits(amount: string | bigint): bigint {
+  const value = typeof amount === 'bigint' ? amount : BigInt(amount)
+  return value === 0n ? 0n : value
+}
+
 /** Integer division and string surgery only. */
 export function formatMinorUnits(
   minorUnits: bigint,
   format: MoneyFormat = DEFAULT_MONEY_FORMAT,
 ): string {
-  if (minorUnits === 0n && !format.showZero) return ''
+  const units = normalizeMinorUnits(minorUnits)
+  if (units === 0n && !format.showZero) return ''
 
-  const negative = minorUnits < 0n
-  const digits = (negative ? -minorUnits : minorUnits).toString().padStart(3, '0')
+  const negative = units < 0n
+  const digits = (negative ? -units : units).toString().padStart(3, '0')
   const whole = digits.slice(0, -2)
   const cents = digits.slice(-2)
 
