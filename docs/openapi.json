@@ -1187,13 +1187,24 @@
                               },
                               "unmatchedTotal": {
                                 "type": "string"
+                              },
+                              "lineCount": {
+                                "type": "number"
+                              },
+                              "booksBalance": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               }
                             },
                             "required": [
                               "statementBalance",
                               "statementDate",
                               "unmatchedCount",
-                              "unmatchedTotal"
+                              "unmatchedTotal",
+                              "lineCount",
+                              "booksBalance"
                             ]
                           },
                           "id": {
