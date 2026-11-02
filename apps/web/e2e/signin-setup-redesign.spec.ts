@@ -57,7 +57,18 @@ function trackConsole(page: Page): { errors: string[]; detach: () => void } {
   }
 }
 
+async function disableMotion(page: Page): Promise<void> {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.addStyleTag({
+    content: '*,*::before,*::after{transition:none!important;animation:none!important}',
+  })
+  await page.evaluate(async () => {
+    await document.fonts.ready
+  })
+}
+
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
+  await disableMotion(page)
   await page.evaluate((t) => {
     document.documentElement.classList.toggle('dark', t === 'dark')
   }, theme)
@@ -65,10 +76,18 @@ async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
     (wantDark) => document.documentElement.classList.contains('dark') === wantDark,
     theme === 'dark',
   )
+  // Two paints after the class flip so inputs aren't mid-transition.
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve(null))),
+      ),
+  )
 }
 
 async function shot(page: Page, name: string): Promise<void> {
   if (!CAPTURE) return
+  await disableMotion(page)
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme)
     await page.setViewportSize({ width: 1440, height: 900 })

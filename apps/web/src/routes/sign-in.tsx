@@ -318,9 +318,11 @@ function SignIn() {
                   >
                     {busy ? t('common.busy') : t('signIn.sendCode')}
                     {!busy && (
-                      <Keycap className="border-primary-foreground/30 bg-primary text-primary-foreground">
-                        ↵
-                      </Keycap>
+                      <span className="hidden md:inline-flex">
+                        <Keycap className="border-primary-foreground/30 bg-primary text-primary-foreground">
+                          ↵
+                        </Keycap>
+                      </span>
                     )}
                   </Button>
 
