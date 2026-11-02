@@ -184,12 +184,12 @@ function Dunning() {
           })
         }
         document.querySelector<HTMLElement>('[data-slot="page-title"]')?.focus()
-        return
+      } else {
+        // Partial send: header send stays mounted — restore focus there.
+        const send = document.querySelector<HTMLElement>('[data-slot="dunning-header-send"]')
+        const title = document.querySelector<HTMLElement>('[data-slot="page-title"]')
+        ;(send ?? title)?.focus()
       }
-      // Partial send: header send stays mounted — restore focus there.
-      const send = document.querySelector<HTMLElement>('[data-slot="dunning-header-send"]')
-      const title = document.querySelector<HTMLElement>('[data-slot="page-title"]')
-      ;(send ?? title)?.focus()
     }
   }
 
