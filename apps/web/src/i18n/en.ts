@@ -1142,10 +1142,10 @@ export const en: Record<MessageKey, string> = {
   'purchase.finding.pro_rata': 'The VAT is partly deductible',
   'purchase.finding.duplicate_invoice_number': 'This invoice number has been posted before',
 
-  // Bank accounts, statement import and learned rules.
+  // Bank accounts, statement import and learned rules (#129 BankAccounts board).
   'bank.title': 'Bank',
   'bank.intro': 'Accounts, statements, and what came in.',
-  'bank.matchCount': 'Match {count}',
+  'bank.matchCount': 'Match {count} lines',
   'bank.addAccount': 'Add an account',
   'bank.accountName': 'Name',
   'bank.accountNamePlaceholder': 'Current account',
@@ -1154,21 +1154,47 @@ export const en: Record<MessageKey, string> = {
   'bank.asAt': 'as at {date} · {consent}',
   'bank.unmatchedLines': '{count} lines still to match',
   'bank.importStatement': 'Import a statement',
+  // CoS: import card only — no PSD2 / connection card. Title is the action.
+  'bank.dropTitle': 'Drop a bank statement',
+  // Legal: never "any Dutch bank" / "every bank" — formats from your bank.
+  'bank.dropDescription':
+    'CAMT.053 or MT940 from your bank. Lines you already have are skipped, so overlapping files are fine.',
+  'bank.importCardTitle': 'Import a bank statement',
+  'bank.importCardBody':
+    'Download a CAMT.053 or MT940 file from your bank and drop it here. Klopt imports new lines and skips the rest.',
+  'bank.importCardBodyDated':
+    'Download a CAMT.053 or MT940 file from your bank and drop it here. Klopt imports the lines after {date} and skips the rest.',
+  'bank.importCardHint': 'Where your bank keeps the file',
+  'bank.fileImport': 'File import',
+  'bank.statementUpTo': 'Statement up to',
+  'bank.linesOfWhich': '{total} lines, of which {unmatched} to match',
+  'bank.linesNone': 'No lines yet',
+  'bank.inTheBooks': 'In the books',
+  'bank.whyDifference': 'why the difference',
+  'bank.allTransactions': 'All transactions',
+  'bank.filterStatus': 'Status',
+  'bank.filterAll': 'All',
   'bank.imported': '{count} transactions imported',
   'bank.importedDuplicates': ', {count} were already there.',
   'bank.consent.not_required': 'file import',
-  'bank.consent.active': 'access active',
-  'bank.consent.expiring': 'access expiring soon',
-  'bank.consent.expired': 'access expired',
+  // No live bank connection yet — keep consent labels honest (file import only).
+  'bank.consent.active': 'file import',
+  'bank.consent.expiring': 'file import',
+  'bank.consent.expired': 'file import',
   'bank.counterparty': 'Counterparty',
   'bank.counterpartyUnknown': 'unknown',
   'bank.amount': 'Amount',
-  'bank.status.matched': 'matched',
-  'bank.status.ignored': 'ignored',
-  'bank.status.unmatched': 'to match',
+  // Legal: matched lines are "afgeletterd" in NL; EN board uses Matched.
+  'bank.status.matched': 'Matched',
+  'bank.status.ignored': 'Skipped',
+  'bank.status.unmatched': 'To match',
+  'bank.tabs': 'Bank sections',
+  'bank.tab.match': 'To match',
+  'bank.tab.accounts': 'Accounts and statements',
+  'bank.tab.batches': 'Payment batches',
   'bank.columns': 'Columns in this file',
   'bank.columnsIntro':
-    'This is a CSV, and every bank invents its own columns. This is a guess — check it. It is remembered, so this is a one-off.',
+    'This is a CSV: banks invent their own columns. This is a guess — check it. It is remembered, so this is a one-off.',
   'bank.optionalSuffix': ' (optional)',
   'bank.map.bookingDate': 'Date',
   'bank.map.amount': 'Amount',
@@ -1191,7 +1217,7 @@ export const en: Record<MessageKey, string> = {
   'bank.alreadyImported': 'Already imported',
   'bank.import': 'Import',
   'bank.rules': 'Remembered rules',
-  'bank.rulesIntro': 'What has been remembered from earlier matches, and how often it was right.',
+  'bank.rulesIntro': 'What has been remembered from earlier bookings, and how often it was right.',
   'bank.ruleIf': 'If',
   'bank.ruleThen': 'Then',
   'bank.ruleApplied': 'Applied',
@@ -1204,13 +1230,12 @@ export const en: Record<MessageKey, string> = {
   'bank.lines': 'Lines',
   'bank.lastTwoHundred': 'last 200',
   'bank.toMatch': 'To match',
-  'bank.toMatchHint': 'not yet matched to a posting',
+  'bank.toMatchHint': 'not yet booked',
   'bank.accounts': 'Accounts',
   'bank.transactions': 'Bank transactions',
   'bank.transactionsEmpty': 'No transactions yet. Import a statement.',
-  'bank.footerNote':
-    'What the bank said, exactly as the bank said it. Matching to postings happens in',
-  'bank.footerLink': 'the matching queue',
+  'bank.footerNote': 'What the bank said, exactly as the bank said it. Booking lines happens in',
+  'bank.footerLink': 'to match',
 
   // The matching queue (#61 slice 6 / #57).
   'match.title': 'Match',

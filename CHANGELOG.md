@@ -18,6 +18,16 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign: BankAccounts desktop light (#129 / #140)
+
+`/bank` matches the BankAccounts board from Hidde’s v2 export (plus CoS batch-2
+copy): account card with statement position and books balance, DropZone for
+CAMT.053 / MT940, an “Import a bank statement” card (no PSD2 / connect-bank UI),
+Bank tabs, and an All / To match transactions list. Matched lines say
+“Afgeletterd” / “Matched”. Example IBAN is `NL91 ABNA 0417 1643 00`. Input
+borders use `--ink-muted`. Dark and phone wait on #143. Bank Match stays a
+separate PR (#164).
+
 ### Fixed
 
 - Debtor-ageing report and overdue counts no longer count invoices that are due
