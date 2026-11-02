@@ -8,12 +8,16 @@
 <link rel="stylesheet" href="ds/klopt/components/bundle.css">
 </head>
 <body>
+<!--
+  A11y deviations: --line-control on --ink-muted.
+-->
 <x-dc>
 <helmet>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}a:hover{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
 .cgrid{display:grid;grid-template-columns:20px minmax(150px,1fr) 150px 72px 120px 96px;gap:12px}
 </style>
 </helmet>
