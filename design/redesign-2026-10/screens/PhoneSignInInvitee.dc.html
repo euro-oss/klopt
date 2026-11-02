@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Sign in, invitee first time</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#153). The PhoneSignIn code screen for an invitee's first sign-in
+  (Legal art. 13): one ink-muted line under the code boxes links the privacy notice
+  (KLOPT_PRIVACY_URL). No checkbox, nothing about the terms or the DPA. The invitee is Ruben.
+  Signed out, so there is no tab bar. No key hints on phone.
+  Self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root.k-phone{overflow:clip}
+.ps-digits{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.ps-digit{width:100%;height:56px;border-radius:var(--radius-md);border:1px solid var(--line-control);background:var(--surface);text-align:center;font:600 24px var(--font-mono);color:var(--ink);box-sizing:border-box;padding:0}
+.ps-digit.is-focus{outline:2px solid var(--focus-ring);outline-offset:1px}
+.ps-privacy{margin:0;font-size:14px;line-height:20px;color:var(--ink-muted)}
+.ps-privacy .ps-link{font-size:14px}
+.ps-link{display:inline-flex;align-items:center;min-height:44px;font-size:15px}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top" style="padding-top: 20px;">
+    <span class="k-mark" style="width: 32px; height: 32px; font-size: 16px;" aria-hidden="true">K</span>
+    <strong style="flex: 1; font-size: 17px;">Klopt</strong>
+  </div>
+  <div class="k-phone-body" style="padding-top: 24px; gap: 20px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <h1 style="margin: 0; font-size: 26px; line-height: 32px; font-weight: 600; letter-spacing: -0.02em;">Check your email</h1>
+        <p style="margin: 0; color: var(--ink-2); font-size: 15px; line-height: 22px;">We sent a 6-digit code to <strong>ruben@voorbeeld.example.nl</strong>.</p>
+        <a href="PhoneSignIn.dc.html" class="ps-link" style="align-self: flex-start;">Change email</a>
+      </div>
+      <section class="k-card" aria-label="Code" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+        <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+          <legend class="k-label" style="padding: 0; margin-bottom: 8px;">Code</legend>
+          <div class="ps-digits">
+            <input class="ps-digit" inputmode="numeric" autocomplete="one-time-code" aria-label="Digit 1" value="4">
+            <input class="ps-digit" inputmode="numeric" aria-label="Digit 2" value="8">
+            <input class="ps-digit" inputmode="numeric" aria-label="Digit 3" value="1">
+            <input class="ps-digit is-focus" inputmode="numeric" aria-label="Digit 4" value="">
+            <input class="ps-digit" inputmode="numeric" aria-label="Digit 5" value="">
+            <input class="ps-digit" inputmode="numeric" aria-label="Digit 6" value="">
+          </div>
+          <span class="k-help" style="font-size: 14px; line-height: 20px;">Paste the code or let your phone fill it in. It signs you in by itself.</span>
+          <p class="ps-privacy">Read our <a href="{{privacyUrl}}" class="ps-link">privacy notice</a>.</p>
+        </fieldset>
+      </section>
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+        <span class="k-muted" style="font-size: 14px;">Valid for 10 minutes, works once</span>
+        <a href="#" class="ps-link" style="white-space: nowrap;">Send a new code</a>
+      </div>
+  </div>
+  <p class="k-muted" style="margin: 0; padding: 16px 16px 28px; font-size: 13px; line-height: 18px;">Open source, Apache-2.0. Your books leave whenever you want, as an audit file.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"privacyUrl":{"editor":"text","default":"KLOPT_PRIVACY_URL"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light', privacyUrl: this.props.privacyUrl ?? 'KLOPT_PRIVACY_URL' }; }
+}
+</script>
+</body>
+</html>

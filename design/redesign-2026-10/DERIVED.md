@@ -172,3 +172,20 @@ Strings Hidde already has on his boards are not repeated here.
 | Owner · just you | Eigenaar · alleen jij |
 | Signed in as | Ingelogd als |
 | Sign out | Uitloggen |
+
+### Invitee's first sign-in (Legal art. 13)
+
+What an invitee sees on the code step the first time they sign in. Under the code boxes there is one line in `--ink-muted`: "Read our [privacy notice]." / "Lees onze [privacyverklaring]." Only "privacy notice" / "privacyverklaring" is a link, in ink and underlined, to `KLOPT_PRIVACY_URL`. There is no checkbox and nothing about the terms or the data processing agreement. The invitee is Ruben (`ruben@voorbeeld.example.nl`). These are new files, and no existing board changes.
+
+| Board | What it is | Screenshot |
+| --- | --- | --- |
+| `SignInInvitee.dc.html`, `theme` prop (default light) | `SignInDark` layout with Ruben and the privacy line under the code boxes | `SignInInvitee-light-1440` |
+| `SignInInviteeDark.dc.html` | `SignInInvitee` with `theme="dark"` | `SignInInvitee-dark-1440` |
+| `PhoneSignInInvitee.dc.html`, `theme` prop | The `PhoneSignIn` code step with the privacy line; the link is 44px tall | `SignInInvitee-light-390` |
+| `PhoneSignInInviteeDark.dc.html` | `PhoneSignInInvitee` with `theme="dark"` | `SignInInvitee-dark-390` |
+
+On the canvas they sit at y 22280 under note `t153c`. The line is `ink-muted` on `surface`: 5.95:1 in light, 6.77:1 in dark. The link is `ink`: 17.72:1 and 15.80:1.
+
+| English (board) | Nederlands |
+| --- | --- |
+| Read our privacy notice. | Lees onze privacyverklaring. |

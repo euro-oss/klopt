@@ -526,6 +526,42 @@
    "title": "Phone dark · switcher (derived)",
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SignInInvitee.dc.html": {
+   "x": 0,
+   "y": 22280,
+   "w": 1440,
+   "h": 900,
+   "title": "Sign-in code step · invitee first time (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. Invitee's first sign-in (Legal art. 13). See ../DERIVED.md."
+  },
+  "SignInInviteeDark.dc.html": {
+   "x": 1520,
+   "y": 22280,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark · sign-in code step, invitee first time (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. Invitee's first sign-in (Legal art. 13). See ../DERIVED.md."
+  },
+  "PhoneSignInInvitee.dc.html": {
+   "x": 3040,
+   "y": 22280,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · sign-in code, invitee first time (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. Invitee's first sign-in (Legal art. 13). See ../DERIVED.md."
+  },
+  "PhoneSignInInviteeDark.dc.html": {
+   "x": 3510,
+   "y": 22280,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · sign-in code, invitee first time (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. Invitee's first sign-in (Legal art. 13). See ../DERIVED.md."
   }
  },
  "order": [
@@ -589,7 +625,11 @@
   "PhoneOAuth.dc.html",
   "PhoneOAuthDark.dc.html",
   "PhoneSwitcher.dc.html",
-  "PhoneSwitcherDark.dc.html"
+  "PhoneSwitcherDark.dc.html",
+  "SignInInvitee.dc.html",
+  "SignInInviteeDark.dc.html",
+  "PhoneSignInInvitee.dc.html",
+  "PhoneSignInInviteeDark.dc.html"
  ],
  "notes": {
   "t1": {
@@ -675,6 +715,13 @@
    "text": "Getting in, phone (390) light and dark (derived, #153)",
    "kind": "title1",
    "maxW": 5560
+  },
+  "t153c": {
+   "x": 0,
+   "y": 21980,
+   "text": "Invitee's first sign-in: privacy notice (derived, #153)",
+   "kind": "title1",
+   "maxW": 3900
   }
  },
  "designSystems": [
