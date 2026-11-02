@@ -389,6 +389,7 @@ test('the remaining label caps only above 500 lines', async ({ page }) => {
 
   await page.goto('/bank/match')
   await hydrated(page)
-  await expect(page.getByText('500+ regels nog te boeken')).toBeVisible()
+  // Desktop + phone header both render the remaining label (#164).
+  await expect(page.getByText('500+ regels nog te boeken').first()).toBeVisible()
   await expect(queueRows(page)).toHaveCount(500)
 })
