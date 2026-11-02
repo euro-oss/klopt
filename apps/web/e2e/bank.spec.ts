@@ -28,8 +28,8 @@ const FIXTURES = join(
 const EXAMPLE_IBAN = 'NL91ABNA0417164300'
 const EXAMPLE_IBAN_DISPLAY = 'NL91 ABNA 0417 1643 00'
 /** Different IBAN for the wrong-account case — never the CoS example. */
-const OTHER_IBAN = 'NL02ABNA0123456789'
-const OTHER_IBAN_DISPLAY = 'NL02 ABNA 0123 4567 89'
+const OTHER_IBAN = 'NL20INGB0001234567'
+const OTHER_IBAN_DISPLAY = 'NL20 INGB 0001 2345 67'
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)

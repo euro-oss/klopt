@@ -25,7 +25,7 @@ const FIXTURES = join(
 )
 
 const EXAMPLE_IBAN = 'NL91ABNA0417164300'
-const SECOND_IBAN = 'NL02ABNA0123456789'
+const SECOND_IBAN = 'NL20INGB0001234567'
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
@@ -245,7 +245,7 @@ test('statement for the second account imports into that account', async ({ page
   await page.getByLabel('IBAN').fill(SECOND_IBAN)
   await page.getByLabel('Naam', { exact: true }).fill('Tweede rekening')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02 ABNA 0123 4567 89')).toBeVisible()
+  await expect(page.getByText('NL20 INGB 0001 2345 67')).toBeVisible()
 
   const secondCard = page.locator('[data-slot="bank-account-card"]', {
     has: page.getByText('Tweede rekening'),
