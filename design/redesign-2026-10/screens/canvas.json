@@ -1,0 +1,1079 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-30T08:50:00Z"
+ },
+ "title": "Klopt redesign",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 1040,
+   "title": "Home",
+   "expand": "fill"
+  },
+  "Invoices.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 1040,
+   "title": "Sales · invoice list + preview",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Editor.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 1040,
+   "title": "New invoice · one page, live preview",
+   "expand": "fill"
+  },
+  "Match.dc.html": {
+   "x": 0,
+   "y": 1460,
+   "w": 1440,
+   "h": 960,
+   "title": "Bank · match one line at a time",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Command.dc.html": {
+   "x": 1520,
+   "y": 1460,
+   "w": 1440,
+   "h": 960,
+   "title": "Command bar + shortcut sheet"
+  },
+  "Settings.dc.html": {
+   "x": 3040,
+   "y": 1460,
+   "w": 1440,
+   "h": 960,
+   "title": "Settings hub (was 11 menu items)",
+   "expand": "fill"
+  },
+  "Sidebar.dc.html": {
+   "x": 4600,
+   "y": 0,
+   "w": 248,
+   "h": 1100,
+   "title": "Component · navigation"
+  },
+  "Inbox.dc.html": {
+   "x": 0,
+   "y": 2840,
+   "w": 1440,
+   "h": 960,
+   "title": "Inbox · first run",
+   "expand": "fill"
+  },
+  "Costs.dc.html": {
+   "x": 1520,
+   "y": 2840,
+   "w": 1440,
+   "h": 1040,
+   "title": "Costs · bills list + preview",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Vat.dc.html": {
+   "x": 3040,
+   "y": 2840,
+   "w": 1440,
+   "h": 1100,
+   "title": "VAT · return Q4 2025",
+   "expand": "fill"
+  },
+  "Reports.dc.html": {
+   "x": 4560,
+   "y": 2840,
+   "w": 1440,
+   "h": 1040,
+   "title": "Reports · P&L, balance sheet, ageing, trial balance",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Contacts.dc.html": {
+   "x": 6080,
+   "y": 2840,
+   "w": 1440,
+   "h": 1040,
+   "title": "Contacts · list + contact card",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "SignIn.dc.html": {
+   "x": 0,
+   "y": 4300,
+   "w": 1440,
+   "h": 900,
+   "title": "Sign-in · email and code"
+  },
+  "Setup.dc.html": {
+   "x": 1520,
+   "y": 4300,
+   "w": 1440,
+   "h": 960,
+   "title": "Setup · new administration",
+   "expand": "fill"
+  },
+  "OAuth.dc.html": {
+   "x": 3040,
+   "y": 4300,
+   "w": 1440,
+   "h": 900,
+   "title": "AI assistant consent (MCP)"
+  },
+  "Switcher.dc.html": {
+   "x": 4560,
+   "y": 4300,
+   "w": 1440,
+   "h": 900,
+   "title": "Administration and book year switcher"
+  },
+  "Journal.dc.html": {
+   "x": 0,
+   "y": 5680,
+   "w": 1440,
+   "h": 1040,
+   "title": "Journal · entries list + entry",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "EntryNew.dc.html": {
+   "x": 1520,
+   "y": 5680,
+   "w": 1440,
+   "h": 1040,
+   "title": "New journal entry",
+   "expand": "fill"
+  },
+  "Ledger.dc.html": {
+   "x": 3040,
+   "y": 5680,
+   "w": 1440,
+   "h": 1040,
+   "title": "General ledger per account",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Reminders.dc.html": {
+   "x": 0,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "Sales · reminders",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "BillNew.dc.html": {
+   "x": 1520,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "Costs · enter a bill",
+   "expand": "fill"
+  },
+  "InboxReview.dc.html": {
+   "x": 3040,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "Inbox · check and book a document",
+   "expand": "fill"
+  },
+  "PaymentBatch.dc.html": {
+   "x": 4560,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "Payment batch · prepare, approve, download",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "BankAccounts.dc.html": {
+   "x": 6080,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "Bank · accounts and statement import",
+   "expand": "fill"
+  },
+  "Icp.dc.html": {
+   "x": 7600,
+   "y": 7140,
+   "w": 1440,
+   "h": 1040,
+   "title": "VAT · ICP return",
+   "expand": "fill"
+  },
+  "ImportSource.dc.html": {
+   "x": 0,
+   "y": 8600,
+   "w": 1440,
+   "h": 1000,
+   "title": "Import · source and connect (Moneybird, Exact)",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "ImportFindings.dc.html": {
+   "x": 1520,
+   "y": 8600,
+   "w": 1440,
+   "h": 1000,
+   "title": "Import · problems to resolve",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "SettingsCompany.dc.html": {
+   "x": 0,
+   "y": 10020,
+   "w": 1440,
+   "h": 1100,
+   "title": "Settings · company, bank, Peppol",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "SettingsBooks.dc.html": {
+   "x": 1520,
+   "y": 10020,
+   "w": 1440,
+   "h": 1100,
+   "title": "Settings · book years, categories, VAT codes",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "SettingsAccess.dc.html": {
+   "x": 3040,
+   "y": 10020,
+   "w": 1440,
+   "h": 1100,
+   "title": "Settings · people, tokens, who did what",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "SettingsData.dc.html": {
+   "x": 4560,
+   "y": 10020,
+   "w": 1440,
+   "h": 1100,
+   "title": "Settings · audit file, webhooks, retention, seals",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "PhoneHome.dc.html": {
+   "x": 0,
+   "y": 11540,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · home"
+  },
+  "PhoneSales.dc.html": {
+   "x": 470,
+   "y": 11540,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · sales"
+  },
+  "PhoneInvoice.dc.html": {
+   "x": 940,
+   "y": 11540,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · invoice"
+  },
+  "PhoneMatch.dc.html": {
+   "x": 1410,
+   "y": 11540,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · match"
+  },
+  "BankAccountsDark.dc.html": {
+   "x": 0,
+   "y": 18200,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · bank accounts and statements (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "CostsDark.dc.html": {
+   "x": 1520,
+   "y": 18200,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · costs (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "BillNewDark.dc.html": {
+   "x": 3040,
+   "y": 18200,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · enter a bill (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PaymentBatchDark.dc.html": {
+   "x": 4560,
+   "y": 18200,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · payment batch (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneMatchDark.dc.html": {
+   "x": 0,
+   "y": 19460,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · match (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneBankAccounts.dc.html": {
+   "x": 470,
+   "y": 19460,
+   "w": 390,
+   "h": 1342,
+   "title": "Phone · bank accounts (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneBankAccountsDark.dc.html": {
+   "x": 940,
+   "y": 19460,
+   "w": 390,
+   "h": 1342,
+   "title": "Phone dark · bank accounts (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneCosts.dc.html": {
+   "x": 1410,
+   "y": 19460,
+   "w": 390,
+   "h": 1642,
+   "title": "Phone · costs (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneCostsDark.dc.html": {
+   "x": 1880,
+   "y": 19460,
+   "w": 390,
+   "h": 1642,
+   "title": "Phone dark · costs (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneBillNew.dc.html": {
+   "x": 2350,
+   "y": 19460,
+   "w": 390,
+   "h": 1860,
+   "title": "Phone · enter a bill (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhoneBillNewDark.dc.html": {
+   "x": 2820,
+   "y": 19460,
+   "w": 390,
+   "h": 1860,
+   "title": "Phone dark · enter a bill (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhonePaymentBatch.dc.html": {
+   "x": 3290,
+   "y": 19460,
+   "w": 390,
+   "h": 1411,
+   "title": "Phone · payment batch (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "PhonePaymentBatchDark.dc.html": {
+   "x": 3760,
+   "y": 19460,
+   "w": 390,
+   "h": 1411,
+   "title": "Phone dark · payment batch (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (Bank and Costs, dark and phone), not drawn by Hidde."
+  },
+  "HomeDark.dc.html": {
+   "x": 1960,
+   "y": 11540,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · home",
+   "expand": "fill"
+  },
+  "InvoicesDark.dc.html": {
+   "x": 3480,
+   "y": 11540,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · sales",
+   "expand": "fill"
+  },
+  "MatchDark.dc.html": {
+   "x": 5000,
+   "y": 11540,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · bank matching",
+   "expand": "fill"
+  },
+  "ImportYears.dc.html": {
+   "x": 3040,
+   "y": 8600,
+   "w": 1440,
+   "h": 1100,
+   "title": "Import · step 3, years (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ImportPreview.dc.html": {
+   "x": 4560,
+   "y": 8600,
+   "w": 1440,
+   "h": 1162,
+   "title": "Import · step 4, preview (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ImportConfirm.dc.html": {
+   "x": 6080,
+   "y": 8600,
+   "w": 1440,
+   "h": 1100,
+   "title": "Import · step 6, confirm (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ImportRun.dc.html": {
+   "x": 7600,
+   "y": 8600,
+   "w": 1440,
+   "h": 1100,
+   "title": "Import · step 6, transferring (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ImportStopped.dc.html": {
+   "x": 9120,
+   "y": 8600,
+   "w": 1440,
+   "h": 1100,
+   "title": "Import · step 6, stopped, nothing booked (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ImportStoppedPartial.dc.html": {
+   "x": 10640,
+   "y": 8600,
+   "w": 1440,
+   "h": 1100,
+   "title": "Import · step 6, stopped, partly booked (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "YearCloseProposal.dc.html": {
+   "x": 6560,
+   "y": 10020,
+   "w": 1440,
+   "h": 2312,
+   "title": "Settings · close book year, proposal (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "YearCloseBlocked.dc.html": {
+   "x": 8080,
+   "y": 10020,
+   "w": 1440,
+   "h": 2451,
+   "title": "Settings · close book year, blocked (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "YearCloseBlockedMonthly.dc.html": {
+   "x": 9600,
+   "y": 10020,
+   "w": 1440,
+   "h": 2451,
+   "title": "Settings · close book year, blocked, monthly VAT (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "YearCloseBlockedAnnual.dc.html": {
+   "x": 11120,
+   "y": 10020,
+   "w": 1440,
+   "h": 2451,
+   "title": "Settings · close book year, blocked, annual VAT (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (batch 1), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneContacts.dc.html": {
+   "x": 0,
+   "y": 13000,
+   "w": 390,
+   "h": 1686,
+   "title": "Phone · contacts (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneContactCard.dc.html": {
+   "x": 470,
+   "y": 13000,
+   "w": 390,
+   "h": 1271,
+   "title": "Phone · contact card (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneVatPeriods.dc.html": {
+   "x": 940,
+   "y": 13000,
+   "w": 390,
+   "h": 1055,
+   "title": "Phone · VAT periods (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneVat.dc.html": {
+   "x": 1410,
+   "y": 13000,
+   "w": 390,
+   "h": 1654,
+   "title": "Phone · VAT return Q4 2025 (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneIcp.dc.html": {
+   "x": 1880,
+   "y": 13000,
+   "w": 390,
+   "h": 1267,
+   "title": "Phone · ICP return (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#155), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceipt.dc.html": {
+   "x": 0,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · receipt, choose",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptUploaded.dc.html": {
+   "x": 470,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · receipt, uploaded",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptFailed.dc.html": {
+   "x": 940,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · receipt, failed (too large)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneMore.dc.html": {
+   "x": 1410,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · more",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptDark.dc.html": {
+   "x": 1960,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · receipt, choose",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptUploadedDark.dc.html": {
+   "x": 2430,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · receipt, uploaded",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneReceiptFailedDark.dc.html": {
+   "x": 2900,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · receipt, failed (too large)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "PhoneMoreDark.dc.html": {
+   "x": 3370,
+   "y": 16700,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · more",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (PhoneTabBar Receipt and More), not drawn by Hidde. Dark is the theme prop. See ../DERIVED.md."
+  },
+  "SignInDark.dc.html": {
+   "x": 0,
+   "y": 21920,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark · sign-in, invite-only (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SetupDark.dc.html": {
+   "x": 1520,
+   "y": 21920,
+   "w": 1440,
+   "h": 960,
+   "title": "Dark · setup, hosted with terms checkbox (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SetupSelfHostedDark.dc.html": {
+   "x": 3040,
+   "y": 21920,
+   "w": 1440,
+   "h": 960,
+   "title": "Dark · setup, self-hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "OAuthDark.dc.html": {
+   "x": 4560,
+   "y": 21920,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark · AI assistant consent (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SwitcherDark.dc.html": {
+   "x": 6080,
+   "y": 21920,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark · switcher (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "TermsConsent.dc.html": {
+   "x": 7600,
+   "y": 21920,
+   "w": 440,
+   "h": 72,
+   "title": "Component · terms checkbox, hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design (#153). The one place the checkbox label lives. See ../DERIVED.md."
+  },
+  "PhoneSignIn.dc.html": {
+   "x": 0,
+   "y": 23480,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · sign-in (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSignInDark.dc.html": {
+   "x": 470,
+   "y": 23480,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · sign-in (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSignInCode.dc.html": {
+   "x": 940,
+   "y": 23480,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · sign-in code (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSignInCodeDark.dc.html": {
+   "x": 1410,
+   "y": 23480,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · sign-in code (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSetup.dc.html": {
+   "x": 1880,
+   "y": 23480,
+   "w": 390,
+   "h": 1414,
+   "title": "Phone · setup, hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSetupDark.dc.html": {
+   "x": 2350,
+   "y": 23480,
+   "w": 390,
+   "h": 1414,
+   "title": "Phone dark · setup, hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSetupSelfHosted.dc.html": {
+   "x": 2820,
+   "y": 23480,
+   "w": 390,
+   "h": 1281,
+   "title": "Phone · setup, self-hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSetupSelfHostedDark.dc.html": {
+   "x": 3290,
+   "y": 23480,
+   "w": 390,
+   "h": 1281,
+   "title": "Phone dark · setup, self-hosted (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneOAuth.dc.html": {
+   "x": 3760,
+   "y": 23480,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · AI assistant consent (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneOAuthDark.dc.html": {
+   "x": 4230,
+   "y": 23480,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · AI assistant consent (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSwitcher.dc.html": {
+   "x": 4700,
+   "y": 23480,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · switcher (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneSwitcherDark.dc.html": {
+   "x": 5170,
+   "y": 23480,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · switcher (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "SignInInvitee.dc.html": {
+   "x": 0,
+   "y": 25500,
+   "w": 1440,
+   "h": 900,
+   "title": "Sign-in code step · invitee first time (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. Invitee's first sign-in (Legal art. 13). See ../DERIVED.md."
+  },
+  "SignInInviteeDark.dc.html": {
+   "x": 1520,
+   "y": 25500,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark · sign-in code step, invitee first time (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. Invitee's first sign-in (Legal art. 13). See ../DERIVED.md."
+  },
+  "PhoneSignInInvitee.dc.html": {
+   "x": 3040,
+   "y": 25500,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · sign-in code, invitee first time (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. Invitee's first sign-in (Legal art. 13). See ../DERIVED.md."
+  },
+  "PhoneSignInInviteeDark.dc.html": {
+   "x": 3510,
+   "y": 25500,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · sign-in code, invitee first time (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. Invitee's first sign-in (Legal art. 13). See ../DERIVED.md."
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Invoices.dc.html",
+  "Editor.dc.html",
+  "Match.dc.html",
+  "Command.dc.html",
+  "Settings.dc.html",
+  "Sidebar.dc.html",
+  "Inbox.dc.html",
+  "Costs.dc.html",
+  "Vat.dc.html",
+  "Reports.dc.html",
+  "Contacts.dc.html",
+  "SignIn.dc.html",
+  "Setup.dc.html",
+  "OAuth.dc.html",
+  "Switcher.dc.html",
+  "Journal.dc.html",
+  "EntryNew.dc.html",
+  "Ledger.dc.html",
+  "Reminders.dc.html",
+  "BillNew.dc.html",
+  "InboxReview.dc.html",
+  "PaymentBatch.dc.html",
+  "BankAccounts.dc.html",
+  "Icp.dc.html",
+  "ImportSource.dc.html",
+  "ImportYears.dc.html",
+  "ImportPreview.dc.html",
+  "ImportFindings.dc.html",
+  "ImportConfirm.dc.html",
+  "ImportRun.dc.html",
+  "ImportStopped.dc.html",
+  "ImportStoppedPartial.dc.html",
+  "SettingsCompany.dc.html",
+  "SettingsBooks.dc.html",
+  "YearCloseProposal.dc.html",
+  "YearCloseBlocked.dc.html",
+  "YearCloseBlockedMonthly.dc.html",
+  "YearCloseBlockedAnnual.dc.html",
+  "SettingsAccess.dc.html",
+  "SettingsData.dc.html",
+  "PhoneHome.dc.html",
+  "PhoneSales.dc.html",
+  "PhoneInvoice.dc.html",
+  "PhoneMatch.dc.html",
+  "BankAccountsDark.dc.html",
+  "CostsDark.dc.html",
+  "BillNewDark.dc.html",
+  "PaymentBatchDark.dc.html",
+  "PhoneMatchDark.dc.html",
+  "PhoneBankAccounts.dc.html",
+  "PhoneBankAccountsDark.dc.html",
+  "PhoneCosts.dc.html",
+  "PhoneCostsDark.dc.html",
+  "PhoneBillNew.dc.html",
+  "PhoneBillNewDark.dc.html",
+  "PhonePaymentBatch.dc.html",
+  "PhonePaymentBatchDark.dc.html",
+  "HomeDark.dc.html",
+  "InvoicesDark.dc.html",
+  "MatchDark.dc.html",
+  "PhoneContacts.dc.html",
+  "PhoneContactCard.dc.html",
+  "PhoneVatPeriods.dc.html",
+  "PhoneVat.dc.html",
+  "PhoneIcp.dc.html",
+  "PhoneReceipt.dc.html",
+  "PhoneReceiptUploaded.dc.html",
+  "PhoneReceiptFailed.dc.html",
+  "PhoneMore.dc.html",
+  "PhoneReceiptDark.dc.html",
+  "PhoneReceiptUploadedDark.dc.html",
+  "PhoneReceiptFailedDark.dc.html",
+  "PhoneMoreDark.dc.html",
+  "SignInDark.dc.html",
+  "SetupDark.dc.html",
+  "SetupSelfHostedDark.dc.html",
+  "OAuthDark.dc.html",
+  "SwitcherDark.dc.html",
+  "TermsConsent.dc.html",
+  "PhoneSignIn.dc.html",
+  "PhoneSignInDark.dc.html",
+  "PhoneSignInCode.dc.html",
+  "PhoneSignInCodeDark.dc.html",
+  "PhoneSetup.dc.html",
+  "PhoneSetupDark.dc.html",
+  "PhoneSetupSelfHosted.dc.html",
+  "PhoneSetupSelfHostedDark.dc.html",
+  "PhoneOAuth.dc.html",
+  "PhoneOAuthDark.dc.html",
+  "PhoneSwitcher.dc.html",
+  "PhoneSwitcherDark.dc.html",
+  "SignInInvitee.dc.html",
+  "SignInInviteeDark.dc.html",
+  "PhoneSignInInvitee.dc.html",
+  "PhoneSignInInviteeDark.dc.html"
+ ],
+ "notes": {
+  "t1": {
+   "x": 0,
+   "y": -300,
+   "text": "Daily flows",
+   "kind": "title1",
+   "maxW": 4480
+  },
+  "t2": {
+   "x": 0,
+   "y": 1160,
+   "text": "Bank, keyboard, admin",
+   "kind": "title1",
+   "maxW": 4480
+  },
+  "t3": {
+   "x": 0,
+   "y": 2540,
+   "text": "Inbox, costs, VAT, reports, contacts",
+   "kind": "title1",
+   "maxW": 7520
+  },
+  "t4": {
+   "x": 0,
+   "y": 4000,
+   "text": "Getting in: sign-in, setup, AI consent, switcher",
+   "kind": "title1",
+   "maxW": 9040
+  },
+  "t5": {
+   "x": 0,
+   "y": 5380,
+   "text": "Books: journal, entries, ledger",
+   "kind": "title1",
+   "maxW": 9040
+  },
+  "t6": {
+   "x": 0,
+   "y": 6840,
+   "text": "Money in and out, every state",
+   "kind": "title1",
+   "maxW": 9040
+  },
+  "t7": {
+   "x": 0,
+   "y": 8300,
+   "text": "Import",
+   "kind": "title1",
+   "maxW": 12080
+  },
+  "t8": {
+   "x": 0,
+   "y": 9720,
+   "text": "Settings, every page",
+   "kind": "title1",
+   "maxW": 12560
+  },
+  "t9": {
+   "x": 0,
+   "y": 11240,
+   "text": "Phone (390) and dark mode",
+   "kind": "title1",
+   "maxW": 6440
+  },
+  "t10": {
+   "x": 0,
+   "y": 12700,
+   "text": "Phone (390): contacts, VAT, ICP (derived)",
+   "kind": "title1",
+   "maxW": 2270
+  },
+  "t11": {
+   "x": 0,
+   "y": 16400,
+   "text": "Phone tab bar: Receipt and More (derived)",
+   "kind": "title1",
+   "maxW": 3760
+  },
+  "t160": {
+   "x": 0,
+   "y": 17900,
+   "text": "Bank and costs, dark and phone (derived)",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "t153a": {
+   "x": 0,
+   "y": 21620,
+   "text": "Getting in, dark (derived, #153)",
+   "kind": "title1",
+   "maxW": 8040
+  },
+  "t153b": {
+   "x": 0,
+   "y": 23180,
+   "text": "Getting in, phone (390) light and dark (derived, #153)",
+   "kind": "title1",
+   "maxW": 5560
+  },
+  "t153c": {
+   "x": 0,
+   "y": 25200,
+   "text": "Invitee's first sign-in: privacy notice (derived, #153)",
+   "kind": "title1",
+   "maxW": 3900
+  }
+ },
+ "designSystems": [
+  {
+   "title": "Klopt Design System",
+   "namespace": "klopt",
+   "version": "1793355715-eaec",
+   "copiedAt": "2026-10-30T10:45:00Z"
+  }
+ ]
+}

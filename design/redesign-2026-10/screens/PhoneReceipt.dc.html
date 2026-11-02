@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Receipt</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!-- Derived board (PhoneTabBar): what the Receipt tab opens. state = choose | uploaded | failed; reason = too-large | wrong-type when failed. -->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}
+.k-root.rc{--line-control:var(--ink-muted)}
+.rc-lnk{display:inline-flex;align-items:center;min-height:44px;color:var(--ink);font-weight:500;text-decoration:underline;text-underline-offset:2px}
+.rc-act{width:100%;justify-content:center;font-size:15px}
+.rc-file{display:flex;gap:14px;align-items:flex-start;padding:16px}
+.rc-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.rc-name{font-size:15px;font-weight:600;overflow-wrap:anywhere}
+.rc-row{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 16px;border-top:1px solid var(--line-soft);color:var(--ink);text-decoration:none;box-sizing:border-box}
+.k-callout--danger svg{color:var(--danger)}
+</style>
+</helmet>
+<div class="k-root k-phone rc" data-theme="{{theme}}">
+  <div class="k-phone-top">
+    <h1 style="margin: 0; flex: 1; font-size: 24px; line-height: 30px; font-weight: 600;">Receipt</h1>
+  </div>
+  <div class="k-phone-body">
+
+    <sc-if value="{{state === 'choose'}}">
+      <section class="k-card" aria-labelledby="rc-add" style="display: flex; flex-direction: column; gap: 12px;">
+        <span class="k-tile" style="width: 44px; height: 44px;" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h16v18l-3-2-3 2-2-2-2 2-3-2-3 2z"/><path d="M8 8h8M8 12h8"/></svg></span>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <h2 id="rc-add" class="k-card-title" style="font-size: 18px; line-height: 24px;">Add a receipt</h2>
+          <p style="margin: 0; font-size: 15px; line-height: 22px;"><strong>Goes to Inbox for booking.</strong> <span class="k-muted">You enter the amount there.</span></p>
+        </div>
+        <button type="button" class="k-btn k-btn--primary rc-act" style="height: 56px; margin-top: 4px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Take photo</button>
+        <button type="button" class="k-btn rc-act" style="height: 48px;" aria-describedby="rc-formats"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 18v-6M9 15l3-3 3 3"/></svg>Choose file</button>
+        <p id="rc-formats" class="k-help" style="margin: 0; text-align: center;">PDF, JPG or PNG, up to 30 MB</p>
+      </section>
+      <section class="k-card k-card--flush" aria-labelledby="rc-recent">
+        <h2 id="rc-recent" class="k-card-title" style="padding: 14px 16px 10px;">Sent this week</h2>
+        <a href="InboxReview.dc.html" class="rc-row"><span class="rc-meta" style="gap: 2px;"><strong style="font-size: 15px;">IMG_2041.jpg</strong><span class="k-muted k-num" style="font-size: 13px;">Today 07:02 · 1,8 MB</span></span><span class="k-pill k-pill--open">In Inbox</span></a>
+        <a href="InboxReview.dc.html" class="rc-row"><span class="rc-meta" style="gap: 2px;"><strong style="font-size: 15px;">bon-groothandel-meel.pdf</strong><span class="k-muted k-num" style="font-size: 13px;">Thu 29 Oct · 240 KB</span></span><span class="k-pill k-pill--paid">Booked</span></a>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{state === 'uploaded'}}">
+      <section class="k-card k-card--flush" aria-labelledby="rc-sent">
+        <h2 id="rc-sent" class="k-card-title" style="padding: 16px 16px 0;">Receipt sent</h2>
+        <div class="rc-file">
+          <svg width="64" height="84" viewBox="0 0 64 84" aria-hidden="true" style="flex: none; border-radius: var(--radius-xs); box-shadow: var(--shadow-paper);"><rect width="64" height="84" rx="4" fill="#ffffff"/><rect x="14" y="10" width="36" height="5" rx="2" fill="#18181b"/><rect x="10" y="22" width="44" height="3" rx="1.5" fill="#e4e3dd"/><rect x="10" y="30" width="30" height="3" rx="1.5" fill="#e4e3dd"/><rect x="44" y="30" width="10" height="3" rx="1.5" fill="#e4e3dd"/><rect x="10" y="38" width="34" height="3" rx="1.5" fill="#e4e3dd"/><rect x="46" y="38" width="8" height="3" rx="1.5" fill="#e4e3dd"/><rect x="10" y="46" width="26" height="3" rx="1.5" fill="#e4e3dd"/><rect x="44" y="46" width="10" height="3" rx="1.5" fill="#e4e3dd"/><rect x="10" y="57" width="44" height="1" fill="#e4e3dd"/><rect x="10" y="63" width="18" height="4" rx="2" fill="#18181b"/><rect x="40" y="63" width="14" height="4" rx="2" fill="#18181b"/><rect x="18" y="74" width="28" height="3" rx="1.5" fill="#e4e3dd"/></svg>
+          <div class="rc-meta">
+            <span class="rc-name">IMG_2047.jpg</span>
+            <span class="k-muted k-num" style="font-size: 13px;">2,4 MB · JPG · today 07:16</span>
+            <span style="display: flex; align-items: center; gap: 8px; margin-top: 4px;"><span class="k-muted" style="font-size: 13px;">Status</span><span class="k-pill k-pill--open">In Inbox</span></span>
+          </div>
+        </div>
+        <div style="padding: 0 16px 8px; border-top: 1px solid var(--line-soft);">
+          <a href="InboxReview.dc.html" class="rc-lnk">Open in Inbox</a>
+        </div>
+      </section>
+      <p style="margin: 0; font-size: 15px; line-height: 22px;" class="k-muted">Book it from the Inbox: pick the supplier, then enter the amount and VAT.</p>
+      <button type="button" class="k-btn k-btn--primary rc-act" style="height: 56px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Add another</button>
+    </sc-if>
+
+    <sc-if value="{{state === 'failed'}}">
+      <section class="k-card k-card--flush" aria-label="File not sent">
+        <div class="rc-file" style="align-items: center;">
+          <span class="k-tile k-tile--danger" style="width: 44px; height: 44px;" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M10 13l4 4M14 13l-4 4"/></svg></span>
+          <div class="rc-meta" style="gap: 2px;">
+            <span class="rc-name">{{f.name}}</span>
+            <span class="k-muted k-num" style="font-size: 13px;">{{f.meta}}</span>
+          </div>
+          <span style="font-size: 13px; font-weight: 600; color: var(--danger); white-space: nowrap;">Not sent</span>
+        </div>
+      </section>
+      <div class="k-callout k-callout--danger" role="alert" style="padding: 16px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <div class="k-callout-body">
+          <span class="k-callout-title">{{f.title}}</span>
+          <span class="k-callout-text">{{f.text}}</span>
+        </div>
+      </div>
+      <button type="button" class="k-btn k-btn--primary rc-act" style="height: 56px;" aria-describedby="rc-formats-f"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Try again</button>
+      <button type="button" class="k-btn rc-act" style="height: 48px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Take photo instead</button>
+      <p id="rc-formats-f" class="k-help" style="margin: 0; text-align: center;">PDF, JPG or PNG, up to 30 MB</p>
+    </sc-if>
+
+  </div>
+  <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item is-active" href="#" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item" href="PhoneMore.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"state":{"editor":"enum","options":["choose","uploaded","failed"],"default":"choose"},"reason":{"editor":"enum","options":["too-large","wrong-type"],"default":"too-large"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const failures = {
+      'too-large': {
+        name: 'bonnen-oktober.pdf',
+        meta: '41,6 MB · PDF',
+        title: 'Too large for the Inbox',
+        text: 'bonnen-oktober.pdf is 41,6 MB and the Inbox takes up to 30 MB. Send the receipts one at a time, or save the PDF smaller. Nothing was sent.',
+      },
+      'wrong-type': {
+        name: 'IMG_2051.HEIC',
+        meta: '3,1 MB · HEIC',
+        title: 'HEIC photos can’t go in the Inbox',
+        text: 'IMG_2051.HEIC is an iPhone photo format. Send a PDF, JPG or PNG, or take the photo here. Nothing was sent.',
+      },
+    };
+    return {
+      theme: this.props.theme ?? 'light',
+      state: this.props.state ?? 'choose',
+      f: failures[this.props.reason ?? 'too-large'],
+    };
+  }
+}
+</script>
+</body>
+</html>

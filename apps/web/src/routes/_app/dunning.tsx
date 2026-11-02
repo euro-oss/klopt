@@ -4,6 +4,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { SalesTabs } from '~/components/sales-tabs'
 import { EuroAmount } from '~/components/finance/money'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
 import { Empty, EmptyHeader, EmptyTitle } from '~/components/ui/empty'
 import { Keycap } from '~/components/ui/keycap'
@@ -13,7 +22,7 @@ import { useT } from '~/i18n/provider'
 import { formatMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple, isTypingInto } from '~/lib/keyboard'
-import { sendableDunningActions } from '~/lib/sales-list'
+import { reminderConfirmPreview, reminderSendTargets } from '~/lib/sales-list'
 import { cn } from '~/lib/utils'
 import { dunningQueue, sendReminder } from '~/server/sales'
 
@@ -23,6 +32,10 @@ import { dunningQueue, sendReminder } from '~/server/sales'
  * Schedule and email text are read-only (no Change / Edit text / language pill)
  * until the [API] for customising them lands. Email preview uses the same
  * Dutch template as the transport (`reminderEmailCopy`).
+ *
+ * Bulk send (#173): more than one reminder opens a confirm dialog built from
+ * the same `reminderSendTargets` array the POST loop uses. A single send goes
+ * straight through.
  */
 
 export const Route = createFileRoute('/_app/dunning')({
@@ -58,8 +71,32 @@ function Dunning() {
   const [activeId, setActiveId] = useState<string | null>(null)
   /** null = all rows selected (default); a Set once the user toggles. */
   const [selectedOverride, setSelectedOverride] = useState<ReadonlySet<string> | null>(null)
+  /**
+   * Frozen send set while the bulk-confirm dialog is open. null = closed.
+   * Built with {@link reminderSendTargets} — the same helper the send uses.
+   */
+  const [pendingTargets, setPendingTargets] = useState<readonly ActionRow[] | null>(null)
+  /**
+   * Rows shown in the dialog body. Kept after `pendingTargets` clears so the
+   * exit animation does not flash "0 herinneringen versturen?" / "Verstuur 0".
+   * Cleared in onCloseAutoFocus once focus is restored.
+   */
+  const [displayTargets, setDisplayTargets] = useState<readonly ActionRow[] | null>(null)
   const keys = useRef<Map<string, string>>(new Map())
   const busyRef = useRef(false)
+  /** Guards against ⌘/Ctrl+Enter firing confirm twice (dialog + window). */
+  const confirmingRef = useRef(false)
+  const pendingRef = useRef<readonly ActionRow[] | null>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  /** Button that opened the dialog — restored on close (no AlertDialogTrigger). */
+  const openerRef = useRef<HTMLElement | null>(null)
+  const headerSendRef = useRef<HTMLButtonElement>(null)
+  /** Fallback when the header send unmounts after a full send (empty queue). */
+  const pageTitleRef = useRef<HTMLHeadingElement>(null)
+
+  useEffect(() => {
+    pendingRef.current = pendingTargets
+  }, [pendingTargets])
 
   const actions = useMemo((): readonly ActionRow[] => (queue.ok ? queue.data.actions : []), [queue])
   const schedule = queue.ok ? queue.data.schedule : []
@@ -115,20 +152,77 @@ function Dunning() {
     return true
   }
 
-  async function sendSelected(targets: readonly ActionRow[]) {
+  async function sendSelected(targets: readonly ActionRow[]): Promise<void> {
     if (busyRef.current) return
     if (targets.length === 0) return
+    // Capture before the send: after a full send the header button unmounts.
+    const sentAllVisible = targets.length >= actions.length
     busyRef.current = true
     setBusy(true)
     setError(null)
     setNotice(null)
-    for (const action of targets) {
-      const ok = await chase(action)
-      if (!ok) break
+    try {
+      for (const action of targets) {
+        const ok = await chase(action)
+        if (!ok) break
+      }
+    } finally {
+      await router.invalidate()
+      busyRef.current = false
+      setBusy(false)
+      if (sentAllVisible) {
+        // onCloseAutoFocus already handed focus to the page h1. Wait until the
+        // send control is gone so we do not refocus it and lose focus to body
+        // when it unmounts; then ensure the h1 is focused.
+        const deadline = performance.now() + 3000
+        while (
+          performance.now() < deadline &&
+          document.querySelector('[data-slot="dunning-header-send"]') !== null
+        ) {
+          await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => resolve())
+          })
+        }
+        document.querySelector<HTMLElement>('[data-slot="page-title"]')?.focus()
+      } else {
+        // Partial send: header send stays mounted — restore focus there.
+        const send = document.querySelector<HTMLElement>('[data-slot="dunning-header-send"]')
+        const title = document.querySelector<HTMLElement>('[data-slot="page-title"]')
+        ;(send ?? title)?.focus()
+      }
     }
-    busyRef.current = false
-    setBusy(false)
-    await router.invalidate()
+  }
+
+  /**
+   * One entry point for the header button and ⌘/Ctrl+Enter.
+   *
+   * N > 1 opens the confirm dialog on the exact send set. N === 1 (including a
+   * single row the user picked) goes straight through with no dialog.
+   */
+  function requestSend(targets: readonly ActionRow[]) {
+    if (busyRef.current || targets.length === 0) return
+    if (targets.length === 1) {
+      void sendSelected(targets)
+      return
+    }
+    const active = document.activeElement
+    // document.body is an HTMLElement; never restore focus there after Esc.
+    openerRef.current =
+      active instanceof HTMLElement && active !== document.body
+        ? active
+        : (headerSendRef.current ?? null)
+    setDisplayTargets(targets)
+    setPendingTargets(targets)
+  }
+
+  function confirmPending() {
+    if (pendingTargets === null || busyRef.current || confirmingRef.current) return
+    confirmingRef.current = true
+    const targets = pendingTargets
+    setPendingTargets(null)
+    void sendSelected(targets).finally(() => {
+      confirmingRef.current = false
+    })
   }
 
   useEffect(() => {
@@ -139,10 +233,18 @@ function Dunning() {
 
       if (mod && event.key === 'Enter') {
         event.preventDefault()
-        const targets = sendableDunningActions(actions.filter((row) => selected.has(row.invoiceId)))
-        void sendSelected(targets)
+        if (pendingRef.current !== null) {
+          confirmPending()
+          return
+        }
+        const targets = reminderSendTargets(
+          actions.filter((row) => selected.has(row.invoiceId)),
+          asOf,
+        )
+        requestSend(targets)
         return
       }
+      if (pendingRef.current !== null) return
       if (event.metaKey || event.ctrlKey || event.altKey) return
       if (resolvedActiveId === null) return
       const index = actions.findIndex((row) => row.invoiceId === resolvedActiveId)
@@ -177,9 +279,9 @@ function Dunning() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-    // sendSelected is recreated each render; deps below cover its closed values.
+    // requestSend / confirmPending close over current state; deps cover values.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyboard handler
-  }, [actions, asOf, hydrated, queue.ok, resolvedActiveId, selected, t])
+  }, [actions, asOf, hydrated, pendingTargets, queue.ok, resolvedActiveId, selected, t])
 
   if (!queue.ok) {
     return (
@@ -206,30 +308,40 @@ function Dunning() {
         })
 
   const selectedRows = actions.filter((row) => selected.has(row.invoiceId))
-  const sendableSelected = sendableDunningActions(selectedRows)
-  const skippedNoEmail = selectedRows.length - sendableSelected.length
+  const sendableSelected = reminderSendTargets(selectedRows, asOf)
+  const skippedNoEmail = selectedRows.filter((row) => !row.sendable).length
   const sendableCount = sendableSelected.length
   const selectedSum = sendableSelected.reduce((sum, row) => sum + BigInt(row.total), 0n)
+  const confirmPreview = displayTargets === null ? null : reminderConfirmPreview(displayTargets)
+  const confirmCount = displayTargets?.length ?? 0
 
   return (
     <>
       <PageHeader
         title={t('sales.title')}
+        titleRef={pageTitleRef}
         actions={
           actions.length > 0 ? (
             <Button
+              ref={headerSendRef}
               type="button"
-              disabled={busy || !hydrated || sendableCount === 0}
+              data-slot="dunning-header-send"
+              // Native disabled cannot take focus — busy / nothing-to-send use
+              // aria-disabled so onCloseAutoFocus and post-send focus can land here.
+              // Dim with aria-disabled: variants (not the disabled attribute).
+              disabled={!hydrated}
+              aria-disabled={busy || !hydrated || sendableCount === 0}
               onClick={() => {
-                void sendSelected(sendableSelected)
+                if (busy || !hydrated || sendableCount === 0) return
+                requestSend(sendableSelected)
               }}
-              className="min-h-11 md:min-h-9"
+              className="min-h-11 aria-disabled:opacity-50 aria-disabled:cursor-not-allowed md:min-h-9"
             >
               {busy
                 ? t('common.busy')
                 : plural('dunning.sendAll', sendableCount, { count: String(sendableCount) })}
               {hydrated && (
-                <span className="ml-1 inline-flex gap-0.5 normal-case">
+                <span className="ml-1 hidden gap-0.5 normal-case md:inline-flex">
                   <Keycap>{isApple() ? '⌘' : 'Ctrl'}</Keycap>
                   <Keycap>↵</Keycap>
                 </span>
@@ -362,7 +474,7 @@ function Dunning() {
                         </span>
                         <span className="flex min-w-0 flex-col">
                           <span className="truncate font-medium">{action.contactName}</span>
-                          <span className="text-danger text-xs">
+                          <span className="text-destructive text-xs">
                             {plural('dunning.daysLate', action.daysOverdue, {
                               days: String(action.daysOverdue),
                             })}
@@ -459,6 +571,141 @@ function Dunning() {
           </span>
         </p>
       )}
+
+      <AlertDialog
+        open={pendingTargets !== null}
+        onOpenChange={(next) => {
+          if (!next) setPendingTargets(null)
+        }}
+      >
+        <AlertDialogContent
+          className="min-w-0 grid-cols-[minmax(0,1fr)] sm:max-w-lg"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault()
+            cancelRef.current?.focus()
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            // Drop retained rows after the close animation / focus restore.
+            setDisplayTargets(null)
+            // Confirm: hand focus out while FocusScope is releasing. Prefer the
+            // page h1 (tabIndex=-1, outline-none); sendSelected finally moves
+            // focus to the header send when that control is still mounted.
+            if (confirmingRef.current || busyRef.current) {
+              document.querySelector<HTMLElement>('[data-slot="page-title"]')?.focus()
+              return
+            }
+            if (openerRef.current?.isConnected) {
+              openerRef.current.focus()
+            }
+          }}
+          onKeyDownCapture={(event) => {
+            // Capture so a focused primary button cannot activate on plain Enter
+            // before bubble handlers run (#173: only ⌘/Ctrl+Enter sends).
+            // Plain Enter on Annuleren must still activate Cancel (a11y).
+            if (event.key !== 'Enter') return
+            if (event.target === cancelRef.current) return
+            const mod = isApple() ? event.metaKey : event.ctrlKey
+            if (mod) {
+              event.preventDefault()
+              event.stopPropagation()
+              confirmPending()
+              return
+            }
+            event.preventDefault()
+            event.stopPropagation()
+          }}
+        >
+          <AlertDialogHeader className="min-w-0">
+            <AlertDialogTitle>
+              {plural('dunning.bulkConfirmTitle', confirmCount, {
+                count: String(confirmCount),
+              })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>{t('dunning.bulkConfirmHint')}</AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {confirmPreview !== null && (
+            <div className="flex min-w-0 flex-col gap-2">
+              <ul className="m-0 flex min-w-0 list-none flex-col gap-2 p-0">
+                {confirmPreview.rows.map((row) => (
+                  <li
+                    key={row.invoiceId}
+                    data-invoice-id={row.invoiceId}
+                    className="flex min-w-0 flex-col text-sm sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"
+                  >
+                    {/*
+                      PhoneSales-style below sm: line 1 name (wraps) + amount;
+                      line 2 invoice number · days late. From sm: one line.
+                    */}
+                    <span className="flex min-w-0 items-baseline justify-between gap-3 sm:contents">
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2 sm:overflow-hidden">
+                        <span className="min-w-0 break-words font-medium sm:truncate">
+                          {row.contactName}
+                        </span>
+                        <span className="text-ink-muted flex min-w-0 items-baseline gap-1 text-xs sm:shrink-0">
+                          <span className="font-mono tabular-nums whitespace-nowrap">
+                            {row.number}
+                          </span>
+                          <span aria-hidden="true">·</span>
+                          <span className="text-destructive whitespace-nowrap">
+                            {plural('dunning.daysLate', row.daysOverdue, {
+                              days: String(row.daysOverdue),
+                            })}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="shrink-0 self-baseline font-mono tabular-nums whitespace-nowrap">
+                        <EuroAmount amount={row.total} />
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {confirmPreview.moreCount > 0 && (
+                <p className="text-ink-muted m-0 text-sm">
+                  {t('dunning.bulkConfirmMore', { count: String(confirmPreview.moreCount) })}
+                </p>
+              )}
+              <p className="m-0 min-w-0 border-t border-[var(--line-soft)] pt-2 text-sm font-semibold">
+                {t('dunning.bulkConfirmTotal', {
+                  amount: formatMinorUnits(confirmPreview.totalMinor),
+                })}
+              </p>
+            </div>
+          )}
+
+          <AlertDialogFooter className="min-w-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <AlertDialogCancel
+              ref={cancelRef}
+              disabled={busy}
+              className="min-h-11 w-full min-w-0 sm:w-auto"
+            >
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              disabled={busy || !hydrated || confirmCount === 0}
+              className="min-h-11 w-full min-w-0 sm:w-auto"
+              onClick={() => {
+                confirmPending()
+              }}
+            >
+              {busy
+                ? t('common.busy')
+                : plural('dunning.bulkConfirmAction', confirmCount, {
+                    count: String(confirmCount),
+                  })}
+              {hydrated && (
+                <span className="ml-1 hidden gap-0.5 normal-case md:inline-flex">
+                  <Keycap>{isApple() ? '⌘' : 'Ctrl'}</Keycap>
+                  <Keycap>↵</Keycap>
+                </span>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

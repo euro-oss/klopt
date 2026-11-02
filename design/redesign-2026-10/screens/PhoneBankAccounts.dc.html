@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Bank accounts</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board (batch 3), not drawn by Hidde. Phone 390 of BankAccounts.dc.html, in the pattern of
+  PhoneHome, PhoneSales and PhoneMatch. Single column; the transactions table is stacked rows with
+  counterparty and amount on one line. The drop zone becomes a file button; bank data is imported
+  from a file. Takes `theme`; PhoneBankAccountsDark.dc.html wraps it in dark.
+  The tab bar is sticky, so it stays at the bottom of the viewport as the page scrolls.
+  A11y deviations: ink underlined text links, 44px targets, no ink-faint, self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+.k-root .k-tabbar{position:sticky;bottom:0;z-index:1}
+a{color:var(--ink)}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500;display:inline-flex;align-items:center;min-height:44px}
+.nw{white-space:nowrap}
+.ic{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-top:1px solid var(--line-soft);text-decoration:none;color:var(--ink);min-height:56px;box-sizing:border-box}
+.ic-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ic-main strong{font-size:15px;line-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ic-side{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.ptabs{gap:20px}
+.ptabs .k-tab{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box;white-space:nowrap}
+.k-phone .k-seg-item{height:44px}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top" style="flex-direction: column; align-items: stretch; gap: 4px; padding-bottom: 0;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <h1 style="margin: 0; flex: 1; font-size: 24px; line-height: 30px; font-weight: 600;">Bank</h1>
+      <button type="button" class="k-btn" style="height: 44px;">+ Account</button>
+    </div>
+    <nav class="k-tabs ptabs" aria-label="Bank sections">
+      <a href="PhoneMatch.dc.html" class="k-tab">To match <span class="k-badge k-badge--brand">15</span></a>
+      <a href="#" class="k-tab is-active" aria-current="page">Accounts</a>
+      <a href="PhonePaymentBatch.dc.html" class="k-tab">Batches</a>
+    </nav>
+  </div>
+  <div class="k-phone-body" style="padding-top: 16px;">
+    <section class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg></span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column;"><strong style="font-size: 15px;">Demo bankrekening</strong><span class="k-num k-muted nw" style="font-size: 13px;">NL91 ABNA 0417 1643 00</span></span>
+        <span class="k-pill k-pill--draft">File import</span>
+      </div>
+      <span class="k-num nw" style="font-size: 32px; line-height: 38px; font-weight: 600; letter-spacing: -0.02em;">€ 62.428,63</span>
+      <dl class="k-dl" style="font-size: 14px;">
+        <dt>Statement up to</dt><dd class="k-num nw">12-12-2025</dd>
+        <dt>Lines</dt><dd>150, 15 to match</dd>
+        <dt>In the books</dt><dd class="k-num nw">€ 62.799,88</dd>
+      </dl>
+      <a href="Reports.dc.html" class="lnk" style="align-self: flex-start; margin: -6px 0;">Why the difference</a>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <a href="PhoneMatch.dc.html" class="k-btn" style="height: 44px; justify-content: center;">Match 15 lines</a>
+        <button type="button" class="k-btn" style="height: 44px; justify-content: center;">Rename</button>
+      </div>
+    </section>
+
+    <section class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="k-tile k-tile--brand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></span>
+        <strong style="font-size: 15px;">Import a bank statement</strong>
+      </div>
+      <span style="color: var(--ink-2); line-height: 1.5;">CAMT.053 or MT940 from your bank. Lines you already have are skipped, so overlapping files are fine.</span>
+      <button type="button" class="k-btn k-btn--primary" style="height: 48px; justify-content: center; font-size: 15px;">Choose a file</button>
+    </section>
+
+    <section class="k-card k-card--flush" aria-labelledby="th">
+      <div style="padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 10px;">
+        <h2 id="th" class="k-card-title">All transactions</h2>
+        <div class="k-seg" role="tablist" aria-label="Status"><button type="button" role="tab" class="k-seg-item" aria-selected="true">All <span class="k-count">150</span></button><button type="button" role="tab" class="k-seg-item" aria-selected="false">To match <span class="k-count">15</span></button></div>
+      </div>
+      <div class="ic"><span class="ic-main"><strong>Zandbank Advies (demo)</strong><span class="k-muted k-num" style="font-size: 13px;"><span class="nw">12 Dec</span> · Factuur 2025-0016</span></span><span class="ic-side"><span class="k-num nw" style="font-weight: 600;">478,42</span><span class="k-pill k-pill--paid">Matched</span></span></div>
+      <div class="ic"><span class="ic-main"><strong>Molenaar Media (demo)</strong><span class="k-muted k-num" style="font-size: 13px;"><span class="nw">11 Dec</span> · Factuur 2025-0017</span></span><span class="ic-side"><span class="k-num nw" style="font-weight: 600;">745,01</span><span class="k-pill k-pill--paid">Matched</span></span></div>
+      <div class="ic"><span class="ic-main"><strong>Kade &amp; Co (demo)</strong><span class="k-muted k-num" style="font-size: 13px;"><span class="nw">10 Dec</span> · Factuur 2025-0024</span></span><span class="ic-side"><span class="k-num nw" style="font-weight: 600;">385,05</span><span class="k-pill k-pill--paid">Matched</span></span></div>
+      <div class="ic"><span class="ic-main"><strong>Telecom Fictief (demo)</strong><span class="k-muted k-num" style="font-size: 13px;"><span class="nw">4 Dec</span> · INK-DEMO-2025-0002</span></span><span class="ic-side"><span class="k-num nw" style="font-weight: 600;">−407,31</span><span class="k-pill k-pill--paid">Matched</span></span></div>
+      <div class="ic"><span class="ic-main"><strong>Brandstof Teststation (demo)</strong><span class="k-muted k-num" style="font-size: 13px;"><span class="nw">18 Nov</span> · INK-DEMO-2025-0005</span></span><span class="ic-side"><span class="k-num nw" style="font-weight: 600;">−159,21</span><span class="k-pill k-pill--paid">Matched</span></span></div>
+      <a href="PhoneMatch.dc.html" class="ic"><span class="ic-main"><strong>Open post 15 (demo)</strong><span class="k-muted k-num" style="font-size: 13px;"><span class="nw">20 Oct</span> · Ongeboekte demo-kosten 15</span></span><span class="ic-side"><span class="k-num nw" style="font-weight: 600;">−37,00</span><span class="k-pill k-pill--open">To match</span></span></a>
+      <div style="padding: 12px 16px; border-top: 1px solid var(--line-soft); font-size: 13px; color: var(--ink-muted);">Showing 6 of 150, newest first</div>
+    </section>
+  </div>
+  <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item is-active" href="#" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>

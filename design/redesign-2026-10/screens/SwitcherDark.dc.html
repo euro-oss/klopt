@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · Switch administration (dark)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#153). Hidde's Switcher.dc.html with theme="dark", the same way HomeDark.dc.html wraps Main. The markup is identical; the helmet adds the ink-muted control border. Self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:#111113}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root[data-theme="dark"] .k-btn--primary .k-kbd--on-primary{border-color:var(--on-primary);background:transparent;opacity:1}
+</style>
+</helmet>
+<div style="min-height: 900px; background: #111113;">
+  <dc-import name="Switcher" theme="dark" hint-size="100%,900px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

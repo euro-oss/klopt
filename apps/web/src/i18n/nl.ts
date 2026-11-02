@@ -2223,6 +2223,13 @@ export const nl = {
   'dunning.daysLate_one': '{days} dag te laat',
   'dunning.daysLate_other': '{days} dagen te laat',
   'dunning.confirmSend': 'Deze herinnering nu versturen?',
+  'dunning.bulkConfirmTitle_one': '{count} herinnering versturen?',
+  'dunning.bulkConfirmTitle_other': '{count} herinneringen versturen?',
+  'dunning.bulkConfirmMore': '+ {count} meer',
+  'dunning.bulkConfirmTotal': 'Totaal €\u00a0{amount}',
+  'dunning.bulkConfirmHint': 'Ze gaan direct per e-mail naar je klanten.',
+  'dunning.bulkConfirmAction_one': 'Verstuur {count}',
+  'dunning.bulkConfirmAction_other': 'Verstuur {count}',
   'dunning.expectedStage':
     'Deze factuur heeft inmiddels een andere stap. Vernieuw de pagina en probeer opnieuw.',
   'dunning.skipNoEmail_one': '{count} zonder e-mailadres overgeslagen',

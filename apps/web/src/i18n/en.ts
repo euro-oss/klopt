@@ -2157,6 +2157,13 @@ export const en: Record<MessageKey, string> = {
   'dunning.daysLate_one': '{days} day late',
   'dunning.daysLate_other': '{days} days late',
   'dunning.confirmSend': 'Send this reminder now?',
+  'dunning.bulkConfirmTitle_one': 'Send {count} reminder?',
+  'dunning.bulkConfirmTitle_other': 'Send {count} reminders?',
+  'dunning.bulkConfirmMore': '+ {count} more',
+  'dunning.bulkConfirmTotal': 'Total €\u00a0{amount}',
+  'dunning.bulkConfirmHint': 'They go out by email right away.',
+  'dunning.bulkConfirmAction_one': 'Send {count}',
+  'dunning.bulkConfirmAction_other': 'Send {count}',
   'dunning.expectedStage':
     'This invoice now needs a different step. Refresh the page and try again.',
   'dunning.skipNoEmail_one': '{count} without an email address skipped',
