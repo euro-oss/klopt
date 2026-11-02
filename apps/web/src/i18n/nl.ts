@@ -2428,7 +2428,7 @@ export const nl = {
   'batch.next.downloadBody':
     'Een SEPA-betaalbestand (pain.001) voor {account}. Upload het in je bankieren-app; er is niets betaald tot jij daar tekent.',
   'batch.next.downloadCta': 'Betaalbestand downloaden',
-  'batch.next.waitingTitle': 'Wachten op de bank',
+  'batch.next.waitingTitle': 'Bestand uploaden bij je bank',
   'batch.next.waitingBody': 'Als de betalingen op een afschrift staan, letter je ze af in Match.',
   'batch.next.waitingCta': 'Open Match',
   'batch.next.rejectedTitle': 'Afgekeurd',

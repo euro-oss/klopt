@@ -892,9 +892,9 @@ function PaymentBatch() {
         )}
 
         {batch.exportedHash !== null && (
-          <p className="text-ink-muted text-xs">
+          <p className="text-ink-muted min-w-0 text-xs break-words">
             {t('batch.exportedHashBefore')}{' '}
-            <span className="font-mono">{batch.exportedHash.slice(0, 16)}…</span>{' '}
+            <span className="font-mono break-all">{batch.exportedHash}</span>{' '}
             {t('batch.exportedHashAfter')}
           </p>
         )}

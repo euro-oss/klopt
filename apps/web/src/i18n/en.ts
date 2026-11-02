@@ -2361,7 +2361,7 @@ export const en: Record<MessageKey, string> = {
   'batch.next.downloadBody':
     'A SEPA payment file (pain.001) for {account}. Upload it in your banking app; nothing is paid until you sign there.',
   'batch.next.downloadCta': 'Download payment file',
-  'batch.next.waitingTitle': 'Waiting for the bank',
+  'batch.next.waitingTitle': 'Upload the file to your bank',
   'batch.next.waitingBody': 'Once the payments are on a statement, you match them in Match.',
   'batch.next.waitingCta': 'Open Match',
   'batch.next.rejectedTitle': 'Rejected',
