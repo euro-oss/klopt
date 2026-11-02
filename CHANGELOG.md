@@ -18,6 +18,37 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign Phase 4: Costs (#107 / #128)
+
+Costs (`/purchases`) matches the Costs.dc.html desktop-light board from the v2
+export at `fa4093b`: Bills / To approve / Payment batches / Suppliers tabs,
+All · To pay · Paid segments from `outstanding`, overdue callout, desktop
+preview with approve / dispute / add-to-batch on existing transitions, and
+honest approval copy (no four-eyes claim on bills). Dark and phone use tokens
+until Batch 2 / 3 boards.
+
+App-wide CoS from #140 (1 Nov) in this PR: input borders use `--ink-muted`
+via `--input-border` (DERIVED.md; no hard-coded hex, never `#86857e`);
+PhoneTabBar middle tab is Receipt (`Bon` / `Receipt`, camera icon) opening
+`/inbox` upload until #139 contents land. Sign-out copy (Sign out /
+Uitloggen) is handled in a separate PR.
+
+Costs CoS follow-up (Hidde via CoS): BillNew / Costs inputs share that border
+token with legible light placeholders; disabled selects use sunken ground so
+they read as disabled; Costs table status/amount columns stay fully visible
+at 1440 with the preview open; fixture IBANs are the standard example
+`NL91ABNA0417164300` only (never a real account number).
+
+### Redesign: BankAccounts desktop light (#129 / #140)
+
+`/bank` is where you add bank accounts by hand and import CAMT.053 / MT940
+statements: account card with statement position and books balance, per-account
+DropZone, an “Import a bank statement” card, Bank tabs (**Rekeningen** /
+**Batches**), and a Transacties / Te boeken list. Matched lines say
+“Afgeletterd” / “Matched”. Example IBAN is `NL91 ABNA 0417 1643 00`. Input
+borders use `--ink-muted`. Dark and phone Design review wait on #143. Bank Match
+is #164.
+
 ### Redesign Phase 8: VAT / ICP (#132, #107)
 
 VAT (`/vat`, `/vat/$period`) and ICP (`/vat/icp/$period`) match the v2 Vat and

@@ -476,8 +476,11 @@ describe('the reconciliation position', () => {
       statementBalance: '291235',
       statementDate: '2026-03-05',
       unmatchedCount: 4,
+      lineCount: 4,
     })
     // Nothing is matched yet, so everything the bank says is still to be booked.
     expect(account?.reconciliation.unmatchedTotal).toBe('166235')
+    // Linked to ledger 1100; books balance is a string (may be opening-only).
+    expect(typeof account?.reconciliation.booksBalance).toBe('string')
   })
 })
