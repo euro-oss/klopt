@@ -1,6 +1,181 @@
 # Derived boards
 
-Boards Hidde did not draw, derived by Design from his v2 system on his request. They use only `tokens.css`, `components/bundle.css` and the existing `.k-*` components, in the same `.dc.html` format, and are registered in `screens/canvas.json` with `"derived": true`. Hidde's own boards are unchanged, apart from the keymap fix below.
+Boards Hidde did not draw, derived by Design from his v2 system on his request. They use only `tokens.css`, `components/bundle.css` and the existing `.k-*` components, in the same `.dc.html` format, and are registered in `screens/canvas.json` with `"derived": true`. Batch 1 leaves Hidde's own boards unchanged, apart from the keymap fix, the XAF copy and the Sidebar fixture below.
+
+## Contacts, VAT and ICP: dark and phone (#155)
+
+| Board | What it is | Screenshots in `derived-shots/contacts-vat/` |
+| --- | --- | --- |
+| `Contacts.dc.html`, `theme` prop | Hidde's board; `ContactsDark.dc.html` sets `theme="dark"` | `Contacts-light-1440`, `Contacts-dark-1440` |
+| `PhoneContacts.dc.html`, `theme` prop | Contact list at 390 | `Contacts-light-390`, `Contacts-dark-390` |
+| `PhoneContactCard.dc.html`, `theme` prop | Contact card (Zandbank Advies) at 390 | `ContactCard-light-390`, `ContactCard-dark-390` |
+| `Vat.dc.html`, `theme` prop | Hidde's board; `VatDark.dc.html` sets `theme="dark"` | `Vat-light-1440`, `Vat-dark-1440` |
+| `PhoneVat.dc.html`, `theme` prop | Return Q4 2025 at 390 | `Vat-light-390`, `Vat-dark-390` |
+| `PhoneVatPeriods.dc.html`, `theme` prop | VAT periods at 390 | `VatPeriods-light-390`, `VatPeriods-dark-390` |
+| `Icp.dc.html`, `theme` prop | Hidde's board; `IcpDark.dc.html` sets `theme="dark"` | `Icp-light-1440`, `Icp-dark-1440` |
+| `PhoneIcp.dc.html`, `theme` prop | ICP return (example data) at 390 | `Icp-light-390`, `Icp-dark-390` |
+
+The `*Dark.dc.html` files are thin wrappers, like Hidde's `InvoicesDark`, that set the prop for the screenshots. They have no canvas entries: on the canvas, dark is the `theme` prop.
+
+### Today
+
+The sample "today" is **Friday 30 October 2026**, as on `PhoneHome` ("Friday 30 October") and the audit log in `SettingsAccess` (30-10-2026). The book year is 2025 and VAT is quarterly. A quarter's return is due at the end of the month after the quarter, so on that day:
+
+| Period | Due | Status |
+| --- | --- | --- |
+| 2026-Q4 | 31-01-2027 | Opens 1 Jan (still running) |
+| 2026-Q3 | 31-10-2026 | Due tomorrow |
+| 2026-Q2 | 31-07-2026 | Late |
+| 2026-Q1 | 30-04-2026 | Late |
+| 2025-Q4 | 31-01-2026 | Late, ready to file |
+| 2025-Q1 to Q3 | | Marked as filed |
+
+This applies to the phone boards. Hidde's desktop `Vat` (Q4 2025 "Ready to file", "file and pay by 31 January 2026"), `Main` and `PhoneHome` ("to pay by 31 Jan") still read as if it were January 2026, and the invoice ageing ("76 days late" on an invoice of 16 Sep) points to about 31 December 2025.
+
+### Rules for these boards
+
+- Status copy for VAT and ICP is "Ready to file", "Mark as filed" and "Marked as filed", never "Filed" on its own and never as if Klopt sent the return. On phone there is no disabled filing button: "Download for manual filing" first, then "Mark as filed".
+- Control and input borders use `--ink-muted` (Hidde's muted grey) instead of `--line-control`: 5.95:1 on white, about 7:1 on dark surface. No new greys.
+- Links are `ink`, underlined. Phone targets are at least 44px. No `ink-faint` text, no keyboard hints on phone, no em dash placeholders.
+- The phone tab bar is pinned (`position: sticky; bottom: 0`, with `overflow: clip` on `.k-phone`); More is active because Contacts and VAT live under More.
+- The sample user is Eva, `eva@bakkerij.example`.
+- A log-out action, where one shows, is "Sign out" / "Uitloggen". None of these boards shows one.
+
+### Copy, English and Dutch
+
+Strings Hidde already has on his boards are not repeated here.
+
+| English (board) | Nederlands |
+| --- | --- |
+| Ready to file | Klaar om in te dienen |
+| Mark as filed | Markeren als ingediend |
+| Marked as filed | Gemarkeerd als ingediend |
+| Late | Te laat |
+| Due tomorrow | Morgen de deadline |
+| Opens 1 Jan | Opent 1 jan |
+| Running, due 31 Jan 2027 | Loopt nog, uiterlijk 31 jan 2027 |
+| Due 31 Oct | Uiterlijk 31 okt |
+| Was due 31 Jul / 30 Apr | Moest uiterlijk 31 jul / 30 apr |
+| Ready to file, was due 31 Jan 2026 | Klaar om in te dienen, moest uiterlijk 31 jan 2026 |
+| 1 Oct to 31 Dec 2025 · was due 31 Jan 2026 | 1 okt t/m 31 dec 2025 · moest uiterlijk 31 jan 2026 |
+| Was due 31 January 2026 | Moest uiterlijk 31 januari 2026 |
+| Download for manual filing | Downloaden om zelf in te dienen |
+| After you send the return in Mijn Belastingdienst Zakelijk, mark it as filed here so the period closes. | Verstuur de aangifte in Mijn Belastingdienst Zakelijk en markeer hem daarna hier als ingediend, dan sluit de periode. |
+| After you send the ICP return in Mijn Belastingdienst Zakelijk, mark it as filed here. | Verstuur de ICP-opgaaf in Mijn Belastingdienst Zakelijk en markeer hem daarna hier als ingediend. |
+| Prepared by eva@bakkerij.example on 30-10-2026 | Voorbereid door eva@bakkerij.example op 30-10-2026 |
+| ‹ VAT / ‹ Contacts | ‹ Btw / ‹ Contacten |
+| + Contact | + Contact |
+| Nothing open | Niets open |
+| Past due | Over de vervaldatum |
+| N days late | N dagen te laat |
+| Customer · Amsterdam / Supplier · 4 bills in 2025 | Klant · Amsterdam / Leverancier · 4 rekeningen in 2025 |
+| Needed for e-invoicing. | Nodig voor e-facturen. |
+| Goods / Services | Goederen / Diensten |
+| Sign out | Uitloggen |
+
+## PhoneTabBar: Receipt and More (#150)
+
+Hidde's four phone boards (`PhoneHome`, `PhoneSales`, `PhoneInvoice`, `PhoneMatch`) draw the tab bar Home · Sales · Receipt · Bank · More, but not what Receipt and More open. These boards draw both, at 390, light and dark. The tab bar on them is Hidde's markup unchanged, with the current tab set `is-active` and `aria-current="page"`.
+
+| Board                              | Variant                                                       | Derived from                                                | Screenshots (390)                                                                                       |
+| ---------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `PhoneReceipt.dc.html`             | choose (default `state`)                                      | PhoneSales layout, DropZone rules, `.k-card`, `.k-pill`     | `derived-shots/phonetabbar/PhoneReceipt-light-390.png`, `PhoneReceipt-dark-390.png`                     |
+| `PhoneReceiptUploaded.dc.html`     | PhoneReceipt, `state="uploaded"`                              | same; paper rule for the thumbnail                          | `derived-shots/phonetabbar/PhoneReceiptUploaded-light-390.png`, `PhoneReceiptUploaded-dark-390.png`     |
+| `PhoneReceiptFailed.dc.html`       | PhoneReceipt, `state="failed" reason="too-large"`             | same; Callout `--danger`                                    | `derived-shots/phonetabbar/PhoneReceiptFailed-light-390.png`, `PhoneReceiptFailed-dark-390.png`         |
+| `PhoneMore.dc.html`                | default                                                       | Sidebar groups, order and icons; PhoneHome rows             | `derived-shots/phonetabbar/PhoneMore-light-390.png`, `PhoneMore-dark-390.png`                           |
+| `PhoneReceiptDark.dc.html` and the other three `…Dark.dc.html` | the four boards above with `theme="dark"` | the `HomeDark` wrapper pattern                              | the `-dark-390` shots above                                                                             |
+
+Variant and dark boards are thin wrappers that `dc-import` the main board with props, the same way `HomeDark.dc.html` wraps `Main`. `PhoneReceipt` also takes `reason="wrong-type"`, for a HEIC photo; that variant is drawn but not shot.
+
+Shots are made with `derived-shots/render/shoot-phone.mjs` (needs `playwright`): 390 wide, full page, `prefers-reduced-motion: reduce`, matching `prefers-color-scheme`, transitions off, the pointer kept off the page so nothing is hovered, and Google Fonts blocked so only the self-hosted faces can render. The script also reports any link or button under 44px tall and any text under 4.5:1 against its background; all eight shots report none. `dc-shim.js` and `design-system/fonts/` are the same files as in #109.
+
+### Accessibility deviations (new boards only)
+
+| Rule                         | What the new boards do                                                                                                                                                       | Value                                                                                                                       |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Control borders at least 3:1 | On the Receipt board, `--line-control` is set to the theme's own `--ink-muted` (the colour v2 already gives `.k-btn:hover` borders), so no new colour is added. Decided by Hidde | Light `#63636b`: 5.95:1 on `surface`. Dark `#a1a1aa`: 6.77:1 on `surface`. v2's `line-control` is 1.68:1 light, 1.98:1 dark |
+| Links in ink, underlined     | "Open in Inbox" is `ink`, underlined with a 2px offset, and 44px tall                                                                                                        | 17.7:1 light, 15.8:1 dark                                                                                                   |
+| Targets at least 44px        | Primary actions 56px, secondary 48px, list rows 48px (account rows 60px), link 44px. Hidde's tab bar items are 48px                                                          | 44px minimum                                                                                                                |
+| No `ink-faint` for text      | Not used. Muted text is `ink-muted`, status text uses the existing pill pairs and `danger`                                                                                   | `danger` 6.57:1 light, 6.28:1 dark; `In Inbox` (`--open`) 5.87:1 / 7.64:1; `Booked` (`--paid`) 5.48:1 / 8.90:1              |
+| Self-hosted fonts            | New boards load `../design-system/fonts/fonts.css` instead of the Google Fonts link. `bundle.css` still `@import`s Google Fonts; that line is Hidde's and is left alone      | Fontsource 5.3.0, OFL 1.1                                                                                                   |
+| Paper stays white            | The receipt thumbnail is paper, so it is white with light-theme `line` and `ink` marks in both themes, like `.k-paper`                                                        | `#ffffff`, `#e4e3dd`, `#18181b`                                                                                             |
+
+### Decided by Hidde (via CoS, 1 Nov 2026)
+
+- **Middle tab stays Receipt.** The phone tab bar is Home · Sales · Receipt · Bank · More, as on Hidde's boards. Inbox is not a tab; it is the first row of More, so it is always one tap from the More tab.
+- **Sign out.** "Sign out" in English and "Uitloggen" in Dutch, everywhere. Not "Log out" or "Afmelden".
+- **Control borders use `--ink-muted`.** The existing muted grey of each theme, as these boards already do. No new grey.
+
+### Still open for Hidde
+
+- **Switcher placement.** In More, the administration switcher row (Bakkerij Voorbeeld B.V., book year 2026, opening `Switcher.dc.html`) and Sign out, with the signed-in address under it, sit together in an Account group at the bottom. On desktop the switcher is at the top of the sidebar.
+- **File-type rule.** The Receipt page accepts PDF, JPG or PNG, up to 30 MB, and the `reason="wrong-type"` variant rejects a HEIC photo. 30 MB is the app's real cap (`MAX_DOCUMENT_BYTES` in `packages/core/src/inbound/attachments.ts`), but the app doesn't check the type today, so the PDF/JPG/PNG list and the HEIC error are new rules for #139.
+
+### Invented, for Hidde to check
+
+- **Receipt is a page, not the camera straight away.** Tapping Receipt opens a page with Take photo as the one primary button and Choose file as the secondary. Opening the camera at once would save a tap, but there would be nowhere to choose a PDF or see what went where.
+- **No promise to read the photo.** Only UBL and Peppol are read, so the page says "Goes to Inbox for booking. You enter the amount there." and the uploaded state says "pick the supplier, then enter the amount and VAT".
+- **"Sent this week" on the choose page.** The last two uploads with their status (`In Inbox` as the `--open` pill, `Booked` as `--paid`), linking to the Inbox. New, so you can see a receipt landed without leaving the tab.
+- **Uploaded state.** Title "Receipt sent", a thumbnail, file name, size, type and time, status `In Inbox`, the "Open in Inbox" link and "Add another" as the primary button, because the next receipt is the likelier next step than booking. No success callout, per the Callout rule.
+- **Failed state.** The file row says "Not sent", a danger callout gives the reason in numbers and what to do, then "Try again" (primary, opens the file picker) and "Take photo instead". The callout carries no button of its own because both fixes sit right under it. Too large is the drawn case: `bonnen-oktober.pdf`, 41,6 MB. Wrong type is the `reason="wrong-type"` variant: `IMG_2051.HEIC`.
+- **More lists every sidebar destination the tab bar lacks.** The tab bar has Home, Sales and Bank, and Receipt only adds to the Inbox, so More has Inbox, Costs, Contacts, Journal, VAT, Reports, Import and Settings, in the sidebar's groups and order: Inbox on its own, **Money** (Costs, Contacts), **Books** (Journal, VAT, Reports), then Import and Settings as the pinned pair. The icons are the Sidebar's, at 20px. Shortcuts is left out because phones show no keyboard hints.
+- **Badges in More.** Inbox 3 and Costs 40 as neutral badges, like Costs in the Sidebar, so the only yellow on screen stays Hidde's Bank badge in the tab bar.
+- **Sign out keeps ink**, not `danger`: signing out loses nothing.
+- **Fixtures.** Bakkerij Voorbeeld B.V., `eva@bakkerij.example`, `IMG_2041.jpg`, `IMG_2047.jpg`, `bon-groothandel-meel.pdf`, `bonnen-oktober.pdf` and `IMG_2051.HEIC` are made up. The tab bar badges (Sales 5, Bank 15) are Hidde's demo figures, kept so the bar matches his boards.
+- **Canvas placement.** A new row titled "Phone tab bar: Receipt and More (derived)" at y 16700, below the Bank and Costs rows of #160 (y 12880 to 16300) so the two PRs don't overlap: the four light boards at x 0 to 1410, the dark ones at x 1960 to 3370. Each entry has `"derived": true` and a `derivedNote`. Dark is the `theme` prop of `PhoneReceipt` and `PhoneMore`; the `…Dark` boards only set it.
+- **Hidde's tab bar links are untouched.** Receipt and More still point to `#` on his four phone boards; pointing them at `PhoneReceipt.dc.html` and `PhoneMore.dc.html` is a one-line change per board, left to him.
+
+### Copy, Dutch and English
+
+NL first. App strings are quoted from `apps/web/src/i18n/{nl,en}.ts`; the rest is _new_. The app calls the Inbox "Postvak" in Dutch, so these strings do too.
+
+| Nederlands                                                                                                                 | English (board)                                                                                                         | Source                   |
+| -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| Home                                                                                                                       | Home                                                                                                                    | new (tab bar)            |
+| Verkoop                                                                                                                    | Sales                                                                                                                   | nav.group.sales          |
+| Bon                                                                                                                        | Receipt                                                                                                                 | new (tab bar, page title) |
+| Bank                                                                                                                       | Bank                                                                                                                    | nav.bank                 |
+| Meer                                                                                                                       | More                                                                                                                    | new (tab bar, page title) |
+| Bonnetje toevoegen                                                                                                         | Add a receipt                                                                                                           | dash.addReceipt          |
+| Gaat naar het Postvak om te boeken.                                                                                        | Goes to Inbox for booking.                                                                                              | new                      |
+| Daar vul je het bedrag in.                                                                                                 | You enter the amount there.                                                                                             | new                      |
+| Foto maken                                                                                                                 | Take photo                                                                                                              | new                      |
+| Bestand kiezen                                                                                                             | Choose file                                                                                                             | new                      |
+| PDF, JPG of PNG, tot 30 MB                                                                                                 | PDF, JPG or PNG, up to 30 MB                                                                                            | new                      |
+| Deze week verstuurd                                                                                                        | Sent this week                                                                                                          | new                      |
+| Vandaag 07:02 · 1,8 MB / do 29 okt · 240 KB                                                                                | Today 07:02 · 1,8 MB / Thu 29 Oct · 240 KB                                                                              | new                      |
+| In Postvak                                                                                                                 | In Inbox                                                                                                                | new (status)             |
+| Geboekt                                                                                                                    | Booked                                                                                                                  | new (status)             |
+| Bon verstuurd                                                                                                              | Receipt sent                                                                                                            | new                      |
+| 2,4 MB · JPG · vandaag 07:16                                                                                               | 2,4 MB · JPG · today 07:16                                                                                              | new                      |
+| Status                                                                                                                     | Status                                                                                                                  | new                      |
+| Openen in Postvak                                                                                                          | Open in Inbox                                                                                                           | new                      |
+| Boek hem vanuit het Postvak: kies de leverancier en vul dan het bedrag en de btw in.                                       | Book it from the Inbox: pick the supplier, then enter the amount and VAT.                                               | new                      |
+| Nog een toevoegen                                                                                                          | Add another                                                                                                             | new                      |
+| Bestand niet verstuurd                                                                                                     | File not sent                                                                                                           | new (screen reader)      |
+| Niet verstuurd                                                                                                             | Not sent                                                                                                                | new                      |
+| Te groot voor het Postvak                                                                                                  | Too large for the Inbox                                                                                                 | new                      |
+| bonnen-oktober.pdf is 41,6 MB en het Postvak neemt tot 30 MB aan. Stuur de bonnen een voor een, of sla de PDF kleiner op. Er is niets verstuurd. | bonnen-oktober.pdf is 41,6 MB and the Inbox takes up to 30 MB. Send the receipts one at a time, or save the PDF smaller. Nothing was sent. | new |
+| HEIC-foto's kunnen niet in het Postvak                                                                                     | HEIC photos can’t go in the Inbox                                                                                       | new                      |
+| IMG_2051.HEIC is een fotoformaat van de iPhone. Stuur een PDF, JPG of PNG, of maak de foto hier. Er is niets verstuurd.    | IMG_2051.HEIC is an iPhone photo format. Send a PDF, JPG or PNG, or take the photo here. Nothing was sent.              | new                      |
+| Opnieuw proberen                                                                                                           | Try again                                                                                                               | new                      |
+| Maak liever een foto                                                                                                       | Take photo instead                                                                                                      | new                      |
+| Postvak                                                                                                                    | Inbox                                                                                                                   | nav.inbox                |
+| Postvak, 3 documenten wachten                                                                                              | Inbox, 3 documents waiting                                                                                              | new (screen reader)      |
+| Geld                                                                                                                       | Money                                                                                                                   | nav.group.money          |
+| Kosten                                                                                                                     | Costs                                                                                                                   | new (sidebar label)      |
+| Kosten, 40 rekeningen goed te keuren                                                                                       | Costs, 40 bills to approve                                                                                              | new (screen reader)      |
+| Relaties                                                                                                                   | Contacts                                                                                                                | nav.contacts             |
+| Boekhouden                                                                                                                 | Books                                                                                                                   | nav.group.books          |
+| Journaal                                                                                                                   | Journal                                                                                                                 | new (sidebar label)      |
+| BTW                                                                                                                        | VAT                                                                                                                     | nav.vat                  |
+| Rapporten                                                                                                                  | Reports                                                                                                                 | nav.group.reports        |
+| Importeren                                                                                                                 | Import                                                                                                                  | nav.group.import         |
+| Instellingen                                                                                                               | Settings                                                                                                                | nav.settings             |
+| Account                                                                                                                    | Account                                                                                                                 | new                      |
+| Boekjaar 2026                                                                                                              | Book year 2026                                                                                                          | shell.fiscalYear         |
+| Bakkerij Voorbeeld B.V., boekjaar 2026. Wissel van administratie of boekjaar                                               | Bakkerij Voorbeeld B.V., book year 2026. Switch administration or book year                                             | new (screen reader)      |
+| Uitloggen                                                                                                                  | Sign out                                                                                                                | decided (Hidde)          |
 
 ## Batch 1: year close, import steps 3, 4 and 6
 
@@ -47,7 +222,10 @@ The same `--ink-muted` rule fixes the dark theme, where v2's `--line-control` (`
 - **Confirm as the first state of step 6.** v2's stepper has no Summary step, so "Ready to transfer?" with "Confirm transfer ⌘↵" opens step 6. The callout title "No undo for an import" is new. Its text is the app's legal copy.
 - **Progress per type.** The app shows one bar. The per-type rows, the "Started 30-10-2026 at 10:44 by …" line and "At purchase invoice 2024-0158" are new.
 - **Failure states.** Both Stopped boards keep the page heading "Import stopped" (Import gestopt), and their callout titles say something else, so no wording shows twice. The partly-booked callout drops the app's hedge ("Part of it may already be booked") for a count: "271 documents are already booked". That number is the worker's booked count in the run report (documents actually booked before the run stopped), not a count from the preview; the title has `_one` and `_other` forms. Its body is Legal's text, verbatim in EN and NL (see the copy table), and replaces the app's `failedPartialBody`. The duplicate-bookings note is left off that board because the body covers it. The reason "Moneybird didn't answer" and the buttons "Try again" and "Transfer the rest" are invented. The app only offers "What we still need to fix".
-- **Keymap: submit is ⌘↵ everywhere.** The new steps show `⌘ ↵` for Next and Confirm. In Hidde's ImportSource (step 2, Connect) and ImportFindings (step 5, Problems), the plain `↵` chip in the submit button was changed to the `⌘ ↵` chord, the same markup as on BillNew and Setup. Nothing else on his boards changed, and neither board had a `↵` in its hint row.
+- **Keymap: submit is ⌘↵ everywhere.** The new steps show `⌘ ↵` for Next and Confirm. In Hidde's ImportSource (step 2, Connect) and ImportFindings (step 5, Problems), the plain `↵` chip in the submit button was changed to the `⌘ ↵` chord, the same markup as on BillNew and Setup. Neither board had a `↵` in its hint row.
+- **XAF copy (Legal).** On Hidde's ImportSource, Setup and SettingsData, "every Dutch package can export" and "every Dutch package can read it" now say "most Dutch packages" (NL "de meeste Nederlandse pakketten"); see the copy table.
+- **Fixture.** The owner in the Sidebar and in ImportRun's "Started … by …" line is `eva@bakkerij.example` with an `E` avatar. `Sidebar.dc.html` is byte-identical to the copy at 4433734 on `cursor/contacts-vat-dark-phone-boards-cec3`, so Hidde's other boards show Eva in the Sidebar too.
+- **Sign out.** No board in this batch has a log-out action. Hidde's Setup and Switcher already say "Sign out"; in Dutch it is "Uitloggen".
 - **Canvas placement.** Import steps 3, 4 and 6 sit right of ImportFindings (step 5), because Hidde's boards keep their positions. Moving ImportFindings to the right of ImportPreview would make the row read in order. The year-close boards are about 2.300px tall, so they start at x 6560 to clear the phone and dark row under the Settings row; the monthly and annual variants follow at x 9600 and 11120. Note widths for "Import" and "Settings" were widened to cover the new boards.
 
 ## Copy, English and Dutch
@@ -137,6 +315,7 @@ App strings are quoted from `apps/web/src/i18n/{en,nl}.ts`. Strings marked _new_
 | Transferring                                                                                                                                                                                    | Bezig met overzetten                                                                                                                                                                                               | wizard.importeren.title                                                               |
 | You can close this screen; we continue. When you return, you see how far we are.                                                                                                                | Je kunt dit scherm sluiten; we gaan door. Kom je terug, dan zie je hier hoe ver we zijn.                                                                                                                           | wizard.importeren.intro                                                               |
 | 62% · 497 of 800                                                                                                                                                                                | 62% · 497 van 800                                                                                                                                                                                                  | wizard.importeren.progress                                                            |
+| Started 30-10-2026 at 10:44 by eva@bakkerij.example                                                                                                                                             | Gestart op 30-10-2026 om 10:44 door eva@bakkerij.example                                                                                                                                                           | new                                                                                   |
 | Booking… / Queued… / Done                                                                                                                                                                       | Bezig met boeken… / In de wachtrij… / Klaar                                                                                                                                                                        | wizard.importeren.running, pending, wizard.status.done                                |
 | Importing…                                                                                                                                                                                      | Bezig met importeren…                                                                                                                                                                                              | wizard.status.importing                                                               |
 | Import stopped                                                                                                                                                                                  | Import gestopt                                                                                                                                                                                                     | wizard.importeren.stoppedTitle                                                        |
@@ -148,6 +327,14 @@ App strings are quoted from `apps/web/src/i18n/{en,nl}.ts`. Strings marked _new_
 | Open journal entries                                                                                                                                                                            | Naar journaalposten                                                                                                                                                                                                | wizard.klaar.nextEntries                                                              |
 | Stopped here / Not booked                                                                                                                                                                       | Hier gestopt / Niet geboekt                                                                                                                                                                                        | new                                                                                   |
 | Try again / Transfer the rest                                                                                                                                                                   | Opnieuw proberen / De rest overzetten                                                                                                                                                                              | new                                                                                   |
+
+### Hidde's boards
+
+| English (board)                                                                                             | Nederlands                                                                                             | Source                      |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------- |
+| An XAF audit file, which most Dutch packages can export (ImportSource, Setup)                               | Een XAF-auditfile, die de meeste Nederlandse pakketten kunnen exporteren                               | Legal: "most", not "every"  |
+| Your accountant, the tax office and most Dutch packages can read it, including Klopt itself. (SettingsData) | Je accountant, de Belastingdienst en de meeste Nederlandse pakketten kunnen hem lezen, ook Klopt zelf. | Legal: "most", not "every"  |
+| Sign out (Setup, Switcher)                                                                                  | Uitloggen                                                                                              | Hidde: every log-out action |
 
 ## Batch 2: dark and phone for the batch-1 boards
 
@@ -234,15 +421,6 @@ An inventory only; nothing here was drawn. Every screen takes a `theme` prop, so
 
 The 11 screens are the first two canvas rows ("Daily flows" and "Inbox, costs, VAT, reports, contacts"). The other 20 desktop screens (sign-in to settings) have no dark or phone board either.
 
-## Copy decisions on Hidde's boards
-
-Hidde's decisions, applied to his own boards and to every derived board.
-
-| English (board)                                                                              | Nederlands                                                                                             | Where                                                                                    |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| Sign out                                                                                     | Uitloggen                                                                                              | Every log-out action. Setup and Switcher already said "Sign out"; no other board has one |
-| An XAF audit file, which most Dutch packages can export                                      | Een XAF-auditfile, die de meeste Nederlandse pakketten kunnen exporteren                               | Setup, ImportSource (Legal; was "every Dutch package")                                   |
-| Your accountant, the tax office and most Dutch packages can read it, including Klopt itself. | Je accountant, de Belastingdienst en de meeste Nederlandse pakketten kunnen hem lezen, Klopt zelf ook. | SettingsData (Legal; was "every Dutch package")                                          |
 
 ## Rendering the screenshots
 
@@ -253,4 +431,4 @@ node derived-shots/render/shoot.mjs derived-shots/batch-1 YearCloseProposal.dc.h
 node derived-shots/render/shoot.mjs derived-shots/batch-2 'ImportRun.dc.html?theme=dark=ImportRun-dark-1440' --width=390 'ImportRun.dc.html?layout=phone&theme=dark=ImportRun-dark-390'
 ```
 
-The script serves the folder locally, blocks Google Fonts, waits for the fonts, turns off transitions and animations, parks the mouse off the sidebar, then takes a full-page shot at 1440 wide. Since batch 2 it also renders at 390 (`--width=390`, for the jobs after it), sets the board's theme on `<html>`, emulates `prefers-reduced-motion: reduce`, waits for animations to finish, grows phone viewports to the page height, and prints QA warnings.
+The script serves the folder locally, blocks Google Fonts, waits for the fonts, asks for reduced motion, turns off transitions and animations, parks the mouse off the sidebar, then takes a full-page shot at 1440 wide. Since batch 2 it also renders at 390 (`--width=390`, for the jobs after it), sets the board's theme on `<html>`, waits for animations to finish, grows phone viewports to the page height, and prints QA warnings.

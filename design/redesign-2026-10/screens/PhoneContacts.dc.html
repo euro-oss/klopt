@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Contacts</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!-- Derived board: phone layout of Contacts (list). Figures come from the Contacts board fixture. -->
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}
+.k-root.k-phone{--line-control:var(--ink-muted);overflow:clip}
+.k-tabbar{position:sticky;bottom:0;z-index:1}
+.cr{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line-soft);text-decoration:none;color:var(--ink);min-height:64px;box-sizing:border-box}
+.cr:first-child{border-top:0}
+.av{width:36px;height:36px;border-radius:18px;flex:none;background:var(--neutral-bg);color:var(--ink-2);font:600 13px var(--font-sans);display:flex;align-items:center;justify-content:center}
+.l1{display:flex;align-items:baseline;gap:12px}
+.nm{flex:1;min-width:0;font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.amt{flex:none;white-space:nowrap;font-weight:600}
+.l2{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;color:var(--ink-muted)}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top">
+    <h1 style="margin: 0; flex: 1; font-size: 24px; line-height: 30px; font-weight: 600;">Contacts</h1>
+    <a href="#" class="k-btn k-btn--primary" style="height: 44px;">+ Contact</a>
+  </div>
+  <div class="k-phone-body">
+    <label class="k-search" style="height: 44px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input aria-label="Search contacts" placeholder="Name, VAT or KvK number"></label>
+    <div class="k-seg" role="tablist" aria-label="Role">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+        <button type="button" role="tab" class="k-seg-item" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="height: 44px;">{{t.label}} <span class="k-count">{{t.count}}</span></button>
+      </sc-for>
+    </div>
+    <section class="k-card k-card--flush" aria-label="Contact list">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+        <a href="PhoneContactCard.dc.html" class="cr">
+          <span class="av" aria-hidden="true">{{r.ini}}</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+            <span class="l1"><span class="nm">{{r.name}}</span><span class="amt k-num" style="{{r.amtStyle}}">{{r.amtF}}</span></span>
+            <span class="l2"><span>{{r.role}} · {{r.sub}}</span><sc-if value="{{r.late}}" hint-placeholder-val="{{false}}"><span class="k-pill k-pill--late">{{r.late}}</span></sc-if></span>
+          </span>
+        </a>
+      </sc-for>
+    </section>
+  </div>
+  <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item is-active" href="#" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { filter: 'all' };
+  }
+  renderVals() {
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const cust = [
+      ['C001','Atlas Voorbeeld Handel','Amsterdam'],['C002','Noorderlicht Diensten','Utrecht'],['C003','Polder Soft B.V.','Rotterdam'],
+      ['C004','Kade & Co','Haarlem'],['C005','Fictieve Fietsen','Amersfoort'],['C006','Zandbank Advies','Amsterdam'],
+      ['C007','Molenaar Media','Utrecht'],['C008','Dijkzicht Design','Rotterdam'],['C009','Havenmeester Horeca','Haarlem'],['C010','Windvaan Workshops','Amersfoort']
+    ];
+    const late = { C006: [958.34, 128], C007: [985.93, 324], C008: [1152.34, 175], C009: [902.79, 281], C010: [711.04, 76] };
+    const sup = [
+      ['S001','Kantoorpapier Proef',0],['S002','Telecom Fictief',0],['S003','Huur Demo Vastgoed',0],['S004','Boekhoudhulp Voorbeeld',0],
+      ['S005','Brandstof Teststation',0],['S006','Reclame Sample',74.16],['S007','Software Licentie Demo',467.00],['S008','Schoonmaak Voorbeeld',155.39],
+      ['S009','Verzekering Fictief',242.40],['S010','Internet Voorbeeld',252.83]
+    ];
+    const ini = (n) => n.replace(/[^A-Za-z ]/g, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+    const row = (name, role, sub, open, lateTxt) => ({
+      name, role, sub, ini: ini(name), late: lateTxt,
+      amtF: open ? '€ ' + f(open) : 'Nothing open',
+      amtStyle: open ? 'color:var(--danger)' : 'color:var(--ink-muted);font-weight:400;font-size:13px'
+    });
+    const people = [
+      ...cust.map(([code, name, city]) => ({ c: true, ...row(name, 'Customer', city, late[code] ? late[code][0] : 0, late[code] ? late[code][1] + ' days late' : '') })),
+      ...sup.map(([, name, open]) => ({ c: false, ...row(name, 'Supplier', '4 bills in 2025', open, open ? 'Past due' : '') }))
+    ];
+    const flt = this.state.filter;
+    const rows = people.filter((p) => flt === 'all' || (flt === 'c' && p.c) || (flt === 's' && !p.c));
+    const tabs = [['all','All','20'],['c','Customers','10'],['s','Suppliers','10']].map(([k, label, count]) => ({ label, count, on: k === flt ? 'true' : 'false', pick: () => this.setState({ filter: k }) }));
+    return { theme: this.props.theme ?? 'light', rows, tabs };
+  }
+}
+</script>
+</body>
+</html>
