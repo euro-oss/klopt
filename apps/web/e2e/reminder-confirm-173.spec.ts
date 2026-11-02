@@ -1,0 +1,325 @@
+import { expect, test, type ConsoleMessage, type Page, type Request } from '@playwright/test'
+import { closeDatabase, createDatabase, runMigrations } from '@klopt/db'
+import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
+
+/**
+ * #173 — confirm before a bulk reminder send on /dunning.
+ *
+ * Covers: dialog from the same send set, Esc / plain Enter send nothing,
+ * ⌘/Ctrl+Enter and Confirm send exactly N, a single-row send skips the dialog,
+ * and a due-today invoice is absent from list / count / send.
+ */
+
+type SqlTag = {
+  (strings: TemplateStringsArray, ...values: unknown[]): Promise<unknown>
+}
+
+test.beforeAll(async () => {
+  await runMigrations(DATABASE_URL)
+})
+
+/**
+ * True when this POST is a reminder send.
+ *
+ * The UI calls the TanStack `sendReminder` server fn. Its URL encodes
+ * `export":"sendRe…` as base64 (`c2VuZFJl…`); the body carries `expectedStage`.
+ * Also match the REST `/sales-invoices/{id}/reminders` route.
+ */
+function isReminderSendRequest(request: Request): boolean {
+  if (request.method() !== 'POST') return false
+  const url = request.url()
+  if (url.includes('/sales-invoices/') && url.includes('/reminders')) return true
+  // base64("sendRe") — prefix of export":"sendReminder in the server-fn id.
+  if (url.includes('/_serverFn/') && url.includes('c2VuZFJl')) return true
+  const body = request.postData() ?? ''
+  return body.includes('"expectedStage"') || body.includes('expectedStage')
+}
+
+async function openAdmin(page: Page): Promise<string> {
+  await page.goto('/sign-in')
+  await signIn(page, uniqueEmail())
+  await page.getByRole('link', { name: 'Administratie opzetten' }).click()
+  await page.getByLabel('Naam van de administratie').fill('Herinnering Bevestigen BV')
+  await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
+  await expect(
+    page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+  ).toBeVisible()
+  await enableAdvancedMode(page)
+  await hydrated(page)
+
+  const entityRes = await page.request.get('/api/v1/entity')
+  expect(entityRes.ok()).toBeTruthy()
+  const entity = (await entityRes.json()) as { id: string }
+  return entity.id
+}
+
+async function seedContact(page: Page, number: string, name: string, email: string): Promise<void> {
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill(number)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('87654321')
+  await page.getByLabel('E-mail').fill(email)
+  await page.getByLabel('Straat').fill('Voorbeeldstraat')
+  await page.getByLabel('Huisnr.').fill('1')
+  await page.getByLabel('Postcode').fill('1000 AA')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('cell', { name })).toBeVisible()
+}
+
+async function draftAndIssue(
+  page: Page,
+  customer: string,
+  description: string,
+  price: string,
+  issueDate: string,
+): Promise<string> {
+  await page.goto('/invoices/new')
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
+  await page.getByRole('combobox', { name: 'Klant' }).click()
+  await page.getByRole('option', { name: new RegExp(customer) }).click()
+  await page.getByLabel('Factuurdatum').fill(issueDate)
+  await page.getByLabel('Referentie klant').fill(`PO-${description.slice(0, 8)}`)
+  await page.getByLabel('Omschrijving regel 1').fill(description)
+  await page.getByLabel('Aantal regel 1').fill('1')
+  await page.getByLabel('Eenheid regel 1').fill('EA')
+  await page.getByLabel('Prijs regel 1').fill(price)
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+  await expect(page.getByRole('heading', { name: /Factuur \d{4}-/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
+  return new URL(page.url()).pathname.split('/').pop() ?? ''
+}
+
+function daysAgo(days: number): string {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() - days)
+  return d.toISOString().slice(0, 10)
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+async function reminderDeliveryCount(entityId: string): Promise<number> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  const sql = (database as unknown as { $client: SqlTag }).$client
+  try {
+    const rows = (await sql`
+      select count(*)::int as n
+      from klopt.invoice_deliveries
+      where entity_id = ${entityId}::uuid
+        and purpose = 'reminder'
+    `) as readonly { n: number }[]
+    return rows[0]?.n ?? 0
+  } finally {
+    await closeDatabase(database)
+  }
+}
+
+async function setDueDate(invoiceId: string, entityId: string, dueDate: string): Promise<void> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  const sql = (database as unknown as { $client: SqlTag }).$client
+  try {
+    await sql`
+      update klopt.sales_invoices
+      set due_date = ${dueDate}::date, updated_at = now()
+      where id = ${invoiceId}::uuid
+        and entity_id = ${entityId}::uuid
+    `
+  } finally {
+    await closeDatabase(database)
+  }
+}
+
+test('bulk reminder confirm: dialog matches send set; Esc and Enter send nothing; confirm sends N', async ({
+  page,
+}) => {
+  const errors: string[] = []
+  page.on('console', (message: ConsoleMessage) => {
+    if (message.type() === 'error') errors.push(message.text())
+  })
+
+  const entityId = await openAdmin(page)
+
+  await page.goto('/settings')
+  await page.getByLabel('Straat').fill('Demoweg')
+  await page.getByLabel('Huisnummer').fill('10')
+  await page.getByLabel('Postcode').fill('1000 BB')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.goto('/contacts')
+  await seedContact(page, 'DEB-EVA', 'Eva Jansen', 'eva@example.nl')
+  await seedContact(page, 'DEB-RUBEN', 'Ruben de Vries', 'ruben@example.nl')
+
+  // Overdue far enough for stage 1+ (30-day terms; issue ~80 days ago → ~50 overdue).
+  // Excl. 21% btw: 500,00 → 605,00 and 525,21 → 635,50; dialog total 1.240,50.
+  const evaId = await draftAndIssue(page, 'Eva Jansen', 'Advies Eva', '500,00', daysAgo(80))
+  const rubenId = await draftAndIssue(page, 'Ruben de Vries', 'Advies Ruben', '525,21', daysAgo(90))
+  // Due today must stay out of list, count and send (#173 Legal).
+  const dueTodayId = await draftAndIssue(
+    page,
+    'Eva Jansen',
+    'Vandaag vervallen',
+    '99,00',
+    daysAgo(30),
+  )
+  await setDueDate(dueTodayId, entityId, todayIso())
+
+  const reminderPosts: string[] = []
+  page.on('request', (request) => {
+    if (isReminderSendRequest(request)) reminderPosts.push(request.url())
+  })
+
+  await page.goto('/dunning')
+  await hydrated(page)
+
+  await expect(page.getByRole('button', { name: /Eva Jansen/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Ruben de Vries/ })).toBeVisible()
+  // Due-today invoice is not listed.
+  await expect(page.getByText('Vandaag vervallen')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /99,00/ })).toHaveCount(0)
+
+  const sendButton = page.getByRole('button', {
+    name: /Alle 2 herinneringen versturen|Send all 2 reminders/,
+  })
+  await expect(sendButton).toBeVisible()
+
+  // Nothing selected → default is all due; open the dialog.
+  await sendButton.click()
+  const dialog = page.getByRole('alertdialog')
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('heading', { name: /2 herinneringen versturen\?/ })).toBeVisible()
+  await expect(dialog.getByText('Eva Jansen')).toBeVisible()
+  await expect(dialog.getByText('Ruben de Vries')).toBeVisible()
+  await expect(dialog.getByText(/Totaal €\s*1\.240,50/)).toBeVisible()
+  await expect(dialog.getByText(/Ze gaan direct per e-mail/)).toBeVisible()
+  // Focus starts on Annuleren.
+  await expect(dialog.getByRole('button', { name: 'Annuleren' })).toBeFocused()
+
+  // Plain Enter must not send.
+  await page.keyboard.press('Enter')
+  await expect(dialog).toBeVisible()
+  expect(reminderPosts).toEqual([])
+  expect(await reminderDeliveryCount(entityId)).toBe(0)
+
+  // Esc cancels — nothing sent, no delivery rows.
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  expect(reminderPosts).toEqual([])
+  expect(await reminderDeliveryCount(entityId)).toBe(0)
+  await expect(page.getByText(/verstuurd naar/)).toHaveCount(0)
+
+  // Re-open and confirm with the primary button.
+  await sendButton.click()
+  await expect(page.getByRole('alertdialog')).toBeVisible()
+  await page.getByRole('button', { name: /Verstuur 2/ }).click()
+  await expect(page.getByRole('alertdialog')).toHaveCount(0)
+  await expect(page.getByText(/verstuurd naar/)).toBeVisible()
+  // Both POSTs finish before the delivery rows are visible — poll, don't race.
+  await expect.poll(async () => reminderDeliveryCount(entityId)).toBe(2)
+  expect(reminderPosts.length).toBeGreaterThanOrEqual(2)
+  await expect(page.getByRole('button', { name: /Eva Jansen/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Ruben de Vries/ })).toHaveCount(0)
+
+  // Still no due-today row after the send, and it was never chased.
+  await expect(page.getByText('Vandaag vervallen')).toHaveCount(0)
+  const dueTodayDeliveries = await page.request.get(
+    `/api/v1/sales-invoices/${dueTodayId}/deliveries`,
+  )
+  expect(dueTodayDeliveries.ok()).toBeTruthy()
+  const dueTodayBody = (await dueTodayDeliveries.json()) as {
+    deliveries: readonly { purpose: string }[]
+  }
+  expect(dueTodayBody.deliveries.filter((row) => row.purpose === 'reminder')).toHaveLength(0)
+
+  // eva/ruben ids kept for clarity in failure messages.
+  expect(evaId.length).toBeGreaterThan(0)
+  expect(rubenId.length).toBeGreaterThan(0)
+
+  expect(errors, `console errors: ${errors.join('\n')}`).toEqual([])
+})
+
+test('plain Enter on an open bulk confirm does not send; Cmd/Ctrl+Enter does', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== 'chromium', 'modifier chord coverage is chromium-only here')
+
+  const entityId = await openAdmin(page)
+
+  await page.goto('/settings')
+  await page.getByLabel('Straat').fill('Demoweg')
+  await page.getByLabel('Huisnummer').fill('10')
+  await page.getByLabel('Postcode').fill('1000 BB')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.goto('/contacts')
+  await seedContact(page, 'DEB-A', 'Eva Jansen', 'eva2@example.nl')
+  await seedContact(page, 'DEB-B', 'Ruben de Vries', 'ruben2@example.nl')
+  await draftAndIssue(page, 'Eva Jansen', 'Chord Eva', '100,00', daysAgo(80))
+  await draftAndIssue(page, 'Ruben de Vries', 'Chord Ruben', '200,00', daysAgo(80))
+
+  const reminderPosts: string[] = []
+  page.on('request', (request) => {
+    if (isReminderSendRequest(request)) reminderPosts.push(request.url())
+  })
+
+  await page.goto('/dunning')
+  await hydrated(page)
+  await page.getByRole('button', { name: /Alle 2 herinneringen versturen/ }).click()
+  const dialog = page.getByRole('alertdialog')
+  await expect(dialog).toBeVisible()
+
+  await page.keyboard.press('Enter')
+  await expect(dialog).toBeVisible()
+  expect(reminderPosts).toEqual([])
+  expect(await reminderDeliveryCount(entityId)).toBe(0)
+
+  // Non-Apple CI: Ctrl+Enter confirms. Wait for both sends to finish.
+  await page.keyboard.press('Control+Enter')
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByText(/verstuurd naar/)).toBeVisible()
+  await expect.poll(async () => reminderDeliveryCount(entityId)).toBe(2)
+  expect(reminderPosts.length).toBeGreaterThanOrEqual(2)
+  await expect(page.getByRole('button', { name: /Eva Jansen/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Ruben de Vries/ })).toHaveCount(0)
+})
+
+test('a single reminder send skips the confirm dialog', async ({ page }) => {
+  await openAdmin(page)
+
+  await page.goto('/settings')
+  await page.getByLabel('Straat').fill('Demoweg')
+  await page.getByLabel('Huisnummer').fill('10')
+  await page.getByLabel('Postcode').fill('1000 BB')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.goto('/contacts')
+  await seedContact(page, 'DEB-ONE', 'Eva Jansen', 'eva-one@example.nl')
+  await draftAndIssue(page, 'Eva Jansen', 'Enkele herinnering', '121,00', daysAgo(80))
+
+  await page.goto('/dunning')
+  await hydrated(page)
+  await expect(page.getByRole('button', { name: /Herinnering versturen/ })).toBeVisible()
+  await page.getByRole('button', { name: /Herinnering versturen/ }).click()
+  await expect(page.getByRole('alertdialog')).toHaveCount(0)
+  await expect(page.getByText(/verstuurd naar Eva Jansen/)).toBeVisible()
+  await expect(page.getByRole('button', { name: /Eva Jansen/ })).toHaveCount(0)
+})
