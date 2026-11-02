@@ -774,22 +774,40 @@ function NewPurchaseInvoice() {
                     </SelectField>
                   </div>
                   <div className="grid grid-cols-2 gap-3 md:contents">
-                    <Input
-                      aria-label={t('purchaseNew.netLine', { line: String(index + 1) })}
-                      value={line.net}
-                      onChange={(event) => {
-                        update(index, { net: event.target.value })
-                      }}
-                      className="h-11 rounded-[var(--radius-md)] border border-input bg-transparent font-mono shadow-none md:h-10 md:rounded-none md:border-0 md:border-r md:border-line-soft md:text-right"
-                    />
-                    <Input
-                      aria-label={t('invoiceNew.vatLine', { line: String(index + 1) })}
-                      value={line.tax}
-                      onChange={(event) => {
-                        update(index, { tax: event.target.value })
-                      }}
-                      className="h-11 rounded-[var(--radius-md)] border border-input bg-transparent font-mono shadow-none md:h-10 md:rounded-none md:border-0 md:border-r md:border-line-soft md:text-right"
-                    />
+                    <div className="min-w-0 md:border-r md:border-line-soft">
+                      <label
+                        htmlFor={`billnew-net-${String(index)}`}
+                        className="text-ink-muted mb-1 block text-xs font-medium md:sr-only"
+                      >
+                        {t('purchaseNew.phoneNetLabel')}
+                      </label>
+                      <Input
+                        id={`billnew-net-${String(index)}`}
+                        aria-label={t('purchaseNew.netLine', { line: String(index + 1) })}
+                        value={line.net}
+                        onChange={(event) => {
+                          update(index, { net: event.target.value })
+                        }}
+                        className="h-11 rounded-[var(--radius-md)] border border-input bg-transparent font-mono shadow-none md:h-10 md:rounded-none md:border-0 md:text-right"
+                      />
+                    </div>
+                    <div className="min-w-0 md:border-r md:border-line-soft">
+                      <label
+                        htmlFor={`billnew-tax-${String(index)}`}
+                        className="text-ink-muted mb-1 block text-xs font-medium md:sr-only"
+                      >
+                        {t('purchaseNew.phoneVatAmountLabel')}
+                      </label>
+                      <Input
+                        id={`billnew-tax-${String(index)}`}
+                        aria-label={t('invoiceNew.vatLine', { line: String(index + 1) })}
+                        value={line.tax}
+                        onChange={(event) => {
+                          update(index, { tax: event.target.value })
+                        }}
+                        className="h-11 rounded-[var(--radius-md)] border border-input bg-transparent font-mono shadow-none md:h-10 md:rounded-none md:border-0 md:text-right"
+                      />
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -799,9 +817,12 @@ function NewPurchaseInvoice() {
                     onClick={() => {
                       suggestTax(index)
                     }}
-                    className="text-ink-muted inline-flex min-h-11 min-w-11 items-center justify-center self-start px-1 text-xs underline disabled:opacity-50 md:min-h-0 md:min-w-0 md:self-auto"
+                    className="text-ink-muted inline-flex min-h-11 min-w-11 items-center justify-center gap-1 self-start px-2 text-xs underline disabled:opacity-50 md:min-h-0 md:min-w-0 md:self-auto md:px-1"
                   >
-                    ƒ
+                    <span className="md:hidden">{t('purchaseNew.computeTax')}</span>
+                    <span className="hidden md:inline" aria-hidden="true">
+                      ƒ
+                    </span>
                   </button>
                 </div>
               ))}

@@ -618,6 +618,18 @@ test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control ov
     // Phone line cards: amounts fully visible, no clipped "100,0" (#175 QA).
     const lineCard = page.locator('[data-testid="billnew-line-1"]')
     await expect(lineCard).toBeVisible()
+    // Visible amount labels below md (#175 Design); associated via htmlFor.
+    const netLabel = lineCard.locator('label[for="billnew-net-0"]')
+    const vatLabel = lineCard.locator('label[for="billnew-tax-0"]')
+    await expect(netLabel).toBeVisible()
+    await expect(netLabel).toHaveText('Excl. btw')
+    await expect(vatLabel).toBeVisible()
+    await expect(vatLabel).toHaveText('Btw-bedrag')
+    await expect(lineCard.locator('#billnew-net-0')).toBeVisible()
+    await expect(lineCard.locator('#billnew-tax-0')).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Btw berekenen voor regel 1' }),
+    ).toContainText('Btw berekenen')
     const net = lineCard.getByLabel('Excl. btw regel 1')
     await expect(net).toHaveValue('100,00')
     const netBox = await net.boundingBox()

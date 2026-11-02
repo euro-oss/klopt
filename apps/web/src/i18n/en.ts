@@ -1313,6 +1313,10 @@ export const en: Record<MessageKey, string> = {
   'purchaseNew.col.vatCode': 'VAT code',
   'purchaseNew.col.excl': 'Excl. VAT',
   'purchaseNew.col.vatAmount': 'VAT amount',
+  // Phone line cards (#175): visible above the amount inputs; md:sr-only on desktop.
+  'purchaseNew.phoneNetLabel': 'Excl. VAT',
+  'purchaseNew.phoneVatAmountLabel': 'VAT amount',
+  'purchaseNew.computeTax': 'Calculate VAT',
   'purchaseNew.splitCategory': 'Split over another category',
   'purchaseNew.linesMatch': 'Lines add up to the document: {amount}',
   'purchaseNew.linesMismatch': 'Lines do not add up to the document',

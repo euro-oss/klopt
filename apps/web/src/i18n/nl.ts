@@ -1104,6 +1104,10 @@ export const nl = {
   'purchaseNew.col.vatCode': 'Btw-code',
   'purchaseNew.col.excl': 'Excl. btw',
   'purchaseNew.col.vatAmount': 'Btw-bedrag',
+  // Phone line cards (#175): visible above the amount inputs; md:sr-only on desktop.
+  'purchaseNew.phoneNetLabel': 'Excl. btw',
+  'purchaseNew.phoneVatAmountLabel': 'Btw-bedrag',
+  'purchaseNew.computeTax': 'Btw berekenen',
   'purchaseNew.splitCategory': 'Verdelen over nog een categorie',
   'purchaseNew.linesMatch': 'Regels tellen op tot het document: {amount}',
   'purchaseNew.linesMismatch': 'Regels tellen niet op tot het document',
