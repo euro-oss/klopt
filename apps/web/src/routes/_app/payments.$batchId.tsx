@@ -100,7 +100,10 @@ function PaymentBatch() {
   const canApprove =
     batch !== null && batch.state === 'submitted' && !iSubmitted && hydrated && !busy
   const canDownloadPain =
-    batch !== null && (batch.state === 'approved' || batch.state === 'exported') && hydrated && !busy
+    batch !== null &&
+    (batch.state === 'approved' || batch.state === 'exported') &&
+    hydrated &&
+    !busy
   const painHref = `/api/v1/payment-batches/${batchId}/pain001`
 
   async function act(
@@ -205,7 +208,9 @@ function PaymentBatch() {
       return
     }
 
-    setNotice(plural('batch.paymentsAdded', result.data.added, { count: String(result.data.added) }))
+    setNotice(
+      plural('batch.paymentsAdded', result.data.added, { count: String(result.data.added) }),
+    )
     await router.invalidate()
   }
 

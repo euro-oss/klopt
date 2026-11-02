@@ -106,7 +106,10 @@ function boxesOverlap(a: Box, b: Box): boolean {
 }
 
 async function assertKeyControlsDoNotOverlap(
-  controls: { label: string; locator: ReturnType<Page['getByRole']> | ReturnType<Page['getByText']> }[],
+  controls: {
+    label: string
+    locator: ReturnType<Page['getByRole']> | ReturnType<Page['getByText']>
+  }[],
 ): Promise<void> {
   const boxes: { label: string; box: Box }[] = []
   for (const control of controls) {
@@ -193,7 +196,9 @@ test('BillNew from sidebar and command bar; empty and seeded; keyboard; no conso
 
   await expect
     .poll(async () =>
-      page.locator('[data-testid="billnew-lines"]').evaluate((el) => el.scrollWidth <= el.clientWidth),
+      page
+        .locator('[data-testid="billnew-lines"]')
+        .evaluate((el) => el.scrollWidth <= el.clientWidth),
     )
     .toBe(true)
 
@@ -419,7 +424,9 @@ test('BillNew and PaymentBatch at 390 light and dark: no overflow, no control ov
 
   await expect
     .poll(async () =>
-      page.locator('[data-testid="billnew-lines"]').evaluate((el) => el.scrollWidth <= el.clientWidth),
+      page
+        .locator('[data-testid="billnew-lines"]')
+        .evaluate((el) => el.scrollWidth <= el.clientWidth),
     )
     .toBe(true)
 

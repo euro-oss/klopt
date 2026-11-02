@@ -432,157 +432,161 @@ function NewPurchaseInvoice() {
       >
         <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(260px,380px)]">
           <div className="flex min-w-0 flex-col gap-5">
-          <p className="text-ink-2 m-0 text-sm">{t('purchaseNew.intro')}</p>
+            <p className="text-ink-2 m-0 text-sm">{t('purchaseNew.intro')}</p>
 
-          <section className="border-border bg-surface grid grid-cols-1 gap-4 rounded-[var(--radius-xl)] border p-5 sm:grid-cols-3">
-            <div className="sm:col-span-2">
+            <section className="border-border bg-surface grid grid-cols-1 gap-4 rounded-[var(--radius-xl)] border p-5 sm:grid-cols-3">
+              <div className="sm:col-span-2">
+                <SelectField
+                  label={t('contacts.supplierLabel')}
+                  value={contactNumber}
+                  onValueChange={setContactNumber}
+                  disabled={!hydrated}
+                >
+                  {suppliers.map((supplier) => (
+                    <SelectOption key={supplier.number} value={supplier.number}>
+                      {supplier.name} · {supplier.number}
+                    </SelectOption>
+                  ))}
+                </SelectField>
+              </div>
               <SelectField
-                label={t('contacts.supplierLabel')}
-                value={contactNumber}
-                onValueChange={setContactNumber}
+                label={t('purchaseNew.kind')}
+                value={kind}
                 disabled={!hydrated}
+                onValueChange={(next) => {
+                  setKind(next === 'credit_note' ? 'credit_note' : 'invoice')
+                }}
               >
-                {suppliers.map((supplier) => (
-                  <SelectOption key={supplier.number} value={supplier.number}>
-                    {supplier.name} · {supplier.number}
-                  </SelectOption>
-                ))}
+                <SelectOption value="invoice">{t('purchaseNew.kind.bill')}</SelectOption>
+                <SelectOption value="credit_note">{t('purchaseNew.kind.credit')}</SelectOption>
               </SelectField>
-            </div>
-            <SelectField
-              label={t('purchaseNew.kind')}
-              value={kind}
-              disabled={!hydrated}
-              onValueChange={(next) => {
-                setKind(next === 'credit_note' ? 'credit_note' : 'invoice')
-              }}
+
+              <label className="block">
+                <span className="text-ink-muted mb-1 block text-xs font-medium">
+                  {t('purchaseNew.supplierInvoiceNumber')}
+                </span>
+                <Input
+                  aria-label={t('purchaseNew.supplierInvoiceNumber')}
+                  value={supplierInvoiceNumber}
+                  onChange={(event) => {
+                    setSupplierInvoiceNumber(event.target.value)
+                  }}
+                  required
+                  maxLength={64}
+                  className="font-mono"
+                />
+              </label>
+              <label className="block">
+                <span className="text-ink-muted mb-1 block text-xs font-medium">
+                  {t('purchaseNew.billDate')}
+                </span>
+                <Input
+                  type="date"
+                  aria-label={t('purchaseNew.billDate')}
+                  value={invoiceDate}
+                  onChange={(event) => {
+                    changeInvoiceDate(event.target.value)
+                    setDueDate(
+                      addDays(event.target.value, selectedSupplier?.paymentTermsDays ?? 30),
+                    )
+                  }}
+                  className="font-mono"
+                />
+              </label>
+              <label className="block">
+                <span className="text-ink-muted mb-1 block text-xs font-medium">
+                  {t('purchaseNew.due')}
+                </span>
+                <Input
+                  type="date"
+                  aria-label={t('purchaseNew.due')}
+                  value={dueDate}
+                  onChange={(event) => {
+                    setDueDate(event.target.value)
+                  }}
+                  className="font-mono"
+                />
+                <span className="text-ink-muted mt-1 block text-xs">
+                  {t('purchaseNew.dueHelp')}
+                </span>
+              </label>
+              <label className="block sm:col-span-3">
+                <span className="text-ink-muted mb-1 block text-xs font-medium">
+                  {t('purchaseNew.paymentReferenceOptional')}{' '}
+                  <small className="font-normal">
+                    {t('purchaseNew.paymentReferenceOptionalHint')}
+                  </small>
+                </span>
+                <Input
+                  aria-label={t('purchaseNew.paymentReferenceOptional')}
+                  value={paymentReference}
+                  onChange={(event) => {
+                    setPaymentReference(event.target.value)
+                  }}
+                  placeholder={t('purchaseNew.paymentReferencePlaceholder')}
+                  className="font-mono"
+                />
+              </label>
+            </section>
+
+            <section className="border-border bg-surface rounded-[var(--radius-xl)] border p-5">
+              <h2 className="mb-3 text-[15px] font-semibold">{t('purchaseNew.asOnDocument')}</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {(
+                  [
+                    [t('purchaseNew.excludingVatLabel'), statedNet, setStatedNet, netMatches],
+                    [t('purchaseNew.vatLabel'), statedTax, setStatedTax, taxMatches],
+                    [t('purchaseNew.totalLabel'), statedTotal, setStatedTotal, totalMatches],
+                  ] as const
+                ).map(([label, value, setValue, matches]) => (
+                  <label key={label} className="block">
+                    <span className="text-ink-muted mb-1 block text-xs font-medium">{label}</span>
+                    <Input
+                      aria-label={label}
+                      value={value}
+                      onChange={(event) => {
+                        setValue(event.target.value)
+                      }}
+                      required
+                      placeholder="0,00"
+                      aria-invalid={!matches && value !== ''}
+                      className={cn(
+                        'font-mono text-right',
+                        label === t('purchaseNew.totalLabel') && 'font-semibold',
+                      )}
+                    />
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            <p
+              role="status"
+              aria-live="polite"
+              className={dateNotice === null ? 'sr-only' : 'text-ink-muted text-sm'}
             >
-              <SelectOption value="invoice">{t('purchaseNew.kind.bill')}</SelectOption>
-              <SelectOption value="credit_note">{t('purchaseNew.kind.credit')}</SelectOption>
-            </SelectField>
+              {dateNotice ?? ''}
+            </p>
 
-            <label className="block">
-              <span className="text-ink-muted mb-1 block text-xs font-medium">
-                {t('purchaseNew.supplierInvoiceNumber')}
-              </span>
-              <Input
-                aria-label={t('purchaseNew.supplierInvoiceNumber')}
-                value={supplierInvoiceNumber}
-                onChange={(event) => {
-                  setSupplierInvoiceNumber(event.target.value)
-                }}
-                required
-                maxLength={64}
-                className="font-mono"
-              />
-            </label>
-            <label className="block">
-              <span className="text-ink-muted mb-1 block text-xs font-medium">
-                {t('purchaseNew.billDate')}
-              </span>
-              <Input
-                type="date"
-                aria-label={t('purchaseNew.billDate')}
-                value={invoiceDate}
-                onChange={(event) => {
-                  changeInvoiceDate(event.target.value)
-                  setDueDate(addDays(event.target.value, selectedSupplier?.paymentTermsDays ?? 30))
-                }}
-                className="font-mono"
-              />
-            </label>
-            <label className="block">
-              <span className="text-ink-muted mb-1 block text-xs font-medium">
-                {t('purchaseNew.due')}
-              </span>
-              <Input
-                type="date"
-                aria-label={t('purchaseNew.due')}
-                value={dueDate}
-                onChange={(event) => {
-                  setDueDate(event.target.value)
-                }}
-                className="font-mono"
-              />
-              <span className="text-ink-muted mt-1 block text-xs">{t('purchaseNew.dueHelp')}</span>
-            </label>
-            <label className="block sm:col-span-3">
-              <span className="text-ink-muted mb-1 block text-xs font-medium">
-                {t('purchaseNew.paymentReferenceOptional')}{' '}
-                <small className="font-normal">
-                  {t('purchaseNew.paymentReferenceOptionalHint')}
-                </small>
-              </span>
-              <Input
-                aria-label={t('purchaseNew.paymentReferenceOptional')}
-                value={paymentReference}
-                onChange={(event) => {
-                  setPaymentReference(event.target.value)
-                }}
-                placeholder={t('purchaseNew.paymentReferencePlaceholder')}
-                className="font-mono"
-              />
-            </label>
-          </section>
+            {(!netMatches || !taxMatches || !totalMatches) && filled.length > 0 && (
+              <ul className="text-unreconciled space-y-1 text-sm">
+                {!netMatches && <li>{t('purchaseNew.netDoesNotMatch')}</li>}
+                {!taxMatches && <li>{t('purchaseNew.taxDoesNotMatch')}</li>}
+                {!totalMatches && <li>{t('purchaseNew.totalDoesNotMatch')}</li>}
+              </ul>
+            )}
 
-          <section className="border-border bg-surface rounded-[var(--radius-xl)] border p-5">
-            <h2 className="mb-3 text-[15px] font-semibold">{t('purchaseNew.asOnDocument')}</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {(
-                [
-                  [t('purchaseNew.excludingVatLabel'), statedNet, setStatedNet, netMatches],
-                  [t('purchaseNew.vatLabel'), statedTax, setStatedTax, taxMatches],
-                  [t('purchaseNew.totalLabel'), statedTotal, setStatedTotal, totalMatches],
-                ] as const
-              ).map(([label, value, setValue, matches]) => (
-                <label key={label} className="block">
-                  <span className="text-ink-muted mb-1 block text-xs font-medium">{label}</span>
-                  <Input
-                    aria-label={label}
-                    value={value}
-                    onChange={(event) => {
-                      setValue(event.target.value)
-                    }}
-                    required
-                    placeholder="0,00"
-                    aria-invalid={!matches && value !== ''}
-                    className={cn(
-                      'font-mono text-right',
-                      label === t('purchaseNew.totalLabel') && 'font-semibold',
-                    )}
-                  />
-                </label>
-              ))}
-            </div>
-          </section>
+            {problems.length > 0 && (
+              <ul role="alert" className="text-destructive space-y-1 text-sm">
+                {problems.map((problem) => (
+                  <li key={problem}>{problem}</li>
+                ))}
+              </ul>
+            )}
 
-          <p
-            role="status"
-            aria-live="polite"
-            className={dateNotice === null ? 'sr-only' : 'text-ink-muted text-sm'}
-          >
-            {dateNotice ?? ''}
-          </p>
-
-          {(!netMatches || !taxMatches || !totalMatches) && filled.length > 0 && (
-            <ul className="text-unreconciled space-y-1 text-sm">
-              {!netMatches && <li>{t('purchaseNew.netDoesNotMatch')}</li>}
-              {!taxMatches && <li>{t('purchaseNew.taxDoesNotMatch')}</li>}
-              {!totalMatches && <li>{t('purchaseNew.totalDoesNotMatch')}</li>}
-            </ul>
-          )}
-
-          {problems.length > 0 && (
-            <ul role="alert" className="text-destructive space-y-1 text-sm">
-              {problems.map((problem) => (
-                <li key={problem}>{problem}</li>
-              ))}
-            </ul>
-          )}
-
-          <p className="text-ink-muted m-0 text-[13px] leading-relaxed">
-            {t('purchaseNew.saveNote')}
-          </p>
+            <p className="text-ink-muted m-0 text-[13px] leading-relaxed">
+              {t('purchaseNew.saveNote')}
+            </p>
           </div>
 
           <aside aria-label={t('purchaseNew.dropTitle')} className="flex min-w-0 flex-col gap-3">
@@ -607,7 +611,11 @@ function NewPurchaseInvoice() {
             )}
             {previewUrl !== null && (
               <div className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border">
-                <iframe title={t('purchaseNew.dropTitle')} src={previewUrl} className="h-72 w-full" />
+                <iframe
+                  title={t('purchaseNew.dropTitle')}
+                  src={previewUrl}
+                  className="h-72 w-full"
+                />
               </div>
             )}
             {selectedSupplier !== null && (
