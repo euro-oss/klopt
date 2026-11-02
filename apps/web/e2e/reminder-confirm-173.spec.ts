@@ -53,6 +53,10 @@ async function openAdmin(page: Page): Promise<string> {
   return entity.id
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 async function seedContact(page: Page, number: string, name: string, email: string): Promise<void> {
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill(number)
@@ -64,7 +68,8 @@ async function seedContact(page: Page, number: string, name: string, email: stri
   await page.getByLabel('Postcode').fill('1000 AA')
   await page.getByLabel('Plaats').fill('Amsterdam')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name })).toBeVisible()
+  // Contacts list rows are buttons after the #130 redesign (not table cells).
+  await expect(page.getByRole('button', { name: new RegExp(escapeRegExp(name)) })).toBeVisible()
 }
 
 async function draftAndIssue(
