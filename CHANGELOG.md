@@ -36,8 +36,8 @@ Uitloggen) is handled in a separate PR.
 Costs CoS follow-up (Hidde via CoS): BillNew / Costs inputs share that border
 token with legible light placeholders; disabled selects use sunken ground so
 they read as disabled; Costs table status/amount columns stay fully visible
-at 1440 with the preview open; fixture IBANs are `NL91ABNA0417164300` only
-(never `NL91RABO0315273637`).
+at 1440 with the preview open; fixture IBANs are the standard example
+`NL91ABNA0417164300` only (never a real account number).
 
 ### Fixed
 
