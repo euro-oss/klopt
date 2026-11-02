@@ -46,7 +46,8 @@ Hidde's light board still has the "Match now" link and the Google Fonts link, an
 - **Debtor and creditor row targets.** Customers open `PhoneContactCard`, suppliers `PhoneCosts`. "Send reminders to all 5" goes to `PhoneSales`, "Prepare a payment batch" to `PhonePaymentBatch`.
 - **Balance sheet callout on phone.** "Match now" is an underlined 44px link under the text, to `PhoneMatch`.
 - **Trial balance on phone.** Each account is a row: ledger number and name (wrapping), RGS code under it; the closing balance bold on the right with labelled Debit and Credit under it. The Opening column is left out: it is 0,00 on every line, and the intro says so ("Opening is 0,00 for each, as 2025 is the first year"; Hidde's "For your accountant: debit and credit must agree, and they do" is dropped to keep it short). Empty Debit or Credit cells show 0,00. Totals are a three-line footer.
-- **Links that need #188.** `ReportsDark` trial balance rows link to `LedgerDark` and phone rows to `PhoneLedger`; both boards are added in #188 and don't exist on main yet.
+- **Links to the #145 boards.** `ReportsDark` trial balance rows link to `LedgerDark` and phone rows to `PhoneLedger`; both came with #145 (PR #188, now on main).
+- **Legal: the opening line comes from the data.** "Opening is 0,00 for each, as 2025 is the first year" (NL "Het beginsaldo is overal 0,00, want 2025 is het eerste jaar.") must be generated from the books, not hard-coded: it may only show when every opening balance is 0,00 and the book year is the administration's first. For a later year, or an import with opening balances, the line is different or left out and the Opening column comes back.
 
 ### Contrast (WCAG 2.x)
 
@@ -92,6 +93,110 @@ Strings Hidde already has on `Reports` are not repeated here.
 | Opening is 0,00 for each, as 2025 is the first year. | Het beginsaldo is overal 0,00, want 2025 is het eerste jaar. |
 | Total debit / Total credit / Closing | Totaal debet / Totaal credit / Eindsaldo |
 | Tap a line to open that account's ledger. | Tik op een regel voor het grootboek van die rekening. |
+
+## Journal: entries, new entry and ledger, dark and phone (#145)
+
+Hidde's three desktop-light boards (`Journal`, `EntryNew`, `Ledger`) get a dark 1440 board and phone 390 boards in light and dark. His files are not edited. Screenshots are in `derived-shots/journal-145/`.
+
+| Board | What it is | Screenshots in `derived-shots/journal-145/` |
+| --- | --- | --- |
+| `JournalDark.dc.html`, `theme` prop (default dark) | Hidde's `Journal` at 1440, own file: entry panel wide enough for its Credit column, no placeholders, self-hosted fonts | `Journal-dark-1440` |
+| `EntryNewDark.dc.html`, `theme` prop (default dark) | Hidde's `EntryNew` at 1440, own file: bordered line cells, no ink-faint, self-hosted fonts | `EntryNew-dark-1440` |
+| `LedgerDark.dc.html` | Thin wrapper: Hidde's `Ledger` with `theme="dark"` and `--line-control` on `--ink-muted` | `Ledger-dark-1440` |
+| `PhoneJournal.dc.html`, `theme` prop | Entries at 390: the open entry (17) as a card on top, then all 17 entries as stacked rows | `Journal-light-390`, `Journal-dark-390` |
+| `PhoneJournalDark.dc.html` | `PhoneJournal` with `theme="dark"` | the `Journal-dark-390` shot |
+| `PhoneEntryNew.dc.html`, `theme` prop | New entry at 390: fields, three line cards with visible labels, totals, sticky Post bar | `EntryNew-light-390`, `EntryNew-dark-390` |
+| `PhoneEntryNewDark.dc.html` | `PhoneEntryNew` with `theme="dark"` | the `EntryNew-dark-390` shot |
+| `PhoneLedger.dc.html`, `theme` prop | Ledger for 1300 Debiteuren, Q4 2025, at 390: totals, movements with running balance, all accounts | `Ledger-light-390`, `Ledger-dark-390` |
+| `PhoneLedgerDark.dc.html` | `PhoneLedger` with `theme="dark"` | the `Ledger-dark-390` shot |
+
+All twelve boards are registered in `canvas.json` (note `t145` at y 26700, boards at y 27000, under the #153 rows): the three dark desktop boards at x 0 to 3040, the six phone boards at x 4560 to 6910. Each entry has `"derived": true` and a `derivedNote`.
+
+### Why two dark boards are their own file
+
+`LedgerDark` is a thin wrapper, like `HomeDark`, because Hidde's markup is right in dark once the control border token is fixed (the same override as `VatDark`). `JournalDark` and `EntryNewDark` are copies, because his light boards have things these rules don't allow, and editing his files is out of scope here:
+
+- `Journal`: the entry panel is 380px wide, but its Account, Debit and Credit grid needs about 420px, so the Credit column is cut off at 1440. Every sales entry except 17 shows `[net]` and `[VAT]` as its revenue and VAT amounts, the opening entry is posted by `owner@demo.invalid`, entry 1 shows a dash for "chained to", and the count line says 16 shown while 17 rows are drawn. `JournalDark` has a 420px panel with 96px Debit and Credit columns and slightly narrower list columns, lets account names wrap to a second line ("1500 Te betalen omzetbelasting" is no longer cut off), splits every sales entry into revenue and 21% VAT, uses `eva@bakkerij.example`, says "genesis · first entry", and "Showing 17 of 216".
+- `EntryNew`: the line cells have no border of their own, only a `--line-soft` divider (about 1.2:1), and the breadcrumb slash is `ink-faint`. In `EntryNewDark` each cell is a bordered input inside its row (`--ink-muted`, 32px tall, 48px rows), the slash is `ink-muted`, and the Journal crumb is an underlined ink link.
+
+Both also load Google Fonts; the copies load `../design-system/fonts/fonts.css`, and their links point to the dark boards. Hidde's light boards still have these issues and should get the same fixes in whichever PR owns them.
+
+### Rules for these boards
+
+- Control borders: `.k-root[data-theme]{--line-control:var(--ink-muted)}`, the same rule as #152, #153 and #155. Inputs, selects, the search field and secondary buttons use it.
+- In dark, key hints in a primary button are outlined in `--on-primary` (desktop only; phones show no key hints).
+- Links are ink and underlined. No `ink-faint` for text. No new status colours: `Posted` is the `--paid` pill and "Balances" is `success`, as on Hidde's boards.
+- Phone: `.k-phone` at 390, Hidde's five-tab bar with More active (Journal lives under More), sticky at the bottom. No key hints, chips or keycaps. Targets are 44px or more; list rows 56 to 60px; EntryNew's Post and Post and next are 48px in a sticky bar above the tab bar.
+- Amounts are Inter with tabular figures (`.k-num`, with `nw` so they never wrap), right-aligned, the same class as `PhoneCosts` and `PhoneBillNew` and Hidde's desktop boards; decided via CoS on 2 Nov 2026. JetBrains Mono is only for codes: account numbers, journal codes, RGS codes and fingerprints (`.k-code`). Dates on phone read "28 Nov"; the book year is in the list footer.
+- EntryNew phone labels (Account, Line description, Debit, Credit) are visible on every line card. They carry `md-sr`, which hides them visually from 768px up, where the desktop table has column headers (the `md:sr-only` pattern). No input relies on an `aria-label` alone.
+- Sample user: Eva (`eva@bakkerij.example`). Companies and accounts are Hidde's demo fixtures.
+- `shoot.mjs` printed no QA warnings for the nine shots.
+
+### Invented, for Hidde to check
+
+- **Open entry on top (Journal phone).** The selected entry shows as a card above the list: lines stacked with the account on the left and Debit or Credit, labelled, on the right; then Balances, the booking details and Open invoice, Reverse and Copy as new. Entry 17 is the newest, so it reads as the first row opened. Tapping a row opens it in the card, as on `PhoneImportFindings`. In the app this could be its own page.
+- **Journal filter as a select on phone.** The five desktop segments (All, Sales, Purchases, Bank, Memorial) don't fit 390, so phone has a labelled Journal select, "All journals · 216".
+- **Phone entry rows.** The contact (or "Demo openingsbalans") in bold, the journal code and document under it, the amount on the right with "#17 · 28 Nov" under it.
+- **Sales entries split at 21%.** Every sales entry on the dark and phone boards splits into 8000 Omzet and 1500 VAT at 21%, the way Hidde's entry 17 does.
+- **Ledger tab label.** On phone the tab is "Ledger" (desktop "Ledger per account"); Trial balance points to `#`, because Reports has no phone board yet.
+- **Ledger phone.** Previous and next buttons around the account name instead of the account side panel (desktop `[` and `]`), with the side panel moved under the movements as "All accounts" and "Show 21 accounts without movement" as an underlined link. The four totals are a 2 by 2 grid, the two balances first. Each movement has the day and month on the left, "Invoice 2025-0022" (VRK) or "Paid 2025-0035" (BNK) with the contact under it, Debit or Credit with the amount on the right, and the running balance under it, with one line above the list that says so. Journal code chips are left off the phone rows. CSV stays as a button.
+- **EntryNew phone.** Each line is a card ("Line 1" with a 44px remove button). The description is a two-line field so it isn't cut off. Account 1510 shows its ledger name "Te vorderen btw", as on `Ledger`; Hidde's `EntryNew` calls it "Terug te vorderen omzetbelasting", so his two boards disagree. The "=" state of line 3 keeps Hidde's yellow outline on `brand-tint`; the field's own `--ink-muted` border stays under it, so the 3:1 edge holds. The new intro line is "Debit and credit must be equal before you can post." The "Posting is final" text is shorter and drops the fingerprint clause. The document card has Take a photo and Choose a file, as on `PhoneBillNew`. The back link replaces Cancel.
+
+### Contrast (WCAG 2.x)
+
+| Pair | Light | Dark |
+| --- | --- | --- |
+| Control border (`ink-muted`) on `surface` | 5.95:1 | 6.77:1 |
+| v2 `line-control` on `surface` (replaced) | 1.68:1 | 1.98:1 |
+| Amounts (`ink`) on `surface` | 17.72:1 | 15.80:1 |
+| Running balance (`ink-2`) on `surface` | 10.44:1 | 11.75:1 |
+| Labels and muted text (`ink-muted`) on `surface` / `surface-hover` | 5.95 / 5.69:1 | 6.77 / 6.18:1 |
+| Muted text on `selection` (selected row and account) | 5.59:1 | 5.74:1 |
+| `ink` on `brand-tint` (the "=" cell) | 16.33:1 | 13.07:1 |
+| "Balances" (`success`) on `surface` | 6.16:1 | 9.96:1 |
+| `Posted` pill (`success` on `success-bg`) | 5.48:1 | 8.90:1 |
+
+### Shooting
+
+From `design/redesign-2026-10/`:
+
+```sh
+node derived-shots/render/shoot.mjs derived-shots/journal-145 'JournalDark.dc.html?theme=dark=Journal-dark-1440' 'EntryNewDark.dc.html?theme=dark=EntryNew-dark-1440' 'LedgerDark.dc.html?theme=dark=Ledger-dark-1440' --width=390 'PhoneJournal.dc.html=Journal-light-390' 'PhoneJournal.dc.html?theme=dark=Journal-dark-390' 'PhoneEntryNew.dc.html=EntryNew-light-390' 'PhoneEntryNew.dc.html?theme=dark=EntryNew-dark-390' 'PhoneLedger.dc.html=Ledger-light-390' 'PhoneLedger.dc.html?theme=dark=Ledger-dark-390'
+```
+
+The `Phone…Dark` wrappers render the same pixels as `?theme=dark`; they were checked against these shots and are not shot separately.
+
+### Copy, English and Dutch
+
+Strings Hidde already has on his boards are not repeated here.
+
+| English (board) | Nederlands |
+| --- | --- |
+| + Entry | + Journaalpost |
+| Ledger (phone tab) | Grootboek |
+| Every booking, in order. A correction is a new entry that reverses the old one. | Elke boeking, op volgorde. Een correctie is een nieuwe journaalpost die de oude terugdraait. |
+| All journals · 216 | Alle dagboeken · 216 |
+| All entries | Alle journaalposten |
+| Opening balance | Openingsbalans |
+| #17 · 28 Nov | #17 · 28 nov |
+| genesis · first entry | genesis · eerste journaalpost |
+| Each fingerprint includes the one before it, so a changed entry shows. | Elke vingerafdruk bevat de vorige, dus een gewijzigde journaalpost valt op. |
+| Showing 17 of 216, in entry order | 17 van 216, op volgorde van boeken |
+| ‹ Journal | ‹ Journaal |
+| Debit and credit must be equal before you can post. | Debet en credit moeten gelijk zijn voordat je kunt boeken. |
+| Line 1 (2, 3) | Regel 1 (2, 3) |
+| + Add a line | + Regel toevoegen |
+| Total debit / Total credit | Totaal debet / Totaal credit |
+| Once posted, the entry can't be edited or deleted. A mistake is fixed with a reversing entry. | Een geboekte journaalpost kun je niet wijzigen of verwijderen. Een fout herstel je met een tegenboeking. |
+| Movements | Mutaties |
+| 19 lines | 19 regels |
+| The running balance is under each amount. | Het lopende saldo staat onder elk bedrag. |
+| Brought forward | Beginsaldo |
+| Invoice 2025-0022 / Paid 2025-0035 | Factuur 2025-0022 / Betaald 2025-0035 |
+| At period end · 31 Dec | Eind van de periode · 31 dec |
+| All accounts | Alle rekeningen |
+| Show 21 accounts without movement | Toon 21 rekeningen zonder mutaties |
+| Previous account: 1100 Bank / Next account: 1500 Te betalen btw (screen reader) | Vorige rekening: 1100 Bank / Volgende rekening: 1500 Te betalen btw |
 
 ## Import source and problems: dark and phone (#152)
 
@@ -370,13 +475,13 @@ App strings are quoted from `apps/web/src/i18n/{en,nl}.ts`. Strings marked _new_
 | VAT periods overlapping 2025, quarterly VAT returns (set per administration). Grey: closed. (Monthly: monthly VAT returns; annual: annual VAT returns.) | Btw-periodes die overlappen met 2025, btw-aangifte per kwartaal (per administratie in te stellen). Grijs: afgesloten. (Per maand: btw-aangifte per maand; per jaar: btw-aangifte per jaar.) | new                                 |
 | Red and underlined: still open, so 2025 can't close. Select one to open it.                                                                             | Rood en onderstreept: staat nog open, dus 2025 kan niet worden afgesloten. Kies er een om hem te openen.                                                                                    | new                                 |
 | All are closed / It is closed, so nothing changes under the proposal.                                                                                   | Alle zijn afgesloten / Hij is afgesloten, dus er verandert niets aan het voorstel.                                                                                                          | new                                 |
-| Every 2025 bank line is matched                                                                                                                         | Elke bankregel van 2025 is gekoppeld                                                                                                                                                        | new                                 |
+| Every 2025 bank line is matched                                                                                                                         | Elke bankregel van 2025 is afgeletterd                                                                                                                                                      | new                                 |
 | VAT period 2025-Q4 is still open                                                                                                                        | Btw-periode 2025-Q4 staat nog open                                                                                                                                                          | new                                 |
 | VAT periods 2025-11 and 2025-12 are still open                                                                                                          | Btw-periodes 2025-11 en 2025-12 staan nog open                                                                                                                                              | new                                 |
 | VAT period 2025 is still open                                                                                                                           | Btw-periode 2025 staat nog open                                                                                                                                                             | new                                 |
 | Every VAT period that overlaps book year 2025 has to be closed first, or VAT could still land in 2025 after it closes.                                  | Elke btw-periode die overlapt met boekjaar 2025 moet eerst zijn afgesloten, anders kan er na het afsluiten nog btw in 2025 terechtkomen.                                                    | new                                 |
 | Open VAT period 2025-Q4 / 2025-11 / 2025                                                                                                                | Naar btw-periode 2025-Q4 / 2025-11 / 2025                                                                                                                                                   | new                                 |
-| 4 bank lines from 2025 are not matched                                                                                                                  | 4 bankregels uit 2025 zijn niet gekoppeld                                                                                                                                                   | new                                 |
+| 4 bank lines from 2025 are not matched                                                                                                                  | 4 bankregels uit 2025 zijn niet afgeletterd                                                                                                                                                 | new                                 |
 | Match 4 lines                                                                                                                                           | 4 regels koppelen                                                                                                                                                                           | new                                 |
 | Book year 2025 can't close yet                                                                                                                          | Boekjaar 2025 kan nog niet worden afgesloten                                                                                                                                                | new                                 |
 | Profit for 2025 / Moves to equity / 2026 opens with                                                                                                     | Winst over 2025 / Naar eigen vermogen / 2026 opent met                                                                                                                                      | new (fiscalYears.result: Resultaat) |

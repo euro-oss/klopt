@@ -924,6 +924,93 @@
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (#153), not drawn by Hidde. Invitee's first sign-in (Legal art. 13). See ../DERIVED.md."
   },
+  "JournalDark.dc.html": {
+   "x": 0,
+   "y": 27000,
+   "w": 1440,
+   "h": 1149,
+   "title": "Dark · journal, entries list + entry (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "EntryNewDark.dc.html": {
+   "x": 1520,
+   "y": 27000,
+   "w": 1440,
+   "h": 1100,
+   "title": "Dark · new journal entry (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "LedgerDark.dc.html": {
+   "x": 3040,
+   "y": 27000,
+   "w": 1440,
+   "h": 1388,
+   "title": "Dark · general ledger per account (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneJournal.dc.html": {
+   "x": 4560,
+   "y": 27000,
+   "w": 390,
+   "h": 2336,
+   "title": "Phone · journal entries (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneJournalDark.dc.html": {
+   "x": 5030,
+   "y": 27000,
+   "w": 390,
+   "h": 2336,
+   "title": "Phone dark · journal entries (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneEntryNew.dc.html": {
+   "x": 5500,
+   "y": 27000,
+   "w": 390,
+   "h": 2132,
+   "title": "Phone · new journal entry (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneEntryNewDark.dc.html": {
+   "x": 5970,
+   "y": 27000,
+   "w": 390,
+   "h": 2132,
+   "title": "Phone dark · new journal entry (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneLedger.dc.html": {
+   "x": 6440,
+   "y": 27000,
+   "w": 390,
+   "h": 2757,
+   "title": "Phone · general ledger per account (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneLedgerDark.dc.html": {
+   "x": 6910,
+   "y": 27000,
+   "w": 390,
+   "h": 2757,
+   "title": "Phone dark · general ledger per account (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."
+  },
   "ReportsDark.dc.html": {
    "x": 0,
    "y": 31000,
@@ -1059,6 +1146,15 @@
   "SignInInviteeDark.dc.html",
   "PhoneSignInInvitee.dc.html",
   "PhoneSignInInviteeDark.dc.html",
+  "JournalDark.dc.html",
+  "EntryNewDark.dc.html",
+  "LedgerDark.dc.html",
+  "PhoneJournal.dc.html",
+  "PhoneJournalDark.dc.html",
+  "PhoneEntryNew.dc.html",
+  "PhoneEntryNewDark.dc.html",
+  "PhoneLedger.dc.html",
+  "PhoneLedgerDark.dc.html",
   "ReportsDark.dc.html",
   "PhoneReports.dc.html",
   "PhoneReportsDark.dc.html"
@@ -1168,6 +1264,13 @@
    "text": "Invitee's first sign-in: privacy notice (derived, #153)",
    "kind": "title1",
    "maxW": 3900
+  },
+  "t145": {
+   "x": 0,
+   "y": 26700,
+   "text": "Books: journal, new entry, ledger, dark and phone (derived, #145)",
+   "kind": "title1",
+   "maxW": 7300
   },
   "t146": {
    "x": 0,

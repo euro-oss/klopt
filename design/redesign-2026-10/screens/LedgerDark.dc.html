@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · General ledger (dark)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#145). Dark 1440: Ledger.dc.html with theme="dark", the same
+  way HomeDark.dc.html wraps Main. A thin wrapper because Hidde's markup is right as it is in dark.
+  A11y deviations (#107 decision 4): control borders (Period select, account search, CSV) on
+  --ink-muted for 3:1 (v2 line-control is about 2:1 in dark), placeholder in ink-muted,
+  self-hosted fonts. Hidde's Ledger still carries his Google Fonts link; the shoot blocks it.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:#111113}
+.k-root[data-theme="dark"]{--line-control:var(--ink-muted)}
+.k-root .k-search input::placeholder{color:var(--ink-muted)}
+</style>
+</helmet>
+<div style="min-height: 1040px; background: #111113;">
+  <dc-import name="Ledger" theme="dark" hint-size="100%,1040px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
