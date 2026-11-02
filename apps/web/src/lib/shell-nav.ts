@@ -72,6 +72,8 @@ export const SHELL_NAV: readonly NavItem[] = [
     binding: 'go.purchases',
     placement: 'primary',
     section: 'money',
+    // Payment batches tab keeps `/payments` but stays under Costs (#107 Phase 4).
+    alsoActiveFor: ['/payments'],
   },
   {
     to: '/bank/match',
@@ -461,7 +463,7 @@ export function visibleJournalTabs(): readonly JournalTab[] {
 }
 
 /**
- * v2 PhoneTabBar — five destinations at 390px (#107 Phase 0 / #140).
+ * v2 PhoneTabBar — five destinations at 390px (#107 Phase 0 / #140 CoS).
  *
  * Home · Sales · Receipt · Bank · More. Middle tab is Receipt (Hidde via #140);
  * Receipt/More *contents* wait on Batch 3 (#139). Until then More opens the
@@ -481,6 +483,7 @@ export interface PhoneTab {
 export const PHONE_TAB_BAR: readonly PhoneTab[] = [
   { id: 'home', key: 'nav.home', to: '/' },
   { id: 'sales', key: 'nav.sales', to: '/invoices', alsoActiveFor: ['/dunning'] },
+  // CoS #140 / #139: middle phone tab is Receipt (not Inbox).
   { id: 'receipt', key: 'nav.phoneReceipt', to: '/inbox' },
   {
     id: 'bank',
