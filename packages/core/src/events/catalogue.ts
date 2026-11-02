@@ -88,8 +88,7 @@ export const EVENT_TYPES = {
     version: 1,
     resource: 'payment_batch',
     summary:
-      'A payment batch was exported: the pain.001 has been produced and is on its ' +
-      'way to the bank. The last moment this instance controls.',
+      'A payment batch was exported: the pain.001 has been downloaded; the user uploads it in their bank. The last moment this instance controls.',
   },
   'ledger.year.closed': {
     version: 1,

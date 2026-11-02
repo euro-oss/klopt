@@ -28,9 +28,12 @@ export function CostsTabs({
     <nav
       aria-label={t('costs.tabs')}
       data-costs-tabs=""
-      className="border-border mb-4 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="border-border mb-4 max-w-full min-w-0 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      <div className="flex w-max min-w-full flex-nowrap gap-1 border-b border-inherit">
+      <div
+        data-costs-tabs-row=""
+        className="flex w-max min-w-full flex-nowrap items-stretch gap-1 border-b border-inherit"
+      >
         <Link
           to="/purchases"
           search={{ tab: 'bills' }}

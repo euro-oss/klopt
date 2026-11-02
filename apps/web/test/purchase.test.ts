@@ -12,6 +12,7 @@ import {
   handleListPurchaseInvoices,
   handleTransitionPurchaseInvoice,
 } from '../src/api/handlers/purchase.js'
+import { handleListInbox, handleReceiveDocument } from '../src/api/handlers/inbox.js'
 import { handleCreateContact } from '../src/api/handlers/sales.js'
 import { handleCreateBankAccount } from '../src/api/handlers/bank.js'
 import { handleGetVatReturn } from '../src/api/handlers/vat.js'
@@ -945,5 +946,45 @@ describe('the payment run — where the cycle closes', () => {
     await expect(
       handleAddApprovedInvoices(await context(reader, uuidv7()), batchId),
     ).rejects.toMatchObject({ code: 'forbidden' })
+  })
+})
+
+describe('BillNew document link on capture (#175)', () => {
+  it('links documentId on save and leaves Postvak', async () => {
+    const { token } = await newEntity()
+    await aSupplier(token)
+
+    const received = await handleReceiveDocument(await context(token, uuidv7()), {
+      bytes: new TextEncoder().encode('%PDF-1.7 fixture for link'),
+      filename: 'bill-link.pdf',
+      contentType: 'application/pdf',
+      source: 'upload',
+      receivedFrom: null,
+      subject: null,
+    })
+    expect(received.body.documentId).toBeTruthy()
+
+    const before = await handleListInbox(await context(token), { state: 'new' })
+    expect(before.body.items.some((item) => item.documentId === received.body.documentId)).toBe(
+      true,
+    )
+
+    const captured = await handleCapturePurchaseInvoice(
+      await context(token, uuidv7()),
+      capture({
+        supplierInvoiceNumber: 'F-LINK-1',
+        documentId: received.body.documentId,
+      }),
+    )
+    expect(captured.status).toBe(201)
+    expect(captured.body.documentId).toBe(received.body.documentId)
+
+    const after = await handleListInbox(await context(token), { state: 'new' })
+    expect(after.body.items.some((item) => item.documentId === received.body.documentId)).toBe(
+      false,
+    )
+
+    const read = await handleGetPurchaseInvoice(await context(token), captured.body.id)
+    expect(read.body.documentIds).toEqual([received.body.documentId])
   })
 })

@@ -7828,12 +7828,12 @@
                         },
                         "bucket": {
                           "enum": [
+                            "total",
                             "current",
                             "upTo30",
                             "upTo60",
                             "upTo90",
                             "over90",
-                            "total",
                             null
                           ]
                         }
@@ -20474,7 +20474,7 @@
     "/api/v1/payment-batches/{batchId}/pain001": {
       "get": {
         "operationId": "payments.getBatchPain001",
-        "summary": "The approved batch as SEPA pain.001. A read: exporting is a separate transition.",
+        "summary": "The batch as SEPA pain.001. The first GET on an approved batch transitions it to exported; re-downloads of an already-exported batch return the same file.",
         "tags": [
           "payments"
         ],
@@ -20970,7 +20970,7 @@
     "/api/v1/payment-batches/{batchId}/transitions": {
       "post": {
         "operationId": "payments.transitionBatch",
-        "summary": "Submit, approve, reject, reopen or export a batch. Two people, or nobody.",
+        "summary": "Submit, approve, reject or reopen a batch. Two people, or nobody. `export` is not a transition — downloading pain.001 marks an approved batch exported.",
         "tags": [
           "payments"
         ],
@@ -20993,7 +20993,6 @@
                     },
                     "action": {
                       "enum": [
-                        "export",
                         "submit",
                         "approve",
                         "reject",
@@ -21025,7 +21024,6 @@
                     },
                     "action": {
                       "enum": [
-                        "export",
                         "submit",
                         "approve",
                         "reject",
@@ -21097,8 +21095,7 @@
                       "submit",
                       "approve",
                       "reject",
-                      "reopen",
-                      "export"
+                      "reopen"
                     ]
                   },
                   "reason": {
@@ -21365,6 +21362,12 @@
                     "total": {
                       "type": "string"
                     },
+                    "documentId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "findings": {
                       "type": "array",
                       "items": {
@@ -21535,6 +21538,7 @@
                     "status",
                     "supplierInvoiceNumber",
                     "total",
+                    "documentId",
                     "findings",
                     "bookable"
                   ]
@@ -21561,6 +21565,12 @@
                     "total": {
                       "type": "string"
                     },
+                    "documentId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "findings": {
                       "type": "array",
                       "items": {
@@ -21731,6 +21741,7 @@
                     "status",
                     "supplierInvoiceNumber",
                     "total",
+                    "documentId",
                     "findings",
                     "bookable"
                   ]
@@ -21860,6 +21871,18 @@
                         "net"
                       ]
                     }
+                  },
+                  "documentId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -21996,6 +22019,12 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "documentIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "lines": {
                       "type": "array",
@@ -22221,6 +22250,7 @@
                     "disputedReason",
                     "payable",
                     "payableRefusal",
+                    "documentIds",
                     "lines",
                     "findings",
                     "bookable"

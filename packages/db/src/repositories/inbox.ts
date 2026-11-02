@@ -310,6 +310,23 @@ export class InboxRepository {
     return null
   }
 
+  /** Open (state=new) Postvak rows for a document — BillNew links them on save. */
+  async openItemsForDocument(
+    entityId: string,
+    documentId: string,
+  ): Promise<readonly { readonly id: string }[]> {
+    return this.tx
+      .select({ id: inboxItems.id })
+      .from(inboxItems)
+      .where(
+        and(
+          eq(inboxItems.entityId, entityId),
+          eq(inboxItems.documentId, documentId),
+          eq(inboxItems.state, 'new'),
+        ),
+      )
+  }
+
   async markDrafted(request: {
     readonly entityId: string
     readonly itemId: string

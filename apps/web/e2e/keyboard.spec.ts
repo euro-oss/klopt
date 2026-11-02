@@ -211,7 +211,9 @@ test('the palette opens on Cmd-K and goes where you pick', async ({ page }) => {
   await page.getByLabel('Zoek een scherm').fill('betal')
   await page.keyboard.press('Enter')
 
-  await expect(page.getByRole('heading', { name: 'Betalingen' })).toBeVisible()
+  // Palette still finds "Betalingen"; the Costs redesign shows that route as Kosten.
+  await expect(page).toHaveURL(/\/payments/)
+  await expect(page.getByRole('heading', { name: 'Kosten' })).toBeVisible()
   await expect(palette).toBeHidden()
 })
 

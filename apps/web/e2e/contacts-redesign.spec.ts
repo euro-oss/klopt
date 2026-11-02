@@ -189,18 +189,18 @@ test('supplier card shows open count/amount; overdue only after due date; never 
   }): Promise<void> {
     await page.goto('/purchases/new')
     await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
-    // Sole supplier is the form default; confirm it without getByLabel('Leverancier')
-    // (that label also matches "Factuurnummer leverancier").
+    // Sole supplier is the form default; confirm via combobox (not getByLabel —
+    // that also matches other fields that mention Leverancier).
     await expect(page.getByRole('combobox', { name: 'Leverancier' })).toContainText(/CRE-1630/)
-    await page.getByLabel('Factuurnummer leverancier').fill(opts.number)
+    await page.getByLabel('Hun nummer').fill(opts.number)
     await page.getByLabel('Factuurdatum').fill(opts.invoiceDate)
     await page.getByLabel('Vervaldatum').fill(opts.dueDate)
-    await page.getByLabel('Bedrag excl. btw', { exact: true }).fill(opts.excl)
+    await page.getByLabel('Exclusief btw', { exact: true }).fill(opts.excl)
     await page.getByLabel('Btw', { exact: true }).fill(opts.vat)
     await page.getByLabel('Totaal', { exact: true }).fill(opts.total)
     await page.getByLabel('Omschrijving regel 1').fill('Kantoorartikelen demo')
     await chooseOption(page, 'Grootboek regel 1', /^4400 /)
-    await chooseOption(page, 'Btw-code regel 1', /^VH21 /)
+    await expect(page.getByLabel('Btw-code regel 1')).toHaveText(/^VH21/)
     await page.getByLabel('Excl. btw regel 1').fill(opts.excl)
     await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
     await page.getByRole('button', { name: 'Concept opslaan' }).click()

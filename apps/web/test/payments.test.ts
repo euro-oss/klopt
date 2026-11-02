@@ -381,12 +381,14 @@ describe('the payment file', () => {
     expect(file.hash).toMatch(/^[0-9a-f]{64}$/)
 
     // The hash of the exact bytes is on the batch, so what the bank got and
-    // what we can reproduce can be compared later (spec 8, rule 3).
+    // what we can reproduce can be compared later (spec 8, rule 3). First
+    // download also sets exported (#175).
     const batch = await handleGetBatch(await contextFor(preparer.cookie), batchId)
+    expect(batch.body.batch.state).toBe('exported')
     expect(batch.body.batch.exportedHash).toBe(file.hash)
   })
 
-  it('can be downloaded twice, and exporting is a separate act', async () => {
+  it('sets exported on first download; re-download keeps the same hash', async () => {
     const preparer = await aPerson('bookkeeper')
     const approver = await aPerson('accountant')
     const batchId = await aBatch(preparer.cookie)
@@ -402,28 +404,18 @@ describe('the payment file', () => {
       transitionBatchBody.parse({ action: 'approve' }),
     )
 
-    // Twice is fine: a download that failed halfway is a download.
+    // First download *is* the export (#175): state becomes gedownload.
     const first = await handleGetBatchPain001(await contextFor(preparer.cookie), batchId)
+    let batch = await handleGetBatch(await contextFor(preparer.cookie), batchId)
+    expect(batch.body.batch.state).toBe('exported')
+    expect(batch.body.batch.exportedHash).toBe(first.hash)
+
+    // Twice is fine: a bank that lost the file gets the same bytes.
     const second = await handleGetBatchPain001(await contextFor(preparer.cookie), batchId)
     expect(second.hash).toBe(first.hash)
-
-    // Still approved, not exported, because "did we send it?" is a separate
-    // question with a separate answer.
-    let batch = await handleGetBatch(await contextFor(preparer.cookie), batchId)
-    expect(batch.body.batch.state).toBe('approved')
-
-    await handleTransitionBatch(
-      await contextFor(preparer.cookie),
-      batchId,
-      transitionBatchBody.parse({ action: 'export' }),
-    )
     batch = await handleGetBatch(await contextFor(preparer.cookie), batchId)
     expect(batch.body.batch.state).toBe('exported')
-
-    // And an exported batch still produces its file, for a bank that lost it.
-    expect((await handleGetBatchPain001(await contextFor(preparer.cookie), batchId)).hash).toBe(
-      first.hash,
-    )
+    expect(batch.body.batch.exportedHash).toBe(first.hash)
   })
 
   it('is refused when the batch has gone bad since approval', async () => {
