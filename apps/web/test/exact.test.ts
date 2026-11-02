@@ -226,7 +226,7 @@ describe('connecting', () => {
 
     const result = await handleGetExactConnection(await context(token))
     expect(result.body).toMatchObject({
-      connection: { connected: true, userName: 'H. Stokvis', ready: false },
+      connection: { connected: true, userName: 'A. Bakker', ready: false },
     })
   })
 })

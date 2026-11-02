@@ -131,7 +131,7 @@ async function readyAdmin(page: Page): Promise<void> {
   await page.getByLabel('Naam', { exact: true }).fill('Hotel Zeezicht B.V.')
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
   await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('87654321')
-  await page.getByLabel('E-mail').fill('administratie@hotelzeezicht.nl')
+  await page.getByLabel('E-mail').fill('administratie@hotelzeezicht.example.nl')
   await page.getByLabel('Straat').fill('Boulevard de Ruyter')
   await page.getByLabel('Huisnr.').fill('2')
   await page.getByLabel('Postcode').fill('4381 KA')

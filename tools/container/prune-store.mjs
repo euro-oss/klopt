@@ -146,4 +146,17 @@ for (const entry of readdirSync(store)) {
   removed += 1
 }
 
+// lightningcss is MPL-2.0 and build-only (Vite CSS pipeline). The reachability
+// walk above should already drop it with Rolldown/esbuild; force-remove any
+// leftover so a runtime image never redistributes it by accident.
+for (const entry of readdirSync(store)) {
+  if (entry === 'node_modules') continue
+  if (!entry.startsWith('lightningcss@') && !entry.startsWith('lightningcss-')) continue
+  if (reachable.has(entry)) {
+    reachable.delete(entry)
+  }
+  rmSync(join(store, entry), { recursive: true, force: true })
+  removed += 1
+}
+
 console.log(`pruned ${String(removed)} of ${String(removed + reachable.size)} store entries`)

@@ -63,6 +63,8 @@ export const SHELL_NAV: readonly NavItem[] = [
     binding: 'go.invoices',
     placement: 'primary',
     section: 'money',
+    // Reminders tab keeps `/dunning` but stays under Sales (#107 Phase 2).
+    alsoActiveFor: ['/dunning'],
   },
   {
     to: '/purchases',
@@ -473,7 +475,7 @@ export interface PhoneTab {
 
 export const PHONE_TAB_BAR: readonly PhoneTab[] = [
   { id: 'home', key: 'nav.home', to: '/' },
-  { id: 'sales', key: 'nav.sales', to: '/invoices' },
+  { id: 'sales', key: 'nav.sales', to: '/invoices', alsoActiveFor: ['/dunning'] },
   { id: 'receipt', key: 'nav.phoneReceipt', to: '/inbox' },
   {
     id: 'bank',

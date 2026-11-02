@@ -151,7 +151,7 @@ describe('parsing what Exact returns', () => {
   it('reads the current division out of Me, which is where a connection starts', () => {
     const me = parseMe({
       UserID: '{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}',
-      FullName: 'H. Stokvis',
+      FullName: 'A. Bakker',
       CurrentDivision: 3196493,
       ServerTime: '2026-09-08T10:00:00',
     })
