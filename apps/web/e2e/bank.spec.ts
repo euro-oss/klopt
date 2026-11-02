@@ -52,12 +52,20 @@ test('a bookkeeper adds an account, previews a statement and reads it in', async
   await expect(page.getByText(/Nog geen bankrekening/)).toBeVisible()
 
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
 
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
   await expect(page.getByText('nog geen afschrift')).toBeVisible()
+
+  // CoS: import card only — CAMT/MT940 from your bank; no PSD2 / connection copy.
+  await expect(page.getByText('Bankafschrift importeren')).toBeVisible()
+  await expect(page.getByText(/CAMT\.053 of MT940 van je bank/)).toBeVisible()
+  await expect(page.getByText(/gekoppeld/i)).toHaveCount(0)
+  await expect(page.getByText(/PSD2/i)).toHaveCount(0)
+  await expect(page.getByText(/live connection/i)).toHaveCount(0)
+  await expect(page.getByText(/any Dutch bank/i)).toHaveCount(0)
 
   // Pick the file. Nothing is written yet — this is the preview.
   // Enabled first: the input is `disabled` until React has taken over, and
@@ -66,13 +74,13 @@ test('a bookkeeper adds an account, previews a statement and reads it in', async
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
 
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
-  await expect(page.getByText('mt940')).toBeVisible()
+  await expect(page.getByText('mt940', { exact: true })).toBeVisible()
   await expect(page.getByText('01-03-2026 – 05-03-2026')).toBeVisible()
   await expect(page.getByRole('table', { name: 'Banktransacties' })).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
 
-  await expect(page.getByText('4 transacties ingelezen.')).toBeVisible()
+  await expect(page.getByText('4 transacties geïmporteerd.')).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Factuur 2026-0001' })).toBeVisible()
   // Signed the right way round: a receipt is positive, a direct debit is not.
@@ -85,10 +93,10 @@ test('a bookkeeper adds an account, previews a statement and reads it in', async
   await expect(page.locator('input[type="file"]')).toBeEnabled()
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
-  const report = page.locator('dl', { has: page.getByText('Al ingelezen') })
+  const report = page.locator('dl', { has: page.getByText('Al geïmporteerd') })
   await expect(report).toContainText('4')
   // Nothing new, so there is nothing to confirm.
-  await expect(page.getByRole('button', { name: 'Inlezen', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Importeren', exact: true })).toBeDisabled()
 })
 
 test('a file for the wrong account is refused, in words', async ({ page }) => {
@@ -96,10 +104,10 @@ test('a file for the wrong account is refused, in words', async ({ page }) => {
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL91RABO0315273637')
+  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
   await page.getByLabel('Naam', { exact: true }).fill('Spaarrekening')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL91RABO0315273637')).toBeVisible()
+  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
 
   // Enabled first: the input is `disabled` until React has taken over, and
   // setting files on a disabled input silently does nothing.
@@ -107,7 +115,7 @@ test('a file for the wrong account is refused, in words', async ({ page }) => {
 
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
 
-  await expect(page.getByRole('alert')).toContainText('NL02ABNA0123456789')
+  await expect(page.getByRole('alert')).toContainText('NL91ABNA0417164300')
   // And no preview to confirm, because there is nothing safe to do with it.
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toHaveCount(0)
 })
@@ -117,10 +125,10 @@ test('a CSV is mapped once and remembered', async ({ page }) => {
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
 
   // Enabled first: the input is `disabled` until React has taken over, and
   // setting files on a disabled input silently does nothing.
@@ -143,9 +151,9 @@ test('a CSV is mapped once and remembered', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   await expect(page.getByText('csv', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
 
-  await expect(page.getByText('3 transacties ingelezen.')).toBeVisible()
+  await expect(page.getByText('3 transacties geïmporteerd.')).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
   // The indicator column decided the signs, not a minus that was never there.
   await expect(page.getByText('1.210,00').first()).toBeVisible()
@@ -158,5 +166,5 @@ test('a CSV is mapped once and remembered', async ({ page }) => {
   await page.setInputFiles('input[type="file"]', join(FIXTURES, 'ing.csv'))
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Kolommen van dit bestand' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Inlezen', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Importeren', exact: true })).toBeDisabled()
 })
