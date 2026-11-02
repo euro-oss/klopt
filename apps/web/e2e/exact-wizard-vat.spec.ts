@@ -195,7 +195,9 @@ test('Exact VAT read-only preview: seeded mapping, rail stop, resume, keyboard (
     await expect(page.getByRole('heading', { name: /Welkom terug/ })).toBeVisible({
       timeout: 30_000,
     })
-    await page.getByRole('button', { name: /Doorgaan/i }).click()
+    // Wait for client handlers — a pre-hydration Doorgaan click is a no-op.
+    await hydrated(page)
+    await page.getByRole('button', { name: /^Doorgaan$/i }).click()
     await expect(page.getByRole('heading', { name: /Btw-codes uit Exact/ })).toBeVisible({
       timeout: 30_000,
     })
