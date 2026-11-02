@@ -11,6 +11,7 @@ import {
 import { and, asc, desc, eq, gte, inArray, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import {
+  accountPeriodBalances,
   accounts,
   bankAccounts,
   bankMatchRules,
@@ -304,6 +305,15 @@ export class BankRepository {
 
   /** The balance the statements say, and the balance the ledger says. */
   async reconciliation(entityId: string, bankAccountId: string) {
+    const [account] = await this.tx
+      .select({
+        ledgerAccountId: bankAccounts.ledgerAccountId,
+        currency: bankAccounts.currency,
+      })
+      .from(bankAccounts)
+      .where(and(eq(bankAccounts.entityId, entityId), eq(bankAccounts.id, bankAccountId)))
+      .limit(1)
+
     const [statement] = await this.tx
       .select({
         closingBalance: bankStatements.closingBalanceMinorUnits,
@@ -330,11 +340,43 @@ export class BankRepository {
         ),
       )
 
+    const [lines] = await this.tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(bankTransactions)
+      .where(
+        and(
+          eq(bankTransactions.entityId, entityId),
+          eq(bankTransactions.bankAccountId, bankAccountId),
+        ),
+      )
+
+    // Asset normal balance: debit − credit across every period on the linked
+    // ledger account. Null when the bank account is not wired to the chart yet.
+    let booksBalance: string | null = null
+    if (account?.ledgerAccountId !== null && account?.ledgerAccountId !== undefined) {
+      const [books] = await this.tx
+        .select({
+          debit: sql<string>`coalesce(sum(${accountPeriodBalances.debitMinorUnits}), 0)::text`,
+          credit: sql<string>`coalesce(sum(${accountPeriodBalances.creditMinorUnits}), 0)::text`,
+        })
+        .from(accountPeriodBalances)
+        .where(
+          and(
+            eq(accountPeriodBalances.entityId, entityId),
+            eq(accountPeriodBalances.accountId, account.ledgerAccountId),
+            eq(accountPeriodBalances.currency, account.currency),
+          ),
+        )
+      booksBalance = (BigInt(books?.debit ?? '0') - BigInt(books?.credit ?? '0')).toString()
+    }
+
     return {
       statementBalance: statement?.closingBalance?.toString() ?? null,
       statementDate: statement?.closingDate ?? null,
       unmatchedCount: unmatched?.count ?? 0,
       unmatchedTotal: unmatched?.total ?? '0',
+      lineCount: lines?.count ?? 0,
+      booksBalance,
     }
   }
 

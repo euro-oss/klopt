@@ -50,6 +50,16 @@ they read as disabled; Costs table status/amount columns stay fully visible
 at 1440 with the preview open; fixture IBANs are the standard example
 `NL91ABNA0417164300` only (never a real account number).
 
+### Redesign: BankAccounts desktop light (#129 / #140)
+
+`/bank` is where you add bank accounts by hand and import CAMT.053 / MT940
+statements: account card with statement position and books balance, per-account
+DropZone, an “Import a bank statement” card, Bank tabs (**Rekeningen** /
+**Batches**), and a Transacties / Te boeken list. Matched lines say
+“Afgeletterd” / “Matched”. Example IBAN is `NL91 ABNA 0417 1643 00`. Input
+borders use `--ink-muted`. Dark and phone Design review wait on #143. Bank Match
+is #164.
+
 ### Redesign Phase 8: VAT / ICP (#132, #107)
 
 VAT (`/vat`, `/vat/$period`) and ICP (`/vat/icp/$period`) match the v2 Vat and

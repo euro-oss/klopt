@@ -294,14 +294,17 @@ test('a mistyped IBAN can be corrected, which is what makes a supplier payable',
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 
   await page.goto('/contacts')
-  // Remount after edit: wait for hydration or the row click is swallowed and
-  // the Relatiekaart never opens (#130).
+  // Full navigation from the edit screen: wait for hydration so the row
+  // onClick can write ?id= (desktop card with Bewerken). Clicking before
+  // hydration focuses the button and leaves the URL without an id (#130).
   await hydrated(page)
-  await expect(page.getByRole('button', { name: /Leverancier Nederland B\.V\./ })).toBeVisible()
+  const row = page.getByRole('button', { name: /Leverancier Nederland B\.V\./ })
+  await expect(row).toBeVisible()
 
   // Contacts list rows are buttons; edit opens via the card (#130).
-  await page.getByRole('button', { name: /Leverancier Nederland B\.V\./ }).click()
-  await expect(page).toHaveURL(/id=/)
+  await row.click()
+  await expect(page).toHaveURL(/[?&]id=/)
+  await expect(row).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible()
   await page
     .getByRole('complementary', { name: 'Relatiekaart' })
