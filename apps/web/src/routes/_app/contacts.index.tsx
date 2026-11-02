@@ -864,44 +864,54 @@ function ContactCard({
   return (
     <aside
       aria-label={t('contacts.card')}
-      className="border-border bg-surface hidden min-w-0 flex-[999_1_420px] flex-col overflow-hidden rounded-[var(--radius-xl)] border md:flex"
+      className="border-border bg-surface flex min-w-0 flex-[999_1_420px] flex-col overflow-hidden rounded-[var(--radius-xl)] border"
     >
-      <div className="flex flex-wrap items-center gap-4 border-b border-[var(--line-soft)] px-6 py-6">
-        <span
-          className="bg-primary text-primary-foreground flex size-14 items-center justify-center rounded-full text-lg font-semibold"
-          aria-hidden="true"
-        >
-          {contactInitials(contact.name)}
-        </span>
-        <div className="flex min-w-[200px] flex-1 flex-col gap-0.5">
-          <span className="break-words text-xl leading-[26px] font-semibold">{contact.name}</span>
-          <span className="text-ink-muted">
-            {role} · {sub}
+      <div className="flex flex-col gap-4 border-b border-[var(--line-soft)] px-6 py-6">
+        <div className="flex min-w-0 items-start gap-4">
+          <span
+            className="bg-primary text-primary-foreground flex size-14 shrink-0 items-center justify-center rounded-full text-lg font-semibold"
+            aria-hidden="true"
+          >
+            {contactInitials(contact.name)}
           </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span
+              data-contact-name=""
+              title={contact.name}
+              className="break-words text-xl leading-[26px] font-semibold"
+            >
+              {contact.name}
+            </span>
+            <span className="text-ink-muted">
+              {role} · {sub}
+            </span>
+          </div>
         </div>
-        {contact.isCustomer && (
-          <Button asChild size="sm">
-            <Link to="/invoices/new">
-              {t('contacts.card.newInvoice')}
+        <div className="flex flex-wrap gap-2">
+          {contact.isCustomer && (
+            <Button asChild size="sm">
+              <Link to="/invoices/new">
+                {t('contacts.card.newInvoice')}
+                {hydrated && (
+                  <span className="ml-1 inline-flex gap-0.5 normal-case">
+                    <Keycap className="bg-primary-foreground/15 text-primary-foreground">n</Keycap>
+                    <Keycap className="bg-primary-foreground/15 text-primary-foreground">f</Keycap>
+                  </span>
+                )}
+              </Link>
+            </Button>
+          )}
+          <Button asChild variant="outline" size="sm">
+            <Link to="/contacts/$contactId" params={{ contactId: contact.id }}>
+              {t('contacts.card.edit')}
               {hydrated && (
-                <span className="ml-1 inline-flex gap-0.5 normal-case">
-                  <Keycap className="bg-primary-foreground/15 text-primary-foreground">n</Keycap>
-                  <Keycap className="bg-primary-foreground/15 text-primary-foreground">f</Keycap>
+                <span className="ml-1">
+                  <Keycap>e</Keycap>
                 </span>
               )}
             </Link>
           </Button>
-        )}
-        <Button asChild variant="outline" size="sm">
-          <Link to="/contacts/$contactId" params={{ contactId: contact.id }}>
-            {t('contacts.card.edit')}
-            {hydrated && (
-              <span className="ml-1">
-                <Keycap>e</Keycap>
-              </span>
-            )}
-          </Link>
-        </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 border-b border-[var(--line-soft)]">
