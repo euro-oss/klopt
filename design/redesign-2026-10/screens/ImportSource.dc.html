@@ -67,7 +67,7 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
         </sc-if>
         <sc-if value="{{isEx}}" hint-placeholder-val="{{false}}">
           <h2 class="k-card-title" style="font-size: 18px;">Connect Exact Online</h2>
-          <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Exact needs an app registration. Register Klopt once in the Exact App Center.</p>
+          <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Exact needs an app registration from whoever runs this Klopt installation. On the hosted version this is done for you; self-hosted, register once in the Exact App Center.</p>
           <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
             <div class="k-field"><label class="k-label" for="env">Exact environment</label><select id="env" class="k-input"><option>Netherlands (start.exactonline.nl)</option><option>Belgium</option></select></div>
             <div class="k-field"><label class="k-label" for="cid">Client ID</label><input id="cid" class="k-input k-num" placeholder="From the App Center"></div>
@@ -75,7 +75,7 @@ a{color:var(--ink)}a:hover{color:var(--ink)}
           <div class="k-field"><label class="k-label" for="sec">Client secret</label><input id="sec" class="k-input" type="password" placeholder="From the App Center"></div>
           <div class="k-field">
             <label class="k-label" for="ru">Redirect URI</label>
-            <div style="display: flex; gap: 8px;"><input id="ru" class="k-input k-num" readonly value="https://boeken.example.nl/exact/callback"><button type="button" class="k-btn">Copy <span class="k-kbd">C</span></button></div>
+            <div style="display: flex; gap: 8px;"><input id="ru" class="k-input k-num" readonly value="https://klopt.euro.computer/exact/callback"><button type="button" class="k-btn">Copy <span class="k-kbd">C</span></button></div>
             <span class="k-help">Paste this exactly into the App Center. Exact compares it letter for letter.</span>
           </div>
         </sc-if>
