@@ -128,8 +128,32 @@ test('02 seeded — desktop-light 1440 (must-have)', async ({ page }) => {
   await expect(page.getByText('Demo bankrekening')).toBeVisible()
   await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
   await expect(page.getByText('Bankafschrift importeren')).toBeVisible()
+  // IBAN must stay on one line (Design: badge moved off the IBAN row).
+  const ibanBox = await page.getByText('NL91 ABNA 0417 1643 00').boundingBox()
+  expect(ibanBox).not.toBeNull()
+  expect(ibanBox!.height).toBeLessThan(28)
   await shoot(page, '02-bank-accounts-seeded-light-desktop-1440.png', {
     width: 1440,
     height: 1040,
   })
+})
+
+test('02 seeded — light/dark × 1440/390 (IBAN nowrap check)', async ({ page }) => {
+  await openAdmin(page)
+  await seedBank(page)
+  for (const theme of ['light', 'dark'] as const) {
+    for (const size of [
+      { width: 1440, height: 1040, tag: 'desktop-1440' },
+      { width: 390, height: 844, tag: 'mobile-390' },
+    ] as const) {
+      await persistThemeCookie(page, theme)
+      await page.goto('/bank')
+      await setTheme(page, theme)
+      await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
+      const ibanBox = await page.getByText('NL91 ABNA 0417 1643 00').boundingBox()
+      expect(ibanBox).not.toBeNull()
+      expect(ibanBox!.height).toBeLessThan(28)
+      await shoot(page, `02-bank-accounts-seeded-${theme}-${size.tag}.png`, size)
+    }
+  }
 })

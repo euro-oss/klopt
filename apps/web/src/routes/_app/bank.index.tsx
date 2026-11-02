@@ -404,21 +404,23 @@ function Bank() {
                 data-slot="bank-account-card"
                 className="border-border bg-surface flex min-w-[min(100%,360px)] flex-1 flex-col gap-3.5 rounded-[var(--radius-lg)] border p-4"
               >
-                <div className="flex items-center gap-3">
-                  <span className="bg-surface-sunken text-ink inline-flex size-10 items-center justify-center rounded-[var(--radius-md)]">
+                <div className="flex items-start gap-3">
+                  <span className="bg-surface-sunken text-ink inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)]">
                     <Landmark className="size-[18px]" aria-hidden="true" />
                   </span>
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <strong className="text-ink truncate text-sm font-semibold">
-                      {account.name}
-                    </strong>
-                    <span className="text-ink-muted tabular text-[13px]">
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong className="text-ink truncate text-sm font-semibold">
+                        {account.name}
+                      </strong>
+                      <Badge variant="secondary" className="shrink-0 font-medium">
+                        {t('bank.fileImport')}
+                      </Badge>
+                    </div>
+                    <span className="text-ink-muted tabular whitespace-nowrap text-[13px]">
                       {formatIbanDisplay(account.iban)}
                     </span>
-                  </span>
-                  <Badge variant="secondary" className="shrink-0 font-medium">
-                    {t('bank.fileImport')}
-                  </Badge>
+                  </div>
                 </div>
 
                 <p className="text-ink text-[28px] leading-[34px] font-semibold tracking-[-0.02em] tabular">
