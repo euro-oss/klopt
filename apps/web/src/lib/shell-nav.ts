@@ -478,6 +478,7 @@ export interface PhoneTab {
 export const PHONE_TAB_BAR: readonly PhoneTab[] = [
   { id: 'home', key: 'nav.home', to: '/' },
   { id: 'sales', key: 'nav.sales', to: '/invoices', alsoActiveFor: ['/dunning'] },
+  // CoS #140 / #139: middle phone tab is Receipt (not Inbox).
   { id: 'receipt', key: 'nav.phoneReceipt', to: '/inbox' },
   {
     id: 'bank',

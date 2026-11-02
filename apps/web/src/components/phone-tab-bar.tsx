@@ -8,8 +8,8 @@ import { isNavActive, PHONE_TAB_BAR, type NavSearch, type PhoneTabId } from '~/l
  * v2 PhoneTabBar (#107 Phase 0 / #140 CoS).
  *
  * Home · Sales · Receipt · Bank · More. Middle tab is Receipt; More opens the
- * existing #38 Sheet until Batch 3 (#139). Receipt opens `/inbox` upload (no
- * photo-OCR promise). Camera icon matches PhoneHome.dc.html.
+ * existing #38 Sheet until Batch 3 (#139) signs off phone boards. Receipt opens
+ * `/inbox` upload (no photo-OCR promise). Camera icon matches PhoneHome.dc.html.
  */
 
 const ICONS = {
