@@ -26,7 +26,11 @@ const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
   if (CAPTURE) {
-    rmSync(OUT, { recursive: true, force: true })
+    // CAPTURE_CLEAN=1 wipes the directory (full re-shoot). Default keeps
+    // existing frames so 02b can be appended without regenerating 01–09.
+    if (process.env['CAPTURE_CLEAN'] === '1') {
+      rmSync(OUT, { recursive: true, force: true })
+    }
     mkdirSync(OUT, { recursive: true })
   }
 })
@@ -171,6 +175,17 @@ test('BillNew + PaymentBatch #175 screenshots — desktop/phone, light/dark, bat
     await fillBill(page, 'INK-DEMO-2026-0039')
     await shotsBothSizes(page, '02-billnew-seeded')
 
+    // 02b BillNew lines grid at 390 — scrolled so amounts are fully visible.
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.locator('[data-testid="billnew-lines"]').scrollIntoViewIfNeeded()
+    await expect(page.getByLabel('Excl. btw regel 1')).toHaveValue('200,33')
+    for (const theme of ['light', 'dark'] as const) {
+      await setTheme(page, theme)
+      await shot(page, `02b-billnew-lines-${theme}-mobile-390`)
+    }
+    await page.setViewportSize({ width: 1440, height: 1040 })
+    await setTheme(page, 'light')
+
     // 03 Payment batches empty
     await page.goto('/payments')
     await hydrated(page)
@@ -287,5 +302,30 @@ test('BillNew + PaymentBatch #175 screenshots — desktop/phone, light/dark, bat
     await aliceCtx.close()
     await bobCtx.close()
     await closeDatabase(database)
+  }
+})
+
+/** Append-only 02b frames (390 lines grid) without re-shooting 01–09. */
+test('02b BillNew lines grid at 390 light+dark', async ({ page }) => {
+  test.setTimeout(180_000)
+  await page.setViewportSize({ width: 1440, height: 1040 })
+  await openAdmin(page, 'Screenshot Lines BV')
+  await addSupplier(page, {
+    number: 'CRE-175B',
+    name: 'Verzekering Fictief',
+    email: 'eva@example.nl',
+    iban: 'NL91ABNA0417164300',
+  })
+  await page.goto('/purchases/new')
+  await chooseOption(page, 'Leverancier', /Verzekering Fictief/)
+  await fillBill(page, 'INK-DEMO-LINES-390')
+  // Design #175: scroll lines into view; amounts (200,33 + VH21) fully visible.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.locator('[data-testid="billnew-lines"]').scrollIntoViewIfNeeded()
+  await expect(page.getByLabel('Excl. btw regel 1')).toHaveValue('200,33')
+  await expect(page.getByLabel('Btw regel 1', { exact: true })).toBeVisible()
+  for (const theme of ['light', 'dark'] as const) {
+    await setTheme(page, theme)
+    await shot(page, `02b-billnew-lines-${theme}-mobile-390`)
   }
 })
