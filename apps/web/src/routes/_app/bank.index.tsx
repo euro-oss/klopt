@@ -421,16 +421,19 @@ function Bank() {
                   </Badge>
                 </div>
 
-                <p className="text-ink text-[28px] leading-[34px] font-semibold tracking-[-0.02em]">
+                <p className="text-ink text-[28px] leading-[34px] font-semibold tracking-[-0.02em] tabular">
                   {statement === null ? (
                     <span className="text-muted-foreground text-sm font-medium">
                       {t('bank.noStatement')}
                     </span>
                   ) : (
-                    <Money
-                      amount={statement}
-                      className="text-[28px] leading-[34px] font-semibold"
-                    />
+                    <>
+                      <span aria-hidden="true">€ </span>
+                      <Money
+                        amount={statement}
+                        className="text-[28px] leading-[34px] font-semibold"
+                      />
+                    </>
                   )}
                 </p>
 
