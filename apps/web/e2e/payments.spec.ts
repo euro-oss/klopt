@@ -33,10 +33,10 @@ async function anAdministrationWithAnAccount(page: Page, name: string): Promise<
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02 ABNA 0123 4567 89')).toBeVisible()
+  await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
 
   return email
 }
