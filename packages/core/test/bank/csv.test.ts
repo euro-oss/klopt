@@ -89,7 +89,7 @@ describe('an ING export', () => {
 
   it('reads the counterparty and the description', () => {
     expect(statement?.entries[0]?.counterpartyName).toBe('Grote Klant N.V.')
-    expect(statement?.entries[0]?.counterpartyIban).toBe('NL86INGB0002445588')
+    expect(statement?.entries[0]?.counterpartyIban).toBe('NL02INGB0999999999')
     expect(statement?.entries[0]?.description).toBe('Factuur 2026-0001')
   })
 

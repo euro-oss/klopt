@@ -336,7 +336,7 @@ describe('importing a statement', () => {
 describe('a CSV, for the banks that export neither format', () => {
   const ing = [
     '"Datum";"Naam / Omschrijving";"Rekening";"Tegenrekening";"Code";"Af Bij";"Bedrag (EUR)";"Mutatiesoort";"Mededelingen";"Saldo na mutatie"',
-    '"20260302";"Grote Klant N.V.";"NL91ABNA0417164300";"NL86INGB0002445588";"GT";"Bij";"1210,00";"Online bankieren";"Factuur 2026-0001";"1210,00"',
+    '"20260302";"Grote Klant N.V.";"NL91ABNA0417164300";"NL02INGB0999999999";"GT";"Bij";"1210,00";"Online bankieren";"Factuur 2026-0001";"1210,00"',
     '"20260303";"Telecom B.V.";"NL91ABNA0417164300";"NL20INGB0001234567";"IC";"Af";"45,50";"Incasso";"Abonnement maart";"1164,50"',
     '',
   ].join('\n')
@@ -476,8 +476,11 @@ describe('the reconciliation position', () => {
       statementBalance: '291235',
       statementDate: '2026-03-05',
       unmatchedCount: 4,
+      lineCount: 4,
     })
     // Nothing is matched yet, so everything the bank says is still to be booked.
     expect(account?.reconciliation.unmatchedTotal).toBe('166235')
+    // Linked to ledger 1100; books balance is a string (may be opening-only).
+    expect(typeof account?.reconciliation.booksBalance).toBe('string')
   })
 })

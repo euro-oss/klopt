@@ -1377,7 +1377,7 @@ export const en: Record<MessageKey, string> = {
   'purchase.finding.pro_rata': 'The VAT is partly deductible',
   'purchase.finding.duplicate_invoice_number': 'This invoice number has been posted before',
 
-  // Bank accounts, statement import and learned rules.
+  // Bank accounts, statement import and learned rules (#129 BankAccounts board).
   'bank.title': 'Bank',
   'bank.intro': 'Accounts, statements, and what came in.',
   'bank.matchCount': '{count} to book',
@@ -1394,6 +1394,22 @@ export const en: Record<MessageKey, string> = {
   // Legal: never "any Dutch bank" / "every bank" — formats from your bank.
   'bank.dropDescription':
     'CAMT.053 or MT940 from your bank. Lines you already have are skipped, so overlapping files are fine.',
+  // PM (#171): honest about dedupe-by-reference, not by date.
+  'bank.importCardTitle': 'Import a bank statement',
+  'bank.importCardBody':
+    'Download a CAMT.053 or MT940 file from your bank and drop it here. Klopt skips lines you already have.',
+  'bank.importCardBodyDated':
+    'Download a CAMT.053 or MT940 file from your bank and drop it here. Your last statement runs to {date}. Klopt skips lines you already have.',
+  'bank.fileImport': 'File import',
+  'bank.statementUpTo': 'Statement up to',
+  'bank.linesOfWhich': '{total} lines, of which {unmatched} to book',
+  'bank.linesNone': 'No lines yet',
+  'bank.inTheBooks': 'In the books',
+  'bank.whyDifference': 'why the difference',
+  'bank.allTransactions': 'Transactions',
+  'bank.filterStatus': 'Status',
+  'bank.filterAll': 'All',
+  'bank.nothingNew': 'Nothing new: all {count} lines were already there.',
   'bank.imported': '{count} transactions imported',
   'bank.importedDuplicates': ', {count} were already there.',
   'bank.consent.not_required': 'file import',
@@ -1404,11 +1420,11 @@ export const en: Record<MessageKey, string> = {
   'bank.counterpartyUnknown': 'unknown',
   'bank.amount': 'Amount',
   'bank.status.matched': 'Matched',
-  'bank.status.ignored': 'skipped',
+  'bank.status.ignored': 'Ignored',
   'bank.status.unmatched': 'to book',
   'bank.tabs': 'Bank sections',
   'bank.tab.match': 'To match',
-  // Batch-2 / Design: short phone labels — Accounts / Batches.
+  // Batch-2 / Design + #164: short labels — Accounts / Batches.
   'bank.tab.accounts': 'Accounts',
   'bank.tab.batches': 'Batches',
   'bank.columns': 'Columns in this file',
@@ -1449,7 +1465,7 @@ export const en: Record<MessageKey, string> = {
   'bank.lines': 'Lines',
   'bank.lastTwoHundred': 'last 200',
   'bank.toMatch': 'To match',
-  'bank.toMatchHint': 'not yet booked',
+  'bank.toMatchHint': 'not yet matched',
   'bank.accounts': 'Accounts',
   'bank.transactions': 'Bank transactions',
   'bank.transactionsEmpty': 'No transactions yet. Import a statement.',
@@ -1473,7 +1489,7 @@ export const en: Record<MessageKey, string> = {
   'match.clearChoice': 'Clear the choice',
   'match.stepQueue': 'Bank lines',
   'match.stepPanel': 'Book',
-  'match.queue': 'Lines to match',
+  'match.queue': 'Lines to book',
   'match.progress': '{done} of {total} done',
   'match.newestFirst': 'newest first',
   'match.swipeHint': 'Tap a line to book it.',
@@ -1482,9 +1498,9 @@ export const en: Record<MessageKey, string> = {
   'match.col.out': 'Out',
   'match.col.in': 'In',
   'match.col.suggestion': 'Suggestion',
-  'match.remaining_one': '{count} line left to match',
-  'match.remaining_other': '{count} lines left to match',
-  'match.remainingCapped': '500+ lines left to match',
+  'match.remaining_one': '{count} line left to book',
+  'match.remaining_other': '{count} lines left to book',
+  'match.remainingCapped': '500+ lines left to book',
   'match.direction.out': 'Out',
   'match.direction.in': 'In',
   'match.direction.debit': 'debit',

@@ -1168,14 +1168,14 @@ export const nl = {
   'purchase.finding.pro_rata': 'Btw is gedeeltelijk aftrekbaar',
   'purchase.finding.duplicate_invoice_number': 'Dit factuurnummer is al eerder geboekt',
 
-  // Bank accounts, statement import and learned rules.
+  // Bank accounts, statement import and learned rules (#129 BankAccounts board).
   'bank.title': 'Bank',
   'bank.intro': 'Rekeningen, afschriften en wat er binnenkwam.',
   'bank.matchCount': '{count} te boeken',
   'bank.addAccount': 'Rekening toevoegen',
   'bank.accountName': 'Naam',
   'bank.accountNamePlaceholder': 'Rekening-courant',
-  'bank.noAccounts': 'Nog geen bankrekening. Voeg er een toe om afschriften te kunnen inlezen.',
+  'bank.noAccounts': 'Nog geen bankrekening. Voeg er een toe om afschriften te kunnen importeren.',
   'bank.noStatement': 'nog geen afschrift',
   'bank.asAt': 'per {date} · {consent}',
   'bank.unmatchedLines': '{count} regels nog te boeken',
@@ -1185,6 +1185,22 @@ export const nl = {
   // Legal: never "elke/iedere bank" or "any Dutch bank" — formats from your bank.
   'bank.dropDescription':
     'CAMT.053 of MT940 van je bank. Regels die je al hebt worden overgeslagen, dus overlappende bestanden zijn geen probleem.',
+  // PM (#171): honest about dedupe-by-reference, not by date.
+  'bank.importCardTitle': 'Bankafschrift importeren',
+  'bank.importCardBody':
+    'Download een CAMT.053- of MT940-bestand van je bank en sleep het hierheen. Regels die je al hebt slaat Klopt over.',
+  'bank.importCardBodyDated':
+    'Download een CAMT.053- of MT940-bestand van je bank en sleep het hierheen. Je laatste afschrift loopt tot {date}. Regels die je al hebt slaat Klopt over.',
+  'bank.fileImport': 'Bestandsimport',
+  'bank.statementUpTo': 'Afschrift tot',
+  'bank.linesOfWhich': '{total} regels, waarvan {unmatched} te boeken',
+  'bank.linesNone': 'Nog geen regels',
+  'bank.inTheBooks': 'In de boeken',
+  'bank.whyDifference': 'waarom het verschil',
+  'bank.allTransactions': 'Transacties',
+  'bank.filterStatus': 'Status',
+  'bank.filterAll': 'Alles',
+  'bank.nothingNew': 'Niets nieuw: alle {count} regels stonden er al.',
   'bank.imported': '{count} transacties geïmporteerd',
   'bank.importedDuplicates': ', {count} stonden er al.',
   'bank.consent.not_required': 'bestandsimport',
@@ -1195,11 +1211,11 @@ export const nl = {
   'bank.counterpartyUnknown': 'onbekend',
   'bank.amount': 'Bedrag',
   'bank.status.matched': 'afgeletterd',
-  'bank.status.ignored': 'overgeslagen',
+  'bank.status.ignored': 'Genegeerd',
   'bank.status.unmatched': 'te boeken',
   'bank.tabs': 'Bankonderdelen',
   'bank.tab.match': 'Te boeken',
-  // Batch-2 / Design: short phone labels — Rekeningen / Batches.
+  // Batch-2 / Design + #164: short labels — Rekeningen / Batches.
   'bank.tab.accounts': 'Rekeningen',
   'bank.tab.batches': 'Batches',
   'bank.columns': 'Kolommen van dit bestand',
