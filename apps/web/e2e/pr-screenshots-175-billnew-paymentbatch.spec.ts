@@ -294,7 +294,8 @@ test('BillNew + PaymentBatch #175 screenshots — desktop/phone, light/dark, bat
     const downloadPromise = bobPage.waitForEvent('download')
     await bobPage.getByRole('button', { name: 'Betaalbestand downloaden' }).click()
     await downloadPromise
-    await expect(bobPage.getByText('Upload het bestand in je bankomgeving.')).toBeVisible()
+    await expect(bobPage.getByText('Bestand uploaden bij je bank')).toBeVisible()
+    await expect(bobPage.getByText(/Upload het bestand in je bankomgeving/)).toHaveCount(0)
     await expect(bobPage.getByText(/Gedownload bestand:/)).toBeVisible()
     await expect(
       bobPage.getByRole('list', { name: 'Voortgang van de batch' }).getByText('Bestand gedownload'),

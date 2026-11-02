@@ -137,7 +137,8 @@ test('one person prepares, another approves, and the file comes out', async ({ b
 
     await bobPage.reload()
     await hydrated(bobPage)
-    await expect(bobPage.getByText('Upload het bestand in je bankomgeving.')).toBeVisible()
+    await expect(bobPage.getByText('Bestand uploaden bij je bank')).toBeVisible()
+    await expect(bobPage.getByText(/Upload het bestand in je bankomgeving/)).toHaveCount(0)
     await expect(bobPage.getByText(/Gedownload bestand:/)).toBeVisible()
     const steps = bobPage.getByRole('list', { name: 'Voortgang van de batch' })
     await expect(steps.getByText('Bestand gedownload')).toBeVisible()

@@ -2356,7 +2356,6 @@ export const nl = {
   'batch.rejectedReason': 'afgekeurd',
   'batch.reopen': 'Weer openen',
   'batch.downloadFailed': 'Het betaalbestand kon niet worden gedownload.',
-  'batch.uploadInBank': 'Upload het bestand in je bankomgeving.',
   'batch.back': 'Terug',
   'batch.iSubmitted':
     'Je hebt deze batch zelf klaargezet, dus iemand anders moet hem fiatteren. Dat is niet een instelling — het is de hele bedoeling van twee paar ogen.',

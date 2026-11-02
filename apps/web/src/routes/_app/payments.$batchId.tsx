@@ -428,10 +428,6 @@ function PaymentBatch() {
           />
         </div>
 
-        {batch.state === 'exported' && (
-          <p className="text-ink-muted m-0 text-sm">{t('batch.uploadInBank')}</p>
-        )}
-
         {step === 0 && missingIban && (
           <Alert
             variant="attention"

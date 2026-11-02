@@ -2290,7 +2290,6 @@ export const en: Record<MessageKey, string> = {
   'batch.rejectedReason': 'rejected',
   'batch.reopen': 'Reopen',
   'batch.downloadFailed': 'The payment file could not be downloaded.',
-  'batch.uploadInBank': 'Upload the file in your banking environment.',
   'batch.back': 'Back',
   'batch.iSubmitted':
     'You prepared this batch yourself, so somebody else has to approve it. That is not a setting — it is the whole point of four eyes.',
