@@ -103,7 +103,9 @@ async function assertHeadingWrapsInCard(page: Page, assertEmptyOpen: boolean): P
   expect(metrics.ok, 'ok' in metrics && !metrics.ok ? metrics.reason : 'heading metrics').toBe(true)
   if (!metrics.ok) return
   expect(metrics.headingScrollWider, 'heading still clipped').toBe(false)
-  expect(metrics.headingRight, 'heading spills past card').toBeLessThanOrEqual(metrics.cardRight + 1)
+  expect(metrics.headingRight, 'heading spills past card').toBeLessThanOrEqual(
+    metrics.cardRight + 1,
+  )
 
   if (assertEmptyOpen) {
     await expect(card).toContainText('Niets openstaand')
