@@ -14,7 +14,7 @@ The export’s `.k-*` classes are a **style reference**. We map them onto
 | --------------------------------------- | ------------------------------------- | -------------- | ---------------------------------------------------------------- |
 | **Button**                              | `ui/button`                           | Mapped         | Primary = ink (`--primary`), never yellow                        |
 | **Badge** + **StatusPill**              | `ui/badge` variants                   | Mapped         | success / danger / info / attention (WARN); late = danger        |
-| **Input**                               | `ui/input` + `.field-control`         | Mapped         | Accessible `--input` border (≥3:1); 44px touch                   |
+| **Input**                               | `ui/input` + `.field-control`         | Mapped         | Border `--ink-muted` via `--input` (≥3:1); 44px touch            |
 | **Switch**                              | `ui/switch`                           | Mapped         | Settings boekhouddetails + lab                                   |
 | **Tabs**                                | `ui/tabs` (underline + segmented)     | Mapped         | Route strips stay Link-based (`reports-tabs`, `journal-tabs`)    |
 | **Kbd**                                 | `ui/keycap`                           | Mapped         | Mono via `--font-mono`                                           |
@@ -27,7 +27,7 @@ The export’s `.k-*` classes are a **style reference**. We map them onto
 | **CodeChip**                            | `ui/code-chip`                        | Mapped         | Mono + sunken                                                    |
 | **DropZone**                            | `ui/drop-zone`                        | Mapped         | Honest copy only; wired into Inbox/import in later phases        |
 | **Menu**                                | `ui/dropdown-menu`                    | Mapped         | Switcher still uses Popover + SelectField for e2e `chooseOption` |
-| **PhoneTabBar**                         | `components/phone-tab-bar.tsx`        | Mapped         | Home · Sales · Inbox · Bank · More→#38 Sheet until Batch 3       |
+| **PhoneTabBar**                         | `components/phone-tab-bar.tsx`        | Mapped         | Home · Sales · Receipt · Bank · More→#38 Sheet until Batch 3     |
 | **Stepper**                             | `ui/stepper`                          | Mapped         | Import wizard keeps its own rail until Phase 11                  |
 | **SubNav**                              | `settings-subnav.tsx` + Journal tabs  | Mapped         | Settings hub areas; Journal Entries / Trial (no Ledger)          |
 

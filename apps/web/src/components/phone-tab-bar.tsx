@@ -5,11 +5,11 @@ import { cn } from '~/lib/utils'
 import { isNavActive, PHONE_TAB_BAR, type NavSearch, type PhoneTabId } from '~/lib/shell-nav'
 
 /**
- * v2 PhoneTabBar (#107 Phase 0 / CoS #140).
+ * v2 PhoneTabBar (#107 Phase 0 / #140 CoS).
  *
  * Home · Sales · Receipt · Bank · More. Middle tab is Receipt; More opens the
  * existing #38 Sheet until Batch 3 (#139) signs off phone boards. Receipt opens
- * `/inbox` upload — no copy that promises reading a photo.
+ * `/inbox` upload (no photo-OCR promise). Camera icon matches PhoneHome.dc.html.
  */
 
 const ICONS = {

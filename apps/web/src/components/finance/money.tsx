@@ -47,7 +47,7 @@ export function Money({
   )
 }
 
-/** Euro amount as on Home — `€` + non-breaking space + tabular figures. */
+/** Euro amount — `€` + non-breaking space + tabular figures (Home / Sales / Costs). */
 export function EuroAmount({
   amount,
   className,
