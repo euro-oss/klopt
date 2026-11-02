@@ -103,9 +103,9 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Wachtende Klant N.V.')
-  await page.getByLabel('E-mail').fill('inkoop@wachtendeklant.nl')
+  await page.getByLabel('E-mail').fill('inkoop@wachtendeklant.example.nl')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Wachtende Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Wachtende Klant N\.V\./ })).toBeVisible()
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
@@ -120,13 +120,13 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-LATE')
   await page.getByLabel('Naam', { exact: true }).fill('Trage Betaler B.V.')
   await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('99887766')
-  await page.getByLabel('E-mail').fill('crediteuren@tragebetaler.nl')
+  await page.getByLabel('E-mail').fill('crediteuren@tragebetaler.example.nl')
   await page.getByLabel('Straat').fill('Coolsingel')
   await page.getByLabel('Huisnr.').fill('42')
   await page.getByLabel('Postcode').fill('3011 AD')
   await page.getByLabel('Plaats').fill('Rotterdam')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Trage Betaler B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Trage Betaler B\.V\./ })).toBeVisible()
 
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
@@ -140,15 +140,19 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   // Bank lines (neutral) with a real balance.
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  // CoS example IBAN — must match statement.mt940 (NL91ABNA0417164300).
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
-  await expect(page.locator('input[type="file"]')).toBeEnabled()
-  await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
+  await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
+  await expect(page.locator('[data-slot="drop-zone"] input[type="file"]')).toBeEnabled()
+  await page.setInputFiles(
+    '[data-slot="drop-zone"] input[type="file"]',
+    join(FIXTURES, 'statement.mt940'),
+  )
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
-  await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
-  await expect(page.getByText(/transacties ingelezen/)).toBeVisible()
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
+  await expect(page.getByText(/transacties geïmporteerd/)).toBeVisible()
 
   // Inbox receipt (neutral).
   await page.goto('/inbox')
@@ -235,7 +239,7 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   }
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Te doen' })).toBeVisible()
   await expect(page.getByRole('link', { name: /Moneybird-import/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /concept(en)? om te versturen/i })).toBeVisible()
   const viewport = page.viewportSize()
@@ -273,7 +277,7 @@ function copyPrototype(name: string, dest: string): void {
 test('dashboard empty screenshots — no btw row', async ({ page }) => {
   await emptyAdministration(page, 'Screenshot Leeg BV')
 
-  await expect(page.getByRole('heading', { name: 'Niets wacht op je' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Niets te doen' })).toBeVisible()
   await expect(page.getByRole('link', { name: /Btw-aangifte/ })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Kloppen de boeken?' })).toHaveCount(0)
 

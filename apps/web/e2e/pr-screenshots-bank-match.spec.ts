@@ -64,15 +64,19 @@ async function ready(page: Page, name: string): Promise<void> {
 async function importStatement(page: Page): Promise<void> {
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  // CoS example IBAN — must match statement.mt940 (NL91ABNA0417164300).
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('ING Zakelijk')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
-  await expect(page.locator('input[type="file"]')).toBeEnabled()
-  await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
+  await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
+  await expect(page.locator('[data-slot="drop-zone"] input[type="file"]')).toBeEnabled()
+  await page.setInputFiles(
+    '[data-slot="drop-zone"] input[type="file"]',
+    join(FIXTURES, 'statement.mt940'),
+  )
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
-  await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
-  await expect(page.getByText('4 transacties ingelezen.')).toBeVisible()
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
+  await expect(page.getByText('4 transacties geïmporteerd.')).toBeVisible()
 }
 
 async function issueMatchingInvoice(page: Page, withIban = false): Promise<void> {
@@ -81,11 +85,14 @@ async function issueMatchingInvoice(page: Page, withIban = false): Promise<void>
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Grote Klant N.V.')
   if (withIban) {
-    await page.getByLabel('IBAN').fill('NL91RABO0315273637')
+    // Grote Klant's bank-line IBAN (statement.mt940), not Telecom's.
+    await page.getByLabel('IBAN').fill('NL02INGB0999999999')
   }
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Grote Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Grote Klant N\.V\./ })).toBeVisible()
 
+  // Bookkeeper invoice form needs Geavanceerd (#45 / #164 screenshots).
+  await enableAdvancedMode(page)
   await page.goto('/invoices/new')
   await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
   await page.getByLabel('Referentie klant').fill('KP-1')
@@ -93,13 +100,13 @@ async function issueMatchingInvoice(page: Page, withIban = false): Promise<void>
   await page.getByLabel('Prijs regel 1').fill('1000,00')
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
-  await expect(page.getByRole('link', { name: 'journaalpost', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'boeking', exact: true })).toBeVisible()
 }
 
 async function openMatch(page: Page): Promise<void> {
   await page.goto('/bank/match')
-  await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
-  await expect(page.locator('[data-slot="scroll-table"] tbody tr').first()).toBeVisible({
+  await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
+  await expect(page.locator('[data-slot="match-queue"] [data-row]').first()).toBeVisible({
     timeout: 15_000,
   })
   await hydrated(page).catch(async () => {
@@ -156,7 +163,7 @@ async function ensurePanelVisible(page: Page): Promise<void> {
 }
 
 async function selectPaymentRow(page: Page, openPhonePanel = true): Promise<void> {
-  const payment = page.locator('[data-slot="scroll-table"] tbody tr').filter({
+  const payment = page.locator('[data-slot="match-queue"] [data-row]').filter({
     hasText: 'Grote Klant',
   })
   await payment.click()
@@ -175,13 +182,13 @@ async function drainQueue(page: Page): Promise<void> {
   for (;;) {
     if (
       await page
-        .getByText('Alles is gekoppeld.')
+        .getByText('Alle regels zijn afgeletterd')
         .isVisible()
         .catch(() => false)
     ) {
       return
     }
-    const rows = page.locator('[data-slot="scroll-table"] tbody tr')
+    const rows = page.locator('[data-slot="match-queue"] [data-row]')
     if ((await rows.count()) === 0) return
 
     const skip = page.getByRole('button', { name: 'Overslaan' })
@@ -224,12 +231,12 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
         await page.keyboard.press('Escape').catch(() => undefined)
         await page.waitForTimeout(200)
         await expect(page.getByText(/Veeg de tabel opzij/)).toBeVisible()
-        const payment = page.locator('[data-slot="scroll-table"] tbody tr').filter({
+        const payment = page.locator('[data-slot="match-queue"] [data-row]').filter({
           hasText: 'Grote Klant',
         })
         await payment.focus()
       } else {
-        const fee = page.locator('[data-slot="scroll-table"] tbody tr').filter({
+        const fee = page.locator('[data-slot="match-queue"] [data-row]').filter({
           hasText: 'Kosten betalingsverkeer',
         })
         await fee.click()
@@ -320,12 +327,14 @@ test('capture bank match PNGs (1440/390 × light/dark + locked + prototype)', as
       await page.keyboard.press('Enter')
       await page.keyboard.press('Enter')
       await expect(
-        page.getByText('Gekoppeld: Grote Klant N.V.').locator('visible=true'),
+        page.getByText('Geboekt: Grote Klant N.V.').locator('visible=true'),
       ).toBeVisible()
       await shoot(page, `matched-${theme}-${label}.png`)
 
       await drainQueue(page)
-      await expect(page.getByText('Alles is gekoppeld.')).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByText('Alle regels zijn afgeletterd')).toBeVisible({
+        timeout: 15_000,
+      })
       await shoot(page, `empty-${theme}-${label}.png`)
       await context.close()
     }

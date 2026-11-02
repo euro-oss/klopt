@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { RiCloseLine } from '@remixicon/react'
+import { X } from 'lucide-react'
 import { cn } from 'cn'
 import { Dialog as SheetPrimitive } from 'radix-ui'
 import { Button } from '~/components/ui/button'
@@ -7,7 +7,7 @@ import { Button } from '~/components/ui/button'
 /**
  * shadcn/ui Sheet, on Radix Dialog.
  *
- * Same shape as the generated radix-sera sheet, adapted to this tree: Remixicon
+ * Same shape as the generated radix-sera sheet, adapted to this tree: lucide-react
  * instead of the registry placeholder, no drop shadow (flat product chrome —
  * see `popover.tsx`), and square corners via the shared `--radius`.
  *
@@ -92,7 +92,7 @@ function SheetContent({
               an 18px × so it does not cover the entity switcher (#64 review).
             */}
             <Button variant="ghost" size="icon" className="bg-secondary absolute top-0.5 right-1">
-              <RiCloseLine className="size-[18px]" />
+              <X className="size-[18px]" />
               <span className="sr-only">{closeLabel}</span>
             </Button>
           </SheetPrimitive.Close>

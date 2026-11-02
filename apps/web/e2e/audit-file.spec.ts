@@ -28,7 +28,7 @@ test.beforeAll(async () => {
  * The round-trip tests want two administrations and one browser, and `/sign-in`
  * bounces a signed-in visitor to the dashboard — so the way to the form is
  * through the sidebar's own sign-out (one click inside the account menu when
- * there is a shell, or the plain Afmelden button on the no-administration
+ * there is a shell, or the plain Uitloggen button on the no-administration
  * screen).
  */
 async function anAdministration(page: Page, name: string): Promise<void> {
@@ -36,8 +36,8 @@ async function anAdministration(page: Page, name: string): Promise<void> {
   if ((await page.getByRole('region', { name: 'Profiel' }).count()) > 0) {
     await signOut(page)
     await expect(page.getByLabel('E-mail')).toBeVisible()
-  } else if ((await page.getByRole('button', { name: 'Afmelden' }).count()) > 0) {
-    await page.getByRole('button', { name: 'Afmelden' }).click()
+  } else if ((await page.getByRole('button', { name: 'Uitloggen' }).count()) > 0) {
+    await page.getByRole('button', { name: 'Uitloggen' }).click()
     await expect(page.getByLabel('E-mail')).toBeVisible()
   }
 
@@ -80,8 +80,10 @@ async function exported(page: Page, year: string): Promise<string> {
 test('import lives beside export, and the dashboard points at both', async ({ page }) => {
   await anAdministration(page, 'Heen En Terug BV')
 
-  await page.getByRole('link', { name: 'Auditfile importeren' }).click()
-  await expect(page).toHaveURL(/\/audit-file$/)
+  // Phase 1 Home audit card links to /audit-file (PM #107); import + export
+  // share that screen.
+  await page.getByRole('link', { name: 'Auditfile downloaden' }).click()
+  await expect(page).toHaveURL(/\/audit-file/)
   await expect(page.getByRole('heading', { name: 'Auditfile' })).toBeVisible()
 
   // The pair, on one screen: the same door, in both directions.
@@ -168,10 +170,11 @@ test('a file naming an account this chart does not have is refused, in words', a
   // What it points at, and what it must *not* say. There is no way to create a
   // grootboekrekening in this product — no API operation and no screen — so
   // telling somebody to make one first is sending them after a button that does
-  // not exist. What is actionable is choosing a file that fits, and the reader is
-  // told the other way round is a later step rather than a refusal on principle.
+  // not exist. What is actionable is choosing a file that fits; expanding the
+  // chart from an audit file is a decision of its own (Legal #110b).
   await expect(page.getByText(/Kies een bestand dat bij dit grootboek past/)).toBeVisible()
-  await expect(page.getByText(/dat komt later/)).toBeVisible()
+  await expect(page.getByText(/is een eigen beslissing\./)).toBeVisible()
+  await expect(page.getByText(/dat komt later/)).toHaveCount(0)
   await expect(page.getByText(/[Mm]aak ze eerst aan/)).toHaveCount(0)
   await expect(page.getByText(/rekeningen aanmaken/i)).toHaveCount(0)
 })

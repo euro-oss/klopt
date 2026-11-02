@@ -1,0 +1,14 @@
+{
+  "name": "@klopt/fixture-pii-guard",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CI guard: fixtures must not contain real-looking personal names, IBANs or third-party domains (issue #120).",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "5.0.0"
+  }
+}

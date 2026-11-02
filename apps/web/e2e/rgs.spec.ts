@@ -5,14 +5,13 @@ import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from 
 /**
  * RGS-koppelingen op het grootboek.
  *
- * The dashboard has reported coverage as a percentage since M0 and there was no
- * way to act on the number: you could see that you were at 93% and do nothing
- * about it. `rgs.setMappings` existed the whole time (#6).
+ * `rgs.setMappings` existed since #6 with no screen to drive it. Phase 1 Home
+ * drops the old "Niet-gekoppelde rekeningen" strip (Design #112); the place to
+ * act is `/accounts`.
  *
- * In a browser because both halves are screen behaviour. A refused code has to
- * arrive next to the field that is wrong rather than as a blank panel, and the
- * figure on a *different* screen has to move when this one saves — which is the
- * acceptance criterion, and is invisible to a handler test.
+ * In a browser because a refused code has to arrive next to the field that is
+ * wrong rather than as a blank panel, and clearing/restoring a mapping has to
+ * stick on the table — invisible to a handler test.
  */
 
 test.beforeAll(async () => {
@@ -32,7 +31,7 @@ async function anAdministration(page: Page, name: string): Promise<void> {
   ).toBeVisible()
 }
 
-test('a code is changed from the table, and the dashboard figure follows', async ({ page }) => {
+test('a code is cleared and restored from the table', async ({ page }) => {
   await anAdministration(page, 'Koppelende Boeken BV')
 
   await page.goto('/accounts')
@@ -53,12 +52,12 @@ test('a code is changed from the table, and the dashboard figure follows', async
   await expect(page.getByText('1000 heeft geen RGS-code meer.')).toBeVisible()
   await expect(page.getByRole('row', { name: /^1000 / }).getByText('niet gekoppeld')).toBeVisible()
 
-  // The figure on the dashboard is a different screen reading the same
-  // coverage. Health (RGS / unmapped) only shows with Geavanceerd on (#67).
+  // Phase 1 Home no longer surfaces unmapped accounts (Design #112) — even
+  // with Boekhouddetails on, the old strip stays gone.
   await enableAdvancedMode(page)
   await page.goto('/')
-  await expect(page.getByText('Niet-gekoppelde rekeningen')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Koppelingen bijwerken' })).toBeVisible()
+  await expect(page.getByText('Niet-gekoppelde rekeningen')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Koppelingen bijwerken' })).toHaveCount(0)
 
   // And back, by typing the code in. Enter commits, because Enter commits the
   // thing you are in.
@@ -68,6 +67,7 @@ test('a code is changed from the table, and the dashboard figure follows', async
   await page.getByLabel('RGS-code').fill('BLimKasKas')
   await page.getByLabel('RGS-code').press('Enter')
   await expect(page.getByText('1000 rapporteert nu onder BLimKasKas.')).toBeVisible()
+  await expect(page.getByRole('row', { name: /^1000 / }).getByText('niet gekoppeld')).toHaveCount(0)
 })
 
 test('a code that is not in the scheme is refused where it was typed', async ({ page }) => {

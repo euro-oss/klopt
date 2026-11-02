@@ -18,6 +18,183 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign Phase 4: Costs (#107 / #128)
+
+Costs (`/purchases`) matches the Costs.dc.html desktop-light board from the v2
+export at `fa4093b`: Bills / To approve / Payment batches / Suppliers tabs,
+All · To pay · Paid segments from `outstanding`, overdue callout, desktop
+preview with approve / dispute / add-to-batch on existing transitions, and
+honest approval copy (no four-eyes claim on bills). Dark and phone use tokens
+until Batch 2 / 3 boards.
+
+App-wide CoS from #140 (1 Nov) in this PR: input borders use `--ink-muted`
+via `--input-border` (DERIVED.md; no hard-coded hex, never `#86857e`);
+PhoneTabBar middle tab is Receipt (`Bon` / `Receipt`, camera icon) opening
+`/inbox` upload until #139 contents land. Sign-out copy (Sign out /
+Uitloggen) is handled in a separate PR.
+
+Costs CoS follow-up (Hidde via CoS): BillNew / Costs inputs share that border
+token with legible light placeholders; disabled selects use sunken ground so
+they read as disabled; Costs table status/amount columns stay fully visible
+at 1440 with the preview open; fixture IBANs are the standard example
+`NL91ABNA0417164300` only (never a real account number).
+
+### Redesign: BankAccounts desktop light (#129 / #140)
+
+`/bank` is where you add bank accounts by hand and import CAMT.053 / MT940
+statements: account card with statement position and books balance, per-account
+DropZone, an “Import a bank statement” card, Bank tabs (**Rekeningen** /
+**Batches**), and a Transacties / Te boeken list. Matched lines say
+“Afgeletterd” / “Matched”. Example IBAN is `NL91 ABNA 0417 1643 00`. Input
+borders use `--ink-muted`. Dark and phone Design review wait on #143. Bank Match
+is #164.
+
+### Redesign Phase 8: VAT / ICP (#132, #107)
+
+VAT (`/vat`, `/vat/$period`) and ICP (`/vat/icp/$period`) match the v2 Vat and
+Icp boards from #106 (`fa4093b`). Period rail with StatusPill tones, box-by-box
+return with empty-box collapse and line drill-down, reconciliation / trust
+block, `[`/`]` period and `D` download. ICP shows per-customer VIES status and
+`V` recheck; board example data does not ship. Copy leads with manual filing
+("klaar om in te dienen" / "ready to file", "Mark as filed" / "Markeren als
+ingediend"); electronic submit only when Digipoort/SBR is available. Desktop
+light is the designed state; dark and phone inherit tokens until Batch 2 /
+Batch 3 boards (#142). Hidde (1 Nov / #162 review): input borders use
+`--ink-muted`; phone middle tab Receipt; phone period rail collapses so the
+return stays above the fold; no disabled electronic filing CTA (VAT + ICP);
+short muted taxonomy note; header subline wraps under the title. App-wide
+Sign out / Uitloggen copy is a separate PR.
+
+### Redesign Phase 6: Contacts (#130)
+
+Contacts matches the `Contacts` board from the v2 export at `fa4093b`
+(`design/redesign-2026-10/screens/Contacts.dc.html`). Desktop light is the
+designed state: list + contact card, All / Customers / Suppliers segments
+(`1`–`3`), `/` filter, `j`/`k` and Space/X select, `E` edit, create form from
+Nieuwe relatie (`N C` still navigates here). Card shows volume, documents,
+still open, invoice rows (pills only for API `invoice_status` draft /
+cancelled; issued shows open amount as text — no Paid / late pills),
+payment terms, add-details for e-invoicing, and privacy erase behind
+`retention:manage`. List names wrap in full (phone: name-first two-line row;
+desktop: flexible Naam column). Supplier card line is honest purchase-side
+open count/amount (`N open · € …`); overdue only when `dueDate < today`;
+never claims betaald/paid. Dark and phone use existing tokens/patterns until
+Batch 2 and Batch 3 boards (#140). App-wide from #140 in this PR: input
+borders via `--ink-muted` (no hard-coded `#86857e`); phone middle tab
+Receipt. Sign out / Uitloggen copy is a separate PR. Copy stays short and
+plain (NL+EN); no live-connection claims. Screenshots under
+`docs/pr-screenshots/<PR>/`.
+
+### Exact import wizard: read-only VAT preview (#100)
+
+Importeren now walks Exact from source choice through connect, division and
+year, dry-run preview, and a **read-only** btw-codes step. Klopt recognises
+an Exact VAT code only when **code+rate+side** all agree with a chart row;
+otherwise it stays unrecognised (export / EU / reverse-charge included) and
+accounts that would lose their default btw-code are listed (attention badge;
+recognised count first; unrecognised rows grouped). Nothing is written to the
+ledger in this slice — the Btw step ends with Back only and the “Nog niet in
+deze versie” stop. Accounts, relations, openings and invoices follow in later
+Exact wizard PRs (#100 Phase 2). Exact OAuth callback returns to
+`/importeren?bron=exact&van=exact-oauth` and lands on Administratie without
+Welkom terug. The Exact rail is five steps (“Stap N van 5”; Administratie en
+boekjaar). Loopback redirect URIs are allowed for HTTP stand-ins (same
+carve-out as the Exact base URL). HTTPS error copy no longer mentions
+`pnpm dev:https` (that stays in the docs).
+
+### Redesign Phase 2: Sales (#107)
+
+Sales area with underline tabs Facturen / Herinneringen / Klanten. `/dunning`
+remains the Reminders route. Segmented status Drafts / Issued / Overdue with real
+counts from the invoice list and overdue report (no Paid segment — needs
+`outstanding` / `paidOn` [API]). Desktop preview pane with honest "Sent as"
+from deliveries only (no Peppol claim). Reminders schedule and email text are
+read-only; email preview uses `reminderEmailCopy` (shared with the transport).
+Reminder emails no longer mention incassokosten, wettelijke rente or a payment
+deadline. PhoneSales / PhoneInvoice / InvoicesDark via tokens. Customers tab
+links to Contacts (no customers URL filter yet). "Nieuwe factuur" is secondary.
+
+### Sign-out copy is Sign out / Uitloggen (#140)
+
+The account menu, the no-administration screen and setup use the same words:
+"Sign out" in English and "Uitloggen" in Dutch. The account menu no longer
+says "Log out", and the screens outside it no longer say "Afmelden".
+
+### Fixed
+
+- Production invoice PDFs no longer 500. pdfkit 0.20.2 loads its standard fonts
+  at runtime (`#standard-fonts/*`); bundling it into `.output/server/_ssr` made
+  that lookup fail, so every invoice PDF and every send that attaches one
+  failed. The web build keeps pdfkit external and traces the package into the
+  server output. `pnpm --filter @klopt/web run test:e2e` (the CI `e2e` job)
+  now also downloads a PDF and sends one invoice against that built server,
+  using the file outbox, before Playwright's `vite dev` suite. Unknown 500s
+  are logged with the request id, the error name, and the stack frames
+  only (a frame begins with four spaces and `at`). The message is not
+  logged: it is the start of `error.stack`, and a driver error can quote
+  row values.
+
+- Debtor-ageing report and overdue counts no longer count invoices that are due
+  today (exclusive overdue boundary).
+
+### Replace icon dependency with lucide-react (#113)
+
+UI icons now come from `lucide-react` (ISC). The previous icon package is
+removed from `package.json` and the lockfile; `NOTICE` attributes lucide-react.
+
+### Redesign Phase 1: Home (#107)
+
+Home matches Main / PhoneHome / HomeDark from the v2 export at `fa4093b`.
+To-do list is ordered by consequence; only the top item's action is primary,
+and the header "Nieuwe factuur" is secondary on Home. Empty state says
+"Niets te doen" / "Nothing waiting" — no "Haal je boekhouding over" row.
+Four linked stat tiles keep honest labels (overdue-only receivables until
+#68). P&L glance, debtor-ageing glance (same buckets and overdue list as
+`/reports/debtor-ageing`; asOf only, no due-date boekjaar filter; not-yet-due
+stay out; zero buckets omitted; Details/bucket/`sales.overdue` carry
+`fiscalYear`), and an audit-file card with Legal export copy and an
+underlined link in the card text colour to `/audit-file`. Tile rule: no data
+drops the value line; a failed read leaves the value empty and shows
+`dash.figure.*Unavailable` ("Niet beschikbaar" / "Not available") — never
+€ 0,00 or "Niets open" on a failed payables/profit/bank read. Phone hides
+header CTAs and keeps one secondary Bonnetje under Te doen (no shortcut
+chip on Bonnetje; keymap unchanged). No "Kloppen de boeken?" strip. Copy
+drops invented estimates, card-payment summaries and four-eyes wording.
+Design/PM #112 follow-up: ageing fills use named `--ageing-*` tokens;
+draft/inbox to-dos get their own icons; unmapped-accounts block removed;
+queue bodies drop missing number/days/deadline clauses (never `—` or `0`);
+ageing title “Te late facturen per aantal dagen” / “Overdue invoices by days
+late”; overdue day copy uses singular/plural (“1 dag te laat” / “1 day late”).
+Design/PM #117 follow-up: multi-overdue to-do reads “N facturen te laat” /
+“N invoices overdue” with oldest qualifier (“Oudste: … dagen te laat” /
+“Oldest: … days late”); empty queue keeps one “Nieuwe factuur” in the queue
+card on a normal `bg-card` surface (header CTA stays on a failed read).
+
+### Redesign Phase 0: tokens, theme, components, shell (#107)
+
+Design tokens from the **v2** 2026-10 export (`design/redesign-2026-10/`) live in
+`apps/web/src/styles/tokens.css` (swappable radius, shadows, greys, fonts, accent,
+link, status, sidebar width). Self-hosted Inter + JetBrains Mono; no Google Fonts
+CDN. shadcn/ui theme maps through those tokens.
+`--status-attention` aliases the export WARN callout (`--brand-ink` /
+`--brand-tint`); red stays destructive. `#105` Geen btw orange stays on
+`--status-geen-btw`. All 20 export components are mapped (Switch, Tabs, Menu,
+CodeChip, DropZone, Stepper, PhoneTabBar, SubNav, …) and shown on
+`/lab/primitives`. v2 grouped sidebar (Money / Books) with Import + Settings +
+Shortcuts pinned; Journal top-level (`g j`) with Entries / Trial SubNav (Ledger
+[API] omitted); Proefbalans also Reports tab 5; no Geavanceerd gate on these.
+PhoneTabBar at 390 (More → existing Sheet until Batch 3). [API] items stay out
+of nav and ⌘K. Keymap per v2 + aliases (`⇧⌘↵`, `/` list filter).
+GuidedInvoice is dropped — the Editor phase removes the guided flow. Docs:
+`docs/design/tokens-2026-10.md`, `docs/design/component-mapping-2026-10.md`.
+
+### Install: bin shims for `klopt-mcp` and `klopt` (#108)
+
+`@klopt/mcp` and `@klopt/cli` point their package `bin` entries at committed
+executable shims under `bin/` that import `dist/main.js`. A clean
+`pnpm install` (and the Docker build) no longer warns that `dist/main.js` is
+missing before those packages are built.
+
 ### Import wizard: connect probe and opening count (#105)
 
 Connecting (`POST /api/v1/moneybird/connection`) now probes Moneybird before

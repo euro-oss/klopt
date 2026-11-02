@@ -124,10 +124,11 @@ test('a contact is erased on request, and the invoice still names who it was for
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0900')
   await page.getByLabel('Naam', { exact: true }).fill('Jan de Vries Advies')
-  await page.getByLabel('E-mail').fill('jan@devries.nl')
+  await page.getByLabel('E-mail').fill('jan@devries.example.nl')
   await page.getByRole('button', { name: 'Opslaan' }).click()
 
-  await page.getByRole('link', { name: 'Jan de Vries Advies' }).click()
+  await page.getByRole('button', { name: /Jan de Vries Advies/ }).click()
+  await page.getByRole('link', { name: /Bewerken/ }).click()
   await expect(page.getByRole('heading', { name: /Gegevens wissen op verzoek/ })).toBeVisible()
 
   await page.getByLabel('Waarom, en wanneer is het gevraagd?').fill('Verzoek per e-mail, 12 maart')

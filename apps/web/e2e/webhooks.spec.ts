@@ -28,7 +28,8 @@ async function anAdministration(page: Page): Promise<void> {
 test('a webhook is added, shows its secret once, and can be removed', async ({ page }) => {
   await anAdministration(page)
 
-  await page.getByRole('link', { name: 'Webhooks', exact: true }).click()
+  // Webhooks is palette-only (#107).
+  await page.goto('/webhooks')
   await expect(page.getByRole('heading', { name: 'Webhooks' })).toBeVisible()
   await expect(page.getByText('Nog geen webhooks.')).toBeVisible()
 

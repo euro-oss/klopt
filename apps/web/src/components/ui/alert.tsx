@@ -20,7 +20,7 @@ const alertVariants = cva(
           'bg-success/8 text-success after:bg-success *:data-[slot=alert-description]:text-foreground *:[svg]:text-current',
         info: 'bg-info/8 text-info after:bg-info *:data-[slot=alert-description]:text-foreground *:[svg]:text-current',
         attention:
-          'bg-warning/8 text-warning after:bg-warning *:data-[slot=alert-description]:text-foreground *:[svg]:text-current',
+          'bg-unreconciled/8 text-unreconciled after:bg-unreconciled *:data-[slot=alert-description]:text-foreground *:[svg]:text-current',
       },
     },
     defaultVariants: {

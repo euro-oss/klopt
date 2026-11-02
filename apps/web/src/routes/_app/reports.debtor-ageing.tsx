@@ -1,19 +1,25 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { PageHeader, Stat } from '~/components/app-shell'
+import { ReportsTabs } from '~/components/reports-tabs'
 import { Money } from '~/components/finance/money'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Button } from '~/components/ui/button'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
-import { DEBTOR_AGEING_BUCKETS, debtorAgeing, type DebtorAgeingRow } from '~/lib/ageing'
+import {
+  DEBTOR_AGEING_BUCKETS,
+  debtorAgeing,
+  type DebtorAgeingBucket,
+  type DebtorAgeingRow,
+} from '~/lib/ageing'
 import { fiscalYearSearch } from '~/lib/fiscal-year'
 import { listOverdueInvoices } from '~/server/sales'
 
 /**
  * Aged debtors — who owes us, and for how long.
  *
- * Crediteuren have had this screen since M4. Debiteuren had Aanmaningen,
+ * Crediteuren have had this screen since M4. Debiteuren had Herinneringen,
  * which answers a different question: who to write to next, not what the
  * receivables position looks like. An accountant asks for both sides and this
  * was the missing one.
@@ -25,16 +31,35 @@ import { listOverdueInvoices } from '~/server/sales'
  * "nobody owes us anything yet".
  *
  * The date is the one the shell's book year implies: today while that year is
- * running, its last day once it is over.
+ * running, its last day once it is over. Home's ageing glance deep-links with
+ * `?bucket=` so a band opens the same report filtered to that bucket.
  */
+const BUCKET_SET = new Set<string>(DEBTOR_AGEING_BUCKETS)
+
+function parseBucket(value: unknown): DebtorAgeingBucket | undefined {
+  return typeof value === 'string' && BUCKET_SET.has(value)
+    ? (value as DebtorAgeingBucket)
+    : undefined
+}
+
 export const Route = createFileRoute('/_app/reports/debtor-ageing')({
-  validateSearch: (search: Record<string, unknown>): { asOf?: string; fiscalYear?: number } => ({
-    ...(typeof search['asOf'] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(search['asOf'])
-      ? { asOf: search['asOf'] }
-      : {}),
-    ...fiscalYearSearch(search),
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { asOf?: string; fiscalYear?: number; bucket?: DebtorAgeingBucket } => {
+    const bucket = parseBucket(search['bucket'])
+    return {
+      ...(typeof search['asOf'] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(search['asOf'])
+        ? { asOf: search['asOf'] }
+        : {}),
+      ...fiscalYearSearch(search),
+      ...(bucket === undefined ? {} : { bucket }),
+    }
+  },
+  loaderDeps: ({ search }) => ({
+    asOf: search.asOf,
+    fiscalYear: search.fiscalYear,
+    bucket: search.bucket,
   }),
-  loaderDeps: ({ search }) => ({ asOf: search.asOf, fiscalYear: search.fiscalYear }),
   loader: async ({ deps }) =>
     listOverdueInvoices({
       data: {
@@ -54,11 +79,13 @@ const BUCKET_LABELS = {
 
 function DebtorAgeing() {
   const result = Route.useLoaderData()
+  const { bucket } = Route.useSearch()
   const { t } = useT()
 
   if (!result.ok) {
     return (
       <>
+        <ReportsTabs />
         <PageHeader title={t('debtorAgeing.title')} />
         <p role="alert" className="text-destructive text-sm">
           {result.problem.detail}
@@ -69,6 +96,9 @@ function DebtorAgeing() {
 
   const { asOf, invoices, totalOutstanding } = result.data
   const ageing = debtorAgeing(invoices)
+  // Home deep-link: keep contacts that have something in the chosen bucket.
+  const rows =
+    bucket === undefined ? ageing.rows : ageing.rows.filter((row) => BigInt(row[bucket]) > 0n)
 
   const columns: readonly Column<DebtorAgeingRow>[] = [
     {
@@ -101,6 +131,7 @@ function DebtorAgeing() {
 
   return (
     <>
+      <ReportsTabs />
       <PageHeader
         title={t('debtorAgeing.title')}
         description={t('debtorAgeing.intro', { date: formatDate(asOf) })}
@@ -131,20 +162,32 @@ function DebtorAgeing() {
           spreadsheet all come with it. */}
       <LedgerTable
         columns={columns}
-        rows={ageing.rows}
+        rows={rows}
         rowKey={(row) => row.contactName}
         caption={t('debtorAgeing.caption')}
         empty={t('debtorAgeing.empty')}
         footer={
           <tr>
             <td className="px-3 py-2">{t('report.total')}</td>
-            {DEBTOR_AGEING_BUCKETS.map((bucket) => (
-              <td key={bucket} className="px-3 py-2 text-right">
-                <Money amount={ageing.totals[bucket]} />
+            {DEBTOR_AGEING_BUCKETS.map((column) => (
+              <td key={column} className="px-3 py-2 text-right">
+                <Money
+                  amount={
+                    bucket === undefined
+                      ? ageing.totals[column]
+                      : rows.reduce((sum, row) => sum + BigInt(row[column]), 0n).toString()
+                  }
+                />
               </td>
             ))}
             <td className="px-3 py-2 text-right">
-              <Money amount={ageing.totals.total} />
+              <Money
+                amount={
+                  bucket === undefined
+                    ? ageing.totals.total
+                    : rows.reduce((sum, row) => sum + BigInt(row.total), 0n).toString()
+                }
+              />
             </td>
           </tr>
         }

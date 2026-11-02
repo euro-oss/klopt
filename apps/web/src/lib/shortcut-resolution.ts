@@ -16,12 +16,18 @@ import { BINDINGS, type Binding } from './keyboard'
  * The bindings resolvable from anywhere.
  *
  * A binding with a `to` is navigation. `palette` and `help` are the two global
- * overlays. Everything else belongs to the screen that owns it — `entry.post`
+ * overlays. `list.filter` (`/`) focuses a marked filter when the page has one
+ * (#107). Everything else belongs to the screen that owns it — `entry.post`
  * cannot be run from a palette floating over the balance sheet, and a global
  * listener that fired `Enter` would fight every form on every page.
  */
 export const GLOBAL_BINDINGS: readonly Binding[] = BINDINGS.filter(
-  (binding) => binding.to !== undefined || binding.id === 'palette' || binding.id === 'help',
+  (binding) =>
+    binding.to !== undefined ||
+    binding.id === 'palette' ||
+    binding.id === 'help' ||
+    // `/` focuses a list filter when the page exposes one (#107).
+    binding.id === 'list.filter',
 )
 
 /** The distinct first keys of every two-key binding: `g`, `i` and `n`. */

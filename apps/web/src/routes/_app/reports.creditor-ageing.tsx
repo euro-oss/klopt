@@ -1,5 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { PageHeader, Stat } from '~/components/app-shell'
+import { ReportsTabs } from '~/components/reports-tabs'
 import { Money } from '~/components/finance/money'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
@@ -55,6 +56,7 @@ function CreditorAgeing() {
   if (!ageing.ok) {
     return (
       <>
+        <ReportsTabs />
         <PageHeader title={t('ageing.title')} />
         <p role="alert" className="text-destructive text-sm">
           {ageing.problem.detail}
@@ -70,6 +72,7 @@ function CreditorAgeing() {
 
   return (
     <>
+      <ReportsTabs />
       <PageHeader
         title={t('ageing.title')}
         description={t('ageing.intro', { date: formatDate(asOf) })}

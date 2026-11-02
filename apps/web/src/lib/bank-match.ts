@@ -67,14 +67,27 @@ export function absoluteMinor(amountMinor: string | bigint): bigint {
 }
 
 /**
- * `€` + NBSP + tabular Dutch figures — same convention as the dashboard (#67).
- * Sign is the caller's job (Af/Bij columns, or a leading − / +).
+ * Euro figure for Bank Match (#129 design review).
+ *
+ * One form everywhere: true minus U+2212 with no space before `€`, NBSP after
+ * `€`, Dutch grouping — e.g. `−€ 2,15` / `+€ 2,15` / `€ 0,00`. Call sites use
+ * `font-mono tabular-nums`; do not prepend a second sign.
+ *
+ * Pass `{ signed: false }` for magnitudes (VAT hints, unsigned summaries).
  */
-export function formatEuro(amountMinor: string | bigint): string {
-  return `€\u00a0${formatMinorUnits(absoluteMinor(amountMinor), {
+export function formatEuro(
+  amountMinor: string | bigint,
+  options?: { readonly signed?: boolean },
+): string {
+  const value = typeof amountMinor === 'bigint' ? amountMinor : BigInt(amountMinor)
+  const magnitude = `€\u00a0${formatMinorUnits(absoluteMinor(value), {
     negative: 'minus',
     showZero: true,
   })}`
+  if (options?.signed === false) return magnitude
+  if (value < 0n) return `\u2212${magnitude}`
+  if (value > 0n) return `+${magnitude}`
+  return magnitude
 }
 
 /** Last 4 of an IBAN for the page subtitle (`··· 4821`). */

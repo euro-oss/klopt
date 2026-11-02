@@ -107,6 +107,10 @@ describe('what a table does with the rest of the keyboard', () => {
     expect(resolveTableKey(press(' '), list)).toEqual({ action: 'toggle', index: 2 })
   })
 
+  it('selects one row on x as well as space (#107)', () => {
+    expect(resolveTableKey(press('x'), list)).toEqual({ action: 'toggle', index: 2 })
+  })
+
   it('selects every loaded row on mod-A', () => {
     expect(resolveTableKey(press('a', { modKey: true }), list)).toEqual({ action: 'selectAll' })
   })

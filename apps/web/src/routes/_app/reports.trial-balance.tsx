@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PageHeader } from '~/components/app-shell'
+import { ReportsTabs } from '~/components/reports-tabs'
 import { Money } from '~/components/finance/money'
 import { useT } from '~/i18n/provider'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
@@ -75,6 +76,7 @@ function TrialBalance() {
 
   return (
     <>
+      <ReportsTabs />
       <PageHeader
         title={t('trial.title')}
         description={t('trial.intro', {

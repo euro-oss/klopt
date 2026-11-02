@@ -78,15 +78,22 @@ describe('the boot script that settles system before paint', () => {
 })
 
 describe('the palette', () => {
-  const css = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'styles', 'app.css'),
-    'utf8',
+  const tokensPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    '..',
+    '..',
+    'src',
+    'styles',
+    'tokens.css',
   )
+  const css = readFileSync(tokensPath, 'utf8')
 
-  it('is white, black and yellow, and says so in one place', () => {
+  it('is white, black and brand yellow, and says so in one place', () => {
+    // Phase 0 (#107): export brand #ffd43b lives on --brand; --yellow aliases it.
     expect(css).toContain('--white: #ffffff')
     expect(css).toContain('--black: #000000')
-    expect(css).toContain('--yellow: #ffd51e')
+    expect(css).toContain('--brand: #ffd43b')
+    expect(css).toContain('--yellow: var(--brand)')
   })
 
   it('ships none of the marketing site’s purple', () => {
@@ -102,8 +109,9 @@ describe('the palette', () => {
     // "Yellow is the accent" and "this went wrong" are different statements,
     // and a screen where the button and the error are the same colour makes
     // neither.
-    expect(css).toContain('--destructive: var(--status-error)')
+    expect(css).toContain('--destructive: var(--danger)')
     expect(css).not.toContain('--destructive: var(--yellow)')
+    expect(css).not.toContain('--destructive: var(--brand)')
   })
 
   it('defines both themes, with light needing no class', () => {
@@ -113,23 +121,27 @@ describe('the palette', () => {
     expect(css).toContain('color-scheme: dark')
   })
 
-  it('keeps every corner square', () => {
-    expect(css).toContain('--radius: 0rem')
+  it('keeps the export radius scale (swappable via --token-radius-*)', () => {
+    // Phase 0 ships the export's 4–14px + pill. Square is an open alternative
+    // (set every --token-radius-* to 0), not the default.
+    expect(css).toContain('--token-radius-md: 8px')
+    expect(css).toContain('--radius: var(--token-radius-md)')
+    expect(css).not.toContain('--radius: 0rem')
   })
 })
 
 /**
  * The rules that are not about a token, held to the source.
  *
- * Colour lives in one file and is already guarded above. These four are the
- * ones that come back a class at a time — a `shadow-lg` copied from a
- * component somewhere, a `font-mono` on a column of figures, a `rounded-full`
- * avatar, a weight the record does not have. Each is a one-line decision of
- * record and none of them is visible in a diff unless somebody is looking for
- * it, which is what a test is for.
+ * Colour lives in `styles/tokens.css` (Phase 0). These are the ones that come
+ * back a class at a time — a Tailwind shadow step copied from a component
+ * somewhere, a weight the record does not have. Generated components are in
+ * scope on purpose: `shadcn add` is free to reintroduce any of these, and when
+ * it does, this should say so.
  *
- * Generated components are in scope on purpose: `shadcn add` is free to
- * reintroduce any of these, and when it does, this should say so.
+ * Phase 0 (#107) allows export shadows (via `--shadow-*` tokens), `font-mono`
+ * (JetBrains Mono for keys/amounts), and `rounded-full` (pill). The old #57
+ * square / no-shadow / one-typeface forbids are retired.
  *
  * `ring-*` is deliberately not in the list. It draws with a box-shadow and it
  * is the focus indicator, which the design has rather than forbids.
@@ -151,11 +163,13 @@ describe('the rules that live in class names', () => {
     return found
   }
 
+  const tokenFiles = new Set([join('styles', 'tokens.css'), join('assets', 'fonts', 'fonts.css')])
+
   const forbidden = [
-    ['no shadows', /\bshadow-(sm|md|lg|xl|2xl|inner)\b/],
-    ['square corners', /\brounded-full\b/],
-    ['one typeface', /\bfont-mono\b/],
-    ['three weights', /\bfont-(thin|extralight|light|bold|extrabold|black)\b/],
+    // Prefer --shadow-raised / --shadow-paper / --shadow-overlay tokens over
+    // Tailwind's anonymous shadow scale. shadow-none is fine (explicit off).
+    ['token shadows, not Tailwind shadow steps', /\bshadow-(sm|md|lg|xl|2xl|inner)\b/],
+    ['three weights', /\bfont-(thin|extralight|light|extrabold|black)\b/],
   ] as const
 
   for (const [rule, pattern] of forbidden) {
@@ -169,10 +183,11 @@ describe('the rules that live in class names', () => {
   }
 
   it('picks colour by meaning, not by literal', () => {
-    // Outside the token block there is no such thing as a colour: a hex in a
-    // component is a palette nobody agreed to.
+    // Outside the token files there is no such thing as a colour: a hex in a
+    // component is a palette nobody agreed to. tokens.css is the one place;
+    // fonts.css may carry none but is allowed as a self-host companion.
     const offenders = sources()
-      .filter((file) => !file.path.endsWith(join('styles', 'app.css')))
+      .filter((file) => !tokenFiles.has(file.path.slice(SRC.length + 1)))
       .filter((file) => /#[0-9a-fA-F]{6}\b/.test(file.text))
       .map((file) => file.path.slice(SRC.length + 1))
 

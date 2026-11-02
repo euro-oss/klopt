@@ -29,6 +29,8 @@ module.exports = {
           '(^|/)(eslint|vitest|vite|drizzle)\\.config\\.(js|cjs|mjs|ts)$',
           // Package entry points. Nothing inside the package imports them.
           '^(packages|apps)/[^/]+/src/index\\.ts$',
+          // package.json `bin` shims. Linked by the package manager, not imported.
+          '^(packages|apps)/[^/]+/bin/',
           // Reached by the generated route tree, which is excluded above.
           '^apps/web/src/(router\\.tsx|routes/)',
           // Vitest `setupFiles`: loaded by path from the config, so nothing

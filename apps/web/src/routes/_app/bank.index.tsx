@@ -1,15 +1,23 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
+import { Landmark, Upload } from 'lucide-react'
 import { violationMessage } from '~/i18n/labels'
-import { useRef, useState } from 'react'
-import { PageHeader, Stat } from '~/components/app-shell'
-import { LedgerTable, type Column } from '~/components/finance/ledger-table'
+import { useEffect, useRef, useState } from 'react'
+import { BankTabs } from '~/components/bank-tabs'
+import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
 import type { CsvMapping } from '@klopt/core'
 import { formatDate } from '~/lib/format'
+import { formatBankDayMonth, formatIbanDisplay } from '~/lib/bank-accounts'
+import { DropZone } from '~/components/ui/drop-zone'
+import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
+import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
+import { cn } from '~/lib/utils'
 import {
   createBankAccount,
   importStatement,
@@ -20,13 +28,14 @@ import {
 } from '~/server/bank'
 
 /**
- * Bank — accounts, statement import, and the lines that came in.
+ * Bank — accounts you add by hand, then import statements (#129 / #140).
+ *
+ * Desktop-light board: account card, DropZone, import-a-statement card,
+ * all-transactions list. Rename is [API] — omitted. Dark and phone wait on
+ * Batch 2/3 boards (#143).
  *
  * The import is **two steps on purpose**: pick a file and see what it would do,
- * then confirm. A bank download is opaque, an accountant's export is often the
- * wrong month, and the difference between "this adds 42 transactions" and "this
- * adds 3 and 39 are already there" is worth seeing before it happens rather
- * than after.
+ * then confirm.
  */
 export const Route = createFileRoute('/_app/bank/')({
   loader: async () => ({
@@ -93,24 +102,14 @@ const DATE_FORMATS = [
   'dd.MM.yyyy',
 ] as const
 
-const CONSENT_KEY: Record<string, MessageKey> = {
-  not_required: 'bank.consent.not_required',
-  active: 'bank.consent.active',
-  expiring: 'bank.consent.expiring',
-  expired: 'bank.consent.expired',
-}
+const EXAMPLE_IBAN = 'NL91ABNA0417164300'
 
 function Bank() {
   const { accounts, transactions, rules } = Route.useLoaderData()
   const router = useRouter()
   const hydrated = useHydrated()
-  const { t } = useT()
-
-  /** An unrecognised consent state is shown raw rather than as a blank. */
-  const consentOf = (state: string) => {
-    const key = CONSENT_KEY[state]
-    return key === undefined ? state : t(key)
-  }
+  const { t, tag } = useT()
+  const dropInputRef = useRef<HTMLInputElement | null>(null)
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -122,10 +121,48 @@ function Bank() {
   } | null>(null)
   const [showAccountForm, setShowAccountForm] = useState(false)
   const [mapping, setMapping] = useState<CsvMapping | null>(null)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unmatched'>('all')
   const importKey = useRef<string>(crypto.randomUUID())
   const accountKey = useRef<string>(crypto.randomUUID())
 
-  if (!accounts.ok) {
+  const accountsOk = accounts.ok
+  const rows: Row[] = transactions.ok ? transactions.data.transactions : []
+  const bankAccounts = accountsOk ? accounts.data.accounts : []
+  const primaryAccount = bankAccounts[0] ?? null
+  const unmatched = bankAccounts.reduce(
+    (total, account) => total + account.reconciliation.unmatchedCount,
+    0,
+  )
+  const learnedRules = rules.ok ? rules.data.rules : []
+  const visibleRows =
+    statusFilter === 'unmatched' ? rows.filter((row) => row.status === 'unmatched') : rows
+  const unmatchedInList = rows.filter((row) => row.status === 'unmatched').length
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return
+      const target = event.target
+      if (
+        target instanceof HTMLElement &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return
+      }
+      if (event.key !== 'u' && event.key !== 'U') return
+      if (busy || !hydrated || primaryAccount === null) return
+      event.preventDefault()
+      dropInputRef.current?.click()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [busy, hydrated, primaryAccount])
+
+  if (!accountsOk) {
     return (
       <>
         <PageHeader title={t('bank.title')} />
@@ -135,14 +172,6 @@ function Bank() {
       </>
     )
   }
-
-  const rows: Row[] = transactions.ok ? transactions.data.transactions : []
-  const bankAccounts = accounts.data.accounts
-  const unmatched = bankAccounts.reduce(
-    (total, account) => total + account.reconciliation.unmatchedCount,
-    0,
-  )
-  const learnedRules = rules.ok ? rules.data.rules : []
 
   async function toggleRule(ruleId: string, isActive: boolean) {
     setBusy(true)
@@ -281,195 +310,248 @@ function Bank() {
     await router.invalidate()
   }
 
-  const columns: readonly Column<Row>[] = [
-    {
-      key: 'date',
-      header: t('bank.map.bookingDate'),
-      width: '7rem',
-      cell: (row) => <span className="tabular">{formatDate(row.bookingDate)}</span>,
-    },
-    {
-      key: 'counterparty',
-      header: t('bank.counterparty'),
-      width: '16rem',
-      cell: (row) =>
-        row.counterpartyName ?? (
-          <span className="text-muted-foreground">{t('bank.counterpartyUnknown')}</span>
-        ),
-    },
-    { key: 'description', header: t('entries.description'), cell: (row) => row.description },
-    {
-      key: 'status',
-      header: t('invoices.status'),
-      width: '7rem',
-      cell: (row) =>
-        row.status === 'matched' ? (
-          t('bank.status.matched')
-        ) : row.status === 'ignored' ? (
-          <span className="text-muted-foreground">{t('bank.status.ignored')}</span>
-        ) : (
-          <span className="text-unreconciled">{t('bank.status.unmatched')}</span>
-        ),
-    },
-    {
-      key: 'amount',
-      header: t('bank.amount'),
-      width: '9rem',
-      align: 'right',
-      cell: (row) => <Money amount={row.amount} />,
-    },
-  ]
+  function statusBadge(status: Row['status']) {
+    if (status === 'matched') {
+      return (
+        <Badge variant="success" className="font-medium">
+          {t('bank.status.matched')}
+        </Badge>
+      )
+    }
+    if (status === 'ignored') {
+      return (
+        <Badge variant="secondary" className="font-medium">
+          {t('bank.status.ignored')}
+        </Badge>
+      )
+    }
+    return (
+      <Badge variant="attention" className="font-medium">
+        {t('bank.status.unmatched')}
+      </Badge>
+    )
+  }
 
   return (
-    <>
-      <PageHeader
-        title={t('bank.title')}
-        description={t('bank.intro')}
-        actions={
-          <>
-            {unmatched > 0 && (
-              <Link
-                to="/bank/match"
-                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium"
-              >
-                {t('bank.matchCount', { count: String(unmatched) })}
-              </Link>
-            )}
-            <button
+    <div data-slot="bank-accounts" className="flex flex-col gap-5">
+      <div>
+        <PageHeader
+          title={t('bank.title')}
+          actions={
+            <Button
               type="button"
+              variant="outline"
               disabled={!hydrated}
+              className="min-h-11 md:min-h-10"
               onClick={() => {
                 setShowAccountForm((value) => !value)
               }}
-              className="border-input rounded-md border px-4 py-2 text-sm disabled:opacity-50"
             >
               {showAccountForm ? t('common.cancel') : t('bank.addAccount')}
-            </button>
-          </>
-        }
-      />
+            </Button>
+          }
+        />
+        <BankTabs active="accounts" toMatchCount={unmatched > 0 ? unmatched : undefined} />
+      </div>
 
       {showAccountForm && (
         <form
           onSubmit={(event) => {
             void addAccount(event)
           }}
-          className="border-border mb-4 grid max-w-3xl grid-cols-[1fr_1fr_10rem_auto] items-end gap-4 rounded-md border p-4"
+          className="border-border bg-surface grid max-w-3xl grid-cols-1 items-end gap-4 rounded-[var(--radius-lg)] border p-4 sm:grid-cols-[1fr_1fr_10rem_auto]"
         >
           <label className="block">
             <span className="text-muted-foreground mb-1 block text-xs font-medium">IBAN</span>
-            <input
-              name="iban"
-              required
-              placeholder="NL02ABNA0123456789"
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-            />
+            <Input name="iban" required placeholder={EXAMPLE_IBAN} className="tabular" />
           </label>
           <label className="block">
             <span className="text-muted-foreground mb-1 block text-xs font-medium">
               {t('bank.accountName')}
             </span>
-            <input
-              name="name"
-              required
-              placeholder={t('bank.accountNamePlaceholder')}
-              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-            />
+            <Input name="name" required placeholder={t('bank.accountNamePlaceholder')} />
           </label>
           <label className="block">
             <span className="text-muted-foreground mb-1 block text-xs font-medium">
               {t('invoice.ledgerAccount')}
             </span>
-            <input
-              name="ledgerAccountNumber"
-              defaultValue="1100"
-              className="border-input bg-background tabular w-full rounded-md border px-3 py-2 text-sm"
-            />
+            <Input name="ledgerAccountNumber" defaultValue="1100" className="tabular" />
           </label>
-          <button
-            type="submit"
-            disabled={busy || !hydrated}
-            className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-          >
+          <Button type="submit" disabled={busy || !hydrated} className="min-h-11 md:min-h-10">
             {t('common.save')}
-          </button>
+          </Button>
         </form>
       )}
 
       {bankAccounts.length === 0 ? (
-        <p className="text-muted-foreground border-border mb-4 rounded-md border p-4 text-sm">
+        <p className="text-muted-foreground border-border bg-surface rounded-[var(--radius-lg)] border p-4 text-sm">
           {t('bank.noAccounts')}
         </p>
       ) : (
-        <div className="mb-4 grid grid-cols-3 gap-4">
-          {bankAccounts.map((account) => (
-            <div key={account.id} className="border-border rounded-md border p-4">
-              <p className="text-sm font-medium">{account.name}</p>
-              <p className="text-muted-foreground tabular text-xs">{account.iban}</p>
-              <p className="mt-3 text-2xl font-semibold tabular">
-                {account.reconciliation.statementBalance === null ? (
-                  <span className="text-muted-foreground text-sm">{t('bank.noStatement')}</span>
-                ) : (
-                  <Money amount={account.reconciliation.statementBalance} />
-                )}
-              </p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                {account.reconciliation.statementDate === null
-                  ? consentOf(account.consentState)
-                  : t('bank.asAt', {
-                      date: formatDate(account.reconciliation.statementDate),
-                      consent: consentOf(account.consentState),
-                    })}
-              </p>
-              {account.reconciliation.unmatchedCount > 0 && (
-                <p className="text-unreconciled mt-2 text-xs">
-                  {t('bank.unmatchedLines', {
-                    count: String(account.reconciliation.unmatchedCount),
-                  })}
-                </p>
-              )}
+        <div className="flex flex-wrap items-stretch gap-5">
+          {bankAccounts.map((account) => {
+            const rec = account.reconciliation
+            const lineTotal = rec.lineCount
+            const books = rec.booksBalance
+            const statement = rec.statementBalance
+            const hasDiff =
+              books !== null && statement !== null && BigInt(books) !== BigInt(statement)
 
-              <label className="mt-4 block">
-                <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                  {t('bank.importStatement')}
-                </span>
-                <input
-                  type="file"
-                  accept=".xml,.940,.sta,.txt,.mt940"
+            return (
+              <section
+                key={account.id}
+                data-slot="bank-account-card"
+                className="border-border bg-surface flex min-w-[min(100%,360px)] flex-1 flex-col gap-3.5 rounded-[var(--radius-lg)] border p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="bg-surface-sunken text-ink inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)]">
+                    <Landmark className="size-[18px]" aria-hidden="true" />
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong className="text-ink truncate text-sm font-semibold">
+                        {account.name}
+                      </strong>
+                      <Badge
+                        data-slot="bank-account-badge"
+                        variant="secondary"
+                        className="shrink-0 font-medium"
+                      >
+                        {t('bank.fileImport')}
+                      </Badge>
+                    </div>
+                    <span
+                      data-slot="bank-account-iban"
+                      className="text-ink-muted tabular whitespace-nowrap text-[13px]"
+                    >
+                      {formatIbanDisplay(account.iban)}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-ink text-[28px] leading-[34px] font-semibold tracking-[-0.02em] tabular">
+                  {statement === null ? (
+                    <span className="text-muted-foreground text-sm font-medium">
+                      {t('bank.noStatement')}
+                    </span>
+                  ) : (
+                    <>
+                      <span aria-hidden="true">€ </span>
+                      <Money
+                        amount={statement}
+                        className="text-[28px] leading-[34px] font-semibold"
+                      />
+                    </>
+                  )}
+                </p>
+
+                <dl className="text-ink grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[13px]">
+                  <dt className="text-ink-muted">{t('bank.statementUpTo')}</dt>
+                  <dd className="tabular">
+                    {rec.statementDate === null ? '—' : formatDate(rec.statementDate)}
+                  </dd>
+                  <dt className="text-ink-muted">{t('bank.lines')}</dt>
+                  <dd>
+                    {lineTotal === 0
+                      ? t('bank.linesNone')
+                      : t('bank.linesOfWhich', {
+                          total: String(lineTotal),
+                          unmatched: String(rec.unmatchedCount),
+                        })}
+                  </dd>
+                  <dt className="text-ink-muted">{t('bank.inTheBooks')}</dt>
+                  <dd className="tabular">
+                    {books === null ? (
+                      '—'
+                    ) : (
+                      <>
+                        <Money amount={books} />
+                        {hasDiff ? (
+                          <Link
+                            to="/reports/trial-balance"
+                            className="text-ink ml-1.5 font-medium underline underline-offset-2"
+                          >
+                            {t('bank.whyDifference')}
+                          </Link>
+                        ) : null}
+                      </>
+                    )}
+                  </dd>
+                </dl>
+
+                {rec.unmatchedCount > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild size="sm" className="min-h-11 md:min-h-9">
+                      <Link to="/bank/match">
+                        {t('bank.matchCount', { count: String(rec.unmatchedCount) })}
+                      </Link>
+                    </Button>
+                  </div>
+                ) : null}
+
+                {/*
+                  Import is per account card so a statement for the second
+                  account does not hit the first and surface an English core
+                  account_mismatch error (PM #171).
+                */}
+                <DropZone
+                  data-account-id={account.id}
+                  {...(account.id === primaryAccount?.id
+                    ? { inputRef: dropInputRef, shortcut: 'U' }
+                    : {})}
+                  className="min-h-0 justify-center px-4 py-5"
+                  title={t('bank.dropTitle')}
+                  description={bankAccounts.length === 1 ? t('bank.dropDescription') : account.name}
+                  accept=".xml,.940,.sta,.txt,.mt940,.csv"
                   disabled={busy || !hydrated}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
+                  onFiles={(files) => {
+                    const file = files[0]
                     if (file !== undefined) void chooseFile(account.id, file)
-                    event.target.value = ''
                   }}
-                  className="w-full text-xs"
                 />
-              </label>
+              </section>
+            )
+          })}
+
+          <section
+            data-slot="bank-import-card"
+            className="border-border bg-surface flex min-w-[min(100%,300px)] flex-1 flex-col gap-2.5 rounded-[var(--radius-lg)] border p-4"
+          >
+            <div className="bg-brand-tint text-brand-ink mb-1 inline-flex size-12 items-center justify-center rounded-xl">
+              <Upload className="size-[22px]" aria-hidden="true" />
             </div>
-          ))}
+            <strong className="text-ink text-[15px] font-semibold">
+              {t('bank.importCardTitle')}
+            </strong>
+            <p className="text-ink-2 flex-1 text-sm leading-relaxed">
+              {primaryAccount?.reconciliation.statementDate !== null &&
+              primaryAccount?.reconciliation.statementDate !== undefined
+                ? t('bank.importCardBodyDated', {
+                    date: formatDate(primaryAccount.reconciliation.statementDate),
+                  })
+                : t('bank.importCardBody')}
+            </p>
+          </section>
         </div>
       )}
 
       {notice !== null && (
-        <p className="border-border text-muted-foreground mb-4 rounded-md border p-3 text-sm">
+        <p className="border-border text-muted-foreground rounded-[var(--radius-md)] border p-3 text-sm">
           {notice}
         </p>
       )}
       {error !== null && (
-        <p role="alert" className="text-destructive mb-4 text-sm">
+        <p role="alert" className="text-destructive text-sm">
           {error}
         </p>
       )}
 
       {preview !== null && preview.report.needsMapping && mapping !== null && (
-        <div className="border-border mb-4 rounded-md border p-4">
+        <div className="border-border bg-surface rounded-[var(--radius-lg)] border p-4">
           <h2 className="text-base font-medium">{t('bank.columns')}</h2>
-          {/* A guess to correct, not a form to fill in: spec 7.4 asks for a
-              configurable mapper, and eleven empty dropdowns is a mapper
-              nobody configures. */}
           <p className="text-muted-foreground mt-1 text-sm">{t('bank.columnsIntro')}</p>
 
-          <div className="mt-4 grid grid-cols-4 gap-4">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {MAPPING_FIELDS.map((field) => (
               <SelectField
                 key={field.key}
@@ -481,8 +563,6 @@ function Bank() {
                   setMapping({
                     ...mapping,
                     [field.key]: value,
-                    // An af/bij column is what decides the style; without one
-                    // the sign has to be in the amount itself.
                     ...(field.key === 'indicator'
                       ? { amountStyle: value === null ? 'signed' : 'indicator' }
                       : {}),
@@ -530,12 +610,11 @@ function Bank() {
                 <span className="text-muted-foreground mb-1 block text-xs font-medium">
                   {t('bank.creditIndicator')}
                 </span>
-                <input
+                <Input
                   value={mapping.creditIndicator ?? ''}
                   onChange={(event) => {
                     setMapping({ ...mapping, creditIndicator: event.target.value })
                   }}
-                  className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-sm"
                 />
               </label>
             )}
@@ -547,35 +626,36 @@ function Bank() {
             </p>
           )}
 
-          <div className="mt-4 flex gap-3">
-            <button
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button
               type="button"
               disabled={busy || !hydrated}
+              className="min-h-11 md:min-h-10"
               onClick={() => {
                 void applyMapping()
               }}
-              className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
               {busy ? t('common.busy') : t('bank.readFile')}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              className="min-h-11 md:min-h-10"
               onClick={() => {
                 setPreview(null)
                 setMapping(null)
               }}
-              className="border-input rounded-md border px-4 py-2 text-sm"
             >
               {t('common.cancel')}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {preview !== null && !preview.report.needsMapping && (
-        <div className="border-border mb-4 rounded-md border p-4">
+        <div className="border-border bg-surface rounded-[var(--radius-lg)] border p-4">
           <h2 className="text-base font-medium">{t('bank.wouldDo')}</h2>
-          <dl className="mt-3 grid grid-cols-4 gap-4 text-sm">
+          <dl className="mt-3 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
             <div>
               <dt className="text-muted-foreground text-xs">{t('bank.format')}</dt>
               <dd>{preview.report.format ?? t('bank.formatUnknown')}</dd>
@@ -613,35 +693,48 @@ function Bank() {
             </ul>
           )}
 
-          <div className="mt-4 flex gap-3">
-            <button
+          {preview.report.newEntries === 0 ? (
+            <p className="text-muted-foreground mt-4 text-sm">
+              {t('bank.nothingNew', {
+                count: String(
+                  preview.report.duplicates > 0
+                    ? preview.report.duplicates
+                    : preview.report.entries,
+                ),
+              })}
+            </p>
+          ) : null}
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            {preview.report.newEntries > 0 ? (
+              <Button
+                type="button"
+                disabled={busy}
+                className="min-h-11 md:min-h-10"
+                onClick={() => {
+                  void confirm()
+                }}
+              >
+                {busy ? t('common.busy') : t('bank.import')}
+              </Button>
+            ) : null}
+            <Button
               type="button"
-              disabled={busy || preview.report.newEntries === 0}
-              onClick={() => {
-                void confirm()
-              }}
-              className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-            >
-              {busy ? t('common.busy') : t('bank.import')}
-            </button>
-            <button
-              type="button"
+              variant="outline"
+              className="min-h-11 md:min-h-10"
               onClick={() => {
                 setPreview(null)
               }}
-              className="border-input rounded-md border px-4 py-2 text-sm"
             >
               {t('common.cancel')}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {learnedRules.length > 0 && (
-        <section className="mb-4">
+        <section>
           <h2 className="mb-1 text-base font-medium">{t('bank.rules')}</h2>
-          {/* Spec 7.4: "visible and editable, never a black box". A rule you
-              cannot read is one you cannot disagree with. */}
           <p className="text-muted-foreground mb-3 text-sm">{t('bank.rulesIntro')}</p>
           <table className="w-full text-sm">
             <thead>
@@ -679,7 +772,7 @@ function Bank() {
                       onClick={() => {
                         void toggleRule(rule.id, !rule.isActive)
                       }}
-                      className="text-muted-foreground hover:text-foreground text-xs underline disabled:opacity-50"
+                      className="text-muted-foreground hover:text-foreground min-h-11 text-xs underline disabled:opacity-50 md:min-h-0"
                     >
                       {rule.isActive ? t('bank.ruleDisable') : t('bank.ruleEnable')}
                     </button>
@@ -692,39 +785,105 @@ function Bank() {
       )}
 
       {bankAccounts.length > 0 && (
-        <>
-          <div className="mb-4 grid grid-cols-3 gap-4">
-            <Stat
-              label={t('bank.lines')}
-              value={String(rows.length)}
-              hint={t('bank.lastTwoHundred')}
-            />
-            <Stat
-              label={t('bank.toMatch')}
-              value={String(unmatched)}
-              tone={unmatched > 0 ? 'warn' : 'neutral'}
-              hint={t('bank.toMatchHint')}
-            />
-            <Stat label={t('bank.accounts')} value={String(bankAccounts.length)} />
+        <section
+          data-slot="bank-transactions"
+          className="border-border bg-surface overflow-hidden rounded-[var(--radius-lg)] border"
+          aria-labelledby="bank-tx-heading"
+        >
+          <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <h2 id="bank-tx-heading" className="text-base font-semibold">
+                {t('bank.allTransactions')}
+              </h2>
+              {rows.length >= 200 ? (
+                <span className="text-muted-foreground text-xs">{t('bank.lastTwoHundred')}</span>
+              ) : null}
+            </div>
+            <Tabs
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value === 'unmatched' ? 'unmatched' : 'all')
+              }}
+            >
+              <TabsList variant="segmented" aria-label={t('bank.filterStatus')}>
+                <TabsTrigger value="all">
+                  {t('bank.filterAll')}{' '}
+                  <span className="text-ink-muted ml-1 tabular">{rows.length}</span>
+                </TabsTrigger>
+                <TabsTrigger value="unmatched">
+                  {t('bank.toMatch')}{' '}
+                  <span className="text-ink-muted ml-1 tabular">{unmatchedInList}</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
 
-          <LedgerTable
-            columns={columns}
-            rows={rows}
-            rowKey={(row) => row.id}
-            caption={t('bank.transactions')}
-            empty={t('bank.transactionsEmpty')}
-          />
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px]">
+              <div
+                className="text-ink-muted grid grid-cols-[72px_minmax(160px,1fr)_minmax(140px,1fr)_100px_100px] gap-3 border-b border-[var(--line-soft)] px-4 py-2 text-xs font-medium"
+                role="row"
+              >
+                <span>{t('bank.map.bookingDate')}</span>
+                <span>{t('bank.counterparty')}</span>
+                <span>{t('entries.description')}</span>
+                <span>{t('invoices.status')}</span>
+                <span className="text-right">{t('bank.amount')}</span>
+              </div>
 
-          <p className="text-muted-foreground mt-6 max-w-2xl text-xs">
-            {t('bank.footerNote')}{' '}
-            <Link to="/bank/match" className="underline">
-              {t('bank.footerLink')}
-            </Link>
-            .
-          </p>
-        </>
+              {visibleRows.length === 0 ? (
+                <p className="text-muted-foreground px-4 py-8 text-sm">
+                  {t('bank.transactionsEmpty')}
+                </p>
+              ) : (
+                visibleRows.map((row) => {
+                  const content = (
+                    <>
+                      <span className="tabular">{formatBankDayMonth(row.bookingDate, tag)}</span>
+                      <span className="truncate">
+                        {row.counterpartyName ?? (
+                          <span className="text-muted-foreground">
+                            {t('bank.counterpartyUnknown')}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-ink-muted truncate">{row.description}</span>
+                      <span>{statusBadge(row.status)}</span>
+                      <span className="text-right">
+                        <Money amount={row.amount} />
+                      </span>
+                    </>
+                  )
+
+                  if (row.status === 'unmatched') {
+                    return (
+                      <Link
+                        key={row.id}
+                        to="/bank/match"
+                        className={cn(
+                          'text-ink grid grid-cols-[72px_minmax(160px,1fr)_minmax(140px,1fr)_100px_100px] items-center gap-3 border-b border-[var(--line-soft)] px-4 py-3 text-sm no-underline',
+                          'hover:bg-surface-sunken min-h-11',
+                        )}
+                      >
+                        {content}
+                      </Link>
+                    )
+                  }
+
+                  return (
+                    <div
+                      key={row.id}
+                      className="text-ink grid grid-cols-[72px_minmax(160px,1fr)_minmax(140px,1fr)_100px_100px] items-center gap-3 border-b border-[var(--line-soft)] px-4 py-3 text-sm"
+                    >
+                      {content}
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </section>
       )}
-    </>
+    </div>
   )
 }

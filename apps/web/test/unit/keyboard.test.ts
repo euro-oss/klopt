@@ -75,9 +75,22 @@ describe('the keyboard map', () => {
     const chips = (id: string) => bindingChips(BINDINGS_BY_ID.get(id)!)
 
     expect(chips('list.select')).toEqual(['Space'])
+    expect(chips('list.selectX')).toEqual(['x'])
+    expect(chips('list.filter')).toEqual(['/'])
     expect(chips('list.typeAhead')).toEqual(['A–Z'])
     expect(chips('picker.next')).toEqual(['Tab'])
     expect(chips('inbox.leave')).toEqual(['Esc'])
+    expect(chips('new.contact')).toEqual(['n', 'c'])
+    expect(chips('new.receipt')).toEqual(['n', 'r'])
+  })
+
+  it('keeps Bank / match / payments / dunning chords (#107)', () => {
+    expect(BINDINGS_BY_ID.get('go.bank')?.keys).toBe('g k')
+    expect(BINDINGS_BY_ID.get('go.bank')?.to).toBe('/bank/match')
+    expect(BINDINGS_BY_ID.get('go.match')?.keys).toBe('g o')
+    expect(BINDINGS_BY_ID.get('go.payments')?.keys).toBe('g y')
+    expect(BINDINGS_BY_ID.get('go.dunning')?.keys).toBe('g m')
+    expect(BINDINGS_BY_ID.get('go.import')?.to).toBe('/importeren')
   })
 
   it('gives each modifier and key its own cap', () => {

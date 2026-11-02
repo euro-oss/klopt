@@ -1,32 +1,28 @@
 /**
- * What is waiting, in the order the day is worked.
+ * What is waiting, ordered by consequence (redesign Phase 1 / #107).
  *
- * The dashboard used to be three health figures — does the trial balance net
- * to zero, does the chain verify, how much of the chart is mapped to RGS. All
- * three are worth knowing and none of them is work. A bookkeeper opening the
- * application was told the books were sound and not what to do next, while the
- * five things actually waiting for them lived on five other screens.
- *
- * The order here is the daily spine: blocking import first (nothing else moves
- * until it does), then invoice, then the bank, then what suppliers sent, then
- * the btw-aangifte. It is deliberately fixed rather than sorted by count — a
- * queue that reorders itself as the numbers move is a queue nobody can learn.
+ * Late money first, then work that blocks others, then deadlines — matching
+ * the TodoItem rule on the Home board. Import findings sit above overdue
+ * invoices because nothing else moves until they are cleared. The order is
+ * fixed rather than sorted by count: a queue that reorders itself as the
+ * numbers move is a queue nobody can learn.
  *
  * A row with nothing in it is not shown. "Nul openstaande banktransacties" is
  * a status wall, and the whole point of this list is that everything on it is
- * something to do.
+ * something to do. The Home empty state says "Nothing waiting" / "Niets te
+ * doen". There is no invented "Haal je boekhouding over" row (decision 2).
  */
 
 export const WORK_QUEUE_ORDER = [
   'import.blocking',
-  'sales.draft',
   'sales.overdue',
   'dunning.waiting',
   'bank.unmatched',
-  'inbox.waiting',
-  'purchase.book',
   'purchase.approve',
+  'purchase.book',
   'vat.filing',
+  'sales.draft',
+  'inbox.waiting',
 ] as const
 
 export type WorkQueueKind = (typeof WORK_QUEUE_ORDER)[number]
@@ -130,32 +126,38 @@ export function buildWorkQueue(
     }
   })()
 
-  const rows: readonly WorkQueueItem[] = [
-    {
+  const byKind: Record<WorkQueueKind, WorkQueueItem> = {
+    'import.blocking': {
       kind: 'import.blocking',
       count: counts.importBlocking,
       amount: null,
       ...(counts.importSource === null ? {} : { detail: { source: counts.importSource } }),
     },
-    { kind: 'sales.draft', count: counts.salesDrafts, amount: null },
-    {
+    'sales.overdue': {
       kind: 'sales.overdue',
       count: counts.salesOverdue,
       amount: counts.salesOverdueTotal,
       ...(overdueDetail === undefined ? {} : { detail: overdueDetail }),
     },
-    { kind: 'dunning.waiting', count: counts.dunningWaiting, amount: null },
-    { kind: 'bank.unmatched', count: counts.bankUnmatched, amount: null },
-    { kind: 'inbox.waiting', count: counts.inboxWaiting, amount: null },
-    { kind: 'purchase.book', count: counts.purchaseToBook, amount: null },
-    { kind: 'purchase.approve', count: counts.purchaseToApprove, amount: null },
-    {
+    'dunning.waiting': { kind: 'dunning.waiting', count: counts.dunningWaiting, amount: null },
+    'bank.unmatched': { kind: 'bank.unmatched', count: counts.bankUnmatched, amount: null },
+    'purchase.approve': {
+      kind: 'purchase.approve',
+      count: counts.purchaseToApprove,
+      amount: null,
+    },
+    'purchase.book': { kind: 'purchase.book', count: counts.purchaseToBook, amount: null },
+    'vat.filing': {
       kind: 'vat.filing',
       count: counts.vatFilingCount,
       amount: counts.vatPayable,
       ...(vatDetail === undefined ? {} : { detail: vatDetail }),
     },
-  ]
+    'sales.draft': { kind: 'sales.draft', count: counts.salesDrafts, amount: null },
+    'inbox.waiting': { kind: 'inbox.waiting', count: counts.inboxWaiting, amount: null },
+  }
 
-  return rows.filter((row) => row.count > 0 && granted(WORK_QUEUE_PERMISSION[row.kind]))
+  return WORK_QUEUE_ORDER.map((kind) => byKind[kind]).filter(
+    (row) => row.count > 0 && granted(WORK_QUEUE_PERMISSION[row.kind]),
+  )
 }

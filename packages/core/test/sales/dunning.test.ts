@@ -29,7 +29,7 @@ const invoice = (overrides: Partial<DunnableInvoice> = {}): DunnableInvoice => (
   total: 121_000n,
   currency: 'EUR',
   contactName: 'Grote Klant N.V.',
-  contactEmail: 'inkoop@groteklant.nl',
+  contactEmail: 'inkoop@groteklant.example.nl',
   remindersSent: [],
   ...overrides,
 })

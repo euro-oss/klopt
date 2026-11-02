@@ -24,13 +24,37 @@ test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
 
-async function anAdministration(page: Page, name: string): Promise<void> {
+const MONTHS_NL = [
+  'januari',
+  'februari',
+  'maart',
+  'april',
+  'mei',
+  'juni',
+  'juli',
+  'augustus',
+  'september',
+  'oktober',
+  'november',
+  'december',
+] as const
+
+async function anAdministration(
+  page: Page,
+  name: string,
+  options?: { readonly startInCurrentMonth?: boolean },
+): Promise<void> {
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam van de administratie').fill(name)
+  // Keyboard specs that assume a draft is the top to-do need no closed VAT
+  // period waiting — start the book year in the current month for those.
+  if (options?.startInCurrentMonth === true) {
+    await chooseOption(page, 'Begint in', MONTHS_NL[new Date().getMonth()]!)
+  }
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -43,9 +67,9 @@ async function aDraftInvoice(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Wachtende Klant N.V.')
-  await page.getByLabel('E-mail').fill('inkoop@wachtendeklant.nl')
+  await page.getByLabel('E-mail').fill('inkoop@wachtendeklant.example.nl')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Wachtende Klant N.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Wachtende Klant N\.V\./ })).toBeVisible()
 
   // Draft setup uses the bookkeeper form (Geavanceerd); Eigenaar default is guided (#45).
   await enableAdvancedMode(page)
@@ -61,7 +85,10 @@ async function aDraftInvoice(page: Page): Promise<void> {
 test('an empty administration shows the redesigned dashboard and a way to start', async ({
   page,
 }) => {
-  await anAdministration(page, 'Leeg Bureau BV')
+  // Book year starts this month so no closed VAT period is waiting — otherwise
+  // a January start leaves a btw to-do, the queue is non-empty, and the header
+  // "Nieuwe factuur" alone can satisfy a haveCount(1) (QA #117).
+  await anAdministration(page, 'Leeg Bureau BV', { startInCurrentMonth: true })
 
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -69,31 +96,55 @@ test('an empty administration shows the redesigned dashboard and a way to start'
   // No email local-part in the greeting (designer #67).
   await expect(page.getByRole('heading', { name: /@|e2e-/ })).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Kerncijfers' })).toBeVisible()
-  // No operational work yet — drafts / bank / inbox stay off the list. A due
-  // btw-aangifte may still appear (the period closed even with empty books).
+  // Queue must actually be empty — not a VAT row with a header-only CTA.
+  await expect(page.getByRole('heading', { name: 'Te doen', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /Btw-aangifte/ })).toHaveCount(0)
   await expect(page.getByRole('link', { name: /concept(en)? om te versturen/i })).toHaveCount(0)
   await expect(page.getByRole('link', { name: /bankregels wachten/ })).toHaveCount(0)
+  // No invented "import your books" to-do (decision 2 / #107).
+  await expect(page.getByText(/Haal je boekhouding over/i)).toHaveCount(0)
 
-  // Header CTA is the next step when the empty-state button is not shown.
-  await page
-    .getByRole('link', { name: /Nieuwe factuur/ })
-    .first()
-    .click()
+  // Loaded + empty: exactly one "Nieuwe factuur", inside the empty card (PM #117).
+  await expect(page.getByRole('heading', { name: 'Niets te doen', exact: true })).toBeVisible()
+  const emptyCard = page.locator('[data-slot="empty"]')
+  await expect(emptyCard.getByRole('link', { name: /Nieuwe factuur/ })).toHaveCount(1)
+  const newInvoices = page.locator('#main').getByRole('link', { name: /Nieuwe factuur/ })
+  await expect(newInvoices).toHaveCount(1)
+  await expect(newInvoices).toHaveAttribute('data-variant', 'outline')
+  await newInvoices.click()
   await expect(page).toHaveURL(/\/invoices\/new$/)
 })
 
 test('the queue lists what is waiting and opens the screen where it is done', async ({ page }) => {
-  await anAdministration(page, 'Werklijst BV')
+  await anAdministration(page, 'Werklijst BV', { startInCurrentMonth: true })
   await aDraftInvoice(page)
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Wat aandacht vraagt' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Te doen' })).toBeVisible()
   await hydrated(page)
   const row = page.getByRole('link', { name: /concept(en)? om te versturen/i })
   await expect(row).toBeVisible()
   // #5 AC: the count is in the title (PM #67). Singular form for count 1.
   await expect(row).toContainText('1 concept om te versturen')
   await expect(row).toContainText('Openen')
+
+  // Only the top to-do's action is primary (PM #107). Header invoice stays outline.
+  await expect(
+    page
+      .locator('#main')
+      .getByRole('link', { name: /Nieuwe factuur/ })
+      .first(),
+  ).toHaveAttribute('data-variant', 'outline')
+  const todoList = page
+    .locator('#main')
+    .getByRole('list')
+    .filter({
+      has: page.getByRole('link', { name: /concept(en)? om te versturen/i }),
+    })
+  await expect(todoList.locator('[data-todo-action="primary"]')).toHaveCount(1)
+  await expect(
+    todoList.getByRole('listitem').first().locator('[data-todo-action="primary"]'),
+  ).toHaveCount(1)
 
   // Do not steal focus on load — j/k start the cursor at row 0.
   // Arrow keys outside the list must not enter it (keep page scroll).
@@ -104,22 +155,26 @@ test('the queue lists what is waiting and opens the screen where it is done', as
   await expect(row).toBeFocused()
 
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/\/invoices\?status=draft$/)
+  await expect(page).toHaveURL(/\/invoices\?segment=draft/)
 
   // And the count was the truth: one draft on the dashboard, one draft here.
   // A queue whose numbers disagree with the screens behind them is a queue
-  // people stop believing.
-  await expect(page.getByRole('row')).toHaveCount(2)
+  // people stop believing. Phase 2 list uses segment Drafts (Concepten).
+  await expect(page.getByRole('tab', { name: /Concepten/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(page.getByRole('tab', { name: /Concepten/ })).toContainText('1')
 })
 
-test('Geavanceerd off hides the whole health strip on the dashboard', async ({ page }) => {
+test('Home drops the Kloppen de boeken health strip', async ({ page }) => {
   await anAdministration(page, 'Eenvoudig Dashboard BV')
 
-  // Owner defaults to Geavanceerd off (#65 / designer #67): jargon health
-  // (Kloppen de boeken?, RGS, Proefbalans) stays out until advanced is on.
+  // Phase 1 Home: no jargon health / unmapped block (Design #112).
   await expect(page.getByRole('heading', { name: 'Kloppen de boeken?' })).toHaveCount(0)
   await expect(page.locator('#main').getByText('RGS-dekking')).toHaveCount(0)
   await expect(page.locator('#main').getByText('Proefbalans')).toHaveCount(0)
+  await expect(page.getByText('Niet-gekoppelde rekeningen')).toHaveCount(0)
 })
 
 test('kerncijfers label overdue outstanding honestly, not as all receivables', async ({ page }) => {
@@ -133,15 +188,59 @@ test('kerncijfers label overdue outstanding honestly, not as all receivables', a
   // Bank suggestions and Exact finding counts stay out — no invented 0.
   await expect(page.getByText(/suggestie/i)).toHaveCount(0)
   await expect(page.getByRole('link', { name: /Exact.*0|0.*Exact/i })).toHaveCount(0)
+
+  // No-data tiles drop the value line (no em dash, no € 0,00 on bank).
+  const bank = figures.getByRole('link', { name: /Op de bank/ })
+  await expect(bank).toContainText('Nog geen bankrekening')
+  await expect(bank).not.toContainText('—')
+  await expect(bank).not.toContainText('Niet beschikbaar')
+  // Successful payables zero still shows the amount + empty meta (not Unavailable).
+  const payables = figures.getByRole('link', { name: /Nog te betalen/ })
+  await expect(payables).toContainText('€')
+  await expect(payables).toContainText('Niets open')
+  await expect(payables).not.toContainText('Niet beschikbaar')
+  // Successful P&L zero is an amount, not Unavailable.
+  const profit = figures.getByRole('link', { name: /Winst|Verlies/ })
+  await expect(profit).toContainText('€')
+  await expect(profit).not.toContainText('Niet beschikbaar')
+})
+
+test('Bonnetje has no shortcut chip, and phone keeps one secondary under Te doen', async ({
+  page,
+}) => {
+  await anAdministration(page, 'Bonnetje Shortcut BV')
+  await hydrated(page)
+
+  const desktopReceipt = page
+    .locator('#main header')
+    .getByRole('link', { name: /Bonnetje toevoegen/ })
+  await expect(desktopReceipt).toBeVisible()
+  // No chord on the action button (PM + Design #112); keymap unchanged.
+  await expect(desktopReceipt.locator('kbd')).toHaveCount(0)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(
+    page.locator('#main header').getByRole('link', { name: /Bonnetje toevoegen/ }),
+  ).toHaveCount(0)
+  const phoneReceipt = page.locator('#main').getByRole('link', { name: /Bonnetje toevoegen/ })
+  await expect(phoneReceipt).toBeVisible()
+  await phoneReceipt.click()
+  await expect(page).toHaveURL(/\/inbox$/)
 })
 
 test('Escape gives the keyboard back to the rest of the application', async ({ page }) => {
-  await anAdministration(page, 'Ontsnapping BV')
+  await anAdministration(page, 'Ontsnapping BV', { startInCurrentMonth: true })
   await aDraftInvoice(page)
 
   await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Te doen' })).toBeVisible()
   await hydrated(page)
   const row = page.getByRole('link', { name: /concept(en)? om te versturen/i })
+  // Wait for the queue row before j: hydrated only proves the shell, and the
+  // WorkQueue keydown listener attaches after items arrive. Pressing earlier
+  // loses the keystroke and flakes on focus.
+  await expect(row).toBeVisible()
+  await expect(row).not.toBeFocused()
   await page.keyboard.press('j')
   await expect(row).toBeFocused()
 
@@ -166,17 +265,16 @@ test('the book year in the shell is the administration’s, and the reports agre
   await page.keyboard.press('Escape')
 
   // The shell switcher names the year; the redesigned dashboard greeting no
-  // longer repeats "Boekjaar YYYY:" in the page header.
-  const switcher =
-    (await page
-      .getByRole('button', { name: /Administratie en boekjaar|Administration and book year/ })
-      .textContent()) ?? ''
-  const year = /Boekjaar (\d{4})/.exec(switcher)?.[1] ?? ''
+  // longer repeats "Boekjaar YYYY:" in the page header. Designer: closed row is
+  // "Boekjaar 2026" only — no truncated date range.
+  const switcher = page.getByRole('button', {
+    name: /Administratie en boekjaar|Administration and book year/,
+  })
+  const switcherText = (await switcher.textContent()) ?? ''
+  const year = /Boekjaar (\d{4})/.exec(switcherText)?.[1] ?? ''
   expect(year).toMatch(/^\d{4}$/)
-
-  // The dates sit on the switcher row, because a boekjaar labelled 2025 may
-  // run into 2026 and a label alone is the guess this replaced.
-  await expect(page.getByText(/\d{2}-\d{2}-\d{4} – \d{2}-\d{2}-\d{4}/)).toBeVisible()
+  await expect(switcher).toContainText(`Boekjaar ${year}`)
+  await expect(switcher).not.toContainText(/\d{2}-\d{2}-\d{4}/)
 
   await page.goto('/reports/trial-balance')
   await expect(page.locator('#main').getByText(new RegExp(`Boekjaar ${year}`))).toBeVisible()
@@ -211,7 +309,11 @@ test('a report can be pointed at another book year, and the link carries it', as
 
   // And walking to another report keeps the year, though the link carries no
   // parameter: that is the cookie doing the remembering.
-  await page.getByRole('link', { name: 'Balans', exact: true }).click()
+  // Reports tab accessible name includes the digit hint (`Balans` + `2`).
+  await page
+    .getByRole('navigation', { name: 'Rapporten' })
+    .getByRole('link', { name: /Balans/ })
+    .click()
   await expect(page.getByRole('heading', { name: 'Balans' })).toBeVisible()
   await expect(page.getByText(`${next}-12-31`)).toBeVisible()
 })
@@ -234,12 +336,13 @@ test('a boekjaar that is not the calendar year is the one the screens use', asyn
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
   ).toBeVisible()
-  await expect(
-    page.getByRole('button', { name: /Administratie en boekjaar|Administration and book year/ }),
-  ).toContainText(`Boekjaar ${opened}`)
-  await expect(
-    page.getByText(`01-07-${opened} – 30-06-${String(Number(opened) + 1)}`),
-  ).toBeVisible()
+  const switcher = page.getByRole('button', {
+    name: /Administratie en boekjaar|Administration and book year/,
+  })
+  await expect(switcher).toContainText(`Boekjaar ${opened}`)
+  // Closed summary is year-only (#107 Designer); the July–June span still
+  // drives reports (ageing as-of below).
+  await expect(switcher).not.toContainText(`01-07-${opened}`)
 
   await page.goto('/reports/trial-balance')
   await expect(page.locator('#main').getByText(new RegExp(`Boekjaar ${opened}`))).toBeVisible()
@@ -281,10 +384,12 @@ test('the theme is light to start with, and dark stays dark', async ({ page }) =
 test('ageing is in the navigation, on both sides', async ({ page }) => {
   await anAdministration(page, 'Ouderdom BV')
 
-  // Simple-mode label under Rapporten (#61 slice 2); Geavanceerd renames it Debiteuren.
-  await page.getByRole('link', { name: 'Openstaand bij klanten' }).click()
+  // Ageing is Reports SubNav + palette (#107), not a top-level rail item.
+  await page.goto('/reports/profit-and-loss')
+  const reports = page.getByRole('navigation', { name: 'Rapporten' })
+  await reports.getByRole('link', { name: /Openstaand bij klanten/ }).click()
   await expect(page.getByRole('heading', { name: 'Ouderdomsanalyse debiteuren' })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Crediteuren' }).click()
+  await reports.getByRole('link', { name: /Crediteuren/ }).click()
   await expect(page.getByRole('heading', { name: 'Ouderdomsanalyse crediteuren' })).toBeVisible()
 })

@@ -86,13 +86,8 @@ async function anAdministration(page: Page): Promise<void> {
  * an assertion retried afterwards cannot get it back.
  */
 async function theKeyboardIsLive(page: Page): Promise<void> {
-  // Dashboard is always in the nav; Journaalposten is Geavanceerd-only for Eigenaar.
-  await expect(
-    page
-      .getByRole('link', { name: /^Dashboard/ })
-      .locator('kbd')
-      .first(),
-  ).toBeVisible()
+  // Home is always in the nav (v2 rail label for the dashboard chord).
+  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
 }
 
 /**
@@ -229,7 +224,7 @@ test('the help sheet is the keyboard map, generated from the registry', async ({
 
   // Including the screen-local keys, which the palette cannot offer because it
   // cannot run them from here.
-  await expect(help).toContainText('Paneel openen / voorstel boeken')
+  await expect(help).toContainText('Voorstel boeken / formulier openen')
   await expect(help).toContainText('Commandopalet')
 
   await page.keyboard.press('Escape')
@@ -471,16 +466,20 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  // CoS example IBAN — must match statement.mt940 (NL91ABNA0417164300).
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
+  await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
 
-  await expect(page.locator('input[type="file"]')).toBeEnabled()
-  await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
+  await expect(page.locator('[data-slot="drop-zone"] input[type="file"]')).toBeEnabled()
+  await page.setInputFiles(
+    '[data-slot="drop-zone"] input[type="file"]',
+    join(FIXTURES, 'statement.mt940'),
+  )
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
-  await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
-  await expect(page.getByText('4 transacties ingelezen.')).toBeVisible()
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
+  await expect(page.getByText('4 transacties geïmporteerd.')).toBeVisible()
 
   await page.goto('/inbox')
   await expect(page.locator('input[type="file"]')).toBeEnabled()
@@ -533,22 +532,21 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   // body: the next Tab starts here rather than at the top of the window.
   await focusIsSomewhere(page)
 
-  // Invoice needed Geavanceerd; Koppelen below asserts simple-mode Categorie
+  // Invoice needed Geavanceerd; Match below asserts simple-mode Categorie
   // (name in the field). Turn it off before `g o`.
   await setAdvancedMode(page, false)
 
-  // Koppelen: `g` then `o`, the cursor down a line, an account typed in, booked.
-  // Redesign (#61 slice 6): Af/Bij table + Categorie picker, not the old button list.
+  // Bank match: `g` then `o`, next line, option 4 opens the form, book by hand.
   await page.keyboard.press('g')
   await page.keyboard.press('o')
-  await expect(page.getByRole('heading', { name: 'Koppelen' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bank' })).toBeVisible()
 
-  const queue = page.getByRole('table', { name: 'Wachtrij' }).locator('tbody tr')
+  const queue = page.locator('[data-slot="match-queue"] [data-row]')
   await expect(queue).toHaveCount(4)
   await page.keyboard.press('j')
 
-  // Fixture chart has 4900 (Algemene kosten), not 4400. Simple mode shows the
-  // name in the field; the stored value is still the account number.
+  // Option 4 opens the booking form. Fixture chart has 4900 (Algemene kosten).
+  await page.keyboard.press('4')
   const manual = page.getByRole('combobox', { name: 'Categorie' })
   await manual.pressSequentially('4900')
   await page.keyboard.press('ArrowDown')
@@ -560,7 +558,7 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
   await tabTo(page, /^BUTTON Boeken/)
   await page.keyboard.press('Enter')
   // Posted notice names the bank line (j moved off the fee line).
-  await expect(page.getByText('Gekoppeld: Overboeking spaarrekening')).toBeVisible()
+  await expect(page.getByText('Geboekt: Overboeking spaarrekening')).toBeVisible()
   await expect(queue).toHaveCount(3)
 
   // Postvak draft uses Grootboek line fields — turn Geavanceerd back on.
@@ -600,7 +598,7 @@ test('the postvak is worked with the same keys as everything else', async ({ pag
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByRole('cell', { name: 'Leverancier B.V.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Leverancier B\.V\./ })).toBeVisible()
 
   await page.goto('/inbox')
   await expect(page.locator('input[type="file"]')).toBeEnabled()

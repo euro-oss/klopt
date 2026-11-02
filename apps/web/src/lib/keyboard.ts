@@ -40,9 +40,19 @@ export const BINDINGS: readonly Binding[] = [
     modifiers: ['mod'],
   },
   { id: 'help', label: 'keys.help', group: 'keys.group.global', keys: '?' },
+  // Digits are handled locally on tab strips; this row exists so the `?` sheet
+  // lists them (docs/keyboard-map.md). Not a global binding.
+  {
+    id: 'tabs.switch',
+    label: 'keys.tabsSwitch',
+    group: 'keys.group.tabs',
+    keys: '1-5',
+  },
 
   { id: 'go.dashboard', label: 'nav.dashboard', group: 'keys.group.goTo', keys: 'g d', to: '/' },
-  { id: 'go.journal', label: 'nav.entries', group: 'keys.group.goTo', keys: 'g j', to: '/entries' },
+  { id: 'go.journal', label: 'nav.journal', group: 'keys.group.goTo', keys: 'g j', to: '/entries' },
+  // Chord-only: categories add/rename is [API] (#107) — hidden from nav and ⌘K.
+  // `g a` stays so the g-alphabet remains full; the route itself still works.
   {
     id: 'go.accounts',
     label: 'accounts.title',
@@ -93,7 +103,22 @@ export const BINDINGS: readonly Binding[] = [
     keys: 'g r',
     to: '/contacts',
   },
-  { id: 'go.bank', label: 'nav.bank', group: 'keys.group.goTo', keys: 'g k', to: '/bank' },
+  // Bank in the flat rail opens the match queue (work first). `g k` stays the
+  // Bank chord; statements remain at /bank via go.bankStatements (⌘K only).
+  {
+    id: 'go.bank',
+    label: 'nav.bank',
+    group: 'keys.group.goTo',
+    keys: 'g k',
+    to: '/bank/match',
+  },
+  {
+    id: 'go.bankStatements',
+    label: 'nav.bankStatements',
+    group: 'keys.group.goTo',
+    to: '/bank',
+  },
+  // Kept as a chord with no menu item (#107): match / payments / dunning.
   {
     id: 'go.match',
     label: 'match.title',
@@ -109,6 +134,13 @@ export const BINDINGS: readonly Binding[] = [
     to: '/payments',
   },
   { id: 'go.dunning', label: 'nav.dunning', group: 'keys.group.goTo', keys: 'g m', to: '/dunning' },
+  // Single ⌘K action "Importeren"; i m / i x / g x stay as source-specific chords.
+  {
+    id: 'go.import',
+    label: 'nav.import',
+    group: 'keys.group.goTo',
+    to: '/importeren',
+  },
   // `g g` for aan**g**ifte. `g b`, `g t` and `g w` were all taken by the time
   // BTW arrived, which is what happens when a keyboard map is real.
   { id: 'go.vat', label: 'keys.goVat', group: 'keys.group.goTo', keys: 'g g', to: '/vat' },
@@ -246,6 +278,21 @@ export const BINDINGS: readonly Binding[] = [
     to: '/invoices/new',
   },
   {
+    id: 'new.contact',
+    label: 'keys.newContact',
+    group: 'keys.group.new',
+    keys: 'n c',
+    to: '/contacts',
+  },
+  // v2: N R = receipt/bill. `n i` is an alias for the same destination (#107).
+  {
+    id: 'new.receipt',
+    label: 'keys.newReceipt',
+    group: 'keys.group.new',
+    keys: 'n r',
+    to: '/purchases/new',
+  },
+  {
     id: 'new.purchase',
     label: 'purchaseNew.title',
     group: 'keys.group.new',
@@ -260,6 +307,10 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'list.previous', label: 'keys.listPrevious', group: 'keys.group.list', keys: 'k' },
   { id: 'list.open', label: 'keys.listOpen', group: 'keys.group.list', keys: 'enter' },
   { id: 'list.select', label: 'keys.listSelect', group: 'keys.group.list', keys: 'space' },
+  // X selects as well as Space (#107). Match booking deliberately does not use X.
+  { id: 'list.selectX', label: 'keys.listSelect', group: 'keys.group.list', keys: 'x' },
+  // `/` focuses the filter on list pages only (not the palette).
+  { id: 'list.filter', label: 'keys.listFilter', group: 'keys.group.list', keys: '/' },
   {
     id: 'list.selectAll',
     label: 'keys.listSelectAll',
@@ -290,14 +341,15 @@ export const BINDINGS: readonly Binding[] = [
   { id: 'queue.previous', label: 'keys.queuePrevious', group: 'keys.group.queue', keys: 'k' },
   { id: 'queue.leave', label: 'keys.queueLeave', group: 'keys.group.queue', keys: 'escape' },
 
-  // Four keys, by the Alpha 4 oracle: `Enter` opens the panel and then confirms
-  // the candidate the cursor is on. `1`–`9` and `x` were here and are gone — a
-  // digit booked a suggestion nobody had looked at, and `x` made skipping as
-  // cheap as booking. Skipping is a button (docs/keyboard-map.md).
+  // Match board (#107 Phase 7): ChoiceOption 1–4, S skip, U receipt, Z undo.
+  // j/k remain aliases for queue movement. Escape clears the form / closes phone.
   { id: 'match.confirm', label: 'keys.matchConfirm', group: 'keys.group.match', keys: 'enter' },
   { id: 'match.next', label: 'keys.matchNext', group: 'keys.group.match', keys: 'j' },
   { id: 'match.previous', label: 'keys.matchPrevious', group: 'keys.group.match', keys: 'k' },
-  { id: 'match.clear', label: 'keys.matchClear', group: 'keys.group.match', keys: 'u' },
+  { id: 'match.choose', label: 'keys.matchChoose', group: 'keys.group.match', keys: '1-4' },
+  { id: 'match.skip', label: 'keys.matchSkip', group: 'keys.group.match', keys: 's' },
+  { id: 'match.receipt', label: 'keys.matchReceipt', group: 'keys.group.match', keys: 'u' },
+  { id: 'match.undo', label: 'keys.matchUndo', group: 'keys.group.match', keys: 'z' },
   { id: 'match.leave', label: 'keys.matchLeave', group: 'keys.group.match', keys: 'escape' },
 
   // Het postvak, worked with the same four keys as the koppelscherm and the
@@ -409,6 +461,8 @@ function keyLabel(key: string, afterModifier = false): string {
       return 'Tab'
     case 'a-z':
       return 'A–Z'
+    case '1-5':
+      return '1–5'
     default:
       // Bare chords stay lowercase (`g d`); after a modifier the letter is
       // capital (`Ctrl` `K`, `⌘` `K`) — #57 / #64 design review.

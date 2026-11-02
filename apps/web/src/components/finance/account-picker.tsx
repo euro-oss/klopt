@@ -1,4 +1,4 @@
-import { RiCheckLine } from '@remixicon/react'
+import { Check } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useT } from '~/i18n/provider'
 import {
@@ -280,7 +280,7 @@ export function AccountPicker({
         <div
           className={cn(
             'border-input bg-background focus-within:border-ring flex items-center gap-2 border px-2 py-1.5',
-            disabled && 'opacity-50',
+            disabled && 'cursor-not-allowed bg-surface-sunken text-ink-muted opacity-100',
             inputClassName,
           )}
         >
@@ -451,7 +451,7 @@ function Option({
       )}
     >
       <span className="min-w-0 truncate">{children}</span>
-      {selected && <RiCheckLine aria-hidden="true" className="size-4 shrink-0" />}
+      {selected && <Check aria-hidden="true" className="size-4 shrink-0" />}
     </li>
   )
 }

@@ -6,9 +6,9 @@ disclosing.
 
 ## Reporting a vulnerability
 
-Report privately through GitHub's **Report a vulnerability** button on the
-Security tab, or by email to `security@euro.computer`. Do not open a public
-issue.
+Report a vulnerability by email to security@euro.computer. Please don't open a
+public issue or pull request for it. GitHub's private vulnerability reporting
+isn't turned on for this repository yet; once it is, you can use that as well.
 
 Include: what you found, how to reproduce it, the version or commit, and what an
 attacker gets out of it.

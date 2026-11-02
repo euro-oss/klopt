@@ -1,5 +1,10 @@
 import { cn } from '~/lib/utils'
-import { formatMinorUnits, type MoneyFormat, DEFAULT_MONEY_FORMAT } from '~/lib/format'
+import {
+  formatMinorUnits,
+  normalizeMinorUnits,
+  type MoneyFormat,
+  DEFAULT_MONEY_FORMAT,
+} from '~/lib/format'
 
 /**
  * Every figure in the application (spec 11.3).
@@ -9,7 +14,7 @@ import { formatMinorUnits, type MoneyFormat, DEFAULT_MONEY_FORMAT } from '~/lib/
  *
  * This is that component. Amounts arrive as minor-unit strings from the API and
  * are parsed to `bigint` here — the value never becomes a `Number`, not even to
- * display it.
+ * display it. Zero is normalised before formatting so `-0` never paints a sign.
  */
 export function Money({
   amount,
@@ -23,7 +28,7 @@ export function Money({
   className?: string | undefined
   muteZero?: boolean | undefined
 }) {
-  const value = typeof amount === 'bigint' ? amount : BigInt(amount)
+  const value = normalizeMinorUnits(amount)
   const rendered = formatMinorUnits(value, format)
 
   return (
@@ -38,6 +43,22 @@ export function Money({
       data-minor-units={value.toString()}
     >
       {rendered}
+    </span>
+  )
+}
+
+/** Euro amount — `€` + non-breaking space + tabular figures (Home / Sales / Costs). */
+export function EuroAmount({
+  amount,
+  className,
+}: {
+  amount: string | bigint
+  className?: string | undefined
+}) {
+  return (
+    <span className={cn('tabular-nums', className)}>
+      <span>{'€\u00a0'}</span>
+      <Money amount={amount} />
     </span>
   )
 }

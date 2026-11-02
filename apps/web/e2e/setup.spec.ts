@@ -52,8 +52,9 @@ test('a new user signs in, sets up an administration and lands in it', async ({ 
     // chrome. Still an answer, just not one printed against the bottom of the
     // rail at all times.
     await openAccountMenu(page)
-    // Trigger summary and menu both show the role once Geavanceerd lives there.
-    await expect(page.getByText(/Eigenaar · Geavanceerd uit/).first()).toBeVisible()
+    // Role only in the profile panel — boekhouddetails lives on Settings.
+    await expect(page.getByRole('dialog', { name: 'Profiel' })).toContainText(/Eigenaar/)
+    await expect(page.getByRole('dialog', { name: 'Profiel' })).not.toContainText(/Geavanceerd/)
     await page.keyboard.press('Escape')
 
     const userId = await findUserIdByEmail(database, email)
